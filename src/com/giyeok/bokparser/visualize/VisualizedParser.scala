@@ -44,7 +44,7 @@ object VisualizedParser {
 
 		// val vp = new VisualizedParser(SampleGrammar4, InputStream.fromString("abb"), shell)
 		// val vp = new VisualizedParser(SampleGrammar7, InputStream.fromString("ac"), shell)
-		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString("abc;"), shell)
+		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString("co;"), shell)
 
 		shell.setLayout(new FillLayout)
 
@@ -160,8 +160,11 @@ class StackEntryFigure(val stackFigure: StackFigure, val stackEntry: Parser#Stac
 		if (stackEntry.generatedFrom != null) {
 			string += " genfrom " + stackEntry.generatedFrom.id
 		}
+		if (stackEntry.generatedFromItem != null) {
+			string += "#" + stackEntry.generatedFromItem.id
+		}
 		add(new Label(string))
-		
+
 		add(stackSymbolFigure)
 		addMouseListener(new MouseListener {
 			def mouseReleased(e: MouseEvent) {}

@@ -53,7 +53,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val entry = stack.pop()
 			val pointer = entry.pointer
 			val fin = entry finished
-			val newentry = entry proceed (TermSymbol(input at entry.pointer, pointer), pointer + 1, entry)
+			val newentry = entry proceed (TermSymbol(input at entry.pointer, pointer), pointer + 1, entry, null)
 
 			def pushFinished(f: List[Parser#StackEntry#StackEntryItem]): Unit =
 				f match {
@@ -71,7 +71,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 								_result = _result add ParseFailed("type 1", pointer) // Error while parsing
 							}
 						} else {
-							stack add (x.generationPoint proceed (new NontermSymbol(x.item.item, children), pointer, x.belonged))
+							stack add (x.generationPoint proceed (new NontermSymbol(x.item.item, children), pointer, x.belonged, x))
 						}
 						pushFinished(xs)
 					case Nil =>
@@ -137,13 +137,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 		private var unique: Int = 0
 		private def nextId = { unique += 1; unique }
 	}
-	class StackEntry(val parent: StackEntry, val symbol: StackSymbol, _items: (StackEntry) => List[Parser.this.StackEntry#StackEntryItem], val pointer: Int, val generatedFrom: Parser#StackEntry) {
-		def this() = this(null, StartSymbol, (x: StackEntry) => List(new x.StackEntryItem(x.defItemToState(Nonterminal(grammar.startSymbol)), null)), 0, null)
+	class StackEntry(val parent: StackEntry, val symbol: StackSymbol, _items: (StackEntry) => List[Parser.this.StackEntry#StackEntryItem], val pointer: Int, val generatedFrom: Parser#StackEntry, val generatedFromItem: Parser#StackEntry#StackEntryItem) {
+		def this() = this(null, StartSymbol, (x: StackEntry) => List(new x.StackEntryItem(x.defItemToState(Nonterminal(grammar.startSymbol)), null)), 0, null, null)
 		def finished: List[StackEntry#StackEntryItem] = all filter (_ finishable)
 		val items = _items(this)
 		val id = StackEntry.nextId
 
-		def proceed(n: StackSymbol, p: Int, from: Parser#StackEntry) = {
+		def proceed(n: StackSymbol, p: Int, from: Parser#StackEntry, fromItem: Parser#StackEntry#StackEntryItem) = {
 			val f = (x: StackEntry) => {
 				var k = List[StackEntry#StackEntryItem]()
 
@@ -158,7 +158,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				}
 				k
 			}
-			new StackEntry(this, n, f, p, from)
+			new StackEntry(this, n, f, p, from, fromItem)
 		}
 		val isEmpty = items isEmpty
 
