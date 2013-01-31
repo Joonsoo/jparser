@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="lib" path="lib/swt64/swt-debug.jar"/>
+	<classpathentry kind="lib" path="lib/gef/org.eclipse.draw2d_3.8.1.201208200205.jar"/>
+	<classpathentry kind="lib" path="lib/gef/org.eclipse.zest.core_1.3.0.201208200205.jar"/>
+	<classpathentry kind="lib" path="lib/gef/org.eclipse.zest.layouts_1.1.0.201208200205.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
