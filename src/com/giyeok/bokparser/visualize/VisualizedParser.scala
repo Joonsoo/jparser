@@ -1,7 +1,6 @@
 package com.giyeok.bokparser.visualize
 
 import scala.collection.mutable.HashMap
-
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.FigureCanvas
@@ -20,14 +19,13 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Canvas
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
-
 import com.giyeok.bokparser.CharInputSymbol
 import com.giyeok.bokparser.ChildrenMap
 import com.giyeok.bokparser.DefItem
 import com.giyeok.bokparser.EOFSymbol
 import com.giyeok.bokparser.Grammar
 import com.giyeok.bokparser.HashedChildrenMap
-import com.giyeok.bokparser.InputStream
+import com.giyeok.bokparser.ParserInput
 import com.giyeok.bokparser.NontermSymbol
 import com.giyeok.bokparser.Nonterminal
 import com.giyeok.bokparser.Parser
@@ -37,6 +35,7 @@ import com.giyeok.bokparser.StartSymbol
 import com.giyeok.bokparser.TermSymbol
 import com.giyeok.bokparser.VirtInputSymbol
 import com.giyeok.bokparser.grammars.JavaScriptGrammar
+import com.giyeok.bokparser.StringInput
 
 object VisualizedParser {
 	def main(args: Array[String]) {
@@ -45,7 +44,7 @@ object VisualizedParser {
 
 		// val vp = new VisualizedParser(SampleGrammar4, InputStream.fromString("abb"), shell)
 		// val vp = new VisualizedParser(SampleGrammar7, InputStream.fromString("ac"), shell)
-		val vp = new VisualizedParser(JavaScriptGrammar, InputStream.fromString("ac=2;"), shell)
+		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString("abc;"), shell)
 
 		shell.setLayout(new FillLayout)
 
@@ -69,7 +68,7 @@ object VisualizedParser {
 	}
 }
 
-class VisualizedParser(val grammar: Grammar, input: InputStream, parent: Canvas) {
+class VisualizedParser(val grammar: Grammar, input: ParserInput, parent: Canvas) {
 	private val parser = new Parser(grammar, input, (parser) => new PreservingOctopusStack(parser) with HashedChildrenMap)
 	private val stack = (parser.stack).asInstanceOf[PreservingOctopusStack with HashedChildrenMap]
 
@@ -154,7 +153,15 @@ class StackEntryFigure(val stackFigure: StackFigure, val stackEntry: Parser#Stac
 		setBackgroundColor(background)
 		setOpaque(true)
 
-		add(new Label("@" + stackEntry.pointer))
+		var string = stackEntry.id + "@" + stackEntry.pointer
+		if (stackEntry.parent != null) {
+			string += " from " + stackEntry.parent.id
+		}
+		if (stackEntry.generatedFrom != null) {
+			string += " genfrom " + stackEntry.generatedFrom.id
+		}
+		add(new Label(string))
+		
 		add(stackSymbolFigure)
 		addMouseListener(new MouseListener {
 			def mouseReleased(e: MouseEvent) {}
@@ -267,6 +274,7 @@ class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedPars
 			case StartSymbol => ("$", DefItemFigure.stringFont)
 			case NontermSymbol(item, _) => item match {
 				case Nonterminal(name) => (name, DefItemFigure.nonterminalFont)
+				case StringInput(string) => (string, DefItemFigure.stringFont)
 				case _ => ("<<" + item.id + ">>", DefItemFigure.defaultFont)
 			}
 			case TermSymbol(input, pointer) => input match {

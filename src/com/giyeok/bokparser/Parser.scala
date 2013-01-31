@@ -6,7 +6,7 @@ import com.giyeok.bokparser.grammars.SampleGrammar1
 
 object Parser {
 	def main(args: Array[String]) {
-		val parser = new Parser(SampleGrammar1, InputStream.fromString("aacdeb")).parse()
+		val parser = new Parser(SampleGrammar1, ParserInput.fromString("aacdeb")).parse()
 	}
 }
 
@@ -32,7 +32,7 @@ sealed abstract class ParsePossibility
 case class ParseFailed(reason: String, location: Int) extends ParsePossibility
 case class ParseSuccess(parsed: StackSymbol) extends ParsePossibility
 
-class Parser(val grammar: Grammar, val input: InputStream, _stack: (Parser) => OctopusStack = (x: Parser) => new OctopusStack(x)) {
+class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => OctopusStack = (x: Parser) => new OctopusStack(x)) {
 	val stack = _stack(this)
 
 	// === parser ===
@@ -51,53 +51,39 @@ class Parser(val grammar: Grammar, val input: InputStream, _stack: (Parser) => O
 	def parseStep() =
 		if (stack hasNext) {
 			val entry = stack.pop()
-			val newentry = entry proceed (TermSymbol(input.symbol, input.pointer), input.pointer + 1)
-			if (newentry isEmpty) {
-				val fin = entry.finished
+			val pointer = entry.pointer
+			val fin = entry finished
+			val newentry = entry proceed (TermSymbol(input at entry.pointer, pointer), pointer + 1, entry)
 
-				def printFinished(f: List[Parser#StackEntry#StackEntryItem]): Unit =
-					f match {
-						case x :: xs =>
-							println(x); println(x.generationPoint); printFinished(xs)
-						case Nil =>
-					}
-				printFinished(fin)
-
-				def pushFinished(f: List[Parser#StackEntry#StackEntryItem]): Unit =
-					f match {
-						case x :: xs =>
-							def _children(y: Parser#StackEntry): List[StackSymbol] =
-								if (y != x.generationPoint)
-									_children(y.parent) ::: List(y.symbol)
-								else Nil
-							val children = _children(x.belonged)
-							if (x.generationPoint == null) {
-								// Parsing finished
-								if (input.symbol == EOFSymbol) {
-									_result = _result add ParseSuccess(x.belonged.symbol) // Successfully parsed
-								} else {
-									_result = _result add ParseFailed("type 1", input.pointer) // Error while parsing
-								}
+			def pushFinished(f: List[Parser#StackEntry#StackEntryItem]): Unit =
+				f match {
+					case x :: xs =>
+						def _children(y: Parser#StackEntry): List[StackSymbol] =
+							if (y != x.generationPoint)
+								_children(y.parent) ::: List(y.symbol)
+							else Nil
+						val children = _children(x.belonged)
+						if (x.generationPoint == null) {
+							// Parsing finished
+							if ((input at pointer) == EOFSymbol) {
+								_result = _result add ParseSuccess(x.belonged.symbol) // Successfully parsed
 							} else {
-								stack add (x.generationPoint.proceed(new NontermSymbol(x.item.item, children), input.pointer))
+								_result = _result add ParseFailed("type 1", pointer) // Error while parsing
 							}
-							pushFinished(xs)
-						case Nil =>
-					}
-				pushFinished(fin)
-			} else {
+						} else {
+							stack add (x.generationPoint proceed (new NontermSymbol(x.item.item, children), pointer, x.belonged))
+						}
+						pushFinished(xs)
+					case Nil =>
+				}
+			pushFinished(fin)
+
+			if (!(newentry isEmpty)) {
 				stack add newentry
-				input.next()
 			}
 			true
 		} else {
 			_finished = true
-			if (input hasNext) {
-				_result = _result add ParseFailed("type 2", input.pointer)
-			}
-			if (result.messages isEmpty) {
-				_result = _result add ParseFailed("Unexpected end of file", input.pointer)
-			}
 			false
 		}
 
@@ -147,12 +133,17 @@ class Parser(val grammar: Grammar, val input: InputStream, _stack: (Parser) => O
 	}
 
 	// === Stack Entry ============================================================================
-	class StackEntry(val parent: StackEntry, val symbol: StackSymbol, _items: (StackEntry) => List[Parser.this.StackEntry#StackEntryItem], val pointer: Int) {
-		def this() = this(null, StartSymbol, (x: StackEntry) => List(new x.StackEntryItem(x.defItemToState(Nonterminal(grammar.startSymbol)), null)), 0)
+	object StackEntry {
+		private var unique: Int = 0
+		private def nextId = { unique += 1; unique }
+	}
+	class StackEntry(val parent: StackEntry, val symbol: StackSymbol, _items: (StackEntry) => List[Parser.this.StackEntry#StackEntryItem], val pointer: Int, val generatedFrom: Parser#StackEntry) {
+		def this() = this(null, StartSymbol, (x: StackEntry) => List(new x.StackEntryItem(x.defItemToState(Nonterminal(grammar.startSymbol)), null)), 0, null)
 		def finished: List[StackEntry#StackEntryItem] = all filter (_ finishable)
 		val items = _items(this)
+		val id = StackEntry.nextId
 
-		def proceed(n: StackSymbol, p: Int) = {
+		def proceed(n: StackSymbol, p: Int, from: Parser#StackEntry) = {
 			val f = (x: StackEntry) => {
 				var k = List[StackEntry#StackEntryItem]()
 
@@ -167,7 +158,7 @@ class Parser(val grammar: Grammar, val input: InputStream, _stack: (Parser) => O
 				}
 				k
 			}
-			new StackEntry(this, n, f, p)
+			new StackEntry(this, n, f, p, from)
 		}
 		val isEmpty = items isEmpty
 
@@ -286,7 +277,7 @@ class Parser(val grammar: Grammar, val input: InputStream, _stack: (Parser) => O
 			def finishable = pointer >= item.seq.length
 			private def checkLookaheadNot(except: List[DefItem]): Boolean = {
 				val g = new CompositeGrammar(except)
-				val parser = new Parser(g, input.subStreamFrom(input.pointer))
+				val parser = new Parser(g, input.subinput(StackEntry.this.pointer))
 				def rec: Boolean = if (parser parseStep) {
 					if (!(parser.stack hasNext)) true else {
 						val i = parser.stack.top.items
@@ -340,7 +331,7 @@ class Parser(val grammar: Grammar, val input: InputStream, _stack: (Parser) => O
 				// check in proceed
 				case NontermSymbol(input, _) if (input == item.item) =>
 					// check input is not in item.except
-					val tester = new Parser(new CompositeGrammar(item.except), InputStream.fromList(next.source))
+					val tester = new Parser(new CompositeGrammar(item.except), ParserInput.fromList(next.source))
 					val test = tester.parse()
 					// println(test)
 					// println("Except: ")

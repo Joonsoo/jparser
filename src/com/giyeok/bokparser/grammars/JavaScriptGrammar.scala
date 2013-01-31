@@ -308,8 +308,8 @@ object JavaScriptGrammar extends Grammar {
 			expr(i("("), i(")")),
 			expr(i("("), n("ArgumentList"), i(")"))),
 		"ArgumentList" -> List(
-			n("AssignemtnExpression"),
-			expr(n("ArgumentList"), i(","), n("AssignemtnExpression"))),
+			n("AssignmentExpression"),
+			expr(n("ArgumentList"), i(","), n("AssignmentExpression"))),
 		"LeftHandSideExpression" -> List(
 			n("NewExpression"),
 			n("CallExpression")),
@@ -418,8 +418,8 @@ object JavaScriptGrammar extends Grammar {
 			n("AssignmentExpression"),
 			expr(n("Expression"), i(","), n("AssignmentExpression"))),
 		"ExpressionNoIn" -> List(
-			n("AssignemtnExpressionNoIn"),
-			expr(n("ExpressionNoIn"), i(","), n("AssignemtnExpressionNoIn"))),
+			n("AssignmentExpressionNoIn"),
+			expr(n("ExpressionNoIn"), i(","), n("AssignmentExpressionNoIn"))),
 		
 		// A.4 Statements
 		"Statement" -> List(
@@ -513,9 +513,9 @@ object JavaScriptGrammar extends Grammar {
 		
 		// A.5 Functions and Programs
 		"FunctionDeclaration" -> List(
-			expr(i("function"), n("Identifier"), i("("), n("FormalParameterList").opt, i(")"), i("{"), n("FunctionBody"), i("}"))),
+			expr(i("function"), oneof(oneline), n("Identifier"), i("("), n("FormalParameterList").opt, i(")"), i("{"), n("FunctionBody"), i("}"))),
 		"FunctionExpression" -> List(
-			expr(i("function"), n("Identifier").opt, i("("), n("FormalParameterList").opt, i(")"), i("{"), n("FunctionBody"), i("}"))),
+			expr(i("function"), oneof(oneline), n("Identifier").opt, i("("), n("FormalParameterList").opt, i(")"), i("{"), n("FunctionBody"), i("}"))),
 		"FormalParameterList" -> List(
 			n("Identifier"),
 			expr(n("FormalParameterList"), i(","), n("Identifier"))),

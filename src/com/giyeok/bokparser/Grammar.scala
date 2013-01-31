@@ -35,6 +35,7 @@ abstract class Grammar {
 	def sequence(whitespace: List[DefItem], seq: DefItem*) = Sequence(seq toList, whitespace)
 	def sequence(whitespace: List[DefItem], seq: List[DefItem], action: (List[Object]) => Object) = new SequenceAction(seq, whitespace, action)
 	def oneof(items: DefItem*) = OneOf(items toArray)
+	def oneof(items: List[DefItem]) = OneOf(items toArray)
 	def oneof(items: Array[DefItem], action: (List[Object]) => Object) = new OneOfAction(items, action)
 	def lookahead_except(except: DefItem*) = LookaheadExcept(except toList)
 	def lookahead_except(except: List[DefItem], action: (List[Object]) => Object) = new LookaheadExceptAction(except, action)
