@@ -6,7 +6,7 @@ import com.giyeok.bokparser.grammars.SampleGrammar1
 
 object Parser {
 	def main(args: Array[String]) {
-		val parser = new Parser(SampleGrammar1, ParserInput.fromString("aacdeb")).parse()
+		val parser = new BlackboxParser(SampleGrammar1).parse("aaa")
 	}
 }
 
@@ -32,14 +32,17 @@ sealed abstract class ParsePossibility
 case class ParseFailed(reason: String, location: Int) extends ParsePossibility
 case class ParseSuccess(parsed: StackSymbol) extends ParsePossibility
 
+class BlackboxParser(val grammar: Grammar) {
+	// === parser ===
+	def parse(input: ParserInput): ParseResult = {
+		val parser = new Parser(grammar, input)
+		while (parser.parseStep()) ()
+		parser.result
+	}
+	def parse(input: String): ParseResult = parse(ParserInput.fromString(input))
+}
 class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => OctopusStack = (x: Parser) => new OctopusStack(x)) {
 	val stack = _stack(this)
-
-	// === parser ===
-	def parse(): ParseResult = {
-		while (parseStep()) ()
-		result
-	}
 
 	// === parser ===
 	private var _result: ParseResult = new ParseResult(Nil)
@@ -88,7 +91,6 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 		}
 
 	// === nullable checking ===
-
 	object Nullable {
 		// nonterminal to nullable boolean map
 		private val map = new collection.mutable.HashMap[String, Boolean]()
@@ -331,12 +333,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				// check in proceed
 				case NontermSymbol(input, _) if (input == item.item) =>
 					// check input is not in item.except
-					val tester = new Parser(new CompositeGrammar(item.except), ParserInput.fromList(next.source))
-					val test = tester.parse()
-					// println(test)
-					// println("Except: ")
-					// println(next.source)
-					// println(item.except)
+					val test = new BlackboxParser(new CompositeGrammar(item.except)).parse(ParserInput.fromList(next.source))
 					if (!(test succeed)) Some(StateExcept(item, true)) else None
 				case _ => None
 			}

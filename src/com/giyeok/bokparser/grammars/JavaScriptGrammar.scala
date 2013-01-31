@@ -1,7 +1,9 @@
 package com.giyeok.bokparser.grammars
-import com.giyeok.bokparser.Grammar
+
 import scala.collection.immutable.ListMap
+
 import com.giyeok.bokparser.DefItem
+import com.giyeok.bokparser.Grammar
 
 object JavaScriptGrammar extends Grammar {
 	private val delimiter = List[DefItem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))

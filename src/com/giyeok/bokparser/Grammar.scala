@@ -1,4 +1,5 @@
 package com.giyeok.bokparser
+
 import scala.collection.immutable.ListMap
 
 abstract class Grammar {

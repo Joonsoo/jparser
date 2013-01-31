@@ -1,8 +1,10 @@
 package com.giyeok.bokparser.grammars
-import com.giyeok.bokparser.Grammar
+
 import scala.collection.immutable.ListMap
-import com.giyeok.bokparser.DefItem
+
 import com.giyeok.bokparser.CharacterRangeInput
+import com.giyeok.bokparser.DefItem
+import com.giyeok.bokparser.Grammar
 
 abstract class SampleGrammar extends Grammar {
 	val sampleInputs: List[String]

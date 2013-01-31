@@ -1,37 +1,38 @@
 package com.giyeok.bokparser.visualize
+
 import scala.collection.immutable.HashMap
+
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.FigureCanvas
 import org.eclipse.draw2d.Label
 import org.eclipse.draw2d.MouseListener
 import org.eclipse.draw2d.OrderedLayout
 import org.eclipse.draw2d.ToolbarLayout
+import org.eclipse.swt.SWT
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Canvas
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
-import org.eclipse.swt.SWT
-import com.giyeok.bokparser.grammars.SampleGrammar1
-import com.giyeok.bokparser.visualize.DefItemFigure.defitem2label
+
+import com.giyeok.bokparser.AnyCharacterInput
+import com.giyeok.bokparser.CharacterRangeInput
 import com.giyeok.bokparser.DefItem
+import com.giyeok.bokparser.Except
 import com.giyeok.bokparser.Grammar
+import com.giyeok.bokparser.LookaheadExcept
 import com.giyeok.bokparser.Nonterminal
+import com.giyeok.bokparser.OneOf
+import com.giyeok.bokparser.PoolCharacterInput
 import com.giyeok.bokparser.Repeat
-import com.giyeok.bokparser.RepeatRange
 import com.giyeok.bokparser.RepeatRangeFrom
 import com.giyeok.bokparser.RepeatRangeTo
 import com.giyeok.bokparser.Sequence
-import com.giyeok.bokparser.OneOf
 import com.giyeok.bokparser.StringInput
-import com.giyeok.bokparser.CharacterRangeInput
-import com.giyeok.bokparser.PoolCharacterInput
-import com.giyeok.bokparser.VirtualInput
 import com.giyeok.bokparser.UnicodeCategoryCharacterInput
-import com.giyeok.bokparser.AnyCharacterInput
-import com.giyeok.bokparser.Except
-import com.giyeok.bokparser.LookaheadExcept
 import com.giyeok.bokparser.UnicodeUtil
+import com.giyeok.bokparser.VirtualInput
+import com.giyeok.bokparser.grammars.SampleGrammar1
 
 object VisualizedGrammar {
 	def main(args: Array[String]) {
