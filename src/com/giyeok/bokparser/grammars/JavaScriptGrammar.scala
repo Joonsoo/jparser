@@ -14,6 +14,7 @@ object JavaScriptGrammar extends Grammar {
 	def line(seq: DefItem*) = sequence(oneline, seq:_*)
 	
 	override val name = "JavaScript"
+	override val whitespaces = List()
 	override val rules = ListMap(
 		// A.1 Lexical Grammar
 		"SourceCharacter" -> List(c()),

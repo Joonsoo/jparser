@@ -119,6 +119,14 @@ class StackFigure(val stack: PreservingOctopusStack with ChildrenMap)(implicit v
 				val children = stack.getChildrenOf(node)
 				val figure = figureMap(node)
 				val bounds = figure.getBounds()
+				
+				if (stack.hasNext && node == stack.top) {
+					figure.setBackgroundColor(StackEntryFigure.nextColor)
+				} else if (stack.getDone contains node) {
+					figure.setBackgroundColor(StackEntryFigure.doneColor)
+				} else {
+					figure.setBackgroundColor(StackEntryFigure.backgroundColor)
+				}
 
 				if (children.isEmpty) return bounds.height
 				var (margin_x, margin_y) = (20, 15)
@@ -138,9 +146,12 @@ class StackFigure(val stack: PreservingOctopusStack with ChildrenMap)(implicit v
 	}
 }
 
+object StackEntryFigure {
+	val doneColor = ColorConstants.lightGray
+	val nextColor = ColorConstants.lightBlue
+	val backgroundColor = new Color(null, 255, 255, 206)
+}
 class StackEntryFigure(val stackFigure: StackFigure, val stackEntry: Parser#StackEntry)(implicit val vp: VisualizedParser) extends Figure {
-	private final val background = new Color(null, 255, 255, 206)
-
 	private val stackSymbolFigure = new StackSymbolFigure(stackEntry.symbol)
 	private val stackEntryItemsFigure = new StackEntryItemsFigure(stackEntry.items, stackEntry.adjacent)
 	private var expanded = false
@@ -152,7 +163,7 @@ class StackEntryFigure(val stackFigure: StackFigure, val stackEntry: Parser#Stac
 		setLayoutManager(layout)
 
 		setBorder(new LineBorder(ColorConstants.black, 1))
-		setBackgroundColor(background)
+		setBackgroundColor(StackEntryFigure.backgroundColor)
 		setOpaque(true)
 
 		var string = stackEntry.id + "@" + stackEntry.pointer
@@ -216,11 +227,11 @@ class StackEntryItemFigure(val kernel: Boolean, val entryItem: Parser#StackEntry
 		setToolTip(new Label("" + item.item.id))
 	}
 
-	def addStateDefItemLabel(item: Parser#StackEntry#StateDefItem): Unit = {
+	def addStateDefItemLabel(item: Parser#StackEntry#ParsingItem): Unit = {
 		val labelize = DefItemFigure.defitem2label _
 		item match {
 			// COMMENT Expect someday Scala supports for type matching on dependent types
-			case sn: Parser#StackEntry#StateNonterminal =>
+			case sn: Parser#StackEntry#ParsingNonterminal =>
 				val fig = labelize(sn.item)
 				val tooltip = new Figure()
 				tooltip.setLayoutManager(new ToolbarLayout(true))
@@ -230,11 +241,11 @@ class StackEntryItemFigure(val kernel: Boolean, val entryItem: Parser#StackEntry
 				if (!sn.done) add(dotLabel)
 				add(fig)
 				if (sn.done) add(dotLabel)
-			case si: Parser#StackEntry#StateStringInput =>
+			case si: Parser#StackEntry#ParsingStringInput =>
 				add(DefItemFigure.stringInputLabel(si.item.string.substring(0, si.pointer)))
 				add(dotLabel)
 				add(DefItemFigure.stringInputLabel(si.item.string.substring(si.pointer)))
-			case seq: Parser#StackEntry#StateSequence =>
+			case seq: Parser#StackEntry#ParsingSequence =>
 				def addLabels(l: List[DefItem]): Unit = l match {
 					case x :: xs =>
 						add(labelize(x)); addLabels(xs)
@@ -244,15 +255,15 @@ class StackEntryItemFigure(val kernel: Boolean, val entryItem: Parser#StackEntry
 				addLabels(f)
 				add(dotLabel)
 				addLabels(b)
-			case rep: Parser#StackEntry#StateRepeat =>
+			case rep: Parser#StackEntry#ParsingRepeat =>
 				if (rep.item.range canProceed rep.count) add(dotLabel)
 				add(labelize(rep.item))
 				if (rep.count >= rep.item.range.from) add(dotLabel)
-			case _: Parser#StackEntry#StateInput | _: Parser#StackEntry#StateOneOf =>
+			case _: Parser#StackEntry#ParsingInput | _: Parser#StackEntry#ParsingOneOf =>
 				if (!item.finishable) add(dotLabel)
 				add(labelize(item.item))
 				if (item.finishable) add(dotLabel)
-			case exc: Parser#StackEntry#StateExcept =>
+			case exc: Parser#StackEntry#ParsingExcept =>
 				if (!item.finishable) add(dotLabel)
 				add(labelize(exc.item.item))
 				add(new Label(" except "))

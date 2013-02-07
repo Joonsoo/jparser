@@ -1,8 +1,8 @@
 package com.giyeok.bokparser
 
 import scala.collection.immutable.ListMap
-
 import com.giyeok.bokparser.grammars.SampleGrammar1
+import com.giyeok.bokparser.visualize.VisualizedStackSymbol
 
 object Parser {
 	def main(args: Array[String]) {
@@ -18,6 +18,7 @@ class ParseResult(val messages: List[ParsePossibility]) {
 				println(parsed)
 				println(parsed.source)
 				println(parsed.text)
+				println(new VisualizedStackSymbol(parsed).repr)
 			case ParseFailed(reason, location) =>
 				println("Parsing failed since")
 				println(s"  $reason at $location")
@@ -83,6 +84,9 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 
 			if (!(newentry isEmpty)) {
 				stack add newentry
+			} else if (fin isEmpty) {
+				// and if the entry has no child
+				println(s"${entry.id} is vaporized")
 			}
 			true
 		} else {
@@ -165,7 +169,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 		val isEmpty = items isEmpty
 
 		private def _adjacent(items: List[StackEntry#StackEntryItem]): List[StackEntry#StackEntryItem] = {
-			def process(left: List[StackEntry#StateDefItem], set: List[StackEntry#StateDefItem], result: List[StackEntry#StateDefItem]): List[StackEntry#StateDefItem] = {
+			def process(left: List[StackEntry#ParsingItem], set: List[StackEntry#ParsingItem], result: List[StackEntry#ParsingItem]): List[StackEntry#ParsingItem] = {
 				def filterNew[T](r: List[T]) = (r filter (!set.contains(_)))
 				left match {
 					case x :: xs =>
@@ -185,7 +189,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			private var unique: Int = 0
 			private def nextId = { unique += 1; unique }
 		}
-		class StackEntryItem(val item: StackEntry#StateDefItem, val generationPoint: StackEntry) {
+		class StackEntryItem(val item: StackEntry#ParsingItem, val generationPoint: StackEntry) {
 			//		def this(item: StateDefItem)(implicit belonged: StackEntry) = this(item, null)
 			//		def this(item: DefItem, generationPoint: StackEntry)(implicit belonged: StackEntry) = this(defItemToState(item), generationPoint)
 			//		def this(item: DefItem)(implicit belonged: StackEntry) = this(item, null)
@@ -208,74 +212,74 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			}
 		}
 
-		// ==== StateDefItems =====================================================================
+		// ==== ParsingItems ======================================================================
 		def defItemToState(i: DefItem) = i match {
-			case j: CharacterInput => StateCharacterInput(j)
-			case j: StringInput => StateStringInput(j)
-			case j: VirtualInput => StateVirtualInput(j)
-			case j: Nonterminal => StateNonterminal(j)
-			case j: OneOf => StateOneOf(j)
-			case j: Repeat => StateRepeat(j)
-			case j: Sequence => StateSequence(j)
-			case j: Except => StateExcept(j)
-			case j: LookaheadExcept => StateLookaheadExcept(j)
+			case j: CharacterInput => ParsingCharacterInput(j)
+			case j: StringInput => ParsingStringInput(j)
+			case j: VirtualInput => ParsingVirtualInput(j)
+			case j: Nonterminal => ParsingNonterminal(j)
+			case j: OneOf => ParsingOneOf(j)
+			case j: Repeat => ParsingRepeat(j)
+			case j: Sequence => ParsingSequence(j)
+			case j: Except => ParsingExcept(j)
+			case j: LookaheadExcept => ParsingLookaheadExcept(j)
 		}
-		abstract class StateDefItem(val item: DefItem) {
+		abstract class ParsingItem(val item: DefItem) {
 			def finishable: Boolean
-			def proceed(next: StackSymbol): Option[StateDefItem]
-			def adjacent: List[StateDefItem]
+			def proceed(next: StackSymbol): Option[ParsingItem]
+			def adjacent: List[ParsingItem]
 		}
-		abstract class StateInput(override val item: Input) extends StateDefItem(item) {
+		abstract class ParsingInput(override val item: Input) extends ParsingItem(item) {
 			// Input items have no need to define adjacent items
-			def adjacent: List[StateDefItem] = List()
+			def adjacent: List[ParsingItem] = List()
 		}
-		case class StateCharacterInput(override val item: CharacterInput, done: Boolean = false) extends StateInput(item) {
+		case class ParsingCharacterInput(override val item: CharacterInput, done: Boolean = false) extends ParsingInput(item) {
 			def finishable = done
 			def proceed(next: StackSymbol) = next match {
-				case TermSymbol(_@ CharInputSymbol(char), _) if (!done && (item acceptable char)) => Some(new StateCharacterInput(item, true))
+				case TermSymbol(_@ CharInputSymbol(char), _) if (!done && (item acceptable char)) => Some(new ParsingCharacterInput(item, true))
 				case _ => None
 			}
 		}
-		case class StateStringInput(override val item: StringInput, pointer: Int = 0) extends StateInput(item) {
+		case class ParsingStringInput(override val item: StringInput, pointer: Int = 0) extends ParsingInput(item) {
 			def finishable = pointer >= item.string.length()
 			def proceed(next: StackSymbol) = if (finishable) None else next match {
-				case TermSymbol(_@ CharInputSymbol(char), _) if (item.string.charAt(pointer) == char) => Some(new StateStringInput(item, pointer + 1))
+				case TermSymbol(_@ CharInputSymbol(char), _) if (item.string.charAt(pointer) == char) => Some(new ParsingStringInput(item, pointer + 1))
 				case _ => None
 			}
 		}
-		case class StateVirtualInput(override val item: VirtualInput, done: Boolean = false) extends StateInput(item) {
+		case class ParsingVirtualInput(override val item: VirtualInput, done: Boolean = false) extends ParsingInput(item) {
 			def finishable = done
 			def proceed(next: StackSymbol) = next match {
-				case TermSymbol(_@ VirtInputSymbol(virt), _) if (!done && virt == item.name) => Some(new StateVirtualInput(item, true))
+				case TermSymbol(_@ VirtInputSymbol(virt), _) if (!done && virt == item.name) => Some(new ParsingVirtualInput(item, true))
 				case _ => None
 			}
 		}
-		case class StateNonterminal(override val item: Nonterminal, done: Boolean = false) extends StateDefItem(item) {
+		case class ParsingNonterminal(override val item: Nonterminal, done: Boolean = false) extends ParsingItem(item) {
 			def finishable = done
 			def proceed(next: StackSymbol) = next match {
-				case NontermSymbol(rhs, _) if (!done && (grammar.rules(item.name) contains rhs)) => Some(new StateNonterminal(item, true))
+				case NontermSymbol(rhs, _) if (!done && (grammar.rules(item.name) contains rhs)) => Some(new ParsingNonterminal(item, true))
 				case _ => None
 			}
 			def adjacent = if (!done) (grammar.rules(item.name) map (defItemToState _)) else List()
 		}
-		case class StateOneOf(override val item: OneOf, done: Boolean = false) extends StateDefItem(item) {
+		case class ParsingOneOf(override val item: OneOf, done: Boolean = false) extends ParsingItem(item) {
 			def finishable = done
 			def proceed(next: StackSymbol) = next match {
-				case NontermSymbol(s, _) if (!done && (item.items contains s)) => Some(StateOneOf(item, true))
+				case NontermSymbol(s, _) if (!done && (item.items contains s)) => Some(ParsingOneOf(item, true))
 				case _ => None
 			}
 			def adjacent = if (!done) (item.items map (defItemToState _)) toList else List()
 		}
-		case class StateRepeat(override val item: Repeat, count: Int = 0) extends StateDefItem(item) {
+		case class ParsingRepeat(override val item: Repeat, count: Int = 0) extends ParsingItem(item) {
 			def finishable = item.range contains count
 			def proceed(next: StackSymbol) = next match {
-				case NontermSymbol(s, _) if (item.item == s && (item.range canProceed count)) => Some(StateRepeat(item, count + 1))
+				case NontermSymbol(s, _) if (item.item == s && (item.range canProceed count)) => Some(ParsingRepeat(item, count + 1))
 				case _ => None
 			}
 			val stateItem = defItemToState(item.item)
 			def adjacent = if (item.range canProceed count) List(stateItem) else List()
 		}
-		case class StateSequence(override val item: Sequence, pointer: Int = 0) extends StateDefItem(item) {
+		case class ParsingSequence(override val item: Sequence, pointer: Int = 0) extends ParsingItem(item) {
 			def finishable = pointer >= item.seq.length
 			private def checkLookaheadNot(except: List[DefItem]): Boolean = {
 				val g = new CompositeGrammar(except)
@@ -285,7 +289,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 						val i = parser.stack.top.items
 						// if "parser.stackTop" is like $* (finishing start symbol), it returns false
 						if (i.length == 1 && ((i.head.item) match {
-							case StateNonterminal(item @ Nonterminal(g.startSymbol), true) => true
+							case ParsingNonterminal(item @ Nonterminal(g.startSymbol), true) => true
 							case _ => false
 						})) false
 						else rec
@@ -314,10 +318,10 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 					// require(k == (proceedables indexOf input))
 					val k = (proceedables indexOf input)
 					if (k < 0) {
-						if (ws contains input) Some(new StateSequence(item, pointer)) // COMMENT Some(this) is OK?
+						if (ws contains input) Some(new ParsingSequence(item, pointer)) // COMMENT Some(this) is OK?
 						else None
 					} else {
-						Some(new StateSequence(item, pointer + k + 1))
+						Some(new ParsingSequence(item, pointer + k + 1))
 					}
 				case _ => None
 			}
@@ -325,27 +329,27 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				(proceedables map (defItemToState _)) ::: (item.whitespace map (defItemToState _))
 			}
 		}
-		case class StateExcept(override val item: Except, passed: Boolean = false) extends StateDefItem(item) {
+		case class ParsingExcept(override val item: Except, passed: Boolean = false) extends ParsingItem(item) {
 			private lazy val inputPointer = StackEntry.this.pointer
 
 			def finishable: Boolean = passed
-			def proceed(next: StackSymbol): Option[StateDefItem] = next match {
+			def proceed(next: StackSymbol): Option[ParsingItem] = next match {
 				// check in proceed
 				case NontermSymbol(input, _) if (input == item.item) =>
 					// check input is not in item.except
 					val test = new BlackboxParser(new CompositeGrammar(item.except)).parse(ParserInput.fromList(next.source))
-					if (!(test succeed)) Some(StateExcept(item, true)) else None
+					if (!(test succeed)) Some(ParsingExcept(item, true)) else None
 				case _ => None
 			}
 
 			val stateItem = defItemToState(item.item)
-			def adjacent: List[StateDefItem] = if (!passed) List(stateItem) else List()
+			def adjacent: List[ParsingItem] = if (!passed) List(stateItem) else List()
 		}
-		case class StateLookaheadExcept(override val item: LookaheadExcept) extends StateDefItem(item) {
+		case class ParsingLookaheadExcept(override val item: LookaheadExcept) extends ParsingItem(item) {
 			// "lookahead except" items are processed in sequence, so this is just dummy
 			def finishable: Boolean = false
-			def proceed(next: StackSymbol): Option[StateDefItem] = None
-			def adjacent: List[StateDefItem] = List()
+			def proceed(next: StackSymbol): Option[ParsingItem] = None
+			def adjacent: List[ParsingItem] = List()
 		}
 	}
 
@@ -358,6 +362,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			nextSymbol("$")
 		}
 		val rules: ListMap[String, List[DefItem]] = grammar.rules + ((startSymbol, starting))
+		val whitespaces = grammar.whitespaces
 	}
 }
 

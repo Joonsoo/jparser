@@ -28,12 +28,18 @@ class PreservingOctopusStack(bottom: Parser#StackEntry) extends OctopusStack(bot
 	def this(parser: Parser) = this(OctopusStack.starter(parser))
 
 	protected var all = List[Parser#StackEntry](bottom)
+	protected var done = List[Parser#StackEntry]()
 
 	override def add(entry: Parser#StackEntry) = {
 		all ::= entry
 		super.add(entry)
 	}
+	override def pop() = {
+		done ::= top
+		super.pop()
+	}
 	def getAll = all
+	def getDone = done
 }
 
 trait ChildrenMap extends PreservingOctopusStack {
