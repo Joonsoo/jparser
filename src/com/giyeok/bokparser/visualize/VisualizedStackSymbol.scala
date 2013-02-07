@@ -22,9 +22,9 @@ object VisualizedStackSymbol {
 class VisualizedStackSymbol(val stackSymbol: StackSymbol) extends Figure {
 	private def stringify(symbol: StackSymbol): String = symbol match {
 		case StartSymbol => "$"
-		case NontermSymbol(item, containing) => item match {
-			case Nonterminal(name) => name + "(" + ((containing map (stringify _)) mkString ", ") + ")"
-			case _ => "(" + ((containing map (stringify _)) mkString ", ") + ")"
+		case NontermSymbol(item) => item.item match {
+			case Nonterminal(name, _, _) => name + "(" + ((item.children map (stringify _)) mkString ", ") + ")"
+			case _ => "(" + ((item.children map (stringify _)) mkString ", ") + ")"
 		}
 		case TermSymbol(term, pointer) => term match {
 			case CharInputSymbol(char) => s"$char"

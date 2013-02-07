@@ -6,7 +6,6 @@ abstract class Grammar {
 	val name: String
 	val rules: ListMap[String, List[DefItem]]
 	val startSymbol: String
-	val whitespaces: List[DefItem]
 
 	def nonterm(name: String) = Nonterminal(name)
 	def n(name: String) = nonterm(name)
@@ -75,7 +74,7 @@ trait Repeatable {
 	def plus = repeat(1)
 }
 
-sealed abstract class DefItem {
+sealed abstract class DefItem(val precedingWS: List[DefItem], val followingWS: List[DefItem]) {
 	val id = DefItem.nextId
 
 	override def equals(other: Any) = other match {
@@ -92,12 +91,8 @@ object DefItem {
 trait DefAction {
 	val action: (List[Object]) => Object
 }
-trait DangledWhitespace {
-	val precedingWS: List[DefItem]
-	val followingWS: List[DefItem]
-}
 
-case class Nonterminal(name: String) extends DefItem {
+case class Nonterminal(name: String, pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends DefItem(pWS, fWS) {
 	override def equals(other: Any) = other match {
 		case that: Nonterminal => (that canEqual this) && (that.name == name)
 		case _ => false
@@ -105,18 +100,18 @@ case class Nonterminal(name: String) extends DefItem {
 	override def canEqual(other: Any) = other.isInstanceOf[Nonterminal]
 }
 
-sealed abstract class Input extends DefItem
-case class StringInput(string: String) extends Input {
+sealed abstract class Input(pWS: List[DefItem], fWS: List[DefItem]) extends DefItem(pWS, fWS)
+case class StringInput(string: String, pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends Input(pWS, fWS) {
 	override def equals(other: Any) = other match {
 		case that: StringInput => (that canEqual this) && (that.string == string)
 		case _ => false
 	}
 	override def canEqual(other: Any) = other.isInstanceOf[StringInput]
 }
-sealed abstract class CharacterInput extends Input {
+sealed abstract class CharacterInput(pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends Input(pWS, fWS) {
 	def acceptable(char: Char): Boolean
 }
-case class AnyCharacterInput extends CharacterInput {
+case class AnyCharacterInput(pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends CharacterInput(pWS, fWS) {
 	override def equals(other: Any) = other match {
 		case that: AnyCharacterInput => (that canEqual this)
 		case _ => false
@@ -124,7 +119,7 @@ case class AnyCharacterInput extends CharacterInput {
 	override def canEqual(other: Any) = other.isInstanceOf[AnyCharacterInput]
 	def acceptable(char: Char) = true
 }
-case class PoolCharacterInput(chars: Array[Char]) extends CharacterInput {
+case class PoolCharacterInput(chars: Array[Char], pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends CharacterInput(pWS, fWS) {
 	override def equals(other: Any) = other match {
 		case that: PoolCharacterInput => (that canEqual this) && ((that.chars toSet) == (chars toSet))
 		case _ => false
@@ -132,7 +127,7 @@ case class PoolCharacterInput(chars: Array[Char]) extends CharacterInput {
 	override def canEqual(other: Any) = other.isInstanceOf[PoolCharacterInput]
 	def acceptable(char: Char) = (chars contains char)
 }
-case class UnicodeCategoryCharacterInput(categories: Array[Byte]) extends CharacterInput {
+case class UnicodeCategoryCharacterInput(categories: Array[Byte], pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends CharacterInput(pWS, fWS) {
 	override def equals(other: Any) = other match {
 		case that: UnicodeCategoryCharacterInput => (that canEqual this) && ((that.categories toSet) == (categories toSet))
 		case _ => false
@@ -140,7 +135,7 @@ case class UnicodeCategoryCharacterInput(categories: Array[Byte]) extends Charac
 	override def canEqual(other: Any) = other.isInstanceOf[UnicodeCategoryCharacterInput]
 	def acceptable(char: Char) = categories contains char.getType
 }
-case class CharacterRangeInput(from: Char, to: Char) extends CharacterInput {
+case class CharacterRangeInput(from: Char, to: Char, pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends CharacterInput(pWS, fWS) {
 	override def equals(other: Any) = other match {
 		case that: CharacterRangeInput => (that canEqual this) && (that.from == from) && (that.to == to)
 		case _ => false
@@ -148,7 +143,7 @@ case class CharacterRangeInput(from: Char, to: Char) extends CharacterInput {
 	override def canEqual(other: Any) = other.isInstanceOf[CharacterRangeInput]
 	def acceptable(char: Char) = (from <= char && char <= to)
 }
-case class VirtualInput(name: String) extends Input {
+case class VirtualInput(name: String, pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends Input(pWS, fWS) {
 	override def equals(other: Any) = other match {
 		case that: VirtualInput => (that canEqual this) && (that.name == name)
 		case _ => false
@@ -156,11 +151,11 @@ case class VirtualInput(name: String) extends Input {
 	override def canEqual(other: Any) = other.isInstanceOf[VirtualInput]
 }
 
-case class Sequence(seq: List[DefItem], whitespace: List[DefItem]) extends DefItem
-case class OneOf(items: Array[DefItem]) extends DefItem
-case class Except(item: DefItem, except: List[DefItem]) extends DefItem
-case class LookaheadExcept(except: List[DefItem]) extends DefItem
-case class Repeat(item: DefItem, range: RepeatRange) extends DefItem {
+case class Sequence(seq: List[DefItem], whitespace: List[DefItem], pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends DefItem(pWS, fWS)
+case class OneOf(items: Array[DefItem], pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends DefItem(pWS, fWS)
+case class Except(item: DefItem, except: List[DefItem], pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends DefItem(pWS, fWS)
+case class LookaheadExcept(except: List[DefItem], pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends DefItem(pWS, fWS)
+case class Repeat(item: DefItem, range: RepeatRange, pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends DefItem(pWS, fWS) {
 	override def equals(other: Any) = other match {
 		case that: Repeat => (that canEqual this) && (that.item == item) && (that.range == range)
 		case _ => false

@@ -4,17 +4,20 @@ import scala.collection.immutable.ListMap
 
 import com.giyeok.bokparser.DefItem
 import com.giyeok.bokparser.Grammar
+import com.giyeok.bokparser.Nonterminal
 
 object JavaScriptGrammar extends Grammar {
-	private val delimiter = List[DefItem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
-	private val oneline = List[DefItem](n("WhiteSpace"), n("Comment"))
+	private val whitespace = List[DefItem](N("WhiteSpace"), N("LineTerminator"), N("Comment"))
+	private val oneline = List[DefItem](N("WhiteSpace"), N("Comment"))
 	
-	def expr(seq: DefItem*) = sequence(delimiter, seq:_*)
+	def expr(seq: DefItem*) = sequence(whitespace, seq:_*)
 	def lex(seq: DefItem*) = sequence(seq:_*)
 	def line(seq: DefItem*) = sequence(oneline, seq:_*)
 	
+	def N(name: String) = super.n(name)
+	override def n(name: String) = Nonterminal(name, whitespace, whitespace)
+	
 	override val name = "JavaScript"
-	override val whitespaces = List()
 	override val rules = ListMap(
 		// A.1 Lexical Grammar
 		"SourceCharacter" -> List(c()),
@@ -261,7 +264,7 @@ object JavaScriptGrammar extends Grammar {
 		// A.3 Expressions
 		"PrimaryExpression" -> List(
 			i("this"),
-			expr(n("Identifier")),
+			n("Identifier"),
 			n("Literal"),
 			n("ArrayLiteral"),
 			n("ObjectLiteral"),

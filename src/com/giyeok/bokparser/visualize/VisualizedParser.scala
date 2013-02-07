@@ -288,10 +288,10 @@ class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedPars
 
 		val (repr, font) = symbol match {
 			case StartSymbol => ("$", DefItemFigure.stringFont)
-			case NontermSymbol(item, _) => item match {
-				case Nonterminal(name) => (name, DefItemFigure.nonterminalFont)
-				case StringInput(string) => (string, DefItemFigure.stringFont)
-				case _ => ("<<" + item.id + ">>", DefItemFigure.defaultFont)
+			case NontermSymbol(item) => item.item match {
+				case Nonterminal(name, _, _) => (name, DefItemFigure.nonterminalFont)
+				case StringInput(string, _, _) => (string, DefItemFigure.stringFont)
+				case _ => ("<<" + item.item.id + ">>", DefItemFigure.defaultFont)
 			}
 			case TermSymbol(input, pointer) => input match {
 				case CharInputSymbol(char) => (s"$char at $pointer", DefItemFigure.stringFont)

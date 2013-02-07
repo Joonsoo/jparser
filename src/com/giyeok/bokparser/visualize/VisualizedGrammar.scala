@@ -134,30 +134,30 @@ object DefItemFigure {
 			}
 		}
 		val fig = defitem match {
-			case Nonterminal(name) => label(name, nonterminalFont)
-			case StringInput(string) => stringInputLabel(string)
-			case AnyCharacterInput() => label("any char", instFont)
-			case PoolCharacterInput(chars) => label((escapeChars(chars) toSeq) mkString "|", instFont)
-			case UnicodeCategoryCharacterInput(cates) => label(UnicodeUtil.translateToString(cates) mkString "|", instFont)
-			case CharacterRangeInput(from, to) => label(escape(from) + ".." + escape(to), instFont)
-			case VirtualInput(name) => label(name, virtFont)
-			case Sequence(seq, whitespace) => 
+			case Nonterminal(name, _, _) => label(name, nonterminalFont)
+			case StringInput(string, _, _) => stringInputLabel(string)
+			case AnyCharacterInput(_, _) => label("any char", instFont)
+			case PoolCharacterInput(chars, _, _) => label((escapeChars(chars) toSeq) mkString "|", instFont)
+			case UnicodeCategoryCharacterInput(cates, _, _) => label(UnicodeUtil.translateToString(cates) mkString "|", instFont)
+			case CharacterRangeInput(from, to, _, _) => label(escape(from) + ".." + escape(to), instFont)
+			case VirtualInput(name, _, _) => label(name, virtFont)
+			case Sequence(seq, whitespace, _, _) => 
 				val fig = horzFigure()
 				if (seq isEmpty) fig add new Label("\u03B5")
 				else seq foreach (fig add _)
 				fig
-			case OneOf(items) => val fig = horzFigure(); addWithBars(fig, items); fig
-			case Except(item, except) =>
+			case OneOf(items, _, _) => val fig = horzFigure(); addWithBars(fig, items); fig
+			case Except(item, except, _, _) =>
 				val fig = horzFigure()
 				fig add "("; fig add item; fig add ")"
 				fig add label("but not", instFont)
 				fig add "("; addWithBars(fig, except); fig add ")"
 				fig
-			case LookaheadExcept(except) =>
+			case LookaheadExcept(except, _, _) =>
 				val fig = horzFigure()
 				fig add "Lookahead not in ("; addWithBars(fig, except); fig add ")"
 				fig
-			case Repeat(item, range) => {
+			case Repeat(item, range, _, _) => {
 				val fig = horzFigure()
 				fig add "("; fig add item; fig add ")"
 				range match {

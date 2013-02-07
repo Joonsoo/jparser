@@ -121,6 +121,5 @@ object ScalaGrammar extends Grammar {
 		)
 		// TODO finish this
 	)
-	override val whitespaces = List()
 	override val startSymbol = "CompilationUnit"
 }

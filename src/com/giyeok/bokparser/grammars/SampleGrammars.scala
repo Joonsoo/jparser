@@ -7,7 +7,6 @@ import com.giyeok.bokparser.DefItem
 import com.giyeok.bokparser.Grammar
 
 abstract class SampleGrammar extends Grammar {
-	val whitespaces = List()
 	val sampleInputs: List[String]
 }
 
