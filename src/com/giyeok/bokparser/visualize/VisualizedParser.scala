@@ -24,6 +24,7 @@ import org.eclipse.swt.widgets.Shell
 import com.giyeok.bokparser.CharInputSymbol
 import com.giyeok.bokparser.ChildrenMap
 import com.giyeok.bokparser.DefItem
+import com.giyeok.bokparser.EmptySymbol
 import com.giyeok.bokparser.EOFSymbol
 import com.giyeok.bokparser.Grammar
 import com.giyeok.bokparser.HashedChildrenMap
@@ -46,7 +47,7 @@ object VisualizedParser {
 
 		// val vp = new VisualizedParser(SampleGrammar4, InputStream.fromString("abb"), shell)
 		// val vp = new VisualizedParser(SampleGrammar7, InputStream.fromString("ac"), shell)
-		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString("co;"), shell)
+		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString("  var q    =  co  + 1;"), shell)
 
 		shell.setLayout(new FillLayout)
 
@@ -54,10 +55,17 @@ object VisualizedParser {
 
 		vp.canvas.addKeyListener(new KeyListener {
 			def keyPressed(e: KeyEvent) = {
-				if (e.keyCode == '\r') {
-					if (!vp.proceed()) {
+				e.keyCode match {
+					case '\r' =>
+						if (!vp.proceed()) {
+							println("Parsing finished")
+						}
+					case 'a' =>
+						var counter = 0
+						while (vp.proceed() && counter < 1000) (counter += 1)
 						println("Parsing finished")
-					}
+						println(vp.parser.result.messages.length)
+					case _ =>
 				}
 			}
 			def keyReleased(e: KeyEvent) = {}
@@ -119,7 +127,7 @@ class StackFigure(val stack: PreservingOctopusStack with ChildrenMap)(implicit v
 				val children = stack.getChildrenOf(node)
 				val figure = figureMap(node)
 				val bounds = figure.getBounds()
-				
+
 				if (stack.hasNext && node == stack.top) {
 					figure.setBackgroundColor(StackEntryFigure.nextColor)
 				} else if (stack.getDone contains node) {
@@ -298,6 +306,7 @@ class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedPars
 				case VirtInputSymbol(virt) => (s"$virt at $pointer", DefItemFigure.virtFont)
 				case EOFSymbol => ("$", DefItemFigure.defaultFont) // should not be here
 			}
+			case EmptySymbol => (".", DefItemFigure.defaultFont) // empty
 		}
 		val symbolLabel = new Label(repr)
 		symbolLabel.setFont(DefItemFigure.defaultFont)

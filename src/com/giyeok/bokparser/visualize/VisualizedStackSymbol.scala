@@ -4,6 +4,7 @@ import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.Label
 import org.eclipse.draw2d.ToolbarLayout
 import com.giyeok.bokparser.CharInputSymbol
+import com.giyeok.bokparser.EmptySymbol
 import com.giyeok.bokparser.EOFSymbol
 import com.giyeok.bokparser.NontermSymbol
 import com.giyeok.bokparser.StackSymbol
@@ -31,6 +32,7 @@ class VisualizedStackSymbol(val stackSymbol: StackSymbol) extends Figure {
 			case VirtInputSymbol(name) => name
 			case EOFSymbol => "$"
 		}
+		case EmptySymbol => "."
 	}
 
 	val repr = stringify(stackSymbol)

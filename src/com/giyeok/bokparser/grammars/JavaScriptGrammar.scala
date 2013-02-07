@@ -5,12 +5,13 @@ import scala.collection.immutable.ListMap
 import com.giyeok.bokparser.DefItem
 import com.giyeok.bokparser.Grammar
 import com.giyeok.bokparser.Nonterminal
+import com.giyeok.bokparser.Sequence
 
 object JavaScriptGrammar extends Grammar {
 	private val whitespace = List[DefItem](N("WhiteSpace"), N("LineTerminator"), N("Comment"))
 	private val oneline = List[DefItem](N("WhiteSpace"), N("Comment"))
 	
-	def expr(seq: DefItem*) = sequence(whitespace, seq:_*)
+	def expr(seq: DefItem*) = Sequence(seq toList, whitespace, whitespace, whitespace)
 	def lex(seq: DefItem*) = sequence(seq:_*)
 	def line(seq: DefItem*) = sequence(oneline, seq:_*)
 	
@@ -26,7 +27,7 @@ object JavaScriptGrammar extends Grammar {
 		"InputElementRegExp" -> List(
 			n("WhiteSpace"), n("LineTerminator"), n("Comment"), n("Token"), n("RegularExpressionLiteral")),
 		"WhiteSpace" -> List(
-			c("\u0009\u000B\u000C\u0020\u00A0\uFEFF"), unicode_categories("Zs")),
+			c("\u0009\u000B\u000C\uFEFF"), unicode_categories("Zs")),		// \u0020\u00A0  ->  already in Zs
 		"LineTerminator" -> List(
 			c("\n\r\u2028\u2029")),
 		"LineTerminatorSequence" -> List(
