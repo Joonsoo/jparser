@@ -256,6 +256,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				case _ => None
 			}
 			val children = if (!done) List() else List(char)
+
+			override def equals(other: Any) = other match {
+				case that: ParsingCharacterInput => 
+					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.done == done)
+				case _ => false
+			}
+			override def canEqual(other: Any) = other.isInstanceOf[ParsingCharacterInput]
 		}
 		case class ParsingStringInput(override val item: StringInput, str: List[StackSymbol] = Nil,
 				pWS: List[StackSymbol] = Nil, fWS: List[StackSymbol] = Nil) extends ParsingInput(item, pWS, fWS) {
@@ -267,6 +274,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				case _ => None
 			}
 			val children = str
+
+			override def equals(other: Any) = other match {
+				case that: ParsingStringInput => 
+					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.pointer == pointer)
+				case _ => false
+			}
+			override def canEqual(other: Any) = other.isInstanceOf[ParsingStringInput]
 		}
 		case class ParsingVirtualInput(override val item: VirtualInput, virt: StackSymbol = null,
 				pWS: List[StackSymbol] = Nil, fWS: List[StackSymbol] = Nil) extends ParsingInput(item, pWS, fWS) {
@@ -277,6 +291,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				case _ => None
 			}
 			val children = if (!done) List() else List(virt)
+
+			override def equals(other: Any) = other match {
+				case that: ParsingVirtualInput => 
+					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.done == done)
+				case _ => false
+			}
+			override def canEqual(other: Any) = other.isInstanceOf[ParsingVirtualInput]
 		}
 		case class ParsingNonterminal(override val item: Nonterminal, nonterm: StackSymbol = null,
 				pWS: List[StackSymbol] = Nil, fWS: List[StackSymbol] = Nil) extends ParsingItem(item, pWS, fWS) {
@@ -288,6 +309,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			}
 			def adjacent = if (!done) (grammar.rules(item.name) map (defItemToState _)) else List()
 			val children = if (!done) List() else List(nonterm)
+
+			override def equals(other: Any) = other match {
+				case that: ParsingNonterminal => 
+					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.done == done)
+				case _ => false
+			}
+			override def canEqual(other: Any) = other.isInstanceOf[ParsingNonterminal]
 		}
 		case class ParsingOneOf(override val item: OneOf, chosen: StackSymbol = null,
 				pWS: List[StackSymbol] = Nil, fWS: List[StackSymbol] = Nil) extends ParsingItem(item, pWS, fWS) {
@@ -299,6 +327,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			}
 			def adjacent = if (!done) (item.items map (defItemToState _)) toList else List()
 			val children = if (!done) List() else List(chosen)
+
+			override def equals(other: Any) = other match {
+				case that: ParsingOneOf => 
+					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.done == done)
+				case _ => false
+			}
+			override def canEqual(other: Any) = other.isInstanceOf[ParsingOneOf]
 		}
 		case class ParsingRepeat(override val item: Repeat, repeated: List[StackSymbol] = Nil,
 				pWS: List[StackSymbol] = Nil, fWS: List[StackSymbol] = Nil) extends ParsingItem(item, pWS, fWS) {
@@ -311,6 +346,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val stateItem = defItemToState(item.item)
 			def adjacent = if (item.range canProceed count) List(stateItem) else List()
 			val children = repeated
+
+			override def equals(other: Any) = other match {
+				case that: ParsingRepeat => 
+					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.count == count)
+				case _ => false
+			}
+			override def canEqual(other: Any) = other.isInstanceOf[ParsingRepeat]
 		}
 		case class ParsingSequence(override val item: Sequence, _children: List[StackSymbol], nonWS: List[(Int, Int)], pointer: Int,
 				pWS: List[StackSymbol], fWS: List[StackSymbol]) extends ParsingItem(item, pWS, fWS) {
@@ -392,6 +434,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				}
 			}
 			val children = pick(nonWS) // pWS ::: _children ::: fWS
+
+			override def equals(other: Any) = other match {
+				case that: ParsingSequence => 
+					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.pointer == pointer)
+				case _ => false
+			}
+			override def canEqual(other: Any) = other.isInstanceOf[ParsingSequence]
 		}
 		case class ParsingExcept(override val item: Except, child: StackSymbol = null,
 				pWS: List[StackSymbol] = Nil, fWS: List[StackSymbol] = Nil) extends ParsingItem(item, pWS, fWS) {
@@ -411,6 +460,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val stateItem = defItemToState(item.item)
 			def adjacent: List[ParsingItem] = if (!passed) List(stateItem) else List()
 			val children = List(child)
+
+			override def equals(other: Any) = other match {
+				case that: ParsingExcept => 
+					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.passed == passed)
+				case _ => false
+			}
+			override def canEqual(other: Any) = other.isInstanceOf[ParsingExcept]
 		}
 		case class ParsingLookaheadExcept(override val item: LookaheadExcept,
 				pWS: List[StackSymbol] = Nil, fWS: List[StackSymbol] = Nil) extends ParsingItem(item, pWS, fWS) {
@@ -419,6 +475,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			def proceed(next: StackSymbol): Option[ParsingItem] = None
 			def adjacent: List[ParsingItem] = List()
 			val children = List()
+
+			override def equals(other: Any) = other match {
+				case that: ParsingLookaheadExcept => 
+					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item)
+				case _ => false
+			}
+			override def canEqual(other: Any) = other.isInstanceOf[ParsingLookaheadExcept]
 		}
 	}
 
