@@ -101,7 +101,7 @@ class StackFigure(val stack: PreservingOctopusStack with ChildrenMap)(implicit v
 
 	private val figureMap = new HashMap[Parser#StackEntry, StackEntryFigure]
 
-	setLayoutManager(new Layouter)
+	setLayoutManager(new TreeLayouter)
 
 	private def addAllFigures(entries: List[Parser#StackEntry]) = {
 		for (entry <- entries if (!(figureMap contains entry))) {
@@ -116,17 +116,17 @@ class StackFigure(val stack: PreservingOctopusStack with ChildrenMap)(implicit v
 		layout()
 	}
 
-	class Layouter extends XYLayout {
+	class TreeLayouter extends XYLayout {
 		override def layout(x: IFigure) = {
 			super.layout(x)
 			updateTree()
 			super.layout(x)
 		}
 		def updateTree() = {
-			def layoutNode(node: Parser#StackEntry): Int = {
+			def layoutNode(node: Parser#StackEntry, left: Int, top: Int): Int = {
 				val children = stack.getChildrenOf(node)
 				val figure = figureMap(node)
-				val bounds = figure.getBounds()
+				val size = figure.getPreferredSize()
 
 				if (stack.hasNext && node == stack.top) {
 					figure.setBackgroundColor(StackEntryFigure.nextColor)
@@ -136,20 +136,20 @@ class StackFigure(val stack: PreservingOctopusStack with ChildrenMap)(implicit v
 					figure.setBackgroundColor(StackEntryFigure.backgroundColor)
 				}
 
-				if (children.isEmpty) return bounds.height
+				if (children.isEmpty) return size.height
 				var (margin_x, margin_y) = (20, 15)
-				var (x, y) = (bounds.x + bounds.width + margin_x, bounds.y)
+				var (x, y) = (left + size.width + margin_x, top)
 
 				for (child <- children) {
 					val childFigure = figureMap(child)
 
 					setConstraint(childFigure, new Rectangle(x, y, -1, -1))
-					y += layoutNode(child) + margin_y
+					y += layoutNode(child, x, y) + margin_y
 				}
-				bounds.height max (y - bounds.y)
+				size.height max (y - top)
 			}
 			addAllFigures(stack.getAll)
-			layoutNode(stack.bottom)
+			layoutNode(stack.bottom, 10, 10)
 		}
 	}
 }

@@ -18,7 +18,6 @@ class ParseResult(val messages: List[ParsePossibility]) {
 				println(parsed)
 				println(parsed.source)
 				println(parsed.text)
-				println(new VisualizedStackSymbol(parsed).repr)
 			case ParseFailed(reason, location) =>
 				println("Parsing failed since")
 				println(s"  $reason at $location")
@@ -67,7 +66,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 							if (x.generationPoint == null) {
 								// Parsing finished
 								if ((input at pointer) == EOFSymbol) {
-									_result = _result add ParseSuccess(x.belonged.symbol) // Successfully parsed
+									_result = _result add ParseSuccess(NontermSymbol(x.item)) // Successfully parsed
 								} else {
 									_result = _result add ParseFailed("type 1", pointer) // Error while parsing
 								}
