@@ -231,7 +231,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			def finishable: Boolean
 			def proceed(next: StackSymbol): Option[ParsingItem]
 			def adjacent: List[ParsingItem]
-			
+
 			val enclosingEntry = StackEntry.this
 
 			val children: List[StackSymbol]
@@ -257,7 +257,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val children = if (!done) List() else List(char)
 
 			override def equals(other: Any) = other match {
-				case that: ParsingCharacterInput => 
+				case that: ParsingCharacterInput =>
 					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.done == done)
 				case _ => false
 			}
@@ -275,7 +275,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val children = str
 
 			override def equals(other: Any) = other match {
-				case that: ParsingStringInput => 
+				case that: ParsingStringInput =>
 					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.pointer == pointer)
 				case _ => false
 			}
@@ -292,7 +292,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val children = if (!done) List() else List(virt)
 
 			override def equals(other: Any) = other match {
-				case that: ParsingVirtualInput => 
+				case that: ParsingVirtualInput =>
 					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.done == done)
 				case _ => false
 			}
@@ -310,7 +310,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val children = if (!done) List() else List(nonterm)
 
 			override def equals(other: Any) = other match {
-				case that: ParsingNonterminal => 
+				case that: ParsingNonterminal =>
 					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.done == done)
 				case _ => false
 			}
@@ -328,7 +328,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val children = if (!done) List() else List(chosen)
 
 			override def equals(other: Any) = other match {
-				case that: ParsingOneOf => 
+				case that: ParsingOneOf =>
 					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.done == done)
 				case _ => false
 			}
@@ -347,7 +347,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val children = repeated
 
 			override def equals(other: Any) = other match {
-				case that: ParsingRepeat => 
+				case that: ParsingRepeat =>
 					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.count == count)
 				case _ => false
 			}
@@ -355,6 +355,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 		}
 		case class ParsingSequence(override val item: Sequence, _children: List[StackSymbol], nonWS: List[(Int, Int)], pointer: Int,
 				pWS: List[StackSymbol], fWS: List[StackSymbol]) extends ParsingItem(item, pWS, fWS) {
+			// nonWS: index of _children(without whitespace) -> index of children(without whitespace)
 			def this(item: Sequence) = this(item, Nil, Nil, 0, Nil, Nil)
 			def finishable = pointer >= item.seq.length
 			val fixed = (!(fWS isEmpty)) // fixed=true -> finishable must be true
@@ -424,18 +425,22 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 					adj
 				}
 			}
-			private def pick(indices: List[(Int, Int)], i: Int = 0): List[StackSymbol] = {
-				def mult(c: Int): List[StackSymbol] = if (c > 0) (EmptySymbol :: mult(c - 1)) else Nil
-				indices match {
-					case x :: xs =>
-						mult(x._2 - i) ::: List(_children(x._1)) ::: pick(xs, x._2 + 1)
-					case Nil => List()
+			val children = {
+				def pick(indices: List[(Int, Int)], i: Int = 0): List[StackSymbol] = {
+					def mult(c: Int): List[StackSymbol] = if (c > 0) (EmptySymbol :: mult(c - 1)) else Nil
+					indices match {
+						case x :: xs =>
+							mult(x._2 - i) ::: List(_children(x._1)) ::: pick(xs, x._2 + 1)
+						case Nil => List()
+					}
 				}
+				pick(nonWS)
 			}
-			val children = pick(nonWS) // pWS ::: _children ::: fWS
+			val childrenWithWS = _children
+			lazy val indexNonWS = nonWS map (_._1)
 
 			override def equals(other: Any) = other match {
-				case that: ParsingSequence => 
+				case that: ParsingSequence =>
 					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.pointer == pointer)
 				case _ => false
 			}
@@ -461,7 +466,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val children = List(child)
 
 			override def equals(other: Any) = other match {
-				case that: ParsingExcept => 
+				case that: ParsingExcept =>
 					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item) && (that.passed == passed)
 				case _ => false
 			}
@@ -476,7 +481,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val children = List()
 
 			override def equals(other: Any) = other match {
-				case that: ParsingLookaheadExcept => 
+				case that: ParsingLookaheadExcept =>
 					(that canEqual this) && (that.enclosingEntry == enclosingEntry) && (that.item == item)
 				case _ => false
 			}
