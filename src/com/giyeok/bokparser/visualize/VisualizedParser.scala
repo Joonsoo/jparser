@@ -24,8 +24,8 @@ import org.eclipse.swt.widgets.Shell
 import com.giyeok.bokparser.CharInputSymbol
 import com.giyeok.bokparser.ChildrenMap
 import com.giyeok.bokparser.DefItem
-import com.giyeok.bokparser.EmptySymbol
 import com.giyeok.bokparser.EOFSymbol
+import com.giyeok.bokparser.EmptySymbol
 import com.giyeok.bokparser.Grammar
 import com.giyeok.bokparser.HashedChildrenMap
 import com.giyeok.bokparser.NontermSymbol
@@ -47,7 +47,7 @@ object VisualizedParser {
 
 		// val vp = new VisualizedParser(SampleGrammar4, InputStream.fromString("abb"), shell)
 		// val vp = new VisualizedParser(SampleGrammar7, InputStream.fromString("ac"), shell)
-		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString("(1) + 2;"), shell)
+		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString("  var q    =  co  + 1,  x  = 321.5e-71;"), shell)
 
 		shell.setLayout(new FillLayout)
 
@@ -223,7 +223,7 @@ class StackEntryItemsFigure(val items: List[Parser#StackEntry#StackEntryItem])(i
 
 class StackEntryItemFigure(val entryItem: Parser#StackEntry#StackEntryItem)(implicit val vp: VisualizedParser) extends Figure {
 	private val derivedFrom = entryItem.derivedFrom map (_.id) mkString (", ")
-	
+
 	{
 		val layout = new ToolbarLayout(true)
 		setLayoutManager(layout)
@@ -316,5 +316,19 @@ class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedPars
 		symbolLabel.setFont(DefItemFigure.defaultFont)
 		symbolLabel.setToolTip(new VisualizedStackSymbol(symbol))
 		add(symbolLabel)
+
+		addMouseListener(new MouseListener {
+			def mousePressed(e: MouseEvent) = {}
+			def mouseReleased(e: MouseEvent) = {}
+			def mouseDoubleClicked(e: MouseEvent) = {
+				val shell = new Shell(Display.getCurrent())
+
+				val canvas = new FigureCanvas(shell)
+				canvas.setContents(new VisualizedStackSymbol(symbol, true, vp.grammar))
+
+				shell.setLayout(new FillLayout)
+				shell.open()
+			}
+		})
 	}
 }
