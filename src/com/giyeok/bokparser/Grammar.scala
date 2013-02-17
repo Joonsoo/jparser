@@ -89,7 +89,7 @@ object DefItem {
 }
 
 trait DefAction {
-	val action: (List[Object]) => Object
+	val action: (StackSymbol, List[Object]) => Object
 }
 
 case class Nonterminal(name: String, pWS: List[DefItem] = Nil, fWS: List[DefItem] = Nil) extends DefItem(pWS, fWS) {

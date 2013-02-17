@@ -34,7 +34,7 @@ object VisualizedStackSymbol {
 		val display = new Display
 		val shell = new Shell(display)
 
-		val result = new BlackboxParser(JavaScriptGrammar).parse(ParserInput.fromString("  var q    =  co  + 1,  x  = 321.5e-71;"))
+		val result = new BlackboxParser(JavaScriptGrammar).parse(ParserInput.fromString("(1) + 2;"))
 
 		val figure = new Figure
 		val layout = new ToolbarLayout(false)
@@ -62,7 +62,7 @@ object VisualizedStackSymbol {
 }
 
 // Show tree structure of given StackSymbol visually
-class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolean = false, val grammar: Grammar = null, borderColor: Color = ColorConstants.darkGray) extends Figure {
+class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolean = true, val grammar: Grammar = null, borderColor: Color = ColorConstants.darkGray) extends Figure {
 	{
 		val _layout = new ToolbarLayout(false)
 
@@ -144,7 +144,7 @@ class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolea
 		stackSymbol match {
 			case NontermSymbol(item) =>
 				item.item match {
-					case Nonterminal(_, _, _) =>
+					case _: Nonterminal =>
 						val highlightedBorder = new LineBorder(ColorConstants.red, 1)
 						val normalBorder = new LineBorder(borderColor, 1)
 						setBorder(normalBorder)

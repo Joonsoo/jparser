@@ -147,9 +147,9 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val pointer: Int,
 			val generatedFrom: Parser#StackEntry,
 			val generatedFromItem: Parser#StackEntry#StackEntryItem) {
-		def this() = this(null, StartSymbol, (x: StackEntry) => List(new x.StackEntryItem(x.defItemToState(Nonterminal(grammar.startSymbol)), null)), 0, null, null)
-		def finished: List[StackEntry#StackEntryItem] = all filter (_ finishable)
-		val items = _items(this)
+		def this() = this(null, StartSymbol, (x: StackEntry) => List(new x.StackEntryItem(x.defItemToState(Nonterminal(grammar.startSymbol)), null, Nil)), 0, null, null)
+		def finished: List[StackEntry#StackEntryItem] = items filter (_ finishable)
+		val kernels = _items(this)
 		val id = StackEntry.nextId
 
 		def proceed(n: StackSymbol, p: Int, from: Parser#StackEntry, fromItem: Parser#StackEntry#StackEntryItem) = {
@@ -158,7 +158,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 
 				// map with filtering
 				// all map (_ proceed n) filter (_ isDefined) map (_.get)
-				for (i <- all) {
+				for (i <- items) {
 					(i proceed (n, x)) match {
 						case Some(v) =>
 							k = k ::: List(v)
@@ -169,36 +169,52 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			}
 			new StackEntry(this, n, f, p, from, fromItem)
 		}
-		val isEmpty = items isEmpty
+		val isEmpty = kernels isEmpty
 
-		private def _adjacent(items: List[StackEntry#StackEntryItem]): List[StackEntry#StackEntryItem] = {
-			def process(left: List[StackEntry#ParsingItem], set: List[StackEntry#ParsingItem], result: List[StackEntry#ParsingItem]): List[StackEntry#ParsingItem] = {
-				def filterNew[T](r: List[T]) = (r.distinct filter (!set.contains(_)))
+		// NOTE: Not all entries of 'kernels' may not be included in 'items' (because of derivedFrom)
+		val items = {
+			import scala.collection.mutable.HashMap
+			var _items = kernels
+			val derivation = new HashMap[StackEntry#ParsingItem, StackEntry#StackEntryItem]
+			
+			kernels foreach ((i) => derivation(i.item) = i)
+
+			def derive(left: List[StackEntry#StackEntryItem]): Unit = {
 				left match {
 					case x :: xs =>
-						val q = filterNew(x.adjacent)
-						process(xs ::: q, set ::: q, result ::: q)
-					case Nil => result
+						var added: List[StackEntry#StackEntryItem] = List()
+						(x.item.derived.distinct) foreach ((d) => {
+							val newitem = (derivation get d) match {
+								case Some(q) =>
+									// assert(!q.derivedFrom.contains(x))
+									val nq = new StackEntryItem(q.item, this, x :: q.derivedFrom, q.id)
+									_items = _items.updated(_items.indexOf(q), nq)
+									nq
+								case None =>
+									val nq = new StackEntryItem(d, this, List(x))
+									_items = _items ::: List(nq)
+									added ::= nq
+									nq
+							}
+							derivation(d) = newitem
+						})
+						derive(xs ::: added)
+					case _ =>
 				}
 			}
-			val _items = items map (_.item)
-			(process(_items, _items, List())) map (new StackEntryItem(_, this))
+			derive(kernels)
+			_items
 		}
-		val adjacent = _adjacent(items)
-		val all = items ::: adjacent
 
 		// ==== StackEntryItem ====================================================================
 		object StackEntryItem {
 			private var unique: Int = 0
 			private def nextId = { unique += 1; unique }
 		}
-		class StackEntryItem(val item: StackEntry#ParsingItem, val generationPoint: StackEntry) {
-			//		def this(item: StateDefItem)(implicit belonged: StackEntry) = this(item, null)
-			//		def this(item: DefItem, generationPoint: StackEntry)(implicit belonged: StackEntry) = this(defItemToState(item), generationPoint)
-			//		def this(item: DefItem)(implicit belonged: StackEntry) = this(item, null)
-			//		def cloned = new StackEntryItem(item, generationPoint)
+		class StackEntryItem(val item: StackEntry#ParsingItem, val generationPoint: StackEntry, val derivedFrom: List[StackEntry#StackEntryItem], _id: Int = StackEntryItem.nextId) {
+			// derivedFrom: List[StackEntry.this.StackEntryItem]
 
-			val id = StackEntryItem.nextId
+			val id = _id
 			val belonged = StackEntry.this
 
 			override def equals(other: Any) = other match {
@@ -210,7 +226,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			def finishable: Boolean = item finishable
 
 			def proceed(next: StackSymbol, belonged: StackEntry): Option[StackEntry#StackEntryItem] = (item proceed next) match {
-				case Some(v) => Some(new belonged.StackEntryItem(v, generationPoint))
+				case Some(v) => Some(new belonged.StackEntryItem(v, generationPoint, Nil))
 				case None => None
 			}
 		}
@@ -230,7 +246,8 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 		abstract class ParsingItem(val item: DefItem, val precedingWS: List[StackSymbol], val followingWS: List[StackSymbol]) {
 			def finishable: Boolean
 			def proceed(next: StackSymbol): Option[ParsingItem]
-			def adjacent: List[ParsingItem]
+			def proceedWS(next: StackSymbol): Option[ParsingItem]
+			def derived: List[ParsingItem]
 
 			val enclosingEntry = StackEntry.this
 
@@ -243,8 +260,8 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			def canEqual(other: Any) = other.isInstanceOf[ParsingItem]
 		}
 		abstract class ParsingInput(override val item: Input, pWS: List[StackSymbol], fWS: List[StackSymbol]) extends ParsingItem(item, pWS, fWS) {
-			// Input items have no need to define adjacent items
-			def adjacent: List[ParsingItem] = List()
+			// Input items have no need to define derived items
+			def derived: List[ParsingItem] = List()
 		}
 		case class ParsingCharacterInput(override val item: CharacterInput, char: StackSymbol = null,
 				pWS: List[StackSymbol] = Nil, fWS: List[StackSymbol] = Nil) extends ParsingInput(item, pWS, fWS) {
@@ -254,6 +271,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				case TermSymbol(CharInputSymbol(c), _) if (!done && (item acceptable c)) => Some(new ParsingCharacterInput(item, next))
 				case _ => None
 			}
+			def proceedWS(next: StackSymbol) = None // TODO
 			val children = if (!done) List() else List(char)
 
 			override def equals(other: Any) = other match {
@@ -272,6 +290,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 					Some(new ParsingStringInput(item, str ::: List(next)))
 				case _ => None
 			}
+			def proceedWS(next: StackSymbol) = None // TODO
 			val children = str
 
 			override def equals(other: Any) = other match {
@@ -289,6 +308,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				case TermSymbol(_@ VirtInputSymbol(v), _) if (!done && v == item.name) => Some(new ParsingVirtualInput(item, next))
 				case _ => None
 			}
+			def proceedWS(next: StackSymbol) = None // TODO
 			val children = if (!done) List() else List(virt)
 
 			override def equals(other: Any) = other match {
@@ -306,7 +326,8 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				case NontermSymbol(rhs) if (!done && (grammar.rules(item.name) contains rhs.item)) => Some(new ParsingNonterminal(item, next))
 				case _ => None
 			}
-			def adjacent = if (!done) (grammar.rules(item.name) map (defItemToState _)) else List()
+			def proceedWS(next: StackSymbol) = None // TODO
+			def derived = if (!done) (grammar.rules(item.name) map (defItemToState _)) else List()
 			val children = if (!done) List() else List(nonterm)
 
 			override def equals(other: Any) = other match {
@@ -324,7 +345,8 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				case NontermSymbol(s) if (!done && (item.items contains s.item)) => Some(ParsingOneOf(item, next))
 				case _ => None
 			}
-			def adjacent = if (!done) (item.items map (defItemToState _)) toList else List()
+			def proceedWS(next: StackSymbol) = None // TODO
+			def derived = if (!done) (item.items map (defItemToState _)) toList else List()
 			val children = if (!done) List() else List(chosen)
 
 			override def equals(other: Any) = other match {
@@ -342,8 +364,9 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				case NontermSymbol(s) if (item.item == s.item && (item.range canProceed count)) => Some(ParsingRepeat(item, repeated ::: List(next)))
 				case _ => None
 			}
+			def proceedWS(next: StackSymbol) = None // TODO
 			val stateItem = defItemToState(item.item)
-			def adjacent = if (item.range canProceed count) List(stateItem) else List()
+			def derived = if (item.range canProceed count) List(stateItem) else List()
 			val children = repeated
 
 			override def equals(other: Any) = other match {
@@ -364,7 +387,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 				val parser = new Parser(g, input.subinput(StackEntry.this.pointer))
 				def rec: Boolean = if (parser parseStep) {
 					if (!(parser.stack hasNext)) true else {
-						val i = parser.stack.top.items
+						val i = parser.stack.top.kernels
 						// if "parser.stackTop" is like $* (finishing start symbol), it returns false
 						if (i.length == 1 && ((i.head.item) match {
 							case n @ ParsingNonterminal(Nonterminal(g.startSymbol, _, _), _, _, _) if (n.done) => true
@@ -417,7 +440,8 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 						}
 					case _ => None
 				})
-			def adjacent = {
+			def proceedWS(next: StackSymbol) = None // TODO
+			def derived = {
 				if (fixed) (item.followingWS map (defItemToState _))
 				else {
 					var adj = (proceedables map (defItemToState _)) ::: (item.whitespace map (defItemToState _))
@@ -460,9 +484,10 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 					if (!(test succeed)) Some(ParsingExcept(item, next)) else None
 				case _ => None
 			}
+			def proceedWS(next: StackSymbol) = None // TODO
 
 			val stateItem = defItemToState(item.item)
-			def adjacent: List[ParsingItem] = if (!passed) List(stateItem) else List()
+			def derived: List[ParsingItem] = if (!passed) List(stateItem) else List()
 			val children = List(child)
 
 			override def equals(other: Any) = other match {
@@ -477,7 +502,8 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			// "lookahead except" items are processed in sequence, so this is just dummy
 			def finishable: Boolean = false
 			def proceed(next: StackSymbol): Option[ParsingItem] = None
-			def adjacent: List[ParsingItem] = List()
+			def proceedWS(next: StackSymbol) = None
+			def derived: List[ParsingItem] = List()
 			val children = List()
 
 			override def equals(other: Any) = other match {

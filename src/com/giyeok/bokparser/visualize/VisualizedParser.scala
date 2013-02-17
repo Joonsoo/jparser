@@ -47,7 +47,7 @@ object VisualizedParser {
 
 		// val vp = new VisualizedParser(SampleGrammar4, InputStream.fromString("abb"), shell)
 		// val vp = new VisualizedParser(SampleGrammar7, InputStream.fromString("ac"), shell)
-		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString("  var q    =  co  + 1;"), shell)
+		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString("(1) + 2;"), shell)
 
 		shell.setLayout(new FillLayout)
 
@@ -161,7 +161,7 @@ object StackEntryFigure {
 }
 class StackEntryFigure(val stackFigure: StackFigure, val stackEntry: Parser#StackEntry)(implicit val vp: VisualizedParser) extends Figure {
 	private val stackSymbolFigure = new StackSymbolFigure(stackEntry.symbol)
-	private val stackEntryItemsFigure = new StackEntryItemsFigure(stackEntry.items, stackEntry.adjacent)
+	private val stackEntryItemsFigure = new StackEntryItemsFigure(stackEntry.items)
 	private var expanded = false
 
 	{
@@ -212,27 +212,31 @@ class StackEntryFigure(val stackFigure: StackFigure, val stackEntry: Parser#Stac
 	}
 }
 
-class StackEntryItemsFigure(val items: List[Parser#StackEntry#StackEntryItem], val adjs: List[Parser#StackEntry#StackEntryItem])(implicit val vp: VisualizedParser) extends Figure {
+class StackEntryItemsFigure(val items: List[Parser#StackEntry#StackEntryItem])(implicit val vp: VisualizedParser) extends Figure {
 	{
 		val layout = new ToolbarLayout(false)
 		setLayoutManager(layout)
 
-		for (item <- items) add(new StackEntryItemFigure(true, item))
-		for (item <- adjs) add(new StackEntryItemFigure(false, item))
+		for (item <- items) add(new StackEntryItemFigure(item))
 	}
 }
 
-class StackEntryItemFigure(val kernel: Boolean, val entryItem: Parser#StackEntry#StackEntryItem)(implicit val vp: VisualizedParser) extends Figure {
+class StackEntryItemFigure(val entryItem: Parser#StackEntry#StackEntryItem)(implicit val vp: VisualizedParser) extends Figure {
+	private val derivedFrom = entryItem.derivedFrom map (_.id) mkString (", ")
+	
 	{
 		val layout = new ToolbarLayout(true)
 		setLayoutManager(layout)
 
 		val item = entryItem.item
-		add(new Label(entryItem.id + ":"))
-		if (!kernel) add(new Label("+"))
+		if (entryItem.derivedFrom.isEmpty) {
+			add(new Label(s"${entryItem.id}:"))
+		} else {
+			add(new Label(s"${entryItem.id}[$derivedFrom]:"))
+		}
 		addStateDefItemLabel(item)
 
-		setToolTip(new Label("" + item.item.id))
+		setToolTip(new Label(s"${item.item.id}"))
 	}
 
 	def addStateDefItemLabel(item: Parser#StackEntry#ParsingItem): Unit = {
@@ -242,8 +246,8 @@ class StackEntryItemFigure(val kernel: Boolean, val entryItem: Parser#StackEntry
 			case sn: Parser#StackEntry#ParsingNonterminal =>
 				val fig = labelize(sn.item)
 				val tooltip = new Figure()
-				tooltip.setLayoutManager(new ToolbarLayout(true))
-				tooltip.add(new Label("" + sn.item.id))
+				tooltip.setLayoutManager(new ToolbarLayout(false))
+				tooltip.add(new Label(s"${sn.item.id}"))
 				tooltip.add(new RuleFigure((sn.item.name, vp.grammar.rules(sn.item.name))))
 				fig.setToolTip(tooltip)
 				if (!sn.done) add(dotLabel)
