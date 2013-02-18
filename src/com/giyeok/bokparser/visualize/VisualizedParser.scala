@@ -22,17 +22,14 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 
 import com.giyeok.bokparser.CharInputSymbol
-import com.giyeok.bokparser.ChildrenMap
 import com.giyeok.bokparser.DefItem
 import com.giyeok.bokparser.EOFSymbol
 import com.giyeok.bokparser.EmptySymbol
 import com.giyeok.bokparser.Grammar
-import com.giyeok.bokparser.HashedChildrenMap
 import com.giyeok.bokparser.NontermSymbol
 import com.giyeok.bokparser.Nonterminal
 import com.giyeok.bokparser.Parser
 import com.giyeok.bokparser.ParserInput
-import com.giyeok.bokparser.PreservingOctopusStack
 import com.giyeok.bokparser.StackSymbol
 import com.giyeok.bokparser.StartSymbol
 import com.giyeok.bokparser.StringInput
@@ -64,7 +61,7 @@ object VisualizedParser {
 						var counter = 0
 						while (vp.proceed() && counter < 1000) (counter += 1)
 						println("Parsing finished")
-						println(vp.parser.result.messages.length)
+						println(vp.result.messages.length)
 					case _ =>
 				}
 			}
@@ -78,25 +75,66 @@ object VisualizedParser {
 	}
 }
 
-class VisualizedParser(val grammar: Grammar, input: ParserInput, parent: Canvas) {
-	private val parser = new Parser(grammar, input, (parser) => new PreservingOctopusStack(parser) with HashedChildrenMap)
-	private val stack = (parser.stack).asInstanceOf[PreservingOctopusStack with HashedChildrenMap]
+class VisualizedParser(grammar: Grammar, input: ParserInput, parent: Canvas) extends Parser(grammar, input) {
+	// === Preserving stack ===
+	class PreservingOctopusStack extends OctopusStack {
+		protected var all = List[StackEntry](bottom)
+		protected var done = List[StackEntry]()
 
+		override def add(entry: StackEntry) = {
+			all ::= entry
+			super.add(entry)
+		}
+		override def pop() = {
+			done ::= top
+			super.pop()
+		}
+		def getAll = all
+		def getDone = done
+
+		val parser = VisualizedParser.this
+	}
+
+	trait ChildrenMap extends PreservingOctopusStack {
+		def getChildrenOf(parent: StackEntry) =
+			for (entry <- all if entry.parent == parent) yield entry
+	}
+
+	trait HashedChildrenMap extends PreservingOctopusStack with ChildrenMap {
+		import scala.collection.mutable.HashMap
+
+		private val childrenMap = new HashMap[StackEntry, List[StackEntry]]()
+
+		override def add(entry: StackEntry) = {
+			if (entry.parent != null) {
+				(childrenMap get entry.parent) match {
+					case Some(l) => childrenMap(entry.parent) = l ::: List(entry)
+					case None => childrenMap += entry.parent -> List(entry)
+				}
+			}
+			super.add(entry)
+		}
+		override def getChildrenOf(parent: StackEntry) =
+			(childrenMap get parent) match { case Some(v) => v case _ => List() }
+	}
+	override val stack = new PreservingOctopusStack with HashedChildrenMap
+
+	// === Visualization ===
 	implicit val self = this
 
 	val canvas = new FigureCanvas(parent)
-	val figure = new StackFigure(stack)
+	val figure = new StackFigure(this)
 
 	canvas.setContents(figure)
 
-	def proceed() = if (parser.parseStep()) { figure.updateTree(); true } else false
+	def proceed() = if (parseStep()) { figure.updateTree(); true } else false
 
 	def openGrammar(nonterm: Nonterminal) = {
 		// TODO
 	}
 }
 
-class StackFigure(val stack: PreservingOctopusStack with ChildrenMap)(implicit val vp: VisualizedParser) extends Figure {
+class StackFigure(val parser: VisualizedParser)(implicit val vp: VisualizedParser) extends Figure {
 	import scala.collection.mutable.HashMap
 
 	private val figureMap = new HashMap[Parser#StackEntry, StackEntryFigure]
@@ -116,6 +154,8 @@ class StackFigure(val stack: PreservingOctopusStack with ChildrenMap)(implicit v
 		layout()
 	}
 
+	private val stack = parser.stack
+
 	class TreeLayouter extends XYLayout {
 		override def layout(x: IFigure) = {
 			super.layout(x)
@@ -123,7 +163,7 @@ class StackFigure(val stack: PreservingOctopusStack with ChildrenMap)(implicit v
 			super.layout(x)
 		}
 		def updateTree() = {
-			def layoutNode(node: Parser#StackEntry, left: Int, top: Int): Int = {
+			def layoutNode(node: parser.StackEntry, left: Int, top: Int): Int = {
 				val children = stack.getChildrenOf(node)
 				val figure = figureMap(node)
 				val size = figure.getPreferredSize()

@@ -40,8 +40,26 @@ class BlackboxParser(val grammar: Grammar) {
 	}
 	def parse(input: String): ParseResult = parse(ParserInput.fromString(input))
 }
-class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => OctopusStack = (x: Parser) => new OctopusStack(x)) {
-	val stack = _stack(this)
+class Parser(val grammar: Grammar, val input: ParserInput) {
+	val stack = new OctopusStack //_stack(this)
+
+	// === stack ===
+	class OctopusStack {
+		val bottom = new StackEntry(null, StartSymbol, 0, null, null) {
+			val _items = () => List(new StackEntryItem(defItemToState(Nonterminal(grammar.startSymbol)), null, Nil))
+		}
+
+		import scala.collection.mutable.Queue
+
+		private val tops = Queue[StackEntry](bottom)
+
+		def add(entry: StackEntry) = tops += entry
+		def addAll(entries: Seq[StackEntry]) = for (entry <- entries) add(entry)
+		def hasNext = !tops.isEmpty
+		def top = tops.front
+		def pop() = tops.dequeue()
+		def iterator = tops.iterator
+	}
 
 	// === parser ===
 	private var _result: ParseResult = new ParseResult(Nil)
@@ -57,9 +75,10 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 			val pointer = entry.pointer
 			val fin = entry finished
 			val term = TermSymbol(input at entry.pointer, pointer)
+
 			val newentry = entry proceed (term, pointer + 1, entry, null)
 
-			def pushFinished(f: List[Parser#StackEntry#StackEntryItem]): Unit =
+			def pushFinished(f: List[entry.StackEntryItem]): Unit =
 				f match {
 					case x :: xs =>
 						if ((x.item proceed term) isEmpty) {
@@ -140,34 +159,24 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 		private var unique: Int = 0
 		private def nextId = { unique += 1; unique }
 	}
-	class StackEntry(
+	abstract class StackEntry(
 			val parent: StackEntry,
 			val symbol: StackSymbol,
-			_items: (StackEntry) => List[Parser.this.StackEntry#StackEntryItem],
 			val pointer: Int,
 			val generatedFrom: Parser#StackEntry,
 			val generatedFromItem: Parser#StackEntry#StackEntryItem) {
-		def this() = this(null, StartSymbol, (x: StackEntry) => List(new x.StackEntryItem(x.defItemToState(Nonterminal(grammar.startSymbol)), null, Nil)), 0, null, null)
-		def finished: List[StackEntry#StackEntryItem] = items filter (_ finishable)
-		val kernels = _items(this)
+		val _items: () => List[this.StackEntryItem]
+
+		def finished: List[this.StackEntryItem] = items filter (_ finishable)
+		val kernels = _items()
 		val id = StackEntry.nextId
 
-		def proceed(n: StackSymbol, p: Int, from: Parser#StackEntry, fromItem: Parser#StackEntry#StackEntryItem) = {
-			val f = (x: StackEntry) => {
-				var k = List[StackEntry#StackEntryItem]()
-
-				// map with filtering
-				// all map (_ proceed n) filter (_ isDefined) map (_.get)
-				for (i <- items) {
-					(i proceed (n, x)) match {
-						case Some(v) =>
-							k = k ++ List(v)
-						case None =>
-					}
-				}
-				k
+		def proceed(n: StackSymbol, p: Int, from: Parser#StackEntry, fromItem: Parser#StackEntry#StackEntryItem): StackEntry = {
+			new StackEntry(this, n, p, from, fromItem) {
+				val _items = () =>
+					for (i <- (items map (_ proceed (n, this))) if (i isDefined))
+						yield i.get
 			}
-			new StackEntry(this, n, f, p, from, fromItem)
 		}
 		val isEmpty = kernels isEmpty
 
@@ -225,7 +234,11 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 
 			def finishable: Boolean = item finishable
 
-			def proceed(next: StackSymbol, belonged: StackEntry): Option[StackEntry#StackEntryItem] = (item proceed next) match {
+			def proceed(next: StackSymbol, belonged: StackEntry): Option[belonged.StackEntryItem] = (item proceed next) match {
+				case Some(v) => Some(new belonged.StackEntryItem(v, generationPoint, Nil))
+				case None => None
+			}
+			def proceedWS(next: StackSymbol, belonged: StackEntry): Option[belonged.StackEntryItem] = (item proceedWS next) match {
 				case Some(v) => Some(new belonged.StackEntryItem(v, generationPoint, Nil))
 				case None => None
 			}
@@ -480,7 +493,14 @@ class Parser(val grammar: Grammar, val input: ParserInput, _stack: (Parser) => O
 								val i = parser.stack.top.kernels
 								// if "parser.stackTop" is like $* (finishing start symbol), it returns false
 								if (i.length == 1 && ((i.head.item) match {
-									case n @ ParsingNonterminal(Nonterminal(g.startSymbol, _, _), _, _, _) if (n.done) => true
+									// case n @ ParsingNonterminal(Nonterminal(g.startSymbol, _, _), _, _, _) if (n.done) => true
+									// the following "weird" case is 
+									case n if (n.isInstanceOf[ParsingNonterminal] && {
+										val pn = n.asInstanceOf[ParsingNonterminal]; (pn.item match {
+											case Nonterminal(g.startSymbol, _, _) => true
+											case _ => false
+										}) && pn.done
+									}) => true
 									case _ => false
 								})) false
 								else rec
