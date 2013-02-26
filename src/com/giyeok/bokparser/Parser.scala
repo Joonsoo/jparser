@@ -46,7 +46,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 	// === stack ===
 	class OctopusStack {
 		val bottom = new StackEntry(null, StartSymbol, 0, null, null) {
-			val _items = () => List(new StackEntryItem(defItemToState(Nonterminal(grammar.startSymbol)), null, Nil))
+			def _items = List(new StackEntryItem(defItemToState(Nonterminal(grammar.startSymbol)), null, Nil))
 		}
 
 		import scala.collection.mutable.Queue
@@ -69,14 +69,11 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 	def finished = _finished
 
 	def parseStep() =
-		// TODO rewrite this
 		if (stack hasNext) {
 			val entry = stack.pop()
 			val pointer = entry.pointer
 			val fin = entry finished
 			val term = TermSymbol(input at entry.pointer, pointer)
-
-			val newentry = entry proceed (term, pointer + 1, entry, null)
 
 			def pushFinished(f: List[entry.StackEntryItem]): Unit =
 				f match {
@@ -90,7 +87,10 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 									_result = _result add ParseFailed("type 1", pointer) // Error while parsing
 								}
 							} else {
-								stack add (x.generationPoint proceed (NontermSymbol(x.item), pointer, x.belonged, x))
+								(x.generationPoint proceed (NontermSymbol(x.item), pointer, x.belonged, x)) match {
+									case Some(newentry) => stack add newentry
+									case _ =>
+								}
 							}
 						}
 						pushFinished(xs)
@@ -98,11 +98,13 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 				}
 			pushFinished(fin)
 
-			if (!(newentry isEmpty)) {
-				stack add newentry
-			} else if (fin isEmpty) {
-				// and if the entry has no child
-				println(s"${entry.id} is vaporized")
+			(entry proceed (term, pointer + 1, entry, null)) match {
+				case Some(newentry) => stack add newentry
+				case _ =>
+					if (fin isEmpty) {
+						// and if the entry has no child
+						println(s"${entry.id} is vaporized")
+					}
 			}
 			true
 		} else {
@@ -165,18 +167,21 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			val pointer: Int,
 			val generatedFrom: Parser#StackEntry,
 			val generatedFromItem: Parser#StackEntry#StackEntryItem) {
-		val _items: () => List[this.StackEntryItem]
+		def _items: List[this.StackEntryItem]
 
 		def finished: List[this.StackEntryItem] = items filter (_ finishable)
-		val kernels = _items()
+		val kernels = _items
 		val id = StackEntry.nextId
 
-		def proceed(n: StackSymbol, p: Int, from: Parser#StackEntry, fromItem: Parser#StackEntry#StackEntryItem): StackEntry = {
-			new StackEntry(this, n, p, from, fromItem) {
-				val _items = () =>
-					for (i <- (items map (_ proceed (n, this))) if (i isDefined))
-						yield i.get
+		def proceed(n: StackSymbol, p: Int, from: Parser#StackEntry, fromItem: Parser#StackEntry#StackEntryItem): Option[StackEntry] = {
+			// TODO this is temporary, rewrite this
+			val newentry = new StackEntry(this, n, p, from, fromItem) {
+				def _items = parent.items flatMap ((x) => (x proceed (n, this)) match {
+					case p @ Some(_) => p
+					case _ => (x proceedWS (n, this))
+				})
 			}
+			if (newentry isEmpty) None else Some(newentry)
 		}
 		val isEmpty = kernels isEmpty
 
@@ -202,7 +207,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 								case None =>
 									val nq = new StackEntryItem(d, this, List(x))
 									_items = _items ++ List(nq)
-									added ::= nq
+									added :+= nq
 									nq
 							}
 							derivation(d) = newitem
@@ -372,9 +377,9 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 				case _ => None
 			}
 			def proceedWS(next: StackSymbol) = next match {
-				case NontermSymbol(n) if (!done && (item.precedingWS contains n)) =>
+				case NontermSymbol(n) if (!done && (item.precedingWS contains n.item)) =>
 					Some(ParsingNonterminal(item, nonterm, pWS ++ List(next), fWS))
-				case NontermSymbol(n) if (done && (item.followingWS contains n)) =>
+				case NontermSymbol(n) if (done && (item.followingWS contains n.item)) =>
 					Some(ParsingNonterminal(item, nonterm, pWS, fWS ++ List(next)))
 				case _ => None
 			}
@@ -423,7 +428,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			def derived = {
 				var _derived: List[DefItem] = List()
 				if (count == 0) _derived ++= item.precedingWS
-				if (item.range canProceed count) _derived :+= item
+				if (item.range canProceed count) _derived :+= item.item
 				if (finishable) _derived ++= item.followingWS
 
 				_derived map (defItemToState _)
@@ -568,12 +573,11 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			}
 			def proceedWS(next: StackSymbol) = None // Whitespace of 'except' items are not supported
 
-			val stateItem = defItemToState(item.item)
 			def derived: List[ParsingItem] = {
 				var _derived: List[DefItem] = List()
 
 				if (!passed) _derived ++= item.precedingWS
-				if (!passed) _derived :+= item
+				if (!passed) _derived :+= item.item
 				if (passed) _derived ++= item.followingWS
 
 				_derived map (defItemToState _)
