@@ -8,18 +8,17 @@ import com.giyeok.bokparser.Nonterminal
 import com.giyeok.bokparser.Sequence
 
 object JavaScriptGrammar extends Grammar {
-	private val whitespace = List[DefItem](N("WhiteSpace"), N("LineTerminator"), N("Comment"))
-	private val oneline = List[DefItem](N("WhiteSpace"), N("Comment"))
+	private val whitespace = List[DefItem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
+	private val oneline = List[DefItem](n("WhiteSpace"), n("Comment"))
 	
-	def expr(seq: DefItem*) = Sequence(seq toList, whitespace, whitespace, whitespace)
+	def expr(seq: DefItem*) = Sequence(seq toList, whitespace)
 	def lex(seq: DefItem*) = sequence(seq:_*)
 	def line(seq: DefItem*) = sequence(oneline, seq:_*)
 	
-	def N(name: String) = super.n(name)
-	override def n(name: String) = Nonterminal(name, whitespace, whitespace)
-	
 	override val name = "JavaScript"
 	override val rules = ListMap(
+		"Start" -> List(seq(oneof(whitespace).star, n("Program"), oneof(whitespace).star)),
+		
 		// A.1 Lexical Grammar
 		"SourceCharacter" -> List(c()),
 		"InputElementDiv" -> List(
@@ -37,19 +36,19 @@ object JavaScriptGrammar extends Grammar {
 		"MultiLineComment" -> List(
 			expr(i("/*"), n("MultiLineCommentChars").opt, i("*/"))),
 		"MultiLineCommentChars" -> List(
-			lex(N("MultiLineNotAsteriskChar"), N("MultiLineCommentChars").opt), 
-			lex(i("*"), N("PostAsteriskCommentChars").opt)),
+			lex(n("MultiLineNotAsteriskChar"), n("MultiLineCommentChars").opt), 
+			lex(i("*"), n("PostAsteriskCommentChars").opt)),
 		"PostAsteriskCommentChars" -> List(
-			lex(N("MultiLineNotForwardSlashOrAsteriskChar"), N("MultiLineCommentChars").opt),
-			lex(i("*"), N("PostAsteriskCommentChars").opt)),
+			lex(n("MultiLineNotForwardSlashOrAsteriskChar"), n("MultiLineCommentChars").opt),
+			lex(i("*"), n("PostAsteriskCommentChars").opt)),
 		"MultiLineNotAsteriskChar" -> List(
-			lex(N("SourceCharacter").butnot(i("*")))),
+			lex(n("SourceCharacter").butnot(i("*")))),
 		"MultiLineNotForwardSlashOrAsteriskChar" -> List(
-			lex(N("SourceCharacter").butnot(i("/"), i("*")))),
+			lex(n("SourceCharacter").butnot(i("/"), i("*")))),
 		"SingleLineComment" -> List(
-			lex(i("//"), N("SingleLineCommentChars").opt)),
+			lex(i("//"), n("SingleLineCommentChars").opt)),
 		"SingleLineCommentChars" -> List(
-			lex(N("SingleLineCommentChar"), N("SingleLineCommentChars").opt)),
+			lex(n("SingleLineCommentChar"), n("SingleLineCommentChars").opt)),
 		"SingleLineCommentChar" -> List(
 			n("SourceCharacter").butnot(n("LineTerminator"))),
 		"Token" -> List(
@@ -61,12 +60,12 @@ object JavaScriptGrammar extends Grammar {
 			n("IdentifierName").butnot(n("ReservedWord"))),
 		"IdentifierName" -> List(
 			n("IdentifierStart"),
-			lex(N("IdentifierName"), N("IdentifierPart"))),
+			lex(n("IdentifierName"), n("IdentifierPart"))),
 		"IdentifierStart" -> List(
 			n("UnicodeLetter"),
 			i("$"),
 			i("_"),
-			lex(i("_"), N("UnicodeEscapeSequence"))),
+			lex(i("_"), n("UnicodeEscapeSequence"))),
 		"IdentifierPart" -> List(
 			n("IdentifierStart"),
 			n("UnicodeCombiningMark"),
@@ -126,53 +125,53 @@ object JavaScriptGrammar extends Grammar {
 			n("DecimalLiteral"),
 			n("HexIntegerLiteral")),
 		"DecimalLiteral" -> List(
-			lex(N("DecimalIntegerLiteral"), i("."), N("DecimalDigits").opt, N("ExponentPart").opt),
-			lex(i("."), N("DecimalDigits"), N("ExponentPart").opt),
-			lex(N("DecimalIntegerLiteral"), N("ExponentPart").opt)),
+			lex(n("DecimalIntegerLiteral"), i("."), n("DecimalDigits").opt, n("ExponentPart").opt),
+			lex(i("."), n("DecimalDigits"), n("ExponentPart").opt),
+			lex(n("DecimalIntegerLiteral"), n("ExponentPart").opt)),
 		"DecimalIntegerLiteral" -> List(
 			i("0"),
-			lex(N("NonZeroDigit"), N("DecimalDigits").opt)),
+			lex(n("NonZeroDigit"), n("DecimalDigits").opt)),
 		"DecimalDigits" -> List(
 			n("DecimalDigit"),
-			lex(N("DecimalDigits"), N("DecimalDigit"))),
+			lex(n("DecimalDigits"), n("DecimalDigit"))),
 		"DecimalDigit" -> List(
 			c("0123456789")),
 		"NonZeroDigit" -> List(
 			c("123456789")),
 		"ExponentPart" -> List(
-			lex(N("ExponentIndicator"), N("SignedInteger"))),
+			lex(n("ExponentIndicator"), n("SignedInteger"))),
 		"ExponentIndicator" -> List(
 			c("eE")),
 		"SignedInteger" -> List(
 			n("DecimalDigits"),
-			lex(i("+"), N("DecimalDigits")),
-			lex(i("-"), N("DecimalDigits"))),
+			lex(i("+"), n("DecimalDigits")),
+			lex(i("-"), n("DecimalDigits"))),
 		"HexIntegerLiteral" -> List(
-			lex(i("0x"), N("HexDigit")),
-			lex(i("0X"), N("HexDigit")),
-			lex(N("HexIntegerLiteral"), N("HexDigit"))),
+			lex(i("0x"), n("HexDigit")),
+			lex(i("0X"), n("HexDigit")),
+			lex(n("HexIntegerLiteral"), n("HexDigit"))),
 		"HexDigit" -> List(
 			c("0123456789abcdefABCDEF")),
 		"StringLiteral" -> List(
-			lex(i("\""), N("DoubleStringCharacters").opt, i("\"")),
-			lex(i("'"), N("SingleStringCharacters").opt, i("'"))),
+			lex(i("\""), n("DoubleStringCharacters").opt, i("\"")),
+			lex(i("'"), n("SingleStringCharacters").opt, i("'"))),
 		"DoubleStringCharacters" -> List(
-			lex(N("DoubleStringCharacter"), N("DoubleStringCharacters").opt)),
+			lex(n("DoubleStringCharacter"), n("DoubleStringCharacters").opt)),
 		"SingleStringCharacters" -> List(
-			lex(N("SingleStringCharacter"), N("SingleStringCharacters").opt)),
+			lex(n("SingleStringCharacter"), n("SingleStringCharacters").opt)),
 		"DoubleStringCharacter" -> List(
 			n("SourceCharacter").butnot(c("\"\\"), n("LineTerminator")),
-			lex(i("\\"), N("EscapeSequence")),
+			lex(i("\\"), n("EscapeSequence")),
 			n("LineContinuation")),
 		"SingleStringCharacter" -> List(
 			n("SourceCharacter").butnot(c("'\\"), n("LineTerminator")),
-			lex(i("\\"), N("EscapeSequence")),
+			lex(i("\\"), n("EscapeSequence")),
 			n("LineContinuation")),
 		"LineContinuation" -> List(
-			lex(i("\\"), N("LineTerminatorSequence"))),
+			lex(i("\\"), n("LineTerminatorSequence"))),
 		"EscapeSequence" -> List(
 			n("CharacterEscapeSequence"),
-			lex(i("0"), lookahead_except(N("DecimalDigit"))),
+			lex(i("0"), lookahead_except(n("DecimalDigit"))),
 			n("HexEscapeSequence"),
 			n("UnicodeEscapeSequence")),
 		"CharacterEscapeSequence" -> List(
@@ -186,17 +185,17 @@ object JavaScriptGrammar extends Grammar {
 			n("SingleEscapeCharacter"),
 			n("DecimalDigit"),
 			c("xu")),
-		"HexEscapeCharacter" -> List(
-			lex(i("x"), N("HexDigit"), N("HexDigit"))),
+		"HexEscapeSequence" -> List(
+			lex(i("x"), n("HexDigit"), n("HexDigit"))),
 		"UnicodeEscapeSequence" -> List(
-			lex(i("u"), N("HexDigit"), N("HexDigit"), N("HexDigit"), N("HexDigit"))),
+			lex(i("u"), n("HexDigit"), n("HexDigit"), n("HexDigit"), n("HexDigit"))),
 		"RegularExpressionLiteral" -> List(
-			lex(i("/"), N("RegularExpressionBody"), i("/"), N("RegularExpressionFlags"))),
+			lex(i("/"), n("RegularExpressionBody"), i("/"), n("RegularExpressionFlags"))),
 		"RegularExpressionBody" -> List(
-			lex(N("RegularExpressionFirstChar"), N("RegularExpressionChars"))),
+			lex(n("RegularExpressionFirstChar"), n("RegularExpressionChars"))),
 		"RegularExpressionChars" -> List(
 			lex(),
-			lex(N("RegularExpressionChars"), N("RegularExpressionChar"))),
+			lex(n("RegularExpressionChars"), n("RegularExpressionChar"))),
 		"RegularExpressionFirstChar" -> List(
 			n("RegularExpressionNonTerminator").butnot(c("*\\/[")),
 			n("RegularExpressionBackslashSequence"),
@@ -206,27 +205,27 @@ object JavaScriptGrammar extends Grammar {
 			n("RegularExpressionBackslashSequence"),
 			n("RegularExpressionClass")),
 		"RegularExpressionBackslashSequence" -> List(
-			lex(i("\\"), N("RegularExpressionNonTerminator"))),
+			lex(i("\\"), n("RegularExpressionNonTerminator"))),
 		"RegularExpressionNonTerminator" -> List(
 			n("SourceCharacter").butnot(n("LineTerminator"))),
 		"RegularExpressionClass" -> List(
-			lex(i("["), N("RegularExpressionClassChars"), i("]"))),
+			lex(i("["), n("RegularExpressionClassChars"), i("]"))),
 		"RegularExpressionClassChars" -> List(
 			lex(),
-			lex(N("RegularExpressionClassChars"), N("RegularExpressionClassChar"))),
+			lex(n("RegularExpressionClassChars"), n("RegularExpressionClassChar"))),
 		"RegularExpressionClassChar" -> List(
 			n("RegularExpressionNonTerminator").butnot(c("]\\")),
 			n("RegularExpressionBackslashSequence")),
 		"RegularExpressionFlags" -> List(
 			lex(),
-			lex(N("RegularExpressionFlags"), N("IdentifierPart"))),
+			lex(n("RegularExpressionFlags"), n("IdentifierPart"))),
 		
 		// A.2 Number Conversions
 		"StringNumericLiteral" -> List(
 			n("StrWhiteSpace").opt,
-			lex(N("StrWhiteSpace").opt, N("StrNumericLiteral"), N("StrWhiteSpace").opt)),
+			lex(n("StrWhiteSpace").opt, n("StrNumericLiteral"), n("StrWhiteSpace").opt)),
 		"StrWhiteSpace" -> List(
-			lex(N("StrWhiteSpaceChar"), N("StrWhiteSpace").opt)),
+			lex(n("StrWhiteSpaceChar"), n("StrWhiteSpace").opt)),
 		"StrWhiteSpaceChar" -> List(
 			n("WhiteSpace"),
 			n("LineTerminator")),
@@ -235,30 +234,30 @@ object JavaScriptGrammar extends Grammar {
 			n("HexIntegerLiteral")),
 		"StrDecimalLiteral" -> List(
 			n("StrUnsignedDecimalLiteral"),
-			lex(i("+"), N("StrUnsignedDecimalLiteral")),
-			lex(i("-"), N("StrUnsignedDecimalLiteral"))),
+			lex(i("+"), n("StrUnsignedDecimalLiteral")),
+			lex(i("-"), n("StrUnsignedDecimalLiteral"))),
 		"StrUnsignedDecimalLiteral" -> List(
 			i("Infinity"),
-			lex(N("DecimalDigits"), i("."), N("DecimalDigits").opt, N("ExponentPart").opt),
-			lex(i("."), N("DecimalDigits"), N("ExponentPart").opt),
-			lex(N("DecimalDigits"), N("ExponentPart").opt)),
+			lex(n("DecimalDigits"), i("."), n("DecimalDigits").opt, n("ExponentPart").opt),
+			lex(i("."), n("DecimalDigits"), n("ExponentPart").opt),
+			lex(n("DecimalDigits"), n("ExponentPart").opt)),
 		"DecimalDigits" -> List(
 			n("DecimalDigit"),
-			lex(N("DecimalDigits"), N("DecimalDigit"))),
+			lex(n("DecimalDigits"), n("DecimalDigit"))),
 		"DecimalDigit" -> List(
 			c("0123456789")),
 		"ExponentPart" -> List(
-			lex(N("ExponentIndicator"), N("SignedInteger"))),
+			lex(n("ExponentIndicator"), n("SignedInteger"))),
 		"ExponentIndicator" -> List(
 			c("eE")),
 		"SignedInteger" -> List(
 			n("DecimalDigits"),
-			lex(i("+"), N("DecimalDigits")),
-			lex(i("-"), N("DecimalDigits"))),
+			lex(i("+"), n("DecimalDigits")),
+			lex(i("-"), n("DecimalDigits"))),
 		"HexIntegerLiteral" -> List(
-			lex(i("0x"), N("HexDigit")),
-			lex(i("0X"), N("HexDigit")),
-			lex(N("HexIntegerLiteral"), N("HexDigit"))),
+			lex(i("0x"), n("HexDigit")),
+			lex(i("0X"), n("HexDigit")),
+			lex(n("HexIntegerLiteral"), n("HexDigit"))),
 		"HexDigit" -> List(
 			c("0123456789abcdefABCDEF")),
 		
@@ -285,9 +284,9 @@ object JavaScriptGrammar extends Grammar {
 			expr(i("{"), n("PropertyNameAndValueList"), i("}")),
 			expr(i("{"), n("PropertyNameAndValueList"), i(","), i("}"))),
 		"PropertyNameAndValueList" -> List(
-			n("PropertyAssignemtn"),
+			n("PropertyAssignment"),
 			expr(n("PropertyNameAndValueList"), i(","), n("PropertyAssignment"))),
-		"PropertyAssignemtn" -> List(
+		"PropertyAssignment" -> List(
 			expr(n("PropertyName"), i(":"), n("AssignmentExpression")),
 			expr(i("get"), n("PropertyName"), i("("), i(")"), i("{"), n("FunctionBody"), i("}")),
 			expr(i("set"), n("PropertyName"), i("("), n("PropertySetParameterList"), i(")"), i("{"), n("FunctionBody"), i("}"))),
@@ -541,7 +540,7 @@ object JavaScriptGrammar extends Grammar {
 		"uri" -> List(
 			n("uriCharacters").opt),
 		"uriCharacters" -> List(
-			lex(N("uriCharacter"), N("uriCharacters").opt)),
+			lex(n("uriCharacter"), n("uriCharacters").opt)),
 		"uriCharacter" -> List(
 			n("uriReserved"),
 			n("uriUnescaped"),
@@ -553,7 +552,7 @@ object JavaScriptGrammar extends Grammar {
 			n("DecimalDigit"),
 			n("uriMark")),
 		"uriEscaped" -> List(
-			lex(i("%"), N("HexDigit"), N("HexDigit"))),
+			lex(i("%"), n("HexDigit"), n("HexDigit"))),
 		"uriAlpha" -> List(
 			c("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")),
 		"uriMark" -> List(
@@ -564,38 +563,38 @@ object JavaScriptGrammar extends Grammar {
 			n("Disjunction")),
 		"Disjunction" -> List(
 			n("Alternative"),
-			lex(N("Alternative"), i("|"), N("Disjunction"))),
+			lex(n("Alternative"), i("|"), n("Disjunction"))),
 		"Alternative" -> List(
 			lex(),
-			lex(N("Alternative"), N("Term"))),
+			lex(n("Alternative"), n("Term"))),
 		"Term" -> List(
 			n("Assertion"),
 			n("Atom"),
-			lex(N("Atom"), N("Quantifier"))),
+			lex(n("Atom"), n("Quantifier"))),
 		"Assertion" -> List(
 			i("^"),
 			i("$"),
 			lex(i("\\"), i("b")),
 			lex(i("\\"), i("B")),
-			lex(i("("), i("?"), i("="), N("Disjunction"), i(")")),
-			lex(i("("), i("?"), i("!"), N("Disjunction"), i(")"))),
+			lex(i("("), i("?"), i("="), n("Disjunction"), i(")")),
+			lex(i("("), i("?"), i("!"), n("Disjunction"), i(")"))),
 		"Quantifier" -> List(
 			n("QuantifierPrefix"),
-			lex(N("QuantifierPrefix"), i("?"))),
+			lex(n("QuantifierPrefix"), i("?"))),
 		"QuantifierPrefix" -> List(
 			i("*"),
 			i("+"),
 			i("?"),
-			lex(i("{"), N("DecimalDigits"), i("}")),
-			lex(i("{"), N("DecimalDigits"), i(","), i("}")),
-			lex(i("{"), N("DecimalDigits"), i("}"))),
+			lex(i("{"), n("DecimalDigits"), i("}")),
+			lex(i("{"), n("DecimalDigits"), i(","), i("}")),
+			lex(i("{"), n("DecimalDigits"), i("}"))),
 		"Atom" -> List(
 			n("PatternCharacter"),
 			i("."),
-			lex(i("\\"), N("AtomEscape")),
+			lex(i("\\"), n("AtomEscape")),
 			n("CharacterClass"),
-			lex(i("("), N("Disjunction"), i(")")),
-			lex(i("("), i("?"), i(":"), N("Disjunction"), i(")"))),
+			lex(i("("), n("Disjunction"), i(")")),
+			lex(i("("), i("?"), i(":"), n("Disjunction"), i(")"))),
 		"PatternCharacter" -> List(
 			n("SourceCharacter").butnot(c("^$\\.*+?()[]{}|"))),
 		"AtomEscape" -> List(
@@ -604,7 +603,7 @@ object JavaScriptGrammar extends Grammar {
 			n("CharacterClassEscape")),
 		"CharacterEscape" -> List(
 			n("ControlEscape"),
-			lex(i("c"), N("ControlLetter")),
+			lex(i("c"), n("ControlLetter")),
 			n("HexEscapeSequence"),
 			n("UnicodeEscapeSequence"),
 			n("IdentityEscape")),
@@ -615,29 +614,29 @@ object JavaScriptGrammar extends Grammar {
 		"IdentityEscape" -> List(
 			n("SourceCharacter").butnot(n("IdentifierPart"), c("\u200C\u200D"))),
 		"DecimalEscape" -> List(
-			lex(N("DecimalIntegerLiteral"), lookahead_except(N("DecimalDigit")))),
+			lex(n("DecimalIntegerLiteral"), lookahead_except(n("DecimalDigit")))),
 		"CharacterClassEscape" -> List(
 			c("dDsSwW")),
 		"CharacterClass" -> List(
-			lex(i("["), lookahead_except(i("^")), N("ClassRanges"), i("]")),
-			lex(i("["), i("^"), N("ClassRanges"), i("]"))),
+			lex(i("["), lookahead_except(i("^")), n("ClassRanges"), i("]")),
+			lex(i("["), i("^"), n("ClassRanges"), i("]"))),
 		"ClassRanges" -> List(
 			lex(),
 			n("NonemptyClassRanges")),
 		"NonemptyClassRanges" -> List(
 			n("ClassAtom"),
-			lex(N("ClassAtom"), N("NonemptyClassRangesNoDash")),
-			lex(N("ClassAtom"), i("-"), N("ClassAtom"), N("ClassRanges"))),
+			lex(n("ClassAtom"), n("NonemptyClassRangesNoDash")),
+			lex(n("ClassAtom"), i("-"), n("ClassAtom"), n("ClassRanges"))),
 		"NonemptyClassRangesNoDash" -> List(
 			n("ClassAtom"),
-			lex(N("ClassAtomNoDash"), N("NonemptyClassRangesNoDash")),
-			lex(N("ClassAtomNoDash"), i("-"), N("ClassAtom"), N("ClassRanges"))),
+			lex(n("ClassAtomNoDash"), n("NonemptyClassRangesNoDash")),
+			lex(n("ClassAtomNoDash"), i("-"), n("ClassAtom"), n("ClassRanges"))),
 		"ClassAtom" -> List(
 			i("-"),
 			n("ClassAtomNoDash")),
 		"ClassAtomNoDash" -> List(
 			n("SourceCharacter").butnot(c("\\]-")),
-			lex(i("\\"), N("ClassEscape"))),
+			lex(i("\\"), n("ClassEscape"))),
 		"ClassEscape" -> List(
 			n("DecimalEscape"),
 			i("b"),
@@ -648,21 +647,21 @@ object JavaScriptGrammar extends Grammar {
 		"JSONWhiteSpace" -> List(
 			c("\t\n\r ")),
 		"JSONString" -> List(
-			lex(i("\""), N("JSONStringCharacters").opt, i("\""))),
+			lex(i("\""), n("JSONStringCharacters").opt, i("\""))),
 		"JSONStringCharacters" -> List(
-			lex(N("JSONStringCharacter"), N("JSONStringCharacters").opt)),
+			lex(n("JSONStringCharacter"), n("JSONStringCharacters").opt)),
 		"JSONStringCharacter" -> List(
 			n("SourceCharacter").butnot(c("\"\\\u0000\u001F")),
-			lex(i("\\"), N("JSONEscapeSequence"))),
+			lex(i("\\"), n("JSONEscapeSequence"))),
 		"JSONEscapeSequence" -> List(
 			n("JSONEscapeCharacter"),
 			n("UnicodeEscapeSequence")),
 		"JSONEscapeCharacter" -> List(
 			c("\"/\\bfnrt")),
 		"JSONNumber" -> List(
-			lex(i("-").opt, N("DecimalIntegerLiteral"), N("JSONFraction").opt, N("ExponentPart").opt)),
+			lex(i("-").opt, n("DecimalIntegerLiteral"), n("JSONFraction").opt, n("ExponentPart").opt)),
 		"JSONFraction" -> List(
-			lex(i("."), N("DecimalDigits"))),
+			lex(i("."), n("DecimalDigits"))),
 		"JSONNullLiteral" -> List(
 			n("NullLiteral")),
 		"JSONBooleanLiteral" -> List(
@@ -691,5 +690,5 @@ object JavaScriptGrammar extends Grammar {
 			n("JSONValue"),
 			expr(n("JSONElementList"), i(","), n("JSONValue")))
 	)
-	override val startSymbol: String = "Program"
+	override val startSymbol: String = "Start"
 }

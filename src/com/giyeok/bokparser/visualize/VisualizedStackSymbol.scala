@@ -34,7 +34,8 @@ object VisualizedStackSymbol {
 		val display = new Display
 		val shell = new Shell(display)
 
-		val result = new BlackboxParser(JavaScriptGrammar).parse(ParserInput.fromString("(1) + 2;"))
+		val program = "   var q    =  co  + 1,  x  = 321.5e-71; console.log(q +     \n\nx);  "
+		val result = new BlackboxParser(JavaScriptGrammar).parse(ParserInput.fromString(program))
 
 		val figure = new Figure
 		val layout = new ToolbarLayout(false)
@@ -50,6 +51,7 @@ object VisualizedStackSymbol {
 		val canvas = new FigureCanvas(shell)
 		canvas.setContents(figure)
 
+		shell.setText(program)
 		shell.setLayout(new FillLayout)
 		shell.open()
 
@@ -73,7 +75,7 @@ class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolea
 			case StartSymbol => add(new Label("$"))
 			case NontermSymbol(item) =>
 				item.item match {
-					case Nonterminal(name, _, _) =>
+					case Nonterminal(name) =>
 						val nonterm = new Label(name)
 						if (grammar != null) {
 							nonterm.setToolTip(new RuleFigure((name, grammar.rules(name))))
@@ -89,13 +91,6 @@ class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolea
 					layout
 				})
 				fig.setBorder(null)
-
-				if (whitespace) {
-					item.precedingWS.foreach((x) => fig.add(new VisualizedStackSymbol(x, whitespace, grammar, whitespaceBoxColor)))
-					if (!(item.precedingWS isEmpty)) {
-						fig.add(new Label("|"))
-					}
-				}
 
 				if (whitespace && (item.isInstanceOf[Parser#StackEntry#ParsingSequence])) {
 					val s = item.asInstanceOf[Parser#StackEntry#ParsingSequence]
@@ -118,13 +113,6 @@ class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolea
 					x(s.childrenWithWS, s.indexNonWS, 0)
 				} else {
 					item.children.foreach((x) => fig.add(new VisualizedStackSymbol(x, whitespace, grammar, normalBoxColor)))
-				}
-
-				if (whitespace) {
-					if (!(item.followingWS isEmpty)) {
-						fig.add(new Label("|"))
-					}
-					item.followingWS.foreach((x) => fig.add(new VisualizedStackSymbol(x, whitespace, grammar, whitespaceBoxColor)))
 				}
 
 				_layout.setSpacing(2)

@@ -42,10 +42,12 @@ object VisualizedParser {
 		val display = new Display
 		val shell = new Shell(display)
 
+		val program = "var q    =  co  + 1,  x  = 321.5e-71;"
 		// val vp = new VisualizedParser(SampleGrammar4, InputStream.fromString("abb"), shell)
 		// val vp = new VisualizedParser(SampleGrammar7, InputStream.fromString("ac"), shell)
-		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString("  var q    =  co  + 1,  x  = 321.5e-71;"), shell)
+		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString(program), shell)
 
+		shell.setText(program)
 		shell.setLayout(new FillLayout)
 
 		shell.open()
@@ -341,8 +343,8 @@ class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedPars
 		val (repr, font) = symbol match {
 			case StartSymbol => ("$", DefItemFigure.stringFont)
 			case NontermSymbol(item) => item.item match {
-				case Nonterminal(name, _, _) => (name, DefItemFigure.nonterminalFont)
-				case StringInput(string, _, _) => (string, DefItemFigure.stringFont)
+				case Nonterminal(name) => (name, DefItemFigure.nonterminalFont)
+				case StringInput(string) => (string, DefItemFigure.stringFont)
 				case _ => ("<<" + item.item.id + ">>", DefItemFigure.defaultFont)
 			}
 			case TermSymbol(input, pointer) => input match {
