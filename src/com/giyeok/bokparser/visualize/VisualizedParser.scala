@@ -42,7 +42,7 @@ object VisualizedParser {
 		val display = new Display
 		val shell = new Shell(display)
 
-		val program = "var q    =  co  + 1,  x  = 321.5e-71;"
+		val program = "function x(a  ,   b   ,    \t\t\t c   ,  d){return a+b   * c      - d;}"
 		// val vp = new VisualizedParser(SampleGrammar4, InputStream.fromString("abb"), shell)
 		// val vp = new VisualizedParser(SampleGrammar7, InputStream.fromString("ac"), shell)
 		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString(program), shell)

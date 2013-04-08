@@ -519,9 +519,9 @@ object JavaScriptGrammar extends Grammar {
 		
 		// A.5 Functions and Programs
 		"FunctionDeclaration" -> List(
-			expr(i("function"), oneof(oneline), n("Identifier"), i("("), n("FormalParameterList").opt, i(")"), i("{"), n("FunctionBody"), i("}"))),
+			expr(i("function"), n("Identifier"), i("("), n("FormalParameterList").opt, i(")"), i("{"), n("FunctionBody"), i("}"))),
 		"FunctionExpression" -> List(
-			expr(i("function"), oneof(oneline), n("Identifier").opt, i("("), n("FormalParameterList").opt, i(")"), i("{"), n("FunctionBody"), i("}"))),
+			expr(i("function"), n("Identifier").opt, i("("), n("FormalParameterList").opt, i(")"), i("{"), n("FunctionBody"), i("}"))),
 		"FormalParameterList" -> List(
 			n("Identifier"),
 			expr(n("FormalParameterList"), i(","), n("Identifier"))),

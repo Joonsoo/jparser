@@ -10,16 +10,16 @@ object Parser {
 
 class ParseResult(val messages: List[ParsePossibility]) {
 	def add(p: ParsePossibility) = {
-		p match {
-			case ParseSuccess(parsed) =>
-				println("Successfully parsed")
-				println(parsed)
-				println(parsed.source)
-				println(parsed.text)
-			case ParseFailed(reason, location) =>
-				println("Parsing failed since")
-				println(s"  $reason at $location")
-		}
+//		p match {
+//			case ParseSuccess(parsed) =>
+//				println("Successfully parsed")
+//				println(parsed)
+//				println(parsed.source)
+//				println(parsed.text)
+//			case ParseFailed(reason, location) =>
+//				println("Parsing failed since")
+//				println(s"  $reason at $location")
+//		}
 		new ParseResult(p :: messages)
 	}
 
@@ -103,7 +103,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 				case _ =>
 					if (fin isEmpty) {
 						// and if the entry has no child
-						println(s"${entry.id} is vaporized")
+						// println(s"${entry.id} is vaporized")
 					}
 			}
 			true
@@ -442,7 +442,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 				}
 				def propagate(l: List[DefItem]): List[DefItem] = l match {
 					case (x @ LookaheadExcept(except)) :: xs => if (checkLookaheadNot(except)) x :: propagate(xs) else List()
-					case x :: xs => if (x nullable) x :: propagate(xs) else List(x)
+					case x :: xs => List(x) // if (x nullable) x :: propagate(xs) else List(x)
 					case Nil => List()
 				}
 				propagate(item.seq drop pointer)

@@ -34,7 +34,25 @@ object VisualizedStackSymbol {
 		val display = new Display
 		val shell = new Shell(display)
 
-		val program = "   var q    =  co  + 1,  x  = 321.5e-71; console.log(q +     \n\nx);  "
+		val program = 
+		"""
+function click_expandingMenuHeader(obj,sectionName)
+{
+var x=document.getElementById("cssprop_" + sectionName).parentNode.className;
+if (x.indexOf("expandingMenuNotSelected")>-1)
+	{
+	x=x.replace("expandingMenuNotSelected","expandingMenuSelected");
+	document.getElementById("cssprop_" + sectionName).parentNode.className=x;
+	document.getElementById("cssprop_" + sectionName).style.display="block";
+	}
+else
+	{
+	x=x.replace("expandingMenuSelected","expandingMenuNotSelected");
+	document.getElementById("cssprop_" + sectionName).parentNode.className=x;
+	document.getElementById("cssprop_" + sectionName).style.display="none";
+	}
+}
+		"""
 		val result = new BlackboxParser(JavaScriptGrammar).parse(ParserInput.fromString(program))
 
 		val figure = new Figure
