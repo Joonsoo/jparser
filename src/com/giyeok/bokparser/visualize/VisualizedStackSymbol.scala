@@ -13,15 +13,15 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 
-import com.giyeok.bokparser.BlackboxParser
+import com.giyeok.bokparser.dynamic.BlackboxParser
 import com.giyeok.bokparser.CharInputSymbol
 import com.giyeok.bokparser.EOFSymbol
 import com.giyeok.bokparser.EmptySymbol
 import com.giyeok.bokparser.Grammar
 import com.giyeok.bokparser.NontermSymbol
 import com.giyeok.bokparser.Nonterminal
-import com.giyeok.bokparser.ParseSuccess
-import com.giyeok.bokparser.Parser
+import com.giyeok.bokparser.dynamic.ParseSuccess
+import com.giyeok.bokparser.dynamic.Parser
 import com.giyeok.bokparser.ParserInput
 import com.giyeok.bokparser.StackSymbol
 import com.giyeok.bokparser.StartSymbol

@@ -1,6 +1,34 @@
-package com.giyeok.bokparser
+package com.giyeok.bokparser.dynamic
 
+import com.giyeok.bokparser.Grammar
+import com.giyeok.bokparser.ParserInput
 import com.giyeok.bokparser.grammars.SampleGrammar1
+import scala.Option.option2Iterable
+import scala.collection.immutable.ListMap
+import scala.collection.mutable.ListMap
+import scala.collection.mutable.Queue
+import com.giyeok.bokparser.VirtInputSymbol
+import com.giyeok.bokparser.Nonterminal
+import com.giyeok.bokparser.EOFSymbol
+import com.giyeok.bokparser.CharacterInput
+import com.giyeok.bokparser.OneOf
+import com.giyeok.bokparser.RepeatRangeTo
+import com.giyeok.bokparser.Repeat
+import com.giyeok.bokparser.LookaheadExcept
+import com.giyeok.bokparser.Input
+import com.giyeok.bokparser.InputSymbol
+import com.giyeok.bokparser.RepeatRangeFrom
+import com.giyeok.bokparser.VirtualInput
+import com.giyeok.bokparser.Except
+import com.giyeok.bokparser.StringInput
+import com.giyeok.bokparser.CharInputSymbol
+import com.giyeok.bokparser.Sequence
+import com.giyeok.bokparser.DefItem
+import com.giyeok.bokparser.StartSymbol
+import com.giyeok.bokparser.EmptySymbol
+import com.giyeok.bokparser.NontermSymbol
+import com.giyeok.bokparser.StackSymbol
+import com.giyeok.bokparser.TermSymbol
 
 object Parser {
 	def main(args: Array[String]) {
@@ -522,31 +550,4 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 		}
 		val rules: ListMap[String, List[DefItem]] = grammar.rules + ((startSymbol, starting))
 	}
-}
-
-sealed abstract class StackSymbol {
-	val text: String // with whitespaces
-	val source: List[InputSymbol] // without whitespaces
-}
-case object StartSymbol extends StackSymbol {
-	val text = ""
-	val source = Nil
-}
-case class NontermSymbol(item: Parser#StackEntry#ParsingItem) extends StackSymbol {
-	lazy val text = (item.children map (_ text)) mkString
-	lazy val source = {
-		def rec(l: List[StackSymbol]): List[InputSymbol] = l match {
-			case x :: xs => x.source ++ rec(xs)
-			case Nil => List()
-		}
-		rec(item.children)
-	}
-}
-case class TermSymbol(input: InputSymbol, pointer: Int) extends StackSymbol {
-	val text: String = input match { case CharInputSymbol(c) => String valueOf c case _ => "" }
-	val source = List(input)
-}
-case object EmptySymbol extends StackSymbol {
-	val text = ""
-	val source = Nil
 }

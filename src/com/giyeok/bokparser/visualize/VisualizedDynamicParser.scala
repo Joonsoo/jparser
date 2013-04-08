@@ -28,7 +28,7 @@ import com.giyeok.bokparser.EmptySymbol
 import com.giyeok.bokparser.Grammar
 import com.giyeok.bokparser.NontermSymbol
 import com.giyeok.bokparser.Nonterminal
-import com.giyeok.bokparser.Parser
+import com.giyeok.bokparser.dynamic.Parser
 import com.giyeok.bokparser.ParserInput
 import com.giyeok.bokparser.StackSymbol
 import com.giyeok.bokparser.StartSymbol
@@ -37,15 +37,15 @@ import com.giyeok.bokparser.TermSymbol
 import com.giyeok.bokparser.VirtInputSymbol
 import com.giyeok.bokparser.grammars.JavaScriptGrammar
 
-object VisualizedParser {
+object VisualizedDynamicParser {
 	def main(args: Array[String]) {
 		val display = new Display
 		val shell = new Shell(display)
 
 		val program = "function x(a  ,   b   ,    \t\t\t c   ,  d){return a+b   * c      - d;}"
-		// val vp = new VisualizedParser(SampleGrammar4, InputStream.fromString("abb"), shell)
-		// val vp = new VisualizedParser(SampleGrammar7, InputStream.fromString("ac"), shell)
-		val vp = new VisualizedParser(JavaScriptGrammar, ParserInput.fromString(program), shell)
+		// val vp = new VisualizedDynamicParser(SampleGrammar4, InputStream.fromString("abb"), shell)
+		// val vp = new VisualizedDynamicParser(SampleGrammar7, InputStream.fromString("ac"), shell)
+		val vp = new VisualizedDynamicParser(JavaScriptGrammar, ParserInput.fromString(program), shell)
 
 		shell.setText(program)
 		shell.setLayout(new FillLayout)
@@ -77,7 +77,7 @@ object VisualizedParser {
 	}
 }
 
-class VisualizedParser(grammar: Grammar, input: ParserInput, parent: Canvas) extends Parser(grammar, input) {
+class VisualizedDynamicParser(grammar: Grammar, input: ParserInput, parent: Canvas) extends Parser(grammar, input) {
 	// === Preserving stack ===
 	class PreservingOctopusStack extends OctopusStack {
 		protected var all = List[StackEntry](bottom)
@@ -94,7 +94,7 @@ class VisualizedParser(grammar: Grammar, input: ParserInput, parent: Canvas) ext
 		def getAll = all
 		def getDone = done
 
-		val parser = VisualizedParser.this
+		val parser = VisualizedDynamicParser.this
 	}
 
 	trait ChildrenMap extends PreservingOctopusStack {
@@ -136,7 +136,7 @@ class VisualizedParser(grammar: Grammar, input: ParserInput, parent: Canvas) ext
 	}
 }
 
-class StackFigure(val parser: VisualizedParser)(implicit val vp: VisualizedParser) extends Figure {
+class StackFigure(val parser: VisualizedDynamicParser)(implicit val vp: VisualizedDynamicParser) extends Figure {
 	import scala.collection.mutable.HashMap
 
 	private val figureMap = new HashMap[Parser#StackEntry, StackEntryFigure]
@@ -201,7 +201,7 @@ object StackEntryFigure {
 	val nextColor = ColorConstants.lightBlue
 	val backgroundColor = new Color(null, 255, 255, 206)
 }
-class StackEntryFigure(val stackFigure: StackFigure, val stackEntry: Parser#StackEntry)(implicit val vp: VisualizedParser) extends Figure {
+class StackEntryFigure(val stackFigure: StackFigure, val stackEntry: Parser#StackEntry)(implicit val vp: VisualizedDynamicParser) extends Figure {
 	private val stackSymbolFigure = new StackSymbolFigure(stackEntry.symbol)
 	private val stackEntryItemsFigure = new StackEntryItemsFigure(stackEntry.items)
 	private var expanded = false
@@ -254,7 +254,7 @@ class StackEntryFigure(val stackFigure: StackFigure, val stackEntry: Parser#Stac
 	}
 }
 
-class StackEntryItemsFigure(val items: List[Parser#StackEntry#StackEntryItem])(implicit val vp: VisualizedParser) extends Figure {
+class StackEntryItemsFigure(val items: List[Parser#StackEntry#StackEntryItem])(implicit val vp: VisualizedDynamicParser) extends Figure {
 	{
 		val layout = new ToolbarLayout(false)
 		setLayoutManager(layout)
@@ -263,7 +263,7 @@ class StackEntryItemsFigure(val items: List[Parser#StackEntry#StackEntryItem])(i
 	}
 }
 
-class StackEntryItemFigure(val entryItem: Parser#StackEntry#StackEntryItem)(implicit val vp: VisualizedParser) extends Figure {
+class StackEntryItemFigure(val entryItem: Parser#StackEntry#StackEntryItem)(implicit val vp: VisualizedDynamicParser) extends Figure {
 	private val derivedFrom = entryItem.derivedFrom map (_.id) mkString (", ")
 
 	{
@@ -335,7 +335,7 @@ class StackEntryItemFigure(val entryItem: Parser#StackEntry#StackEntryItem)(impl
 	}
 }
 
-class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedParser) extends Figure {
+class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedDynamicParser) extends Figure {
 	{
 		val layout = new ToolbarLayout(false)
 		setLayoutManager(layout)
