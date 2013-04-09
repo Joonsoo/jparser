@@ -42,7 +42,8 @@ object VisualizedDynamicParser {
 		val display = new Display
 		val shell = new Shell(display)
 
-		val program = "function x(a  ,   b   ,    \t\t\t c   ,  d){return a+b   * c      - d;}"
+		val program =
+			"""console.log((function x() { return 1; })());"""
 		// val vp = new VisualizedDynamicParser(SampleGrammar4, InputStream.fromString("abb"), shell)
 		// val vp = new VisualizedDynamicParser(SampleGrammar7, InputStream.fromString("ac"), shell)
 		val vp = new VisualizedDynamicParser(JavaScriptGrammar, ParserInput.fromString(program), shell)
@@ -309,6 +310,8 @@ class StackEntryItemFigure(val entryItem: Parser#StackEntry#StackEntryItem)(impl
 				addLabels(f)
 				add(dotLabel)
 				addLabels(b)
+				if ((!b.isEmpty) && seq.finishable)
+					add(dotLabel)
 			case rep: Parser#StackEntry#ParsingRepeat =>
 				if (rep.item.range canProceed rep.count) add(dotLabel)
 				add(labelize(rep.item))

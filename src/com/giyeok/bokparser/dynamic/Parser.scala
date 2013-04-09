@@ -38,16 +38,16 @@ object Parser {
 
 class ParseResult(val messages: List[ParsePossibility]) {
 	def add(p: ParsePossibility) = {
-//		p match {
-//			case ParseSuccess(parsed) =>
-//				println("Successfully parsed")
-//				println(parsed)
-//				println(parsed.source)
-//				println(parsed.text)
-//			case ParseFailed(reason, location) =>
-//				println("Parsing failed since")
-//				println(s"  $reason at $location")
-//		}
+		//		p match {
+		//			case ParseSuccess(parsed) =>
+		//				println("Successfully parsed")
+		//				println(parsed)
+		//				println(parsed.source)
+		//				println(parsed.text)
+		//			case ParseFailed(reason, location) =>
+		//				println("Parsing failed since")
+		//				println(s"  $reason at $location")
+		//		}
 		new ParseResult(p :: messages)
 	}
 
@@ -190,11 +190,11 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 		private def nextId = { unique += 1; unique }
 	}
 	abstract class StackEntry(
-		val parent: StackEntry,
-		val symbol: StackSymbol,
-		val pointer: Int,
-		val generatedFrom: Parser#StackEntry,
-		val generatedFromItem: Parser#StackEntry#StackEntryItem) {
+			val parent: StackEntry,
+			val symbol: StackSymbol,
+			val pointer: Int,
+			val generatedFrom: Parser#StackEntry,
+			val generatedFromItem: Parser#StackEntry#StackEntryItem) {
 		def _items: List[this.StackEntryItem]
 
 		def finished: List[this.StackEntryItem] = items filter (_ finishable)
@@ -323,7 +323,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 		case class ParsingStringInput(override val item: StringInput, str: List[StackSymbol] = Nil) extends ParsingInput(item) {
 			val pointer = str.length
 			val done = pointer >= item.string.length()
-			val finishable = done
+			val finishable = (!str.isEmpty) && done
 			val children = str
 
 			def proceed(next: StackSymbol) = if (finishable) Nil else next match {
@@ -399,7 +399,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 		}
 		case class ParsingRepeat(override val item: Repeat, repeated: List[StackSymbol] = Nil) extends ParsingItem(item) {
 			val count = repeated.length
-			val finishable = item.range contains count
+			val finishable = (!repeated.isEmpty) && (item.range contains count)
 			val children = repeated
 
 			def derived = {
@@ -425,7 +425,14 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 		case class ParsingSequence(override val item: Sequence, _children: List[StackSymbol], nonWS: List[(Int, Int)], pointer: Int) extends ParsingItem(item) {
 			// nonWS: index of _children(without whitespace) -> index of children(without whitespace)
 			def this(item: Sequence) = this(item, Nil, Nil, 0)
-			val finishable = (pointer >= item.seq.length) && (!nonWS.isEmpty && nonWS.last._1 + 1 == _children.length)
+			private val allNullables = {
+				def all(l: List[DefItem]): Boolean = l match {
+					case x :: xs => if (!(x nullable)) false else all(xs)
+					case _ => true
+				}
+				all(item.seq drop pointer)
+			}
+			val finishable = (!_children.isEmpty) && allNullables && (!nonWS.isEmpty && nonWS.last._1 + 1 == _children.length)
 
 			val children = {
 				def pick(indices: List[(Int, Int)], i: Int = 0): List[StackSymbol] = {
@@ -470,10 +477,10 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 				}
 				def propagate(l: List[DefItem]): List[DefItem] = l match {
 					case (x @ LookaheadExcept(except)) :: xs => if (checkLookaheadNot(except)) x :: propagate(xs) else List()
-					case x :: xs => List(x) // if (x nullable) x :: propagate(xs) else List(x)
+					case x :: xs => if (x nullable) x :: propagate(xs) else List(x)
 					case Nil => List()
 				}
-				propagate(item.seq drop pointer)
+				propagate(item.seq drop pointer).distinct
 			}
 			def proceed(next: StackSymbol) =
 				next match {

@@ -105,18 +105,19 @@ class RuleFigure(val rule: (String, List[DefItem]))(implicit itemListener: DefIt
 		add(left); add(right)
 	}
 
-	val defaultFont = new Font(null, "Arial", 12, SWT.NONE)
-
 	def arrowLabel: Label = {
 		val arrow = new Label(" \u2192 ")
-		arrow.setFont(defaultFont)
+		arrow.setFont(RuleFigure.defaultFont)
 		arrow
 	}
 	def barLabel: Label = {
 		val bar = new Label("|")
-		bar.setFont(defaultFont)
+		bar.setFont(RuleFigure.defaultFont)
 		bar
 	}
+}
+object RuleFigure {
+	val defaultFont = new Font(null, "Arial", 12, SWT.NONE)
 }
 
 object DefItemFigure {

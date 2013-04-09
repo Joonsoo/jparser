@@ -35,24 +35,28 @@ object VisualizedStackSymbol {
 		val shell = new Shell(display)
 
 		val program = 
-		"""
-function click_expandingMenuHeader(obj,sectionName)
+			"""
+function sendErr()
 {
-var x=document.getElementById("cssprop_" + sectionName).parentNode.className;
-if (x.indexOf("expandingMenuNotSelected")>-1)
-	{
-	x=x.replace("expandingMenuNotSelected","expandingMenuSelected");
-	document.getElementById("cssprop_" + sectionName).parentNode.className=x;
-	document.getElementById("cssprop_" + sectionName).style.display="block";
-	}
+var xmlhttp;
+var errurl=document.getElementById("errurl").value;
+var erremail=document.getElementById("erremail").value;
+var errdesc=document.getElementById("errdesc").value;
+if (window.XMLHttpRequest)
+  {// code for IE7+, Firefox, Chrome, Opera, Safari
+  xmlhttp=new XMLHttpRequest();
+  }
 else
-	{
-	x=x.replace("expandingMenuSelected","expandingMenuNotSelected");
-	document.getElementById("cssprop_" + sectionName).parentNode.className=x;
-	document.getElementById("cssprop_" + sectionName).style.display="none";
-	}
+  {// code for IE6, IE5
+  xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+  }
+xmlhttp.open("POST","/err_sup.asp",true);
+xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+xmlhttp.send("errurl=" + errurl + "&erremail=" + erremail + "&errdesc=" + escape(errdesc));
+hideError();
+document.getElementById("err_sent").style.display="block";
 }
-		"""
+			"""
 		val result = new BlackboxParser(JavaScriptGrammar).parse(ParserInput.fromString(program))
 
 		val figure = new Figure
