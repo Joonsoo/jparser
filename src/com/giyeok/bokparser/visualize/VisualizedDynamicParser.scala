@@ -80,7 +80,7 @@ object VisualizedDynamicParser {
 
 class VisualizedDynamicParser(grammar: Grammar, input: ParserInput, parent: Canvas) extends Parser(grammar, input) {
 	// === Preserving stack ===
-	class PreservingOctopusStack extends OctopusStack {
+	class PreservingOctopusStack(starter: StackEntry) extends OctopusStack(starter) {
 		protected var all = List[StackEntry](bottom)
 		protected var done = List[StackEntry]()
 
@@ -120,7 +120,7 @@ class VisualizedDynamicParser(grammar: Grammar, input: ParserInput, parent: Canv
 		override def getChildrenOf(parent: StackEntry) =
 			(childrenMap get parent) match { case Some(v) => v case _ => List() }
 	}
-	override val stack = new PreservingOctopusStack with HashedChildrenMap
+	override val stack = new PreservingOctopusStack(starter) with HashedChildrenMap
 
 	// === Visualization ===
 	implicit val self = this
