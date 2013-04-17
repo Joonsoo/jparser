@@ -17,7 +17,10 @@ object JavaScriptGrammar extends Grammar {
 	
 	override val name = "JavaScript"
 	override val rules = ListMap(
-		"Start" -> List(oneof(whitespace :+ n("Token"))), // List(seq(oneof(whitespace).star, n("Program"), oneof(whitespace).star)),
+		"_Token" -> (whitespace :+ n("Token")),
+		"_Raw" -> List(n("RegularExpressionLiteral")),
+		
+		"Start" -> List(seq(oneof(whitespace).star, n("Program"), oneof(whitespace).star)),
 		
 		// A.1 Lexical Grammar
 		"SourceCharacter" -> List(c()),

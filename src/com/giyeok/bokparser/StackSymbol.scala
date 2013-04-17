@@ -3,8 +3,8 @@ package com.giyeok.bokparser
 import com.giyeok.bokparser.dynamic.Parser
 
 sealed abstract class StackSymbol {
-	val text: String // with whitespaces
-	val source: List[InputSymbol] // without whitespaces
+	val text: String
+	val source: List[InputSymbol]
 }
 case object StartSymbol extends StackSymbol {
 	val text = ""
