@@ -48,7 +48,7 @@ object JavaScriptGrammar extends Grammar {
 	
 	override val name = "JavaScript"
 	override val rules = ListMap(
-		"_Token" -> (whitespace :+ n("Token")),
+		"_Token" -> (whitespace ++ List(n("IdentifierName"), n("Punctuator"), n("NumericLiteral"), n("StringLiteral"))),
 		"_Raw" -> List(n("RegularExpressionLiteral")),
 		
 		"Start" -> List(seq(oneof(whitespace).star, n("Program"), oneof(whitespace).star)),

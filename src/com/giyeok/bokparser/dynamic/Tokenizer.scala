@@ -20,6 +20,8 @@ import com.giyeok.bokparser.VirtualInput
 import com.giyeok.bokparser.OneOf
 
 class Tokenizer(grammar: Grammar, tokenSymbol: String, rawSymbol: String, input: ParserInput) {
+	private val tokenCands = grammar.rules(tokenSymbol)
+	
 	private var nextPointer = 0
 	private var _nextToken: List[StackSymbol] = Nil
 
@@ -65,7 +67,8 @@ class Tokenizer(grammar: Grammar, tokenSymbol: String, rawSymbol: String, input:
 				case _ => None
 			})).flatten
 			// assert _nextToken(i).source == _nextToken(j).source for all i, j in range
-			List(TokenInputSymbol(new Token(_nextToken.head.source, Set(q: _*))))
+			val compats = Set(q: _*) intersect Set(tokenCands: _*)
+			List(TokenInputSymbol(new Token(_nextToken.head.source, compats)))
 		}
 	}
 }
@@ -93,21 +96,14 @@ class Token(val source: List[InputSymbol], val compatItems: Set[DefItem]) {
 object Tokenizer {
 	def main(args: Array[String]) {
 		val tokenizer = new Tokenizer(JavaScriptGrammar, "_Token", "_Raw", new StringParserInput(
-			"""
-				|// this/is/comment
-				|/**** this/*is/***
-				| *
-				| * multi*line/comment ***
-				|
-				|
-				| **/
-				|var wer = /^http/g;
-				""".stripMargin('|')))
+			"""a;""".stripMargin('|')))
 		while (tokenizer.hasNextToken) {
 			val token = tokenizer.nextToken()
 			token map (_ match {
-				case t: TokenInputSymbol => println("\"" + t.token.text + "\"")
-				case c: CharInputSymbol => println("'" + c.char + "'")
+				case TokenInputSymbol(token) =>
+					println("\"" + token.text + "\"")
+					println(token.compatItems)
+				case CharInputSymbol(char) => println("'" + char + "'")
 				case _ =>
 			})
 		}
