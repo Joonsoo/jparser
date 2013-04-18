@@ -1,6 +1,7 @@
 package com.giyeok.bokparser.visualize
 
 import scala.collection.mutable.HashMap
+
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.FigureCanvas
@@ -19,6 +20,7 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Canvas
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
+
 import com.giyeok.bokparser.CharInputSymbol
 import com.giyeok.bokparser.DefItem
 import com.giyeok.bokparser.EOFSymbol
@@ -26,26 +28,24 @@ import com.giyeok.bokparser.EmptySymbol
 import com.giyeok.bokparser.Grammar
 import com.giyeok.bokparser.NontermSymbol
 import com.giyeok.bokparser.Nonterminal
-import com.giyeok.bokparser.dynamic.Parser
 import com.giyeok.bokparser.ParserInput
 import com.giyeok.bokparser.StackSymbol
 import com.giyeok.bokparser.StartSymbol
 import com.giyeok.bokparser.StringInput
 import com.giyeok.bokparser.TermSymbol
+import com.giyeok.bokparser.TokenInputSymbol
 import com.giyeok.bokparser.VirtInputSymbol
+import com.giyeok.bokparser.dynamic.Parser
 import com.giyeok.bokparser.grammars.JavaScriptGrammar
 import com.giyeok.bokparser.grammars.JavaScriptParser
-import com.giyeok.bokparser.TokenInputSymbol
+import com.giyeok.bokparser.tests.JavaScriptTestCases
 
 object VisualizedDynamicParser {
 	def main(args: Array[String]) {
 		val display = new Display
 		val shell = new Shell(display)
 
-		val program =
-			"""console.log((function x() { return 1; })());"""
-		// val vp = new VisualizedDynamicParser(SampleGrammar4, InputStream.fromString("abb"), shell)
-		// val vp = new VisualizedDynamicParser(SampleGrammar7, InputStream.fromString("ac"), shell)
+		val program = JavaScriptTestCases.test
 		val vp = new VisualizedDynamicParser(JavaScriptGrammar, JavaScriptParser.getTokenizer(ParserInput.fromString(program)), shell)
 
 		shell.setText(program)

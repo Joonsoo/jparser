@@ -12,7 +12,6 @@ import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
-
 import com.giyeok.bokparser.CharInputSymbol
 import com.giyeok.bokparser.EOFSymbol
 import com.giyeok.bokparser.EmptySymbol
@@ -29,16 +28,14 @@ import com.giyeok.bokparser.dynamic.ParseSuccess
 import com.giyeok.bokparser.dynamic.Parser
 import com.giyeok.bokparser.grammars.JavaScriptGrammar
 import com.giyeok.bokparser.grammars.JavaScriptParser
+import com.giyeok.bokparser.tests.JavaScriptTestCases
 
 object VisualizedStackSymbol {
 	def main(args: Array[String]) {
 		val display = new Display
 		val shell = new Shell(display)
 
-		val program =
-			"""
-			|a; 
-			""".stripMargin('|')
+		val program = JavaScriptTestCases.test
 		val parser = JavaScriptParser.getParser(ParserInput.fromString(program))
 		parser.parseAll()
 

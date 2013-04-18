@@ -92,7 +92,8 @@ class RuleFigure(val rule: (String, List[DefItem]))(implicit itemListener: DefIt
 		import DefItemFigure._
 		def addAll(rhs: List[DefItem]): Unit =
 			rhs match {
-				case item :: rest => right.add(item); addAll(rest)
+				case item :: rest =>
+					right.add(item); addAll(rest)
 				case List() =>
 			}
 
@@ -143,12 +144,13 @@ object DefItemFigure {
 			case UnicodeCategoryCharacterInput(cates) => label(UnicodeUtil.translateToString(cates) mkString "|", instFont)
 			case CharacterRangeInput(from, to) => label(escape(from) + ".." + escape(to), instFont)
 			case VirtualInput(name) => label(name, virtFont)
-			case Sequence(seq, whitespace) => 
+			case Sequence(seq, whitespace) =>
 				val fig = horzFigure()
 				if (seq isEmpty) fig add new Label("\u03B5")
 				else seq foreach (fig add _)
 				fig
-			case OneOf(items) => val fig = horzFigure(); addWithBars(fig, items); fig
+			case OneOf(items) =>
+				val fig = horzFigure(); addWithBars(fig, items); fig
 			case Except(item, except) =>
 				val fig = horzFigure()
 				fig add "("; fig add item; fig add ")"
@@ -181,7 +183,7 @@ object DefItemFigure {
 		fig
 	}
 	implicit def string2label(s: String): Label = label(s, defaultFont)
-	
+
 	def stringInputLabel(string: String) = label(escape(string), stringFont)
 
 	def escmap = HashMap(

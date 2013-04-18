@@ -26,16 +26,6 @@ object JavaScriptParser {
 			}
 			def parse(input: String): ParseResult = parse(ParserInput.fromString(input))
 		}
-	
-	def main(args: Array[String]) = {
-		val parser = JavaScriptParser.getParser(ParserInput.fromString(
-				"""
-				|console.log("It's done?");
-				""".stripMargin('|')))
-		
-		parser.parseAll()
-		println(parser.result.parsed)
-	}
 }
 
 object JavaScriptGrammar extends Grammar {
