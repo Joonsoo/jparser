@@ -1,51 +1,38 @@
 package com.giyeok.bokparser.dynamic
 
-import com.giyeok.bokparser.Grammar
-import com.giyeok.bokparser.ParserInput
-import com.giyeok.bokparser.grammars.SampleGrammar1
 import scala.Option.option2Iterable
 import scala.collection.immutable.ListMap
 import scala.collection.mutable.ListMap
 import scala.collection.mutable.Queue
-import com.giyeok.bokparser.VirtInputSymbol
-import com.giyeok.bokparser.Nonterminal
-import com.giyeok.bokparser.EOFSymbol
-import com.giyeok.bokparser.CharacterInput
-import com.giyeok.bokparser.OneOf
-import com.giyeok.bokparser.RepeatRangeTo
-import com.giyeok.bokparser.Repeat
-import com.giyeok.bokparser.LookaheadExcept
-import com.giyeok.bokparser.Input
-import com.giyeok.bokparser.InputSymbol
-import com.giyeok.bokparser.RepeatRangeFrom
-import com.giyeok.bokparser.VirtualInput
-import com.giyeok.bokparser.Except
-import com.giyeok.bokparser.StringInput
+
 import com.giyeok.bokparser.CharInputSymbol
-import com.giyeok.bokparser.Sequence
+import com.giyeok.bokparser.CharacterInput
 import com.giyeok.bokparser.DefItem
-import com.giyeok.bokparser.StartSymbol
+import com.giyeok.bokparser.EOFSymbol
 import com.giyeok.bokparser.EmptySymbol
+import com.giyeok.bokparser.Except
+import com.giyeok.bokparser.Grammar
+import com.giyeok.bokparser.Input
+import com.giyeok.bokparser.LookaheadExcept
 import com.giyeok.bokparser.NontermSymbol
+import com.giyeok.bokparser.Nonterminal
+import com.giyeok.bokparser.OneOf
+import com.giyeok.bokparser.ParserInput
+import com.giyeok.bokparser.Repeat
+import com.giyeok.bokparser.RepeatRangeFrom
+import com.giyeok.bokparser.RepeatRangeTo
+import com.giyeok.bokparser.Sequence
 import com.giyeok.bokparser.StackSymbol
+import com.giyeok.bokparser.StartSymbol
+import com.giyeok.bokparser.StringInput
 import com.giyeok.bokparser.TermSymbol
 import com.giyeok.bokparser.TokenInputSymbol
-import com.giyeok.bokparser.TermSymbol
+import com.giyeok.bokparser.VirtInputSymbol
+import com.giyeok.bokparser.VirtualInput
 
 class ParseResult(val messages: List[ParsePossibility]) {
-	def add(p: ParsePossibility) = {
-		//		p match {
-		//			case ParseSuccess(parsed) =>
-		//				println("Successfully parsed")
-		//				println(parsed)
-		//				println(parsed.source)
-		//				println(parsed.text)
-		//			case ParseFailed(reason, location) =>
-		//				println("Parsing failed since")
-		//				println(s"  $reason at $location")
-		//		}
+	def add(p: ParsePossibility) =
 		new ParseResult(p :: messages)
-	}
 
 	val ambiguous = messages.length > 1
 	val succeed = messages.length == 1 && ((messages.head) match { case ParseSuccess(_) => true case _ => false })
@@ -126,14 +113,8 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 						} else Nil) ++ pushFinished(xs)
 					case Nil => Nil
 				}
+
 			val newentries = pushFinished(fin)
-			if (newentries.length > 1) {
-				println("Multi!")
-				newentries foreach (_.symbol match {
-					case NontermSymbol(item) => println(item.item)
-					case _ =>
-				})
-			}
 			newentries foreach (reduced(_))
 
 			(entry proceed (term, pointer + 1, entry, null)) match {
