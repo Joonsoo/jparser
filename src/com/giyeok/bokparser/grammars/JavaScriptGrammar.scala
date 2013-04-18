@@ -1,11 +1,42 @@
 package com.giyeok.bokparser.grammars
 
 import scala.collection.immutable.ListMap
-
 import com.giyeok.bokparser.DefItem
 import com.giyeok.bokparser.Grammar
 import com.giyeok.bokparser.Nonterminal
 import com.giyeok.bokparser.Sequence
+import com.giyeok.bokparser.dynamic.TokenParserInput
+import com.giyeok.bokparser.dynamic.Parser
+import com.giyeok.bokparser.ParserInput
+import com.giyeok.bokparser.dynamic.ParseResult
+import com.giyeok.bokparser.dynamic.BlackboxParser
+
+object JavaScriptParser {
+	def getTokenizer(source: ParserInput) =
+		TokenParserInput.fromGrammar(JavaScriptGrammar, "_Token", "_Raw", source)
+	def getParser(source: ParserInput) =
+		new Parser(JavaScriptGrammar, getTokenizer(source))
+	def getBlackboxParser = 
+		new BlackboxParser {
+			// === parser ===
+			def parse(input: ParserInput): ParseResult = {
+				val parser = getParser(input)
+				parser.parseAll()
+				parser.result
+			}
+			def parse(input: String): ParseResult = parse(ParserInput.fromString(input))
+		}
+	
+	def main(args: Array[String]) = {
+		val parser = JavaScriptParser.getParser(ParserInput.fromString(
+				"""
+				|console.log("It's done?");
+				""".stripMargin('|')))
+		
+		parser.parseAll()
+		println(parser.result.parsed)
+	}
+}
 
 object JavaScriptGrammar extends Grammar {
 	private val whitespace = List[DefItem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))

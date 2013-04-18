@@ -29,12 +29,8 @@ import com.giyeok.bokparser.EmptySymbol
 import com.giyeok.bokparser.NontermSymbol
 import com.giyeok.bokparser.StackSymbol
 import com.giyeok.bokparser.TermSymbol
-
-object Parser {
-	def main(args: Array[String]) {
-		val parser = new BlackboxParser(SampleGrammar1).parse("aaa")
-	}
-}
+import com.giyeok.bokparser.TokenInputSymbol
+import com.giyeok.bokparser.TermSymbol
 
 class ParseResult(val messages: List[ParsePossibility]) {
 	def add(p: ParsePossibility) = {
@@ -59,7 +55,11 @@ sealed abstract class ParsePossibility
 case class ParseFailed(reason: String, location: Int) extends ParsePossibility
 case class ParseSuccess(parsed: StackSymbol) extends ParsePossibility
 
-class BlackboxParser(val grammar: Grammar) {
+trait BlackboxParser {
+	def parse(input: ParserInput): ParseResult
+	def parse(input: String): ParseResult
+}
+class BasicBlackboxParser(val grammar: Grammar) extends BlackboxParser {
 	// === parser ===
 	def parse(input: ParserInput): ParseResult = {
 		val parser = new Parser(grammar, input)
@@ -103,12 +103,12 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			val entry = stack.pop()
 			val pointer = entry.pointer
 			val fin = entry finished
-			val term = TermSymbol(input at entry.pointer, pointer)
+			val term = TermSymbol(input at pointer, pointer)
 
-			def pushFinished(f: List[entry.StackEntryItem]): Unit =
+			def pushFinished(f: List[entry.StackEntryItem]): List[StackEntry] =
 				f match {
 					case x :: xs =>
-						if ((x.item proceed term) isEmpty) {
+						(if ((x.item proceed term) isEmpty) {
 							if (x.generationPoint == null) {
 								// Parsing finished
 								if ((input at pointer) == EOFSymbol) {
@@ -116,17 +116,25 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 								} else {
 									_result = _result add ParseFailed("type 1", pointer) // Error while parsing
 								}
+								Nil
 							} else {
 								(x.generationPoint proceed (NontermSymbol(x.item), pointer, x.belonged, x)) match {
-									case Some(newentry) => reduced(newentry)
-									case _ =>
+									case Some(newentry) => List(newentry)
+									case _ => Nil
 								}
 							}
-						}
-						pushFinished(xs)
-					case Nil =>
+						} else Nil) ++ pushFinished(xs)
+					case Nil => Nil
 				}
-			pushFinished(fin)
+			val newentries = pushFinished(fin)
+			if (newentries.length > 1) {
+				println("Multi!")
+				newentries foreach (_.symbol match {
+					case NontermSymbol(item) => println(item.item)
+					case _ =>
+				})
+			}
+			newentries foreach (reduced(_))
 
 			(entry proceed (term, pointer + 1, entry, null)) match {
 				case Some(newentry) => shifted(newentry)
@@ -326,15 +334,16 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			}
 			override def canEqual(other: Any) = other.isInstanceOf[ParsingCharacterInput]
 		}
-		case class ParsingStringInput(override val item: StringInput, str: List[StackSymbol] = Nil) extends ParsingInput(item) {
-			val pointer = str.length
+		case class ParsingStringInput(override val item: StringInput, str: List[StackSymbol] = Nil, val pointer: Int = 0) extends ParsingInput(item) {
 			val done = pointer >= item.string.length()
 			val finishable = (!str.isEmpty) && done
 			val children = str
 
 			def proceed(next: StackSymbol) = if (finishable) Nil else next match {
 				case TermSymbol(CharInputSymbol(char), _) if (item.string.charAt(pointer) == char) =>
-					List(ParsingStringInput(item, str ++ List(next)))
+					List(ParsingStringInput(item, str ++ List(next), pointer + 1))
+				case TermSymbol(TokenInputSymbol(token), _) if (str.isEmpty && (token compat item)) =>
+					List(ParsingStringInput(item, str ++ List(next), item.string.length()))
 				case _ => Nil
 			}
 
@@ -352,6 +361,8 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 
 			def proceed(next: StackSymbol) = next match {
 				case TermSymbol(_@ VirtInputSymbol(v), _) if (!done && v == item.name) =>
+					List(ParsingVirtualInput(item, next))
+				case TermSymbol(TokenInputSymbol(token), _) if (!done && (token compat item)) =>
 					List(ParsingVirtualInput(item, next))
 				case _ => Nil
 			}
@@ -373,6 +384,8 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			def proceed(next: StackSymbol) = next match {
 				case NontermSymbol(rhs) if (!done && (grammar.rules(item.name) contains rhs.item)) =>
 					List(new ParsingNonterminal(item, next))
+				case TermSymbol(TokenInputSymbol(token), _) if (!done && (token compat item)) =>
+					List(new ParsingNonterminal(item, next))
 				case _ => Nil
 			}
 
@@ -392,6 +405,8 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 
 			def proceed(next: StackSymbol) = next match {
 				case NontermSymbol(s) if (!done && (item.items contains s.item)) =>
+					List(ParsingOneOf(item, next))
+				case TermSymbol(TokenInputSymbol(token), _) if (!done && (token compat item)) =>
 					List(ParsingOneOf(item, next))
 				case _ => Nil
 			}
@@ -418,6 +433,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			def proceed(next: StackSymbol) = next match {
 				case NontermSymbol(s) if (item.item == s.item && (item.range canProceed count)) =>
 					List(ParsingRepeat(item, repeated ++ List(next)))
+				// NOTE needs token proceed?
 				case _ => Nil
 			}
 
@@ -502,6 +518,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 								List(ParsingSequence(item, _children ++ List(next), nonWS, pointer))
 							else Nil
 						}
+					// NOTE needs token proceed?
 					case _ => Nil
 				}
 
@@ -521,7 +538,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 				// check in proceed
 				case NontermSymbol(x) if (x.item == item.item) =>
 					// check input is not in item.except
-					val test = new BlackboxParser(new CompositeGrammar(item.except)).parse(ParserInput.fromList(next.source))
+					val test = new BasicBlackboxParser(new CompositeGrammar(item.except)).parse(ParserInput.fromList(next.source))
 					if (!(test succeed)) List(ParsingExcept(item, next)) else Nil
 				case _ => Nil
 			}

@@ -125,6 +125,7 @@ object DefItemFigure {
 	val stringFont = new Font(null, "Arial", 12, SWT.BOLD)
 	val instFont = new Font(null, "Arial", 12, SWT.NONE)
 	val virtFont = new Font(null, "Arial", 12, SWT.BOLD)
+	val tokenFont = new Font(null, "Arial", 12, SWT.NONE)
 	val defaultFont = new Font(null, "Arial", 10, SWT.NONE)
 
 	implicit def defitem2label(defitem: DefItem)(implicit itemListener: DefItemFigureListener = null): Figure = {

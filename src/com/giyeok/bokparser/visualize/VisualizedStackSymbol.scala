@@ -13,30 +13,36 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 
-import com.giyeok.bokparser.dynamic.BlackboxParser
 import com.giyeok.bokparser.CharInputSymbol
 import com.giyeok.bokparser.EOFSymbol
 import com.giyeok.bokparser.EmptySymbol
 import com.giyeok.bokparser.Grammar
 import com.giyeok.bokparser.NontermSymbol
 import com.giyeok.bokparser.Nonterminal
-import com.giyeok.bokparser.dynamic.ParseSuccess
-import com.giyeok.bokparser.dynamic.Parser
 import com.giyeok.bokparser.ParserInput
 import com.giyeok.bokparser.StackSymbol
 import com.giyeok.bokparser.StartSymbol
 import com.giyeok.bokparser.TermSymbol
+import com.giyeok.bokparser.TokenInputSymbol
 import com.giyeok.bokparser.VirtInputSymbol
+import com.giyeok.bokparser.dynamic.ParseSuccess
+import com.giyeok.bokparser.dynamic.Parser
 import com.giyeok.bokparser.grammars.JavaScriptGrammar
+import com.giyeok.bokparser.grammars.JavaScriptParser
 
 object VisualizedStackSymbol {
 	def main(args: Array[String]) {
 		val display = new Display
 		val shell = new Shell(display)
 
-		val program = 
-			"""console.log("Hello world");"""
-		val result = new BlackboxParser(JavaScriptGrammar).parse(ParserInput.fromString(program))
+		val program =
+			"""
+			|a; 
+			""".stripMargin('|')
+		val parser = JavaScriptParser.getParser(ParserInput.fromString(program))
+		parser.parseAll()
+
+		val result = parser.result
 
 		val figure = new Figure
 		val layout = new ToolbarLayout(false)
@@ -122,6 +128,7 @@ class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolea
 				input match {
 					case CharInputSymbol(char) => add(new Label(s"'$char'"))
 					case VirtInputSymbol(name) => add(new Label(name))
+					case TokenInputSymbol(token) => add(new Label("\"" + token.text + "\""))
 					case EOFSymbol => add(new Label("$"))
 				}
 			case EmptySymbol => add(new Label("()"))

@@ -1,7 +1,6 @@
 package com.giyeok.bokparser.visualize
 
 import scala.collection.mutable.HashMap
-
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.FigureCanvas
@@ -20,7 +19,6 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Canvas
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
-
 import com.giyeok.bokparser.CharInputSymbol
 import com.giyeok.bokparser.DefItem
 import com.giyeok.bokparser.EOFSymbol
@@ -36,6 +34,8 @@ import com.giyeok.bokparser.StringInput
 import com.giyeok.bokparser.TermSymbol
 import com.giyeok.bokparser.VirtInputSymbol
 import com.giyeok.bokparser.grammars.JavaScriptGrammar
+import com.giyeok.bokparser.grammars.JavaScriptParser
+import com.giyeok.bokparser.TokenInputSymbol
 
 object VisualizedDynamicParser {
 	def main(args: Array[String]) {
@@ -46,7 +46,7 @@ object VisualizedDynamicParser {
 			"""console.log((function x() { return 1; })());"""
 		// val vp = new VisualizedDynamicParser(SampleGrammar4, InputStream.fromString("abb"), shell)
 		// val vp = new VisualizedDynamicParser(SampleGrammar7, InputStream.fromString("ac"), shell)
-		val vp = new VisualizedDynamicParser(JavaScriptGrammar, ParserInput.fromString(program), shell)
+		val vp = new VisualizedDynamicParser(JavaScriptGrammar, JavaScriptParser.getTokenizer(ParserInput.fromString(program)), shell)
 
 		shell.setText(program)
 		shell.setLayout(new FillLayout)
@@ -353,6 +353,7 @@ class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedDyna
 			case TermSymbol(input, pointer) => input match {
 				case CharInputSymbol(char) => (s"$char at $pointer", DefItemFigure.stringFont)
 				case VirtInputSymbol(virt) => (s"$virt at $pointer", DefItemFigure.virtFont)
+				case TokenInputSymbol(token) => (s"${token.text} at $pointer", DefItemFigure.tokenFont)
 				case EOFSymbol => ("$", DefItemFigure.defaultFont) // should not be here
 			}
 			case EmptySymbol => (".", DefItemFigure.defaultFont) // empty
