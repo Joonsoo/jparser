@@ -99,7 +99,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			def pushFinished(f: List[entry.StackEntryItem]): List[StackEntry] =
 				f match {
 					case x :: xs =>
-						(if ((x.item proceed term) isEmpty) {
+						(if (!(x.item canProceed term)) {
 							if (x.generationPoint == null) {
 								// Parsing finished
 								if ((input at pointer) == EOFSymbol) {
@@ -213,14 +213,14 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 		val items = {
 			import scala.collection.mutable.ListMap
 			var _items = kernels
-			val derivation = new ListMap[StackEntry#ParsingItem, StackEntry#StackEntryItem]
+			val derivation = new ListMap[ParsingItem, StackEntryItem]
 
 			kernels foreach ((i) => derivation(i.item) = i)
 
-			def derive(left: List[StackEntry#StackEntryItem]): Unit = {
+			def derive(left: List[StackEntryItem]): Unit = {
 				left match {
 					case x :: xs =>
-						var added: List[StackEntry#StackEntryItem] = List()
+						var added: List[StackEntryItem] = List()
 						(x.item.derived.distinct) foreach ((d) => {
 							val newitem = (derivation get d) match {
 								case Some(q) =>
@@ -249,7 +249,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			private var unique: Int = 0
 			private def nextId = { unique += 1; unique }
 		}
-		class StackEntryItem(val item: StackEntry#ParsingItem, val generationPoint: StackEntry, val derivedFrom: List[StackEntry#StackEntryItem], _id: Int = StackEntryItem.nextId) {
+		class StackEntryItem(val item: ParsingItem, val generationPoint: StackEntry, val derivedFrom: List[StackEntry#StackEntryItem], _id: Int = StackEntryItem.nextId) {
 			// derivedFrom: List[StackEntry.this.StackEntryItem]
 
 			val id = _id
@@ -264,7 +264,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			val finishable: Boolean = item finishable
 
 			def proceed(next: StackSymbol, belonged: StackEntry): List[belonged.StackEntryItem] =
-				(item proceed next) map (new belonged.StackEntryItem(_, generationPoint, Nil))
+				(item proceed (next, belonged)) map (new belonged.StackEntryItem(_, generationPoint, Nil))
 
 			override def toString = "" + id
 		}
@@ -287,7 +287,8 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 
 			def derived: List[ParsingItem]
 
-			def proceed(next: StackSymbol): List[ParsingItem]
+			def canProceed(next: StackSymbol): Boolean
+			def proceed(next: StackSymbol, belonged: StackEntry): List[belonged.ParsingItem]
 
 			val enclosingEntry = StackEntry.this
 
@@ -306,9 +307,13 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			val finishable = done
 			val children = if (!done) List() else List(char)
 
-			def proceed(next: StackSymbol) = next match {
+			def canProceed(next: StackSymbol) = next match {
+				case TermSymbol(CharInputSymbol(c), _) if (!done && (item acceptable c)) => true
+				case _ => false
+			}
+			def proceed(next: StackSymbol, belonged: StackEntry): List[belonged.ParsingCharacterInput] = next match {
 				case TermSymbol(CharInputSymbol(c), _) if (!done && (item acceptable c)) =>
-					List(ParsingCharacterInput(item, next))
+					List(belonged.ParsingCharacterInput(item, next))
 				case _ => Nil
 			}
 
@@ -324,11 +329,16 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			val finishable = (!str.isEmpty) && done
 			val children = str
 
-			def proceed(next: StackSymbol) = if (finishable) Nil else next match {
+			def canProceed(next: StackSymbol) = if (finishable) false else next match {
+				case TermSymbol(CharInputSymbol(char), _) if (item.string.charAt(pointer) == char) => true
+				case TermSymbol(TokenInputSymbol(token), _) if (str.isEmpty && (token compat item)) => true
+				case _ => false
+			}
+			def proceed(next: StackSymbol, belonged: StackEntry): List[belonged.ParsingStringInput] = if (finishable) Nil else next match {
 				case TermSymbol(CharInputSymbol(char), _) if (item.string.charAt(pointer) == char) =>
-					List(ParsingStringInput(item, str ++ List(next), pointer + 1))
+					List(belonged.ParsingStringInput(item, str ++ List(next), pointer + 1))
 				case TermSymbol(TokenInputSymbol(token), _) if (str.isEmpty && (token compat item)) =>
-					List(ParsingStringInput(item, str ++ List(next), item.string.length()))
+					List(belonged.ParsingStringInput(item, str ++ List(next), item.string.length()))
 				case _ => Nil
 			}
 
@@ -344,11 +354,16 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			val finishable = done
 			val children = if (!done) List() else List(virt)
 
-			def proceed(next: StackSymbol) = next match {
+			def canProceed(next: StackSymbol) = next match {
+				case TermSymbol(_@ VirtInputSymbol(v), _) if (!done && v == item.name) => true
+				case TermSymbol(TokenInputSymbol(token), _) if (!done && (token compat item)) => true
+				case _ => false
+			}
+			def proceed(next: StackSymbol, belonged: StackEntry): List[belonged.ParsingVirtualInput] = next match {
 				case TermSymbol(_@ VirtInputSymbol(v), _) if (!done && v == item.name) =>
-					List(ParsingVirtualInput(item, next))
+					List(belonged.ParsingVirtualInput(item, next))
 				case TermSymbol(TokenInputSymbol(token), _) if (!done && (token compat item)) =>
-					List(ParsingVirtualInput(item, next))
+					List(belonged.ParsingVirtualInput(item, next))
 				case _ => Nil
 			}
 
@@ -366,11 +381,16 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 
 			def derived = (if (!done) (grammar.rules(item.name)) else List()) map (defItemToState _)
 
-			def proceed(next: StackSymbol) = next match {
+			def canProceed(next: StackSymbol) = next match {
+				case NontermSymbol(rhs) if (!done && (grammar.rules(item.name) contains rhs.item)) => true
+				case TermSymbol(TokenInputSymbol(token), _) if (!done && (token compat item)) => true
+				case _ => false
+			}
+			def proceed(next: StackSymbol, belonged: StackEntry): List[belonged.ParsingNonterminal] = next match {
 				case NontermSymbol(rhs) if (!done && (grammar.rules(item.name) contains rhs.item)) =>
-					List(new ParsingNonterminal(item, next))
+					List(belonged.ParsingNonterminal(item, next))
 				case TermSymbol(TokenInputSymbol(token), _) if (!done && (token compat item)) =>
-					List(new ParsingNonterminal(item, next))
+					List(belonged.ParsingNonterminal(item, next))
 				case _ => Nil
 			}
 
@@ -388,11 +408,16 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 
 			def derived = (if (!done) item.items.toList else List()) map (defItemToState _)
 
-			def proceed(next: StackSymbol) = next match {
+			def canProceed(next: StackSymbol) = next match {
+				case NontermSymbol(s) if (!done && (item.items contains s.item)) => true
+				case TermSymbol(TokenInputSymbol(token), _) if (!done && (token compat item)) => true
+				case _ => false
+			}
+			def proceed(next: StackSymbol, belonged: StackEntry): List[belonged.ParsingOneOf] = next match {
 				case NontermSymbol(s) if (!done && (item.items contains s.item)) =>
-					List(ParsingOneOf(item, next))
+					List(belonged.ParsingOneOf(item, next))
 				case TermSymbol(TokenInputSymbol(token), _) if (!done && (token compat item)) =>
-					List(ParsingOneOf(item, next))
+					List(belonged.ParsingOneOf(item, next))
 				case _ => Nil
 			}
 
@@ -415,9 +440,14 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 				_derived map (defItemToState _)
 			}
 
-			def proceed(next: StackSymbol) = next match {
+			def canProceed(next: StackSymbol) = next match {
+				case NontermSymbol(s) if (item.item == s.item && (item.range canProceed count)) => true
+				// NOTE needs token proceed?
+				case _ => false
+			}
+			def proceed(next: StackSymbol, belonged: StackEntry): List[belonged.ParsingRepeat] = next match {
 				case NontermSymbol(s) if (item.item == s.item && (item.range canProceed count)) =>
-					List(ParsingRepeat(item, repeated ++ List(next)))
+					List(belonged.ParsingRepeat(item, repeated ++ List(next)))
 				// NOTE needs token proceed?
 				case _ => Nil
 			}
@@ -461,7 +491,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 			private val proceedables: List[DefItem] = {
 				def checkLookaheadNot(except: List[DefItem]): Boolean = {
 					val g = new CompositeGrammar(except)
-					val parser = new Parser(g, input.subinput(StackEntry.this.pointer))
+					val parser = new Parser(g, input.subinput(enclosingEntry.pointer))
 					def rec: Boolean =
 						if (parser parseStep) {
 							if (!(parser.stack hasNext)) true else {
@@ -490,18 +520,32 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 				}
 				propagate(item.seq drop pointer).distinct
 			}
-			def proceed(next: StackSymbol) =
+			def canProceed(next: StackSymbol) =
+				next match {
+					case NontermSymbol(x) =>
+						val k = proceedables indexOf x.item
+						if (k >= 0) true
+						else {
+							val input = x.item
+							val Sequence(_, midWS) = item
+
+							if (!_children.isEmpty && (midWS contains input)) true else false
+						}
+					// NOTE needs token proceed?
+					case _ => false
+				}
+			def proceed(next: StackSymbol, belonged: StackEntry): List[belonged.ParsingSequence] =
 				next match {
 					case NontermSymbol(x) =>
 						val k = proceedables indexOf x.item
 						if (k >= 0) {
-							List(ParsingSequence(item, _children ++ List(next), nonWS ++ List((_children.length, pointer + k)), pointer + k + 1))
+							List(belonged.ParsingSequence(item, _children ++ List(next), nonWS ++ List((_children.length, pointer + k)), pointer + k + 1))
 						} else {
 							val input = x.item
 							val Sequence(_, midWS) = item
 
 							if (!_children.isEmpty && (midWS contains input))
-								List(ParsingSequence(item, _children ++ List(next), nonWS, pointer))
+								List(belonged.ParsingSequence(item, _children ++ List(next), nonWS, pointer))
 							else Nil
 						}
 					// NOTE needs token proceed?
@@ -520,12 +564,18 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 
 			val passed = child != null
 			val finishable: Boolean = passed
-			def proceed(next: StackSymbol): List[ParsingItem] = next match {
+			def canProceed(next: StackSymbol) = next match {
+				case NontermSymbol(x) if (x.item == item.item) =>
+					val test = new BasicBlackboxParser(new CompositeGrammar(item.except)).parse(ParserInput.fromList(next.source))
+					if (!(test succeed)) true else false
+				case _ => false
+			}
+			def proceed(next: StackSymbol, belonged: StackEntry): List[belonged.ParsingItem] = next match {
 				// check in proceed
 				case NontermSymbol(x) if (x.item == item.item) =>
 					// check input is not in item.except
 					val test = new BasicBlackboxParser(new CompositeGrammar(item.except)).parse(ParserInput.fromList(next.source))
-					if (!(test succeed)) List(ParsingExcept(item, next)) else Nil
+					if (!(test succeed)) List(belonged.ParsingExcept(item, next)) else Nil
 				case _ => Nil
 			}
 			def derived: List[ParsingItem] = if (!passed) List(defItemToState(item.item)) else List()
@@ -541,7 +591,8 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 		case class ParsingLookaheadExcept(override val item: LookaheadExcept) extends ParsingItem(item) {
 			// "lookahead except" items are processed in sequence, so this is just dummy
 			val finishable: Boolean = false
-			def proceed(next: StackSymbol) = Nil
+			def canProceed(next: StackSymbol) = false
+			def proceed(next: StackSymbol, belonged: StackEntry) = Nil
 			def derived: List[ParsingItem] = List()
 			val children = List()
 
