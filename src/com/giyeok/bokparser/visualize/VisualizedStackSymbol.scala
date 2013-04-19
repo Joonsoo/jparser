@@ -12,6 +12,7 @@ import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
+
 import com.giyeok.bokparser.CharInputSymbol
 import com.giyeok.bokparser.EOFSymbol
 import com.giyeok.bokparser.EmptySymbol
@@ -24,6 +25,7 @@ import com.giyeok.bokparser.StartSymbol
 import com.giyeok.bokparser.TermSymbol
 import com.giyeok.bokparser.TokenInputSymbol
 import com.giyeok.bokparser.VirtInputSymbol
+import com.giyeok.bokparser.dynamic.ParseResult
 import com.giyeok.bokparser.dynamic.ParseSuccess
 import com.giyeok.bokparser.dynamic.Parser
 import com.giyeok.bokparser.grammars.JavaScriptGrammar
@@ -32,14 +34,16 @@ import com.giyeok.bokparser.tests.JavaScriptTestCases
 
 object VisualizedStackSymbol {
 	def main(args: Array[String]) {
-		val display = new Display
-		val shell = new Shell(display)
-
 		val program = JavaScriptTestCases.test
 		val parser = JavaScriptParser.getParser(ParserInput.fromString(program))
 		parser.parseAll()
 
-		val result = parser.result
+		showResult(program, parser.result)
+	}
+
+	def showResult(title: String, result: ParseResult) = {
+		val display = new Display
+		val shell = new Shell(display)
 
 		val figure = new Figure
 		val layout = new ToolbarLayout(false)
@@ -55,7 +59,7 @@ object VisualizedStackSymbol {
 		val canvas = new FigureCanvas(shell)
 		canvas.setContents(figure)
 
-		shell.setText(program)
+		shell.setText(title)
 		shell.setLayout(new FillLayout)
 		shell.open()
 
