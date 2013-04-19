@@ -34,9 +34,13 @@ class ParseResult(val messages: List[ParsePossibility]) {
 	def add(p: ParsePossibility) =
 		new ParseResult(p :: messages)
 
-	val ambiguous = messages.length > 1
-	val succeed = messages.length == 1 && ((messages.head) match { case ParseSuccess(_) => true case _ => false })
-	val parsed: Option[StackSymbol] = if (succeed) Some(messages.head.asInstanceOf[ParseSuccess].parsed) else None
+	val succeeds = (messages map (_ match {
+		case x: ParseSuccess => Some(x)
+		case _ => None
+	})).flatten
+	val ambiguous = succeeds.length > 1
+	val succeed = succeeds.length == 1
+	val parsed: Option[StackSymbol] = if (succeed) Some(succeeds.head.parsed) else None
 }
 sealed abstract class ParsePossibility
 case class ParseFailed(reason: String, location: Int) extends ParsePossibility
@@ -443,7 +447,8 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 					indices match {
 						case x :: xs =>
 							mult(x._2 - i) ++ List(_children(x._1)) ++ pick(xs, x._2 + 1)
-						case Nil => List()
+						case Nil =>
+							mult(item.seq.length - i)
 					}
 				}
 				pick(nonWS)
