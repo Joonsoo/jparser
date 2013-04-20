@@ -606,8 +606,6 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 	}
 
 	class CompositeGrammar(starting: List[DefItem]) extends Grammar {
-		import scala.collection.immutable.ListMap
-
 		val name: String = "Except"
 		val startSymbol: String = {
 			def nextSymbol(x: String): String =
@@ -615,6 +613,6 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 				else x
 			nextSymbol("$")
 		}
-		val rules: ListMap[String, List[DefItem]] = grammar.rules + ((startSymbol, starting))
+		val rules: Map[String, List[DefItem]] = grammar.rules + ((startSymbol, starting))
 	}
 }

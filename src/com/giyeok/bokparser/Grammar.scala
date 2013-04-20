@@ -3,8 +3,10 @@ package com.giyeok.bokparser
 import scala.collection.immutable.ListMap
 
 abstract class Grammar {
+	type RuleMap = Map[String, List[DefItem]]
+
 	val name: String
-	val rules: ListMap[String, List[DefItem]]
+	val rules: RuleMap
 	val startSymbol: String
 
 	def nonterm(name: String) = Nonterminal(name)
@@ -77,9 +79,6 @@ trait Repeatable {
 sealed abstract class DefItem {
 	val id = DefItem.nextId
 
-	val action: (StackSymbol, List[Object]) => Object = null
-	def act(a: (StackSymbol, List[Object]) => Object): DefItem
-
 	override def equals(other: Any) = other match {
 		case that: DefItem => (that canEqual this) && (that.id == id)
 		case _ => false
@@ -92,9 +91,6 @@ object DefItem {
 }
 
 case class Nonterminal(name: String) extends DefItem {
-	override def act(a: (StackSymbol, List[Object]) => Object): Nonterminal =
-		new Nonterminal(name) { override val action = a }
-
 	override def equals(other: Any) = other match {
 		case that: Nonterminal => (that canEqual this) && (that.name == name)
 		case _ => false
@@ -104,9 +100,6 @@ case class Nonterminal(name: String) extends DefItem {
 
 sealed abstract class Input extends DefItem
 case class StringInput(string: String) extends Input {
-	override def act(a: (StackSymbol, List[Object]) => Object): StringInput =
-		new StringInput(string) { override val action = a }
-
 	override def equals(other: Any) = other match {
 		case that: StringInput => (that canEqual this) && (that.string == string)
 		case _ => false
@@ -117,9 +110,6 @@ sealed abstract class CharacterInput extends Input {
 	def acceptable(char: Char): Boolean
 }
 case class AnyCharacterInput extends CharacterInput {
-	override def act(a: (StackSymbol, List[Object]) => Object): AnyCharacterInput =
-		new AnyCharacterInput { override val action = a }
-
 	override def equals(other: Any) = other match {
 		case that: AnyCharacterInput => (that canEqual this)
 		case _ => false
@@ -128,9 +118,6 @@ case class AnyCharacterInput extends CharacterInput {
 	def acceptable(char: Char) = true
 }
 case class PoolCharacterInput(chars: Array[Char]) extends CharacterInput {
-	override def act(a: (StackSymbol, List[Object]) => Object): PoolCharacterInput =
-		new PoolCharacterInput(chars) { override val action = a }
-
 	def acceptable(char: Char) = (chars contains char)
 
 	override def equals(other: Any) = other match {
@@ -140,9 +127,6 @@ case class PoolCharacterInput(chars: Array[Char]) extends CharacterInput {
 	override def canEqual(other: Any) = other.isInstanceOf[PoolCharacterInput]
 }
 case class UnicodeCategoryCharacterInput(categories: Array[Byte]) extends CharacterInput {
-	override def act(a: (StackSymbol, List[Object]) => Object): UnicodeCategoryCharacterInput =
-		new UnicodeCategoryCharacterInput(categories) { override val action = a }
-
 	override def equals(other: Any) = other match {
 		case that: UnicodeCategoryCharacterInput => (that canEqual this) && ((that.categories toSet) == (categories toSet))
 		case _ => false
@@ -151,9 +135,6 @@ case class UnicodeCategoryCharacterInput(categories: Array[Byte]) extends Charac
 	def acceptable(char: Char) = categories contains char.getType
 }
 case class CharacterRangeInput(from: Char, to: Char) extends CharacterInput {
-	override def act(a: (StackSymbol, List[Object]) => Object): CharacterRangeInput =
-		new CharacterRangeInput(from, to) { override val action = a }
-
 	override def equals(other: Any) = other match {
 		case that: CharacterRangeInput => (that canEqual this) && (that.from == from) && (that.to == to)
 		case _ => false
@@ -162,9 +143,6 @@ case class CharacterRangeInput(from: Char, to: Char) extends CharacterInput {
 	def acceptable(char: Char) = (from <= char && char <= to)
 }
 case class VirtualInput(name: String) extends Input {
-	override def act(a: (StackSymbol, List[Object]) => Object): VirtualInput =
-		new VirtualInput(name) { override val action = a }
-
 	override def equals(other: Any) = other match {
 		case that: VirtualInput => (that canEqual this) && (that.name == name)
 		case _ => false
@@ -172,26 +150,11 @@ case class VirtualInput(name: String) extends Input {
 	override def canEqual(other: Any) = other.isInstanceOf[VirtualInput]
 }
 
-case class Sequence(seq: List[DefItem], whitespace: List[DefItem]) extends DefItem {
-	override def act(a: (StackSymbol, List[Object]) => Object): Sequence =
-		new Sequence(seq, whitespace) { override val action = a }
-}
-case class OneOf(items: Array[DefItem]) extends DefItem {
-	override def act(a: (StackSymbol, List[Object]) => Object): OneOf =
-		new OneOf(items) { override val action = a }
-}
-case class Except(item: DefItem, except: List[DefItem]) extends DefItem {
-	override def act(a: (StackSymbol, List[Object]) => Object): Except =
-		new Except(item, except) { override val action = a }
-}
-case class LookaheadExcept(except: List[DefItem]) extends DefItem {
-	override def act(a: (StackSymbol, List[Object]) => Object): LookaheadExcept =
-		new LookaheadExcept(except) { override val action = a }
-}
+case class Sequence(seq: List[DefItem], whitespace: List[DefItem]) extends DefItem
+case class OneOf(items: Array[DefItem]) extends DefItem
+case class Except(item: DefItem, except: List[DefItem]) extends DefItem
+case class LookaheadExcept(except: List[DefItem]) extends DefItem
 case class Repeat(item: DefItem, range: RepeatRange) extends DefItem {
-	override def act(a: (StackSymbol, List[Object]) => Object): Repeat =
-		new Repeat(item, range) { override val action = a }
-
 	override def equals(other: Any) = other match {
 		case that: Repeat => (that canEqual this) && (that.item == item) && (that.range == range)
 		case _ => false
@@ -227,3 +190,86 @@ case class RepeatRangeTo(val from: Int, val to: Int) extends RepeatRange {
 
 	override def canProceed(x: Int): Boolean = x < to
 }
+
+abstract class ActGrammar extends Grammar {
+	val rulesWithAct: Map[String, List[DefItem]]
+
+	final lazy val rules: RuleMap = {
+		def unmarshall(item: DefItem): DefItem =
+			item match {
+				case ActDefItem(item, _) => unmarshall(item)
+				case Sequence(seq, whitespace) =>
+					Sequence(seq map (unmarshall _), whitespace map (unmarshall _))
+				case OneOf(items) =>
+					OneOf(items map (unmarshall _))
+				case Except(item, except) =>
+					Except(unmarshall(item), except map (unmarshall _))
+				case Repeat(item, range) =>
+					Repeat(unmarshall(item), range)
+				case LookaheadExcept(except) =>
+					LookaheadExcept(except map (unmarshall _))
+				case _: Nonterminal | _: Input => item
+			}
+		rulesWithAct map ((x) => (x._1, x._2 map (unmarshall _)))
+	}
+	type ActionMap = Map[(DefItem, DefItem), ((StackSymbol, List[Object]) => Object)]
+	final lazy val actions: ActionMap = {
+		def unmarshall(lhs: DefItem, rhs: DefItem): ActionMap =
+			rhs match {
+				case ActDefItem(item, action) => 
+					unmarshall(lhs, item) + (((lhs, item), action))
+				case Sequence(seq, whitespace) =>
+					var x: ActionMap = Map()
+					seq foreach (x ++= unmarshall(rhs, _))
+					whitespace foreach (x ++= unmarshall(rhs, _))
+					x
+				case OneOf(items) =>
+					var x: ActionMap = Map()
+					items foreach (x ++= unmarshall(rhs, _))
+					x
+				case Except(item, except) =>
+					var x: ActionMap = Map()
+					x ++= unmarshall(rhs, item)
+					except foreach (x ++= unmarshall(rhs, _))
+					x
+				case Repeat(item, _) =>
+					unmarshall(rhs, item)
+				case _: LookaheadExcept => Map()
+				case _: Nonterminal | _: Input => Map()
+			}
+		var map: ActionMap = Map()
+		rulesWithAct foreach ((x) =>
+			x._2 foreach (map ++= unmarshall(Nonterminal(x._1), _))
+		)
+		map
+	}
+	def process(symbol: StackSymbol): Object = {
+		symbol match {
+			case StartSymbol => symbol
+			case NontermSymbol(item) =>
+				item.children foreach (process _)
+			case TermSymbol(_, _) => symbol
+			case EmptySymbol => symbol
+		}
+		new Integer(1)
+	}
+
+	implicit def defItemActing(item: DefItem): Actingable =
+		item match {
+			case n: Nonterminal => new Actingable { val self = n }
+			case i: Input => new Actingable { val self = i }
+			case o: OneOf => new Actingable { val self = o }
+			case r: Repeat => new Actingable { val self = r }
+			case s: Sequence => new Actingable { val self = s }
+			case e: Except => new Actingable { val self = e }
+			case _ => throw new Exception("Applied act to the items that cannot be")
+		}
+}
+
+trait Actingable {
+	val self: DefItem
+
+	def act(action: (StackSymbol, List[Object]) => Object) = new ActDefItem(self, action)
+}
+
+case class ActDefItem(item: DefItem, val action: (StackSymbol, List[Object]) => Object) extends DefItem
