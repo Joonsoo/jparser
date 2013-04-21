@@ -216,7 +216,7 @@ case class RepeatRangeTo(val from: Int, val to: Int) extends RepeatRange {
 abstract class ActGrammar extends Grammar {
 	val rulesWithAct: Map[String, List[DefItem]]
 
-	type ActionMap = Map[(DefItem, (Int, DefItem)), ((StackSymbol, List[Object]) => Object)]
+	type ActionMap = Map[(DefItem, (Int, DefItem)), ((StackSymbol, List[Any]) => Any)]
 
 	def unmarshallItem(item: DefItem): DefItem =
 		item match {
@@ -240,13 +240,13 @@ abstract class ActGrammar extends Grammar {
 		def unmarshall(lhs: DefItem, rhs: DefItem, pointer: Int): ActionMap =
 			rhs match {
 				case ActDefItem(item, action) =>
-					unmarshall(lhs, item, 0) + (((lhs, (pointer, item)), action))
+					unmarshall(lhs, item, 0) + (((unmarshallItem(lhs), (pointer, unmarshallItem(item))), action))
 				case Sequence(seq, whitespace) =>
-					seq.foldLeft((Map(): ActionMap, 0))((cc, y) => (cc._1 ++ unmarshall(unmarshallItem(rhs), y, cc._2), cc._2 + 1))._1
+					seq.foldLeft((Map(): ActionMap, 0))((cc, y) => (cc._1 ++ unmarshall(rhs, y, cc._2), cc._2 + 1))._1
 				case OneOf(items) =>
-					items.foldLeft(Map(): ActionMap)((cc, i) => cc ++ unmarshall(unmarshallItem(rhs), i, 0))
-				case Except(item, _) => unmarshall(unmarshallItem(rhs), item, 0)
-				case Repeat(item, _) => unmarshall(unmarshallItem(rhs), item, 0)
+					items.foldLeft(Map(): ActionMap)((cc, i) => cc ++ unmarshall(rhs, i, 0))
+				case Except(item, _) => unmarshall(rhs, item, 0)
+				case Repeat(item, _) => unmarshall(rhs, item, 0)
 				case _: LookaheadExcept => Map()
 				case _: Nonterminal | _: Input => Map()
 			}
@@ -255,24 +255,29 @@ abstract class ActGrammar extends Grammar {
 			x._2 foreach (map ++= unmarshall(Nonterminal(x._1), _, 0)))
 		map
 	}
-	def process(symbol: StackSymbol): Object = {
-		def proc(symbol: StackSymbol, action: (StackSymbol, List[Object]) => Object): Object = {
+	def process(symbol: StackSymbol): Any = {
+		def proc(symbol: StackSymbol, action: (StackSymbol, List[Any]) => Any): Any = {
 			symbol match {
 				case StartSymbol => symbol
 				case NontermSymbol(lhs) =>
-					val children = lhs.children.foldLeft((0, List[Object]()))((cc, _rhs) => {
+					val children = lhs.children.foldLeft((0, List[Any]()))((cc, _rhs) => {
 						val processed = _rhs match {
 							case NontermSymbol(rhs) =>
 								(actions get ((lhs.item, (cc._1, rhs.item)))) match {
 									case Some(action) =>
-										println(lhs.item + " := " + rhs.item)
 										proc(_rhs, action)
-									case None => _rhs match {
-										case NontermSymbol(x) if (x.item.isInstanceOf[Sequence] || x.item.isInstanceOf[Repeat]) =>
-											proc(_rhs, (_, objs) => { objs })
-										case NontermSymbol(_) =>
-											proc(_rhs, (_, objs) => { objs(0) })
-									}
+									case None =>
+										rhs.item match {
+											case _: Sequence | _: Repeat =>
+												proc(_rhs, (_, objs) => objs)
+											case _ =>
+												proc(_rhs, (_, objs) => objs(0))
+										}
+								}
+							case EmptySymbol(item) =>
+								(actions get ((lhs.item, (cc._1, item)))) match {
+									case Some(action) => proc(_rhs, action)
+									case None => _rhs
 								}
 							case x => x
 						}
@@ -280,14 +285,14 @@ abstract class ActGrammar extends Grammar {
 					})._2
 					action(symbol, children)
 				case TermSymbol(_, _) => symbol
-				case EmptySymbol => symbol
+				case EmptySymbol(_) => action(symbol, List(symbol))
 			}
 		}
 		assert(symbol match {
 			case NontermSymbol(x) if x.item.isInstanceOf[Nonterminal] => true
 			case _ => false
 		})
-		proc(symbol, (_, objs) => { assert(objs.length == 1); println("base:" + objs.length + " " + objs); objs(0) })
+		proc(symbol, (_, objs) => { assert(objs.length == 1); objs(0) })
 	}
 
 	implicit def defItemActing(item: DefItem): Actingable =
@@ -305,7 +310,7 @@ abstract class ActGrammar extends Grammar {
 trait Actingable {
 	val self: DefItem
 
-	def act(action: (StackSymbol, List[Object]) => Object) = new ActDefItem(self, action)
+	def act(action: (StackSymbol, List[Any]) => Any) = new ActDefItem(self, action)
 }
 
-case class ActDefItem(item: DefItem, val action: (StackSymbol, List[Object]) => Object) extends DefItem
+case class ActDefItem(item: DefItem, val action: (StackSymbol, List[Any]) => Any) extends DefItem

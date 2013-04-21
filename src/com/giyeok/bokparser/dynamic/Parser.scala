@@ -473,12 +473,13 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
 
 			val children = {
 				def pick(indices: List[(Int, Int)], i: Int = 0): List[StackSymbol] = {
-					def mult(c: Int): List[StackSymbol] = if (c > 0) (EmptySymbol :: mult(c - 1)) else Nil
+					def placeholders(i: Int, c: Int): List[StackSymbol] = 
+						if (i < c) (EmptySymbol(item.seq(i)) :: placeholders(i + 1, c)) else Nil
 					indices match {
 						case x :: xs =>
-							mult(x._2 - i) ++ List(_children(x._1)) ++ pick(xs, x._2 + 1)
+							placeholders(i, x._2) ++ List(_children(x._1)) ++ pick(xs, x._2 + 1)
 						case Nil =>
-							mult(item.seq.length - i)
+							placeholders(i, item.seq.length)
 					}
 				}
 				pick(nonWS)

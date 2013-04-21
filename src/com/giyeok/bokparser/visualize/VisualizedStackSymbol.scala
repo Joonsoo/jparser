@@ -132,7 +132,7 @@ class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolea
 					case TokenInputSymbol(token) => add(new Label("\"" + token.text + "\""))
 					case EOFSymbol => add(new Label("$"))
 				}
-			case EmptySymbol => add(new Label("()"))
+			case EmptySymbol(_) => add(new Label("()"))
 		}
 
 		setLayoutManager(_layout)

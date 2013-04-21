@@ -356,7 +356,7 @@ class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedDyna
 				case TokenInputSymbol(token) => (s"${token.text} at $pointer", DefItemFigure.tokenFont)
 				case EOFSymbol => ("$", DefItemFigure.defaultFont) // should not be here
 			}
-			case EmptySymbol => (".", DefItemFigure.defaultFont) // empty
+			case EmptySymbol(_) => (".", DefItemFigure.defaultFont) // empty
 		}
 		val symbolLabel = new Label(repr)
 		symbolLabel.setFont(DefItemFigure.defaultFont)

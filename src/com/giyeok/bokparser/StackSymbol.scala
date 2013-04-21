@@ -28,7 +28,7 @@ case class TermSymbol(input: InputSymbol, pointer: Int) extends StackSymbol {
 	}
 	val source = List(input)
 }
-case object EmptySymbol extends StackSymbol {
+case class EmptySymbol(item: DefItem) extends StackSymbol {
 	val text = ""
 	val source = Nil
 }
