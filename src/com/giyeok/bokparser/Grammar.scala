@@ -284,8 +284,7 @@ abstract class ActGrammar extends Grammar {
 						(cc._1 + 1, cc._2 :+ processed)
 					})._2
 					action(symbol, children)
-				case TermSymbol(_, _) => symbol
-				case EmptySymbol(_) => action(symbol, List(symbol))
+				case TermSymbol(_, _) | EmptySymbol(_) => action(symbol, List(symbol))
 			}
 		}
 		assert(symbol match {
