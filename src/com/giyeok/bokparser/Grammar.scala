@@ -1,7 +1,5 @@
 package com.giyeok.bokparser
 
-import scala.collection.immutable.ListMap
-
 abstract class Grammar {
 	type RuleMap = Map[String, List[DefItem]]
 
@@ -27,8 +25,8 @@ abstract class Grammar {
 	def seq(seq: DefItem*) = sequence(seq: _*)
 	def sequence(seq: DefItem*) = Sequence(seq toList, List())
 	def sequence(whitespace: List[DefItem], seq: DefItem*) = Sequence(seq toList, whitespace)
-	def oneof(items: DefItem*) = OneOf(items toArray)
-	def oneof(items: List[DefItem]) = OneOf(items toArray)
+	def oneof(items: DefItem*) = OneOf(items toList)
+	def oneof(items: List[DefItem]) = OneOf(items toList)
 	def lookahead_except(except: DefItem*) = LookaheadExcept(except toList)
 
 	implicit def defItemRepeatable(item: DefItem): Repeatable =
@@ -150,10 +148,34 @@ case class VirtualInput(name: String) extends Input {
 	override def canEqual(other: Any) = other.isInstanceOf[VirtualInput]
 }
 
-case class Sequence(seq: List[DefItem], whitespace: List[DefItem]) extends DefItem
-case class OneOf(items: Array[DefItem]) extends DefItem
-case class Except(item: DefItem, except: List[DefItem]) extends DefItem
-case class LookaheadExcept(except: List[DefItem]) extends DefItem
+case class Sequence(seq: List[DefItem], whitespace: List[DefItem]) extends DefItem {
+	override def equals(other: Any) = other match {
+		case that: Sequence => (that canEqual this) && (that.seq == seq) && (that.whitespace == whitespace)
+		case _ => false
+	}
+	override def canEqual(other: Any) = other.isInstanceOf[Sequence]
+}
+case class OneOf(items: List[DefItem]) extends DefItem {
+	override def equals(other: Any) = other match {
+		case that: OneOf => (that canEqual this) && (that.items == items)
+		case _ => false
+	}
+	override def canEqual(other: Any) = other.isInstanceOf[OneOf]
+}
+case class Except(item: DefItem, except: List[DefItem]) extends DefItem {
+	override def equals(other: Any) = other match {
+		case that: Except => (that canEqual this) && (that.item == item) && (that.except == except)
+		case _ => false
+	}
+	override def canEqual(other: Any) = other.isInstanceOf[Except]
+}
+case class LookaheadExcept(except: List[DefItem]) extends DefItem {
+	override def equals(other: Any) = other match {
+		case that: LookaheadExcept => (that canEqual this) && (that.except == except)
+		case _ => false
+	}
+	override def canEqual(other: Any) = other.isInstanceOf[LookaheadExcept]
+}
 case class Repeat(item: DefItem, range: RepeatRange) extends DefItem {
 	override def equals(other: Any) = other match {
 		case that: Repeat => (that canEqual this) && (that.item == item) && (that.range == range)
@@ -194,64 +216,78 @@ case class RepeatRangeTo(val from: Int, val to: Int) extends RepeatRange {
 abstract class ActGrammar extends Grammar {
 	val rulesWithAct: Map[String, List[DefItem]]
 
+	type ActionMap = Map[(DefItem, (Int, DefItem)), ((StackSymbol, List[Object]) => Object)]
+
+	def unmarshallItem(item: DefItem): DefItem =
+		item match {
+			case ActDefItem(item, _) => unmarshallItem(item)
+			case Sequence(seq, whitespace) =>
+				Sequence(seq map (unmarshallItem _), whitespace map (unmarshallItem _))
+			case OneOf(items) =>
+				OneOf(items map (unmarshallItem _))
+			case Except(item, except) =>
+				Except(unmarshallItem(item), except map (unmarshallItem _))
+			case Repeat(item, range) =>
+				Repeat(unmarshallItem(item), range)
+			case LookaheadExcept(except) =>
+				LookaheadExcept(except map (unmarshallItem _))
+			case _: Nonterminal | _: Input => item
+		}
 	final lazy val rules: RuleMap = {
-		def unmarshall(item: DefItem): DefItem =
-			item match {
-				case ActDefItem(item, _) => unmarshall(item)
-				case Sequence(seq, whitespace) =>
-					Sequence(seq map (unmarshall _), whitespace map (unmarshall _))
-				case OneOf(items) =>
-					OneOf(items map (unmarshall _))
-				case Except(item, except) =>
-					Except(unmarshall(item), except map (unmarshall _))
-				case Repeat(item, range) =>
-					Repeat(unmarshall(item), range)
-				case LookaheadExcept(except) =>
-					LookaheadExcept(except map (unmarshall _))
-				case _: Nonterminal | _: Input => item
-			}
-		rulesWithAct map ((x) => (x._1, x._2 map (unmarshall _)))
+		rulesWithAct map ((x) => (x._1, x._2 map (unmarshallItem _)))
 	}
-	type ActionMap = Map[(DefItem, DefItem), ((StackSymbol, List[Object]) => Object)]
 	final lazy val actions: ActionMap = {
-		def unmarshall(lhs: DefItem, rhs: DefItem): ActionMap =
+		def unmarshall(lhs: DefItem, rhs: DefItem, pointer: Int): ActionMap =
 			rhs match {
-				case ActDefItem(item, action) => 
-					unmarshall(lhs, item) + (((lhs, item), action))
+				case ActDefItem(item, action) =>
+					unmarshall(lhs, item, 0) + (((lhs, (pointer, item)), action))
 				case Sequence(seq, whitespace) =>
-					var x: ActionMap = Map()
-					seq foreach (x ++= unmarshall(rhs, _))
-					whitespace foreach (x ++= unmarshall(rhs, _))
-					x
+					seq.foldLeft((Map(): ActionMap, 0))((cc, y) => (cc._1 ++ unmarshall(unmarshallItem(rhs), y, cc._2), cc._2 + 1))._1
 				case OneOf(items) =>
-					var x: ActionMap = Map()
-					items foreach (x ++= unmarshall(rhs, _))
-					x
-				case Except(item, except) =>
-					var x: ActionMap = Map()
-					x ++= unmarshall(rhs, item)
-					except foreach (x ++= unmarshall(rhs, _))
-					x
-				case Repeat(item, _) =>
-					unmarshall(rhs, item)
+					items.foldLeft(Map(): ActionMap)((cc, i) => cc ++ unmarshall(unmarshallItem(rhs), i, 0))
+				case Except(item, _) => unmarshall(unmarshallItem(rhs), item, 0)
+				case Repeat(item, _) => unmarshall(unmarshallItem(rhs), item, 0)
 				case _: LookaheadExcept => Map()
 				case _: Nonterminal | _: Input => Map()
 			}
 		var map: ActionMap = Map()
 		rulesWithAct foreach ((x) =>
-			x._2 foreach (map ++= unmarshall(Nonterminal(x._1), _))
-		)
+			x._2 foreach (map ++= unmarshall(Nonterminal(x._1), _, 0)))
 		map
 	}
 	def process(symbol: StackSymbol): Object = {
-		symbol match {
-			case StartSymbol => symbol
-			case NontermSymbol(item) =>
-				item.children foreach (process _)
-			case TermSymbol(_, _) => symbol
-			case EmptySymbol => symbol
+		def proc(symbol: StackSymbol, action: (StackSymbol, List[Object]) => Object): Object = {
+			symbol match {
+				case StartSymbol => symbol
+				case NontermSymbol(lhs) =>
+					val children = lhs.children.foldLeft((0, List[Object]()))((cc, _rhs) => {
+						val processed = _rhs match {
+							case NontermSymbol(rhs) =>
+								(actions get ((lhs.item, (cc._1, rhs.item)))) match {
+									case Some(action) =>
+										println(lhs.item + " := " + rhs.item)
+										proc(_rhs, action)
+									case None => _rhs match {
+										case NontermSymbol(x) if (x.item.isInstanceOf[Sequence] || x.item.isInstanceOf[Repeat]) =>
+											proc(_rhs, (_, objs) => { objs })
+										case NontermSymbol(_) =>
+											proc(_rhs, (_, objs) => { objs(0) })
+									}
+								}
+							case x => x
+						}
+						(cc._1 + 1, cc._2 :+ processed)
+					})._2
+					action(symbol, children)
+				case TermSymbol(_, _) => symbol
+				case EmptySymbol => symbol
+			}
 		}
-		new Integer(1)
+		assert(symbol match {
+			case NontermSymbol(x) if x.item.isInstanceOf[Nonterminal] => true
+			case _ => false
+		})
+		proc(symbol, (_, objs) => { assert(objs.length == 1); println("base:" + objs.length + " " + objs); objs(0) })
 	}
 
 	implicit def defItemActing(item: DefItem): Actingable =
