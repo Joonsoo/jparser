@@ -216,7 +216,7 @@ case class RepeatRangeTo(val from: Int, val to: Int) extends RepeatRange {
 abstract class ActGrammar extends Grammar {
 	val rulesWithAct: Map[String, List[DefItem]]
 
-	type ActionMap = Map[(DefItem, (Int, DefItem)), ((StackSymbol, List[Any]) => Any)]
+	type ActionMap = Map[(List[DefItem], (Int, DefItem)), ((StackSymbol, List[Any]) => Any)]
 
 	def unmarshallItem(item: DefItem): DefItem =
 		item match {
@@ -237,46 +237,53 @@ abstract class ActGrammar extends Grammar {
 		rulesWithAct map ((x) => (x._1, x._2 map (unmarshallItem _)))
 	}
 	final lazy val actions: ActionMap = {
-		def unmarshall(lhs: DefItem, rhs: DefItem, pointer: Int): ActionMap =
+		def unmarshall(path: List[DefItem], rhs: DefItem, pointer: Int): ActionMap = {
+			val lhs = path.head
 			rhs match {
 				case ActDefItem(item, action) =>
-					unmarshall(lhs, item, 0) + (((unmarshallItem(lhs), (pointer, unmarshallItem(item))), action))
+					unmarshall(path, item, 0) + (((path, (pointer, unmarshallItem(item))), action))
 				case Sequence(seq, whitespace) =>
-					seq.foldLeft((Map(): ActionMap, 0))((cc, y) => (cc._1 ++ unmarshall(rhs, y, cc._2), cc._2 + 1))._1
+					seq.foldLeft((Map(): ActionMap, 0))((cc, y) => (cc._1 ++ unmarshall(unmarshallItem(rhs) +: path, y, cc._2), cc._2 + 1))._1
 				case OneOf(items) =>
-					items.foldLeft(Map(): ActionMap)((cc, i) => cc ++ unmarshall(rhs, i, 0))
-				case Except(item, _) => unmarshall(rhs, item, 0)
-				case Repeat(item, _) => unmarshall(rhs, item, 0)
+					items.foldLeft(Map(): ActionMap)((cc, i) => cc ++ unmarshall(unmarshallItem(rhs) +: path, i, 0))
+				case Except(item, _) => unmarshall(unmarshallItem(rhs) +: path, item, 0)
+				case Repeat(item, _) => unmarshall(unmarshallItem(rhs) +: path, item, 0)
 				case _: LookaheadExcept => Map()
 				case _: Nonterminal | _: Input => Map()
 			}
+		}
 		var map: ActionMap = Map()
 		rulesWithAct foreach ((x) =>
-			x._2 foreach (map ++= unmarshall(Nonterminal(x._1), _, 0)))
+			x._2 foreach (map ++= unmarshall(List(Nonterminal(x._1)), _, 0)))
 		map
 	}
 	def process(symbol: StackSymbol): Any = {
-		def proc(symbol: StackSymbol, action: (StackSymbol, List[Any]) => Any): Any = {
+		def proc(path: List[DefItem], symbol: StackSymbol, action: (StackSymbol, List[Any]) => Any): Any = {
+			// println(path)
 			symbol match {
 				case StartSymbol => symbol
 				case NontermSymbol(lhs) =>
 					val children = lhs.children.foldLeft((0, List[Any]()))((cc, _rhs) => {
 						val processed = _rhs match {
 							case NontermSymbol(rhs) =>
-								(actions get ((lhs.item, (cc._1, rhs.item)))) match {
+								// println(s"$path := ${rhs.item}")
+								(actions get ((path, (cc._1, rhs.item)))) match {
 									case Some(action) =>
-										proc(_rhs, action)
+										if (rhs.item.isInstanceOf[Nonterminal]) proc(List(rhs.item), _rhs, action)
+										else proc(rhs.item +: path, _rhs, action)
 									case None =>
 										rhs.item match {
 											case _: Sequence | _: Repeat =>
-												proc(_rhs, (_, objs) => objs)
+												proc(rhs.item +: path, _rhs, (_, objs) => objs)
+											case _: Nonterminal =>
+												proc(List(rhs.item), _rhs, (_, objs) => objs(0))
 											case _ =>
-												proc(_rhs, (_, objs) => objs(0))
+												proc(rhs.item +: path, _rhs, (_, objs) => objs(0))
 										}
 								}
 							case EmptySymbol(item) =>
-								(actions get ((lhs.item, (cc._1, item)))) match {
-									case Some(action) => proc(_rhs, action)
+								(actions get ((path, (cc._1, item)))) match {
+									case Some(action) => proc(item +: path, _rhs, action)
 									case None => _rhs
 								}
 							case x => x
@@ -287,11 +294,12 @@ abstract class ActGrammar extends Grammar {
 				case TermSymbol(_, _) | EmptySymbol(_) => action(symbol, List(symbol))
 			}
 		}
-		assert(symbol match {
-			case NontermSymbol(x) if x.item.isInstanceOf[Nonterminal] => true
-			case _ => false
-		})
-		proc(symbol, (_, objs) => { assert(objs.length == 1); objs(0) })
+		symbol match {
+			case NontermSymbol(x) if x.item.isInstanceOf[Nonterminal] =>
+				proc(List(x.item), symbol, (_, objs) => { assert(objs.length == 1); objs(0) })
+			case _ =>
+				assert(false)
+		}
 	}
 
 	implicit def defItemActing(item: DefItem): Actingable =

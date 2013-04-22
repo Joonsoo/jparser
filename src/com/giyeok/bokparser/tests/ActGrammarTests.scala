@@ -11,6 +11,10 @@ object ActGrammarTests {
 		test(TestGrammar.process(parser.parse("456").parsed.get), 456)
 		test(TestGrammar.process(parser.parse("a").parsed.get), "A")
 		test(TestGrammar.process(parser.parse("c").parsed.get), "C")
+		
+		test(TestGrammar.process(parser.parse("a1").parsed.get), "T1")
+		test(TestGrammar.process(parser.parse("a2").parsed.get), "T2")
+		test(TestGrammar.process(parser.parse("a3").parsed.get), "T3")
 	}
 	
 	def test(result: Any, correct: Any) = {
@@ -30,7 +34,8 @@ object TestGrammar extends ActGrammar {
 				n("Q") act ((_, objs) => objs(0).asInstanceOf[Int] * 1)) act ((_, objs) =>
 					objs(2).asInstanceOf[Int] + objs(1).asInstanceOf[Int] + objs(0).asInstanceOf[Int]
 				),
-			n("A"), n("B"), n("C"), n("D")
+			n("A"), n("B"), n("C"), n("D"),
+			n("T")
 		),
 		
 		"Q" -> List(c("0123456789") act ((sym, _) => Integer.parseInt(sym.text))),
@@ -40,5 +45,12 @@ object TestGrammar extends ActGrammar {
 		"C" -> List(seq(i("c"), n("K") act ((_, _) => "C")) act ((_, objs) => objs(1))),
 		"D" -> List(seq(i("d"), n("K") act ((_, _) => "D")) act ((_, objs) => objs(1))),
 
-		"K" -> List(seq()))
+		"K" -> List(seq()),
+		
+		"T" -> List(n("T1"), n("T2"), n("T3")),
+		"T1" -> List(seq(seq(i("a"), n("T0") act ((_, _) => "T1")) act ((_, objs) => objs(1)), i("1")) act ((_, objs) => objs(0))),
+		"T2" -> List(seq(seq(i("a"), n("T0") act ((_, _) => "T2")) act ((_, objs) => objs(1)), i("2")) act ((_, objs) => objs(0))),
+		"T3" -> List(seq(seq(i("a"), n("T0") act ((_, _) => "T3")) act ((_, objs) => objs(1)), i("3")) act ((_, objs) => objs(0))),
+		"T0" -> List(seq())
+	)
 }
