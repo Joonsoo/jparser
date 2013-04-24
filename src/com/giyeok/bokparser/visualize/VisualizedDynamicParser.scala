@@ -315,7 +315,7 @@ class StackEntryItemFigure(val entryItem: Parser#StackEntry#StackEntryItem)(impl
 			case rep: Parser#StackEntry#ParsingRepeat =>
 				if (rep.item.range canProceed rep.count) add(dotLabel)
 				add(labelize(rep.item))
-				if (rep.count >= rep.item.range.from) add(dotLabel)
+				if (rep.finishable) add(dotLabel)
 			case _: Parser#StackEntry#ParsingInput | _: Parser#StackEntry#ParsingOneOf =>
 				if (!item.finishable) add(dotLabel)
 				add(labelize(item.item))

@@ -518,7 +518,7 @@ object JavaScriptGrammar extends Grammar {
 			expr(i("switch"), i("("), n("Expression"), i(")"), n("CaseBlock"))),
 		"CaseBlock" -> List(
 			expr(i("{"), n("CaseClauses").opt, i("}")),
-			expr(i("{"), n("CaseClauses").opt, n("DefaultClause"), n("CaseClauses").opt)),
+			expr(i("{"), n("CaseClauses").opt, n("DefaultClause"), n("CaseClauses").opt, i("}"))),
 		"CaseClauses" -> List(
 			n("CaseClause"),
 			expr(n("CaseClauses"), n("CaseClause"))),
