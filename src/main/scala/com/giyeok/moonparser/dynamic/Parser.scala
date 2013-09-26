@@ -143,10 +143,6 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
     }
     implicit class Nullable(item: DefItem) {
         def isNullable(item: DefItem): Boolean = {
-            def OR(rules: List[DefItem]): Boolean = rules match {
-                case Nil => false
-                case x :: xs => if (isNullable(x)) true else OR(xs)
-            }
             item match {
                 case Nonterminal(name) => (Nullable.map get name) match {
                     case Some(v) => v
@@ -154,7 +150,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
                         Nullable.map += name -> false
                         val rhs = (grammar.rules get name)
                         if (rhs isEmpty) throw new Exception("Unknown nonterminal: " + name)
-                        val temp = OR(rhs.head)
+                        val temp = rhs.head exists { isNullable(_) }
                         Nullable.map(name) = temp; temp
                     }
                 }
@@ -167,7 +163,7 @@ class Parser(val grammar: Grammar, val input: ParserInput) {
                     }
                     AND(seq.toList)
                 }
-                case OneOf(items) => OR(items toList)
+                case OneOf(items) => items exists { isNullable(_) }
                 case Except(item, except) => isNullable(item)
                 case LookaheadExcept(except) => false
                 case Repeat(item, range) => range match {
