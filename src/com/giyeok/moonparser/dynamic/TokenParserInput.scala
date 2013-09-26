@@ -1,9 +1,9 @@
-package com.giyeok.bokparser.dynamic
+package com.giyeok.moonparser.dynamic
 
-import com.giyeok.bokparser.Grammar
-import com.giyeok.bokparser.ParserInput
-import com.giyeok.bokparser.InputSymbol
-import com.giyeok.bokparser.EOFSymbol
+import com.giyeok.moonparser.Grammar
+import com.giyeok.moonparser.ParserInput
+import com.giyeok.moonparser.InputSymbol
+import com.giyeok.moonparser.EOFSymbol
 
 class TokenParserInput(val tokens: List[InputSymbol]) extends ParserInput {
 	val length = tokens.length

@@ -1,9 +1,9 @@
-package com.giyeok.bokparser.grammars
+package com.giyeok.moonparser.grammars
 
 import scala.collection.immutable.ListMap
 
-import com.giyeok.bokparser.DefItem
-import com.giyeok.bokparser.Grammar
+import com.giyeok.moonparser.DefItem
+import com.giyeok.moonparser.Grammar
 
 object ScalaGrammar extends Grammar {
 	private val delimiter = List[DefItem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))

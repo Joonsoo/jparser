@@ -1,4 +1,4 @@
-package com.giyeok.bokparser
+package com.giyeok.moonparser
 
 object UnicodeUtil {
 	def main(args:Array[String]) {

@@ -1,23 +1,23 @@
-package com.giyeok.bokparser.dynamic
+package com.giyeok.moonparser.dynamic
 
-import com.giyeok.bokparser.Grammar
-import com.giyeok.bokparser.Nonterminal
-import com.giyeok.bokparser.ParserInput
-import com.giyeok.bokparser.StackSymbol
-import com.giyeok.bokparser.StartSymbol
-import com.giyeok.bokparser.StringParserInput
-import com.giyeok.bokparser.grammars.JavaScriptGrammar
-import com.giyeok.bokparser.NontermSymbol
-import com.giyeok.bokparser.TermSymbol
+import com.giyeok.moonparser.Grammar
+import com.giyeok.moonparser.Nonterminal
+import com.giyeok.moonparser.ParserInput
+import com.giyeok.moonparser.StackSymbol
+import com.giyeok.moonparser.StartSymbol
+import com.giyeok.moonparser.StringParserInput
+import com.giyeok.moonparser.grammars.JavaScriptGrammar
+import com.giyeok.moonparser.NontermSymbol
+import com.giyeok.moonparser.TermSymbol
 import scala.collection.immutable.SortedSet
-import com.giyeok.bokparser.DefItem
-import com.giyeok.bokparser.InputSymbol
-import com.giyeok.bokparser.CharInputSymbol
-import com.giyeok.bokparser.TokenInputSymbol
-import com.giyeok.bokparser.CharInputSymbol
-import com.giyeok.bokparser.StringInput
-import com.giyeok.bokparser.VirtualInput
-import com.giyeok.bokparser.OneOf
+import com.giyeok.moonparser.DefItem
+import com.giyeok.moonparser.InputSymbol
+import com.giyeok.moonparser.CharInputSymbol
+import com.giyeok.moonparser.TokenInputSymbol
+import com.giyeok.moonparser.CharInputSymbol
+import com.giyeok.moonparser.StringInput
+import com.giyeok.moonparser.VirtualInput
+import com.giyeok.moonparser.OneOf
 
 class Tokenizer(grammar: Grammar, tokenSymbol: String, rawSymbol: String, input: ParserInput) {
 	private val tokenCands = grammar.rules(tokenSymbol)

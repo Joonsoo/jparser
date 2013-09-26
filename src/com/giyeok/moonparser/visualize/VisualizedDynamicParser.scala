@@ -1,4 +1,4 @@
-package com.giyeok.bokparser.visualize
+package com.giyeok.moonparser.visualize
 
 import scala.collection.mutable.HashMap
 
@@ -21,24 +21,24 @@ import org.eclipse.swt.widgets.Canvas
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 
-import com.giyeok.bokparser.CharInputSymbol
-import com.giyeok.bokparser.DefItem
-import com.giyeok.bokparser.EOFSymbol
-import com.giyeok.bokparser.EmptySymbol
-import com.giyeok.bokparser.Grammar
-import com.giyeok.bokparser.NontermSymbol
-import com.giyeok.bokparser.Nonterminal
-import com.giyeok.bokparser.ParserInput
-import com.giyeok.bokparser.StackSymbol
-import com.giyeok.bokparser.StartSymbol
-import com.giyeok.bokparser.StringInput
-import com.giyeok.bokparser.TermSymbol
-import com.giyeok.bokparser.TokenInputSymbol
-import com.giyeok.bokparser.VirtInputSymbol
-import com.giyeok.bokparser.dynamic.Parser
-import com.giyeok.bokparser.grammars.JavaScriptGrammar
-import com.giyeok.bokparser.grammars.JavaScriptParser
-import com.giyeok.bokparser.tests.JavaScriptTestCases
+import com.giyeok.moonparser.CharInputSymbol
+import com.giyeok.moonparser.DefItem
+import com.giyeok.moonparser.EOFSymbol
+import com.giyeok.moonparser.EmptySymbol
+import com.giyeok.moonparser.Grammar
+import com.giyeok.moonparser.NontermSymbol
+import com.giyeok.moonparser.Nonterminal
+import com.giyeok.moonparser.ParserInput
+import com.giyeok.moonparser.StackSymbol
+import com.giyeok.moonparser.StartSymbol
+import com.giyeok.moonparser.StringInput
+import com.giyeok.moonparser.TermSymbol
+import com.giyeok.moonparser.TokenInputSymbol
+import com.giyeok.moonparser.VirtInputSymbol
+import com.giyeok.moonparser.dynamic.Parser
+import com.giyeok.moonparser.grammars.JavaScriptGrammar
+import com.giyeok.moonparser.grammars.JavaScriptParser
+import com.giyeok.moonparser.tests.JavaScriptTestCases
 
 object VisualizedDynamicParser {
 	def main(args: Array[String]) {

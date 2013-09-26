@@ -1,34 +1,34 @@
-package com.giyeok.bokparser.dynamic
+package com.giyeok.moonparser.dynamic
 
 import scala.Option.option2Iterable
 import scala.collection.immutable.ListMap
 import scala.collection.mutable.ListMap
 import scala.collection.mutable.Queue
 
-import com.giyeok.bokparser.CharInputSymbol
-import com.giyeok.bokparser.CharacterInput
-import com.giyeok.bokparser.DefItem
-import com.giyeok.bokparser.EOFSymbol
-import com.giyeok.bokparser.EmptySymbol
-import com.giyeok.bokparser.Except
-import com.giyeok.bokparser.Grammar
-import com.giyeok.bokparser.Input
-import com.giyeok.bokparser.LookaheadExcept
-import com.giyeok.bokparser.NontermSymbol
-import com.giyeok.bokparser.Nonterminal
-import com.giyeok.bokparser.OneOf
-import com.giyeok.bokparser.ParserInput
-import com.giyeok.bokparser.Repeat
-import com.giyeok.bokparser.RepeatRangeFrom
-import com.giyeok.bokparser.RepeatRangeTo
-import com.giyeok.bokparser.Sequence
-import com.giyeok.bokparser.StackSymbol
-import com.giyeok.bokparser.StartSymbol
-import com.giyeok.bokparser.StringInput
-import com.giyeok.bokparser.TermSymbol
-import com.giyeok.bokparser.TokenInputSymbol
-import com.giyeok.bokparser.VirtInputSymbol
-import com.giyeok.bokparser.VirtualInput
+import com.giyeok.moonparser.CharInputSymbol
+import com.giyeok.moonparser.CharacterInput
+import com.giyeok.moonparser.DefItem
+import com.giyeok.moonparser.EOFSymbol
+import com.giyeok.moonparser.EmptySymbol
+import com.giyeok.moonparser.Except
+import com.giyeok.moonparser.Grammar
+import com.giyeok.moonparser.Input
+import com.giyeok.moonparser.LookaheadExcept
+import com.giyeok.moonparser.NontermSymbol
+import com.giyeok.moonparser.Nonterminal
+import com.giyeok.moonparser.OneOf
+import com.giyeok.moonparser.ParserInput
+import com.giyeok.moonparser.Repeat
+import com.giyeok.moonparser.RepeatRangeFrom
+import com.giyeok.moonparser.RepeatRangeTo
+import com.giyeok.moonparser.Sequence
+import com.giyeok.moonparser.StackSymbol
+import com.giyeok.moonparser.StartSymbol
+import com.giyeok.moonparser.StringInput
+import com.giyeok.moonparser.TermSymbol
+import com.giyeok.moonparser.TokenInputSymbol
+import com.giyeok.moonparser.VirtInputSymbol
+import com.giyeok.moonparser.VirtualInput
 
 class ParseResult(val messages: List[ParsePossibility]) {
 	def add(p: ParsePossibility) =

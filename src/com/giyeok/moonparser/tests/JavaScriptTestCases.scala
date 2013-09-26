@@ -1,4 +1,4 @@
-package com.giyeok.bokparser.tests
+package com.giyeok.moonparser.tests
 
 object JavaScriptTestCases {
 	val tests = List(

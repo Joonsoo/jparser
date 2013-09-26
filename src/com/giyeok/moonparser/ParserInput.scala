@@ -1,6 +1,6 @@
-package com.giyeok.bokparser
+package com.giyeok.moonparser
 
-import com.giyeok.bokparser.dynamic.Token
+import com.giyeok.moonparser.dynamic.Token
 
 abstract class ParserInput {
 	val length: Int

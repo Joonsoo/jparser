@@ -1,6 +1,6 @@
-package com.giyeok.bokparser
+package com.giyeok.moonparser
 
-import com.giyeok.bokparser.dynamic.Parser
+import com.giyeok.moonparser.dynamic.Parser
 
 sealed abstract class StackSymbol {
 	val text: String

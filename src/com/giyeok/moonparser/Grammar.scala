@@ -1,4 +1,4 @@
-package com.giyeok.bokparser
+package com.giyeok.moonparser
 
 abstract class Grammar {
 	type RuleMap = Map[String, List[DefItem]]

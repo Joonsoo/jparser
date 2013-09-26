@@ -1,7 +1,7 @@
-package com.giyeok.bokparser.tests
+package com.giyeok.moonparser.tests
 
-import com.giyeok.bokparser.ActGrammar
-import com.giyeok.bokparser.dynamic.BasicBlackboxParser
+import com.giyeok.moonparser.ActGrammar
+import com.giyeok.moonparser.dynamic.BasicBlackboxParser
 
 object ActGrammarTests {
 	def main(args: Array[String]) = {

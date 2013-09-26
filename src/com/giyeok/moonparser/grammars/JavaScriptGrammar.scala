@@ -1,15 +1,15 @@
-package com.giyeok.bokparser.grammars
+package com.giyeok.moonparser.grammars
 
 import scala.collection.immutable.ListMap
-import com.giyeok.bokparser.DefItem
-import com.giyeok.bokparser.Grammar
-import com.giyeok.bokparser.Nonterminal
-import com.giyeok.bokparser.Sequence
-import com.giyeok.bokparser.dynamic.TokenParserInput
-import com.giyeok.bokparser.dynamic.Parser
-import com.giyeok.bokparser.ParserInput
-import com.giyeok.bokparser.dynamic.ParseResult
-import com.giyeok.bokparser.dynamic.BlackboxParser
+import com.giyeok.moonparser.DefItem
+import com.giyeok.moonparser.Grammar
+import com.giyeok.moonparser.Nonterminal
+import com.giyeok.moonparser.Sequence
+import com.giyeok.moonparser.dynamic.TokenParserInput
+import com.giyeok.moonparser.dynamic.Parser
+import com.giyeok.moonparser.ParserInput
+import com.giyeok.moonparser.dynamic.ParseResult
+import com.giyeok.moonparser.dynamic.BlackboxParser
 
 object JavaScriptParser {
 	def getTokenizer(source: ParserInput) =

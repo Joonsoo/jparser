@@ -1,4 +1,4 @@
-package com.giyeok.bokparser.visualize
+package com.giyeok.moonparser.visualize
 
 import scala.collection.immutable.HashMap
 
@@ -15,24 +15,24 @@ import org.eclipse.swt.widgets.Canvas
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 
-import com.giyeok.bokparser.AnyCharacterInput
-import com.giyeok.bokparser.CharacterRangeInput
-import com.giyeok.bokparser.DefItem
-import com.giyeok.bokparser.Except
-import com.giyeok.bokparser.Grammar
-import com.giyeok.bokparser.LookaheadExcept
-import com.giyeok.bokparser.Nonterminal
-import com.giyeok.bokparser.OneOf
-import com.giyeok.bokparser.PoolCharacterInput
-import com.giyeok.bokparser.Repeat
-import com.giyeok.bokparser.RepeatRangeFrom
-import com.giyeok.bokparser.RepeatRangeTo
-import com.giyeok.bokparser.Sequence
-import com.giyeok.bokparser.StringInput
-import com.giyeok.bokparser.UnicodeCategoryCharacterInput
-import com.giyeok.bokparser.UnicodeUtil
-import com.giyeok.bokparser.VirtualInput
-import com.giyeok.bokparser.grammars.SampleGrammar1
+import com.giyeok.moonparser.AnyCharacterInput
+import com.giyeok.moonparser.CharacterRangeInput
+import com.giyeok.moonparser.DefItem
+import com.giyeok.moonparser.Except
+import com.giyeok.moonparser.Grammar
+import com.giyeok.moonparser.LookaheadExcept
+import com.giyeok.moonparser.Nonterminal
+import com.giyeok.moonparser.OneOf
+import com.giyeok.moonparser.PoolCharacterInput
+import com.giyeok.moonparser.Repeat
+import com.giyeok.moonparser.RepeatRangeFrom
+import com.giyeok.moonparser.RepeatRangeTo
+import com.giyeok.moonparser.Sequence
+import com.giyeok.moonparser.StringInput
+import com.giyeok.moonparser.UnicodeCategoryCharacterInput
+import com.giyeok.moonparser.UnicodeUtil
+import com.giyeok.moonparser.VirtualInput
+import com.giyeok.moonparser.grammars.SampleGrammar1
 
 object VisualizedGrammar {
 	def main(args: Array[String]) {
