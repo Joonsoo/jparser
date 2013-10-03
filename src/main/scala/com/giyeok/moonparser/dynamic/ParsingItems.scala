@@ -59,8 +59,8 @@ trait ParsingItems {
     }
     case class ParsingVirtualInput(elem: VirtualInput, input: Option[TermSymbol[VirtInput]] = None)
             extends ParsingItem with TokenCompatibles {
-        val finish: Option[ParsedSymbol] = input
-        val subs: Set[ParsingItem] = Set()
+        lazy val finish: Option[ParsedSymbol] = input
+        lazy val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
             sym match {
                 case term @ TermSymbol(VirtInput(v), _) =>
@@ -73,8 +73,8 @@ trait ParsingItems {
     }
     case class ParsingNonterminal(elem: Nonterminal, input: Option[ConcreteSymbol] = None)
             extends ParsingItem with TokenCompatibles {
-        val finish: Option[ParsedSymbol] = if (input.isDefined) Some(NontermSymbol(elem, Seq(input.get))) else None
-        val subs: Set[ParsingItem] =
+        lazy val finish: Option[ParsedSymbol] = if (input.isDefined) Some(NontermSymbol(elem, Seq(input.get))) else None
+        lazy val subs: Set[ParsingItem] =
             if (input.isDefined) Set() else (grammar.rules(elem.name) map defItemToState)
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
             sym match {
@@ -88,8 +88,8 @@ trait ParsingItems {
     }
     case class ParsingOneOf(elem: OneOf, input: Option[ParsedSymbol] = None)
             extends ParsingItem with TokenCompatibles {
-        val finish: Option[ParsedSymbol] = input
-        val subs: Set[ParsingItem] =
+        lazy val finish: Option[ParsedSymbol] = input
+        lazy val subs: Set[ParsingItem] =
             if (input.isDefined) Set() else (elem.elems map defItemToState)
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
             sym match {
@@ -102,11 +102,11 @@ trait ParsingItems {
         }
     }
     case class ParsingRepeat(elem: Repeat, input: List[ConcreteSymbol] = Nil) extends ParsingItem {
-        val finish: Option[ParsedSymbol] =
+        lazy val finish: Option[ParsedSymbol] =
             if (elem.range contains input.length) Some(NontermSymbol(elem, input.reverse)) else None
-        val subs: Set[ParsingItem] =
-            if (elem.range canProceed input.length) Set(defItemToState(elem.elem)) else Set()
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (!(elem.range canProceed input.length)) None else {
+        lazy val canProceed = elem.range canProceed input.length
+        lazy val subs: Set[ParsingItem] = if (canProceed) Set(defItemToState(elem.elem)) else Set()
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (!canProceed) None else {
             sym match {
                 case ns @ NontermSymbol(e, _) if elem.elem == e =>
                     Some(ParsingRepeat(elem, ns +: input))

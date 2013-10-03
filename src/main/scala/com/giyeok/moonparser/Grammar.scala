@@ -163,10 +163,12 @@ object GrElems {
     }
 
     sealed abstract class RepeatRange {
-        def contains(v: Int): Boolean
-        def canEqual(other: Any): Boolean
-        def canProceed(x: Int): Boolean
         val from: Int
+
+        def contains(v: Int): Boolean
+        def canProceed(x: Int): Boolean
+
+        def canEqual(other: Any): Boolean
     }
     case class RepeatRangeFrom(val from: Int) extends RepeatRange {
         def contains(v: Int) = from <= v
