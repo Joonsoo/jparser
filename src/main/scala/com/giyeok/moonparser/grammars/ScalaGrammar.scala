@@ -2,7 +2,7 @@ package com.giyeok.moonparser.grammars
 
 import scala.collection.immutable.ListMap
 
-import com.giyeok.moonparser.GrElem
+import com.giyeok.moonparser.GrElems._
 import com.giyeok.moonparser.Grammar
 
 object ScalaGrammar extends Grammar {

@@ -1,9 +1,9 @@
 package com.giyeok.moonparser.dynamic
 
 import com.giyeok.moonparser.Grammar
-import com.giyeok.moonparser.ConcreteSymbol
-import com.giyeok.moonparser.ParserInput
-import com.giyeok.moonparser.ParsedSymbol
+import com.giyeok.moonparser.ParserInputs._
+import com.giyeok.moonparser.ParsedSymbols._
+import com.giyeok.moonparser.GrElems._
 
 class ParseResult(val messages: List[ParsePossibility]) {
     def add(p: ParsePossibility) =
@@ -105,8 +105,12 @@ class Parser(val grammar: Grammar, val input: ParserInput) extends ParsingItems 
     case class EntryGroup(parent: Option[EntryGroup], members: Seq[Entry])
     case class Entry(item: ParsingItem, genpoint: EntryGroup)
     abstract class ParsingItem {
-        val subs: Seq[ParsingItem]
+        val elem: GrElem
+        
         val finish: Option[ParsedSymbol]
-        def proceed(sub: ParsedSymbol): Option[ParsingItem]
+        val subs: Set[ParsingItem]
+        // method `proceed` will never be called if finish is defined(not None) and
+        // field `subs` will not be used if finish is defined(not None)
+        def proceed(sym: ParsedSymbol): Option[ParsingItem]
     }
 }

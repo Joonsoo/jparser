@@ -1,8 +1,8 @@
 package com.giyeok.moonparser
 
-import com.giyeok.moonparser.GrElem._
-
 abstract class Grammar {
+    import com.giyeok.moonparser.GrElems._
+
     type RuleMap = Map[String, Set[GrElem]]
 
     val name: String
@@ -24,7 +24,6 @@ abstract class Grammar {
     def oneof(items: Set[GrElem]) = OneOf(items)
     def lookahead_except(except: GrElem*) = LookaheadExcept(except toSet)
 
-    case class GrammarDefinitionException(msg: String) extends Exception(msg)
     implicit class GrammarElementExcludable(self: GrElem) {
         def except(e: GrElem*) = self match {
             case _: Nonterminal | _: InputElem | _: OneOf | _: Except | _: Repeat =>
@@ -55,8 +54,10 @@ abstract class Grammar {
     }
 }
 
-sealed abstract class GrElem
-object GrElem {
+case class GrammarDefinitionException(msg: String) extends Exception(msg)
+
+object GrElems {
+    sealed abstract class GrElem
     case class Nonterminal(name: String) extends GrElem {
         override lazy val hashCode = name.hashCode
         override def equals(other: Any) = other match {
@@ -128,10 +129,10 @@ object GrElem {
         }
         override def canEqual(other: Any) = other.isInstanceOf[Sequence]
     }
-    case class OneOf(items: Set[GrElem]) extends GrElem {
-        override lazy val hashCode = items.hashCode
+    case class OneOf(elems: Set[GrElem]) extends GrElem {
+        override lazy val hashCode = elems.hashCode
         override def equals(other: Any) = other match {
-            case that: OneOf => (that canEqual this) && (that.items == items)
+            case that: OneOf => (that canEqual this) && (that.elems == elems)
             case _ => false
         }
         override def canEqual(other: Any) = other.isInstanceOf[OneOf]
@@ -152,10 +153,10 @@ object GrElem {
         }
         override def canEqual(other: Any) = other.isInstanceOf[LookaheadExcept]
     }
-    case class Repeat(item: GrElem, range: RepeatRange) extends GrElem {
-        override lazy val hashCode = (item, range).hashCode
+    case class Repeat(elem: GrElem, range: RepeatRange) extends GrElem {
+        override lazy val hashCode = (elem, range).hashCode
         override def equals(other: Any) = other match {
-            case that: Repeat => (that canEqual this) && (that.item == item) && (that.range == range)
+            case that: Repeat => (that canEqual this) && (that.elem == elem) && (that.range == range)
             case _ => false
         }
         override def canEqual(other: Any) = other.isInstanceOf[Repeat]

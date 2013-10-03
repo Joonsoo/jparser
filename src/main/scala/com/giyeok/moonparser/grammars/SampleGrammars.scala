@@ -2,8 +2,7 @@ package com.giyeok.moonparser.grammars
 
 import scala.collection.immutable.ListMap
 
-import com.giyeok.moonparser.CharacterRangeInput
-import com.giyeok.moonparser.GrElem
+import com.giyeok.moonparser.GrElems._
 import com.giyeok.moonparser.Grammar
 
 abstract class SampleGrammar extends Grammar {
