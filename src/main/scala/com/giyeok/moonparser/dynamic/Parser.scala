@@ -89,8 +89,15 @@ class Parser(val grammar: Grammar, val input: ParserInput)
         result
     }
 
-    case class EntryGroup(parent: Option[EntryGroup], members: Seq[Entry])
-    case class Entry(item: ParsingItem, genpoint: EntryGroup)
+    case class Entry(
+        // parent is not Entry's problem, but it's OctopusStack's thing
+        // genpoint will be changed if the item is created by `subs` of ParsingItem
+        // and preserved if the item is created by `proceed` of ParsingItem
+        genpoint: Option[Entry],
+        members: Seq[ParsingItem],
+        symbol: ConcreteSymbol,
+        pointer: Int)
+
     abstract class ParsingItem {
         val elem: GrElem
 
