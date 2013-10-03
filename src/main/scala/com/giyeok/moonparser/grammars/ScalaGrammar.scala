@@ -6,69 +6,69 @@ import com.giyeok.moonparser.GrElem
 import com.giyeok.moonparser.Grammar
 
 object ScalaGrammar extends Grammar {
-    private val delimiter = List[GrElem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
-    private val oneline = List[GrElem](n("WhiteSpace"), n("Comment"))
+    private val delimiter = Set[GrElem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
+    private val oneline = Set[GrElem](n("WhiteSpace"), n("Comment"))
 
-    def expr(seq: GrElem*) = sequence(delimiter, seq: _*)
-    def lex(seq: GrElem*) = sequence(seq: _*)
-    def line(seq: GrElem*) = sequence(oneline, seq: _*)
+    def expr(s: GrElem*) = seq(delimiter, s: _*)
+    def lex(s: GrElem*) = seq(s: _*)
+    def line(s: GrElem*) = seq(oneline, s: _*)
 
     override val name = "Scala"
     // http://www.scala-lang.org/docu/files/ScalaReference.pdf
-    override val rules = ListMap(
+    override val rules: RuleMap = ListMap(
         // lexical syntax
-        "upper" -> List(c('A', 'Z'), c("$_"), unicode_categories("Lu")),
-        "lower" -> List(c('a', 'z'), unicode_categories("Ll")),
-        "letter" -> List(n("upper"), n("lower"), unicode_categories("Lo", "Lt", "Nl")),
-        "digit" -> List(c('0', '9')),
-        "opchar" -> List(oneof(c('\u0020', '\u007F'), unicode_categories("Sm, So")).except(c("()[]{}.,"))),
+        "upper" -> Set(c('A', 'Z'), c("$_"), unicode("Lu")),
+        "lower" -> Set(c('a', 'z'), unicode("Ll")),
+        "letter" -> Set(n("upper"), n("lower"), unicode("Lo", "Lt", "Nl")),
+        "digit" -> Set(c('0', '9')),
+        "opchar" -> Set(oneof(c('\u0020', '\u007F'), unicode("Sm, So")).except(c("()[]{}.,"))),
 
-        "op" -> List(n("opchar").plus),
-        "varid" -> List(seq(n("lower"), n("idrest"))),
-        "plainid" -> List(seq(n("upper"), n("idrest")), n("varid"), n("op")),
-        "id" -> List(n("plainid"), seq(i("`"), n("stringLit"), i("`"))),
-        "idrest" -> List(seq(oneof(n("letter"), n("digit")).star, seq(i("_"), n("op")).opt)),
+        "op" -> Set(n("opchar").plus),
+        "varid" -> Set(seq(n("lower"), n("idrest"))),
+        "plainid" -> Set(seq(n("upper"), n("idrest")), n("varid"), n("op")),
+        "id" -> Set(n("plainid"), seq(i("`"), n("stringLit"), i("`"))),
+        "idrest" -> Set(seq(oneof(n("letter"), n("digit")).star, seq(i("_"), n("op")).opt)),
 
-        "integerLiteral" -> List(seq(oneof(n("decimalNumber"), n("hexNumeral"), n("octalNumber")), c("Ll").opt)),
-        "decimalNumeral" -> List(i("0"), seq(n("nonZeroDigit"), n("digit").star)),
-        "hexNumeral" -> List(seq(i("0x"), n("hexDigit").plus)),
-        "octalNumeral" -> List(seq(i("0"), n("octalDigit").plus)),
-        "digit" -> List(i("0"), n("nonZeroDigit")),
-        "nonZeroDigit" -> List(c('1', '9')),
-        "octalDigit" -> List(c('0', '7')),
+        "integerLiteral" -> Set(seq(oneof(n("decimalNumber"), n("hexNumeral"), n("octalNumber")), c("Ll").opt)),
+        "decimalNumeral" -> Set(i("0"), seq(n("nonZeroDigit"), n("digit").star)),
+        "hexNumeral" -> Set(seq(i("0x"), n("hexDigit").plus)),
+        "octalNumeral" -> Set(seq(i("0"), n("octalDigit").plus)),
+        "digit" -> Set(i("0"), n("nonZeroDigit")),
+        "nonZeroDigit" -> Set(c('1', '9')),
+        "octalDigit" -> Set(c('0', '7')),
 
-        "floatingPointLiteral" -> List(
+        "floatingPointLiteral" -> Set(
             seq(n("digit").plus, i("."), n("digit").star, n("exponentPart").opt, n("floatType").opt),
             seq(i("."), n("digit").plus, n("exponentPart").opt, n("floatType").opt),
             // modified not to be ambiguous
             seq(n("digit").plus, n("exponentPart"), n("floatType")),
             seq(n("digit").plus, n("exponentPart")),
             seq(n("digit").plus, n("floatType"))),
-        "exponentPart" -> List(seq(c("Ee"), c("+-").opt, n("digit").plus)),
-        "floatType" -> List(c("FfDd")),
-        "booleanLiteral" -> List(i("true"), i("false")),
-        "characterLiteral" -> List(
+        "exponentPart" -> Set(seq(c("Ee"), c("+-").opt, n("digit").plus)),
+        "floatType" -> Set(c("FfDd")),
+        "booleanLiteral" -> Set(i("true"), i("false")),
+        "characterLiteral" -> Set(
             seq(i("`"), n("printableChar"), i("`")),
             seq(i("`"), n("charEscapeSeq"), i("`"))),
-        "stringLiteral" -> List(
+        "stringLiteral" -> Set(
             seq(i("\""), n("stringElement").star, i("\"")),
             seq(i("\"\"\""), n("multiLineChars"), i("\"\"\""))),
-        "stringElement" -> List(
+        "stringElement" -> Set(
             n("printableCharNoDoubleQuote"),
             n("charEscapeSeq")),
-        "multiLineChars" -> List(
+        "multiLineChars" -> Set(
             seq(seq(i("\"").opt, i("\"").opt, n("charNoDoubleQuote")).star, i("\"").star)),
-        "symbolLiteral" -> List(
+        "symbolLiteral" -> Set(
             seq(i("'"), n("plainid"))),
-        "comment" -> List(
-            seq(i("/*"), seq(c(), lookahead_except(i("*/"))).star, i("*/")),
-            seq(i("//"), c().butnot(n("nl")).star)),
-        "nl" -> List( // TODO
+        "comment" -> Set(
+            seq(i("/*"), seq(c, lookahead_except(i("*/"))).star, i("*/")),
+            seq(i("//"), c.butnot(n("nl")).star)),
+        "nl" -> Set( // TODO
         ),
-        "semi" -> List(i(";"), n("nl").plus),
+        "semi" -> Set(i(";"), n("nl").plus),
 
         // context-free syntax
-        "Literal" -> List(
+        "Literal" -> Set(
             seq(i("-").opt, n("integerLiteral")),
             seq(i("-").opt, n("floatingPointLiteral")),
             n("booleanLiteral"),
@@ -76,31 +76,31 @@ object ScalaGrammar extends Grammar {
             n("stringLiteral"),
             n("symbolLiteral"),
             i("null")),
-        "QualId" -> List(seq(n("id"), seq(i("."), n("id")).star)),
-        "ids" -> List(seq(n("id"), seq(i(","), n("id")).star)),
-        "Path" -> List(n("StableId"), seq(seq(n("id"), i(".")).opt, i("this"))),
-        "StableId" -> List(
+        "QualId" -> Set(seq(n("id"), seq(i("."), n("id")).star)),
+        "ids" -> Set(seq(n("id"), seq(i(","), n("id")).star)),
+        "Path" -> Set(n("StableId"), seq(seq(n("id"), i(".")).opt, i("this"))),
+        "StableId" -> Set(
             n("id"),
             seq(n("Path"), i("."), n("id")),
             seq(seq(n("id"), i(".")).opt, i("super"), n("ClassQualifier").opt, i("."), n("id"))),
-        "ClassQualifier" -> List(seq(i("["), n("id"), i("]"))),
-        "Type" -> List(
+        "ClassQualifier" -> Set(seq(i("["), n("id"), i("]"))),
+        "Type" -> Set(
             seq(n("FunctionArgTypes"), i("=>"), n("Type")),
             seq(n("InfixType"), n("ExistentialClause").opt)),
-        "FunctionArgTypes" -> List(
+        "FunctionArgTypes" -> Set(
             n("InfixType"),
             seq(i("("), seq(n("ParamType"), seq(i(","), n("ParamType")).star).opt, i(")"))),
-        "ExistentialClause" -> List(
+        "ExistentialClause" -> Set(
             seq(i("forSome"), i("{"), n("ExistentialDcl"), seq(n("semi"), n("ExistentialDcl")).star, i("}"))),
-        "ExistentialDcl" -> List(
+        "ExistentialDcl" -> Set(
             seq(i("type"), n("TypeDcl")),
             seq(i("val"), n("ValDcl"))),
-        "InfixType" -> List(
+        "InfixType" -> Set(
             seq(n("CompoundType"), seq(n("id"), n("nl").opt, n("CompoundType")).star)),
-        "CompoundType" -> List(
+        "CompoundType" -> Set(
             seq(n("AnnotType"), seq(i("with"), n("AnnotType")).star, n("Refinement").opt),
             n("Refinement")),
-        "AnnotType" -> List(
+        "AnnotType" -> Set(
             seq(n("SimpleType"), n("Annotation").star)) // TODO finish this
             )
     override val startSymbol = "CompilationUnit"

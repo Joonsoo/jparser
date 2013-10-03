@@ -1,6 +1,6 @@
 package com.giyeok.moonparser
 
-import com.giyeok.moonparser.dynamic.Token
+import com.giyeok.moonparser.dynamic.Tokenizer
 
 abstract class ParserInput {
     val length: Int
@@ -14,15 +14,15 @@ class StringParserInput(val string: String) extends ParserInput {
 
     def subinput(p: Int) = new StringParserInput(string substring p)
 }
-class ListParserInput(val list: List[Input]) extends ParserInput {
+class SeqParserInput(val list: Seq[Input]) extends ParserInput {
     val length = list length
     def at(p: Int) = if (p < length) list(p) else EOF
 
-    def subinput(p: Int) = new ListParserInput(list drop p)
+    def subinput(p: Int) = new SeqParserInput(list drop p)
 }
 object ParserInput {
     def fromString(string: String) = new StringParserInput(string)
-    def fromList(list: List[Input]) = new ListParserInput(list)
+    def fromSeq(list: Seq[Input]) = new SeqParserInput(list)
 }
 
 abstract sealed class Input
@@ -30,3 +30,15 @@ case class CharInput(val char: Char) extends Input
 case class VirtInput(val name: String) extends Input
 case class TokenInput(val token: Token) extends Input
 case object EOF extends Input
+
+object TokenParserInput {
+    def fromGrammar(grammar: Grammar, token: String, raw: String, input: ParserInput) = {
+        val tokenizer = new Tokenizer(grammar, token, raw, input)
+        var tokens = List[Token]()
+
+        while (tokenizer.hasNextToken) {
+            tokens +:= tokenizer.nextToken
+        }
+        new SeqParserInput(tokens.reverse map (TokenInput(_)))
+    }
+}

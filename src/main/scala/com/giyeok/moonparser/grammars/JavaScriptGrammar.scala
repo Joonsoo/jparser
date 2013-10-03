@@ -5,11 +5,11 @@ import com.giyeok.moonparser.GrElem
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.Nonterminal
 import com.giyeok.moonparser.Sequence
-import com.giyeok.moonparser.dynamic.TokenParserInput
 import com.giyeok.moonparser.dynamic.Parser
 import com.giyeok.moonparser.ParserInput
 import com.giyeok.moonparser.dynamic.ParseResult
 import com.giyeok.moonparser.dynamic.BlackboxParser
+import com.giyeok.moonparser.TokenParserInput
 
 object JavaScriptParser {
     def getTokenizer(source: ParserInput) =
@@ -29,87 +29,87 @@ object JavaScriptParser {
 }
 
 object JavaScriptGrammar extends Grammar {
-    private val whitespace = List[GrElem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
-    private val oneline = List[GrElem](n("WhiteSpace"), n("Comment"))
+    private val whitespace = Set[GrElem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
+    private val oneline = Set[GrElem](n("WhiteSpace"), n("Comment"))
 
-    def expr(seq: GrElem*) = Sequence(seq toList, whitespace)
-    def lex(seq: GrElem*) = sequence(seq: _*)
-    def line(seq: GrElem*) = sequence(oneline, seq: _*)
+    def expr(s: GrElem*) = Sequence(s toList, whitespace)
+    def lex(s: GrElem*) = seq(s: _*)
+    def line(s: GrElem*) = seq(oneline, s: _*)
 
     override val name = "JavaScript"
-    override val rules = ListMap(
-        "_Token" -> (whitespace ++ List(n("IdentifierName"), n("Punctuator"), n("NumericLiteral"), n("StringLiteral"))),
-        "_Raw" -> List(n("RegularExpressionLiteral")),
+    override val rules: RuleMap = ListMap(
+        "_Token" -> (whitespace ++ Set(n("IdentifierName"), n("Punctuator"), n("NumericLiteral"), n("StringLiteral"))),
+        "_Raw" -> Set(n("RegularExpressionLiteral")),
 
-        "Start" -> List(seq(oneof(whitespace).star, n("Program"), oneof(whitespace).star)),
+        "Start" -> Set(seq(oneof(whitespace).star, n("Program"), oneof(whitespace).star)),
 
         // A.1 Lexical Grammar
-        "SourceCharacter" -> List(c()),
-        "InputElementDiv" -> List(
+        "SourceCharacter" -> Set(c),
+        "InputElementDiv" -> Set(
             n("WhiteSpace"), n("LineTerminator"), n("Comment"), n("Token"), n("DivPunctuator")),
-        "InputElementRegExp" -> List(
+        "InputElementRegExp" -> Set(
             n("WhiteSpace"), n("LineTerminator"), n("Comment"), n("Token"), n("RegularExpressionLiteral")),
-        "WhiteSpace" -> List(
-            c("\u0009\u000B\u000C\uFEFF"), unicode_categories("Zs")), // \u0020\u00A0  ->  already in Zs
-        "LineTerminator" -> List(
+        "WhiteSpace" -> Set(
+            c("\u0009\u000B\u000C\uFEFF"), unicode("Zs")), // \u0020\u00A0  ->  already in Zs
+        "LineTerminator" -> Set(
             c("\n\r\u2028\u2029")),
-        "LineTerminatorSequence" -> List(
+        "LineTerminatorSequence" -> Set(
             c("\n\u2028\u2029"), lex(c("\r"), lookahead_except(c("\n"))), i("\r\n")),
-        "Comment" -> List(
+        "Comment" -> Set(
             n("MultiLineComment"), n("SingleLineComment")),
-        "MultiLineComment" -> List(
+        "MultiLineComment" -> Set(
             expr(i("/*"), n("MultiLineCommentChars").opt, i("*/"))),
-        "MultiLineCommentChars" -> List(
+        "MultiLineCommentChars" -> Set(
             lex(n("MultiLineNotAsteriskChar"), n("MultiLineCommentChars").opt),
             lex(i("*"), n("PostAsteriskCommentChars").opt)),
-        "PostAsteriskCommentChars" -> List(
+        "PostAsteriskCommentChars" -> Set(
             lex(n("MultiLineNotForwardSlashOrAsteriskChar"), n("MultiLineCommentChars").opt),
             lex(i("*"), n("PostAsteriskCommentChars").opt)),
-        "MultiLineNotAsteriskChar" -> List(
+        "MultiLineNotAsteriskChar" -> Set(
             lex(n("SourceCharacter").butnot(i("*")))),
-        "MultiLineNotForwardSlashOrAsteriskChar" -> List(
+        "MultiLineNotForwardSlashOrAsteriskChar" -> Set(
             lex(n("SourceCharacter").butnot(i("/"), i("*")))),
-        "SingleLineComment" -> List(
+        "SingleLineComment" -> Set(
             lex(i("//"), n("SingleLineCommentChars").opt)),
-        "SingleLineCommentChars" -> List(
+        "SingleLineCommentChars" -> Set(
             lex(n("SingleLineCommentChar"), n("SingleLineCommentChars").opt)),
-        "SingleLineCommentChar" -> List(
+        "SingleLineCommentChar" -> Set(
             n("SourceCharacter").butnot(n("LineTerminator"))),
-        "Token" -> List(
+        "Token" -> Set(
             n("IdentifierName"),
             n("Punctuator"),
             n("NumericLiteral"),
             n("StringLiteral")),
-        "Identifier" -> List(
+        "Identifier" -> Set(
             n("IdentifierName").butnot(n("ReservedWord"))),
-        "IdentifierName" -> List(
+        "IdentifierName" -> Set(
             n("IdentifierStart"),
             lex(n("IdentifierName"), n("IdentifierPart"))),
-        "IdentifierStart" -> List(
+        "IdentifierStart" -> Set(
             n("UnicodeLetter"),
             i("$"),
             i("_"),
             lex(i("_"), n("UnicodeEscapeSequence"))),
-        "IdentifierPart" -> List(
+        "IdentifierPart" -> Set(
             n("IdentifierStart"),
             n("UnicodeCombiningMark"),
             n("UnicodeDigit"),
             n("UnicodeConnectorPunctuation"),
             c("\u200C\u200D")),
-        "UnicodeLetter" -> List(
-            unicode_categories("Lu", "Ll", "Lt", "Lm", "Lo", "Nl")),
-        "UnicodeCombiningMark" -> List(
-            unicode_categories("Mn", "Mc")),
-        "UnicodeDigit" -> List(
-            unicode_categories("Nd")),
-        "UnicodeConnectorPunctuation" -> List(
-            unicode_categories("Pc")),
-        "ReservedWord" -> List(
+        "UnicodeLetter" -> Set(
+            unicode("Lu", "Ll", "Lt", "Lm", "Lo", "Nl")),
+        "UnicodeCombiningMark" -> Set(
+            unicode("Mn", "Mc")),
+        "UnicodeDigit" -> Set(
+            unicode("Nd")),
+        "UnicodeConnectorPunctuation" -> Set(
+            unicode("Pc")),
+        "ReservedWord" -> Set(
             n("Keyword"),
             n("FutureReservedWord"),
             n("NullLiteral"),
             n("BooleanLiteral")),
-        "Keyword" -> List(
+        "Keyword" -> Set(
             i("break"), i("do"), i("instanceof"), i("typeof"),
             i("case"), i("else"), i("new"), i("var"),
             i("catch"), i("finally"), i("return"), i("void"),
@@ -117,13 +117,13 @@ object JavaScriptGrammar extends Grammar {
             i("debugger"), i("function"), i("this"), i("with"),
             i("default"), i("if"), i("throw"),
             i("delete"), i("in"), i("try")),
-        "FutureReservedWord" -> List(
+        "FutureReservedWord" -> Set(
             i("class"), i("enum"), i("extends"), i("super"),
             i("const"), i("export"), i("import"),
             i("implements"), i("let"), i("private"), i("public"),
             i("interface"), i("package"), i("protected"), i("static"),
             i("yield")),
-        "Punctuator" -> List(
+        "Punctuator" -> Set(
             i("{"), i("}"), i("("), i(")"), i("["), i("]"),
             i("."), i(";"), i(","), i("<"), i(">"), i("<="),
             i(">="), i("=="), i("!="), i("==="), i("!=="),
@@ -132,222 +132,222 @@ object JavaScriptGrammar extends Grammar {
             i("!"), i("~"), i("&&"), i("||"), i("?"), i(":"),
             i("="), i("+="), i("-="), i("*="), i("%="), i("<<="),
             i(">>="), i(">>>="), i("&="), i("|="), i("^=")),
-        "DivPunctuator" -> List(
+        "DivPunctuator" -> Set(
             i("/"), i("/=")),
-        "Literal" -> List(
+        "Literal" -> Set(
             n("NullLiteral"),
             n("BooleanLiteral"),
             n("NumericLiteral"),
             n("StringLiteral"),
             n("RegularExpressionLiteral")),
-        "NullLiteral" -> List(
+        "NullLiteral" -> Set(
             i("null")),
-        "BooleanLiteral" -> List(
+        "BooleanLiteral" -> Set(
             i("true"),
             i("false")),
-        "NumericLiteral" -> List(
+        "NumericLiteral" -> Set(
             n("DecimalLiteral"),
             n("HexIntegerLiteral")),
-        "DecimalLiteral" -> List(
+        "DecimalLiteral" -> Set(
             lex(n("DecimalIntegerLiteral"), i("."), n("DecimalDigits").opt, n("ExponentPart").opt),
             lex(i("."), n("DecimalDigits"), n("ExponentPart").opt),
             lex(n("DecimalIntegerLiteral"), n("ExponentPart").opt)),
-        "DecimalIntegerLiteral" -> List(
+        "DecimalIntegerLiteral" -> Set(
             i("0"),
             lex(n("NonZeroDigit"), n("DecimalDigits").opt)),
-        "DecimalDigits" -> List(
+        "DecimalDigits" -> Set(
             n("DecimalDigit"),
             lex(n("DecimalDigits"), n("DecimalDigit"))),
-        "DecimalDigit" -> List(
+        "DecimalDigit" -> Set(
             c("0123456789")),
-        "NonZeroDigit" -> List(
+        "NonZeroDigit" -> Set(
             c("123456789")),
-        "ExponentPart" -> List(
+        "ExponentPart" -> Set(
             lex(n("ExponentIndicator"), n("SignedInteger"))),
-        "ExponentIndicator" -> List(
+        "ExponentIndicator" -> Set(
             c("eE")),
-        "SignedInteger" -> List(
+        "SignedInteger" -> Set(
             n("DecimalDigits"),
             lex(i("+"), n("DecimalDigits")),
             lex(i("-"), n("DecimalDigits"))),
-        "HexIntegerLiteral" -> List(
+        "HexIntegerLiteral" -> Set(
             lex(i("0x"), n("HexDigit")),
             lex(i("0X"), n("HexDigit")),
             lex(n("HexIntegerLiteral"), n("HexDigit"))),
-        "HexDigit" -> List(
+        "HexDigit" -> Set(
             c("0123456789abcdefABCDEF")),
-        "StringLiteral" -> List(
+        "StringLiteral" -> Set(
             lex(i("\""), n("DoubleStringCharacters").opt, i("\"")),
             lex(i("'"), n("SingleStringCharacters").opt, i("'"))),
-        "DoubleStringCharacters" -> List(
+        "DoubleStringCharacters" -> Set(
             lex(n("DoubleStringCharacter"), n("DoubleStringCharacters").opt)),
-        "SingleStringCharacters" -> List(
+        "SingleStringCharacters" -> Set(
             lex(n("SingleStringCharacter"), n("SingleStringCharacters").opt)),
-        "DoubleStringCharacter" -> List(
+        "DoubleStringCharacter" -> Set(
             n("SourceCharacter").butnot(c("\"\\"), n("LineTerminator")),
             lex(i("\\"), n("EscapeSequence")),
             n("LineContinuation")),
-        "SingleStringCharacter" -> List(
+        "SingleStringCharacter" -> Set(
             n("SourceCharacter").butnot(c("'\\"), n("LineTerminator")),
             lex(i("\\"), n("EscapeSequence")),
             n("LineContinuation")),
-        "LineContinuation" -> List(
+        "LineContinuation" -> Set(
             lex(i("\\"), n("LineTerminatorSequence"))),
-        "EscapeSequence" -> List(
+        "EscapeSequence" -> Set(
             n("CharacterEscapeSequence"),
             lex(i("0"), lookahead_except(n("DecimalDigit"))),
             n("HexEscapeSequence"),
             n("UnicodeEscapeSequence")),
-        "CharacterEscapeSequence" -> List(
+        "CharacterEscapeSequence" -> Set(
             n("SingleEscapeCharacter"),
             n("NonEscapeCharacter")),
-        "SingleEscapeCharacter" -> List(
+        "SingleEscapeCharacter" -> Set(
             c("'\"\\bfnrtv")),
-        "NonEscapeCharacter" -> List(
+        "NonEscapeCharacter" -> Set(
             n("SourceCharacter").butnot(n("EscapeCharacter"), n("LineTerminator"))),
-        "EscapeCharacter" -> List(
+        "EscapeCharacter" -> Set(
             n("SingleEscapeCharacter"),
             n("DecimalDigit"),
             c("xu")),
-        "HexEscapeSequence" -> List(
+        "HexEscapeSequence" -> Set(
             lex(i("x"), n("HexDigit"), n("HexDigit"))),
-        "UnicodeEscapeSequence" -> List(
+        "UnicodeEscapeSequence" -> Set(
             lex(i("u"), n("HexDigit"), n("HexDigit"), n("HexDigit"), n("HexDigit"))),
-        "RegularExpressionLiteral" -> List(
+        "RegularExpressionLiteral" -> Set(
             lex(i("/"), n("RegularExpressionBody"), i("/"), n("RegularExpressionFlags"))),
-        "RegularExpressionBody" -> List(
+        "RegularExpressionBody" -> Set(
             lex(n("RegularExpressionFirstChar"), n("RegularExpressionChars"))),
-        "RegularExpressionChars" -> List(
+        "RegularExpressionChars" -> Set(
             lex(),
             lex(n("RegularExpressionChars"), n("RegularExpressionChar"))),
-        "RegularExpressionFirstChar" -> List(
+        "RegularExpressionFirstChar" -> Set(
             n("RegularExpressionNonTerminator").butnot(c("*\\/[")),
             n("RegularExpressionBackslashSequence"),
             n("RegularExpressionClass")),
-        "RegularExpressionChar" -> List(
+        "RegularExpressionChar" -> Set(
             n("RegularExpressionNonTerminator").butnot(c("\\/[")),
             n("RegularExpressionBackslashSequence"),
             n("RegularExpressionClass")),
-        "RegularExpressionBackslashSequence" -> List(
+        "RegularExpressionBackslashSequence" -> Set(
             lex(i("\\"), n("RegularExpressionNonTerminator"))),
-        "RegularExpressionNonTerminator" -> List(
+        "RegularExpressionNonTerminator" -> Set(
             n("SourceCharacter").butnot(n("LineTerminator"))),
-        "RegularExpressionClass" -> List(
+        "RegularExpressionClass" -> Set(
             lex(i("["), n("RegularExpressionClassChars"), i("]"))),
-        "RegularExpressionClassChars" -> List(
+        "RegularExpressionClassChars" -> Set(
             lex(),
             lex(n("RegularExpressionClassChars"), n("RegularExpressionClassChar"))),
-        "RegularExpressionClassChar" -> List(
+        "RegularExpressionClassChar" -> Set(
             n("RegularExpressionNonTerminator").butnot(c("]\\")),
             n("RegularExpressionBackslashSequence")),
-        "RegularExpressionFlags" -> List(
+        "RegularExpressionFlags" -> Set(
             lex(),
             lex(n("RegularExpressionFlags"), n("IdentifierPart"))),
 
         // A.2 Number Conversions
-        "StringNumericLiteral" -> List(
+        "StringNumericLiteral" -> Set(
             n("StrWhiteSpace").opt,
             lex(n("StrWhiteSpace").opt, n("StrNumericLiteral"), n("StrWhiteSpace").opt)),
-        "StrWhiteSpace" -> List(
+        "StrWhiteSpace" -> Set(
             lex(n("StrWhiteSpaceChar"), n("StrWhiteSpace").opt)),
-        "StrWhiteSpaceChar" -> List(
+        "StrWhiteSpaceChar" -> Set(
             n("WhiteSpace"),
             n("LineTerminator")),
-        "StrNumericLiteral" -> List(
+        "StrNumericLiteral" -> Set(
             n("StrDecimalLiteral"),
             n("HexIntegerLiteral")),
-        "StrDecimalLiteral" -> List(
+        "StrDecimalLiteral" -> Set(
             n("StrUnsignedDecimalLiteral"),
             lex(i("+"), n("StrUnsignedDecimalLiteral")),
             lex(i("-"), n("StrUnsignedDecimalLiteral"))),
-        "StrUnsignedDecimalLiteral" -> List(
+        "StrUnsignedDecimalLiteral" -> Set(
             i("Infinity"),
             lex(n("DecimalDigits"), i("."), n("DecimalDigits").opt, n("ExponentPart").opt),
             lex(i("."), n("DecimalDigits"), n("ExponentPart").opt),
             lex(n("DecimalDigits"), n("ExponentPart").opt)),
-        "DecimalDigits" -> List(
+        "DecimalDigits" -> Set(
             n("DecimalDigit"),
             lex(n("DecimalDigits"), n("DecimalDigit"))),
-        "DecimalDigit" -> List(
+        "DecimalDigit" -> Set(
             c("0123456789")),
-        "ExponentPart" -> List(
+        "ExponentPart" -> Set(
             lex(n("ExponentIndicator"), n("SignedInteger"))),
-        "ExponentIndicator" -> List(
+        "ExponentIndicator" -> Set(
             c("eE")),
-        "SignedInteger" -> List(
+        "SignedInteger" -> Set(
             n("DecimalDigits"),
             lex(i("+"), n("DecimalDigits")),
             lex(i("-"), n("DecimalDigits"))),
-        "HexIntegerLiteral" -> List(
+        "HexIntegerLiteral" -> Set(
             lex(i("0x"), n("HexDigit")),
             lex(i("0X"), n("HexDigit")),
             lex(n("HexIntegerLiteral"), n("HexDigit"))),
-        "HexDigit" -> List(
+        "HexDigit" -> Set(
             c("0123456789abcdefABCDEF")),
 
         // A.3 Expressions
-        "PrimaryExpression" -> List(
+        "PrimaryExpression" -> Set(
             i("this"),
             n("Identifier"),
             n("Literal"),
             n("ArrayLiteral"),
             n("ObjectLiteral"),
             expr(i("("), n("Expression"), i(")"))),
-        "ArrayLiteral" -> List(
+        "ArrayLiteral" -> Set(
             expr(i("["), n("Elision").opt, i("]")),
             expr(i("["), n("ElementList"), i("]")),
             expr(i("["), n("ElementList"), i(","), n("Elision").opt, i("]"))),
-        "ElementList" -> List(
+        "ElementList" -> Set(
             expr(n("Elision").opt, n("AssignmentExpression")),
             expr(n("ElementList"), i(","), n("Elision").opt, n("AssignmentExpression"))),
-        "Elision" -> List(
+        "Elision" -> Set(
             i(","),
             expr(n("Elision"), i(","))),
-        "ObjectLiteral" -> List(
+        "ObjectLiteral" -> Set(
             expr(i("{"), i("}")),
             expr(i("{"), n("PropertyNameAndValueList"), i("}")),
             expr(i("{"), n("PropertyNameAndValueList"), i(","), i("}"))),
-        "PropertyNameAndValueList" -> List(
+        "PropertyNameAndValueList" -> Set(
             n("PropertyAssignment"),
             expr(n("PropertyNameAndValueList"), i(","), n("PropertyAssignment"))),
-        "PropertyAssignment" -> List(
+        "PropertyAssignment" -> Set(
             expr(n("PropertyName"), i(":"), n("AssignmentExpression")),
             expr(i("get"), n("PropertyName"), i("("), i(")"), i("{"), n("FunctionBody"), i("}")),
             expr(i("set"), n("PropertyName"), i("("), n("PropertySetParameterList"), i(")"), i("{"), n("FunctionBody"), i("}"))),
-        "PropertyName" -> List(
+        "PropertyName" -> Set(
             n("IdentifierName"),
             n("StringLiteral"),
             n("NumericLiteral")),
-        "PropertySetParameterList" -> List(
+        "PropertySetParameterList" -> Set(
             n("Identifier")),
-        "MemberExpression" -> List(
+        "MemberExpression" -> Set(
             n("PrimaryExpression"),
             n("FunctionExpression"),
             expr(n("MemberExpression"), i("["), n("Expression"), i("]")),
             expr(n("MemberExpression"), i("."), n("IdentifierName")),
             expr(i("new"), n("MemberExpression"), n("Arguments"))),
-        "NewExpression" -> List(
+        "NewExpression" -> Set(
             n("MemberExpression"),
             expr(i("new"), n("NewExpression"))),
-        "CallExpression" -> List(
+        "CallExpression" -> Set(
             expr(n("MemberExpression"), n("Arguments")),
             expr(n("CallExpression"), n("Arguments")),
             expr(n("CallExpression"), i("["), n("Expression"), i("]")),
             expr(n("CallExpression"), i("."), n("IdentifierName"))),
-        "Arguments" -> List(
+        "Arguments" -> Set(
             expr(i("("), i(")")),
             expr(i("("), n("ArgumentList"), i(")"))),
-        "ArgumentList" -> List(
+        "ArgumentList" -> Set(
             n("AssignmentExpression"),
             expr(n("ArgumentList"), i(","), n("AssignmentExpression"))),
-        "LeftHandSideExpression" -> List(
+        "LeftHandSideExpression" -> Set(
             n("NewExpression"),
             n("CallExpression")),
-        "PostfixExpression" -> List(
+        "PostfixExpression" -> Set(
             n("LeftHandSideExpression"),
             line(n("LeftHandSideExpression"), i("++")),
             line(n("LeftHandSideExpression"), i("--"))),
-        "UnaryExpression" -> List(
+        "UnaryExpression" -> Set(
             n("PostfixExpression"),
             expr(i("delete"), n("UnaryExpression")),
             expr(i("void"), n("UnaryExpression")),
@@ -358,101 +358,101 @@ object JavaScriptGrammar extends Grammar {
             expr(i("-"), n("UnaryExpression")),
             expr(i("~"), n("UnaryExpression")),
             expr(i("!"), n("UnaryExpression"))),
-        "MultiplicativeExpression" -> List(
+        "MultiplicativeExpression" -> Set(
             n("UnaryExpression"),
             expr(n("MultiplicativeExpression"), i("*"), n("UnaryExpression")),
             expr(n("MultiplicativeExpression"), i("/"), n("UnaryExpression")),
             expr(n("MultiplicativeExpression"), i("%"), n("UnaryExpression"))),
-        "AdditiveExpression" -> List(
+        "AdditiveExpression" -> Set(
             n("MultiplicativeExpression"),
             expr(n("AdditiveExpression"), i("+"), n("MultiplicativeExpression")),
             expr(n("AdditiveExpression"), i("-"), n("MultiplicativeExpression"))),
-        "ShiftExpression" -> List(
+        "ShiftExpression" -> Set(
             n("AdditiveExpression"),
             expr(n("ShiftExpression"), i("<<"), n("AdditiveExpression")),
             expr(n("ShiftExpression"), i(">>"), n("AdditiveExpression")),
             expr(n("ShiftExpression"), i(">>>"), n("AdditiveExpression"))),
-        "RelationalExpression" -> List(
+        "RelationalExpression" -> Set(
             n("ShiftExpression"),
             expr(n("RelationalExpression"), i("<"), n("ShiftExpression")),
             expr(n("RelationalExpression"), i(">"), n("ShiftExpression")),
             expr(n("RelationalExpression"), i("<="), n("ShiftExpression")),
             expr(n("RelationalExpression"), i(">="), n("ShiftExpression")),
             expr(n("RelationalExpression"), i("instanceof"), n("ShiftExpression"))),
-        "RelationalExpressionNoIn" -> List(
+        "RelationalExpressionNoIn" -> Set(
             n("ShiftExpression"),
             expr(n("RelationalExpressionNoIn"), i("<"), n("ShiftExpression")),
             expr(n("RelationalExpressionNoIn"), i(">"), n("ShiftExpression")),
             expr(n("RelationalExpressionNoIn"), i("<="), n("ShiftExpression")),
             expr(n("RelationalExpressionNoIn"), i(">="), n("ShiftExpression")),
             expr(n("RelationalExpressionNoIn"), i("instanceof"), n("ShiftExpression"))),
-        "EqualityExpression" -> List(
+        "EqualityExpression" -> Set(
             n("RelationalExpression"),
             expr(n("EqualityExpression"), i("=="), n("RelationalExpression")),
             expr(n("EqualityExpression"), i("!=="), n("RelationalExpression")),
             expr(n("EqualityExpression"), i("==="), n("RelationalExpression")),
             expr(n("EqualityExpression"), i("!=="), n("RelationalExpression"))),
-        "EqualityExpressionNoIn" -> List(
+        "EqualityExpressionNoIn" -> Set(
             n("RelationalExpressionNoIn"),
             expr(n("EqualityExpressionNoIn"), i("=="), n("RelationalExpressionNoIn")),
             expr(n("EqualityExpressionNoIn"), i("!=="), n("RelationalExpressionNoIn")),
             expr(n("EqualityExpressionNoIn"), i("==="), n("RelationalExpressionNoIn")),
             expr(n("EqualityExpressionNoIn"), i("!=="), n("RelationalExpressionNoIn"))),
-        "BitwiseANDExpression" -> List(
+        "BitwiseANDExpression" -> Set(
             n("EqualityExpression"),
             expr(n("BitwiseANDExpression"), i("&"), n("EqualityExpression"))),
-        "BitwiseANDExpressionNoIn" -> List(
+        "BitwiseANDExpressionNoIn" -> Set(
             n("EqualityExpressionNoIn"),
             expr(n("BitwiseANDExpressionNoIn"), i("&"), n("EqualityExpressionNoIn"))),
-        "BitwiseXORExpression" -> List(
+        "BitwiseXORExpression" -> Set(
             n("BitwiseANDExpression"),
             expr(n("BitwiseXORExpression"), i("^"), n("BitwiseANDExpression"))),
-        "BitwiseXORExpressionNoIn" -> List(
+        "BitwiseXORExpressionNoIn" -> Set(
             n("BitwiseANDExpressionNoIn"),
             expr(n("BitwiseXORExpressionNoIn"), i("^"), n("BitwiseANDExpressionNoIn"))),
-        "BitwiseORExpression" -> List(
+        "BitwiseORExpression" -> Set(
             n("BitwiseXORExpression"),
             expr(n("BitwiseORExpression"), i("^"), n("BitwiseXORExpression"))),
-        "BitwiseORExpressionNoIn" -> List(
+        "BitwiseORExpressionNoIn" -> Set(
             n("BitwiseXORExpressionNoIn"),
             expr(n("BitwiseORExpressionNoIn"), i("^"), n("BitwiseXORExpressionNoIn"))),
-        "LogicalANDExpression" -> List(
+        "LogicalANDExpression" -> Set(
             n("BitwiseORExpression"),
             expr(n("LogicalANDExpression"), i("&&"), n("BitwiseORExpression"))),
-        "LogicalANDExpressionNoIn" -> List(
+        "LogicalANDExpressionNoIn" -> Set(
             n("BitwiseORExpressionNoIn"),
             expr(n("LogicalANDExpressionNoIn"), i("&&"), n("BitwiseORExpressionNoIn"))),
-        "LogicalORExpression" -> List(
+        "LogicalORExpression" -> Set(
             n("LogicalANDExpression"),
             expr(n("LogicalORExpression"), i("||"), n("LogicalANDExpression"))),
-        "LogicalORExpressionNoIn" -> List(
+        "LogicalORExpressionNoIn" -> Set(
             n("LogicalANDExpressionNoIn"),
             expr(n("LogicalORExpressionNoIn"), i("||"), n("LogicalANDExpressionNoIn"))),
-        "ConditionalExpression" -> List(
+        "ConditionalExpression" -> Set(
             n("LogicalORExpression"),
             expr(n("LogicalORExpression"), i("?"), n("AssignmentExpression"), i(":"), n("AssignmentExpression"))),
-        "ConditionalExpressionNoIn" -> List(
+        "ConditionalExpressionNoIn" -> Set(
             n("LogicalORExpressionNoIn"),
             expr(n("LogicalORExpressionNoIn"), i("?"), n("AssignmentExpressionNoIn"), i(":"), n("AssignmentExpressionNoIn"))),
-        "AssignmentExpression" -> List(
+        "AssignmentExpression" -> Set(
             n("ConditionalExpression"),
             expr(n("LeftHandSideExpression"), i("="), n("AssignmentExpression")),
             expr(n("LeftHandSideExpression"), n("AssignmentOperator"), n("AssignmentExpression"))),
-        "AssignmentExpressionNoIn" -> List(
+        "AssignmentExpressionNoIn" -> Set(
             n("ConditionalExpressionNoIn"),
             expr(n("LeftHandSideExpression"), i("="), n("AssignmentExpressionNoIn")),
             expr(n("LeftHandSideExpression"), n("AssignmentOperator"), n("AssignmentExpressionNoIn"))),
-        "AssignmentOperator" -> List(
+        "AssignmentOperator" -> Set(
             i("*="), i("/="), i("%="), i("+="), i("-="), i("<<="), i(">>="), i(">>>="), i("&="), i("^="), i("|=")),
-        "Expression" -> List(
+        "Expression" -> Set(
             n("AssignmentExpression"),
             expr(n("Expression"), i(","), n("AssignmentExpression"))),
-        "ExpressionNoIn" -> List(
+        "ExpressionNoIn" -> Set(
             n("AssignmentExpressionNoIn"),
             expr(n("ExpressionNoIn"), i(","), n("AssignmentExpressionNoIn"))),
 
         // A.4 Statements
-        "Statement" -> List(
+        "Statement" -> Set(
             n("Block"),
             n("VariableStatement"),
             n("EmptyStatement"),
@@ -468,249 +468,249 @@ object JavaScriptGrammar extends Grammar {
             n("ThrowStatement"),
             n("TryStatement"),
             n("DebuggerStatement")),
-        "Block" -> List(
+        "Block" -> Set(
             expr(i("{"), n("StatementList").opt, i("}"))),
-        "StatementList" -> List(
+        "StatementList" -> Set(
             n("Statement"),
             expr(n("StatementList"), n("Statement"))),
-        "VariableStatement" -> List(
+        "VariableStatement" -> Set(
             expr(i("var"), n("VariableDeclarationList"), i(";"))),
-        "VariableDeclarationList" -> List(
+        "VariableDeclarationList" -> Set(
             n("VariableDeclaration"),
             expr(n("VariableDeclarationList"), i(","), n("VariableDeclaration"))),
-        "VariableDeclarationListNoIn" -> List(
+        "VariableDeclarationListNoIn" -> Set(
             n("VariableDeclarationNoIn"),
             expr(n("VariableDeclarationListNoIn"), i(","), n("VariableDeclarationNoIn"))),
-        "VariableDeclaration" -> List(
+        "VariableDeclaration" -> Set(
             expr(n("Identifier"), n("Initialiser").opt)),
-        "VariableDeclarationNoIn" -> List(
+        "VariableDeclarationNoIn" -> Set(
             expr(n("Identifier"), n("InitialiserNoIn").opt)),
-        "Initialiser" -> List(
+        "Initialiser" -> Set(
             expr(i("="), n("AssignmentExpression"))),
-        "InitialiserNoIn" -> List(
+        "InitialiserNoIn" -> Set(
             expr(i("="), n("AssignmentExpressionNoIn"))),
-        "EmptyStatement" -> List(
+        "EmptyStatement" -> Set(
             i(";")),
-        "ExpressionStatement" -> List(
+        "ExpressionStatement" -> Set(
             expr(lookahead_except(i("{"), seq(i("function"), n("WhiteSpace"))), n("Expression"), i(";"))),
-        "IfStatement" -> List(
+        "IfStatement" -> Set(
             expr(i("if"), i("("), n("Expression"), i(")"), n("Statement"), i("else"), n("Statement")),
             expr(i("if"), i("("), n("Expression"), i(")"), n("Statement"))),
-        "IterationStatement" -> List(
+        "IterationStatement" -> Set(
             expr(i("do"), n("Statement"), i("while"), i("("), n("Expression"), i(")"), i(";")),
             expr(i("while"), i("("), n("Expression"), i(")"), n("Statement")),
             expr(i("for"), i("("), n("ExpressionNoIn").opt, i(";"), n("Expression").opt, i(";"), n("Expression").opt, i(")"), n("Statement")),
             expr(i("for"), i("("), i("var"), n("VariableDeclarationListNoIn"), i(";"), n("Expression").opt, i(";"), n("Expression").opt, i(")"), n("Statement")),
             expr(i("for"), i("("), n("LeftHandSideExpression"), i("in"), n("Expression"), i(")"), n("Statement")),
             expr(i("for"), i("("), i("var"), n("VariableDeclarationNoIn"), i("in"), n("Expression"), i(")"), n("Statement"))),
-        "ContinueStatement" -> List(
+        "ContinueStatement" -> Set(
             expr(i("continue"), i(";")),
             expr(line(i("continue"), n("Identifier")), i(";"))),
-        "BreakStatement" -> List(
+        "BreakStatement" -> Set(
             expr(i("break"), i(";")),
             expr(line(i("break"), n("Identifier")), i(";"))),
-        "ReturnStatement" -> List(
+        "ReturnStatement" -> Set(
             expr(i("return"), i(";")),
             expr(line(i("return"), n("Expression")), i(";"))),
-        "WithStatement" -> List(
+        "WithStatement" -> Set(
             expr(i("with"), i("("), n("Expression"), i(")"), n("Statement"))),
-        "SwitchStatement" -> List(
+        "SwitchStatement" -> Set(
             expr(i("switch"), i("("), n("Expression"), i(")"), n("CaseBlock"))),
-        "CaseBlock" -> List(
+        "CaseBlock" -> Set(
             expr(i("{"), n("CaseClauses").opt, i("}")),
             expr(i("{"), n("CaseClauses").opt, n("DefaultClause"), n("CaseClauses").opt, i("}"))),
-        "CaseClauses" -> List(
+        "CaseClauses" -> Set(
             n("CaseClause"),
             expr(n("CaseClauses"), n("CaseClause"))),
-        "CaseClause" -> List(
+        "CaseClause" -> Set(
             expr(i("case"), n("Expression"), i(":"), n("StatementList").opt)),
-        "DefaultClause" -> List(
+        "DefaultClause" -> Set(
             expr(i("default"), i(":"), n("StatementList").opt)),
-        "LabelledStatement" -> List(
+        "LabelledStatement" -> Set(
             expr(n("Identifier"), i(":"), n("Statement"))),
-        "ThrowStatement" -> List(
+        "ThrowStatement" -> Set(
             expr(line(i("throw"), n("Expression")), i(";"))),
-        "TryStatement" -> List(
+        "TryStatement" -> Set(
             expr(i("try"), n("Block"), n("Catch")),
             expr(i("try"), n("Block"), n("Finally")),
             expr(i("try"), n("Block"), n("Catch"), n("Finally"))),
-        "Catch" -> List(
+        "Catch" -> Set(
             expr(i("catch"), i("("), n("Identifier"), i(")"), n("Block"))),
-        "Finally" -> List(
+        "Finally" -> Set(
             expr(i("finally"), n("Block"))),
-        "DebuggerStatement" -> List(
+        "DebuggerStatement" -> Set(
             expr(i("debugger"), i(";"))),
 
         // A.5 Functions and Programs
-        "FunctionDeclaration" -> List(
+        "FunctionDeclaration" -> Set(
             expr(i("function"), n("Identifier"), i("("), n("FormalParameterList").opt, i(")"), i("{"), n("FunctionBody"), i("}"))),
-        "FunctionExpression" -> List(
+        "FunctionExpression" -> Set(
             expr(i("function"), n("Identifier").opt, i("("), n("FormalParameterList").opt, i(")"), i("{"), n("FunctionBody"), i("}"))),
-        "FormalParameterList" -> List(
+        "FormalParameterList" -> Set(
             n("Identifier"),
             expr(n("FormalParameterList"), i(","), n("Identifier"))),
-        "FunctionBody" -> List(
+        "FunctionBody" -> Set(
             n("SourceElements").opt),
-        "Program" -> List(
+        "Program" -> Set(
             n("SourceElements").opt),
-        "SourceElements" -> List(
+        "SourceElements" -> Set(
             n("SourceElement"),
             expr(n("SourceElements"), n("SourceElement"))),
-        "SourceElement" -> List(
+        "SourceElement" -> Set(
             n("Statement"),
             n("FunctionDeclaration")),
 
         // A.6 Universal Resource Identifier Character Classes
-        "uri" -> List(
+        "uri" -> Set(
             n("uriCharacters").opt),
-        "uriCharacters" -> List(
+        "uriCharacters" -> Set(
             lex(n("uriCharacter"), n("uriCharacters").opt)),
-        "uriCharacter" -> List(
+        "uriCharacter" -> Set(
             n("uriReserved"),
             n("uriUnescaped"),
             n("uriEscaped")),
-        "uriReserved" -> List(
+        "uriReserved" -> Set(
             c(";/?:@&=+$,")),
-        "uriUnescaped" -> List(
+        "uriUnescaped" -> Set(
             n("uriAlpha"),
             n("DecimalDigit"),
             n("uriMark")),
-        "uriEscaped" -> List(
+        "uriEscaped" -> Set(
             lex(i("%"), n("HexDigit"), n("HexDigit"))),
-        "uriAlpha" -> List(
+        "uriAlpha" -> Set(
             c("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")),
-        "uriMark" -> List(
+        "uriMark" -> Set(
             c("-_.!~*'()")),
 
         // A.7 Regular Expressions
-        "Pattern" -> List(
+        "Pattern" -> Set(
             n("Disjunction")),
-        "Disjunction" -> List(
+        "Disjunction" -> Set(
             n("Alternative"),
             lex(n("Alternative"), i("|"), n("Disjunction"))),
-        "Alternative" -> List(
+        "Alternative" -> Set(
             lex(),
             lex(n("Alternative"), n("Term"))),
-        "Term" -> List(
+        "Term" -> Set(
             n("Assertion"),
             n("Atom"),
             lex(n("Atom"), n("Quantifier"))),
-        "Assertion" -> List(
+        "Assertion" -> Set(
             i("^"),
             i("$"),
             lex(i("\\"), i("b")),
             lex(i("\\"), i("B")),
             lex(i("("), i("?"), i("="), n("Disjunction"), i(")")),
             lex(i("("), i("?"), i("!"), n("Disjunction"), i(")"))),
-        "Quantifier" -> List(
+        "Quantifier" -> Set(
             n("QuantifierPrefix"),
             lex(n("QuantifierPrefix"), i("?"))),
-        "QuantifierPrefix" -> List(
+        "QuantifierPrefix" -> Set(
             i("*"),
             i("+"),
             i("?"),
             lex(i("{"), n("DecimalDigits"), i("}")),
             lex(i("{"), n("DecimalDigits"), i(","), i("}")),
             lex(i("{"), n("DecimalDigits"), i("}"))),
-        "Atom" -> List(
+        "Atom" -> Set(
             n("PatternCharacter"),
             i("."),
             lex(i("\\"), n("AtomEscape")),
             n("CharacterClass"),
             lex(i("("), n("Disjunction"), i(")")),
             lex(i("("), i("?"), i(":"), n("Disjunction"), i(")"))),
-        "PatternCharacter" -> List(
+        "PatternCharacter" -> Set(
             n("SourceCharacter").butnot(c("^$\\.*+?()[]{}|"))),
-        "AtomEscape" -> List(
+        "AtomEscape" -> Set(
             n("DecimalEscape"),
             n("CharacterEscape"),
             n("CharacterClassEscape")),
-        "CharacterEscape" -> List(
+        "CharacterEscape" -> Set(
             n("ControlEscape"),
             lex(i("c"), n("ControlLetter")),
             n("HexEscapeSequence"),
             n("UnicodeEscapeSequence"),
             n("IdentityEscape")),
-        "ControlEscape" -> List(
+        "ControlEscape" -> Set(
             c("fnrtv")),
-        "ControlLetter" -> List(
+        "ControlLetter" -> Set(
             c("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")),
-        "IdentityEscape" -> List(
+        "IdentityEscape" -> Set(
             n("SourceCharacter").butnot(n("IdentifierPart"), c("\u200C\u200D"))),
-        "DecimalEscape" -> List(
+        "DecimalEscape" -> Set(
             lex(n("DecimalIntegerLiteral"), lookahead_except(n("DecimalDigit")))),
-        "CharacterClassEscape" -> List(
+        "CharacterClassEscape" -> Set(
             c("dDsSwW")),
-        "CharacterClass" -> List(
+        "CharacterClass" -> Set(
             lex(i("["), lookahead_except(i("^")), n("ClassRanges"), i("]")),
             lex(i("["), i("^"), n("ClassRanges"), i("]"))),
-        "ClassRanges" -> List(
+        "ClassRanges" -> Set(
             lex(),
             n("NonemptyClassRanges")),
-        "NonemptyClassRanges" -> List(
+        "NonemptyClassRanges" -> Set(
             n("ClassAtom"),
             lex(n("ClassAtom"), n("NonemptyClassRangesNoDash")),
             lex(n("ClassAtom"), i("-"), n("ClassAtom"), n("ClassRanges"))),
-        "NonemptyClassRangesNoDash" -> List(
+        "NonemptyClassRangesNoDash" -> Set(
             n("ClassAtom"),
             lex(n("ClassAtomNoDash"), n("NonemptyClassRangesNoDash")),
             lex(n("ClassAtomNoDash"), i("-"), n("ClassAtom"), n("ClassRanges"))),
-        "ClassAtom" -> List(
+        "ClassAtom" -> Set(
             i("-"),
             n("ClassAtomNoDash")),
-        "ClassAtomNoDash" -> List(
+        "ClassAtomNoDash" -> Set(
             n("SourceCharacter").butnot(c("\\]-")),
             lex(i("\\"), n("ClassEscape"))),
-        "ClassEscape" -> List(
+        "ClassEscape" -> Set(
             n("DecimalEscape"),
             i("b"),
             n("CharacterEscape"),
             n("CharacterClassEscape")),
 
         // A.8 JSON
-        "JSONWhiteSpace" -> List(
+        "JSONWhiteSpace" -> Set(
             c("\t\n\r ")),
-        "JSONString" -> List(
+        "JSONString" -> Set(
             lex(i("\""), n("JSONStringCharacters").opt, i("\""))),
-        "JSONStringCharacters" -> List(
+        "JSONStringCharacters" -> Set(
             lex(n("JSONStringCharacter"), n("JSONStringCharacters").opt)),
-        "JSONStringCharacter" -> List(
+        "JSONStringCharacter" -> Set(
             n("SourceCharacter").butnot(c("\"\\\u0000\u001F")),
             lex(i("\\"), n("JSONEscapeSequence"))),
-        "JSONEscapeSequence" -> List(
+        "JSONEscapeSequence" -> Set(
             n("JSONEscapeCharacter"),
             n("UnicodeEscapeSequence")),
-        "JSONEscapeCharacter" -> List(
+        "JSONEscapeCharacter" -> Set(
             c("\"/\\bfnrt")),
-        "JSONNumber" -> List(
+        "JSONNumber" -> Set(
             lex(i("-").opt, n("DecimalIntegerLiteral"), n("JSONFraction").opt, n("ExponentPart").opt)),
-        "JSONFraction" -> List(
+        "JSONFraction" -> Set(
             lex(i("."), n("DecimalDigits"))),
-        "JSONNullLiteral" -> List(
+        "JSONNullLiteral" -> Set(
             n("NullLiteral")),
-        "JSONBooleanLiteral" -> List(
+        "JSONBooleanLiteral" -> Set(
             n("BooleanLiteral")),
-        "JSONText" -> List(
+        "JSONText" -> Set(
             n("JSONValue")),
-        "JSONValue" -> List(
+        "JSONValue" -> Set(
             n("JSONNullLiteral"),
             n("JSONBooleanLiteral"),
             n("JSONObject"),
             n("JSONArray"),
             n("JSONString"),
             n("JSONNumber")),
-        "JSONObject" -> List(
+        "JSONObject" -> Set(
             expr(i("{"), i("}")),
             expr(i("{"), n("JSONMemberList"), i("}"))),
-        "JSONMember" -> List(
+        "JSONMember" -> Set(
             expr(n("JSONString"), i(":"), n("JSONValue"))),
-        "JSONMemberList" -> List(
+        "JSONMemberList" -> Set(
             n("JSONMember"),
             expr(n("JSONMemberList"), i(","), n("JSONMember"))),
-        "JSONArray" -> List(
+        "JSONArray" -> Set(
             expr(i("["), i("]")),
             expr(i("["), n("JSONElementList"), i("]"))),
-        "JSONElementList" -> List(
+        "JSONElementList" -> Set(
             n("JSONValue"),
             expr(n("JSONElementList"), i(","), n("JSONValue"))))
     override val startSymbol: String = "Start"

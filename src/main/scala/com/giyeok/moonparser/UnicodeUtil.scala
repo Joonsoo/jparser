@@ -11,7 +11,7 @@ object UnicodeUtil {
         println(outer.intra.q)
     }
 
-    def translateCategoryNamesToByte(categories: Array[String]) = categories map (_ match {
+    def translateCategoryNamesToByte(categories: Set[String]) = categories map (_ match {
         case "Mc" => Character.COMBINING_SPACING_MARK
         case "Pc" => Character.CONNECTOR_PUNCTUATION
         case "Cc" => Character.CONTROL
@@ -46,7 +46,7 @@ object UnicodeUtil {
         case "Lu" => Character.UPPERCASE_LETTER
     })
 
-    def translateToString(categories: Array[Byte]) = categories map (_ match {
+    def translateToString(categories: Set[Byte]) = categories map (_ match {
         case Character.COMBINING_SPACING_MARK => "Mc"
         case Character.CONNECTOR_PUNCTUATION => "Pc"
         case Character.CONTROL => "Cc"
