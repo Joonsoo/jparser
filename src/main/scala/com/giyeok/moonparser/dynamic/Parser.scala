@@ -106,11 +106,9 @@ class Parser(val grammar: Grammar, val input: ParserInput) extends ParsingItems 
     case class Entry(item: ParsingItem, genpoint: EntryGroup)
     abstract class ParsingItem {
         val elem: GrElem
-        
+
         val finish: Option[ParsedSymbol]
         val subs: Set[ParsingItem]
-        // method `proceed` will never be called if finish is defined(not None) and
-        // field `subs` will not be used if finish is defined(not None)
         def proceed(sym: ParsedSymbol): Option[ParsingItem]
     }
 }

@@ -28,10 +28,17 @@ object ParsedSymbols {
         lazy val source = Seq(input)
     }
     case class NontermSymbol(elem: GrElem, children: Seq[ConcreteSymbol])
-        extends ParsedSymbol with NamedSymbol with ConcreteSymbol {
+            extends ParsedSymbol with NamedSymbol with ConcreteSymbol {
         lazy val text = children map { _ text } mkString
         lazy val source = children flatMap { _ source }
     }
+    class NontermSymbolWS(elem: GrElem, children: Seq[ConcreteSymbol], val childrenWS: Seq[ConcreteSymbol])
+            extends NontermSymbol(elem, children) {
+        override lazy val text = childrenWS map { _ text } mkString
+        override lazy val source = childrenWS flatMap { _ source }
+    }
+
+    // TODO implement virtual symbols for static analysis of the grammar
     case class VirtSymbol(elem: GrElem) extends ParsedSymbol with NamedSymbol
 
     case class Token(source: Seq[Input], compats: Set[GrElem]) extends ParsedSymbol with ConcreteSymbol {
