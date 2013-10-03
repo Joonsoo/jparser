@@ -2,16 +2,16 @@ package com.giyeok.moonparser.grammars
 
 import scala.collection.immutable.ListMap
 
-import com.giyeok.moonparser.DefItem
+import com.giyeok.moonparser.GrElem
 import com.giyeok.moonparser.Grammar
 
 object ScalaGrammar extends Grammar {
-    private val delimiter = List[DefItem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
-    private val oneline = List[DefItem](n("WhiteSpace"), n("Comment"))
+    private val delimiter = List[GrElem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
+    private val oneline = List[GrElem](n("WhiteSpace"), n("Comment"))
 
-    def expr(seq: DefItem*) = sequence(delimiter, seq: _*)
-    def lex(seq: DefItem*) = sequence(seq: _*)
-    def line(seq: DefItem*) = sequence(oneline, seq: _*)
+    def expr(seq: GrElem*) = sequence(delimiter, seq: _*)
+    def lex(seq: GrElem*) = sequence(seq: _*)
+    def line(seq: GrElem*) = sequence(oneline, seq: _*)
 
     override val name = "Scala"
     // http://www.scala-lang.org/docu/files/ScalaReference.pdf

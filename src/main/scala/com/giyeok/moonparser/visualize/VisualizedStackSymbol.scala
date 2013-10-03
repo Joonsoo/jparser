@@ -13,18 +13,18 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 
-import com.giyeok.moonparser.CharInputSymbol
-import com.giyeok.moonparser.EOFSymbol
+import com.giyeok.moonparser.CharInput
+import com.giyeok.moonparser.EOF
 import com.giyeok.moonparser.EmptySymbol
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.NontermSymbol
 import com.giyeok.moonparser.Nonterminal
 import com.giyeok.moonparser.ParserInput
-import com.giyeok.moonparser.StackSymbol
+import com.giyeok.moonparser.ParsedSymbol
 import com.giyeok.moonparser.StartSymbol
 import com.giyeok.moonparser.TermSymbol
-import com.giyeok.moonparser.TokenInputSymbol
-import com.giyeok.moonparser.VirtInputSymbol
+import com.giyeok.moonparser.TokenInput
+import com.giyeok.moonparser.VirtInput
 import com.giyeok.moonparser.dynamic.ParseResult
 import com.giyeok.moonparser.dynamic.ParseSuccess
 import com.giyeok.moonparser.dynamic.Parser
@@ -72,7 +72,7 @@ object VisualizedStackSymbol {
 }
 
 // Show tree structure of given StackSymbol visually
-class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolean = true, val grammar: Grammar = null, borderColor: Color = ColorConstants.darkGray) extends Figure {
+class VisualizedStackSymbol(val stackSymbol: ParsedSymbol, val whitespace: Boolean = true, val grammar: Grammar = null, borderColor: Color = ColorConstants.darkGray) extends Figure {
     {
         val _layout = new ToolbarLayout(false)
 
@@ -102,7 +102,7 @@ class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolea
 
                 if (whitespace && (item.isInstanceOf[Parser#StackEntry#ParsingSequence])) {
                     val s = item.asInstanceOf[Parser#StackEntry#ParsingSequence]
-                    def x(children: List[StackSymbol], indices: List[Int], pointer: Int): Unit =
+                    def x(children: List[ParsedSymbol], indices: List[Int], pointer: Int): Unit =
                         indices match {
                             case i :: is =>
                                 if (pointer == i) {
@@ -127,10 +127,10 @@ class VisualizedStackSymbol(val stackSymbol: StackSymbol, val whitespace: Boolea
                 add(fig)
             case TermSymbol(input, pointer) =>
                 input match {
-                    case CharInputSymbol(char) => add(new Label(s"'$char'"))
-                    case VirtInputSymbol(name) => add(new Label(name))
-                    case TokenInputSymbol(token) => add(new Label("\"" + token.text + "\""))
-                    case EOFSymbol => add(new Label("$"))
+                    case CharInput(char) => add(new Label(s"'$char'"))
+                    case VirtInput(name) => add(new Label(name))
+                    case TokenInput(token) => add(new Label("\"" + token.text + "\""))
+                    case EOF => add(new Label("$"))
                 }
             case EmptySymbol(_) => add(new Label("()"))
         }

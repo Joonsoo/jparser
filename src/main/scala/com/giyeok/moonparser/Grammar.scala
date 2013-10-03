@@ -1,7 +1,7 @@
 package com.giyeok.moonparser
 
 abstract class Grammar {
-    type RuleMap = Map[String, List[DefItem]]
+    type RuleMap = Map[String, List[GrElem]]
 
     val name: String
     val rules: RuleMap
@@ -22,26 +22,26 @@ abstract class Grammar {
     def unicode_categories(categories: Array[Byte]) = UnicodeCategoryCharacterInput(categories)
     def unicode_categories(categories: Array[String]) = UnicodeCategoryCharacterInput(UnicodeUtil.translateCategoryNamesToByte(categories))
     def virtual(name: String) = VirtualInput(name)
-    def seq(seq: DefItem*) = sequence(seq: _*)
-    def sequence(seq: DefItem*) = Sequence(seq toList, List())
-    def sequence(whitespace: List[DefItem], seq: DefItem*) = Sequence(seq toList, whitespace)
-    def oneof(items: DefItem*) = OneOf(items toList)
-    def oneof(items: List[DefItem]) = OneOf(items toList)
-    def lookahead_except(except: DefItem*) = LookaheadExcept(except toList)
+    def seq(seq: GrElem*) = sequence(seq: _*)
+    def sequence(seq: GrElem*) = Sequence(seq toList, List())
+    def sequence(whitespace: List[GrElem], seq: GrElem*) = Sequence(seq toList, whitespace)
+    def oneof(items: GrElem*) = OneOf(items toList)
+    def oneof(items: List[GrElem]) = OneOf(items toList)
+    def lookahead_except(except: GrElem*) = LookaheadExcept(except toList)
 
-    implicit def defItemRepeatable(item: DefItem): Repeatable =
+    implicit def defItemRepeatable(item: GrElem): Repeatable =
         item match {
             case n: Nonterminal => new Repeatable { val self = n }
-            case i: Input => new Repeatable { val self = i }
+            case i: InputElem => new Repeatable { val self = i }
             case o: OneOf => new Repeatable { val self = o }
             case r: Repeat => new Repeatable { val self = r }
             case _ => throw new Exception("Applied repeat to the items that cannot be")
         }
 
-    implicit def defItemExcludable(item: DefItem): Excludable =
+    implicit def defItemExcludable(item: GrElem): Excludable =
         item match {
             case n: Nonterminal => new Excludable { val self = n }
-            case i: Input => new Excludable { val self = i }
+            case i: InputElem => new Excludable { val self = i }
             case o: OneOf => new Excludable { val self = o }
             case e: Except => new Excludable { val self = e }
             case r: Repeat => new Excludable { val self = r }
@@ -50,14 +50,14 @@ abstract class Grammar {
 }
 
 trait Excludable {
-    val self: DefItem
+    val self: GrElem
 
-    def except(except: DefItem*) = Except(self, except toList)
-    def butnot(except: DefItem*) = Except(self, except toList)
+    def except(except: GrElem*) = Except(self, except toList)
+    def butnot(except: GrElem*) = Except(self, except toList)
 }
 
 trait Repeatable {
-    val self: DefItem
+    val self: GrElem
 
     def repeat(from: Int, to: Int) = Repeat(self, RepeatRangeTo(from, to))
     def repeat(from: Int) = Repeat(self, RepeatRangeFrom(from))
@@ -74,21 +74,21 @@ trait Repeatable {
     def plus = repeat(1)
 }
 
-sealed abstract class DefItem {
-    val id = DefItem.nextId
+sealed abstract class GrElem {
+    val id = GrElem.nextId
 
     override def equals(other: Any) = other match {
-        case that: DefItem => (that canEqual this) && (that.id == id)
+        case that: GrElem => (that canEqual GrElem.this) && (that.id == id)
         case _ => false
     }
-    def canEqual(other: Any) = other.isInstanceOf[DefItem]
+    def canEqual(other: Any) = other.isInstanceOf[GrElem]
 }
-object DefItem {
+object GrElem {
     private var unique: Int = 0
     private def nextId = { unique += 1; unique }
 }
 
-case class Nonterminal(name: String) extends DefItem {
+case class Nonterminal(name: String) extends GrElem {
     override def equals(other: Any) = other match {
         case that: Nonterminal => (that canEqual this) && (that.name == name)
         case _ => false
@@ -96,15 +96,15 @@ case class Nonterminal(name: String) extends DefItem {
     override def canEqual(other: Any) = other.isInstanceOf[Nonterminal]
 }
 
-sealed abstract class Input extends DefItem
-case class StringInput(string: String) extends Input {
+sealed abstract class InputElem extends GrElem
+case class StringInput(string: String) extends InputElem {
     override def equals(other: Any) = other match {
         case that: StringInput => (that canEqual this) && (that.string == string)
         case _ => false
     }
     override def canEqual(other: Any) = other.isInstanceOf[StringInput]
 }
-sealed abstract class CharacterInput extends Input {
+sealed abstract class CharacterInput extends InputElem {
     def acceptable(char: Char): Boolean
 }
 case class AnyCharacterInput extends CharacterInput {
@@ -140,7 +140,7 @@ case class CharacterRangeInput(from: Char, to: Char) extends CharacterInput {
     override def canEqual(other: Any) = other.isInstanceOf[CharacterRangeInput]
     def acceptable(char: Char) = (from <= char && char <= to)
 }
-case class VirtualInput(name: String) extends Input {
+case class VirtualInput(name: String) extends InputElem {
     override def equals(other: Any) = other match {
         case that: VirtualInput => (that canEqual this) && (that.name == name)
         case _ => false
@@ -148,35 +148,35 @@ case class VirtualInput(name: String) extends Input {
     override def canEqual(other: Any) = other.isInstanceOf[VirtualInput]
 }
 
-case class Sequence(seq: List[DefItem], whitespace: List[DefItem]) extends DefItem {
+case class Sequence(seq: List[GrElem], whitespace: List[GrElem]) extends GrElem {
     override def equals(other: Any) = other match {
         case that: Sequence => (that canEqual this) && (that.seq == seq) && (that.whitespace == whitespace)
         case _ => false
     }
     override def canEqual(other: Any) = other.isInstanceOf[Sequence]
 }
-case class OneOf(items: List[DefItem]) extends DefItem {
+case class OneOf(items: List[GrElem]) extends GrElem {
     override def equals(other: Any) = other match {
         case that: OneOf => (that canEqual this) && (that.items == items)
         case _ => false
     }
     override def canEqual(other: Any) = other.isInstanceOf[OneOf]
 }
-case class Except(item: DefItem, except: List[DefItem]) extends DefItem {
+case class Except(item: GrElem, except: List[GrElem]) extends GrElem {
     override def equals(other: Any) = other match {
         case that: Except => (that canEqual this) && (that.item == item) && (that.except == except)
         case _ => false
     }
     override def canEqual(other: Any) = other.isInstanceOf[Except]
 }
-case class LookaheadExcept(except: List[DefItem]) extends DefItem {
+case class LookaheadExcept(except: List[GrElem]) extends GrElem {
     override def equals(other: Any) = other match {
         case that: LookaheadExcept => (that canEqual this) && (that.except == except)
         case _ => false
     }
     override def canEqual(other: Any) = other.isInstanceOf[LookaheadExcept]
 }
-case class Repeat(item: DefItem, range: RepeatRange) extends DefItem {
+case class Repeat(item: GrElem, range: RepeatRange) extends GrElem {
     override def equals(other: Any) = other match {
         case that: Repeat => (that canEqual this) && (that.item == item) && (that.range == range)
         case _ => false
@@ -214,11 +214,11 @@ case class RepeatRangeTo(val from: Int, val to: Int) extends RepeatRange {
 }
 
 abstract class ActGrammar extends Grammar {
-    val rulesWithAct: Map[String, List[DefItem]]
+    val rulesWithAct: Map[String, List[GrElem]]
 
-    type ActionMap = Map[(List[DefItem], (Int, DefItem)), ((StackSymbol, List[Any]) => Any)]
+    type ActionMap = Map[(List[GrElem], (Int, GrElem)), ((ParsedSymbol, List[Any]) => Any)]
 
-    def unmarshallItem(item: DefItem): DefItem =
+    def unmarshallItem(item: GrElem): GrElem =
         item match {
             case ActDefItem(item, _) => unmarshallItem(item)
             case Sequence(seq, whitespace) =>
@@ -231,13 +231,13 @@ abstract class ActGrammar extends Grammar {
                 Repeat(unmarshallItem(item), range)
             case LookaheadExcept(except) =>
                 LookaheadExcept(except map (unmarshallItem _))
-            case _: Nonterminal | _: Input => item
+            case _: Nonterminal | _: InputElem => item
         }
     final lazy val rules: RuleMap = {
         rulesWithAct map ((x) => (x._1, x._2 map (unmarshallItem _)))
     }
     final lazy val actions: ActionMap = {
-        def unmarshall(path: List[DefItem], rhs: DefItem, pointer: Int): ActionMap = {
+        def unmarshall(path: List[GrElem], rhs: GrElem, pointer: Int): ActionMap = {
             val lhs = path.head
             rhs match {
                 case ActDefItem(item, action) =>
@@ -249,7 +249,7 @@ abstract class ActGrammar extends Grammar {
                 case Except(item, _) => unmarshall(unmarshallItem(rhs) +: path, item, 0)
                 case Repeat(item, _) => unmarshall(unmarshallItem(rhs) +: path, item, 0)
                 case _: LookaheadExcept => Map()
-                case _: Nonterminal | _: Input => Map()
+                case _: Nonterminal | _: InputElem => Map()
             }
         }
         var map: ActionMap = Map()
@@ -257,8 +257,8 @@ abstract class ActGrammar extends Grammar {
             x._2 foreach (map ++= unmarshall(List(Nonterminal(x._1)), _, 0)))
         map
     }
-    def process(symbol: StackSymbol): Any = {
-        def proc(path: List[DefItem], symbol: StackSymbol, action: (StackSymbol, List[Any]) => Any): Any = {
+    def process(symbol: ParsedSymbol): Any = {
+        def proc(path: List[GrElem], symbol: ParsedSymbol, action: (ParsedSymbol, List[Any]) => Any): Any = {
             // println(path)
             symbol match {
                 case StartSymbol => symbol
@@ -302,10 +302,10 @@ abstract class ActGrammar extends Grammar {
         }
     }
 
-    implicit def defItemActing(item: DefItem): Actingable =
+    implicit def defItemActing(item: GrElem): Actingable =
         item match {
             case n: Nonterminal => new Actingable { val self = n }
-            case i: Input => new Actingable { val self = i }
+            case i: InputElem => new Actingable { val self = i }
             case o: OneOf => new Actingable { val self = o }
             case r: Repeat => new Actingable { val self = r }
             case s: Sequence => new Actingable { val self = s }
@@ -315,9 +315,9 @@ abstract class ActGrammar extends Grammar {
 }
 
 trait Actingable {
-    val self: DefItem
+    val self: GrElem
 
-    def act(action: (StackSymbol, List[Any]) => Any) = new ActDefItem(self, action)
+    def act(action: (ParsedSymbol, List[Any]) => Any) = new ActDefItem(self, action)
 }
 
-case class ActDefItem(item: DefItem, val action: (StackSymbol, List[Any]) => Any) extends DefItem
+case class ActDefItem(item: GrElem, val action: (ParsedSymbol, List[Any]) => Any) extends GrElem

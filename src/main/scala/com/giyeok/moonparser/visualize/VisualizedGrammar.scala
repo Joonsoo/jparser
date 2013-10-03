@@ -17,7 +17,7 @@ import org.eclipse.swt.widgets.Shell
 
 import com.giyeok.moonparser.AnyCharacterInput
 import com.giyeok.moonparser.CharacterRangeInput
-import com.giyeok.moonparser.DefItem
+import com.giyeok.moonparser.GrElem
 import com.giyeok.moonparser.Except
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.LookaheadExcept
@@ -75,7 +75,7 @@ class GrammarFigure(val grammar: Grammar)(implicit itemListener: DefItemFigureLi
     }
 }
 
-class RuleFigure(val rule: (String, List[DefItem]))(implicit itemListener: DefItemFigureListener = null) extends Figure {
+class RuleFigure(val rule: (String, List[GrElem]))(implicit itemListener: DefItemFigureListener = null) extends Figure {
     {
         val layout = new ToolbarLayout(true)
         layout.setSpacing(4)
@@ -90,7 +90,7 @@ class RuleFigure(val rule: (String, List[DefItem]))(implicit itemListener: DefIt
         right.setLayoutManager(rightLayout)
 
         import DefItemFigure._
-        def addAll(rhs: List[DefItem]): Unit =
+        def addAll(rhs: List[GrElem]): Unit =
             rhs match {
                 case item :: rest =>
                     right.add(item); addAll(rest)
@@ -129,8 +129,8 @@ object DefItemFigure {
     val tokenFont = new Font(null, "Arial", 12, SWT.NONE)
     val defaultFont = new Font(null, "Arial", 10, SWT.NONE)
 
-    implicit def defitem2label(defitem: DefItem)(implicit itemListener: DefItemFigureListener = null): Figure = {
-        def addWithBars(fig: Figure, items: Seq[DefItem]) = {
+    implicit def defitem2label(defitem: GrElem)(implicit itemListener: DefItemFigureListener = null): Figure = {
+        def addWithBars(fig: Figure, items: Seq[GrElem]) = {
             if (!(items isEmpty)) {
                 for (i <- items.init) { fig add i; fig add "|" }
                 fig add (items.last)

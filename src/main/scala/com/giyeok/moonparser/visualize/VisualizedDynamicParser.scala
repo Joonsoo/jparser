@@ -21,20 +21,20 @@ import org.eclipse.swt.widgets.Canvas
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 
-import com.giyeok.moonparser.CharInputSymbol
-import com.giyeok.moonparser.DefItem
-import com.giyeok.moonparser.EOFSymbol
+import com.giyeok.moonparser.CharInput
+import com.giyeok.moonparser.GrElem
+import com.giyeok.moonparser.EOF
 import com.giyeok.moonparser.EmptySymbol
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.NontermSymbol
 import com.giyeok.moonparser.Nonterminal
 import com.giyeok.moonparser.ParserInput
-import com.giyeok.moonparser.StackSymbol
+import com.giyeok.moonparser.ParsedSymbol
 import com.giyeok.moonparser.StartSymbol
 import com.giyeok.moonparser.StringInput
 import com.giyeok.moonparser.TermSymbol
-import com.giyeok.moonparser.TokenInputSymbol
-import com.giyeok.moonparser.VirtInputSymbol
+import com.giyeok.moonparser.TokenInput
+import com.giyeok.moonparser.VirtInput
 import com.giyeok.moonparser.dynamic.Parser
 import com.giyeok.moonparser.grammars.JavaScriptGrammar
 import com.giyeok.moonparser.grammars.JavaScriptParser
@@ -301,7 +301,7 @@ class StackEntryItemFigure(val entryItem: Parser#StackEntry#StackEntryItem)(impl
                 add(dotLabel)
                 add(DefItemFigure.stringInputLabel(si.item.string.substring(si.pointer)))
             case seq: Parser#StackEntry#ParsingSequence =>
-                def addLabels(l: List[DefItem]): Unit = l match {
+                def addLabels(l: List[GrElem]): Unit = l match {
                     case x :: xs =>
                         add(labelize(x)); addLabels(xs)
                     case Nil =>
@@ -338,7 +338,7 @@ class StackEntryItemFigure(val entryItem: Parser#StackEntry#StackEntryItem)(impl
     }
 }
 
-class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedDynamicParser) extends Figure {
+class StackSymbolFigure(val symbol: ParsedSymbol)(implicit val vp: VisualizedDynamicParser) extends Figure {
     {
         val layout = new ToolbarLayout(false)
         setLayoutManager(layout)
@@ -351,10 +351,10 @@ class StackSymbolFigure(val symbol: StackSymbol)(implicit val vp: VisualizedDyna
                 case _ => ("<<" + item.item.id + ">>", DefItemFigure.defaultFont)
             }
             case TermSymbol(input, pointer) => input match {
-                case CharInputSymbol(char) => (s"$char at $pointer", DefItemFigure.stringFont)
-                case VirtInputSymbol(virt) => (s"$virt at $pointer", DefItemFigure.virtFont)
-                case TokenInputSymbol(token) => (s"${token.text} at $pointer", DefItemFigure.tokenFont)
-                case EOFSymbol => ("$", DefItemFigure.defaultFont) // should not be here
+                case CharInput(char) => (s"$char at $pointer", DefItemFigure.stringFont)
+                case VirtInput(virt) => (s"$virt at $pointer", DefItemFigure.virtFont)
+                case TokenInput(token) => (s"${token.text} at $pointer", DefItemFigure.tokenFont)
+                case EOF => ("$", DefItemFigure.defaultFont) // should not be here
             }
             case EmptySymbol(_) => (".", DefItemFigure.defaultFont) // empty
         }

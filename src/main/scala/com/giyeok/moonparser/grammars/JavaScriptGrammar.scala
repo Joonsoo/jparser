@@ -1,7 +1,7 @@
 package com.giyeok.moonparser.grammars
 
 import scala.collection.immutable.ListMap
-import com.giyeok.moonparser.DefItem
+import com.giyeok.moonparser.GrElem
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.Nonterminal
 import com.giyeok.moonparser.Sequence
@@ -29,12 +29,12 @@ object JavaScriptParser {
 }
 
 object JavaScriptGrammar extends Grammar {
-    private val whitespace = List[DefItem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
-    private val oneline = List[DefItem](n("WhiteSpace"), n("Comment"))
+    private val whitespace = List[GrElem](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
+    private val oneline = List[GrElem](n("WhiteSpace"), n("Comment"))
 
-    def expr(seq: DefItem*) = Sequence(seq toList, whitespace)
-    def lex(seq: DefItem*) = sequence(seq: _*)
-    def line(seq: DefItem*) = sequence(oneline, seq: _*)
+    def expr(seq: GrElem*) = Sequence(seq toList, whitespace)
+    def lex(seq: GrElem*) = sequence(seq: _*)
+    def line(seq: GrElem*) = sequence(oneline, seq: _*)
 
     override val name = "JavaScript"
     override val rules = ListMap(

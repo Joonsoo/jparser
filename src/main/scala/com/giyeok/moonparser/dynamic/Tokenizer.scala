@@ -3,18 +3,18 @@ package com.giyeok.moonparser.dynamic
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.Nonterminal
 import com.giyeok.moonparser.ParserInput
-import com.giyeok.moonparser.StackSymbol
+import com.giyeok.moonparser.ParsedSymbol
 import com.giyeok.moonparser.StartSymbol
 import com.giyeok.moonparser.StringParserInput
 import com.giyeok.moonparser.grammars.JavaScriptGrammar
 import com.giyeok.moonparser.NontermSymbol
 import com.giyeok.moonparser.TermSymbol
 import scala.collection.immutable.SortedSet
-import com.giyeok.moonparser.DefItem
-import com.giyeok.moonparser.InputSymbol
-import com.giyeok.moonparser.CharInputSymbol
-import com.giyeok.moonparser.TokenInputSymbol
-import com.giyeok.moonparser.CharInputSymbol
+import com.giyeok.moonparser.GrElem
+import com.giyeok.moonparser.Input
+import com.giyeok.moonparser.CharInput
+import com.giyeok.moonparser.TokenInput
+import com.giyeok.moonparser.CharInput
 import com.giyeok.moonparser.StringInput
 import com.giyeok.moonparser.VirtualInput
 import com.giyeok.moonparser.OneOf
@@ -23,7 +23,7 @@ class Tokenizer(grammar: Grammar, tokenSymbol: String, rawSymbol: String, input:
     private val tokenCands = grammar.rules(tokenSymbol)
 
     private var nextPointer = 0
-    private var _nextToken: List[StackSymbol] = Nil
+    private var _nextToken: List[ParsedSymbol] = Nil
 
     private class TokenizerParser(startingSymbolName: String) extends Parser(grammar, input) {
         override val starter = new StackEntry(null, StartSymbol, nextPointer, null, null) {
@@ -55,7 +55,7 @@ class Tokenizer(grammar: Grammar, tokenSymbol: String, rawSymbol: String, input:
     }
 
     def hasNextToken = nextPointer < input.length
-    def nextToken(): List[InputSymbol] = {
+    def nextToken(): List[Input] = {
         _nextToken = Nil
         (new TokenizerParser(tokenSymbol)).parseAll()
         if (_nextToken.isEmpty) {
@@ -68,18 +68,18 @@ class Tokenizer(grammar: Grammar, tokenSymbol: String, rawSymbol: String, input:
             })).flatten
             // assert _nextToken(i).source == _nextToken(j).source for all i, j in range
             val compats = Set(q: _*) intersect Set(tokenCands: _*)
-            List(TokenInputSymbol(new Token(_nextToken.head.source, compats)))
+            List(TokenInput(new Token(_nextToken.head.source, compats)))
         }
     }
 }
 
-class Token(val source: List[InputSymbol], val compatItems: Set[DefItem]) {
+class Token(val source: List[Input], val compatItems: Set[GrElem]) {
     lazy val text = source map (_ match {
-        case x: CharInputSymbol => "" + x.char
+        case x: CharInput => "" + x.char
         case _ => ""
     }) mkString ""
 
-    def compat(item: DefItem) =
+    def compat(item: GrElem) =
         item match {
             case StringInput(string) =>
                 this.source.length == string.length && this.text == string
@@ -100,10 +100,10 @@ object Tokenizer {
         while (tokenizer.hasNextToken) {
             val token = tokenizer.nextToken()
             token map (_ match {
-                case TokenInputSymbol(token) =>
+                case TokenInput(token) =>
                     println("\"" + token.text + "\"")
                     println(token.compatItems)
-                case CharInputSymbol(char) => println("'" + char + "'")
+                case CharInput(char) => println("'" + char + "'")
                 case _ =>
             })
         }

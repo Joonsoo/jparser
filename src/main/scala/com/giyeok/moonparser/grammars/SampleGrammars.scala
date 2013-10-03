@@ -3,7 +3,7 @@ package com.giyeok.moonparser.grammars
 import scala.collection.immutable.ListMap
 
 import com.giyeok.moonparser.CharacterRangeInput
-import com.giyeok.moonparser.DefItem
+import com.giyeok.moonparser.GrElem
 import com.giyeok.moonparser.Grammar
 
 abstract class SampleGrammar extends Grammar {
@@ -26,7 +26,7 @@ object SampleGrammar2 extends SampleGrammar {
     val name = "Sample2"
     val startSymbol: String = "S"
     val rules = ListMap(
-        "S" -> List(sequence(List[DefItem](i(" ")), n("A"), n("B"))),
+        "S" -> List(sequence(List[GrElem](i(" ")), n("A"), n("B"))),
         "A" -> List(i("a"), seq(i("a"), n("A"))),
         "B" -> List(seq(i("b"), n("B")), seq()))
     val sampleInputs = List()
