@@ -33,26 +33,13 @@ class BasicBlackboxParser(val grammar: Grammar) extends BlackboxParser {
     }
     def parse(input: String): ParseResult = parse(ParserInput.fromString(input))
 }
-class Parser(val grammar: Grammar, val input: ParserInput) extends ParsingItems {
+class Parser(val grammar: Grammar, val input: ParserInput)
+        extends ParsingItems with OctopusStacks {
     private var _result: ParseResult = new ParseResult(Nil)
     def result = _result
 
     protected val starter = None
     protected val stack = new OctopusStack(starter)
-
-    // === stack ===
-    class OctopusStack[T](val bottom: T) {
-        import scala.collection.mutable.Queue
-
-        private val tops = Queue[T](bottom)
-
-        def add(entry: T) = tops += entry
-        def addAll(entries: Seq[T]) = for (entry <- entries) add(entry)
-        def hasNext = !tops.isEmpty
-        def top = tops.front
-        def pop() = tops.dequeue()
-        def iterator = tops.iterator
-    }
 
     def parseStep() =
         if (stack hasNext) {
