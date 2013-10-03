@@ -104,5 +104,9 @@ class Parser(val grammar: Grammar, val input: ParserInput)
         val finish: Option[ParsedSymbol]
         val subs: Set[ParsingItem]
         def proceed(sym: ParsedSymbol): Option[ParsingItem]
+
+        // FUTURE expecting will be used to make more informative parse error message
+        // `expecting` is the set of grammar elements that are expected to be appeared at the point
+        // val expecting: Set[GrElem]
     }
 }
