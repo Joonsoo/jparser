@@ -7,6 +7,10 @@ scalaVersion := "2.10.2"
 
 resolvers += "swt-repo" at "https://swt-repo.googlecode.com/svn/repo/"
 
+libraryDependencies += "org.scalatest" %% "scalatest" % "1.9.1" % "test"
+
+libraryDependencies += "junit" % "junit" % "4.10" % "test"
+
 libraryDependencies += {
   val os = (sys.props("os.name"), sys.props("os.arch")) match {
     case ("Linux", "amd64" | "x86_64") => "gtk.linux.x86_64"
