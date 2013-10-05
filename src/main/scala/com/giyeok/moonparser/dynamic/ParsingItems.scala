@@ -57,6 +57,13 @@ trait ParsingItems {
                 case _ => None
             }
         }
+
+        override lazy val hashCode = (elem, input).hashCode
+        override def equals(other: Any) = other match {
+            case that: ParsingCharacterInput => (that canEqual this) && (elem == that.elem) && (input == that.input)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[ParsingCharacterInput]
     }
     trait TokenCompatibles extends ParsingItem { self: ParsingItem =>
         class GotToken(token: TermSymbol[TokenInput]) extends ParsingItem {
@@ -81,6 +88,13 @@ trait ParsingItems {
                 case _ => None
             }
         }
+
+        override lazy val hashCode = (elem, input).hashCode
+        override def equals(other: Any) = other match {
+            case that: ParsingStringInput => (that canEqual this) && (elem == that.elem) && (input == that.input)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[ParsingStringInput]
     }
     case class ParsingVirtualInput(elem: VirtualInputElem, input: Option[TermSymbol[VirtInput]] = None)
             extends ParsingItem with TokenCompatibles {
@@ -95,6 +109,13 @@ trait ParsingItems {
                 case _ => None
             }
         }
+
+        override lazy val hashCode = (elem, input).hashCode
+        override def equals(other: Any) = other match {
+            case that: ParsingVirtualInput => (that canEqual this) && (elem == that.elem) && (input == that.input)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[ParsingVirtualInput]
     }
     case class ParsingEOFInput(input: Option[TermSymbol[EndOfFile.type]] = None) extends ParsingItem {
         val elem = EndOfFileElem
@@ -107,6 +128,13 @@ trait ParsingItems {
                 case _ => None
             }
         }
+
+        override lazy val hashCode = (input).hashCode
+        override def equals(other: Any) = other match {
+            case that: ParsingEOFInput => (that canEqual this) && (input == that.input)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[ParsingEOFInput]
     }
     case class ParsingNonterminal(elem: Nonterminal, input: Option[ParsedSymbol] = None)
             extends ParsingItem with TokenCompatibles {
@@ -122,6 +150,13 @@ trait ParsingItems {
                 case _ => None
             }
         }
+
+        override lazy val hashCode = (input).hashCode
+        override def equals(other: Any) = other match {
+            case that: ParsingNonterminal => (that canEqual this) && (elem == that.elem) && (input == that.input)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[ParsingNonterminal]
     }
     case class ParsingOneOf(elem: OneOf, input: Option[ParsedSymbol] = None)
             extends ParsingItem with TokenCompatibles {
@@ -137,6 +172,13 @@ trait ParsingItems {
                 case _ => None
             }
         }
+
+        override lazy val hashCode = (elem, input).hashCode
+        override def equals(other: Any) = other match {
+            case that: ParsingOneOf => (that canEqual this) && (elem == that.elem) && (input == that.input)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[ParsingOneOf]
     }
     case class ParsingRepeat(elem: Repeat, input: List[ParsedSymbol] = Nil) extends ParsingItem {
         lazy val finish: Option[ParsedSymbol] =
@@ -151,6 +193,13 @@ trait ParsingItems {
                 case _ => None
             }
         }
+
+        override lazy val hashCode = (elem, input).hashCode
+        override def equals(other: Any) = other match {
+            case that: ParsingRepeat => (that canEqual this) && (elem == that.elem) && (input == that.input)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[ParsingRepeat]
     }
     case class ParsingSequence(elem: Sequence, input: List[ParsedSymbol] = Nil, inputWS: List[ParsedSymbol] = Nil, mappings: Map[Int, Int] = Map())
             extends ParsingItem {
@@ -199,6 +248,15 @@ trait ParsingItems {
                 case _ => None
             }
         }
+
+        override lazy val hashCode = (elem, input, inputWS, mappings).hashCode
+        override def equals(other: Any) = other match {
+            case that: ParsingSequence =>
+                (that canEqual this) && (elem == that.elem) && (input == that.input) &&
+                    (inputWS == that.inputWS) && (mappings == that.mappings)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[ParsingSequence]
     }
     // TODO implement the rest
     case class ParsingExcept(elem: Except) extends ParsingItem {
