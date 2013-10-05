@@ -31,12 +31,14 @@ trait ParsingItems {
         val subs: Set[ParsingItem]
         def proceed(sym: ParsedSymbol): Option[ParsingItem]
 
+        override def toString: String = repr
+        lazy val repr = super.toString
+
         // FUTURE expecting will be used to make more informative parse error message
         // `expecting` is the set of grammar elements that are expected to be appeared at the point
         // val expecting: Set[GrElem]
     }
 
-    // TODO implement hashCode, canEqual, equals
     case object ParsingEmpty extends ParsingItem {
         val elem = Empty
         object EmptyObject extends EmptySymbol(Empty)
@@ -44,7 +46,13 @@ trait ParsingItems {
         val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
     }
-    case class ParsingCharacterInput(elem: CharacterInputElem, input: Option[TermSymbol[CharInput]] = None) extends ParsingItem {
+    trait SimpleRepr extends ParsingItem {
+        val input: Option[ParsedSymbol]
+
+        override lazy val repr = if (input.isEmpty) "* " + elem.repr else elem.repr + " *"
+    }
+    case class ParsingCharacterInput(elem: CharacterInputElem, input: Option[TermSymbol[CharInput]] = None)
+            extends ParsingItem with SimpleRepr {
         lazy val finish: Option[TermSymbol[CharInput]] = input
         // dumb code: if (input.isDefined) Some(input.get) else None
         lazy val subs: Set[ParsingItem] = Set()
@@ -89,6 +97,10 @@ trait ParsingItems {
             }
         }
 
+        override lazy val repr = {
+            val (first, second) = elem.string splitAt input.length
+            "\"" + first + "*" + second + "\""
+        }
         override lazy val hashCode = (elem, input).hashCode
         override def equals(other: Any) = other match {
             case that: ParsingStringInput => (that canEqual this) && (elem == that.elem) && (input == that.input)
@@ -97,7 +109,7 @@ trait ParsingItems {
         override def canEqual(other: Any) = other.isInstanceOf[ParsingStringInput]
     }
     case class ParsingVirtualInput(elem: VirtualInputElem, input: Option[TermSymbol[VirtInput]] = None)
-            extends ParsingItem with TokenCompatibles {
+            extends ParsingItem with TokenCompatibles with SimpleRepr {
         lazy val finish: Option[ParsedSymbol] = input
         lazy val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
@@ -117,7 +129,8 @@ trait ParsingItems {
         }
         override def canEqual(other: Any) = other.isInstanceOf[ParsingVirtualInput]
     }
-    case class ParsingEOFInput(input: Option[TermSymbol[EndOfFile.type]] = None) extends ParsingItem {
+    case class ParsingEOFInput(input: Option[TermSymbol[EndOfFile.type]] = None)
+            extends ParsingItem with SimpleRepr {
         val elem = EndOfFileElem
         lazy val finish: Option[ParsedSymbol] = input
         lazy val subs: Set[ParsingItem] = Set()
@@ -137,7 +150,7 @@ trait ParsingItems {
         override def canEqual(other: Any) = other.isInstanceOf[ParsingEOFInput]
     }
     case class ParsingNonterminal(elem: Nonterminal, input: Option[ParsedSymbol] = None)
-            extends ParsingItem with TokenCompatibles {
+            extends ParsingItem with TokenCompatibles with SimpleRepr {
         lazy val finish: Option[ParsedSymbol] = if (input.isDefined) Some(NontermSymbol(elem, Seq(input.get))) else None
         lazy val subs: Set[ParsingItem] =
             if (input.isDefined) Set() else (grammar.rules(elem.name) map { _.toParsingItem })
@@ -159,7 +172,7 @@ trait ParsingItems {
         override def canEqual(other: Any) = other.isInstanceOf[ParsingNonterminal]
     }
     case class ParsingOneOf(elem: OneOf, input: Option[ParsedSymbol] = None)
-            extends ParsingItem with TokenCompatibles {
+            extends ParsingItem with TokenCompatibles with SimpleRepr {
         lazy val finish: Option[ParsedSymbol] = input
         lazy val subs: Set[ParsingItem] =
             if (input.isDefined) Set() else (elem.elems map { _.toParsingItem })
@@ -194,6 +207,7 @@ trait ParsingItems {
             }
         }
 
+        override lazy val repr = s"${elem.repr}[${elem.range.repr},${input.length}]"
         override lazy val hashCode = (elem, input).hashCode
         override def equals(other: Any) = other match {
             case that: ParsingRepeat => (that canEqual this) && (elem == that.elem) && (input == that.input)
@@ -249,6 +263,10 @@ trait ParsingItems {
             }
         }
 
+        override lazy val repr = {
+            val (first, second) = elem.seq splitAt pointer
+            ((first map { _.repr }) ++ Seq("*") ++ (second map { _.repr })) mkString " "
+        }
         override lazy val hashCode = (elem, input, inputWS, mappings).hashCode
         override def equals(other: Any) = other match {
             case that: ParsingSequence =>
@@ -259,6 +277,7 @@ trait ParsingItems {
         override def canEqual(other: Any) = other.isInstanceOf[ParsingSequence]
     }
     // TODO implement the rest
+    // TODO implement hashCode, canEqual, equals
     case class ParsingExcept(elem: Except) extends ParsingItem {
         val finish: Option[ParsedSymbol] = None
         val subs: Set[ParsingItem] = Set()

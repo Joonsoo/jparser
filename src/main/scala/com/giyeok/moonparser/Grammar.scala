@@ -153,10 +153,10 @@ object GrElems {
         }
         override def canEqual(other: Any) = other.isInstanceOf[OneOf]
     }
-    case class Except(item: GrElem, except: Set[GrElem]) extends GrElem {
-        override lazy val hashCode = (item, except).hashCode
+    case class Except(elem: GrElem, except: Set[GrElem]) extends GrElem {
+        override lazy val hashCode = (elem, except).hashCode
         override def equals(other: Any) = other match {
-            case that: Except => (that canEqual this) && (that.item == item) && (that.except == except)
+            case that: Except => (that canEqual this) && (that.elem == elem) && (that.except == except)
             case _ => false
         }
         override def canEqual(other: Any) = other.isInstanceOf[Except]
@@ -185,6 +185,8 @@ object GrElems {
             def canProceed(x: Int): Boolean
 
             def canEqual(other: Any): Boolean
+
+            val repr: String
         }
         case class RangeFrom(val from: Int) extends Range {
             def contains(v: Int) = from <= v
@@ -196,6 +198,8 @@ object GrElems {
                 case _ => false
             }
             override def canEqual(other: Any) = other.isInstanceOf[RangeFrom]
+
+            lazy val repr = s"$from-"
         }
         case class RangeTo(val from: Int, val to: Int) extends Range {
             override def contains(v: Int) = from <= v && v <= to
@@ -207,6 +211,8 @@ object GrElems {
                 case _ => false
             }
             override def canEqual(other: Any) = other.isInstanceOf[RangeTo]
+
+            lazy val repr = s"$from-$to"
         }
     }
     case class Backup(elem: GrElem, backup: GrElem) extends GrElem {
@@ -218,4 +224,27 @@ object GrElems {
         override def canEqual(other: Any) = other.isInstanceOf[Backup]
     }
     // ActDef will be considered later!
+
+    implicit class GrElemRepr(elem: GrElem) {
+        def repr: String = elem match {
+            case Empty => "<e>"
+            case Nonterminal(name) => name
+            case StringInputElem(string) => "\"" + string + "\""
+            case AnyCharacterInputElem => "<anychar>"
+            case SetCharacterInputElem(chars) => "{" + (chars mkString "|") + "}"
+            case UnicodeCategoryCharacterInputElem(categories) =>
+                "{" + UnicodeUtil.translateToString(categories) mkString "|" + "}"
+            case CharacterRangeInputElem(from, to) => s"<$from-$to>"
+            case VirtualInputElem(name) => s"_${name}_"
+            case EndOfFileElem => "<eof>"
+            case Sequence(seq, _) => seq map { _.repr } mkString " "
+            case OneOf(elems) => elems map { _.repr } mkString " | "
+            case Except(elem, except) =>
+                s"(${elem.repr}) except (${except map { _.repr } mkString "|"})"
+            case LookaheadExcept(except) =>
+                s"<lookahead not in (${except map { _.repr } mkString "|"})>"
+            case Repeat(elem, range) => s"${elem.repr}[${range.repr}]"
+            case Backup(elem, backup) => ???
+        }
+    }
 }
