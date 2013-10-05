@@ -17,6 +17,13 @@ object ParsedSymbols {
     case class EmptySymbol(elem: GrElem) extends ParsedSymbol with ConcreteSymbol {
         val text = ""
         val source = Nil
+
+        override lazy val hashCode = elem.hashCode
+        override def equals(other: Any) = other match {
+            case that: EmptySymbol => (that canEqual this) && (elem == that.elem)
+            case _ => false
+        }
+        def canEqual(other: Any) = other.isInstanceOf[EmptySymbol]
     }
     case class TermSymbol[+T <: Input](input: T, pointer: Int) extends ParsedSymbol with ConcreteSymbol {
         lazy val text = input match {
@@ -26,16 +33,39 @@ object ParsedSymbols {
             case _ => ""
         }
         lazy val source = Seq(input)
+
+        override lazy val hashCode = (input, pointer).hashCode
+        override def equals(other: Any) = other match {
+            case that: TermSymbol[T] => (that canEqual this) && (input == that.input) && (pointer == that.pointer)
+            case _ => false
+        }
+        def canEqual(other: Any) = other.isInstanceOf[TermSymbol[T]]
     }
     case class NontermSymbol(elem: GrElem, children: Seq[ParsedSymbol])
             extends ParsedSymbol with NamedSymbol with ConcreteSymbol {
         lazy val text = children map { case c: ConcreteSymbol => c.text case _ => "" } mkString
         lazy val source = children flatMap { case c: ConcreteSymbol => c.source case _ => Nil }
+
+        override lazy val hashCode = (elem, children).hashCode
+        override def equals(other: Any) = other match {
+            case that: NontermSymbol => (that canEqual this) && (elem == that.elem) && (children == that.children)
+            case _ => false
+        }
+        def canEqual(other: Any) = other.isInstanceOf[NontermSymbol]
     }
     class NontermSymbolWS(elem: GrElem, children: Seq[ParsedSymbol], val childrenWS: Seq[ParsedSymbol], val mappings: Map[Int, Int])
             extends NontermSymbol(elem, children) {
         override lazy val text = childrenWS map { case c: ConcreteSymbol => c.text case _ => "" } mkString
         override lazy val source = childrenWS flatMap { case c: ConcreteSymbol => c.source case _ => Nil }
+
+        override lazy val hashCode = (elem, children, childrenWS, mappings).hashCode
+        override def equals(other: Any) = other match {
+            case that: NontermSymbolWS =>
+                (that canEqual this) && (elem == that.elem) && (children == that.children) &&
+                    (childrenWS == that.childrenWS) && (mappings == that.mappings)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[NontermSymbolWS]
     }
 
     // TODO implement virtual symbols for static analysis of the grammar
@@ -53,5 +83,12 @@ object ParsedSymbols {
                 case _: VirtualInputElem | _: Nonterminal | _: OneOf => compats contains item
                 case _ => false
             }
+
+        override lazy val hashCode = (source, compats).hashCode
+        override def equals(other: Any) = other match {
+            case that: Token => (that canEqual this) && (source == that.source) && (compats == that.compats)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[Token]
     }
 }
