@@ -209,7 +209,7 @@ trait ParsingItems {
         //             i.e. index of `input` -> index of `inputWS`
         // NOTE !!! `input` and `inputWS` are reversed !!!
         val pointer = input.length
-        lazy val canFinish: Boolean = {
+        lazy val canFinish: Boolean = if (input.isEmpty) false else {
             val leftItemsAreAllNullable = elem.seq drop pointer forall { _.isNullable }
             val lastIsNotWhitespace = (mappings maxBy { _._1 })._2 + 1 == inputWS.length
             leftItemsAreAllNullable && lastIsNotWhitespace
@@ -242,7 +242,7 @@ trait ParsingItems {
                     if (!p.isEmpty)
                         Some(ParsingSequence(elem, p ++ input, inputWS, mappings + ((pointer + p.length - 1) -> inputWS.length)))
                     else {
-                        if (elem.whitespace contains sym.elem) Some(ParsingSequence(elem, input, sym +: inputWS, mappings))
+                        if ((!input.isEmpty) && (elem.whitespace contains sym.elem)) Some(ParsingSequence(elem, input, sym +: inputWS, mappings))
                         else None
                     }
                 case _ => None
