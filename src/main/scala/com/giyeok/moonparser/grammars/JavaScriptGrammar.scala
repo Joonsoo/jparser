@@ -32,6 +32,7 @@ object JavaScriptGrammar extends Grammar {
     def expr(s: GrElem*) = Sequence(s toList, whitespace)
     def lex(s: GrElem*) = seq(s: _*)
     def line(s: GrElem*) = seq(oneline, s: _*)
+    val lineend = i(";").backup(oneof(n("LineTerminator"), eof))
 
     override val name = "JavaScript"
     override val rules: RuleMap = ListMap(
@@ -215,7 +216,7 @@ object JavaScriptGrammar extends Grammar {
         "RegularExpressionBody" -> Set(
             lex(n("RegularExpressionFirstChar"), n("RegularExpressionChars"))),
         "RegularExpressionChars" -> Set(
-            lex(),
+            e,
             lex(n("RegularExpressionChars"), n("RegularExpressionChar"))),
         "RegularExpressionFirstChar" -> Set(
             n("RegularExpressionNonTerminator").butnot(c("*\\/[")),
@@ -232,13 +233,13 @@ object JavaScriptGrammar extends Grammar {
         "RegularExpressionClass" -> Set(
             lex(i("["), n("RegularExpressionClassChars"), i("]"))),
         "RegularExpressionClassChars" -> Set(
-            lex(),
+            e,
             lex(n("RegularExpressionClassChars"), n("RegularExpressionClassChar"))),
         "RegularExpressionClassChar" -> Set(
             n("RegularExpressionNonTerminator").butnot(c("]\\")),
             n("RegularExpressionBackslashSequence")),
         "RegularExpressionFlags" -> Set(
-            lex(),
+            e,
             lex(n("RegularExpressionFlags"), n("IdentifierPart"))),
 
         // A.2 Number Conversions
@@ -471,7 +472,7 @@ object JavaScriptGrammar extends Grammar {
             n("Statement"),
             expr(n("StatementList"), n("Statement"))),
         "VariableStatement" -> Set(
-            expr(i("var"), n("VariableDeclarationList"), i(";"))),
+            expr(i("var"), n("VariableDeclarationList"), lineend)),
         "VariableDeclarationList" -> Set(
             n("VariableDeclaration"),
             expr(n("VariableDeclarationList"), i(","), n("VariableDeclaration"))),
@@ -487,28 +488,28 @@ object JavaScriptGrammar extends Grammar {
         "InitialiserNoIn" -> Set(
             expr(i("="), n("AssignmentExpressionNoIn"))),
         "EmptyStatement" -> Set(
-            i(";")),
+            lineend),
         "ExpressionStatement" -> Set(
-            expr(lookahead_except(i("{"), seq(i("function"), n("WhiteSpace"))), n("Expression"), i(";"))),
+            expr(lookahead_except(i("{"), seq(i("function"), n("WhiteSpace"))), n("Expression"), lineend)),
         "IfStatement" -> Set(
             expr(i("if"), i("("), n("Expression"), i(")"), n("Statement"), i("else"), n("Statement")),
             expr(i("if"), i("("), n("Expression"), i(")"), n("Statement"))),
         "IterationStatement" -> Set(
-            expr(i("do"), n("Statement"), i("while"), i("("), n("Expression"), i(")"), i(";")),
+            expr(i("do"), n("Statement"), i("while"), i("("), n("Expression"), i(")"), lineend),
             expr(i("while"), i("("), n("Expression"), i(")"), n("Statement")),
             expr(i("for"), i("("), n("ExpressionNoIn").opt, i(";"), n("Expression").opt, i(";"), n("Expression").opt, i(")"), n("Statement")),
             expr(i("for"), i("("), i("var"), n("VariableDeclarationListNoIn"), i(";"), n("Expression").opt, i(";"), n("Expression").opt, i(")"), n("Statement")),
             expr(i("for"), i("("), n("LeftHandSideExpression"), i("in"), n("Expression"), i(")"), n("Statement")),
             expr(i("for"), i("("), i("var"), n("VariableDeclarationNoIn"), i("in"), n("Expression"), i(")"), n("Statement"))),
         "ContinueStatement" -> Set(
-            expr(i("continue"), i(";")),
-            expr(line(i("continue"), n("Identifier")), i(";"))),
+            expr(i("continue"), lineend),
+            expr(line(i("continue"), n("Identifier")), lineend)),
         "BreakStatement" -> Set(
-            expr(i("break"), i(";")),
-            expr(line(i("break"), n("Identifier")), i(";"))),
+            expr(i("break"), lineend),
+            expr(line(i("break"), n("Identifier")), lineend)),
         "ReturnStatement" -> Set(
-            expr(i("return"), i(";")),
-            expr(line(i("return"), n("Expression")), i(";"))),
+            expr(i("return"), lineend),
+            expr(line(i("return"), n("Expression")), lineend)),
         "WithStatement" -> Set(
             expr(i("with"), i("("), n("Expression"), i(")"), n("Statement"))),
         "SwitchStatement" -> Set(
@@ -526,7 +527,7 @@ object JavaScriptGrammar extends Grammar {
         "LabelledStatement" -> Set(
             expr(n("Identifier"), i(":"), n("Statement"))),
         "ThrowStatement" -> Set(
-            expr(line(i("throw"), n("Expression")), i(";"))),
+            expr(line(i("throw"), n("Expression")), lineend)),
         "TryStatement" -> Set(
             expr(i("try"), n("Block"), n("Catch")),
             expr(i("try"), n("Block"), n("Finally")),
@@ -536,7 +537,7 @@ object JavaScriptGrammar extends Grammar {
         "Finally" -> Set(
             expr(i("finally"), n("Block"))),
         "DebuggerStatement" -> Set(
-            expr(i("debugger"), i(";"))),
+            expr(i("debugger"), lineend)),
 
         // A.5 Functions and Programs
         "FunctionDeclaration" -> Set(
@@ -586,7 +587,7 @@ object JavaScriptGrammar extends Grammar {
             n("Alternative"),
             lex(n("Alternative"), i("|"), n("Disjunction"))),
         "Alternative" -> Set(
-            lex(),
+            e,
             lex(n("Alternative"), n("Term"))),
         "Term" -> Set(
             n("Assertion"),
@@ -642,7 +643,7 @@ object JavaScriptGrammar extends Grammar {
             lex(i("["), lookahead_except(i("^")), n("ClassRanges"), i("]")),
             lex(i("["), i("^"), n("ClassRanges"), i("]"))),
         "ClassRanges" -> Set(
-            lex(),
+            e,
             n("NonemptyClassRanges")),
         "NonemptyClassRanges" -> Set(
             n("ClassAtom"),
