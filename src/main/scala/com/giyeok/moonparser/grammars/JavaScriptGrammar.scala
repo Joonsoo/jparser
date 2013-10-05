@@ -5,7 +5,6 @@ import com.giyeok.moonparser.GrElems._
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.dynamic.Parser
 import com.giyeok.moonparser.ParserInputs._
-import com.giyeok.moonparser.dynamic.ParseResult
 import com.giyeok.moonparser.dynamic.BlackboxParser
 
 object JavaScriptParser {
@@ -16,12 +15,12 @@ object JavaScriptParser {
     def getBlackboxParser =
         new BlackboxParser {
             // === parser ===
-            def parse(input: ParserInput): ParseResult = {
+            def parse(input: ParserInput): Parser.Result = {
                 val parser = getParser(input)
                 parser.parseAll()
                 parser.result
             }
-            def parse(input: String): ParseResult = parse(ParserInput.fromString(input))
+            def parse(input: String): Parser.Result = parse(ParserInput.fromString(input))
         }
 }
 

@@ -9,20 +9,23 @@ object ParserInputs {
     abstract class ParserInput {
         val length: Int
         def at(pointer: Int): Input
+        def finishedAt(pointer: Int): Boolean
 
         def subinput(p: Int): ParserInput
     }
     class StringParserInput(val string: String) extends ParserInput {
         val length = string length
         def at(p: Int) = if (p < length) CharInput(string charAt p) else EndOfFile
+        def finishedAt(p: Int): Boolean = p >= string.length
 
         def subinput(p: Int) = new StringParserInput(string substring p)
     }
-    class SeqParserInput(val list: Seq[Input]) extends ParserInput {
-        val length = list length
-        def at(p: Int) = if (p < length) list(p) else EndOfFile
+    class SeqParserInput(val seq: Seq[Input]) extends ParserInput {
+        val length = seq length
+        def at(p: Int) = if (p < length) seq(p) else EndOfFile
+        def finishedAt(p: Int): Boolean = p >= seq.length
 
-        def subinput(p: Int) = new SeqParserInput(list drop p)
+        def subinput(p: Int) = new SeqParserInput(seq drop p)
     }
     object ParserInput {
         def fromString(string: String) = new StringParserInput(string)
