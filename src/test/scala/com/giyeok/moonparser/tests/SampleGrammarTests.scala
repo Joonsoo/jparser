@@ -12,9 +12,9 @@ class SampleGrammarTests extends FunSuite {
     import com.giyeok.moonparser.dynamic.Parser
     import com.giyeok.moonparser.dynamic.BasicBlackboxParser
 
-    test("Grammar 1") {
+    test("Basic Grammar 1") {
         val grammar = new Grammar {
-            val name = "Grammar 1"
+            val name = "Basic Grammar 1"
             val startSymbol: String = "S"
             val rules: RuleMap = ListMap(
                 "S" -> Set(seq(n("A"), n("B"))),
@@ -26,13 +26,13 @@ class SampleGrammarTests extends FunSuite {
         println(parser.parse("aaaaaaaaaaaaaaaa"))
         assert(true)
     }
-
+    /*
     test("Grammar 2") {
         val grammar = new Grammar {
             val name = "Grammar 2"
             val startSymbol: String = "S"
             val rules: RuleMap = ListMap(
-                "S" -> Set(seq(Set[GrElem](i(" ")), n("A"), n("B"))),
+                "S" -> Set(seq(ws(i(" ")), n("A"), n("B"))),
                 "A" -> Set(i("a"), seq(i("a"), n("A"))),
                 "B" -> Set(seq(i("b"), n("B")), seq()))
         }
@@ -119,4 +119,5 @@ class SampleGrammarTests extends FunSuite {
         val parser = new BasicBlackboxParser(grammar)
         parser.parse("aaddde")
     }
+*/
 }

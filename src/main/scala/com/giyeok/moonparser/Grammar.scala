@@ -22,6 +22,7 @@ abstract class Grammar {
     def virtual(name: String) = VirtualInputElem(name)
     def seq(seq: GrElem*) = Sequence(seq, Set())
     def seq(whitespace: Set[GrElem], seq: GrElem*) = Sequence(seq, whitespace)
+    def ws(set: GrElem*): Set[GrElem] = Set[GrElem](set: _*)
     def oneof(items: GrElem*) = OneOf(items toSet)
     def oneof(items: Set[GrElem]) = OneOf(items)
     def lookahead_except(except: GrElem*) = LookaheadExcept(except toSet)
@@ -64,6 +65,7 @@ abstract class Grammar {
 }
 
 case class GrammarDefinitionException(msg: String) extends Exception(msg)
+case class AmbiguousGrammarException(msg: String) extends Exception(msg)
 
 object GrElems {
     abstract class AbsGrElem
