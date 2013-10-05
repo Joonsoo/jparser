@@ -33,13 +33,13 @@ abstract class Grammar {
         def butnot(e: GrElem*) = except(e: _*)
     }
     implicit class GrammarElementRepeatable(self: GrElem) {
-        def repeat(range: RepeatRange): Repeat = self match {
+        def repeat(range: Repeat.Range): Repeat = self match {
             case _: Nonterminal | _: InputElem | _: OneOf | _: Repeat =>
                 Repeat(self, range)
             case _ => throw new Exception("Applied repeat to the items that cannot be")
         }
-        def repeat(from: Int, to: Int): Repeat = repeat(RepeatRangeTo(from, to))
-        def repeat(from: Int): Repeat = repeat(RepeatRangeFrom(from))
+        def repeat(from: Int, to: Int): Repeat = repeat(Repeat.RangeTo(from, to))
+        def repeat(from: Int): Repeat = repeat(Repeat.RangeFrom(from))
 
         // optional
         def opt = repeat(0, 1)
@@ -154,7 +154,7 @@ object GrElems {
         }
         override def canEqual(other: Any) = other.isInstanceOf[LookaheadExcept]
     }
-    case class Repeat(elem: GrElem, range: RepeatRange) extends GrElem {
+    case class Repeat(elem: GrElem, range: Repeat.Range) extends GrElem {
         override lazy val hashCode = (elem, range).hashCode
         override def equals(other: Any) = other match {
             case that: Repeat => (that canEqual this) && (that.elem == elem) && (that.range == range)
@@ -162,36 +162,37 @@ object GrElems {
         }
         override def canEqual(other: Any) = other.isInstanceOf[Repeat]
     }
+    object Repeat {
+        sealed abstract class Range {
+            val from: Int
 
-    sealed abstract class RepeatRange {
-        val from: Int
+            def contains(v: Int): Boolean
+            def canProceed(x: Int): Boolean
 
-        def contains(v: Int): Boolean
-        def canProceed(x: Int): Boolean
-
-        def canEqual(other: Any): Boolean
-    }
-    case class RepeatRangeFrom(val from: Int) extends RepeatRange {
-        def contains(v: Int) = from <= v
-        override def canProceed(x: Int): Boolean = true
-
-        override lazy val hashCode = from
-        override def equals(other: Any) = other match {
-            case that: RepeatRangeFrom => (that canEqual this) && (that.from == from)
-            case _ => false
+            def canEqual(other: Any): Boolean
         }
-        override def canEqual(other: Any) = other.isInstanceOf[RepeatRangeFrom]
-    }
-    case class RepeatRangeTo(val from: Int, val to: Int) extends RepeatRange {
-        override def contains(v: Int) = from <= v && v <= to
-        override def canProceed(x: Int): Boolean = x < to
+        case class RangeFrom(val from: Int) extends Range {
+            def contains(v: Int) = from <= v
+            override def canProceed(x: Int): Boolean = true
 
-        override lazy val hashCode = (from, to).hashCode
-        override def equals(other: Any) = other match {
-            case that: RepeatRangeTo => (that canEqual this) && (that.from == from) && (that.to == to)
-            case _ => false
+            override lazy val hashCode = from
+            override def equals(other: Any) = other match {
+                case that: RangeFrom => (that canEqual this) && (that.from == from)
+                case _ => false
+            }
+            override def canEqual(other: Any) = other.isInstanceOf[RangeFrom]
         }
-        override def canEqual(other: Any) = other.isInstanceOf[RepeatRangeTo]
+        case class RangeTo(val from: Int, val to: Int) extends Range {
+            override def contains(v: Int) = from <= v && v <= to
+            override def canProceed(x: Int): Boolean = x < to
+
+            override lazy val hashCode = (from, to).hashCode
+            override def equals(other: Any) = other match {
+                case that: RangeTo => (that canEqual this) && (that.from == from) && (that.to == to)
+                case _ => false
+            }
+            override def canEqual(other: Any) = other.isInstanceOf[RangeTo]
+        }
     }
     // ActDef will be considered later!
 }

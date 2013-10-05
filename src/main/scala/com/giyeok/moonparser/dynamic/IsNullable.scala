@@ -30,8 +30,8 @@ trait IsNullable {
                 case Except(item, _) => item.isNullable
                 case LookaheadExcept(_) => false
                 case Repeat(item, range) => range match {
-                    case RepeatRangeFrom(from) => if (from == 0) true else item.isNullable
-                    case RepeatRangeTo(from, to) => if (from == 0) true else item.isNullable
+                    case Repeat.RangeFrom(from) => if (from == 0) true else item.isNullable
+                    case Repeat.RangeTo(from, to) => if (from == 0) true else item.isNullable
                 }
             }
         }
