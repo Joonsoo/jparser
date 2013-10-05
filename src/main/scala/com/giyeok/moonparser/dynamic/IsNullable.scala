@@ -26,6 +26,7 @@ trait IsNullable {
                 }
                 case StringInput(string) => string.length == 0
                 case _: CharacterInput | _: VirtualInput => false
+                case EOFInput => ???
                 case Sequence(seq, _) => seq forall { _.isNullable }
                 case OneOf(items) => items exists { _.isNullable }
                 case Except(item, _) => item.isNullable

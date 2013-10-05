@@ -10,6 +10,7 @@ abstract class Grammar {
     val startSymbol: String
 
     def e = Empty
+    def eof = EOFInput
     def n(name: String) = Nonterminal(name)
     def i(string: String) = StringInput(string)
     def c = AnyCharacterInput
@@ -132,6 +133,7 @@ object GrElems {
         }
         override def canEqual(other: Any) = other.isInstanceOf[VirtualInput]
     }
+    object EOFInput extends InputElem
 
     case class Sequence(seq: Seq[GrElem], whitespace: Set[GrElem]) extends GrElem {
         override lazy val hashCode = (seq, whitespace).hashCode

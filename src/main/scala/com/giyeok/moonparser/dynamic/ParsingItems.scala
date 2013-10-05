@@ -7,8 +7,9 @@ import com.giyeok.moonparser.InputPieces._
 trait ParsingItems {
     this: Parser =>
 
-    def defItemToState(i: GrElem) = i match {
+    def defItemToState(i: GrElem): ParsingItem = i match {
         case Empty => ParsingEmpty
+        case EOFInput => ParsingEOFInput()
         case j: CharacterInput => ParsingCharacterInput(j)
         case j: StringInput => ParsingStringInput(j)
         case j: VirtualInput => ParsingVirtualInput(j)
@@ -88,6 +89,18 @@ trait ParsingItems {
                     Some(ParsingVirtualInput(elem, Some(term.asInstanceOf[TermSymbol[VirtInput]])))
                 case term @ TermSymbol(TokenInput(t), _) =>
                     Some(new GotToken(term.asInstanceOf[TermSymbol[TokenInput]]))
+                case _ => None
+            }
+        }
+    }
+    case class ParsingEOFInput(input: Option[TermSymbol[EndOfFile.type]] = None) extends ParsingItem {
+        val elem = EOFInput
+        lazy val finish: Option[ParsedSymbol] = input
+        lazy val subs: Set[ParsingItem] = Set()
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
+            sym match {
+                case term @ TermSymbol(EndOfFile, _) =>
+                    Some(ParsingEOFInput(Some(term.asInstanceOf[TermSymbol[EndOfFile.type]])))
                 case _ => None
             }
         }

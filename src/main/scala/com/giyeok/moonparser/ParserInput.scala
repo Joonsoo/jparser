@@ -14,13 +14,13 @@ object ParserInputs {
     }
     class StringParserInput(val string: String) extends ParserInput {
         val length = string length
-        def at(p: Int) = if (p < length) CharInput(string charAt p) else EOF
+        def at(p: Int) = if (p < length) CharInput(string charAt p) else EndOfFile
 
         def subinput(p: Int) = new StringParserInput(string substring p)
     }
     class SeqParserInput(val list: Seq[Input]) extends ParserInput {
         val length = list length
-        def at(p: Int) = if (p < length) list(p) else EOF
+        def at(p: Int) = if (p < length) list(p) else EndOfFile
 
         def subinput(p: Int) = new SeqParserInput(list drop p)
     }
@@ -46,5 +46,5 @@ object InputPieces {
     case class CharInput(val char: Char) extends Input
     case class VirtInput(val name: String) extends Input
     case class TokenInput(val token: Token) extends Input
-    case object EOF extends Input
+    case object EndOfFile extends Input
 }
