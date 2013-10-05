@@ -57,7 +57,8 @@ abstract class Grammar {
 case class GrammarDefinitionException(msg: String) extends Exception(msg)
 
 object GrElems {
-    sealed abstract class GrElem
+    abstract class AbsGrElem
+    sealed abstract class GrElem extends AbsGrElem
     case class Nonterminal(name: String) extends GrElem {
         override lazy val hashCode = name.hashCode
         override def equals(other: Any) = other match {
