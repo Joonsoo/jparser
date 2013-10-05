@@ -17,6 +17,7 @@ trait ParsingItems {
         case j: Sequence => new ParsingSequence(j)
         case j: Except => ParsingExcept(j)
         case j: LookaheadExcept => ParsingLookaheadExcept(j)
+        case j: Backup => ParsingBackup(j)
     }
 
     case class ParsingCharacterInput(elem: CharacterInput, input: Option[TermSymbol[CharInput]] = None) extends ParsingItem {
@@ -131,6 +132,11 @@ trait ParsingItems {
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
     }
     case class ParsingLookaheadExcept(elem: LookaheadExcept) extends ParsingItem {
+        val finish: Option[ParsedSymbol] = None
+        val subs: Set[ParsingItem] = Set()
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
+    }
+    case class ParsingBackup(elem: Backup) extends ParsingItem {
         val finish: Option[ParsedSymbol] = None
         val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = None

@@ -194,5 +194,13 @@ object GrElems {
             override def canEqual(other: Any) = other.isInstanceOf[RangeTo]
         }
     }
+    case class Backup(elem: GrElem, backup: GrElem) extends GrElem {
+        override lazy val hashCode = (elem, backup).hashCode
+        override def equals(other: Any) = other match {
+            case that: Backup => (that canEqual this) && (that.elem == elem) && (that.backup == backup)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[Backup]
+    }
     // ActDef will be considered later!
 }
