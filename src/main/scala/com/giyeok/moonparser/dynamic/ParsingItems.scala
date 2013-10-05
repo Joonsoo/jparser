@@ -8,6 +8,7 @@ trait ParsingItems {
     this: Parser =>
 
     def defItemToState(i: GrElem) = i match {
+        case Empty => ParsingEmpty
         case j: CharacterInput => ParsingCharacterInput(j)
         case j: StringInput => ParsingStringInput(j)
         case j: VirtualInput => ParsingVirtualInput(j)
@@ -20,6 +21,25 @@ trait ParsingItems {
         case j: Backup => ParsingBackup(j)
     }
 
+    abstract class ParsingItem {
+        val elem: GrElem
+
+        val finish: Option[ParsedSymbol]
+        val subs: Set[ParsingItem]
+        def proceed(sym: ParsedSymbol): Option[ParsingItem]
+
+        // FUTURE expecting will be used to make more informative parse error message
+        // `expecting` is the set of grammar elements that are expected to be appeared at the point
+        // val expecting: Set[GrElem]
+    }
+
+    case object ParsingEmpty extends ParsingItem {
+        val elem = Empty
+        object EmptyObject extends EmptySymbol(Empty)
+        val finish: Option[EmptySymbol] = Some(EmptyObject)
+        val subs: Set[ParsingItem] = Set()
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
+    }
     case class ParsingCharacterInput(elem: CharacterInput, input: Option[TermSymbol[CharInput]] = None) extends ParsingItem {
         lazy val finish: Option[TermSymbol[CharInput]] = input
         // dumb code: if (input.isDefined) Some(input.get) else None
@@ -117,11 +137,11 @@ trait ParsingItems {
         }
     }
     // TODO implement the rest
-    case class ParsingSequence(elem: Sequence, input: List[ConcreteSymbol] = Nil, inputWS: List[ConcreteSymbol] = Nil, locWS: Set[Int] = Set())
+    case class ParsingSequence(elem: Sequence, input: List[ConcreteSymbol] = Nil, inputWS: List[ConcreteSymbol] = Nil, mappings: Map[Int, Int] = Map())
             extends ParsingItem {
         // input: list of symbols WITHOUT white spaces
         // inputWS: list of symbols WITH white spaces
-        // locWS: set of locations of white spaces in `inputWS`
+        // mappings: mapping from the index of actual child item of `elem: Sequence` -> index of inputWS
         val finish: Option[ParsedSymbol] = None
         val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = None

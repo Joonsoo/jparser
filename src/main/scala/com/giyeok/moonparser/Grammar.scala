@@ -9,6 +9,7 @@ abstract class Grammar {
     val rules: RuleMap
     val startSymbol: String
 
+    def e = Empty
     def n(name: String) = Nonterminal(name)
     def i(string: String) = StringInput(string)
     def c = AnyCharacterInput
@@ -66,6 +67,9 @@ case class GrammarDefinitionException(msg: String) extends Exception(msg)
 object GrElems {
     abstract class AbsGrElem
     sealed abstract class GrElem extends AbsGrElem
+
+    case object Empty extends GrElem
+
     case class Nonterminal(name: String) extends GrElem {
         override lazy val hashCode = name.hashCode
         override def equals(other: Any) = other match {

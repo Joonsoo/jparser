@@ -14,6 +14,7 @@ trait IsNullable {
     implicit class Nullable(item: GrElem) {
         def isNullable: Boolean = {
             item match {
+                case Empty => true
                 case Nonterminal(name) => (Nullable.map get name) match {
                     case Some(v) => v
                     case None =>
@@ -33,6 +34,7 @@ trait IsNullable {
                     case Repeat.RangeFrom(from) => if (from == 0) true else item.isNullable
                     case Repeat.RangeTo(from, to) => if (from == 0) true else item.isNullable
                 }
+                case Backup(elem, backup) => ???
             }
         }
     }
