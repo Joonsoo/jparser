@@ -52,6 +52,13 @@ abstract class Grammar {
         // more than once
         def plus = repeat(1)
     }
+    implicit class GrammarElementBackupable(self: GrElem) {
+        def backup(backup: GrElem): Backup = self match {
+            case _: Nonterminal => // NOTE consider which elements are deserved to be backed up
+                Backup(self, backup)
+            case _ => throw new Exception("Applied backup to the items that cannot be")
+        }
+    }
 }
 
 case class GrammarDefinitionException(msg: String) extends Exception(msg)
