@@ -228,7 +228,6 @@ trait ParsingItems {
         }
         lazy val finish: Option[ParsedSymbol] = {
             if (!canFinish) None else {
-                println("ParsingSeq.finish")
                 val rest = (elem.seq drop pointer).toList map (EmptySymbol(_))
                 Some(new NontermSymbolWS(elem, input.reverse ++ rest, inputWS.reverse, mappings))
             }
@@ -243,7 +242,6 @@ trait ParsingItems {
         }
         def proceed(sym: ParsedSymbol): Option[ParsingItem] =
             if (pointer >= elem.seq.length) None else {
-                println(s"ParsingSeq.proceed $sym $pointer ${elem.seq drop pointer}")
                 sym match {
                     case tok: Token =>
                         ??? // NOTE needs token proceed?

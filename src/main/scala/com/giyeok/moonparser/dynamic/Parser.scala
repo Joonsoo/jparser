@@ -55,10 +55,12 @@ class BasicBlackboxParser(val grammar: Grammar) extends BlackboxParser {
     }
     def parse(input: String): Parser.Result = parse(ParserInput.fromString(input))
 }
-class Parser(val grammar: Grammar, val input: ParserInput)
+class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = false)
         extends ParsingItems with IsNullable with OctopusStacks {
     private var _result: Parser.Result = Set()
     def result = _result
+
+    def logln(str: => String): Unit = if (log) println(str)
 
     protected val starter =
         EntryGroup(Set(Entry(grammar.n(grammar.startSymbol).toParsingItem, None)), StartSymbol, 0)
@@ -79,13 +81,13 @@ class Parser(val grammar: Grammar, val input: ParserInput)
         false
     }
     def finish(entry: EntryGroup, sym: ParsedSymbol)(failed: ParserStep, ambiguous: ParserStep = defaultAmbiguousHandler): Boolean = {
-        println(s"Finish ${System.identityHashCode(entry).toHexString}")
+        logln(s"Finish ${System.identityHashCode(entry).toHexString}")
         def finishItem(genpoint: Option[EntryGroup], reduced: ParsedSymbol): Boolean =
             genpoint match {
                 case Some(genpoint) =>
-                    println(s"Genpoint: ${System.identityHashCode(genpoint).toHexString}")
+                    logln(s"Genpoint: ${System.identityHashCode(genpoint).toHexString}")
                     val proceeded = genpoint.proceed(reduced, entry.pointer)
-                    if (proceeded.isEmpty) println(s"assertion: $reduced at ${System.identityHashCode(genpoint).toHexString}")
+                    if (proceeded.isEmpty) logln(s"assertion: $reduced at ${System.identityHashCode(genpoint).toHexString}")
                     assert(proceeded.isDefined)
                     stack.add(genpoint, proceeded.get)
                     true
@@ -124,7 +126,7 @@ class Parser(val grammar: Grammar, val input: ParserInput)
             // `proceed` and `finish` dual
             // `proceed`, and `finish` if failed
 
-            println(s"TermSymbol $sym ${input finishedAt sym.pointer}")
+            logln(s"TermSymbol $sym ${input finishedAt sym.pointer}")
             defaultParseStep(entry, sym, entry.pointer + 1)
         } else {
             false
@@ -151,36 +153,36 @@ class Parser(val grammar: Grammar, val input: ParserInput)
         }
 
         def printMe() = {
-            println(s"=== new EntryGroup ${System.identityHashCode(this).toHexString} ===")
+            logln(s"=== new EntryGroup ${System.identityHashCode(this).toHexString} ===")
             symbol match {
-                case cs: ConcreteSymbol => println(s"Symbol: ${cs.text}")
+                case cs: ConcreteSymbol => logln(s"Symbol: ${cs.text}")
                 case _ =>
             }
-            println(s"Pointer: $pointer")
+            logln(s"Pointer: $pointer")
             def printItem(e: Entry) =
-                println(s"${e.item}: ${
+                logln(s"${e.item}: ${
                     e.genpoint match {
                         case Some(x) => System.identityHashCode(x).toHexString
                         case None => "root"
                     }
                 } ${e.finish.isDefined}")
-            println(s"Kernels: ${kernels.size}")
+            logln(s"Kernels: ${kernels.size}")
             kernels foreach printItem
-            println(s"Members: ${members.size}")
+            logln(s"Members: ${members.size}")
             (members -- kernels) foreach printItem
-            println("================================")
+            logln("================================")
         }
-        printMe()
+        if (log) printMe()
 
         def proceed(sym: ParsedSymbol, pointer: Int): Option[EntryGroup] = {
-            println(s"Proceed ${System.identityHashCode(this).toHexString} $sym")
+            logln(s"Proceed ${System.identityHashCode(this).toHexString} $sym")
             val proceeded = members flatMap { _.proceed(sym) }
-            println(proceeded)
+            logln(proceeded.toString)
             if (proceeded.isEmpty) None else Some(EntryGroup(proceeded, sym, pointer))
         }
         lazy val finish: Set[(Option[EntryGroup], ParsedSymbol)] = {
             val fin = members flatMap { _.finish }
-            println(s"Finish $fin")
+            logln(s"Finish $fin")
             fin
         }
     }
@@ -189,7 +191,7 @@ class Parser(val grammar: Grammar, val input: ParserInput)
         def proceed(sym: ParsedSymbol): Option[Entry] = {
             (item proceed sym) match {
                 case Some(proceeded) =>
-                    println(s"proceeded: $proceeded")
+                    logln(s"proceeded: $proceeded")
                     Some(Entry(proceeded, genpoint))
                 case None => None
             }
