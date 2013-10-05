@@ -1,6 +1,7 @@
 package com.giyeok.moonparser
 
 abstract class Grammar {
+    import scala.collection.immutable._
     import com.giyeok.moonparser.GrElems._
 
     type RuleMap = Map[String, Set[GrElem]]
