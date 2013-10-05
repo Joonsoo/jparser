@@ -43,8 +43,29 @@ object ParserInputs {
 
 abstract sealed class Input
 object InputPieces {
-    case class CharInput(val char: Char) extends Input
-    case class VirtInput(val name: String) extends Input
-    case class TokenInput(val token: Token) extends Input
+    case class CharInput(val char: Char) extends Input {
+        override def hashCode = char.hashCode
+        override def equals(other: Any) = other match {
+            case that: CharInput => (that canEqual this) && (char == that.char)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[CharInput]
+    }
+    case class VirtInput(val name: String) extends Input {
+        override def hashCode = name.hashCode
+        override def equals(other: Any) = other match {
+            case that: VirtInput => (that canEqual this) && (name == that.name)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[VirtInput]
+    }
+    case class TokenInput(val token: Token) extends Input {
+        override def hashCode = token.hashCode
+        override def equals(other: Any) = other match {
+            case that: TokenInput => (that canEqual this) && (token == that.token)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[TokenInput]
+    }
     case object EndOfFile extends Input
 }
