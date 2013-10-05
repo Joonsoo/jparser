@@ -55,7 +55,7 @@ object SampleGrammar5 extends SampleGrammar {
     val name = "Sample5"
     val startSymbol: String = "S"
     val rules: RuleMap = ListMap(
-        "S" -> Set(seq(c, c("abc"), unicode("Lu"), CharacterRangeInput('0', '9'))))
+        "S" -> Set(seq(c, c("abc"), unicode("Lu"), c('0', '9'))))
     val sampleInputs = List("-bQ5")
 }
 

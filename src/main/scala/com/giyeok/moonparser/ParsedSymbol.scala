@@ -49,8 +49,8 @@ object ParsedSymbols {
 
         def compat(item: GrElem) =
             item match {
-                case StringInput(string) => this.source.length == string.length && this.text == string
-                case _: VirtualInput | _: Nonterminal | _: OneOf => compats contains item
+                case StringInputElem(string) => this.source.length == string.length && this.text == string
+                case _: VirtualInputElem | _: Nonterminal | _: OneOf => compats contains item
                 case _ => false
             }
     }

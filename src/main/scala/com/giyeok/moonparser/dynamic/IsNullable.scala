@@ -24,9 +24,9 @@ trait IsNullable {
                         val temp = rhs.get exists { _.isNullable }
                         Nullable.map += name -> temp; temp
                 }
-                case StringInput(string) => string.length == 0
-                case _: CharacterInput | _: VirtualInput => false
-                case EOFInput => ???
+                case StringInputElem(string) => string.length == 0
+                case _: CharacterInputElem | _: VirtualInputElem => false
+                case EndOfFileElem => ???
                 case Sequence(seq, _) => seq forall { _.isNullable }
                 case OneOf(items) => items exists { _.isNullable }
                 case Except(item, _) => item.isNullable

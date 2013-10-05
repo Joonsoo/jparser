@@ -10,16 +10,16 @@ abstract class Grammar {
     val startSymbol: String
 
     def e = Empty
-    def eof = EOFInput
+    def eof = EndOfFileElem
     def n(name: String) = Nonterminal(name)
-    def i(string: String) = StringInput(string)
-    def c = AnyCharacterInput
-    def c(chars: Set[Char]) = SetCharacterInput(chars)
-    def c(chars: String) = SetCharacterInput(chars.toCharArray toSet)
-    def c(from: Char, to: Char) = CharacterRangeInput(from, to)
-    def unicode(categories: String*): UnicodeCategoryCharacterInput = unicode(categories toSet)
-    def unicode(categories: Set[String]) = UnicodeCategoryCharacterInput(UnicodeUtil.translateCategoryNamesToByte(categories))
-    def virtual(name: String) = VirtualInput(name)
+    def i(string: String) = StringInputElem(string)
+    def c = AnyCharacterInputElem
+    def c(chars: Set[Char]) = SetCharacterInputElem(chars)
+    def c(chars: String) = SetCharacterInputElem(chars.toCharArray toSet)
+    def c(from: Char, to: Char) = CharacterRangeInputElem(from, to)
+    def unicode(categories: String*): UnicodeCategoryCharacterInputElem = unicode(categories toSet)
+    def unicode(categories: Set[String]) = UnicodeCategoryCharacterInputElem(UnicodeUtil.translateCategoryNamesToByte(categories))
+    def virtual(name: String) = VirtualInputElem(name)
     def seq(seq: GrElem*) = Sequence(seq, Set())
     def seq(whitespace: Set[GrElem], seq: GrElem*) = Sequence(seq, whitespace)
     def oneof(items: GrElem*) = OneOf(items toSet)
@@ -81,59 +81,59 @@ object GrElems {
     }
 
     sealed abstract class InputElem extends GrElem
-    case class StringInput(string: String) extends InputElem {
+    case class StringInputElem(string: String) extends InputElem {
         override lazy val hashCode = string.hashCode
         override def equals(other: Any) = other match {
-            case that: StringInput => (that canEqual this) && (that.string == string)
+            case that: StringInputElem => (that canEqual this) && (that.string == string)
             case _ => false
         }
-        override def canEqual(other: Any) = other.isInstanceOf[StringInput]
+        override def canEqual(other: Any) = other.isInstanceOf[StringInputElem]
     }
-    sealed abstract class CharacterInput extends InputElem {
+    sealed abstract class CharacterInputElem extends InputElem {
         def accept(char: Char): Boolean
     }
-    case object AnyCharacterInput extends CharacterInput {
+    case object AnyCharacterInputElem extends CharacterInputElem {
         def accept(char: Char) = true
     }
-    case class SetCharacterInput(chars: Set[Char]) extends CharacterInput {
+    case class SetCharacterInputElem(chars: Set[Char]) extends CharacterInputElem {
         def accept(char: Char) = (chars contains char)
 
         override lazy val hashCode = chars.hashCode
         override def equals(other: Any) = other match {
-            case that: SetCharacterInput => (that canEqual this) && (that.chars == chars)
+            case that: SetCharacterInputElem => (that canEqual this) && (that.chars == chars)
             case _ => false
         }
-        override def canEqual(other: Any) = other.isInstanceOf[SetCharacterInput]
+        override def canEqual(other: Any) = other.isInstanceOf[SetCharacterInputElem]
     }
-    case class UnicodeCategoryCharacterInput(categories: Set[Byte]) extends CharacterInput {
+    case class UnicodeCategoryCharacterInputElem(categories: Set[Byte]) extends CharacterInputElem {
         def accept(char: Char) = categories contains char.getType.toByte
 
         override lazy val hashCode = categories.hashCode
         override def equals(other: Any) = other match {
-            case that: UnicodeCategoryCharacterInput => (that canEqual this) && (that.categories == categories)
+            case that: UnicodeCategoryCharacterInputElem => (that canEqual this) && (that.categories == categories)
             case _ => false
         }
-        override def canEqual(other: Any) = other.isInstanceOf[UnicodeCategoryCharacterInput]
+        override def canEqual(other: Any) = other.isInstanceOf[UnicodeCategoryCharacterInputElem]
     }
-    case class CharacterRangeInput(from: Char, to: Char) extends CharacterInput {
+    case class CharacterRangeInputElem(from: Char, to: Char) extends CharacterInputElem {
         def accept(char: Char) = (from <= char && char <= to)
 
         override lazy val hashCode = (from, to).hashCode
         override def equals(other: Any) = other match {
-            case that: CharacterRangeInput => (that canEqual this) && (that.from == from) && (that.to == to)
+            case that: CharacterRangeInputElem => (that canEqual this) && (that.from == from) && (that.to == to)
             case _ => false
         }
-        override def canEqual(other: Any) = other.isInstanceOf[CharacterRangeInput]
+        override def canEqual(other: Any) = other.isInstanceOf[CharacterRangeInputElem]
     }
-    case class VirtualInput(name: String) extends InputElem {
+    case class VirtualInputElem(name: String) extends InputElem {
         override lazy val hashCode = name.hashCode
         override def equals(other: Any) = other match {
-            case that: VirtualInput => (that canEqual this) && (that.name == name)
+            case that: VirtualInputElem => (that canEqual this) && (that.name == name)
             case _ => false
         }
-        override def canEqual(other: Any) = other.isInstanceOf[VirtualInput]
+        override def canEqual(other: Any) = other.isInstanceOf[VirtualInputElem]
     }
-    object EOFInput extends InputElem
+    object EndOfFileElem extends InputElem
 
     case class Sequence(seq: Seq[GrElem], whitespace: Set[GrElem]) extends GrElem {
         override lazy val hashCode = (seq, whitespace).hashCode

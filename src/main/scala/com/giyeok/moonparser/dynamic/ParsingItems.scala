@@ -9,10 +9,10 @@ trait ParsingItems {
 
     def defItemToState(i: GrElem): ParsingItem = i match {
         case Empty => ParsingEmpty
-        case EOFInput => ParsingEOFInput()
-        case j: CharacterInput => ParsingCharacterInput(j)
-        case j: StringInput => ParsingStringInput(j)
-        case j: VirtualInput => ParsingVirtualInput(j)
+        case EndOfFileElem => ParsingEOFInput()
+        case j: CharacterInputElem => ParsingCharacterInput(j)
+        case j: StringInputElem => ParsingStringInput(j)
+        case j: VirtualInputElem => ParsingVirtualInput(j)
         case j: Nonterminal => ParsingNonterminal(j)
         case j: OneOf => ParsingOneOf(j)
         case j: Repeat => ParsingRepeat(j)
@@ -41,7 +41,7 @@ trait ParsingItems {
         val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
     }
-    case class ParsingCharacterInput(elem: CharacterInput, input: Option[TermSymbol[CharInput]] = None) extends ParsingItem {
+    case class ParsingCharacterInput(elem: CharacterInputElem, input: Option[TermSymbol[CharInput]] = None) extends ParsingItem {
         lazy val finish: Option[TermSymbol[CharInput]] = input
         // dumb code: if (input.isDefined) Some(input.get) else None
         lazy val subs: Set[ParsingItem] = Set()
@@ -63,7 +63,7 @@ trait ParsingItems {
             def proceed(sym: ParsedSymbol) = None
         }
     }
-    case class ParsingStringInput(elem: StringInput, input: List[TermSymbol[CharInput]] = Nil)
+    case class ParsingStringInput(elem: StringInputElem, input: List[TermSymbol[CharInput]] = Nil)
             extends ParsingItem with TokenCompatibles {
         lazy val isFinished = input.length >= elem.string.length
         lazy val finish: Option[NontermSymbol] =
@@ -79,7 +79,7 @@ trait ParsingItems {
             }
         }
     }
-    case class ParsingVirtualInput(elem: VirtualInput, input: Option[TermSymbol[VirtInput]] = None)
+    case class ParsingVirtualInput(elem: VirtualInputElem, input: Option[TermSymbol[VirtInput]] = None)
             extends ParsingItem with TokenCompatibles {
         lazy val finish: Option[ParsedSymbol] = input
         lazy val subs: Set[ParsingItem] = Set()
@@ -94,7 +94,7 @@ trait ParsingItems {
         }
     }
     case class ParsingEOFInput(input: Option[TermSymbol[EndOfFile.type]] = None) extends ParsingItem {
-        val elem = EOFInput
+        val elem = EndOfFileElem
         lazy val finish: Option[ParsedSymbol] = input
         lazy val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
