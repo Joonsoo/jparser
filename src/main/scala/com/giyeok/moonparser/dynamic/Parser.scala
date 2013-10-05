@@ -34,7 +34,7 @@ class BasicBlackboxParser(val grammar: Grammar) extends BlackboxParser {
     def parse(input: String): ParseResult = parse(ParserInput.fromString(input))
 }
 class Parser(val grammar: Grammar, val input: ParserInput)
-        extends ParsingItems with OctopusStacks {
+        extends ParsingItems with IsNullable with OctopusStacks {
     private var _result: ParseResult = new ParseResult(Nil)
     def result = _result
 

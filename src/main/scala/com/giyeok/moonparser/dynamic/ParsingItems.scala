@@ -7,19 +7,21 @@ import com.giyeok.moonparser.InputPieces._
 trait ParsingItems {
     this: Parser =>
 
-    def defItemToState(i: GrElem): ParsingItem = i match {
-        case Empty => ParsingEmpty
-        case EndOfFileElem => ParsingEOFInput()
-        case j: CharacterInputElem => ParsingCharacterInput(j)
-        case j: StringInputElem => ParsingStringInput(j)
-        case j: VirtualInputElem => ParsingVirtualInput(j)
-        case j: Nonterminal => ParsingNonterminal(j)
-        case j: OneOf => ParsingOneOf(j)
-        case j: Repeat => ParsingRepeat(j)
-        case j: Sequence => new ParsingSequence(j)
-        case j: Except => ParsingExcept(j)
-        case j: LookaheadExcept => ParsingLookaheadExcept(j)
-        case j: Backup => ParsingBackup(j)
+    implicit class GrElemToParsingItem(self: GrElem) {
+        def toParsingItem: ParsingItem = self match {
+            case Empty => ParsingEmpty
+            case EndOfFileElem => ParsingEOFInput()
+            case j: CharacterInputElem => ParsingCharacterInput(j)
+            case j: StringInputElem => ParsingStringInput(j)
+            case j: VirtualInputElem => ParsingVirtualInput(j)
+            case j: Nonterminal => ParsingNonterminal(j)
+            case j: OneOf => ParsingOneOf(j)
+            case j: Repeat => ParsingRepeat(j)
+            case j: Sequence => new ParsingSequence(j)
+            case j: Except => ParsingExcept(j)
+            case j: LookaheadExcept => ParsingLookaheadExcept(j)
+            case j: Backup => ParsingBackup(j)
+        }
     }
 
     abstract class ParsingItem {
@@ -34,6 +36,7 @@ trait ParsingItems {
         // val expecting: Set[GrElem]
     }
 
+    // TODO implement hashCode, canEqual, equals
     case object ParsingEmpty extends ParsingItem {
         val elem = Empty
         object EmptyObject extends EmptySymbol(Empty)
@@ -105,11 +108,11 @@ trait ParsingItems {
             }
         }
     }
-    case class ParsingNonterminal(elem: Nonterminal, input: Option[ConcreteSymbol] = None)
+    case class ParsingNonterminal(elem: Nonterminal, input: Option[ParsedSymbol] = None)
             extends ParsingItem with TokenCompatibles {
         lazy val finish: Option[ParsedSymbol] = if (input.isDefined) Some(NontermSymbol(elem, Seq(input.get))) else None
         lazy val subs: Set[ParsingItem] =
-            if (input.isDefined) Set() else (grammar.rules(elem.name) map defItemToState)
+            if (input.isDefined) Set() else (grammar.rules(elem.name) map { _.toParsingItem })
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
             sym match {
                 case ns @ NontermSymbol(rhs, _) if grammar.rules(elem.name) contains rhs =>
@@ -124,7 +127,7 @@ trait ParsingItems {
             extends ParsingItem with TokenCompatibles {
         lazy val finish: Option[ParsedSymbol] = input
         lazy val subs: Set[ParsingItem] =
-            if (input.isDefined) Set() else (elem.elems map defItemToState)
+            if (input.isDefined) Set() else (elem.elems map { _.toParsingItem })
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
             sym match {
                 case NontermSymbol(e, _) if elem.elems contains e =>
@@ -135,11 +138,11 @@ trait ParsingItems {
             }
         }
     }
-    case class ParsingRepeat(elem: Repeat, input: List[ConcreteSymbol] = Nil) extends ParsingItem {
+    case class ParsingRepeat(elem: Repeat, input: List[ParsedSymbol] = Nil) extends ParsingItem {
         lazy val finish: Option[ParsedSymbol] =
             if (elem.range contains input.length) Some(NontermSymbol(elem, input.reverse)) else None
         lazy val canProceed = elem.range canProceed input.length
-        lazy val subs: Set[ParsingItem] = if (canProceed) Set(defItemToState(elem.elem)) else Set()
+        lazy val subs: Set[ParsingItem] = if (canProceed) Set(elem.elem.toParsingItem) else Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (!canProceed) None else {
             sym match {
                 case ns @ NontermSymbol(e, _) if elem.elem == e =>
@@ -149,16 +152,55 @@ trait ParsingItems {
             }
         }
     }
-    // TODO implement the rest
-    case class ParsingSequence(elem: Sequence, input: List[ConcreteSymbol] = Nil, inputWS: List[ConcreteSymbol] = Nil, mappings: Map[Int, Int] = Map())
+    case class ParsingSequence(elem: Sequence, input: List[ParsedSymbol] = Nil, inputWS: List[ParsedSymbol] = Nil, mappings: Map[Int, Int] = Map())
             extends ParsingItem {
-        // input: list of symbols WITHOUT white spaces
-        // inputWS: list of symbols WITH white spaces
-        // mappings: mapping from the index of actual child item of `elem: Sequence` -> index of inputWS
-        val finish: Option[ParsedSymbol] = None
-        val subs: Set[ParsingItem] = Set()
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
+        // input: list of symbols WITHOUT white spaces (and with Empty symbols) -- indices sync with elem.seq
+        // inputWS: list of symbols WITH white spaces (and without Empty symbols) -- indices not sync with elem.seq
+        // mappings: mapping from the index of actual child item of `elem: Sequence` -> index of `inputWS`, 
+        //             i.e. index of `input` -> index of `inputWS`
+        // NOTE !!! `input` and `inputWS` are reversed !!!
+        val pointer = input.length
+        lazy val canFinish: Boolean = {
+            val leftItemsAreAllNullable = elem.seq drop pointer forall { _.isNullable }
+            val lastIsNotWhitespace = (mappings maxBy { _._1 })._2 + 1 == inputWS.length
+            leftItemsAreAllNullable && lastIsNotWhitespace
+        }
+        lazy val finish: Option[ParsedSymbol] = {
+            if (!canFinish) None else {
+                val rest = (elem.seq drop pointer).toList map (EmptySymbol(_))
+                Some(new NontermSymbolWS(elem, input.reverse ++ rest, inputWS.reverse, mappings))
+            }
+        }
+        val subs: Set[ParsingItem] = {
+            def prop(seq: Seq[GrElem]): Set[ParsingItem] = seq match {
+                case item +: rest if item.isNullable => prop(rest) + item.toParsingItem
+                case item +: rest => Set(item.toParsingItem)
+                case Nil => Set()
+            }
+            prop(elem.seq drop pointer)
+        }
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (pointer >= input.length) None else {
+            sym match {
+                case tok: Token =>
+                    ??? // NOTE needs token proceed?
+                case sym: NamedSymbol =>
+                    def prop(seq: Seq[GrElem], acc: List[ParsedSymbol] = Nil): List[ParsedSymbol] = seq match {
+                        case item +: rest if item == sym.elem => sym +: acc
+                        case item +: rest if item.isNullable => prop(rest, EmptySymbol(item) +: acc)
+                        case _ => Nil
+                    }
+                    val p = prop(elem.seq drop pointer)
+                    if (!p.isEmpty)
+                        Some(ParsingSequence(elem, p ++ input, inputWS, mappings + ((pointer + p.length - 1) -> inputWS.length)))
+                    else {
+                        if (elem.whitespace contains sym.elem) Some(ParsingSequence(elem, input, sym +: inputWS, mappings))
+                        else None
+                    }
+                case _ => None
+            }
+        }
     }
+    // TODO implement the rest
     case class ParsingExcept(elem: Except) extends ParsingItem {
         val finish: Option[ParsedSymbol] = None
         val subs: Set[ParsingItem] = Set()
