@@ -12,36 +12,26 @@ class SampleGrammarTests extends FunSuite {
     import com.giyeok.moonparser.dynamic.Parser
     import com.giyeok.moonparser.dynamic.BasicBlackboxParser
 
-    test("Basic Grammar 1") {
-        val grammar = new Grammar {
-            val name = "Basic Grammar 1"
-            val startSymbol: String = "S"
-            val rules: RuleMap = ListMap(
-                "S" -> Set(seq(n("A"), n("B"))),
-                "A" -> Set(i("a"), seq(i("a"), n("A"))),
-                "B" -> Set(seq(i("b"), n("B")), seq()))
-        }
+    val grammar1 = new Grammar {
+        val name = "Simple Grammar 1"
+        val startSymbol: String = "S"
+        val rules: RuleMap = ListMap(
+            "S" -> Set(seq(n("A"), n("B"))),
+            "A" -> Set(i("a"), seq(i("a"), n("A"))),
+            "B" -> Set(seq(i("b"), n("B")), e))
+    }
 
-        val parser = new BasicBlackboxParser(grammar)
-        println(parser.parse("aaaaaaaaaaaaaaaa"))
+    test("Simple Grammar 1") {
+        val parser = new BasicBlackboxParser(grammar1)
+
+        println(parser.parse("aaa"))
+        println(parser.parse("abbb"))
+        println(parser.parse("aaaaaaaaaabbbbb"))
+        // println(parser.parse("c"))  // after implement backup items support
         assert(true)
     }
+
     /*
-    test("Grammar 2") {
-        val grammar = new Grammar {
-            val name = "Grammar 2"
-            val startSymbol: String = "S"
-            val rules: RuleMap = ListMap(
-                "S" -> Set(seq(ws(i(" ")), n("A"), n("B"))),
-                "A" -> Set(i("a"), seq(i("a"), n("A"))),
-                "B" -> Set(seq(i("b"), n("B")), seq()))
-        }
-
-        val parser = new BasicBlackboxParser(grammar)
-        println(parser.parse("aaaaaaaaaaaaaaaa"))
-        assert(true)
-    }
-
     test("Gramamr 3") {
         val grammar = new Grammar {
             val name = "Gramamr 3"
