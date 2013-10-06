@@ -94,7 +94,8 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
                 case None =>
                     // parsing may be finished
                     // it succeed if entry reaches to the end of input, and failed otherwise
-                    if (input finishedAt entry.pointer) _result += Parser.Succeed(entry.symbol)
+                    logln(s"Trying to finish parsing as $reduced")
+                    if (input finishedAt entry.pointer) _result += Parser.Succeed(reduced)
                     else _result += Parser.Failed(Parser.FailedReason.UnexpectedEndOfFile, entry.pointer)
                     true
             }
