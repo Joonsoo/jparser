@@ -51,7 +51,8 @@ trait ParsingItems {
     }
     case class ParsingCharacterInput(elem: CharacterInputElem, input: Option[TermSymbol[CharInput]] = None)
             extends ParsingItem with SimpleRepr {
-        lazy val finish: Option[TermSymbol[CharInput]] = input
+        lazy val finish: Option[ParsedSymbol] =
+            if (input.isDefined) Some(NontermSymbol(elem, Seq(input.get))) else None
         // dumb code: if (input.isDefined) Some(input.get) else None
         lazy val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
@@ -108,7 +109,8 @@ trait ParsingItems {
     }
     case class ParsingVirtualInput(elem: VirtualInputElem, input: Option[TermSymbol[VirtInput]] = None)
             extends ParsingItem with TokenCompatibles with SimpleRepr {
-        lazy val finish: Option[ParsedSymbol] = input
+        lazy val finish: Option[ParsedSymbol] =
+            if (input.isDefined) Some(NontermSymbol(elem, Seq(input.get))) else None
         lazy val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
             sym match {
@@ -130,7 +132,8 @@ trait ParsingItems {
     case class ParsingEOFInput(input: Option[TermSymbol[EndOfFile.type]] = None)
             extends ParsingItem with SimpleRepr {
         val elem = EndOfFileElem
-        lazy val finish: Option[ParsedSymbol] = input
+        lazy val finish: Option[ParsedSymbol] =
+            if (input.isDefined) Some(NontermSymbol(EndOfFileElem, Seq(input.get))) else None
         lazy val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
             sym match {
@@ -149,7 +152,8 @@ trait ParsingItems {
     }
     case class ParsingNonterminal(elem: Nonterminal, input: Option[ParsedSymbol] = None)
             extends ParsingItem with TokenCompatibles with SimpleRepr {
-        lazy val finish: Option[ParsedSymbol] = if (input.isDefined) Some(NontermSymbol(elem, Seq(input.get))) else None
+        lazy val finish: Option[ParsedSymbol] =
+            if (input.isDefined) Some(NontermSymbol(elem, Seq(input.get))) else None
         lazy val subs: Set[ParsingItem] =
             if (input.isDefined) Set() else (grammar.rules(elem.name) flatMap { _.toParsingItemOpt })
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
