@@ -28,16 +28,17 @@ class SampleGrammar1Tests extends FunSuite {
     test("Basic Grammar - test 1: aaa") {
         val t1 = grammar1.parse("aaa")
         assert(t1.parsedOpt match {
-            case Some(NontermSymbol(Sequence(Seq(Nonterminal("A"), Nonterminal("B")), _: Set[_]), List(
-                NontermSymbol(Nonterminal("A"), List(
-                    NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                        NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 0))),
-                        NontermSymbol(Nonterminal("A"), List(
-                            NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                                NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 1))),
-                                NontermSymbol(Nonterminal("A"), List(
-                                    NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 2))))))))))))),
-                EmptySymbol(Nonterminal("B"))))) => true
+            case Some(NontermSymbol(Nonterminal("S"), List(
+                NontermSymbol(Sequence(Seq(Nonterminal("A"), Nonterminal("B")), _: Set[_]), List(
+                    NontermSymbol(Nonterminal("A"), List(
+                        NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
+                            NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 0))),
+                            NontermSymbol(Nonterminal("A"), List(
+                                NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
+                                    NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 1))),
+                                    NontermSymbol(Nonterminal("A"), List(
+                                        NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 2))))))))))))),
+                    EmptySymbol(Nonterminal("B"))))))) => true
             case _ => false
         })
     }
@@ -45,20 +46,21 @@ class SampleGrammar1Tests extends FunSuite {
     test("Basic Grammar - test 2: abbb") {
         val t2 = grammar1.parse("abbb")
         assert(t2.parsedOpt match {
-            case Some(NontermSymbol(Sequence(Seq(Nonterminal("A"), Nonterminal("B")), _: Set[_]), List(
-                NontermSymbol(Nonterminal("A"), List(
-                    NontermSymbol(StringInputElem("a"), List(
-                        TermSymbol(CharInput('a'), 0))))),
-                NontermSymbol(Nonterminal("B"), List(
-                    NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                        NontermSymbol(StringInputElem("b"), List(
-                            TermSymbol(CharInput('b'), 1))), NontermSymbol(Nonterminal("B"), List(
-                            NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                NontermSymbol(StringInputElem("b"), List(
-                                    TermSymbol(CharInput('b'), 2))), NontermSymbol(Nonterminal("B"), List(
-                                    NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                        NontermSymbol(StringInputElem("b"), List(
-                                            TermSymbol(CharInput('b'), 3))), EmptySymbol(Nonterminal("B"))))))))))))))))) => true
+            case Some(NontermSymbol(Nonterminal("S"), List(
+                NontermSymbol(Sequence(Seq(Nonterminal("A"), Nonterminal("B")), _: Set[_]), List(
+                    NontermSymbol(Nonterminal("A"), List(
+                        NontermSymbol(StringInputElem("a"), List(
+                            TermSymbol(CharInput('a'), 0))))),
+                    NontermSymbol(Nonterminal("B"), List(
+                        NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
+                            NontermSymbol(StringInputElem("b"), List(
+                                TermSymbol(CharInput('b'), 1))), NontermSymbol(Nonterminal("B"), List(
+                                NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
+                                    NontermSymbol(StringInputElem("b"), List(
+                                        TermSymbol(CharInput('b'), 2))), NontermSymbol(Nonterminal("B"), List(
+                                        NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
+                                            NontermSymbol(StringInputElem("b"), List(
+                                                TermSymbol(CharInput('b'), 3))), EmptySymbol(Nonterminal("B"))))))))))))))))))) => true
             case _ => false
         })
     }
@@ -103,10 +105,7 @@ class SampleGrammar1Tests extends FunSuite {
     test("Basic Grammar - test 4: long text") {
         val longText = "a" * 500
         val t4 = grammar1.parse(longText)
-        assert(t4.parsedOpt match {
-            case Some(cs: ConcreteSymbol) if cs.text == longText => true
-            case _ => false
-        })
+        assert(t4 textEq longText)
     }
     // t5 = parser.parse("c")  // test it after implement backup items support
 }

@@ -22,6 +22,11 @@ object Parser {
             }
             lazy val succeed = parsedOpt.isDefined
             lazy val ambiguous = set.size > 1
+
+            def textEq(text: String) = this.parsedOpt match {
+                case Some(cs: ConcreteSymbol) if cs.text == text => true
+                case _ => false
+            }
         }
     }
     sealed abstract class ParsePossibility
