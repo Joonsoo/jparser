@@ -68,37 +68,38 @@ class SampleGrammar1Tests extends FunSuite {
     test("Basic Grammar - test 3: aaaaabbbbb") {
         val t3 = grammar1.parse("aaaaabbbbb")
         assert(t3.parsedOpt match {
-            case Some(NontermSymbol(Sequence(Seq(Nonterminal("A"), Nonterminal("B")), _: Set[_]), List(
-                NontermSymbol(Nonterminal("A"), List(
-                    NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                        NontermSymbol(StringInputElem("a"), List(
-                            TermSymbol(CharInput('a'), 0))), NontermSymbol(Nonterminal("A"), List(
-                            NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                                NontermSymbol(StringInputElem("a"), List(
-                                    TermSymbol(CharInput('a'), 1))), NontermSymbol(Nonterminal("A"), List(
-                                    NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                                        NontermSymbol(StringInputElem("a"), List(
-                                            TermSymbol(CharInput('a'), 2))), NontermSymbol(Nonterminal("A"), List(
-                                            NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                                                NontermSymbol(StringInputElem("a"), List(
-                                                    TermSymbol(CharInput('a'), 3))), NontermSymbol(Nonterminal("A"), List(
-                                                    NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 4))))))))))))))))))))),
-                NontermSymbol(Nonterminal("B"), List(
-                    NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                        NontermSymbol(StringInputElem("b"), List(
-                            TermSymbol(CharInput('b'), 5))), NontermSymbol(Nonterminal("B"), List(
-                            NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                NontermSymbol(StringInputElem("b"), List(
-                                    TermSymbol(CharInput('b'), 6))), NontermSymbol(Nonterminal("B"), List(
-                                    NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                        NontermSymbol(StringInputElem("b"), List(
-                                            TermSymbol(CharInput('b'), 7))), NontermSymbol(Nonterminal("B"), List(
-                                            NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                                NontermSymbol(StringInputElem("b"), List(
-                                                    TermSymbol(CharInput('b'), 8))), NontermSymbol(Nonterminal("B"), List(
-                                                    NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                                        NontermSymbol(StringInputElem("b"), List(
-                                                            TermSymbol(CharInput('b'), 9))), EmptySymbol(Nonterminal("B"))))))))))))))))))))))))) => true
+            case Some(NontermSymbol(Nonterminal("S"), List(
+                NontermSymbol(Sequence(Seq(Nonterminal("A"), Nonterminal("B")), _: Set[_]), List(
+                    NontermSymbol(Nonterminal("A"), List(
+                        NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
+                            NontermSymbol(StringInputElem("a"), List(
+                                TermSymbol(CharInput('a'), 0))), NontermSymbol(Nonterminal("A"), List(
+                                NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
+                                    NontermSymbol(StringInputElem("a"), List(
+                                        TermSymbol(CharInput('a'), 1))), NontermSymbol(Nonterminal("A"), List(
+                                        NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
+                                            NontermSymbol(StringInputElem("a"), List(
+                                                TermSymbol(CharInput('a'), 2))), NontermSymbol(Nonterminal("A"), List(
+                                                NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
+                                                    NontermSymbol(StringInputElem("a"), List(
+                                                        TermSymbol(CharInput('a'), 3))), NontermSymbol(Nonterminal("A"), List(
+                                                        NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 4))))))))))))))))))))),
+                    NontermSymbol(Nonterminal("B"), List(
+                        NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
+                            NontermSymbol(StringInputElem("b"), List(
+                                TermSymbol(CharInput('b'), 5))), NontermSymbol(Nonterminal("B"), List(
+                                NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
+                                    NontermSymbol(StringInputElem("b"), List(
+                                        TermSymbol(CharInput('b'), 6))), NontermSymbol(Nonterminal("B"), List(
+                                        NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
+                                            NontermSymbol(StringInputElem("b"), List(
+                                                TermSymbol(CharInput('b'), 7))), NontermSymbol(Nonterminal("B"), List(
+                                                NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
+                                                    NontermSymbol(StringInputElem("b"), List(
+                                                        TermSymbol(CharInput('b'), 8))), NontermSymbol(Nonterminal("B"), List(
+                                                        NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
+                                                            NontermSymbol(StringInputElem("b"), List(
+                                                                TermSymbol(CharInput('b'), 9))), EmptySymbol(Nonterminal("B"))))))))))))))))))))))))))) => true
             case _ => false
         })
     }

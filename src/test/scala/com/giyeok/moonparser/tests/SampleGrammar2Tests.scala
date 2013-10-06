@@ -25,12 +25,10 @@ class SampleGrammar2Tests extends FunSuite {
                 "B" -> Set(i("b")))
         }
         val parser = new BasicBlackboxParser(grammar)
-        parser.parse("a")
-        parser.parse("b")
-        assert(true)
+        assert(parser.parse("a") textEq "a")
+        assert(parser.parse("b") textEq "b")
     }
 
-    /*
     test("Gramamr with Repeat") {
         val grammar = new Grammar {
             val name = "Gramamr 4"
@@ -41,8 +39,8 @@ class SampleGrammar2Tests extends FunSuite {
                 "B" -> Set(i("b")))
         }
         val parser = new BasicBlackboxParser(grammar)
-        parser.parse("aabbbbb")
-        parser.parse("abbb")
+        assert(parser.parse("aabbbbb") textEq "aabbbbb")
+        assert(parser.parse("abbb") textEq "abbb")
     }
 
     test("Gramamr with various character inputs") {
@@ -53,9 +51,26 @@ class SampleGrammar2Tests extends FunSuite {
                 "S" -> Set(seq(c, c("abc"), unicode("Lu"), c('0', '9'))))
         }
         val parser = new BasicBlackboxParser(grammar)
-        parser.parse("-bQ5")
+        assert(parser.parse("-bQ5") textEq "-bQ5")
     }
 
+    test("Gramamr X") {
+        val grammar = new Grammar {
+            val name = "Grammar X"
+            val startSymbol: String = "S"
+            val rules: RuleMap = ListMap(
+                "S" -> Set(seq(n("A").opt, n("B").star, n("C").plus, n("D").plus, n("E"))),
+                "A" -> Set(oneof(i("a"), i("aa"))),
+                "B" -> Set(i("b")),
+                "C" -> Set(seq(), i("c")),
+                "D" -> Set(i("d")),
+                "E" -> Set(i("e")))
+        }
+        val parser = new BasicBlackboxParser(grammar)
+        assert(parser.parse("aaddde") textEq "aaddde")
+    }
+
+    /*
     test("Gramamr with except combined with repeat") {
         val grammar = new Grammar {
             val name = "Gramamr 6"
@@ -77,22 +92,6 @@ class SampleGrammar2Tests extends FunSuite {
         val parser = new BasicBlackboxParser(grammar)
         parser.parse("ab")
         parser.parse("ac")
-    }
-    
-    test("Gramamr X") {
-        val grammar = new Grammar {
-            val name = "Grammar X"
-            val startSymbol: String = "S"
-            val rules: RuleMap = ListMap(
-                "S" -> Set(seq(n("A").opt, n("B").star, n("C").plus, n("D").plus, n("E"))),
-                "A" -> Set(oneof(i("a"), i("aa"))),
-                "B" -> Set(i("b")),
-                "C" -> Set(seq(), i("c")),
-                "D" -> Set(i("d")),
-                "E" -> Set(i("e")))
-        }
-        val parser = new BasicBlackboxParser(grammar)
-        parser.parse("aaddde")
     }
 */
 
