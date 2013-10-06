@@ -185,6 +185,14 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
             logln(s"Finish $fin")
             fin
         }
+
+        override lazy val hashCode = (kernels, symbol, pointer).hashCode
+        override def equals(other: Any) = other match {
+            case that: EntryGroup => (that canEqual this) && (kernels == that.kernels) &&
+                (symbol == that.symbol) && (pointer == that.pointer)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[EntryGroup]
     }
     case class Entry(item: ParsingItem, genpoint: Option[EntryGroup]) {
         def subs(genpoint: EntryGroup): Set[Entry] = item.subs map { Entry(_, Some(genpoint)) }
@@ -200,5 +208,12 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
             case Some(fin) => Some(genpoint, fin)
             case None => None
         }
+
+        override lazy val hashCode = (item, genpoint).hashCode
+        override def equals(other: Any) = other match {
+            case that: Entry => (that canEqual this) && (item == that.item) && (genpoint == that.genpoint)
+            case _ => false
+        }
+        override def canEqual(other: Any) = other.isInstanceOf[Entry]
     }
 }

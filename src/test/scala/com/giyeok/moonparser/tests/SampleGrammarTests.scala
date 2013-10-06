@@ -101,8 +101,7 @@ class SampleGrammarTests extends FunSuite {
         })
     }
     test("Basic Grammar - test 4: long text") {
-        // TODO figure out why the parser exponentially slows down if the input gets longer
-        val longText = "aaaaaaaaaaaaaaaa"
+        val longText = "a" * 500
         val t4 = grammar1.parse(longText)
         assert(t4.parsedOpt match {
             case Some(cs: ConcreteSymbol) if cs.text == longText => true
