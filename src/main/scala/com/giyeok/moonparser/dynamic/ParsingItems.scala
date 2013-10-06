@@ -171,7 +171,8 @@ trait ParsingItems {
     }
     case class ParsingOneOf(elem: OneOf, input: Option[ParsedSymbol] = None)
             extends ParsingItem with TokenCompatibles with SimpleRepr {
-        lazy val finish: Option[ParsedSymbol] = input
+        lazy val finish: Option[ParsedSymbol] =
+            if (input.isDefined) Some(NontermSymbol(elem, Seq(input.get))) else None
         lazy val subs: Set[ParsingItem] =
             if (input.isDefined) Set() else (elem.elems flatMap { _.toParsingItemOpt })
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
