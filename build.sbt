@@ -25,6 +25,6 @@ libraryDependencies += {
   "org.eclipse.swt" % artifact % "4.3"
 }
 
-libraryDependencies += {
-  "org.eclipse.draw2d" % "org.eclipse.draw2d" % "3.7.2"
-}
+libraryDependencies ++= Seq(
+  "org.eclipse.draw2d" % "org.eclipse.draw2d" % "3.9.0" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.draw2d_3.9.0.201308190730.jar"
+)
