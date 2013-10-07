@@ -58,7 +58,8 @@ abstract class Grammar {
     }
     implicit class GrammarElementBackupable(self: GrElem) {
         def backup(backups: GrElem*): Backup = self match {
-            case _: Nonterminal => // NOTE consider which elements are deserved to be backed up
+            case _: Nonterminal | _: InputElem =>
+                // NOTE consider which elements are deserved to be backed up
                 Backup(self, backups.toSet)
             case _ => throw new Exception("Applied backup to the items that cannot be")
         }
@@ -106,7 +107,7 @@ object GrElems {
     case class VirtualInputElem(name: String) extends InputElem {
         override lazy val hashCode = name.hashCode
     }
-    object EndOfFileElem extends InputElem
+    case object EndOfFileElem extends InputElem
 
     case class Sequence(seq: Seq[GrElem], whitespace: Set[GrElem]) extends GrElem {
         override lazy val hashCode = (seq, whitespace).hashCode

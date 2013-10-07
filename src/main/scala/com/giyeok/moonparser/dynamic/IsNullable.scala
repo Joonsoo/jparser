@@ -26,7 +26,7 @@ trait IsNullable {
                 }
                 case StringInputElem(string) => string.length == 0
                 case _: CharacterInputElem | _: VirtualInputElem => false
-                case EndOfFileElem => ???
+                case EndOfFileElem => false
                 case Sequence(seq, _) => seq forall { _.isNullable }
                 case OneOf(items) => items exists { _.isNullable }
                 case Except(item, _) => item.isNullable
@@ -35,9 +35,9 @@ trait IsNullable {
                     case Repeat.RangeFrom(from) => if (from == 0) true else item.isNullable
                     case Repeat.RangeTo(from, to) => if (from == 0) true else item.isNullable
                 }
-                case Backup(elem, backup) => ???
+                case Backup(elem, backup) =>
+                    elem.isNullable // Maybe need: || (backup exists { _.isNullable })
             }
         }
     }
-
 }
