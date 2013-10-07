@@ -49,7 +49,7 @@ object Parser {
     }
 
     object FailedReason extends Enumeration {
-        val UnexpectedEndOfFile = Value
+        val UnexpectedInput, UnexpectedEndOfFile = Value
     }
 }
 class BasicBlackboxParser(val grammar: Grammar) extends BlackboxParser {
@@ -81,11 +81,15 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
     def proceed(entry: EntryGroup, sym: ParsedSymbol)(failed: ParserStep): Boolean =
         proceed(entry, sym, entry.pointer)(failed)
 
+    def defaultFailedHandler(entry: EntryGroup, sym: ParsedSymbol): Boolean = {
+        _result += Parser.Failed(Parser.FailedReason.UnexpectedInput, entry.pointer)
+        false
+    }
     def defaultAmbiguousHandler(entry: EntryGroup, sym: ParsedSymbol): Boolean = {
         throw AmbiguousGrammarException(s"ambiguous at ${entry.pointer}")
         false
     }
-    def finish(entry: EntryGroup, sym: ParsedSymbol)(failed: ParserStep, ambiguous: ParserStep = defaultAmbiguousHandler): Boolean = {
+    def finish(entry: EntryGroup, sym: ParsedSymbol)(failed: ParserStep = defaultFailedHandler, ambiguous: ParserStep = defaultAmbiguousHandler): Boolean = {
         logln(s"Finish ${System.identityHashCode(entry).toHexString}")
         def finishItem(genpoint: Option[EntryGroup], reduced: ParsedSymbol): Boolean =
             genpoint match {
@@ -106,7 +110,13 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
             }
         entry.finish.toSeq match {
             case Seq(finitem) => finishItem(finitem._1, finitem._2)
-            case Nil => failed(entry, sym)
+            case Nil =>
+                // trying backup items
+                entry.finishBackup.toSeq match {
+                    case Seq(backupitem) => finishItem(backupitem._1, backupitem._2)
+                    case Nil => failed(entry, sym)
+                    case many => ambiguous(entry, sym)
+                }
             case many =>
                 // the grammar seems to be ambiguous
                 // Generally, this is a grammar error
@@ -115,13 +125,10 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
         }
     }
 
-    def backup(entry: EntryGroup, sym: ParsedSymbol)(failed: ParserStep): Boolean = ???
-
     def defaultParseStep(entry: EntryGroup, sym: ParsedSymbol, nextPointer: Int): Boolean =
         proceed(entry, sym, nextPointer)((entry, sym) =>
-            finish(entry, sym)((entry, sym) =>
-                backup(entry, sym)((_, _) => false),
-                (entry, _) => throw AmbiguousGrammarException(s"ambiguous at ${entry.pointer}")))
+            finish(entry, sym)((entry, _) =>
+                throw AmbiguousGrammarException(s"ambiguous at ${entry.pointer}")))
 
     def parseStep() =
         if (stack hasNext) {
@@ -186,11 +193,9 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
             logln(proceeded.toString)
             if (proceeded.isEmpty) None else Some(EntryGroup(proceeded, sym, pointer))
         }
-        lazy val finish: Set[(Option[EntryGroup], ParsedSymbol)] = {
-            val fin = members flatMap { _.finish }
-            logln(s"Finish $fin")
-            fin
-        }
+        private lazy val mems = members partition { !_.item.isInstanceOf[ParsingBackup] }
+        lazy val finish: Set[(Option[EntryGroup], ParsedSymbol)] = mems._1 flatMap { _.finish }
+        lazy val finishBackup: Set[(Option[EntryGroup], ParsedSymbol)] = mems._2 flatMap { _.finish }
 
         override lazy val hashCode = (kernels, symbol, pointer).hashCode
         override def equals(other: Any) = other match {
