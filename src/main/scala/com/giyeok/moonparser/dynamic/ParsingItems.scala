@@ -243,7 +243,7 @@ trait ParsingItems {
                 case item +: rest => item.toParsingItemOpt.toSet
                 case Nil => Set()
             }
-            prop(elem.seq drop pointer)
+            prop(elem.seq drop pointer) ++ (elem.whitespace flatMap { _.toParsingItemOpt })
         }
         def proceed(sym: ParsedSymbol): Option[ParsingItem] =
             if (pointer >= elem.seq.length) None else {
