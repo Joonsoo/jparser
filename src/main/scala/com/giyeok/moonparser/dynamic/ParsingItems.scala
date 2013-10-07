@@ -280,6 +280,24 @@ trait ParsingItems {
         }
         override def canEqual(other: Any) = other.isInstanceOf[ParsingSequence]
     }
+    case class ParsingBackup(elem: Backup, input: Option[ParsedSymbol] = None) extends ParsingItem {
+        // ParsingBackup is very similar to ParsingOneOf
+        lazy val finish: Option[ParsedSymbol] =
+            if (input.isDefined) Some(NontermSymbolElem(elem, input.get)) else None
+        lazy val subs: Set[ParsingItem] =
+            if (input.isDefined) Set()
+            else ((elem.backups + elem.elem) flatMap { _.toParsingItemOpt })
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
+            sym match {
+                case sym: NamedSymbol if (elem.elem == sym.elem) || (elem.backups contains sym.elem) =>
+                    Some(ParsingBackup(elem, Some(sym)))
+                case _ => None
+            }
+        }
+
+        override lazy val repr = s"_${elem.repr}_"
+        override lazy val hashCode = (elem, input).hashCode
+    }
     // TODO implement the rest
     // TODO implement hashCode, canEqual, equals
     case class ParsingExcept(elem: Except) extends ParsingItem {
@@ -288,11 +306,6 @@ trait ParsingItems {
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
     }
     case class ParsingLookaheadExcept(elem: LookaheadExcept) extends ParsingItem {
-        val finish: Option[ParsedSymbol] = None
-        val subs: Set[ParsingItem] = Set()
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
-    }
-    case class ParsingBackup(elem: Backup) extends ParsingItem {
         val finish: Option[ParsedSymbol] = None
         val subs: Set[ParsingItem] = Set()
         def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
