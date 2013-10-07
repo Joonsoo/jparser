@@ -27,81 +27,20 @@ class SampleGrammar1Tests extends FunSuite {
 
     test("Basic Grammar - test 1: aaa") {
         val t1 = grammar1.parse("aaa")
-        assert(t1.parsedOpt match {
-            case Some(NontermSymbol(Nonterminal("S"), List(
-                NontermSymbol(Sequence(Seq(Nonterminal("A"), Nonterminal("B")), _: Set[_]), List(
-                    NontermSymbol(Nonterminal("A"), List(
-                        NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                            NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 0))),
-                            NontermSymbol(Nonterminal("A"), List(
-                                NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                                    NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 1))),
-                                    NontermSymbol(Nonterminal("A"), List(
-                                        NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 2))))))))))))),
-                    EmptySymbol(Nonterminal("B"))))))) => true
-            case _ => false
-        })
+        println(t1.parsedOpt)
+        assert(t1 textEq "aaa")
     }
 
     test("Basic Grammar - test 2: abbb") {
         val t2 = grammar1.parse("abbb")
-        assert(t2.parsedOpt match {
-            case Some(NontermSymbol(Nonterminal("S"), List(
-                NontermSymbol(Sequence(Seq(Nonterminal("A"), Nonterminal("B")), _: Set[_]), List(
-                    NontermSymbol(Nonterminal("A"), List(
-                        NontermSymbol(StringInputElem("a"), List(
-                            TermSymbol(CharInput('a'), 0))))),
-                    NontermSymbol(Nonterminal("B"), List(
-                        NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                            NontermSymbol(StringInputElem("b"), List(
-                                TermSymbol(CharInput('b'), 1))), NontermSymbol(Nonterminal("B"), List(
-                                NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                    NontermSymbol(StringInputElem("b"), List(
-                                        TermSymbol(CharInput('b'), 2))), NontermSymbol(Nonterminal("B"), List(
-                                        NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                            NontermSymbol(StringInputElem("b"), List(
-                                                TermSymbol(CharInput('b'), 3))), EmptySymbol(Nonterminal("B"))))))))))))))))))) => true
-            case _ => false
-        })
+        println(t2.parsedOpt)
+        assert(t2 textEq "abbb")
     }
 
     test("Basic Grammar - test 3: aaaaabbbbb") {
         val t3 = grammar1.parse("aaaaabbbbb")
-        assert(t3.parsedOpt match {
-            case Some(NontermSymbol(Nonterminal("S"), List(
-                NontermSymbol(Sequence(Seq(Nonterminal("A"), Nonterminal("B")), _: Set[_]), List(
-                    NontermSymbol(Nonterminal("A"), List(
-                        NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                            NontermSymbol(StringInputElem("a"), List(
-                                TermSymbol(CharInput('a'), 0))), NontermSymbol(Nonterminal("A"), List(
-                                NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                                    NontermSymbol(StringInputElem("a"), List(
-                                        TermSymbol(CharInput('a'), 1))), NontermSymbol(Nonterminal("A"), List(
-                                        NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                                            NontermSymbol(StringInputElem("a"), List(
-                                                TermSymbol(CharInput('a'), 2))), NontermSymbol(Nonterminal("A"), List(
-                                                NontermSymbol(Sequence(Seq(StringInputElem("a"), Nonterminal("A")), _: Set[_]), List(
-                                                    NontermSymbol(StringInputElem("a"), List(
-                                                        TermSymbol(CharInput('a'), 3))), NontermSymbol(Nonterminal("A"), List(
-                                                        NontermSymbol(StringInputElem("a"), List(TermSymbol(CharInput('a'), 4))))))))))))))))))))),
-                    NontermSymbol(Nonterminal("B"), List(
-                        NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                            NontermSymbol(StringInputElem("b"), List(
-                                TermSymbol(CharInput('b'), 5))), NontermSymbol(Nonterminal("B"), List(
-                                NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                    NontermSymbol(StringInputElem("b"), List(
-                                        TermSymbol(CharInput('b'), 6))), NontermSymbol(Nonterminal("B"), List(
-                                        NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                            NontermSymbol(StringInputElem("b"), List(
-                                                TermSymbol(CharInput('b'), 7))), NontermSymbol(Nonterminal("B"), List(
-                                                NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                                    NontermSymbol(StringInputElem("b"), List(
-                                                        TermSymbol(CharInput('b'), 8))), NontermSymbol(Nonterminal("B"), List(
-                                                        NontermSymbol(Sequence(Seq(StringInputElem("b"), Nonterminal("B")), _: Set[_]), List(
-                                                            NontermSymbol(StringInputElem("b"), List(
-                                                                TermSymbol(CharInput('b'), 9))), EmptySymbol(Nonterminal("B"))))))))))))))))))))))))))) => true
-            case _ => false
-        })
+        println(t3.parsedOpt)
+        assert(t3 textEq "aaaaabbbbb")
     }
     test("Basic Grammar - test 4: long text") {
         val longText = "a" * 500
