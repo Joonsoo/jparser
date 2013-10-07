@@ -21,6 +21,7 @@ object Parser {
                 case _ => None
             }
             lazy val succeed = parsedOpt.isDefined
+            lazy val failed = resultOpt match { case Some(_: Failed) => true case _ => false }
             lazy val ambiguous = set.size > 1
 
             def textEq(text: String) = this.parsedOpt match {
@@ -126,9 +127,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
     }
 
     def defaultParseStep(entry: EntryGroup, sym: ParsedSymbol, nextPointer: Int): Boolean =
-        proceed(entry, sym, nextPointer)((entry, sym) =>
-            finish(entry, sym)((entry, _) =>
-                throw AmbiguousGrammarException(s"ambiguous at ${entry.pointer}")))
+        proceed(entry, sym, nextPointer)(finish(_, _)())
 
     def parseStep() =
         if (stack hasNext) {

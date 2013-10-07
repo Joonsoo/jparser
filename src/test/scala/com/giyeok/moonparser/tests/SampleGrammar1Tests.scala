@@ -104,10 +104,15 @@ class SampleGrammar1Tests extends FunSuite {
             case _ => false
         })
     }
+
     test("Basic Grammar - test 4: long text") {
         val longText = "a" * 500
         val t4 = grammar1.parse(longText)
         assert(t4 textEq longText)
     }
-    // t5 = parser.parse("c")  // test it after implement backup items support
+
+    test("Basic Grammar - wrong inputs") {
+        val wrongText1 = "c"
+        assert(grammar1.parse(wrongText1).failed)
+    }
 }
