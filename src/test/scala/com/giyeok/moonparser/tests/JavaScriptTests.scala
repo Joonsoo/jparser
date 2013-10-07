@@ -1,9 +1,14 @@
 package com.giyeok.moonparser.tests
 
-object JavaScriptTestCases {
-    val tests = List(
-        // Regular expressions/unicode/comments
-        """|var filter = /a/;
+import org.scalatest.FunSuite
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import com.giyeok.moonparser.grammars.JavaScriptParser
+
+@RunWith(classOf[JUnitRunner])
+class JavaScriptTests extends FunSuite {
+    test("Regular expressions/unicode/comments") {
+        val text = """|var filter = /a/;
            |if (filter.test("some test words") == true) { alert("ok"); } else { alert("fail"); }
            |var filter = /about/;
            |if (filter.test("some test words") == true) { alert("ok"); } else { alert("fail"); }
@@ -25,7 +30,10 @@ object JavaScriptTestCases {
            |var filter = /[a-z]$/;
            |if (filter.test("some test words") == true) { alert("ok"); } else { alert("fail"); }
            |var filter = /\\/;
-           |if (filter.test("some test words") == true) { alert("ok"); } else { alert("fail"); }""".stripMargin('|'))
+           |if (filter.test("some test words") == true) { alert("ok"); } else { alert("fail"); }""".stripMargin('|')
 
-    val test = tests(0)
+        val parser = JavaScriptParser.getBlackboxParser
+
+        parser.parse(text)
+    }
 }
