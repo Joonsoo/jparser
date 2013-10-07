@@ -43,19 +43,16 @@ object ParsedSymbols {
     }
     abstract class NontermSymbol extends ParsedSymbol with NamedSymbol {
         val elem: GrElem
-        val children: Seq[ParsedSymbol]
     }
     case class NontermSymbolElem(elem: GrElem, child: ParsedSymbol)
             extends NontermSymbol with ConcreteSymbol {
-        lazy val children = Seq(child)
-
         lazy val text = child match { case c: ConcreteSymbol => c.text case _ => "" }
         lazy val source = child match { case c: ConcreteSymbol => c.source case _ => Nil }
 
-        override lazy val hashCode = (elem, children).hashCode
+        override lazy val hashCode = (elem, child).hashCode
         override def equals(other: Any) = other match {
             case that: NontermSymbolElem =>
-                (that canEqual this) && (elem == that.elem) && (children == that.children)
+                (that canEqual this) && (elem == that.elem) && (child == that.child)
             case _ => false
         }
         def canEqual(other: Any) = other.isInstanceOf[NontermSymbolElem]
