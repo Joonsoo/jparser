@@ -133,7 +133,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
             // `proceed`, and `finish` if failed
 
             logln(s"TermSymbol $sym ${input finishedAt sym.pointer}")
-            defaultParseStep(entry, sym, entry.pointer + 1)
+            defaultParseStep(entry, sym, input nextPointer entry.pointer)
         } else {
             false
         }

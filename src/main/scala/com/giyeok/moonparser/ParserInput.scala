@@ -10,6 +10,8 @@ object ParserInputs {
         val length: Int
         def at(pointer: Int): Input
         def finishedAt(pointer: Int): Boolean
+        def nextPointer(pointer: Int): Int =
+            if (this finishedAt pointer) pointer else pointer + 1
 
         def subinput(p: Int): ParserInput
     }
