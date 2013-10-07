@@ -57,9 +57,9 @@ abstract class Grammar {
         def plus = repeat(1)
     }
     implicit class GrammarElementBackupable(self: GrElem) {
-        def backup(backup: GrElem): Backup = self match {
+        def backup(backups: GrElem*): Backup = self match {
             case _: Nonterminal => // NOTE consider which elements are deserved to be backed up
-                Backup(self, backup)
+                Backup(self, backups.toSet)
             case _ => throw new Exception("Applied backup to the items that cannot be")
         }
     }
@@ -76,21 +76,11 @@ object GrElems {
 
     case class Nonterminal(name: String) extends GrElem {
         override lazy val hashCode = name.hashCode
-        override def equals(other: Any) = other match {
-            case that: Nonterminal => (that canEqual this) && (that.name == name)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[Nonterminal]
     }
 
     sealed abstract class InputElem extends GrElem
     case class StringInputElem(string: String) extends InputElem {
         override lazy val hashCode = string.hashCode
-        override def equals(other: Any) = other match {
-            case that: StringInputElem => (that canEqual this) && (that.string == string)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[StringInputElem]
     }
     sealed abstract class CharacterInputElem extends InputElem {
         def accept(char: Char): Boolean
@@ -102,81 +92,36 @@ object GrElems {
         def accept(char: Char) = (chars contains char)
 
         override lazy val hashCode = chars.hashCode
-        override def equals(other: Any) = other match {
-            case that: SetCharacterInputElem => (that canEqual this) && (that.chars == chars)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[SetCharacterInputElem]
     }
     case class UnicodeCategoryCharacterInputElem(categories: Set[Byte]) extends CharacterInputElem {
         def accept(char: Char) = categories contains char.getType.toByte
 
         override lazy val hashCode = categories.hashCode
-        override def equals(other: Any) = other match {
-            case that: UnicodeCategoryCharacterInputElem => (that canEqual this) && (that.categories == categories)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[UnicodeCategoryCharacterInputElem]
     }
     case class CharacterRangeInputElem(from: Char, to: Char) extends CharacterInputElem {
         def accept(char: Char) = (from <= char && char <= to)
 
         override lazy val hashCode = (from, to).hashCode
-        override def equals(other: Any) = other match {
-            case that: CharacterRangeInputElem => (that canEqual this) && (that.from == from) && (that.to == to)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[CharacterRangeInputElem]
     }
     case class VirtualInputElem(name: String) extends InputElem {
         override lazy val hashCode = name.hashCode
-        override def equals(other: Any) = other match {
-            case that: VirtualInputElem => (that canEqual this) && (that.name == name)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[VirtualInputElem]
     }
     object EndOfFileElem extends InputElem
 
     case class Sequence(seq: Seq[GrElem], whitespace: Set[GrElem]) extends GrElem {
         override lazy val hashCode = (seq, whitespace).hashCode
-        override def equals(other: Any) = other match {
-            case that: Sequence => (that canEqual this) && (that.seq == seq) && (that.whitespace == whitespace)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[Sequence]
     }
     case class OneOf(elems: Set[GrElem]) extends GrElem {
         override lazy val hashCode = elems.hashCode
-        override def equals(other: Any) = other match {
-            case that: OneOf => (that canEqual this) && (that.elems == elems)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[OneOf]
     }
     case class Except(elem: GrElem, except: Set[GrElem]) extends GrElem {
         override lazy val hashCode = (elem, except).hashCode
-        override def equals(other: Any) = other match {
-            case that: Except => (that canEqual this) && (that.elem == elem) && (that.except == except)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[Except]
     }
     case class LookaheadExcept(except: Set[GrElem]) extends GrElem {
         override lazy val hashCode = except.hashCode
-        override def equals(other: Any) = other match {
-            case that: LookaheadExcept => (that canEqual this) && (that.except == except)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[LookaheadExcept]
     }
     case class Repeat(elem: GrElem, range: Repeat.Range) extends GrElem {
         override lazy val hashCode = (elem, range).hashCode
-        override def equals(other: Any) = other match {
-            case that: Repeat => (that canEqual this) && (that.elem == elem) && (that.range == range)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[Repeat]
     }
     object Repeat {
         sealed abstract class Range {
@@ -194,11 +139,6 @@ object GrElems {
             override def canProceed(x: Int): Boolean = true
 
             override lazy val hashCode = from
-            override def equals(other: Any) = other match {
-                case that: RangeFrom => (that canEqual this) && (that.from == from)
-                case _ => false
-            }
-            override def canEqual(other: Any) = other.isInstanceOf[RangeFrom]
 
             lazy val repr = s"$from-"
         }
@@ -207,22 +147,12 @@ object GrElems {
             override def canProceed(x: Int): Boolean = x < to
 
             override lazy val hashCode = (from, to).hashCode
-            override def equals(other: Any) = other match {
-                case that: RangeTo => (that canEqual this) && (that.from == from) && (that.to == to)
-                case _ => false
-            }
-            override def canEqual(other: Any) = other.isInstanceOf[RangeTo]
 
             lazy val repr = s"$from-$to"
         }
     }
-    case class Backup(elem: GrElem, backup: GrElem) extends GrElem {
-        override lazy val hashCode = (elem, backup).hashCode
-        override def equals(other: Any) = other match {
-            case that: Backup => (that canEqual this) && (that.elem == elem) && (that.backup == backup)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[Backup]
+    case class Backup(elem: GrElem, backups: Set[GrElem]) extends GrElem {
+        override lazy val hashCode = (elem, backups).hashCode
     }
     // ActDef will be considered later!
 
