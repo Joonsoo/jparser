@@ -71,14 +71,14 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
         EntryGroup(Set(Entry(grammar.n(grammar.startSymbol).toParsingItem, None)), StartSymbol, 0)
     protected val stack = new OctopusStack(starter)
 
-    type ParserStep = (EntryGroup, ParsedSymbol) => Boolean
+    type ParseStep = (EntryGroup, ParsedSymbol) => Boolean
 
-    def proceed(entry: EntryGroup, sym: ParsedSymbol, nextPointer: Int)(failed: ParserStep): Boolean =
+    def proceed(entry: EntryGroup, sym: ParsedSymbol, nextPointer: Int)(failed: ParseStep): Boolean =
         entry.proceed(sym, nextPointer) match {
             case Some(proceeded) => { stack.add(entry, proceeded); true }
             case None => failed(entry, sym)
         }
-    def proceed(entry: EntryGroup, sym: ParsedSymbol)(failed: ParserStep): Boolean =
+    def proceed(entry: EntryGroup, sym: ParsedSymbol)(failed: ParseStep): Boolean =
         proceed(entry, sym, entry.pointer)(failed)
 
     def defaultFailedHandler(entry: EntryGroup, sym: ParsedSymbol): Boolean = {
@@ -89,7 +89,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
         throw AmbiguousGrammarException(s"ambiguous at ${entry.pointer}")
         false
     }
-    def finish(entry: EntryGroup, sym: ParsedSymbol)(failed: ParserStep = defaultFailedHandler, ambiguous: ParserStep = defaultAmbiguousHandler): Boolean = {
+    def finish(entry: EntryGroup, sym: ParsedSymbol)(failed: ParseStep = defaultFailedHandler, ambiguous: ParseStep = defaultAmbiguousHandler): Boolean = {
         logln(s"Finish ${System.identityHashCode(entry).toHexString}")
         def finishItem(genpoint: Option[EntryGroup], reduced: ParsedSymbol): Boolean =
             genpoint match {
