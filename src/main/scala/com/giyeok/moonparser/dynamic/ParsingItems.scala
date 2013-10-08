@@ -55,25 +55,21 @@ trait ParsingItems {
             if (input.isDefined) Some(NontermSymbolElem(elem, input.get)) else None
         // dumb code: if (input.isDefined) Some(input.get) else None
         lazy val subs: Set[ParsingItem] = Set()
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
-            sym match {
-                case term @ TermSymbol(CharInput(c), _) if elem accept c =>
-                    // NOTE term will always be TermSymbol[CharInput] here, but scala infers term as TermSymbol[Input]
-                    // This happens many times in this file
-                    Some(ParsingCharacterInput(elem, Some(term.asInstanceOf[TermSymbol[CharInput]])))
-                case _ => None
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] =
+            if (input.isDefined) None else {
+                sym match {
+                    case term @ TermSymbol(CharInput(c), _) if elem accept c =>
+                        // NOTE term will always be TermSymbol[CharInput] here, but scala infers term as TermSymbol[Input]
+                        // This happens many times in this file
+                        Some(ParsingCharacterInput(elem, Some(term.asInstanceOf[TermSymbol[CharInput]])))
+                    case _ => None
+                }
             }
-        }
 
         override lazy val hashCode = (elem, input).hashCode
-        override def equals(other: Any) = other match {
-            case that: ParsingCharacterInput => (that canEqual this) && (elem == that.elem) && (input == that.input)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[ParsingCharacterInput]
     }
     trait TokenCompatibles extends ParsingItem { self: ParsingItem =>
-        class GotToken(token: TermSymbol[TokenInput]) extends ParsingItem {
+        case class GotToken(token: TermSymbol[TokenInput]) extends ParsingItem {
             val elem = self.elem
             val finish: Option[NontermSymbol] = Some(NontermSymbolElem(elem, token))
             val subs: Set[ParsingItem] = Set()
@@ -86,48 +82,40 @@ trait ParsingItems {
         lazy val finish: Option[NontermSymbol] =
             if (isFinished) Some(NontermSymbolSeq(elem, input.reverse)) else None
         lazy val subs: Set[ParsingItem] = Set()
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (isFinished) None else {
-            sym match {
-                case term @ TermSymbol(CharInput(c), _) if elem.string.charAt(input.length) == c =>
-                    Some(ParsingStringInput(elem, term.asInstanceOf[TermSymbol[CharInput]] +: input))
-                case term @ TermSymbol(TokenInput(t), _) if input.isEmpty && (t compat elem) =>
-                    Some(new GotToken(term.asInstanceOf[TermSymbol[TokenInput]]))
-                case _ => None
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] =
+            if (isFinished) None else {
+                sym match {
+                    case term @ TermSymbol(CharInput(c), _) if elem.string.charAt(input.length) == c =>
+                        Some(ParsingStringInput(elem, term.asInstanceOf[TermSymbol[CharInput]] +: input))
+                    case term @ TermSymbol(TokenInput(t), _) if input.isEmpty && (t compat elem) =>
+                        Some(new GotToken(term.asInstanceOf[TermSymbol[TokenInput]]))
+                    case _ => None
+                }
             }
-        }
 
         override lazy val repr = {
             val (first, second) = elem.string splitAt input.length
             "\"" + first + "*" + second + "\""
         }
         override lazy val hashCode = (elem, input).hashCode
-        override def equals(other: Any) = other match {
-            case that: ParsingStringInput => (that canEqual this) && (elem == that.elem) && (input == that.input)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[ParsingStringInput]
     }
     case class ParsingVirtualInput(elem: VirtualInputElem, input: Option[TermSymbol[VirtInput]] = None)
             extends ParsingItem with TokenCompatibles with SimpleRepr {
         lazy val finish: Option[ParsedSymbol] =
             if (input.isDefined) Some(NontermSymbolElem(elem, input.get)) else None
         lazy val subs: Set[ParsingItem] = Set()
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
-            sym match {
-                case term @ TermSymbol(VirtInput(v), _) =>
-                    Some(ParsingVirtualInput(elem, Some(term.asInstanceOf[TermSymbol[VirtInput]])))
-                case term @ TermSymbol(TokenInput(t), _) =>
-                    Some(new GotToken(term.asInstanceOf[TermSymbol[TokenInput]]))
-                case _ => None
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] =
+            if (input.isDefined) None else {
+                sym match {
+                    case term @ TermSymbol(VirtInput(v), _) =>
+                        Some(ParsingVirtualInput(elem, Some(term.asInstanceOf[TermSymbol[VirtInput]])))
+                    case term @ TermSymbol(TokenInput(t), _) =>
+                        Some(new GotToken(term.asInstanceOf[TermSymbol[TokenInput]]))
+                    case _ => None
+                }
             }
-        }
 
         override lazy val hashCode = (elem, input).hashCode
-        override def equals(other: Any) = other match {
-            case that: ParsingVirtualInput => (that canEqual this) && (elem == that.elem) && (input == that.input)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[ParsingVirtualInput]
     }
     case class ParsingEOFInput(input: Option[TermSymbol[EndOfFile.type]] = None)
             extends ParsingItem with SimpleRepr {
@@ -135,20 +123,16 @@ trait ParsingItems {
         lazy val finish: Option[ParsedSymbol] =
             if (input.isDefined) Some(NontermSymbolElem(EndOfFileElem, input.get)) else None
         lazy val subs: Set[ParsingItem] = Set()
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
-            sym match {
-                case term @ TermSymbol(EndOfFile, _) =>
-                    Some(ParsingEOFInput(Some(term.asInstanceOf[TermSymbol[EndOfFile.type]])))
-                case _ => None
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] =
+            if (input.isDefined) None else {
+                sym match {
+                    case term @ TermSymbol(EndOfFile, _) =>
+                        Some(ParsingEOFInput(Some(term.asInstanceOf[TermSymbol[EndOfFile.type]])))
+                    case _ => None
+                }
             }
-        }
 
         override lazy val hashCode = (input).hashCode
-        override def equals(other: Any) = other match {
-            case that: ParsingEOFInput => (that canEqual this) && (input == that.input)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[ParsingEOFInput]
     }
     case class ParsingNonterminal(elem: Nonterminal, input: Option[ParsedSymbol] = None)
             extends ParsingItem with TokenCompatibles with SimpleRepr {
@@ -156,22 +140,18 @@ trait ParsingItems {
             if (input.isDefined) Some(NontermSymbolElem(elem, input.get)) else None
         lazy val subs: Set[ParsingItem] =
             if (input.isDefined) Set() else (grammar.rules(elem.name) flatMap { _.toParsingItemOpt })
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
-            sym match {
-                case ns: NontermSymbol if grammar.rules(elem.name) contains ns.elem =>
-                    Some(ParsingNonterminal(elem, Some(ns)))
-                case term @ TermSymbol(TokenInput(t), _) if t compat elem =>
-                    Some(new GotToken(term.asInstanceOf[TermSymbol[TokenInput]]))
-                case _ => None
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] =
+            if (input.isDefined) None else {
+                sym match {
+                    case ns: NontermSymbol if grammar.rules(elem.name) contains ns.elem =>
+                        Some(ParsingNonterminal(elem, Some(ns)))
+                    case term @ TermSymbol(TokenInput(t), _) if t compat elem =>
+                        Some(new GotToken(term.asInstanceOf[TermSymbol[TokenInput]]))
+                    case _ => None
+                }
             }
-        }
 
         override lazy val hashCode = (input).hashCode
-        override def equals(other: Any) = other match {
-            case that: ParsingNonterminal => (that canEqual this) && (elem == that.elem) && (input == that.input)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[ParsingNonterminal]
     }
     case class ParsingOneOf(elem: OneOf, input: Option[ParsedSymbol] = None)
             extends ParsingItem with TokenCompatibles with SimpleRepr {
@@ -179,44 +159,36 @@ trait ParsingItems {
             if (input.isDefined) Some(NontermSymbolElem(elem, input.get)) else None
         lazy val subs: Set[ParsingItem] =
             if (input.isDefined) Set() else (elem.elems flatMap { _.toParsingItemOpt })
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
-            sym match {
-                case ns: NontermSymbol if elem.elems contains ns.elem =>
-                    Some(ParsingOneOf(elem, Some(sym)))
-                case term @ TermSymbol(TokenInput(t), _) if t compat elem =>
-                    Some(new GotToken(term.asInstanceOf[TermSymbol[TokenInput]]))
-                case _ => None
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] =
+            if (input.isDefined) None else {
+                sym match {
+                    case ns: NontermSymbol if elem.elems contains ns.elem =>
+                        Some(ParsingOneOf(elem, Some(sym)))
+                    case term @ TermSymbol(TokenInput(t), _) if t compat elem =>
+                        Some(new GotToken(term.asInstanceOf[TermSymbol[TokenInput]]))
+                    case _ => None
+                }
             }
-        }
 
         override lazy val hashCode = (elem, input).hashCode
-        override def equals(other: Any) = other match {
-            case that: ParsingOneOf => (that canEqual this) && (elem == that.elem) && (input == that.input)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[ParsingOneOf]
     }
     case class ParsingRepeat(elem: Repeat, input: List[ParsedSymbol] = Nil) extends ParsingItem {
         lazy val finish: Option[ParsedSymbol] =
             if (elem.range contains input.length) Some(NontermSymbolSeq(elem, input.reverse)) else None
         lazy val canProceed = elem.range canProceed input.length
         lazy val subs: Set[ParsingItem] = if (canProceed) elem.elem.toParsingItemOpt.toSet else Set()
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (!canProceed) None else {
-            sym match {
-                case ns: NontermSymbol if elem.elem == ns.elem =>
-                    Some(ParsingRepeat(elem, ns +: input))
-                // NOTE needs token proceed?
-                case _ => None
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] =
+            if (!canProceed) None else {
+                sym match {
+                    case ns: NontermSymbol if elem.elem == ns.elem =>
+                        Some(ParsingRepeat(elem, ns +: input))
+                    // NOTE needs token proceed?
+                    case _ => None
+                }
             }
-        }
 
         override lazy val repr = s"${elem.repr}[${elem.range.repr},${input.length}]"
         override lazy val hashCode = (elem, input).hashCode
-        override def equals(other: Any) = other match {
-            case that: ParsingRepeat => (that canEqual this) && (elem == that.elem) && (input == that.input)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[ParsingRepeat]
     }
     case class ParsingSequence(elem: Sequence, input: List[ParsedSymbol] = Nil, inputWS: List[ParsedSymbol] = Nil, mappings: Map[Int, Int] = Map())
             extends ParsingItem {
@@ -272,13 +244,6 @@ trait ParsingItems {
             ((first map { _.repr }) ++ Seq("*") ++ (second map { _.repr })) mkString " "
         }
         override lazy val hashCode = (elem, input, inputWS, mappings).hashCode
-        override def equals(other: Any) = other match {
-            case that: ParsingSequence =>
-                (that canEqual this) && (elem == that.elem) && (input == that.input) &&
-                    (inputWS == that.inputWS) && (mappings == that.mappings)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[ParsingSequence]
     }
     case class ParsingBackup(elem: Backup, input: Option[ParsedSymbol] = None) extends ParsingItem {
         // ParsingBackup is very similar to ParsingOneOf
@@ -287,19 +252,19 @@ trait ParsingItems {
         lazy val subs: Set[ParsingItem] =
             if (input.isDefined) Set()
             else ((elem.backups + elem.elem) flatMap { _.toParsingItemOpt })
-        def proceed(sym: ParsedSymbol): Option[ParsingItem] = if (input.isDefined) None else {
-            sym match {
-                case sym: NamedSymbol if (elem.elem == sym.elem) || (elem.backups contains sym.elem) =>
-                    Some(ParsingBackup(elem, Some(sym)))
-                case _ => None
+        def proceed(sym: ParsedSymbol): Option[ParsingItem] =
+            if (input.isDefined) None else {
+                sym match {
+                    case sym: NamedSymbol if (elem.elem == sym.elem) || (elem.backups contains sym.elem) =>
+                        Some(ParsingBackup(elem, Some(sym)))
+                    case _ => None
+                }
             }
-        }
 
         override lazy val repr = s"_${elem.repr}_"
         override lazy val hashCode = (elem, input).hashCode
     }
     // TODO implement the rest
-    // TODO implement hashCode, canEqual, equals
     case class ParsingExcept(elem: Except) extends ParsingItem {
         val finish: Option[ParsedSymbol] = None
         val subs: Set[ParsingItem] = Set()
