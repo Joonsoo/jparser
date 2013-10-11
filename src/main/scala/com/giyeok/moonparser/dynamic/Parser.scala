@@ -69,7 +69,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
     def logln(str: => String): Unit = if (log) println(str)
 
     protected val starter =
-        EntryGroup(Set(Entry(grammar.n(grammar.startSymbol).toParsingItem, None)), StartSymbol, 0)
+        EntryGroup(Set(EntryInfo(grammar.n(grammar.startSymbol).toParsingItem, None)), StartSymbol, 0)
     protected val stack = new OctopusStack(starter)
 
     type ParseStep = (EntryGroup, ParsedSymbol) => Boolean
@@ -152,17 +152,21 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
             // parent is not Entry's problem, but it's OctopusStack's thing
             // genpoint will be changed if the item is created by `subs` of ParsingItem
             // and preserved if the item is created by `proceed` of ParsingItem
-            kernels: Set[Entry],
+            kernels: Set[EntryInfo],
             symbol: ParsedSymbol,
             pointer: Int) {
 
-        lazy val members: Set[Entry] = {
-            def stabilize(members: Set[Entry]): Set[Entry] = {
-                val subs = members ++ (members flatMap { _.subs(this) })
-                if (subs == members) subs else stabilize(subs)
+        lazy val members: Map[EntryInfo, Entry] = {
+            def stabilize(news: Set[EntryInfo], premems: Map[EntryInfo, Entry]): Map[EntryInfo, Entry] = {
+                val newmems = news.foldLeft(premems)((mems, info) =>
+                    if (mems contains info) mems
+                    else mems + (info -> info.contextual(this)))
+                val subs = (news flatMap { newmems(_).subs(this) }) -- newmems.keySet
+                if (subs.isEmpty) newmems else stabilize(subs, newmems)
             }
-            stabilize(kernels)
+            stabilize(kernels, Map())
         }
+        assert(kernels subsetOf members.keySet)
 
         def printMe() = {
             logln(s"=== new EntryGroup ${System.identityHashCode(this).toHexString} ===")
@@ -179,20 +183,25 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
                     }
                 } ${e.finish.isDefined}")
             logln(s"Kernels: ${kernels.size}")
-            kernels foreach printItem
+            kernels foreach { k => printItem(members(k)) }
             logln(s"Members: ${members.size}")
-            (members -- kernels) foreach printItem
+            (members.keySet -- kernels) foreach { m => printItem(members(m)) }
             logln("================================")
         }
         if (log) printMe()
 
         def proceed(sym: ParsedSymbol, pointer: Int): Option[EntryGroup] = {
             logln(s"Proceed ${System.identityHashCode(this).toHexString} $sym")
-            val proceeded = members flatMap { _.proceed(sym) }
+            val proceeded = (members.values flatMap { _.proceed(sym) }).toSet
             logln(proceeded.toString)
             if (proceeded.isEmpty) None else Some(EntryGroup(proceeded, sym, pointer))
         }
-        private lazy val mems = members partition { !_.item.isInstanceOf[ParsingBackup] }
+        // mems: members.partition(!_._1.item.isInstanceOf[ParsingBackup])
+        private lazy val mems: (Set[Entry], Set[Entry]) =
+            members.foldLeft((Set[Entry](), Set[Entry]())) { (acc, entry) =>
+                if (entry._1.item.isInstanceOf[ParsingBackup]) (acc._1 + entry._2, acc._2)
+                else (acc._1, acc._2 + entry._2)
+            }
         lazy val finish: Set[(Option[EntryGroup], ParsedSymbol)] = mems._1 flatMap { _.finish }
         lazy val finishBackup: Set[(Option[EntryGroup], ParsedSymbol)] = mems._2 flatMap { _.finish }
 
@@ -204,13 +213,19 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
         }
         override def canEqual(other: Any) = other.isInstanceOf[EntryGroup]
     }
-    case class Entry(item: ParsingItem, genpoint: Option[EntryGroup]) {
-        def subs(genpoint: EntryGroup): Set[Entry] = item.subs map { Entry(_, Some(genpoint)) }
-        def proceed(sym: ParsedSymbol): Option[Entry] = {
+    case class EntryInfo(item: ParsingItem, genpoint: Option[EntryGroup]) {
+        def contextual(context: EntryGroup) = new Entry(item.contextual(context), genpoint)
+
+        override lazy val hashCode = (item, genpoint).hashCode
+    }
+    class Entry(val item: ContextualItem, val genpoint: Option[EntryGroup]) {
+        def subs(genpoint: EntryGroup): Set[EntryInfo] =
+            item.subs map { EntryInfo(_, Some(genpoint)) }
+        def proceed(sym: ParsedSymbol): Option[EntryInfo] = {
             (item proceed sym) match {
                 case Some(proceeded) =>
                     logln(s"proceeded: $proceeded")
-                    Some(Entry(proceeded, genpoint))
+                    Some(EntryInfo(proceeded, genpoint))
                 case None => None
             }
         }
@@ -218,12 +233,5 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
             case Some(fin) => Some(genpoint, fin)
             case None => None
         }
-
-        override lazy val hashCode = (item, genpoint).hashCode
-        override def equals(other: Any) = other match {
-            case that: Entry => (that canEqual this) && (item == that.item) && (genpoint == that.genpoint)
-            case _ => false
-        }
-        override def canEqual(other: Any) = other.isInstanceOf[Entry]
     }
 }
