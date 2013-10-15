@@ -110,6 +110,8 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
                     else _result += Parser.Failed(Parser.FailedReason.UnexpectedEndOfFile, entry.pointer)
                     true
             }
+        // TODO modify following to support multiple reductions
+        // many possibilities for same GrElem is not allowed => real ambiguity!
         implicit class SetToMapSet[A, B](set: Set[(A, B)]) {
             def toMapSet = set groupBy { _._1 } map { p => (p._1, p._2 map { _._2 }) }
         }

@@ -291,18 +291,37 @@ trait ParsingItems {
         override lazy val hashCode = (elem, input).hashCode
     }
     // TODO implement the rest
-    case class ParsingExcept(elem: Except) extends ParsingItem {
+    case class ParsingExcept(elem: Except, input: Option[ParsedSymbol] = None) extends ParsingItem {
         def contextual(context: EntryGroup): ContextualItem = new ContextualItem(context) {
-            val finish: Option[ParsedSymbol] = None
-            val subs: Set[ParsingItem] = Set()
-            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] = Set.empty
+            val finish: Option[ParsedSymbol] =
+                if (input.isDefined) Some(NontermSymbolElem(elem, input.get)) else None
+            val subs: Set[ParsingItem] =
+                if (input.isDefined) Set()
+                else (elem.except + elem.elem) flatMap { _.toParsingItemOpt }
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
+                if (input.isDefined) Set() else {
+                    val except = syms exists {
+                        case ns: NontermSymbol if elem.except contains ns.elem => true
+                        case _ => false
+                    }
+                    if (except) {
+                        val i = syms find {
+                            case ns: NontermSymbol if ns.elem == elem.elem => true
+                            case _ => false
+                        }
+                        i match {
+                            case Some(input) => Set(ParsingExcept(elem, i))
+                            case None => Set()
+                        }
+                    } else Set()
+                }
         }
     }
     case class ParsingLookaheadExcept(elem: LookaheadExcept) extends ParsingItem {
         def contextual(context: EntryGroup): ContextualItem = new ContextualItem(context) {
             val finish: Option[ParsedSymbol] = None
             val subs: Set[ParsingItem] = Set()
-            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] = Set.empty
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] = Set()
         }
     }
 }
