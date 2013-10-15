@@ -47,7 +47,7 @@ trait ParsingItems {
     abstract class ContextualItem(val context: EntryGroup) {
         val finish: Option[ParsedSymbol]
         val subs: Set[ParsingItem]
-        def proceed(sym: ParsedSymbol): Option[ParsingItem]
+        def proceed(sym: Set[ParsedSymbol]): Set[ParsingItem]
     }
 
     trait SimpleRepr extends ParsingItem {
@@ -62,9 +62,9 @@ trait ParsingItems {
                 if (input.isDefined) Some(NontermSymbolElem(elem, input.get)) else None
             // dumb code: if (input.isDefined) Some(input.get) else None
             lazy val subs: Set[ParsingItem] = Set()
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] =
-                if (input.isDefined) None else {
-                    sym match {
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
+                if (input.isDefined) Set() else {
+                    syms flatMap {
                         case term @ TermSymbol(CharInput(c), _) if elem accept c =>
                             // NOTE term will always be TermSymbol[CharInput] here, but scala infers term as TermSymbol[Input]
                             // This happens many times in this file
@@ -82,7 +82,7 @@ trait ParsingItems {
             def contextual(context: EntryGroup): ContextualItem = new ContextualItem(context) {
                 val finish: Option[NontermSymbol] = Some(NontermSymbolElem(elem, token))
                 val subs: Set[ParsingItem] = Set()
-                def proceed(sym: ParsedSymbol) = None
+                def proceed(syms: Set[ParsedSymbol]) = Set()
             }
         }
     }
@@ -93,9 +93,9 @@ trait ParsingItems {
             lazy val finish: Option[NontermSymbol] =
                 if (isFinished) Some(NontermSymbolSeq(elem, input.reverse)) else None
             lazy val subs: Set[ParsingItem] = Set()
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] =
-                if (isFinished) None else {
-                    sym match {
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
+                if (isFinished) Set() else {
+                    syms flatMap {
                         case term @ TermSymbol(CharInput(c), _) if elem.string.charAt(input.length) == c =>
                             Some(ParsingStringInput(elem, term.asInstanceOf[TermSymbol[CharInput]] +: input))
                         case term @ TermSymbol(TokenInput(t), _) if input.isEmpty && (t compat elem) =>
@@ -117,9 +117,9 @@ trait ParsingItems {
             lazy val finish: Option[ParsedSymbol] =
                 if (input.isDefined) Some(NontermSymbolElem(elem, input.get)) else None
             lazy val subs: Set[ParsingItem] = Set()
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] =
-                if (input.isDefined) None else {
-                    sym match {
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
+                if (input.isDefined) Set() else {
+                    syms flatMap {
                         case term @ TermSymbol(VirtInput(v), _) =>
                             Some(ParsingVirtualInput(elem, Some(term.asInstanceOf[TermSymbol[VirtInput]])))
                         case term @ TermSymbol(TokenInput(t), _) =>
@@ -138,9 +138,9 @@ trait ParsingItems {
             lazy val finish: Option[ParsedSymbol] =
                 if (input.isDefined) Some(NontermSymbolElem(EndOfFileElem, input.get)) else None
             lazy val subs: Set[ParsingItem] = Set()
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] =
-                if (input.isDefined) None else {
-                    sym match {
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
+                if (input.isDefined) Set() else {
+                    syms flatMap {
                         case term @ TermSymbol(EndOfFile, _) =>
                             Some(ParsingEOFInput(Some(term.asInstanceOf[TermSymbol[EndOfFile.type]])))
                         case _ => None
@@ -157,9 +157,9 @@ trait ParsingItems {
                 if (input.isDefined) Some(NontermSymbolElem(elem, input.get)) else None
             lazy val subs: Set[ParsingItem] =
                 if (input.isDefined) Set() else (grammar.rules(elem.name) flatMap { _.toParsingItemOpt })
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] =
-                if (input.isDefined) None else {
-                    sym match {
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
+                if (input.isDefined) Set() else {
+                    syms flatMap {
                         case ns: NontermSymbol if grammar.rules(elem.name) contains ns.elem =>
                             Some(ParsingNonterminal(elem, Some(ns)))
                         case term @ TermSymbol(TokenInput(t), _) if t compat elem =>
@@ -178,11 +178,11 @@ trait ParsingItems {
                 if (input.isDefined) Some(NontermSymbolElem(elem, input.get)) else None
             lazy val subs: Set[ParsingItem] =
                 if (input.isDefined) Set() else (elem.elems flatMap { _.toParsingItemOpt })
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] =
-                if (input.isDefined) None else {
-                    sym match {
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
+                if (input.isDefined) Set() else {
+                    syms flatMap {
                         case ns: NontermSymbol if elem.elems contains ns.elem =>
-                            Some(ParsingOneOf(elem, Some(sym)))
+                            Some(ParsingOneOf(elem, Some(ns)))
                         case term @ TermSymbol(TokenInput(t), _) if t compat elem =>
                             Some(new GotToken(term.asInstanceOf[TermSymbol[TokenInput]]))
                         case _ => None
@@ -198,9 +198,9 @@ trait ParsingItems {
                 if (elem.range contains input.length) Some(NontermSymbolSeq(elem, input.reverse)) else None
             lazy val canProceed = elem.range canProceed input.length
             lazy val subs: Set[ParsingItem] = if (canProceed) elem.elem.toParsingItemOpt.toSet else Set()
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] =
-                if (!canProceed) None else {
-                    sym match {
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
+                if (!canProceed) Set() else {
+                    syms flatMap {
                         case ns: NontermSymbol if elem.elem == ns.elem =>
                             Some(ParsingRepeat(elem, ns +: input))
                         // NOTE needs token proceed?
@@ -241,9 +241,9 @@ trait ParsingItems {
                 }
                 prop(elem.seq drop pointer) ++ (elem.whitespace flatMap { _.toParsingItemOpt })
             }
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] =
-                if (pointer >= elem.seq.length) None else {
-                    sym match {
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
+                if (pointer >= elem.seq.length) Set() else {
+                    syms flatMap {
                         case tok: Token =>
                             ??? // NOTE needs token proceed?
                         case sym: NamedSymbol =>
@@ -277,9 +277,9 @@ trait ParsingItems {
             lazy val subs: Set[ParsingItem] =
                 if (input.isDefined) Set()
                 else ((elem.backups + elem.elem) flatMap { _.toParsingItemOpt })
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] =
-                if (input.isDefined) None else {
-                    sym match {
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
+                if (input.isDefined) Set() else {
+                    syms flatMap {
                         case sym: NamedSymbol if (elem.elem == sym.elem) || (elem.backups contains sym.elem) =>
                             Some(ParsingBackup(elem, Some(sym)))
                         case _ => None
@@ -295,14 +295,14 @@ trait ParsingItems {
         def contextual(context: EntryGroup): ContextualItem = new ContextualItem(context) {
             val finish: Option[ParsedSymbol] = None
             val subs: Set[ParsingItem] = Set()
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] = Set.empty
         }
     }
     case class ParsingLookaheadExcept(elem: LookaheadExcept) extends ParsingItem {
         def contextual(context: EntryGroup): ContextualItem = new ContextualItem(context) {
             val finish: Option[ParsedSymbol] = None
             val subs: Set[ParsingItem] = Set()
-            def proceed(sym: ParsedSymbol): Option[ParsingItem] = None
+            def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] = Set.empty
         }
     }
 }

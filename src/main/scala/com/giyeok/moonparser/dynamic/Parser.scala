@@ -69,30 +69,31 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
     def logln(str: => String): Unit = if (log) println(str)
 
     protected val starter =
-        EntryGroup(Set(EntryInfo(grammar.n(grammar.startSymbol).toParsingItem, None)), StartSymbol, 0)
+        EntryGroup(Set(EntryInfo(grammar.n(grammar.startSymbol).toParsingItem, None)), 0)
     protected val stack = new OctopusStack(starter)
 
-    type ParseStep = (EntryGroup, ParsedSymbol) => Boolean
+    type ParseStep = (EntryGroup, Set[ParsedSymbol]) => Boolean
 
-    def proceed(entry: EntryGroup, sym: ParsedSymbol, nextPointer: Int)(failed: ParseStep): Boolean =
-        entry.proceed(sym, nextPointer) match {
+    def proceed(entry: EntryGroup, syms: Set[ParsedSymbol], nextPointer: Int)(failed: ParseStep): Boolean =
+        // TODO lifting the items that are finished after proceed
+        entry.proceed(syms, nextPointer) match {
             case Some(proceeded) => { stack.add(entry, proceeded); true }
-            case None => failed(entry, sym)
+            case None => failed(entry, syms)
         }
-    def proceed(entry: EntryGroup, sym: ParsedSymbol)(failed: ParseStep): Boolean =
-        proceed(entry, sym, entry.pointer)(failed)
+    def proceed(entry: EntryGroup, syms: Set[ParsedSymbol])(failed: ParseStep): Boolean =
+        proceed(entry, syms, entry.pointer)(failed)
 
-    def defaultFailedHandler(entry: EntryGroup, sym: ParsedSymbol): Boolean = {
+    def defaultFailedHandler(entry: EntryGroup, syms: Set[ParsedSymbol]): Boolean = {
         _result += Parser.Failed(Parser.FailedReason.UnexpectedInput, entry.pointer)
         false
     }
-    def defaultAmbiguousHandler(entry: EntryGroup, sym: ParsedSymbol): Boolean = {
+    def defaultAmbiguousHandler(entry: EntryGroup, sym: Set[ParsedSymbol]): Boolean = {
         throw AmbiguousGrammarException(s"ambiguous at ${entry.pointer}")
         false
     }
-    def finish(entry: EntryGroup, sym: ParsedSymbol)(failed: ParseStep = defaultFailedHandler, ambiguous: ParseStep = defaultAmbiguousHandler): Boolean = {
+    def finish(entry: EntryGroup, syms: Set[ParsedSymbol])(failed: ParseStep = defaultFailedHandler, ambiguous: ParseStep = defaultAmbiguousHandler): Boolean = {
         logln(s"Finish ${System.identityHashCode(entry).toHexString}")
-        def finishItem(genpoint: Option[EntryGroup], reduced: ParsedSymbol): Boolean =
+        def finishItem(genpoint: Option[EntryGroup], reduced: Set[ParsedSymbol]): Boolean =
             genpoint match {
                 case Some(genpoint) =>
                     logln(s"Genpoint: ${System.identityHashCode(genpoint).toHexString}")
@@ -105,29 +106,34 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
                     // parsing may be finished
                     // it succeed if entry reaches to the end of input, and failed otherwise
                     logln(s"Trying to finish parsing as $reduced")
-                    if (input finishedAt entry.pointer) _result += Parser.Succeed(reduced)
+                    if (input finishedAt entry.pointer) _result ++= reduced map { Parser.Succeed(_) }
                     else _result += Parser.Failed(Parser.FailedReason.UnexpectedEndOfFile, entry.pointer)
                     true
             }
-        entry.finish.toSeq match {
+        implicit class SetToMapSet[A, B](set: Set[(A, B)]) {
+            def toMapSet = set groupBy { _._1 } map { p => (p._1, p._2 map { _._2 }) }
+        }
+        val finish = entry.finish.toMapSet
+        finish.toSeq match {
             case Seq(finitem) => finishItem(finitem._1, finitem._2)
             case Nil =>
                 // trying backup items
-                entry.finishBackup.toSeq match {
+                val finishBackup = entry.finishBackup.toMapSet
+                finishBackup.toSeq match {
                     case Seq(backupitem) => finishItem(backupitem._1, backupitem._2)
-                    case Nil => failed(entry, sym)
-                    case many => ambiguous(entry, sym)
+                    case Nil => failed(entry, syms)
+                    case many => ambiguous(entry, syms)
                 }
             case many =>
                 // the grammar seems to be ambiguous
                 // Generally, this is a grammar error
                 // but the user may want to process it in different way
-                ambiguous(entry, sym)
+                ambiguous(entry, syms)
         }
     }
 
-    def defaultParseStep(entry: EntryGroup, sym: ParsedSymbol, nextPointer: Int): Boolean =
-        proceed(entry, sym, nextPointer)(finish(_, _)())
+    def defaultParseStep(entry: EntryGroup, syms: Set[ParsedSymbol], nextPointer: Int): Boolean =
+        proceed(entry, syms, nextPointer)(finish(_, _)())
 
     def parseStep() =
         if (stack hasNext) {
@@ -139,7 +145,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
             // `proceed`, and `finish` if failed
 
             logln(s"TermSymbol $sym ${input finishedAt sym.pointer}")
-            defaultParseStep(entry, sym, input nextPointer entry.pointer)
+            defaultParseStep(entry, Set(sym), input nextPointer entry.pointer)
         } else {
             false
         }
@@ -153,7 +159,6 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
             // genpoint will be changed if the item is created by `subs` of ParsingItem
             // and preserved if the item is created by `proceed` of ParsingItem
             kernels: Set[EntryInfo],
-            symbol: ParsedSymbol,
             pointer: Int) {
 
         lazy val members: Map[EntryInfo, Entry] = {
@@ -170,10 +175,6 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
 
         def printMe() = {
             logln(s"=== new EntryGroup ${System.identityHashCode(this).toHexString} ===")
-            symbol match {
-                case cs: ConcreteSymbol => logln(s"Symbol: ${cs.text}")
-                case _ =>
-            }
             logln(s"Pointer: $pointer")
             def printItem(e: Entry) =
                 logln(s"${e.item}: ${
@@ -190,11 +191,11 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
         }
         if (log) printMe()
 
-        def proceed(sym: ParsedSymbol, pointer: Int): Option[EntryGroup] = {
+        def proceed(sym: Set[ParsedSymbol], pointer: Int): Option[EntryGroup] = {
             logln(s"Proceed ${System.identityHashCode(this).toHexString} $sym")
             val proceeded = (members.values flatMap { _.proceed(sym) }).toSet
             logln(proceeded.toString)
-            if (proceeded.isEmpty) None else Some(EntryGroup(proceeded, sym, pointer))
+            if (proceeded.isEmpty) None else Some(EntryGroup(proceeded, pointer))
         }
         // mems: members.partition(!_._1.item.isInstanceOf[ParsingBackup])
         private lazy val mems: (Set[Entry], Set[Entry]) =
@@ -205,10 +206,10 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
         lazy val finish: Set[(Option[EntryGroup], ParsedSymbol)] = mems._1 flatMap { _.finish }
         lazy val finishBackup: Set[(Option[EntryGroup], ParsedSymbol)] = mems._2 flatMap { _.finish }
 
-        override lazy val hashCode = (kernels, symbol, pointer).hashCode
+        override lazy val hashCode = (kernels, pointer).hashCode
         override def equals(other: Any) = other match {
             case that: EntryGroup => (that canEqual this) && (kernels == that.kernels) &&
-                (symbol == that.symbol) && (pointer == that.pointer)
+                (pointer == that.pointer)
             case _ => false
         }
         override def canEqual(other: Any) = other.isInstanceOf[EntryGroup]
@@ -221,12 +222,12 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
     class Entry(val item: ContextualItem, val genpoint: Option[EntryGroup]) {
         def subs(genpoint: EntryGroup): Set[EntryInfo] =
             item.subs map { EntryInfo(_, Some(genpoint)) }
-        def proceed(sym: ParsedSymbol): Option[EntryInfo] = {
-            (item proceed sym) match {
-                case Some(proceeded) =>
-                    logln(s"proceeded: $proceeded")
-                    Some(EntryInfo(proceeded, genpoint))
-                case None => None
+        def proceed(sym: Set[ParsedSymbol]): Set[EntryInfo] = {
+            val proceeded: Set[ParsingItem] = item proceed sym
+            if (proceeded.isEmpty) Set()
+            else {
+                logln(s"proceeded: $proceeded")
+                (proceeded map { EntryInfo(_, genpoint) }).toSet
             }
         }
         lazy val finish: Option[(Option[EntryGroup], ParsedSymbol)] = item.finish match {
