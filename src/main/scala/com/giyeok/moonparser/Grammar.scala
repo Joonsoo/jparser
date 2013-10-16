@@ -15,6 +15,7 @@ abstract class Grammar {
     def n(name: String) = Nonterminal(name)
     def i(string: String) = StringInputElem(string)
     def c = AnyCharacterInputElem
+    def c(chars: Char*) = SetCharacterInputElem(chars.toSet)
     def c(chars: Set[Char]) = SetCharacterInputElem(chars)
     def c(chars: String) = SetCharacterInputElem(chars.toCharArray toSet)
     def c(from: Char, to: Char) = CharacterRangeInputElem(from, to)
