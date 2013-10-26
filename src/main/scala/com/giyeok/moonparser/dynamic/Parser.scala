@@ -53,10 +53,10 @@ object Parser {
         val UnexpectedInput, UnexpectedEndOfFile = Value
     }
 }
-class BasicBlackboxParser(val grammar: Grammar) extends BlackboxParser {
+class BasicBlackboxParser(val grammar: Grammar, val log: Boolean = false) extends BlackboxParser {
     // === parser ===
     def parse(input: ParserInput): Parser.Result = {
-        val parser = new Parser(grammar, input)
+        val parser = new Parser(grammar, input, log)
         parser.parseAll
     }
     def parse(input: String): Parser.Result = parse(ParserInput.fromString(input))
@@ -126,6 +126,7 @@ class Parser(val grammar: Grammar, val input: ParserInput, val log: Boolean = fa
                     true
             }
         // TODO modify following to support multiple reductions
+        // find common ancestor of all reducing items
         // many possibilities for same GrElem is not allowed => real ambiguity!
         val finish = entry.finish.toMapSet
         finish.toSeq match {

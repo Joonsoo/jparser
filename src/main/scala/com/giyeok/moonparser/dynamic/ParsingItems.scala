@@ -189,7 +189,7 @@ trait ParsingItems {
                 }
             }
 
-        override lazy val repr = s"${elem.repr}[${elem.range.repr},${input.length}]"
+        override lazy val repr = s"${elem.repr}*${input.length}"
         override lazy val hashCode = (elem, input).hashCode
     }
     case class ParsingSequence(elem: Sequence, input: List[ParsedSymbol] = Nil, inputWS: List[ParsedSymbol] = Nil, mappings: Map[Int, Int] = Map())
@@ -275,11 +275,11 @@ trait ParsingItems {
             else (elem.except + elem.elem) flatMap { _.toParsingItemOpt }
         def proceed(syms: Set[ParsedSymbol]): Set[ParsingItem] =
             if (input.isDefined) Set() else {
-                val except = syms exists {
+                val containsExcept = syms exists {
                     case ns: NontermSymbol if elem.except contains ns.elem => true
                     case _ => false
                 }
-                if (except) {
+                if (!containsExcept) {
                     val i = syms find {
                         case ns: NontermSymbol if ns.elem == elem.elem => true
                         case _ => false

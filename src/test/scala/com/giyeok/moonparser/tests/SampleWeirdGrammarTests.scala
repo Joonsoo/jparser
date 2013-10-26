@@ -26,9 +26,9 @@ class SampleWeirdGrammarTests extends FunSuite {
         val name = "Nested Grammar 1"
         val startSymbol: String = "S"
         val rules: RuleMap = ListMap(
-            "S" -> Set(n("U").plus, i("for")),
+            "S" -> Set(n("U").plus.except(i("for")), i("for")),
             "U" -> Set(seq(c)))
-    })
+    }, true)
 
     val grammar3 = new BasicBlackboxParser(new Grammar {
         val name = "Nested Grammar 2"
@@ -38,6 +38,9 @@ class SampleWeirdGrammarTests extends FunSuite {
     })
 
     test("grammar2 - fos") {
-        grammar2.parse("fos")
+        println("============ fos")
+        println(grammar2.parse("fos"))
+        println("============ for")
+        println(grammar2.parse("for"))
     }
 }
