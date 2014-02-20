@@ -3,9 +3,7 @@ package com.giyeok.moonparser
 object Symbols {
     sealed abstract class Symbol
 
-    case object Empty extends Symbol {
-        override val hashCode = 0
-    }
+    case object Empty extends Symbol
     case class Nonterminal(name: String) extends Symbol {
         override lazy val hashCode = name.hashCode
     }
@@ -13,7 +11,7 @@ object Symbols {
         def accept(input: Inputs.Input): Boolean
     }
     object Terminals {
-        import Inputs.{ Input, Character, EOF }
+        import Inputs.{ Input, Character, Virtual, EOF }
         case object Any extends Terminal {
             def accept(input: Input) = true
         }
@@ -22,12 +20,14 @@ object Symbols {
                 input.isInstanceOf[Character]
         }
         case class ExactChar(char: Char) extends Terminal {
+            override lazy val hashCode = char.hashCode
             def accept(input: Input) = input match {
                 case Character(c, _) if char == c => true
                 case _ => false
             }
         }
         case class Chars(chars: Set[Char]) extends Terminal {
+            override lazy val hashCode = chars.hashCode
             def accept(input: Input) = input match {
                 case Character(c, _) if chars contains c => true
                 case _ => false
@@ -38,11 +38,25 @@ object Symbols {
                 Chars((from to to).toSet)
         }
         case class Unicode(categories: Set[Byte]) extends Terminal {
+            override lazy val hashCode = categories.hashCode
             def accept(input: Input) =
                 input match {
                     case Character(c, _) if categories contains c.getType.toByte => true
                     case _ => false
                 }
+        }
+        case class ExactVirtual(name: String) extends Terminal {
+            def accept(input: Input) = input match {
+                case Virtual(n, _) if n == name => true
+                case _ => false
+            }
+        }
+        case class Virtuals(names: Set[String]) extends Terminal {
+            override lazy val hashCode = names.hashCode
+            def accept(input: Input) = input match {
+                case Virtual(n, _) if names contains n => true
+                case _ => false
+            }
         }
         case object EndOfFile extends Terminal {
             def accept(input: Input) =

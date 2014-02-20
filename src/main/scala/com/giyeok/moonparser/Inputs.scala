@@ -1,9 +1,14 @@
 package com.giyeok.moonparser
 
 object Inputs {
-    abstract class Location
+    type Location = Int
 
-    abstract class Input(location: Location)
-    case class Character(char: Char, location: Location) extends Input(location)
-    case class EOF(location: Location) extends Input(location)
+    trait Input { val location: Location }
+    case class Character(char: Char, location: Location) extends Input
+    case class Virtual(name: String, location: Location) extends Input
+    case class EOF(location: Location) extends Input
+
+    trait Source {
+        def get(location: Location): Input
+    }
 }
