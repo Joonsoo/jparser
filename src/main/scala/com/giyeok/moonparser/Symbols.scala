@@ -5,7 +5,7 @@ object Symbols {
 
     case object Empty extends Symbol
     case class Nonterminal(name: String) extends Symbol {
-        override lazy val hashCode = name.hashCode
+        override val hashCode = name.hashCode
     }
     abstract class Terminal extends Symbol {
         def accept(input: Inputs.Input): Boolean
@@ -20,14 +20,14 @@ object Symbols {
                 input.isInstanceOf[Character]
         }
         case class ExactChar(char: Char) extends Terminal {
-            override lazy val hashCode = char.hashCode
+            override val hashCode = char.hashCode
             def accept(input: Input) = input match {
                 case Character(c, _) if char == c => true
                 case _ => false
             }
         }
         case class Chars(chars: Set[Char]) extends Terminal {
-            override lazy val hashCode = chars.hashCode
+            override val hashCode = chars.hashCode
             def accept(input: Input) = input match {
                 case Character(c, _) if chars contains c => true
                 case _ => false
@@ -38,7 +38,7 @@ object Symbols {
                 Chars((from to to).toSet)
         }
         case class Unicode(categories: Set[Byte]) extends Terminal {
-            override lazy val hashCode = categories.hashCode
+            override val hashCode = categories.hashCode
             def accept(input: Input) =
                 input match {
                     case Character(c, _) if categories contains c.getType.toByte => true
@@ -52,7 +52,7 @@ object Symbols {
             }
         }
         case class Virtuals(names: Set[String]) extends Terminal {
-            override lazy val hashCode = names.hashCode
+            override val hashCode = names.hashCode
             def accept(input: Input) = input match {
                 case Virtual(n, _) if names contains n => true
                 case _ => false
@@ -71,21 +71,24 @@ object Symbols {
     val EndOfFile = Terminals.EndOfFile
 
     case class Sequence(seq: Seq[Symbol], whitespace: Set[Symbol]) extends Symbol {
-        override lazy val hashCode = (seq, whitespace).hashCode
+        override val hashCode = (seq, whitespace).hashCode
     }
     def String(string: String): Sequence =
         Sequence(string.toCharArray() map { c => ExactChar(c) }, Set())
     case class OneOf(syms: Set[Symbol]) extends Symbol {
-        override lazy val hashCode = syms.hashCode
+        override val hashCode = syms.hashCode
+    }
+    case class Conjunction(syms: Set[Symbol]) extends Symbol {
+        override val hashCode = syms.hashCode
     }
     case class Except(sym: Symbol, except: Symbol) extends Symbol {
-        override lazy val hashCode = (sym, except).hashCode
+        override val hashCode = (sym, except).hashCode
     }
     case class LookaheadExcept(except: Symbol) extends Symbol {
-        override lazy val hashCode = except.hashCode
+        override val hashCode = except.hashCode
     }
     case class Repeat(sym: Symbol, range: Repeat.Range) extends Symbol {
-        override lazy val hashCode = (sym, range).hashCode
+        override val hashCode = (sym, range).hashCode
     }
     object Repeat {
         trait Range {
@@ -98,16 +101,16 @@ object Symbols {
             def contains(v: Int) = from <= v
             override def canProceed(x: Int): Boolean = true
 
-            override lazy val hashCode = from
+            override val hashCode = from
         }
         case class RangeTo(val from: Int, val to: Int) extends Range {
             override def contains(v: Int) = from <= v && v <= to
             override def canProceed(x: Int): Boolean = x < to
 
-            override lazy val hashCode = (from, to).hashCode
+            override val hashCode = (from, to).hashCode
         }
     }
     case class Backup(sym: Symbol, backup: Symbol) extends Symbol {
-        override lazy val hashCode = (sym, backup).hashCode
+        override val hashCode = (sym, backup).hashCode
     }
 }
