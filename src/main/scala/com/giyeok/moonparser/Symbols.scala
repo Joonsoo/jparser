@@ -3,10 +3,6 @@ package com.giyeok.moonparser
 object Symbols {
     sealed abstract class Symbol
 
-    case object Empty extends Symbol
-    case class Nonterminal(name: String) extends Symbol {
-        override val hashCode = name.hashCode
-    }
     abstract class Terminal extends Symbol {
         def accept(input: Inputs.Input): Boolean
     }
@@ -70,6 +66,10 @@ object Symbols {
     val Unicode = Terminals.Unicode
     val EndOfFile = Terminals.EndOfFile
 
+    case object Empty extends Symbol
+    case class Nonterminal(name: String) extends Symbol {
+        override val hashCode = name.hashCode
+    }
     case class Sequence(seq: Seq[Symbol], whitespace: Set[Symbol]) extends Symbol {
         override val hashCode = (seq, whitespace).hashCode
     }
@@ -94,8 +94,6 @@ object Symbols {
         trait Range {
             def contains(v: Int): Boolean
             def canProceed(x: Int): Boolean
-
-            def canEqual(other: Any): Boolean
         }
         case class RangeFrom(val from: Int) extends Range {
             def contains(v: Int) = from <= v
