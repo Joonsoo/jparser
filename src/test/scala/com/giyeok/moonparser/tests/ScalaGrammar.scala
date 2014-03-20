@@ -105,5 +105,5 @@ object ScalaGrammar extends Grammar {
         "AnnotType" -> Set(
             seq(n("SimpleType"), n("Annotation").star)) // TODO finish this
             )
-    override val startSymbol = "CompilationUnit"
+    override val startSymbol = n("CompilationUnit")
 }

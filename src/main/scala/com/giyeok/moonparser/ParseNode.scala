@@ -13,5 +13,5 @@ object ParseTree {
     }
     case class ParsedTerminal(symbol: Terminal, child: Input) extends ParseNode[Terminal]
     case class ParsedSymbol[T <: Symbol](symbol: T, body: ParseNode[Symbol]) extends ParseNode[T]
-    case class ParsedConjunction(symbol: Conjunction, bodies: Set[ParseNode[Symbol]]) extends ParseNode[Conjunction]
+    case class ParsedSymbolsSeq[T <: Symbol](symbol: T, body: Seq[ParseNode[Symbol]]) extends ParseNode[T]
 }

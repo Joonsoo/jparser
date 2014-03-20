@@ -693,5 +693,5 @@ object JavaScriptGrammar extends Grammar {
         "JSONElementList" -> Set(
             n("JSONValue"),
             expr(n("JSONElementList"), i(","), n("JSONValue"))))
-    override val startSymbol: String = "Start"
+    override val startSymbol = n("Start")
 }

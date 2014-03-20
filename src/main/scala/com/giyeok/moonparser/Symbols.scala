@@ -78,14 +78,11 @@ object Symbols {
     case class OneOf(syms: Set[Symbol]) extends Symbol {
         override val hashCode = syms.hashCode
     }
-    case class Conjunction(syms: Set[Symbol]) extends Symbol {
-        override val hashCode = syms.hashCode
+    case class Conjunction(sym: Symbol, also: Symbol) extends Symbol {
+        override val hashCode = (sym, also).hashCode
     }
     case class Except(sym: Symbol, except: Symbol) extends Symbol {
         override val hashCode = (sym, except).hashCode
-    }
-    case class LookaheadExcept(except: Symbol) extends Symbol {
-        override val hashCode = except.hashCode
     }
     case class Repeat(sym: Symbol, range: Repeat.Range) extends Symbol {
         override val hashCode = (sym, range).hashCode
@@ -107,6 +104,9 @@ object Symbols {
 
             override val hashCode = (from, to).hashCode
         }
+    }
+    case class LookaheadExcept(except: Symbol) extends Symbol {
+        override val hashCode = except.hashCode
     }
     case class Backup(sym: Symbol, backup: Symbol) extends Symbol {
         override val hashCode = (sym, backup).hashCode
