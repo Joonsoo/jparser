@@ -13,9 +13,12 @@ trait SymbolProgresses {
     abstract class SymbolProgress {
         val parsed: Option[ParseNode[Symbol]]
         def canFinish = parsed.isDefined
-
+    }
+    abstract class SymbolProgressTerminal extends SymbolProgress {
+        def accept(next: Input): Boolean
         def proceedTerminal(next: Input): Option[SymbolProgress]
-
+    }
+    abstract class SymbolProgressNonterminal extends SymbolProgress {
         /*
          * `proceed` and `derive` are some kind of opposite operation
          */
@@ -40,20 +43,16 @@ trait SymbolProgresses {
 
     case object EmptyProgress extends SymbolProgress {
         val parsed = Some(ParsedEmpty)
-
-        def proceedTerminal(next: Input) = None
-        def proceed(references: Set[ParseNode[Symbol]]) = None
-        val derive = Set[(SymbolProgress, EdgeKind.Value)]()
     }
 
     case class TerminalProgress(symbol: Terminal, parsed: Option[ParsedTerminal])
-            extends SymbolProgress {
-        def proceedTerminal(next: Input) = if (parsed.isDefined) None else {
+            extends SymbolProgressTerminal {
+        def accept(next: Input) = (symbol accept next) ensuring (parsed.isEmpty)
+        def proceedTerminal(next: Input) = {
+            assert(parsed.isEmpty)
             if (symbol accept next) Some(TerminalProgress(symbol, Some(ParsedTerminal(symbol, next))))
             else None
         }
-        def proceed(references: Set[ParseNode[Symbol]]) = None
-        val derive = Set[(SymbolProgress, EdgeKind.Value)]()
     }
 
     private def only[A, B](set: Set[A])(block: A => B): B = {
@@ -66,8 +65,7 @@ trait SymbolProgresses {
     }
 
     case class NonterminalProgress(symbol: Nonterminal, parsed: Option[ParsedSymbol[Nonterminal]])
-            extends SymbolProgress {
-        def proceedTerminal(next: Input) = None
+            extends SymbolProgressNonterminal {
         def proceed(references: Set[ParseNode[Symbol]]) = {
             assert(parsed.isEmpty)
             only(references) { next =>
@@ -83,7 +81,7 @@ trait SymbolProgresses {
     }
 
     case class SequenceProgress(symbol: Sequence, _children: List[ParseNode[Symbol]], _childrenWS: List[ParseNode[Symbol]])
-            extends SymbolProgress {
+            extends SymbolProgressNonterminal {
         // children: children without whitespace
         // childrenWS: all children with whitespace
         lazy val children = _children.reverse
@@ -93,7 +91,6 @@ trait SymbolProgresses {
         val parsed =
             if (locInSeq == symbol.seq.size) Some(ParsedSymbolsSeq[Sequence](symbol, children))
             else None
-        def proceedTerminal(next: Input) = None
         def proceed(references: Set[ParseNode[Symbol]]) = {
             assert(locInSeq < symbol.seq.size)
             Some(references find { _.symbol == symbol.seq(locInSeq) } match {
@@ -114,8 +111,7 @@ trait SymbolProgresses {
     }
 
     case class OneOfProgress(symbol: OneOf, parsed: Option[ParsedSymbol[OneOf]])
-            extends SymbolProgress {
-        def proceedTerminal(next: Input) = None
+            extends SymbolProgressNonterminal {
         def proceed(references: Set[ParseNode[Symbol]]) = {
             assert(parsed.isEmpty)
             Some(only(references) { next =>
@@ -129,8 +125,7 @@ trait SymbolProgresses {
     }
 
     case class ConjunctionProgress(symbol: Conjunction, parsed: Option[ParsedSymbol[Conjunction]])
-            extends SymbolProgress {
-        def proceedTerminal(next: Input) = None
+            extends SymbolProgressNonterminal {
         def proceed(references: Set[ParseNode[Symbol]]) = {
             assert(parsed.isEmpty)
             val sym = references find { _.symbol == symbol.sym }
@@ -146,8 +141,7 @@ trait SymbolProgresses {
     }
 
     case class ExceptProgress(symbol: Except, parsed: Option[ParsedSymbol[Except]])
-            extends SymbolProgress {
-        def proceedTerminal(next: Input) = None
+            extends SymbolProgressNonterminal {
         def proceed(references: Set[ParseNode[Symbol]]) = {
             assert(parsed.isEmpty)
             val sym = references find { _.symbol == symbol.sym }
@@ -163,12 +157,11 @@ trait SymbolProgresses {
     }
 
     case class RepeatProgress(symbol: Repeat, _children: List[ParseNode[Symbol]])
-            extends SymbolProgress {
+            extends SymbolProgressNonterminal {
         lazy val children = _children.reverse
         val parsed =
             if (symbol.range contains _children.size) Some(ParsedSymbolsSeq(symbol, children))
             else None
-        def proceedTerminal(next: Input) = None
         def proceed(references: Set[ParseNode[Symbol]]) = {
             assert(symbol.range canProceed _children.size)
             only(references) { next =>
@@ -183,15 +176,13 @@ trait SymbolProgresses {
     }
 
     case class LookaheadProgress(symbol: LookaheadExcept, parsed: Option[ParsedSymbol[LookaheadExcept]])
-            extends SymbolProgress {
-        def proceedTerminal(next: Input) = None
+            extends SymbolProgressNonterminal {
         def proceed(references: Set[ParseNode[Symbol]]) = ???
         val derive = ???
     }
 
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]])
-            extends SymbolProgress {
-        def proceedTerminal(next: Input) = None
+            extends SymbolProgressNonterminal {
         def proceed(references: Set[ParseNode[Symbol]]) = ???
         val derive = ???
     }
