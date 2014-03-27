@@ -21,6 +21,11 @@ trait SymbolProgresses {
     abstract class SymbolProgressNonterminal extends SymbolProgress {
         /*
          * `proceed` and `derive` are some kind of opposite operation
+         * `proceed` will only receive `SymbolProgress` returned by `derive` method
+         * Thus, in general, proceed should not return None.
+         * But some special SymbolProgresses such as LookaheadExcept and Except may return None
+         * If proceed returns None, that node will be deleted from the next generation,
+         * so if you want to check the future progress return Some(this)
          */
         def proceed(references: Set[ParseNode[Symbol]]): Option[SymbolProgress]
         val derive: Set[(SymbolProgress, EdgeKind.Value)]
