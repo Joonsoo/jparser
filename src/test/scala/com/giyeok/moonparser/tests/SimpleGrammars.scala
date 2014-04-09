@@ -46,3 +46,52 @@ class SimpleGrammar1Suite extends AssertionsForJUnit {
     @Test def incorrectSource1() = {
     }
 }
+
+object SimpleGrammar2 extends Grammar {
+    val name = "Simple Grammar 2"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(n("Token").star),
+        "Token" -> Set(
+            n("Name"),
+            n("Keyword"),
+            chars(" ()")),
+        "Word" -> Set(
+            seq(n("FirstChar"), n("SecondChar").star, lookahead_except(n("SecondChar")))),
+        "Name" -> Set(
+            n("Word").except(n("Keyword"))),
+        "Keyword" -> Set(
+            i("var"),
+            i("if")),
+        "FirstChar" -> Set(
+            chars('a' to 'z', 'A' to 'Z')),
+        "SecondChar" -> Set(
+            chars('a' to 'z', 'A' to 'Z', '0' to '9')))
+    val startSymbol = n("S")
+}
+
+class SimpleGrammar2Suite extends AssertionsForJUnit {
+    private def test(source: String) = {
+        val parser = new Parser(SimpleGrammar2)
+        println(parser.checkFromStart)
+        println(parser.startingContext)
+        source.toCharArray().zipWithIndex.foldLeft[Either[parser.ParsingContext, parser.ParsingError]](Left(parser.startingContext)) {
+            (ctx, char) =>
+                ctx match {
+                    case Left(ctx) => ctx.proceedTerminal(Character(char._1, char._2))
+                    case error @ Right(_) => error
+                }
+        }
+    }
+
+    @Test def keyword() = {
+        val result = test("var a")
+        result match {
+            case Left(ctx) =>
+                val result = ctx.toResult
+                println(result)
+            case Right(_) =>
+                // must not happen
+                assertTrue(false)
+        }
+    }
+}

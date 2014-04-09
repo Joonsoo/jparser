@@ -19,11 +19,11 @@ object ScalaGrammar extends Grammar {
     // http://www.scala-lang.org/docu/files/ScalaReference.pdf
     override val rules: RuleMap = ListMap(
         // lexical syntax
-        "upper" -> Set(c('A', 'Z'), c("$_"), unicode("Lu")),
+        "upper" -> Set(c('A', 'Z'), chars("$_"), unicode("Lu")),
         "lower" -> Set(c('a', 'z'), unicode("Ll")),
         "letter" -> Set(n("upper"), n("lower"), unicode("Lo", "Lt", "Nl")),
         "digit" -> Set(c('0', '9')),
-        "opchar" -> Set(oneof(c('\u0020', '\u007F'), unicode("Sm, So")).except(c("()[]{}.,"))),
+        "opchar" -> Set(oneof(c('\u0020', '\u007F'), unicode("Sm, So")).except(chars("()[]{}.,"))),
 
         "op" -> Set(n("opchar").plus),
         "varid" -> Set(seq(n("lower"), n("idrest"))),
@@ -31,7 +31,7 @@ object ScalaGrammar extends Grammar {
         "id" -> Set(n("plainid"), seq(i("`"), n("stringLit"), i("`"))),
         "idrest" -> Set(seq(oneof(n("letter"), n("digit")).star, seq(i("_"), n("op")).opt)),
 
-        "integerLiteral" -> Set(seq(oneof(n("decimalNumber"), n("hexNumeral"), n("octalNumber")), c("Ll").opt)),
+        "integerLiteral" -> Set(seq(oneof(n("decimalNumber"), n("hexNumeral"), n("octalNumber")), chars("Ll").opt)),
         "decimalNumeral" -> Set(i("0"), seq(n("nonZeroDigit"), n("digit").star)),
         "hexNumeral" -> Set(seq(i("0x"), n("hexDigit").plus)),
         "octalNumeral" -> Set(seq(i("0"), n("octalDigit").plus)),
@@ -46,8 +46,8 @@ object ScalaGrammar extends Grammar {
             seq(n("digit").plus, n("exponentPart"), n("floatType")),
             seq(n("digit").plus, n("exponentPart")),
             seq(n("digit").plus, n("floatType"))),
-        "exponentPart" -> Set(seq(c("Ee"), c("+-").opt, n("digit").plus)),
-        "floatType" -> Set(c("FfDd")),
+        "exponentPart" -> Set(seq(chars("Ee"), chars("+-").opt, n("digit").plus)),
+        "floatType" -> Set(chars("FfDd")),
         "booleanLiteral" -> Set(i("true"), i("false")),
         "characterLiteral" -> Set(
             seq(i("`"), n("printableChar"), i("`")),

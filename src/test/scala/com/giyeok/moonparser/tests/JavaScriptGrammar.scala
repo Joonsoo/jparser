@@ -30,11 +30,11 @@ object JavaScriptGrammar extends Grammar {
         "InputElementRegExp" -> Set(
             n("WhiteSpace"), n("LineTerminator"), n("Comment"), n("Token"), n("RegularExpressionLiteral")),
         "WhiteSpace" -> Set(
-            c("\u0009\u000B\u000C\uFEFF"), unicode("Zs")), // \u0020\u00A0  ->  already in Zs
+            chars("\u0009\u000B\u000C\uFEFF"), unicode("Zs")), // \u0020\u00A0  ->  already in Zs
         "LineTerminator" -> Set(
-            c("\n\r\u2028\u2029")),
+            chars("\n\r\u2028\u2029")),
         "LineTerminatorSequence" -> Set(
-            c("\n\u2028\u2029"), lex(c("\r"), lookahead_except(c("\n"))), i("\r\n")),
+            chars("\n\u2028\u2029"), lex(c('\r'), lookahead_except(c('\n'))), i("\r\n")),
         "Comment" -> Set(
             n("MultiLineComment"), n("SingleLineComment")),
         "MultiLineComment" -> Set(
@@ -63,8 +63,8 @@ object JavaScriptGrammar extends Grammar {
         "Identifier" -> Set(
             n("IdentifierName").butnot(n("ReservedWord"))),
         "IdentifierName" -> Set(
-            n("IdentifierStart"),
-            lex(n("IdentifierName"), n("IdentifierPart"))),
+            lex(n("IdentifierStart"), lookahead_except(n("IdentifierPart"))),
+            lex(n("IdentifierName"), n("IdentifierPart"), lookahead_except(n("IdentifierPart")))),
         "IdentifierStart" -> Set(
             n("UnicodeLetter"),
             i("$"),
@@ -75,7 +75,7 @@ object JavaScriptGrammar extends Grammar {
             n("UnicodeCombiningMark"),
             n("UnicodeDigit"),
             n("UnicodeConnectorPunctuation"),
-            c("\u200C\u200D")),
+            chars("\u200C\u200D")),
         "UnicodeLetter" -> Set(
             unicode("Lu", "Ll", "Lt", "Lm", "Lo", "Nl")),
         "UnicodeCombiningMark" -> Set(
@@ -139,13 +139,13 @@ object JavaScriptGrammar extends Grammar {
             n("DecimalDigit"),
             lex(n("DecimalDigits"), n("DecimalDigit"))),
         "DecimalDigit" -> Set(
-            c("0123456789")),
+            chars('0' to '9')),
         "NonZeroDigit" -> Set(
-            c("123456789")),
+            chars('1' to '9')),
         "ExponentPart" -> Set(
             lex(n("ExponentIndicator"), n("SignedInteger"))),
         "ExponentIndicator" -> Set(
-            c("eE")),
+            chars("eE")),
         "SignedInteger" -> Set(
             n("DecimalDigits"),
             lex(i("+"), n("DecimalDigits")),
@@ -155,7 +155,7 @@ object JavaScriptGrammar extends Grammar {
             lex(i("0X"), n("HexDigit")),
             lex(n("HexIntegerLiteral"), n("HexDigit"))),
         "HexDigit" -> Set(
-            c("0123456789abcdefABCDEF")),
+            chars('0' to '9', 'a' to 'f', 'A' to 'F')),
         "StringLiteral" -> Set(
             lex(i("\""), n("DoubleStringCharacters").opt, i("\"")),
             lex(i("'"), n("SingleStringCharacters").opt, i("'"))),
@@ -164,11 +164,11 @@ object JavaScriptGrammar extends Grammar {
         "SingleStringCharacters" -> Set(
             lex(n("SingleStringCharacter"), n("SingleStringCharacters").opt)),
         "DoubleStringCharacter" -> Set(
-            n("SourceCharacter").butnot(c("\"\\"), n("LineTerminator")),
+            n("SourceCharacter").butnot(chars("\"\\"), n("LineTerminator")),
             lex(i("\\"), n("EscapeSequence")),
             n("LineContinuation")),
         "SingleStringCharacter" -> Set(
-            n("SourceCharacter").butnot(c("'\\"), n("LineTerminator")),
+            n("SourceCharacter").butnot(chars("'\\"), n("LineTerminator")),
             lex(i("\\"), n("EscapeSequence")),
             n("LineContinuation")),
         "LineContinuation" -> Set(
@@ -182,13 +182,13 @@ object JavaScriptGrammar extends Grammar {
             n("SingleEscapeCharacter"),
             n("NonEscapeCharacter")),
         "SingleEscapeCharacter" -> Set(
-            c("'\"\\bfnrtv")),
+            chars("'\"\\bfnrtv")),
         "NonEscapeCharacter" -> Set(
             n("SourceCharacter").butnot(n("EscapeCharacter"), n("LineTerminator"))),
         "EscapeCharacter" -> Set(
             n("SingleEscapeCharacter"),
             n("DecimalDigit"),
-            c("xu")),
+            chars("xu")),
         "HexEscapeSequence" -> Set(
             lex(i("x"), n("HexDigit"), n("HexDigit"))),
         "UnicodeEscapeSequence" -> Set(
@@ -201,11 +201,11 @@ object JavaScriptGrammar extends Grammar {
             e,
             lex(n("RegularExpressionChars"), n("RegularExpressionChar"))),
         "RegularExpressionFirstChar" -> Set(
-            n("RegularExpressionNonTerminator").butnot(c("*\\/[")),
+            n("RegularExpressionNonTerminator").butnot(chars("*\\/[")),
             n("RegularExpressionBackslashSequence"),
             n("RegularExpressionClass")),
         "RegularExpressionChar" -> Set(
-            n("RegularExpressionNonTerminator").butnot(c("\\/[")),
+            n("RegularExpressionNonTerminator").butnot(chars("\\/[")),
             n("RegularExpressionBackslashSequence"),
             n("RegularExpressionClass")),
         "RegularExpressionBackslashSequence" -> Set(
@@ -218,7 +218,7 @@ object JavaScriptGrammar extends Grammar {
             e,
             lex(n("RegularExpressionClassChars"), n("RegularExpressionClassChar"))),
         "RegularExpressionClassChar" -> Set(
-            n("RegularExpressionNonTerminator").butnot(c("]\\")),
+            n("RegularExpressionNonTerminator").butnot(chars("]\\")),
             n("RegularExpressionBackslashSequence")),
         "RegularExpressionFlags" -> Set(
             e,
@@ -249,11 +249,11 @@ object JavaScriptGrammar extends Grammar {
             n("DecimalDigit"),
             lex(n("DecimalDigits"), n("DecimalDigit"))),
         "DecimalDigit" -> Set(
-            c("0123456789")),
+            chars('0' to '9')),
         "ExponentPart" -> Set(
             lex(n("ExponentIndicator"), n("SignedInteger"))),
         "ExponentIndicator" -> Set(
-            c("eE")),
+            chars("eE")),
         "SignedInteger" -> Set(
             n("DecimalDigits"),
             lex(i("+"), n("DecimalDigits")),
@@ -263,7 +263,7 @@ object JavaScriptGrammar extends Grammar {
             lex(i("0X"), n("HexDigit")),
             lex(n("HexIntegerLiteral"), n("HexDigit"))),
         "HexDigit" -> Set(
-            c("0123456789abcdefABCDEF")),
+            chars('0' to '9', 'a' to 'f', 'A' to 'F')),
 
         // A.3 Expressions
         "PrimaryExpression" -> Set(
@@ -550,7 +550,7 @@ object JavaScriptGrammar extends Grammar {
             n("uriUnescaped"),
             n("uriEscaped")),
         "uriReserved" -> Set(
-            c(";/?:@&=+$,")),
+            chars(";/?:@&=+$,")),
         "uriUnescaped" -> Set(
             n("uriAlpha"),
             n("DecimalDigit"),
@@ -558,9 +558,9 @@ object JavaScriptGrammar extends Grammar {
         "uriEscaped" -> Set(
             lex(i("%"), n("HexDigit"), n("HexDigit"))),
         "uriAlpha" -> Set(
-            c("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")),
+            chars('a' to 'z', 'A' to 'Z')),
         "uriMark" -> Set(
-            c("-_.!~*'()")),
+            chars("-_.!~*'()")),
 
         // A.7 Regular Expressions
         "Pattern" -> Set(
@@ -600,7 +600,7 @@ object JavaScriptGrammar extends Grammar {
             lex(i("("), n("Disjunction"), i(")")),
             lex(i("("), i("?"), i(":"), n("Disjunction"), i(")"))),
         "PatternCharacter" -> Set(
-            n("SourceCharacter").butnot(c("^$\\.*+?()[]{}|"))),
+            n("SourceCharacter").butnot(chars("^$\\.*+?()[]{}|"))),
         "AtomEscape" -> Set(
             n("DecimalEscape"),
             n("CharacterEscape"),
@@ -612,15 +612,15 @@ object JavaScriptGrammar extends Grammar {
             n("UnicodeEscapeSequence"),
             n("IdentityEscape")),
         "ControlEscape" -> Set(
-            c("fnrtv")),
+            chars("fnrtv")),
         "ControlLetter" -> Set(
-            c("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")),
+            chars('a' to 'z', 'A' to 'Z')),
         "IdentityEscape" -> Set(
-            n("SourceCharacter").butnot(n("IdentifierPart"), c("\u200C\u200D"))),
+            n("SourceCharacter").butnot(n("IdentifierPart"), chars("\u200C\u200D"))),
         "DecimalEscape" -> Set(
             lex(n("DecimalIntegerLiteral"), lookahead_except(n("DecimalDigit")))),
         "CharacterClassEscape" -> Set(
-            c("dDsSwW")),
+            chars("dDsSwW")),
         "CharacterClass" -> Set(
             lex(i("["), lookahead_except(i("^")), n("ClassRanges"), i("]")),
             lex(i("["), i("^"), n("ClassRanges"), i("]"))),
@@ -639,7 +639,7 @@ object JavaScriptGrammar extends Grammar {
             i("-"),
             n("ClassAtomNoDash")),
         "ClassAtomNoDash" -> Set(
-            n("SourceCharacter").butnot(c("\\]-")),
+            n("SourceCharacter").butnot(chars("\\]-")),
             lex(i("\\"), n("ClassEscape"))),
         "ClassEscape" -> Set(
             n("DecimalEscape"),
@@ -649,19 +649,19 @@ object JavaScriptGrammar extends Grammar {
 
         // A.8 JSON
         "JSONWhiteSpace" -> Set(
-            c("\t\n\r ")),
+            chars("\t\n\r ")),
         "JSONString" -> Set(
             lex(i("\""), n("JSONStringCharacters").opt, i("\""))),
         "JSONStringCharacters" -> Set(
             lex(n("JSONStringCharacter"), n("JSONStringCharacters").opt)),
         "JSONStringCharacter" -> Set(
-            n("SourceCharacter").butnot(c("\"\\\u0000\u001F")),
+            n("SourceCharacter").butnot(chars("\"\\\u0000\u001F")),
             lex(i("\\"), n("JSONEscapeSequence"))),
         "JSONEscapeSequence" -> Set(
             n("JSONEscapeCharacter"),
             n("UnicodeEscapeSequence")),
         "JSONEscapeCharacter" -> Set(
-            c("\"/\\bfnrt")),
+            chars("\"/\\bfnrt")),
         "JSONNumber" -> Set(
             lex(i("-").opt, n("DecimalIntegerLiteral"), n("JSONFraction").opt, n("ExponentPart").opt)),
         "JSONFraction" -> Set(

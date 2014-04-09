@@ -15,6 +15,16 @@ object Symbols {
             def accept(input: Input) =
                 input.isInstanceOf[Character]
         }
+        /**
+         * `func` must be referential transparent function
+         * if not, the behavior of the parser is unpredictable
+         */
+        case class FuncChar(func: Char => Boolean) extends Terminal {
+            def accept(input: Input) = input match {
+                case Character(c, _) if func(c) => true
+                case _ => false
+            }
+        }
         case class ExactChar(char: Char) extends Terminal {
             override val hashCode = char.hashCode
             def accept(input: Input) = input match {
@@ -28,10 +38,6 @@ object Symbols {
                 case Character(c, _) if chars contains c => true
                 case _ => false
             }
-        }
-        object Chars {
-            def apply(from: Char, to: Char): Chars =
-                Chars((from to to).toSet)
         }
         case class Unicode(categories: Set[Byte]) extends Terminal {
             override val hashCode = categories.hashCode
@@ -61,6 +67,7 @@ object Symbols {
     }
     val Any = Terminals.Any
     val AnyChar = Terminals.AnyChar
+    val FuncChar = Terminals.FuncChar
     val ExactChar = Terminals.ExactChar
     val Chars = Terminals.Chars
     val Unicode = Terminals.Unicode

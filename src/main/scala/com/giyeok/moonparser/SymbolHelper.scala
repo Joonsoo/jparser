@@ -1,5 +1,7 @@
 package com.giyeok.moonparser
 
+import scala.collection.immutable.NumericRange
+
 object SymbolHelper {
     import Symbols._
     import utils.UnicodeUtil
@@ -9,10 +11,12 @@ object SymbolHelper {
     def n(name: String) = Nonterminal(name)
     def i(string: String) = String(string)
     def c = AnyChar
+    def c(func: Char => Boolean) = FuncChar(func)
     def c(chars: Char*) = Chars(chars.toSet)
     def c(chars: Set[Char]) = Chars(chars)
-    def c(chars: String) = Chars(chars.toCharArray toSet)
-    def c(from: Char, to: Char) = Chars(from, to)
+    def chars(range: NumericRange[Char]) = Chars(range.toSet)
+    def chars(ranges: NumericRange[Char]*) = Chars(ranges.toSet.flatten)
+    def chars(chars: String) = Chars(chars.toCharArray().toSet)
     def unicode(categories: String*): Terminals.Unicode = unicode(categories toSet)
     def unicode(categories: Set[String]) = Terminals.Unicode(UnicodeUtil.translateCategoryNamesToByte(categories))
     // def virtual(name: String) = VirtualInputElem(name)
@@ -24,6 +28,8 @@ object SymbolHelper {
     def oneof(items: Set[Symbol]) = OneOf(items)
     def lookahead_except(except: Symbol) = LookaheadExcept(except)
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
+
+    def both(first: Symbol, second: Symbol) = Conjunction(first, second)
 
     implicit class GrammarElementExcludable(self: Symbol) {
         def except(e: Symbol) = self match {
