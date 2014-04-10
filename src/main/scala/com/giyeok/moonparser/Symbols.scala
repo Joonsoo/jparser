@@ -98,16 +98,19 @@ object Symbols {
         trait Range {
             def contains(v: Int): Boolean
             def canProceed(x: Int): Boolean
+            val isNullable: Boolean
         }
         case class RangeFrom(val from: Int) extends Range {
-            def contains(v: Int) = from <= v
+            override def contains(v: Int) = from <= v
             override def canProceed(x: Int): Boolean = true
+            override val isNullable = from == 0
 
             override val hashCode = from
         }
         case class RangeTo(val from: Int, val to: Int) extends Range {
             override def contains(v: Int) = from <= v && v <= to
             override def canProceed(x: Int): Boolean = x < to
+            override val isNullable = from == 0
 
             override val hashCode = (from, to).hashCode
         }

@@ -1,6 +1,8 @@
 package com.giyeok.moonparser
 
-trait SymbolProgresses {
+import com.giyeok.moonparser.utils.SeqOrderedTester
+
+trait SymbolProgresses extends IsNullable with SeqOrderedTester {
     this: Parser =>
 
     import Symbols._
@@ -27,8 +29,8 @@ trait SymbolProgresses {
          * If proceed returns None, that node will be deleted from the next generation,
          * so if you want to check the future progress return Some(this)
          */
-        def proceed(references: Set[ParseNode[Symbol]]): Option[SymbolProgress]
-        val derive: Set[(SymbolProgress, EdgeKind.Value)]
+        def lift(edge: LiftingEdge): Option[SymbolProgress]
+        val derive: Set[EdgeEnd]
     }
 
     object SymbolProgress {
@@ -60,105 +62,131 @@ trait SymbolProgresses {
         }
     }
 
-    private def only[A, B](set: Set[A])(block: A => B): B = {
-        assert(!set.isEmpty)
-        if (set.size > 1) throw new AmbiguousParsingException
-        else {
-            assert(set.size == 1)
-            block(set.head)
-        }
+    private def simple[A](edge: LiftingEdge)(f: ParseNode[Symbol] => A): A = {
+        assert(edge.isInstanceOf[LiftingSimpleEdge])
+        f(edge.asInstanceOf[LiftingSimpleEdge].parsed)
+    }
+    private def double[A](edge: LiftingEdge)(f: (ParseNode[Symbol], Option[ParseNode[Symbol]]) => A): A = {
+        assert(edge.isInstanceOf[LiftingDoubleEdge])
+        val e = edge.asInstanceOf[LiftingDoubleEdge]
+        f(e.parsed, e.doub)
     }
 
     case class NonterminalProgress(symbol: Nonterminal, parsed: Option[ParsedSymbol[Nonterminal]])
             extends SymbolProgressNonterminal {
-        def proceed(references: Set[ParseNode[Symbol]]) = {
+        def lift(edge: LiftingEdge) = {
             assert(parsed.isEmpty)
-            only(references) { next =>
+            simple(edge) { next =>
                 // assuming grammar rules have a rule for symbol.name
-                val rhs = grammar.rules(symbol.name)
-                assert(rhs contains next.symbol)
+                assert(grammar.rules(symbol.name) contains next.symbol)
                 Some(NonterminalProgress(symbol, Some(ParsedSymbol[Nonterminal](symbol, next))))
             }
         }
-        val derive =
-            if (parsed.isEmpty) grammar.rules(symbol.name) map { s => (SymbolProgress(s), EdgeKind.Derive) }
-            else Set[(SymbolProgress, EdgeKind.Value)]()
+        val derive: Set[EdgeEnd] =
+            if (parsed.isEmpty) grammar.rules(symbol.name) map { s => SimpleEdgeEnd(SymbolProgress(s)) }
+            else Set[EdgeEnd]()
     }
 
-    case class SequenceProgress(symbol: Sequence, _children: List[ParseNode[Symbol]], _childrenWS: List[ParseNode[Symbol]])
+    case class SequenceProgress(symbol: Sequence, _childrenWS: List[ParseNode[Symbol]], _idxMapping: List[(Int, Int)])
             extends SymbolProgressNonterminal {
-        // children: children without whitespace
-        // childrenWS: all children with whitespace
-        lazy val children = _children.reverse
-        lazy val childrenWS = _childrenWS.reverse
+        // idxMapping: index of childrenWS(not in reversed order) -> index of children
+        assert(_idxMapping map { _._1 } isStrictlyDecreasing)
+        assert(_idxMapping map { _._2 } isStrictlyDecreasing)
+        assert(_idxMapping map { _._1 } forall { i => i >= 0 && i < _childrenWS.size })
 
-        private val locInSeq = _children.size
+        private val locInSeq = if (_idxMapping isEmpty) 0 else _idxMapping.head._2
+        assert(locInSeq < symbol.seq.size)
+        private val visibles = {
+            // TODO verify this
+            def vis(loc: Int): Int = if (symbol.seq(loc).isNullable) vis(loc + 1) else loc
+            vis(locInSeq)
+        }
+
+        // childrenWS: all children with whitespace (but without ParseEmpty)
+        // children: children without whitespace (but with ParseEmpty)
+        lazy val idxMapping: Map[Int, Int] = _idxMapping.toMap
+        lazy val childrenWS = _childrenWS.reverse
+        lazy val children: List[ParseNode[Symbol]] = {
+            // TODO verify this
+            if (_idxMapping.isEmpty) List() else {
+                case class MappingContext(_cws: List[ParseNode[Symbol]], _cwsPtr: Int, _c: List[ParseNode[Symbol]], _cPtr: Int)
+                val starting = MappingContext(_childrenWS, _childrenWS.size - 1, List(), locInSeq)
+                _idxMapping.foldLeft(starting) { (context, idxMapping) =>
+                    val (cwsPtr, cPtr) = idxMapping
+                    val _cws = context._cws drop (context._cwsPtr - cwsPtr)
+                    val _c = (0 until (context._cPtr - cPtr)).foldLeft(context._c) { (m, _) => ParsedEmpty +: m }
+                    MappingContext(_cws.tail, cwsPtr - 1, _cws.head +: _c, cPtr - 1)
+                }._c
+            }
+        }
+
         val parsed =
             if (locInSeq == symbol.seq.size) Some(ParsedSymbolsSeq[Sequence](symbol, children))
             else None
-        def proceed(references: Set[ParseNode[Symbol]]) = {
-            assert(locInSeq < symbol.seq.size)
-            Some(references find { _.symbol == symbol.seq(locInSeq) } match {
-                case Some(body) =>
-                    SequenceProgress(symbol, body +: _children, body +: _childrenWS)
-                case None =>
-                    // references may have more than one item - does it mean that the grammar is ambiguous?
-                    only(references) { next =>
+        def lift(edge: LiftingEdge) = {
+            // TODO verify this
+            simple(edge) { next =>
+                def first(range: Seq[Int]): Option[Int] = {
+                    if (range.isEmpty) None
+                    else if (symbol.seq(range.head) == next.symbol) Some(range.head)
+                    else first(range.tail)
+                }
+                first(locInSeq to visibles) match {
+                    case Some(index) =>
+                        Some(SequenceProgress(symbol, next +: _childrenWS, (_childrenWS.size, index) +: _idxMapping))
+                    case None =>
+                        // must be whitespace
                         assert(symbol.whitespace contains next.symbol)
-                        SequenceProgress(symbol, _children, next +: _childrenWS)
-                    }
-            })
+                        Some(SequenceProgress(symbol, next +: _childrenWS, _idxMapping))
+                }
+            }
         }
-        val derive =
-            if (locInSeq < symbol.seq.size)
-                (symbol.whitespace + symbol.seq(locInSeq)) map { s => (SymbolProgress(s), EdgeKind.Derive) }
-            else Set[(SymbolProgress, EdgeKind.Value)]()
+        val derive: Set[EdgeEnd] =
+            if (locInSeq < symbol.seq.size) {
+                (symbol.whitespace ++ symbol.seq.slice(locInSeq, visibles + 1)) map { s => SimpleEdgeEnd(SymbolProgress(s)) }
+            } else Set[EdgeEnd]()
     }
 
     case class OneOfProgress(symbol: OneOf, parsed: Option[ParsedSymbol[OneOf]])
             extends SymbolProgressNonterminal {
-        def proceed(references: Set[ParseNode[Symbol]]) = {
+        def lift(edge: LiftingEdge) = {
             assert(parsed.isEmpty)
-            Some(only(references) { next =>
+            simple(edge) { next =>
                 assert(symbol.syms contains next.symbol)
-                OneOfProgress(symbol, Some(ParsedSymbol[OneOf](symbol, next)))
-            })
+                Some(OneOfProgress(symbol, Some(ParsedSymbol[OneOf](symbol, next))))
+            }
         }
-        val derive =
-            if (parsed.isEmpty) symbol.syms map { s => (SymbolProgress(s), EdgeKind.Derive) }
-            else Set[(SymbolProgress, EdgeKind.Value)]()
+        val derive: Set[EdgeEnd] =
+            if (parsed.isEmpty) symbol.syms map { s => SimpleEdgeEnd(SymbolProgress(s)) }
+            else Set[EdgeEnd]()
     }
 
     case class ConjunctionProgress(symbol: Conjunction, parsed: Option[ParsedSymbol[Conjunction]])
             extends SymbolProgressNonterminal {
-        def proceed(references: Set[ParseNode[Symbol]]) = {
+        def lift(edge: LiftingEdge) = {
             assert(parsed.isEmpty)
-            val sym = references find { _.symbol == symbol.sym }
-            val also = references find { _.symbol == symbol.also }
-            assert(sym.isDefined || also.isDefined)
-            if (sym.isDefined && also.isDefined)
-                Some(ConjunctionProgress(symbol, sym.asInstanceOf[Option[ParsedSymbol[Conjunction]]]))
-            else None
+            double(edge) { (next, doub) =>
+                if (!doub.isEmpty) Some(ConjunctionProgress(symbol, Some(ParsedSymbol[Conjunction](symbol, next))))
+                else None
+            }
         }
-        val derive =
-            if (parsed.isEmpty) Set(symbol.sym, symbol.also) map { s => (SymbolProgress(s), EdgeKind.Derive) }
-            else Set[(SymbolProgress, EdgeKind.Value)]()
+        val derive: Set[EdgeEnd] =
+            if (parsed.isEmpty) Set(DoubleEdgeEnd(SymbolProgress(symbol.sym), SymbolProgress(symbol.also)))
+            else Set[EdgeEnd]()
     }
 
     case class ExceptProgress(symbol: Except, parsed: Option[ParsedSymbol[Except]])
             extends SymbolProgressNonterminal {
-        def proceed(references: Set[ParseNode[Symbol]]) = {
+        def lift(edge: LiftingEdge) = {
             assert(parsed.isEmpty)
-            val sym = references find { _.symbol == symbol.sym }
-            val except = references find { _.symbol == symbol.except }
-            assert(sym.isDefined || except.isDefined)
-            if (sym.isDefined && except.isEmpty)
-                Some(ExceptProgress(symbol, sym.asInstanceOf[Option[ParsedSymbol[Except]]]))
-            else None
+            double(edge) { (next, doub) =>
+                if (doub.isEmpty) Some(ExceptProgress(symbol, Some(ParsedSymbol[Except](symbol, next))))
+                else None
+            }
         }
-        val derive =
-            if (parsed.isEmpty) Set(symbol.sym, symbol.except) map { s => (SymbolProgress(s), EdgeKind.Derive) }
-            else Set[(SymbolProgress, EdgeKind.Value)]()
+        val derive: Set[EdgeEnd] =
+            if (parsed.isEmpty) Set(DoubleEdgeEnd(SymbolProgress(symbol.sym), SymbolProgress(symbol.except)))
+            else Set[EdgeEnd]()
     }
 
     case class RepeatProgress(symbol: Repeat, _children: List[ParseNode[Symbol]])
@@ -167,28 +195,27 @@ trait SymbolProgresses {
         val parsed =
             if (symbol.range contains _children.size) Some(ParsedSymbolsSeq(symbol, children))
             else None
-        def proceed(references: Set[ParseNode[Symbol]]) = {
+        def lift(edge: LiftingEdge) = {
             assert(symbol.range canProceed _children.size)
-            only(references) { next =>
+            simple(edge) { next =>
                 assert(next.symbol == symbol.sym)
-                assert(symbol.range canProceed _children.size)
                 Some(RepeatProgress(symbol, next +: _children))
             }
         }
-        val derive =
-            if (symbol.range canProceed _children.size) Set((SymbolProgress(symbol.sym), EdgeKind.Derive))
-            else Set[(SymbolProgress, EdgeKind.Value)]()
+        val derive: Set[EdgeEnd] =
+            if (symbol.range canProceed _children.size) Set(SimpleEdgeEnd(SymbolProgress(symbol.sym)))
+            else Set[EdgeEnd]()
     }
 
     case class LookaheadProgress(symbol: LookaheadExcept, parsed: Option[ParsedSymbol[LookaheadExcept]])
             extends SymbolProgressNonterminal {
-        def proceed(references: Set[ParseNode[Symbol]]) = ???
+        def lift(edge: LiftingEdge) = ???
         val derive = ???
     }
 
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]])
             extends SymbolProgressNonterminal {
-        def proceed(references: Set[ParseNode[Symbol]]) = ???
+        def lift(edge: LiftingEdge) = ???
         val derive = ???
     }
 
