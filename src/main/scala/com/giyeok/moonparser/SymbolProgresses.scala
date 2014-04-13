@@ -19,7 +19,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             case AnyChar => "<any>"
             case FuncChar => "<func>"
             case ExactChar(c) => s"'$c'"
-            case Chars(cs) => s"{${cs map { c => s"'$c'" } mkString ","}}"
+            case Chars(cs) => s"{${cs.toSeq.sorted map { c => s"'$c'" } mkString ","}}"
             case Unicode(c) => s"<unicode>"
             case EndOfFile => "<eof>"
             case s: Nonterminal => s.name
