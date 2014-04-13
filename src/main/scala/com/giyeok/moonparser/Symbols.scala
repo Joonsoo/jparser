@@ -99,6 +99,7 @@ object Symbols {
             def contains(v: Int): Boolean
             def canProceed(x: Int): Boolean
             val isNullable: Boolean
+            def toShortString: String
         }
         case class RangeFrom(val from: Int) extends Range {
             override def contains(v: Int) = from <= v
@@ -106,6 +107,8 @@ object Symbols {
             override val isNullable = from == 0
 
             override val hashCode = from
+
+            def toShortString = s"$from-"
         }
         case class RangeTo(val from: Int, val to: Int) extends Range {
             override def contains(v: Int) = from <= v && v <= to
@@ -113,6 +116,8 @@ object Symbols {
             override val isNullable = from == 0
 
             override val hashCode = (from, to).hashCode
+
+            def toShortString = s"$from-$to"
         }
     }
     case class LookaheadExcept(except: Symbol) extends Symbol {

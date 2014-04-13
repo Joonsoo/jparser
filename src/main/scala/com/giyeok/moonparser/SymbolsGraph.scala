@@ -35,4 +35,5 @@ trait SymbolsGraph {
     case class LiftingSimpleEdge(edge: SimpleEdge, parsed: ParsedSymbol[Symbol]) extends LiftingEdge
     case class LiftingDoubleEdge(edge: DoubleEdge, parsed: ParsedSymbol[Symbol], doub: Option[ParsedSymbol[Symbol]]) extends LiftingEdge
 
+    case class Graph(nodes: Set[Node], edges: Set[Edge])
 }

@@ -5,28 +5,13 @@ case class ParseResult(parseNode: ParseTree.ParseNode[Symbols.Symbol])
 class Parser(val grammar: Grammar)
         extends SymbolProgresses
         with SymbolsGraph
+        with ParsingErrors
         with GrammarChecker {
     import Inputs._
 
-    abstract class ParsingError {
-        val next: Input
-        val msg: String
-    }
-    object ParsingError {
-        def apply(_next: Input, _msg: String) = new ParsingError {
-            val next = _next
-            val msg = _msg
-        }
-    }
-    object ParsingErrors {
-        case class UnexpectedInput(next: Input) extends ParsingError {
-            val msg = s"Unexpected input at ${next.location}"
-        }
-    }
-
-    case class ParsingContext(nodes: Set[Node], edges: Set[Edge]) {
+    case class ParsingContext(graph: Graph) {
         def proceedTerminal(next: Input): Either[ParsingContext, ParsingError] = {
-            val nextnodes = (nodes collect {
+            val nextnodes = (graph.nodes collect {
                 case s: SymbolProgressTerminal if s accept next =>
                     (s, (s proceedTerminal next).get)
             })
@@ -34,7 +19,7 @@ class Parser(val grammar: Grammar)
             if (nextnodes isEmpty) Right(ParsingErrors.UnexpectedInput(next)) else {
                 val newgraph: (Set[Node], Set[Edge]) = ???
                 // TODO check newgraph still contains start symbol
-                Left(ParsingContext(newgraph._1, newgraph._2))
+                Left(ParsingContext(Graph(newgraph._1, newgraph._2)))
             }
         }
         def toResult: ParseResult = ParseResult(???)
@@ -53,7 +38,7 @@ class Parser(val grammar: Grammar)
                     case Nil => (nodes, edges)
                 }
             val (nodes, edges) = expand(seeds.toList, seeds, Set())
-            ParsingContext(nodes, edges)
+            ParsingContext(Graph(nodes, edges))
         }
     }
 
