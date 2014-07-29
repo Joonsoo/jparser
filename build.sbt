@@ -2,14 +2,14 @@ name := "Moon Parser"
 
 version := "0.1"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.11.2"
 
 
 resolvers += "swt-repo" at "https://swt-repo.googlecode.com/svn/repo/"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "1.9.1" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.0" % "test"
 
-libraryDependencies += "junit" % "junit" % "4.10" % "test"
+libraryDependencies += "junit" % "junit" % "4.11" % "test"
 
 libraryDependencies += {
   val os = (sys.props("os.name"), sys.props("os.arch")) match {
@@ -26,8 +26,8 @@ libraryDependencies += {
 }
 
 libraryDependencies ++= Seq(
-  "org.eclipse.draw2d" % "org.eclipse.draw2d" % "3.9.0" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.draw2d_3.9.0.201308190730.jar",
-  "org.eclipse.zest" % "org.eclipse.zest.core" % "1.5.0" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.core.source_1.5.0.201308190730.jar",
-  "org.eclipse.zest" % "org.eclipse.zest.layouts" % "1.1.0" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts_1.1.0.201308190730.jar",
-  "org.eclipse.zest" % "org.eclipse.zest.layouts.source" % "1.1.0" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts.source_1.1.0.201308190730.jar"
+  "org.eclipse.draw2d" % "org.eclipse.draw2d" % "3.9.100" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.draw2d_3.9.100.201405261516.jar",
+  "org.eclipse.zest" % "org.eclipse.zest.core" % "1.5.100" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.core_1.5.100.201405261516.jar",
+  "org.eclipse.zest" % "org.eclipse.zest.layouts" % "1.1.100" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts_1.1.100.201405261516.jar",
+  "org.eclipse.zest" % "org.eclipse.zest.layouts.source" % "1.1.100" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts.source_1.1.100.201405261516.jar"
 )
