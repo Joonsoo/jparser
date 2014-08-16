@@ -85,7 +85,7 @@ object Symbols {
     case class OneOf(syms: Set[Symbol]) extends Symbol {
         override val hashCode = syms.hashCode
     }
-    case class Conjunction(sym: Symbol, also: Symbol) extends Symbol {
+    case class Both(sym: Symbol, also: Symbol) extends Symbol {
         override val hashCode = (sym, also).hashCode
     }
     case class Except(sym: Symbol, except: Symbol) extends Symbol {

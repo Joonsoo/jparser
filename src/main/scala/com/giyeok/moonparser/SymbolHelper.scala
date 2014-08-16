@@ -29,7 +29,7 @@ object SymbolHelper {
     def lookahead_except(except: Symbol) = LookaheadExcept(except)
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
 
-    def both(first: Symbol, second: Symbol) = Conjunction(first, second)
+    def both(first: Symbol, second: Symbol) = Both(first, second)
 
     implicit class GrammarElementExcludable(self: Symbol) {
         def except(e: Symbol) = self match {

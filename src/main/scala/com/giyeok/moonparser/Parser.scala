@@ -30,7 +30,7 @@ class Parser(val grammar: Grammar)
                 queue match {
                     case (head: SymbolProgressNonterminal) +: tail =>
                         assert(nodes contains head)
-                        val newedges = head.derive map { _.toEdge(head) }
+                        val newedges = head.derive
                         val news: Set[SymbolProgress] = newedges flatMap { _.nodes } filterNot { nodes contains _ }
                         expand(news.toList ++ tail, nodes ++ news, edges ++ newedges)
                     case head +: tail =>

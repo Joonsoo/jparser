@@ -22,10 +22,10 @@ class ParsingContextGraph(parent: Composite, private val context: Parser#Parsing
     private var vnodes: Map[Parser#Node, GraphNode] = (nodes map { n => (n, new GraphNode(graph, SWT.NONE, n.toShortString)) }).toMap
     private var vedges = edges flatMap {
         case e: Parser#SimpleEdge =>
-            Set(new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.end.to)))
+            Set(new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to)))
         case e: Parser#DoubleEdge =>
-            val e1 = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.end.to))
-            val e2 = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED | ZestStyles.CONNECTIONS_DASH_DOT, vnodes(e.from), vnodes(e.end.doub))
+            val e1 = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
+            val e2 = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED | ZestStyles.CONNECTIONS_DASH_DOT, vnodes(e.from), vnodes(e.doub))
             Set(e1, e2)
     }
     graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING), true)

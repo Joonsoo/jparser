@@ -7,25 +7,20 @@ trait SymbolsGraph {
     this: Parser =>
 
     type Node = SymbolProgress
-    sealed abstract class EdgeEnd {
-        def toEdge(from: Node): Edge
-    }
-    case class SimpleEdgeEnd(to: Node) extends EdgeEnd {
-        def toEdge(from: Node) = SimpleEdge(from, this)
-    }
-    case class DoubleEdgeEnd(to: Node, doub: Node) extends EdgeEnd {
-        def toEdge(from: Node) = DoubleEdge(from, this)
-    }
 
     sealed abstract class Edge {
         val nodes: Set[Node]
-        val end: EdgeEnd
     }
-    case class SimpleEdge(from: Node, end: SimpleEdgeEnd) extends Edge {
-        val nodes = Set(from, end.to)
+    case class SimpleEdge(from: Node, to: Node) extends Edge {
+        val nodes = Set(from, to)
     }
-    case class DoubleEdge(from: Node, end: DoubleEdgeEnd) extends Edge {
-        val nodes = Set(from, end.to, end.doub)
+    case class DoubleEdge(from: Node, to: Node, doub: Node) extends Edge {
+        val nodes = Set(from, to, doub)
+    }
+    case class AssassinEdge(from: Node, to: Node) extends Edge {
+        // if `from` lives, `to` will be killed - is used to implement lookahead except and backup
+        // is contagious - the nodes derived from `to` will be the target of `from` (recursively)
+        val nodes = Set(from, to)
     }
 
     sealed abstract class LiftingEdge {

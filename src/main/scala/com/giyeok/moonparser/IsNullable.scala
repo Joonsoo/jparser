@@ -26,7 +26,7 @@ trait IsNullable {
                 }
                 case Sequence(seq, _) => seq forall { _.isNullable }
                 case OneOf(items) => items exists { _.isNullable }
-                case Conjunction(item, _) => item.isNullable
+                case Both(item, _) => item.isNullable
                 case Except(item, _) => item.isNullable
                 case Repeat(item, range) => range.isNullable || item.isNullable
                 case LookaheadExcept(_) => false
