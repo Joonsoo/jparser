@@ -22,13 +22,7 @@ class SimpleGrammar1Suite extends AssertionsForJUnit {
         val parser = new Parser(SimpleGrammar1)
         println(parser.checkFromStart)
         println(parser.startingContext)
-        source.toCharArray().zipWithIndex.foldLeft[Either[parser.ParsingContext, parser.ParsingError]](Left(parser.startingContext)) {
-            (ctx, char) =>
-                ctx match {
-                    case Left(ctx) => ctx.proceedTerminal(Character(char._1, char._2))
-                    case error @ Right(_) => error
-                }
-        }
+        parser.parse(source)
     }
 
     @Test def correctSource() = {
@@ -74,13 +68,7 @@ class SimpleGrammar2Suite extends AssertionsForJUnit {
         val parser = new Parser(SimpleGrammar2)
         println(parser.checkFromStart)
         println(parser.startingContext)
-        source.toCharArray().zipWithIndex.foldLeft[Either[parser.ParsingContext, parser.ParsingError]](Left(parser.startingContext)) {
-            (ctx, char) =>
-                ctx match {
-                    case Left(ctx) => ctx.proceedTerminal(Character(char._1, char._2))
-                    case error @ Right(_) => error
-                }
-        }
+        parser.parse(source)
     }
 
     @Test def keyword() = {

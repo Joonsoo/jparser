@@ -8,7 +8,5 @@ object Inputs {
     case class Virtual(name: String, location: Location) extends Input
     case class EOF(location: Location) extends Input
 
-    trait Source {
-        def get(location: Location): Input
-    }
+    type Source = Iterable[Input]
 }

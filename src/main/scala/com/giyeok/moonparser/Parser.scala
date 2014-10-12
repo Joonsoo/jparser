@@ -43,4 +43,15 @@ class Parser(val grammar: Grammar)
     }
 
     val startingContext = ParsingContext.fromSeeds(Set(SymbolProgress(grammar.startSymbol)))
+
+    def parse(source: Inputs.Source): Either[ParsingContext, ParsingError] =
+        source.foldLeft[Either[ParsingContext, ParsingError]](Left(startingContext)) {
+            (ctx, terminal) =>
+                ctx match {
+                    case Left(ctx) => ctx.proceedTerminal(terminal)
+                    case error @ Right(_) => error
+                }
+        }
+    def parse(source: String): Either[ParsingContext, ParsingError] =
+        parse(source.toCharArray.zipWithIndex map { p => Character(p._1, p._2) })
 }
