@@ -19,7 +19,22 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             case AnyChar => "<any>"
             case FuncChar => "<func>"
             case ExactChar(c) => s"'$c'"
-            case Chars(cs) => s"{${cs.toSeq.sorted map { c => s"'$c'" } mkString ","}}"
+            case Chars(cs) =>
+                def generateCharSetShortRepr(chars: List[Char], latestRange: Option[(Char, Char)]): String = {
+                    def makeRepr(range: (Char, Char)): String =
+                        if (range._1 == range._2) s"'${range._1}'"
+                        else if (range._1 + 1 == range._2) s"'${range._1}','${range._2}'"
+                        else s"'${range._1}'-'${range._2}'"
+                    (chars, latestRange) match {
+                        case (head +: tail, Some(range)) =>
+                            if (head == range._2 + 1) generateCharSetShortRepr(tail, Some(range._1, head))
+                            else makeRepr(range) + "," + generateCharSetShortRepr(tail, Some(head, head))
+                        case (head +: tail, None) => generateCharSetShortRepr(tail, Some(head, head))
+                        case (List(), Some(range)) => makeRepr(range)
+                        case (List(), None) => ""
+                    }
+                }
+                s"{${generateCharSetShortRepr(cs.toList.sorted, None)}}"
             case Unicode(c) => s"<unicode>"
             case EndOfFile => "<eof>"
             case s: Nonterminal => s.name
@@ -198,9 +213,9 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             extends SymbolProgressNonterminal {
         def lift(edge: LiftingEdge) = {
             assert(parsed.isEmpty)
-            double(edge) { ((next, doub) =>
-                if (doub.isDefined) Some(BothProgress(symbol, Some(ParsedSymbol[Both](symbol, next))))
-                else None)
+            double(edge) {
+                (next, doub) =>
+                    if (doub.isDefined) Some(BothProgress(symbol, Some(ParsedSymbol[Both](symbol, next)))) else None
             }
         }
         val derive: Set[Edge] =
