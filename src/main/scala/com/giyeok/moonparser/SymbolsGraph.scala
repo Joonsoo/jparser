@@ -10,6 +10,7 @@ trait SymbolsGraph {
 
     sealed abstract class Edge {
         val nodes: Set[Node]
+        val from: Node
     }
     case class SimpleEdge(from: Node, to: Node) extends Edge {
         val nodes = Set(from, to)
@@ -23,12 +24,8 @@ trait SymbolsGraph {
         val nodes = Set(from, to)
     }
 
-    sealed abstract class LiftingEdge {
-        val edge: Edge
-        val parsed: ParsedSymbol[Symbol]
+    case class Graph(nodes: Set[Node], edges: Set[Edge]) {
+        def incomingEdges(node: Node): Set[Edge] = ???
+        def outgoingEdges(node: Node): Set[Edge] = ???
     }
-    case class LiftingSimpleEdge(edge: SimpleEdge, parsed: ParsedSymbol[Symbol]) extends LiftingEdge
-    case class LiftingDoubleEdge(edge: DoubleEdge, parsed: ParsedSymbol[Symbol], doub: Option[ParsedSymbol[Symbol]]) extends LiftingEdge
-
-    case class Graph(nodes: Set[Node], edges: Set[Edge])
 }

@@ -11,19 +11,24 @@ class Parser(val grammar: Grammar)
 
     case class ParsingContext(graph: Graph) {
         def proceedTerminal(next: Input): Either[ParsingContext, ParsingError] = {
-            val nextnodes = (graph.nodes collect {
+            val nextNodes = (graph.nodes collect {
                 case s: SymbolProgressTerminal if s accept next =>
                     (s, (s proceedTerminal next).get)
             })
-            println(nextnodes)
-            if (nextnodes isEmpty) Right(ParsingErrors.UnexpectedInput(next)) else {
-                val newgraph: (Set[Node], Set[Edge]) = ???
+            if (nextNodes isEmpty) Right(ParsingErrors.UnexpectedInput(next)) else {
+                val newGraph: (Set[Node], Set[Edge]) = ???
+                nextNodes map {
+                    case (oldNode, newNode) =>
+                        val incoming = graph.incomingEdges(oldNode)
+                        incoming filter { _.isInstanceOf[SimpleEdge] } map { _.from } map { i => newNode.asInstanceOf[SymbolProgressNonterminal] lift SimpleLiftingRequest(i) }
+                }
                 // TODO check newgraph still contains start symbol
-                Left(ParsingContext(Graph(newgraph._1, newgraph._2)))
+                Left(ParsingContext(Graph(newGraph._1, newGraph._2)))
             }
         }
         def toResult: ParseResult = ParseResult(???)
     }
+
     object ParsingContext {
         def fromSeeds(seeds: Set[Node]): ParsingContext = {
             def expand(queue: List[Node], nodes: Set[Node], edges: Set[Edge]): (Set[Node], Set[Edge]) =
