@@ -31,9 +31,9 @@ class ParsingContextGraph(parent: Composite, private val context: Parser#Parsing
     graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING), true)
 
     def proceedTerminal(next: Inputs.Input) = {
-        val nextnodes = (nodes collect {
-            case s: Parser#SymbolProgressTerminal if s accept next =>
-                (s, (s proceedTerminal next).get)
+        val nextnodes = (nodes flatMap {
+            case s: Parser#SymbolProgressTerminal => (s proceedTerminal next) map { (s, _) }
+            case _ => None
         })
         nextnodes foreach { p =>
             val gn = new GraphNode(graph, SWT.NONE, p._2.toShortString)

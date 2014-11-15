@@ -56,8 +56,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         def toShortString: String
     }
     abstract sealed class SymbolProgressTerminal extends SymbolProgress {
-        def accept(next: Input): Boolean
-        def proceedTerminal(next: Input): Option[SymbolProgress]
+        def proceedTerminal(next: Input): Option[SymbolProgressTerminal]
     }
     abstract sealed class SymbolProgressNonterminal extends SymbolProgress {
         /*
@@ -97,7 +96,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
 
     case class TerminalProgress(symbol: Terminal, parsed: Option[ParsedTerminal])
             extends SymbolProgressTerminal {
-        def accept(next: Input) = (symbol accept next) ensuring (parsed.isEmpty)
         def proceedTerminal(next: Input) = {
             assert(parsed.isEmpty)
             if (symbol accept next) Some(TerminalProgress(symbol, Some(ParsedTerminal(symbol, next))))
@@ -128,8 +126,8 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         assert(_idxMapping map { _._2 } isStrictlyDecreasing)
         assert(_idxMapping map { _._1 } forall { i => i >= 0 && i < _childrenWS.size })
 
-        private val locInSeq = if (_idxMapping isEmpty) 0 else _idxMapping.head._2
-        assert(locInSeq < symbol.seq.size)
+        private val locInSeq = if (_idxMapping isEmpty) 0 else (_idxMapping.head._2 + 1)
+        assert(locInSeq <= symbol.seq.size)
         private val visibles = {
             // TODO verify this
             def vis(loc: Int): Int = if (symbol.seq(loc).isNullable) vis(loc + 1) else loc

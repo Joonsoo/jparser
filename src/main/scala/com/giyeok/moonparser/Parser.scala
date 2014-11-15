@@ -11,17 +11,31 @@ class Parser(val grammar: Grammar)
 
     case class ParsingContext(graph: Graph) {
         def proceedTerminal(next: Input): Either[ParsingContext, ParsingError] = {
-            val nextNodes = (graph.nodes collect {
-                case s: SymbolProgressTerminal if s accept next =>
-                    (s, (s proceedTerminal next).get)
-            })
+            // `nextNodes` is actually type of `Set[(SymbolProgressTerminal, SymbolProgressTerminal)]`
+            // but the invariance in `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
+            val nextNodes: Set[(SymbolProgress, SymbolProgress)] =
+                (graph.nodes flatMap {
+                    case s: SymbolProgressTerminal => (s proceedTerminal next) map { (s, _) }
+                    case _ => None
+                })
             if (nextNodes isEmpty) Right(ParsingErrors.UnexpectedInput(next)) else {
+                def simpleLift(queue: List[(SymbolProgress, SymbolProgress)], cc: Set[(SymbolProgress, SymbolProgress)]): Set[(SymbolProgress, SymbolProgress)] =
+                    queue match {
+                        case (oldNode, newNode) +: rest if newNode canFinish =>
+                            val incomingSimpleEdges = graph incomingSimpleEdgesOf oldNode
+                            val simpleLifted: Set[(SymbolProgress, SymbolProgress)] =
+                                incomingSimpleEdges flatMap { e => e.from lift SimpleLiftingRequest(newNode) map { (e.from, _) } }
+                            simpleLift(rest ++ simpleLifted.toList, cc ++ simpleLifted)
+                        case _ +: rest =>
+                            simpleLift(rest, cc)
+                        case List() => cc
+                    }
+                val simple: Set[(SymbolProgress, SymbolProgress)] = simpleLift(nextNodes.toList, nextNodes)
+                println(simple)
+                simple foreach { case (o, n) => println(s"${o.toShortString} --> ${n.toShortString}") }
+                // 1. 새로 만든(lift된) 노드로부터 derive할 게 있는 것들은 살린다.
+                // 2. 옛날 노드를 향하고 있는 모든 옛날 노드는 살린다.
                 val newGraph: (Set[Node], Set[Edge]) = ???
-                nextNodes map {
-                    case (oldNode, newNode) =>
-                        val incoming = graph.incomingEdges(oldNode)
-                        incoming filter { _.isInstanceOf[SimpleEdge] } map { _.from } map { i => newNode.asInstanceOf[SymbolProgressNonterminal] lift SimpleLiftingRequest(i) }
-                }
                 // TODO check newgraph still contains start symbol
                 Left(ParsingContext(Graph(newGraph._1, newGraph._2)))
             }
@@ -53,7 +67,7 @@ class Parser(val grammar: Grammar)
         source.foldLeft[Either[ParsingContext, ParsingError]](Left(startingContext)) {
             (ctx, terminal) =>
                 ctx match {
-                    case Left(ctx) => ctx.proceedTerminal(terminal)
+                    case Left(ctx) => ctx proceedTerminal terminal
                     case error @ Right(_) => error
                 }
         }
