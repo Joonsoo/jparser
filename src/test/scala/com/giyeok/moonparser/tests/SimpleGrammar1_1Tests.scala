@@ -12,8 +12,9 @@ import org.junit.Assert._
 object SimpleGrammar1_1 extends Grammar {
     val name = "Simple Grammar 1_1"
     val rules: RuleMap = ListMap(
-        "S" -> Set(n("A").repeat(2)),
-        "A" -> Set(chars("abc").repeat(2)))
+        "S" -> Set(seq(n("A"), n("B"))),
+        "A" -> Set(chars("abc").repeat(2)),
+        "B" -> Set(seq(chars("def").repeat(2), i("s"))))
     val startSymbol = n("S")
 }
 

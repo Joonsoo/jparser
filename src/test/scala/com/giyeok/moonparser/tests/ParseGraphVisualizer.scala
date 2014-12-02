@@ -20,13 +20,14 @@ import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.custom.StackLayout
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.widgets.Control
+import scala.util.Try
 
 class ParsingContextGraph(parent: Composite, resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext) extends Composite(parent, SWT.NONE) {
     this.setLayout(new FillLayout)
 
     private val (nodes, edges) = (context.graph.nodes, context.graph.edges)
     private val graph = new Graph(this, SWT.NONE)
-    private var vnodes: Map[Parser#Node, GraphNode] = (nodes map { n =>
+    private var vnodes: Map[Parser#Node, GraphNode] = ((nodes ++ context.resultCandidates) map { n =>
         val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
         if (n.canFinish) {
             val f = new org.eclipse.draw2d.Label()
@@ -48,7 +49,7 @@ class ParsingContextGraph(parent: Composite, resources: ParseGraphVisualizer.Res
 object ParseGraphVisualizer {
     class Resources(val fixedWidth10Font: Font)
 
-    def main(args: Array[String]) = {
+    def main(args: Array[String]): Unit = {
         val display = new Display
         val shell = new Shell(display)
 
@@ -61,11 +62,13 @@ object ParseGraphVisualizer {
         shell.setText("Parsing Graph")
         shell.setLayout(layout)
 
-        val source = Inputs.fromString("abcabcabc")
+        val source = Inputs.fromString("aadds")
         val fin = source.scanLeft[Either[Parser#ParsingContext, Parser#ParsingError], Seq[Either[Parser#ParsingContext, Parser#ParsingError]]](Left[Parser#ParsingContext, Parser#ParsingError](parser.startingContext)) {
             (ctx, terminal) =>
                 ctx match {
-                    case Left(ctx) => ctx proceedTerminal terminal
+                    case Left(ctx) =>
+                        Try(ctx proceedTerminal terminal).getOrElse(Right(parser.ParsingErrors.UnexpectedInput(terminal)))
+                    //ctx proceedTerminal terminal
                     case error @ Right(_) => error
                 }
         }
@@ -82,11 +85,7 @@ object ParseGraphVisualizer {
         var currentLocation = 0
 
         def updateLocation(newLocation: Int): Unit = {
-            println("newloc: " + newLocation)
-            println("newloc: " + (newLocation >= 0))
-            println("newloc: " + (newLocation <= source.size))
             if (newLocation >= 0 && newLocation <= source.size) {
-                println("newloc: " + newLocation)
                 currentLocation = newLocation
                 shell.setText((source take newLocation map { _.toShortString } mkString " ") + "*" + (source drop newLocation map { _.toShortString } mkString " "))
                 layout.topControl = views(newLocation)

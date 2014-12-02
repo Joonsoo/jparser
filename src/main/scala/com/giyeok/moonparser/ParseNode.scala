@@ -37,18 +37,20 @@ object ParseTree {
                 }
             }
             def appendBottom(top: (Int, Seq[String]), bottom: String) =
-                if (top._1 >= bottom.length) {
+                if (top._1 >= bottom.length + 2) {
+                    val finlen = top._1
+                    val result = (finlen, top._2 :+ ("[" + centerize(bottom, finlen - 2) + "]"))
+                    result ensuring (result._2.forall(_.length == result._1))
+                } else if (top._1 >= bottom.length) {
                     val finlen = top._1 + 2
                     val result = (finlen, (top._2 map { " " + _ + " " }) :+ ("[" + centerize(bottom, finlen - 2) + "]"))
                     result ensuring (result._2.forall(_.length == result._1))
-                } else if (bottom.length >= top._1) {
+                } else {
                     val finlen = bottom.length + 2
                     val prec = (bottom.length - top._1) / 2
                     val (p, f) = (" " * prec, " " * (finlen - top._1 - prec))
                     val result = (finlen, (top._2 map { p + _ + f }) :+ ("[" + bottom + "]"))
                     result ensuring (result._2.forall(_.length == result._1))
-                } else {
-                    ???
                 }
             def calculate(node: ParseNode[Symbol]): (Int, Seq[String]) = {
                 val result = node match {
@@ -70,7 +72,7 @@ object ParseTree {
                             if (c._2.length < maxSize) (c._1, c._2 ++ Seq.fill(maxSize - c._2.size)(" " * c._1))
                             else c
                         }
-                        val mergedList = fittedList.foldLeft((0, Seq.fill(maxSize)(""))) { (memo, e) =>
+                        val mergedList = fittedList.tail.foldLeft(fittedList.head) { (memo, e) =>
                             (memo._1 + 1 + e._1, memo._2 zip e._2 map { t => t._1 + " " + t._2 })
                         }
                         assert(mergedList._2.forall(_.length == mergedList._1))

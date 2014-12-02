@@ -116,6 +116,12 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             else None
         def lift(source: SymbolProgress): Option[SymbolProgress] = {
             assert(source.parsed.isDefined)
+            println(this.toShortString)
+            println(_childrenWS)
+            println(_idxMapping)
+            println(source)
+            println(derive map { _.to.symbol })
+            assert(derive map { _.to.symbol } contains source.symbol)
             // TODO verify this
             def first(range: Seq[Int]): Option[Int] = {
                 if (range.isEmpty) None

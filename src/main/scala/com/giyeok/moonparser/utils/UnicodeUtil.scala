@@ -1,16 +1,6 @@
 package com.giyeok.moonparser.utils
 
 object UnicodeUtil {
-    def main(args: Array[String]) {
-        class Outer(_intra: => Outer#Inner) {
-            lazy val intra = _intra
-            class Inner(val q: Int)
-        }
-        lazy val outer: Outer = new Outer(inner)
-        lazy val inner = new outer.Inner(5)
-        println(outer.intra.q)
-    }
-
     def translateCategoryNamesToByte(categories: Set[String]) = categories map (_ match {
         case "Mc" => Character.COMBINING_SPACING_MARK
         case "Pc" => Character.CONNECTOR_PUNCTUATION

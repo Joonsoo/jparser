@@ -3,21 +3,22 @@ package com.giyeok.moonparser
 object Inputs {
     type Location = Int
 
-    trait Input {
+    sealed trait Input {
         val location: Location
-        def toShortString: String
     }
-    case class Character(char: Char, location: Location) extends Input {
-        def toShortString = s"'$char'"
-    }
-    case class Virtual(name: String, location: Location) extends Input {
-        def toShortString = s"{$name}"
-    }
-    case class EOF(location: Location) extends Input {
-        def toShortString = "()"
-    }
+    case class Character(char: Char, location: Location) extends Input
+    case class Virtual(name: String, location: Location) extends Input
+    case class EOF(location: Location) extends Input
 
     type Source = Iterable[Input]
+
+    implicit class InputToShortString(input: Input) {
+        def toShortString = input match {
+            case Character(char, _) => s"'$char'"
+            case Virtual(name, _) => s"{$name}"
+            case EOF(_) => "(EOF)"
+        }
+    }
 
     def fromString(source: String): Seq[Input] =
         source.toCharArray.zipWithIndex map { p => Character(p._1, p._2) }
