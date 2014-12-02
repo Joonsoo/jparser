@@ -101,13 +101,14 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             // TODO verify this
             if (_idxMapping.isEmpty) List() else {
                 case class MappingContext(_cws: List[ParseNode[Symbol]], _cwsPtr: Int, _c: List[ParseNode[Symbol]], _cPtr: Int)
-                val starting = MappingContext(_childrenWS, _childrenWS.size - 1, List(), locInSeq)
-                _idxMapping.foldLeft(starting) { (context, idxMapping) =>
+                val starting = MappingContext(_childrenWS, _childrenWS.size - 1, List(), _idxMapping.head._2)
+                val result = _idxMapping.foldLeft(starting) { (context, idxMapping) =>
                     val (cwsPtr, cPtr) = idxMapping
                     val _cws = context._cws drop (context._cwsPtr - cwsPtr)
                     val _c = (0 until (context._cPtr - cPtr)).foldLeft(context._c) { (m, _) => ParsedEmpty +: m }
                     MappingContext(_cws.tail, cwsPtr - 1, _cws.head +: _c, cPtr - 1)
                 }._c
+                result ensuring (result.size == symbol.seq.size)
             }
         }
 
