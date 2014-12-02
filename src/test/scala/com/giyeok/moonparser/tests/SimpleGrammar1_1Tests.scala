@@ -26,3 +26,10 @@ object SimpleGrammar1_2 extends Grammar {
         "B" -> Set(i("bc")))
     val startSymbol = n("S")
 }
+
+object SimpleGrammar1_3 extends Grammar {
+    val name = "Simple Grammar 1_3"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(seq(c('a'), c('b').star, c('c'))))
+    val startSymbol = n("S")
+}

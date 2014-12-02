@@ -33,6 +33,7 @@ class ParsingContextGraph(parent: Composite, resources: ParseGraphVisualizer.Res
         if (n.canFinish) {
             val f = new org.eclipse.draw2d.Label()
             f.setFont(resources.fixedWidth10Font)
+            // f.setText(n.parsed.get.toTreeString("", "  "))
             f.setText(n.parsed.get.toHorizontalHierarchyString)
             graphNode.setTooltip(f)
         }
@@ -64,8 +65,8 @@ object ParseGraphVisualizer {
         shell.setText("Parsing Graph")
         shell.setLayout(layout)
 
-        val parser = new Parser(SimpleGrammar1_2)
-        val source = Inputs.fromString("abcbcbcbcabc")
+        val parser = new Parser(SimpleGrammar1_3)
+        val source = Inputs.fromString("abbbbbbbbbbbc")
 
         val fin = source.scanLeft[Either[Parser#ParsingContext, Parser#ParsingError], Seq[Either[Parser#ParsingContext, Parser#ParsingError]]](Left[Parser#ParsingContext, Parser#ParsingError](parser.startingContext)) {
             (ctx, terminal) =>

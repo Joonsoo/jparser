@@ -9,7 +9,7 @@ object SymbolHelper {
     def e = Empty
     def eof = EndOfFile
     def n(name: String) = Nonterminal(name)
-    def i(string: String) = String(string)
+    def i(string: String) = Sequence(string.toCharArray() map { c => ExactChar(c) }, Set())
     def c = AnyChar
     def c(func: Char => Boolean) = FuncChar(func)
     def c(chars: Char*) = Chars(chars.toSet)

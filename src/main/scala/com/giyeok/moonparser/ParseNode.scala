@@ -66,17 +66,22 @@ object ParseTree {
                         val symbolic = sym.toShortString
                         appendBottom(actual, sym.toShortString)
                     case ParsedSymbolsSeq(sym, body) =>
-                        val list: Seq[(Int, Seq[String])] = body map { calculate _ }
-                        val maxSize: Int = (list maxBy { _._2.size })._2.size
-                        val fittedList = list map { c =>
-                            if (c._2.length < maxSize) (c._1, c._2 ++ Seq.fill(maxSize - c._2.size)(" " * c._1))
-                            else c
+                        if (body.isEmpty) {
+                            val symbolic = sym.toShortString
+                            (symbolic.length + 2, Seq("[" + symbolic + "]"))
+                        } else {
+                            val list: Seq[(Int, Seq[String])] = body map { calculate _ }
+                            val maxSize: Int = (list maxBy { _._2.size })._2.size
+                            val fittedList = list map { c =>
+                                if (c._2.length < maxSize) (c._1, c._2 ++ Seq.fill(maxSize - c._2.size)(" " * c._1))
+                                else c
+                            }
+                            val mergedList = fittedList.tail.foldLeft(fittedList.head) { (memo, e) =>
+                                (memo._1 + 1 + e._1, memo._2 zip e._2 map { t => t._1 + " " + t._2 })
+                            }
+                            assert(mergedList._2.forall(_.length == mergedList._1))
+                            appendBottom(mergedList, sym.toShortString)
                         }
-                        val mergedList = fittedList.tail.foldLeft(fittedList.head) { (memo, e) =>
-                            (memo._1 + 1 + e._1, memo._2 zip e._2 map { t => t._1 + " " + t._2 })
-                        }
-                        assert(mergedList._2.forall(_.length == mergedList._1))
-                        appendBottom(mergedList, sym.toShortString)
                 }
                 println(node, result)
                 result ensuring (result._2.forall(_.length == result._1))

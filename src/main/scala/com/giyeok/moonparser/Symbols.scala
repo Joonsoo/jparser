@@ -80,8 +80,6 @@ object Symbols {
     case class Sequence(seq: Seq[Symbol], whitespace: Set[Symbol]) extends Symbol {
         override val hashCode = (seq, whitespace).hashCode
     }
-    def String(string: String): Sequence =
-        Sequence(string.toCharArray() map { c => ExactChar(c) }, Set())
     case class OneOf(syms: Set[Symbol]) extends Symbol {
         override val hashCode = syms.hashCode
     }
