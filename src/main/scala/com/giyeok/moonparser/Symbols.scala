@@ -85,9 +85,6 @@ object Symbols {
     case class OneOf(syms: Set[Symbol]) extends Symbol {
         override val hashCode = syms.hashCode
     }
-    case class Both(sym: Symbol, also: Symbol) extends Symbol {
-        override val hashCode = (sym, also).hashCode
-    }
     case class Except(sym: Symbol, except: Symbol) extends Symbol {
         override val hashCode = (sym, except).hashCode
     }
@@ -125,5 +122,41 @@ object Symbols {
     }
     case class Backup(sym: Symbol, backup: Symbol) extends Symbol {
         override val hashCode = (sym, backup).hashCode
+    }
+
+    implicit class ShortStringSymbol(sym: Symbol) {
+        // TODO improve short string
+        def toShortString: String = sym match {
+            case Any => "<any>"
+            case AnyChar => "<any>"
+            case FuncChar => "<func>"
+            case ExactChar(c) => s"'$c'"
+            case Chars(cs) =>
+                def generateCharSetShortRepr(chars: List[Char], latestRange: Option[(Char, Char)]): String = {
+                    def makeRepr(range: (Char, Char)): String =
+                        if (range._1 == range._2) s"'${range._1}'"
+                        else if (range._1 + 1 == range._2) s"'${range._1}','${range._2}'"
+                        else s"'${range._1}'-'${range._2}'"
+                    (chars, latestRange) match {
+                        case (head +: tail, Some(range)) =>
+                            if (head == range._2 + 1) generateCharSetShortRepr(tail, Some(range._1, head))
+                            else makeRepr(range) + "," + generateCharSetShortRepr(tail, Some(head, head))
+                        case (head +: tail, None) => generateCharSetShortRepr(tail, Some(head, head))
+                        case (List(), Some(range)) => makeRepr(range)
+                        case (List(), None) => ""
+                    }
+                }
+                s"{${generateCharSetShortRepr(cs.toList.sorted, None)}}"
+            case Unicode(c) => s"<unicode>"
+            case EndOfFile => "<eof>"
+            case s: Nonterminal => s.name
+            case s: Sequence => s.seq map { _.toShortString } mkString " "
+            case s: OneOf => s.syms map { _.toShortString } mkString "|"
+            case s: Except => s"${s.sym.toShortString}-${s.except.toShortString}"
+            case s: Repeat => s"${s.sym.toShortString}[${s.range.toShortString}]"
+            case s =>
+                println(s)
+                s.toString
+        }
     }
 }

@@ -24,23 +24,76 @@ class Parser(val grammar: Grammar)
                         case (oldNode, newNode) +: rest if newNode canFinish =>
                             val incomingSimpleEdges = graph incomingSimpleEdgesOf oldNode
                             val simpleLifted: Set[(SymbolProgress, SymbolProgress)] =
-                                incomingSimpleEdges flatMap { e => e.from lift SimpleLiftingRequest(newNode) map { (e.from, _) } }
+                                incomingSimpleEdges flatMap { e => (e.from lift newNode) map { (e.from, _) } }
                             simpleLift(rest ++ simpleLifted.toList, cc ++ simpleLifted)
                         case _ +: rest =>
                             simpleLift(rest, cc)
                         case List() => cc
                     }
-                val simple: Set[(SymbolProgress, SymbolProgress)] = simpleLift(nextNodes.toList, nextNodes)
-                println(simple)
-                simple foreach { case (o, n) => println(s"${o.toShortString} --> ${n.toShortString}") }
+                val simpleLifted: Set[(SymbolProgress, SymbolProgress)] = simpleLift(nextNodes.toList, nextNodes)
+                val liftedMap: Map[SymbolProgress, SymbolProgress] = simpleLifted.toMap
+                def retrackSurvivors(queue: List[SymbolProgress], cc: Set[SimpleEdge]): Set[SimpleEdge] =
+                    queue match {
+                        case survivor +: rest =>
+                            println(survivor.toShortString)
+                            val incomings = graph.incomingSimpleEdgesOf(survivor)
+                            retrackSurvivors(rest ++ (incomings.toList map { _.from }), cc ++ incomings)
+                        case List() => cc
+                    }
+                def deriveNews(newbie: SymbolProgress): Set[Edge] = // it returns Set[SimpleEdge]
+                    newbie match {
+                        case newbie: SymbolProgressNonterminal =>
+                            val derives: Set[Edge] = newbie.derive
+                            derives ++ (derives flatMap { e => deriveNews(e.to) })
+                        case _ => Set()
+                    }
+                def organizeLifted(queue: List[(SymbolProgress, SymbolProgress)]): Set[Edge] = // it returns Set[SimpleEdge]
+                    queue match {
+                        case (o: SymbolProgressNonterminal, n: SymbolProgressNonterminal) +: rest =>
+                            val prevIncomings: Set[Edge] = graph.incomingSimpleEdgesOf(o) flatMap { oi =>
+                                (liftedMap get oi.from) match {
+                                    case Some(lifted: SymbolProgressNonterminal) =>
+                                        if (lifted.derive.map(_.to).map(_.symbol) contains n.symbol) {
+                                            println(s"${liftedMap(oi.from).toShortString} (lifted)-> ${n.toShortString}")
+                                            // TODO
+                                            Set[SimpleEdge]()
+                                        } else {
+                                            println(s"${oi.from.toShortString} (non-lifted)-> ${n.toShortString}")
+                                            // TODO
+                                            Set[SimpleEdge](SimpleEdge(lifted, n))
+                                        }
+                                    case None =>
+                                        println(s"${oi.from.toShortString} (survived)-> ${n.toShortString}")
+                                        retrackSurvivors(List(oi.from), Set(SimpleEdge(oi.from, n)))
+                                }
+                            }
+                            val derives = n.derive.map(_.to)
+                            derives foreach { d =>
+                                println(s"${n.toShortString} (derive)-> ${d.toShortString}")
+                            }
+                            prevIncomings ++ deriveNews(n) ++ organizeLifted(rest)
+                        case passed +: rest =>
+                            println(s"${passed._1.toShortString} (passed)-> ${passed._2.toShortString}")
+                            organizeLifted(rest)
+                        case List() => Set()
+                    }
+                println(simpleLifted)
+                simpleLifted foreach { case (o, n) => println(s"${o.toShortString} --> ${n.toShortString}") }
                 // 1. 새로 만든(lift된) 노드로부터 derive할 게 있는 것들은 살린다.
                 // 2. 옛날 노드를 향하고 있는 모든 옛날 노드는 살린다.
-                val newGraph: (Set[Node], Set[Edge]) = ???
+                val edges = organizeLifted(simpleLifted.toList)
+                println("New edges ***")
+                edges foreach { e =>
+                    println(s"${e.from.toShortString} -> ${e.to.toShortString}")
+                }
                 // TODO check newgraph still contains start symbol
-                Left(ParsingContext(Graph(newGraph._1, newGraph._2)))
+                Left(ParsingContext(Graph(edges flatMap { _.nodes }, edges)))
             }
         }
-        def toResult: ParseResult = ParseResult(???)
+        def toResult: Option[ParseResult] = {
+            val startParsed: Option[SymbolProgress] = graph.nodes.find(node => node.symbol == grammar.startSymbol)
+            startParsed.get.parsed map { ParseResult(_) }
+        }
     }
 
     object ParsingContext {
@@ -72,5 +125,5 @@ class Parser(val grammar: Grammar)
                 }
         }
     def parse(source: String): Either[ParsingContext, ParsingError] =
-        parse(source.toCharArray.zipWithIndex map { p => Character(p._1, p._2) })
+        parse(Inputs.fromString(source))
 }

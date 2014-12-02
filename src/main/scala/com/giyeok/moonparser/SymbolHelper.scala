@@ -29,11 +29,9 @@ object SymbolHelper {
     def lookahead_except(except: Symbol) = LookaheadExcept(except)
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
 
-    def both(first: Symbol, second: Symbol) = Both(first, second)
-
     implicit class GrammarElementExcludable(self: Symbol) {
         def except(e: Symbol) = self match {
-            case _: Nonterminal | _: Sequence | _: OneOf | _: Except | _: Repeat =>
+            case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Except | _: Repeat =>
                 Except(self, e)
             case _ => throw GrammarDefinitionException("Applied repeat to the items that cannot be")
         }
@@ -42,7 +40,7 @@ object SymbolHelper {
     }
     implicit class GrammarElementRepeatable(self: Symbol) {
         def repeat(range: Repeat.Range): Repeat = self match {
-            case _: Nonterminal | _: Sequence | _: OneOf | _: Repeat =>
+            case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Repeat =>
                 Repeat(self, range)
             case _ => throw new Exception("Applied repeat to the items that cannot be")
         }
