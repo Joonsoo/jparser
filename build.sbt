@@ -2,7 +2,7 @@ name := "Moon Parser"
 
 version := "0.1"
 
-scalaVersion := "2.11.2"
+scalaVersion := "2.11.4"
 
 
 resolvers += "swt-repo" at "https://swt-repo.googlecode.com/svn/repo/"
