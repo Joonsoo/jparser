@@ -21,6 +21,7 @@ import org.eclipse.swt.custom.StackLayout
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.widgets.Control
 import scala.util.Try
+import org.eclipse.draw2d.ColorConstants
 
 class ParsingContextGraph(parent: Composite, resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext) extends Composite(parent, SWT.NONE) {
     this.setLayout(new FillLayout)
@@ -37,6 +38,9 @@ class ParsingContextGraph(parent: Composite, resources: ParseGraphVisualizer.Res
         }
         (n, graphNode)
     }).toMap
+    context.resultCandidates foreach { p =>
+        vnodes(p).setBackgroundColor(ColorConstants.lightBlue)
+    }
     private var vedges = edges flatMap {
         case e: Parser#SimpleEdge =>
             Set(new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to)))
@@ -55,14 +59,14 @@ object ParseGraphVisualizer {
 
         val resources = new Resources(new Font(null, "Monaco", 11, SWT.NONE))
 
-        val parser = new Parser(SimpleGrammar1_1)
-
         val layout = new StackLayout
 
         shell.setText("Parsing Graph")
         shell.setLayout(layout)
 
-        val source = Inputs.fromString("aadds")
+        val parser = new Parser(SimpleGrammar1_2)
+        val source = Inputs.fromString("abcbcbcbcabc")
+
         val fin = source.scanLeft[Either[Parser#ParsingContext, Parser#ParsingError], Seq[Either[Parser#ParsingContext, Parser#ParsingError]]](Left[Parser#ParsingContext, Parser#ParsingError](parser.startingContext)) {
             (ctx, terminal) =>
                 ctx match {

@@ -18,28 +18,11 @@ object SimpleGrammar1_1 extends Grammar {
     val startSymbol = n("S")
 }
 
-class SimpleGrammar1_1Suite extends AssertionsForJUnit {
-    private def test(source: String) = {
-        val parser = new Parser(SimpleGrammar1_1)
-        println(parser.checkFromStart)
-        println(parser.startingContext)
-        parser.parse(source)
-    }
-
-    @Test def correctSource() = {
-        val result = test("abcab")
-        println(result)
-        result match {
-            case Left(ctx) =>
-                val result = ctx.toResult
-                println(result)
-                result.get.parseNode.printTree()
-            case Right(_) =>
-                // must not happen
-                assertTrue(false)
-        }
-    }
-
-    @Test def incorrectSource1() = {
-    }
+object SimpleGrammar1_2 extends Grammar {
+    val name = "Simple Grammar 1_2"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(oneof(n("A"), n("B")).repeat(3, 5)),
+        "A" -> Set(i("abc")),
+        "B" -> Set(i("bc")))
+    val startSymbol = n("S")
 }
