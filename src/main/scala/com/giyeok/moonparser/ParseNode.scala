@@ -15,6 +15,19 @@ object ParseTree {
     case class ParsedSymbol[T <: Symbol](symbol: T, body: ParseNode[Symbol]) extends ParseNode[T]
     case class ParsedSymbolsSeq[T <: Symbol](symbol: T, body: Seq[ParseNode[Symbol]]) extends ParseNode[T]
 
+    object HorizontalTreeStringSeqUtil {
+        def merge(list: Seq[(Int, Seq[String])]): (Int, Seq[String]) = {
+            val maxSize: Int = (list maxBy { _._2.size })._2.size
+            val fittedList = list map { c =>
+                if (c._2.length < maxSize) (c._1, c._2 ++ Seq.fill(maxSize - c._2.size)(" " * c._1))
+                else c
+            }
+            val mergedList = fittedList.tail.foldLeft(fittedList.head) { (memo, e) =>
+                (memo._1 + 1 + e._1, memo._2 zip e._2 map { t => t._1 + " " + t._2 })
+            }
+            mergedList ensuring (mergedList._2.forall(_.length == mergedList._1))
+        }
+    }
     implicit class TreePrintableParseNode(node: ParseNode[Symbol]) {
         def printTree(): Unit = println(toTreeString("", "  "))
         def toTreeString(indent: String, indentUnit: String): String = node match {
@@ -28,7 +41,7 @@ object ParseTree {
                 (indent + s"- $sym\n") + (body map { _.toTreeString(indent + indentUnit, indentUnit) } mkString "\n")
         }
 
-        def toHorizontalHierarchyString(): String = {
+        def toHorizontalHierarchyStringSeq(): (Int, Seq[String]) = {
             def centerize(string: String, width: Int): String = {
                 if (string.length >= width) string
                 else {
@@ -52,42 +65,31 @@ object ParseTree {
                     val result = (finlen, (top._2 map { p + _ + f }) :+ ("[" + bottom + "]"))
                     result ensuring (result._2.forall(_.length == result._1))
                 }
-            def calculate(node: ParseNode[Symbol]): (Int, Seq[String]) = {
-                val result = node match {
-                    case ParsedEmpty =>
-                        (2, Seq("()"))
-                    case ParsedTerminal(sym, child) =>
-                        val actual = child.toShortString
+            val result = node match {
+                case ParsedEmpty =>
+                    (2, Seq("()"))
+                case ParsedTerminal(sym, child) =>
+                    val actual = child.toShortString
+                    val symbolic = sym.toShortString
+                    val finlen = math.max(actual.length, symbolic.length)
+                    (finlen, Seq(centerize(actual, finlen), centerize(symbolic, finlen)))
+                case ParsedSymbol(sym, body) =>
+                    val actual = body.toHorizontalHierarchyStringSeq
+                    val symbolic = sym.toShortString
+                    appendBottom(actual, sym.toShortString)
+                case ParsedSymbolsSeq(sym, body) =>
+                    if (body.isEmpty) {
                         val symbolic = sym.toShortString
-                        val finlen = math.max(actual.length, symbolic.length)
-                        (finlen, Seq(centerize(actual, finlen), centerize(symbolic, finlen)))
-                    case ParsedSymbol(sym, body) =>
-                        val actual = calculate(body)
-                        val symbolic = sym.toShortString
-                        appendBottom(actual, sym.toShortString)
-                    case ParsedSymbolsSeq(sym, body) =>
-                        if (body.isEmpty) {
-                            val symbolic = sym.toShortString
-                            (symbolic.length + 2, Seq("[" + symbolic + "]"))
-                        } else {
-                            val list: Seq[(Int, Seq[String])] = body map { calculate _ }
-                            val maxSize: Int = (list maxBy { _._2.size })._2.size
-                            val fittedList = list map { c =>
-                                if (c._2.length < maxSize) (c._1, c._2 ++ Seq.fill(maxSize - c._2.size)(" " * c._1))
-                                else c
-                            }
-                            val mergedList = fittedList.tail.foldLeft(fittedList.head) { (memo, e) =>
-                                (memo._1 + 1 + e._1, memo._2 zip e._2 map { t => t._1 + " " + t._2 })
-                            }
-                            assert(mergedList._2.forall(_.length == mergedList._1))
-                            appendBottom(mergedList, sym.toShortString)
-                        }
-                }
-                println(node, result)
-                result ensuring (result._2.forall(_.length == result._1))
+                        (symbolic.length + 2, Seq("[" + symbolic + "]"))
+                    } else {
+                        val list: Seq[(Int, Seq[String])] = body map { _.toHorizontalHierarchyStringSeq }
+                        appendBottom(HorizontalTreeStringSeqUtil.merge(list), sym.toShortString)
+                    }
             }
-            println(centerize("abc", 10))
-            (calculate(node)._2 mkString "\n")
+            result ensuring (result._2.forall(_.length == result._1))
         }
+
+        def toHorizontalHierarchyString(): String =
+            toHorizontalHierarchyStringSeq._2 mkString "\n"
     }
 }

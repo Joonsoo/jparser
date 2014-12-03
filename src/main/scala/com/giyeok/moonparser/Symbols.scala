@@ -122,7 +122,7 @@ object Symbols {
         override val hashCode = (sym, backup).hashCode
     }
 
-    implicit class ShortStringSymbol(sym: Symbol) {
+    implicit class ShortStringSymbols(sym: Symbol) {
         // TODO improve short string
         def toShortString: String = sym match {
             case Any => "<any>"
@@ -148,7 +148,7 @@ object Symbols {
             case Unicode(c) => s"<unicode>"
             case EndOfFile => "<eof>"
             case s: Nonterminal => s.name
-            case s: Sequence => s.seq map { _.toShortString } mkString " "
+            case s: Sequence => "(" + (s.seq map { _.toShortString } mkString " ") + ")"
             case s: OneOf => s.syms map { _.toShortString } mkString "|"
             case s: Except => s"${s.sym.toShortString}-${s.except.toShortString}"
             case s: Repeat => s"${s.sym.toShortString}[${s.range.toShortString}]"

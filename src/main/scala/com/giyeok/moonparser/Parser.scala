@@ -10,14 +10,15 @@ class Parser(val grammar: Grammar)
     import Inputs._
 
     case class ParsingContext(graph: Graph, resultCandidates: Set[SymbolProgress]) {
+        def proceedTerminal1(next: Input): Set[(SymbolProgress, SymbolProgress)] =
+            (graph.nodes flatMap {
+                case s: SymbolProgressTerminal => (s proceedTerminal next) map { (s, _) }
+                case _ => None
+            })
         def proceedTerminal(next: Input): Either[ParsingContext, ParsingError] = {
             // `nextNodes` is actually type of `Set[(SymbolProgressTerminal, SymbolProgressTerminal)]`
             // but the invariance in `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
-            val nextNodes: Set[(SymbolProgress, SymbolProgress)] =
-                (graph.nodes flatMap {
-                    case s: SymbolProgressTerminal => (s proceedTerminal next) map { (s, _) }
-                    case _ => None
-                })
+            val nextNodes = proceedTerminal1(next)
             if (nextNodes isEmpty) Right(ParsingErrors.UnexpectedInput(next)) else {
                 def simpleLift(queue: List[(SymbolProgress, SymbolProgress)], cc: Set[(SymbolProgress, SymbolProgress)]): Set[(SymbolProgress, SymbolProgress)] =
                     queue match {
@@ -85,9 +86,7 @@ class Parser(val grammar: Grammar)
                 // 2. 옛날 노드를 향하고 있는 모든 옛날 노드는 살린다.
                 val edges = organizeLifted(simpleLifted.toList) map { _.asInstanceOf[Edge] }
                 println("New edges ***")
-                edges foreach { e =>
-                    println(s"${e.from.toShortString} -> ${e.to.toShortString}")
-                }
+                edges foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
                 println("*** End")
                 // TODO check newgraph still contains start symbol
                 Left(ParsingContext(Graph(edges flatMap { _.nodes }, edges),

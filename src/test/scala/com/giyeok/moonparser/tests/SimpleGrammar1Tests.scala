@@ -8,6 +8,7 @@ import com.giyeok.moonparser.Parser
 import org.scalatest.junit.AssertionsForJUnit
 import com.giyeok.moonparser.Inputs._
 import org.junit.Assert._
+import com.giyeok.moonparser.Symbols.Symbol
 
 object SimpleGrammar1 extends Grammar {
     val name = "Simple Grammar 1"
@@ -15,28 +16,70 @@ object SimpleGrammar1 extends Grammar {
         "S" -> Set(n("A")),
         "A" -> Set(i("abc")))
     val startSymbol = n("S")
+
+    val samples = Set("abc")
 }
 
-class SimpleGrammar1Suite extends AssertionsForJUnit {
-    private def test(source: String) = {
-        val parser = new Parser(SimpleGrammar1)
-        println(parser.checkFromStart)
-        println(parser.startingContext)
-        parser.parse(source)
-    }
+object SimpleGrammar1_1 extends Grammar {
+    val name = "Simple Grammar 1_1"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(seq(n("A"), n("B"))),
+        "A" -> Set(chars("abc").repeat(2)),
+        "B" -> Set(seq(chars("def").repeat(2), i("s"))))
+    val startSymbol = n("S")
 
-    @Test def correctSource() = {
-        val result = test("abc")
-        result match {
-            case Left(ctx) =>
-                val result = ctx.toResult
-                println(result)
-            case Right(_) =>
-                // must not happen
-                assertTrue(false)
-        }
-    }
+    val samples = Set("abcabcddfefefes")
+}
 
-    @Test def incorrectSource1() = {
-    }
+object SimpleGrammar1_2 extends Grammar {
+    val name = "Simple Grammar 1_2"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(oneof(n("A"), n("B")).repeat(2, 5)),
+        "A" -> Set(i("abc")),
+        "B" -> Set(i("bc")))
+    val startSymbol = n("S")
+}
+
+object SimpleGrammar1_3 extends Grammar {
+    val name = "Simple Grammar 1_3"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(seq(c('a'), c('b').star, c('c'))))
+    val startSymbol = n("S")
+}
+
+object SimpleGrammar1_4 extends Grammar {
+    val name = "Simple Grammar 1_4"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(seq(Seq[Symbol](i("ab"), i("qt").opt, i("cd")), Set[Symbol](chars(" \t\n")))))
+    val startSymbol = n("S")
+
+    val correctSamples = Set("ab   \tqt\t  cd", "abcd", "ab  cd", "abqtcd")
+    val incorrectSamples = Set("a  bcd", "abc  d")
+}
+
+object SimpleGrammar1_5 extends Grammar {
+    val name = "Simple Grammar 1_5"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(oneof(n("A"), n("B")).repeat(2, 5)),
+        "A" -> Set(i("abc")),
+        "B" -> Set(i("ab")))
+    val startSymbol = n("S")
+    
+    val correctSamples = Set("abcabababc")
+}
+
+object SimpleGrammar1_10 extends Grammar {
+    val name = "Simple Grammar 1_10"
+    def expr(s: Symbol*) = seq(s.toSeq, Set[Symbol](chars(" \t\n")))
+    val rules: RuleMap = ListMap(
+        "S" -> Set(
+            n("And"),
+            n("Or"),
+            n("Random"),
+            seq(i("("), n("S"), i(")"))),
+        "And" -> Set(expr(i("and"), n("S"), n("S"))),
+        "Or" -> Set(expr(i("or"), n("S"), n("S"))),
+        "Random" -> Set(expr(i("random"), n("Number"))),
+        "Number" -> Set(seq(chars('1' to '9'), chars('0' to '9').star)))
+    val startSymbol = n("S")
 }

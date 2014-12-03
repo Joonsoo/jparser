@@ -16,7 +16,8 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         val symbol: Symbol
         val parsed: Option[ParseNode[Symbol]]
         def canFinish = parsed.isDefined
-        def toShortString: String
+
+        def toShortString = this.toShortString1
     }
     abstract sealed class SymbolProgressTerminal extends SymbolProgress {
         def proceedTerminal(next: Input): Option[SymbolProgressTerminal]
@@ -33,7 +34,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
     case object EmptyProgress extends SymbolProgress {
         val symbol = Empty
         val parsed = Some(ParsedEmpty)
-        def toShortString = "ε"
     }
 
     object SymbolProgress {
@@ -50,8 +50,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         }
     }
 
-    def locate[T](parsed: Option[T], s: String) = if (parsed.isEmpty) ("* " + s) else (s + " *")
-
     case class TerminalProgress(symbol: Terminal, parsed: Option[ParsedTerminal])
             extends SymbolProgressTerminal {
         def proceedTerminal(next: Input) = {
@@ -59,7 +57,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             if (symbol accept next) Some(TerminalProgress(symbol, Some(ParsedTerminal(symbol, next))))
             else None
         }
-        def toShortString = locate(parsed, symbol.toShortString)
     }
 
     case class NonterminalProgress(symbol: Nonterminal, parsed: Option[ParsedSymbol[Nonterminal]])
@@ -73,7 +70,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         val derive: Set[Edge] =
             if (parsed.isEmpty) grammar.rules(symbol.name) map { s => SimpleEdge(this, SymbolProgress(s)) }
             else Set[Edge]()
-        def toShortString = locate(parsed, symbol.toShortString)
     }
 
     case class SequenceProgress(symbol: Sequence, _childrenWS: List[ParseNode[Symbol]], _idxMapping: List[(Int, Int)])
@@ -83,7 +79,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         assert(_idxMapping map { _._2 } isStrictlyDecreasing)
         assert(_idxMapping map { _._1 } forall { i => i >= 0 && i < _childrenWS.size })
 
-        private val locInSeq = if (_idxMapping isEmpty) 0 else (_idxMapping.head._2 + 1)
+        val locInSeq = if (_idxMapping isEmpty) 0 else (_idxMapping.head._2 + 1)
         assert(locInSeq <= symbol.seq.size)
         private val visibles = {
             // TODO verify this
@@ -108,13 +104,12 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
                     val _c = (0 until (context._cPtr - cPtr)).foldLeft(context._c) { (m, _) => ParsedEmpty +: m }
                     MappingContext(_cws.tail, cwsPtr - 1, _cws.head +: _c, cPtr - 1)
                 }._c
-                result ensuring (result.size == symbol.seq.size)
+                result ensuring (!canFinish || (result.size == symbol.seq.size))
             }
         }
 
-        val parsed =
-            if (locInSeq == symbol.seq.size) Some(ParsedSymbolsSeq[Sequence](symbol, children))
-            else None
+        override def canFinish = locInSeq == symbol.seq.size
+        val parsed = if (canFinish) Some(ParsedSymbolsSeq[Sequence](symbol, children)) else None
         def lift(source: SymbolProgress): Option[SymbolProgress] = {
             assert(source.parsed.isDefined)
             assert(derive map { _.to.symbol } contains source.symbol)
@@ -138,13 +133,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             if (locInSeq < symbol.seq.size) {
                 (symbol.whitespace ++ symbol.seq.slice(locInSeq, visibles + 1)) map { s => SimpleEdge(this, SymbolProgress(s)) }
             } else Set[Edge]()
-
-        def toShortString = {
-            val l = symbol.seq map { _.toShortString }
-            val ls = l splitAt locInSeq
-            val s = (ls._1 ++ ("*" +: ls._2))
-            s mkString " "
-        }
     }
 
     case class OneOfProgress(symbol: OneOf, parsed: Option[ParsedSymbol[OneOf]])
@@ -157,7 +145,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         val derive: Set[Edge] =
             if (parsed.isEmpty) symbol.syms map { s => SimpleEdge(this, SymbolProgress(s)) }
             else Set[Edge]()
-        def toShortString = locate(parsed, symbol.toShortString)
     }
 
     case class ExceptProgress(symbol: Except, parsed: Option[ParsedSymbol[Except]])
@@ -172,7 +159,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
                 SimpleEdge(this, SymbolProgress(symbol.sym)),
                 AssassinEdge(SymbolProgress(symbol.except), this))
             else Set[Edge]()
-        def toShortString = locate(parsed, symbol.toShortString)
     }
 
     case class RepeatProgress(symbol: Repeat, _children: List[ParseNode[Symbol]])
@@ -188,22 +174,38 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         val derive: Set[Edge] =
             if (symbol.range canProceed _children.size) Set(SimpleEdge(this, SymbolProgress(symbol.sym)))
             else Set[Edge]()
-        def toShortString =
-            (if (symbol.range canProceed _children.size) "* " else "") + symbol.toShortString + (if (canFinish) " *" else "")
     }
 
     case class LookaheadExceptProgress(symbol: LookaheadExcept, parsed: Option[ParsedSymbol[LookaheadExcept]])
             extends SymbolProgressNonterminal {
         def lift(source: SymbolProgress): Option[SymbolProgress] = ???
         val derive = ???
-        def toShortString = ???
     }
 
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]])
             extends SymbolProgressNonterminal {
         def lift(source: SymbolProgress): Option[SymbolProgress] = ???
         val derive = ???
-        def toShortString = ???
     }
 
+    implicit class ShortStringProgresses(prog: SymbolProgress) {
+        def toShortString1: String = toShortString
+        def toShortString: String = {
+            def locate[T](parsed: Option[T], s: String) = if (parsed.isEmpty) ("* " + s) else (s + " *")
+            prog match {
+                case EmptyProgress => "ε"
+                case TerminalProgress(symbol, parsed) => locate(parsed, symbol.toShortString)
+                case NonterminalProgress(symbol, parsed) => locate(parsed, symbol.toShortString)
+                case seq: SequenceProgress =>
+                    val ls = seq.symbol.seq map { _.toShortString } splitAt seq.locInSeq
+                    "(" + ((ls._1 ++ ("*" +: ls._2)) mkString " ") + ")"
+                case OneOfProgress(symbol, parsed) => locate(parsed, symbol.toShortString)
+                case ExceptProgress(symbol, parsed) => locate(parsed, symbol.toShortString)
+                case rep @ RepeatProgress(symbol, _children) =>
+                    (if (symbol.range canProceed _children.size) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
+                case LookaheadExceptProgress(symbol, parsed) => ???
+                case BackupProgress(symbol, parsed) => ???
+            }
+        }
+    }
 }
