@@ -9,7 +9,7 @@ class Parser(val grammar: Grammar)
         with GrammarChecker {
     import Inputs._
 
-    case class ParsingContext(graph: Graph, resultCandidates: Set[SymbolProgress]) {
+    case class ParsingContext(gen: Int, graph: Graph, resultCandidates: Set[SymbolProgress]) {
         def proceedTerminal1(next: Input): Set[(SymbolProgress, SymbolProgress)] =
             (graph.nodes flatMap {
                 case s: SymbolProgressTerminal => (s proceedTerminal next) map { (s, _) }
@@ -44,18 +44,18 @@ class Parser(val grammar: Grammar)
                 def deriveNews(newbie: SymbolProgress): Set[SimpleEdge] =
                     newbie match {
                         case newbie: SymbolProgressNonterminal =>
-                            val derives: Set[SimpleEdge] = newbie.derive collect { case x: SimpleEdge => x }
+                            val derives: Set[SimpleEdge] = newbie.derive(gen + 1) collect { case x: SimpleEdge => x }
                             derives ++ (derives flatMap { e => deriveNews(e.to) })
                         case _ => Set()
                     }
                 def organizeLifted(queue: List[(SymbolProgress, SymbolProgress)]): Set[SimpleEdge] =
                     queue match {
                         case (o: SymbolProgressNonterminal, n: SymbolProgressNonterminal) +: rest =>
-                            val prevIncomings: Set[SimpleEdge] = if (n.derive.isEmpty) Set() else
+                            val prevIncomings: Set[SimpleEdge] = if (n.derive(gen + 1).isEmpty) Set() else
                                 graph.incomingSimpleEdgesOf(o) flatMap { oi =>
                                     (liftedMap get oi.from) match {
                                         case Some(lifted: SymbolProgressNonterminal) =>
-                                            if (lifted.derive.map(_.to).map(_.symbol) contains n.symbol) {
+                                            if (lifted.derive(gen + 1).map(_.to).map(_.symbol) contains n.symbol) {
                                                 println(s"${liftedMap(oi.from).toShortString} (lifted)-> ${n.toShortString}")
                                                 // TODO
                                                 ???
@@ -69,7 +69,7 @@ class Parser(val grammar: Grammar)
                                             trackSurvivors(List(oi.from), Set(SimpleEdge(oi.from, n)))
                                     }
                                 }
-                            val derives = n.derive.map(_.to)
+                            val derives = n.derive(gen + 1).map(_.to)
                             derives foreach { d =>
                                 println(s"${n.toShortString} (derive)-> ${d.toShortString}")
                             }
@@ -89,7 +89,7 @@ class Parser(val grammar: Grammar)
                 edges foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
                 println("*** End")
                 // TODO check newgraph still contains start symbol
-                Left(ParsingContext(Graph(edges flatMap { _.nodes }, edges),
+                Left(ParsingContext(gen + 1, Graph(edges flatMap { _.nodes }, edges),
                     (simpleLifted map { _._2 } filter { _.symbol == grammar.startSymbol })))
             }
         }
@@ -105,7 +105,7 @@ class Parser(val grammar: Grammar)
                 queue match {
                     case (head: SymbolProgressNonterminal) +: tail =>
                         assert(nodes contains head)
-                        val newedges = head.derive
+                        val newedges = head.derive(0)
                         val news: Set[SymbolProgress] = newedges flatMap { _.nodes } filterNot { nodes contains _ }
                         expand(news.toList ++ tail, nodes ++ news, edges ++ newedges)
                     case head +: tail =>
@@ -113,11 +113,11 @@ class Parser(val grammar: Grammar)
                     case Nil => (nodes, edges)
                 }
             val (nodes, edges) = expand(seeds.toList, seeds, Set())
-            ParsingContext(Graph(nodes, edges), Set())
+            ParsingContext(0, Graph(nodes, edges), Set())
         }
     }
 
-    val startingContext = ParsingContext.fromSeeds(Set(SymbolProgress(grammar.startSymbol)))
+    val startingContext = ParsingContext.fromSeeds(Set(SymbolProgress(grammar.startSymbol, 0)))
 
     def parse(source: Inputs.Source): Either[ParsingContext, ParsingError] =
         source.foldLeft[Either[ParsingContext, ParsingError]](Left(startingContext)) {

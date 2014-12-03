@@ -111,7 +111,7 @@ object ParseGraphVisualizer {
         // val parser = new Parser(SimpleGrammar1_10)
         // val source = Inputs.fromString("and (random 10) (random 20)")
         val parser = new Parser(SimpleGrammar1_5)
-        val source = Inputs.fromString("abcabababc")
+        val source = Inputs.fromString("abcabababcabc")
 
         val fin = source.scanLeft[Either[Parser#ParsingContext, Parser#ParsingError], Seq[Either[Parser#ParsingContext, Parser#ParsingError]]](Left[Parser#ParsingContext, Parser#ParsingError](parser.startingContext)) {
             (ctx, terminal) =>
