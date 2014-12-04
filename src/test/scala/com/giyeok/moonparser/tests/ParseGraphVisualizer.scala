@@ -24,12 +24,20 @@ import scala.util.Try
 import org.eclipse.draw2d.ColorConstants
 import com.giyeok.moonparser.Inputs.Input
 import com.giyeok.moonparser.ParseTree
+import org.eclipse.swt.widgets.Listener
+import org.eclipse.swt.widgets.Event
+import org.eclipse.swt.events.MouseListener
+import org.eclipse.swt.events.MouseAdapter
+import org.eclipse.swt.events.MouseEvent
+import org.eclipse.swt.events.SelectionListener
+import org.eclipse.swt.events.SelectionEvent
+import org.eclipse.swt.events.SelectionAdapter
 
 class ParsingContextGraph(parent: Composite, resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val src: Option[Input]) extends Composite(parent, SWT.NONE) {
     this.setLayout(new FillLayout)
 
     private val (nodes, edges) = (context.graph.nodes, context.graph.edges)
-    private val graph = new Graph(this, SWT.NONE)
+    val graph = new Graph(this, SWT.NONE)
     private val proceed1: Set[(Parser#SymbolProgress, Parser#SymbolProgress)] = src match {
         case Some(s) => (context proceedTerminal1 s) map { p => (p._1, p._2) }
         case None => Set()
@@ -38,26 +46,34 @@ class ParsingContextGraph(parent: Composite, resources: ParseGraphVisualizer.Res
     private var vnodes: Map[Parser#Node, GraphNode] = ((nodes ++ context.resultCandidates ++ proceeded) map { n =>
         val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
         graphNode.setFont(resources.default12Font)
-        n match {
+        val tooltipText = n match {
             case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
                 val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
-                val f = new org.eclipse.draw2d.Label()
-                f.setFont(resources.fixedWidth12Font)
-                f.setText(list._2 mkString "\n")
-                graphNode.setTooltip(f)
+                Some(list._2 mkString "\n")
             case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
                 val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq.childrenWS map { _.toHorizontalHierarchyStringSeq })
-                val f = new org.eclipse.draw2d.Label()
-                f.setFont(resources.fixedWidth12Font)
-                f.setText(list._2 mkString "\n")
-                graphNode.setTooltip(f)
+                Some(list._2 mkString "\n")
             case n if n.canFinish =>
+                val text = n.parsed.get.toHorizontalHierarchyString
+                Some(text)
+            case _ => None
+        }
+        tooltipText match {
+            case Some(text) =>
                 val f = new org.eclipse.draw2d.Label()
                 f.setFont(resources.fixedWidth12Font)
-                // f.setText(n.parsed.get.toTreeString("", "  "))
-                f.setText(n.parsed.get.toHorizontalHierarchyString)
+                f.setText(text)
                 graphNode.setTooltip(f)
-            case _ =>
+                graph.addSelectionListener(new SelectionAdapter() {
+                    override def widgetSelected(e: SelectionEvent): Unit = {
+                        if (e.item == graphNode) {
+                            println(e.item)
+                            println(text)
+                        }
+                    }
+                })
+                Some(text)
+            case None =>
         }
         if (proceeded contains n) {
             graphNode.setFont(resources.italic14Font)
@@ -110,8 +126,8 @@ object ParseGraphVisualizer {
 
         // val parser = new Parser(SimpleGrammar1_10)
         // val source = Inputs.fromString("and (random 10) (random 20)")
-        val parser = new Parser(SimpleGrammar1_5)
-        val source = Inputs.fromString("abcabababcabc")
+        val parser = new Parser(SimpleGrammar1_3_3)
+        val source = Inputs.fromString("abbbcbbb")
 
         val fin = source.scanLeft[Either[Parser#ParsingContext, Parser#ParsingError], Seq[Either[Parser#ParsingContext, Parser#ParsingError]]](Left[Parser#ParsingContext, Parser#ParsingError](parser.startingContext)) {
             (ctx, terminal) =>
@@ -153,14 +169,15 @@ object ParseGraphVisualizer {
                 x.keyCode match {
                     case SWT.ARROW_LEFT => updateLocation(currentLocation - 1)
                     case SWT.ARROW_RIGHT => updateLocation(currentLocation + 1)
-                    case code => println(code)
+                    case code =>
                 }
             }
 
             def keyReleased(x: org.eclipse.swt.events.KeyEvent): Unit = {}
         }
         shell.addKeyListener(keyListener)
-        views foreach { _.addKeyListener(keyListener) }
+        views foreach { v => v.addKeyListener(keyListener) }
+        views collect { case v: ParsingContextGraph => v.graph.addKeyListener(keyListener) }
 
         shell.open()
         while (!shell.isDisposed()) {

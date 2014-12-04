@@ -57,8 +57,8 @@ class Parser(val grammar: Grammar)
                                         case Some(lifted: SymbolProgressNonterminal) =>
                                             if (lifted.derive(gen + 1).map(_.to).map(_.symbol) contains n.symbol) {
                                                 println(s"${liftedMap(oi.from).toShortString} (lifted)-> ${n.toShortString}")
-                                                // TODO
-                                                ???
+                                                // TODO verify this
+                                                trackSurvivors(List(oi.from), Set(SimpleEdge(oi.from, n)))
                                             } else {
                                                 println(s"${oi.from.toShortString} | ${lifted.toShortString} (non-lifted)-> ${n.toShortString}")
                                                 // TODO verify this

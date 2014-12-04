@@ -45,6 +45,27 @@ object SimpleGrammar1_3 extends Grammar {
     val rules: RuleMap = ListMap(
         "S" -> Set(seq(c('a'), c('b').star, c('c'))))
     val startSymbol = n("S")
+
+    val correctSamples = Set("ac", "abc", "abbbbbbbc")
+}
+
+object SimpleGrammar1_3_2 extends Grammar {
+    val name = "Simple Grammar 1_3_2"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(seq(c('a'), c('b').star, c('c').opt)))
+    val startSymbol = n("S")
+
+    val correctSamples = Set("a", "abc", "abb")
+}
+
+object SimpleGrammar1_3_3 extends Grammar {
+    // ambiguous language
+    val name = "Simple Grammar 1_3_3"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(seq(c('a'), c('b').star, c('c').opt, c('b').star)))
+    val startSymbol = n("S")
+
+    val correctSamples = Set("a", "abc", "abbbcbbb")
 }
 
 object SimpleGrammar1_4 extends Grammar {
@@ -64,8 +85,8 @@ object SimpleGrammar1_5 extends Grammar {
         "A" -> Set(i("abc")),
         "B" -> Set(i("ab")))
     val startSymbol = n("S")
-    
-    val correctSamples = Set("abcabababc")
+
+    val correctSamples = Set("abcabababc", "abcabababcabc")
 }
 
 object SimpleGrammar1_10 extends Grammar {

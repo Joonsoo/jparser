@@ -8,9 +8,7 @@ object ParseTree {
         val symbol: T
     }
 
-    case object ParsedEmpty extends ParseNode[Empty.type] {
-        val symbol = Empty
-    }
+    case class ParsedEmpty[T <: Symbol](symbol: T) extends ParseNode[T]
     case class ParsedTerminal(symbol: Terminal, child: Input) extends ParseNode[Terminal]
     case class ParsedSymbol[T <: Symbol](symbol: T, body: ParseNode[Symbol]) extends ParseNode[T]
     case class ParsedSymbolsSeq[T <: Symbol](symbol: T, body: Seq[ParseNode[Symbol]]) extends ParseNode[T]
@@ -31,8 +29,8 @@ object ParseTree {
     implicit class TreePrintableParseNode(node: ParseNode[Symbol]) {
         def printTree(): Unit = println(toTreeString("", "  "))
         def toTreeString(indent: String, indentUnit: String): String = node match {
-            case ParsedEmpty =>
-                indent + "()"
+            case ParsedEmpty(sym) =>
+                indent + s"- $sym"
             case ParsedTerminal(sym, child) =>
                 indent + s"- $sym('$child')"
             case ParsedSymbol(sym, body) =>
@@ -66,8 +64,10 @@ object ParseTree {
                     result ensuring (result._2.forall(_.length == result._1))
                 }
             val result = node match {
-                case ParsedEmpty =>
-                    (2, Seq("()"))
+                case ParsedEmpty(sym) =>
+                    val symbolic = sym.toShortString
+                    val finlen = math.max(2, symbolic.length)
+                    (finlen, Seq(centerize("()", finlen), symbolic))
                 case ParsedTerminal(sym, child) =>
                     val actual = child.toShortString
                     val symbolic = sym.toShortString

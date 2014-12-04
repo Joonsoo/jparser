@@ -34,7 +34,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
     }
     case object EmptyProgress extends SymbolProgress {
         val symbol = Empty
-        val parsed = Some(ParsedEmpty)
+        val parsed = Some(ParsedEmpty(symbol))
     }
 
     object SymbolProgress {
@@ -83,7 +83,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         val locInSeq = if (_idxMapping isEmpty) 0 else (_idxMapping.head._2 + 1)
         assert(locInSeq <= symbol.seq.size)
         private val visibles = {
-            // TODO verify this
+            // return the index of the first non-nullable symbol or the last symbol of sequence
             def vis(loc: Int): Int =
                 if (loc < symbol.seq.length) (if (symbol.seq(loc).isNullable) vis(loc + 1) else loc)
                 else (loc - 1)
@@ -98,18 +98,19 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             // TODO verify this
             if (_idxMapping.isEmpty) List() else {
                 case class MappingContext(_cws: List[ParseNode[Symbol]], _cwsPtr: Int, _c: List[ParseNode[Symbol]], _cPtr: Int)
-                val starting = MappingContext(_childrenWS, _childrenWS.size - 1, List(), _idxMapping.head._2)
+                val starting = MappingContext(_childrenWS, _childrenWS.size - 1, List(), symbol.seq.length - 1 /*_idxMapping.head._2*/ )
                 val result = _idxMapping.foldLeft(starting) { (context, idxMapping) =>
                     val (cwsPtr, cPtr) = idxMapping
                     val _cws = context._cws drop (context._cwsPtr - cwsPtr)
-                    val _c = (0 until (context._cPtr - cPtr)).foldLeft(context._c) { (m, _) => ParsedEmpty +: m }
+                    val _c = (0 until (context._cPtr - cPtr)).foldLeft(context._c) { (m, i) => ParsedEmpty(symbol.seq(context._cPtr - i)) +: m }
                     MappingContext(_cws.tail, cwsPtr - 1, _cws.head +: _c, cPtr - 1)
                 }._c
                 result ensuring (!canFinish || (result.size == symbol.seq.size))
             }
         }
 
-        override def canFinish = locInSeq == symbol.seq.size
+        override def canFinish =
+            (locInSeq == symbol.seq.size) || ((visibles == symbol.seq.length - 1) && symbol.seq(visibles).isNullable)
         val parsed = if (canFinish) Some(ParsedSymbolsSeq[Sequence](symbol, children)) else None
         def lift(source: SymbolProgress): Option[SymbolProgress] = {
             assert(source.parsed.isDefined)
