@@ -46,6 +46,11 @@ class ParsingContextGraph(parent: Composite, resources: ParseGraphVisualizer.Res
     private var vnodes: Map[Parser#Node, GraphNode] = ((nodes ++ context.resultCandidates ++ proceeded) map { n =>
         val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
         graphNode.setFont(resources.default12Font)
+        n match {
+            case term: Parser#SymbolProgressTerminal if term.parsed.isEmpty =>
+                graphNode.setBackgroundColor(ColorConstants.lightGreen)
+            case _ =>
+        }
         val tooltipText = n match {
             case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
                 val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
