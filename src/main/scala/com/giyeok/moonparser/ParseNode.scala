@@ -58,7 +58,7 @@ object ParseTree {
                     result ensuring (result._2.forall(_.length == result._1))
                 } else {
                     val finlen = bottom.length + 2
-                    val prec = (bottom.length - top._1) / 2
+                    val prec = (finlen - top._1) / 2
                     val (p, f) = (" " * prec, " " * (finlen - top._1 - prec))
                     val result = (finlen, (top._2 map { p + _ + f }) :+ ("[" + bottom + "]"))
                     result ensuring (result._2.forall(_.length == result._1))

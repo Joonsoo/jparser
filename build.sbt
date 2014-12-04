@@ -31,3 +31,8 @@ libraryDependencies ++= Seq(
   "org.eclipse.zest" % "org.eclipse.zest.layouts" % "1.1.100" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts_1.1.100.201405261516.jar",
   "org.eclipse.zest" % "org.eclipse.zest.layouts.source" % "1.1.100" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts.source_1.1.100.201405261516.jar"
 )
+
+fork in run := true
+
+javaOptions in run := Seq("-XstartOnFirstThread", "-d64")
+
