@@ -1,9 +1,18 @@
-package com.giyeok.moonparser.tests
+package com.giyeok.moonparser.visualize
 
 import scala.Left
+import scala.Right
+
+import org.eclipse.draw2d.ColorConstants
 import org.eclipse.swt.SWT
+import org.eclipse.swt.custom.StackLayout
+import org.eclipse.swt.events.KeyListener
+import org.eclipse.swt.events.SelectionAdapter
+import org.eclipse.swt.events.SelectionEvent
+import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Composite
+import org.eclipse.swt.widgets.Control
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.Shell
@@ -13,25 +22,13 @@ import org.eclipse.zest.core.widgets.GraphNode
 import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
 import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
-import com.giyeok.moonparser.Inputs
+
+import com.giyeok.moonparser.Grammar
+import com.giyeok.moonparser.Inputs.Input
+import com.giyeok.moonparser.Inputs.InputToShortString
+import com.giyeok.moonparser.ParseTree
 import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
 import com.giyeok.moonparser.Parser
-import org.eclipse.swt.graphics.Font
-import org.eclipse.swt.custom.StackLayout
-import org.eclipse.swt.events.KeyListener
-import org.eclipse.swt.widgets.Control
-import scala.util.Try
-import org.eclipse.draw2d.ColorConstants
-import com.giyeok.moonparser.Inputs.Input
-import com.giyeok.moonparser.ParseTree
-import org.eclipse.swt.widgets.Listener
-import org.eclipse.swt.widgets.Event
-import org.eclipse.swt.events.MouseListener
-import org.eclipse.swt.events.MouseAdapter
-import org.eclipse.swt.events.MouseEvent
-import org.eclipse.swt.events.SelectionListener
-import org.eclipse.swt.events.SelectionEvent
-import org.eclipse.swt.events.SelectionAdapter
 
 class ParsingContextGraph(parent: Composite, resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val src: Option[Input]) extends Composite(parent, SWT.NONE) {
     this.setLayout(new FillLayout)
@@ -113,7 +110,7 @@ object ParseGraphVisualizer {
         val bold14Font: Font
     }
 
-    def main(args: Array[String]): Unit = {
+    def start(grammar: Grammar, input: Seq[Input]): Unit = {
         val display = new Display
         val shell = new Shell(display)
 
@@ -129,8 +126,8 @@ object ParseGraphVisualizer {
         shell.setText("Parsing Graph")
         shell.setLayout(layout)
 
-        val parser = new Parser(SimpleGrammar1_6)
-        val source = Inputs.fromString("abc")
+        val parser = new Parser(grammar)
+        val source = input
 
         val fin = source.scanLeft[Either[Parser#ParsingContext, Parser#ParsingError], Seq[Either[Parser#ParsingContext, Parser#ParsingError]]](Left[Parser#ParsingContext, Parser#ParsingError](parser.startingContext)) {
             (ctx, terminal) =>
