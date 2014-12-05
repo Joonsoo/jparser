@@ -20,6 +20,7 @@ class Parser(val grammar: Grammar)
         def proceedTerminal(next: Input): Either[ParsingContext, ParsingError] = {
             // `nextNodes` is actually type of `Set[(SymbolProgressTerminal, SymbolProgressTerminal)]`
             // but the invariance in `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
+            println("**** New Generation")
             val nextNodes = proceedTerminal1(next)
             if (nextNodes isEmpty) Right(ParsingErrors.UnexpectedInput(next)) else {
                 val simpleLifted: Set[(SymbolProgress, SymbolProgress)] = simpleLift(graph, nextNodes.toList, nextNodes)
@@ -31,12 +32,13 @@ class Parser(val grammar: Grammar)
                             trackSurvivors(rest ++ (incomings.toList map { _.from }), cc ++ incomings)
                         case List() => cc
                     }
-                def deriveNews(newbie: SymbolProgress): Set[SimpleEdge] =
-                    newbie match {
-                        case newbie: SymbolProgressNonterminal =>
-                            val derives: Set[SimpleEdge] = newbie.derive(gen + 1) collect { case x: SimpleEdge => x }
-                            derives ++ (derives flatMap { e => deriveNews(e.to) })
-                        case _ => Set()
+                def deriveNews(queue: List[SymbolProgress], cc: Set[SimpleEdge]): Set[SimpleEdge] =
+                    queue match {
+                        case (head: SymbolProgressNonterminal) +: rest =>
+                            val derives: Set[SimpleEdge] = (head.derive(gen + 1) collect { case x: SimpleEdge => x }) -- cc
+                            deriveNews(rest ++ (derives map { _.to }), derives ++ cc)
+                        case _ +: rest => deriveNews(rest, cc)
+                        case List() => cc
                     }
                 def organizeLifted(queue: List[(SymbolProgress, SymbolProgress)]): Set[SimpleEdge] =
                     queue match {
@@ -51,13 +53,12 @@ class Parser(val grammar: Grammar)
                             derives foreach { d =>
                                 println(s"${n.toShortString} (derive)-> ${d.toShortString}")
                             }
-                            prevIncomings ++ deriveNews(n) ++ organizeLifted(rest)
+                            prevIncomings ++ deriveNews(List(n), Set()) ++ organizeLifted(rest)
                         case passed +: rest =>
                             println(s"${passed._1.toShortString} (passed)-> ${passed._2.toShortString}")
                             organizeLifted(rest)
                         case List() => Set()
                     }
-                println("**** New Generation")
                 println(simpleLifted)
                 simpleLifted foreach { case (o, n) => println(s"lifted: ${o.toShortString} --> ${n.toShortString}") }
                 // 1. 새로 만든(lift된) 노드로부터 derive할 게 있는 것들은 살린다.
@@ -83,7 +84,7 @@ class Parser(val grammar: Grammar)
                     val incomingSimpleEdges = graph incomingSimpleEdgesOf oldNode
                     val simpleLifted: Set[(SymbolProgress, SymbolProgress)] =
                         incomingSimpleEdges flatMap { e => (e.from lift newNode) map { (e.from, _) } }
-                    incomingSimpleEdges foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
+                    incomingSimpleEdges foreach { e => println(s"(lifting) ${e.from.toShortString} -> ${e.to.toShortString}") }
                     simpleLift(graph, rest ++ simpleLifted.toList, cc ++ simpleLifted)
                 case _ +: rest =>
                     simpleLift(graph, rest, cc)
