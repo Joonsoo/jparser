@@ -7,7 +7,7 @@ scalaVersion := "2.11.4"
 
 resolvers += "swt-repo" at "https://swt-repo.googlecode.com/svn/repo/"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.0" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 
 libraryDependencies += "junit" % "junit" % "4.11" % "test"
 

@@ -32,22 +32,6 @@ object ExceptGrammar extends Grammar {
 }
 
 class ExceptGrammarTestSuite extends AssertionsForJUnit {
-    private def test(source: String) = {
-        val parser = new Parser(SimpleGrammar2)
-        println(parser.checkFromStart)
-        println(parser.startingContext)
-        parser.parse(source)
-    }
-
     @Test def keyword() = {
-        val result = test("var a")
-        result match {
-            case Left(ctx) =>
-                val result = ctx.toResult
-                println(result)
-            case Right(_) =>
-                // must not happen
-                assertTrue(false)
-        }
     }
 }
