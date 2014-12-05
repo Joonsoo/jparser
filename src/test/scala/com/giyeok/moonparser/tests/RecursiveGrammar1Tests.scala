@@ -54,9 +54,7 @@ object RecursiveGrammar3 extends Grammar with StringSamples {
     val name = "Recursive Grammar 3"
     def expr(s: Symbol*) = seq(s.toSeq, Set[Symbol](chars(" \t\n")))
     val rules: RuleMap = ListMap(
-        "S" -> Set(
-            n("Prior1"),
-            seq(i("("), n("S"), i(")"))),
+        "S" -> Set(n("Prior1")),
         "Prior1" -> Set(
             expr(n("Prior1"), c('+'), n("Prior1")),
             expr(n("Prior1"), c('-'), n("Prior1")),
@@ -64,12 +62,13 @@ object RecursiveGrammar3 extends Grammar with StringSamples {
         "Prior2" -> Set(
             expr(n("Prior2"), c('*'), n("Prior2")),
             expr(n("Prior2"), c('/'), n("Prior2")),
-            n("Prior2"),
+            expr(i("("), n("Prior1"), i(")")),
             n("Number")),
         "Number" -> Set(seq(chars('1' to '9'), chars('0' to '9').star)))
     val startSymbol = n("S")
 
-    val correctSamples = Set[String]()
+    // Because of the associativity of binary opeartors, this grammar may not parse expressions like `1+2+3` properly
+    val correctSamples = Set[String]("123123", "1+2", "1+2*3", "3*2+1", "12300+23400*34500", "34500*23400+12300")
     val incorrectSamples = Set[String]()
 }
 
