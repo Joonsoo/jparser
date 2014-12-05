@@ -129,8 +129,8 @@ object ParseGraphVisualizer {
         shell.setText("Parsing Graph")
         shell.setLayout(layout)
 
-        val parser = new Parser(RecursiveGrammar1_1)
-        val source = Inputs.fromString("aaaa")
+        val parser = new Parser(SimpleGrammar1_6)
+        val source = Inputs.fromString("abc")
 
         val fin = source.scanLeft[Either[Parser#ParsingContext, Parser#ParsingError], Seq[Either[Parser#ParsingContext, Parser#ParsingError]]](Left[Parser#ParsingContext, Parser#ParsingError](parser.startingContext)) {
             (ctx, terminal) =>

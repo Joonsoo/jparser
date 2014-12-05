@@ -88,3 +88,23 @@ object SimpleGrammar1_5 extends Grammar {
 
     val correctSamples = Set("abcabababc", "abcabababcabc")
 }
+
+object SimpleGrammar1_6 extends Grammar {
+    val name = "Simple Grammar 1_6"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(n("A"), e),
+        "A" -> Set(i("abc")))
+    val startSymbol = n("S")
+
+    val correctSamples = Set("", "abc")
+}
+
+object SimpleGrammar1_7 extends Grammar {
+    val name = "Simple Grammar 1_7"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(n("A").opt),
+        "A" -> Set(i("abc")))
+    val startSymbol = n("S")
+
+    val correctSamples = Set("", "abc")
+}

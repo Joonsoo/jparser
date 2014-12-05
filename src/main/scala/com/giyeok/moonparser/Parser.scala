@@ -10,6 +10,8 @@ class Parser(val grammar: Grammar)
     import Inputs._
 
     case class ParsingContext(gen: Int, graph: Graph, resultCandidates: Set[SymbolProgress]) {
+        import ParsingContext.{ simpleLift, collectResultCandidates }
+
         def proceedTerminal1(next: Input): Set[(SymbolProgress, SymbolProgress)] =
             (graph.nodes flatMap {
                 case s: SymbolProgressTerminal => (s proceedTerminal next) map { (s, _) }
@@ -20,18 +22,7 @@ class Parser(val grammar: Grammar)
             // but the invariance in `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
             val nextNodes = proceedTerminal1(next)
             if (nextNodes isEmpty) Right(ParsingErrors.UnexpectedInput(next)) else {
-                def simpleLift(queue: List[(SymbolProgress, SymbolProgress)], cc: Set[(SymbolProgress, SymbolProgress)]): Set[(SymbolProgress, SymbolProgress)] =
-                    queue match {
-                        case (oldNode, newNode) +: rest if newNode canFinish =>
-                            val incomingSimpleEdges = graph incomingSimpleEdgesOf oldNode
-                            val simpleLifted: Set[(SymbolProgress, SymbolProgress)] =
-                                incomingSimpleEdges flatMap { e => (e.from lift newNode) map { (e.from, _) } }
-                            simpleLift(rest ++ simpleLifted.toList, cc ++ simpleLifted)
-                        case _ +: rest =>
-                            simpleLift(rest, cc)
-                        case List() => cc
-                    }
-                val simpleLifted: Set[(SymbolProgress, SymbolProgress)] = simpleLift(nextNodes.toList, nextNodes)
+                val simpleLifted: Set[(SymbolProgress, SymbolProgress)] = simpleLift(graph, nextNodes.toList, nextNodes)
                 def trackSurvivors(queue: List[SymbolProgress], cc: Set[SimpleEdge]): Set[SimpleEdge] =
                     queue match {
                         case survivor +: rest =>
@@ -76,8 +67,7 @@ class Parser(val grammar: Grammar)
                 edges foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
                 println("*** End")
                 // TODO check newgraph still contains start symbol
-                Left(ParsingContext(gen + 1, Graph(edges flatMap { _.nodes }, edges),
-                    (simpleLifted map { _._2 } collect { case s @ NonterminalProgress(sym, _, 0) if sym == grammar.startSymbol => s })))
+                Left(ParsingContext(gen + 1, Graph(edges flatMap { _.nodes }, edges), collectResultCandidates(simpleLifted)))
             }
         }
         def toResult: Option[ParseResult] = {
@@ -87,6 +77,21 @@ class Parser(val grammar: Grammar)
     }
 
     object ParsingContext {
+        private def simpleLift(graph: Graph, queue: List[(SymbolProgress, SymbolProgress)], cc: Set[(SymbolProgress, SymbolProgress)]): Set[(SymbolProgress, SymbolProgress)] =
+            queue match {
+                case (oldNode, newNode) +: rest if newNode canFinish =>
+                    val incomingSimpleEdges = graph incomingSimpleEdgesOf oldNode
+                    val simpleLifted: Set[(SymbolProgress, SymbolProgress)] =
+                        incomingSimpleEdges flatMap { e => (e.from lift newNode) map { (e.from, _) } }
+                    simpleLift(graph, rest ++ simpleLifted.toList, cc ++ simpleLifted)
+                case _ +: rest =>
+                    simpleLift(graph, rest, cc)
+                case List() => cc
+            }
+
+        private def collectResultCandidates(lifted: Set[(SymbolProgress, SymbolProgress)]): Set[SymbolProgress] =
+            lifted map { _._2 } collect { case s @ NonterminalProgress(sym, _, _) if sym == grammar.startSymbol => s }
+
         def fromSeeds(seeds: Set[Node]): ParsingContext = {
             def expand(queue: List[Node], nodes: Set[Node], edges: Set[Edge]): (Set[Node], Set[Edge]) =
                 queue match {
@@ -100,7 +105,10 @@ class Parser(val grammar: Grammar)
                     case Nil => (nodes, edges)
                 }
             val (nodes, edges) = expand(seeds.toList, seeds, Set())
-            ParsingContext(0, Graph(nodes, edges), Set())
+            val graph = Graph(nodes, edges)
+            val finishable: Set[(SymbolProgress, SymbolProgress)] = nodes collect { case n if n.canFinish => (n, n) }
+            val simpleLifted: Set[(SymbolProgress, SymbolProgress)] = simpleLift(graph, finishable.toList, finishable)
+            ParsingContext(0, graph, collectResultCandidates(finishable))
         }
     }
 

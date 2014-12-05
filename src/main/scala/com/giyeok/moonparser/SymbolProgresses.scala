@@ -201,7 +201,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         def toShortString: String = {
             def locate[T](parsed: Option[T], s: String) = if (parsed.isEmpty) ("* " + s) else (s + " *")
             prog match {
-                case EmptyProgress => "ε"
+                case EmptyProgress => "ε *"
                 case TerminalProgress(symbol, parsed) => locate(parsed, symbol.toShortString)
                 case NonterminalProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case seq: SequenceProgress =>
