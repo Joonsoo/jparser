@@ -106,11 +106,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
                     MappingContext(_cws.tail, cwsPtr - 1, _cws.head +: _c, cPtr - 1)
                 }._c
                 val result = (symbol.seq take (symbol.seq.size - result0.size)).foldRight(result0) { ParsedEmpty(_) +: _ }
-                println
-                println(result.size, symbol.seq.size)
-                result foreach { println _ }
-                println("---")
-                symbol.seq foreach { println _ }
                 result ensuring (!canFinish || (result.size == symbol.seq.size))
             }
         }
