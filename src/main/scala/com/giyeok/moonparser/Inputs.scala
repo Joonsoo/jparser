@@ -13,8 +13,14 @@ object Inputs {
     type Source = Iterable[Input]
 
     implicit class InputToShortString(input: Input) {
-        def toShortString = input match {
+        def toShortString: String = input match {
             case Character(char, _) => s"'$char'"
+            case Virtual(name, _) => s"{$name}"
+            case EOF(_) => "(EOF)"
+        }
+
+        def toCleanString: String = input match {
+            case Character(char, _) => char.toString
             case Virtual(name, _) => s"{$name}"
             case EOF(_) => "(EOF)"
         }

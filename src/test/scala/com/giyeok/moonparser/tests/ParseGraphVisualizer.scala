@@ -129,10 +129,8 @@ object ParseGraphVisualizer {
         shell.setText("Parsing Graph")
         shell.setLayout(layout)
 
-        // val parser = new Parser(SimpleGrammar1_10)
-        // val source = Inputs.fromString("and (random 10) (random 20)")
-        val parser = new Parser(SimpleGrammar1_3_3)
-        val source = Inputs.fromString("abbbcbbb")
+        val parser = new Parser(SimpleGrammar2)
+        val source = Inputs.fromString("1.123e23")
 
         val fin = source.scanLeft[Either[Parser#ParsingContext, Parser#ParsingError], Seq[Either[Parser#ParsingContext, Parser#ParsingError]]](Left[Parser#ParsingContext, Parser#ParsingError](parser.startingContext)) {
             (ctx, terminal) =>
@@ -162,7 +160,8 @@ object ParseGraphVisualizer {
         def updateLocation(newLocation: Int): Unit = {
             if (newLocation >= 0 && newLocation <= source.size) {
                 currentLocation = newLocation
-                shell.setText((source take newLocation map { _.toShortString } mkString " ") + "*" + (source drop newLocation map { _.toShortString } mkString " "))
+                val sourceStr = source map { _.toCleanString }
+                shell.setText((sourceStr take newLocation).mkString + "*" + (sourceStr drop newLocation).mkString)
                 layout.topControl = views(newLocation)
                 shell.layout()
             }

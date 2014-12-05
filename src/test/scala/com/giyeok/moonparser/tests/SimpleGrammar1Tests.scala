@@ -88,19 +88,3 @@ object SimpleGrammar1_5 extends Grammar {
 
     val correctSamples = Set("abcabababc", "abcabababcabc")
 }
-
-object SimpleGrammar1_10 extends Grammar {
-    val name = "Simple Grammar 1_10"
-    def expr(s: Symbol*) = seq(s.toSeq, Set[Symbol](chars(" \t\n")))
-    val rules: RuleMap = ListMap(
-        "S" -> Set(
-            n("And"),
-            n("Or"),
-            n("Random"),
-            seq(i("("), n("S"), i(")"))),
-        "And" -> Set(expr(i("and"), n("S"), n("S"))),
-        "Or" -> Set(expr(i("or"), n("S"), n("S"))),
-        "Random" -> Set(expr(i("random"), n("Number"))),
-        "Number" -> Set(seq(chars('1' to '9'), chars('0' to '9').star)))
-    val startSymbol = n("S")
-}

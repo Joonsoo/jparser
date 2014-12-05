@@ -12,42 +12,18 @@ import org.junit.Assert._
 object SimpleGrammar2 extends Grammar {
     val name = "Simple Grammar 2"
     val rules: RuleMap = ListMap(
-        "S" -> Set(n("Token").star),
-        "Token" -> Set(
-            n("Name"),
-            n("Keyword"),
-            chars(" ()")),
-        "Word" -> Set(
-            seq(n("FirstChar"), n("SecondChar").star, lookahead_except(n("SecondChar")))),
-        "Name" -> Set(
-            n("Word").except(n("Keyword"))),
-        "Keyword" -> Set(
-            i("var"),
-            i("if")),
-        "FirstChar" -> Set(
-            chars('a' to 'z', 'A' to 'Z')),
-        "SecondChar" -> Set(
-            chars('a' to 'z', 'A' to 'Z', '0' to '9')))
+        "S" -> Set(
+            n("Decimal"),
+            n("HexDecimal")),
+        "Decimal" -> Set(
+            seq(c('-').opt, c('a').opt, oneof(c('0'), seq(n("D1"), n("D0").star)), seq(c('.'), n("D0").star).opt, seq(chars("eE"), c('-').opt, n("D0").plus).opt)),
+        "D0" -> Set(chars('0' to '9')),
+        "D1" -> Set(chars('1' to '9')),
+        "HexDecimal" -> Set(
+            seq(c('-').opt, c('0'), chars("xX"), n("HD1"), n("HD0").star)),
+        "HD0" -> Set(chars('0' to '9', 'a' to 'f', 'A' to 'F')),
+        "HD1" -> Set(chars('1' to '9', 'a' to 'f', 'A' to 'F')))
     val startSymbol = n("S")
-}
 
-class SimpleGrammar2Suite extends AssertionsForJUnit {
-    private def test(source: String) = {
-        val parser = new Parser(SimpleGrammar2)
-        println(parser.checkFromStart)
-        println(parser.startingContext)
-        parser.parse(source)
-    }
-
-    @Test def keyword() = {
-        val result = test("var a")
-        result match {
-            case Left(ctx) =>
-                val result = ctx.toResult
-                println(result)
-            case Right(_) =>
-                // must not happen
-                assertTrue(false)
-        }
-    }
+    val correctSamples = Set("10.1e2", "10.1e-00002")
 }

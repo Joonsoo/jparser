@@ -32,7 +32,6 @@ class Parser(val grammar: Grammar)
                         case List() => cc
                     }
                 val simpleLifted: Set[(SymbolProgress, SymbolProgress)] = simpleLift(nextNodes.toList, nextNodes)
-                val liftedMap: Map[SymbolProgress, SymbolProgress] = simpleLifted.toMap
                 def trackSurvivors(queue: List[SymbolProgress], cc: Set[SimpleEdge]): Set[SimpleEdge] =
                     queue match {
                         case survivor +: rest =>
@@ -51,24 +50,12 @@ class Parser(val grammar: Grammar)
                 def organizeLifted(queue: List[(SymbolProgress, SymbolProgress)]): Set[SimpleEdge] =
                     queue match {
                         case (o: SymbolProgressNonterminal, n: SymbolProgressNonterminal) +: rest =>
-                            val prevIncomings: Set[SimpleEdge] = if (n.derive(gen + 1).isEmpty) Set() else
-                                graph.incomingSimpleEdgesOf(o) flatMap { oi =>
-                                    (liftedMap get oi.from) match {
-                                        case Some(lifted: SymbolProgressNonterminal) =>
-                                            if (lifted.derive(gen + 1).map(_.to).map(_.symbol) contains n.symbol) {
-                                                println(s"${liftedMap(oi.from).toShortString} (lifted)-> ${n.toShortString}")
-                                                // TODO verify this
-                                                trackSurvivors(List(oi.from), Set(SimpleEdge(oi.from, n)))
-                                            } else {
-                                                println(s"${oi.from.toShortString} | ${lifted.toShortString} (non-lifted)-> ${n.toShortString}")
-                                                // TODO verify this
-                                                trackSurvivors(List(oi.from), Set(SimpleEdge(oi.from, n)))
-                                            }
-                                        case None =>
-                                            println(s"${oi.from.toShortString} (survived)-> ${n.toShortString}")
-                                            trackSurvivors(List(oi.from), Set(SimpleEdge(oi.from, n)))
+                            val prevIncomings: Set[SimpleEdge] =
+                                if (n.derive(gen + 1).isEmpty) Set() else
+                                    graph.incomingSimpleEdgesOf(o) flatMap { edge =>
+                                        println(s"${edge.from.toShortString} -> ${n.toShortString}")
+                                        trackSurvivors(List(edge.from), Set(SimpleEdge(edge.from, n)))
                                     }
-                                }
                             val derives = n.derive(gen + 1).map(_.to)
                             derives foreach { d =>
                                 println(s"${n.toShortString} (derive)-> ${d.toShortString}")
@@ -90,7 +77,7 @@ class Parser(val grammar: Grammar)
                 println("*** End")
                 // TODO check newgraph still contains start symbol
                 Left(ParsingContext(gen + 1, Graph(edges flatMap { _.nodes }, edges),
-                    (simpleLifted map { _._2 } filter { _.symbol == grammar.startSymbol })))
+                    (simpleLifted map { _._2 } collect { case s @ NonterminalProgress(sym, _, 0) if sym == grammar.startSymbol => s })))
             }
         }
         def toResult: Option[ParseResult] = {

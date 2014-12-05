@@ -138,13 +138,13 @@ object Symbols {
                     (chars, latestRange) match {
                         case (head +: tail, Some(range)) =>
                             if (head == range._2 + 1) generateCharSetShortRepr(tail, Some(range._1, head))
-                            else makeRepr(range) + "," + generateCharSetShortRepr(tail, Some(head, head))
+                            else makeRepr(range) + "|" + generateCharSetShortRepr(tail, Some(head, head))
                         case (head +: tail, None) => generateCharSetShortRepr(tail, Some(head, head))
                         case (List(), Some(range)) => makeRepr(range)
                         case (List(), None) => ""
                     }
                 }
-                s"{${generateCharSetShortRepr(cs.toList.sorted, None)}}"
+                generateCharSetShortRepr(cs.toList.sorted, None)
             case Unicode(c) => s"<unicode>"
             case EndOfFile => "<eof>"
             case s: Nonterminal => s.name
