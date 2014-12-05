@@ -30,7 +30,7 @@ object SimpleGrammar1_1 extends Grammar with StringSamples {
     val startSymbol = n("S")
 
     val correctSamples = Set("abcabcddfefefes")
-    val incorrectSamples = Set("abcdefs")
+    val incorrectSamples = Set("abds")
 }
 
 object SimpleGrammar1_2 extends Grammar with StringSamples {
@@ -146,31 +146,4 @@ object SimpleGrammarSet1 {
         SimpleGrammar1_8)
 }
 
-class SimpleGrammar1TestSuite extends FlatSpec {
-    private def testCorrect(grammar: Grammar, source: Inputs.Source) = {
-        val result = new Parser(grammar).parse(source)
-        it should "Properly parsed" in {
-            assert(result.isLeft)
-        }
-        val ctx = result.left.get
-        it should "Not ambiguous" in {
-            assert(ctx.resultCandidates.size == 1)
-        }
-    }
-
-    private def testIncorrect(grammar: Grammar, source: Inputs.Source) = {
-        val result = new Parser(grammar).parse(source)
-        it should "Failed to parse" in {
-            assert(result.isRight)
-        }
-    }
-
-    SimpleGrammarSet1.grammars foreach { grammar =>
-        grammar.correctSampleInputs foreach { input =>
-            testCorrect(grammar, input)
-        }
-        grammar.incorrectSampleInputs foreach { input =>
-            testIncorrect(grammar, input)
-        }
-    }
-}
+class SimpleGrammar1TestSuite extends BasicParseTest(SimpleGrammarSet1.grammars)

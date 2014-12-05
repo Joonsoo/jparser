@@ -83,6 +83,7 @@ class Parser(val grammar: Grammar)
                     val incomingSimpleEdges = graph incomingSimpleEdgesOf oldNode
                     val simpleLifted: Set[(SymbolProgress, SymbolProgress)] =
                         incomingSimpleEdges flatMap { e => (e.from lift newNode) map { (e.from, _) } }
+                    incomingSimpleEdges foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
                     simpleLift(graph, rest ++ simpleLifted.toList, cc ++ simpleLifted)
                 case _ +: rest =>
                     simpleLift(graph, rest, cc)
@@ -90,7 +91,7 @@ class Parser(val grammar: Grammar)
             }
 
         private def collectResultCandidates(lifted: Set[(SymbolProgress, SymbolProgress)]): Set[SymbolProgress] =
-            lifted map { _._2 } collect { case s @ NonterminalProgress(sym, _, _) if sym == grammar.startSymbol => s }
+            lifted map { _._2 } collect { case s @ NonterminalProgress(sym, _, 0) if sym == grammar.startSymbol => s }
 
         def fromSeeds(seeds: Set[Node]): ParsingContext = {
             def expand(queue: List[Node], nodes: Set[Node], edges: Set[Edge]): (Set[Node], Set[Edge]) =
@@ -108,7 +109,7 @@ class Parser(val grammar: Grammar)
             val graph = Graph(nodes, edges)
             val finishable: Set[(SymbolProgress, SymbolProgress)] = nodes collect { case n if n.canFinish => (n, n) }
             val simpleLifted: Set[(SymbolProgress, SymbolProgress)] = simpleLift(graph, finishable.toList, finishable)
-            ParsingContext(0, graph, collectResultCandidates(finishable))
+            ParsingContext(0, graph, collectResultCandidates(simpleLifted))
         }
     }
 

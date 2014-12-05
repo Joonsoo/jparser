@@ -88,11 +88,12 @@ class ParsingContextGraph(parent: Composite, resources: ParseGraphVisualizer.Res
         node.setFont(resources.bold14Font)
         node.setBackgroundColor(ColorConstants.orange)
     }
-    private var vedges = edges flatMap {
+    private var vedges: Set[GraphConnection] = edges flatMap {
         case e: Parser#SimpleEdge =>
             Set(new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to)))
         case e: Parser#AssassinEdge =>
             Set(new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to)))
+        case _ => None
     }
     private val nedges = proceed1 map { p =>
         val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p._1), vnodes(p._2))
@@ -110,10 +111,7 @@ object ParseGraphVisualizer {
         val bold14Font: Font
     }
 
-    def start(grammar: Grammar, input: Seq[Input]): Unit = {
-        val display = new Display
-        val shell = new Shell(display)
-
+    def start(grammar: Grammar, input: Seq[Input], display: Display, shell: Shell): Unit = {
         val resources = new Resources {
             val default12Font = new Font(null, "Monaco", 12, SWT.NONE)
             val fixedWidth12Font = new Font(null, "Monaco", 12, SWT.NONE)
@@ -181,6 +179,14 @@ object ParseGraphVisualizer {
         views collect { case v: ParsingContextGraph => v.graph.addKeyListener(keyListener) }
 
         shell.open()
+    }
+
+    def start(grammar: Grammar, input: Seq[Input]): Unit = {
+        val display = new Display
+        val shell = new Shell(display)
+
+        start(grammar, input, display, shell)
+
         while (!shell.isDisposed()) {
             if (!display.readAndDispatch()) {
                 display.sleep()

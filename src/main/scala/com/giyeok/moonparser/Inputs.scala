@@ -25,6 +25,9 @@ object Inputs {
             case EOF(_) => "(EOF)"
         }
     }
+    implicit class SourceToCleanString(source: Source) {
+        def toCleanString: String = (source map { _.toCleanString }).mkString
+    }
 
     def fromString(source: String): Seq[Input] =
         source.toCharArray.zipWithIndex map { p => Character(p._1, p._2) }

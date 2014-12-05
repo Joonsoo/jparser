@@ -9,7 +9,7 @@ import org.scalatest.junit.AssertionsForJUnit
 import com.giyeok.moonparser.Inputs._
 import org.junit.Assert._
 
-object SimpleGrammar2 extends Grammar {
+object SimpleGrammar2 extends Grammar with StringSamples {
     val name = "Simple Grammar 2"
     val rules: RuleMap = ListMap(
         "S" -> Set(
@@ -26,4 +26,12 @@ object SimpleGrammar2 extends Grammar {
     val startSymbol = n("S")
 
     val correctSamples = Set("10.1e2", "10.1e-00002")
+    val incorrectSamples = Set("--10.1e2")
 }
+
+object SimpleGrammarSet2 {
+    val grammars: Set[Grammar with Samples] = Set(
+        SimpleGrammar2)
+}
+
+class SimpleGrammar2TestSuite extends BasicParseTest(SimpleGrammarSet2.grammars)
