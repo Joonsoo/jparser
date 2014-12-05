@@ -36,7 +36,7 @@ class Parser(val grammar: Grammar)
                     queue match {
                         case survivor +: rest =>
                             println("Track survivor:" + survivor.toShortString)
-                            val incomings = graph.incomingSimpleEdgesOf(survivor)
+                            val incomings = graph.incomingSimpleEdgesOf(survivor) -- cc
                             trackSurvivors(rest ++ (incomings.toList map { _.from }), cc ++ incomings)
                         case List() => cc
                     }

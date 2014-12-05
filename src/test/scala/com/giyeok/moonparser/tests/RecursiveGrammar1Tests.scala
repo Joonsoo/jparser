@@ -19,6 +19,15 @@ object RecursiveGrammar1 extends Grammar {
     val samples = Set("a", "aaa")
 }
 
+object RecursiveGrammar1_1 extends Grammar {
+    val name = "Recursive Grammar 1-1"
+    val rules: RuleMap = ListMap(
+        "S" -> Set(chars("a"), seq(n("S"), chars("a"))))
+    val startSymbol = n("S")
+
+    val samples = Set("a", "aaa")
+}
+
 object RecursiveGrammar2 extends Grammar {
     val name = "Recursive Grammar 2"
     def expr(s: Symbol*) = seq(s.toSeq, Set[Symbol](chars(" \t\n")))
