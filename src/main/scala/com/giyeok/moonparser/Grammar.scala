@@ -1,7 +1,9 @@
 package com.giyeok.moonparser
 
+import scala.collection.immutable.ListMap
+
 trait Grammar {
-    type RuleMap = Map[String, Set[Symbols.Symbol]]
+    type RuleMap = ListMap[String, Set[Symbols.Symbol]]
 
     val name: String
     val rules: RuleMap

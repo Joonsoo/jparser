@@ -16,7 +16,7 @@ object SimpleGrammar2 extends Grammar with StringSamples {
             n("Decimal"),
             n("HexDecimal")),
         "Decimal" -> Set(
-            seq(c('-').opt, c('a').opt, oneof(c('0'), seq(n("D1"), n("D0").star)), seq(c('.'), n("D0").star).opt, seq(chars("eE"), c('-').opt, n("D0").plus).opt)),
+            seq(c('-').opt, oneof(c('0'), seq(n("D1"), n("D0").star)), seq(c('.'), n("D0").star).opt, seq(chars("eE"), c('-').opt, n("D0").plus).opt)),
         "D0" -> Set(chars('0' to '9')),
         "D1" -> Set(chars('1' to '9')),
         "HexDecimal" -> Set(

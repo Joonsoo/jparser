@@ -1,6 +1,9 @@
 package com.giyeok.moonparser.tests
 
+import org.eclipse.draw2d.ColorConstants
+import org.eclipse.draw2d.FigureCanvas
 import org.eclipse.swt.SWT
+import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Event
@@ -10,7 +13,9 @@ import org.eclipse.swt.widgets.Shell
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.Inputs
 import com.giyeok.moonparser.Inputs.SourceToCleanString
+import com.giyeok.moonparser.visualize.GrammarFigure
 import com.giyeok.moonparser.visualize.ParseGraphVisualizer
+import com.giyeok.moonparser.visualize.TextGrammarFigure
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.Source]
@@ -37,17 +42,25 @@ object SampleGrammarParseVisualization {
 
         shell.setLayout(new FillLayout)
 
+        val grammarFigFonts = new GrammarFigure.Appearances {
+            val default = GrammarFigure.Appearance(new Font(null, "Monaco", 10, SWT.NONE), ColorConstants.black)
+            val nonterminal = GrammarFigure.Appearance(new Font(null, "Monaco", 12, SWT.BOLD), ColorConstants.blue)
+            val terminal = GrammarFigure.Appearance(new Font(null, "Monaco", 12, SWT.NONE), ColorConstants.red)
+        }
+
         val sortedGrammars = allTests.toSeq.sortBy(_.name)
 
         val leftFrame = new org.eclipse.swt.widgets.Composite(shell, SWT.NONE)
         leftFrame.setLayout({ val layout = new FillLayout; layout.`type` = SWT.VERTICAL; layout })
         val grammarList = new org.eclipse.swt.widgets.List(leftFrame, SWT.BORDER | SWT.V_SCROLL)
+        val grammarFig = new FigureCanvas(leftFrame)
         val textList = new org.eclipse.swt.widgets.List(leftFrame, SWT.BORDER | SWT.V_SCROLL)
         sortedGrammars foreach { t => grammarList.add(t.name) }
         var shownTexts: Seq[Inputs.Source] = Seq()
         grammarList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
+                grammarFig.setContents(new TextGrammarFigure(grammar, grammarFigFonts))
                 textList.removeAll()
                 shownTexts = (grammar.correctSampleInputs.toSeq sortBy { _.toCleanString }) ++ (grammar.incorrectSampleInputs.toSeq sortBy { _.toCleanString })
                 shownTexts foreach { i => textList.add(s"'${i.toCleanString}'") }
@@ -76,12 +89,21 @@ object SampleGrammarParseVisualization {
             }
         })
 
-        shell.open()
-        while (!shell.isDisposed()) {
-            if (!display.readAndDispatch()) {
-                display.sleep()
+        try {
+            shell.open()
+            try {
+                while (!shell.isDisposed()) {
+                    if (!display.readAndDispatch()) {
+                        display.sleep()
+                    }
+                }
+            } finally {
+                if (!shell.isDisposed()) {
+                    shell.dispose()
+                }
             }
+        } finally {
+            display.dispose()
         }
-        display.dispose()
     }
 }

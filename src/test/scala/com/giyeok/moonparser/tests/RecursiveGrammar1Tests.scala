@@ -16,8 +16,7 @@ object RecursiveGrammar1 extends Grammar with StringSamples {
         "S" -> Set(chars("a"), seq(chars("a"), n("S"))))
     val startSymbol = n("S")
 
-    val correctSamples = Set("a")
-    // "aaa" is ambiguous
+    val correctSamples = Set("a", "aaa")
     val incorrectSamples = Set[String]()
 }
 

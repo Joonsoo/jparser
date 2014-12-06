@@ -83,9 +83,6 @@ object Symbols {
     case class OneOf(syms: Set[Symbol]) extends Symbol {
         override val hashCode = syms.hashCode
     }
-    case class Except(sym: Symbol, except: Symbol) extends Symbol {
-        override val hashCode = (sym, except).hashCode
-    }
     case class Repeat(sym: Symbol, range: Repeat.Range) extends Symbol {
         override val hashCode = (sym, range).hashCode
     }
@@ -115,11 +112,30 @@ object Symbols {
             def toShortString = s"$from-$to"
         }
     }
+    case class Except(sym: Symbol, except: Symbol) extends Symbol {
+        override val hashCode = (sym, except).hashCode
+    }
     case class LookaheadExcept(except: Symbol) extends Symbol {
         override val hashCode = except.hashCode
     }
     case class Backup(sym: Symbol, backup: Symbol) extends Symbol {
         override val hashCode = (sym, backup).hashCode
+    }
+
+    implicit class CharsGrouping(sym: Terminals.Chars) {
+        def groups: List[(Char, Char)] = {
+            def grouping(chars: List[Char], range: Option[(Char, Char)], cc: List[(Char, Char)]): List[(Char, Char)] = {
+                (chars, range) match {
+                    case (head +: tail, Some(range)) =>
+                        if (head == range._2 + 1) grouping(tail, Some(range._1, head), cc)
+                        else grouping(tail, Some(head, head), range +: cc)
+                    case (head +: tail, None) => grouping(tail, Some(head, head), cc)
+                    case (List(), Some(range)) => range +: cc
+                    case (List(), None) => cc
+                }
+            }
+            grouping(sym.chars.toList.sorted, None, List()).reverse
+        }
     }
 
     implicit class ShortStringSymbols(sym: Symbol) {
@@ -129,32 +145,20 @@ object Symbols {
             case AnyChar => "<any>"
             case FuncChar => "<func>"
             case ExactChar(c) => s"'$c'"
-            case Chars(cs) =>
-                def generateCharSetShortRepr(chars: List[Char], latestRange: Option[(Char, Char)]): String = {
-                    def makeRepr(range: (Char, Char)): String =
-                        if (range._1 == range._2) s"'${range._1}'"
-                        else if (range._1 + 1 == range._2) s"'${range._1}','${range._2}'"
-                        else s"'${range._1}'-'${range._2}'"
-                    (chars, latestRange) match {
-                        case (head +: tail, Some(range)) =>
-                            if (head == range._2 + 1) generateCharSetShortRepr(tail, Some(range._1, head))
-                            else makeRepr(range) + "|" + generateCharSetShortRepr(tail, Some(head, head))
-                        case (head +: tail, None) => generateCharSetShortRepr(tail, Some(head, head))
-                        case (List(), Some(range)) => makeRepr(range)
-                        case (List(), None) => ""
-                    }
-                }
-                generateCharSetShortRepr(cs.toList.sorted, None)
+            case chars: Terminals.Chars =>
+                chars.groups map { range =>
+                    if (range._1 == range._2) s"'${range._1}'"
+                    else if (range._1 + 1 == range._2) s"'${range._1}','${range._2}'"
+                    else s"'${range._1}'-'${range._2}'"
+                } mkString "|"
             case Unicode(c) => s"<unicode>"
             case EndOfFile => "<eof>"
+            case Empty => "<empty>"
             case s: Nonterminal => s.name
             case s: Sequence => "(" + (s.seq map { _.toShortString } mkString " ") + ")"
             case s: OneOf => s.syms map { _.toShortString } mkString "|"
-            case s: Except => s"${s.sym.toShortString}-${s.except.toShortString}"
             case s: Repeat => s"${s.sym.toShortString}[${s.range.toShortString}]"
-            case s =>
-                println(s)
-                s.toString
+            case s: Except => s"${s.sym.toShortString}-${s.except.toShortString}"
         }
     }
 }

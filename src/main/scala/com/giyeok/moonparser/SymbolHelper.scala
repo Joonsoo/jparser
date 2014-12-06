@@ -6,6 +6,9 @@ object SymbolHelper {
     import Symbols._
     import utils.UnicodeUtil
 
+    private def charSymbol(set: Set[Char]): Terminal =
+        if (set.size == 1) ExactChar(set.iterator.next) else Chars(set)
+
     def e = Empty
     def eof = EndOfFile
     def n(name: String) = Nonterminal(name)
@@ -13,11 +16,11 @@ object SymbolHelper {
     def c = AnyChar
     def c(func: Char => Boolean) = FuncChar(func)
     def c(char: Char) = ExactChar(char)
-    def c(chars: Char*) = Chars(chars.toSet)
-    def c(chars: Set[Char]) = Chars(chars)
-    def chars(range: NumericRange[Char]) = Chars(range.toSet)
-    def chars(ranges: NumericRange[Char]*) = Chars(ranges.toSet.flatten)
-    def chars(chars: String) = Chars(chars.toCharArray().toSet)
+    def c(chars: Char*) = charSymbol(chars.toSet)
+    def c(chars: Set[Char]) = charSymbol(chars)
+    def chars(range: NumericRange[Char]) = charSymbol(range.toSet)
+    def chars(ranges: NumericRange[Char]*) = charSymbol(ranges.toSet.flatten)
+    def chars(chars: String) = charSymbol(chars.toCharArray().toSet)
     def unicode(categories: String*): Terminals.Unicode = unicode(categories toSet)
     def unicode(categories: Set[String]) = Terminals.Unicode(UnicodeUtil.translateCategoryNamesToByte(categories))
     // def virtual(name: String) = VirtualInputElem(name)
