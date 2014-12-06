@@ -65,8 +65,8 @@ object SampleGrammarParseVisualization {
                     val default = GrammarTextFigureGenerator.html.AppearanceByClass("default")
                     val nonterminal = GrammarTextFigureGenerator.html.AppearanceByClass("nonterminal")
                     val terminal = GrammarTextFigureGenerator.html.AppearanceByClass("terminal")
-                }, GrammarTextFigureGenerator.html.Generator).generate)
-                grammarFig.setContents(new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, GrammarTextFigureGenerator.draw2d.Generator).generate)
+                }, GrammarTextFigureGenerator.html.Generator).grammarFigure)
+                grammarFig.setContents(new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, GrammarTextFigureGenerator.draw2d.Generator).grammarFigure)
                 textList.removeAll()
                 shownTexts = (grammar.correctSampleInputs.toSeq sortBy { _.toCleanString }) ++ (grammar.incorrectSampleInputs.toSeq sortBy { _.toCleanString })
                 shownTexts foreach { i => textList.add(s"'${i.toCleanString}'") }
