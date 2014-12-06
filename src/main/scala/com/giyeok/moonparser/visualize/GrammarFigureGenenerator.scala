@@ -22,8 +22,12 @@ object GrammarFigureGenerator {
 
     trait Generator[Figure] {
         def textFig(text: String, appearance: Appearance[Figure]): Figure
-        def horizontalFig(spacing: Int, children: Seq[Figure]): Figure
-        def verticalFig(spacing: Int, children: Seq[Figure]): Figure
+        def horizontalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure
+        def verticalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure
+    }
+
+    object Spacing extends Enumeration {
+        val None, Small, Medium, Big = Value
     }
 
     object draw2d {
@@ -36,9 +40,14 @@ object GrammarFigureGenerator {
         }
 
         object Generator extends Generator[Figure] {
-            private def toolbarLayoutWith(vertical: Boolean, spacing: Int): ToolbarLayout = {
+            private def toolbarLayoutWith(vertical: Boolean, spacing: Spacing.Value): ToolbarLayout = {
                 val layout = new ToolbarLayout(vertical)
-                layout.setSpacing(spacing)
+                layout.setSpacing(spacing match {
+                    case Spacing.None => 0
+                    case Spacing.Small => 1
+                    case Spacing.Medium => 3
+                    case Spacing.Big => 6
+                })
                 layout
             }
 
@@ -54,8 +63,10 @@ object GrammarFigureGenerator {
                 label.setText(text)
                 appearance.applyToFigure(label)
             }
-            def horizontalFig(spacing: Int, children: Seq[Figure]): Figure = figWith(toolbarLayoutWith(true, spacing), children)
-            def verticalFig(spacing: Int, children: Seq[Figure]): Figure = figWith(toolbarLayoutWith(false, spacing), children)
+            def horizontalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure =
+                figWith(toolbarLayoutWith(true, spacing), children)
+            def verticalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure =
+                figWith(toolbarLayoutWith(false, spacing), children)
         }
     }
 
@@ -67,9 +78,12 @@ object GrammarFigureGenerator {
         }
 
         object Generator extends Generator[Fig] {
-            def textFig(text: String, appearance: GrammarFigureGenerator.Appearance[Fig]): Fig = appearance.applyToFigure(<span>{ text }</span>)
-            def horizontalFig(spacing: Int, children: Seq[Fig]): Fig = <table><tr>{ children map { fig => <td>{ fig }</td> } }</tr></table>
-            def verticalFig(spacing: Int, children: Seq[Fig]): Fig = <table>{ children map { fig => <tr><td>{ fig }</td></tr> } }</table>
+            def textFig(text: String, appearance: GrammarFigureGenerator.Appearance[Fig]): Fig =
+                appearance.applyToFigure(<span>{ text }</span>)
+            def horizontalFig(spacing: Spacing.Value, children: Seq[Fig]): Fig =
+                <table><tr>{ children map { fig => <td>{ fig }</td> } }</tr></table>
+            def verticalFig(spacing: Spacing.Value, children: Seq[Fig]): Fig =
+                <table>{ children map { fig => <tr><td>{ fig }</td></tr> } }</table>
         }
     }
 }

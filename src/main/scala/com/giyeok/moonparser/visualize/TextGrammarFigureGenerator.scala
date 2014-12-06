@@ -17,14 +17,16 @@ import com.giyeok.moonparser.Symbols.Terminal
 import com.giyeok.moonparser.Symbols.Terminals
 
 class TextGrammarFigureGenerator[Fig](grammar: Grammar, ap: GrammarFigureGenerator.Appearances[Fig], g: GrammarFigureGenerator.Generator[Fig]) {
+    import GrammarFigureGenerator.Spacing
+
     def generate: Fig =
-        g.verticalFig(2, grammar.rules.toSeq map { d => ruleFigure((d._1, d._2.toSeq)) })
+        g.verticalFig(Spacing.Big, grammar.rules.toSeq map { d => ruleFigure((d._1, d._2.toSeq)) })
 
     def ruleFigure(definition: (String, Seq[Symbols.Symbol])): Fig =
-        g.horizontalFig(4, Seq(
+        g.horizontalFig(Spacing.Medium, Seq(
             g.textFig(definition._1, ap.nonterminal),
             g.textFig("::=", ap.default),
-            g.verticalFig(4, definition._2 map { textSymbolFig(_) })))
+            g.verticalFig(Spacing.Medium, definition._2 map { textSymbolFig(_) })))
 
     def textSymbolFig(rule: Symbol): Fig = {
         def join(list: List[Fig], joining: => Fig): List[Fig] = list match {
@@ -42,20 +44,20 @@ class TextGrammarFigureGenerator[Fig](grammar: Grammar, ap: GrammarFigureGenerat
         rule match {
             case Terminals.ExactChar(c) => g.textFig(c.toString, ap.terminal)
             case chars: Terminals.Chars =>
-                g.horizontalFig(0, join(chars.groups map {
+                g.horizontalFig(Spacing.None, join(chars.groups map {
                     case (f, t) if f == t => g.textFig(f.toString, ap.terminal)
                     case (f, t) =>
-                        g.horizontalFig(0, Seq(g.textFig(s"$f", ap.terminal), g.textFig("-", ap.default), g.textFig(s"$t", ap.terminal)))
+                        g.horizontalFig(Spacing.None, Seq(g.textFig(s"$f", ap.terminal), g.textFig("-", ap.default), g.textFig(s"$t", ap.terminal)))
                 }, g.textFig("|", ap.default)))
             case t: Terminal => g.textFig(t.toShortString, ap.terminal)
             case Empty => g.textFig("ε", ap.nonterminal)
             case Nonterminal(name) => g.textFig(name, ap.nonterminal)
             case Sequence(seq, ws) =>
                 if (seq.isEmpty) {
-                    g.horizontalFig(3, Seq())
+                    g.horizontalFig(Spacing.Medium, Seq())
                 } else {
                     def adjExChars(list: List[Terminals.ExactChar]): Fig =
-                        g.horizontalFig(1, list map { textSymbolFig(_) })
+                        g.horizontalFig(Spacing.None, list map { textSymbolFig(_) })
                     val grouped = seq.foldRight((List[Fig](), List[Terminals.ExactChar]())) {
                         ((i, m) =>
                             i match {
@@ -64,11 +66,11 @@ class TextGrammarFigureGenerator[Fig](grammar: Grammar, ap: GrammarFigureGenerat
                                 case symbol => (textSymbolFig(symbol) +: adjExChars(m._2) +: m._1, List())
                             })
                     }
-                    g.horizontalFig(3, if (grouped._2.isEmpty) grouped._1 else adjExChars(grouped._2) +: grouped._1)
+                    g.horizontalFig(Spacing.Medium, if (grouped._2.isEmpty) grouped._1 else adjExChars(grouped._2) +: grouped._1)
                 }
             case OneOf(syms) =>
-                g.horizontalFig(0, join((syms map { sym =>
-                    if (needParentheses(sym)) g.horizontalFig(0, Seq(g.textFig("(", ap.default), textSymbolFig(sym), g.textFig(")", ap.default)))
+                g.horizontalFig(Spacing.None, join((syms map { sym =>
+                    if (needParentheses(sym)) g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), textSymbolFig(sym), g.textFig(")", ap.default)))
                     else textSymbolFig(sym)
                 }).toList, g.textFig("|", ap.default)))
             case Repeat(sym, range) =>
@@ -79,8 +81,8 @@ class TextGrammarFigureGenerator[Fig](grammar: Grammar, ap: GrammarFigureGenerat
                     case r => s"[${r.toShortString}]"
                 }
                 if (needParentheses(sym))
-                    g.horizontalFig(1, Seq(g.textFig("(", ap.default), textSymbolFig(sym), g.textFig(")" + rep, ap.default)))
-                else g.horizontalFig(1, Seq(textSymbolFig(sym), g.textFig(rep, ap.default)))
+                    g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), textSymbolFig(sym), g.textFig(")" + rep, ap.default)))
+                else g.horizontalFig(Spacing.None, Seq(textSymbolFig(sym), g.textFig(rep, ap.default)))
             case _@ (Except(_, _) | LookaheadExcept(_) | Backup(_, _)) =>
                 g.textFig("??", ap.default)
         }
