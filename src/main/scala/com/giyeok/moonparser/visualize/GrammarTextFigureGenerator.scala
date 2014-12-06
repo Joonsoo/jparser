@@ -16,7 +16,7 @@ import com.giyeok.moonparser.Symbols.Symbol
 import com.giyeok.moonparser.Symbols.Terminal
 import com.giyeok.moonparser.Symbols.Terminals
 
-object TextGrammarFigureGenerator {
+object GrammarTextFigureGenerator {
     trait Appearance[Figure] {
         def applyToFigure(fig: Figure): Figure
     }
@@ -41,7 +41,7 @@ object TextGrammarFigureGenerator {
         import org.eclipse.draw2d.{ ToolbarLayout, Figure, LayoutManager, Label }
         import org.eclipse.swt.graphics.{ Color, Font }
 
-        case class Appearance(font: Font, color: Color) extends TextGrammarFigureGenerator.Appearance[Figure] {
+        case class Appearance(font: Font, color: Color) extends GrammarTextFigureGenerator.Appearance[Figure] {
             def applyToFigure(fig: Figure): Figure = {
                 fig.setFont(font)
                 fig.setForegroundColor(color)
@@ -68,7 +68,7 @@ object TextGrammarFigureGenerator {
                 fig
             }
 
-            def textFig(text: String, appearance: TextGrammarFigureGenerator.Appearance[Figure]): Figure = {
+            def textFig(text: String, appearance: GrammarTextFigureGenerator.Appearance[Figure]): Figure = {
                 val label = new Label
                 label.setText(text)
                 appearance.applyToFigure(label)
@@ -83,13 +83,13 @@ object TextGrammarFigureGenerator {
     object html {
         import scala.xml.{ MetaData, UnprefixedAttribute }
 
-        case class AppearanceByClass(cls: String) extends TextGrammarFigureGenerator.Appearance[xml.Elem] {
+        case class AppearanceByClass(cls: String) extends GrammarTextFigureGenerator.Appearance[xml.Elem] {
             def applyToFigure(fig: xml.Elem): xml.Elem =
                 fig.copy(attributes = new UnprefixedAttribute("class", cls, xml.Null))
         }
 
         object Generator extends Generator[xml.Elem] {
-            def textFig(text: String, appearance: TextGrammarFigureGenerator.Appearance[xml.Elem]): xml.Elem =
+            def textFig(text: String, appearance: GrammarTextFigureGenerator.Appearance[xml.Elem]): xml.Elem =
                 appearance.applyToFigure(<span>{ text }</span>)
             def horizontalFig(spacing: Spacing.Value, children: Seq[xml.Elem]): xml.Elem =
                 <table><tr>{ children map { fig => <td>{ fig }</td> } }</tr></table>
@@ -99,8 +99,8 @@ object TextGrammarFigureGenerator {
     }
 }
 
-class TextGrammarFigureGenerator[Fig](grammar: Grammar, ap: TextGrammarFigureGenerator.Appearances[Fig], g: TextGrammarFigureGenerator.Generator[Fig]) {
-    import TextGrammarFigureGenerator.Spacing
+class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGenerator.Appearances[Fig], g: GrammarTextFigureGenerator.Generator[Fig]) {
+    import GrammarTextFigureGenerator.Spacing
 
     def generate: Fig =
         g.verticalFig(Spacing.Big, grammar.rules.toSeq map { d => ruleFigure((d._1, d._2.toSeq)) })
