@@ -95,6 +95,17 @@ object SampleGrammarParseVisualization {
             }
         })
 
+        val isMac = System.getProperty("os.name").toLowerCase contains "mac"
+        display.addFilter(SWT.KeyDown, new Listener() {
+            def handleEvent(e: Event): Unit = {
+                (isMac, e.stateMask, e.keyCode) match {
+                    case (true, SWT.COMMAND, 'w') | (false, SWT.CONTROL, 'w') =>
+                        display.getActiveShell().dispose()
+                    case _ =>
+                }
+            }
+        })
+
         try {
             shell.open()
             try {
