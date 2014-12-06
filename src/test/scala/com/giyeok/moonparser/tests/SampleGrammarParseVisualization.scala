@@ -1,6 +1,7 @@
 package com.giyeok.moonparser.tests
 
 import org.eclipse.draw2d.ColorConstants
+import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.FigureCanvas
 import org.eclipse.swt.SWT
 import org.eclipse.swt.graphics.Font
@@ -13,9 +14,9 @@ import org.eclipse.swt.widgets.Shell
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.Inputs
 import com.giyeok.moonparser.Inputs.SourceToCleanString
-import com.giyeok.moonparser.visualize.GrammarFigure
+import com.giyeok.moonparser.visualize.GrammarFigureGenerator
 import com.giyeok.moonparser.visualize.ParseGraphVisualizer
-import com.giyeok.moonparser.visualize.TextGrammarFigure
+import com.giyeok.moonparser.visualize.TextGrammarFigureGenerator
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.Source]
@@ -42,10 +43,10 @@ object SampleGrammarParseVisualization {
 
         shell.setLayout(new FillLayout)
 
-        val grammarFigFonts = new GrammarFigure.Appearances {
-            val default = GrammarFigure.Appearance(new Font(null, "Monaco", 10, SWT.NONE), ColorConstants.black)
-            val nonterminal = GrammarFigure.Appearance(new Font(null, "Monaco", 12, SWT.BOLD), ColorConstants.blue)
-            val terminal = GrammarFigure.Appearance(new Font(null, "Monaco", 12, SWT.NONE), ColorConstants.red)
+        val grammarFigAppearances = new GrammarFigureGenerator.Appearances[Figure] {
+            val default = GrammarFigureGenerator.draw2d.Appearance(new Font(null, "Monaco", 10, SWT.NONE), ColorConstants.black)
+            val nonterminal = GrammarFigureGenerator.draw2d.Appearance(new Font(null, "Monaco", 12, SWT.BOLD), ColorConstants.blue)
+            val terminal = GrammarFigureGenerator.draw2d.Appearance(new Font(null, "Monaco", 12, SWT.NONE), ColorConstants.red)
         }
 
         val sortedGrammars = allTests.toSeq.sortBy(_.name)
@@ -60,7 +61,12 @@ object SampleGrammarParseVisualization {
         grammarList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
-                grammarFig.setContents(new TextGrammarFigure(grammar, grammarFigFonts))
+                println(new TextGrammarFigureGenerator[xml.Elem](grammar, new GrammarFigureGenerator.Appearances[xml.Elem] {
+                    val default = GrammarFigureGenerator.html.AppearanceClass("default")
+                    val nonterminal = GrammarFigureGenerator.html.AppearanceClass("nonterminal")
+                    val terminal = GrammarFigureGenerator.html.AppearanceClass("terminal")
+                }, GrammarFigureGenerator.html.Generator).generate)
+                grammarFig.setContents(new TextGrammarFigureGenerator[Figure](grammar, grammarFigAppearances, GrammarFigureGenerator.draw2d.Generator).generate)
                 textList.removeAll()
                 shownTexts = (grammar.correctSampleInputs.toSeq sortBy { _.toCleanString }) ++ (grammar.incorrectSampleInputs.toSeq sortBy { _.toCleanString })
                 shownTexts foreach { i => textList.add(s"'${i.toCleanString}'") }
