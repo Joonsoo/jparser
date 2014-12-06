@@ -16,8 +16,91 @@ import com.giyeok.moonparser.Symbols.Symbol
 import com.giyeok.moonparser.Symbols.Terminal
 import com.giyeok.moonparser.Symbols.Terminals
 
-class TextGrammarFigureGenerator[Fig](grammar: Grammar, ap: GrammarFigureGenerator.Appearances[Fig], g: GrammarFigureGenerator.Generator[Fig]) {
-    import GrammarFigureGenerator.Spacing
+object TextGrammarFigureGenerator {
+    trait Appearance[Figure] {
+        def applyToFigure(fig: Figure): Figure
+    }
+
+    trait Appearances[Figure] {
+        val default: Appearance[Figure]
+        val nonterminal: Appearance[Figure]
+        val terminal: Appearance[Figure]
+    }
+
+    trait Generator[Figure] {
+        def textFig(text: String, appearance: Appearance[Figure]): Figure
+        def horizontalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure
+        def verticalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure
+    }
+
+    object Spacing extends Enumeration {
+        val None, Small, Medium, Big = Value
+    }
+
+    object draw2d {
+        import org.eclipse.draw2d.{ ToolbarLayout, Figure, LayoutManager, Label }
+        import org.eclipse.swt.graphics.{ Color, Font }
+
+        case class Appearance(font: Font, color: Color) extends TextGrammarFigureGenerator.Appearance[Figure] {
+            def applyToFigure(fig: Figure): Figure = {
+                fig.setFont(font)
+                fig.setForegroundColor(color)
+                fig
+            }
+        }
+
+        object Generator extends Generator[Figure] {
+            private def toolbarLayoutWith(vertical: Boolean, spacing: Spacing.Value): ToolbarLayout = {
+                val layout = new ToolbarLayout(vertical)
+                layout.setSpacing(spacing match {
+                    case Spacing.None => 0
+                    case Spacing.Small => 1
+                    case Spacing.Medium => 3
+                    case Spacing.Big => 6
+                })
+                layout
+            }
+
+            private def figWith(layout: LayoutManager, children: Seq[Figure]): Label = {
+                val fig = new Label
+                fig.setLayoutManager(layout)
+                children foreach { fig.add(_) }
+                fig
+            }
+
+            def textFig(text: String, appearance: TextGrammarFigureGenerator.Appearance[Figure]): Figure = {
+                val label = new Label
+                label.setText(text)
+                appearance.applyToFigure(label)
+            }
+            def horizontalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure =
+                figWith(toolbarLayoutWith(true, spacing), children)
+            def verticalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure =
+                figWith(toolbarLayoutWith(false, spacing), children)
+        }
+    }
+
+    object html {
+        import scala.xml.{ MetaData, UnprefixedAttribute }
+
+        case class AppearanceByClass(cls: String) extends TextGrammarFigureGenerator.Appearance[xml.Elem] {
+            def applyToFigure(fig: xml.Elem): xml.Elem =
+                fig.copy(attributes = new UnprefixedAttribute("class", cls, xml.Null))
+        }
+
+        object Generator extends Generator[xml.Elem] {
+            def textFig(text: String, appearance: TextGrammarFigureGenerator.Appearance[xml.Elem]): xml.Elem =
+                appearance.applyToFigure(<span>{ text }</span>)
+            def horizontalFig(spacing: Spacing.Value, children: Seq[xml.Elem]): xml.Elem =
+                <table><tr>{ children map { fig => <td>{ fig }</td> } }</tr></table>
+            def verticalFig(spacing: Spacing.Value, children: Seq[xml.Elem]): xml.Elem =
+                <table>{ children map { fig => <tr><td>{ fig }</td></tr> } }</table>
+        }
+    }
+}
+
+class TextGrammarFigureGenerator[Fig](grammar: Grammar, ap: TextGrammarFigureGenerator.Appearances[Fig], g: TextGrammarFigureGenerator.Generator[Fig]) {
+    import TextGrammarFigureGenerator.Spacing
 
     def generate: Fig =
         g.verticalFig(Spacing.Big, grammar.rules.toSeq map { d => ruleFigure((d._1, d._2.toSeq)) })
