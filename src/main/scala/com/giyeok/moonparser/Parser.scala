@@ -23,7 +23,6 @@ class Parser(val grammar: Grammar)
             println("**** New Generation")
             val nextNodes = proceedTerminal1(next)
             if (nextNodes isEmpty) Right(ParsingErrors.UnexpectedInput(next)) else {
-                val simpleLifted: Set[(SymbolProgress, SymbolProgress)] = simpleLift(graph, nextNodes.toList, nextNodes)
                 def trackSurvivors(queue: List[SymbolProgress], cc: Set[SimpleEdge]): Set[SimpleEdge] =
                     queue match {
                         case survivor +: rest =>
@@ -59,6 +58,7 @@ class Parser(val grammar: Grammar)
                             organizeLifted(rest)
                         case List() => Set()
                     }
+                val simpleLifted: Set[(SymbolProgress, SymbolProgress)] = simpleLift(graph, nextNodes.toList, nextNodes)
                 println(simpleLifted)
                 simpleLifted foreach { case (o, n) => println(s"lifted: ${o.toShortString} --> ${n.toShortString}") }
                 // 1. 새로 만든(lift된) 노드로부터 derive할 게 있는 것들은 살린다.
