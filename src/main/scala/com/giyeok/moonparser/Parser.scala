@@ -87,13 +87,18 @@ class Parser(val grammar: Grammar)
                     // liftedMap의 value가 두 개 이상인 것도 이상한데, 그 중에 일부만 canFinish인건 더더군다나 말이 안되지..
                     if ((liftedMap contains edge.from) && (liftedMap(edge.from) exists { _.canFinish })) {
                         val from = liftedMap(edge.from).iterator.next
-                        def traverse(head: SymbolProgress, cc: Set[SymbolProgress]): Set[SymbolProgress] =
-                            liftedByMap get head match {
+                        def traverse(head: SymbolProgress, cc: Set[SymbolProgress]): Set[SymbolProgress] = {
+                            (liftedByMap get head match {
                                 case Some(set) =>
                                     set.foldLeft(cc) { (cc, lifted) => traverse(lifted.after, cc + lifted.after) }
                                 case None => cc
-                            }
-                        traverse(from, Set(edge.to)) map { (from, _) }
+                            }) ++ (liftedMap get head match {
+                                case Some(set) =>
+                                    set.foldLeft(cc) { (cc, lifted) => traverse(lifted, cc + lifted) }
+                                case None => cc
+                            })
+                        }
+                        traverse(edge.to, Set(edge.to)) map { (from, _) }
                     } else None
                 }
                 // 다음 세대에서 살아남을 어쌔신 엣지
@@ -153,7 +158,8 @@ class Parser(val grammar: Grammar)
                 val finalNodes: Set[Node] = finalEdges flatMap { _.nodes }
 
                 // TODO check newgraph still contains start symbol
-                val newctx = ParsingContext(gen + 1, Graph(finalNodes, finalEdges), collectResultCandidates(finalNodes))
+                val newctx = ParsingContext(gen + 1, Graph(finalNodes, finalEdges),
+                    collectResultCandidates((simpleLifted map { _.after }) -- assassinatedNodes))
                 Left((newctx, TerminalProceedLog(nextNodes, newEdges, simpleLifted, eagerAssassinations, newAssassinEdges, newctx)))
             }
         }
@@ -186,7 +192,7 @@ class Parser(val grammar: Grammar)
             }
 
         private def collectResultCandidates(nodes: Set[SymbolProgress]): Set[SymbolProgress] =
-            nodes collect { case s @ NonterminalProgress(sym, _, 0) if sym == grammar.startSymbol => s }
+            nodes collect { case s @ NonterminalProgress(sym, Some(_), 0) if sym == grammar.startSymbol => s }
 
         def fromSeeds(seeds: Set[Node]): ParsingContext = {
             def expand(queue: List[Node], nodes: Set[Node], edges: Set[Edge]): (Set[Node], Set[Edge]) =
