@@ -15,7 +15,7 @@ object ExceptGrammar1 extends Grammar with StringSamples {
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A").except(n("B")), c('c'))),
         "A" -> ListSet(seq(c('a'), c('b').star)),
-        "B" -> ListSet(i("abbc")))
+        "B" -> ListSet(i("abb")))
     val startSymbol = n("S")
 
     val correctSamples = Set("abc")
