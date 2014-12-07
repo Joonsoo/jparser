@@ -76,7 +76,7 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGrap
         node.setFont(resources.bold14Font)
         node.setBackgroundColor(ColorConstants.orange)
     }
-    private var vedges: Set[GraphConnection] = edges flatMap {
+    private val vedges: Set[GraphConnection] = edges flatMap {
         case e: Parser#SimpleEdge =>
             Set(new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to)))
         case e: Parser#EagerAssassinEdge =>

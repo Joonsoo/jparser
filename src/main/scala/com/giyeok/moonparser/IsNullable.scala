@@ -28,7 +28,7 @@ trait IsNullable {
                 case OneOf(items) => items exists { _.isNullable }
                 case Except(item, _) => item.isNullable
                 case Repeat(item, range) => range.isNullable || item.isNullable
-                case LookaheadExcept(_) => false
+                case LookaheadExcept(_) => true
                 case Backup(elem, backup) =>
                     elem.isNullable // Maybe need: || (backup exists { _.isNullable })
             }

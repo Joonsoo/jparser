@@ -9,8 +9,12 @@ class Parser(val grammar: Grammar)
     import Inputs._
 
     case class TerminalProceedLog(
-        terminalProceeds: Set[(SymbolProgress, SymbolProgress)])
+        terminalProceeds: Set[(SymbolProgress, SymbolProgress)],
+        simpleLifted: Set[(SymbolProgress, SymbolProgress)],
+        eagerAssassinations: Set[(SymbolProgress, SymbolProgress)],
+        newAssassinEdges: Map[EagerAssassinEdge, Set[Edge]])
 
+    // 이 프로젝트 전체에서 asInstanceOf가 등장하는 경우는 대부분이 Set이 invariant해서 추가된 부분 - covariant한 Set으로 바꾸면 없앨 수 있음
     case class ParsingContext(gen: Int, graph: Graph, resultCandidates: Set[SymbolProgress]) {
         import ParsingContext.{ simpleLift, collectResultCandidates }
 
@@ -22,10 +26,10 @@ class Parser(val grammar: Grammar)
         def proceedTerminalVerbose(next: Input): (Either[ParsingContext, ParsingError], TerminalProceedLog) = {
             // `nextNodes` is actually type of `Set[(SymbolProgressTerminal, SymbolProgressTerminal)]`
             // but the invariance in `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
-            println("**** New Generation")
+            println(s"**** New Generation $gen")
             val nextNodes = proceedTerminal1(next)
             if (nextNodes isEmpty) {
-                (Right(ParsingErrors.UnexpectedInput(next)), TerminalProceedLog(nextNodes))
+                (Right(ParsingErrors.UnexpectedInput(next)), TerminalProceedLog(nextNodes, Set(), Set(), Map()))
             } else {
                 def trackSurvivors(queue: List[SymbolProgress], cc: Set[SimpleEdge]): Set[SimpleEdge] =
                     queue match {
@@ -63,6 +67,9 @@ class Parser(val grammar: Grammar)
                         case List() => Set()
                     }
                 val simpleLifted: Set[(SymbolProgress, SymbolProgress)] = simpleLift(graph, nextNodes.toList, nextNodes)
+                val liftedMap: Map[SymbolProgress, Set[SymbolProgress]] =
+                    simpleLifted groupBy { _._1 } map { p => (p._1, p._2 map { _._2 }) }
+                // liftedMap의 value중 값이 하나 이상인 것이 있으면 문법이 ambiguous하다는 뜻일듯
                 println(simpleLifted)
                 simpleLifted foreach { case (o, n) => println(s"lifted: ${o.toShortString} --> ${n.toShortString}") }
                 // 1. 새로 만든(lift된) 노드로부터 derive할 게 있는 것들은 살린다.
@@ -73,23 +80,55 @@ class Parser(val grammar: Grammar)
 
                 val newNodes = newEdges flatMap { _.nodes }
 
-                val assassins = graph.edges filter { _.isInstanceOf[EagerAssassinEdge] }
-                println("Assassins")
-                assassins foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
-                val assassinating = assassins filter { edge => simpleLifted map { _._1 } contains { edge.from } }
-                val aliveAssassins = assassins filter { edge => newNodes contains edge.from }
-                println("assassinating")
-                assassinating foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
-                println("aliveAssassins")
-                aliveAssassins foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
+                // 현재 세대에 포함된 어쌔신 엣지
+                val eagerAssassins = graph.edges filter { _.isInstanceOf[EagerAssassinEdge] }
+                // 다음 세대에서 살아남을 어쌔신 엣지
+                val aliveEagerAssassins: Set[Edge] = eagerAssassins filter { edge => newNodes contains edge.from }
+                // lift된 것을 반영해서 다음 세대에서 확대될 어쌔신 엣지
+                val newAssassinEdges: Map[EagerAssassinEdge, Set[Edge]] = (aliveEagerAssassins map { e =>
+                    (liftedMap get e.to) match {
+                        case Some(lifted) =>
+                            val starting = lifted map { (e.to, _) }
+                            (e.asInstanceOf[EagerAssassinEdge], (simpleLift(graph, starting.toList, starting) map { _._2 } map { EagerAssassinEdge(e.from, _) }).asInstanceOf[Set[Edge]])
+                        case None =>
+                            (e.asInstanceOf[EagerAssassinEdge], Set(EagerAssassinEdge(e.from, e.to)).asInstanceOf[Set[Edge]])
+                    }
+                }).toMap
+                // 다음 세대로 넘어가기 전에 타겟이 제거되어야 할 어쌔신 엣지
+                val eagerAssassinations: Set[(SymbolProgress, SymbolProgress)] = eagerAssassins flatMap { edge =>
+                    // liftedMap의 value가 두 개 이상인 것도 이상한데, 그 중에 일부만 canFinish인건 더더군다나 말이 안되지..
+                    if ((liftedMap contains edge.from) && (liftedMap(edge.from) exists { _.canFinish })) {
+                        val from = liftedMap(edge.from).iterator.next
+                        if (liftedMap contains edge.to) liftedMap(edge.to) map { (from, _) }
+                        else Set[(SymbolProgress, SymbolProgress)]((from, edge.to))
+                    } else Set[(SymbolProgress, SymbolProgress)]()
+                }
 
-                val finalEdges = newEdges ++ aliveAssassins
-                val finalNodes = finalEdges flatMap { _.nodes }
-
+                println("EagerAssassins")
+                eagerAssassins foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
+                println("EagerAssassinations")
+                eagerAssassinations foreach { e => println(s"${e._1.toShortString} -> ${e._2.toShortString}") }
+                println("EagerAliveAssassins")
+                aliveEagerAssassins foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
+                println("NewAssassinEdges")
+                newAssassinEdges.toSeq flatMap { _._2 } foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
                 println("*** End")
+
+                // 어쌔신 엣지들 중에 to가 이번 세대에서 없어지면 to 노드가 생기는게 아니라, 해당 어쌔신 엣지가 사라지도록 수정해야함
+                val assassinEdges: Set[Edge] = aliveEagerAssassins ++ (newAssassinEdges.toSeq flatMap { _._2 }).toSet
+                val assassinatedNodes: Set[Node] = eagerAssassinations map { _._2 }
+
+                val aliveNewNodes = newNodes -- assassinatedNodes
+                val aliveSimpleEdges = newEdges filter { edge => (aliveNewNodes contains edge.from) && (aliveNewNodes contains edge.to) }
+                val finalAssassinEdges = assassinEdges filter { edge => (aliveNewNodes contains edge.from) && (aliveNewNodes contains edge.to) }
+
+                val finalEdges: Set[Edge] = aliveSimpleEdges ++ finalAssassinEdges
+                val finalNodes: Set[Node] = finalEdges flatMap { _.nodes }
+                assert(finalNodes == aliveNewNodes)
+
                 // TODO check newgraph still contains start symbol
                 (Left(ParsingContext(gen + 1, Graph(finalNodes, finalEdges), collectResultCandidates(simpleLifted))),
-                    TerminalProceedLog(nextNodes))
+                    TerminalProceedLog(nextNodes, simpleLifted, eagerAssassinations, newAssassinEdges))
             }
         }
         def proceedTerminal(next: Input): Either[ParsingContext, ParsingError] =
@@ -108,7 +147,7 @@ class Parser(val grammar: Grammar)
                     val incomingSimpleEdges = graph incomingSimpleEdgesOf oldNode
                     val simpleLifted: Set[(SymbolProgress, SymbolProgress)] =
                         incomingSimpleEdges flatMap { e => (e.from lift newNode) map { (e.from, _) } }
-                    incomingSimpleEdges foreach { e => println(s"(lifting) ${e.from.toShortString} -> ${e.to.toShortString} by ${newNode.toShortString}") }
+                    incomingSimpleEdges foreach { e => println(s"(lifting) ${e.from.toShortString} -> ${e.to.toShortString} (by ${newNode.toShortString})") }
                     simpleLift(graph, rest ++ simpleLifted.toList, cc ++ simpleLifted)
                 case _ +: rest =>
                     simpleLift(graph, rest, cc)

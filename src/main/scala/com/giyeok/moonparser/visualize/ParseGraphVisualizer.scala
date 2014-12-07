@@ -88,22 +88,25 @@ object ParseGraphVisualizer {
         assert(finReversed._1.length == (source.length + 1))
         assert(finReversed._2.length == source.length)
         val fin = (finReversed._1.reverse, (None +: finReversed._2).reverse)
-        println("logs: " + fin._2.size)
-        val views: Seq[Control] = (fin._1 zip ((source map { Some(_) }) :+ None)).zipWithIndex map {
+        val views: Seq[(Control, Option[Control])] = (fin._1 zip ((source map { Some(_) }) :+ None)).zipWithIndex map {
             case ((Left(ctx), src), idx) =>
-                new ParsingContextGraphVisualizeWidget(graphView, resources, ctx, fin._2(idx))
+                val logOpt = fin._2(idx)
+                (new ParsingContextGraphVisualizeWidget(graphView, resources, ctx, logOpt),
+                    logOpt map { new ParsingContextProceedVisualizeWidget(graphView, resources, ctx, _) })
             case ((Right(error), _), idx) =>
                 val label = new Label(graphView, SWT.NONE)
                 label.setAlignment(SWT.CENTER)
                 label.setText(error.msg)
-                label
+                (label, None)
         }
 
-        var currentLocation = 0
+        var currentLocation = (0, false)
 
-        def updateLocation(newLocation: Int): Unit = {
+        def updateLocation(newLocation: Int, showProceed0: Boolean): Unit = {
             if (newLocation >= 0 && newLocation <= source.size) {
-                currentLocation = newLocation
+                val showProceed = showProceed0 && (views(newLocation)._2.isDefined)
+
+                currentLocation = (newLocation, showProceed)
 
                 sourceView.setContents({
                     val f = new Figure
@@ -130,27 +133,27 @@ object ParseGraphVisualizer {
                             }
                         }
                     }
-                    def listener(location: Int) = new draw2d.MouseListener() {
+                    def listener(location: Int, showProceed: Boolean) = new draw2d.MouseListener() {
                         def mousePressed(e: draw2d.MouseEvent): Unit = {
-                            updateLocation(location)
+                            updateLocation(location, showProceed)
                         }
                         def mouseReleased(e: draw2d.MouseEvent): Unit = {}
                         def mouseDoubleClicked(e: draw2d.MouseEvent): Unit = {}
                     }
                     def pointerFig(location: Int, addingWidth: Int): Figure = {
                         val pointer = new draw2d.Figure
-                        if (location == currentLocation) {
+                        if (location == newLocation) {
                             val ellipseFrame = new draw2d.Figure
                             ellipseFrame.setSize(12, 20)
                             ellipseFrame.setLayoutManager(new CenterLayout)
                             val ellipse = new draw2d.Ellipse
                             ellipse.setSize(6, 6)
-                            ellipse.setBackgroundColor(ColorConstants.black)
+                            ellipse.setBackgroundColor(if (showProceed) ColorConstants.orange else ColorConstants.black)
                             ellipseFrame.add(ellipse)
                             pointer.add(ellipseFrame)
                         }
                         pointer.setSize(12 + addingWidth, 20)
-                        pointer.addMouseListener(listener(location))
+                        pointer.addMouseListener(listener(location, false))
                         pointer
                     }
                     source.zipWithIndex foreach { s =>
@@ -159,7 +162,7 @@ object ParseGraphVisualizer {
                         term.setForegroundColor(ColorConstants.red)
                         term.setFont(sourceFont)
 
-                        term.addMouseListener(listener(s._2))
+                        term.addMouseListener(listener(s._2, true))
                         f.add(pointer)
                         f.add(term)
                     }
@@ -169,18 +172,23 @@ object ParseGraphVisualizer {
 
                 val sourceStr = source map { _.toCleanString }
                 shell.setText((sourceStr take newLocation).mkString + "*" + (sourceStr drop newLocation).mkString)
-                layout.topControl = views(newLocation)
+                layout.topControl = if (showProceed) views(newLocation)._2.get else views(newLocation)._1
                 graphView.layout()
                 shell.layout()
+                sourceView.forceFocus()
             }
         }
-        updateLocation(currentLocation)
+        updateLocation(0, false)
 
-        val keyListener = new KeyListener() {
+        def keyListener = new KeyListener() {
             def keyPressed(x: KeyEvent): Unit = {
                 x.keyCode match {
-                    case SWT.ARROW_LEFT => updateLocation(currentLocation - 1)
-                    case SWT.ARROW_RIGHT => updateLocation(currentLocation + 1)
+                    case SWT.ARROW_LEFT =>
+                        if (currentLocation._2) updateLocation(currentLocation._1, false)
+                        else updateLocation(currentLocation._1 - 1, true)
+                    case SWT.ARROW_RIGHT =>
+                        if (currentLocation._2 || views(currentLocation._1)._2.isEmpty) updateLocation(currentLocation._1 + 1, false)
+                        else updateLocation(currentLocation._1, true)
                     case code =>
                 }
             }
@@ -188,8 +196,20 @@ object ParseGraphVisualizer {
             def keyReleased(x: KeyEvent): Unit = {}
         }
         shell.addKeyListener(keyListener)
-        views foreach { v => v.addKeyListener(keyListener) }
-        views collect { case v: ParsingContextGraphVisualizeWidget => v.graph.addKeyListener(keyListener) }
+        views foreach { v =>
+            v._1.addKeyListener(keyListener)
+            v._2.foreach { _.addKeyListener(keyListener) }
+            v._1 match {
+                case v: ParsingContextGraphVisualizeWidget => v.graph.addKeyListener(keyListener)
+                case v: ParsingContextProceedVisualizeWidget => v.graph.addKeyListener(keyListener)
+                case _ =>
+            }
+            v._2 match {
+                case Some(v: ParsingContextGraphVisualizeWidget) => v.graph.addKeyListener(keyListener)
+                case Some(v: ParsingContextProceedVisualizeWidget) => v.graph.addKeyListener(keyListener)
+                case _ =>
+            }
+        }
         sourceView.addKeyListener(keyListener)
 
         shell.open()

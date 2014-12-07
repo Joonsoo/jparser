@@ -11,7 +11,18 @@ import org.junit.Assert._
 import scala.collection.immutable.ListSet
 
 object LookaheadExceptGrammar1 extends Grammar with StringSamples {
-    val name = "LookaheadExceptGrammar1"
+    val name = "LookaheadExceptGrammar1 - longest match"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(n("A").star),
+        "A" -> ListSet(seq(chars('a' to 'z').star, lookahead_except(chars('a' to 'z'))), chars(" ")))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+}
+
+object LookaheadExceptGrammar2 extends Grammar with StringSamples {
+    val name = "LookaheadExceptGrammar2"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(n("Token").star),
         "Token" -> ListSet(
@@ -37,5 +48,6 @@ object LookaheadExceptGrammar1 extends Grammar with StringSamples {
 
 object GrammarWithLookaheadExcept {
     val grammars: Set[Grammar with Samples] = Set(
-        LookaheadExceptGrammar1)
+        LookaheadExceptGrammar1,
+        LookaheadExceptGrammar2)
 }
