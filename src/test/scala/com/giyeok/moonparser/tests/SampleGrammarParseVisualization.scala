@@ -44,12 +44,12 @@ object SampleGrammarParseVisualization {
         val incorrectSamples = Set("sasd")
     }
     val allTests: Set[Grammar with Samples] = Set(
+        // Set(jsGrammar),
         SimpleGrammarSet1.grammars,
         SimpleGrammarSet2.grammars,
         RecursiveGrammarSet1.grammars,
         GrammarWithExcept.grammars,
-        GrammarWithLookaheadExcept.grammars,
-        Set(jsGrammar)).flatten
+        GrammarWithLookaheadExcept.grammars).flatten
 
     def main(args: Array[String]): Unit = {
         val display = new Display
@@ -67,9 +67,16 @@ object SampleGrammarParseVisualization {
 
         val leftFrame = new org.eclipse.swt.widgets.Composite(shell, SWT.NONE)
         leftFrame.setLayout({ val layout = new FillLayout; layout.`type` = SWT.VERTICAL; layout })
+        val rightFrame = new org.eclipse.swt.widgets.Composite(shell, SWT.NONE)
+        rightFrame.setLayout({ val layout = new FillLayout; layout.`type` = SWT.VERTICAL; layout })
+
         val grammarList = new org.eclipse.swt.widgets.List(leftFrame, SWT.BORDER | SWT.V_SCROLL)
         val grammarFig = new FigureCanvas(leftFrame)
-        val textList = new org.eclipse.swt.widgets.List(leftFrame, SWT.BORDER | SWT.V_SCROLL)
+
+        val textList = new org.eclipse.swt.widgets.List(rightFrame, SWT.BORDER | SWT.V_SCROLL)
+        val testText = new org.eclipse.swt.widgets.Text(rightFrame, SWT.NONE)
+        val testButton = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
+
         sortedGrammars foreach { t => grammarList.add(t.name) }
         var shownTexts: Seq[Inputs.Source] = Seq()
         grammarList.addListener(SWT.Selection, new Listener() {
@@ -112,26 +119,22 @@ object SampleGrammarParseVisualization {
             }
         })
 
-        val rightFrame = new org.eclipse.swt.widgets.Composite(shell, SWT.NONE)
-        rightFrame.setLayout({ val layout = new FillLayout; layout.`type` = SWT.VERTICAL; layout })
-        val text = new org.eclipse.swt.widgets.Text(rightFrame, SWT.NONE)
-        val button = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
-        button.setText("Show")
+        testButton.setText("Show")
         def startParse(): Unit = {
             if (grammarList.getSelectionIndex() >= 0) {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
-                val source = Inputs.fromString(text.getText())
+                val source = Inputs.fromString(testText.getText())
                 ParseGraphVisualizer.start(grammar, source.toSeq, display, new Shell(display))
             }
         }
-        text.addListener(SWT.KeyDown, new Listener() {
+        testText.addListener(SWT.KeyDown, new Listener() {
             def handleEvent(e: Event): Unit = {
                 if (e.stateMask == SWT.SHIFT && e.keyCode == SWT.CR) {
                     startParse()
                 }
             }
         })
-        button.addListener(SWT.Selection, new Listener() {
+        testButton.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 startParse()
             }
