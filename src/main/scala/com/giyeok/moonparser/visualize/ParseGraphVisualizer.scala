@@ -64,10 +64,7 @@ object ParseGraphVisualizer {
         sourceView.setBackground(ColorConstants.white)
         val sourceFont = new Font(null, "Monaco", 14, SWT.BOLD)
 
-        val layout = new StackLayout
-
-        val graphView = new Composite(shell, SWT.NONE)
-        graphView.setLayout(layout)
+        val graphView = new FigureCanvas(shell, SWT.NONE)
         graphView.setLayoutData(new GridData(GridData.FILL_BOTH))
 
         val parser = new Parser(grammar)
@@ -85,12 +82,11 @@ object ParseGraphVisualizer {
                 }
         }
         assert(fin.length == (source.length + 1))
-        val views: Seq[Control] = (fin zip ((source map { Some(_) }) :+ None)) map {
+        val views: Seq[Figure] = (fin zip ((source map { Some(_) }) :+ None)) map {
             case (Left(ctx), src) =>
-                new ParsingContextGraphVisualizeWidget(graphView, resources, ctx, src)
+                new ParsingContextGraphVisualizeFigure(ctx, src)
             case (Right(error), _) =>
-                val label = new Label(graphView, SWT.NONE)
-                label.setAlignment(SWT.CENTER)
+                val label = new org.eclipse.draw2d.Label
                 label.setText(error.msg)
                 label
         }
@@ -165,7 +161,7 @@ object ParseGraphVisualizer {
 
                 val sourceStr = source map { _.toCleanString }
                 shell.setText((sourceStr take newLocation).mkString + "*" + (sourceStr drop newLocation).mkString)
-                layout.topControl = views(newLocation)
+                graphView.setContents(views(newLocation))
                 graphView.layout()
                 shell.layout()
             }
@@ -184,9 +180,8 @@ object ParseGraphVisualizer {
             def keyReleased(x: KeyEvent): Unit = {}
         }
         shell.addKeyListener(keyListener)
-        views foreach { v => v.addKeyListener(keyListener) }
-        views collect { case v: ParsingContextGraphVisualizeWidget => v.graph.addKeyListener(keyListener) }
         sourceView.addKeyListener(keyListener)
+        graphView.addKeyListener(keyListener)
 
         shell.open()
     }
