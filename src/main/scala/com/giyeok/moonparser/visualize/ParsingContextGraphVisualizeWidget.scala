@@ -18,13 +18,13 @@ import com.giyeok.moonparser.ParseTree
 import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
 import com.giyeok.moonparser.Parser
 
-class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val src: Option[Inputs.Input]) extends Composite(parent, SWT.NONE) {
+class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Option[Parser#TerminalProceedLog]) extends Composite(parent, SWT.NONE) {
     this.setLayout(new FillLayout)
 
     private val (nodes, edges) = (context.graph.nodes, context.graph.edges)
     val graph = new Graph(this, SWT.NONE)
-    private val proceed1: Set[(Parser#SymbolProgress, Parser#SymbolProgress)] = src match {
-        case Some(s) => (context proceedTerminal1 s) map { p => (p._1, p._2) }
+    private val proceed1: Set[(Parser#SymbolProgress, Parser#SymbolProgress)] = log match {
+        case Some(log) => log.terminalProceeds.asInstanceOf[Set[(Parser#SymbolProgress, Parser#SymbolProgress)]]
         case None => Set()
     }
     private val proceeded = proceed1 map { _._2 }
@@ -79,7 +79,7 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGrap
     private var vedges: Set[GraphConnection] = edges flatMap {
         case e: Parser#SimpleEdge =>
             Set(new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to)))
-        case e: Parser#AssassinEdge =>
+        case e: Parser#EagerAssassinEdge =>
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
             connection.setLineColor(ColorConstants.red)
             Set(connection)

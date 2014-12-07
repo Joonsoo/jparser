@@ -72,23 +72,27 @@ object ParseGraphVisualizer {
 
         val parser = new Parser(grammar)
 
-        val fin = source.scanLeft[Either[Parser#ParsingContext, Parser#ParsingError], Seq[Either[Parser#ParsingContext, Parser#ParsingError]]](Left[Parser#ParsingContext, Parser#ParsingError](parser.startingContext)) {
-            (ctx, terminal) =>
-                ctx match {
-                    case Left(ctx) =>
+        val finReversed: (List[Either[Parser#ParsingContext, Parser#ParsingError]], List[Option[Parser#TerminalProceedLog]]) =
+            source.foldLeft[(List[Either[Parser#ParsingContext, Parser#ParsingError]], List[Option[Parser#TerminalProceedLog]])](List(Left(parser.startingContext)), List()) { (cl, terminal) =>
+                val (contexts, logs) = cl
+                contexts match {
+                    case Left(ctx) +: rest =>
                         //Try(ctx proceedTerminal terminal).getOrElse(Right(parser.ParsingErrors.UnexpectedInput(terminal)))
-                        (ctx proceedTerminal terminal) match {
-                            case Left(next) => Left(next)
-                            case Right(error) => Right(error.asInstanceOf[Parser#ParsingError])
+                        (ctx proceedTerminalVerbose terminal) match {
+                            case (Left(next), log) => (Left(next) +: contexts, Some(log) +: logs)
+                            case (Right(error), log) => (Right(error.asInstanceOf[Parser#ParsingError]) +: contexts, Some(log) +: logs)
                         }
-                    case error @ Right(_) => error
+                    case (error @ Right(_)) +: rest => (error +: contexts, None +: logs)
                 }
-        }
-        assert(fin.length == (source.length + 1))
-        val views: Seq[Control] = (fin zip ((source map { Some(_) }) :+ None)) map {
-            case (Left(ctx), src) =>
-                new ParsingContextGraphVisualizeWidget(graphView, resources, ctx, src)
-            case (Right(error), _) =>
+            }
+        assert(finReversed._1.length == (source.length + 1))
+        assert(finReversed._2.length == source.length)
+        val fin = (finReversed._1.reverse, (None +: finReversed._2).reverse)
+        println("logs: " + fin._2.size)
+        val views: Seq[Control] = (fin._1 zip ((source map { Some(_) }) :+ None)).zipWithIndex map {
+            case ((Left(ctx), src), idx) =>
+                new ParsingContextGraphVisualizeWidget(graphView, resources, ctx, fin._2(idx))
+            case ((Right(error), _), idx) =>
                 val label = new Label(graphView, SWT.NONE)
                 label.setAlignment(SWT.CENTER)
                 label.setText(error.msg)

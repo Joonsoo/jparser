@@ -8,6 +8,9 @@ class Parser(val grammar: Grammar)
         with ParsingErrors {
     import Inputs._
 
+    case class TerminalProceedLog(
+        terminalProceeds: Set[(SymbolProgress, SymbolProgress)])
+
     case class ParsingContext(gen: Int, graph: Graph, resultCandidates: Set[SymbolProgress]) {
         import ParsingContext.{ simpleLift, collectResultCandidates }
 
@@ -16,12 +19,14 @@ class Parser(val grammar: Grammar)
                 case s: SymbolProgressTerminal => (s proceedTerminal next) map { (s, _) }
                 case _ => None
             })
-        def proceedTerminal(next: Input): Either[ParsingContext, ParsingError] = {
+        def proceedTerminalVerbose(next: Input): (Either[ParsingContext, ParsingError], TerminalProceedLog) = {
             // `nextNodes` is actually type of `Set[(SymbolProgressTerminal, SymbolProgressTerminal)]`
             // but the invariance in `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
             println("**** New Generation")
             val nextNodes = proceedTerminal1(next)
-            if (nextNodes isEmpty) Right(ParsingErrors.UnexpectedInput(next)) else {
+            if (nextNodes isEmpty) {
+                (Right(ParsingErrors.UnexpectedInput(next)), TerminalProceedLog(nextNodes))
+            } else {
                 def trackSurvivors(queue: List[SymbolProgress], cc: Set[SimpleEdge]): Set[SimpleEdge] =
                     queue match {
                         case survivor +: rest =>
@@ -62,14 +67,34 @@ class Parser(val grammar: Grammar)
                 simpleLifted foreach { case (o, n) => println(s"lifted: ${o.toShortString} --> ${n.toShortString}") }
                 // 1. 새로 만든(lift된) 노드로부터 derive할 게 있는 것들은 살린다.
                 // 2. 옛날 노드를 향하고 있는 모든 옛날 노드는 살린다.
-                val edges = organizeLifted(simpleLifted.toList) map { _.asInstanceOf[Edge] }
+                val newEdges = organizeLifted(simpleLifted.toList) map { _.asInstanceOf[Edge] }
                 println("New edges ***")
-                edges foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
+                newEdges foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
+
+                val newNodes = newEdges flatMap { _.nodes }
+
+                val assassins = graph.edges filter { _.isInstanceOf[EagerAssassinEdge] }
+                println("Assassins")
+                assassins foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
+                val assassinating = assassins filter { edge => simpleLifted map { _._1 } contains { edge.from } }
+                val aliveAssassins = assassins filter { edge => newNodes contains edge.from }
+                println("assassinating")
+                assassinating foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
+                println("aliveAssassins")
+                aliveAssassins foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
+
+                val finalEdges = newEdges ++ aliveAssassins
+                val finalNodes = finalEdges flatMap { _.nodes }
+
                 println("*** End")
                 // TODO check newgraph still contains start symbol
-                Left(ParsingContext(gen + 1, Graph(edges flatMap { _.nodes }, edges), collectResultCandidates(simpleLifted)))
+                (Left(ParsingContext(gen + 1, Graph(finalNodes, finalEdges), collectResultCandidates(simpleLifted))),
+                    TerminalProceedLog(nextNodes))
             }
         }
+        def proceedTerminal(next: Input): Either[ParsingContext, ParsingError] =
+            proceedTerminalVerbose(next)._1
+
         def toResult: Option[ParseResult] = {
             if (resultCandidates.size != 1) None
             else resultCandidates.iterator.next.parsed map { ParseResult(_) }
@@ -83,7 +108,7 @@ class Parser(val grammar: Grammar)
                     val incomingSimpleEdges = graph incomingSimpleEdgesOf oldNode
                     val simpleLifted: Set[(SymbolProgress, SymbolProgress)] =
                         incomingSimpleEdges flatMap { e => (e.from lift newNode) map { (e.from, _) } }
-                    incomingSimpleEdges foreach { e => println(s"(lifting) ${e.from.toShortString} -> ${e.to.toShortString}") }
+                    incomingSimpleEdges foreach { e => println(s"(lifting) ${e.from.toShortString} -> ${e.to.toShortString} by ${newNode.toShortString}") }
                     simpleLift(graph, rest ++ simpleLifted.toList, cc ++ simpleLifted)
                 case _ +: rest =>
                     simpleLift(graph, rest, cc)

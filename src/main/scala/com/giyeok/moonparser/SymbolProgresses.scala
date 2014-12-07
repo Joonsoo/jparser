@@ -175,7 +175,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         def derive(gen: Int): Set[Edge] =
             if (parsed.isEmpty) Set(
                 SimpleEdge(this, SymbolProgress(symbol.sym, gen)),
-                AssassinEdge(SymbolProgress(symbol.except, gen), this))
+                EagerAssassinEdge(SymbolProgress(symbol.except, gen), this)) // it should FittedAssassinEdge
             else Set[Edge]()
     }
 
