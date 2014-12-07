@@ -17,7 +17,7 @@ object LookaheadExceptGrammar1 extends Grammar with StringSamples {
         "A" -> ListSet(seq(chars('a' to 'z').star, lookahead_except(chars('a' to 'z'))), chars(" ")))
     val startSymbol = n("S")
 
-    val correctSamples = Set[String]()
+    val correctSamples = Set("abc", "abc def")
     val incorrectSamples = Set[String]()
 }
 
