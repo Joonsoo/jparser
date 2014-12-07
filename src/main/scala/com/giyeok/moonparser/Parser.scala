@@ -13,6 +13,7 @@ class Parser(val grammar: Grammar)
         newEdges: Set[Edge],
         simpleLifted: Set[(SymbolProgress, SymbolProgress)],
         eagerAssassinations: Set[(SymbolProgress, SymbolProgress)],
+        newAssassinEdges: Set[Edge], //Set[EagerAssassinEdge],
         nextContext: ParsingContext)
 
     // 이 프로젝트 전체에서 asInstanceOf가 등장하는 경우는 대부분이 Set이 invariant해서 추가된 부분 - covariant한 Set으로 바꾸면 없앨 수 있음
@@ -79,35 +80,34 @@ class Parser(val grammar: Grammar)
 
                 // 현재 세대에 포함된 어쌔신 엣지
                 val eagerAssassins = graph.edges filter { _.isInstanceOf[EagerAssassinEdge] }
-                // 다음 세대에서 살아남을 어쌔신 엣지
-                val aliveEagerAssassins: Set[Edge] = eagerAssassins filter { edge => newNodes contains edge.from }
-                // lift된 것을 반영해서 확대된 어쌔신 엣지
-                val newAssassinEdges: Set[Edge] = (aliveEagerAssassins flatMap { e =>
-                    (liftedMap get e.to) match {
-                        case Some(lifted) =>
-                            val starting = lifted map { (e.to, _) }
-                            (simpleLift(graph, starting.toList, starting) map { _._2 } map { EagerAssassinEdge(e.from, _) }).asInstanceOf[Set[Edge]]
-                        case None =>
-                            (EagerAssassinEdge(e.from, e.to)).asInstanceOf[Set[Edge]]
-                    }
-                })
                 // 다음 세대로 넘어가기 전에 타겟이 제거되어야 할 어쌔신 엣지
-                val eagerAssassinations: Set[(SymbolProgress, SymbolProgress)] = (eagerAssassins ++ newAssassinEdges) flatMap { edge =>
+                val eagerAssassinations: Set[(SymbolProgress, SymbolProgress)] = eagerAssassins flatMap { edge =>
                     // liftedMap의 value가 두 개 이상인 것도 이상한데, 그 중에 일부만 canFinish인건 더더군다나 말이 안되지..
                     if ((liftedMap contains edge.from) && (liftedMap(edge.from) exists { _.canFinish })) {
                         val from = liftedMap(edge.from).iterator.next
-                        if (liftedMap contains edge.to) liftedMap(edge.to) map { (from, _) }
-                        else Set[(SymbolProgress, SymbolProgress)]((from, edge.to))
-                    } else Set[(SymbolProgress, SymbolProgress)]()
+                        Some((from, edge.to))
+                    } else None
+                }
+                // 다음 세대에서 살아남을 어쌔신 엣지
+                val aliveEagerAssassins: Set[Edge] = eagerAssassins filter { edge => newNodes contains edge.from }
+                // lift된 것을 반영해서 다음 세대에 사용될 확대된 어쌔신 엣지
+                val newAssassinEdges: Set[Edge] = aliveEagerAssassins flatMap { e =>
+                    (liftedMap get e.to) match {
+                        case Some(lifted) =>
+                            val starting = lifted map { (e.to, _) }
+                            simpleLift(graph, starting.toList, starting) map { _._2 } map { EagerAssassinEdge(e.from, _).asInstanceOf[Edge] }
+                        case None =>
+                            Set(EagerAssassinEdge(e.from, e.to).asInstanceOf[Edge])
+                    }
                 }
 
                 println("EagerAssassins")
                 eagerAssassins foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
                 println("EagerAssassinations")
                 eagerAssassinations foreach { e => println(s"${e._1.toShortString} -> ${e._2.toShortString}") }
-                println("EagerAliveAssassins")
+                println("AliveEagerAssassins ${aliveEagerAssassins.size}")
                 aliveEagerAssassins foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
-                println("NewAssassinEdges")
+                println(s"NewAssassinEdges ${newAssassinEdges.size}")
                 newAssassinEdges foreach { e => println(s"${e.from.toShortString} -> ${e.to.toShortString}") }
                 println("*** End")
 
@@ -117,15 +117,14 @@ class Parser(val grammar: Grammar)
 
                 val aliveNewNodes = newNodes -- assassinatedNodes
                 val aliveSimpleEdges = newEdges filter { edge => (aliveNewNodes contains edge.from) && (aliveNewNodes contains edge.to) }
-                val finalAssassinEdges = assassinEdges filter { edge => (aliveNewNodes contains edge.from) && (aliveNewNodes contains edge.to) }
+                val finalAssassinEdges = newAssassinEdges filter { edge => (aliveNewNodes contains edge.to) }
 
                 val finalEdges: Set[Edge] = aliveSimpleEdges ++ finalAssassinEdges
                 val finalNodes: Set[Node] = finalEdges flatMap { _.nodes }
-                assert(finalNodes == aliveNewNodes)
 
                 // TODO check newgraph still contains start symbol
                 val newctx = ParsingContext(gen + 1, Graph(finalNodes, finalEdges), collectResultCandidates(simpleLifted))
-                Left((newctx, TerminalProceedLog(nextNodes, newEdges, simpleLifted, eagerAssassinations, newctx)))
+                Left((newctx, TerminalProceedLog(nextNodes, newEdges, simpleLifted, eagerAssassinations, newAssassinEdges, newctx)))
             }
         }
         def proceedTerminal(next: Input): Either[ParsingContext, ParsingError] =

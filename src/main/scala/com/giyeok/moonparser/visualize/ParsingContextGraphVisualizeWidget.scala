@@ -36,35 +36,34 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGrap
                 graphNode.setBackgroundColor(ColorConstants.lightGreen)
             case _ =>
         }
-        val tooltipText = n match {
+        val tooltipText0 = n match {
             case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
                 val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
-                Some(list._2 mkString "\n")
+                list._2 mkString "\n"
             case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
                 val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq.childrenWS map { _.toHorizontalHierarchyStringSeq })
-                Some(list._2 mkString "\n")
+                list._2 mkString "\n"
             case n if n.canFinish =>
-                val text = n.parsed.get.toHorizontalHierarchyString
-                Some(text)
-            case _ => None
+                n.parsed.get.toHorizontalHierarchyString
+            case _ =>
+                n.toShortString
         }
-        tooltipText match {
-            case Some(text) =>
-                val f = new org.eclipse.draw2d.Label()
-                f.setFont(resources.fixedWidth12Font)
-                f.setText(text)
-                graphNode.setTooltip(f)
-                graph.addSelectionListener(new SelectionAdapter() {
-                    override def widgetSelected(e: SelectionEvent): Unit = {
-                        if (e.item == graphNode) {
-                            println(e.item)
-                            println(text)
-                        }
-                    }
-                })
-                Some(text)
-            case None =>
+        val tooltipText = n match {
+            case n: Parser#SymbolProgressNonterminal => s"${n.derivedGen}\n$tooltipText0"
+            case _ => tooltipText0
         }
+        val f = new org.eclipse.draw2d.Label()
+        f.setFont(resources.fixedWidth12Font)
+        f.setText(tooltipText)
+        graphNode.setTooltip(f)
+        graph.addSelectionListener(new SelectionAdapter() {
+            override def widgetSelected(e: SelectionEvent): Unit = {
+                if (e.item == graphNode) {
+                    println(e.item)
+                    println(tooltipText)
+                }
+            }
+        })
         if (proceeded contains n) {
             graphNode.setFont(resources.italic14Font)
             graphNode.setBackgroundColor(ColorConstants.yellow)

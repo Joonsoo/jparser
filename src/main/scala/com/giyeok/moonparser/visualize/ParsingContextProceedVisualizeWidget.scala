@@ -26,58 +26,61 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, resources: ParseGr
         log.terminalProceeds.asInstanceOf[Set[(Parser#SymbolProgress, Parser#SymbolProgress)]]
     private val lifted: Set[(Parser#SymbolProgress, Parser#SymbolProgress)] =
         log.simpleLifted.asInstanceOf[Set[(Parser#SymbolProgress, Parser#SymbolProgress)]]
+    private val newAssassinEdges: Set[Parser#EagerAssassinEdge] = log.newAssassinEdges.asInstanceOf[Set[Parser#EagerAssassinEdge]]
     private val assassinations: Set[(Parser#SymbolProgress, Parser#SymbolProgress)] =
         log.eagerAssassinations.asInstanceOf[Set[(Parser#SymbolProgress, Parser#SymbolProgress)]]
     private val proceeded = proceed1 map { _._2 }
     private var vnodes: Map[Parser#Node, GraphNode] =
-        ((nextNodes ++ nodes ++ context.resultCandidates ++ proceeded ++ (lifted flatMap { t => Set(t._1, t._2) }) ++ (assassinations flatMap { e => Set(e._1, e._2) })) map { n =>
-            val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
-            graphNode.setFont(resources.default12Font)
-            n match {
-                case term: Parser#SymbolProgressTerminal if term.parsed.isEmpty =>
-                    graphNode.setBackgroundColor(ColorConstants.lightGreen)
-                case _ =>
-            }
-            val tooltipText = n match {
-                case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
-                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
-                    Some(list._2 mkString "\n")
-                case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq.childrenWS map { _.toHorizontalHierarchyStringSeq })
-                    Some(list._2 mkString "\n")
-                case n if n.canFinish =>
-                    val text = n.parsed.get.toHorizontalHierarchyString
-                    Some(text)
-                case _ => None
-            }
-            tooltipText match {
-                case Some(text) =>
-                    val f = new org.eclipse.draw2d.Label()
-                    f.setFont(resources.fixedWidth12Font)
-                    f.setText(text)
-                    graphNode.setTooltip(f)
-                    graph.addSelectionListener(new SelectionAdapter() {
-                        override def widgetSelected(e: SelectionEvent): Unit = {
-                            if (e.item == graphNode) {
-                                println(e.item)
-                                println(text)
-                            }
+        ((nodes ++ nextNodes ++ context.resultCandidates ++ proceeded ++
+            (lifted flatMap { t => Set(t._1, t._2) }) ++ (assassinations flatMap { e => Set(e._1, e._2) }) ++
+            (newAssassinEdges flatMap { e => Set(e.from, e.to) })) map { n =>
+                val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
+                graphNode.setFont(resources.default12Font)
+                n match {
+                    case term: Parser#SymbolProgressTerminal if term.parsed.isEmpty =>
+                        graphNode.setBackgroundColor(ColorConstants.lightGreen)
+                    case _ =>
+                }
+                val tooltipText0 = n match {
+                    case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
+                        val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
+                        list._2 mkString "\n"
+                    case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
+                        val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq.childrenWS map { _.toHorizontalHierarchyStringSeq })
+                        list._2 mkString "\n"
+                    case n if n.canFinish =>
+                        n.parsed.get.toHorizontalHierarchyString
+                    case _ =>
+                        n.toShortString
+                }
+                val tooltipText = n match {
+                    case n: Parser#SymbolProgressNonterminal => s"${n.derivedGen}\n$tooltipText0"
+                    case _ => tooltipText0
+                }
+                val f = new org.eclipse.draw2d.Label()
+                f.setFont(resources.fixedWidth12Font)
+                f.setText(tooltipText)
+                graphNode.setTooltip(f)
+                graph.addSelectionListener(new SelectionAdapter() {
+                    override def widgetSelected(e: SelectionEvent): Unit = {
+                        if (e.item == graphNode) {
+                            println(e.item)
+                            println(tooltipText)
                         }
-                    })
-                    Some(text)
-                case None =>
-            }
-            if (proceeded contains n) {
-                graphNode.setFont(resources.italic14Font)
-                graphNode.setBackgroundColor(ColorConstants.yellow)
-            }
-            if (!(nodes contains n)) {
-                graphNode.setBorderWidth(3)
-                graphNode.setBorderColor(ColorConstants.green)
-            }
+                    }
+                })
 
-            (n, graphNode)
-        }).toMap
+                if (proceeded contains n) {
+                    graphNode.setFont(resources.italic14Font)
+                    graphNode.setBackgroundColor(ColorConstants.yellow)
+                }
+                if (nextNodes contains n) {
+                    graphNode.setBorderWidth(3)
+                    graphNode.setBorderColor(ColorConstants.green)
+                }
+
+                (n, graphNode)
+            }).toMap
     context.resultCandidates foreach { p =>
         val node = vnodes(p)
         node.setFont(resources.bold14Font)
@@ -90,14 +93,22 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, resources: ParseGr
     }
     private val liftEdges = lifted map { p =>
         val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p._1), vnodes(p._2))
+        connection.setCurveDepth(-10)
         connection.setLineColor(ColorConstants.cyan)
         connection
     }
     private val workingassassins = assassinations map { p =>
         val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED | ZestStyles.CONNECTIONS_DASH, vnodes(p._1), vnodes(p._2))
-        connection.setLineColor(ColorConstants.black)
+        connection.setCurveDepth(15)
+        connection.setLineColor(ColorConstants.red)
         connection
     }
+//    private val newassassinEdges = newAssassinEdges map { p =>
+//        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED | ZestStyles.CONNECTIONS_DASH, vnodes(p.from), vnodes(p.to))
+//        connection.setLineWidth(3)
+//        connection.setLineColor(ColorConstants.orange)
+//        connection
+//    }
     private val vNextEdges = nextEdges flatMap {
         case e: Parser#SimpleEdge =>
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))

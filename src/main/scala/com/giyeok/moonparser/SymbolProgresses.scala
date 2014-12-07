@@ -137,7 +137,9 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
                 val wsDerive = (symbol.whitespace map { s => SimpleEdge(this, SymbolProgress(s, gen)) })
                 val elemDerive = symbol.seq.slice(locInSeq, visibles + 1) map { s =>
                     s match {
-                        case LookaheadExcept(except) => EagerAssassinEdge(SymbolProgress(except, gen), this)
+                        case LookaheadExcept(except) =>
+                            println("derive " + except.toShortString)
+                            EagerAssassinEdge(SymbolProgress(except, gen), this)
                         case s => SimpleEdge(this, SymbolProgress(s, gen))
                     }
                 }
@@ -205,7 +207,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
                 case NonterminalProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case seq: SequenceProgress =>
                     val ls = seq.symbol.seq map { _.toShortString } splitAt seq.locInSeq
-                    "(" + (((ls._1 ++ ("*" +: ls._2)) ++ (if (seq.canFinish) Seq("*") else Seq())) mkString " ") + ")"
+                    "(" + (((ls._1 ++ ("*" +: ls._2)) ++ (if ((!ls._2.isEmpty) && seq.canFinish) Seq("*") else Seq())) mkString " ") + ")"
                 case OneOfProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case ExceptProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case rep @ RepeatProgress(symbol, _children, _) =>
