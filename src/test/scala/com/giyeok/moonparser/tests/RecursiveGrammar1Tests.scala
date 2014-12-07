@@ -9,11 +9,12 @@ import org.scalatest.junit.AssertionsForJUnit
 import com.giyeok.moonparser.Inputs._
 import org.junit.Assert._
 import com.giyeok.moonparser.Symbols.Symbol
+import scala.collection.immutable.ListSet
 
 object RecursiveGrammar1 extends Grammar with StringSamples {
     val name = "Recursive Grammar 1"
     val rules: RuleMap = ListMap(
-        "S" -> Set(chars("a"), seq(chars("a"), n("S"))))
+        "S" -> ListSet(chars("a"), seq(chars("a"), n("S"))))
     val startSymbol = n("S")
 
     val correctSamples = Set("a", "aaa")
@@ -23,7 +24,7 @@ object RecursiveGrammar1 extends Grammar with StringSamples {
 object RecursiveGrammar1_1 extends Grammar with StringSamples {
     val name = "Recursive Grammar 1-1"
     val rules: RuleMap = ListMap(
-        "S" -> Set(chars("a"), seq(n("S"), chars("a"))))
+        "S" -> ListSet(chars("a"), seq(n("S"), chars("a"))))
     val startSymbol = n("S")
 
     val correctSamples = Set("a", "aaa")
@@ -34,15 +35,15 @@ object RecursiveGrammar2 extends Grammar with StringSamples {
     val name = "Recursive Grammar 2"
     def expr(s: Symbol*) = seq(s.toSeq, Set[Symbol](chars(" \t\n")))
     val rules: RuleMap = ListMap(
-        "S" -> Set(
+        "S" -> ListSet(
             n("And"),
             n("Or"),
             n("Random"),
             seq(i("("), n("S"), i(")"))),
-        "And" -> Set(expr(i("and"), n("S"), n("S"))),
-        "Or" -> Set(expr(i("or"), n("S"), n("S"))),
-        "Random" -> Set(expr(i("random"), n("Number"))),
-        "Number" -> Set(seq(chars('1' to '9'), chars('0' to '9').star)))
+        "And" -> ListSet(expr(i("and"), n("S"), n("S"))),
+        "Or" -> ListSet(expr(i("or"), n("S"), n("S"))),
+        "Random" -> ListSet(expr(i("random"), n("Number"))),
+        "Number" -> ListSet(seq(chars('1' to '9'), chars('0' to '9').star)))
     val startSymbol = n("S")
 
     val correctSamples = Set[String]("and (random 10) (random 20)", "and (random 12) (and (or (random 10) (random 10)) (or (random 12) (random 123123)))")
@@ -53,17 +54,17 @@ object RecursiveGrammar3 extends Grammar with StringSamples {
     val name = "Recursive Grammar 3"
     def expr(s: Symbol*) = seq(s.toSeq, Set[Symbol](chars(" \t\n")))
     val rules: RuleMap = ListMap(
-        "S" -> Set(n("Prior1")),
-        "Prior1" -> Set(
+        "S" -> ListSet(n("Prior1")),
+        "Prior1" -> ListSet(
             expr(n("Prior1"), c('+'), n("Prior1")),
             expr(n("Prior1"), c('-'), n("Prior1")),
             n("Prior2")),
-        "Prior2" -> Set(
+        "Prior2" -> ListSet(
             expr(n("Prior2"), c('*'), n("Prior2")),
             expr(n("Prior2"), c('/'), n("Prior2")),
             expr(i("("), n("Prior1"), i(")")),
             n("Number")),
-        "Number" -> Set(seq(chars('1' to '9'), chars('0' to '9').star)))
+        "Number" -> ListSet(seq(chars('1' to '9'), chars('0' to '9').star)))
     val startSymbol = n("S")
 
     // Because of the associativity of binary opeartors, this grammar may not parse expressions like `1+2+3` properly

@@ -5,8 +5,7 @@ case class ParseResult(parseNode: ParseTree.ParseNode[Symbols.Symbol])
 class Parser(val grammar: Grammar)
         extends SymbolProgresses
         with SymbolsGraph
-        with ParsingErrors
-        with GrammarChecker {
+        with ParsingErrors {
     import Inputs._
 
     case class ParsingContext(gen: Int, graph: Graph, resultCandidates: Set[SymbolProgress]) {

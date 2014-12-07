@@ -9,12 +9,13 @@ import com.giyeok.moonparser.Inputs._
 import com.giyeok.moonparser.Symbols.Symbol
 import com.giyeok.moonparser.Inputs
 import org.scalatest.FlatSpec
+import scala.collection.immutable.ListSet
 
 object SimpleGrammar1 extends Grammar with StringSamples {
     val name = "Simple Grammar 1"
     val rules: RuleMap = ListMap(
-        "S" -> Set(n("A")),
-        "A" -> Set(i("abc")))
+        "S" -> ListSet(n("A")),
+        "A" -> ListSet(i("abc")))
     val startSymbol = n("S")
 
     val correctSamples = Set("abc")
@@ -24,9 +25,9 @@ object SimpleGrammar1 extends Grammar with StringSamples {
 object SimpleGrammar1_1 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_1"
     val rules: RuleMap = ListMap(
-        "S" -> Set(seq(n("A"), n("B"))),
-        "A" -> Set(chars("abc").repeat(2)),
-        "B" -> Set(seq(chars("def").repeat(2), i("s"))))
+        "S" -> ListSet(seq(n("A"), n("B"))),
+        "A" -> ListSet(chars("abc").repeat(2)),
+        "B" -> ListSet(seq(chars("def").repeat(2), i("s"))))
     val startSymbol = n("S")
 
     val correctSamples = Set("abcabcddfefefes")
@@ -36,9 +37,9 @@ object SimpleGrammar1_1 extends Grammar with StringSamples {
 object SimpleGrammar1_2 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_2"
     val rules: RuleMap = ListMap(
-        "S" -> Set(oneof(n("A"), n("B")).repeat(2, 5)),
-        "A" -> Set(i("abc")),
-        "B" -> Set(i("bc")))
+        "S" -> ListSet(oneof(n("A"), n("B")).repeat(2, 5)),
+        "A" -> ListSet(i("abc")),
+        "B" -> ListSet(i("bc")))
     val startSymbol = n("S")
 
     val correctSamples = Set("bcbcbc", "abcbcbcabc")
@@ -48,7 +49,7 @@ object SimpleGrammar1_2 extends Grammar with StringSamples {
 object SimpleGrammar1_3 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_3"
     val rules: RuleMap = ListMap(
-        "S" -> Set(seq(c('a'), c('b').star, c('c'))))
+        "S" -> ListSet(seq(c('a'), c('b').star, c('c'))))
     val startSymbol = n("S")
 
     val correctSamples = Set("ac", "abc", "abbbbbbbc")
@@ -58,7 +59,7 @@ object SimpleGrammar1_3 extends Grammar with StringSamples {
 object SimpleGrammar1_3_2 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_3_2"
     val rules: RuleMap = ListMap(
-        "S" -> Set(seq(c('a'), c('b').star, c('c').opt)))
+        "S" -> ListSet(seq(c('a'), c('b').star, c('c').opt)))
     val startSymbol = n("S")
 
     val correctSamples = Set("a", "abc", "abb")
@@ -69,7 +70,7 @@ object SimpleGrammar1_3_3 extends Grammar with StringSamples {
     // ambiguous language
     val name = "Simple Grammar 1_3_3"
     val rules: RuleMap = ListMap(
-        "S" -> Set(seq(c('a'), c('b').star, c('c').opt, c('b').star)))
+        "S" -> ListSet(seq(c('a'), c('b').star, c('c').opt, c('b').star)))
     val startSymbol = n("S")
 
     val correctSamples = Set("a", "abc", "abbbcbbb")
@@ -79,7 +80,7 @@ object SimpleGrammar1_3_3 extends Grammar with StringSamples {
 object SimpleGrammar1_4 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_4"
     val rules: RuleMap = ListMap(
-        "S" -> Set(seq(Seq[Symbol](i("ab"), i("qt").opt, i("cd")), Set[Symbol](chars(" \t\n")))))
+        "S" -> ListSet(seq(Seq[Symbol](i("ab"), i("qt").opt, i("cd")), Set[Symbol](chars(" \t\n")))))
     val startSymbol = n("S")
 
     val correctSamples = Set("ab   \tqt\t  cd", "abcd", "ab  cd", "abqtcd")
@@ -89,9 +90,9 @@ object SimpleGrammar1_4 extends Grammar with StringSamples {
 object SimpleGrammar1_5 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_5"
     val rules: RuleMap = ListMap(
-        "S" -> Set(oneof(n("A"), n("B")).repeat(2, 5)),
-        "A" -> Set(i("abc")),
-        "B" -> Set(i("ab")))
+        "S" -> ListSet(oneof(n("A"), n("B")).repeat(2, 5)),
+        "A" -> ListSet(i("abc")),
+        "B" -> ListSet(i("ab")))
     val startSymbol = n("S")
 
     val correctSamples = Set("abcabababc", "abcabababcabc")
@@ -101,8 +102,8 @@ object SimpleGrammar1_5 extends Grammar with StringSamples {
 object SimpleGrammar1_6 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_6"
     val rules: RuleMap = ListMap(
-        "S" -> Set(n("A"), e),
-        "A" -> Set(i("abc")))
+        "S" -> ListSet(n("A"), e),
+        "A" -> ListSet(i("abc")))
     val startSymbol = n("S")
 
     val correctSamples = Set("", "abc")
@@ -112,8 +113,8 @@ object SimpleGrammar1_6 extends Grammar with StringSamples {
 object SimpleGrammar1_7 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_7"
     val rules: RuleMap = ListMap(
-        "S" -> Set(n("A").opt),
-        "A" -> Set(i("abc")))
+        "S" -> ListSet(n("A").opt),
+        "A" -> ListSet(i("abc")))
     val startSymbol = n("S")
 
     val correctSamples = Set("", "abc")
@@ -123,8 +124,8 @@ object SimpleGrammar1_7 extends Grammar with StringSamples {
 object SimpleGrammar1_8 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_8"
     val rules: RuleMap = ListMap(
-        "S" -> Set(seq(c('a'), n("A").opt)),
-        "A" -> Set(i("abc")))
+        "S" -> ListSet(seq(c('a'), n("A").opt)),
+        "A" -> ListSet(i("abc")))
     val startSymbol = n("S")
 
     val correctSamples = Set("a", "aabc")
@@ -134,7 +135,7 @@ object SimpleGrammar1_8 extends Grammar with StringSamples {
 object SimpleGrammar1_9 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_9"
     val rules: RuleMap = ListMap(
-        "S" -> Set(seq(chars("abcefgijkxyz")).opt))
+        "S" -> ListSet(seq(chars("abcefgijkxyz")).opt))
     val startSymbol = n("S")
 
     val correctSamples = Set("a", "x")

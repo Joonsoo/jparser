@@ -8,30 +8,34 @@ import com.giyeok.moonparser.Parser
 import org.scalatest.junit.AssertionsForJUnit
 import com.giyeok.moonparser.Inputs._
 import org.junit.Assert._
+import scala.collection.immutable.ListSet
 
-object ExceptGrammar extends Grammar {
-    val name = "Simple Grammar 2"
+object LookaheadExceptGrammar1 extends Grammar with StringSamples {
+    val name = "LookaheadExceptGrammar1"
     val rules: RuleMap = ListMap(
-        "S" -> Set(n("Token").star),
-        "Token" -> Set(
+        "S" -> ListSet(n("Token").star),
+        "Token" -> ListSet(
             n("Name"),
             n("Keyword"),
             chars(" ()")),
-        "Word" -> Set(
+        "Word" -> ListSet(
             seq(n("FirstChar"), n("SecondChar").star, lookahead_except(n("SecondChar")))),
-        "Name" -> Set(
+        "Name" -> ListSet(
             n("Word").except(n("Keyword"))),
-        "Keyword" -> Set(
+        "Keyword" -> ListSet(
             i("var"),
             i("if")),
-        "FirstChar" -> Set(
+        "FirstChar" -> ListSet(
             chars('a' to 'z', 'A' to 'Z')),
-        "SecondChar" -> Set(
+        "SecondChar" -> ListSet(
             chars('a' to 'z', 'A' to 'Z', '0' to '9')))
     val startSymbol = n("S")
+
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
 }
 
-class ExceptGrammarTestSuite extends AssertionsForJUnit {
-    @Test def keyword() = {
-    }
+object GrammarWithLookaheadExcept {
+    val grammars: Set[Grammar with Samples] = Set(
+        LookaheadExceptGrammar1)
 }

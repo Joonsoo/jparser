@@ -11,6 +11,8 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 
 libraryDependencies += "junit" % "junit" % "4.11" % "test"
 
+libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2"
+
 libraryDependencies += {
   val os = (sys.props("os.name"), sys.props("os.arch")) match {
     case ("Linux", "amd64" | "x86_64") => "gtk.linux.x86_64"

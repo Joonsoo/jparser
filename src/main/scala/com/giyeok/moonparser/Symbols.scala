@@ -153,13 +153,15 @@ object Symbols {
                 } mkString "|"
             case Unicode(c) => s"<unicode>"
             case EndOfFile => "<eof>"
+            case t: Terminal => t.toShortString
             case Empty => "<empty>"
             case s: Nonterminal => s.name
             case s: Sequence => "(" + (s.seq map { _.toShortString } mkString " ") + ")"
             case s: OneOf => s.syms map { _.toShortString } mkString "|"
             case s: Repeat => s"${s.sym.toShortString}[${s.range.toShortString}]"
             case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
-            case s: LookaheadExcept => s"la_except ${s.except.toShortString}"
+            case LookaheadExcept(except) => s"la_except ${except.toShortString}"
+            case Backup(sym, backup) => s"${sym.toShortString} backedupby ${backup.toShortString}"
         }
     }
 }

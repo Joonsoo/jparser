@@ -180,10 +180,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
     }
 
     case class LookaheadExceptProgress(symbol: LookaheadExcept, parsed: Option[ParsedSymbol[LookaheadExcept]], derivedGen: Int)
-            extends SymbolProgressNonterminal {
-        def lift(source: SymbolProgress): Option[SymbolProgress] = ???
-        def derive(gen: Int): Set[Edge] = ???
-    }
+        extends SymbolProgress
 
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]], derivedGen: Int)
             extends SymbolProgressNonterminal {
@@ -207,7 +204,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
                 case rep @ RepeatProgress(symbol, _children, _) =>
                     (if (symbol.range canProceed _children.size) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
                 case LookaheadExceptProgress(symbol, parsed, _) => symbol.toShortString
-                case BackupProgress(symbol, parsed, _) => ???
+                case BackupProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
             }
         }
     }

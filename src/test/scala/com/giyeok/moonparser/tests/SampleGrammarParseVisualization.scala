@@ -10,13 +10,16 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Event
 import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Shell
-
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.Inputs
 import com.giyeok.moonparser.Inputs.SourceToCleanString
 import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.moonparser.visualize.ParseGraphVisualizer
 import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
+import com.giyeok.moonparser.tests.javascript.JavaScriptGrammar
+import com.giyeok.moonparser.tests.javascript.JavaScriptGrammar
+import org.eclipse.draw2d.ToolbarLayout
+import org.eclipse.draw2d.Label
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.Source]
@@ -32,12 +35,21 @@ trait StringSamples extends Samples {
 }
 
 object SampleGrammarParseVisualization {
+    val jsGrammar: Grammar with Samples = new Grammar with StringSamples {
+        val name = JavaScriptGrammar.name
+        val rules = JavaScriptGrammar.rules
+        val startSymbol = JavaScriptGrammar.startSymbol
+
+        val correctSamples = Set("")
+        val incorrectSamples = Set("sasd")
+    }
     val allTests: Set[Grammar with Samples] = Set(
         SimpleGrammarSet1.grammars,
         SimpleGrammarSet2.grammars,
         RecursiveGrammarSet1.grammars,
         GrammarWithExcept.grammars,
-        GrammarWithLookaheadExcept.grammars).flatten
+        GrammarWithLookaheadExcept.grammars,
+        Set(jsGrammar)).flatten
 
     def main(args: Array[String]): Unit = {
         val display = new Display
@@ -63,12 +75,30 @@ object SampleGrammarParseVisualization {
         grammarList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
-                println(new GrammarTextFigureGenerator[xml.Elem](grammar, new GrammarTextFigureGenerator.Appearances[xml.Elem] {
-                    val default = GrammarTextFigureGenerator.html.AppearanceByClass("default")
-                    val nonterminal = GrammarTextFigureGenerator.html.AppearanceByClass("nonterminal")
-                    val terminal = GrammarTextFigureGenerator.html.AppearanceByClass("terminal")
-                }, GrammarTextFigureGenerator.html.Generator).grammarFigure)
-                grammarFig.setContents(new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, GrammarTextFigureGenerator.draw2d.Generator).grammarFigure)
+                def generateHtml(): xml.Elem =
+                    new GrammarTextFigureGenerator[xml.Elem](grammar, new GrammarTextFigureGenerator.Appearances[xml.Elem] {
+                        val default = GrammarTextFigureGenerator.html.AppearanceByClass("default")
+                        val nonterminal = GrammarTextFigureGenerator.html.AppearanceByClass("nonterminal")
+                        val terminal = GrammarTextFigureGenerator.html.AppearanceByClass("terminal")
+                    }, GrammarTextFigureGenerator.html.Generator).grammarFigure
+                val (missingSymbols, wrongLookaheads, unusedSymbols) = (grammar.missingSymbols, grammar.wrongLookaheads, grammar.unusedSymbols)
+                val textFig = new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, GrammarTextFigureGenerator.draw2d.Generator).grammarFigure
+                if (missingSymbols.isEmpty && wrongLookaheads.isEmpty && unusedSymbols.isEmpty) {
+                    grammarFig.setContents(textFig)
+                } else {
+                    val messages = Seq(
+                        (if (!missingSymbols.isEmpty) Some(s"Missing: ${missingSymbols map { _.toShortString } mkString ", "}") else None),
+                        (if (!wrongLookaheads.isEmpty) Some(s"Wrong: ${wrongLookaheads map { _.toShortString } mkString ", "}") else None),
+                        (if (!unusedSymbols.isEmpty) Some(s"Unused: ${unusedSymbols map { _.toShortString } mkString ", "}") else None))
+                    val fig = new Figure
+                    fig.setLayoutManager(new ToolbarLayout(false))
+                    val label = new Label
+                    label.setText(messages.flatten mkString "\n")
+                    label.setForegroundColor(ColorConstants.red)
+                    fig.add(label)
+                    fig.add(textFig)
+                    grammarFig.setContents(fig)
+                }
                 textList.removeAll()
                 shownTexts = (grammar.correctSampleInputs.toSeq sortBy { _.toCleanString }) ++ (grammar.incorrectSampleInputs.toSeq sortBy { _.toCleanString })
                 shownTexts foreach { i => textList.add(s"'${i.toCleanString}'") }
