@@ -166,7 +166,16 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
                 if (needParentheses(sym))
                     g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(sym), g.textFig(")" + rep, ap.default)))
                 else g.horizontalFig(Spacing.None, Seq(symbolFig(sym), g.textFig(rep, ap.default)))
-            case _@ (Except(_, _) | LookaheadExcept(_) | Backup(_, _)) =>
+            case Except(sym, except) =>
+                val symFig =
+                    if (!needParentheses(sym)) symbolFig(sym)
+                    else g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
+                val exceptFig =
+                    if (!needParentheses(except)) symbolFig(except)
+                    else g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(except), g.textFig(")", ap.default)))
+
+                g.horizontalFig(Spacing.Medium, Seq(symFig, g.textFig("except", ap.default), exceptFig))
+            case _@ (LookaheadExcept(_) | Backup(_, _)) =>
                 g.textFig("??", ap.default)
         }
     }

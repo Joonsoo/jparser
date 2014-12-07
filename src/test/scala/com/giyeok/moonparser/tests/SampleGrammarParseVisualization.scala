@@ -35,7 +35,9 @@ object SampleGrammarParseVisualization {
     val allTests: Set[Grammar with Samples] = Set(
         SimpleGrammarSet1.grammars,
         SimpleGrammarSet2.grammars,
-        RecursiveGrammarSet1.grammars).flatten
+        RecursiveGrammarSet1.grammars,
+        GrammarWithExcept.grammars,
+        GrammarWithLookaheadExcept.grammars).flatten
 
     def main(args: Array[String]): Unit = {
         val display = new Display
@@ -85,13 +87,23 @@ object SampleGrammarParseVisualization {
         val text = new org.eclipse.swt.widgets.Text(rightFrame, SWT.NONE)
         val button = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
         button.setText("Show")
+        def startParse(): Unit = {
+            if (grammarList.getSelectionIndex() >= 0) {
+                val grammar = sortedGrammars(grammarList.getSelectionIndex())
+                val source = Inputs.fromString(text.getText())
+                ParseGraphVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+            }
+        }
+        text.addListener(SWT.KeyDown, new Listener() {
+            def handleEvent(e: Event): Unit = {
+                if (e.stateMask == SWT.SHIFT && e.keyCode == SWT.CR) {
+                    startParse()
+                }
+            }
+        })
         button.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
-                if (grammarList.getSelectionIndex() >= 0) {
-                    val grammar = sortedGrammars(grammarList.getSelectionIndex())
-                    val source = Inputs.fromString(text.getText())
-                    ParseGraphVisualizer.start(grammar, source.toSeq, display, new Shell(display))
-                }
+                startParse()
             }
         })
 

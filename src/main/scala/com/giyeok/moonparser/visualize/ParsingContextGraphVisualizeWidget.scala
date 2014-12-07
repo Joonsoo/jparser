@@ -80,7 +80,9 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGrap
         case e: Parser#SimpleEdge =>
             Set(new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to)))
         case e: Parser#AssassinEdge =>
-            Set(new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to)))
+            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
+            connection.setLineColor(ColorConstants.red)
+            Set(connection)
         case _ => None
     }
     private val nedges = proceed1 map { p =>

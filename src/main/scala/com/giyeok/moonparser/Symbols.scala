@@ -158,7 +158,8 @@ object Symbols {
             case s: Sequence => "(" + (s.seq map { _.toShortString } mkString " ") + ")"
             case s: OneOf => s.syms map { _.toShortString } mkString "|"
             case s: Repeat => s"${s.sym.toShortString}[${s.range.toShortString}]"
-            case s: Except => s"${s.sym.toShortString}-${s.except.toShortString}"
+            case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
+            case s: LookaheadExcept => s"la_except ${s.except.toShortString}"
         }
     }
 }
