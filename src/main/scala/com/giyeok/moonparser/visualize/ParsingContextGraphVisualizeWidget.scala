@@ -23,11 +23,11 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGrap
 
     private val (nodes, edges) = (context.graph.nodes, context.graph.edges)
     val graph = new Graph(this, SWT.NONE)
-    private val proceed1: Set[(Parser#SymbolProgress, Parser#SymbolProgress)] = log match {
-        case Some(log) => log.terminalProceeds.asInstanceOf[Set[(Parser#SymbolProgress, Parser#SymbolProgress)]]
+    private val proceed1: Set[Parser#Lifting] = log match {
+        case Some(log) => log.terminalProceeds.asInstanceOf[Set[Parser#Lifting]]
         case None => Set()
     }
-    private val proceeded = proceed1 map { _._2 }
+    private val proceeded = proceed1 map { _.after }
     private var vnodes: Map[Parser#Node, GraphNode] = ((nodes ++ context.resultCandidates ++ proceeded) map { n =>
         val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
         graphNode.setFont(resources.default12Font)
@@ -85,7 +85,7 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGrap
         case _ => None
     }
     private val nedges = proceed1 map { p =>
-        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p._1), vnodes(p._2))
+        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p.before), vnodes(p.after))
         connection.setLineColor(ColorConstants.blue)
         connection
     }

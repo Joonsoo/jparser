@@ -15,6 +15,8 @@ import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
 import com.giyeok.moonparser.ParseTree
 import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
 import com.giyeok.moonparser.Parser
+import org.eclipse.swt.widgets.Listener
+import org.eclipse.swt.widgets.Event
 
 class ParsingContextProceedVisualizeWidget(parent: Composite, resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Parser#TerminalProceedLog) extends Composite(parent, SWT.NONE) {
     this.setLayout(new FillLayout)
@@ -22,17 +24,15 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, resources: ParseGr
     private val (nodes, edges) = (context.graph.nodes.asInstanceOf[Set[Parser#SymbolProgress]], context.graph.edges)
     private val (nextNodes, nextEdges) = (log.nextContext.graph.nodes.asInstanceOf[Set[Parser#SymbolProgress]], log.nextContext.graph.edges)
     val graph = new Graph(this, SWT.NONE)
-    private val proceed1: Set[(Parser#SymbolProgress, Parser#SymbolProgress)] =
-        log.terminalProceeds.asInstanceOf[Set[(Parser#SymbolProgress, Parser#SymbolProgress)]]
-    private val lifted: Set[(Parser#SymbolProgress, Parser#SymbolProgress)] =
-        log.simpleLifted.asInstanceOf[Set[(Parser#SymbolProgress, Parser#SymbolProgress)]]
+    private val proceed1: Set[Parser#Lifting] = log.terminalProceeds.asInstanceOf[Set[Parser#Lifting]]
+    private val lifted: Set[Parser#Lifting] = log.simpleLifted.asInstanceOf[Set[Parser#Lifting]]
     private val newAssassinEdges: Set[Parser#EagerAssassinEdge] = log.newAssassinEdges.asInstanceOf[Set[Parser#EagerAssassinEdge]]
     private val assassinations: Set[(Parser#SymbolProgress, Parser#SymbolProgress)] =
         log.eagerAssassinations.asInstanceOf[Set[(Parser#SymbolProgress, Parser#SymbolProgress)]]
-    private val proceeded = proceed1 map { _._2 }
+    private val proceeded = proceed1 map { _.after }
     private var vnodes: Map[Parser#Node, GraphNode] =
         ((nodes ++ nextNodes ++ context.resultCandidates ++ proceeded ++
-            (lifted flatMap { t => Set(t._1, t._2) }) ++ (assassinations flatMap { e => Set(e._1, e._2) }) ++
+            (lifted flatMap { t => Set(t.before, t.after) }) ++ (assassinations flatMap { e => Set(e._1, e._2) }) ++
             (newAssassinEdges flatMap { e => Set(e.from, e.to) })) map { n =>
                 val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
                 graphNode.setFont(resources.default12Font)
@@ -87,14 +87,17 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, resources: ParseGr
         node.setBackgroundColor(ColorConstants.orange)
     }
     private val termEdges = proceed1 map { p =>
-        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p._1), vnodes(p._2))
+        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p.before), vnodes(p.after))
         connection.setLineColor(ColorConstants.blue)
         connection
     }
     private val liftEdges = lifted map { p =>
-        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p._1), vnodes(p._2))
+        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p.before), vnodes(p.after))
         connection.setCurveDepth(-10)
         connection.setLineColor(ColorConstants.cyan)
+        if (p.by.isDefined) {
+            connection.setText("" + p.by.get.id)
+        }
         connection
     }
     private val workingassassins = assassinations map { p =>
@@ -103,12 +106,12 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, resources: ParseGr
         connection.setLineColor(ColorConstants.red)
         connection
     }
-//    private val newassassinEdges = newAssassinEdges map { p =>
-//        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED | ZestStyles.CONNECTIONS_DASH, vnodes(p.from), vnodes(p.to))
-//        connection.setLineWidth(3)
-//        connection.setLineColor(ColorConstants.orange)
-//        connection
-//    }
+    private val newassassinEdges = newAssassinEdges map { p =>
+        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED | ZestStyles.CONNECTIONS_DASH, vnodes(p.from), vnodes(p.to))
+        connection.setLineWidth(3)
+        connection.setLineColor(ColorConstants.orange)
+        connection
+    }
     private val vNextEdges = nextEdges flatMap {
         case e: Parser#SimpleEdge =>
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
@@ -119,6 +122,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, resources: ParseGr
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
             connection.setLineWidth(3)
             connection.setLineColor(ColorConstants.red)
+            connection.setCurveDepth(10)
             Set(connection)
         case _ => None
     }

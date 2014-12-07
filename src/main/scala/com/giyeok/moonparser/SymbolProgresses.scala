@@ -17,6 +17,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         val parsed: Option[ParseNode[Symbol]]
         def canFinish = parsed.isDefined
 
+        def id = SymbolProgress.getId(this)
         def toShortString = this.toShortString1
     }
     abstract sealed class SymbolProgressTerminal extends SymbolProgress {
@@ -38,6 +39,18 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
     }
 
     object SymbolProgress {
+        private var cache: Map[SymbolProgress, Int] = Map()
+        private var counter = 0
+        def getId(sp: SymbolProgress): Int = {
+            cache get sp match {
+                case Some(i) => i
+                case None =>
+                    counter += 1
+                    cache += ((sp, counter))
+                    counter
+            }
+        }
+
         def apply(symbol: Symbol, gen: Int): SymbolProgress = symbol match {
             case symbol: Terminal => TerminalProgress(symbol, None)
             case Empty => EmptyProgress
@@ -201,7 +214,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         def toShortString1: String = toShortString
         def toShortString: String = {
             def locate[T](parsed: Option[T], s: String) = if (parsed.isEmpty) ("* " + s) else (s + " *")
-            prog match {
+            prog.id + " " + (prog match {
                 case EmptyProgress => "ε *"
                 case TerminalProgress(symbol, parsed) => locate(parsed, symbol.toShortString)
                 case NonterminalProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
@@ -214,7 +227,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
                     (if (symbol.range canProceed _children.size) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
                 case LookaheadExceptProgress(symbol, parsed, _) => symbol.toShortString
                 case BackupProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
-            }
+            })
         }
     }
 }
