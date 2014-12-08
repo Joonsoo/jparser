@@ -140,22 +140,22 @@ object Symbols {
 
     implicit class ShortStringSymbols(sym: Symbol) {
         // TODO improve short string
+        def toReadable(c: Char): String = c match {
+            case '\n' => "\\n"
+            case '\t' => "\\t"
+            case '\\' => "\\\\"
+            case _ => c.toString
+        }
         def toShortString: String = sym match {
             case Any => "<any>"
             case AnyChar => "<any>"
             case FuncChar => "<func>"
-            case ExactChar(c) =>
-                c match {
-                    case '\n' => "\\n"
-                    case '\t' => "\\t"
-                    case '\\' => "\\\\"
-                    case _ => s"'$c'"
-                }
+            case ExactChar(c) => toReadable(c)
             case chars: Terminals.Chars =>
                 chars.groups map { range =>
-                    if (range._1 == range._2) s"'${range._1}'"
-                    else if (range._1 + 1 == range._2) s"'${range._1}','${range._2}'"
-                    else s"'${range._1}'-'${range._2}'"
+                    if (range._1 == range._2) s"'${toReadable(range._1)}'"
+                    else if (range._1 + 1 == range._2) s"'${toReadable(range._1)}','${toReadable(range._2)}'"
+                    else s"'${toReadable(range._1)}'-'${toReadable(range._2)}'"
                 } mkString "|"
             case Unicode(c) => s"<unicode>"
             case EndOfFile => "<eof>"
