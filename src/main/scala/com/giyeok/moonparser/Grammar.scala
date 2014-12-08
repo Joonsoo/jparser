@@ -18,11 +18,17 @@ object Grammar {
         def missingSymbols: Set[Symbol] = {
             var visited = Set[Symbol]()
             def traverse(symbol: Symbol, cc: Set[Symbol]): Set[Symbol] = {
-                if (visited contains symbol) Set()
+                if (visited contains symbol) cc
                 else {
                     visited += symbol
                     symbol match {
-                        case Nonterminal(name) => if (grammar.rules contains name) Set() else Set(symbol)
+                        case Empty => cc
+                        case _: Terminal => cc
+                        case Nonterminal(name) =>
+                            (grammar.rules get name) match {
+                                case Some(rhs) => rhs.foldRight(cc) { traverse(_, _) }
+                                case None => cc + symbol
+                            }
                         case Sequence(seq, ws) => (seq ++ ws).foldRight(cc) { traverse(_, _) }
                         case OneOf(syms) => syms.foldRight(cc) { traverse(_, _) }
                         case Except(sym, except) => traverse(sym, traverse(except, cc))
@@ -42,6 +48,8 @@ object Grammar {
                 else {
                     visited += symbol
                     symbol match {
+                        case Empty => cc
+                        case _: Terminal => cc
                         case Nonterminal(name) => cc
                         case Sequence(seq, ws) => (seq ++ ws).foldRight(cc) { traverse(_, Some(symbol), _) }
                         case OneOf(syms) => syms.foldRight(cc) { traverse(_, Some(symbol), _) }
@@ -65,7 +73,11 @@ object Grammar {
                     symbol match {
                         case Empty => cc + symbol
                         case _: Terminal => cc + symbol
-                        case Nonterminal(name) => grammar.rules(name).foldRight(cc + symbol) { traverse(_, _) }
+                        case Nonterminal(name) =>
+                            (grammar.rules get name) match {
+                                case Some(rhs) => rhs.foldRight(cc + symbol) { traverse(_, _) }
+                                case None => cc + symbol
+                            }
                         case Sequence(seq, ws) => (seq ++ ws).foldRight(cc + symbol) { traverse(_, _) }
                         case OneOf(syms) => (syms).foldRight(cc + symbol) { traverse(_, _) }
                         case Except(sym, except) => traverse(sym, traverse(except, cc + symbol))

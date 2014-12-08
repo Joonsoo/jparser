@@ -167,6 +167,11 @@ object ParseGraphVisualizer {
                         f.add(term)
                     }
                     f.add(pointerFig(source.size, 50))
+                    fin._1(newLocation) match {
+                        case Left(ctx) =>
+                            f.add(new draw2d.Label(s"N:${ctx.graph.nodes.size} E:${ctx.graph.edges.size} R:${ctx.resultCandidates.size}"))
+                        case _ =>
+                    }
                     f
                 })
 

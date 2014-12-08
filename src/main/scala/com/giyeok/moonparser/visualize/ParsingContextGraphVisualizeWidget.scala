@@ -21,7 +21,7 @@ import com.giyeok.moonparser.Parser
 class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Option[Parser#TerminalProceedLog]) extends Composite(parent, SWT.NONE) {
     this.setLayout(new FillLayout)
 
-    private val (nodes, edges) = (context.graph.nodes, context.graph.edges)
+    private val (nodes, edges) = (context.graph.nodes, context.graph.edges.asInstanceOf[Set[Parser#Edge]])
     val graph = new Graph(this, SWT.NONE)
     private val proceed1: Set[Parser#Lifting] = log match {
         case Some(log) => log.terminalProceeds.asInstanceOf[Set[Parser#Lifting]]
@@ -75,14 +75,26 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGrap
         node.setFont(resources.bold14Font)
         node.setBackgroundColor(ColorConstants.orange)
     }
-    private val vedges: Set[GraphConnection] = edges flatMap {
+    private def calculateCurve(edges: Set[Parser#Edge], e: Parser#Edge): Int = {
+        val overlapping = edges filter { r => (r.from == e.from) && (r.to == e.to) && (e != r) }
+        if (!overlapping.isEmpty) {
+            overlapping count { _.hashCode < e.hashCode }
+        } else if (edges exists { r => (r.from == e.to) && (r.to == e.from) }) 1
+        else 0
+    }
+    private val vedges: Set[GraphConnection] = edges collect {
         case e: Parser#SimpleEdge =>
-            Set(new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to)))
+            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
+            val curves = calculateCurve(edges, e)
+
+            if (curves > 0) {
+                connection.setCurveDepth(curves * 12)
+            }
+            connection
         case e: Parser#EagerAssassinEdge =>
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
             connection.setLineColor(ColorConstants.red)
-            Set(connection)
-        case _ => None
+            connection
     }
     private val nedges = proceed1 map { p =>
         val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p.before), vnodes(p.after))

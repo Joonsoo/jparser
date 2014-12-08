@@ -44,7 +44,26 @@ object LookaheadExceptGrammar3 extends Grammar with StringSamples {
 }
 
 object LookaheadExceptGrammar4 extends Grammar with StringSamples {
-    val name = "LookaheadExceptGrammar4"
+    val name = "LookaheadExceptGrammar4 - longest match"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(n("Token").star),
+        "A" -> ListSet(
+            n("Id"),
+            n("WS"),
+            chars("()+-*/.")),
+        "Id" -> ListSet(
+            seq(chars('a' to 'z').plus, lookahead_except(chars('a' to 'z')))),
+        "WS" -> ListSet(
+            chars(" \t\n"))
+    )
+    val startSymbol = n("S")
+
+    val correctSamples = Set("abc", "abc def")
+    val incorrectSamples = Set[String]()
+}
+
+object LookaheadExceptGrammar9 extends Grammar with StringSamples {
+    val name = "LookaheadExceptGrammar9"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(n("Token").star),
         "Token" -> ListSet(
@@ -72,5 +91,7 @@ object GrammarWithLookaheadExcept {
     val grammars: Set[Grammar with Samples] = Set(
         LookaheadExceptGrammar1,
         LookaheadExceptGrammar2,
-        LookaheadExceptGrammar3)
+        LookaheadExceptGrammar3,
+        LookaheadExceptGrammar4,
+        LookaheadExceptGrammar9)
 }

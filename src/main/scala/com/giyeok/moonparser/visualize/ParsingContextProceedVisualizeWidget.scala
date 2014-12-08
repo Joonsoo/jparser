@@ -91,13 +91,12 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, resources: ParseGr
         connection.setLineColor(ColorConstants.blue)
         connection
     }
-    private val liftEdges = lifted map { p =>
-        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p.before), vnodes(p.after))
+    private val liftEdges = lifted groupBy { p => (p.before, p.after) } map { pp =>
+        val ((before, after), p) = pp
+        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(before), vnodes(after))
         connection.setCurveDepth(-10)
         connection.setLineColor(ColorConstants.cyan)
-        if (p.by.isDefined) {
-            connection.setText("" + p.by.get.id)
-        }
+        connection.setText(p map { _.by match { case Some(by) => by.id.toString case None => "!" } } mkString ", ")
         connection
     }
     private val workingassassins = assassinations map { p =>

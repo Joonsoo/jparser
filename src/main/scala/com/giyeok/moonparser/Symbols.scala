@@ -144,7 +144,13 @@ object Symbols {
             case Any => "<any>"
             case AnyChar => "<any>"
             case FuncChar => "<func>"
-            case ExactChar(c) => s"'$c'"
+            case ExactChar(c) =>
+                c match {
+                    case '\n' => "\\n"
+                    case '\t' => "\\t"
+                    case '\\' => "\\\\"
+                    case _ => s"'$c'"
+                }
             case chars: Terminals.Chars =>
                 chars.groups map { range =>
                     if (range._1 == range._2) s"'${range._1}'"

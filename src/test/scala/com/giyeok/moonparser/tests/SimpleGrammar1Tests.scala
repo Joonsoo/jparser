@@ -146,7 +146,7 @@ object SimpleGrammar1_10 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_10"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(n("A").star),
-        "A" -> ListSet(seq(chars('a' to 'z').star), chars(" ")))
+        "A" -> ListSet(seq(chars('a' to 'z').plus), chars(" ")))
     val startSymbol = n("S")
 
     val correctSamples = Set[String]()

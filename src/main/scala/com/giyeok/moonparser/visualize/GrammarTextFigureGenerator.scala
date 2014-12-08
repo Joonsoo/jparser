@@ -175,7 +175,9 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
                     else g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(except), g.textFig(")", ap.default)))
 
                 g.horizontalFig(Spacing.Medium, Seq(symFig, g.textFig("except", ap.default), exceptFig))
-            case _@ (LookaheadExcept(_) | Backup(_, _)) =>
+            case LookaheadExcept(except) =>
+                g.horizontalFig(Spacing.Small, Seq(g.textFig("lookahead_except", ap.default), symbolFig(except)))
+            case Backup(_, _) =>
                 g.textFig("??", ap.default)
         }
     }

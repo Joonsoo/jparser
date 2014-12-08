@@ -14,7 +14,13 @@ object Inputs {
 
     implicit class InputToShortString(input: Input) {
         def toShortString: String = input match {
-            case Character(char, _) => s"'$char'"
+            case Character(char, _) =>
+                char match {
+                    case '\n' => "\\n"
+                    case '\t' => "\\t"
+                    case '\\' => "\\\\"
+                    case _ => s"'$char'"
+                }
             case Virtual(name, _) => s"{$name}"
             case EOF(_) => "(EOF)"
         }

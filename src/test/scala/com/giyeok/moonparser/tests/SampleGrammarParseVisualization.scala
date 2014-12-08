@@ -44,7 +44,7 @@ object SampleGrammarParseVisualization {
         val incorrectSamples = Set("sasd")
     }
     val allTests: Set[Grammar with Samples] = Set(
-        // Set(jsGrammar),
+        Set(jsGrammar),
         SimpleGrammarSet1.grammars,
         SimpleGrammarSet2.grammars,
         RecursiveGrammarSet1.grammars,
@@ -74,7 +74,7 @@ object SampleGrammarParseVisualization {
         val grammarFig = new FigureCanvas(leftFrame)
 
         val textList = new org.eclipse.swt.widgets.List(rightFrame, SWT.BORDER | SWT.V_SCROLL)
-        val testText = new org.eclipse.swt.widgets.Text(rightFrame, SWT.NONE)
+        val testText = new org.eclipse.swt.widgets.Text(rightFrame, SWT.MULTI)
         val testButton = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
 
         sortedGrammars foreach { t => grammarList.add(t.name) }
@@ -88,6 +88,7 @@ object SampleGrammarParseVisualization {
                         val nonterminal = GrammarTextFigureGenerator.html.AppearanceByClass("nonterminal")
                         val terminal = GrammarTextFigureGenerator.html.AppearanceByClass("terminal")
                     }, GrammarTextFigureGenerator.html.Generator).grammarFigure
+                grammar.usedSymbols foreach { s => println(s"used: $s") }
                 val (missingSymbols, wrongLookaheads, unusedSymbols) = (grammar.missingSymbols, grammar.wrongLookaheads, grammar.unusedSymbols)
                 val textFig = new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, GrammarTextFigureGenerator.draw2d.Generator).grammarFigure
                 if (missingSymbols.isEmpty && wrongLookaheads.isEmpty && unusedSymbols.isEmpty) {

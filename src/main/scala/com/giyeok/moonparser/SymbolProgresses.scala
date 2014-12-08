@@ -207,7 +207,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]], derivedGen: Int)
             extends SymbolProgressNonterminal {
         def lift(source: SymbolProgress): Option[SymbolProgress] = ???
-        def derive(gen: Int) = ???
+        def derive(gen: Int) = Set()
     }
 
     implicit class ShortStringProgresses(prog: SymbolProgress) {
