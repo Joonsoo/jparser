@@ -67,7 +67,7 @@ object ParseTree {
                 case ParsedEmpty(sym) =>
                     val symbolic = sym.toShortString
                     val finlen = math.max(2, symbolic.length)
-                    (finlen, Seq(centerize("()", finlen), symbolic))
+                    (finlen, Seq(centerize("()", finlen), centerize(symbolic, finlen)))
                 case ParsedTerminal(sym, child) =>
                     val actual = child.toShortString
                     val symbolic = sym.toShortString
