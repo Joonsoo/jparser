@@ -55,7 +55,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             case symbol: Terminal => TerminalProgress(symbol, None)
             case Empty => EmptyProgress
             case symbol: Nonterminal => NonterminalProgress(symbol, None, gen)
-            case symbol: Sequence => SequenceProgress(symbol, List(), List(), gen)
+            case symbol: Sequence => SequenceProgress(symbol, false, List(), List(), gen)
             case symbol: OneOf => OneOfProgress(symbol, None, gen)
             case symbol: Except => ExceptProgress(symbol, None, gen)
             case symbol: LookaheadExcept => LookaheadExceptProgress(symbol, None, gen)
@@ -86,77 +86,52 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             else Set[Edge]()
     }
 
-    case class SequenceProgress(symbol: Sequence, _childrenWS: List[ParseNode[Symbol]], _idxMapping: List[(Int, Int)], derivedGen: Int)
+    case class SequenceProgress(symbol: Sequence, wsAcceptable: Boolean, _childrenWS: List[ParseNode[Symbol]], _childrenIdx: List[Int], derivedGen: Int)
             extends SymbolProgressNonterminal {
-        // idxMapping: index of childrenWS(not in reversed order) -> index of children
-        assert(_idxMapping map { _._1 } isStrictlyDecreasing)
-        assert(_idxMapping map { _._2 } isStrictlyDecreasing)
-        assert(_idxMapping map { _._1 } forall { i => i >= 0 && i < _childrenWS.size })
+        // childrenIdx: index of childrenWS
+        // _childrenIdx: reverse of chidlrenIdx
+        assert(_childrenIdx.size <= symbol.seq.size)
 
-        val locInSeq = if (_idxMapping isEmpty) 0 else (_idxMapping.head._2 + 1)
-        assert(locInSeq <= symbol.seq.size)
-        private val visibles = {
-            // return the index of the first non-nullable symbol or the last symbol of sequence
-            def vis(loc: Int): Int =
-                if (loc < symbol.seq.length) (if (symbol.seq(loc).isNullable) vis(loc + 1) else loc)
-                else (loc - 1)
-            vis(locInSeq)
-        }
+        val locInSeq = _childrenIdx.length
 
-        // childrenWS: all children with whitespace (but without ParseEmpty)
-        // children: children without whitespace (but with ParseEmpty)
-        lazy val idxMapping: Map[Int, Int] = _idxMapping.toMap
+        // childrenWS: all children with whitespace
+        // children: children with ParseEmpty
+        lazy val childrenIdx = _childrenIdx.reverse
         lazy val childrenWS = _childrenWS.reverse
         lazy val children: List[ParseNode[Symbol]] = {
-            // TODO verify this
-            if (_idxMapping.isEmpty) List() else {
-                case class MappingContext(_cws: List[ParseNode[Symbol]], _cwsPtr: Int, _c: List[ParseNode[Symbol]], _cPtr: Int)
-                val starting = MappingContext(_childrenWS, _childrenWS.size - 1, List(), symbol.seq.length - 1 /*_idxMapping.head._2*/ )
-                val result0 = _idxMapping.foldLeft(starting) { (context, idxMapping) =>
-                    val (cwsPtr, cPtr) = idxMapping
-                    val _cws = context._cws drop (context._cwsPtr - cwsPtr)
-                    val _c = (0 until (context._cPtr - cPtr)).foldLeft(context._c) { (m, i) => ParsedEmpty(symbol.seq(context._cPtr - i)) +: m }
-                    MappingContext(_cws.tail, cwsPtr - 1, _cws.head +: _c, cPtr - 1)
-                }._c
-                val result = (symbol.seq take (symbol.seq.size - result0.size)).foldRight(result0) { ParsedEmpty(_) +: _ }
-                result ensuring (!canFinish || (result.size == symbol.seq.size))
-            }
+            def pick(_childrenIdx: List[Int], _childrenWS: List[ParseNode[Symbol]], current: Int, cc: List[ParseNode[Symbol]]): List[ParseNode[Symbol]] =
+                if (_childrenIdx.isEmpty) cc else {
+                    val dropped = _childrenWS drop (current - _childrenIdx.head)
+                    pick(_childrenIdx.tail, dropped.tail, _childrenIdx.head - 1, dropped.head +: cc)
+                }
+            pick(_childrenIdx, _childrenWS, _childrenWS.length - 1, List())
         }
 
-        override def canFinish =
-            (locInSeq == symbol.seq.size) || ((visibles == symbol.seq.length - 1) && symbol.seq(visibles).isNullable)
+        override def canFinish = (locInSeq == symbol.seq.size)
         val parsed = if (canFinish) Some(ParsedSymbolsSeq[Sequence](symbol, children)) else None
         def lift(source: SymbolProgress): Option[SymbolProgress] = {
             assert(source.parsed.isDefined)
-            // assert(derive map { _.to.symbol } contains source.symbol)
-            // TODO verify this
-            def first(range: Seq[Int]): Option[Int] = {
-                if (range.isEmpty) None
-                else if (symbol.seq(range.head) == source.symbol) Some(range.head)
-                else first(range.tail)
-            }
+            assert(source.symbol == symbol.seq(locInSeq))
             val next = source.parsed.get
-            first(locInSeq to visibles) match {
-                case Some(index) =>
-                    Some(SequenceProgress(symbol, next +: _childrenWS, (_childrenWS.size, index) +: _idxMapping, derivedGen))
-                case None =>
-                    // must be whitespace
-                    assert(symbol.whitespace contains next.symbol)
-                    Some(SequenceProgress(symbol, next +: _childrenWS, _idxMapping, derivedGen))
-            }
+            val _wsAcceptable = wsAcceptable && !(next.isInstanceOf[ParsedEmpty[_]])
+            Some(SequenceProgress(symbol, _wsAcceptable, next +: _childrenWS, (_childrenWS.length) +: _childrenIdx, derivedGen))
         }
         def derive(gen: Int): Set[Edge] =
             if (locInSeq < symbol.seq.size) {
-                val wsDerive = (symbol.whitespace map { s => SimpleEdge(this, SymbolProgress(s, gen)) })
-                val elemDerive = symbol.seq.slice(locInSeq, visibles + 1) map { s =>
-                    s match {
-                        case LookaheadExcept(except) =>
-                            println("derive " + except.toShortString)
-                            EagerAssassinEdge(SymbolProgress(except, gen), this)
-                        case s => SimpleEdge(this, SymbolProgress(s, gen))
-                    }
-                }
-                wsDerive ++ elemDerive
+                def lookaheads(loc: Int, cc: Set[Edge]): Set[Edge] =
+                    if (loc < symbol.seq.size) {
+                        symbol.seq(loc) match {
+                            case LookaheadExcept(except) =>
+                                lookaheads(loc + 1, cc + EagerAssassinEdge(SymbolProgress(except, gen), this))
+                            case s =>
+                                cc + SimpleEdge(this, SymbolProgress(s, gen))
+                        }
+                    } else cc
+                val elemDerive = lookaheads(locInSeq, Set())
+                if (wsAcceptable) {
+                    val wsDerive = (symbol.whitespace map { s => SimpleEdge(this, SymbolProgress(s, gen)) })
+                    wsDerive ++ elemDerive
+                } else elemDerive
             } else Set[Edge]()
     }
 

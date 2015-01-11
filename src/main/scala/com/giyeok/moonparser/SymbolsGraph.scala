@@ -21,8 +21,21 @@ trait SymbolsGraph {
     // is contagious - the nodes derived from `to` will be the target of `from` (recursively)
 
     case class Graph(nodes: Set[Node], edges: Set[Edge]) {
-        def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] =
-            edges collect { case e: SimpleEdge => e } filter { _.to == node }
+        val simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }
+        val eagerAssassinEdges: Set[EagerAssassinEdge] = edges collect { case e: EagerAssassinEdge => e }
+
+        def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.to == node }
         def outgoingEdges(node: Node): Set[Edge] = ???
+
+        def trackRootsOf(node: Node): Set[SimpleEdge] = {
+            def trackRoots(queue: List[SymbolProgress], cc: Set[SimpleEdge]): Set[SimpleEdge] =
+                queue match {
+                    case node +: rest =>
+                        val incomings = incomingSimpleEdgesOf(node) -- cc
+                        trackRoots(rest ++ (incomings.toList map { _.from }), cc ++ incomings)
+                    case List() => cc
+                }
+            trackRoots(List(node), Set())
+        }
     }
 }
