@@ -217,7 +217,7 @@ class Parser(val grammar: Grammar)
             nodes collect { case s @ NonterminalProgress(sym, Some(_), 0) if sym == grammar.startSymbol => s }
 
         def expand(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge], liftingsCC: Set[Lifting]): (Set[Node], Set[Edge], Set[Lifting]) = {
-            def zeroLifting(node: Node, edges: Set[Edge]): (Set[Lifting], Set[Edge]) = {
+            def zeroLifting(node: Node, edges: Set[Edge]): Set[Lifting] = {
                 def zeroLifting0(queue: List[(SymbolProgressNonterminal, SymbolProgress)], cc: Set[Lifting]): Set[Lifting] = queue match {
                     case (from, to) +: tail if to.canFinish =>
                         println(s"Trying zeroLifting for ${to.toShortString}  (<- ${from.toShortString})")
@@ -232,35 +232,32 @@ class Parser(val grammar: Grammar)
                     case List() => cc
                 }
                 val liftings = edges.incomingSimpleEdgesOf(node) flatMap { edge => zeroLifting0(List((edge.from, edge.to)), Set()) }
-                // zeroLifts중 after.derive가 있는 경우엔 before의 root들을 포함시켜주어야 한다
-                val roots = (liftings collect {
-                    case Lifting(before, after: SymbolProgressNonterminal, _) if !after.derive(0).isEmpty =>
-                        edges.rootsOf(before)
-                }).flatten
-                println()
-                (liftings, roots.asInstanceOf[Set[Edge]])
+                liftings
             }
             queue match {
                 case node +: tail =>
                     println(s"expand ${node.toShortString}")
                     assert(nodesCC contains node)
-                    node match {
+                    val (newEdges: Set[Edge], newNodes: Set[Node]) = node match {
                         case node: SymbolProgressNonterminal =>
                             val derived: Set[Edge] = node.derive(0)
-                            derived foreach { e =>
-                                println(s"${e.from.toShortString} -(derive)-> ${e.to.toShortString}")
-                            }
-                            val newNodes: Set[SymbolProgress] = (derived flatMap { _.nodes })
-                            val (zeroLiftings, liftingRoots) = zeroLifting(node, derived ++ edgesCC)
-                            val newDerivables: Set[SymbolProgress] = zeroLiftings collect { case l @ Lifting(_, after: SymbolProgressNonterminal, _) if !after.derive(0).isEmpty => l.after }
-                            val liftingRootNodes = liftingRoots flatMap { _.nodes }
-                            expand(tail ++ (newNodes ++ newDerivables -- nodesCC).toList, newNodes ++ newDerivables ++ liftingRootNodes ++ nodesCC, derived ++ liftingRoots ++ edgesCC, zeroLiftings ++ liftingsCC)
-                        case node =>
-                            val (zeroLiftings, liftingRoots) = zeroLifting(node, edgesCC)
-                            val newDerivables = zeroLiftings collect { case l @ Lifting(_, after: SymbolProgressNonterminal, _) if !after.derive(0).isEmpty => l.after }
-                            val liftingRootNodes = liftingRoots flatMap { _.nodes }
-                            expand(tail ++ (newDerivables -- nodesCC).toList, newDerivables ++ liftingRootNodes ++ nodesCC, liftingRoots ++ edgesCC, zeroLiftings ++ liftingsCC)
+                            (derived, (derived flatMap { _.nodes }))
+                        case node => (Set(), Set())
                     }
+                    newEdges foreach { e => println(s"${e.from.toShortString} -(derive)-> ${e.to.toShortString}") }
+                    val zeroLiftings = zeroLifting(node, newEdges ++ edgesCC)
+
+                    // zeroLiftings 중 after.derive가 있는 경우엔 before의 root들을 포함시켜주어야 한다
+                    val liftingRoots = (zeroLiftings collect {
+                        case Lifting(before, after: SymbolProgressNonterminal, _) if !after.derive(0).isEmpty =>
+                            (newEdges ++ edgesCC).rootsOf(before)
+                    }).flatten
+
+                    val newDerivables: Set[SymbolProgress] = zeroLiftings collect { case l @ Lifting(_, after: SymbolProgressNonterminal, _) if !after.derive(0).isEmpty => l.after }
+                    val liftingRootNodes = liftingRoots flatMap { _.nodes }
+
+                    // (newEdges ++ liftingRoots -- edgesCC) 중에서 to가 nodesCC에 포함된 SimpleEdge를 다시 처리해야 함
+                    expand(tail ++ (newNodes ++ newDerivables -- nodesCC).toList, newNodes ++ newDerivables ++ liftingRootNodes ++ nodesCC, newEdges ++ liftingRoots ++ edgesCC, zeroLiftings ++ liftingsCC)
                 case Nil => (nodesCC, edgesCC, liftingsCC)
             }
         }
