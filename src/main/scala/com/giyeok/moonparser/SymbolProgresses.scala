@@ -30,7 +30,8 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
          * the finished nodes will be transferred to the origin node via `lift` method
          */
         def derive(gen: Int): Set[Edge]
-        def lift(source: SymbolProgress): Option[SymbolProgress]
+        def lift(source: SymbolProgress): Lifting = Lifting(this, lift0(source), Some(source))
+        def lift0(source: SymbolProgress): SymbolProgress
         val derivedGen: Int
     }
     case object EmptyProgress extends SymbolProgress {
@@ -75,11 +76,11 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
 
     case class NonterminalProgress(symbol: Nonterminal, parsed: Option[ParsedSymbol[Nonterminal]], derivedGen: Int)
             extends SymbolProgressNonterminal {
-        def lift(source: SymbolProgress): Option[SymbolProgress] = {
+        def lift0(source: SymbolProgress): SymbolProgress = {
             // assuming grammar rules have a rule for symbol.name
             assert(grammar.rules(symbol.name) contains source.symbol)
             assert(source.parsed.isDefined)
-            Some(NonterminalProgress(symbol, Some(ParsedSymbol[Nonterminal](symbol, source.parsed.get)), derivedGen))
+            NonterminalProgress(symbol, Some(ParsedSymbol[Nonterminal](symbol, source.parsed.get)), derivedGen)
         }
         def derive(gen: Int): Set[Edge] =
             if (parsed.isEmpty) grammar.rules(symbol.name) map { s => SimpleEdge(this, SymbolProgress(s, gen)) }
@@ -109,12 +110,12 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
 
         override def canFinish = (locInSeq == symbol.seq.size)
         val parsed = if (canFinish) Some(ParsedSymbolsSeq[Sequence](symbol, children)) else None
-        def lift(source: SymbolProgress): Option[SymbolProgress] = {
+        def lift0(source: SymbolProgress): SymbolProgress = {
             assert(source.parsed.isDefined)
             assert(source.symbol == symbol.seq(locInSeq))
             val next = source.parsed.get
             val _wsAcceptable = wsAcceptable && !(next.isInstanceOf[ParsedEmpty[_]])
-            Some(SequenceProgress(symbol, _wsAcceptable, next +: _childrenWS, (_childrenWS.length) +: _childrenIdx, derivedGen))
+            SequenceProgress(symbol, _wsAcceptable, next +: _childrenWS, (_childrenWS.length) +: _childrenIdx, derivedGen)
         }
         def derive(gen: Int): Set[Edge] =
             if (locInSeq < symbol.seq.size) {
@@ -137,10 +138,10 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
 
     case class OneOfProgress(symbol: OneOf, parsed: Option[ParsedSymbol[OneOf]], derivedGen: Int)
             extends SymbolProgressNonterminal {
-        def lift(source: SymbolProgress): Option[SymbolProgress] = {
+        def lift0(source: SymbolProgress): SymbolProgress = {
             assert(symbol.syms contains source.symbol)
             assert(source.parsed.isDefined)
-            Some(OneOfProgress(symbol, Some(ParsedSymbol[OneOf](symbol, source.parsed.get)), derivedGen))
+            OneOfProgress(symbol, Some(ParsedSymbol[OneOf](symbol, source.parsed.get)), derivedGen)
         }
         def derive(gen: Int): Set[Edge] =
             if (parsed.isEmpty) symbol.syms map { s => SimpleEdge(this, SymbolProgress(s, gen)) }
@@ -151,11 +152,11 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             extends SymbolProgressNonterminal {
         lazy val children = _children.reverse
         val parsed = if (symbol.range contains _children.size) Some(ParsedSymbolsSeq(symbol, children)) else None
-        def lift(source: SymbolProgress): Option[SymbolProgress] = {
+        def lift0(source: SymbolProgress): SymbolProgress = {
             assert(symbol.range canProceed _children.size)
             assert(source.parsed.isDefined)
             assert(source.symbol == symbol.sym)
-            Some(RepeatProgress(symbol, source.parsed.get +: _children, derivedGen))
+            RepeatProgress(symbol, source.parsed.get +: _children, derivedGen)
         }
         def derive(gen: Int): Set[Edge] =
             if (symbol.range canProceed _children.size) Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen)))
@@ -164,10 +165,10 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
 
     case class ExceptProgress(symbol: Except, parsed: Option[ParsedSymbol[Except]], derivedGen: Int)
             extends SymbolProgressNonterminal {
-        def lift(source: SymbolProgress): Option[SymbolProgress] = {
+        def lift0(source: SymbolProgress): SymbolProgress = {
             // assassin edge will take care of except progress
             assert(source.parsed.isDefined)
-            Some(ExceptProgress(symbol, Some(ParsedSymbol[Except](symbol, source.parsed.get)), derivedGen))
+            ExceptProgress(symbol, Some(ParsedSymbol[Except](symbol, source.parsed.get)), derivedGen)
         }
         def derive(gen: Int): Set[Edge] =
             if (parsed.isEmpty) Set(
@@ -181,7 +182,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
 
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]], derivedGen: Int)
             extends SymbolProgressNonterminal {
-        def lift(source: SymbolProgress): Option[SymbolProgress] = ???
+        def lift0(source: SymbolProgress): SymbolProgress = ???
         def derive(gen: Int) = Set()
     }
 
