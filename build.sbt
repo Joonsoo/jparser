@@ -2,7 +2,7 @@ name := "Moon Parser"
 
 version := "0.1"
 
-scalaVersion := "2.11.4"
+scalaVersion := "2.11.6"
 
 
 resolvers += "swt-repo" at "https://swt-repo.googlecode.com/svn/repo/"
@@ -11,7 +11,7 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 
 libraryDependencies += "junit" % "junit" % "4.11" % "test"
 
-libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2"
+libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.3"
 
 libraryDependencies += {
   val os = (sys.props("os.name"), sys.props("os.arch")) match {
@@ -37,4 +37,6 @@ libraryDependencies ++= Seq(
 fork in run := true
 
 javaOptions in run := Seq("-XstartOnFirstThread", "-d64")
+
+crossPaths := false
 
