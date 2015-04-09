@@ -142,15 +142,16 @@ object SimpleGrammar1_9 extends Grammar with StringSamples {
     val incorrectSamples = Set[String]()
 }
 
-object SimpleGrammar1_10 extends Grammar with StringSamples {
-    val name = "Simple Grammar 1_10"
+object SimpleGrammar1_10 extends Grammar with StringSamples with AmbiguousSamples {
+    val name = "Simple Grammar 1_10 (ambiguous)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(n("A").star),
         "A" -> ListSet(seq(chars('a' to 'z').plus), chars(" ")))
     val startSymbol = n("S")
 
-    val correctSamples = Set[String]("asdfasdf   asdfasdf")
+    val correctSamples = Set[String]()
     val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]("asdf")
 }
 
 object SimpleGrammarSet1 {
@@ -166,8 +167,8 @@ object SimpleGrammarSet1 {
         SimpleGrammar1_6,
         SimpleGrammar1_7,
         SimpleGrammar1_8,
-        SimpleGrammar1_9)
-    // SimpleGrammar1_10        // Infinite loop
+        SimpleGrammar1_9,
+        SimpleGrammar1_10)
 }
 
 class SimpleGrammar1TestSuite extends BasicParseTest(SimpleGrammarSet1.grammars)

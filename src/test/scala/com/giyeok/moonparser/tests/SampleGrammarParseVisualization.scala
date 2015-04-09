@@ -34,6 +34,11 @@ trait StringSamples extends Samples {
     lazy val incorrectSampleInputs: Set[Inputs.Source] = incorrectSamples map { Inputs.fromString _ }
 }
 
+trait AmbiguousSamples extends Samples {
+    val ambiguousSamples: Set[String]
+    lazy val ambiguousSampleInputs: Set[Inputs.Source] = ambiguousSamples map { Inputs.fromString _ }
+}
+
 object SampleGrammarParseVisualization {
     val jsGrammar: Grammar with Samples = new Grammar with StringSamples {
         val name = JavaScriptGrammar.name
