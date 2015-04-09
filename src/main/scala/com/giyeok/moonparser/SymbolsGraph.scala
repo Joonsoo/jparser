@@ -14,6 +14,9 @@ trait SymbolsGraph {
         val from: Node
         val to: Node
         val nodes = Set(from, to)
+
+        def toShortString = s"${from.toShortString} -> ${to.toShortString}"
+        override def toString = toShortString
     }
     case class SimpleEdge(from: NonterminalNode, to: Node) extends Edge
     case class EagerAssassinEdge(from: Node, to: Node) extends Edge

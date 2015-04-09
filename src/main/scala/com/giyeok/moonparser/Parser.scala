@@ -73,7 +73,8 @@ class Parser(val grammar: Grammar)
                             def allEdgesSoFar = graph.edges ++ nextNewEdgesCC
 
                             if (after.canFinish) {
-                                val thisLiftings = allEdgesSoFar.incomingSimpleEdgesOf(before) map { _.from lift after }
+                                val incomingEdges = allEdgesSoFar.incomingSimpleEdgesOf(before)
+                                val thisLiftings = incomingEdges map { _.from lift after }
                                 val newLiftings = thisLiftings -- liftingsCC
                                 nextQueue ++= (newLiftings map { l => (l.before, l.after) })
                                 nextLiftingsCC ++= newLiftings
@@ -86,10 +87,8 @@ class Parser(val grammar: Grammar)
                                     nextRootTipsCC ++= incomingEdgesToBefore map { _.from }
                                     nextNewEdgesCC ++= incomingEdgesToBefore map { edge => SimpleEdge(edge.from, after) }
 
-                                    def recursiveDerive(queue: List[Edge]): Unit = queue match {
+                                    def recursiveDerive(queue: List[Edge], newNodesCC: Set[Node], newEdgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
                                         case edge +: rest =>
-                                            nextNewNodesCC ++= edge.nodes
-                                            nextNewEdgesCC += edge
                                             edge match {
                                                 case SimpleEdge(from, to: NonterminalNode) =>
                                                     if (to.canFinish) {
@@ -99,13 +98,16 @@ class Parser(val grammar: Grammar)
                                                             nextLiftingsCC += newLifting
                                                         }
                                                     }
-                                                    recursiveDerive(rest ++ to.derive(nextGen))
+                                                    val newDerives = (to derive nextGen) -- newEdgesCC
+                                                    recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
                                                 case _ =>
-                                                    recursiveDerive(rest)
+                                                    recursiveDerive(rest, newNodesCC ++ edge.nodes, newEdgesCC + edge)
                                             }
-                                        case List() =>
+                                        case List() => (newNodesCC, newEdgesCC)
                                     }
-                                    recursiveDerive(afterDerives.toList)
+                                    val (derivedNodes, derivedEdges) = recursiveDerive(afterDerives.toList, Set(), Set())
+                                    nextNewNodesCC ++= derivedNodes
+                                    nextNewEdgesCC ++= derivedEdges
                                 }
                             }
                             expand(nextQueue, nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC)

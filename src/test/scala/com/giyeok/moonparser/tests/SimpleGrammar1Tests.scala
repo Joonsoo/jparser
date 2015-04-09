@@ -128,7 +128,7 @@ object SimpleGrammar1_8 extends Grammar with StringSamples {
         "A" -> ListSet(i("abc")))
     val startSymbol = n("S")
 
-    val correctSamples = Set("a" /*, "aabc"*/ )
+    val correctSamples = Set("a", "aabc")
     val incorrectSamples = Set[String]()
 }
 
@@ -149,7 +149,7 @@ object SimpleGrammar1_10 extends Grammar with StringSamples {
         "A" -> ListSet(seq(chars('a' to 'z').plus), chars(" ")))
     val startSymbol = n("S")
 
-    val correctSamples = Set[String]()
+    val correctSamples = Set[String]("asdfasdf   asdfasdf")
     val incorrectSamples = Set[String]()
 }
 
@@ -166,8 +166,8 @@ object SimpleGrammarSet1 {
         SimpleGrammar1_6,
         SimpleGrammar1_7,
         SimpleGrammar1_8,
-        SimpleGrammar1_9,
-        SimpleGrammar1_10)
+        SimpleGrammar1_9)
+    // SimpleGrammar1_10        // Infinite loop
 }
 
 class SimpleGrammar1TestSuite extends BasicParseTest(SimpleGrammarSet1.grammars)

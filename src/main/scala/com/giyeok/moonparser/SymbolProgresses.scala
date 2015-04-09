@@ -19,6 +19,8 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
 
         def id = SymbolProgress.getId(this)
         def toShortString = this.toShortString1
+
+        override def toString = toShortString
     }
     abstract sealed class SymbolProgressTerminal extends SymbolProgress {
         def proceedTerminal(next: Input): Option[SymbolProgressTerminal]
@@ -113,10 +115,14 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         val parsed = if (canFinish) Some(ParsedSymbolsSeq[Sequence](symbol, children)) else None
         def lift0(source: SymbolProgress): SymbolProgress = {
             assert(source.parsed.isDefined)
-            assert(source.symbol == symbol.seq(locInSeq))
             val next = source.parsed.get
-            val _wsAcceptable = wsAcceptable && !(next.isInstanceOf[ParsedEmpty[_]])
-            SequenceProgress(symbol, _wsAcceptable, next +: _childrenWS, (_childrenWS.length) +: _childrenIdx, derivedGen)
+            val _wsAcceptable = !(next.isInstanceOf[ParsedEmpty[_]]) // && wsAcceptable
+            if (source.symbol == symbol.seq(locInSeq)) {
+                SequenceProgress(symbol, _wsAcceptable, next +: _childrenWS, (_childrenWS.length) +: _childrenIdx, derivedGen)
+            } else {
+                // Whitespace
+                SequenceProgress(symbol, _wsAcceptable, next +: _childrenWS, _childrenIdx, derivedGen)
+            }
         }
         def derive(gen: Int): Set[Edge] =
             if (locInSeq < symbol.seq.size) {
@@ -152,7 +158,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
     case class RepeatProgress(symbol: Repeat, _children: List[ParseNode[Symbol]], derivedGen: Int)
             extends SymbolProgressNonterminal {
         lazy val children = _children.reverse
-        val parsed = if (symbol.range contains _children.size) Some(ParsedSymbolsSeq(symbol, children)) else None
+        val parsed = if (symbol.range contains _children.size) { if (_children.size == 0) Some(ParsedEmpty(symbol)) else Some(ParsedSymbolsSeq(symbol, children)) } else None
         def lift0(source: SymbolProgress): SymbolProgress = {
             assert(symbol.range canProceed _children.size)
             assert(source.parsed.isDefined)
