@@ -9,11 +9,11 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
     private def testCorrect(grammar: Grammar, source: Inputs.Source) = {
         val result = new Parser(grammar).parse(source)
         it should s"${grammar.name} properly parsed on '${source.toCleanString}'" in {
-            assert(result.isLeft)
-        }
-        val ctx = result.left.get
-        it should s"${grammar.name} not ambiguous on '${source.toCleanString}'" in {
-            assert(ctx.resultCandidates.size == 1)
+            if (result.isLeft) {
+                assert(result.left.get.resultCandidates.size == 1)
+            } else {
+                fail(result.right.get.msg)
+            }
         }
     }
 

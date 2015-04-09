@@ -128,7 +128,7 @@ object SimpleGrammar1_8 extends Grammar with StringSamples {
         "A" -> ListSet(i("abc")))
     val startSymbol = n("S")
 
-    val correctSamples = Set("a", "aabc")
+    val correctSamples = Set("a" /*, "aabc"*/ )
     val incorrectSamples = Set[String]()
 }
 

@@ -45,7 +45,6 @@ class Parser(val grammar: Grammar)
 
     // 이 프로젝트 전체에서 asInstanceOf가 등장하는 경우는 대부분이 Set이 invariant해서 추가된 부분 - covariant한 Set으로 바꾸면 없앨 수 있음
     case class ParsingContext(gen: Int, graph: Graph, resultCandidates: Set[SymbolProgress]) {
-        import ParsingContext.{ collectResultCandidates }
 
         def proceedTerminal1(next: Input): Set[Lifting] =
             (graph.nodes flatMap {
@@ -56,6 +55,12 @@ class Parser(val grammar: Grammar)
             // `nextNodes` is actually type of `Set[(SymbolProgressTerminal, SymbolProgressTerminal)]`
             // but the invariance of `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
             println(s"**** New Generation $gen")
+
+            graph.edges foreach { edge =>
+                println(s"${edge.from.toShortString} -> ${edge.to.toShortString}")
+            }
+            println()
+
             val terminalLiftings: Set[Lifting] = proceedTerminal1(next)
             if (terminalLiftings isEmpty) {
                 Right(ParsingErrors.UnexpectedInput(next))
@@ -90,7 +95,7 @@ class Parser(val grammar: Grammar)
                                                     if (to.canFinish) {
                                                         val newLifting = from lift to
                                                         if (!(nextLiftingsCC contains newLifting)) {
-                                                            nextQueue +:= (from, to)
+                                                            nextQueue +:= (newLifting.before, newLifting.after)
                                                             nextLiftingsCC += newLifting
                                                         }
                                                     }
@@ -132,7 +137,7 @@ class Parser(val grammar: Grammar)
 
                 // TODO assassin edges
 
-                val nextParsingContext = ParsingContext(gen + 1, Graph(finalNodes, finalEdges), liftings filter { _.after.symbol == grammar.startSymbol } map { _.after } filter { _.canFinish })
+                val nextParsingContext = ParsingContext(gen + 1, Graph(finalNodes, finalEdges), liftings map { _.after } filter { _.symbol == grammar.startSymbol } filter { _.canFinish })
                 val verboseProceedLog = VerboseProceedLog(terminalLiftings, liftings, finalNodes, finalEdges)
                 Left((nextParsingContext, verboseProceedLog))
             }
@@ -150,9 +155,6 @@ class Parser(val grammar: Grammar)
     }
 
     object ParsingContext {
-        private def collectResultCandidates(nodes: Set[SymbolProgress]): Set[SymbolProgress] =
-            nodes collect { case s @ NonterminalProgress(sym, Some(_), 0) if sym == grammar.startSymbol => s }
-
         def expand(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge], liftingsCC: Set[Lifting]): (Set[Node], Set[Edge], Set[Lifting]) = {
             def immediateLifting(node: Node, edges: Set[Edge]): (Set[Lifting], Set[Edge]) = {
                 def immediateLifting0(queue: List[(SymbolProgressNonterminal, SymbolProgress)], liftingsCC: Set[Lifting], edgesCC: Set[Edge]): (Set[Lifting], Set[Edge]) = queue match {
@@ -229,7 +231,7 @@ class Parser(val grammar: Grammar)
             })
 
             val finishable: Set[Lifting] = nodes collect { case n if n.canFinish => Lifting(n, n, None) }
-            ParsingContext(0, graph, collectResultCandidates(finishable map { _.after }))
+            ParsingContext(0, graph, liftings map { _.after } filter { _.symbol == grammar.startSymbol } filter { _.canFinish })
         }
     }
 
