@@ -79,7 +79,7 @@ object ParseGraphVisualizer {
                     case Left(ctx) +: rest =>
                         //Try(ctx proceedTerminal terminal).getOrElse(Right(parser.ParsingErrors.UnexpectedInput(terminal)))
                         (ctx proceedTerminalVerbose terminal) match {
-                            case Left((next, log)) => (Left(next) +: contexts, Some(log) +: logs)
+                            case Left((next, log)) => (Left(next) +: contexts, Some(??? /*log*/ ) +: logs)
                             case Right(error) => (Right(error.asInstanceOf[Parser#ParsingError]) +: contexts, None +: logs)
                         }
                     case (error @ Right(_)) +: rest => (error +: contexts, None +: logs)
