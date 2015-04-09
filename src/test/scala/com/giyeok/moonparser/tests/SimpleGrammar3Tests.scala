@@ -53,7 +53,8 @@ object SimpleGrammar6 extends Grammar with StringSamples {
 
 object SimpleGrammarSet3 {
     val grammars: Set[Grammar with Samples] = Set(
-        SimpleGrammar5)
+        SimpleGrammar5,
+        SimpleGrammar6)
 }
 
-// class SimpleGrammar3TestSuite extends BasicParseTest(SimpleGrammarSet3.grammars)
+class SimpleGrammar3TestSuite extends BasicParseTest(SimpleGrammarSet3.grammars)

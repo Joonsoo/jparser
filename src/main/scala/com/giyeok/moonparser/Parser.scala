@@ -89,15 +89,17 @@ class Parser(val grammar: Grammar)
 
                                     def recursiveDerive(queue: List[Edge], newNodesCC: Set[Node], newEdgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
                                         case edge +: rest =>
+                                            (edge.from, edge.to) match {
+                                                case (from: NonterminalNode, to) if to.canFinish =>
+                                                    val newLifting = from lift to
+                                                    if (!(nextLiftingsCC contains newLifting)) {
+                                                        nextQueue +:= (newLifting.before, newLifting.after)
+                                                        nextLiftingsCC += newLifting
+                                                    }
+                                                case _ => // nothing to do
+                                            }
                                             edge match {
                                                 case SimpleEdge(from, to: NonterminalNode) =>
-                                                    if (to.canFinish) {
-                                                        val newLifting = from lift to
-                                                        if (!(nextLiftingsCC contains newLifting)) {
-                                                            nextQueue +:= (newLifting.before, newLifting.after)
-                                                            nextLiftingsCC += newLifting
-                                                        }
-                                                    }
                                                     val newDerives = (to derive nextGen) -- newEdgesCC
                                                     recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
                                                 case _ =>
@@ -118,24 +120,24 @@ class Parser(val grammar: Grammar)
 
                 assert(rootTips subsetOf graph.nodes)
 
+                println("- liftings")
                 liftings foreach { lifting => println(s"${lifting.before.toShortString} => ${lifting.after.toShortString} (by ${lifting.by map { _.toShortString }})") }
-                println()
+                println("- newNodes")
                 newNodes foreach { node => println(node.toShortString) }
-                println()
+                println("- newEdges")
                 newEdges foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
-                println()
+                println("- rootTips")
                 rootTips foreach { rootTip => println(rootTip.toShortString) }
 
                 val roots = rootTips flatMap { rootTip => graph.edges.rootsOf(rootTip) }
-                println()
+                println("- roots")
                 roots foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
 
-                println()
                 println("=== Edges before assassin works ===")
                 val finalEdges = roots ++ newEdges
                 finalEdges foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
                 val finalNodes = finalEdges flatMap { _.nodes }
-                println()
+                println("============ End of generation =======")
 
                 // TODO assassin edges
 
