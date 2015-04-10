@@ -20,6 +20,7 @@ import com.giyeok.moonparser.tests.javascript.JavaScriptGrammar
 import com.giyeok.moonparser.tests.javascript.JavaScriptGrammar
 import org.eclipse.draw2d.ToolbarLayout
 import org.eclipse.draw2d.Label
+import org.eclipse.jface.resource.JFaceResources
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.Source]
@@ -83,6 +84,8 @@ object SampleGrammarParseVisualization {
         val testText = new org.eclipse.swt.widgets.Text(rightFrame, SWT.MULTI)
         val testButton = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
 
+        textList.setFont(JFaceResources.getTextFont)
+
         sortedGrammars foreach { t => grammarList.add(t.name) }
         var shownTexts: Seq[Inputs.Source] = Seq()
         grammarList.addListener(SWT.Selection, new Listener() {
@@ -114,8 +117,14 @@ object SampleGrammarParseVisualization {
                     grammarFig.setContents(fig)
                 }
                 textList.removeAll()
-                shownTexts = (grammar.correctSampleInputs.toSeq sortBy { _.toCleanString }) ++ (grammar.incorrectSampleInputs.toSeq sortBy { _.toCleanString })
-                shownTexts foreach { i => textList.add(s"'${i.toCleanString}'") }
+
+                shownTexts = Seq()
+                def addText(input: Inputs.Source, text: String): Unit = {
+                    shownTexts = shownTexts :+ input
+                    textList.add(text)
+                }
+                grammar.correctSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
+                grammar.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
             }
         })
         textList.addListener(SWT.Selection, new Listener() {

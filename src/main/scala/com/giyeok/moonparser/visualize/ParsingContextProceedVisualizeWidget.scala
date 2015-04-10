@@ -82,9 +82,9 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
     graph.addSelectionListener(new SelectionAdapter() {
         override def widgetSelected(e: SelectionEvent): Unit = {
             unhighlightAllLiftings()
-            val interactive = liftingsByBy filter { p => getNode(p._1) match { case Some(node) if node == e.item => true case _ => false } }
-            if (!interactive.isEmpty) {
-                interactive.values.flatten foreach { lifting =>
+            val interactiveLift = liftingsByBy filter { p => getNode(p._1) match { case Some(node) if node == e.item => true case _ => false } }
+            if (!interactiveLift.isEmpty) {
+                interactiveLift.values.flatten foreach { lifting =>
                     println(lifting)
                     vliftings(lifting)._3.setLineWidth(5)
                 }
