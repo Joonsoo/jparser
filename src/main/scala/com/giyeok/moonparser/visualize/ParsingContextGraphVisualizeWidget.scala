@@ -15,20 +15,17 @@ import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
 
 import com.giyeok.moonparser.Inputs
 import com.giyeok.moonparser.ParseTree
-import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
 import com.giyeok.moonparser.Parser
+import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
 
-class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Option[Parser#TerminalProceedLog]) extends Composite(parent, SWT.NONE) {
-    this.setLayout(new FillLayout)
+trait ParsingContextGraphVisualize {
+    val graph: Graph
+    val resources: ParseGraphVisualizer.Resources
 
-    private val (nodes, edges) = (context.graph.nodes, context.graph.edges.asInstanceOf[Set[Parser#Edge]])
-    val graph = new Graph(this, SWT.NONE)
-    private val proceed1: Set[Parser#Lifting] = log match {
-        case Some(log) => log.terminalProceeds.asInstanceOf[Set[Parser#Lifting]]
-        case None => Set()
-    }
-    private val proceeded = proceed1 map { _.after }
-    private var vnodes: Map[Parser#Node, GraphNode] = ((nodes ++ context.resultCandidates ++ proceeded) map { n =>
+    var vnodes = Map[Parser#Node, GraphNode]()
+    var vedges = Map[Parser#Edge, GraphConnection]()
+
+    def registerNode(n: Parser#SymbolProgress): GraphNode = {
         val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
         graphNode.setFont(resources.default12Font)
         n match {
@@ -64,17 +61,9 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGrap
                 }
             }
         })
-        if (proceeded contains n) {
-            graphNode.setFont(resources.italic14Font)
-            graphNode.setBackgroundColor(ColorConstants.yellow)
-        }
-        (n, graphNode)
-    }).toMap
-    context.resultCandidates foreach { p =>
-        val node = vnodes(p)
-        node.setFont(resources.bold14Font)
-        node.setBackgroundColor(ColorConstants.orange)
+        graphNode
     }
+
     private def calculateCurve(edges: Set[Parser#Edge], e: Parser#Edge): Int = {
         val overlapping = edges filter { r => (r.from == e.from) && (r.to == e.to) && (e != r) }
         if (!overlapping.isEmpty) {
@@ -82,7 +71,8 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGrap
         } else if (edges exists { r => (r.from == e.to) && (r.to == e.from) }) 1
         else 0
     }
-    private val vedges: Set[GraphConnection] = edges collect {
+
+    def registerEdge(edges: Set[Parser#Edge])(e: Parser#Edge) = e match {
         case e: Parser#SimpleEdge =>
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
             val curves = calculateCurve(edges, e)
@@ -95,11 +85,23 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, resources: ParseGrap
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
             connection.setLineColor(ColorConstants.red)
             connection
+
     }
-    private val nedges = proceed1 map { p =>
-        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(p.before), vnodes(p.after))
-        connection.setLineColor(ColorConstants.blue)
-        connection
+}
+
+class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Option[Parser#VerboseProceedLog]) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
+    this.setLayout(new FillLayout)
+
+    val graph = new Graph(this, SWT.NONE)
+
+    vnodes ++= ((context.graph.nodes ++ context.resultCandidates) map { n: Parser#SymbolProgress => (n -> registerNode(n)) })
+    context.resultCandidates foreach { p =>
+        val node = vnodes(p)
+        node.setFont(resources.bold14Font)
+        node.setBackgroundColor(ColorConstants.orange)
     }
+
+    val registerEdge1 = registerEdge(context.graph.edges.asInstanceOf[Set[Parser#Edge]]) _
+    vedges ++= context.graph.edges map { e => (e -> registerEdge1(e)) }
     graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING), true)
 }

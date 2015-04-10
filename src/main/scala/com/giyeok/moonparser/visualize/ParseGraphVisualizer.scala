@@ -32,6 +32,7 @@ import org.eclipse.draw2d.AbstractLayout
 import org.eclipse.draw2d.geometry.Dimension
 import org.eclipse.draw2d.geometry.PrecisionRectangle
 import org.eclipse.draw2d.geometry.Rectangle
+import org.eclipse.jface.resource.JFaceResources
 
 object ParseGraphVisualizer {
     trait Resources {
@@ -43,10 +44,11 @@ object ParseGraphVisualizer {
 
     def start(grammar: Grammar, source: Seq[Input], display: Display, shell: Shell): Unit = {
         val resources = new Resources {
-            val default12Font = new Font(null, "Monaco", 12, SWT.NONE)
-            val fixedWidth12Font = new Font(null, "Monaco", 12, SWT.NONE)
-            val italic14Font = new Font(null, "Monaco", 14, SWT.ITALIC)
-            val bold14Font = new Font(null, "Monaco", 14, SWT.BOLD)
+            val defaultFontName = "Consolas"
+            val default12Font = new Font(null, defaultFontName, 12, SWT.NONE)
+            val fixedWidth12Font = new Font(null, defaultFontName, 12, SWT.NONE)
+            val italic14Font = new Font(null, defaultFontName, 14, SWT.ITALIC)
+            val bold14Font = new Font(null, defaultFontName, 14, SWT.BOLD)
         }
 
         shell.setText("Parsing Graph")
@@ -72,14 +74,14 @@ object ParseGraphVisualizer {
 
         val parser = new Parser(grammar)
 
-        val finReversed: (List[Either[Parser#ParsingContext, Parser#ParsingError]], List[Option[Parser#TerminalProceedLog]]) =
-            source.foldLeft[(List[Either[Parser#ParsingContext, Parser#ParsingError]], List[Option[Parser#TerminalProceedLog]])](List(Left(parser.startingContext)), List()) { (cl, terminal) =>
+        val finReversed: (List[Either[Parser#ParsingContext, Parser#ParsingError]], List[Option[Parser#VerboseProceedLog]]) =
+            source.foldLeft[(List[Either[Parser#ParsingContext, Parser#ParsingError]], List[Option[Parser#VerboseProceedLog]])](List(Left(parser.startingContext)), List()) { (cl, terminal) =>
                 val (contexts, logs) = cl
                 contexts match {
                     case Left(ctx) +: rest =>
                         //Try(ctx proceedTerminal terminal).getOrElse(Right(parser.ParsingErrors.UnexpectedInput(terminal)))
                         (ctx proceedTerminalVerbose terminal) match {
-                            case Left((next, log)) => (Left(next) +: contexts, Some(??? /*log*/ ) +: logs)
+                            case Left((next, log)) => (Left(next) +: contexts, Some(log) +: logs)
                             case Right(error) => (Right(error.asInstanceOf[Parser#ParsingError]) +: contexts, None +: logs)
                         }
                     case (error @ Right(_)) +: rest => (error +: contexts, None +: logs)
@@ -176,7 +178,7 @@ object ParseGraphVisualizer {
                 })
 
                 val sourceStr = source map { _.toCleanString }
-                shell.setText((sourceStr take newLocation).mkString + "*" + (sourceStr drop newLocation).mkString)
+                shell.setText(grammar.name + ": " + (sourceStr take newLocation).mkString + "*" + (sourceStr drop newLocation).mkString)
                 layout.topControl = if (showProceed) views(newLocation)._2.get else views(newLocation)._1
                 graphView.layout()
                 shell.layout()

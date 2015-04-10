@@ -34,6 +34,8 @@ libraryDependencies ++= Seq(
   "org.eclipse.zest" % "org.eclipse.zest.layouts.source" % "1.1.100.201408150207" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts.source_1.1.100.201408150207.jar"
 )
 
+libraryDependencies += "swt" % "jface" % "3.0.1"
+
 fork in run := true
 
 javaOptions in run := {

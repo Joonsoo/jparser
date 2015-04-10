@@ -43,6 +43,10 @@ class Parser(val grammar: Grammar)
         finalNodes: Set[Node],
         finalEdges: Set[Edge])
 
+    def logging(block: => Unit): Unit = {
+        block
+    }
+
     // 이 프로젝트 전체에서 asInstanceOf가 등장하는 경우는 대부분이 Set이 invariant해서 추가된 부분 - covariant한 Set으로 바꾸면 없앨 수 있음
     case class ParsingContext(gen: Int, graph: Graph, resultCandidates: Set[SymbolProgress]) {
 
@@ -54,12 +58,14 @@ class Parser(val grammar: Grammar)
         def proceedTerminalVerbose(next: Input): (Either[(ParsingContext, VerboseProceedLog), ParsingError]) = {
             // `nextNodes` is actually type of `Set[(SymbolProgressTerminal, SymbolProgressTerminal)]`
             // but the invariance of `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
-            println(s"**** New Generation $gen")
+            logging {
+                println(s"**** New Generation $gen")
 
-            graph.edges foreach { edge =>
-                println(s"${edge.from.toShortString} -> ${edge.to.toShortString}")
+                graph.edges foreach { edge =>
+                    println(s"${edge.from.toShortString} -> ${edge.to.toShortString}")
+                }
+                println()
             }
-            println()
 
             val terminalLiftings: Set[Lifting] = proceedTerminal1(next)
             if (terminalLiftings isEmpty) {
@@ -120,24 +126,27 @@ class Parser(val grammar: Grammar)
 
                 assert(rootTips subsetOf graph.nodes)
 
-                println("- liftings")
-                liftings foreach { lifting => println(s"${lifting.before.toShortString} => ${lifting.after.toShortString} (by ${lifting.by map { _.toShortString }})") }
-                println("- newNodes")
-                newNodes foreach { node => println(node.toShortString) }
-                println("- newEdges")
-                newEdges foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
-                println("- rootTips")
-                rootTips foreach { rootTip => println(rootTip.toShortString) }
-
                 val roots = rootTips flatMap { rootTip => graph.edges.rootsOf(rootTip) }
-                println("- roots")
-                roots foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
-
-                println("=== Edges before assassin works ===")
                 val finalEdges = roots ++ newEdges
-                finalEdges foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
                 val finalNodes = finalEdges flatMap { _.nodes }
-                println("============ End of generation =======")
+
+                logging {
+                    println("- liftings")
+                    liftings foreach { lifting => println(s"${lifting.before.toShortString} => ${lifting.after.toShortString} (by ${lifting.by map { _.toShortString }})") }
+                    println("- newNodes")
+                    newNodes foreach { node => println(node.toShortString) }
+                    println("- newEdges")
+                    newEdges foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
+                    println("- rootTips")
+                    rootTips foreach { rootTip => println(rootTip.toShortString) }
+
+                    println("- roots")
+                    roots foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
+
+                    println("=== Edges before assassin works ===")
+                    finalEdges foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
+                    println("============ End of generation =======")
+                }
 
                 // TODO assassin edges
 

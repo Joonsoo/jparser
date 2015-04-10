@@ -10,7 +10,14 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
         val result = new Parser(grammar).parse(source)
         it should s"${grammar.name} properly parsed on '${source.toCleanString}'" in {
             result match {
-                case Left(ctx) => assert(ctx.resultCandidates.size == 1)
+                case Left(ctx) =>
+                    if (ctx.resultCandidates.size != 1) {
+                        ctx.resultCandidates.zipWithIndex foreach { result =>
+                            println(s"=== ${result._2} ===")
+                            println(result._1.parsed.get.toHorizontalHierarchyString)
+                        }
+                    }
+                    assert(ctx.resultCandidates.size == 1)
                 case Right(error) => fail(error.msg)
             }
         }
