@@ -52,6 +52,7 @@ object SampleGrammarParseVisualization {
         Set(jsGrammar),
         SimpleGrammarSet1.grammars,
         SimpleGrammarSet2.grammars,
+        SimpleGrammarSet3.grammars,
         RecursiveGrammarSet1.grammars,
         GrammarWithExcept.grammars,
         GrammarWithLookaheadExcept.grammars).flatten

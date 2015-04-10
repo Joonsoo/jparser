@@ -66,6 +66,7 @@ trait ParsingContextGraphVisualize {
             vnodes(n) = graphNode
             graphNode
     }
+    def getNode(n: Parser#SymbolProgress): Option[GraphNode] = vnodes get n
 
     def highlightResultCandidate(n: Parser#Node): Unit = {
         val node = vnodes(n)

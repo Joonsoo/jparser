@@ -20,7 +20,7 @@ object SimpleGrammar5 extends Grammar with StringSamples {
         "B" -> ListSet(i("b"), e))
     val startSymbol = n("S")
 
-    val correctSamples = Set("", "ab")
+    val correctSamples = Set("", "a", "b", "ab")
     val incorrectSamples = Set("aa")
 
     def main(args: Array[String]): Unit = {
@@ -53,8 +53,9 @@ object SimpleGrammar6 extends Grammar with StringSamples {
 
 object SimpleGrammarSet3 {
     val grammars: Set[Grammar with Samples] = Set(
-        SimpleGrammar5,
-        SimpleGrammar6)
+        SimpleGrammar5, // fromSeeds failed
+        SimpleGrammar6 // Assertion failed
+        )
 }
 
 class SimpleGrammar3TestSuite extends BasicParseTest(SimpleGrammarSet3.grammars)

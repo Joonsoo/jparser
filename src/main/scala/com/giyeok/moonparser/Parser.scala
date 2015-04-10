@@ -29,14 +29,6 @@ class Parser(val grammar: Grammar)
         }
     }
 
-    case class TerminalProceedLog(
-        terminalProceeds: Set[Lifting],
-        newEdges: Set[Edge],
-        simpleLifted: Set[Lifting],
-        eagerAssassinations: Set[(SymbolProgress, SymbolProgress)],
-        newAssassinEdges: Set[Edge], //Set[EagerAssassinEdge],
-        nextContext: ParsingContext)
-
     case class VerboseProceedLog(
         terminalLiftings: Set[Lifting],
         liftings: Set[Lifting],
@@ -154,7 +146,11 @@ class Parser(val grammar: Grammar)
 
                 // TODO assassin edges
 
-                val nextParsingContext = ParsingContext(gen + 1, Graph(finalNodes, finalEdges), liftings map { _.after } filter { _.symbol == grammar.startSymbol } filter { _.canFinish })
+                def collectResultCandidates(liftings: Set[Lifting]): Set[Node] =
+                    liftings map { _.after } filter { _.symbol == grammar.startSymbol } collect {
+                        case n: SymbolProgressNonterminal if n.derivedGen == 0 && n.canFinish => n
+                    }
+                val nextParsingContext = ParsingContext(gen + 1, Graph(finalNodes, finalEdges), collectResultCandidates(liftings))
                 val verboseProceedLog = VerboseProceedLog(terminalLiftings, liftings, newNodes, newEdges, rootTips, roots, finalNodes, finalEdges)
                 Left((nextParsingContext, verboseProceedLog))
             }

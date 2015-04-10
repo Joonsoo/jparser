@@ -18,6 +18,7 @@ import com.giyeok.moonparser.Parser
 import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Event
 import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
+import org.eclipse.swt.widgets.Widget
 
 class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
@@ -46,10 +47,17 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         (before, after, connection)
     }
 
+    // blue or cyan edge means lifting
+    // node with light gray background means that it is new nodes, that was not existed in the previous context
+    // green edges are new edges, not existed in the previous context
+    // nodes with red border are root tips
+    // red edges are roots
+
     val newNodeBackgroundColor = ColorConstants.lightGray
 
-    (log.terminalLiftings ++ log.liftings).asInstanceOf[Set[Parser#Lifting]] foreach { lifting =>
-        val (_, after, connection) = registerLifting(lifting)
+    val liftings = (log.terminalLiftings ++ log.liftings).asInstanceOf[Set[Parser#Lifting]]
+    val vliftings: Map[Parser#Lifting, (GraphNode, GraphNode, GraphConnection)] = (liftings map { lifting =>
+        val (before, after, connection) = registerLifting(lifting)
 
         if (log.terminalLiftings.asInstanceOf[Set[Parser#Lifting]] contains lifting) {
             after.setFont(resources.bold14Font)
@@ -62,7 +70,27 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
                 after.setBackgroundColor(newNodeBackgroundColor)
             }
         }
+
+        lifting -> (before, after, connection)
+    }).toMap
+
+    def unhighlightAllLiftings(): Unit = {
+        vliftings foreach { v => v._2._3.setLineWidth(1) }
     }
+    unhighlightAllLiftings()
+    val liftingsByBy = liftings filter { _.by.isDefined } groupBy { _.by.get }
+    graph.addSelectionListener(new SelectionAdapter() {
+        override def widgetSelected(e: SelectionEvent): Unit = {
+            unhighlightAllLiftings()
+            val interactive = liftingsByBy filter { p => getNode(p._1) match { case Some(node) if node == e.item => true case _ => false } }
+            if (!interactive.isEmpty) {
+                interactive.values.flatten foreach { lifting =>
+                    println(lifting)
+                    vliftings(lifting)._3.setLineWidth(5)
+                }
+            }
+        }
+    })
 
     log.newEdges foreach { e =>
         val (from, to, connection) = registerEdge1(edges)(e)
