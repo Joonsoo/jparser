@@ -7,9 +7,9 @@ scalaVersion := "2.11.6"
 
 resolvers += "swt-repo" at "https://swt-repo.googlecode.com/svn/repo/"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 
-libraryDependencies += "junit" % "junit" % "4.11" % "test"
+libraryDependencies += "junit" % "junit" % "4.12" % "test"
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.3"
 
@@ -28,10 +28,10 @@ libraryDependencies += {
 }
 
 libraryDependencies ++= Seq(
-  "org.eclipse.draw2d" % "org.eclipse.draw2d" % "3.9.100" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.draw2d_3.9.100.201405261516.jar",
-  "org.eclipse.zest" % "org.eclipse.zest.core" % "1.5.100" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.core_1.5.100.201405261516.jar",
-  "org.eclipse.zest" % "org.eclipse.zest.layouts" % "1.1.100" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts_1.1.100.201405261516.jar",
-  "org.eclipse.zest" % "org.eclipse.zest.layouts.source" % "1.1.100" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts.source_1.1.100.201405261516.jar"
+  "org.eclipse.draw2d" % "org.eclipse.draw2d" % "3.9.101.201408150207" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.draw2d_3.9.101.201408150207.jar",
+  "org.eclipse.zest" % "org.eclipse.zest.core" % "1.5.100.201408150207" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.core_1.5.100.201408150207.jar",
+  "org.eclipse.zest" % "org.eclipse.zest.layouts" % "1.1.100.201408150207" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts_1.1.100.201408150207.jar",
+  "org.eclipse.zest" % "org.eclipse.zest.layouts.source" % "1.1.100.201408150207" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts.source_1.1.100.201408150207.jar"
 )
 
 fork in run := true
