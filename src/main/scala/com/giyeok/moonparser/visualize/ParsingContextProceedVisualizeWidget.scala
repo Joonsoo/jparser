@@ -19,50 +19,73 @@ import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Event
 import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
 
-class ParsingContextProceedVisualizeWidget(parent: Composite, resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) {
+class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
 
-    private val (nodes, edges) = (context.graph.nodes, context.graph.edges.asInstanceOf[Set[Parser#Edge]])
     val graph = new Graph(this, SWT.NONE)
 
-    private var vnodes: Map[Parser#Node, GraphNode] = ((nodes ++ context.resultCandidates) map { n: Parser#SymbolProgress =>
-        val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
-        graphNode.setFont(resources.default12Font)
-        n match {
-            case term: Parser#SymbolProgressTerminal if term.parsed.isEmpty =>
-                graphNode.setBackgroundColor(ColorConstants.lightGreen)
-            case _ =>
+    private val (nodes, edges) = (context.graph.nodes.asInstanceOf[Set[Parser#Node]], context.graph.edges.asInstanceOf[Set[Parser#Edge]])
+
+    (nodes ++ context.resultCandidates) foreach { registerNode _ }
+    context.resultCandidates foreach { highlightResultCandidate _ }
+
+    val registerEdge1 = registerEdge(edges) _
+    edges foreach { registerEdge1(_) }
+
+    def registerLifting(lifting: Parser#Lifting): (GraphNode, GraphNode, GraphConnection) = {
+        val before = registerNode(lifting.before)
+        val after = registerNode(lifting.after)
+
+        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, before, after)
+
+        lifting.by match {
+            case Some(by) => connection.setText(by.id.toString)
+            case None =>
         }
-        val tooltipText0 = n match {
-            case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
-                val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
-                list._2 mkString "\n"
-            case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq.childrenWS map { _.toHorizontalHierarchyStringSeq })
-                list._2 mkString "\n"
-            case n if n.canFinish =>
-                n.parsed.get.toHorizontalHierarchyString
-            case _ =>
-                n.toShortString
-        }
-        val tooltipText = n match {
-            case n: Parser#SymbolProgressNonterminal => s"${n.derivedGen}\n$tooltipText0"
-            case _ => tooltipText0
-        }
-        val f = new org.eclipse.draw2d.Label()
-        f.setFont(resources.fixedWidth12Font)
-        f.setText(tooltipText)
-        graphNode.setTooltip(f)
-        graph.addSelectionListener(new SelectionAdapter() {
-            override def widgetSelected(e: SelectionEvent): Unit = {
-                if (e.item == graphNode) {
-                    println(e.item)
-                    println(tooltipText)
-                }
+
+        (before, after, connection)
+    }
+
+    val newNodeBackgroundColor = ColorConstants.lightGray
+
+    (log.terminalLiftings ++ log.liftings).asInstanceOf[Set[Parser#Lifting]] foreach { lifting =>
+        val (_, after, connection) = registerLifting(lifting)
+
+        if (log.terminalLiftings.asInstanceOf[Set[Parser#Lifting]] contains lifting) {
+            after.setFont(resources.bold14Font)
+            after.setBackgroundColor(ColorConstants.orange)
+            connection.setLineColor(ColorConstants.blue)
+        } else {
+            connection.setCurveDepth(-10)
+            connection.setLineColor(ColorConstants.cyan)
+            if (!(nodes contains lifting.after)) {
+                after.setBackgroundColor(newNodeBackgroundColor)
             }
-        })
-        (n, graphNode)
-    }).toMap
+        }
+    }
+
+    log.newEdges foreach { e =>
+        val (from, to, connection) = registerEdge1(edges)(e)
+
+        if (!(nodes contains e.from)) {
+            from.setBackgroundColor(newNodeBackgroundColor)
+        }
+        if (!(nodes contains e.to)) {
+            to.setBackgroundColor(newNodeBackgroundColor)
+        }
+        connection.setLineColor(ColorConstants.green)
+    }
+
+    log.rootTips foreach { n =>
+        assert(nodes contains n)
+        val node = registerNode(n)
+        node.setBorderColor(ColorConstants.red)
+    }
+    log.roots foreach { e =>
+        assert(edges contains e)
+        val edge = registerEdge(edges)(e)
+        edge.setLineColor(ColorConstants.red)
+    }
 
     graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING), true)
 }

@@ -40,6 +40,10 @@ class Parser(val grammar: Grammar)
     case class VerboseProceedLog(
         terminalLiftings: Set[Lifting],
         liftings: Set[Lifting],
+        newNodes: Set[Node],
+        newEdges: Set[Edge],
+        rootTips: Set[Node],
+        roots: Set[SimpleEdge],
         finalNodes: Set[Node],
         finalEdges: Set[Edge])
 
@@ -151,7 +155,7 @@ class Parser(val grammar: Grammar)
                 // TODO assassin edges
 
                 val nextParsingContext = ParsingContext(gen + 1, Graph(finalNodes, finalEdges), liftings map { _.after } filter { _.symbol == grammar.startSymbol } filter { _.canFinish })
-                val verboseProceedLog = VerboseProceedLog(terminalLiftings, liftings, finalNodes, finalEdges)
+                val verboseProceedLog = VerboseProceedLog(terminalLiftings, liftings, newNodes, newEdges, rootTips, roots, finalNodes, finalEdges)
                 Left((nextParsingContext, verboseProceedLog))
             }
         }
