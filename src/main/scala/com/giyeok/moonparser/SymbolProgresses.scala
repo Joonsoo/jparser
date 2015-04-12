@@ -21,6 +21,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         def toShortString = this.toShortString1
 
         override def toString = toShortString
+
     }
     abstract sealed class SymbolProgressTerminal extends SymbolProgress {
         def proceedTerminal(next: Input): Option[SymbolProgressTerminal]
@@ -40,7 +41,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         val symbol = Empty
         val parsed = Some(ParsedEmpty(symbol))
     }
-
     object SymbolProgress {
         private var cache: Map[SymbolProgress, Int] = Map()
         private var counter = 0
@@ -61,7 +61,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             case symbol: Sequence => SequenceProgress(symbol, false, List(), List(), gen)
             case symbol: OneOf => OneOfProgress(symbol, None, gen)
             case symbol: Except => ExceptProgress(symbol, None, gen)
-            case symbol: LookaheadExcept => LookaheadExceptProgress(symbol, None, gen)
+            case symbol: LookaheadExcept => LookaheadExceptProgress(symbol, gen)
             case symbol: Repeat => RepeatProgress(symbol, List(), gen)
             case symbol: Backup => BackupProgress(symbol, None, gen)
         }
@@ -126,20 +126,11 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         }
         def derive(gen: Int): Set[Edge] =
             if (locInSeq < symbol.seq.size) {
-                def lookaheads(loc: Int, cc: Set[Edge]): Set[Edge] =
-                    if (loc < symbol.seq.size) {
-                        symbol.seq(loc) match {
-                            case LookaheadExcept(except) =>
-                                lookaheads(loc + 1, cc + EagerAssassinEdge(SymbolProgress(except, gen), this))
-                            case s =>
-                                cc + SimpleEdge(this, SymbolProgress(s, gen))
-                        }
-                    } else cc
-                val elemDerive = lookaheads(locInSeq, Set())
+                val elemDerive = SimpleEdge(this, SymbolProgress(symbol.seq(locInSeq), gen))
                 if (wsAcceptable) {
                     val wsDerive = (symbol.whitespace map { s => SimpleEdge(this, SymbolProgress(s, gen)) })
-                    wsDerive ++ elemDerive
-                } else elemDerive
+                    (wsDerive + elemDerive).asInstanceOf[Set[Edge]]
+                } else Set(elemDerive)
             } else Set[Edge]()
     }
 
@@ -180,12 +171,18 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         def derive(gen: Int): Set[Edge] =
             if (parsed.isEmpty) Set(
                 SimpleEdge(this, SymbolProgress(symbol.sym, gen)),
-                EagerAssassinEdge(SymbolProgress(symbol.except, gen), this)) // it should FittedAssassinEdge
+                AssassinEdge(SymbolProgress(symbol.except, gen), this)) // it should FittedAssassinEdge
             else Set[Edge]()
     }
 
-    case class LookaheadExceptProgress(symbol: LookaheadExcept, parsed: Option[ParsedSymbol[LookaheadExcept]], derivedGen: Int)
-        extends SymbolProgress
+    case class LookaheadExceptProgress(symbol: LookaheadExcept, derivedGen: Int) extends SymbolProgressNonterminal {
+        val parsed: Option[ParseNode[Symbol]] = Some(ParsedEmpty(symbol))
+        def lift0(source: SymbolProgress): SymbolProgress = {
+            // this `lift` does not mean anything
+            this
+        }
+        def derive(gen: Int) = Set(SimpleEdge(this, SymbolProgress(symbol.except, gen)), AssassinEdge(SymbolProgress(symbol.except, gen), this))
+    }
 
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]], derivedGen: Int)
             extends SymbolProgressNonterminal {
@@ -208,7 +205,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
                 case ExceptProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case rep @ RepeatProgress(symbol, _children, _) =>
                     (if (symbol.range canProceed _children.size) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
-                case LookaheadExceptProgress(symbol, parsed, _) => symbol.toShortString
+                case LookaheadExceptProgress(symbol, _) => symbol.toShortString
                 case BackupProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
             })
         }

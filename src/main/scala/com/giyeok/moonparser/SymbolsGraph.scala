@@ -19,7 +19,7 @@ trait SymbolsGraph {
         override def toString = toShortString
     }
     case class SimpleEdge(from: NonterminalNode, to: Node) extends Edge
-    case class EagerAssassinEdge(from: Node, to: Node) extends Edge
+    case class AssassinEdge(from: Node, to: Node) extends Edge
     // if `from` lives, `to` will be killed - is used to implement lookahead except and backup
     // is contagious - the nodes derived from `to` will be the target of `from` (recursively)
 

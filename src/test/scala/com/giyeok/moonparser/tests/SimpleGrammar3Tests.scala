@@ -30,7 +30,7 @@ object SimpleGrammar5 extends Grammar with StringSamples {
             _ match {
                 case e: parser.SimpleEdge =>
                     println(s"${e.from.toShortString} => ${e.to.toShortString}")
-                case e: parser.EagerAssassinEdge =>
+                case e: parser.AssassinEdge =>
                     println(s"${e.from.toShortString} =(assassin)=> ${e.to.toShortString}")
             }
         }

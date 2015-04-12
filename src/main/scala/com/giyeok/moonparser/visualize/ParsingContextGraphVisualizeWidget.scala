@@ -92,7 +92,7 @@ trait ParsingContextGraphVisualize {
             }
             vedges(e) = connection
             connection
-        case e: Parser#EagerAssassinEdge =>
+        case e: Parser#AssassinEdge =>
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
             connection.setLineColor(ColorConstants.red)
             vedges(e) = connection

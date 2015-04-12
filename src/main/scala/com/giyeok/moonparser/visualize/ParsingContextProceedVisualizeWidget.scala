@@ -19,6 +19,10 @@ import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Event
 import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
 import org.eclipse.swt.widgets.Widget
+import org.eclipse.swt.graphics.Color
+import org.eclipse.swt.events.KeyListener
+import org.eclipse.swt.events.KeyEvent
+import scala.collection.JavaConversions._
 
 class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
@@ -33,9 +37,10 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
     val registerEdge1 = registerEdge(edges) _
     edges foreach { registerEdge1(_) }
 
-    def registerLifting(lifting: Parser#Lifting): (GraphNode, GraphNode, GraphConnection) = {
+    def registerLifting(lifting: Parser#Lifting): (GraphNode, GraphNode, Option[GraphNode], GraphConnection) = {
         val before = registerNode(lifting.before)
         val after = registerNode(lifting.after)
+        val by = lifting.by map { registerNode _ }
 
         val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, before, after)
 
@@ -44,7 +49,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
             case None =>
         }
 
-        (before, after, connection)
+        (before, after, by, connection)
     }
 
     // blue or cyan edge means lifting
@@ -57,7 +62,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
 
     val liftings = (log.terminalLiftings ++ log.liftings).asInstanceOf[Set[Parser#Lifting]]
     val vliftings: Map[Parser#Lifting, (GraphNode, GraphNode, GraphConnection)] = (liftings map { lifting =>
-        val (before, after, connection) = registerLifting(lifting)
+        val (before, after, by, connection) = registerLifting(lifting)
 
         if (log.terminalLiftings.asInstanceOf[Set[Parser#Lifting]] contains lifting) {
             after.setFont(resources.bold14Font)
@@ -104,15 +109,16 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         connection.setLineColor(ColorConstants.green)
     }
 
+    val rootColor = new Color(null, 0xEE, 0x82, 0xEE)
     log.rootTips foreach { n =>
-        assert(nodes contains n)
+        // assert(nodes contains n)
         val node = registerNode(n)
-        node.setBorderColor(ColorConstants.red)
+        node.setBorderColor(rootColor)
     }
     log.roots foreach { e =>
         assert(edges contains e)
         val edge = registerEdge(edges)(e)
-        edge.setLineColor(ColorConstants.red)
+        edge.setLineColor(rootColor)
     }
 
     graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING), true)
