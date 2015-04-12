@@ -33,6 +33,10 @@ import org.eclipse.draw2d.geometry.Dimension
 import org.eclipse.draw2d.geometry.PrecisionRectangle
 import org.eclipse.draw2d.geometry.Rectangle
 import org.eclipse.jface.resource.JFaceResources
+import com.giyeok.moonparser.Inputs
+import org.eclipse.draw2d.AbstractBorder
+import org.eclipse.draw2d.Graphics
+import org.eclipse.swt.graphics.Color
 
 object ParseGraphVisualizer {
     trait Resources {
@@ -74,27 +78,18 @@ object ParseGraphVisualizer {
 
         val parser = new Parser(grammar)
 
-        val finReversed: (List[Either[Parser#ParsingContext, Parser#ParsingError]], List[Option[Parser#VerboseProceedLog]]) =
-            source.foldLeft[(List[Either[Parser#ParsingContext, Parser#ParsingError]], List[Option[Parser#VerboseProceedLog]])](List(Left(parser.startingContext)), List()) { (cl, terminal) =>
-                val (contexts, logs) = cl
-                contexts match {
-                    case Left(ctx) +: rest =>
-                        //Try(ctx proceedTerminal terminal).getOrElse(Right(parser.ParsingErrors.UnexpectedInput(terminal)))
-                        (ctx proceedTerminalVerbose terminal) match {
-                            case Left((next, log)) => (Left(next) +: contexts, Some(log) +: logs)
-                            case Right(error) => (Right(error.asInstanceOf[Parser#ParsingError]) +: contexts, None +: logs)
-                        }
-                    case (error @ Right(_)) +: rest => (error +: contexts, None +: logs)
+        val finReversed: List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError])] =
+            source.foldLeft[List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError])]](List((Left(parser.startingContext, parser.startingContextVerbose._2)))) { (cl, terminal) =>
+                cl.head match {
+                    case Left((ctx, _)) => (ctx proceedTerminalVerbose terminal) +: cl
+                    case error @ Right(_) => error +: cl
                 }
             }
-        assert(finReversed._1.length == (source.length + 1))
-        assert(finReversed._2.length == source.length)
-        val fin = (finReversed._1.reverse, (None +: finReversed._2).reverse)
-        val views: Seq[(Control, Option[Control])] = (fin._1 zip ((source map { Some(_) }) :+ None)).zipWithIndex map {
-            case ((Left(ctx), src), idx) =>
-                val logOpt = fin._2(idx)
-                (new ParsingContextGraphVisualizeWidget(graphView, resources, ctx, logOpt),
-                    logOpt map { new ParsingContextProceedVisualizeWidget(graphView, resources, ctx, _) })
+        val fin = finReversed.reverse
+        assert(fin.length == source.length + 1)
+        val views: Seq[(Control, Option[Control])] = (fin zip (None +: (source map { Some(_) }))).zipWithIndex map {
+            case ((Left((ctx, log)), src), idx) =>
+                (new ParsingContextGraphVisualizeWidget(graphView, resources, ctx), Some(new ParsingContextProceedVisualizeWidget(graphView, resources, ctx, log)))
             case ((Right(error), _), idx) =>
                 val label = new Label(graphView, SWT.NONE)
                 label.setAlignment(SWT.CENTER)
@@ -102,16 +97,48 @@ object ParseGraphVisualizer {
                 (label, None)
         }
 
-        var currentLocation = (0, false)
+        class UnderbarBorder(color: Color, width: Int) extends AbstractBorder {
+            def getInsets(figure: IFigure): Insets = new Insets(0)
+            def paint(figure: IFigure, graphics: Graphics, insets: Insets): Unit = {
+                graphics.setLineWidth(width)
+                val bounds = figure.getBounds
+                println(bounds.x, bounds.bottom, bounds.right, bounds.bottom)
+                graphics.setLineWidth(width)
+                graphics.setForegroundColor(color)
+                graphics.drawLine(bounds.x, bounds.bottom, bounds.right, bounds.bottom)
+            }
+        }
+        val cursorBorder = new UnderbarBorder(ColorConstants.black, 10)
 
-        val cursorBorder = new LineBorder(1)
-        cursorBorder.setColor(ColorConstants.black)
+        case class VisualizationLocation(location: Int, showResult: Boolean) {
+            def withProcess = VisualizationLocation(location, showResult && views(viewIndex)._2.isDefined)
+            def previousLocation = if (showResult) VisualizationLocation(location, false) else VisualizationLocation(location - 1, true)
+            def nextLocation = if (showResult) VisualizationLocation(location + 1, false) else VisualizationLocation(location, true)
 
-        def updateLocation(newLocation: Int, showProceed0: Boolean): Unit = {
-            if (newLocation >= 0 && newLocation <= source.size) {
-                val showProceed = showProceed0 && (views(newLocation)._2.isDefined)
+            def viewIndex = location + 1
+            def view = if (showResult) views(viewIndex)._1 else views(viewIndex)._2.get
 
-                currentLocation = (newLocation, showProceed)
+            def isInValidIndex = (-1 until source.length) contains location
+            def isValid = isInValidIndex && (showResult || views(viewIndex)._2.isDefined)
+
+            def stringRepresentation = {
+                val sourceStr = source map { _.toCleanString }
+
+                val divider = location + (if (showResult) 1 else 0)
+                if (location < 0 && !showResult) ("> " + (sourceStr.mkString))
+                else ((sourceStr take divider).mkString + (if (showResult) "*" else ">") + (sourceStr drop divider).mkString)
+            }
+        }
+        val firstLocation = VisualizationLocation(-1, false)
+        val startLocation = VisualizationLocation(-1, true)
+        val lastLocation = VisualizationLocation(source.length - 1, true)
+
+        var currentLocation = startLocation
+
+        def updateLocation(newLocation: VisualizationLocation): Unit = {
+            if (newLocation.isInValidIndex) {
+                currentLocation = newLocation.withProcess
+                assert(currentLocation.isValid)
 
                 sourceView.setContents({
                     val f = new Figure
@@ -138,14 +165,12 @@ object ParseGraphVisualizer {
                             }
                         }
                     }
-                    def listener(location: Int, showProceed: Boolean) = new draw2d.MouseListener() {
-                        def mousePressed(e: draw2d.MouseEvent): Unit = {
-                            updateLocation(location, showProceed)
-                        }
+                    def listener(location: VisualizationLocation) = new draw2d.MouseListener() {
+                        def mousePressed(e: draw2d.MouseEvent): Unit = { updateLocation(location) }
                         def mouseReleased(e: draw2d.MouseEvent): Unit = {}
                         def mouseDoubleClicked(e: draw2d.MouseEvent): Unit = {}
                     }
-                    def pointerFig(location: Int, addingWidth: Int): Figure = {
+                    def pointerFig(location: VisualizationLocation, addingWidth: Int): Figure = {
                         val pointer = new draw2d.Figure
                         if (location == newLocation) {
                             val ellipseFrame = new draw2d.Figure
@@ -153,53 +178,47 @@ object ParseGraphVisualizer {
                             ellipseFrame.setLayoutManager(new CenterLayout)
                             val ellipse = new draw2d.Ellipse
                             ellipse.setSize(6, 6)
-                            ellipse.setBackgroundColor(if (showProceed) ColorConstants.orange else ColorConstants.black)
+                            ellipse.setBackgroundColor(ColorConstants.black)
                             ellipseFrame.add(ellipse)
                             pointer.add(ellipseFrame)
                         }
                         pointer.setSize(12 + addingWidth, 20)
-                        pointer.addMouseListener(listener(location, false))
+                        pointer.addMouseListener(listener(location))
                         pointer
                     }
-                    source.zipWithIndex foreach { s =>
-                        val pointer = pointerFig(s._2, 0)
-                        val term = new draw2d.Label(s._1.toCleanString)
+                    def terminalFig(location: VisualizationLocation, s: Inputs.Input): Figure = {
+                        val term = new draw2d.Label(s.toCleanString)
                         term.setForegroundColor(ColorConstants.red)
                         term.setFont(sourceFont)
-                        term.setBorder(cursorBorder)
-
-                        term.addMouseListener(listener(s._2, true))
-                        f.add(pointer)
-                        f.add(term)
+                        if (location == currentLocation) {
+                            term.setBorder(cursorBorder)
+                        }
+                        term.addMouseListener(listener(location))
+                        term
                     }
-                    f.add(pointerFig(source.size, 50))
-                    fin._1(newLocation) match {
-                        case Left(ctx) =>
-                            f.add(new draw2d.Label(s"N:${ctx.graph.nodes.size} E:${ctx.graph.edges.size} R:${ctx.resultCandidates.size}"))
-                        case _ =>
+                    f.add(pointerFig(firstLocation, 5))
+                    source.zipWithIndex foreach { s =>
+                        f.add(pointerFig(VisualizationLocation(s._2 - 1, true), 0))
+                        f.add(terminalFig(VisualizationLocation(s._2, false), s._1))
                     }
+                    f.add(pointerFig(lastLocation, 50))
                     f
                 })
 
-                val sourceStr = source map { _.toCleanString }
-                shell.setText(grammar.name + ": " + (sourceStr take newLocation).mkString + "*" + (sourceStr drop newLocation).mkString)
-                layout.topControl = if (showProceed) views(newLocation)._2.get else views(newLocation)._1
+                shell.setText(s"${grammar.name}: ${currentLocation.stringRepresentation}")
+                layout.topControl = currentLocation.view
                 graphView.layout()
                 shell.layout()
-                sourceView.forceFocus()
+                sourceView.setFocus()
             }
         }
-        updateLocation(0, false)
+        updateLocation(currentLocation)
 
         def keyListener = new KeyListener() {
             def keyPressed(x: KeyEvent): Unit = {
                 x.keyCode match {
-                    case SWT.ARROW_LEFT =>
-                        if (currentLocation._2) updateLocation(currentLocation._1, false)
-                        else updateLocation(currentLocation._1 - 1, true)
-                    case SWT.ARROW_RIGHT =>
-                        if (currentLocation._2 || views(currentLocation._1)._2.isEmpty) updateLocation(currentLocation._1 + 1, false)
-                        else updateLocation(currentLocation._1, true)
+                    case SWT.ARROW_LEFT => updateLocation(currentLocation.previousLocation)
+                    case SWT.ARROW_RIGHT => updateLocation(currentLocation.nextLocation)
                     case code =>
                 }
             }

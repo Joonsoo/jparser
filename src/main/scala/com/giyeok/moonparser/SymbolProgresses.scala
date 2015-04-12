@@ -17,7 +17,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         val parsed: Option[ParseNode[Symbol]]
         def canFinish = parsed.isDefined
 
-        def id = SymbolProgress.getId(this)
+        val id = SymbolProgress.getId(this)
         def toShortString = this.toShortString1
 
         override def toString = toShortString
@@ -180,7 +180,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             // this `lift` does not mean anything
             this
         }
-        def derive(gen: Int) = Set(SimpleEdge(this, SymbolProgress(symbol.except, gen)), AssassinEdge(SymbolProgress(symbol.except, gen), this))
+        def derive(gen: Int) = Set(AssassinEdge(SymbolProgress(symbol.except, gen), this))
     }
 
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]], derivedGen: Int)

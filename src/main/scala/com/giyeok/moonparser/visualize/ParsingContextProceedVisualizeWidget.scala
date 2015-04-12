@@ -24,12 +24,12 @@ import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.KeyEvent
 import scala.collection.JavaConversions._
 
-class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
+class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val lastContext: Parser#ParsingContext, private val log: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
 
     val graph = new Graph(this, SWT.NONE)
 
-    private val (nodes, edges) = (context.graph.nodes.asInstanceOf[Set[Parser#Node]], context.graph.edges.asInstanceOf[Set[Parser#Edge]])
+    private val (nodes, edges) = (lastContext.graph.nodes.asInstanceOf[Set[Parser#Node]], lastContext.graph.edges.asInstanceOf[Set[Parser#Edge]])
 
     nodes foreach { registerNode _ }
 
@@ -106,7 +106,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         if (!(nodes contains e.to)) {
             to.setBackgroundColor(newNodeBackgroundColor)
         }
-        connection.setLineColor(ColorConstants.green)
+        connection.setLineWidth(3)
     }
 
     log.rootTips foreach { n =>

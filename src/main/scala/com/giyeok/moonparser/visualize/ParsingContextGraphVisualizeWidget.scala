@@ -75,7 +75,7 @@ trait ParsingContextGraphVisualize {
     }
 
     private def calculateCurve(edges: Set[Parser#Edge], e: Parser#Edge): Int = {
-        val overlapping = edges filter { r => (r.from == e.from) && (r.to == e.to) && (e != r) }
+        val overlapping = edges filter { r => (((r.from == e.from) && (r.to == e.to)) || ((r.from == e.to) && (r.to == e.from))) && (e != r) }
         if (!overlapping.isEmpty) {
             overlapping count { _.hashCode < e.hashCode }
         } else if (edges exists { r => (r.from == e.to) && (r.to == e.from) }) 1
@@ -106,7 +106,7 @@ trait ParsingContextGraphVisualize {
     }
 }
 
-class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext, private val log: Option[Parser#VerboseProceedLog]) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
+class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
 
     val graph = new Graph(this, SWT.NONE)
