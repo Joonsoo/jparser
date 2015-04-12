@@ -68,7 +68,7 @@ object ParseGraphVisualizer {
         val sourceView = new FigureCanvas(shell, SWT.NONE)
         sourceView.setLayoutData(new GridData(GridData.FILL_HORIZONTAL))
         sourceView.setBackground(ColorConstants.white)
-        val sourceFont = new Font(null, "Monaco", 14, SWT.BOLD)
+        val sourceFont = new Font(null, JFaceResources.getTextFont.getFontData.head.getName, 14, SWT.BOLD)
 
         val layout = new StackLayout
 
@@ -87,15 +87,34 @@ object ParseGraphVisualizer {
             }
         val fin = finReversed.reverse
         assert(fin.length == source.length + 1)
-        val views: Seq[(Control, Option[Control])] = (fin zip (None +: (source map { Some(_) }))).zipWithIndex map {
-            case ((Left((ctx, log)), src), idx) =>
-                (new ParsingContextGraphVisualizeWidget(graphView, resources, ctx), Some(new ParsingContextProceedVisualizeWidget(graphView, resources, ctx, log)))
-            case ((Right(error), _), idx) =>
-                val label = new Label(graphView, SWT.NONE)
-                label.setAlignment(SWT.CENTER)
-                label.setText(error.msg)
-                (label, None)
+
+        case class VisualizationLocation(location: Int, showResult: Boolean) {
+            def previousLocation = if (showResult) VisualizationLocation(location, false) else VisualizationLocation(location - 1, true)
+            def nextLocation = if (showResult) VisualizationLocation(location + 1, false) else VisualizationLocation(location, true)
+
+            def stringRepresentation = {
+                val sourceStr = source map { _.toCleanString }
+
+                val divider = location + (if (showResult) 1 else 0)
+                if (location < 0 && !showResult) ("> " + (sourceStr.mkString))
+                else ((sourceStr take divider).mkString + (if (showResult) "*" else ">") + (sourceStr drop divider).mkString)
+            }
         }
+
+        val views: Map[VisualizationLocation, Control] =
+            (fin.zipWithIndex.foldLeft((Option.empty[Parser#ParsingContext], Map[VisualizationLocation, Control]())) { (m, i) =>
+                val (lastCtx, map) = m
+                i match {
+                    case (Left((ctx, log)), idx) =>
+                        val proceedWidget = new ParsingContextProceedVisualizeWidget(graphView, resources, lastCtx, log)
+                        val resultWidget = new ParsingContextGraphVisualizeWidget(graphView, resources, ctx)
+                        (Some(ctx), map + (VisualizationLocation(idx - 1, false) -> proceedWidget) + (VisualizationLocation(idx - 1, true) -> resultWidget))
+                    case (Right(error), idx) =>
+                        val errorView = new Label(graphView, SWT.NONE)
+                        errorView.setAlignment(SWT.CENTER)
+                        (None, map + (VisualizationLocation(idx - 1, false) -> errorView) + (VisualizationLocation(idx - 1, true) -> errorView))
+                }
+            })._2
 
         class UnderbarBorder(color: Color, width: Int) extends AbstractBorder {
             def getInsets(figure: IFigure): Insets = new Insets(0)
@@ -110,35 +129,11 @@ object ParseGraphVisualizer {
         }
         val cursorBorder = new UnderbarBorder(ColorConstants.black, 10)
 
-        case class VisualizationLocation(location: Int, showResult: Boolean) {
-            def withProcess = VisualizationLocation(location, showResult && views(viewIndex)._2.isDefined)
-            def previousLocation = if (showResult) VisualizationLocation(location, false) else VisualizationLocation(location - 1, true)
-            def nextLocation = if (showResult) VisualizationLocation(location + 1, false) else VisualizationLocation(location, true)
-
-            def viewIndex = location + 1
-            def view = if (showResult) views(viewIndex)._1 else views(viewIndex)._2.get
-
-            def isInValidIndex = (-1 until source.length) contains location
-            def isValid = isInValidIndex && (showResult || views(viewIndex)._2.isDefined)
-
-            def stringRepresentation = {
-                val sourceStr = source map { _.toCleanString }
-
-                val divider = location + (if (showResult) 1 else 0)
-                if (location < 0 && !showResult) ("> " + (sourceStr.mkString))
-                else ((sourceStr take divider).mkString + (if (showResult) "*" else ">") + (sourceStr drop divider).mkString)
-            }
-        }
-        val firstLocation = VisualizationLocation(-1, false)
-        val startLocation = VisualizationLocation(-1, true)
-        val lastLocation = VisualizationLocation(source.length - 1, true)
-
-        var currentLocation = startLocation
+        var currentLocation = VisualizationLocation(-1, true)
 
         def updateLocation(newLocation: VisualizationLocation): Unit = {
-            if (newLocation.isInValidIndex) {
-                currentLocation = newLocation.withProcess
-                assert(currentLocation.isValid)
+            if (views contains newLocation) {
+                currentLocation = newLocation
 
                 sourceView.setContents({
                     val f = new Figure
@@ -196,17 +191,17 @@ object ParseGraphVisualizer {
                         term.addMouseListener(listener(location))
                         term
                     }
-                    f.add(pointerFig(firstLocation, 5))
+                    f.add(pointerFig(VisualizationLocation(-1, false), 5))
                     source.zipWithIndex foreach { s =>
                         f.add(pointerFig(VisualizationLocation(s._2 - 1, true), 0))
                         f.add(terminalFig(VisualizationLocation(s._2, false), s._1))
                     }
-                    f.add(pointerFig(lastLocation, 50))
+                    f.add(pointerFig(VisualizationLocation(source.length - 1, true), 200))
                     f
                 })
 
                 shell.setText(s"${grammar.name}: ${currentLocation.stringRepresentation}")
-                layout.topControl = currentLocation.view
+                layout.topControl = views(currentLocation)
                 graphView.layout()
                 shell.layout()
                 sourceView.setFocus()
@@ -219,6 +214,8 @@ object ParseGraphVisualizer {
                 x.keyCode match {
                     case SWT.ARROW_LEFT => updateLocation(currentLocation.previousLocation)
                     case SWT.ARROW_RIGHT => updateLocation(currentLocation.nextLocation)
+                    case SWT.ARROW_UP => updateLocation(VisualizationLocation(currentLocation.location - 1, true))
+                    case SWT.ARROW_DOWN => updateLocation(VisualizationLocation(currentLocation.location + 1, true))
                     case code =>
                 }
             }
@@ -227,16 +224,10 @@ object ParseGraphVisualizer {
         }
         shell.addKeyListener(keyListener)
         views foreach { v =>
-            v._1.addKeyListener(keyListener)
-            v._2.foreach { _.addKeyListener(keyListener) }
-            v._1 match {
+            v._2.addKeyListener(keyListener)
+            v._2 match {
                 case v: ParsingContextGraphVisualizeWidget => v.graph.addKeyListener(keyListener)
                 case v: ParsingContextProceedVisualizeWidget => v.graph.addKeyListener(keyListener)
-                case _ =>
-            }
-            v._2 match {
-                case Some(v: ParsingContextGraphVisualizeWidget) => v.graph.addKeyListener(keyListener)
-                case Some(v: ParsingContextProceedVisualizeWidget) => v.graph.addKeyListener(keyListener)
                 case _ =>
             }
         }
