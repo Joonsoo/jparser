@@ -213,11 +213,7 @@ class Parser(val grammar: Grammar)
             assert(graph.nodes collect { case x: SymbolProgressNonterminal => x } forall { _.derive(0) subsetOf graph.edges })
             assert(graph.edges forall { _.nodes subsetOf graph.nodes })
             assert((graph.edges flatMap { _.nodes }) == graph.nodes)
-            //            assert(liftings filter { _.after.canFinish } forall { lifting =>
-            //                val inc = graph.edges.incomingSimpleEdgesOf(lifting.before)
-            //                inc foreach { e => println(s"${e.from}") }
-            //                inc map { _.from } map { _.lift(lifting.after) } subsetOf liftings
-            //            })
+            assert(liftings filter { _.after.canFinish } forall { lifting => graph.edges.incomingSimpleEdgesOf(lifting.before) map { _.from } map { _.lift(lifting.after) } subsetOf liftings })
             assert(liftings filter { !_.after.canFinish } forall { lifting =>
                 graph.edges.rootsOf(lifting.before).asInstanceOf[Set[Edge]] subsetOf graph.edges
             })
