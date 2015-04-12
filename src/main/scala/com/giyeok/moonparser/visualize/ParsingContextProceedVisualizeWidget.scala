@@ -123,5 +123,11 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         edge.setLineColor(rootColor)
     }
 
+    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122)
+    log.propagatedAssassinEdges foreach { e =>
+        val (from, to, connection) = registerEdge1(edges)(e)
+        connection.setLineColor(propagatedAssassinEdgeColor)
+    }
+
     graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING), true)
 }

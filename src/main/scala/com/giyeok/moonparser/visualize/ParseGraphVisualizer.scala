@@ -121,7 +121,6 @@ object ParseGraphVisualizer {
             def paint(figure: IFigure, graphics: Graphics, insets: Insets): Unit = {
                 graphics.setLineWidth(width)
                 val bounds = figure.getBounds
-                println(bounds.x, bounds.bottom, bounds.right, bounds.bottom)
                 graphics.setLineWidth(width)
                 graphics.setForegroundColor(color)
                 graphics.drawLine(bounds.x, bounds.bottom, bounds.right, bounds.bottom)

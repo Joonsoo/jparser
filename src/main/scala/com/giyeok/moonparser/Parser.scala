@@ -36,6 +36,7 @@ class Parser(val grammar: Grammar)
         newEdges: Set[Edge],
         rootTips: Set[Node],
         roots: Set[SimpleEdge],
+        propagatedAssassinEdges: Set[AssassinEdge],
         finalNodes: Set[Node],
         finalEdges: Set[Edge])
 
@@ -93,6 +94,40 @@ class Parser(val grammar: Grammar)
             case List() => (liftingsCC, newNodesCC, newEdgesCC, rootTipsCC)
         }
 
+    def invokeAssassinEdges(edges: Set[Edge], liftings: Set[Lifting]): Nothing = {
+        ???
+    }
+
+    def prepareNextAssassinEdges(edges: Set[Edge], liftings: Set[Lifting]): (Set[AssassinEdge], Set[Node], Set[Edge]) = {
+        val assassinEdges = edges collect { case e: AssassinEdge => e }
+        def propagateAssassinEdges(queue: List[AssassinEdge], newEdgesCC: Set[AssassinEdge]): Set[AssassinEdge] =
+            queue match {
+                case head +: rest =>
+                    val liftedBy = liftings filter { _.by == Some(head.to) }
+                    val newAssassinEdges = (liftedBy map { lifting => AssassinEdge(head.from, lifting.after) }) -- newEdgesCC
+                    propagateAssassinEdges(rest ++ newAssassinEdges.toList, newEdgesCC ++ newAssassinEdges)
+                case List() => newEdgesCC
+            }
+        val propagatedAssassinEdges = propagateAssassinEdges(assassinEdges.toList, Set())
+
+        // TODO outgoing edges of assassin targets
+        // TODO lifting before?
+
+        val nodes1 = edges flatMap { _.nodes }
+
+        val edges2 = edges ++ propagatedAssassinEdges
+        val edges3 = edges2 filter { e => (nodes1 contains e.from) && (nodes1 contains e.to) }
+
+        val nodes2 = edges3 flatMap { _.nodes }
+
+        (propagatedAssassinEdges, nodes2, edges3)
+    }
+
+    def collectResultCandidates(liftings: Set[Lifting]): Set[Node] =
+        liftings map { _.after } filter { _.symbol == grammar.startSymbol } collect {
+            case n: SymbolProgressNonterminal if n.derivedGen == 0 && n.canFinish => n
+        }
+
     // 이 프로젝트 전체에서 asInstanceOf가 등장하는 경우는 대부분이 Set이 invariant해서 추가된 부분 - covariant한 Set으로 바꾸면 없앨 수 있음
     case class ParsingContext(gen: Int, graph: Graph, resultCandidates: Set[SymbolProgress]) {
         def proceedTerminal1(next: Input): Set[Lifting] =
@@ -121,8 +156,9 @@ class Parser(val grammar: Grammar)
                 // assert(rootTips subsetOf graph.nodes)
 
                 val roots = rootTips flatMap { rootTip => graph.edges.rootsOf(rootTip) }
-                val finalEdges = roots ++ newEdges
-                val finalNodes = finalEdges flatMap { _.nodes }
+
+                // TODO invokeAssassinEdges
+                val (propagatedAssassinEdges, finalNodes, finalEdges) = prepareNextAssassinEdges(newEdges ++ roots, liftings)
 
                 logging {
                     println("- liftings")
@@ -142,14 +178,8 @@ class Parser(val grammar: Grammar)
                     println("============ End of generation =======")
                 }
 
-                // TODO assassin edges
-
-                def collectResultCandidates(liftings: Set[Lifting]): Set[Node] =
-                    liftings map { _.after } filter { _.symbol == grammar.startSymbol } collect {
-                        case n: SymbolProgressNonterminal if n.derivedGen == 0 && n.canFinish => n
-                    }
                 val nextParsingContext = ParsingContext(gen + 1, Graph(finalNodes, finalEdges), collectResultCandidates(liftings))
-                val verboseProceedLog = VerboseProceedLog(terminalLiftings, liftings, newNodes, newEdges, rootTips, roots, finalNodes, finalEdges)
+                val verboseProceedLog = VerboseProceedLog(terminalLiftings, liftings, newNodes, newEdges, rootTips, roots, propagatedAssassinEdges, finalNodes, finalEdges)
                 Left((nextParsingContext, verboseProceedLog))
             }
         }
@@ -169,7 +199,8 @@ class Parser(val grammar: Grammar)
         def fromSeedsVerbose(seeds: Set[Node]): (ParsingContext, VerboseProceedLog) = {
             val (liftings: Set[Lifting], nodes: Set[Node], edges: Set[Edge], _) = expand(Set(), 0, seeds map { seed => (None, seed) } toList, Set(), seeds, Set(), Set())
             // expand2(seeds.toList, seeds, Set(), Set())
-            val graph = Graph(nodes, edges)
+            val (propagatedAssassinEdges, finalNodes, finalEdges) = prepareNextAssassinEdges(edges, liftings)
+            val graph = Graph(finalNodes, finalEdges)
 
             logging {
                 liftings foreach { lifting =>
@@ -197,8 +228,8 @@ class Parser(val grammar: Grammar)
 
             val finishable: Set[Lifting] = nodes collect { case n if n.canFinish => Lifting(n, n, None) }
 
-            val startingContext = ParsingContext(0, graph, liftings map { _.after } filter { _.symbol == grammar.startSymbol } filter { _.canFinish })
-            val verboseProceedLog = VerboseProceedLog(Set(), liftings, nodes, edges, Set(), Set(), Set(), Set())
+            val startingContext = ParsingContext(0, graph, collectResultCandidates(liftings))
+            val verboseProceedLog = VerboseProceedLog(Set(), liftings, nodes, edges, Set(), Set(), propagatedAssassinEdges, Set(), Set())
             (startingContext, verboseProceedLog)
         }
         def fromSeeds(seeds: Set[Node]): ParsingContext = fromSeedsVerbose(seeds)._1
