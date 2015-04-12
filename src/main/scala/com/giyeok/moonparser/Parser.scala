@@ -40,28 +40,29 @@ class Parser(val grammar: Grammar)
         finalEdges: Set[Edge])
 
     def logging(block: => Unit): Unit = {
-        block
+        // block
     }
 
-    def expand(oldEdges: Set[Edge], nextGen: Int, queue: List[(Node, Node)], liftingsCC: Set[Lifting], newNodesCC: Set[Node], newEdgesCC: Set[Edge], rootTipsCC: Set[Node]): (Set[Lifting], Set[Node], Set[Edge], Set[Node]) =
+    def expand(oldEdges: Set[Edge], nextGen: Int, queue: List[(Option[Node], Node)], liftingsCC: Set[Lifting], newNodesCC: Set[Node], newEdgesCC: Set[Edge], rootTipsCC: Set[Node]): (Set[Lifting], Set[Node], Set[Edge], Set[Node]) =
         queue match {
             case (before, after) +: rest =>
                 var (nextQueue, nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC) = (rest, liftingsCC, newNodesCC, newEdgesCC, rootTipsCC)
                 val allEdgesSoFar = oldEdges ++ nextNewEdgesCC
 
-                if (after.canFinish) {
-                    val incomingEdges = allEdgesSoFar.incomingSimpleEdgesOf(before)
-                    val thisLiftings = incomingEdges map { _.from lift after }
-                    val newLiftings = thisLiftings -- liftingsCC
-                    nextQueue ++= (newLiftings map { l => (l.before, l.after) })
+                if (after.canFinish && before.isDefined) {
+                    val incomingEdges = allEdgesSoFar.incomingSimpleEdgesOf(before.get)
+                    val newLiftings = (incomingEdges map { _.from lift after }) -- liftingsCC
+                    nextQueue ++= (newLiftings map { l => (Some(l.before), l.after) })
                     nextLiftingsCC ++= newLiftings
                 }
                 if (after.isInstanceOf[SymbolProgressNonterminal]) {
                     val afterDerives = after.asInstanceOf[SymbolProgressNonterminal].derive(nextGen)
                     if (!afterDerives.isEmpty) {
-                        val incomingEdgesToBefore = allEdgesSoFar.incomingSimpleEdgesOf(before)
-                        nextRootTipsCC ++= incomingEdgesToBefore map { _.from }
-                        nextNewEdgesCC ++= incomingEdgesToBefore map { edge => SimpleEdge(edge.from, after) }
+                        if (before.isDefined) {
+                            val incomingEdgesToBefore = allEdgesSoFar.incomingSimpleEdgesOf(before.get)
+                            nextRootTipsCC ++= incomingEdgesToBefore map { _.from }
+                            nextNewEdgesCC ++= incomingEdgesToBefore map { edge => SimpleEdge(edge.from, after) }
+                        }
 
                         def recursiveDerive(queue: List[Edge], newNodesCC: Set[Node], newEdgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
                             case edge +: rest =>
@@ -69,7 +70,7 @@ class Parser(val grammar: Grammar)
                                     case (from: NonterminalNode, to) if to.canFinish =>
                                         val newLifting = from lift to
                                         if (!(nextLiftingsCC contains newLifting)) {
-                                            nextQueue +:= (newLifting.before, newLifting.after)
+                                            nextQueue +:= (Some(newLifting.before), newLifting.after)
                                             nextLiftingsCC += newLifting
                                         }
                                     case _ => // nothing to do
@@ -115,7 +116,7 @@ class Parser(val grammar: Grammar)
             if (terminalLiftings isEmpty) {
                 Right(ParsingErrors.UnexpectedInput(next))
             } else {
-                val (liftings, newNodes, newEdges, rootTips) = expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (lifting.before, lifting.after) }, terminalLiftings, Set(), Set(), Set())
+                val (liftings, newNodes, newEdges, rootTips) = expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (Some(lifting.before), lifting.after) }, terminalLiftings, Set(), Set(), Set())
 
                 // assert(rootTips subsetOf graph.nodes)
 
@@ -165,65 +166,17 @@ class Parser(val grammar: Grammar)
     }
 
     object ParsingContext {
-        def expand2(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge], liftingsCC: Set[Lifting]): (Set[Node], Set[Edge], Set[Lifting]) = {
-            def immediateLifting(node: Node, edges: Set[Edge]): (Set[Lifting], Set[Edge]) = {
-                def immediateLifting0(queue: List[(SymbolProgressNonterminal, SymbolProgress)], liftingsCC: Set[Lifting], edgesCC: Set[Edge]): (Set[Lifting], Set[Edge]) = queue match {
-                    case (from, to) +: tail if to.canFinish =>
-                        println(s"Trying zeroLifting for ${to.toShortString}  (<- ${from.toShortString})")
-                        val newLifting = from.lift(to)
-                        println(s"${newLifting.before.toShortString} -> ${newLifting.after.toShortString}  (by ${newLifting.by map { _.toShortString }})")
-                        val newIncomings = edgesCC.incomingSimpleEdgesOf(from) map { edge => (edge.from, newLifting.after) }
-                        newIncomings foreach { e =>
-                            println(s"${e._1.toShortString} -> ${e._2.toShortString}")
-                        }
-                        val newEdgesCC = to match {
-                            case nonterm: SymbolProgressNonterminal if !nonterm.derive(0).isEmpty => edgesCC + SimpleEdge(from, to)
-                            case _ => edgesCC
-                        }
-                        immediateLifting0(tail ++ (newIncomings.toList), liftingsCC + newLifting, newEdgesCC)
-                    case (from, to) +: tail =>
-                        // assert (!to.derive(0).isEmpty)
-                        immediateLifting0(tail, liftingsCC, edgesCC + SimpleEdge(from, to))
-                    case List() => (liftingsCC, edgesCC)
-                }
-                val result = edges.incomingSimpleEdgesOf(node) map { edge => immediateLifting0(List((edge.from, edge.to)), Set(), edges) }
-                result.foldLeft((Set[Lifting](), edges))((m, i) => (m._1 ++ i._1, m._2 ++ i._2))
-            }
-            queue match {
-                case node +: tail =>
-                    println(s"expand ${node.toShortString}")
-                    assert(nodesCC contains node)
-                    val (newEdges: Set[Edge], newNodes: Set[Node]) = node match {
-                        case node: SymbolProgressNonterminal =>
-                            val derived: Set[Edge] = node.derive(0)
-                            (derived, (derived flatMap { _.nodes }))
-                        case node => (Set(), Set())
-                    }
-                    newEdges foreach { e => println(s"${e.from.toShortString} -(derive)-> ${e.to.toShortString}") }
-                    val immediateLiftings = immediateLifting(node, newEdges ++ edgesCC)
-
-                    // zeroLiftings 중 after.derive가 있는 경우엔 before의 root들을 포함시켜주어야 한다
-                    val liftingRoots = (immediateLiftings._1 collect {
-                        case Lifting(before, after: SymbolProgressNonterminal, _) if !after.derive(0).isEmpty =>
-                            (newEdges ++ edgesCC).rootsOf(before)
-                    }).flatten
-
-                    val newDerivables: Set[SymbolProgress] = immediateLiftings._1 collect { case l @ Lifting(_, after: SymbolProgressNonterminal, _) if !after.derive(0).isEmpty => l.after }
-                    val liftingRootNodes = liftingRoots flatMap { _.nodes }
-
-                    // (newEdges ++ liftingRoots -- edgesCC) 중에서 to가 nodesCC에 포함된 SimpleEdge를 다시 처리해야 함
-                    expand2(tail ++ ((newNodes ++ newDerivables -- nodesCC).toList), newNodes ++ newDerivables ++ liftingRootNodes ++ nodesCC, newEdges ++ liftingRoots ++ immediateLiftings._2 ++ edgesCC, immediateLiftings._1 ++ liftingsCC)
-                case Nil => (nodesCC, edgesCC, liftingsCC)
-            }
-        }
-        def fromSeeds(seeds: Set[Node]): ParsingContext = {
-            val (nodes, edges, liftings) = expand2(seeds.toList, seeds, Set(), Set())
+        def fromSeedsVerbose(seeds: Set[Node]): (ParsingContext, VerboseProceedLog) = {
+            val (liftings: Set[Lifting], nodes: Set[Node], edges: Set[Edge], _) = expand(Set(), 0, seeds map { seed => (None, seed) } toList, Set(), seeds, Set(), Set())
+            // expand2(seeds.toList, seeds, Set(), Set())
             val graph = Graph(nodes, edges)
 
-            liftings foreach { lifting =>
-                println(s"${lifting.before.toShortString} -(liftTo)-> ${lifting.after.toShortString}  (by ${lifting.by map { _.toShortString }})")
+            logging {
+                liftings foreach { lifting =>
+                    println(s"${lifting.before.toShortString} -(liftTo)-> ${lifting.after.toShortString}  (by ${lifting.by map { _.toShortString }})")
+                    println()
+                }
             }
-            println()
 
             assert(seeds subsetOf graph.nodes)
             assert(graph.nodes collect { case x: SymbolProgressNonterminal => x } forall { _.derive(0) subsetOf graph.edges })
@@ -243,11 +196,16 @@ class Parser(val grammar: Grammar)
             })
 
             val finishable: Set[Lifting] = nodes collect { case n if n.canFinish => Lifting(n, n, None) }
-            ParsingContext(0, graph, liftings map { _.after } filter { _.symbol == grammar.startSymbol } filter { _.canFinish })
+
+            val startingContext = ParsingContext(0, graph, liftings map { _.after } filter { _.symbol == grammar.startSymbol } filter { _.canFinish })
+            val verboseProceedLog = VerboseProceedLog(Set(), liftings, nodes, edges, Set(), Set(), Set(), Set())
+            (startingContext, verboseProceedLog)
         }
+        def fromSeeds(seeds: Set[Node]): ParsingContext = fromSeedsVerbose(seeds)._1
     }
 
-    val startingContext = ParsingContext.fromSeeds(Set(SymbolProgress(grammar.startSymbol, 0)))
+    val startingContextVerbose = ParsingContext.fromSeedsVerbose(Set(SymbolProgress(grammar.startSymbol, 0)))
+    val startingContext = startingContextVerbose._1
 
     def parse(source: Inputs.Source): Either[ParsingContext, ParsingError] =
         source.foldLeft[Either[ParsingContext, ParsingError]](Left(startingContext)) {

@@ -104,6 +104,9 @@ object ParseGraphVisualizer {
 
         var currentLocation = (0, false)
 
+        val cursorBorder = new LineBorder(1)
+        cursorBorder.setColor(ColorConstants.black)
+
         def updateLocation(newLocation: Int, showProceed0: Boolean): Unit = {
             if (newLocation >= 0 && newLocation <= source.size) {
                 val showProceed = showProceed0 && (views(newLocation)._2.isDefined)
@@ -163,6 +166,7 @@ object ParseGraphVisualizer {
                         val term = new draw2d.Label(s._1.toCleanString)
                         term.setForegroundColor(ColorConstants.red)
                         term.setFont(sourceFont)
+                        term.setBorder(cursorBorder)
 
                         term.addMouseListener(listener(s._2, true))
                         f.add(pointer)

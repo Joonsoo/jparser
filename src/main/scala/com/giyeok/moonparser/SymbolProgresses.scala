@@ -80,7 +80,6 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             extends SymbolProgressNonterminal {
         def lift0(source: SymbolProgress): SymbolProgress = {
             // assuming grammar rules have a rule for symbol.name
-            println(s"${symbol.name} contains ${source.symbol.toShortString}")
             assert(grammar.rules(symbol.name) contains source.symbol)
             assert(source.parsed.isDefined)
             NonterminalProgress(symbol, Some(ParsedSymbol[Nonterminal](symbol, source.parsed.get)), derivedGen)

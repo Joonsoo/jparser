@@ -31,8 +31,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
 
     private val (nodes, edges) = (context.graph.nodes.asInstanceOf[Set[Parser#Node]], context.graph.edges.asInstanceOf[Set[Parser#Edge]])
 
-    (nodes ++ context.resultCandidates) foreach { registerNode _ }
-    context.resultCandidates foreach { highlightResultCandidate _ }
+    nodes foreach { registerNode _ }
 
     val registerEdge1 = registerEdge(edges) _
     edges foreach { registerEdge1(_) }
@@ -55,10 +54,11 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
     // blue or cyan edge means lifting
     // node with light gray background means that it is new nodes, that was not existed in the previous context
     // green edges are new edges, not existed in the previous context
-    // nodes with red border are root tips
-    // red edges are roots
+    // nodes with violet border are root tips
+    // violet edges are roots
 
     val newNodeBackgroundColor = ColorConstants.lightGray
+    val rootColor = new Color(null, 238, 130, 238) // supposedly violet
 
     val liftings = (log.terminalLiftings ++ log.liftings).asInstanceOf[Set[Parser#Lifting]]
     val vliftings: Map[Parser#Lifting, (GraphNode, GraphNode, GraphConnection)] = (liftings map { lifting =>
@@ -109,7 +109,6 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         connection.setLineColor(ColorConstants.green)
     }
 
-    val rootColor = new Color(null, 0xEE, 0x82, 0xEE)
     log.rootTips foreach { n =>
         // assert(nodes contains n)
         val node = registerNode(n)
