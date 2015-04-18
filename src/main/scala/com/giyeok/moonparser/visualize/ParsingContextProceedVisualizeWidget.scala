@@ -120,7 +120,9 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
     log.roots foreach { e =>
         assert(edges contains e)
         val edge = registerEdge(edges)(e)
-        edge.setLineColor(rootColor)
+        if (e.isInstanceOf[Parser#SimpleEdge]) {
+            edge.setLineColor(rootColor)
+        }
     }
 
     val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122)

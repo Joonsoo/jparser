@@ -165,13 +165,14 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         def lift0(source: SymbolProgress): SymbolProgress = {
             // assassin edge will take care of except progress
             assert(source.parsed.isDefined)
+            assert(source.symbol == symbol.sym)
             ExceptProgress(symbol, Some(ParsedSymbol[Except](symbol, source.parsed.get)), derivedGen)
         }
         def derive(gen: Int): Set[Edge] =
-            if (parsed.isEmpty) Set(
-                SimpleEdge(this, SymbolProgress(symbol.sym, gen)),
-                AssassinEdge(SymbolProgress(symbol.except, gen), this)) // it should FittedAssassinEdge
-            else Set[Edge]()
+            if (parsed.isEmpty) {
+                val sym = SymbolProgress(symbol.sym, gen)
+                Set(SimpleEdge(this, sym), AssassinEdge(SymbolProgress(symbol.except, gen), sym))
+            } else Set[Edge]()
     }
 
     case class LookaheadExceptProgress(symbol: LookaheadExcept, derivedGen: Int) extends SymbolProgressNonterminal {

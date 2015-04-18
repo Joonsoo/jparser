@@ -12,16 +12,17 @@ class Parser(val grammar: Grammar)
 
     implicit class AugEdges(edges: Set[Edge]) {
         def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }
-        def eagerAssassinEdges: Set[AssassinEdge] = edges collect { case e: AssassinEdge => e }
+        def assassinEdges: Set[AssassinEdge] = edges collect { case e: AssassinEdge => e }
 
         def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.to == node }
+        def incomingEdgesOf(node: Node): Set[Edge] = edges filter { _.to == node }
         def outgoingEdges(node: Node): Set[Edge] = ???
 
-        def rootsOf(node: Node): Set[SimpleEdge] = {
-            def trackRoots(queue: List[SymbolProgress], cc: Set[SimpleEdge]): Set[SimpleEdge] =
+        def rootsOf(node: Node): Set[Edge] = {
+            def trackRoots(queue: List[SymbolProgress], cc: Set[Edge]): Set[Edge] =
                 queue match {
                     case node +: rest =>
-                        val incomings = incomingSimpleEdgesOf(node) -- cc
+                        val incomings = incomingEdgesOf(node) -- cc
                         trackRoots(rest ++ (incomings.toList map { _.from }), cc ++ incomings)
                     case List() => cc
                 }
@@ -35,7 +36,7 @@ class Parser(val grammar: Grammar)
         newNodes: Set[Node],
         newEdges: Set[Edge],
         rootTips: Set[Node],
-        roots: Set[SimpleEdge],
+        roots: Set[Edge],
         propagatedAssassinEdges: Set[AssassinEdge],
         finalNodes: Set[Node],
         finalEdges: Set[Edge])
@@ -44,7 +45,7 @@ class Parser(val grammar: Grammar)
         // block
     }
 
-    def expand(oldEdges: Set[Edge], nextGen: Int, queue: List[(Option[Node], Node)], liftingsCC: Set[Lifting], newNodesCC: Set[Node], newEdgesCC: Set[Edge], rootTipsCC: Set[Node]): (Set[Lifting], Set[Node], Set[Edge], Set[Node]) =
+    def expand(oldEdges: Set[Edge], nextGen: Int, queue: List[(Option[Node], Node)], liftingsCC: Set[Lifting], newNodesCC: Set[Node], newEdgesCC: Set[Edge], rootTipsCC: Set[Node], excludingLiftings: Set[Lifting] = Set()): (Set[Lifting], Set[Node], Set[Edge], Set[Node]) =
         queue match {
             case (before, after) +: rest =>
                 var (nextQueue, nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC) = (rest, liftingsCC, newNodesCC, newEdgesCC, rootTipsCC)
@@ -52,7 +53,7 @@ class Parser(val grammar: Grammar)
 
                 if (after.canFinish && before.isDefined) {
                     val incomingEdges = allEdgesSoFar.incomingSimpleEdgesOf(before.get)
-                    val newLiftings = (incomingEdges map { _.from lift after }) -- liftingsCC
+                    val newLiftings = (incomingEdges map { _.from lift after }) -- liftingsCC -- excludingLiftings
                     nextQueue ++= (newLiftings map { l => (Some(l.before), l.after) })
                     nextLiftingsCC ++= newLiftings
                 }
@@ -70,8 +71,10 @@ class Parser(val grammar: Grammar)
                                 (edge.from, edge.to) match {
                                     case (from: NonterminalNode, to) if to.canFinish =>
                                         val newLifting = from lift to
-                                        nextQueue +:= (Some(newLifting.before), newLifting.after)
-                                        nextLiftingsCC += newLifting
+                                        if (!(excludingLiftings contains newLifting)) {
+                                            nextQueue +:= (Some(newLifting.before), newLifting.after)
+                                            nextLiftingsCC += newLifting
+                                        }
                                     case _ => // nothing to do
                                 }
                                 edge match {
@@ -91,7 +94,7 @@ class Parser(val grammar: Grammar)
                         nextNewEdgesCC ++= derivedEdges
                     }
                 }
-                expand(oldEdges, nextGen, nextQueue, nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC)
+                expand(oldEdges, nextGen, nextQueue, nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC, excludingLiftings)
             case List() => (liftingsCC, newNodesCC, newEdgesCC, rootTipsCC)
         }
 
@@ -152,13 +155,22 @@ class Parser(val grammar: Grammar)
             if (terminalLiftings isEmpty) {
                 Right(ParsingErrors.UnexpectedInput(next))
             } else {
-                val (liftings, newNodes, newEdges, rootTips) = expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (Some(lifting.before), lifting.after) }, terminalLiftings, Set(), Set(), Set())
+                val (liftings, newNodes, newEdges, rootTips) = {
+                    val (liftings, newNodes, newEdges, rootTips) = expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (Some(lifting.before), lifting.after) }, terminalLiftings, Set(), Set(), Set())
 
-                // assert(rootTips subsetOf graph.nodes)
+                    // assert(rootTips subsetOf graph.nodes)
+
+                    val activeAssassinEdges = graph.edges.assassinEdges filter { e => liftings map { _.before } contains e.from }
+                    if (activeAssassinEdges.isEmpty) {
+                        (liftings, newNodes, newEdges, rootTips)
+                    } else {
+                        val blockingLiftings = liftings filter { l => activeAssassinEdges map { _.to } contains l.before }
+                        expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (Some(lifting.before), lifting.after) }, terminalLiftings, Set(), Set(), Set(), blockingLiftings)
+                    }
+                }
 
                 val roots = rootTips flatMap { rootTip => graph.edges.rootsOf(rootTip) }
 
-                // TODO invokeAssassinEdges
                 val (propagatedAssassinEdges, finalNodes, finalEdges) = prepareNextAssassinEdges(newEdges ++ roots, liftings)
 
                 logging {
