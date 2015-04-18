@@ -18,11 +18,13 @@ object ExceptGrammar1 extends Grammar with StringSamples {
         "B" -> ListSet(i("abb")))
     val startSymbol = n("S")
 
-    val correctSamples = Set("abc")
-    val incorrectSamples = Set("a")
+    val correctSamples = Set("abc", "abbbc")
+    val incorrectSamples = Set("a", "abbc")
 }
 
 object GrammarWithExcept {
     val grammars: Set[Grammar with Samples] = Set(
         ExceptGrammar1)
 }
+
+class GrammarWithExceptTestSuite extends BasicParseTest(GrammarWithExcept.grammars)

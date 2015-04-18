@@ -166,3 +166,5 @@ object GrammarWithLookaheadExcept {
         LookaheadExceptGrammar7,
         LookaheadExceptGrammar9)
 }
+
+class GrammarWithLookaheadTestSuite extends BasicParseTest(GrammarWithLookaheadExcept.grammars)

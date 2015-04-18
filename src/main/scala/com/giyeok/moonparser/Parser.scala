@@ -78,6 +78,9 @@ class Parser(val grammar: Grammar)
                                     case SimpleEdge(from, to: NonterminalNode) =>
                                         val newDerives = (to derive nextGen) -- newEdgesCC
                                         recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
+                                    case AssassinEdge(from: NonterminalNode, to) =>
+                                        val newDerives = (from derive nextGen) -- newEdgesCC
+                                        recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
                                     case _ =>
                                         recursiveDerive(rest, newNodesCC ++ edge.nodes, newEdgesCC + edge)
                                 }
