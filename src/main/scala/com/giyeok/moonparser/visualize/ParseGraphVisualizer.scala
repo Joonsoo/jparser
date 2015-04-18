@@ -111,6 +111,7 @@ object ParseGraphVisualizer {
                         (Some(ctx), map + (VisualizationLocation(idx - 1, false) -> proceedWidget) + (VisualizationLocation(idx - 1, true) -> resultWidget))
                     case (Right(error), idx) =>
                         val errorView = new Label(graphView, SWT.NONE)
+                        errorView.setText(error.msg)
                         errorView.setAlignment(SWT.CENTER)
                         (None, map + (VisualizationLocation(idx - 1, false) -> errorView) + (VisualizationLocation(idx - 1, true) -> errorView))
                 }
