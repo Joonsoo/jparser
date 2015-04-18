@@ -171,7 +171,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         def derive(gen: Int): Set[Edge] =
             if (parsed.isEmpty) {
                 val sym = SymbolProgress(symbol.sym, gen)
-                Set(SimpleEdge(this, sym), AssassinEdge(SymbolProgress(symbol.except, gen), sym))
+                Set(SimpleEdge(this, sym), LiftAssassinEdge(SymbolProgress(symbol.except, gen), sym))
             } else Set[Edge]()
     }
 
@@ -181,7 +181,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             // this `lift` does not mean anything
             this
         }
-        def derive(gen: Int) = Set(AssassinEdge(SymbolProgress(symbol.except, gen), this))
+        def derive(gen: Int) = Set(EagerAssassinEdge(SymbolProgress(symbol.except, gen), this))
     }
 
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]], derivedGen: Int)

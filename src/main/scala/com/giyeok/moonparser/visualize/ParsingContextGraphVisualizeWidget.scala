@@ -12,11 +12,11 @@ import org.eclipse.zest.core.widgets.GraphNode
 import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
 import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
-
 import com.giyeok.moonparser.Inputs
 import com.giyeok.moonparser.ParseTree
 import com.giyeok.moonparser.Parser
 import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
+import org.eclipse.swt.graphics.Color
 
 trait ParsingContextGraphVisualize {
     val graph: Graph
@@ -82,6 +82,8 @@ trait ParsingContextGraphVisualize {
         else 0
     }
 
+    val darkerRed = new Color(null, 139, 0, 0)
+
     def registerEdge(edges: Set[Parser#Edge])(e: Parser#Edge): GraphConnection = e match {
         case e: Parser#SimpleEdge =>
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
@@ -92,9 +94,14 @@ trait ParsingContextGraphVisualize {
             }
             vedges(e) = connection
             connection
-        case e: Parser#AssassinEdge =>
+        case e: Parser#LiftAssassinEdge =>
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
             connection.setLineColor(ColorConstants.red)
+            vedges(e) = connection
+            connection
+        case e: Parser#EagerAssassinEdge =>
+            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
+            connection.setLineColor(darkerRed)
             vedges(e) = connection
             connection
 

@@ -125,7 +125,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         }
     }
 
-    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122)
+    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122)    // dark salmon
     log.propagatedAssassinEdges foreach { e =>
         val (from, to, connection) = registerEdge1(edges)(e)
         connection.setLineColor(propagatedAssassinEdgeColor)

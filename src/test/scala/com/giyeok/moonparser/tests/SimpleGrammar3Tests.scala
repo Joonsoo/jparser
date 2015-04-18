@@ -26,14 +26,7 @@ object SimpleGrammar5 extends Grammar with StringSamples {
     def main(args: Array[String]): Unit = {
         val parser = new Parser(this)
         val ctx = parser.startingContext
-        ctx.graph.edges foreach {
-            _ match {
-                case e: parser.SimpleEdge =>
-                    println(s"${e.from.toShortString} => ${e.to.toShortString}")
-                case e: parser.AssassinEdge =>
-                    println(s"${e.from.toShortString} =(assassin)=> ${e.to.toShortString}")
-            }
-        }
+        ctx.graph.edges foreach { e => println(e.toShortString) }
         println("=== End ===")
     }
 }

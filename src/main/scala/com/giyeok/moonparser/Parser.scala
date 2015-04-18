@@ -10,16 +10,18 @@ class Parser(val grammar: Grammar)
 
     case class Lifting(before: SymbolProgress, after: SymbolProgress, by: Option[SymbolProgress])
 
-    implicit class AugEdges(edges: Set[Edge]) {
+    implicit class AugEdges[T <: Edge](edges: Set[T]) {
         def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }
-        def assassinEdges: Set[AssassinEdge] = edges collect { case e: AssassinEdge => e }
+        def assassinEdges: Set[AssassinEdge0] = edges collect { case e: AssassinEdge0 => e }
+        def liftAssassinEdges: Set[LiftAssassinEdge] = edges collect { case e: LiftAssassinEdge => e }
+        def eagerAssassinEdges: Set[EagerAssassinEdge] = edges collect { case e: EagerAssassinEdge => e }
 
         def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.to == node }
-        def incomingEdgesOf(node: Node): Set[Edge] = edges filter { _.to == node }
-        def outgoingEdges(node: Node): Set[Edge] = ???
+        def incomingEdgesOf(node: Node): Set[T] = edges filter { _.to == node }
+        def outgoingEdges(node: Node): Set[T] = ???
 
-        def rootsOf(node: Node): Set[Edge] = {
-            def trackRoots(queue: List[SymbolProgress], cc: Set[Edge]): Set[Edge] =
+        def rootsOf(node: Node): Set[T] = {
+            def trackRoots(queue: List[SymbolProgress], cc: Set[T]): Set[T] =
                 queue match {
                     case node +: rest =>
                         val incomings = incomingEdgesOf(node) -- cc
@@ -37,7 +39,7 @@ class Parser(val grammar: Grammar)
         newEdges: Set[Edge],
         rootTips: Set[Node],
         roots: Set[Edge],
-        propagatedAssassinEdges: Set[AssassinEdge],
+        propagatedAssassinEdges: Set[AssassinEdge0],
         finalNodes: Set[Node],
         finalEdges: Set[Edge])
 
@@ -81,7 +83,8 @@ class Parser(val grammar: Grammar)
                                     case SimpleEdge(from, to: NonterminalNode) =>
                                         val newDerives = (to derive nextGen) -- newEdgesCC
                                         recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                    case AssassinEdge(from: NonterminalNode, to) =>
+                                    case e: AssassinEdge0 if e.from.isInstanceOf[NonterminalNode] =>
+                                        val from = e.from.asInstanceOf[NonterminalNode]
                                         val newDerives = (from derive nextGen) -- newEdgesCC
                                         recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
                                     case _ =>
@@ -98,21 +101,26 @@ class Parser(val grammar: Grammar)
             case List() => (liftingsCC, newNodesCC, newEdgesCC, rootTipsCC)
         }
 
-    def invokeAssassinEdges(edges: Set[Edge], liftings: Set[Lifting]): Nothing = {
-        ???
-    }
-
-    def prepareNextAssassinEdges(edges: Set[Edge], liftings: Set[Lifting]): (Set[AssassinEdge], Set[Node], Set[Edge]) = {
-        val assassinEdges = edges collect { case e: AssassinEdge => e }
-        def propagateAssassinEdges(queue: List[AssassinEdge], newEdgesCC: Set[AssassinEdge]): Set[AssassinEdge] =
+    def prepareNextAssassinEdges(edges: Set[Edge], liftings: Set[Lifting]): (Set[AssassinEdge0], Set[Node], Set[Edge]) = {
+        def propagateLiftAssassinEdges(queue: List[LiftAssassinEdge], newEdgesCC: Set[LiftAssassinEdge]): Set[LiftAssassinEdge] =
             queue match {
                 case head +: rest =>
                     val liftedBy = liftings filter { _.by == Some(head.to) }
-                    val newAssassinEdges = (liftedBy map { lifting => AssassinEdge(head.from, lifting.after) }) -- newEdgesCC
-                    propagateAssassinEdges(rest ++ newAssassinEdges.toList, newEdgesCC ++ newAssassinEdges)
+                    val newAssassinEdges = (liftedBy map { lifting => LiftAssassinEdge(head.from, lifting.after) }) -- newEdgesCC
+                    propagateLiftAssassinEdges(rest ++ newAssassinEdges.toList, newEdgesCC ++ newAssassinEdges)
                 case List() => newEdgesCC
             }
-        val propagatedAssassinEdges = propagateAssassinEdges(assassinEdges.toList, Set())
+        def propagateEagerAssassinEdges(queue: List[EagerAssassinEdge], newEdgesCC: Set[EagerAssassinEdge]): Set[EagerAssassinEdge] =
+            queue match {
+                case head +: rest =>
+                    val liftedBy = liftings filter { _.by == Some(head.to) }
+                    val newAssassinEdges = (liftedBy map { lifting => EagerAssassinEdge(head.from, lifting.after) }) -- newEdgesCC
+                    propagateEagerAssassinEdges(rest ++ newAssassinEdges.toList, newEdgesCC ++ newAssassinEdges)
+                case List() => newEdgesCC
+            }
+        val propagatedAssassinEdges: Set[AssassinEdge0] =
+            propagateLiftAssassinEdges(edges.liftAssassinEdges.toList, Set()).asInstanceOf[Set[AssassinEdge0]] ++
+                propagateEagerAssassinEdges(edges.eagerAssassinEdges.toList, Set()).asInstanceOf[Set[AssassinEdge0]]
 
         // TODO outgoing edges of assassin targets
         // TODO lifting before?
@@ -145,9 +153,7 @@ class Parser(val grammar: Grammar)
             logging {
                 println(s"**** New Generation $gen")
 
-                graph.edges foreach { edge =>
-                    println(s"${edge.from.toShortString} -> ${edge.to.toShortString}")
-                }
+                graph.edges foreach { edge => println(edge.toShortString) }
                 println()
             }
 
@@ -155,19 +161,32 @@ class Parser(val grammar: Grammar)
             if (terminalLiftings isEmpty) {
                 Right(ParsingErrors.UnexpectedInput(next))
             } else {
-                val (liftings, newNodes, newEdges, rootTips) = {
-                    val (liftings, newNodes, newEdges, rootTips) = expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (Some(lifting.before), lifting.after) }, terminalLiftings, Set(), Set(), Set())
+                val (liftings0, newNodes0, newEdges0, rootTips0) = expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (Some(lifting.before), lifting.after) }, terminalLiftings, Set(), Set(), Set())
 
-                    // assert(rootTips subsetOf graph.nodes)
+                // assert(rootTips subsetOf graph.nodes)
 
-                    val activeAssassinEdges = graph.edges.assassinEdges filter { e => liftings map { _.before } contains e.from }
+                assert(terminalLiftings subsetOf liftings0)
+                val activeAssassinEdges = graph.edges.assassinEdges filter { e => liftings0 map { _.before } contains e.from }
+
+                val (liftings, newNodes, newEdges, rootTips) =
                     if (activeAssassinEdges.isEmpty) {
-                        (liftings, newNodes, newEdges, rootTips)
+                        (liftings0, newNodes0, newEdges0, rootTips0)
                     } else {
-                        val blockingLiftings = liftings filter { l => activeAssassinEdges map { _.to } contains l.before }
+                        val activeLiftAssassinEdges = activeAssassinEdges.liftAssassinEdges
+                        val activeEagerAssassinEdges = activeAssassinEdges.eagerAssassinEdges
+
+                        val blockingLiftings = liftings0 filter { l => activeAssassinEdges map { _.to } contains l.before }
+                        logging {
+                            println("- blocked liftings by assassin edges")
+                            blockingLiftings foreach { lifting => println(s"${lifting.before.toShortString} => ${lifting.after.toShortString} (by ${lifting.by map { _.toShortString }})") }
+                            println("- blocked terminal liftings")
+                            (blockingLiftings & terminalLiftings) foreach { lifting => println(s"${lifting.before.toShortString} => ${lifting.after.toShortString} (by ${lifting.by map { _.toShortString }})") }
+                        }
+
+                        // TODO eager assassin edges
+
                         expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (Some(lifting.before), lifting.after) }, terminalLiftings, Set(), Set(), Set(), blockingLiftings)
                     }
-                }
 
                 val roots = rootTips flatMap { rootTip => graph.edges.rootsOf(rootTip) }
 
@@ -179,15 +198,15 @@ class Parser(val grammar: Grammar)
                     println("- newNodes")
                     newNodes foreach { node => println(node.toShortString) }
                     println("- newEdges")
-                    newEdges foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
+                    newEdges foreach { edge => println(edge.toShortString) }
                     println("- rootTips")
                     rootTips foreach { rootTip => println(rootTip.toShortString) }
 
                     println("- roots")
-                    roots foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
+                    roots foreach { edge => println(edge.toShortString) }
 
                     println("=== Edges before assassin works ===")
-                    finalEdges foreach { edge => println(s"${edge.from.toShortString} -> ${edge.to.toShortString}") }
+                    newEdges0 foreach { edge => println(edge.toShortString) }
                     println("============ End of generation =======")
                 }
 
@@ -216,9 +235,13 @@ class Parser(val grammar: Grammar)
             val graph = Graph(finalNodes, finalEdges)
 
             logging {
-                liftings foreach { lifting =>
+                println("- nodes")
+                nodes.toSeq.sortBy { _.id } foreach { node => println(node.toShortString) }
+                println("- edges")
+                edges.toSeq.sortBy { e => (e.from.id, e.to.id) } foreach { edge => println(edge.toShortString) }
+                println("- liftings")
+                liftings.toSeq.sortBy { l => (l.before.id, l.after.id) } foreach { lifting =>
                     println(s"${lifting.before.toShortString} -(liftTo)-> ${lifting.after.toShortString}  (by ${lifting.by map { _.toShortString }})")
-                    println()
                 }
             }
 
