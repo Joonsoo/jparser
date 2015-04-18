@@ -70,10 +70,8 @@ class Parser(val grammar: Grammar)
                                 (edge.from, edge.to) match {
                                     case (from: NonterminalNode, to) if to.canFinish =>
                                         val newLifting = from lift to
-                                        if (!(nextLiftingsCC contains newLifting)) {
-                                            nextQueue +:= (Some(newLifting.before), newLifting.after)
-                                            nextLiftingsCC += newLifting
-                                        }
+                                        nextQueue +:= (Some(newLifting.before), newLifting.after)
+                                        nextLiftingsCC += newLifting
                                     case _ => // nothing to do
                                 }
                                 edge match {

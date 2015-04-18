@@ -47,8 +47,8 @@ object SimpleGrammar6 extends Grammar with StringSamples {
         "C" -> ListSet(seq(n("B"), i("c").star)))
     val startSymbol = n("S")
 
-    val correctSamples = Set("", "ab")
-    val incorrectSamples = Set("aa")
+    val correctSamples = Set("", "ab", "c", "ccc", "abc", "aa", "aaabccc")
+    val incorrectSamples = Set("cb")
 }
 
 object SimpleGrammarSet3 {
