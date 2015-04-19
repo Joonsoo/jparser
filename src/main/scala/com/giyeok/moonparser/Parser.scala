@@ -48,8 +48,9 @@ class Parser(val grammar: Grammar)
     }
 
     def expand(oldEdges: Set[Edge], nextGen: Int, queue: List[(Option[Node], Node)], liftingsCC: Set[Lifting], newNodesCC: Set[Node], newEdgesCC: Set[Edge], rootTipsCC: Set[Node]): (Set[Lifting], Set[Node], Set[Edge], Set[Node]) =
-        expand(oldEdges, nextGen, queue, liftingsCC, newNodesCC, newEdgesCC, rootTipsCC, Set())
-    def expand(oldEdges: Set[Edge], nextGen: Int, queue: List[(Option[Node], Node)], liftingsCC: Set[Lifting], newNodesCC: Set[Node], newEdgesCC: Set[Edge], rootTipsCC: Set[Node], excludingLiftings: Set[Lifting]): (Set[Lifting], Set[Node], Set[Edge], Set[Node]) =
+        expand(oldEdges, nextGen, queue, liftingsCC, newNodesCC, newEdgesCC, rootTipsCC, Set(), Set())
+    def expand(oldEdges: Set[Edge], nextGen: Int, queue: List[(Option[Node], Node)], liftingsCC: Set[Lifting], newNodesCC: Set[Node], newEdgesCC: Set[Edge], rootTipsCC: Set[Node], excludingLiftings: Set[Lifting], excludingNodes: Set[Node]): (Set[Lifting], Set[Node], Set[Edge], Set[Node]) =
+        // TODO excludingNodes
         queue match {
             case (before, after) +: rest =>
                 var (nextQueue, nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC) = (rest, liftingsCC, newNodesCC, newEdgesCC, rootTipsCC)
@@ -99,7 +100,7 @@ class Parser(val grammar: Grammar)
                         nextNewEdgesCC ++= derivedEdges
                     }
                 }
-                expand(oldEdges, nextGen, nextQueue, nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC, excludingLiftings)
+                expand(oldEdges, nextGen, nextQueue, nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC, excludingLiftings, excludingNodes)
             case List() => (liftingsCC, newNodesCC, newEdgesCC, rootTipsCC)
         }
 
@@ -184,55 +185,52 @@ class Parser(val grammar: Grammar)
             if (terminalLiftings isEmpty) {
                 Right(ParsingErrors.UnexpectedInput(next))
             } else {
-                val (liftings0, newNodes0, newEdges0, rootTips0) = expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (Some(lifting.before), lifting.after) }, terminalLiftings, Set(), Set(), Set())
+                val expandFn = expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (Some(lifting.before), lifting.after) }, terminalLiftings, Set(), Set(), Set(), _: Set[Lifting], _: Set[Node])
 
-                // assert(rootTips subsetOf graph.nodes)
+                val (liftings0, newNodes0, newEdges0, rootTips0) =
+                    expandFn(Set(), Set())
 
-                assert(terminalLiftings subsetOf liftings0)
-                val activeAssassinEdges = graph.edges.assassinEdges filter { e => liftings0 map { _.before } contains e.from }
+                val (liftings, newNodes, newEdges, rootTips, roots) = {
+                    // assert(rootTips subsetOf graph.nodes)
 
-                val (liftings, newNodes, newEdges, rootTips) =
+                    assert(terminalLiftings subsetOf liftings0)
+                    val activeAssassinEdges = graph.edges.assassinEdges filter { e => liftings0 map { _.before } contains e.from }
+
                     if (activeAssassinEdges.isEmpty) {
-                        (liftings0, newNodes0, newEdges0, rootTips0)
+                        val roots = rootTips0 flatMap { rootTip => graph.edges.rootsOf(rootTip) }
+                        (liftings0, newNodes0, newEdges0, rootTips0, roots)
                     } else {
                         val activeLiftAssassinEdges = activeAssassinEdges.liftAssassinEdges
-                        val (liftings1, newNodes1, newEdges1, rootTips1) =
-                            if (activeLiftAssassinEdges.isEmpty) {
-                                (liftings0, newNodes0, newEdges0, rootTips0)
-                            } else {
-                                val blockingLiftings = liftings0 filter { l => activeAssassinEdges map { _.to } contains l.before }
-                                logging {
-                                    if (!blockingLiftings.isEmpty) {
-                                        println("- blocked liftings by assassin edges")
-                                        blockingLiftings foreach { lifting => println(s"${lifting.before.toShortString} => ${lifting.after.toShortString} (by ${lifting.by map { _.toShortString }})") }
-                                        println("- blocked terminal liftings")
-                                        (blockingLiftings & terminalLiftings) foreach { lifting => println(s"${lifting.before.toShortString} => ${lifting.after.toShortString} (by ${lifting.by map { _.toShortString }})") }
-                                    }
-                                }
-                                expand(graph.edges, gen + 1, terminalLiftings.toList map { lifting => (Some(lifting.before), lifting.after) }, terminalLiftings, Set(), Set(), Set(), blockingLiftings)
-                            }
-
                         val activeEagerAssassinEdges = activeAssassinEdges.eagerAssassinEdges
-                        val (liftings2, newNodes2, newEdges2, rootTips2) =
-                            if (activeEagerAssassinEdges.isEmpty) {
-                                (liftings1, newNodes1, newEdges1, rootTips1)
-                            } else {
-                                val assassinatedNodes = activeEagerAssassinEdges map { _.to }
-                                logging {
-                                    if (!assassinatedNodes.isEmpty) {
-                                        println("- blocked nodes by assassin edges")
-                                        assassinatedNodes foreach { node => println(node.toShortString) }
-                                        // assassinatedNodes는 expand할 때도 무시하고, roots에서도 제외해야 함
-                                    }
-                                }
 
-                                (liftings1, newNodes1, newEdges1, rootTips1)
+                        val blockingLiftings = liftings0 filter { l => activeAssassinEdges map { _.to } contains l.before }
+                        logging {
+                            if (!blockingLiftings.isEmpty) {
+                                println("- blocked liftings by assassin edges")
+                                blockingLiftings foreach { lifting => println(s"${lifting.before.toShortString} => ${lifting.after.toShortString} (by ${lifting.by map { _.toShortString }})") }
+                                println("- blocked terminal liftings")
+                                (blockingLiftings & terminalLiftings) foreach { lifting => println(s"${lifting.before.toShortString} => ${lifting.after.toShortString} (by ${lifting.by map { _.toShortString }})") }
                             }
+                        }
 
-                        (liftings2, newNodes2, newEdges2, rootTips2)
+                        val assassinatedNodes = activeEagerAssassinEdges map { _.to }
+                        logging {
+                            if (!assassinatedNodes.isEmpty) {
+                                println("- blocked nodes by assassin edges")
+                                assassinatedNodes foreach { node => println(node.toShortString) }
+                            }
+                        }
+
+                        // assassinatedNodes는 expand할 때도 무시하고, roots에서도 제외해야 함
+
+                        val (liftings1, newNodes1, newEdges1, rootTips1) = expandFn(blockingLiftings, assassinatedNodes)
+                        val roots1 = rootTips1 flatMap { rootTip => graph.edges.rootsOf(rootTip) }
+
+                        val roots = roots1 filterNot { assassinatedNodes contains _.from } filterNot { assassinatedNodes contains _.to }
+
+                        (liftings1, newNodes1, newEdges1, rootTips1, roots)
                     }
-
-                val roots = rootTips flatMap { rootTip => graph.edges.rootsOf(rootTip) }
+                }
 
                 val (propagatedAssassinEdges, finalNodes, finalEdges) = prepareNextAssassinEdges(newEdges ++ roots, liftings)
 
