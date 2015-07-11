@@ -16,8 +16,6 @@ import com.giyeok.moonparser.Inputs.SourceToCleanString
 import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.moonparser.visualize.ParseGraphVisualizer
 import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
-import com.giyeok.moonparser.tests.javascript.JavaScriptGrammar
-import com.giyeok.moonparser.tests.javascript.JavaScriptGrammar
 import org.eclipse.draw2d.ToolbarLayout
 import org.eclipse.draw2d.Label
 import org.eclipse.jface.resource.JFaceResources

@@ -121,6 +121,9 @@ object Symbols {
     case class Backup(sym: Symbol, backup: Symbol) extends Symbol {
         override val hashCode = (sym, backup).hashCode
     }
+    case class All(syms: Set[Symbol]) extends Symbol {
+        override val hashCode = syms.hashCode()
+    }
 
     implicit class CharsGrouping(sym: Terminals.Chars) {
         def groups: List[(Char, Char)] = {

@@ -5,7 +5,7 @@ import com.giyeok.moonparser.Symbols._
 
 trait IsNullable {
     this: Parser =>
-
+    /*
     object Nullable {
         // nonterminal to nullable boolean map
         private var map = Map[String, Boolean]()
@@ -34,4 +34,6 @@ trait IsNullable {
             }
         }
     }
+    *
+    */
 }

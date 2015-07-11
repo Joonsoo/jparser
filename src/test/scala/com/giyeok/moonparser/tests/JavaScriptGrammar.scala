@@ -1,4 +1,4 @@
-package com.giyeok.moonparser.tests.javascript
+package com.giyeok.moonparser.tests
 
 import scala.collection.immutable.ListMap
 import com.giyeok.moonparser.Grammar
@@ -6,6 +6,7 @@ import com.giyeok.moonparser.Symbols.Symbol
 import com.giyeok.moonparser.SymbolHelper._
 import com.giyeok.moonparser.Symbols._
 import scala.collection.immutable.ListSet
+import com.giyeok.moonparser.Symbols._
 
 object JavaScriptGrammar extends Grammar {
 
