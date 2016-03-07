@@ -102,10 +102,10 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
     log.newEdges foreach { e =>
         val (from, to, connection) = registerEdge1(edges)(e)
 
-        if (!(nodes contains e.from)) {
+        if (!(nodes contains e.start)) {
             from.setBackgroundColor(newNodeBackgroundColor)
         }
-        if (!(nodes contains e.to)) {
+        if (!(nodes contains e.end)) {
             to.setBackgroundColor(newNodeBackgroundColor)
         }
         connection.setLineWidth(3)

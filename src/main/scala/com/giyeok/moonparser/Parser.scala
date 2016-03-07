@@ -53,13 +53,14 @@ class Parser(val grammar: Grammar)
                     var ExpandResult(nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC) = cc
                     val allEdgesSoFar = oldEdges ++ nextNewEdgesCC
 
+                    // 여기서는 chain lift같은 것이 필요 없으므로 derive만 하면 됨
                     val afterDerives = node.asInstanceOf[SymbolProgressNonterminal].derive(nextGen)
                     if (!afterDerives.isEmpty) {
                         def recursiveDerive(queue: List[Edge], newNodesCC: Set[Node], newEdgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
                             case edge +: rest =>
-                                (edge.from, edge.to) match {
-                                    case (from: NonterminalNode, to) if to.canFinish =>
-                                        val newLifting = from lift to
+                                (edge.start, edge.end) match {
+                                    case (start: NonterminalNode, end) if end.canFinish =>
+                                        val newLifting = start lift end
                                         if (!(excludingLiftings contains newLifting)) {
                                             nextQueue +:= ExpandAdvance(newLifting.before, newLifting.after)
                                             nextLiftingsCC += newLifting
@@ -67,12 +68,12 @@ class Parser(val grammar: Grammar)
                                     case _ => // nothing to do
                                 }
                                 edge match {
-                                    case SimpleEdge(from, to: NonterminalNode) =>
-                                        val newDerives = (to derive nextGen) -- newEdgesCC
+                                    case SimpleEdge(start, end: NonterminalNode) =>
+                                        val newDerives = (end derive nextGen) -- newEdgesCC
                                         recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                    case e: AssassinEdge0 if e.from.isInstanceOf[NonterminalNode] =>
-                                        val from = e.from.asInstanceOf[NonterminalNode]
-                                        val newDerives = (from derive nextGen) -- newEdgesCC
+                                    case edge: AssassinEdge0 if edge.start.isInstanceOf[NonterminalNode] =>
+                                        val start = edge.start.asInstanceOf[NonterminalNode]
+                                        val newDerives = (start derive nextGen) -- newEdgesCC
                                         recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
                                     case _ =>
                                         recursiveDerive(rest, newNodesCC ++ edge.nodes, newEdgesCC + edge)
@@ -89,9 +90,11 @@ class Parser(val grammar: Grammar)
                     var ExpandResult(nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC) = cc
                     val allEdgesSoFar = oldEdges ++ nextNewEdgesCC
 
+                    // chain lift
                     if (after.canFinish) {
                         val incomingEdges = allEdgesSoFar.incomingSimpleEdgesOf(before)
-                        val newLiftings = (incomingEdges map { _.from lift after }) -- cc.liftings -- excludingLiftings
+                        val newLiftings = (incomingEdges map { _.start lift after }) -- cc.liftings -- excludingLiftings
+                        // TODO 여기쯤에서 JoinEdge를 위한 특별 처리가 필요할 듯
                         nextQueue ++= (newLiftings map { l => ExpandAdvance(l.before, l.after) })
                         nextLiftingsCC ++= newLiftings
                     }
@@ -99,14 +102,14 @@ class Parser(val grammar: Grammar)
                         val afterDerives = after.asInstanceOf[SymbolProgressNonterminal].derive(nextGen)
                         if (!afterDerives.isEmpty) {
                             val incomingEdgesToBefore = allEdgesSoFar.incomingSimpleEdgesOf(before)
-                            nextRootTipsCC ++= incomingEdgesToBefore map { _.from }
-                            nextNewEdgesCC ++= incomingEdgesToBefore map { edge => SimpleEdge(edge.from, after) }
+                            nextRootTipsCC ++= incomingEdgesToBefore map { _.start }
+                            nextNewEdgesCC ++= incomingEdgesToBefore map { edge => SimpleEdge(edge.start, after) }
 
                             def recursiveDerive(queue: List[Edge], newNodesCC: Set[Node], newEdgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
                                 case edge +: rest =>
-                                    (edge.from, edge.to) match {
-                                        case (from: NonterminalNode, to) if to.canFinish =>
-                                            val newLifting = from lift to
+                                    (edge.start, edge.end) match {
+                                        case (start: NonterminalNode, end) if end.canFinish =>
+                                            val newLifting = start lift end
                                             if (!(excludingLiftings contains newLifting)) {
                                                 nextQueue +:= ExpandAdvance(newLifting.before, newLifting.after)
                                                 nextLiftingsCC += newLifting
@@ -117,8 +120,8 @@ class Parser(val grammar: Grammar)
                                         case SimpleEdge(from, to: NonterminalNode) =>
                                             val newDerives = (to derive nextGen) -- newEdgesCC
                                             recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                        case e: AssassinEdge0 if e.from.isInstanceOf[NonterminalNode] =>
-                                            val from = e.from.asInstanceOf[NonterminalNode]
+                                        case e: AssassinEdge0 if e.start.isInstanceOf[NonterminalNode] =>
+                                            val from = e.start.asInstanceOf[NonterminalNode]
                                             val newDerives = (from derive nextGen) -- newEdgesCC
                                             recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
                                         case _ =>
@@ -142,16 +145,16 @@ class Parser(val grammar: Grammar)
         def propagateLiftAssassinEdges(queue: List[LiftAssassinEdge], newEdgesCC: Set[LiftAssassinEdge]): Set[LiftAssassinEdge] =
             queue match {
                 case head +: rest =>
-                    val liftedBy = liftings collect { case x @ NontermLifting(_, _, by) if by == head.to => x }
+                    val liftedBy = liftings collect { case x @ NontermLifting(_, _, by) if by == head.end => x }
                     // val liftedBy = liftings filter { _.by == Some(head.to) }
-                    val newAssassinEdges = (liftedBy map { lifting => LiftAssassinEdge(head.from, lifting.after) }) -- newEdgesCC
+                    val newAssassinEdges = (liftedBy map { lifting => LiftAssassinEdge(head.start, lifting.after) }) -- newEdgesCC
                     propagateLiftAssassinEdges(rest ++ newAssassinEdges.toList, newEdgesCC ++ newAssassinEdges)
                 case List() => newEdgesCC
             }
 
         def propagateEagerAssassinEdges(assassinEdges: Set[EagerAssassinEdge]): Set[EagerAssassinEdge] = {
-            val propagated: Map[Set[EagerAssassinEdge], Set[Node]] = assassinEdges groupBy { _.to } map { p =>
-                assert(p._2 forall { _.to == p._1 })
+            val propagated: Map[Set[EagerAssassinEdge], Set[Node]] = assassinEdges groupBy { _.end } map { p =>
+                assert(p._2 forall { _.end == p._1 })
                 val sameDestinationEdges = p._2
                 def propagate(queue: List[Node], nodesCC: Set[Node], liftingsCC: Set[Lifting], edgesCC: Set[SimpleEdge]): Set[Node] =
                     queue match {
@@ -163,18 +166,18 @@ class Parser(val grammar: Grammar)
                             val newEdgesCC = edgesCC ++ affectedEdges
                             val affectedNodesByLiftings: Set[Node] = affectedLiftings map { _.after } filter { n => liftingsCC filter { _.after == n } subsetOf newLiftingsCC }
                             // affectedNodesByLiftings: affectedLiftings의 after 중에서 after가 자기에게로 향하는 lifting이 모두 newLiftingsCC에 포함된 노드
-                            val affectedNodesByEdges: Set[Node] = affectedEdges map { _.to } filter { n => edges.incomingSimpleEdgesOf(n) subsetOf newEdgesCC }
+                            val affectedNodesByEdges: Set[Node] = affectedEdges map { _.end } filter { n => edges.incomingSimpleEdgesOf(n) subsetOf newEdgesCC }
                             // affectedNodesByEdges: affectedEdges의 to들 중에서 자기에게로 향하는 SimpleEdge가 모두 newEdgesCC에 포함된 노드
                             val newAffectedNodes = (affectedNodesByLiftings ++ affectedNodesByEdges) -- nodesCC
                             propagate(rest ++ newAffectedNodes.toList, nodesCC ++ newAffectedNodes, newLiftingsCC, newEdgesCC)
                         case List() => nodesCC
                     }
-                (sameDestinationEdges, propagate(sameDestinationEdges.map(_.to).toList, Set(), Set(), Set()))
+                (sameDestinationEdges, propagate(sameDestinationEdges.map(_.end).toList, Set(), Set(), Set()))
             }
 
             (propagated flatMap { p =>
                 val (origins, affecteds) = p
-                origins flatMap { origin => affecteds map { to => EagerAssassinEdge(origin.from, to) } }
+                origins flatMap { origin => affecteds map { to => EagerAssassinEdge(origin.start, to) } }
             }).toSet
         }
 
@@ -188,7 +191,7 @@ class Parser(val grammar: Grammar)
         val nodes1 = edges flatMap { _.nodes }
 
         val edges2 = edges ++ propagatedAssassinEdges
-        val edges3 = edges2 filter { e => (nodes1 contains e.from) && (nodes1 contains e.to) }
+        val edges3 = edges2 filter { e => (nodes1 contains e.start) && (nodes1 contains e.end) }
 
         val nodes2 = edges3 flatMap { _.nodes }
 
@@ -229,7 +232,7 @@ class Parser(val grammar: Grammar)
                     // assert(rootTips subsetOf graph.nodes)
 
                     assert(terminalLiftings subsetOf liftings0)
-                    val activeAssassinEdges = graph.edges.assassinEdges filter { e => liftings0 map { _.before } contains e.from }
+                    val activeAssassinEdges = graph.edges.assassinEdges filter { e => liftings0 map { _.before } contains e.start }
 
                     if (activeAssassinEdges.isEmpty) {
                         val roots = rootTips0 flatMap { rootTip => graph.edges.rootsOf(rootTip) }
@@ -238,7 +241,7 @@ class Parser(val grammar: Grammar)
                         val activeLiftAssassinEdges = activeAssassinEdges.liftAssassinEdges
                         val activeEagerAssassinEdges = activeAssassinEdges.eagerAssassinEdges
 
-                        val blockingLiftings = liftings0 filter { l => activeAssassinEdges map { _.to } contains l.before }
+                        val blockingLiftings = liftings0 filter { l => activeAssassinEdges map { _.end } contains l.before }
                         logging {
                             if (!blockingLiftings.isEmpty) {
                                 println("- blocked liftings by assassin edges")
@@ -248,7 +251,7 @@ class Parser(val grammar: Grammar)
                             }
                         }
 
-                        val assassinatedNodes = activeEagerAssassinEdges map { _.to }
+                        val assassinatedNodes = activeEagerAssassinEdges map { _.end }
                         logging {
                             if (!assassinatedNodes.isEmpty) {
                                 println("- blocked nodes by assassin edges")
@@ -261,7 +264,7 @@ class Parser(val grammar: Grammar)
                         val ExpandResult(liftings1, newNodes1, newEdges1, rootTips1) = expandFn(blockingLiftings, assassinatedNodes)
                         val roots1 = rootTips1 flatMap { rootTip => graph.edges.rootsOf(rootTip) }
 
-                        val roots = roots1 filterNot { assassinatedNodes contains _.from } filterNot { assassinatedNodes contains _.to }
+                        val roots = roots1 filterNot { assassinatedNodes contains _.start } filterNot { assassinatedNodes contains _.end }
 
                         (liftings1, newNodes1, newEdges1, rootTips1, roots)
                     }
@@ -315,7 +318,7 @@ class Parser(val grammar: Grammar)
                 println("- nodes")
                 nodes.toSeq.sortBy { _.id } foreach { node => println(node.toShortString) }
                 println("- edges")
-                edges.toSeq.sortBy { e => (e.from.id, e.to.id) } foreach { edge => println(edge.toShortString) }
+                edges.toSeq.sortBy { e => (e.start.id, e.end.id) } foreach { edge => println(edge.toShortString) }
                 println("- liftings")
                 liftings.toSeq.sortBy { l => (l.before.id, l.after.id) } foreach { lifting =>
                     println(lifting.toShortString)
@@ -326,7 +329,7 @@ class Parser(val grammar: Grammar)
             assert(graph.nodes collect { case x: SymbolProgressNonterminal => x } forall { _.derive(0) subsetOf graph.edges })
             assert(graph.edges forall { _.nodes subsetOf graph.nodes })
             assert((graph.edges flatMap { _.nodes }) == graph.nodes)
-            assert(liftings filter { _.after.canFinish } forall { lifting => graph.edges.incomingSimpleEdgesOf(lifting.before) map { _.from } map { _.lift(lifting.after) } subsetOf liftings })
+            // assert(liftings filter { _.after.canFinish } forall { lifting => graph.edges.incomingSimpleEdgesOf(lifting.before) map { _.start } map { _.lift(lifting.after) } subsetOf liftings })
             assert(liftings filter { !_.after.canFinish } forall { lifting =>
                 graph.edges.rootsOf(lifting.before).asInstanceOf[Set[Edge]] subsetOf graph.edges
             })

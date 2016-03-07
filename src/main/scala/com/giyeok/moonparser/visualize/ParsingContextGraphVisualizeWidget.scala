@@ -75,10 +75,10 @@ trait ParsingContextGraphVisualize {
     }
 
     private def calculateCurve(edges: Set[Parser#Edge], e: Parser#Edge): Int = {
-        val overlapping = edges filter { r => (((r.from == e.from) && (r.to == e.to)) || ((r.from == e.to) && (r.to == e.from))) && (e != r) }
+        val overlapping = edges filter { r => (((r.start == e.start) && (r.end == e.end)) || ((r.start == e.end) && (r.end == e.start))) && (e != r) }
         if (!overlapping.isEmpty) {
             overlapping count { _.hashCode < e.hashCode }
-        } else if (edges exists { r => (r.from == e.to) && (r.to == e.from) }) 1
+        } else if (edges exists { r => (r.start == e.end) && (r.end == e.start) }) 1
         else 0
     }
 
@@ -86,7 +86,7 @@ trait ParsingContextGraphVisualize {
 
     def registerEdge(edges: Set[Parser#Edge])(e: Parser#Edge): GraphConnection = e match {
         case e: Parser#SimpleEdge =>
-            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
+            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
             val curves = calculateCurve(edges, e)
 
             if (curves > 0) {
@@ -95,20 +95,20 @@ trait ParsingContextGraphVisualize {
             vedges(e) = connection
             connection
         case e: Parser#LiftAssassinEdge =>
-            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
+            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
             connection.setLineColor(ColorConstants.red)
             vedges(e) = connection
             connection
         case e: Parser#EagerAssassinEdge =>
-            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
+            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
             connection.setLineColor(darkerRed)
             vedges(e) = connection
             connection
 
     }
     def registerEdge1(edges: Set[Parser#Edge])(e: Parser#Edge): (GraphNode, GraphNode, GraphConnection) = {
-        val from = registerNode(e.from)
-        val to = registerNode(e.to)
+        val from = registerNode(e.start)
+        val to = registerNode(e.end)
         (from, to, registerEdge(edges)(e))
     }
 }
