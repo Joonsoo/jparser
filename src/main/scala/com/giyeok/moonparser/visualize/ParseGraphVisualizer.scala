@@ -78,11 +78,11 @@ object ParseGraphVisualizer {
 
         val parser = new Parser(grammar)
 
-        val finReversed: List[(Either[(Parser#ParsingContext, Parser#ProceedLog), Parser#ParsingError])] =
-            source.foldLeft[List[(Either[(Parser#ParsingContext, Parser#ProceedLog), Parser#ParsingError])]](List((Left(parser.startingContext, parser.startingContextVerbose._2)))) { (cl, terminal) =>
+        val finReversed: List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError])] =
+            source.foldLeft[List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError])]](List((Left(parser.startingContext, parser.startingContextVerbose._2)))) { (cl, terminal) =>
                 cl.head match {
-                    case Left((ctx, _)) => (ctx proceedTerminalLog terminal) +: cl
-                    case error@Right(_) => error +: cl
+                    case Left((ctx, _)) => (ctx proceedTerminalVerbose terminal) +: cl
+                    case error @ Right(_) => error +: cl
                 }
             }
         val fin = finReversed.reverse
@@ -93,7 +93,7 @@ object ParseGraphVisualizer {
             def nextLocation = if (showResult) VisualizationLocation(location + 1, false) else VisualizationLocation(location, true)
 
             def stringRepresentation = {
-                val sourceStr = source map {_.toCleanString}
+                val sourceStr = source map { _.toCleanString }
 
                 val divider = location + (if (showResult) 1 else 0)
                 if (location < 0 && !showResult) ("> " + (sourceStr.mkString))
@@ -160,12 +160,10 @@ object ParseGraphVisualizer {
                             }
                         }
                     }
-                    def listener(location: VisualizationLocation) = {
-                        new draw2d.MouseListener() {
-                            def mousePressed(e: draw2d.MouseEvent): Unit = { updateLocation(location) }
-                            def mouseReleased(e: draw2d.MouseEvent): Unit = {}
-                            def mouseDoubleClicked(e: draw2d.MouseEvent): Unit = {}
-                        }
+                    def listener(location: VisualizationLocation) = new draw2d.MouseListener() {
+                        def mousePressed(e: draw2d.MouseEvent): Unit = { updateLocation(location) }
+                        def mouseReleased(e: draw2d.MouseEvent): Unit = {}
+                        def mouseDoubleClicked(e: draw2d.MouseEvent): Unit = {}
                     }
                     def pointerFig(location: VisualizationLocation, addingWidth: Int): Figure = {
                         val pointer = new draw2d.Figure
@@ -211,20 +209,18 @@ object ParseGraphVisualizer {
         }
         updateLocation(currentLocation)
 
-        def keyListener = {
-            new KeyListener() {
-                def keyPressed(x: KeyEvent): Unit = {
-                    x.keyCode match {
-                        case SWT.ARROW_LEFT => updateLocation(currentLocation.previousLocation)
-                        case SWT.ARROW_RIGHT => updateLocation(currentLocation.nextLocation)
-                        case SWT.ARROW_UP => updateLocation(VisualizationLocation(currentLocation.location - 1, currentLocation.showResult))
-                        case SWT.ARROW_DOWN => updateLocation(VisualizationLocation(currentLocation.location + 1, currentLocation.showResult))
-                        case code =>
-                    }
+        def keyListener = new KeyListener() {
+            def keyPressed(x: KeyEvent): Unit = {
+                x.keyCode match {
+                    case SWT.ARROW_LEFT => updateLocation(currentLocation.previousLocation)
+                    case SWT.ARROW_RIGHT => updateLocation(currentLocation.nextLocation)
+                    case SWT.ARROW_UP => updateLocation(VisualizationLocation(currentLocation.location - 1, true))
+                    case SWT.ARROW_DOWN => updateLocation(VisualizationLocation(currentLocation.location + 1, true))
+                    case code =>
                 }
-
-                def keyReleased(x: KeyEvent): Unit = {}
             }
+
+            def keyReleased(x: KeyEvent): Unit = {}
         }
         shell.addKeyListener(keyListener)
         views foreach { v =>

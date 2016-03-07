@@ -2,7 +2,7 @@ name := "Moon Parser"
 
 version := "0.1"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.6"
 
 
 resolvers += "swt-repo" at "https://swt-repo.googlecode.com/svn/repo/"
@@ -28,11 +28,10 @@ libraryDependencies += {
 }
 
 libraryDependencies ++= Seq(
-  "org.eclipse.draw2d" % "org.eclipse.draw2d" % "3.10.1.201508170204" from "http://download.eclipse.org/tools/gef/updates/releases/3.10.1_gef-maintenance_1205/plugins/org.eclipse.draw2d_3.10.1.201508170204.jar",
-  "org.eclipse.draw2d" % "org.eclipse.draw2d.source" % "3.10.1.201508170204" from "http://download.eclipse.org/tools/gef/updates/releases/3.10.1_gef-maintenance_1205/plugins/org.eclipse.draw2d.source_3.10.1.201508170204.jar",
-  "org.eclipse.zest" % "org.eclipse.zest.core" % "1.5.201.201508170204" from "http://download.eclipse.org/tools/gef/updates/releases/3.10.1_gef-maintenance_1205/plugins/org.eclipse.zest.core_1.5.201.201508170204.jar",
-  "org.eclipse.zest" % "org.eclipse.zest.layouts" % "1.1.200.201508170204" from "http://download.eclipse.org/tools/gef/updates/releases/3.10.1_gef-maintenance_1205/plugins/org.eclipse.zest.layouts_1.1.200.201508170204.jar",
-  "org.eclipse.zest" % "org.eclipse.zest.layouts.source" % "1.1.200.201508170204" from "http://download.eclipse.org/tools/gef/updates/releases/3.10.1_gef-maintenance_1205/plugins/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"
+  "org.eclipse.draw2d" % "org.eclipse.draw2d" % "3.9.101.201408150207" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.draw2d_3.9.101.201408150207.jar",
+  "org.eclipse.zest" % "org.eclipse.zest.core" % "1.5.100.201408150207" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.core_1.5.100.201408150207.jar",
+  "org.eclipse.zest" % "org.eclipse.zest.layouts" % "1.1.100.201408150207" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts_1.1.100.201408150207.jar",
+  "org.eclipse.zest" % "org.eclipse.zest.layouts.source" % "1.1.100.201408150207" from "http://download.eclipse.org/tools/gef/updates/releases/plugins/org.eclipse.zest.layouts.source_1.1.100.201408150207.jar"
 )
 
 libraryDependencies += "swt" % "jface" % "3.0.1"
@@ -40,7 +39,8 @@ libraryDependencies += "swt" % "jface" % "3.0.1"
 fork in run := true
 
 javaOptions in run := {
-  if (sys.props("os.name") == "Mac OS X") Seq("-XstartOnFirstThread", "-d64") else Seq()
+    if (sys.props("os.name") == "Mac OS X") Seq("-XstartOnFirstThread", "-d64") else Seq()
 }
 
 crossPaths := false
+

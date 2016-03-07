@@ -12,70 +12,57 @@ object Symbols {
             def accept(input: Input) = true
         }
         case object AnyChar extends Terminal {
-            def accept(input: Input) = {
+            def accept(input: Input) =
                 input.isInstanceOf[Character]
-            }
         }
         /**
          * `func` must be referential transparent function
          * if not, the behavior of the parser is unpredictable
          */
         case class FuncChar(func: Char => Boolean) extends Terminal {
-            def accept(input: Input) = {
-                input match {
-                    case Character(c, _) if func(c) => true
-                    case _ => false
-                }
+            def accept(input: Input) = input match {
+                case Character(c, _) if func(c) => true
+                case _ => false
             }
         }
         case class ExactChar(char: Char) extends Terminal {
             override val hashCode = char.hashCode
-            def accept(input: Input) = {
-                input match {
-                    case Character(c, _) if char == c => true
-                    case _ => false
-                }
+            def accept(input: Input) = input match {
+                case Character(c, _) if char == c => true
+                case _ => false
             }
         }
         case class Chars(chars: Set[Char]) extends Terminal {
             override val hashCode = chars.hashCode
-            def accept(input: Input) = {
-                input match {
-                    case Character(c, _) if chars contains c => true
-                    case _ => false
-                }
+            def accept(input: Input) = input match {
+                case Character(c, _) if chars contains c => true
+                case _ => false
             }
         }
         case class Unicode(categories: Set[Byte]) extends Terminal {
             override val hashCode = categories.hashCode
-            def accept(input: Input) = {
+            def accept(input: Input) =
                 input match {
                     case Character(c, _) if categories contains c.getType.toByte => true
                     case _ => false
                 }
-            }
         }
         case class ExactVirtual(name: String) extends Terminal {
-            def accept(input: Input) = {
-                input match {
-                    case Virtual(n, _) if n == name => true
-                    case _ => false
-                }
+            def accept(input: Input) = input match {
+                case Virtual(n, _) if n == name => true
+                case _ => false
             }
         }
         case class Virtuals(names: Set[String]) extends Terminal {
             override val hashCode = names.hashCode
-            def accept(input: Input) = {
-                input match {
-                    case Virtual(n, _) if names contains n => true
-                    case _ => false
-                }
+            def accept(input: Input) = input match {
+                case Virtual(n, _) if names contains n => true
+                case _ => false
             }
         }
         case object EndOfFile extends Terminal {
-            def accept(input: Input) = {
+            def accept(input: Input) =
                 input.isInstanceOf[EOF]
-            }
         }
     }
     val Any = Terminals.Any
@@ -134,9 +121,6 @@ object Symbols {
     case class Backup(sym: Symbol, backup: Symbol) extends Symbol {
         override val hashCode = (sym, backup).hashCode
     }
-    case class Join(syms: Set[Symbol]) extends Symbol {
-        override val hashCode = syms.hashCode()
-    }
 
     implicit class CharsGrouping(sym: Terminals.Chars) {
         def groups: List[(Char, Char)] = {
@@ -156,38 +140,34 @@ object Symbols {
 
     implicit class ShortStringSymbols(sym: Symbol) {
         // TODO improve short string
-        def toReadable(c: Char): String = {
-            c match {
-                case '\n' => "\\n"
-                case '\t' => "\\t"
-                case '\\' => "\\\\"
-                case _ => c.toString
-            }
+        def toReadable(c: Char): String = c match {
+            case '\n' => "\\n"
+            case '\t' => "\\t"
+            case '\\' => "\\\\"
+            case _ => c.toString
         }
-        def toShortString: String = {
-            sym match {
-                case Any => "<any>"
-                case AnyChar => "<any>"
-                case FuncChar => "<func>"
-                case ExactChar(c) => toReadable(c)
-                case chars: Terminals.Chars =>
-                    chars.groups map { range =>
-                        if (range._1 == range._2) s"'${toReadable(range._1)}'"
-                        else if (range._1 + 1 == range._2) s"'${toReadable(range._1)}','${toReadable(range._2)}'"
-                        else s"'${toReadable(range._1)}'-'${toReadable(range._2)}'"
-                    } mkString "|"
-                case Unicode(c) => s"<unicode>"
-                case EndOfFile => "<eof>"
-                case t: Terminal => t.toShortString
-                case Empty => "<empty>"
-                case s: Nonterminal => s.name
-                case s: Sequence => "(" + (s.seq map { _.toShortString } mkString " ") + ")"
-                case s: OneOf => s.syms map { _.toShortString } mkString "|"
-                case s: Repeat => s"${s.sym.toShortString}[${s.range.toShortString}]"
-                case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
-                case LookaheadExcept(except) => s"la_except ${except.toShortString}"
-                case Backup(sym, backup) => s"${sym.toShortString} backedupby ${backup.toShortString}"
-            }
+        def toShortString: String = sym match {
+            case Any => "<any>"
+            case AnyChar => "<any>"
+            case FuncChar => "<func>"
+            case ExactChar(c) => toReadable(c)
+            case chars: Terminals.Chars =>
+                chars.groups map { range =>
+                    if (range._1 == range._2) s"'${toReadable(range._1)}'"
+                    else if (range._1 + 1 == range._2) s"'${toReadable(range._1)}','${toReadable(range._2)}'"
+                    else s"'${toReadable(range._1)}'-'${toReadable(range._2)}'"
+                } mkString "|"
+            case Unicode(c) => s"<unicode>"
+            case EndOfFile => "<eof>"
+            case t: Terminal => t.toShortString
+            case Empty => "<empty>"
+            case s: Nonterminal => s.name
+            case s: Sequence => "(" + (s.seq map { _.toShortString } mkString " ") + ")"
+            case s: OneOf => s.syms map { _.toShortString } mkString "|"
+            case s: Repeat => s"${s.sym.toShortString}[${s.range.toShortString}]"
+            case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
+            case LookaheadExcept(except) => s"la_except ${except.toShortString}"
+            case Backup(sym, backup) => s"${sym.toShortString} backedupby ${backup.toShortString}"
         }
     }
 }

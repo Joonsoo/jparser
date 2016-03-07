@@ -65,7 +65,7 @@ object ScalaGrammar extends Grammar {
         "comment" -> ListSet(
             seq(i("/*"), seq(c, lookahead_except(i("*/"))).star, i("*/")),
             seq(i("//"), c.butnot(n("nl")).star)),
-        "nl" -> ListSet(// TODO
+        "nl" -> ListSet( // TODO
         ),
         "semi" -> ListSet(i(";"), n("nl").plus),
 
@@ -104,6 +104,6 @@ object ScalaGrammar extends Grammar {
             n("Refinement")),
         "AnnotType" -> ListSet(
             seq(n("SimpleType"), n("Annotation").star)) // TODO finish this
-    )
+            )
     override val startSymbol = n("CompilationUnit")
 }

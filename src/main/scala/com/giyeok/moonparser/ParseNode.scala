@@ -28,17 +28,15 @@ object ParseTree {
     }
     implicit class TreePrintableParseNode(node: ParseNode[Symbol]) {
         def printTree(): Unit = println(toTreeString("", "  "))
-        def toTreeString(indent: String, indentUnit: String): String = {
-            node match {
-                case ParsedEmpty(sym) =>
-                    indent + s"- $sym"
-                case ParsedTerminal(sym, child) =>
-                    indent + s"- $sym('$child')"
-                case ParsedSymbol(sym, body) =>
-                    (indent + s"- $sym\n") + body.toTreeString(indent + indentUnit, indentUnit)
-                case ParsedSymbolsSeq(sym, body) =>
-                    (indent + s"- $sym\n") + (body map { _.toTreeString(indent + indentUnit, indentUnit) } mkString "\n")
-            }
+        def toTreeString(indent: String, indentUnit: String): String = node match {
+            case ParsedEmpty(sym) =>
+                indent + s"- $sym"
+            case ParsedTerminal(sym, child) =>
+                indent + s"- $sym('$child')"
+            case ParsedSymbol(sym, body) =>
+                (indent + s"- $sym\n") + body.toTreeString(indent + indentUnit, indentUnit)
+            case ParsedSymbolsSeq(sym, body) =>
+                (indent + s"- $sym\n") + (body map { _.toTreeString(indent + indentUnit, indentUnit) } mkString "\n")
         }
 
         def toHorizontalHierarchyStringSeq(): (Int, Seq[String]) = {
@@ -49,7 +47,7 @@ object ParseTree {
                     ((" " * prec) + string + (" " * (width - string.length - prec)))
                 }
             }
-            def appendBottom(top: (Int, Seq[String]), bottom: String) = {
+            def appendBottom(top: (Int, Seq[String]), bottom: String) =
                 if (top._1 >= bottom.length + 2) {
                     val finlen = top._1
                     val result = (finlen, top._2 :+ ("[" + centerize(bottom, finlen - 2) + "]"))
@@ -65,7 +63,6 @@ object ParseTree {
                     val result = (finlen, (top._2 map { p + _ + f }) :+ ("[" + bottom + "]"))
                     result ensuring (result._2.forall(_.length == result._1))
                 }
-            }
             val result = node match {
                 case ParsedEmpty(sym) =>
                     val symbolic = sym.toShortString
@@ -92,8 +89,7 @@ object ParseTree {
             result ensuring (result._2.forall(_.length == result._1))
         }
 
-        def toHorizontalHierarchyString(): String = {
+        def toHorizontalHierarchyString(): String =
             toHorizontalHierarchyStringSeq._2 mkString "\n"
-        }
     }
 }
