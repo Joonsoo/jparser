@@ -1,7 +1,7 @@
 package com.giyeok.moonparser.tests
 
 import com.giyeok.moonparser.Grammar
-import com.giyeok.moonparser.SymbolHelper._
+import com.giyeok.moonparser.GrammarHelper._
 import scala.collection.immutable.ListMap
 import com.giyeok.moonparser.Parser
 import org.scalatest.junit.AssertionsForJUnit

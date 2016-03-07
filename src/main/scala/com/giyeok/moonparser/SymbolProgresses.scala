@@ -9,9 +9,6 @@ trait SymbolProgresses extends SeqOrderedTester {
     import Inputs._
     import ParseTree._
 
-    case class AmbiguousParsingException(name: String) extends Exception
-    case class NoDefinitionOfNonterminalException(name: String) extends Exception
-
     abstract sealed class SymbolProgress {
         val symbol: Symbol
         val parsed: Option[ParseNode[Symbol]]

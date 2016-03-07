@@ -2,7 +2,7 @@ package com.giyeok.moonparser
 
 import scala.collection.immutable.NumericRange
 
-object SymbolHelper {
+object GrammarHelper {
     import Symbols._
     import utils.UnicodeUtil
 

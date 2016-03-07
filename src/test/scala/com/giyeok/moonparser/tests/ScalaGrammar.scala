@@ -3,7 +3,7 @@ package com.giyeok.moonparser.grammars
 import scala.collection.immutable.ListMap
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.Symbols.Symbol
-import com.giyeok.moonparser.SymbolHelper._
+import com.giyeok.moonparser.GrammarHelper._
 import scala.collection.immutable.ListSet
 
 object ScalaGrammar extends Grammar {

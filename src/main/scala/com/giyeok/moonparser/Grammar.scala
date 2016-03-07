@@ -99,3 +99,5 @@ object Grammar {
 
 case class GrammarDefinitionException(msg: String) extends Exception(msg)
 case class AmbiguousGrammarException(msg: String) extends Exception(msg)
+case class AmbiguousParsingException(name: String) extends Exception
+case class NoDefinitionOfNonterminalException(name: String) extends Exception
