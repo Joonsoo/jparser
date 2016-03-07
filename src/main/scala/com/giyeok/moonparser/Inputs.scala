@@ -31,6 +31,7 @@ object Inputs {
             case EOF(_) => "(EOF)"
         }
     }
+
     implicit class SourceToCleanString(source: Source) {
         def toCleanString: String = (source map { _.toCleanString }).mkString
     }

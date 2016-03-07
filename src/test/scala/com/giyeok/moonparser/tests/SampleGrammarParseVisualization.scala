@@ -29,13 +29,13 @@ trait StringSamples extends Samples {
     val correctSamples: Set[String]
     val incorrectSamples: Set[String]
 
-    lazy val correctSampleInputs: Set[Inputs.Source] = correctSamples map { Inputs.fromString _ }
-    lazy val incorrectSampleInputs: Set[Inputs.Source] = incorrectSamples map { Inputs.fromString _ }
+    lazy val correctSampleInputs: Set[Inputs.Source] = correctSamples map {Inputs.fromString _}
+    lazy val incorrectSampleInputs: Set[Inputs.Source] = incorrectSamples map {Inputs.fromString _}
 }
 
 trait AmbiguousSamples extends Samples {
     val ambiguousSamples: Set[String]
-    lazy val ambiguousSampleInputs: Set[Inputs.Source] = ambiguousSamples map { Inputs.fromString _ }
+    lazy val ambiguousSampleInputs: Set[Inputs.Source] = ambiguousSamples map {Inputs.fromString _}
 }
 
 object SampleGrammarParseVisualization {
@@ -71,9 +71,9 @@ object SampleGrammarParseVisualization {
         val sortedGrammars = allTests.toSeq.sortBy(_.name)
 
         val leftFrame = new org.eclipse.swt.widgets.Composite(shell, SWT.NONE)
-        leftFrame.setLayout({ val layout = new FillLayout; layout.`type` = SWT.VERTICAL; layout })
+        leftFrame.setLayout({val layout = new FillLayout; layout.`type` = SWT.VERTICAL; layout})
         val rightFrame = new org.eclipse.swt.widgets.Composite(shell, SWT.NONE)
-        rightFrame.setLayout({ val layout = new FillLayout; layout.`type` = SWT.VERTICAL; layout })
+        rightFrame.setLayout({val layout = new FillLayout; layout.`type` = SWT.VERTICAL; layout})
 
         val grammarList = new org.eclipse.swt.widgets.List(leftFrame, SWT.BORDER | SWT.V_SCROLL)
         val grammarFig = new FigureCanvas(leftFrame)
@@ -89,12 +89,13 @@ object SampleGrammarParseVisualization {
         grammarList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
-                def generateHtml(): xml.Elem =
+                def generateHtml(): xml.Elem = {
                     new GrammarTextFigureGenerator[xml.Elem](grammar, new GrammarTextFigureGenerator.Appearances[xml.Elem] {
                         val default = GrammarTextFigureGenerator.html.AppearanceByClass("default")
                         val nonterminal = GrammarTextFigureGenerator.html.AppearanceByClass("nonterminal")
                         val terminal = GrammarTextFigureGenerator.html.AppearanceByClass("terminal")
                     }, GrammarTextFigureGenerator.html.Generator).grammarFigure
+                }
                 grammar.usedSymbols foreach { s => println(s"used: $s") }
                 val (missingSymbols, wrongLookaheads, unusedSymbols) = (grammar.missingSymbols, grammar.wrongLookaheads, grammar.unusedSymbols)
                 val textFig = new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, GrammarTextFigureGenerator.draw2d.Generator).grammarFigure
@@ -102,9 +103,9 @@ object SampleGrammarParseVisualization {
                     grammarFig.setContents(textFig)
                 } else {
                     val messages = Seq(
-                        (if (!missingSymbols.isEmpty) Some(s"Missing: ${missingSymbols map { _.toShortString } mkString ", "}") else None),
-                        (if (!wrongLookaheads.isEmpty) Some(s"Wrong: ${wrongLookaheads map { _.toShortString } mkString ", "}") else None),
-                        (if (!unusedSymbols.isEmpty) Some(s"Unused: ${unusedSymbols map { _.toShortString } mkString ", "}") else None))
+                        (if (!missingSymbols.isEmpty) Some(s"Missing: ${missingSymbols map {_.toShortString} mkString ", "}") else None),
+                        (if (!wrongLookaheads.isEmpty) Some(s"Wrong: ${wrongLookaheads map {_.toShortString} mkString ", "}") else None),
+                        (if (!unusedSymbols.isEmpty) Some(s"Unused: ${unusedSymbols map {_.toShortString} mkString ", "}") else None))
                     val fig = new Figure
                     fig.setLayoutManager(new ToolbarLayout(false))
                     val label = new Label
@@ -121,8 +122,8 @@ object SampleGrammarParseVisualization {
                     shownTexts = shownTexts :+ input
                     textList.add(text)
                 }
-                grammar.correctSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
-                grammar.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
+                grammar.correctSampleInputs.toSeq sortBy {_.toCleanString} foreach { i => addText(i, s"O: '${i.toCleanString}'") }
+                grammar.incorrectSampleInputs.toSeq sortBy {_.toCleanString} foreach { i => addText(i, s"X: '${i.toCleanString}'") }
             }
         })
         textList.addListener(SWT.Selection, new Listener() {

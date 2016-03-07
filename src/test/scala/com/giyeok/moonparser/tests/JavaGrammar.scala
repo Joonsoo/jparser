@@ -19,8 +19,13 @@ class JavaGrammar extends Grammar {
     }
 
     // both symbol
-    def t(s: Symbol): Symbol = ??? // symbol s is a token as well(완결된 단어라는 의미로)
-    def ti(s: String) = t(i(s))
+    def t(s: Symbol): Symbol = {
+        ???
+    }
+    // symbol s is a token as well(완결된 단어라는 의미로)
+    def ti(s: String) = {
+        t(i(s))
+    }
 
     val lexical: RuleMap = ListMap(
         // Productions from §3 (Lexical Structure)

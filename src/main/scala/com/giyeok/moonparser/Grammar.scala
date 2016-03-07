@@ -69,7 +69,8 @@ object Grammar {
 
         def usedSymbols: Set[Symbol] = {
             def traverse(symbol: Symbol, cc: Set[Symbol]): Set[Symbol] = {
-                if (cc contains symbol) cc else
+                if (cc contains symbol) cc
+                else
                     symbol match {
                         case Empty => cc + symbol
                         case _: Terminal => cc + symbol
@@ -89,10 +90,12 @@ object Grammar {
             traverse(grammar.startSymbol, Set())
         }
 
-        def unusedSymbols: Set[Symbol] =
+        def unusedSymbols: Set[Symbol] = {
             ((grammar.rules.keySet map { Nonterminal(_) }): Set[Symbol]) -- usedSymbols
+        }
     }
 }
 
 case class GrammarDefinitionException(msg: String) extends Exception(msg)
 case class AmbiguousGrammarException(msg: String) extends Exception(msg)
+case class NoDefinitionOfNonterminalException(name: String) extends Exception(s"No definition found: $name")

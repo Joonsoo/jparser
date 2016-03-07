@@ -48,7 +48,7 @@ object SimpleGrammarSet3 {
     val grammars: Set[Grammar with Samples] = Set(
         SimpleGrammar5, // fromSeeds failed
         SimpleGrammar6 // Assertion failed
-        )
+    )
 }
 
 class SimpleGrammar3TestSuite extends BasicParseTest(SimpleGrammarSet3.grammars)

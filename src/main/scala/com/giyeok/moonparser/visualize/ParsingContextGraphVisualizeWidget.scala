@@ -23,48 +23,50 @@ trait ParsingContextGraphVisualize {
     val resources: ParseGraphVisualizer.Resources
 
     private val vnodes = scala.collection.mutable.Map[Parser#Node, GraphNode]()
-    private val vedges = scala.collection.mutable.Map[Parser#Edge, GraphConnection]()
+    private val vedges = scala.collection.mutable.Map[Parser#Edge, Set[GraphConnection]]()
 
-    def registerNode(n: Parser#SymbolProgress): GraphNode = vnodes get n match {
-        case Some(node) => node
-        case None =>
-            val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
-            graphNode.setFont(resources.default12Font)
-            n match {
-                case term: Parser#SymbolProgressTerminal if term.parsed.isEmpty =>
-                    graphNode.setBackgroundColor(ColorConstants.lightGreen)
-                case _ =>
-            }
-            val tooltipText0 = n match {
-                case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
-                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
-                    list._2 mkString "\n"
-                case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq.childrenWS map { _.toHorizontalHierarchyStringSeq })
-                    list._2 mkString "\n"
-                case n if n.canFinish =>
-                    n.parsed.get.toHorizontalHierarchyString
-                case _ =>
-                    n.toShortString
-            }
-            val tooltipText = n match {
-                case n: Parser#SymbolProgressNonterminal => s"${n.derivedGen}\n$tooltipText0"
-                case _ => tooltipText0
-            }
-            val f = new org.eclipse.draw2d.Label()
-            f.setFont(resources.fixedWidth12Font)
-            f.setText(tooltipText)
-            graphNode.setTooltip(f)
-            graph.addSelectionListener(new SelectionAdapter() {
-                override def widgetSelected(e: SelectionEvent): Unit = {
-                    if (e.item == graphNode) {
-                        println(e.item)
-                        println(tooltipText)
-                    }
+    def registerNode(n: Parser#SymbolProgress): GraphNode = {
+        vnodes get n match {
+            case Some(node) => node
+            case None =>
+                val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
+                graphNode.setFont(resources.default12Font)
+                n match {
+                    case term: Parser#SymbolProgressTerminal if term.parsed.isEmpty =>
+                        graphNode.setBackgroundColor(ColorConstants.lightGreen)
+                    case _ =>
                 }
-            })
-            vnodes(n) = graphNode
-            graphNode
+                val tooltipText0 = n match {
+                    case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
+                        val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map {_.toHorizontalHierarchyStringSeq})
+                        list._2 mkString "\n"
+                    case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
+                        val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq.childrenWS map {_.toHorizontalHierarchyStringSeq})
+                        list._2 mkString "\n"
+                    case n if n.canFinish =>
+                        n.parsed.get.toHorizontalHierarchyString
+                    case _ =>
+                        n.toShortString
+                }
+                val tooltipText = n match {
+                    case n: Parser#SymbolProgressNonterminal => s"${n.derivedGen}\n$tooltipText0"
+                    case _ => tooltipText0
+                }
+                val f = new org.eclipse.draw2d.Label()
+                f.setFont(resources.fixedWidth12Font)
+                f.setText(tooltipText)
+                graphNode.setTooltip(f)
+                graph.addSelectionListener(new SelectionAdapter() {
+                    override def widgetSelected(e: SelectionEvent): Unit = {
+                        if (e.item == graphNode) {
+                            println(e.item)
+                            println(tooltipText)
+                        }
+                    }
+                })
+                vnodes(n) = graphNode
+                graphNode
+        }
     }
     def getNode(n: Parser#SymbolProgress): Option[GraphNode] = vnodes get n
 
@@ -75,39 +77,41 @@ trait ParsingContextGraphVisualize {
     }
 
     private def calculateCurve(edges: Set[Parser#Edge], e: Parser#Edge): Int = {
-        val overlapping = edges filter { r => (((r.from == e.from) && (r.to == e.to)) || ((r.from == e.to) && (r.to == e.from))) && (e != r) }
+        val overlapping = edges filter { r => (((r.start == e.start) && (r.ends == e.ends)) || ((r.start == e.to) && (r.to == e.start))) && (e != r) }
         if (!overlapping.isEmpty) {
-            overlapping count { _.hashCode < e.hashCode }
-        } else if (edges exists { r => (r.from == e.to) && (r.to == e.from) }) 1
+            overlapping count {_.hashCode < e.hashCode}
+        } else if (edges exists { r => (r.start == e.to) && (r.to == e.start) }) 1
         else 0
     }
 
     val darkerRed = new Color(null, 139, 0, 0)
 
-    def registerEdge(edges: Set[Parser#Edge])(e: Parser#Edge): GraphConnection = e match {
-        case e: Parser#SimpleEdge =>
-            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
-            val curves = calculateCurve(edges, e)
+    def registerEdge(edges: Set[Parser#Edge])(e: Parser#Edge): GraphConnection = {
+        e match {
+            case e: Parser#DeriveEdge =>
+                val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.to))
+                val curves = calculateCurve(edges, e)
 
-            if (curves > 0) {
-                connection.setCurveDepth(curves * 12)
-            }
-            vedges(e) = connection
-            connection
-        case e: Parser#LiftAssassinEdge =>
-            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
-            connection.setLineColor(ColorConstants.red)
-            vedges(e) = connection
-            connection
-        case e: Parser#EagerAssassinEdge =>
-            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.from), vnodes(e.to))
-            connection.setLineColor(darkerRed)
-            vedges(e) = connection
-            connection
+                if (curves > 0) {
+                    connection.setCurveDepth(curves * 12)
+                }
+                vedges(e) = connection
+                connection
+            case e: Parser#LiftAssassinEdge =>
+                val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.to))
+                connection.setLineColor(ColorConstants.red)
+                vedges(e) = connection
+                connection
+            case e: Parser#EagerAssassinEdge =>
+                val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.to))
+                connection.setLineColor(darkerRed)
+                vedges(e) = connection
+                connection
 
+        }
     }
     def registerEdge1(edges: Set[Parser#Edge])(e: Parser#Edge): (GraphNode, GraphNode, GraphConnection) = {
-        val from = registerNode(e.from)
+        val from = registerNode(e.start)
         val to = registerNode(e.to)
         (from, to, registerEdge(edges)(e))
     }
@@ -118,11 +122,11 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: Parse
 
     val graph = new Graph(this, SWT.NONE)
 
-    (context.graph.nodes ++ context.resultCandidates) foreach { registerNode _ }
-    context.resultCandidates foreach { highlightResultCandidate _ }
+    (context.graph.nodes ++ context.resultCandidates) foreach {registerNode _}
+    context.resultCandidates foreach {highlightResultCandidate _}
 
     val registerEdge1 = registerEdge(context.graph.edges.asInstanceOf[Set[Parser#Edge]]) _
-    context.graph.edges foreach { registerEdge1(_) }
+    context.graph.edges foreach {registerEdge1(_)}
 
     graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING), true)
 }

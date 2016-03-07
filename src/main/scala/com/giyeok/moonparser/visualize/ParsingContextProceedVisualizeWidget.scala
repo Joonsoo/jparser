@@ -34,15 +34,15 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         case _ => (Set(), Set())
     }
 
-    nodes foreach { registerNode _ }
+    nodes foreach {registerNode _}
 
     val registerEdge1 = registerEdge(edges) _
-    edges foreach { registerEdge1(_) }
+    edges foreach {registerEdge1(_)}
 
     def registerLifting(lifting: Parser#Lifting): (GraphNode, GraphNode, Option[GraphNode], GraphConnection) = {
         val before = registerNode(lifting.before)
         val after = registerNode(lifting.after)
-        val by = lifting.by map { registerNode _ }
+        val by = lifting.by map {registerNode _}
 
         val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, before, after)
 
@@ -79,18 +79,18 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
             }
         }
 
-        lifting -> (before, after, connection)
+        lifting ->(before, after, connection)
     }).toMap
 
     def unhighlightAllLiftings(): Unit = {
         vliftings foreach { v => v._2._3.setLineWidth(1) }
     }
     unhighlightAllLiftings()
-    val liftingsByBy = liftings filter { _.by.isDefined } groupBy { _.by.get }
+    val liftingsByBy = liftings filter {_.by.isDefined} groupBy {_.by.get}
     graph.addSelectionListener(new SelectionAdapter() {
         override def widgetSelected(e: SelectionEvent): Unit = {
             unhighlightAllLiftings()
-            val interactiveLift = liftingsByBy filter { p => getNode(p._1) match { case Some(node) if node == e.item => true case _ => false } }
+            val interactiveLift = liftingsByBy filter { p => getNode(p._1) match {case Some(node) if node == e.item => true case _ => false} }
             if (!interactiveLift.isEmpty) {
                 interactiveLift.values.flatten foreach { lifting =>
                     println(lifting)
@@ -125,7 +125,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         }
     }
 
-    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122)    // dark salmon
+    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122) // dark salmon
     log.propagatedAssassinEdges foreach { e =>
         val (from, to, connection) = registerEdge1(edges)(e)
         connection.setLineColor(propagatedAssassinEdgeColor)

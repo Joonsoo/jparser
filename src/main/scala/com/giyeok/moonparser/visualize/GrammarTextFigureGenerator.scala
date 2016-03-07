@@ -38,8 +38,8 @@ object GrammarTextFigureGenerator {
     }
 
     object draw2d {
-        import org.eclipse.draw2d.{ ToolbarLayout, Figure, LayoutManager, Label }
-        import org.eclipse.swt.graphics.{ Color, Font }
+        import org.eclipse.draw2d.{ToolbarLayout, Figure, LayoutManager, Label}
+        import org.eclipse.swt.graphics.{Color, Font}
 
         case class Appearance(font: Font, color: Color) extends GrammarTextFigureGenerator.Appearance[Figure] {
             def applyToFigure(fig: Figure): Figure = {
@@ -64,7 +64,7 @@ object GrammarTextFigureGenerator {
             private def figWith(layout: LayoutManager, children: Seq[Figure]): Label = {
                 val fig = new Label
                 fig.setLayoutManager(layout)
-                children foreach { fig.add(_) }
+                children foreach {fig.add(_)}
                 fig
             }
 
@@ -73,28 +73,50 @@ object GrammarTextFigureGenerator {
                 label.setText(text)
                 appearance.applyToFigure(label)
             }
-            def horizontalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure =
+            def horizontalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure = {
                 figWith(toolbarLayoutWith(true, spacing), children)
-            def verticalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure =
+            }
+            def verticalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure = {
                 figWith(toolbarLayoutWith(false, spacing), children)
+            }
         }
     }
 
     object html {
-        import scala.xml.{ MetaData, UnprefixedAttribute }
+        import scala.xml.{MetaData, UnprefixedAttribute}
 
         case class AppearanceByClass(cls: String) extends GrammarTextFigureGenerator.Appearance[xml.Elem] {
-            def applyToFigure(fig: xml.Elem): xml.Elem =
+            def applyToFigure(fig: xml.Elem): xml.Elem = {
                 fig.copy(attributes = new UnprefixedAttribute("class", cls, xml.Null))
+            }
         }
 
         object Generator extends Generator[xml.Elem] {
-            def textFig(text: String, appearance: GrammarTextFigureGenerator.Appearance[xml.Elem]): xml.Elem =
-                appearance.applyToFigure(<span>{ text }</span>)
-            def horizontalFig(spacing: Spacing.Value, children: Seq[xml.Elem]): xml.Elem =
-                <table><tr>{ children map { fig => <td>{ fig }</td> } }</tr></table>
-            def verticalFig(spacing: Spacing.Value, children: Seq[xml.Elem]): xml.Elem =
-                <table>{ children map { fig => <tr><td>{ fig }</td></tr> } }</table>
+            def textFig(text: String, appearance: GrammarTextFigureGenerator.Appearance[xml.Elem]): xml.Elem = {
+                appearance.applyToFigure(<span>
+                    {text}
+                </span>)
+            }
+            def horizontalFig(spacing: Spacing.Value, children: Seq[xml.Elem]): xml.Elem = {
+                <table>
+                    <tr>
+                        {children map { fig => <td>
+                        {fig}
+                    </td>
+                    }}
+                    </tr>
+                </table>
+            }
+            def verticalFig(spacing: Spacing.Value, children: Seq[xml.Elem]): xml.Elem = {
+                <table>
+                    {children map { fig => <tr>
+                    <td>
+                        {fig}
+                    </td>
+                </tr>
+                }}
+                </table>
+            }
         }
     }
 }
@@ -102,27 +124,32 @@ object GrammarTextFigureGenerator {
 class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGenerator.Appearances[Fig], g: GrammarTextFigureGenerator.Generator[Fig]) {
     import GrammarTextFigureGenerator.Spacing
 
-    def grammarFigure: Fig =
+    def grammarFigure: Fig = {
         g.verticalFig(Spacing.Big, grammar.rules.toSeq map { d => ruleFigure((d._1, d._2.toSeq)) })
+    }
 
-    def ruleFigure(definition: (String, Seq[Symbols.Symbol])): Fig =
+    def ruleFigure(definition: (String, Seq[Symbols.Symbol])): Fig = {
         g.horizontalFig(Spacing.Medium, Seq(
             g.textFig(definition._1, ap.nonterminal),
             g.textFig("::=", ap.default),
-            g.verticalFig(Spacing.Medium, definition._2 map { symbolFig(_) })))
+            g.verticalFig(Spacing.Medium, definition._2 map {symbolFig(_)})))
+    }
 
     def symbolFig(rule: Symbol): Fig = {
-        def join(list: List[Fig], joining: => Fig): List[Fig] = list match {
-            case head +: List() => List(head)
-            case head +: next +: List() => List(head, joining, next)
-            case head +: next +: rest => head +: joining +: join(next +: rest, joining)
+        def join(list: List[Fig], joining: => Fig): List[Fig] = {
+            list match {
+                case head +: List() => List(head)
+                case head +: next +: List() => List(head, joining, next)
+                case head +: next +: rest => head +: joining +: join(next +: rest, joining)
+            }
         }
 
-        def needParentheses(symbol: Symbol): Boolean =
+        def needParentheses(symbol: Symbol): Boolean = {
             symbol match {
-                case _@ (Nonterminal(_) | Terminals.ExactChar(_) | Sequence(Seq(Terminals.ExactChar(_)), _)) => false
+                case _@(Nonterminal(_) | Terminals.ExactChar(_) | Sequence(Seq(Terminals.ExactChar(_)), _)) => false
                 case _ => true
             }
+        }
 
         rule match {
             case Terminals.ExactChar(c) => g.textFig(c.toString, ap.terminal)
@@ -139,8 +166,9 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
                 if (seq.isEmpty) {
                     g.horizontalFig(Spacing.Medium, Seq())
                 } else {
-                    def adjExChars(list: List[Terminals.ExactChar]): Fig =
-                        g.horizontalFig(Spacing.None, list map { symbolFig(_) })
+                    def adjExChars(list: List[Terminals.ExactChar]): Fig = {
+                        g.horizontalFig(Spacing.None, list map {symbolFig(_)})
+                    }
                     val grouped = seq.foldRight((List[Fig](), List[Terminals.ExactChar]())) {
                         ((i, m) =>
                             i match {

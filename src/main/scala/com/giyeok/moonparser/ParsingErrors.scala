@@ -10,9 +10,11 @@ trait ParsingErrors {
         val msg: String
     }
     object ParsingError {
-        def apply(_next: Input, _msg: String) = new ParsingError {
-            val next = _next
-            val msg = _msg
+        def apply(_next: Input, _msg: String) = {
+            new ParsingError {
+                val next = _next
+                val msg = _msg
+            }
         }
     }
     object ParsingErrors {
