@@ -121,6 +121,9 @@ object Symbols {
     case class Backup(sym: Symbol, backup: Symbol) extends Symbol {
         override val hashCode = (sym, backup).hashCode
     }
+    case class Join(sym: Symbol, join: Symbol) extends Symbol {
+        override val hashCode = (sym, join).hashCode
+    }
 
     implicit class CharsGrouping(sym: Terminals.Chars) {
         def groups: List[(Char, Char)] = {
@@ -168,6 +171,7 @@ object Symbols {
             case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
             case LookaheadExcept(except) => s"la_except ${except.toShortString}"
             case Backup(sym, backup) => s"${sym.toShortString} backedupby ${backup.toShortString}"
+            case Join(sym, join) => s"${sym.toShortString} joinedwith ${join.toShortString}"
         }
     }
 }

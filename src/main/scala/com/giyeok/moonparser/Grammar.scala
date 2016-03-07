@@ -35,6 +35,7 @@ object Grammar {
                         case Repeat(sym, _) => traverse(sym, cc)
                         case LookaheadExcept(except) => traverse(except, cc)
                         case Backup(sym, backup) => traverse(sym, traverse(backup, cc))
+                        case Join(sym, join) => traverse(sym, traverse(join, cc))
                     }
                 }
             }
@@ -61,6 +62,7 @@ object Grammar {
                                 case _ => traverse(except, Some(symbol), cc)
                             }
                         case Backup(sym, backup) => traverse(sym, Some(symbol), traverse(backup, Some(symbol), cc))
+                        case Join(sym, join) => traverse(sym, Some(symbol), traverse(join, Some(symbol), cc))
                     }
                 }
             }
@@ -84,6 +86,7 @@ object Grammar {
                         case Repeat(sym, _) => traverse(sym, cc + symbol)
                         case LookaheadExcept(except) => traverse(except, cc + symbol)
                         case Backup(sym, backup) => traverse(sym, traverse(backup, cc + symbol))
+                        case Join(sym, join) => traverse(join, traverse(join, cc + symbol))
                     }
             }
             traverse(grammar.startSymbol, Set())

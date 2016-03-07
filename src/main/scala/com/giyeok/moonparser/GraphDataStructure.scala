@@ -3,7 +3,7 @@ package com.giyeok.moonparser
 import com.giyeok.moonparser.ParseTree._
 import com.giyeok.moonparser.Symbols._
 
-trait SymbolsGraph {
+trait GraphDataStructure {
     this: Parser =>
 
     type Node = SymbolProgress
@@ -32,4 +32,27 @@ trait SymbolsGraph {
     // is contagious - the nodes derived from `to` will be the target of `from` (recursively)
 
     case class Graph(nodes: Set[Node], edges: Set[Edge])
+
+    implicit class AugEdges[T <: Edge](edges: Set[T]) {
+        def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }
+        def assassinEdges: Set[AssassinEdge0] = edges collect { case e: AssassinEdge0 => e }
+        def liftAssassinEdges: Set[LiftAssassinEdge] = edges collect { case e: LiftAssassinEdge => e }
+        def eagerAssassinEdges: Set[EagerAssassinEdge] = edges collect { case e: EagerAssassinEdge => e }
+
+        def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.to == node }
+        def incomingEdgesOf(node: Node): Set[T] = edges filter { _.to == node }
+        def outgoingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.from == node }
+
+        def rootsOf(node: Node): Set[T] = {
+            def trackRoots(queue: List[SymbolProgress], cc: Set[T]): Set[T] =
+                queue match {
+                    case node +: rest =>
+                        val incomings = incomingEdgesOf(node) -- cc
+                        trackRoots(rest ++ (incomings.toList map { _.from }), cc ++ incomings)
+                    case List() => cc
+                }
+            trackRoots(List(node), Set())
+        }
+    }
+
 }

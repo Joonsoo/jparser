@@ -2,7 +2,7 @@ package com.giyeok.moonparser
 
 import com.giyeok.moonparser.utils.SeqOrderedTester
 
-trait SymbolProgresses extends IsNullable with SeqOrderedTester {
+trait SymbolProgresses extends SeqOrderedTester {
     this: Parser =>
 
     import Symbols._
@@ -33,7 +33,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
          * the finished nodes will be transferred to the origin node via `lift` method
          */
         def derive(gen: Int): Set[Edge]
-        def lift(source: SymbolProgress): Lifting = Lifting(this, lift0(source), Some(source))
+        def lift(source: SymbolProgress): Lifting = NontermLifting(this, lift0(source), source)
         def lift0(source: SymbolProgress): SymbolProgress
         val derivedGen: Int
     }
@@ -64,6 +64,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
             case symbol: LookaheadExcept => LookaheadExceptProgress(symbol, gen)
             case symbol: Repeat => RepeatProgress(symbol, List(), gen)
             case symbol: Backup => BackupProgress(symbol, None, gen)
+            case symbol: Join => JoinProgress(symbol, None, gen)
         }
     }
 
@@ -190,6 +191,11 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
         def derive(gen: Int) = Set()
     }
 
+    case class JoinProgress(symbol: Join, parsed: Option[ParsedSymbol[Join]], derivedGen: Int) extends SymbolProgressNonterminal {
+        def lift0(source: SymbolProgress): SymbolProgress = ???
+        def derive(gen: Int) = Set()
+    }
+
     implicit class ShortStringProgresses(prog: SymbolProgress) {
         def toShortString1: String = toShortString
         def toShortString: String = {
@@ -207,6 +213,7 @@ trait SymbolProgresses extends IsNullable with SeqOrderedTester {
                     (if (symbol.range canProceed _children.size) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
                 case LookaheadExceptProgress(symbol, _) => symbol.toShortString
                 case BackupProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
+                case JoinProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
             })
         }
     }

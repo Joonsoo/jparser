@@ -3,6 +3,7 @@ package com.giyeok.moonparser.visualize
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.Symbols
 import com.giyeok.moonparser.Symbols.Backup
+import com.giyeok.moonparser.Symbols.Join
 import com.giyeok.moonparser.Symbols.CharsGrouping
 import com.giyeok.moonparser.Symbols.Empty
 import com.giyeok.moonparser.Symbols.Except
@@ -178,6 +179,8 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
             case LookaheadExcept(except) =>
                 g.horizontalFig(Spacing.Small, Seq(g.textFig("lookahead_except", ap.default), symbolFig(except)))
             case Backup(_, _) =>
+                g.textFig("??", ap.default)
+            case Join(_, _) =>
                 g.textFig("??", ap.default)
         }
     }

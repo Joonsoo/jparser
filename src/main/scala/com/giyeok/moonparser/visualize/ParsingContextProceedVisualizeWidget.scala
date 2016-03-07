@@ -42,13 +42,12 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
     def registerLifting(lifting: Parser#Lifting): (GraphNode, GraphNode, Option[GraphNode], GraphConnection) = {
         val before = registerNode(lifting.before)
         val after = registerNode(lifting.after)
-        val by = lifting.by map { registerNode _ }
 
         val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, before, after)
 
-        lifting.by match {
-            case Some(by) => connection.setText(by.id.toString)
-            case None =>
+        val by = lifting match {
+            case l: Parser#NontermLifting => Some(registerNode(l.by))
+            case l: Parser#TermLifting => None
         }
 
         (before, after, by, connection)
@@ -86,7 +85,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         vliftings foreach { v => v._2._3.setLineWidth(1) }
     }
     unhighlightAllLiftings()
-    val liftingsByBy = liftings filter { _.by.isDefined } groupBy { _.by.get }
+    val liftingsByBy = liftings collect { case l: Parser#NontermLifting => l } groupBy { _.by }
     graph.addSelectionListener(new SelectionAdapter() {
         override def widgetSelected(e: SelectionEvent): Unit = {
             unhighlightAllLiftings()
@@ -125,7 +124,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         }
     }
 
-    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122)    // dark salmon
+    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122) // dark salmon
     log.propagatedAssassinEdges foreach { e =>
         val (from, to, connection) = registerEdge1(edges)(e)
         connection.setLineColor(propagatedAssassinEdgeColor)
