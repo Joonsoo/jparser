@@ -1,4 +1,4 @@
-package com.giyeok.moonparser.grammars
+package com.giyeok.moonparser.tests.etc
 
 import scala.collection.immutable.ListMap
 import com.giyeok.moonparser.Grammar

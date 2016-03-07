@@ -171,4 +171,4 @@ object SimpleGrammarSet1 {
         SimpleGrammar1_10)
 }
 
-class SimpleGrammar1TestSuite extends BasicParseTest(SimpleGrammarSet1.grammars)
+class SimpleGrammarTestSuite1 extends BasicParseTest(SimpleGrammarSet1.grammars)

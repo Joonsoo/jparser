@@ -33,6 +33,8 @@ object GrammarHelper {
     def lookahead_except(except: Symbol) = LookaheadExcept(except)
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
 
+    // def lgst(t: Terminal) = seq(t, LookaheadExcept(t))
+
     implicit class GrammarElementExcludable(self: Symbol) {
         def except(e: Symbol) = self match {
             case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Except | _: Repeat =>

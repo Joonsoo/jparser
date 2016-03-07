@@ -51,4 +51,4 @@ object SimpleGrammarSet3 {
         )
 }
 
-class SimpleGrammar3TestSuite extends BasicParseTest(SimpleGrammarSet3.grammars)
+class SimpleGrammarTestSuite3 extends BasicParseTest(SimpleGrammarSet3.grammars)

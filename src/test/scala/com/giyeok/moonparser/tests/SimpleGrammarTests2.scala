@@ -2,13 +2,13 @@ package com.giyeok.moonparser.tests
 
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.GrammarHelper._
-import scala.collection.immutable.ListMap
 import org.junit.Test
 import com.giyeok.moonparser.Parser
 import org.scalatest.junit.AssertionsForJUnit
 import com.giyeok.moonparser.Inputs._
 import org.junit.Assert._
 import scala.collection.immutable.ListSet
+import scala.collection.immutable.ListMap
 
 object SimpleGrammar2 extends Grammar with StringSamples {
     val name = "Simple Grammar 2"
@@ -62,4 +62,4 @@ object SimpleGrammarSet2 {
         SimpleGrammar4)
 }
 
-class SimpleGrammar2TestSuite extends BasicParseTest(SimpleGrammarSet2.grammars)
+class SimpleGrammarTestSuite2 extends BasicParseTest(SimpleGrammarSet2.grammars)

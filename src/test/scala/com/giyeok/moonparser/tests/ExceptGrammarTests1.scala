@@ -80,4 +80,4 @@ object GrammarWithExcept {
         ExceptGrammar2)
 }
 
-class GrammarWithExceptTestSuite extends BasicParseTest(GrammarWithExcept.grammars)
+class ExceptGrammarTestSuite1 extends BasicParseTest(GrammarWithExcept.grammars)

@@ -80,4 +80,4 @@ object RecursiveGrammarSet1 {
         RecursiveGrammar3)
 }
 
-class RecursiveGrammar1TestSuite extends BasicParseTest(RecursiveGrammarSet1.grammars)
+class RecursiveGrammarTestSuite1 extends BasicParseTest(RecursiveGrammarSet1.grammars)
