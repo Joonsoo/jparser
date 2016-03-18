@@ -117,12 +117,12 @@ class Parser(val grammar: Grammar)
                                         case _ => // nothing to do
                                     }
                                     edge match {
-                                        case SimpleEdge(from, to: NonterminalNode) =>
-                                            val newDerives = (to derive nextGen) -- newEdgesCC
+                                        case SimpleEdge(start, end: NonterminalNode) =>
+                                            val newDerives = (end derive nextGen) -- newEdgesCC
                                             recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
                                         case e: AssassinEdge0 if e.start.isInstanceOf[NonterminalNode] =>
-                                            val from = e.start.asInstanceOf[NonterminalNode]
-                                            val newDerives = (from derive nextGen) -- newEdgesCC
+                                            val start = e.start.asInstanceOf[NonterminalNode]
+                                            val newDerives = (start derive nextGen) -- newEdgesCC
                                             recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
                                         case _ =>
                                             recursiveDerive(rest, newNodesCC ++ edge.nodes, newEdgesCC + edge)

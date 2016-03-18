@@ -188,7 +188,7 @@ trait SymbolProgresses extends SeqOrderedTester {
         def derive(gen: Int) = Set()
     }
 
-    case class JoinProgress(symbol: Join, parsed: Option[ParsedSymbol[Join]], derivedGen: Int) extends SymbolProgressNonterminal {
+    case class JoinProgress(symbol: Join, parsed: Option[ParsedSymbolJoin], derivedGen: Int) extends SymbolProgressNonterminal {
         def lift0(source: SymbolProgress): SymbolProgress = ???
         def derive(gen: Int) = Set()
     }

@@ -21,7 +21,9 @@ trait GraphDataStructure {
     case class SimpleEdge(start: NonterminalNode, end: Node) extends Edge {
         def toShortString = s"${start.toShortString} -> ${end.toShortString}"
     }
-    // case class JoinEdge(start: NonterminalNode, end: Node) extends Edge 
+    case class JoinEdge(start: NonterminalNode, end: Node, contraint: Node, reversed: Boolean) extends Edge {
+        def toShortString = s"${start.toShortString} -> ${end.toShortString} & ${contraint.toShortString}${if (reversed) " (reverse)" else ""}"
+    }
     sealed abstract class AssassinEdge0 extends Edge
     case class LiftAssassinEdge(start: Node, end: Node) extends AssassinEdge0 {
         def toShortString = s"${start.toShortString} -X> ${end.toShortString}"

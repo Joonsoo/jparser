@@ -12,6 +12,7 @@ object ParseTree {
     case class ParsedTerminal(symbol: Terminal, child: Input) extends ParseNode[Terminal]
     case class ParsedSymbol[T <: Symbol](symbol: T, body: ParseNode[Symbol]) extends ParseNode[T]
     case class ParsedSymbolsSeq[T <: Symbol](symbol: T, body: Seq[ParseNode[Symbol]]) extends ParseNode[T]
+    case class ParsedSymbolJoin(symbol: Join, body: ParseNode[Symbol], constraint: ParseNode[Symbol]) extends ParseNode[Join]
 
     object HorizontalTreeStringSeqUtil {
         def merge(list: Seq[(Int, Seq[String])]): (Int, Seq[String]) = {
@@ -37,6 +38,9 @@ object ParseTree {
                 (indent + s"- $sym\n") + body.toTreeString(indent + indentUnit, indentUnit)
             case ParsedSymbolsSeq(sym, body) =>
                 (indent + s"- $sym\n") + (body map { _.toTreeString(indent + indentUnit, indentUnit) } mkString "\n")
+            case ParsedSymbolJoin(sym, body, join) =>
+                (indent + s"- $sym\n") + (body.toTreeString(indent + indentUnit, indentUnit))
+                (indent + s"- $sym\n") + (join.toTreeString(indent + indentUnit, indentUnit))
         }
 
         def toHorizontalHierarchyStringSeq(): (Int, Seq[String]) = {
@@ -47,7 +51,7 @@ object ParseTree {
                     ((" " * prec) + string + (" " * (width - string.length - prec)))
                 }
             }
-            def appendBottom(top: (Int, Seq[String]), bottom: String) =
+            def appendBottom(top: (Int, Seq[String]), bottom: String): (Int, Seq[String]) =
                 if (top._1 >= bottom.length + 2) {
                     val finlen = top._1
                     val result = (finlen, top._2 :+ ("[" + centerize(bottom, finlen - 2) + "]"))
@@ -63,7 +67,7 @@ object ParseTree {
                     val result = (finlen, (top._2 map { p + _ + f }) :+ ("[" + bottom + "]"))
                     result ensuring (result._2.forall(_.length == result._1))
                 }
-            val result = node match {
+            val result: (Int, Seq[String]) = node match {
                 case ParsedEmpty(sym) =>
                     val symbolic = sym.toShortString
                     val finlen = math.max(2, symbolic.length)
@@ -85,6 +89,11 @@ object ParseTree {
                         val list: Seq[(Int, Seq[String])] = body map { _.toHorizontalHierarchyStringSeq }
                         appendBottom(HorizontalTreeStringSeqUtil.merge(list), sym.toShortString)
                     }
+                case ParsedSymbolJoin(sym, body, join) =>
+                    val actual = body.toHorizontalHierarchyStringSeq
+                    val actualJoin = join.toHorizontalHierarchyStringSeq
+                    val symbolic = sym.toShortString
+                    appendBottom(actual, sym.toShortString)
             }
             result ensuring (result._2.forall(_.length == result._1))
         }
