@@ -18,6 +18,7 @@ object JavaScriptGrammar extends Grammar {
     val lineend = i(";").backup(oneof(seq(oneof(n("WhiteSpace"), n("Comment")).star, n("LineTerminator")), eof))
 
     val name = "JavaScript"
+    val startSymbol = n("Start")
     val rules: RuleMap = ListMap(
         "_Token" -> (whitespace ++ ListSet(n("IdentifierName"), n("Punctuator"), n("NumericLiteral"), n("StringLiteral"))),
         "_Raw" -> ListSet(n("RegularExpressionLiteral")),
@@ -70,7 +71,7 @@ object JavaScriptGrammar extends Grammar {
             n("UnicodeLetter"),
             i("$"),
             i("_"),
-            lex(i("_"), n("UnicodeEscapeSequence"))),
+            lex(i("\""), n("UnicodeEscapeSequence"))),
         "IdentifierPart" -> ListSet(
             n("IdentifierStart"),
             n("UnicodeCombiningMark"),
@@ -694,5 +695,4 @@ object JavaScriptGrammar extends Grammar {
         "JSONElementList" -> ListSet(
             n("JSONValue"),
             expr(n("JSONElementList"), i(","), n("JSONValue"))))
-    val startSymbol = n("Start")
 }

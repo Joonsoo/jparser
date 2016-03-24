@@ -38,7 +38,7 @@ object GrammarHelper {
 
     implicit class GrammarElementExcludable(self: Symbol) {
         def except(e: Symbol) = self match {
-            case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Except | _: Repeat =>
+            case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Except | _: Repeat | _: Join =>
                 Except(self, e)
             case _ => throw GrammarDefinitionException("Applied repeat to the items that cannot be")
         }
@@ -47,7 +47,7 @@ object GrammarHelper {
     }
     implicit class GrammarElementRepeatable(self: Symbol) {
         def repeat(range: Repeat.Range): Repeat = self match {
-            case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Repeat =>
+            case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Repeat | _: Join =>
                 Repeat(self, range)
             case _ => throw new Exception("Applied repeat to the items that cannot be")
         }
@@ -72,5 +72,8 @@ object GrammarHelper {
                 Backup(self, backup)
             case _ => throw GrammarDefinitionException("Applied backup to the items that cannot be")
         }
+    }
+    implicit class GrammarElementJoinable(self: Symbol) {
+        def join(join: Symbol): Join = Join(self, join)
     }
 }

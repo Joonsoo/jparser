@@ -190,7 +190,10 @@ trait SymbolProgresses extends SeqOrderedTester {
 
     case class JoinProgress(symbol: Join, parsed: Option[ParsedSymbolJoin], derivedGen: Int) extends SymbolProgressNonterminal {
         def lift0(source: SymbolProgress): SymbolProgress = ???
-        def derive(gen: Int) = Set()
+        def derive(gen: Int) = Set(
+            JoinEdge(this, SymbolProgress(symbol.sym, gen), SymbolProgress(symbol.join, gen), false),
+            JoinEdge(this, SymbolProgress(symbol.join, gen), SymbolProgress(symbol.sym, gen), true)
+        )
     }
 
     implicit class ShortStringProgresses(prog: SymbolProgress) {

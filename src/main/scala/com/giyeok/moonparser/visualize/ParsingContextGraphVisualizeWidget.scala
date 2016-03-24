@@ -94,6 +94,10 @@ trait ParsingContextGraphVisualize {
             }
             vedges(e) = connection
             connection
+        case e: Parser#JoinEdge =>
+            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
+            // TODO e.contraint 도 표시
+            connection
         case e: Parser#LiftAssassinEdge =>
             val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
             connection.setLineColor(ColorConstants.red)
@@ -104,12 +108,11 @@ trait ParsingContextGraphVisualize {
             connection.setLineColor(darkerRed)
             vedges(e) = connection
             connection
-
     }
     def registerEdge1(edges: Set[Parser#Edge])(e: Parser#Edge): (GraphNode, GraphNode, GraphConnection) = {
-        val from = registerNode(e.start)
-        val to = registerNode(e.end)
-        (from, to, registerEdge(edges)(e))
+        val start = registerNode(e.start)
+        val end = registerNode(e.end)
+        (start, end, registerEdge(edges)(e))
     }
 }
 

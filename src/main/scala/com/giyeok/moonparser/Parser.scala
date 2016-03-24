@@ -27,7 +27,7 @@ class Parser(val grammar: Grammar)
         newEdges: Set[Edge],
         rootTips: Set[Node],
         roots: Set[Edge],
-        propagatedAssassinEdges: Set[AssassinEdge0],
+        propagatedAssassinEdges: Set[AssassinEdge],
         finalNodes: Set[Node],
         finalEdges: Set[Edge])
 
@@ -71,7 +71,7 @@ class Parser(val grammar: Grammar)
                                     case SimpleEdge(start, end: NonterminalNode) =>
                                         val newDerives = (end derive nextGen) -- newEdgesCC
                                         recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                    case edge: AssassinEdge0 if edge.start.isInstanceOf[NonterminalNode] =>
+                                    case edge: AssassinEdge if edge.start.isInstanceOf[NonterminalNode] =>
                                         val start = edge.start.asInstanceOf[NonterminalNode]
                                         val newDerives = (start derive nextGen) -- newEdgesCC
                                         recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
@@ -92,9 +92,9 @@ class Parser(val grammar: Grammar)
 
                     // chain lift
                     if (after.canFinish) {
-                        val incomingEdges = allEdgesSoFar.incomingSimpleEdgesOf(before)
+                        val incomingEdges: Set[DeriveEdge] = allEdgesSoFar.incomingDeriveEdgesOf(before)
+                        // TODO incomingEdges중에서 JoinEdge 조건 확인
                         val newLiftings = (incomingEdges map { _.start lift after }) -- cc.liftings -- excludingLiftings
-                        // TODO 여기쯤에서 JoinEdge를 위한 특별 처리가 필요할 듯
                         nextQueue ++= (newLiftings map { l => ExpandAdvance(l.before, l.after) })
                         nextLiftingsCC ++= newLiftings
                     }
@@ -120,7 +120,7 @@ class Parser(val grammar: Grammar)
                                         case SimpleEdge(start, end: NonterminalNode) =>
                                             val newDerives = (end derive nextGen) -- newEdgesCC
                                             recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                        case e: AssassinEdge0 if e.start.isInstanceOf[NonterminalNode] =>
+                                        case e: AssassinEdge if e.start.isInstanceOf[NonterminalNode] =>
                                             val start = e.start.asInstanceOf[NonterminalNode]
                                             val newDerives = (start derive nextGen) -- newEdgesCC
                                             recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
@@ -141,7 +141,7 @@ class Parser(val grammar: Grammar)
         expand0(initials, cc)
     }
 
-    def prepareNextAssassinEdges(edges: Set[Edge], liftings: Set[Lifting]): (Set[AssassinEdge0], Set[Node], Set[Edge]) = {
+    def prepareNextAssassinEdges(edges: Set[Edge], liftings: Set[Lifting]): (Set[AssassinEdge], Set[Node], Set[Edge]) = {
         def propagateLiftAssassinEdges(queue: List[LiftAssassinEdge], newEdgesCC: Set[LiftAssassinEdge]): Set[LiftAssassinEdge] =
             queue match {
                 case head +: rest =>
@@ -181,9 +181,9 @@ class Parser(val grammar: Grammar)
             }).toSet
         }
 
-        val propagatedAssassinEdges0 = propagateLiftAssassinEdges(edges.liftAssassinEdges.toList, Set()).asInstanceOf[Set[AssassinEdge0]]
-        val propagatedAssassinEdges1 = propagateEagerAssassinEdges(edges.eagerAssassinEdges).asInstanceOf[Set[AssassinEdge0]]
-        val propagatedAssassinEdges: Set[AssassinEdge0] = propagatedAssassinEdges0 ++ propagatedAssassinEdges1
+        val propagatedAssassinEdges0 = propagateLiftAssassinEdges(edges.liftAssassinEdges.toList, Set()).asInstanceOf[Set[AssassinEdge]]
+        val propagatedAssassinEdges1 = propagateEagerAssassinEdges(edges.eagerAssassinEdges).asInstanceOf[Set[AssassinEdge]]
+        val propagatedAssassinEdges: Set[AssassinEdge] = propagatedAssassinEdges0 ++ propagatedAssassinEdges1
 
         // TODO outgoing edges of assassin targets
         // TODO lifting before?

@@ -1,5 +1,6 @@
 package com.giyeok.moonparser.tests
 
+import com.giyeok.moonparser.Grammar
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.FigureCanvas
@@ -10,55 +11,18 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Event
 import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Shell
-import com.giyeok.moonparser.Grammar
-import com.giyeok.moonparser.Inputs
-import com.giyeok.moonparser.Inputs.SourceToCleanString
-import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
-import com.giyeok.moonparser.visualize.ParseGraphVisualizer
-import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
-import com.giyeok.moonparser.tests.javascript.JavaScriptGrammar
-import com.giyeok.moonparser.tests.javascript.JavaScriptGrammar
 import org.eclipse.draw2d.ToolbarLayout
 import org.eclipse.draw2d.Label
 import org.eclipse.jface.resource.JFaceResources
+import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
+import com.giyeok.moonparser.visualize.ParseGraphVisualizer
+import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
+import com.giyeok.moonparser.Inputs
 
-trait Samples {
-    val correctSampleInputs: Set[Inputs.Source]
-    val incorrectSampleInputs: Set[Inputs.Source]
-}
+trait Viewer {
+    val allTests: Set[Grammar with Samples]
 
-trait StringSamples extends Samples {
-    val correctSamples: Set[String]
-    val incorrectSamples: Set[String]
-
-    lazy val correctSampleInputs: Set[Inputs.Source] = correctSamples map { Inputs.fromString _ }
-    lazy val incorrectSampleInputs: Set[Inputs.Source] = incorrectSamples map { Inputs.fromString _ }
-}
-
-trait AmbiguousSamples extends Samples {
-    val ambiguousSamples: Set[String]
-    lazy val ambiguousSampleInputs: Set[Inputs.Source] = ambiguousSamples map { Inputs.fromString _ }
-}
-
-object SampleGrammarParseVisualization {
-    val jsGrammar: Grammar with Samples = new Grammar with StringSamples {
-        val name = JavaScriptGrammar.name
-        val rules = JavaScriptGrammar.rules
-        val startSymbol = JavaScriptGrammar.startSymbol
-
-        val correctSamples = Set("")
-        val incorrectSamples = Set("sasd")
-    }
-    val allTests: Set[Grammar with Samples] = Set(
-        Set(jsGrammar),
-        SimpleGrammarSet1.grammars,
-        SimpleGrammarSet2.grammars,
-        SimpleGrammarSet3.grammars,
-        RecursiveGrammarSet1.grammars,
-        GrammarWithExcept.grammars,
-        GrammarWithLookaheadExcept.grammars).flatten
-
-    def main(args: Array[String]): Unit = {
+    def start(): Unit = {
         val display = new Display
         val shell = new Shell(display)
 

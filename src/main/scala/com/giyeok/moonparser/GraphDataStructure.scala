@@ -15,20 +15,26 @@ trait GraphDataStructure {
         val end: Node
         val nodes = Set(start, end)
 
+        def endTo(end: Node): Boolean = (this.end == end)
+
         def toShortString: String
         override def toString = toShortString
     }
-    case class SimpleEdge(start: NonterminalNode, end: Node) extends Edge {
+    sealed abstract class DeriveEdge extends Edge {
+        override val start: NonterminalNode
+    }
+    case class SimpleEdge(start: NonterminalNode, end: Node) extends DeriveEdge {
         def toShortString = s"${start.toShortString} -> ${end.toShortString}"
     }
-    case class JoinEdge(start: NonterminalNode, end: Node, contraint: Node, reversed: Boolean) extends Edge {
-        def toShortString = s"${start.toShortString} -> ${end.toShortString} & ${contraint.toShortString}${if (reversed) " (reverse)" else ""}"
+    case class JoinEdge(start: NonterminalNode, end: Node, contraint: Node, endConstraintReversed: Boolean) extends DeriveEdge {
+        def toShortString = s"${start.toShortString} -> ${end.toShortString} & ${contraint.toShortString}${if (endConstraintReversed) " (reverse)" else ""}"
+        override def endTo(end: Node): Boolean = super.endTo(end) || end == this.contraint
     }
-    sealed abstract class AssassinEdge0 extends Edge
-    case class LiftAssassinEdge(start: Node, end: Node) extends AssassinEdge0 {
+    sealed abstract class AssassinEdge extends Edge
+    case class LiftAssassinEdge(start: Node, end: Node) extends AssassinEdge {
         def toShortString = s"${start.toShortString} -X> ${end.toShortString}"
     }
-    case class EagerAssassinEdge(start: Node, end: Node) extends AssassinEdge0 {
+    case class EagerAssassinEdge(start: Node, end: Node) extends AssassinEdge {
         def toShortString = s"${start.toShortString} -XX> ${end.toShortString}"
     }
     // if `from` lives, `to` will be killed - is used to implement lookahead except and backup
@@ -38,12 +44,14 @@ trait GraphDataStructure {
 
     implicit class AugEdges[T <: Edge](edges: Set[T]) {
         def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }
-        def assassinEdges: Set[AssassinEdge0] = edges collect { case e: AssassinEdge0 => e }
+        def deriveEdges: Set[DeriveEdge] = edges collect { case e: DeriveEdge => e }
+        def assassinEdges: Set[AssassinEdge] = edges collect { case e: AssassinEdge => e }
         def liftAssassinEdges: Set[LiftAssassinEdge] = edges collect { case e: LiftAssassinEdge => e }
         def eagerAssassinEdges: Set[EagerAssassinEdge] = edges collect { case e: EagerAssassinEdge => e }
 
-        def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.end == node }
-        def incomingEdgesOf(node: Node): Set[T] = edges filter { _.end == node }
+        def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.endTo(node) }
+        def incomingDeriveEdgesOf(node: Node): Set[DeriveEdge] = deriveEdges filter { _.endTo(node) }
+        def incomingEdgesOf(node: Node): Set[T] = edges filter { _.endTo(node) }
         def outgoingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.start == node }
 
         def rootsOf(node: Node): Set[T] = {

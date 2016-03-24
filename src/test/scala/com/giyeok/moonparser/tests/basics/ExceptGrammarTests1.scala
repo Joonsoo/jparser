@@ -1,14 +1,14 @@
-package com.giyeok.moonparser.tests
+package com.giyeok.moonparser.tests.basics
 
 import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.GrammarHelper._
 import scala.collection.immutable.ListMap
-import org.junit.Test
-import com.giyeok.moonparser.Parser
-import org.scalatest.junit.AssertionsForJUnit
 import com.giyeok.moonparser.Inputs._
 import org.junit.Assert._
 import scala.collection.immutable.ListSet
+import com.giyeok.moonparser.tests.BasicParseTest
+import com.giyeok.moonparser.tests.Samples
+import com.giyeok.moonparser.tests.StringSamples
 
 object ExceptGrammar1 extends Grammar with StringSamples {
     val name = "Except Grammar 1"
