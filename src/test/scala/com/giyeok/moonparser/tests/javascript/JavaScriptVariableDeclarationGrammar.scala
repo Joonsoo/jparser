@@ -28,8 +28,8 @@ object JavaScriptVariableDeclarationGrammar extends Grammar {
         "VariableDeclaration" -> ListSet(
             expr(n("Id"), n("Initialiser").opt)),
         "Initialiser" -> ListSet(
-            expr(i("="), n("TestingExpression"))),
-        "TestingExpression" -> ListSet(
+            expr(i("="), n("TestExpression"))),
+        "TestExpression" -> ListSet(
             token(chars('0' to '9').plus)),
 
         "Id" -> ListSet(
@@ -53,8 +53,8 @@ object JavaScriptVariableDeclarationGrammar extends Grammar {
             n("_IdName")),
 
         "WhiteSpace" -> ListSet(
-            chars("\u0009\u000B\u000C\uFEFF"), unicode("Zs")), // \u0020\u00A0  ->  already in Zs
+            chars("\t\u000B\u000C\uFEFF"), unicode("Zs")), // \u0020\u00A0  ->  already in Zs
         "LineTerminator" -> ListSet(
-            chars("\n\r\u2028\u2029")),
+            chars("\n\r")),
         "Comment" -> ListSet())
 }

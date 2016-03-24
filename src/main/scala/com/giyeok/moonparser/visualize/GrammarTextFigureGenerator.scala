@@ -16,6 +16,7 @@ import com.giyeok.moonparser.Symbols.ShortStringSymbols
 import com.giyeok.moonparser.Symbols.Symbol
 import com.giyeok.moonparser.Symbols.Terminal
 import com.giyeok.moonparser.Symbols.Terminals
+import java.lang.Character.UnicodeBlock
 
 object GrammarTextFigureGenerator {
     trait Appearance[Figure] {
@@ -106,11 +107,17 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
     def grammarFigure: Fig =
         g.verticalFig(Spacing.Big, grammar.rules.toSeq map { d => ruleFigure((d._1, d._2.toSeq)) })
 
-    def ruleFigure(definition: (String, Seq[Symbols.Symbol])): Fig =
+    def ruleFigure(definition: (String, Seq[Symbols.Symbol])): Fig = {
+        val rules = definition._2
+        val ruleFigures: Seq[Fig] = rules map { symbolFig(_) }
+        val ruleFiguresWithSeparator: Seq[Fig] =
+            if (ruleFigures.isEmpty) ruleFigures
+            else g.horizontalFig(Spacing.Medium, Seq(g.textFig("::=", ap.default), ruleFigures.head)) +: (ruleFigures.tail map { fig => g.horizontalFig(Spacing.Medium, Seq(g.textFig("| ", ap.default), fig)) })
+
         g.horizontalFig(Spacing.Medium, Seq(
             g.textFig(definition._1, ap.nonterminal),
-            g.textFig("::=", ap.default),
-            g.verticalFig(Spacing.Medium, definition._2 map { symbolFig(_) })))
+            g.verticalFig(Spacing.Medium, ruleFiguresWithSeparator)))
+    }
 
     def symbolFig(rule: Symbol): Fig = {
         def join(list: List[Fig], joining: => Fig): List[Fig] = list match {
@@ -125,13 +132,24 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
                 case _ => true
             }
 
+        def exactCharacterRepr(char: Char): String = char match {
+            case c if 33 <= c && c <= 126 => c.toString
+            case '\n' => "\\n"
+            case '\r' => "\\r"
+            case '\t' => "\\t"
+            case c => f"\\u$c%04x"
+        }
+        def rangeCharactersRepr(start: Char, end: Char): (String, String) =
+            (exactCharacterRepr(start), exactCharacterRepr(end))
+
         rule match {
-            case Terminals.ExactChar(c) => g.textFig(c.toString, ap.terminal)
+            case Terminals.ExactChar(c) => g.textFig(exactCharacterRepr(c), ap.terminal)
             case chars: Terminals.Chars =>
                 g.horizontalFig(Spacing.None, join(chars.groups map {
-                    case (f, t) if f == t => g.textFig(f.toString, ap.terminal)
+                    case (f, t) if f == t => g.textFig(exactCharacterRepr(f), ap.terminal)
                     case (f, t) =>
-                        g.horizontalFig(Spacing.None, Seq(g.textFig(s"$f", ap.terminal), g.textFig("-", ap.default), g.textFig(s"$t", ap.terminal)))
+                        val (rangeStart: String, rangeEnd: String) = rangeCharactersRepr(f, t)
+                        g.horizontalFig(Spacing.None, Seq(g.textFig(rangeStart, ap.terminal), g.textFig("-", ap.default), g.textFig(rangeEnd, ap.terminal)))
                 }, g.textFig("|", ap.default)))
             case t: Terminal => g.textFig(t.toShortString, ap.terminal)
             case Empty => g.textFig("ε", ap.nonterminal)
@@ -178,10 +196,10 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
                 g.horizontalFig(Spacing.Medium, Seq(symFig, g.textFig("except", ap.default), exceptFig))
             case LookaheadExcept(except) =>
                 g.horizontalFig(Spacing.Small, Seq(g.textFig("lookahead_except", ap.default), symbolFig(except)))
-            case Backup(_, _) =>
-                g.textFig("??", ap.default)
-            case Join(_, _) =>
-                g.textFig("??", ap.default)
+            case Backup(sym, backup) =>
+                g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("if failed", ap.default), symbolFig(backup)))
+            case Join(sym, join) =>
+                g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("&", ap.default), symbolFig(join)))
         }
     }
 }
