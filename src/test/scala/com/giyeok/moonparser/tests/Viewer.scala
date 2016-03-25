@@ -29,9 +29,9 @@ trait Viewer {
         shell.setLayout(new FillLayout)
 
         val grammarFigAppearances = new GrammarTextFigureGenerator.Appearances[Figure] {
-            val default = GrammarTextFigureGenerator.draw2d.Appearance(new Font(null, "Monaco", 10, SWT.NONE), ColorConstants.black)
-            val nonterminal = GrammarTextFigureGenerator.draw2d.Appearance(new Font(null, "Monaco", 12, SWT.BOLD), ColorConstants.blue)
-            val terminal = GrammarTextFigureGenerator.draw2d.Appearance(new Font(null, "Monaco", 12, SWT.NONE), ColorConstants.red)
+            val default = GrammarTextFigureGenerator.draw2d.Appearance(new Font(null, "Monospace", 10, SWT.NONE), ColorConstants.black)
+            val nonterminal = GrammarTextFigureGenerator.draw2d.Appearance(new Font(null, "Monospace", 12, SWT.BOLD), ColorConstants.blue)
+            val terminal = GrammarTextFigureGenerator.draw2d.Appearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.red)
         }
 
         val sortedGrammars = allTests.toSeq.sortBy(_.name)

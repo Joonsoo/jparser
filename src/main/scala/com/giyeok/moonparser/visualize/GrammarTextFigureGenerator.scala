@@ -111,8 +111,8 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
         val rules = definition._2
         val ruleFigures: Seq[Fig] = rules map { symbolFig(_) }
         val ruleFiguresWithSeparator: Seq[Fig] =
-            if (ruleFigures.isEmpty) ruleFigures
-            else g.horizontalFig(Spacing.Medium, Seq(g.textFig("::=", ap.default), ruleFigures.head)) +: (ruleFigures.tail map { fig => g.horizontalFig(Spacing.Medium, Seq(g.textFig("| ", ap.default), fig)) })
+            if (ruleFigures.isEmpty) Seq(g.horizontalFig(Spacing.Medium, Seq(g.textFig("::= (Not defined)", ap.default))))
+            else g.horizontalFig(Spacing.Medium, Seq(g.textFig("::= ", ap.default), ruleFigures.head)) +: (ruleFigures.tail map { fig => g.horizontalFig(Spacing.Medium, Seq(g.textFig("  | ", ap.default), fig)) })
 
         g.horizontalFig(Spacing.Medium, Seq(
             g.textFig(definition._1, ap.nonterminal),
@@ -195,7 +195,7 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
 
                 g.horizontalFig(Spacing.Medium, Seq(symFig, g.textFig("except", ap.default), exceptFig))
             case LookaheadExcept(except) =>
-                g.horizontalFig(Spacing.Small, Seq(g.textFig("lookahead_except", ap.default), symbolFig(except)))
+                g.horizontalFig(Spacing.Small, Seq(g.textFig("(", ap.default), g.textFig("lookahead_except", ap.default), symbolFig(except), g.textFig(")", ap.default)))
             case Backup(sym, backup) =>
                 g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("if failed", ap.default), symbolFig(backup)))
             case Join(sym, join) =>
