@@ -6,6 +6,8 @@ import scala.collection.immutable.ListSet
 trait Grammar {
     type RuleMap = ListMap[String, ListSet[Symbols.Symbol]]
 
+    type Symbol = Symbols.Symbol
+
     val name: String
     val rules: RuleMap
     val startSymbol: Symbols.Nonterminal
@@ -86,7 +88,7 @@ object Grammar {
                         case Repeat(sym, _) => traverse(sym, cc + symbol)
                         case LookaheadExcept(except) => traverse(except, cc + symbol)
                         case Backup(sym, backup) => traverse(sym, traverse(backup, cc + symbol))
-                        case Join(sym, join) => traverse(join, traverse(join, cc + symbol))
+                        case Join(sym, join) => traverse(sym, traverse(join, cc + symbol))
                     }
             }
             traverse(grammar.startSymbol, Set())

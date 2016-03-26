@@ -112,7 +112,7 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
         val ruleFigures: Seq[Fig] = rules map { symbolFig(_) }
         val ruleFiguresWithSeparator: Seq[Fig] =
             if (ruleFigures.isEmpty) Seq(g.horizontalFig(Spacing.Medium, Seq(g.textFig("::= (Not defined)", ap.default))))
-            else g.horizontalFig(Spacing.Medium, Seq(g.textFig("::= ", ap.default), ruleFigures.head)) +: (ruleFigures.tail map { fig => g.horizontalFig(Spacing.Medium, Seq(g.textFig("  | ", ap.default), fig)) })
+            else g.horizontalFig(Spacing.Big, Seq(g.textFig("::= ", ap.default), ruleFigures.head)) +: (ruleFigures.tail map { fig => g.horizontalFig(Spacing.Medium, Seq(g.textFig("  | ", ap.default), fig)) })
 
         g.horizontalFig(Spacing.Medium, Seq(
             g.textFig(definition._1, ap.nonterminal),

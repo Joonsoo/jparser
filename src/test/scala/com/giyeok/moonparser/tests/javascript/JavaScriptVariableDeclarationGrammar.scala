@@ -56,5 +56,6 @@ object JavaScriptVariableDeclarationGrammar extends Grammar {
             chars("\t\u000B\u000C\uFEFF"), unicode("Zs")), // \u0020\u00A0  ->  already in Zs
         "LineTerminator" -> ListSet(
             chars("\n\r")),
-        "Comment" -> ListSet())
+        "Comment" -> ListSet(
+            expr(i("/*"), chars(" abcdefghijklmnopqrstuvwxyz\n\r\t").plus, i("*/"))))
 }

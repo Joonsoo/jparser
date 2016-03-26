@@ -78,6 +78,7 @@ trait SymbolProgresses extends SeqOrderedTester {
             extends SymbolProgressNonterminal {
         def lift0(source: SymbolProgress): SymbolProgress = {
             // assuming grammar rules have a rule for symbol.name
+            println(s"${symbol.name} ${source.symbol}")
             assert(grammar.rules(symbol.name) contains source.symbol)
             assert(source.parsed.isDefined)
             NonterminalProgress(symbol, Some(ParsedSymbol[Nonterminal](symbol, source.parsed.get)), derivedGen)
@@ -192,8 +193,7 @@ trait SymbolProgresses extends SeqOrderedTester {
         def lift0(source: SymbolProgress): SymbolProgress = ???
         def derive(gen: Int) = Set(
             JoinEdge(this, SymbolProgress(symbol.sym, gen), SymbolProgress(symbol.join, gen), false),
-            JoinEdge(this, SymbolProgress(symbol.join, gen), SymbolProgress(symbol.sym, gen), true)
-        )
+            JoinEdge(this, SymbolProgress(symbol.join, gen), SymbolProgress(symbol.sym, gen), true))
     }
 
     implicit class ShortStringProgresses(prog: SymbolProgress) {
