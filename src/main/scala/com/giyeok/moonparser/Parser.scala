@@ -7,16 +7,17 @@ class Parser(val grammar: Grammar)
         with GraphDataStructure
         with ParsingErrors {
     import Inputs._
+    import Symbols.Symbol
 
-    trait Lifting {
+    sealed trait Lifting {
         val before: SymbolProgress
         val after: SymbolProgress
         def toShortString: String
     }
-    case class TermLifting(before: SymbolProgress, after: SymbolProgress, by: Input) extends Lifting {
+    case class TermLifting(before: SymbolProgressTerminal, after: SymbolProgressTerminal, by: Input) extends Lifting {
         def toShortString = s"${before.toShortString} => ${after.toShortString} (by ${by.toShortString})"
     }
-    case class NontermLifting(before: SymbolProgress, after: SymbolProgress, by: SymbolProgress) extends Lifting {
+    case class NontermLifting(before: SymbolProgressNonterminal, after: SymbolProgressNonterminal, by: SymbolProgress) extends Lifting {
         def toShortString = s"${before.toShortString} => ${after.toShortString} (by ${by.toShortString})"
     }
 
@@ -32,122 +33,156 @@ class Parser(val grammar: Grammar)
         finalEdges: Set[Edge])
 
     def logging(block: => Unit): Unit = {
-        block
+        // block
+    }
+    def logging(str: String): Unit = {
+        logging({ println(str) })
     }
 
-    sealed trait ExpandItem
-    case class ExpandNode(node: Node) extends ExpandItem
-    case class ExpandLift(before: Node, after: Node) extends ExpandItem
+    sealed trait ExpandTask
+    case class DeriveTask(node: NonterminalNode) extends ExpandTask
+    case class LiftTask(lifting: Lifting) extends ExpandTask
 
-    case class ExpandResult(liftings: Set[Lifting], nodes: Set[Node], edges: Set[Edge], rootTips: Set[Node])
+    case class ExpandResult(liftings: Set[Lifting], nodes: Set[Node], edges: Set[Edge], rootTips: Set[Node]) {
+        def +(n: ExpandResult) = ExpandResult(n.liftings ++ liftings, n.nodes ++ nodes, n.edges ++ edges, n.rootTips ++ rootTips)
+        def +(n: (Set[Lifting], Set[Node], Set[Edge], Set[Node])) = ExpandResult(n._1 ++ liftings, n._2 ++ nodes, n._3 ++ edges, n._4 ++ rootTips)
+        def withLifting(newLifting: Lifting) = ExpandResult(liftings + newLifting, nodes, edges, rootTips)
+        def withLiftings(newLiftings: Set[Lifting]) = ExpandResult(liftings ++ newLiftings, nodes, edges, rootTips)
+        def withRootTip(newRootTip: Node) = ExpandResult(liftings, nodes, edges, rootTips + newRootTip)
+    }
 
-    def chain(oldEdges: Set[Edge], nextGen: Int, initials: List[ExpandItem], cc: ExpandResult): ExpandResult =
-        chain(oldEdges, nextGen, initials, cc, Set(), Set())
-    def chain(oldEdges: Set[Edge], nextGen: Int, initials: List[ExpandItem], cc: ExpandResult, excludingLiftings: Set[Lifting], excludingNodes: Set[Node]): ExpandResult = {
-        def chain0(queue: List[ExpandItem], cc: ExpandResult): ExpandResult = {
-            // TODO excludingNodes
+    def expand(oldGraph: Graph, newGenId: Int, queue: List[ExpandTask], excludingLiftings: Set[Lifting], excludingNodes: Set[Node]): ExpandResult = {
+        def expand0(queue: List[ExpandTask], cc: ExpandResult): ExpandResult = {
+            val allEdges: Set[Edge] = oldGraph.edges ++ cc.edges
+            logging({
+                println("left queues:")
+                queue foreach { q => println(s"  $q") }
+            })
+            // TODO queue에 중복된 아이템 2개 들어가지 않도록 수정
             queue match {
-                case ExpandNode(_: SymbolProgressTerminal) +: rest => chain0(rest, cc)
-                case ExpandNode(node: SymbolProgressNonterminal) +: rest =>
-                    var nextQueue = rest
-                    var ExpandResult(nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC) = cc
-                    val allEdgesSoFar = oldEdges ++ nextNewEdgesCC
+                case task +: rest =>
+                    task match {
+                        case DeriveTask(node) =>
+                            logging(s"DeriveTask($node)")
 
-                    // 여기서는 chain lift같은 것이 필요 없으므로 derive만 하면 됨
-                    val afterDerives = node.asInstanceOf[SymbolProgressNonterminal].derive(nextGen)
-                    if (!afterDerives.isEmpty) {
-                        def recursiveDerive(queue: List[Edge], newNodesCC: Set[Node], newEdgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
-                            case edge +: rest =>
-                                (edge.start, edge.end) match {
-                                    case (start: NonterminalNode, end) if end.canFinish =>
-                                        val newLifting = start lift end
-                                        if (!(excludingLiftings contains newLifting)) {
-                                            nextQueue +:= ExpandLift(newLifting.before, newLifting.after)
-                                            nextLiftingsCC += newLifting
-                                        }
-                                    case _ => // nothing to do
+                            assert(cc.nodes contains node)
+
+                            var (nextQueue, nextCC) = (rest, cc)
+
+                            val newDerivedEdges: Set[Edge] = node.derive(newGenId) -- cc.edges
+                            val newNodes: Set[Node] = newDerivedEdges.flatMap(_.nodes)
+
+                            logging {
+                                newDerivedEdges foreach { edge =>
+                                    println("  " + edge)
                                 }
-                                edge match {
-                                    case SimpleEdge(start, end: NonterminalNode) =>
-                                        val newDerives: Set[Edge] = (end derive nextGen) -- newEdgesCC
-                                        recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                    case JoinEdge(start, end, constraint, endConstraintReversed) =>
-                                        val newDerives: Set[Edge] = (end, constraint) match {
-                                            case (end: NonterminalNode, constraint: NonterminalNode) =>
-                                                end.derive(nextGen) ++ constraint.derive(nextGen) -- newEdgesCC
-                                            case (end: NonterminalNode, _) => end.derive(nextGen) -- newEdgesCC
-                                            case (_, constraint: NonterminalNode) => constraint.derive(nextGen) -- newEdgesCC
-                                            case (_, _) => Set()
-                                        }
-                                        recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                    case edge: AssassinEdge if edge.start.isInstanceOf[NonterminalNode] =>
-                                        val start = edge.start.asInstanceOf[NonterminalNode]
-                                        val newDerives = (start derive nextGen) -- newEdgesCC
-                                        recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                    case _ =>
-                                        recursiveDerive(rest, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                }
-                            case List() => (newNodesCC, newEdgesCC)
-                        }
-                        val (derivedNodes, derivedEdges) = recursiveDerive(afterDerives.toList, Set(), Set())
-                        nextNewNodesCC ++= derivedNodes
-                        nextNewEdgesCC ++= derivedEdges
-                    }
-                    chain0(nextQueue, ExpandResult(nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC))
-                case ExpandLift(before, after) +: rest =>
-                    var nextQueue = rest
-                    var ExpandResult(nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC) = cc
-                    val allEdgesSoFar = oldEdges ++ nextNewEdgesCC
-
-                    // chain lift
-                    if (after.canFinish) {
-                        val incomingEdges: Set[DeriveEdge] = allEdgesSoFar.incomingDeriveEdgesOf(before)
-                        // TODO incomingEdges중에서 JoinEdge 조건 확인
-                        val newLiftings = (incomingEdges map { _.start lift after }) -- cc.liftings -- excludingLiftings
-                        nextQueue ++= (newLiftings map { l => ExpandLift(l.before, l.after) })
-                        nextLiftingsCC ++= newLiftings
-                    }
-                    if (after.isInstanceOf[SymbolProgressNonterminal]) {
-                        val afterDerives = after.asInstanceOf[SymbolProgressNonterminal].derive(nextGen)
-                        if (!afterDerives.isEmpty) {
-                            val incomingEdgesToBefore = allEdgesSoFar.incomingSimpleEdgesOf(before)
-                            nextRootTipsCC ++= incomingEdgesToBefore map { _.start }
-                            nextNewEdgesCC ++= incomingEdgesToBefore map { edge => SimpleEdge(edge.start, after) }
-
-                            def recursiveDerive(queue: List[Edge], newNodesCC: Set[Node], newEdgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
-                                case edge +: rest =>
-                                    (edge.start, edge.end) match {
-                                        case (start: NonterminalNode, end) if end.canFinish =>
-                                            val newLifting = start lift end
-                                            if (!(excludingLiftings contains newLifting)) {
-                                                nextQueue +:= ExpandLift(newLifting.before, newLifting.after)
-                                                nextLiftingsCC += newLifting
-                                            }
-                                        case _ => // nothing to do
-                                    }
-                                    edge match {
-                                        case SimpleEdge(start, end: NonterminalNode) =>
-                                            val newDerives = (end derive nextGen) -- newEdgesCC
-                                            recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                        case e: AssassinEdge if e.start.isInstanceOf[NonterminalNode] =>
-                                            val start = e.start.asInstanceOf[NonterminalNode]
-                                            val newDerives = (start derive nextGen) -- newEdgesCC
-                                            recursiveDerive(rest ++ newDerives, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                        case _ =>
-                                            recursiveDerive(rest, newNodesCC ++ edge.nodes, newEdgesCC + edge)
-                                    }
-                                case List() => (newNodesCC, newEdgesCC)
                             }
-                            val (derivedNodes, derivedEdges) = recursiveDerive(afterDerives.toList, Set(), Set())
-                            nextNewNodesCC ++= derivedNodes
-                            nextNewEdgesCC ++= derivedEdges
-                        }
+
+                            nextQueue ++:= newNodes collect { case n: NonterminalNode => DeriveTask(n) }
+                            nextCC += (Set(), newNodes, newDerivedEdges, Set())
+
+                            val newLiftings = newDerivedEdges collect {
+                                case e: SimpleEdge if e.end.canFinish => node.lift(e.end)
+                            }
+
+                            // TODO
+                            val allNodes = allEdges flatMap { _.nodes }
+                            val alreadyProcessedNodes: Set[NonterminalNode] = newNodes.intersect(allNodes) collect { case n: NonterminalNode => n }
+                            val preprocessedNodesLifting: Set[Lifting] = (alreadyProcessedNodes flatMap { n =>
+                                val lifters = cc.liftings collect { case NontermLifting(before, _, by) if before == n => by }
+                                lifters map { n.lift(_) }
+                            }) -- excludingLiftings
+                            nextQueue ++:= preprocessedNodesLifting map { LiftTask(_) }
+                            nextCC = nextCC.withLiftings(preprocessedNodesLifting)
+
+                            logging {
+                                newLiftings foreach { lifting =>
+                                    println("  " + lifting)
+                                }
+                            }
+
+                            nextQueue ++:= newLiftings map { LiftTask(_) }
+                            nextCC = nextCC.withLiftings(newLiftings)
+
+                            expand0(nextQueue, nextCC)
+
+                        case LiftTask(TermLifting(before, after, by)) =>
+                            logging(s"TermLiftTask($before, $after, $by)")
+
+                            assert(oldGraph.nodes contains before)
+                            assert(!before.canFinish)
+                            assert(after.canFinish)
+
+                            var (nextQueue, nextCC) = (rest, cc)
+
+                            allEdges.incomingDeriveEdgesOf(before) foreach { edge =>
+                                edge match {
+                                    case e: SimpleEdge =>
+                                        val lifting = e.start.lift(after)
+                                        if (!(excludingLiftings contains lifting)) {
+                                            nextQueue +:= LiftTask(lifting)
+                                            nextCC = nextCC.withLifting(lifting)
+                                        }
+                                    case e: JoinEdge =>
+                                        val constraint: Option[Lifting] = cc.liftings.find { _.before == e.constraint }
+                                        if (constraint.isDefined) {
+                                            val lifting = e.start.liftJoin(after, constraint.get.after)
+                                            if (!(excludingLiftings contains lifting)) {
+                                                nextQueue +:= LiftTask(lifting)
+                                                nextCC = nextCC.withLifting(lifting)
+                                            }
+                                        }
+                                }
+                            }
+
+                            expand0(nextQueue, nextCC)
+
+                        case LiftTask(NontermLifting(before, after, by)) =>
+                            logging(s"NontermLiftTask($before, $after, $by)")
+
+                            var (nextQueue, nextCC) = (rest, cc)
+
+                            val incomingDeriveEdges = allEdges.incomingDeriveEdgesOf(before)
+
+                            val afterDerives: Set[Edge] = after.derive(newGenId)
+                            if (!afterDerives.isEmpty) {
+                                logging("  hasDerives")
+                                val newEdges: Set[Edge] = (incomingDeriveEdges map { edge =>
+                                    edge match {
+                                        case e: SimpleEdge =>
+                                            SimpleEdge(e.start, after)
+                                        case e: JoinEdge =>
+                                            ???
+                                    }
+                                })
+                                nextQueue +:= DeriveTask(after)
+                                nextCC += (Set(), Set(after), newEdges, Set(before))
+                            }
+
+                            if (after.canFinish) {
+                                logging("  isCanFinish")
+                                incomingDeriveEdges foreach { edge =>
+                                    edge match {
+                                        case e: SimpleEdge =>
+                                            val lifting = e.start.lift(after)
+                                            if (!(excludingLiftings contains lifting)) {
+                                                nextQueue +:= LiftTask(lifting)
+                                                nextCC = nextCC.withLifting(lifting)
+                                            }
+                                        case e: JoinEdge =>
+                                            ???
+                                    }
+                                }
+                            }
+
+                            expand0(nextQueue, nextCC)
                     }
-                    chain0(nextQueue, ExpandResult(nextLiftingsCC, nextNewNodesCC, nextNewEdgesCC, nextRootTipsCC))
                 case List() => cc
             }
         }
-        chain0(initials, cc)
+        val initialLiftings: Set[Lifting] = (queue collect { case LiftTask(lifting) => lifting }).toSet
+        val initialNodes: Set[Node] = (queue collect { case DeriveTask(node) => node }).toSet
+        expand0(queue, ExpandResult(initialLiftings, initialNodes, Set(), Set()))
     }
 
     def prepareNextAssassinEdges(edges: Set[Edge], liftings: Set[Lifting]): (Set[AssassinEdge], Set[Node], Set[Edge]) = {
@@ -173,7 +208,7 @@ class Parser(val grammar: Grammar)
                             val affectedEdges = edges.outgoingSimpleEdgesOf(head)
                             val newLiftingsCC = liftingsCC ++ affectedLiftings
                             val newEdgesCC = edgesCC ++ affectedEdges
-                            val affectedNodesByLiftings: Set[Node] = affectedLiftings map { _.after } filter { n => liftingsCC filter { _.after == n } subsetOf newLiftingsCC }
+                            val affectedNodesByLiftings: Set[NonterminalNode] = affectedLiftings map { _.after } filter { n => liftingsCC filter { _.after == n } subsetOf newLiftingsCC }
                             // affectedNodesByLiftings: affectedLiftings의 after 중에서 after가 자기에게로 향하는 lifting이 모두 newLiftingsCC에 포함된 노드
                             val affectedNodesByEdges: Set[Node] = affectedEdges map { _.end } filter { n => edges.incomingSimpleEdgesOf(n) subsetOf newEdgesCC }
                             // affectedNodesByEdges: affectedEdges의 to들 중에서 자기에게로 향하는 SimpleEdge가 모두 newEdgesCC에 포함된 노드
@@ -223,7 +258,7 @@ class Parser(val grammar: Grammar)
             // `nextNodes` is actually type of `Set[(SymbolProgressTerminal, SymbolProgressTerminal)]`
             // but the invariance of `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
             logging {
-                println(s"**** New Generation $gen")
+                println(s"**** New Generation $gen -> ${gen + 1}")
 
                 graph.edges foreach { edge => println(edge.toShortString) }
                 println()
@@ -233,7 +268,7 @@ class Parser(val grammar: Grammar)
             if (terminalLiftings isEmpty) {
                 Right(ParsingErrors.UnexpectedInput(next))
             } else {
-                val expandFn = chain(graph.edges, gen + 1, terminalLiftings.toList map { lifting => ExpandLift(lifting.before, lifting.after) }, ExpandResult(terminalLiftings, Set(), Set(), Set()), _: Set[Lifting], _: Set[Node])
+                val expandFn = expand(graph, gen + 1, terminalLiftings.toList map { lifting => LiftTask(lifting) }, _: Set[Lifting], _: Set[Node])
 
                 val ExpandResult(liftings0, newNodes0, newEdges0, rootTips0) = expandFn(Set(), Set())
 
@@ -325,8 +360,10 @@ class Parser(val grammar: Grammar)
     }
 
     object ParsingContext {
-        def fromSeedsVerbose(seeds: Set[Node]): (ParsingContext, VerboseProceedLog) = {
-            val ExpandResult(liftings, nodes, edges, _) = chain(Set(), 0, seeds.toList map { seed => ExpandNode(seed) }, ExpandResult(Set(), seeds, Set(), Set()))
+        def fromSeedVerbose(seed: Symbol): (ParsingContext, VerboseProceedLog) = {
+            val startProgress = SymbolProgress(seed, 0)
+            assert(startProgress.isInstanceOf[SymbolProgressNonterminal])
+            val ExpandResult(liftings, nodes, edges, _) = expand(Graph(Set(), Set()), 0, List(DeriveTask(startProgress.asInstanceOf[NonterminalNode])), Set(), Set())
             // expand2(seeds.toList, seeds, Set(), Set())
             val (propagatedAssassinEdges, finalNodes, finalEdges) = prepareNextAssassinEdges(edges, liftings)
             val graph = Graph(finalNodes, finalEdges)
@@ -342,7 +379,7 @@ class Parser(val grammar: Grammar)
                 }
             }
 
-            assert(seeds subsetOf graph.nodes)
+            assert(graph.nodes contains startProgress)
             assertForAll[SymbolProgressNonterminal](graph.nodes collect { case x: SymbolProgressNonterminal => x }, { _.derive(0) subsetOf graph.edges })
             assert(graph.edges forall { _.nodes subsetOf graph.nodes })
             assert((graph.edges flatMap { _.nodes }) == graph.nodes)
@@ -361,10 +398,10 @@ class Parser(val grammar: Grammar)
             val verboseProceedLog = VerboseProceedLog(Set(), liftings, nodes, edges, Set(), Set(), propagatedAssassinEdges, Set(), Set())
             (startingContext, verboseProceedLog)
         }
-        def fromSeeds(seeds: Set[Node]): ParsingContext = fromSeedsVerbose(seeds)._1
+        def fromSeed(seed: Symbol): ParsingContext = fromSeedVerbose(seed)._1
     }
 
-    val startingContextVerbose = ParsingContext.fromSeedsVerbose(Set(SymbolProgress(grammar.startSymbol, 0)))
+    val startingContextVerbose = ParsingContext.fromSeedVerbose(grammar.startSymbol)
     val startingContext = startingContextVerbose._1
 
     def parse(source: Inputs.Source): Either[ParsingContext, ParsingError] =

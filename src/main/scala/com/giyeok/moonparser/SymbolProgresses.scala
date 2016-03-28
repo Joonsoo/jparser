@@ -31,7 +31,7 @@ trait SymbolProgresses extends SeqOrderedTester {
          */
         def derive(gen: Int): Set[Edge]
         def lift(source: SymbolProgress): Lifting = NontermLifting(this, lift0(source), source)
-        def lift0(source: SymbolProgress): SymbolProgress
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal
         val derivedGen: Int
     }
     case object EmptyProgress extends SymbolProgress {
@@ -52,7 +52,7 @@ trait SymbolProgresses extends SeqOrderedTester {
         }
 
         def apply(symbol: Symbol, gen: Int): SymbolProgress = symbol match {
-            case symbol: Terminal => TerminalProgress(symbol, None)
+            case symbol: Terminal => TerminalProgress(symbol, None, gen)
             case Empty => EmptyProgress
             case symbol: Nonterminal => NonterminalProgress(symbol, None, gen)
             case symbol: Sequence => SequenceProgress(symbol, false, List(), List(), gen)
@@ -65,20 +65,19 @@ trait SymbolProgresses extends SeqOrderedTester {
         }
     }
 
-    case class TerminalProgress(symbol: Terminal, parsed: Option[ParsedTerminal])
+    case class TerminalProgress(symbol: Terminal, parsed: Option[ParsedTerminal], derivedGen: Int)
             extends SymbolProgressTerminal {
         def proceedTerminal(next: Input) = {
             assert(parsed.isEmpty)
-            if (symbol accept next) Some(TerminalProgress(symbol, Some(ParsedTerminal(symbol, next))))
+            if (symbol accept next) Some(TerminalProgress(symbol, Some(ParsedTerminal(symbol, next)), derivedGen))
             else None
         }
     }
 
     case class NonterminalProgress(symbol: Nonterminal, parsed: Option[ParsedSymbol[Nonterminal]], derivedGen: Int)
             extends SymbolProgressNonterminal {
-        def lift0(source: SymbolProgress): SymbolProgress = {
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
             // assuming grammar rules have a rule for symbol.name
-            println(s"${symbol.name} ${source.symbol}")
             assert(grammar.rules(symbol.name) contains source.symbol)
             assert(source.parsed.isDefined)
             NonterminalProgress(symbol, Some(ParsedSymbol[Nonterminal](symbol, source.parsed.get)), derivedGen)
@@ -111,7 +110,7 @@ trait SymbolProgresses extends SeqOrderedTester {
 
         override def canFinish = (locInSeq == symbol.seq.size)
         val parsed = if (canFinish) Some(ParsedSymbolsSeq[Sequence](symbol, children)) else None
-        def lift0(source: SymbolProgress): SymbolProgress = {
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
             assert(source.parsed.isDefined)
             val next = source.parsed.get
             val _wsAcceptable = !(next.isInstanceOf[ParsedEmpty[_]]) // && wsAcceptable
@@ -134,7 +133,7 @@ trait SymbolProgresses extends SeqOrderedTester {
 
     case class OneOfProgress(symbol: OneOf, parsed: Option[ParsedSymbol[OneOf]], derivedGen: Int)
             extends SymbolProgressNonterminal {
-        def lift0(source: SymbolProgress): SymbolProgress = {
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
             assert(symbol.syms contains source.symbol)
             assert(source.parsed.isDefined)
             OneOfProgress(symbol, Some(ParsedSymbol[OneOf](symbol, source.parsed.get)), derivedGen)
@@ -148,7 +147,7 @@ trait SymbolProgresses extends SeqOrderedTester {
             extends SymbolProgressNonterminal {
         lazy val children = _children.reverse
         val parsed = if (symbol.range contains _children.size) { if (_children.size == 0) Some(ParsedEmpty(symbol)) else Some(ParsedSymbolsSeq(symbol, children)) } else None
-        def lift0(source: SymbolProgress): SymbolProgress = {
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
             assert(symbol.range canProceed _children.size)
             assert(source.parsed.isDefined)
             assert(source.symbol == symbol.sym)
@@ -161,7 +160,7 @@ trait SymbolProgresses extends SeqOrderedTester {
 
     case class ExceptProgress(symbol: Except, parsed: Option[ParsedSymbol[Except]], derivedGen: Int)
             extends SymbolProgressNonterminal {
-        def lift0(source: SymbolProgress): SymbolProgress = {
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
             // assassin edge will take care of except progress
             assert(source.parsed.isDefined)
             assert(source.symbol == symbol.sym)
@@ -176,7 +175,7 @@ trait SymbolProgresses extends SeqOrderedTester {
 
     case class LookaheadExceptProgress(symbol: LookaheadExcept, derivedGen: Int) extends SymbolProgressNonterminal {
         val parsed: Option[ParseNode[Symbol]] = Some(ParsedEmpty(symbol))
-        def lift0(source: SymbolProgress): SymbolProgress = {
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
             // this `lift` does not mean anything
             this
         }
@@ -185,12 +184,13 @@ trait SymbolProgresses extends SeqOrderedTester {
 
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]], derivedGen: Int)
             extends SymbolProgressNonterminal {
-        def lift0(source: SymbolProgress): SymbolProgress = ???
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = ???
         def derive(gen: Int) = Set()
     }
 
     case class JoinProgress(symbol: Join, parsed: Option[ParsedSymbolJoin], derivedGen: Int) extends SymbolProgressNonterminal {
-        def lift0(source: SymbolProgress): SymbolProgress = ???
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = ???
+        def liftJoin(source: SymbolProgress, constraint: SymbolProgress): Lifting = ???
         def derive(gen: Int) = Set(
             JoinEdge(this, SymbolProgress(symbol.sym, gen), SymbolProgress(symbol.join, gen), false),
             JoinEdge(this, SymbolProgress(symbol.join, gen), SymbolProgress(symbol.sym, gen), true))
@@ -202,7 +202,7 @@ trait SymbolProgresses extends SeqOrderedTester {
             def locate[T](parsed: Option[T], s: String) = if (parsed.isEmpty) ("* " + s) else (s + " *")
             prog.id + " " + (prog match {
                 case EmptyProgress => "ε *"
-                case TerminalProgress(symbol, parsed) => locate(parsed, symbol.toShortString)
+                case TerminalProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case NonterminalProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case seq: SequenceProgress =>
                     val ls = seq.symbol.seq map { _.toShortString } splitAt seq.locInSeq

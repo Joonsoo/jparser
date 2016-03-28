@@ -26,9 +26,10 @@ trait GraphDataStructure {
     case class SimpleEdge(start: NonterminalNode, end: Node) extends DeriveEdge {
         def toShortString = s"${start.toShortString} -> ${end.toShortString}"
     }
-    case class JoinEdge(start: NonterminalNode, end: Node, constraint: Node, endConstraintReversed: Boolean) extends DeriveEdge {
-        def toShortString = s"${start.toShortString} -> ${end.toShortString} & ${constraint.toShortString}${if (endConstraintReversed) " (reverse)" else ""}"
+    case class JoinEdge(start: JoinProgress, end: Node, constraint: Node, endConstraintReversed: Boolean) extends DeriveEdge {
+        override val nodes = Set(start, end, constraint)
         override def endTo(end: Node): Boolean = super.endTo(end) || end == this.constraint
+        def toShortString = s"${start.toShortString} -> ${end.toShortString} & ${constraint.toShortString}${if (endConstraintReversed) " (reverse)" else ""}"
     }
     sealed abstract class AssassinEdge extends Edge
     case class LiftAssassinEdge(start: Node, end: Node) extends AssassinEdge {
