@@ -6,8 +6,13 @@ import org.scalatest.FlatSpec
 import com.giyeok.moonparser.Grammar
 
 class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends FlatSpec {
+    def log(s: String): Unit = {
+        // println(s)
+    }
+
     private def testCorrect(grammar: Grammar)(source: Inputs.Source) = {
         val result = new Parser(grammar).parse(source)
+        log(s"Testing ${grammar.name} on '${source.toCleanString}'")
         it should s"${grammar.name} properly parsed on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) =>
@@ -25,6 +30,7 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
 
     private def testIncorrect(grammar: Grammar)(source: Inputs.Source) = {
         val result = new Parser(grammar).parse(source)
+        log(s"Testing ${grammar.name} on '${source.toCleanString}'")
         it should s"${grammar.name} failed to parse on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) => assert(ctx.resultCandidates.isEmpty)
@@ -35,6 +41,7 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
 
     private def testAmbiguous(grammar: Grammar)(source: Inputs.Source) = {
         val result = new Parser(grammar).parse(source)
+        log(s"Testing ${grammar.name} on '${source.toCleanString}'")
         it should s"${grammar.name} is ambiguous on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) => assert(ctx.resultCandidates.size > 1)
