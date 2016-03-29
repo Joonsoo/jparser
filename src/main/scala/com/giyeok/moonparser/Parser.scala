@@ -158,16 +158,19 @@ class Parser(val grammar: Grammar)
                             val afterDerives: Set[Edge] = after.derive(newGenId)
                             if (!afterDerives.isEmpty) {
                                 logging("  hasDerives")
-                                val newEdges: Set[Edge] = (incomingDeriveEdges map { edge =>
+
+                                val x: Set[(Seq[Edge], Seq[Node])] = (incomingDeriveEdges map { edge =>
                                     edge match {
                                         case e: SimpleEdge =>
-                                            SimpleEdge(e.start, after)
+                                            (Seq(SimpleEdge(e.start, after)), Seq(e.start))
                                         case e: JoinEdge =>
                                             ???
                                     }
                                 })
+                                val newEdges: Set[Edge] = x flatMap { _._1 }
+                                val newRootTips: Set[Node] = x flatMap { _._2 }
                                 nextQueue +:= DeriveTask(after)
-                                nextCC += (Set(), Set(after), newEdges, Set(before))
+                                nextCC += (Set(), Set(after), newEdges, newRootTips)
                             }
 
                             // lift된 node, 즉 `after`가 canFinish인 경우
