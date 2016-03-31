@@ -30,7 +30,7 @@ import org.eclipse.draw2d.Figure
 class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val lastContext: Option[Parser#ParsingContext], private val log: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
 
-    val graph = new Graph(this, SWT.NONE)
+    def initGraph() = new Graph(this, SWT.NONE)
 
     private val (nodes: Set[Parser#Node], edges: Set[Parser#Edge]) = lastContext match {
         case Some(ctx) => (ctx.graph.nodes.asInstanceOf[Set[Parser#Node]], ctx.graph.edges.asInstanceOf[Set[Parser#Edge]])

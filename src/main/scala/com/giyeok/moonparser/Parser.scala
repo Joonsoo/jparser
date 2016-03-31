@@ -195,9 +195,9 @@ class Parser(val grammar: Grammar)
                                         case e: JoinEdge =>
                                             val constraintLifted = cc.liftings filter { _.before == e.constraint }
                                             if (!constraintLifted.isEmpty) {
-                                                println(before, after)
-                                                println(e)
-                                                println(constraintLifted)
+                                                // println(before, after)
+                                                // println(e)
+                                                // println(constraintLifted)
                                                 val liftings0 = constraintLifted map { constraint =>
                                                     if (!e.endConstraintReversed) e.start.liftJoin(after, constraint.after)
                                                     else e.start.liftJoin(constraint.after, after)

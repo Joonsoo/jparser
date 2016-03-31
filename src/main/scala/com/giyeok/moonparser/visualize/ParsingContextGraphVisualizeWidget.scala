@@ -23,13 +23,15 @@ import org.eclipse.swt.graphics.Font
 import org.eclipse.draw2d.LineBorder
 import org.eclipse.draw2d.MarginBorder
 import org.eclipse.draw2d.ToolbarLayout
-import org.eclipse.draw2d.MouseListener
-import org.eclipse.draw2d.MouseEvent
 import org.eclipse.draw2d.FigureCanvas
 import org.eclipse.swt.events.MouseAdapter
+import org.eclipse.swt.events.KeyListener
+import org.eclipse.swt.events.KeyAdapter
+import org.eclipse.swt.events.MouseEvent
 
 trait ParsingContextGraphVisualize {
-    val graph: Graph
+    def initGraph(): Graph
+    val graph: Graph = initGraph()
     val resources: ParseGraphVisualizer.Resources
 
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -75,58 +77,42 @@ trait ParsingContextGraphVisualize {
     private val vnodes = scala.collection.mutable.Map[Parser#Node, CGraphNode]()
     private val vedges = scala.collection.mutable.Map[Parser#Edge, GraphConnection]()
 
+    def newSymbolProgressContentFig(node: Parser#SymbolProgress, renderJoin: Boolean, renderWS: Boolean) = {
+        val tooltipFig0: Figure = node match {
+            case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { tooltipParseNodeFigureGenerator.parseNodeFig(_, renderJoin, renderWS) })
+            case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { tooltipParseNodeFigureGenerator.parseNodeFig(_, renderJoin, renderWS) })
+            case n if n.canFinish =>
+                tooltipParseNodeFigureGenerator.parseNodeFig(n.parsed.get, renderJoin, renderWS)
+            case _ =>
+                symbolProgressFigureGenerator.symbolProgFig(node)
+        }
+        val tooltipFig = node match {
+            case n: Parser#SymbolProgressNonterminal =>
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"Gen ${n.derivedGen}", figureAppearances.small), tooltipFig0))
+            case _ => tooltipFig0
+        }
+        tooltipFig.setBackgroundColor(ColorConstants.white)
+        tooltipFig.setOpaque(true)
+        tooltipFig
+    }
+
     def registerNode(n: Parser#SymbolProgress): CGraphNode = vnodes get n match {
         case Some(node) => node
         case None =>
             val fig = symbolProgressFigureGenerator.symbolProgFig(n)
             fig.setBorder(new MarginBorder(1, 2, 1, 2))
 
-            def newParseNodeFig(renderJoin: Boolean, renderWS: Boolean) = {
-                val tooltipFig0: Figure = n match {
-                    case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
-                        figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { tooltipParseNodeFigureGenerator.parseNodeFig(_, renderJoin, renderWS) })
-                    case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                        figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { tooltipParseNodeFigureGenerator.parseNodeFig(_, renderJoin, renderWS) })
-                    case n if n.canFinish =>
-                        tooltipParseNodeFigureGenerator.parseNodeFig(n.parsed.get, renderJoin, renderWS)
-                    case _ =>
-                        symbolProgressFigureGenerator.symbolProgFig(n)
-                }
-                val tooltipFig = n match {
-                    case n: Parser#SymbolProgressNonterminal =>
-                        figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"Gen ${n.derivedGen}", figureAppearances.small), tooltipFig0))
-                    case _ => tooltipFig0
-                }
-                tooltipFig.setBackgroundColor(ColorConstants.white)
-                tooltipFig.setOpaque(true)
-                tooltipFig
-            }
             val nodeFig = figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, Seq(figureGenerator.textFig("" + n.id, figureAppearances.small), fig))
             nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
             nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
             nodeFig.setOpaque(true)
             nodeFig.setSize(nodeFig.getPreferredSize())
-            nodeFig.setToolTip(newParseNodeFig(false, false))
-
-            nodeFig.addMouseListener(new MouseListener() {
-                def mousePressed(e: MouseEvent): Unit = {}
-                def mouseReleased(e: MouseEvent): Unit = {}
-                def mouseDoubleClicked(e: MouseEvent): Unit = {
-                    import org.eclipse.swt.widgets._
-                    val shell = new Shell(Display.getDefault())
-                    shell.setLayout(new FillLayout())
-                    val figCanvas = new FigureCanvas(shell)
-                    figCanvas.setContents(newParseNodeFig(true, true))
-                    shell.addListener(SWT.Close, new Listener() {
-                        def handleEvent(e: Event): Unit = {
-                            shell.dispose()
-                        }
-                    })
-                    shell.open()
-                }
-            })
+            nodeFig.setToolTip(newSymbolProgressContentFig(n, false, false))
 
             val graphNode = new CGraphNode(graph, SWT.NONE, nodeFig) //new GraphNode(graph, SWT.NONE, n.toShortString)
+            graphNode.setData(n)
 
             graph.addSelectionListener(new SelectionAdapter() {
                 override def widgetSelected(e: SelectionEvent): Unit = {
@@ -202,12 +188,61 @@ trait ParsingContextGraphVisualize {
         val end = registerNode(e.end)
         (start, end, registerEdge(edges)(e))
     }
+
+    graph.addMouseListener(new MouseAdapter() {
+        import scala.collection.JavaConversions._
+
+        override def mouseDoubleClick(e: MouseEvent): Unit = {
+            println("ClickedFigure:")
+            println(graph.getFigureAt(e.x, e.y))
+            val x = graph.getNodes.toList collect {
+                case n: GraphNode => (n.getNodeFigure(), n)
+            }
+            val y = x collect { case (fig, node) if fig.containsPoint(e.x, e.y) && node != null => node.getData }
+            val selectedNodes = y collect { case node: Parser#SymbolProgress => node }
+            selectedNodes foreach { node =>
+                import org.eclipse.swt.widgets._
+                val shell = new Shell(Display.getDefault())
+                shell.setLayout(new FillLayout())
+                val figCanvas = new FigureCanvas(shell)
+
+                class MutableRenderingStatus(var renderJoin: Boolean, var renderWS: Boolean)
+                val rs = new MutableRenderingStatus(true, true)
+                def resetContents(): Unit = {
+                    figCanvas.setContents(
+                        figureGenerator.verticalFig(FigureGenerator.Spacing.Big, Seq(
+                            figureGenerator.textFig(s"renderJoin=${rs.renderJoin}, renderWS=${rs.renderWS}", figureAppearances.default),
+                            newSymbolProgressContentFig(node, rs.renderJoin, rs.renderWS))))
+                }
+                resetContents()
+
+                figCanvas.addKeyListener(new KeyAdapter() {
+                    override def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
+                        if (e.keyCode == '1'.toInt) {
+                            rs.renderJoin = !rs.renderJoin
+                        }
+                        if (e.keyCode == '2'.toInt) {
+                            rs.renderWS = !rs.renderWS
+                        }
+                        resetContents()
+                    }
+                })
+                shell.addListener(SWT.Close, new Listener() {
+                    def handleEvent(e: Event): Unit = {
+                        shell.dispose()
+                    }
+                })
+                shell.setText(node.toShortString)
+                shell.open()
+            }
+        }
+    })
 }
 
 class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
 
-    val graph = new Graph(this, SWT.NONE)
+    def initGraph() = new Graph(this, SWT.NONE)
 
     (context.graph.nodes ++ context.resultCandidates) foreach { registerNode _ }
     context.resultCandidates foreach { highlightResultCandidate _ }

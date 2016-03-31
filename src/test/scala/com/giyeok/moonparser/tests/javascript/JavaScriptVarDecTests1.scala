@@ -13,6 +13,14 @@ object VarDec1Test1 extends VarDecGrammar1 with StringSamples {
         "")
 }
 
+object VarDec1_1Test1 extends VarDecGrammar1_1 with StringSamples {
+    override val name = "JS VarDec Test 1_1"
+    val correctSamples = Set(
+        "var abc = 123 + 321;\n\nvar xyz = 321 * (423-1); var if = 154;")
+    val incorrectSamples = Set(
+        "")
+}
+
 object VarDec3Test1 extends VarDecGrammar3 with StringSamples {
     override val name = "JS VarDec with Semicolon Backup Test 1"
     val correctSamples = Set(
@@ -24,6 +32,7 @@ object VarDec3Test1 extends VarDecGrammar3 with StringSamples {
 object JavaScriptVarDecTestSuite1 {
     val grammars: Set[Grammar with Samples] = Set(
         VarDec1Test1,
+        VarDec1_1Test1,
         VarDec3Test1)
 }
 

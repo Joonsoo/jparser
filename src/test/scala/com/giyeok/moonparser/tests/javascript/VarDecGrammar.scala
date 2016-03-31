@@ -58,6 +58,18 @@ class VarDecGrammar1 extends Grammar {
     val rules = _rules
 }
 
+class VarDecGrammar1_1 extends VarDecGrammar1 {
+    override val name = "VarDecGrammar1_1"
+    override val rules: RuleMap = _rules.merge(ListMap(
+        "TestExpr" -> ListSet(
+            n("Number"),
+            expr(n("TestExpr"), i("+"), n("TestExpr")),
+            expr(n("TestExpr"), i("-"), n("TestExpr")),
+            expr(n("TestExpr"), i("*"), n("TestExpr")),
+            expr(n("TestExpr"), i("/"), n("TestExpr")),
+            expr(i("("), n("TestExpr"), i(")")))))
+}
+
 class VarDecGrammar2 extends VarDecGrammar1 {
     override val name = "VarDecGrammar2"
     override val rules: RuleMap = _rules.merge(ListMap(
