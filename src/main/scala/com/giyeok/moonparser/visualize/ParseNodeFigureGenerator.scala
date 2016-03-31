@@ -11,7 +11,7 @@ class ParseNodeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: Figur
     val symbolFigureGenerator = new SymbolFigureGenerator(g, ap)
 
     def parseNodeFig(n: ParseNode[Symbol]): Fig =
-        parseNodeFig(n: ParseNode[Symbol], false, true)
+        parseNodeFig(n: ParseNode[Symbol], false, false)
 
     def parseNodeFig(n: ParseNode[Symbol], renderJoin: Boolean, renderWS: Boolean): Fig = {
         def parseNodeFig(n: ParseNode[Symbol]): Fig =
@@ -48,9 +48,7 @@ class ParseNodeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: Figur
                 case ParsedSymbolJoin(sym, body, join) =>
                     var content = Seq(ap.symbolBorder.applyToFigure(parseNodeFig(body)))
                     if (renderJoin) {
-                        content ++= Seq(
-                            g.textFig("&", ap.default),
-                            ap.symbolBorder.applyToFigure(parseNodeFig(join)))
+                        content :+= ap.joinHighlightBorder.applyToFigure(g.horizontalFig(Spacing.Small, Seq(g.textFig("&", ap.default), parseNodeFig(join))))
                     }
                     content :+= symbolFigureGenerator.symbolFig(sym)
                     g.verticalFig(Spacing.Small, content)

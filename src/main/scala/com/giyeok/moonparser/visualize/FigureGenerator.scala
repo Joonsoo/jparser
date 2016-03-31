@@ -35,6 +35,7 @@ object FigureGenerator {
         val kernelDot: Appearance[Figure] = EmptyAppearance
         val symbolBorder: Appearance[Figure] = EmptyAppearance
         val wsBorder: Appearance[Figure] = EmptyAppearance
+        val joinHighlightBorder: Appearance[Figure] = EmptyAppearance
 
         object EmptyAppearance extends Appearance[Figure] {
             def applyToFigure(fig: Figure): Figure = {
@@ -107,7 +108,8 @@ object FigureGenerator {
                 val paintRect = tempRect.shrink(insets)
                 graphics.setForegroundColor(color)
                 graphics.setLineWidth(width)
-                val halfWidth = (width + 2) / 2
+                graphics.drawRectangle(tempRect)
+                val halfWidth = (width + 1) / 2
                 if (top) graphics.drawLine(paintRect.x, paintRect.y, paintRect.right, paintRect.y)
                 if (left) graphics.drawLine(paintRect.x, paintRect.y, paintRect.x, paintRect.height)
                 if (bottom) graphics.drawLine(paintRect.x, paintRect.bottom - halfWidth, paintRect.right, paintRect.bottom - halfWidth)

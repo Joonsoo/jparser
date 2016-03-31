@@ -23,6 +23,9 @@ import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.KeyEvent
 import scala.collection.JavaConversions._
+import org.eclipse.draw2d.MarginBorder
+import org.eclipse.draw2d.LineBorder
+import org.eclipse.draw2d.Figure
 
 class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val lastContext: Option[Parser#ParsingContext], private val log: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
@@ -114,7 +117,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
     log.rootTips foreach { n =>
         // assert(nodes contains n)
         val node = registerNode(n)
-        node.setBorderColor(rootColor)
+        node.getFigure.asInstanceOf[Figure].setBorder(new LineBorder(rootColor))
     }
     log.roots foreach { e =>
         assert(edges contains e)

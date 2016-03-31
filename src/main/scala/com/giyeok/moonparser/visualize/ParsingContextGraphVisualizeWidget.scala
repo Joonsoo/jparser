@@ -26,6 +26,7 @@ import org.eclipse.draw2d.ToolbarLayout
 import org.eclipse.draw2d.MouseListener
 import org.eclipse.draw2d.MouseEvent
 import org.eclipse.draw2d.FigureCanvas
+import org.eclipse.swt.events.MouseAdapter
 
 trait ParsingContextGraphVisualize {
     val graph: Graph
@@ -61,42 +62,52 @@ trait ParsingContextGraphVisualize {
                 FigureGenerator.draw2d.NewFigureAppearance(),
                 FigureGenerator.draw2d.BorderAppearance(new FigureGenerator.draw2d.PartialLineBorder(ColorConstants.lightBlue, 1, false, true, true, true)),
                 FigureGenerator.draw2d.BackgroundAppearance(ColorConstants.lightGray))
+        override val joinHighlightBorder =
+            new FigureGenerator.draw2d.ComplexAppearance(
+                FigureGenerator.draw2d.BorderAppearance(new MarginBorder(0, 1, 1, 1)),
+                FigureGenerator.draw2d.NewFigureAppearance(),
+                FigureGenerator.draw2d.BorderAppearance(new LineBorder(ColorConstants.red)))
+
     }
     val symbolProgressFigureGenerator = new SymbolProgressFigureGenerator(figureGenerator, figureAppearances)
     val tooltipParseNodeFigureGenerator = new ParseNodeFigureGenerator(figureGenerator, tooltipAppearances)
 
-    private val vnodes = scala.collection.mutable.Map[Parser#Node, GraphNode]()
+    private val vnodes = scala.collection.mutable.Map[Parser#Node, CGraphNode]()
     private val vedges = scala.collection.mutable.Map[Parser#Edge, GraphConnection]()
 
-    def registerNode(n: Parser#SymbolProgress): GraphNode = vnodes get n match {
+    def registerNode(n: Parser#SymbolProgress): CGraphNode = vnodes get n match {
         case Some(node) => node
         case None =>
             val fig = symbolProgressFigureGenerator.symbolProgFig(n)
             fig.setBorder(new MarginBorder(1, 2, 1, 2))
 
+            def newParseNodeFig(renderJoin: Boolean, renderWS: Boolean) = {
+                val tooltipFig0: Figure = n match {
+                    case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
+                        figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { tooltipParseNodeFigureGenerator.parseNodeFig(_, renderJoin, renderWS) })
+                    case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
+                        figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { tooltipParseNodeFigureGenerator.parseNodeFig(_, renderJoin, renderWS) })
+                    case n if n.canFinish =>
+                        tooltipParseNodeFigureGenerator.parseNodeFig(n.parsed.get, renderJoin, renderWS)
+                    case _ =>
+                        symbolProgressFigureGenerator.symbolProgFig(n)
+                }
+                val tooltipFig = n match {
+                    case n: Parser#SymbolProgressNonterminal =>
+                        figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"Gen ${n.derivedGen}", figureAppearances.small), tooltipFig0))
+                    case _ => tooltipFig0
+                }
+                tooltipFig.setBackgroundColor(ColorConstants.white)
+                tooltipFig.setOpaque(true)
+                tooltipFig
+            }
             val nodeFig = figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, Seq(figureGenerator.textFig("" + n.id, figureAppearances.small), fig))
             nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
             nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
             nodeFig.setOpaque(true)
             nodeFig.setSize(nodeFig.getPreferredSize())
-            val tooltipFig0: Figure = n match {
-                case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
-                    figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { tooltipParseNodeFigureGenerator.parseNodeFig _ })
-                case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                    figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { tooltipParseNodeFigureGenerator.parseNodeFig _ })
-                case n if n.canFinish =>
-                    tooltipParseNodeFigureGenerator.parseNodeFig(n.parsed.get)
-                case _ =>
-                    symbolProgressFigureGenerator.symbolProgFig(n)
-            }
-            val tooltipFig = n match {
-                case n: Parser#SymbolProgressNonterminal =>
-                    figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"Gen ${n.derivedGen}", figureAppearances.small), tooltipFig0))
-                case _ => tooltipFig0
-            }
-            tooltipFig.setBackgroundColor(ColorConstants.white)
-            tooltipFig.setOpaque(true)
-            nodeFig.setToolTip(tooltipFig)
+            nodeFig.setToolTip(newParseNodeFig(false, false))
+
             nodeFig.addMouseListener(new MouseListener() {
                 def mousePressed(e: MouseEvent): Unit = {}
                 def mouseReleased(e: MouseEvent): Unit = {}
@@ -105,7 +116,7 @@ trait ParsingContextGraphVisualize {
                     val shell = new Shell(Display.getDefault())
                     shell.setLayout(new FillLayout())
                     val figCanvas = new FigureCanvas(shell)
-                    figCanvas.setContents(tooltipFig)
+                    figCanvas.setContents(newParseNodeFig(true, true))
                     shell.addListener(SWT.Close, new Listener() {
                         def handleEvent(e: Event): Unit = {
                             shell.dispose()
