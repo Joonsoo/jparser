@@ -96,7 +96,7 @@ trait ParsingContextGraphVisualize {
             }
             tooltipFig.setBackgroundColor(ColorConstants.white)
             tooltipFig.setOpaque(true)
-            // nodeFig.setToolTip(tooltipFig)
+            nodeFig.setToolTip(tooltipFig)
             nodeFig.addMouseListener(new MouseListener() {
                 def mousePressed(e: MouseEvent): Unit = {}
                 def mouseReleased(e: MouseEvent): Unit = {}
