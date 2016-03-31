@@ -17,7 +17,8 @@ class VarDecGrammar1 extends Grammar {
     val startSymbol = n("Start")
     val _rules: RuleMap = ListMap(
         "Start" -> ListSet(
-            n("Stmt").star),
+            expr(n("Stmt"), n("Start")),
+            n("Stmt")),
         "Stmt" -> ListSet(
             n("VarStmt")),
         "VarStmt" -> ListSet(
