@@ -111,7 +111,7 @@ trait SymbolProgresses extends SeqOrderedTester {
         }
 
         override def canFinish = (locInSeq == symbol.seq.size)
-        val parsed = if (canFinish) Some(ParsedSymbolsSeq[Sequence](symbol, children)) else None
+        val parsed = if (canFinish) Some(ParsedSymbolsSeq[Sequence](symbol, children, Some((childrenWS, childrenIdx)))) else None
         def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
             assert(source.parsed.isDefined)
             val next = source.parsed.get
@@ -148,7 +148,7 @@ trait SymbolProgresses extends SeqOrderedTester {
     case class RepeatProgress(symbol: Repeat, _children: List[ParseNode[Symbol]], derivedGen: Int)
             extends SymbolProgressNonterminal {
         lazy val children = _children.reverse
-        val parsed = if (symbol.range contains _children.size) { if (_children.size == 0) Some(ParsedEmpty(symbol)) else Some(ParsedSymbolsSeq(symbol, children)) } else None
+        val parsed = if (symbol.range contains _children.size) { if (_children.size == 0) Some(ParsedEmpty(symbol)) else Some(ParsedSymbolsSeq(symbol, children, None)) } else None
         def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
             assert(symbol.range canProceed _children.size)
             assert(source.parsed.isDefined)

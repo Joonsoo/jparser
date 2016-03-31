@@ -23,6 +23,9 @@ import org.eclipse.swt.graphics.Font
 import org.eclipse.draw2d.LineBorder
 import org.eclipse.draw2d.MarginBorder
 import org.eclipse.draw2d.ToolbarLayout
+import org.eclipse.draw2d.MouseListener
+import org.eclipse.draw2d.MouseEvent
+import org.eclipse.draw2d.FigureCanvas
 
 trait ParsingContextGraphVisualize {
     val graph: Graph
@@ -52,6 +55,12 @@ trait ParsingContextGraphVisualize {
                 FigureGenerator.draw2d.BorderAppearance(new MarginBorder(0, 1, 1, 1)),
                 FigureGenerator.draw2d.NewFigureAppearance(),
                 FigureGenerator.draw2d.BorderAppearance(new FigureGenerator.draw2d.PartialLineBorder(ColorConstants.lightGray, 1, false, true, true, true)))
+        override val wsBorder =
+            new FigureGenerator.draw2d.ComplexAppearance(
+                FigureGenerator.draw2d.BorderAppearance(new MarginBorder(0, 1, 1, 1)),
+                FigureGenerator.draw2d.NewFigureAppearance(),
+                FigureGenerator.draw2d.BorderAppearance(new FigureGenerator.draw2d.PartialLineBorder(ColorConstants.lightBlue, 1, false, true, true, true)),
+                FigureGenerator.draw2d.BackgroundAppearance(ColorConstants.lightGray))
     }
     val symbolProgressFigureGenerator = new SymbolProgressFigureGenerator(figureGenerator, figureAppearances)
     val tooltipParseNodeFigureGenerator = new ParseNodeFigureGenerator(figureGenerator, tooltipAppearances)
@@ -81,12 +90,30 @@ trait ParsingContextGraphVisualize {
                     symbolProgressFigureGenerator.symbolProgFig(n)
             }
             val tooltipFig = n match {
-                case n: Parser#SymbolProgressNonterminal => figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"${n.derivedGen}", figureAppearances.small), tooltipFig0))
+                case n: Parser#SymbolProgressNonterminal =>
+                    figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"Gen ${n.derivedGen}", figureAppearances.small), tooltipFig0))
                 case _ => tooltipFig0
             }
             tooltipFig.setBackgroundColor(ColorConstants.white)
             tooltipFig.setOpaque(true)
-            nodeFig.setToolTip(tooltipFig)
+            // nodeFig.setToolTip(tooltipFig)
+            nodeFig.addMouseListener(new MouseListener() {
+                def mousePressed(e: MouseEvent): Unit = {}
+                def mouseReleased(e: MouseEvent): Unit = {}
+                def mouseDoubleClicked(e: MouseEvent): Unit = {
+                    import org.eclipse.swt.widgets._
+                    val shell = new Shell(Display.getDefault())
+                    shell.setLayout(new FillLayout())
+                    val figCanvas = new FigureCanvas(shell)
+                    figCanvas.setContents(tooltipFig)
+                    shell.addListener(SWT.Close, new Listener() {
+                        def handleEvent(e: Event): Unit = {
+                            shell.dispose()
+                        }
+                    })
+                    shell.open()
+                }
+            })
 
             val graphNode = new CGraphNode(graph, SWT.NONE, nodeFig) //new GraphNode(graph, SWT.NONE, n.toShortString)
 

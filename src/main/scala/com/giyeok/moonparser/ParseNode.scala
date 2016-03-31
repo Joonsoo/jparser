@@ -11,7 +11,14 @@ object ParseTree {
     case class ParsedEmpty[T <: Symbol](symbol: T) extends ParseNode[T]
     case class ParsedTerminal(symbol: Terminal, child: Input) extends ParseNode[Terminal]
     case class ParsedSymbol[T <: Symbol](symbol: T, body: ParseNode[Symbol]) extends ParseNode[T]
-    case class ParsedSymbolsSeq[T <: Symbol](symbol: T, body: Seq[ParseNode[Symbol]]) extends ParseNode[T]
+    // bodyWS는 whitespace를 포함한 자식 노드의 Seq, 그 중 실제 body의 위치를 나타낸다. 따라서 bodyWS._2.size == body.size 를 항상 만족해야 함  
+    case class ParsedSymbolsSeq[T <: Symbol](symbol: T, body: Seq[ParseNode[Symbol]], bodyWS: Option[(Seq[ParseNode[Symbol]], Seq[Int])]) extends ParseNode[T] {
+        if (bodyWS.isDefined) {
+            val bws = bodyWS.get
+            assert(bws._2.size == body.size)
+            assert((bws._2 map { idx => bws._1(idx) }) == body)
+        }
+    }
     case class ParsedSymbolJoin(symbol: Join, body: ParseNode[Symbol], constraint: ParseNode[Symbol]) extends ParseNode[Join]
 
     object HorizontalTreeStringSeqUtil {
@@ -36,11 +43,11 @@ object ParseTree {
                 indent + s"- $sym('$child')"
             case ParsedSymbol(sym, body) =>
                 (indent + s"- $sym\n") + body.toTreeString(indent + indentUnit, indentUnit)
-            case ParsedSymbolsSeq(sym, body) =>
+            case ParsedSymbolsSeq(sym, body, _) =>
                 (indent + s"- $sym\n") + (body map { _.toTreeString(indent + indentUnit, indentUnit) } mkString "\n")
             case ParsedSymbolJoin(sym, body, join) =>
                 (indent + s"- $sym\n") + (body.toTreeString(indent + indentUnit, indentUnit)) + "\n" +
-                (indent + s"- $sym\n") + (join.toTreeString(indent + indentUnit, indentUnit))
+                    (indent + s"- $sym\n") + (join.toTreeString(indent + indentUnit, indentUnit))
         }
 
         def toHorizontalHierarchyStringSeq(): (Int, Seq[String]) = {
@@ -81,7 +88,7 @@ object ParseTree {
                     val actual = body.toHorizontalHierarchyStringSeq
                     val symbolic = sym.toShortString
                     appendBottom(actual, sym.toShortString)
-                case ParsedSymbolsSeq(sym, body) =>
+                case ParsedSymbolsSeq(sym, body, _) =>
                     if (body.isEmpty) {
                         val symbolic = sym.toShortString
                         (symbolic.length + 2, Seq("[" + symbolic + "]"))

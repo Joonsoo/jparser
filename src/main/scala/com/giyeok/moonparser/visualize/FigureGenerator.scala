@@ -34,6 +34,7 @@ object FigureGenerator {
         val small: Appearance[Figure] = EmptyAppearance
         val kernelDot: Appearance[Figure] = EmptyAppearance
         val symbolBorder: Appearance[Figure] = EmptyAppearance
+        val wsBorder: Appearance[Figure] = EmptyAppearance
 
         object EmptyAppearance extends Appearance[Figure] {
             def applyToFigure(fig: Figure): Figure = {
@@ -84,6 +85,13 @@ object FigureGenerator {
                 newFig.add(fig)
                 newFig.setLayoutManager(new ToolbarLayout())
                 newFig
+            }
+        }
+        case class BackgroundAppearance(color: Color) extends FigureGenerator.Appearance[Figure] {
+            def applyToFigure(fig: Figure): Figure = {
+                fig.setBackgroundColor(color)
+                fig.setOpaque(true)
+                fig
             }
         }
         class PartialLineBorder(color: Color, width: Int, top: Boolean, left: Boolean, bottom: Boolean, right: Boolean) extends AbstractBorder {

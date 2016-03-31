@@ -24,7 +24,7 @@ trait Viewer {
     val allTests: Set[Grammar with Samples]
 
     def start(): Unit = {
-        val display = new Display
+        val display = Display.getDefault()
         val shell = new Shell(display)
 
         shell.setLayout(new FillLayout)
