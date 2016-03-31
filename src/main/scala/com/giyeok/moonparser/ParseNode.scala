@@ -39,7 +39,7 @@ object ParseTree {
             case ParsedSymbolsSeq(sym, body) =>
                 (indent + s"- $sym\n") + (body map { _.toTreeString(indent + indentUnit, indentUnit) } mkString "\n")
             case ParsedSymbolJoin(sym, body, join) =>
-                (indent + s"- $sym\n") + (body.toTreeString(indent + indentUnit, indentUnit))
+                (indent + s"- $sym\n") + (body.toTreeString(indent + indentUnit, indentUnit)) + "\n" +
                 (indent + s"- $sym\n") + (join.toTreeString(indent + indentUnit, indentUnit))
         }
 

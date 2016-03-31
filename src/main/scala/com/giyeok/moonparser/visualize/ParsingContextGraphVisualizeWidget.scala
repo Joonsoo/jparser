@@ -29,6 +29,7 @@ trait ParsingContextGraphVisualize {
     val resources: ParseGraphVisualizer.Resources
 
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
+
     val figureAppearances = new FigureGenerator.Appearances[Figure] {
         val default = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 10, SWT.NONE), ColorConstants.black)
         val nonterminal = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.BOLD), ColorConstants.blue)
@@ -38,8 +39,22 @@ trait ParsingContextGraphVisualize {
         override val kernelDot = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.green)
         override val symbolBorder = FigureGenerator.draw2d.BorderAppearance(new LineBorder(ColorConstants.lightGray))
     }
+    val tooltipAppearances = new FigureGenerator.Appearances[Figure] {
+        val default = figureAppearances.default
+        val nonterminal = figureAppearances.nonterminal
+        val terminal = figureAppearances.terminal
+
+        override val input = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 10, SWT.NONE), ColorConstants.black)
+        override val small = figureAppearances.small
+        override val kernelDot = figureAppearances.kernelDot
+        override val symbolBorder =
+            new FigureGenerator.draw2d.ComplexAppearance(
+                FigureGenerator.draw2d.BorderAppearance(new MarginBorder(0, 1, 1, 1)),
+                FigureGenerator.draw2d.NewFigureAppearance(),
+                FigureGenerator.draw2d.BorderAppearance(new FigureGenerator.draw2d.PartialLineBorder(ColorConstants.lightGray, 1, false, true, true, true)))
+    }
     val symbolProgressFigureGenerator = new SymbolProgressFigureGenerator(figureGenerator, figureAppearances)
-    val parseNodeFigureGenerator = new ParseNodeFigureGenerator(figureGenerator, figureAppearances)
+    val tooltipParseNodeFigureGenerator = new ParseNodeFigureGenerator(figureGenerator, tooltipAppearances)
 
     private val vnodes = scala.collection.mutable.Map[Parser#Node, GraphNode]()
     private val vedges = scala.collection.mutable.Map[Parser#Edge, GraphConnection]()
@@ -57,13 +72,13 @@ trait ParsingContextGraphVisualize {
             nodeFig.setSize(nodeFig.getPreferredSize())
             val tooltipFig0: Figure = n match {
                 case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
-                    figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { parseNodeFigureGenerator.parseNodeFig _ })
+                    figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { tooltipParseNodeFigureGenerator.parseNodeFig _ })
                 case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                    figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { parseNodeFigureGenerator.parseNodeFig _ })
+                    figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { tooltipParseNodeFigureGenerator.parseNodeFig _ })
                 case n if n.canFinish =>
-                    parseNodeFigureGenerator.parseNodeFig(n.parsed.get)
+                    tooltipParseNodeFigureGenerator.parseNodeFig(n.parsed.get)
                 case _ =>
-                    figureGenerator.textFig(n.toShortString, figureAppearances.default)
+                    symbolProgressFigureGenerator.symbolProgFig(n)
             }
             val tooltipFig = n match {
                 case n: Parser#SymbolProgressNonterminal => figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"${n.derivedGen}", figureAppearances.small), tooltipFig0))

@@ -18,6 +18,7 @@ import com.giyeok.moonparser.Symbols.Terminal
 import com.giyeok.moonparser.Symbols.Terminals
 import java.lang.Character.UnicodeBlock
 import org.eclipse.draw2d.Border
+import org.eclipse.draw2d.AbstractBorder
 
 object FigureGenerator {
     trait Appearance[Figure] {
@@ -29,6 +30,7 @@ object FigureGenerator {
         val nonterminal: Appearance[Figure]
         val terminal: Appearance[Figure]
 
+        val input: Appearance[Figure] = EmptyAppearance
         val small: Appearance[Figure] = EmptyAppearance
         val kernelDot: Appearance[Figure] = EmptyAppearance
         val symbolBorder: Appearance[Figure] = EmptyAppearance
@@ -65,10 +67,43 @@ object FigureGenerator {
             }
         }
 
+        case class ComplexAppearance(appearances: FigureGenerator.Appearance[Figure]*) extends FigureGenerator.Appearance[Figure] {
+            def applyToFigure(fig: Figure): Figure = {
+                appearances.foldLeft(fig)((fig, ap) => ap.applyToFigure(fig))
+            }
+        }
         case class BorderAppearance(border: Border) extends FigureGenerator.Appearance[Figure] {
             def applyToFigure(fig: Figure): Figure = {
                 fig.setBorder(border)
                 fig
+            }
+        }
+        case class NewFigureAppearance() extends FigureGenerator.Appearance[Figure] {
+            def applyToFigure(fig: Figure): Figure = {
+                val newFig = new Figure()
+                newFig.add(fig)
+                newFig.setLayoutManager(new ToolbarLayout())
+                newFig
+            }
+        }
+        class PartialLineBorder(color: Color, width: Int, top: Boolean, left: Boolean, bottom: Boolean, right: Boolean) extends AbstractBorder {
+            import org.eclipse.draw2d.geometry.Insets
+            import org.eclipse.draw2d.IFigure
+            import org.eclipse.draw2d.Graphics
+            import org.eclipse.draw2d.geometry.Rectangle
+
+            private val tempRect = new Rectangle()
+            def getInsets(figure: IFigure): Insets = new Insets(if (top) width else 0, if (left) width else 0, if (bottom) width else 0, if (right) width else 0)
+            def paint(figure: IFigure, graphics: Graphics, insets: Insets): Unit = {
+                tempRect.setBounds(figure.getBounds())
+                val paintRect = tempRect.shrink(insets)
+                graphics.setForegroundColor(color)
+                graphics.setLineWidth(width)
+                val halfWidth = (width + 2) / 2
+                if (top) graphics.drawLine(paintRect.x, paintRect.y, paintRect.right, paintRect.y)
+                if (left) graphics.drawLine(paintRect.x, paintRect.y, paintRect.x, paintRect.height)
+                if (bottom) graphics.drawLine(paintRect.x, paintRect.bottom - halfWidth, paintRect.right, paintRect.bottom - halfWidth)
+                if (right) graphics.drawLine(paintRect.right - halfWidth, paintRect.y, paintRect.right - halfWidth, paintRect.bottom)
             }
         }
 
