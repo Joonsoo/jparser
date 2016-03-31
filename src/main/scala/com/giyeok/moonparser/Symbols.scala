@@ -176,7 +176,7 @@ object Symbols {
                     else if (range._1 + 1 == range._2) s"'${toReadable(range._1)}'-'${toReadable(range._2)}'"
                     else s"'${toReadable(range._1)}'-'${toReadable(range._2)}'"
                 } mkString "|") + ")"
-            case Unicode(c) => s"<unicode>"
+            case Unicode(c) => s"<unicode ${(c.toSeq map { cid => cid }).sorted mkString ", "}>"
             case EndOfFile => "<eof>"
             case t: Terminal => t.toShortString
             case Empty => "<empty>"

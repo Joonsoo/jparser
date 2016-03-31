@@ -26,19 +26,12 @@ class VarDecGrammar1 extends Grammar {
             n("VarDec"),
             expr(n("VarDecList"), i(","), n("VarDec"))),
         "VarDec" -> ListSet(
-            expr(n("Id"), n("Init").opt)),
+            expr(token(n("_IdName")), n("Init").opt)),
         "Init" -> ListSet(
             expr(i("="), n("TestExpr"))),
         "TestExpr" -> ListSet(
             token(chars('0' to '9').plus)),
 
-        "Id" -> ListSet(
-            n("IdName").butnot(n("Kw"))),
-        "IdName" -> ListSet(
-            token(n("_IdName"))),
-        "Kw" -> ListSet(
-            token(i("if")),
-            token(i("var"))),
         "_IdName" -> ListSet(
             n("IdStart"),
             seq(n("_IdName"), n("IdPart") /*, lookahead_except(n("IdPart"))*/ )),
@@ -49,8 +42,11 @@ class VarDecGrammar1 extends Grammar {
         "IdPart" -> ListSet(
             n("IdStart"),
             unicode("Nd")),
+        "Number" -> ListSet(
+            chars('0' to '9').plus),
         "Token" -> ListSet(
-            n("_IdName")),
+            n("_IdName"),
+            n("Number")),
 
         "WhiteSpace" -> ListSet(
             chars("\t\u000B\u000C\uFEFF"), unicode("Zs")), // \u0020\u00A0  ->  already in Zs
@@ -64,6 +60,17 @@ class VarDecGrammar1 extends Grammar {
 class VarDecGrammar2 extends VarDecGrammar1 {
     override val name = "VarDecGrammar2"
     override val rules: RuleMap = _rules.merge(ListMap(
+        "VarDec" -> ListSet(
+            expr(token(n("Id")), n("Init").opt)),
+
+        "Id" -> ListSet(
+            n("IdName").butnot(n("Kw"))),
+        "IdName" -> ListSet(
+            token(n("_IdName"))),
+        "Kw" -> ListSet(
+            token(i("if")),
+            token(i("var"))),
+
         "_IdName" -> ListSet(
             n("IdStart"),
             seq(n("_IdName"), n("IdPart"), lookahead_except(n("IdPart")))),

@@ -18,6 +18,7 @@ import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.moonparser.visualize.ParseGraphVisualizer
 import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.moonparser.Inputs
+import com.giyeok.moonparser.visualize.FigureGenerator
 
 trait Viewer {
     val allTests: Set[Grammar with Samples]
@@ -28,10 +29,10 @@ trait Viewer {
 
         shell.setLayout(new FillLayout)
 
-        val grammarFigAppearances = new GrammarTextFigureGenerator.Appearances[Figure] {
-            val default = GrammarTextFigureGenerator.draw2d.Appearance(new Font(null, "Monospace", 10, SWT.NONE), ColorConstants.black)
-            val nonterminal = GrammarTextFigureGenerator.draw2d.Appearance(new Font(null, "Monospace", 12, SWT.BOLD), ColorConstants.blue)
-            val terminal = GrammarTextFigureGenerator.draw2d.Appearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.red)
+        val grammarFigAppearances = new FigureGenerator.Appearances[Figure] {
+            val default = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 10, SWT.NONE), ColorConstants.black)
+            val nonterminal = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.BOLD), ColorConstants.blue)
+            val terminal = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.red)
         }
 
         val sortedGrammars = allTests.toSeq.sortBy(_.name)
@@ -56,14 +57,14 @@ trait Viewer {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
                 def generateHtml(): xml.Elem =
-                    new GrammarTextFigureGenerator[xml.Elem](grammar, new GrammarTextFigureGenerator.Appearances[xml.Elem] {
-                        val default = GrammarTextFigureGenerator.html.AppearanceByClass("default")
-                        val nonterminal = GrammarTextFigureGenerator.html.AppearanceByClass("nonterminal")
-                        val terminal = GrammarTextFigureGenerator.html.AppearanceByClass("terminal")
-                    }, GrammarTextFigureGenerator.html.Generator).grammarFigure
+                    new GrammarTextFigureGenerator[xml.Elem](grammar, new FigureGenerator.Appearances[xml.Elem] {
+                        val default = FigureGenerator.html.AppearanceByClass("default")
+                        val nonterminal = FigureGenerator.html.AppearanceByClass("nonterminal")
+                        val terminal = FigureGenerator.html.AppearanceByClass("terminal")
+                    }, FigureGenerator.html.Generator).grammarFigure
                 grammar.usedSymbols foreach { s => println(s"used: $s") }
                 val (missingSymbols, wrongLookaheads, unusedSymbols) = (grammar.missingSymbols, grammar.wrongLookaheads, grammar.unusedSymbols)
-                val textFig = new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, GrammarTextFigureGenerator.draw2d.Generator).grammarFigure
+                val textFig = new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, FigureGenerator.draw2d.Generator).grammarFigure
                 if (missingSymbols.isEmpty && wrongLookaheads.isEmpty && unusedSymbols.isEmpty) {
                     grammarFig.setContents(textFig)
                 } else {

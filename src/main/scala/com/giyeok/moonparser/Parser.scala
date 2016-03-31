@@ -198,7 +198,13 @@ class Parser(val grammar: Grammar)
                                                 println(before, after)
                                                 println(e)
                                                 println(constraintLifted)
-                                                ???
+                                                val liftings0 = constraintLifted map { constraint =>
+                                                    if (!e.endConstraintReversed) e.start.liftJoin(after, constraint.after)
+                                                    else e.start.liftJoin(constraint.after, after)
+                                                }
+                                                val liftings = liftings0 -- excludingLiftings
+                                                nextQueue ++:= liftings map { lifting => LiftTask(lifting) }
+                                                nextCC = nextCC.withLiftings(liftings)
                                             }
                                         // just ignore if the constraint is not matched
                                     }

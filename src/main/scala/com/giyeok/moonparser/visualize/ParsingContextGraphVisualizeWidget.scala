@@ -17,10 +17,28 @@ import com.giyeok.moonparser.ParseTree
 import com.giyeok.moonparser.Parser
 import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
 import org.eclipse.swt.graphics.Color
+import org.eclipse.zest.core.widgets.CGraphNode
+import org.eclipse.draw2d.Figure
+import org.eclipse.swt.graphics.Font
+import org.eclipse.draw2d.LineBorder
+import org.eclipse.draw2d.MarginBorder
+import org.eclipse.draw2d.ToolbarLayout
 
 trait ParsingContextGraphVisualize {
     val graph: Graph
     val resources: ParseGraphVisualizer.Resources
+
+    val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
+    val figureAppearances = new FigureGenerator.Appearances[Figure] {
+        val default = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 10, SWT.NONE), ColorConstants.black)
+        val nonterminal = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.BOLD), ColorConstants.blue)
+        val terminal = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.red)
+
+        override val small = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 8, SWT.NONE), ColorConstants.gray)
+        override val kernelDot = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.green)
+        override val symbolBorder = FigureGenerator.draw2d.BorderAppearance(new LineBorder(ColorConstants.lightGray))
+    }
+    val symbolProgressFigureGenerator = new SymbolProgressFigureGenerator(figureGenerator, figureAppearances)
 
     private val vnodes = scala.collection.mutable.Map[Parser#Node, GraphNode]()
     private val vedges = scala.collection.mutable.Map[Parser#Edge, GraphConnection]()
@@ -28,13 +46,13 @@ trait ParsingContextGraphVisualize {
     def registerNode(n: Parser#SymbolProgress): GraphNode = vnodes get n match {
         case Some(node) => node
         case None =>
-            val graphNode = new GraphNode(graph, SWT.NONE, n.toShortString)
-            graphNode.setFont(resources.default12Font)
-            n match {
-                case term: Parser#SymbolProgressTerminal if term.parsed.isEmpty =>
-                    graphNode.setBackgroundColor(ColorConstants.lightGreen)
-                case _ =>
-            }
+            val fig = symbolProgressFigureGenerator.symbolProgFig(n)
+            fig.setBorder(new MarginBorder(1, 2, 1, 2))
+
+            val nodeFig = figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, Seq(figureGenerator.textFig("" + n.id, figureAppearances.small), fig))
+            nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
+            nodeFig.setBackgroundColor(ColorConstants.blue)
+            nodeFig.setSize(nodeFig.getPreferredSize())
             val tooltipText0 = n match {
                 case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
                     val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
@@ -54,11 +72,16 @@ trait ParsingContextGraphVisualize {
             val f = new org.eclipse.draw2d.Label()
             f.setFont(resources.fixedWidth12Font)
             f.setText(tooltipText)
-            graphNode.setTooltip(f)
+            nodeFig.setToolTip(f)
+
+            val graphNode = new CGraphNode(graph, SWT.NONE, nodeFig) //new GraphNode(graph, SWT.NONE, n.toShortString)
+
             graph.addSelectionListener(new SelectionAdapter() {
                 override def widgetSelected(e: SelectionEvent): Unit = {
                     if (e.item == graphNode) {
                         println(e.item)
+                        println(graphNode.asInstanceOf[CGraphNode].getFigure.getPreferredSize)
+                        println(graphNode.asInstanceOf[CGraphNode].getFigure.getInsets)
                         println(tooltipText)
                     }
                 }
