@@ -39,6 +39,7 @@ trait ParsingContextGraphVisualize {
         override val symbolBorder = FigureGenerator.draw2d.BorderAppearance(new LineBorder(ColorConstants.lightGray))
     }
     val symbolProgressFigureGenerator = new SymbolProgressFigureGenerator(figureGenerator, figureAppearances)
+    val parseNodeFigureGenerator = new ParseNodeFigureGenerator(figureGenerator, figureAppearances)
 
     private val vnodes = scala.collection.mutable.Map[Parser#Node, GraphNode]()
     private val vedges = scala.collection.mutable.Map[Parser#Edge, GraphConnection]()
@@ -51,28 +52,26 @@ trait ParsingContextGraphVisualize {
 
             val nodeFig = figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, Seq(figureGenerator.textFig("" + n.id, figureAppearances.small), fig))
             nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
-            nodeFig.setBackgroundColor(ColorConstants.blue)
+            nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
+            nodeFig.setOpaque(true)
             nodeFig.setSize(nodeFig.getPreferredSize())
-            val tooltipText0 = n match {
+            val tooltipFig0: Figure = n match {
                 case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
-                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
-                    list._2 mkString "\n"
+                    figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { parseNodeFigureGenerator.parseNodeFig _ })
                 case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq.childrenWS map { _.toHorizontalHierarchyStringSeq })
-                    list._2 mkString "\n"
+                    figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { parseNodeFigureGenerator.parseNodeFig _ })
                 case n if n.canFinish =>
-                    n.parsed.get.toHorizontalHierarchyString
+                    parseNodeFigureGenerator.parseNodeFig(n.parsed.get)
                 case _ =>
-                    n.toShortString
+                    figureGenerator.textFig(n.toShortString, figureAppearances.default)
             }
-            val tooltipText = n match {
-                case n: Parser#SymbolProgressNonterminal => s"${n.derivedGen}\n$tooltipText0"
-                case _ => tooltipText0
+            val tooltipFig = n match {
+                case n: Parser#SymbolProgressNonterminal => figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"${n.derivedGen}", figureAppearances.small), tooltipFig0))
+                case _ => tooltipFig0
             }
-            val f = new org.eclipse.draw2d.Label()
-            f.setFont(resources.fixedWidth12Font)
-            f.setText(tooltipText)
-            nodeFig.setToolTip(f)
+            tooltipFig.setBackgroundColor(ColorConstants.white)
+            tooltipFig.setOpaque(true)
+            nodeFig.setToolTip(tooltipFig)
 
             val graphNode = new CGraphNode(graph, SWT.NONE, nodeFig) //new GraphNode(graph, SWT.NONE, n.toShortString)
 
@@ -82,7 +81,20 @@ trait ParsingContextGraphVisualize {
                         println(e.item)
                         println(graphNode.asInstanceOf[CGraphNode].getFigure.getPreferredSize)
                         println(graphNode.asInstanceOf[CGraphNode].getFigure.getInsets)
-                        println(tooltipText)
+                        val printString =
+                            n match {
+                                case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
+                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
+                                    list._2 mkString "\n"
+                                case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
+                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq.childrenWS map { _.toHorizontalHierarchyStringSeq })
+                                    list._2 mkString "\n"
+                                case n if n.canFinish =>
+                                    println(n.parsed.get.toHorizontalHierarchyString)
+                                case n =>
+                                    n.toShortString
+                            }
+                        println(printString)
                     }
                 }
             })
