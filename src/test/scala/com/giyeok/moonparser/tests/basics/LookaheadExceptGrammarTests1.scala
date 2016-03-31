@@ -186,16 +186,17 @@ object LookaheadExceptGrammar9 extends Grammar with StringSamples {
 }
 
 object GrammarWithLookaheadExcept {
+    // Grammar 1, 2, 7 are double-* ambiguous language
     val grammars: Set[Grammar with Samples] = Set(
-        LookaheadExceptGrammar1,
-        LookaheadExceptGrammar2,
+        // LookaheadExceptGrammar1,
+        // LookaheadExceptGrammar2,
         LookaheadExceptGrammar3,
         LookaheadExceptGrammar3_1,
         LookaheadExceptGrammar3_2,
         LookaheadExceptGrammar4,
         LookaheadExceptGrammar5,
         LookaheadExceptGrammar6,
-        LookaheadExceptGrammar7,
+        // LookaheadExceptGrammar7,
         LookaheadExceptGrammar9)
 }
 

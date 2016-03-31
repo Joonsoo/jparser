@@ -146,6 +146,7 @@ class Parser(val grammar: Grammar)
 
                         case LiftTask(NontermLifting(before, after, by)) =>
                             // nonterminal element가 lift되는 경우 처리
+                            // 문제가 되는 lift는 전부 여기 문제
                             logging(s"NontermLiftTask($before, $after, $by)")
 
                             var (nextQueue, nextCC) = (rest, cc)
@@ -164,6 +165,10 @@ class Parser(val grammar: Grammar)
                                         case e: SimpleEdge =>
                                             (Seq(SimpleEdge(e.start, after)), Seq(e.start))
                                         case e: JoinEdge =>
+                                            // should never be called
+                                            println(before, after)
+                                            println(e)
+                                            assert(false)
                                             ???
                                     }
                                 })
@@ -179,6 +184,7 @@ class Parser(val grammar: Grammar)
                             if (after.canFinish) {
                                 logging("  isCanFinish")
                                 incomingDeriveEdges foreach { edge =>
+                                    assert(before == edge.end)
                                     edge match {
                                         case e: SimpleEdge =>
                                             val lifting = e.start.lift(after)
@@ -187,7 +193,14 @@ class Parser(val grammar: Grammar)
                                                 nextCC = nextCC.withLifting(lifting)
                                             }
                                         case e: JoinEdge =>
-                                            ???
+                                            val constraintLifted = cc.liftings filter { _.before == e.constraint }
+                                            if (!constraintLifted.isEmpty) {
+                                                println(before, after)
+                                                println(e)
+                                                println(constraintLifted)
+                                                ???
+                                            }
+                                        // just ignore if the constraint is not matched
                                     }
                                 }
                             }

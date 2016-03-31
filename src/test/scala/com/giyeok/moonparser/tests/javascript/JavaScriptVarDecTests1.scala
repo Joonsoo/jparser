@@ -5,14 +5,16 @@ import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.tests.Samples
 import com.giyeok.moonparser.tests.StringSamples
 
-trait JavaScriptVarDecTest extends Grammar with StringSamples {
-    val name: String
-    val rules = JavaScriptVariableDeclarationGrammar.rules
-    val startSymbol = JavaScriptVariableDeclarationGrammar.startSymbol
+object VarDec1Test1 extends VarDecGrammar1 with StringSamples {
+    override val name = "JS VarDec Test 1"
+    val correctSamples = Set(
+        "var abc = 123;\n\nvar xyz = 321; var if = 154;")
+    val incorrectSamples = Set(
+        "")
 }
 
-object JavaScriptVarDecTest1 extends JavaScriptVarDecTest {
-    val name = "JS VarDec Test 1"
+object VarDec3Test1 extends VarDecGrammar3 with StringSamples {
+    override val name = "JS VarDec with Semicolon Backup Test 1"
     val correctSamples = Set(
         "var abc = 123\n\nvar xyz = 321; var if = 154")
     val incorrectSamples = Set(
@@ -21,7 +23,8 @@ object JavaScriptVarDecTest1 extends JavaScriptVarDecTest {
 
 object JavaScriptVarDecTestSuite1 {
     val grammars: Set[Grammar with Samples] = Set(
-        JavaScriptVarDecTest1)
+        VarDec1Test1,
+        VarDec3Test1)
 }
 
 class JavaScriptVarDecTestSuite1 extends BasicParseTest(JavaScriptVarDecTestSuite1.grammars)

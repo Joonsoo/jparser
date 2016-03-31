@@ -1,6 +1,8 @@
 package com.giyeok.moonparser
 
 import scala.collection.immutable.NumericRange
+import scala.collection.immutable.ListSet
+import scala.collection.immutable.ListMap
 
 object GrammarHelper {
     import Symbols._
@@ -74,6 +76,15 @@ object GrammarHelper {
         }
     }
     implicit class GrammarElementJoinable(self: Symbol) {
-        def join(join: Symbol): Join = Join(self, join)
+        def join(joinWith: Symbol): Join = Join(self, joinWith)
+    }
+
+    implicit class GrammarMergeable(rules: Grammar#RuleMap) {
+        def merge(other: Grammar#RuleMap): Grammar#RuleMap = {
+            // Merge or replace items of `rules` to items of `other`
+            val mutableRules = scala.collection.mutable.ListMap[String, ListSet[Symbols.Symbol]](rules.toSeq: _*)
+            other foreach { item => mutableRules += item }
+            ListMap(mutableRules.toSeq: _*)
+        }
     }
 }

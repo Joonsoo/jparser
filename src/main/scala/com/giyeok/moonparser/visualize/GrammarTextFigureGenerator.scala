@@ -200,6 +200,8 @@ class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: GrammarTextFigureGen
                 g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("if failed", ap.default), symbolFig(backup)))
             case Join(sym, join) =>
                 g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("&", ap.default), symbolFig(join)))
+            case Join.Proxy(sym) =>
+                g.horizontalFig(Spacing.Small, Seq(g.textFig("ρ(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
         }
     }
 }

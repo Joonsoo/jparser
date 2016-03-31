@@ -24,6 +24,8 @@ trait SymbolProgresses extends SeqOrderedTester {
         def proceedTerminal(next: Input): Option[SymbolProgressTerminal]
     }
     abstract sealed class SymbolProgressNonterminal extends SymbolProgress {
+        override val symbol: Nonterm
+        override val parsed: Option[ParseNode[Nonterm]]
         /*
          * `derive` and `lift` are opposite operations in a way
          * When the nodes created from `derive` are finished,
@@ -62,6 +64,7 @@ trait SymbolProgresses extends SeqOrderedTester {
             case symbol: Repeat => RepeatProgress(symbol, List(), gen)
             case symbol: Backup => BackupProgress(symbol, None, gen)
             case symbol: Join => JoinProgress(symbol, None, gen)
+            case symbol: Join.Proxy => JoinProxyProgress(symbol, None, gen)
         }
     }
 
@@ -174,7 +177,7 @@ trait SymbolProgresses extends SeqOrderedTester {
     }
 
     case class LookaheadExceptProgress(symbol: LookaheadExcept, derivedGen: Int) extends SymbolProgressNonterminal {
-        val parsed: Option[ParseNode[Symbol]] = Some(ParsedEmpty(symbol))
+        val parsed: Option[ParseNode[Nonterm]] = Some(ParsedEmpty(symbol))
         def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
             // this `lift` does not mean anything
             this
@@ -189,11 +192,16 @@ trait SymbolProgresses extends SeqOrderedTester {
     }
 
     case class JoinProgress(symbol: Join, parsed: Option[ParsedSymbolJoin], derivedGen: Int) extends SymbolProgressNonterminal {
-        def lift0(source: SymbolProgress): SymbolProgressNonterminal = ???
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = ??? // should never be called
         def liftJoin(source: SymbolProgress, constraint: SymbolProgress): Lifting = ???
         def derive(gen: Int) = Set(
             JoinEdge(this, SymbolProgress(symbol.sym, gen), SymbolProgress(symbol.join, gen), false),
             JoinEdge(this, SymbolProgress(symbol.join, gen), SymbolProgress(symbol.sym, gen), true))
+    }
+
+    case class JoinProxyProgress(symbol: Join.Proxy, parsed: Option[ParsedSymbol[Join.Proxy]], derivedGen: Int) extends SymbolProgressNonterminal {
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = JoinProxyProgress(symbol, Some(ParsedSymbol[Join.Proxy](symbol, source.parsed.get)), derivedGen)
+        def derive(gen: Int) = if (parsed.isEmpty) Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))) else Set()
     }
 
     implicit class ShortStringProgresses(prog: SymbolProgress) {
@@ -214,6 +222,7 @@ trait SymbolProgresses extends SeqOrderedTester {
                 case LookaheadExceptProgress(symbol, _) => symbol.toShortString
                 case BackupProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case JoinProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
+                case JoinProxyProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
             })
         }
     }

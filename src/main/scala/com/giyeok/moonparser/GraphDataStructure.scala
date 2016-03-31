@@ -50,8 +50,8 @@ trait GraphDataStructure {
         def liftAssassinEdges: Set[LiftAssassinEdge] = edges collect { case e: LiftAssassinEdge => e }
         def eagerAssassinEdges: Set[EagerAssassinEdge] = edges collect { case e: EagerAssassinEdge => e }
 
-        def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.endTo(node) }
-        def incomingDeriveEdgesOf(node: Node): Set[DeriveEdge] = deriveEdges filter { _.endTo(node) }
+        def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.end == node }
+        def incomingDeriveEdgesOf(node: Node): Set[DeriveEdge] = deriveEdges filter { _.end == node }
         def incomingEdgesOf(node: Node): Set[T] = edges filter { _.endTo(node) }
         def outgoingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.start == node }
 

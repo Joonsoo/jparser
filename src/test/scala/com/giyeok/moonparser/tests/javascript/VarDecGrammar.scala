@@ -6,30 +6,30 @@ import com.giyeok.moonparser.Grammar
 import scala.collection.immutable.ListSet
 import com.giyeok.moonparser.Symbols.Symbol
 
-object JavaScriptVariableDeclarationGrammar extends Grammar {
+class VarDecGrammar1 extends Grammar {
     private val whitespace = ListSet[Symbol](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
 
     def expr(s: Symbol*): Symbol = seq(s.toSeq, whitespace)
     def token(s: Symbol): Symbol = s.join(n("Token"))
-    val lineend = i(";").backup(oneof(seq(oneof(n("WhiteSpace"), n("Comment")).star, n("LineTerminator")), eof))
+    private val lineend = i(";")
 
-    val name = "JavaScriptIdentifier"
+    val name = "VarDecGrammar1"
     val startSymbol = n("Start")
-    val rules: RuleMap = ListMap(
+    val _rules: RuleMap = ListMap(
         "Start" -> ListSet(
-            n("Statement").star),
-        "Statement" -> ListSet(
-            n("VariableStatement")),
-        "VariableStatement" -> ListSet(
-            expr(token(i("var")), n("VariableDeclarationList"), lineend)),
-        "VariableDeclarationList" -> ListSet(
-            n("VariableDeclaration"),
-            expr(n("VariableDeclarationList"), i(","), n("VariableDeclaration"))),
-        "VariableDeclaration" -> ListSet(
-            expr(n("Id"), n("Initialiser").opt)),
-        "Initialiser" -> ListSet(
-            expr(i("="), n("TestExpression"))),
-        "TestExpression" -> ListSet(
+            n("Stmt").star),
+        "Stmt" -> ListSet(
+            n("VarStmt")),
+        "VarStmt" -> ListSet(
+            expr(token(i("var")), n("VarDecList"), lineend)),
+        "VarDecList" -> ListSet(
+            n("VarDec"),
+            expr(n("VarDecList"), i(","), n("VarDec"))),
+        "VarDec" -> ListSet(
+            expr(n("Id"), n("Init").opt)),
+        "Init" -> ListSet(
+            expr(i("="), n("TestExpr"))),
+        "TestExpr" -> ListSet(
             token(chars('0' to '9').plus)),
 
         "Id" -> ListSet(
@@ -41,7 +41,7 @@ object JavaScriptVariableDeclarationGrammar extends Grammar {
             token(i("var"))),
         "_IdName" -> ListSet(
             n("IdStart"),
-            seq(n("_IdName"), n("IdPart"), lookahead_except(n("IdPart")))),
+            seq(n("_IdName"), n("IdPart") /*, lookahead_except(n("IdPart"))*/ )),
         "IdStart" -> ListSet(
             unicode("Lu", "Ll", "Lt", "Lm", "Lo", "Nl"),
             i("$"),
@@ -58,4 +58,24 @@ object JavaScriptVariableDeclarationGrammar extends Grammar {
             chars("\n\r")),
         "Comment" -> ListSet(
             expr(i("/*"), chars(" abcdefghijklmnopqrstuvwxyz\n\r\t").plus, i("*/"))))
+    val rules = _rules
+}
+
+class VarDecGrammar2 extends VarDecGrammar1 {
+    override val name = "VarDecGrammar2"
+    override val rules: RuleMap = _rules.merge(ListMap(
+        "_IdName" -> ListSet(
+            n("IdStart"),
+            seq(n("_IdName"), n("IdPart"), lookahead_except(n("IdPart")))),
+        "Token" -> ListSet(
+            n("Id"))))
+}
+
+class VarDecGrammar3 extends VarDecGrammar1 {
+    override val name = "VarDecGrammar3"
+    private val lineend = i(";").backup(oneof(seq(oneof(n("WhiteSpace"), n("Comment")).star, n("LineTerminator")), eof))
+
+    override val rules: RuleMap = _rules.merge(ListMap(
+        "VarStmt" -> ListSet(
+            expr(token(i("var")), n("VarDecList"), lineend))))
 }

@@ -1,9 +1,10 @@
 package com.giyeok.moonparser
 
 object Symbols {
-    sealed abstract class Symbol
+    sealed trait Symbol
+    sealed trait SingleSymbol extends Symbol
 
-    abstract class Terminal extends Symbol {
+    sealed trait Terminal extends SingleSymbol {
         def accept(input: Inputs.Input): Boolean
     }
     object Terminals {
@@ -65,6 +66,8 @@ object Symbols {
                 input.isInstanceOf[EOF]
         }
     }
+    sealed trait Nonterm extends Symbol
+
     val Any = Terminals.Any
     val AnyChar = Terminals.AnyChar
     val FuncChar = Terminals.FuncChar
@@ -73,18 +76,18 @@ object Symbols {
     val Unicode = Terminals.Unicode
     val EndOfFile = Terminals.EndOfFile
 
-    case object Empty extends Symbol
-    case class Nonterminal(name: String) extends Symbol {
-        override val hashCode = name.hashCode
+    case object Empty extends Nonterm
+    case class Nonterminal(name: String) extends Nonterm with SingleSymbol {
+        override val hashCode = (classOf[Nonterminal], name).hashCode
     }
-    case class Sequence(seq: Seq[Symbol], whitespace: Set[Symbol]) extends Symbol {
-        override val hashCode = (seq, whitespace).hashCode
+    case class Sequence(seq: Seq[Symbol], whitespace: Set[Symbol]) extends Nonterm {
+        override val hashCode = (classOf[Sequence], seq, whitespace).hashCode
     }
-    case class OneOf(syms: Set[Symbol]) extends Symbol {
-        override val hashCode = syms.hashCode
+    case class OneOf(syms: Set[Symbol]) extends Nonterm with SingleSymbol {
+        override val hashCode = (classOf[OneOf], syms).hashCode
     }
-    case class Repeat(sym: Symbol, range: Repeat.Range) extends Symbol {
-        override val hashCode = (sym, range).hashCode
+    case class Repeat(sym: Symbol, range: Repeat.Range) extends Nonterm {
+        override val hashCode = (classOf[Repeat], sym, range).hashCode
     }
     object Repeat {
         trait Range {
@@ -112,17 +115,30 @@ object Symbols {
             def toShortString = s"$from-$to"
         }
     }
-    case class Except(sym: Symbol, except: Symbol) extends Symbol {
-        override val hashCode = (sym, except).hashCode
+    case class Except(sym: Symbol, except: Symbol) extends Nonterm {
+        override val hashCode = (classOf[Except], sym, except).hashCode
     }
-    case class LookaheadExcept(except: Symbol) extends Symbol {
-        override val hashCode = except.hashCode
+    case class LookaheadExcept(except: Symbol) extends Nonterm {
+        override val hashCode = (classOf[LookaheadExcept], except).hashCode
     }
-    case class Backup(sym: Symbol, backup: Symbol) extends Symbol {
-        override val hashCode = (sym, backup).hashCode
+    case class Backup(sym: Symbol, backup: Symbol) extends Nonterm {
+        override val hashCode = (classOf[Backup], sym, backup).hashCode
     }
-    case class Join(sym: Symbol, join: Symbol) extends Symbol {
-        override val hashCode = (sym, join).hashCode
+    case class Join(sym: SingleSymbol, join: SingleSymbol) extends Nonterm {
+        override val hashCode = (classOf[Join], sym, join).hashCode
+    }
+    object Join {
+        def apply(sym: Symbol, join: Symbol): Join = {
+            def withProxy(sym: Symbol): SingleSymbol = sym match {
+                case sym: SingleSymbol => sym
+                case sym => Proxy(sym)
+            }
+            Join(withProxy(sym), withProxy(join))
+        }
+        // Join(sym, join)에서만 생성해야 함
+        case class Proxy(sym: Symbol) extends Nonterm with SingleSymbol {
+            override val hashCode = (classOf[Proxy], sym).hashCode
+        }
     }
 
     implicit class CharsGrouping(sym: Terminals.Chars) {
@@ -172,6 +188,7 @@ object Symbols {
             case LookaheadExcept(except) => s"la_except ${except.toShortString}"
             case Backup(sym, backup) => s"${sym.toShortString} backedupby ${backup.toShortString}"
             case Join(sym, join) => s"${sym.toShortString} joinedwith ${join.toShortString}"
+            case Join.Proxy(sym) => s"ρ(${sym.toShortString})"
         }
     }
 }
