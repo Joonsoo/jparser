@@ -34,6 +34,8 @@ object FigureGenerator {
         val small: Appearance[Figure] = EmptyAppearance
         val kernelDot: Appearance[Figure] = EmptyAppearance
         val symbolBorder: Appearance[Figure] = EmptyAppearance
+        val hSymbolBorder: Appearance[Figure] = EmptyAppearance
+        val vSymbolBorder: Appearance[Figure] = EmptyAppearance
         val wsBorder: Appearance[Figure] = EmptyAppearance
         val joinHighlightBorder: Appearance[Figure] = EmptyAppearance
 

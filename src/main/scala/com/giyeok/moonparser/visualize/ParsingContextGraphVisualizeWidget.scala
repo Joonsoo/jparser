@@ -28,6 +28,7 @@ import org.eclipse.swt.events.MouseAdapter
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.KeyAdapter
 import org.eclipse.swt.events.MouseEvent
+import com.giyeok.moonparser.Symbols
 
 trait ParsingContextGraphVisualize {
     def initGraph(): Graph
@@ -53,11 +54,16 @@ trait ParsingContextGraphVisualize {
         override val input = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 10, SWT.NONE), ColorConstants.black)
         override val small = figureAppearances.small
         override val kernelDot = figureAppearances.kernelDot
-        override val symbolBorder =
+        override val hSymbolBorder =
             new FigureGenerator.draw2d.ComplexAppearance(
                 FigureGenerator.draw2d.BorderAppearance(new MarginBorder(0, 1, 1, 1)),
                 FigureGenerator.draw2d.NewFigureAppearance(),
                 FigureGenerator.draw2d.BorderAppearance(new FigureGenerator.draw2d.PartialLineBorder(ColorConstants.lightGray, 1, false, true, true, true)))
+        override val vSymbolBorder =
+            new FigureGenerator.draw2d.ComplexAppearance(
+                FigureGenerator.draw2d.BorderAppearance(new MarginBorder(1, 0, 1, 1)),
+                FigureGenerator.draw2d.NewFigureAppearance(),
+                FigureGenerator.draw2d.BorderAppearance(new FigureGenerator.draw2d.PartialLineBorder(ColorConstants.lightGray, 1, true, false, true, true)))
         override val wsBorder =
             new FigureGenerator.draw2d.ComplexAppearance(
                 FigureGenerator.draw2d.BorderAppearance(new MarginBorder(0, 1, 1, 1)),
@@ -66,7 +72,7 @@ trait ParsingContextGraphVisualize {
                 FigureGenerator.draw2d.BackgroundAppearance(ColorConstants.lightGray))
         override val joinHighlightBorder =
             new FigureGenerator.draw2d.ComplexAppearance(
-                FigureGenerator.draw2d.BorderAppearance(new MarginBorder(0, 1, 1, 1)),
+                FigureGenerator.draw2d.BorderAppearance(new MarginBorder(1, 1, 1, 1)),
                 FigureGenerator.draw2d.NewFigureAppearance(),
                 FigureGenerator.draw2d.BorderAppearance(new LineBorder(ColorConstants.red)))
 
@@ -77,14 +83,16 @@ trait ParsingContextGraphVisualize {
     private val vnodes = scala.collection.mutable.Map[Parser#Node, CGraphNode]()
     private val vedges = scala.collection.mutable.Map[Parser#Edge, GraphConnection]()
 
-    def newSymbolProgressContentFig(node: Parser#SymbolProgress, renderJoin: Boolean, renderWS: Boolean) = {
+    def newSymbolProgressContentFig(node: Parser#SymbolProgress, horizontal: Boolean, renderJoin: Boolean, renderWS: Boolean) = {
+        val figFunc: (ParseTree.ParseNode[Symbols.Symbol], Boolean, Boolean) => Figure =
+            if (horizontal) tooltipParseNodeFigureGenerator.parseNodeHFig else tooltipParseNodeFigureGenerator.parseNodeVFig
         val tooltipFig0: Figure = node match {
             case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { tooltipParseNodeFigureGenerator.parseNodeFig(_, renderJoin, renderWS) })
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { figFunc(_, renderJoin, renderWS) })
             case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { tooltipParseNodeFigureGenerator.parseNodeFig(_, renderJoin, renderWS) })
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { figFunc(_, renderJoin, renderWS) })
             case n if n.canFinish =>
-                tooltipParseNodeFigureGenerator.parseNodeFig(n.parsed.get, renderJoin, renderWS)
+                figFunc(n.parsed.get, renderJoin, renderWS)
             case _ =>
                 symbolProgressFigureGenerator.symbolProgFig(node)
         }
@@ -109,7 +117,7 @@ trait ParsingContextGraphVisualize {
             nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
             nodeFig.setOpaque(true)
             nodeFig.setSize(nodeFig.getPreferredSize())
-            nodeFig.setToolTip(newSymbolProgressContentFig(n, false, false))
+            nodeFig.setToolTip(newSymbolProgressContentFig(n, true, false, false))
 
             val graphNode = new CGraphNode(graph, SWT.NONE, nodeFig) //new GraphNode(graph, SWT.NONE, n.toShortString)
             graphNode.setData(n)
@@ -201,24 +209,27 @@ trait ParsingContextGraphVisualize {
                 case n: GraphNode if n != null && n.getNodeFigure() != null && n.getNodeFigure().containsPoint(x, y) => n.getData
             }
             val selectedNodes = selectedNodeData collect { case node: Parser#SymbolProgress => node }
-            selectedNodes.lastOption foreach { node =>
+            selectedNodes foreach { node =>
                 import org.eclipse.swt.widgets._
                 val shell = new Shell(Display.getDefault())
                 shell.setLayout(new FillLayout())
                 val figCanvas = new FigureCanvas(shell)
 
-                class MutableRenderingStatus(var renderJoin: Boolean, var renderWS: Boolean)
-                val rs = new MutableRenderingStatus(true, true)
+                class MutableRenderingStatus(var horizontal: Boolean, var renderJoin: Boolean, var renderWS: Boolean)
+                val rs = new MutableRenderingStatus(true, true, true)
                 def resetContents(): Unit = {
                     figCanvas.setContents(
                         figureGenerator.verticalFig(FigureGenerator.Spacing.Big, Seq(
-                            figureGenerator.textFig(s"renderJoin=${rs.renderJoin}, renderWS=${rs.renderWS}", figureAppearances.default),
-                            newSymbolProgressContentFig(node, rs.renderJoin, rs.renderWS))))
+                            figureGenerator.textFig(s"${if (rs.horizontal) "Horizontal" else "Vertical"} renderJoin=${rs.renderJoin}, renderWS=${rs.renderWS}", figureAppearances.default),
+                            newSymbolProgressContentFig(node, rs.horizontal, rs.renderJoin, rs.renderWS))))
                 }
                 resetContents()
 
                 figCanvas.addKeyListener(new KeyAdapter() {
                     override def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
+                        if (e.keyCode == '`'.toInt) {
+                            rs.horizontal = !rs.horizontal
+                        }
                         if (e.keyCode == '1'.toInt) {
                             rs.renderJoin = !rs.renderJoin
                         }
