@@ -194,13 +194,14 @@ trait ParsingContextGraphVisualize {
 
         override def mouseDoubleClick(e: MouseEvent): Unit = {
             println("ClickedFigure:")
-            println(graph.getFigureAt(e.x, e.y))
-            val x = graph.getNodes.toList collect {
-                case n: GraphNode => (n.getNodeFigure(), n)
+            val (x, y) = (e.x + graph.getHorizontalBar().getSelection(), e.y + graph.getVerticalBar().getSelection())
+            println(graph.getFigureAt(x, y))
+
+            val selectedNodeData = graph.getNodes.toList collect {
+                case n: GraphNode if n != null && n.getNodeFigure() != null && n.getNodeFigure().containsPoint(x, y) => n.getData
             }
-            val y = x collect { case (fig, node) if fig.containsPoint(e.x, e.y) && node != null => node.getData }
-            val selectedNodes = y collect { case node: Parser#SymbolProgress => node }
-            selectedNodes foreach { node =>
+            val selectedNodes = selectedNodeData collect { case node: Parser#SymbolProgress => node }
+            selectedNodes.lastOption foreach { node =>
                 import org.eclipse.swt.widgets._
                 val shell = new Shell(Display.getDefault())
                 shell.setLayout(new FillLayout())

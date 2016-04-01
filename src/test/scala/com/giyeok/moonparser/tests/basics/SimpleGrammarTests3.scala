@@ -43,10 +43,21 @@ object SimpleGrammar6 extends Grammar with StringSamples {
     val incorrectSamples = Set("cb")
 }
 
+object AsteriskNullable extends Grammar with StringSamples {
+    val name = "*-nullable"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet((chars('a' to 'z').opt).star))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+}
+
 object SimpleGrammarSet3 {
     val grammars: Set[Grammar with Samples] = Set(
         SimpleGrammar5, // fromSeeds failed
-        SimpleGrammar6 // Assertion failed
+        SimpleGrammar6, // Assertion failed
+        AsteriskNullable
         )
 }
 
