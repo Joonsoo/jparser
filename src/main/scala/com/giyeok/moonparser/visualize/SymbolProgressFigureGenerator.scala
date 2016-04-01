@@ -8,7 +8,7 @@ class SymbolProgressFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: 
     val symbolFigureGenerator = new SymbolFigureGenerator(g, ap)
 
     def symbolProgFig(n: Parser#SymbolProgress) = {
-        val dot = g.textFig("\u2022", ap.kernelDot)
+        def dot = g.textFig("\u2022", ap.kernelDot)
         def withDot[T](parsed: Option[T], figs: Fig*): Seq[Fig] =
             if (parsed.isEmpty) (dot +: figs.toSeq) else (figs.toSeq :+ dot)
         n match {
