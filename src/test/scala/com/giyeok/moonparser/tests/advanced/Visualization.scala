@@ -8,7 +8,8 @@ import com.giyeok.moonparser.tests.Viewer
 
 object Visualization extends Viewer {
     val allTests: Set[Grammar with Samples] = Set(
-        JoinGrammars.grammars).flatten
+        JoinGrammars.grammars,
+        LongestMatchGrammars.grammars).flatten
 
     def main(args: Array[String]): Unit = {
         start()

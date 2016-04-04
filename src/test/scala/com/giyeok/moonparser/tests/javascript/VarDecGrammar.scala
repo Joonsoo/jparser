@@ -35,7 +35,7 @@ class VarDecGrammar1 extends Grammar {
 
         "_IdName" -> ListSet(
             n("IdStart"),
-            seq(n("_IdName"), n("IdPart") /*, lookahead_except(n("IdPart"))*/ )),
+            seq(n("_IdName"), n("IdPart"))),
         "IdStart" -> ListSet(
             unicode("Lu", "Ll", "Lt", "Lm", "Lo", "Nl"),
             i("$"),
@@ -60,6 +60,14 @@ class VarDecGrammar1 extends Grammar {
 
 class VarDecGrammar1_1 extends VarDecGrammar1 {
     override val name = "VarDecGrammar1_1"
+    override val rules: RuleMap = _rules.merge(ListMap(
+        "Token" -> ListSet(
+            seq(n("_IdName"), lookahead_except(n("_IdName"))),
+            n("Number"))))
+}
+
+class VarDecGrammar1_2 extends VarDecGrammar1 {
+    override val name = "VarDecGrammar1_2"
     override val rules: RuleMap = _rules.merge(ListMap(
         "TestExpr" -> ListSet(
             n("Number"),
