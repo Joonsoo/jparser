@@ -83,16 +83,16 @@ trait ParsingContextGraphVisualize {
     private val vnodes = scala.collection.mutable.Map[Parser#Node, CGraphNode]()
     private val vedges = scala.collection.mutable.Map[Parser#Edge, GraphConnection]()
 
-    def newSymbolProgressContentFig(node: Parser#SymbolProgress, horizontal: Boolean, renderJoin: Boolean, renderWS: Boolean) = {
-        val figFunc: (ParseTree.ParseNode[Symbols.Symbol], Boolean, Boolean) => Figure =
+    def newSymbolProgressContentFig(node: Parser#SymbolProgress, horizontal: Boolean, renderConf: ParseNodeFigureGenerator.RenderingConfiguration) = {
+        val figFunc: (ParseTree.ParseNode[Symbols.Symbol], ParseNodeFigureGenerator.RenderingConfiguration) => Figure =
             if (horizontal) tooltipParseNodeFigureGenerator.parseNodeHFig else tooltipParseNodeFigureGenerator.parseNodeVFig
         val tooltipFig0: Figure = node match {
             case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { figFunc(_, renderJoin, renderWS) })
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { figFunc(_, renderConf) })
             case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { figFunc(_, renderJoin, renderWS) })
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { figFunc(_, renderConf) })
             case n if n.canFinish =>
-                figFunc(n.parsed.get, renderJoin, renderWS)
+                figFunc(n.parsed.get, renderConf)
             case _ =>
                 symbolProgressFigureGenerator.symbolProgFig(node)
         }
@@ -117,7 +117,7 @@ trait ParsingContextGraphVisualize {
             nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
             nodeFig.setOpaque(true)
             nodeFig.setSize(nodeFig.getPreferredSize())
-            nodeFig.setToolTip(newSymbolProgressContentFig(n, true, false, false))
+            nodeFig.setToolTip(newSymbolProgressContentFig(n, true, ParseNodeFigureGenerator.cleanestConfiguration))
 
             val graphNode = new CGraphNode(graph, SWT.NONE, nodeFig) //new GraphNode(graph, SWT.NONE, n.toShortString)
             graphNode.setData(n)
@@ -215,13 +215,13 @@ trait ParsingContextGraphVisualize {
                 shell.setLayout(new FillLayout())
                 val figCanvas = new FigureCanvas(shell)
 
-                class MutableRenderingStatus(var horizontal: Boolean, var renderJoin: Boolean, var renderWS: Boolean)
-                val rs = new MutableRenderingStatus(true, true, true)
+                class MutableRenderingStatus(var horizontal: Boolean, var renderJoin: Boolean, var renderWS: Boolean, var renderLookaheadExcept: Boolean)
+                val rs = new MutableRenderingStatus(true, true, true, true)
                 def resetContents(): Unit = {
                     figCanvas.setContents(
                         figureGenerator.verticalFig(FigureGenerator.Spacing.Big, Seq(
-                            figureGenerator.textFig(s"${if (rs.horizontal) "Horizontal" else "Vertical"} renderJoin=${rs.renderJoin}, renderWS=${rs.renderWS}", figureAppearances.default),
-                            newSymbolProgressContentFig(node, rs.horizontal, rs.renderJoin, rs.renderWS))))
+                            figureGenerator.textFig(s"${if (rs.horizontal) "Horizontal" else "Vertical"} renderJoin=${rs.renderJoin}, renderWS=${rs.renderWS}, renderLookaheadExcept=${rs.renderLookaheadExcept}", figureAppearances.default),
+                            newSymbolProgressContentFig(node, rs.horizontal, ParseNodeFigureGenerator.RenderingConfiguration(rs.renderJoin, rs.renderWS, rs.renderLookaheadExcept)))))
                 }
                 resetContents()
 
@@ -235,6 +235,9 @@ trait ParsingContextGraphVisualize {
                         }
                         if (e.keyCode == '2'.toInt) {
                             rs.renderWS = !rs.renderWS
+                        }
+                        if (e.keyCode == '3'.toInt) {
+                            rs.renderLookaheadExcept = !rs.renderLookaheadExcept
                         }
                         resetContents()
                     }
