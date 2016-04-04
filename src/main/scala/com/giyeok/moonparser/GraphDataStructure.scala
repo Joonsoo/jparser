@@ -43,7 +43,7 @@ trait GraphDataStructure {
 
     case class Graph(nodes: Set[Node], edges: Set[Edge])
 
-    implicit class AugEdges[T <: Edge](edges: Set[T]) {
+    implicit class AugEdges(edges: Set[Edge]) {
         def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }
         def deriveEdges: Set[DeriveEdge] = edges collect { case e: DeriveEdge => e }
         def assassinEdges: Set[AssassinEdge] = edges collect { case e: AssassinEdge => e }
@@ -52,14 +52,14 @@ trait GraphDataStructure {
 
         def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.end == node }
         def incomingDeriveEdgesOf(node: Node): Set[DeriveEdge] = deriveEdges filter { _.end == node }
-        def incomingEdgesOf(node: Node): Set[T] = edges filter { _.endTo(node) }
+        def incomingEdgesOf(node: Node): Set[Edge] = edges filter { _.endTo(node) }
         def outgoingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.start == node }
 
-        def rootsOf(node: Node): Set[T] = {
-            def trackRoots(queue: List[SymbolProgress], cc: Set[T]): Set[T] =
+        def rootsOf(node: Node): Set[Edge] = {
+            def trackRoots(queue: List[SymbolProgress], cc: Set[Edge]): Set[Edge] =
                 queue match {
                     case node +: rest =>
-                        val incomings = incomingEdgesOf(node) -- cc
+                        val incomings = incomingDeriveEdgesOf(node).asInstanceOf[Set[Edge]] -- cc
                         trackRoots(rest ++ (incomings.toList map { _.start }), cc ++ incomings)
                     case List() => cc
                 }

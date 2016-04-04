@@ -186,8 +186,19 @@ trait SymbolProgresses extends SeqOrderedTester {
 
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]], derivedGen: Int)
             extends SymbolProgressNonterminal {
-        def lift0(source: SymbolProgress): SymbolProgressNonterminal = ???
-        def derive(gen: Int) = Set()
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
+            println(this)
+            println(source)
+            BackupProgress(symbol, Some(ParsedSymbol[Backup](symbol, source.parsed.get)), derivedGen)
+        }
+        def derive(gen: Int) = {
+            val symP = SymbolProgress(symbol.sym, gen)
+            val bkP = SymbolProgress(symbol.backup, gen)
+            Set(
+                SimpleEdge(this, symP),
+                SimpleEdge(this, bkP),
+                EagerAssassinEdge(symP, bkP))
+        }
     }
 
     case class JoinProgress(symbol: Join, parsed: Option[ParsedSymbolJoin], derivedGen: Int) extends SymbolProgressNonterminal {

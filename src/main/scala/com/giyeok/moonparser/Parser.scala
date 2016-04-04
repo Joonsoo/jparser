@@ -165,7 +165,7 @@ class Parser(val grammar: Grammar)
                                         case e: SimpleEdge =>
                                             (Seq(SimpleEdge(e.start, after)), Seq(e.start))
                                         case e: JoinEdge =>
-                                            // should never be called
+                                            // should never be called (because of proxy)
                                             println(before, after)
                                             println(e)
                                             assert(false)
@@ -318,8 +318,8 @@ class Parser(val grammar: Grammar)
                         val roots = rootTips0 flatMap { rootTip => graph.edges.rootsOf(rootTip) }
                         (liftings0, newNodes0, newEdges0, rootTips0, roots)
                     } else {
-                        val activeLiftAssassinEdges = activeAssassinEdges.liftAssassinEdges
-                        val activeEagerAssassinEdges = activeAssassinEdges.eagerAssassinEdges
+                        val activeLiftAssassinEdges = activeAssassinEdges collect { case e: LiftAssassinEdge => e }
+                        val activeEagerAssassinEdges = activeAssassinEdges collect { case e: EagerAssassinEdge => e }
 
                         val blockingLiftings = liftings0 filter { l => activeAssassinEdges map { _.end } contains l.before }
                         logging {
