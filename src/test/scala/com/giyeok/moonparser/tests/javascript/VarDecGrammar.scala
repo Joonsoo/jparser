@@ -101,7 +101,7 @@ class VarDecGrammar2 extends VarDecGrammar1 {
 
 class VarDecGrammar3 extends VarDecGrammar1 {
     override val name = "VarDecGrammar3"
-    private val lineend = i(";").backup(oneof(seq(oneof(n("WhiteSpace"), n("Comment")).star, n("LineTerminator")), eof))
+    private val lineend = i(";").backup(oneof(seq(oneof(n("WhiteSpace"), n("Comment")).star, n("LineTerminator"))))
 
     override val rules: RuleMap = _rules.merge(ListMap(
         "VarStmt" -> ListSet(

@@ -12,7 +12,6 @@ object GrammarHelper {
         if (set.size == 1) ExactChar(set.iterator.next) else Chars(set)
 
     def e = Empty
-    def eof = EndOfFile
     def n(name: String) = Nonterminal(name)
     def i(string: String) = Sequence(string.toCharArray() map { c => ExactChar(c) }, Set())
     def c = AnyChar

@@ -8,7 +8,7 @@ object Symbols {
         def accept(input: Inputs.Input): Boolean
     }
     object Terminals {
-        import Inputs.{ Input, Character, Virtual, EOF }
+        import Inputs.{ Input, Character, Virtual }
         case object Any extends Terminal {
             def accept(input: Input) = true
         }
@@ -61,10 +61,6 @@ object Symbols {
                 case _ => false
             }
         }
-        case object EndOfFile extends Terminal {
-            def accept(input: Input) =
-                input.isInstanceOf[EOF]
-        }
     }
     sealed trait Nonterm extends Symbol
 
@@ -74,7 +70,6 @@ object Symbols {
     val ExactChar = Terminals.ExactChar
     val Chars = Terminals.Chars
     val Unicode = Terminals.Unicode
-    val EndOfFile = Terminals.EndOfFile
 
     case object Empty extends Nonterm
     case class Nonterminal(name: String) extends Nonterm with SingleSymbol {
@@ -177,7 +172,6 @@ object Symbols {
                     else s"'${toReadable(range._1)}'-'${toReadable(range._2)}'"
                 } mkString "|") + ")"
             case Unicode(c) => s"<unicode ${(c.toSeq map { cid => cid }).sorted mkString ", "}>"
-            case EndOfFile => "<eof>"
             case t: Terminal => t.toShortString
             case Empty => "<empty>"
             case s: Nonterminal => s.name

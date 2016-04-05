@@ -11,7 +11,6 @@ import org.eclipse.zest.core.widgets.GraphConnection
 import org.eclipse.zest.core.widgets.GraphNode
 import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
-import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
 import com.giyeok.moonparser.Inputs
 import com.giyeok.moonparser.ParseTree
 import com.giyeok.moonparser.Parser
@@ -166,30 +165,33 @@ trait ParsingContextGraphVisualize {
 
     val darkerRed = new Color(null, 139, 0, 0)
 
-    def registerEdge(edges: Set[Parser#Edge])(e: Parser#Edge): GraphConnection = e match {
-        case e: Parser#SimpleEdge =>
-            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
-            val curves = calculateCurve(edges, e)
+    def registerEdge(edges: Set[Parser#Edge])(e: Parser#Edge): GraphConnection = {
+        val edge = e match {
+            case e: Parser#SimpleEdge =>
+                val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
+                vedges(e) = connection
+                connection
+            case e: Parser#JoinEdge =>
+                val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
+                // TODO e.contraint 도 표시
+                connection
+            case e: Parser#LiftAssassinEdge =>
+                val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
+                connection.setLineColor(ColorConstants.red)
+                vedges(e) = connection
+                connection
+            case e: Parser#EagerAssassinEdge =>
+                val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
+                connection.setLineColor(darkerRed)
+                vedges(e) = connection
+                connection
+        }
+        val curves = calculateCurve(edges, e)
 
-            if (curves > 0) {
-                connection.setCurveDepth(curves * 12)
-            }
-            vedges(e) = connection
-            connection
-        case e: Parser#JoinEdge =>
-            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
-            // TODO e.contraint 도 표시
-            connection
-        case e: Parser#LiftAssassinEdge =>
-            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
-            connection.setLineColor(ColorConstants.red)
-            vedges(e) = connection
-            connection
-        case e: Parser#EagerAssassinEdge =>
-            val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
-            connection.setLineColor(darkerRed)
-            vedges(e) = connection
-            connection
+        if (curves > 0) {
+            edge.setCurveDepth(curves * 20)
+        }
+        edge
     }
     def registerEdge1(edges: Set[Parser#Edge])(e: Parser#Edge): (GraphNode, GraphNode, GraphConnection) = {
         val start = registerNode(e.start)
@@ -265,5 +267,7 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: Parse
     val registerEdge1 = registerEdge(context.graph.edges.asInstanceOf[Set[Parser#Edge]]) _
     context.graph.edges foreach { registerEdge1(_) }
 
-    graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING), true)
+    import org.eclipse.zest.layouts.algorithms._
+    val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)
+    graph.setLayoutAlgorithm(layoutAlgorithm, true)
 }

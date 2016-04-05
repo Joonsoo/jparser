@@ -63,7 +63,11 @@ class ParseNodeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: Figur
                         }
                     })._2
                 } else {
-                    body map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
+                    if (renderConf.renderLookaheadExcept) {
+                        body map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
+                    } else {
+                        body filterNot { _.symbol.isInstanceOf[LookaheadExcept] } map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
+                    }
                 }
                 vfig(Spacing.Small, Seq(
                     hfig(Spacing.Medium, seq),

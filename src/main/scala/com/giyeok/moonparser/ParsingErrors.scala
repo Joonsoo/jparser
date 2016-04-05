@@ -20,7 +20,6 @@ trait ParsingErrors {
             val msg = next match {
                 case Character(char, location) => s"Unexpected input '$char' at $location"
                 case Virtual(name, location) => s"Unexpected virtual input $name at $location"
-                case EOF(location) => s"Unexpected EOF at $location"
             }
         }
     }

@@ -74,7 +74,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
             after.setBackgroundColor(ColorConstants.orange)
             connection.setLineColor(ColorConstants.blue)
         } else {
-            connection.setCurveDepth(-10)
+            connection.setCurveDepth(-20)
             connection.setLineColor(ColorConstants.cyan)
             if (!(nodes contains lifting.after)) {
                 after.setBackgroundColor(newNodeBackgroundColor)
@@ -133,5 +133,5 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         connection.setLineColor(propagatedAssassinEdgeColor)
     }
 
-    graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING), true)
+    graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS), true)
 }

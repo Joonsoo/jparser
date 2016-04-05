@@ -15,7 +15,9 @@ object JavaScriptGrammar extends Grammar {
     def expr(s: Symbol*) = seq(s toList, whitespace)
     def lex(s: Symbol*) = seq(s: _*)
     def line(s: Symbol*) = seq(oneline, s: _*)
-    val lineend = i(";").backup(oneof(seq(oneof(n("WhiteSpace"), n("Comment")).star, n("LineTerminator")), eof))
+    def longest(s: Symbol) = seq(s.star, lookahead_except(s))
+    val lineend = seq(longest(oneof(whitespace)), i(";")).backup(seq(longest(oneof(whitespace)), n("LineTerminator")))
+    def stmt(s: Symbol*) = seq(expr(s: _*), lineend)
 
     val name = "JavaScript"
     val startSymbol = n("Start")
@@ -456,7 +458,7 @@ object JavaScriptGrammar extends Grammar {
             n("Statement"),
             expr(n("StatementList"), n("Statement"))),
         "VariableStatement" -> ListSet(
-            expr(i("var"), n("VariableDeclarationList"), lineend)),
+            stmt(i("var"), n("VariableDeclarationList"))),
         "VariableDeclarationList" -> ListSet(
             n("VariableDeclaration"),
             expr(n("VariableDeclarationList"), i(","), n("VariableDeclaration"))),
@@ -472,28 +474,28 @@ object JavaScriptGrammar extends Grammar {
         "InitialiserNoIn" -> ListSet(
             expr(i("="), n("AssignmentExpressionNoIn"))),
         "EmptyStatement" -> ListSet(
-            lineend),
+            stmt()),
         "ExpressionStatement" -> ListSet(
-            expr(lookahead_except(i("{"), seq(i("function"), n("WhiteSpace"))), n("Expression"), lineend)),
+            stmt(lookahead_except(i("{"), seq(i("function"), n("WhiteSpace"))), n("Expression"))),
         "IfStatement" -> ListSet(
             expr(i("if"), i("("), n("Expression"), i(")"), n("Statement"), i("else"), n("Statement")),
             expr(i("if"), i("("), n("Expression"), i(")"), n("Statement"))),
         "IterationStatement" -> ListSet(
-            expr(i("do"), n("Statement"), i("while"), i("("), n("Expression"), i(")"), lineend),
+            stmt(i("do"), n("Statement"), i("while"), i("("), n("Expression"), i(")")),
             expr(i("while"), i("("), n("Expression"), i(")"), n("Statement")),
             expr(i("for"), i("("), n("ExpressionNoIn").opt, i(";"), n("Expression").opt, i(";"), n("Expression").opt, i(")"), n("Statement")),
             expr(i("for"), i("("), i("var"), n("VariableDeclarationListNoIn"), i(";"), n("Expression").opt, i(";"), n("Expression").opt, i(")"), n("Statement")),
             expr(i("for"), i("("), n("LeftHandSideExpression"), i("in"), n("Expression"), i(")"), n("Statement")),
             expr(i("for"), i("("), i("var"), n("VariableDeclarationNoIn"), i("in"), n("Expression"), i(")"), n("Statement"))),
         "ContinueStatement" -> ListSet(
-            expr(i("continue"), lineend),
-            expr(line(i("continue"), n("Identifier")), lineend)),
+            stmt(i("continue")),
+            stmt(line(i("continue"), n("Identifier")))),
         "BreakStatement" -> ListSet(
-            expr(i("break"), lineend),
-            expr(line(i("break"), n("Identifier")), lineend)),
+            stmt(i("break")),
+            stmt(line(i("break"), n("Identifier")))),
         "ReturnStatement" -> ListSet(
-            expr(i("return"), lineend),
-            expr(line(i("return"), n("Expression")), lineend)),
+            stmt(i("return")),
+            stmt(line(i("return"), n("Expression")))),
         "WithStatement" -> ListSet(
             expr(i("with"), i("("), n("Expression"), i(")"), n("Statement"))),
         "SwitchStatement" -> ListSet(
@@ -511,7 +513,7 @@ object JavaScriptGrammar extends Grammar {
         "LabelledStatement" -> ListSet(
             expr(n("Identifier"), i(":"), n("Statement"))),
         "ThrowStatement" -> ListSet(
-            expr(line(i("throw"), n("Expression")), lineend)),
+            stmt(line(i("throw"), n("Expression")))),
         "TryStatement" -> ListSet(
             expr(i("try"), n("Block"), n("Catch")),
             expr(i("try"), n("Block"), n("Finally")),
@@ -521,7 +523,7 @@ object JavaScriptGrammar extends Grammar {
         "Finally" -> ListSet(
             expr(i("finally"), n("Block"))),
         "DebuggerStatement" -> ListSet(
-            expr(i("debugger"), lineend)),
+            stmt(i("debugger"))),
 
         // A.5 Functions and Programs
         "FunctionDeclaration" -> ListSet(

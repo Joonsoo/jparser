@@ -8,7 +8,6 @@ object Inputs {
     }
     case class Character(char: Char, location: Location) extends Input
     case class Virtual(name: String, location: Location) extends Input
-    case class EOF(location: Location) extends Input
 
     type Source = Iterable[Input]
 
@@ -22,13 +21,17 @@ object Inputs {
                     case _ => s"'$char'"
                 }
             case Virtual(name, _) => s"{$name}"
-            case EOF(_) => "(EOF)"
         }
 
         def toCleanString: String = input match {
-            case Character(char, _) => char.toString
+            case Character(char, _) =>
+                char match {
+                    case '\n' => "\\n"
+                    case '\r' => "\\r"
+                    case '\t' => "\\t"
+                    case c => c.toString
+                }
             case Virtual(name, _) => s"{$name}"
-            case EOF(_) => "(EOF)"
         }
     }
     implicit class SourceToCleanString(source: Source) {
