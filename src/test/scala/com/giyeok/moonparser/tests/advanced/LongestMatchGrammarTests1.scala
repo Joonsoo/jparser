@@ -110,8 +110,48 @@ object LongestMatchGrammar2_1 extends Grammar with StringSamples {
         "Whitespace" -> ListSet(seq(wsChars.plus, lookahead_except(wsChars))))
     val startSymbol = n("S")
 
-    val correctSamples = Set[String]("abc a123123 def")
-    val incorrectSamples = Set[String]()
+    val correctSamples = Set[String]("abc a123123 def", "    abcdedr     afsdf   j1jdf1j35j")
+    val incorrectSamples = Set[String]("12")
+}
+
+object LongestMatchGrammar2_2 extends Grammar with StringSamples {
+    val name = "LogestMatchGrammar2_2"
+    val wsChars = chars("\n\r\t ")
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("Token").star),
+        "Token" -> ListSet(
+            n("IdName"),
+            n("Number"),
+            n("Punc"),
+            n("Whitespace")),
+        "IdName" -> ListSet(
+            seq(n("_IdName"), lookahead_except(n("IdPart")))),
+        "_IdName" -> ListSet(
+            n("IdStart"),
+            seq(n("_IdName"), n("IdPart"))),
+        "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
+        "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
+        "Number" -> ListSet(seq(
+            i("-").opt,
+            seq(chars('1' to '9'), chars('0' to '9').star, lookahead_except(chars('0' to '9'))),
+            seq(i("."), seq(chars('0' to '9').plus, lookahead_except(chars('0' to '9')))).opt,
+            seq(chars("eE"), seq(chars('1' to '9'), chars('0' to '9').star, lookahead_except(chars('0' to '9')))).opt)),
+        "Punc" -> ListSet(
+            chars(".,;[](){}")),
+        "Whitespace" -> ListSet(seq(wsChars.plus, lookahead_except(wsChars))))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String](
+        "abc a123123 def",
+        "    abcdedr     afsdf   j1jdf1j35j",
+        "aaaaa 11111    bbbbb",
+        "aaaaa -11111   bbbbb",
+        "aaaaa 11111.222222   bbbbb",
+        "aaaaa 11111e33333   bbbbb",
+        "aaaaa 11111.222222e33333   bbbbb",
+        "aaaaa -11111.22222e33333   bbbbb")
+    val incorrectSamples = Set[String]("12")
 }
 
 object LongestMatchGrammars {
@@ -120,7 +160,8 @@ object LongestMatchGrammars {
         LongestMatchGrammar1_1,
         LongestMatchGrammar2,
         LongestMatchGrammar2_0,
-        LongestMatchGrammar2_1)
+        LongestMatchGrammar2_1,
+        LongestMatchGrammar2_2)
 }
 
 class LogestMatchGrammarTestSuite1 extends BasicParseTest(LongestMatchGrammars.grammars)
