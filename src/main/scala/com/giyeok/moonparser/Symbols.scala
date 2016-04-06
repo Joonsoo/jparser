@@ -2,6 +2,7 @@ package com.giyeok.moonparser
 
 object Symbols {
     sealed trait Symbol
+    // SingleSymbol은 매칭이 되거나/안되거나 - 한 번 lift된 symbolProgress에서 derive가 되거나 하는 일은 생기지 않음
     sealed trait SingleSymbol extends Symbol
 
     sealed trait Terminal extends SingleSymbol {
@@ -135,6 +136,9 @@ object Symbols {
             override val hashCode = (classOf[Proxy], sym).hashCode
         }
     }
+    case class Longest(sym: Symbol) extends Nonterm {
+        override val hashCode = (classOf[Longest], sym).hashCode
+    }
 
     implicit class CharsGrouping(sym: Terminals.Chars) {
         def groups: List[(Char, Char)] = {
@@ -182,7 +186,8 @@ object Symbols {
             case LookaheadExcept(except) => s"la_except ${except.toShortString}"
             case Backup(sym, backup) => s"${sym.toShortString} backedupby ${backup.toShortString}"
             case Join(sym, join) => s"${sym.toShortString} joinedwith ${join.toShortString}"
-            case Join.Proxy(sym) => s"ρ(${sym.toShortString})"
+            case Join.Proxy(sym) => s"P(${sym.toShortString})"
+            case Longest(sym) => s"L(${sym.toShortString})"
         }
     }
 }

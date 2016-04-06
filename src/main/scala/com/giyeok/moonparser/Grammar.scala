@@ -39,6 +39,7 @@ object Grammar {
                         case Backup(sym, backup) => traverse(sym, traverse(backup, cc))
                         case Join(sym, join) => traverse(sym, traverse(join, cc))
                         case Join.Proxy(sym) => traverse(sym, cc)
+                        case Longest(sym) => traverse(sym, cc)
                     }
                 }
             }
@@ -67,6 +68,7 @@ object Grammar {
                         case Backup(sym, backup) => traverse(sym, Some(symbol), traverse(backup, Some(symbol), cc))
                         case Join(sym, join) => traverse(sym, Some(symbol), traverse(join, Some(symbol), cc))
                         case Join.Proxy(sym) => traverse(sym, Some(symbol), cc)
+                        case Longest(sym) => traverse(sym, Some(symbol), cc)
                     }
                 }
             }
@@ -92,6 +94,7 @@ object Grammar {
                         case Backup(sym, backup) => traverse(sym, traverse(backup, cc + symbol))
                         case Join(sym, join) => traverse(sym, traverse(join, cc + symbol))
                         case Join.Proxy(sym) => traverse(sym, cc + symbol)
+                        case Longest(sym) => traverse(sym, cc + symbol)
                     }
             }
             traverse(grammar.startSymbol, Set())

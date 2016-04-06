@@ -64,6 +64,7 @@ trait SymbolProgresses extends SeqOrderedTester {
             case symbol: Backup => BackupProgress(symbol, None, gen)
             case symbol: Join => JoinProgress(symbol, None, gen)
             case symbol: Join.Proxy => JoinProxyProgress(symbol, None, gen)
+            case symbol: Longest => LongestProgress(symbol, None, gen)
         }
     }
 
@@ -219,6 +220,11 @@ trait SymbolProgresses extends SeqOrderedTester {
         def derive(gen: Int) = if (!parsed.isEmpty) Set() else Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen)))
     }
 
+    case class LongestProgress(symbol: Longest, parsed: Option[ParsedSymbol[Longest]], derivedGen: Int) extends SymbolProgressNonterminal {
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = ???
+        def derive(gen: Int) = if (!parsed.isEmpty) Set() else Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen)))
+    }
+
     implicit class ShortStringProgresses(prog: SymbolProgress) {
         def toShortString1: String = toShortString
         def toShortString: String = {
@@ -238,6 +244,7 @@ trait SymbolProgresses extends SeqOrderedTester {
                 case BackupProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case JoinProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case JoinProxyProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
+                case LongestProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
             })
         }
     }

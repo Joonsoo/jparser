@@ -16,6 +16,7 @@ import com.giyeok.moonparser.Symbols.ShortStringSymbols
 import com.giyeok.moonparser.Symbols.Symbol
 import com.giyeok.moonparser.Symbols.Terminal
 import com.giyeok.moonparser.Symbols.Terminals
+import com.giyeok.moonparser.Symbols.Longest
 import java.lang.Character.UnicodeBlock
 import FigureGenerator.Spacing
 
@@ -103,6 +104,8 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
                 g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("&", ap.default), symbolFig(join)))
             case Join.Proxy(sym) =>
                 g.horizontalFig(Spacing.Small, Seq(g.textFig("ρ(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
+            case Longest(sym) =>
+                g.horizontalFig(Spacing.Small, Seq(g.textFig("L(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
         }
     }
 }

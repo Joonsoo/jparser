@@ -37,6 +37,8 @@ class SymbolProgressFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: 
                 g.horizontalFig(Spacing.Small, withDot(n.parsed, symbolFigureGenerator.symbolFig(n.symbol)))
             case n: Parser#JoinProxyProgress =>
                 g.horizontalFig(Spacing.Small, withDot(n.parsed, symbolFigureGenerator.symbolFig(n.symbol)))
+            case n: Parser#LongestProgress =>
+                g.horizontalFig(Spacing.Small, withDot(n.parsed, symbolFigureGenerator.symbolFig(n.symbol)))
         }
     }
 }
