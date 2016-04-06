@@ -33,6 +33,7 @@ object GrammarHelper {
     def oneof(items: Set[Symbol]) = OneOf(items)
     def lookahead_except(except: Symbol) = LookaheadExcept(except)
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
+    def longest(sym: Symbol) = Longest(sym)
     def join(sym: Symbol, join: Symbol) = Join(sym, join)
 
     // def lgst(t: Terminal) = seq(t, LookaheadExcept(t))

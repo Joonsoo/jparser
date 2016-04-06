@@ -31,7 +31,7 @@ trait SymbolProgresses extends SeqOrderedTester {
          * the finished nodes will be transferred to the origin node via `lift` method
          */
         def derive(gen: Int): Set[Edge]
-        def lift(source: SymbolProgress): Lifting = NontermLifting(this, lift0(source), source)
+        def lift(source: SymbolProgress): (Lifting, Set[Edge]) = (NontermLifting(this, lift0(source), source), Set())
         def lift0(source: SymbolProgress): SymbolProgressNonterminal
         val derivedGen: Int
     }
@@ -221,7 +221,11 @@ trait SymbolProgresses extends SeqOrderedTester {
     }
 
     case class LongestProgress(symbol: Longest, parsed: Option[ParsedSymbol[Longest]], derivedGen: Int) extends SymbolProgressNonterminal {
-        def lift0(source: SymbolProgress): SymbolProgressNonterminal = ???
+        override def lift(source: SymbolProgress): (Lifting, Set[Edge]) = {
+            val lifted = lift0(source)
+            (NontermLifting(this, lifted, source), Set(EagerAssassinEdge(this, lifted)))
+        }
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = LongestProgress(symbol, Some(ParsedSymbol[Longest](symbol, source.parsed.get)), derivedGen)
         def derive(gen: Int) = if (!parsed.isEmpty) Set() else Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen)))
     }
 

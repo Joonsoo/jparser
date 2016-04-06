@@ -49,6 +49,7 @@ class Parser(val grammar: Grammar)
         def withLifting(newLifting: Lifting) = ExpandResult(liftings + newLifting, nodes, edges, rootTips)
         def withLiftings(newLiftings: Set[Lifting]) = ExpandResult(liftings ++ newLiftings, nodes, edges, rootTips)
         def withRootTip(newRootTip: Node) = ExpandResult(liftings, nodes, edges, rootTips + newRootTip)
+        def withEdges(newEdges: Set[Edge]) = ExpandResult(liftings, nodes, edges ++ newEdges, rootTips)
     }
 
     def expand(oldGraph: Graph, newGenId: Int, queue: List[ExpandTask], excludingLiftings: Set[Lifting], excludingNodes: Set[Node]): ExpandResult = {
@@ -60,159 +61,166 @@ class Parser(val grammar: Grammar)
             })
             // TODO queue에 중복된 아이템 2개 들어가지 않도록 수정
             queue match {
-                case task +: rest =>
-                    task match {
-                        case DeriveTask(node) =>
-                            // `node`로부터 derive 처리
-                            logging(s"DeriveTask($node)")
-                            assert(cc.nodes contains node)
+                case task +: rest => task match {
+                    case DeriveTask(node) =>
+                        // `node`로부터 derive 처리
+                        logging(s"DeriveTask($node)")
+                        assert(cc.nodes contains node)
 
-                            var (nextQueue, nextCC) = (rest, cc)
+                        var (nextQueue, nextCC) = (rest, cc)
 
-                            // `node`에서 derive할 수 있는 edge를 모두 찾고, 이미 처리된 edge는 제외
-                            val newDerivedEdges: Set[Edge] = node.derive(newGenId) -- cc.edges
-                            // `newNode`에서는 cc.nodes를 빼면 안됨. 이걸 빼면 아래 "이미 처리된 노드가 lift된 경우"가 확인이 안됨
-                            val newNodes: Set[Node] = newDerivedEdges.flatMap(_.nodes)
+                        // `node`에서 derive할 수 있는 edge를 모두 찾고, 이미 처리된 edge는 제외
+                        val newDerivedEdges: Set[Edge] = node.derive(newGenId) -- cc.edges
+                        // `newNode`에서는 cc.nodes를 빼면 안됨. 이걸 빼면 아래 "이미 처리된 노드가 lift된 경우"가 확인이 안됨
+                        val newNodes: Set[Node] = newDerivedEdges.flatMap(_.nodes)
 
-                            nextQueue ++:= newNodes collect { case n: NonterminalNode => DeriveTask(n) }
-                            nextCC += (Set(), newNodes, newDerivedEdges, Set())
+                        nextQueue ++:= newNodes collect { case n: NonterminalNode => DeriveTask(n) }
+                        nextCC += (Set(), newNodes, newDerivedEdges, Set())
 
-                            logging {
-                                newDerivedEdges foreach { edge =>
-                                    println("  " + edge)
-                                }
+                        logging {
+                            newDerivedEdges foreach { edge =>
+                                println("  " + edge)
                             }
+                        }
 
-                            // nullable한 것들은 바로 lift처리한다
-                            val newLiftings = newDerivedEdges collect {
+                        // nullable한 것들은 바로 lift처리한다
+                        val (newLiftings, newEdges): (Set[Lifting], Set[Edge]) = {
+                            val lifts = newDerivedEdges collect {
                                 case e: SimpleEdge if e.end.canFinish => node.lift(e.end)
                             }
+                            (lifts map { _._1 }, lifts flatMap { _._2 })
+                        }
 
-                            logging {
-                                newLiftings foreach { lifting =>
-                                    println("  " + lifting)
-                                }
+                        logging {
+                            newLiftings foreach { lifting =>
+                                println("  " + lifting)
                             }
+                        }
 
-                            nextQueue ++:= newLiftings map { LiftTask(_) }
-                            nextCC = nextCC.withLiftings(newLiftings)
+                        nextQueue ++:= newLiftings map { LiftTask(_) }
+                        nextCC = nextCC.withLiftings(newLiftings).withEdges(newEdges)
 
-                            // 새로 만들어진 노드가 이미 처리된 노드인 경우, 이미 처리된 노드가 lift되었을 경우를 확인해서 처리
-                            val allNodes = allEdges flatMap { _.nodes }
-                            val alreadyProcessedNodes: Set[NonterminalNode] = newNodes.intersect(allNodes) collect { case n: NonterminalNode => n }
-                            val preprocessedNodesLifting: Set[Lifting] = (alreadyProcessedNodes flatMap { n =>
-                                val lifters = cc.liftings collect { case NontermLifting(before, _, by) if before == n => by }
-                                lifters map { n.lift(_) }
-                            }) -- excludingLiftings
-                            nextQueue ++:= preprocessedNodesLifting map { LiftTask(_) }
-                            nextCC = nextCC.withLiftings(preprocessedNodesLifting)
+                        // 새로 만들어진 노드가 이미 처리된 노드인 경우, 이미 처리된 노드가 lift되었을 경우를 확인해서 처리
+                        val allNodes = allEdges flatMap { _.nodes }
+                        val alreadyProcessedNodes: Set[NonterminalNode] = newNodes.intersect(allNodes) collect { case n: NonterminalNode => n }
+                        val (preprocessedNodesLifting, preprocessedLiftEdges): (Set[Lifting], Set[Edge]) = {
+                            val x = alreadyProcessedNodes map { n =>
+                                val lifters: Set[Node] = cc.liftings collect { case NontermLifting(before, _, by) if before == n => by }
+                                val lifts: Set[(Lifting, Set[Edge])] = lifters map { n.lift(_) }
+                                val liftsExcluded: Set[(Lifting, Set[Edge])] = lifts filterNot { excludingLiftings contains _._1 }
+                                (liftsExcluded map { _._1 }, liftsExcluded flatMap { _._2 })
+                            }
+                            (x flatMap { _._1 }, x flatMap { _._2 })
+                        }
+                        nextQueue ++:= preprocessedNodesLifting map { LiftTask(_) }
+                        nextCC = nextCC.withLiftings(preprocessedNodesLifting).withEdges(preprocessedLiftEdges)
 
-                            expand0(nextQueue, nextCC)
+                        expand0(nextQueue, nextCC)
 
-                        case LiftTask(TermLifting(before, after, by)) =>
-                            // terminal element가 lift되는 경우 처리
-                            logging(s"TermLiftTask($before, $after, $by)")
+                    case LiftTask(TermLifting(before, after, by)) =>
+                        // terminal element가 lift되는 경우 처리
+                        logging(s"TermLiftTask($before, $after, $by)")
 
-                            // terminal element는 항상 before는 비어있고 after는 한 글자로 차 있어야 하며, 정의상 둘 다 derive가 불가능하다.
-                            assert(!before.canFinish)
-                            assert(after.canFinish)
+                        // terminal element는 항상 before는 비어있고 after는 한 글자로 차 있어야 하며, 정의상 둘 다 derive가 불가능하다.
+                        assert(!before.canFinish)
+                        assert(after.canFinish)
 
-                            // 또 이번에 생성된 terminal element가 바로 lift되는 것은 불가능하므로 before는 반드시 oldGraph 소속이어야 한다.
-                            assert(oldGraph.nodes contains before)
+                        // 또 이번에 생성된 terminal element가 바로 lift되는 것은 불가능하므로 before는 반드시 oldGraph 소속이어야 한다.
+                        assert(oldGraph.nodes contains before)
 
-                            var (nextQueue, nextCC) = (rest, cc)
+                        var (nextQueue, nextCC) = (rest, cc)
 
-                            allEdges.incomingDeriveEdgesOf(before) foreach { edge =>
-                                edge match {
-                                    case e: SimpleEdge =>
-                                        val lifting = e.start.lift(after)
+                        allEdges.incomingDeriveEdgesOf(before) foreach { edge =>
+                            edge match {
+                                case e: SimpleEdge =>
+                                    val (lifting, newEdges) = e.start.lift(after)
+                                    if (!(excludingLiftings contains lifting)) {
+                                        nextQueue +:= LiftTask(lifting)
+                                        nextCC = nextCC.withLifting(lifting).withEdges(newEdges)
+                                    }
+                                case e: JoinEdge =>
+                                    val constraint: Option[Lifting] = cc.liftings.find { _.before == e.constraint }
+                                    if (constraint.isDefined) {
+                                        val lifting = e.start.liftJoin(after, constraint.get.after)
                                         if (!(excludingLiftings contains lifting)) {
                                             nextQueue +:= LiftTask(lifting)
                                             nextCC = nextCC.withLifting(lifting)
                                         }
+                                    }
+                            }
+                        }
+
+                        expand0(nextQueue, nextCC)
+
+                    case LiftTask(NontermLifting(before, after, by)) =>
+                        // nonterminal element가 lift되는 경우 처리
+                        // 문제가 되는 lift는 전부 여기 문제
+                        logging(s"NontermLiftTask($before, $after, $by)")
+
+                        var (nextQueue, nextCC) = (rest, cc)
+
+                        val incomingDeriveEdges = allEdges.incomingDeriveEdgesOf(before)
+
+                        // lift된 node, 즉 `after`가 derive를 갖는 경우
+                        // - 이런 경우는, `after`가 앞으로도 추가로 처리될 가능성이 있다는 의미
+                        // - 따라서 새 그래프에 `after`를 추가해주고, `before`를 rootTip에 추가해서 추가적인 처리를 준비해야 함
+                        val afterDerives: Set[Edge] = after.derive(newGenId)
+                        if (!afterDerives.isEmpty) {
+                            logging("  hasDerives")
+
+                            val x: Set[(Seq[Edge], Seq[Node])] = (incomingDeriveEdges map { edge =>
+                                edge match {
+                                    case e: SimpleEdge =>
+                                        (Seq(SimpleEdge(e.start, after)), Seq(e.start))
                                     case e: JoinEdge =>
-                                        val constraint: Option[Lifting] = cc.liftings.find { _.before == e.constraint }
-                                        if (constraint.isDefined) {
-                                            val lifting = e.start.liftJoin(after, constraint.get.after)
-                                            if (!(excludingLiftings contains lifting)) {
-                                                nextQueue +:= LiftTask(lifting)
-                                                nextCC = nextCC.withLifting(lifting)
-                                            }
+                                        // should never be called (because of proxy)
+                                        println(before, after)
+                                        println(e)
+                                        assert(false)
+                                        ???
+                                }
+                            })
+                            val newEdges: Set[Edge] = x flatMap { _._1 }
+                            val newRootTips: Set[Node] = x flatMap { _._2 }
+                            nextQueue +:= DeriveTask(after)
+                            nextCC += (Set(), Set(after), newEdges, newRootTips)
+                        }
+
+                        // lift된 node, 즉 `after`가 canFinish인 경우
+                        // - 이런 경우는, `after`가 (derive가 가능한가와는 무관하게) 완성된 상태이며, 이 노드에 영향을 받는 다른 노드들을 lift해야 한다는 의미
+                        // - 따라서 `after`를 바라보고 있는 노드들을 lift해서 LiftTask를 추가해주어야 함
+                        if (after.canFinish) {
+                            logging("  isCanFinish")
+                            incomingDeriveEdges foreach { edge =>
+                                assert(before == edge.end)
+                                edge match {
+                                    case e: SimpleEdge =>
+                                        val (lifting, newEdges) = e.start.lift(after)
+                                        if (!(excludingLiftings contains lifting)) {
+                                            nextQueue +:= LiftTask(lifting)
+                                            nextCC = nextCC.withLifting(lifting).withEdges(newEdges)
                                         }
+                                    case e: JoinEdge =>
+                                        val constraintLifted = cc.liftings filter { _.before == e.constraint }
+                                        if (!constraintLifted.isEmpty) {
+                                            // println(before, after)
+                                            // println(e)
+                                            // println(constraintLifted)
+                                            val liftings0 = constraintLifted map { constraint =>
+                                                if (!e.endConstraintReversed) e.start.liftJoin(after, constraint.after)
+                                                else e.start.liftJoin(constraint.after, after)
+                                            }
+                                            val liftings = liftings0 -- excludingLiftings
+                                            nextQueue ++:= liftings map { lifting => LiftTask(lifting) }
+                                            nextCC = nextCC.withLiftings(liftings)
+                                        }
+                                    // just ignore if the constraint is not matched
                                 }
                             }
+                        }
 
-                            expand0(nextQueue, nextCC)
-
-                        case LiftTask(NontermLifting(before, after, by)) =>
-                            // nonterminal element가 lift되는 경우 처리
-                            // 문제가 되는 lift는 전부 여기 문제
-                            logging(s"NontermLiftTask($before, $after, $by)")
-
-                            var (nextQueue, nextCC) = (rest, cc)
-
-                            val incomingDeriveEdges = allEdges.incomingDeriveEdgesOf(before)
-
-                            // lift된 node, 즉 `after`가 derive를 갖는 경우
-                            // - 이런 경우는, `after`가 앞으로도 추가로 처리될 가능성이 있다는 의미
-                            // - 따라서 새 그래프에 `after`를 추가해주고, `before`를 rootTip에 추가해서 추가적인 처리를 준비해야 함
-                            val afterDerives: Set[Edge] = after.derive(newGenId)
-                            if (!afterDerives.isEmpty) {
-                                logging("  hasDerives")
-
-                                val x: Set[(Seq[Edge], Seq[Node])] = (incomingDeriveEdges map { edge =>
-                                    edge match {
-                                        case e: SimpleEdge =>
-                                            (Seq(SimpleEdge(e.start, after)), Seq(e.start))
-                                        case e: JoinEdge =>
-                                            // should never be called (because of proxy)
-                                            println(before, after)
-                                            println(e)
-                                            assert(false)
-                                            ???
-                                    }
-                                })
-                                val newEdges: Set[Edge] = x flatMap { _._1 }
-                                val newRootTips: Set[Node] = x flatMap { _._2 }
-                                nextQueue +:= DeriveTask(after)
-                                nextCC += (Set(), Set(after), newEdges, newRootTips)
-                            }
-
-                            // lift된 node, 즉 `after`가 canFinish인 경우
-                            // - 이런 경우는, `after`가 (derive가 가능한가와는 무관하게) 완성된 상태이며, 이 노드에 영향을 받는 다른 노드들을 lift해야 한다는 의미
-                            // - 따라서 `after`를 바라보고 있는 노드들을 lift해서 LiftTask를 추가해주어야 함
-                            if (after.canFinish) {
-                                logging("  isCanFinish")
-                                incomingDeriveEdges foreach { edge =>
-                                    assert(before == edge.end)
-                                    edge match {
-                                        case e: SimpleEdge =>
-                                            val lifting = e.start.lift(after)
-                                            if (!(excludingLiftings contains lifting)) {
-                                                nextQueue +:= LiftTask(lifting)
-                                                nextCC = nextCC.withLifting(lifting)
-                                            }
-                                        case e: JoinEdge =>
-                                            val constraintLifted = cc.liftings filter { _.before == e.constraint }
-                                            if (!constraintLifted.isEmpty) {
-                                                // println(before, after)
-                                                // println(e)
-                                                // println(constraintLifted)
-                                                val liftings0 = constraintLifted map { constraint =>
-                                                    if (!e.endConstraintReversed) e.start.liftJoin(after, constraint.after)
-                                                    else e.start.liftJoin(constraint.after, after)
-                                                }
-                                                val liftings = liftings0 -- excludingLiftings
-                                                nextQueue ++:= liftings map { lifting => LiftTask(lifting) }
-                                                nextCC = nextCC.withLiftings(liftings)
-                                            }
-                                        // just ignore if the constraint is not matched
-                                    }
-                                }
-                            }
-
-                            expand0(nextQueue, nextCC)
-                    }
+                        expand0(nextQueue, nextCC)
+                }
                 case List() => cc
             }
         }
