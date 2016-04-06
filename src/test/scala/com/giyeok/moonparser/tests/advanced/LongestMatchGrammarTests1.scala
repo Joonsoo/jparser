@@ -154,6 +154,28 @@ object LongestMatchGrammar2_2 extends Grammar with StringSamples {
     val incorrectSamples = Set[String]("12")
 }
 
+object LongestMatchGrammar2_3 extends Grammar with StringSamples {
+    val name = "LogestMatchGrammar2_3"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("Token").star),
+        "Token" -> ListSet(
+            n("Number"),
+            n("Punc")),
+        "Number" -> ListSet(seq(
+            i("-").opt,
+            seq(chars('1' to '9'), chars('0' to '9').star),
+            seq(i("."), seq(chars('0' to '9').plus)).opt,
+            seq(chars("eE"), seq(chars('1' to '9'), chars('0' to '9').star)).opt)),
+        "Punc" -> ListSet(
+            chars(".,;[](){}")))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String](
+        "1.2;")
+    val incorrectSamples = Set[String]("12")
+}
+
 object LongestMatchGrammars {
     val grammars: Set[Grammar with Samples] = Set(
         LongestMatchGrammar1,
@@ -161,7 +183,8 @@ object LongestMatchGrammars {
         LongestMatchGrammar2,
         LongestMatchGrammar2_0,
         LongestMatchGrammar2_1,
-        LongestMatchGrammar2_2)
+        LongestMatchGrammar2_2,
+        LongestMatchGrammar2_3)
 }
 
 class LogestMatchGrammarTestSuite1 extends BasicParseTest(LongestMatchGrammars.grammars)
