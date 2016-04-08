@@ -126,23 +126,22 @@ object LongestMatchGrammar2_2 extends Grammar with StringSamples {
             n("Punc"),
             n("Whitespace")),
         "IdName" -> ListSet(
-            seq(n("_IdName"), lookahead_except(n("IdPart")))),
-        "_IdName" -> ListSet(
-            n("IdStart"),
-            seq(n("_IdName"), n("IdPart"))),
+            longest(n("IdStart")),
+            longest(seq(n("IdName"), n("IdPart")))),
         "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
         "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
-        "Number" -> ListSet(seq(
+        "Number" -> ListSet(longest(seq(
             i("-").opt,
-            seq(chars('1' to '9'), chars('0' to '9').star, lookahead_except(chars('0' to '9'))),
-            seq(i("."), seq(chars('0' to '9').plus, lookahead_except(chars('0' to '9')))).opt,
-            seq(chars("eE"), seq(chars('1' to '9'), chars('0' to '9').star, lookahead_except(chars('0' to '9')))).opt)),
+            seq(chars('1' to '9'), chars('0' to '9').star),
+            seq(i("."), seq(chars('0' to '9').plus)).opt,
+            seq(chars("eE"), seq(chars('1' to '9'), chars('0' to '9').star)).opt))),
         "Punc" -> ListSet(
             chars(".,;[](){}")),
-        "Whitespace" -> ListSet(seq(wsChars.plus, lookahead_except(wsChars))))
+        "Whitespace" -> ListSet(longest(seq(wsChars.plus))))
     val startSymbol = n("S")
 
     val correctSamples = Set[String](
+        "111.222e333",
         "abc a123123 def",
         "    abcdedr     afsdf   j1jdf1j35j",
         "aaaaa 11111    bbbbb",
@@ -176,6 +175,52 @@ object LongestMatchGrammar2_3 extends Grammar with StringSamples {
     val incorrectSamples = Set[String]("12")
 }
 
+object LongestMatchGrammar3_1 extends Grammar with StringSamples {
+    val name = "LongestMatchGrammar3_1"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            oneof(n("Number"), n("Punc"), n("Id")).star),
+        "Number" -> ListSet(
+            // eager longest로 바꿔서도 해보기
+            longest(n("Float"))),
+        "Float" -> ListSet(
+            seq(chars('1' to '9'), seq(chars('0' to '9').star, i("."), chars('0' to '9').plus).opt)),
+        "Punc" -> ListSet(
+            chars(".,;[](){}")),
+        "Id" -> ListSet(
+            chars('a' to 'z', 'A' to 'Z').plus))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String](
+        "1.2",
+        "1.a")
+    val incorrectSamples = Set[String]("12")
+}
+
+object LongestMatchGrammar3_3 extends Grammar with StringSamples {
+    val name = "LongestMatchGrammar3_3"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            oneof(n("Number"), n("Punc"), n("Id")).star),
+        "Number" -> ListSet(
+            // eager longest로 바꿔서도 해보기
+            longest(n("Float")),
+            longest(n("Int"))),
+        "Float" -> ListSet(
+            seq(chars('1' to '9'), chars('0' to '9').star, seq(i("."), chars('0' to '9').plus).opt)),
+        "Int" -> ListSet(
+            seq(chars('1' to '9'), chars('0' to '9').star)),
+        "Punc" -> ListSet(
+            chars(".,;[](){}")),
+        "Id" -> ListSet(
+            chars('a' to 'z', 'A' to 'Z').plus))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String](
+        "1.2")
+    val incorrectSamples = Set[String]("12", "1.a")
+}
+
 object LongestMatchGrammars {
     val grammars: Set[Grammar with Samples] = Set(
         LongestMatchGrammar1,
@@ -184,7 +229,9 @@ object LongestMatchGrammars {
         LongestMatchGrammar2_0,
         LongestMatchGrammar2_1,
         LongestMatchGrammar2_2,
-        LongestMatchGrammar2_3)
+        LongestMatchGrammar2_3,
+        LongestMatchGrammar3_1,
+        LongestMatchGrammar3_3)
 }
 
 class LogestMatchGrammarTestSuite1 extends BasicParseTest(LongestMatchGrammars.grammars)
