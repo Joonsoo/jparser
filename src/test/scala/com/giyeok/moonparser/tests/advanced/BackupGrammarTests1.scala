@@ -9,12 +9,13 @@ import com.giyeok.moonparser.GrammarHelper._
 import scala.collection.immutable.ListSet
 
 object BackupGrammar1 extends Grammar with StringSamples {
+    val wsChars = chars(" ")
     val name = "BackupGrammar1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet( /* TODO */ ))
+        "S" -> ListSet(seq(wsChars.star, c(';')).backup(wsChars.plus)))
     val startSymbol = n("S")
 
-    val correctSamples = Set[String]()
+    val correctSamples = Set[String](";", "  ", " ;")
     val incorrectSamples = Set[String]()
 }
 

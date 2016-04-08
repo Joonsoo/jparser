@@ -240,8 +240,8 @@ class Parser(val grammar: Grammar)
                 case List() => newEdgesCC
             }
 
-        def propagateNodeKillEdges(assassinEdges: Set[LiftTriggeredNodeKillEdge]): Set[LiftTriggeredNodeKillEdge] = {
-            val propagated: Map[Set[LiftTriggeredNodeKillEdge], Set[Node]] = assassinEdges groupBy { _.end } map { p =>
+        def propagateNodeKillEdges(killEdges: Set[LiftTriggeredNodeKillEdge]): Set[LiftTriggeredNodeKillEdge] = {
+            val propagated: Map[Set[LiftTriggeredNodeKillEdge], Set[Node]] = killEdges groupBy { _.end } map { p =>
                 assert(p._2 forall { _.end == p._1 })
                 val sameDestinationEdges = p._2
                 def propagate(queue: List[Node], nodesCC: Set[Node], liftingsCC: Set[Lifting], edgesCC: Set[SimpleEdge]): Set[Node] =
@@ -320,16 +320,16 @@ class Parser(val grammar: Grammar)
                     // assert(rootTips subsetOf graph.nodes)
 
                     assert(terminalLiftings subsetOf liftings0)
-                    val activeAssassinEdges = graph.edges.assassinEdges filter { e => liftings0 map { _.before } contains e.start }
+                    val activeLiftTriggeredKillEdges = graph.edges.assassinEdges filter { e => liftings0 map { _.before } contains e.start }
 
-                    if (activeAssassinEdges.isEmpty) {
+                    if (activeLiftTriggeredKillEdges.isEmpty) {
                         val roots = rootTips0 flatMap { rootTip => graph.edges.rootsOf(rootTip) }
                         (liftings0, newNodes0, newEdges0, rootTips0, roots)
                     } else {
-                        val activeLiftAssassinEdges = activeAssassinEdges collect { case e: LiftTriggeredLiftKillEdge => e }
-                        val activeEagerAssassinEdges = activeAssassinEdges collect { case e: LiftTriggeredNodeKillEdge => e }
+                        val activeLiftTriggeredLiftKillEdges = activeLiftTriggeredKillEdges collect { case e: LiftTriggeredLiftKillEdge => e }
+                        val activeLiftTriggeredNodeKillEdges = activeLiftTriggeredKillEdges collect { case e: LiftTriggeredNodeKillEdge => e }
 
-                        val blockingLiftings = liftings0 filter { l => activeAssassinEdges map { _.end } contains l.before }
+                        val blockingLiftings = liftings0 filter { l => activeLiftTriggeredKillEdges map { _.end } contains l.before }
                         logging {
                             if (!blockingLiftings.isEmpty) {
                                 println("- blocked liftings by assassin edges")
@@ -339,7 +339,7 @@ class Parser(val grammar: Grammar)
                             }
                         }
 
-                        val assassinatedNodes = activeEagerAssassinEdges map { _.end }
+                        val assassinatedNodes = activeLiftTriggeredNodeKillEdges map { _.end }
                         logging {
                             if (!assassinatedNodes.isEmpty) {
                                 println("- blocked nodes by assassin edges")

@@ -61,7 +61,7 @@ trait GraphDataStructure {
             def trackRoots(queue: List[SymbolProgress], cc: Set[Edge]): Set[Edge] =
                 queue match {
                     case node +: rest =>
-                        val incomings = incomingDeriveEdgesOf(node).asInstanceOf[Set[Edge]] -- cc
+                        val incomings = incomingEdgesOf(node) -- cc
                         trackRoots(rest ++ (incomings.toList map { _.start }), cc ++ incomings)
                     case List() => cc
                 }

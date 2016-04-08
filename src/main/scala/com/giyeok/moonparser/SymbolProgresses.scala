@@ -192,7 +192,7 @@ trait SymbolProgresses extends SeqOrderedTester {
             println(source)
             BackupProgress(symbol, Some(ParsedSymbol[Backup](symbol, source.parsed.get)), derivedGen)
         }
-        def derive(gen: Int) = {
+        def derive(gen: Int) = if (!parsed.isEmpty) Set() else {
             val symP = SymbolProgress(symbol.sym, gen)
             val bkP = SymbolProgress(symbol.backup, gen)
             Set(

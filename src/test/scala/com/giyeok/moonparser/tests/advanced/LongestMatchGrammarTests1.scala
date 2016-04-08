@@ -9,7 +9,7 @@ import com.giyeok.moonparser.tests.Samples
 import com.giyeok.moonparser.tests.BasicParseTest
 
 object LongestMatchGrammar1 extends Grammar with StringSamples {
-    val name = "LogestMatchGrammar1"
+    val name = "LongestMatchGrammar1"
     def longest(c: Symbol) = seq(c.plus, lookahead_except(c))
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
@@ -30,7 +30,7 @@ object LongestMatchGrammar1 extends Grammar with StringSamples {
 }
 
 object LongestMatchGrammar1_1 extends Grammar with StringSamples {
-    val name = "LogestMatchGrammar1_1"
+    val name = "LongestMatchGrammar1_1"
     def longest(c: Symbol) = seq(c.plus, lookahead_except(c))
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
@@ -53,7 +53,7 @@ object LongestMatchGrammar1_1 extends Grammar with StringSamples {
 }
 
 object LongestMatchGrammar2 extends Grammar with StringSamples {
-    val name = "LogestMatchGrammar2"
+    val name = "LongestMatchGrammar2"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -73,7 +73,7 @@ object LongestMatchGrammar2 extends Grammar with StringSamples {
 }
 
 object LongestMatchGrammar2_0 extends Grammar with StringSamples {
-    val name = "LogestMatchGrammar2_0"
+    val name = "LongestMatchGrammar2_0"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -92,7 +92,7 @@ object LongestMatchGrammar2_0 extends Grammar with StringSamples {
 }
 
 object LongestMatchGrammar2_1 extends Grammar with StringSamples {
-    val name = "LogestMatchGrammar2_1"
+    val name = "LongestMatchGrammar2_1"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -115,7 +115,7 @@ object LongestMatchGrammar2_1 extends Grammar with StringSamples {
 }
 
 object LongestMatchGrammar2_2 extends Grammar with StringSamples {
-    val name = "LogestMatchGrammar2_2"
+    val name = "LongestMatchGrammar2_2"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -154,7 +154,7 @@ object LongestMatchGrammar2_2 extends Grammar with StringSamples {
 }
 
 object LongestMatchGrammar2_3 extends Grammar with StringSamples {
-    val name = "LogestMatchGrammar2_3"
+    val name = "LongestMatchGrammar2_3"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
             n("Token").star),
@@ -234,4 +234,4 @@ object LongestMatchGrammars {
         LongestMatchGrammar3_3)
 }
 
-class LogestMatchGrammarTestSuite1 extends BasicParseTest(LongestMatchGrammars.grammars)
+class LongestMatchGrammarTestSuite1 extends BasicParseTest(LongestMatchGrammars.grammars)

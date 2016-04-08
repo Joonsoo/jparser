@@ -32,7 +32,7 @@ class SymbolProgressFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: 
             case n: Parser#LookaheadExceptProgress =>
                 g.textFig(n.toShortString, ap.default)
             case n: Parser#BackupProgress =>
-                g.textFig(n.toShortString, ap.default)
+                g.horizontalFig(Spacing.Small, withDot(n.parsed, symbolFigureGenerator.symbolFig(n.symbol)))
             case n: Parser#JoinProgress =>
                 g.horizontalFig(Spacing.Small, withDot(n.parsed, symbolFigureGenerator.symbolFig(n.symbol)))
             case n: Parser#JoinProxyProgress =>
