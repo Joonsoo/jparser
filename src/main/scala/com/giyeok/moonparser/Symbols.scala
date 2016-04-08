@@ -2,10 +2,10 @@ package com.giyeok.moonparser
 
 object Symbols {
     sealed trait Symbol
-    // SingleSymbol은 매칭이 되거나/안되거나 - 한 번 lift된 symbolProgress에서 derive가 되거나 하는 일은 생기지 않음
-    sealed trait SingleSymbol extends Symbol
+    // AtomicSymbol은 매칭이 되거나/안되거나 - 한 번 lift된 symbolProgress에서 derive가 되거나 하는 일은 생기지 않음
+    sealed trait AtomicSymbol extends Symbol
 
-    sealed trait Terminal extends SingleSymbol {
+    sealed trait Terminal extends AtomicSymbol {
         def accept(input: Inputs.Input): Boolean
     }
     object Terminals {
@@ -73,13 +73,13 @@ object Symbols {
     val Unicode = Terminals.Unicode
 
     case object Empty extends Nonterm
-    case class Nonterminal(name: String) extends Nonterm with SingleSymbol {
+    case class Nonterminal(name: String) extends Nonterm with AtomicSymbol {
         override val hashCode = (classOf[Nonterminal], name).hashCode
     }
     case class Sequence(seq: Seq[Symbol], whitespace: Set[Symbol]) extends Nonterm {
         override val hashCode = (classOf[Sequence], seq, whitespace).hashCode
     }
-    case class OneOf(syms: Set[Symbol]) extends Nonterm with SingleSymbol {
+    case class OneOf(syms: Set[Symbol]) extends Nonterm with AtomicSymbol {
         override val hashCode = (classOf[OneOf], syms).hashCode
     }
     case class Repeat(sym: Symbol, range: Repeat.Range) extends Nonterm {
@@ -117,24 +117,22 @@ object Symbols {
     case class LookaheadExcept(except: Symbol) extends Nonterm {
         override val hashCode = (classOf[LookaheadExcept], except).hashCode
     }
-    case class Backup(sym: Symbol, backup: Symbol) extends Nonterm {
+    case class Proxy(val sym: Symbol) extends Nonterm with AtomicSymbol {
+        override val hashCode = (classOf[Proxy], sym).hashCode
+    }
+    object Proxy {
+        def of(sym: Symbol): AtomicSymbol = sym match {
+            case sym: AtomicSymbol => sym
+            case sym => Proxy(sym)
+        }
+    }
+    case class Backup(sym: AtomicSymbol, backup: AtomicSymbol) extends Nonterm {
+        def this(sym: Symbol, backup: Symbol) = this(Proxy.of(sym), Proxy.of(backup))
         override val hashCode = (classOf[Backup], sym, backup).hashCode
     }
-    case class Join(sym: SingleSymbol, join: SingleSymbol) extends Nonterm {
+    case class Join(sym: AtomicSymbol, join: AtomicSymbol) extends Nonterm {
+        def this(sym: Symbol, join: Symbol) = this(Proxy.of(sym), Proxy.of(join))
         override val hashCode = (classOf[Join], sym, join).hashCode
-    }
-    object Join {
-        def apply(sym: Symbol, join: Symbol): Join = {
-            def withProxy(sym: Symbol): SingleSymbol = sym match {
-                case sym: SingleSymbol => sym
-                case sym => Proxy(sym)
-            }
-            Join(withProxy(sym), withProxy(join))
-        }
-        // Join(sym, join)에서만 생성해야 함
-        case class Proxy(sym: Symbol) extends Nonterm with SingleSymbol {
-            override val hashCode = (classOf[Proxy], sym).hashCode
-        }
     }
     case class Longest(sym: Symbol) extends Nonterm {
         override val hashCode = (classOf[Longest], sym).hashCode
@@ -184,9 +182,9 @@ object Symbols {
             case s: Repeat => s"${s.sym.toShortString}[${s.range.toShortString}]"
             case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
             case LookaheadExcept(except) => s"la_except ${except.toShortString}"
+            case Proxy(sym) => s"P(${sym.toShortString})"
             case Backup(sym, backup) => s"${sym.toShortString} backedupby ${backup.toShortString}"
             case Join(sym, join) => s"${sym.toShortString} joinedwith ${join.toShortString}"
-            case Join.Proxy(sym) => s"P(${sym.toShortString})"
             case Longest(sym) => s"L(${sym.toShortString})"
         }
     }

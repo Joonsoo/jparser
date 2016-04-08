@@ -17,6 +17,7 @@ import com.giyeok.moonparser.Symbols.Symbol
 import com.giyeok.moonparser.Symbols.Terminal
 import com.giyeok.moonparser.Symbols.Terminals
 import com.giyeok.moonparser.Symbols.Longest
+import com.giyeok.moonparser.Symbols.Proxy
 import java.lang.Character.UnicodeBlock
 import FigureGenerator.Spacing
 
@@ -98,12 +99,12 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
                 g.horizontalFig(Spacing.Medium, Seq(symFig, g.textFig("except", ap.default), exceptFig))
             case LookaheadExcept(except) =>
                 g.horizontalFig(Spacing.Small, Seq(g.textFig("(", ap.default), g.textFig("lookahead_except", ap.default), symbolFig(except), g.textFig(")", ap.default)))
+            case Proxy(sym) =>
+                g.horizontalFig(Spacing.Small, Seq(g.textFig("P(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
             case Backup(sym, backup) =>
                 g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("if failed", ap.default), symbolFig(backup)))
             case Join(sym, join) =>
                 g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("&", ap.default), symbolFig(join)))
-            case Join.Proxy(sym) =>
-                g.horizontalFig(Spacing.Small, Seq(g.textFig("ρ(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
             case Longest(sym) =>
                 g.horizontalFig(Spacing.Small, Seq(g.textFig("L(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
         }

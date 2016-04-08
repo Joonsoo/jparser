@@ -34,7 +34,7 @@ object GrammarHelper {
     def lookahead_except(except: Symbol) = LookaheadExcept(except)
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
     def longest(sym: Symbol) = Longest(sym)
-    def join(sym: Symbol, join: Symbol) = Join(sym, join)
+    def join(sym: Symbol, join: Symbol) = new Join(sym, join)
 
     // def lgst(t: Terminal) = seq(t, LookaheadExcept(t))
 
@@ -71,12 +71,12 @@ object GrammarHelper {
         def backup(backup: Symbol): Backup = self match {
             case _: Nonterminal | _: Sequence =>
                 // NOTE consider which elements are deserved to be backed up
-                Backup(self, backup)
+                new Backup(self, backup)
             case _ => throw GrammarDefinitionException("Applied backup to the items that cannot be")
         }
     }
     implicit class GrammarElementJoinable(self: Symbol) {
-        def join(joinWith: Symbol): Join = Join(self, joinWith)
+        def join(joinWith: Symbol): Join = new Join(self, joinWith)
     }
 
     implicit class GrammarMergeable(rules: Grammar#RuleMap) {

@@ -63,7 +63,7 @@ trait SymbolProgresses extends SeqOrderedTester {
             case symbol: Repeat => RepeatProgress(symbol, List(), gen)
             case symbol: Backup => BackupProgress(symbol, None, gen)
             case symbol: Join => JoinProgress(symbol, None, gen)
-            case symbol: Join.Proxy => JoinProxyProgress(symbol, None, gen)
+            case symbol: Proxy => ProxyProgress(symbol, None, gen)
             case symbol: Longest => LongestProgress(symbol, None, gen)
         }
     }
@@ -185,6 +185,11 @@ trait SymbolProgresses extends SeqOrderedTester {
         def derive(gen: Int) = Set(LiftTriggeredNodeKillEdge(SymbolProgress(symbol.except, gen), this))
     }
 
+    case class ProxyProgress(symbol: Proxy, parsed: Option[ParsedSymbol[Proxy]], derivedGen: Int) extends SymbolProgressNonterminal {
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = ProxyProgress(symbol, Some(ParsedSymbol[Proxy](symbol, source.parsed.get)), derivedGen)
+        def derive(gen: Int) = if (!parsed.isEmpty) Set() else Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen)))
+    }
+
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]], derivedGen: Int)
             extends SymbolProgressNonterminal {
         def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
@@ -215,11 +220,6 @@ trait SymbolProgresses extends SeqOrderedTester {
             JoinEdge(this, SymbolProgress(symbol.join, gen), SymbolProgress(symbol.sym, gen), true))
     }
 
-    case class JoinProxyProgress(symbol: Join.Proxy, parsed: Option[ParsedSymbol[Join.Proxy]], derivedGen: Int) extends SymbolProgressNonterminal {
-        def lift0(source: SymbolProgress): SymbolProgressNonterminal = JoinProxyProgress(symbol, Some(ParsedSymbol[Join.Proxy](symbol, source.parsed.get)), derivedGen)
-        def derive(gen: Int) = if (!parsed.isEmpty) Set() else Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen)))
-    }
-
     case class LongestProgress(symbol: Longest, parsed: Option[ParsedSymbol[Longest]], derivedGen: Int) extends SymbolProgressNonterminal {
         override def lift(source: SymbolProgress): (Lifting, Set[Edge]) = {
             val lifted = lift0(source)
@@ -245,9 +245,9 @@ trait SymbolProgresses extends SeqOrderedTester {
                 case rep @ RepeatProgress(symbol, _children, _) =>
                     (if (symbol.range canProceed _children.size) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
                 case LookaheadExceptProgress(symbol, _) => symbol.toShortString
+                case ProxyProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case BackupProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case JoinProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
-                case JoinProxyProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case LongestProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
             })
         }

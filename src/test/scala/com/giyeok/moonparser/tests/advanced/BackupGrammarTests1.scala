@@ -12,10 +12,10 @@ object BackupGrammar1 extends Grammar with StringSamples {
     val wsChars = chars(" ")
     val name = "BackupGrammar1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(wsChars.star, c(';')).backup(wsChars.plus)))
+        "S" -> ListSet(seq(seq(c('a').plus), seq(wsChars.star, c(';')).backup(wsChars.plus)).star))
     val startSymbol = n("S")
 
-    val correctSamples = Set[String](";", "  ", " ;")
+    val correctSamples = Set[String]("aa;a ")
     val incorrectSamples = Set[String]()
 }
 
