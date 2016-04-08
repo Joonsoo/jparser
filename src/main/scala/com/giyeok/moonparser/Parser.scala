@@ -28,7 +28,7 @@ class Parser(val grammar: Grammar)
         newEdges: Set[Edge],
         rootTips: Set[Node],
         roots: Set[Edge],
-        propagatedAssassinEdges: Set[AssassinEdge],
+        propagatedAssassinEdges: Set[KillEdge],
         finalNodes: Set[Node],
         finalEdges: Set[Edge])
 
@@ -229,19 +229,19 @@ class Parser(val grammar: Grammar)
         expand0(queue, ExpandResult(initialLiftings, initialNodes, Set(), Set()))
     }
 
-    def prepareNextAssassinEdges(edges: Set[Edge], liftings: Set[Lifting]): (Set[AssassinEdge], Set[Node], Set[Edge]) = {
-        def propagateLiftAssassinEdges(queue: List[LiftAssassinEdge], newEdgesCC: Set[LiftAssassinEdge]): Set[LiftAssassinEdge] =
+    def prepareNextAssassinEdges(edges: Set[Edge], liftings: Set[Lifting]): (Set[KillEdge], Set[Node], Set[Edge]) = {
+        def propagateLiftKillEdges(queue: List[LiftTriggeredLiftKillEdge], newEdgesCC: Set[LiftTriggeredLiftKillEdge]): Set[LiftTriggeredLiftKillEdge] =
             queue match {
                 case head +: rest =>
                     val liftedBy = liftings collect { case x @ NontermLifting(_, _, by) if by == head.end => x }
                     // val liftedBy = liftings filter { _.by == Some(head.to) }
-                    val newAssassinEdges = (liftedBy map { lifting => LiftAssassinEdge(head.start, lifting.after) }) -- newEdgesCC
-                    propagateLiftAssassinEdges(rest ++ newAssassinEdges.toList, newEdgesCC ++ newAssassinEdges)
+                    val newAssassinEdges = (liftedBy map { lifting => LiftTriggeredLiftKillEdge(head.start, lifting.after) }) -- newEdgesCC
+                    propagateLiftKillEdges(rest ++ newAssassinEdges.toList, newEdgesCC ++ newAssassinEdges)
                 case List() => newEdgesCC
             }
 
-        def propagateEagerAssassinEdges(assassinEdges: Set[EagerAssassinEdge]): Set[EagerAssassinEdge] = {
-            val propagated: Map[Set[EagerAssassinEdge], Set[Node]] = assassinEdges groupBy { _.end } map { p =>
+        def propagateNodeKillEdges(assassinEdges: Set[LiftTriggeredNodeKillEdge]): Set[LiftTriggeredNodeKillEdge] = {
+            val propagated: Map[Set[LiftTriggeredNodeKillEdge], Set[Node]] = assassinEdges groupBy { _.end } map { p =>
                 assert(p._2 forall { _.end == p._1 })
                 val sameDestinationEdges = p._2
                 def propagate(queue: List[Node], nodesCC: Set[Node], liftingsCC: Set[Lifting], edgesCC: Set[SimpleEdge]): Set[Node] =
@@ -265,13 +265,13 @@ class Parser(val grammar: Grammar)
 
             (propagated flatMap { p =>
                 val (origins, affecteds) = p
-                origins flatMap { origin => affecteds map { to => EagerAssassinEdge(origin.start, to) } }
+                origins flatMap { origin => affecteds map { to => LiftTriggeredNodeKillEdge(origin.start, to) } }
             }).toSet
         }
 
-        val propagatedAssassinEdges0 = propagateLiftAssassinEdges(edges.liftAssassinEdges.toList, Set()).asInstanceOf[Set[AssassinEdge]]
-        val propagatedAssassinEdges1 = propagateEagerAssassinEdges(edges.eagerAssassinEdges).asInstanceOf[Set[AssassinEdge]]
-        val propagatedAssassinEdges: Set[AssassinEdge] = propagatedAssassinEdges0 ++ propagatedAssassinEdges1
+        val propagatedAssassinEdges0 = propagateLiftKillEdges(edges.liftTriggeredLiftKillEdges.toList, Set()).asInstanceOf[Set[KillEdge]]
+        val propagatedAssassinEdges1 = propagateNodeKillEdges(edges.liftTriggeredNodeKillEdges).asInstanceOf[Set[KillEdge]]
+        val propagatedAssassinEdges: Set[KillEdge] = propagatedAssassinEdges0 ++ propagatedAssassinEdges1
 
         // TODO outgoing edges of assassin targets
         // TODO lifting before?
@@ -326,8 +326,8 @@ class Parser(val grammar: Grammar)
                         val roots = rootTips0 flatMap { rootTip => graph.edges.rootsOf(rootTip) }
                         (liftings0, newNodes0, newEdges0, rootTips0, roots)
                     } else {
-                        val activeLiftAssassinEdges = activeAssassinEdges collect { case e: LiftAssassinEdge => e }
-                        val activeEagerAssassinEdges = activeAssassinEdges collect { case e: EagerAssassinEdge => e }
+                        val activeLiftAssassinEdges = activeAssassinEdges collect { case e: LiftTriggeredLiftKillEdge => e }
+                        val activeEagerAssassinEdges = activeAssassinEdges collect { case e: LiftTriggeredNodeKillEdge => e }
 
                         val blockingLiftings = liftings0 filter { l => activeAssassinEdges map { _.end } contains l.before }
                         logging {

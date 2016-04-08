@@ -175,12 +175,12 @@ trait ParsingContextGraphVisualize {
                 val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
                 // TODO e.contraint 도 표시
                 connection
-            case e: Parser#LiftAssassinEdge =>
+            case e: Parser#LiftTriggeredLiftKillEdge =>
                 val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
                 connection.setLineColor(ColorConstants.red)
                 vedges(e) = connection
                 connection
-            case e: Parser#EagerAssassinEdge =>
+            case e: Parser#LiftTriggeredNodeKillEdge =>
                 val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
                 connection.setLineColor(darkerRed)
                 vedges(e) = connection

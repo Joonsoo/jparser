@@ -31,24 +31,26 @@ trait GraphDataStructure {
         override def endTo(end: Node): Boolean = super.endTo(end) || end == this.constraint
         def toShortString = s"${start.toShortString} -> ${end.toShortString} & ${constraint.toShortString}${if (endConstraintReversed) " (reverse)" else ""}"
     }
-    sealed abstract class AssassinEdge extends Edge
-    case class LiftAssassinEdge(start: Node, end: Node) extends AssassinEdge {
+    sealed abstract class KillEdge extends Edge
+    case class LiftTriggeredLiftKillEdge(start: Node, end: Node) extends KillEdge {
         def toShortString = s"${start.toShortString} -X> ${end.toShortString}"
     }
-    case class EagerAssassinEdge(start: Node, end: Node) extends AssassinEdge {
+    case class LiftTriggeredNodeKillEdge(start: Node, end: Node) extends KillEdge {
         def toShortString = s"${start.toShortString} -XX> ${end.toShortString}"
     }
-    // if `from` lives, `to` will be killed - is used to implement lookahead except and backup
-    // is contagious - the nodes derived from `to` will be the target of `from` (recursively)
+    case class AliveTriggeredNodeKillEdge(start: Node, end: Node) extends KillEdge {
+        def toShortString = s"${start.toShortString} =XX> ${end.toShortString}"
+    }
 
     case class Graph(nodes: Set[Node], edges: Set[Edge])
 
     implicit class AugEdges(edges: Set[Edge]) {
         def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }
         def deriveEdges: Set[DeriveEdge] = edges collect { case e: DeriveEdge => e }
-        def assassinEdges: Set[AssassinEdge] = edges collect { case e: AssassinEdge => e }
-        def liftAssassinEdges: Set[LiftAssassinEdge] = edges collect { case e: LiftAssassinEdge => e }
-        def eagerAssassinEdges: Set[EagerAssassinEdge] = edges collect { case e: EagerAssassinEdge => e }
+        def assassinEdges: Set[KillEdge] = edges collect { case e: KillEdge => e }
+        def liftTriggeredLiftKillEdges: Set[LiftTriggeredLiftKillEdge] = edges collect { case e: LiftTriggeredLiftKillEdge => e }
+        def liftTriggeredNodeKillEdges: Set[LiftTriggeredNodeKillEdge] = edges collect { case e: LiftTriggeredNodeKillEdge => e }
+        def aliveTriggeredNodeKillEdges: Set[AliveTriggeredNodeKillEdge] = edges collect { case e: AliveTriggeredNodeKillEdge => e }
 
         def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.end == node }
         def incomingDeriveEdgesOf(node: Node): Set[DeriveEdge] = deriveEdges filter { _.end == node }
