@@ -80,7 +80,7 @@ trait ParsingContextGraphVisualize {
     val tooltipParseNodeFigureGenerator = new ParseNodeFigureGenerator(figureGenerator, tooltipAppearances)
 
     private val vnodes = scala.collection.mutable.Map[Parser#Node, CGraphNode]()
-    private val vedges = scala.collection.mutable.Map[Parser#Edge, GraphConnection]()
+    private val vedges = scala.collection.mutable.Map[Parser#DeriveEdge, GraphConnection]()
 
     def newSymbolProgressContentFig(node: Parser#SymbolProgress, horizontal: Boolean, renderConf: ParseNodeFigureGenerator.RenderingConfiguration) = {
         val figFunc: (ParseTree.ParseNode[Symbols.Symbol], ParseNodeFigureGenerator.RenderingConfiguration) => Figure =
@@ -155,7 +155,7 @@ trait ParsingContextGraphVisualize {
         node.setBackgroundColor(ColorConstants.orange)
     }
 
-    private def calculateCurve(edges: Set[Parser#Edge], e: Parser#Edge): Int = {
+    private def calculateCurve(edges: Set[Parser#DeriveEdge], e: Parser#DeriveEdge): Int = {
         val overlapping = edges filter { r => (((r.start == e.start) && (r.end == e.end)) || ((r.start == e.end) && (r.end == e.start))) && (e != r) }
         if (!overlapping.isEmpty) {
             overlapping count { _.hashCode < e.hashCode }
@@ -165,7 +165,7 @@ trait ParsingContextGraphVisualize {
 
     val darkerRed = new Color(null, 139, 0, 0)
 
-    def registerEdge(edges: Set[Parser#Edge])(e: Parser#Edge): GraphConnection = {
+    def registerEdge(edges: Set[Parser#DeriveEdge])(e: Parser#DeriveEdge): GraphConnection = {
         val edge = e match {
             case e: Parser#SimpleEdge =>
                 val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
@@ -175,16 +175,6 @@ trait ParsingContextGraphVisualize {
                 val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
                 // TODO e.contraint 도 표시
                 connection
-            case e: Parser#LiftTriggeredLiftKillEdge =>
-                val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
-                connection.setLineColor(ColorConstants.red)
-                vedges(e) = connection
-                connection
-            case e: Parser#LiftTriggeredNodeKillEdge =>
-                val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(e.start), vnodes(e.end))
-                connection.setLineColor(darkerRed)
-                vedges(e) = connection
-                connection
         }
         val curves = calculateCurve(edges, e)
 
@@ -193,7 +183,7 @@ trait ParsingContextGraphVisualize {
         }
         edge
     }
-    def registerEdge1(edges: Set[Parser#Edge])(e: Parser#Edge): (GraphNode, GraphNode, GraphConnection) = {
+    def registerEdge1(edges: Set[Parser#DeriveEdge])(e: Parser#DeriveEdge): (GraphNode, GraphNode, GraphConnection) = {
         val start = registerNode(e.start)
         val end = registerNode(e.end)
         (start, end, registerEdge(edges)(e))
@@ -261,11 +251,11 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: Parse
 
     def initGraph() = new Graph(this, SWT.NONE)
 
-    (context.graph.nodes ++ context.resultCandidates) foreach { registerNode _ }
+    (context.nodes ++ context.resultCandidates) foreach { registerNode _ }
     context.resultCandidates foreach { highlightResultCandidate _ }
 
-    val registerEdge1 = registerEdge(context.graph.edges.asInstanceOf[Set[Parser#Edge]]) _
-    context.graph.edges foreach { registerEdge1(_) }
+    val registerEdge1 = registerEdge(context.edges.asInstanceOf[Set[Parser#DeriveEdge]]) _
+    context.edges foreach { registerEdge1(_) }
 
     import org.eclipse.zest.layouts.algorithms._
     val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)

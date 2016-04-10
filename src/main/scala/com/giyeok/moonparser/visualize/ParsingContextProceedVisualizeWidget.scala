@@ -32,8 +32,8 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
 
     def initGraph() = new Graph(this, SWT.NONE)
 
-    private val (nodes: Set[Parser#Node], edges: Set[Parser#Edge]) = lastContext match {
-        case Some(ctx) => (ctx.graph.nodes.asInstanceOf[Set[Parser#Node]], ctx.graph.edges.asInstanceOf[Set[Parser#Edge]])
+    private val (nodes: Set[Parser#Node], edges: Set[Parser#DeriveEdge]) = lastContext match {
+        case Some(ctx) => (ctx.nodes.asInstanceOf[Set[Parser#Node]], ctx.edges.asInstanceOf[Set[Parser#DeriveEdge]])
         case _ => (Set(), Set())
     }
 
@@ -127,11 +127,12 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         }
     }
 
-    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122) // dark salmon
-    log.propagatedAssassinEdges foreach { e =>
-        val (from, to, connection) = registerEdge1(edges)(e)
-        connection.setLineColor(propagatedAssassinEdgeColor)
-    }
+    // TODO visualize reverters
+    //    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122) // dark salmon
+    //    log.propagatedAssassinEdges foreach { e =>
+    //        val (from, to, connection) = registerEdge1(edges)(e)
+    //        connection.setLineColor(propagatedAssassinEdgeColor)
+    //    }
 
     graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS), true)
 }

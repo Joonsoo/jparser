@@ -10,8 +10,8 @@ trait GraphDataStructure {
     type TerminalNode = SymbolProgressTerminal
     type NonterminalNode = SymbolProgressNonterminal
 
-    sealed abstract class Edge {
-        val start: Node
+    sealed abstract class DeriveEdge {
+        val start: NonterminalNode
         val end: Node
         val nodes = Set(start, end)
 
@@ -19,9 +19,6 @@ trait GraphDataStructure {
 
         def toShortString: String
         override def toString = toShortString
-    }
-    sealed abstract class DeriveEdge extends Edge {
-        override val start: NonterminalNode
     }
     case class SimpleEdge(start: NonterminalNode, end: Node) extends DeriveEdge {
         def toShortString = s"${start.toShortString} -> ${end.toShortString}"
@@ -31,34 +28,27 @@ trait GraphDataStructure {
         override def endTo(end: Node): Boolean = super.endTo(end) || end == this.constraint
         def toShortString = s"${start.toShortString} -> ${end.toShortString} & ${constraint.toShortString}${if (endConstraintReversed) " (reverse)" else ""}"
     }
-    sealed abstract class KillEdge extends Edge
-    case class LiftTriggeredLiftKillEdge(start: Node, end: Node) extends KillEdge {
-        def toShortString = s"${start.toShortString} -X> ${end.toShortString}"
-    }
-    case class LiftTriggeredNodeKillEdge(start: Node, end: Node) extends KillEdge {
-        def toShortString = s"${start.toShortString} -XX> ${end.toShortString}"
-    }
-    case class AliveTriggeredNodeKillEdge(start: Node, end: Node) extends KillEdge {
-        def toShortString = s"${start.toShortString} =XX> ${end.toShortString}"
-    }
 
-    case class Graph(nodes: Set[Node], edges: Set[Edge])
+    sealed trait Reverter {
+        // TODO
+        def toShortString: String = toString
+    }
+    sealed trait DeriveReverter extends Reverter
+    sealed trait LiftReverter extends Reverter
+    case class LiftTriggeredDeriveReverter(start: Node, edge: DeriveEdge) extends DeriveReverter
+    case class LiftTriggeredLiftReverter(start: Node, edge: Lifting) extends LiftReverter
+    case class AliveTriggeredLiftReverter(start: Node, edge: Lifting) extends LiftReverter
 
-    implicit class AugEdges(edges: Set[Edge]) {
+    implicit class AugEdges(edges: Set[DeriveEdge]) {
         def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }
-        def deriveEdges: Set[DeriveEdge] = edges collect { case e: DeriveEdge => e }
-        def assassinEdges: Set[KillEdge] = edges collect { case e: KillEdge => e }
-        def liftTriggeredLiftKillEdges: Set[LiftTriggeredLiftKillEdge] = edges collect { case e: LiftTriggeredLiftKillEdge => e }
-        def liftTriggeredNodeKillEdges: Set[LiftTriggeredNodeKillEdge] = edges collect { case e: LiftTriggeredNodeKillEdge => e }
-        def aliveTriggeredNodeKillEdges: Set[AliveTriggeredNodeKillEdge] = edges collect { case e: AliveTriggeredNodeKillEdge => e }
 
+        def incomingEdgesOf(node: Node): Set[DeriveEdge] = edges filter { _.end == node }
         def incomingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.end == node }
-        def incomingDeriveEdgesOf(node: Node): Set[DeriveEdge] = deriveEdges filter { _.end == node }
-        def incomingEdgesOf(node: Node): Set[Edge] = edges filter { _.endTo(node) }
+        def outgoingEdgesOf(node: Node): Set[DeriveEdge] = edges filter { _.start == node }
         def outgoingSimpleEdgesOf(node: Node): Set[SimpleEdge] = simpleEdges filter { _.start == node }
 
-        def rootsOf(node: Node): Set[Edge] = {
-            def trackRoots(queue: List[SymbolProgress], cc: Set[Edge]): Set[Edge] =
+        def rootsOf(node: Node): Set[DeriveEdge] = {
+            def trackRoots(queue: List[SymbolProgress], cc: Set[DeriveEdge]): Set[DeriveEdge] =
                 queue match {
                     case node +: rest =>
                         val incomings = incomingEdgesOf(node) -- cc
