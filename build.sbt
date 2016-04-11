@@ -1,4 +1,4 @@
-name := "Moon Parser"
+name := "J Parser"
 
 version := "0.1"
 

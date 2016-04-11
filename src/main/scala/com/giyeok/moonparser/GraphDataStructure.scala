@@ -30,14 +30,40 @@ trait GraphDataStructure {
     }
 
     sealed trait Reverter {
-        // TODO
         def toShortString: String = toString
     }
-    sealed trait DeriveReverter extends Reverter
-    sealed trait LiftReverter extends Reverter
-    case class LiftTriggeredDeriveReverter(start: Node, edge: DeriveEdge) extends DeriveReverter
-    case class LiftTriggeredLiftReverter(start: Node, edge: Lifting) extends LiftReverter
-    case class AliveTriggeredLiftReverter(start: Node, edge: Lifting) extends LiftReverter
+    sealed trait PreReverter extends Reverter
+    sealed trait WorkingReverter extends Reverter
+
+    sealed trait DeriveReverter extends PreReverter with WorkingReverter {
+        val targetEdge: SimpleEdge
+        def withNewTargetEdge(newTargetEdge: SimpleEdge): DeriveReverter
+    }
+    sealed trait LiftReverter extends PreReverter {
+        val targetLifting: Lifting
+    }
+    sealed trait NodeKillReverter extends WorkingReverter {
+        val targetNode: Node
+    }
+
+    sealed trait ReverterTrigger extends Reverter
+    sealed trait ConditionalTrigger extends ReverterTrigger
+    sealed trait LiftTriggered extends ConditionalTrigger {
+        val trigger: Node
+    }
+    sealed trait MultiLiftTriggered extends ConditionalTrigger {
+        // 이 트리거가 "모두" 만족되어야 말동
+        val triggers: Set[Node]
+    }
+    sealed trait AlwaysTriggered extends ReverterTrigger
+
+    case class LiftTriggeredDeriveReverter(trigger: Node, targetEdge: SimpleEdge) extends LiftTriggered with DeriveReverter {
+        def withNewTargetEdge(newTargetEdge: SimpleEdge) = LiftTriggeredDeriveReverter(trigger, newTargetEdge)
+    }
+    case class LiftTriggeredLiftReverter(trigger: Node, targetLifting: Lifting) extends LiftTriggered with LiftReverter
+    case class AlwaysTriggeredLiftReverter(trigger: Node, targetLifting: Lifting) extends AlwaysTriggered with LiftReverter
+    case class LiftTriggeredNodeKillReverter(triggers: Set[Node], targetNode: Node) extends MultiLiftTriggered with NodeKillReverter
+    case class AlwaysTriggeredNodeKillReverter(triggers: Set[Node], targetNode: Node) extends AlwaysTriggered with NodeKillReverter
 
     implicit class AugEdges(edges: Set[DeriveEdge]) {
         def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }
