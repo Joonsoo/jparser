@@ -34,11 +34,23 @@ class Parser(val grammar: Grammar)
         finalEdges: Set[DeriveEdge],
         finalReverters: Set[WorkingReverter])
 
-    def logging(block: => Unit): Unit = {
-        // block
+    val logConfs = Map[String, Boolean](
+        "PCG" -> true,
+        "expand" -> false,
+        "proceedTerminal" -> false,
+        "initialPC" -> false)
+    def logging(logType: String)(block: => Unit): Unit = {
+        logConfs get logType match {
+            case Some(true) => block
+            case Some(false) => // do nothing
+            case None =>
+                throw new Exception("Unknown log type: " + logType)
+        }
     }
-    def logging(str: String): Unit = {
-        logging({ println(str) })
+    def logging(logType: String, str: String): Unit = {
+        logging(logType) {
+            println(str)
+        }
     }
 
     sealed trait ExpandTask
@@ -59,18 +71,18 @@ class Parser(val grammar: Grammar)
     }
 
     def expand(oldNodes: Set[Node], oldEdges: Set[DeriveEdge], newGenId: Int, queue: List[ExpandTask]): ExpandResult = {
-        def expand0(queue: List[ExpandTask], cc: ExpandResult): ExpandResult = {
+        def expand0(queue: List[ExpandTask], allTasksCC: Set[ExpandTask], cc: ExpandResult): (Set[ExpandTask], ExpandResult) = {
             val allEdges: Set[DeriveEdge] = oldEdges ++ cc.edges
-            logging({
+            logging("expand") {
                 println("left queues:")
                 queue foreach { q => println(s"  $q") }
-            })
+            }
             // TODO queue에 중복된 아이템 2개 들어가지 않도록 수정
             queue match {
                 case task +: rest => task match {
                     case DeriveTask(node) =>
                         // `node`로부터 derive 처리
-                        logging(s"DeriveTask($node)")
+                        logging("expand", s"DeriveTask($node)")
                         assert(cc.nodes contains node)
 
                         var (nextQueue, nextCC) = (rest, cc)
@@ -85,7 +97,7 @@ class Parser(val grammar: Grammar)
                         nextQueue ++:= newNodes collect { case n: NonterminalNode => DeriveTask(n) }
                         nextCC += ExpandResult(Set(), newNodes, newDerivedEdges, newDerivedReverters, Map())
 
-                        logging {
+                        logging("expand") {
                             newDerivedEdges foreach { edge =>
                                 println("  " + edge)
                             }
@@ -99,7 +111,7 @@ class Parser(val grammar: Grammar)
                             (lifts map { _._1 }, lifts flatMap { _._2 })
                         }
 
-                        logging {
+                        logging("expand") {
                             newLiftings foreach { lifting =>
                                 println("  " + lifting)
                             }
@@ -122,11 +134,11 @@ class Parser(val grammar: Grammar)
                         nextQueue ++:= alreadyProcessedNodesLifting map { LiftTask(_) }
                         nextCC = nextCC.withLiftings(alreadyProcessedNodesLifting).withReverters(alreadyProcessedReverters)
 
-                        expand0(nextQueue, nextCC)
+                        expand0(nextQueue, allTasksCC + task, nextCC)
 
                     case LiftTask(TermLifting(before, after, by)) =>
                         // terminal element가 lift되는 경우 처리
-                        logging(s"TermLiftTask($before, $after, $by)")
+                        logging("expand", s"TermLiftTask($before, $after, $by)")
 
                         // terminal element는 항상 before는 비어있고 after는 한 글자로 차 있어야 하며, 정의상 둘 다 derive가 불가능하다.
                         assert(!before.canFinish)
@@ -153,12 +165,12 @@ class Parser(val grammar: Grammar)
                             }
                         }
 
-                        expand0(nextQueue, nextCC)
+                        expand0(nextQueue, allTasksCC + task, nextCC)
 
                     case LiftTask(NontermLifting(before, after, by)) =>
                         // nonterminal element가 lift되는 경우 처리
                         // 문제가 되는 lift는 전부 여기 문제
-                        logging(s"NontermLiftTask($before, $after, $by)")
+                        logging("expand", s"NontermLiftTask($before, $after, $by)")
 
                         var (nextQueue, nextCC) = (rest, cc)
 
@@ -171,7 +183,7 @@ class Parser(val grammar: Grammar)
                         // (afterDerives.isEmpty) 이면 (afterReverters.isEmpty) 이다
                         assert(!afterDerives.isEmpty || afterReverters.isEmpty)
                         if (!afterDerives.isEmpty) {
-                            logging("  hasDerives")
+                            logging("expand", "  hasDerives")
 
                             var proceededEdges: Map[SimpleEdge, SimpleEdge] = (incomingDeriveEdges map { edge =>
                                 edge match {
@@ -193,7 +205,7 @@ class Parser(val grammar: Grammar)
                         // - 이런 경우는, `after`가 (derive가 가능한가와는 무관하게) 완성된 상태이며, 이 노드에 영향을 받는 다른 노드들을 lift해야 한다는 의미
                         // - 따라서 `after`를 바라보고 있는 노드들을 lift해서 LiftTask를 추가해주어야 함
                         if (after.canFinish) {
-                            logging("  isCanFinish")
+                            logging("expand", "  isCanFinish")
                             incomingDeriveEdges foreach { edge =>
                                 assert(before == edge.end)
                                 edge match {
@@ -219,14 +231,19 @@ class Parser(val grammar: Grammar)
                             }
                         }
 
-                        expand0(nextQueue, nextCC)
+                        expand0(nextQueue, allTasksCC + task, nextCC)
                 }
-                case List() => cc
+                case List() => (allTasksCC, cc)
             }
         }
         val initialLiftings: Set[Lifting] = (queue collect { case LiftTask(lifting) => lifting }).toSet
         val initialNodes: Set[Node] = (queue collect { case DeriveTask(node) => node }).toSet
-        val result = expand0(queue, ExpandResult(initialLiftings, initialNodes, Set(), Set(), Map()))
+        val (allTasks, result) = expand0(queue, Set(), ExpandResult(initialLiftings, initialNodes, Set(), Set(), Map()))
+        logging("PCG") {
+            println(newGenId)
+            println(allTasks.filter(_.isInstanceOf[DeriveTask]).size, allTasks.filter(_.isInstanceOf[DeriveTask]))
+            println(allTasks.size, allTasks)
+        }
         // nullable한 node는 바로 lift가 되어서 바로 proceededEdges에 추가될 수 있어서 아래 assert는 맞지 않음
         // assert((result.proceededEdges map { _._1 }).toSet subsetOf oldEdges)
         // assert((result.proceededEdges map { _._2.start }).toSet subsetOf oldNodes)
@@ -282,7 +299,7 @@ class Parser(val grammar: Grammar)
         def proceedTerminalVerbose(next: Input): (Either[(ParsingContext, VerboseProceedLog), ParsingError]) = {
             // `nextNodes` is actually type of `Set[(SymbolProgressTerminal, SymbolProgressTerminal)]`
             // but the invariance of `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
-            logging {
+            logging("proceedTerminal") {
                 println(s"**** New Generation $gen -> ${gen + 1}")
 
                 edges foreach { edge => println(edge.toShortString) }
@@ -325,7 +342,7 @@ class Parser(val grammar: Grammar)
                 val finalNodes = finalEdges flatMap { _.nodes }
                 val workingReverters = proceedReverters(newReverters, liftings, proceededEdges)
 
-                logging {
+                logging("proceedTerminal") {
                     println("- liftings")
                     liftings foreach { lifting => println(lifting.toShortString) }
                     println("- newNodes")
@@ -388,7 +405,7 @@ class Parser(val grammar: Grammar)
             val ExpandResult(liftings, nodes, edges, reverters, proceededEdges) = expand(Set(), Set(), 0, List(DeriveTask(startProgress.asInstanceOf[NonterminalNode])))
             // expand2(seeds.toList, seeds, Set(), Set())
 
-            logging {
+            logging("initialPC") {
                 println("- nodes")
                 nodes.toSeq.sortBy { _.id } foreach { node => println(node.toShortString) }
                 println("- edges")
