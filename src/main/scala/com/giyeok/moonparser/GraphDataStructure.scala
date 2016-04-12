@@ -62,8 +62,7 @@ trait GraphDataStructure {
     }
     case class LiftTriggeredLiftReverter(trigger: Node, targetLifting: Lifting) extends LiftTriggered with LiftReverter
     case class AlwaysTriggeredLiftReverter(trigger: Node, targetLifting: Lifting) extends AlwaysTriggered with LiftReverter
-    case class LiftTriggeredNodeKillReverter(triggers: Set[Node], targetNode: Node) extends MultiLiftTriggered with NodeKillReverter
-    case class AlwaysTriggeredNodeKillReverter(triggers: Set[Node], targetNode: Node) extends AlwaysTriggered with NodeKillReverter
+    case class MultiLiftTriggeredNodeKillReverter(triggers: Set[Node], targetNode: Node) extends MultiLiftTriggered with NodeKillReverter
 
     implicit class AugEdges(edges: Set[DeriveEdge]) {
         def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }

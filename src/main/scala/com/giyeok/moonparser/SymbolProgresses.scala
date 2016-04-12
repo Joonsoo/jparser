@@ -32,7 +32,7 @@ trait SymbolProgresses extends SeqOrderedTester {
          * the finished nodes will be transferred to the origin node via `lift` method
          */
         def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter])
-        def lift(source: SymbolProgress): (Lifting, Set[PreReverter]) = (NontermLifting(this, lift0(source), source), Set())
+        def lift(source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = (NontermLifting(this, lift0(source), source, edge), Set())
         def lift0(source: SymbolProgress): SymbolProgressNonterminal
     }
     case class EmptyProgress(derivedGen: Int) extends SymbolProgress {
@@ -213,11 +213,11 @@ trait SymbolProgresses extends SeqOrderedTester {
 
     case class JoinProgress(symbol: Join, parsed: Option[ParsedSymbolJoin], derivedGen: Int) extends SymbolProgressNonterminal {
         def lift0(source: SymbolProgress): SymbolProgressNonterminal = ??? // should never be called
-        def liftJoin(source: SymbolProgress, constraint: SymbolProgress): Lifting = {
+        def liftJoin(source: SymbolProgress, constraint: SymbolProgress, edge: JoinEdge): Lifting = {
             assert(source.parsed.isDefined)
             assert(constraint.parsed.isDefined)
             val after = JoinProgress(symbol, Some(ParsedSymbolJoin(symbol, source.parsed.get, constraint.parsed.get)), derivedGen)
-            NontermLifting(this, after, source)
+            NontermLifting(this, after, source, edge)
         }
         def derive(gen: Int) =
             if (parsed.isEmpty) (Set(
@@ -227,8 +227,8 @@ trait SymbolProgresses extends SeqOrderedTester {
     }
 
     case class LongestProgress(symbol: Longest, parsed: Option[ParsedSymbol[Longest]], derivedGen: Int) extends SymbolProgressNonterminal {
-        override def lift(source: SymbolProgress): (Lifting, Set[PreReverter]) = {
-            val lifting = NontermLifting(this, lift0(source), source)
+        override def lift(source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = {
+            val lifting = NontermLifting(this, lift0(source), source, edge)
             // EagerLongest에서는 AliveTriggeredLiftReverter(this, lifting)이 되어야 함
             (lifting, Set(LiftTriggeredLiftReverter(this, lifting)))
         }

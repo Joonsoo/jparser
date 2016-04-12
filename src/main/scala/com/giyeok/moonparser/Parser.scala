@@ -17,9 +17,10 @@ class Parser(val grammar: Grammar)
     case class TermLifting(before: SymbolProgressTerminal, after: SymbolProgressTerminal, by: Input) extends Lifting {
         def toShortString = s"${before.toShortString} => ${after.toShortString} (by ${by.toShortString})"
     }
-    case class NontermLifting(before: SymbolProgressNonterminal, after: SymbolProgressNonterminal, by: SymbolProgress) extends Lifting {
+    case class NontermLifting(before: SymbolProgressNonterminal, after: SymbolProgressNonterminal, by: SymbolProgress, edge: DeriveEdge) extends Lifting {
         def toShortString = s"${before.toShortString} => ${after.toShortString} (by ${by.toShortString})"
     }
+    // DeriveReverter에서 각 Lifting이 어떤 DeriveEdge를 거쳐서 나온 것인지 알 필요가 있음.
 
     case class VerboseProceedLog(
         terminalLiftings: Set[Lifting],
@@ -38,7 +39,8 @@ class Parser(val grammar: Grammar)
         "PCG" -> true,
         "expand" -> false,
         "proceedTerminal" -> false,
-        "initialPC" -> false)
+        "initialPC" -> false,
+        "reverters" -> false)
     def logging(logType: String)(block: => Unit): Unit = {
         logConfs get logType match {
             case Some(true) => block
@@ -106,7 +108,7 @@ class Parser(val grammar: Grammar)
                         // nullable한 것들은 바로 lift처리한다
                         val (newLiftings, newReverters): (Set[Lifting], Set[PreReverter]) = {
                             val lifts = newDerivedEdges collect {
-                                case e: SimpleEdge if e.end.canFinish => node.lift(e.end)
+                                case e: SimpleEdge if e.end.canFinish => node.lift(e.end, e)
                             }
                             (lifts map { _._1 }, lifts flatMap { _._2 })
                         }
@@ -120,13 +122,13 @@ class Parser(val grammar: Grammar)
                         nextQueue ++:= newLiftings map { LiftTask(_) }
                         nextCC = nextCC.withLiftings(newLiftings).withReverters(newReverters)
 
-                        // 새로 만들어진 노드가 이미 처리된 노드인 경우, 이미 처리된 노드가 lift되었을 경우를 확인해서 처리
+                        // 새로 만들어진 노드가 이미 처리된 노드인 경우, 이미 처리된 노드가 lift되었을 경우를 확인해서 처리(SimpleGrammar6 참고)
                         val allNodes = allEdges flatMap { _.nodes }
                         val alreadyProcessedNodes: Set[NonterminalNode] = newNodes.intersect(allNodes) collect { case n: NonterminalNode => n }
                         val (alreadyProcessedNodesLifting, alreadyProcessedReverters): (Set[Lifting], Set[PreReverter]) = {
                             val x = alreadyProcessedNodes map { n =>
-                                val lifters: Set[Node] = cc.liftings collect { case NontermLifting(before, _, by) if before == n => by }
-                                val lifts: Set[(Lifting, Set[PreReverter])] = lifters map { n.lift(_) }
+                                val lifters: Set[(Node, DeriveEdge)] = cc.liftings collect { case NontermLifting(before, _, by, edge) if before == n => (by, edge) }
+                                val lifts: Set[(Lifting, Set[PreReverter])] = lifters map { se => n.lift(se._1, se._2) }
                                 (lifts map { _._1 }, lifts flatMap { _._2 })
                             }
                             (x flatMap { _._1 }, x flatMap { _._2 })
@@ -152,13 +154,13 @@ class Parser(val grammar: Grammar)
                         allEdges.incomingEdgesOf(before) foreach { edge =>
                             edge match {
                                 case e: SimpleEdge =>
-                                    val (lifting, newReverters): (Lifting, Set[PreReverter]) = e.start.lift(after)
+                                    val (lifting, newReverters): (Lifting, Set[PreReverter]) = e.start.lift(after, e)
                                     nextQueue +:= LiftTask(lifting)
                                     nextCC = nextCC.withLifting(lifting).withReverters(newReverters)
                                 case e: JoinEdge =>
                                     val constraint: Option[Lifting] = cc.liftings.find { _.before == e.constraint }
                                     if (constraint.isDefined) {
-                                        val lifting = e.start.liftJoin(after, constraint.get.after)
+                                        val lifting = e.start.liftJoin(after, constraint.get.after, e)
                                         nextQueue +:= LiftTask(lifting)
                                         nextCC = nextCC.withLifting(lifting)
                                     }
@@ -167,7 +169,7 @@ class Parser(val grammar: Grammar)
 
                         expand0(nextQueue, allTasksCC + task, nextCC)
 
-                    case LiftTask(NontermLifting(before, after, by)) =>
+                    case LiftTask(NontermLifting(before, after, by, _)) =>
                         // nonterminal element가 lift되는 경우 처리
                         // 문제가 되는 lift는 전부 여기 문제
                         logging("expand", s"NontermLiftTask($before, $after, $by)")
@@ -179,7 +181,7 @@ class Parser(val grammar: Grammar)
                         // lift된 node, 즉 `after`가 derive를 갖는 경우
                         // - 이런 경우는, `after`가 앞으로도 추가로 처리될 가능성이 있다는 의미
                         // - 따라서 새 그래프에 `after`를 추가해주고, `before`를 rootTip에 추가해서 추가적인 처리를 준비해야 함
-                        val (afterDerives: Set[DeriveEdge], afterReverters: Set[PreReverter]) = after.derive(newGenId)
+                        val (afterDerives, afterReverters): (Set[DeriveEdge], Set[PreReverter]) = after.derive(newGenId)
                         // (afterDerives.isEmpty) 이면 (afterReverters.isEmpty) 이다
                         assert(!afterDerives.isEmpty || afterReverters.isEmpty)
                         if (!afterDerives.isEmpty) {
@@ -193,8 +195,7 @@ class Parser(val grammar: Grammar)
                                         // should never be called (because of proxy)
                                         println(before, after)
                                         println(e)
-                                        assert(false)
-                                        ???
+                                        throw new java.lang.AssertionError("should not happen")
                                 }
                             }).toMap
                             nextQueue +:= DeriveTask(after)
@@ -210,7 +211,7 @@ class Parser(val grammar: Grammar)
                                 assert(before == edge.end)
                                 edge match {
                                     case e: SimpleEdge =>
-                                        val (lifting, newReverters) = e.start.lift(after)
+                                        val (lifting, newReverters) = e.start.lift(after, e)
                                         nextQueue +:= LiftTask(lifting)
                                         nextCC = nextCC.withLifting(lifting).withReverters(newReverters)
                                     case e: JoinEdge =>
@@ -220,8 +221,8 @@ class Parser(val grammar: Grammar)
                                             // println(e)
                                             // println(constraintLifted)
                                             val liftings = constraintLifted map { constraint =>
-                                                if (!e.endConstraintReversed) e.start.liftJoin(after, constraint.after)
-                                                else e.start.liftJoin(constraint.after, after)
+                                                if (!e.endConstraintReversed) e.start.liftJoin(after, constraint.after, e)
+                                                else e.start.liftJoin(constraint.after, after, e)
                                             }
                                             nextQueue ++:= liftings map { lifting => LiftTask(lifting) }
                                             nextCC = nextCC.withLiftings(liftings)
@@ -252,9 +253,9 @@ class Parser(val grammar: Grammar)
         result
     }
 
-    def proceedReverters(reverters: Set[PreReverter], liftings: Set[Lifting], proceededEdges: Map[SimpleEdge, SimpleEdge]): Set[WorkingReverter] = {
-        val (deriveReverters0: Set[DeriveReverter], liftReverters: Set[LiftReverter]) = {
-            val x = reverters map {
+    def proceedReverters(oldReverters: Set[WorkingReverter], newReverters: Set[PreReverter], liftings: Set[Lifting], proceededEdges: Map[SimpleEdge, SimpleEdge]): Set[WorkingReverter] = {
+        val (deriveReverters0: Set[DeriveReverter], liftReverters0: Set[LiftReverter]) = {
+            val x = newReverters map {
                 case r: DeriveReverter => (Some(r), None)
                 case r: LiftReverter => (None, Some(r))
             }
@@ -269,6 +270,13 @@ class Parser(val grammar: Grammar)
                 case None => r
             }
         }
+
+        val liftReverters: Set[LiftReverter] = {
+            // TODO liftReverter 확산 구현
+            liftReverters0
+        }
+
+        // TODO deriveReveter/liftReverter 확산 중 derive->lift로, lift->derive되는 것 구현
 
         val nodeKillReverters: Set[NodeKillReverter] = {
             val liftedToMap: Map[Node, Set[LiftReverter]] = liftReverters groupBy { _.targetLifting.after }
@@ -340,7 +348,7 @@ class Parser(val grammar: Grammar)
 
                 val finalEdges = newEdges ++ roots
                 val finalNodes = finalEdges flatMap { _.nodes }
-                val workingReverters = proceedReverters(newReverters, liftings, proceededEdges)
+                val workingReverters = proceedReverters(reverters, newReverters, liftings, proceededEdges)
 
                 logging("proceedTerminal") {
                     println("- liftings")
@@ -434,7 +442,7 @@ class Parser(val grammar: Grammar)
 
             // val finishable: Set[Lifting] = nodes collect { case n if n.canFinish => Lifting(n, n, None) }
 
-            val workingReverters = proceedReverters(reverters, liftings, proceededEdges)
+            val workingReverters = proceedReverters(Set(), reverters, liftings, proceededEdges)
             val startingContext = ParsingContext(0, nodes, edges, workingReverters, collectResultCandidates(liftings))
             val verboseProceedLog = VerboseProceedLog(
                 Set(),
