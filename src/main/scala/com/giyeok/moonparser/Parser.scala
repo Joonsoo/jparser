@@ -254,42 +254,61 @@ class Parser(val grammar: Grammar)
     }
 
     def proceedReverters(oldReverters: Set[WorkingReverter], newReverters: Set[PreReverter], liftings: Set[Lifting], proceededEdges: Map[SimpleEdge, SimpleEdge]): Set[WorkingReverter] = {
-        val (deriveReverters0: Set[DeriveReverter], liftReverters0: Set[LiftReverter]) = {
-            val x = newReverters map {
-                case r: DeriveReverter => (Some(r), None)
-                case r: LiftReverter => (None, Some(r))
-            }
-            (x flatMap { _._1 }, x flatMap { _._2 })
+        val nontermLiftings: Set[NontermLifting] = liftings collect { case nl: NontermLifting => nl }
+        var newLiftReverters: Set[LiftReverter] = newReverters collect { case lr: LiftReverter => lr }
+
+        val newDeriveReverters: Set[DeriveReverter] = newReverters collect { case dr: DeriveReverter => dr }
+        val oldDeriveReverters: Set[DeriveReverter] = oldReverters collect { case dr: DeriveReverter => dr }
+
+        // DeriveReveter에 대한 처리
+        //  - DeriveReverter는 LiftTriggeredDeriveReverter밖에 없음
+        def proceedDeriveReverters(queue: List[DeriveReverter], cc: Set[DeriveReverter]): Set[DeriveReverter] = queue match {
+            case (reverter: LiftTriggeredDeriveReverter) +: rest =>
+                // 제거 대상인 DeriveEdge로 인해 발생한 Lifting도 삭제 대상으로 포함
+                newLiftReverters ++= (nontermLiftings filter { _.edge == reverter.targetEdge } map { lifting => LiftTriggeredLiftReverter(reverter.trigger, lifting) })
+                // proceededEdges의 정보를 바탕으로 기존의 DeriveEdge에서 변경된 DeriveEdge가 있는 경우 변경된 DeriveEdge도 revert 대상으로 추가
+                proceededEdges get reverter.targetEdge match {
+                    case Some(newEdge) =>
+                        val newReverter = LiftTriggeredDeriveReverter(reverter.trigger, newEdge)
+                        if (cc contains newReverter) {
+                            proceedDeriveReverters(rest, cc)
+                        } else {
+                            proceedDeriveReverters(newReverter +: rest, cc + newReverter)
+                        }
+                    case None => proceedDeriveReverters(rest, cc)
+                }
+            case List() => cc
         }
+        val initDeriveReverters = newDeriveReverters ++ oldDeriveReverters
+        val workingDeriveReverters: Set[DeriveReverter] = proceedDeriveReverters(initDeriveReverters.toList, initDeriveReverters)
 
-        val deriveReverters: Set[DeriveReverter] = deriveReverters0 map { r =>
-            proceededEdges get r.targetEdge match {
-                case Some(proceededEdge) =>
-                    // TODO `proceededEdge`가 `proceededEdges`에 또 들어있을 수도 있는 경우 어떻게 할 지 고민해봐야 함
-                    r.withNewTargetEdge(proceededEdge)
-                case None => r
-            }
+        // LiftReverter에 대한 처리
+        //  - ParseNode에 심볼 정보가 포함되어 있기 때문에 같은 ParseNode를 by로 가진 Lifting이나 SymbolProgress가 생성되는 경로는 유일하다
+        //  - chain lift 경로같은걸 liftPath같은 형태로 저장할 수도 있겠지만, 어차피 ParseNode의 계층 구조를 따라서 DeriveEdge들을 쫓아 가면 마찬가지 결과가 나올 것이다(TODO 이건 나중에 해볼것)
+        // deriveRevertersFromLiftReverters는 targetLift.after에 의해 derive된 DeriveEdge가 있으면 그 엣지들을 포함한 것인데 이게 정말 필요한지는 확인해봐야 함(어차피 lift 제거시에 다 처리될 것 같아서)
+        var deriveRevertersFromLiftReverters: Set[DeriveReverter] = ???
+        def proceedLiftReverters(queue: List[LiftReverter], cc: Set[LiftReverter]): Set[LiftReverter] = queue match {
+            case reverter +: rest =>
+                // 제거 대상인 targetLift로 인해 발생한 Lifting도 삭제 대상으로 포함 - by ParseNode가 동일하다는 건 해당 리프팅이 생성된 경로가 targetLift를 마지막으로 거쳤음을 의미한다
+                val newTargets: Set[NontermLifting] = nontermLiftings filter { _.by == reverter.targetLifting.after }
+                val newReverters0: Set[LiftReverter] = newTargets map { newTarget => reverter.withNewTargetLifting(newTarget) }
+                val newReverters = newReverters0 -- cc
+                proceedLiftReverters(newReverters.toList ++: rest, cc ++ newReverters)
+            case List() => cc
         }
+        val initLiftReverters = newLiftReverters
+        val treatedLiftReverters: Set[LiftReverter] = proceedLiftReverters(newLiftReverters.toList, newLiftReverters)
 
-        val liftReverters: Set[LiftReverter] = {
-            // TODO liftReverter 확산 구현
-            liftReverters0
+        // LiftReverter -> NodeKillReverter 변환(TODO 이게 정말 필요한지 다시 고민)
+        val liftingsByAfter: Map[Node, Set[Lifting]] = liftings groupBy { _.after }
+        val liftRevertersByLiftingAfter: Map[Node, Set[LiftReverter]] = treatedLiftReverters groupBy { _.targetLifting.after }
+        liftRevertersByLiftingAfter filter { kv =>
+            val (affectedNode, liftReverters) = kv
+            liftingsByAfter(affectedNode) forall { lifting => liftReverters exists { _.targetLifting == lifting } }
         }
+        val workingNodeKillReverters: Set[NodeKillReverter] = ???
 
-        // TODO deriveReveter/liftReverter 확산 중 derive->lift로, lift->derive되는 것 구현
-
-        val nodeKillReverters: Set[NodeKillReverter] = {
-            val liftedToMap: Map[Node, Set[LiftReverter]] = liftReverters groupBy { _.targetLifting.after }
-            if (liftedToMap.isEmpty) Set() else {
-                (liftedToMap map { kv =>
-                    val (node: Node, revertingLift: Lifting) = kv
-                    (???, ???)
-                }).toSet
-                ???
-            }
-        }
-
-        deriveReverters ++ nodeKillReverters
+        workingDeriveReverters ++ workingNodeKillReverters
     }
 
     def collectResultCandidates(liftings: Set[Lifting]): Set[Node] =
@@ -318,8 +337,6 @@ class Parser(val grammar: Grammar)
             if (terminalLiftings isEmpty) {
                 Right(ParsingErrors.UnexpectedInput(next))
             } else {
-                val alwaysTriggeredNodeKillReverter: Set[AlwaysTriggeredNodeKillReverter] = reverters collect { case r: AlwaysTriggeredNodeKillReverter => r }
-
                 val nextGenId = gen + 1
                 val expandTasks = terminalLiftings.toList map { lifting => LiftTask(lifting) }
 
@@ -334,7 +351,6 @@ class Parser(val grammar: Grammar)
                         _ match {
                             case r: LiftTriggered => liftings0 exists { _.before == r.trigger }
                             case r: MultiLiftTriggered => r.triggers forall { trigger => liftings0 exists { _.before == trigger } }
-                            case r: AlwaysTriggered => false
                         }
                     }
 

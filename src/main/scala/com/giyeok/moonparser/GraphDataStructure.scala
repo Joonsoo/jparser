@@ -32,15 +32,18 @@ trait GraphDataStructure {
     sealed trait Reverter {
         def toShortString: String = toString
     }
+    // PreReverter는 derive나 lift시에 SymbolProgress가 리턴하는 Reverter
     sealed trait PreReverter extends Reverter
+    // WorkingReverter는 PreReverter를 가공해서 실제 ParsingContext가 갖고 있는 Reverter.
+    //  - 결국 종류는 LiftTriggeredDeriveReverter, MultiLiftTriggeredNodeKillReverter 두 개밖에 없다
     sealed trait WorkingReverter extends Reverter
 
     sealed trait DeriveReverter extends PreReverter with WorkingReverter {
         val targetEdge: SimpleEdge
-        def withNewTargetEdge(newTargetEdge: SimpleEdge): DeriveReverter
     }
     sealed trait LiftReverter extends PreReverter {
-        val targetLifting: Lifting
+        val targetLifting: NontermLifting
+        def withNewTargetLifting(newTargetLifting: NontermLifting): LiftReverter
     }
     sealed trait NodeKillReverter extends WorkingReverter {
         val targetNode: Node
@@ -57,11 +60,13 @@ trait GraphDataStructure {
     }
     sealed trait AlwaysTriggered extends ReverterTrigger
 
-    case class LiftTriggeredDeriveReverter(trigger: Node, targetEdge: SimpleEdge) extends LiftTriggered with DeriveReverter {
-        def withNewTargetEdge(newTargetEdge: SimpleEdge) = LiftTriggeredDeriveReverter(trigger, newTargetEdge)
+    case class LiftTriggeredDeriveReverter(trigger: Node, targetEdge: SimpleEdge) extends LiftTriggered with DeriveReverter
+    case class LiftTriggeredLiftReverter(trigger: Node, targetLifting: NontermLifting) extends LiftTriggered with LiftReverter {
+        def withNewTargetLifting(newTargetLifting: NontermLifting): LiftReverter = LiftTriggeredLiftReverter(trigger, newTargetLifting)
     }
-    case class LiftTriggeredLiftReverter(trigger: Node, targetLifting: Lifting) extends LiftTriggered with LiftReverter
-    case class AlwaysTriggeredLiftReverter(trigger: Node, targetLifting: Lifting) extends AlwaysTriggered with LiftReverter
+    case class AlwaysTriggeredLiftReverter(targetLifting: NontermLifting) extends AlwaysTriggered with LiftReverter {
+        def withNewTargetLifting(newTargetLifting: NontermLifting): LiftReverter = AlwaysTriggeredLiftReverter(newTargetLifting)
+    }
     case class MultiLiftTriggeredNodeKillReverter(triggers: Set[Node], targetNode: Node) extends MultiLiftTriggered with NodeKillReverter
 
     implicit class AugEdges(edges: Set[DeriveEdge]) {
