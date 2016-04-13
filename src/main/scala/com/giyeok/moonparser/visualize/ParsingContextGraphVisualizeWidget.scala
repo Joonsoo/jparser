@@ -81,6 +81,7 @@ trait ParsingContextGraphVisualize {
 
     private val vnodes = scala.collection.mutable.Map[Parser#Node, CGraphNode]()
     private val vedges = scala.collection.mutable.Map[Parser#DeriveEdge, GraphConnection]()
+    val vreverters = scala.collection.mutable.Map[Parser#Reverter, List[GraphConnection]]()
 
     def newSymbolProgressContentFig(node: Parser#SymbolProgress, horizontal: Boolean, renderConf: ParseNodeFigureGenerator.RenderingConfiguration) = {
         val figFunc: (ParseTree.ParseNode[Symbols.Symbol], ParseNodeFigureGenerator.RenderingConfiguration) => Figure =
@@ -164,6 +165,8 @@ trait ParsingContextGraphVisualize {
     }
 
     val darkerRed = new Color(null, 139, 0, 0)
+    val deriveReverterEdgeColor = darkerRed
+    val liftReverterEdgeColor = darkerRed
 
     def registerEdge(edges: Set[Parser#DeriveEdge])(e: Parser#DeriveEdge): GraphConnection = {
         val edge = e match {
@@ -187,6 +190,43 @@ trait ParsingContextGraphVisualize {
         val start = registerNode(e.start)
         val end = registerNode(e.end)
         (start, end, registerEdge(edges)(e))
+    }
+    def registerReverter(reverter: Parser#Reverter): Unit = {
+        reverter match {
+            case x: Parser#LiftTriggeredDeriveReverter =>
+                // Working Reverter
+                val start = registerNode(x.trigger)
+                val end1 = registerNode(x.targetEdge.start)
+                val end2 = registerNode(x.targetEdge.start)
+                val edge1 = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end1)
+                val edge2 = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end2)
+                edge1.setCurveDepth(-20)
+                edge2.setCurveDepth(-40)
+                edge1.setLineColor(deriveReverterEdgeColor)
+                edge2.setLineColor(deriveReverterEdgeColor)
+                edge1.setText("s")
+                edge2.setText("e")
+                vreverters(x) = List(edge1, edge2)
+
+            case x: Parser#MultiLiftTriggeredNodeKillReverter =>
+                // Working Reverter
+                val starts = x.triggers.toList map { registerNode(_) }
+                val end = registerNode(x.targetNode)
+                val edges = starts map { s => new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, s, end) }
+                edges.zipWithIndex foreach { ei =>
+                    val (edge, idx) = ei
+                    edge.setLineColor(liftReverterEdgeColor)
+                    edge.setCurveDepth(-20 * (idx + 1))
+                }
+                vreverters(x) = edges
+
+            case x: Parser#LiftTriggeredLiftReverter =>
+                // Pre Reverter
+                vreverters(x) = List()
+            case x: Parser#AlwaysTriggeredLiftReverter =>
+                // Pre Reverter
+                vreverters(x) = List()
+        }
     }
 
     graph.addMouseListener(new MouseAdapter() {
@@ -256,6 +296,8 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: Parse
 
     val registerEdge1 = registerEdge(context.edges.asInstanceOf[Set[Parser#DeriveEdge]]) _
     context.edges foreach { registerEdge1(_) }
+
+    context.reverters foreach { registerReverter(_) }
 
     import org.eclipse.zest.layouts.algorithms._
     val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)

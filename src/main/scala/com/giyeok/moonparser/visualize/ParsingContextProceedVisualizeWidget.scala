@@ -128,7 +128,14 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         }
     }
 
-    // TODO visualize reverters
+    // visualize reverters
+    lastContext foreach { _.reverters foreach { registerReverter(_) } }
+    // log.newReverters foreach { registerReverter(_) }
+    log.finalReverters foreach { registerReverter(_) }
+
+    log.activatedReverters foreach { activatedReverter =>
+        vreverters(activatedReverter) foreach { e => e.setLineWidth(5) }
+    }
     //    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122) // dark salmon
     //    log.propagatedAssassinEdges foreach { e =>
     //        val (from, to, connection) = registerEdge1(edges)(e)

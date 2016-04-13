@@ -221,6 +221,26 @@ object LongestMatchGrammar3_3 extends Grammar with StringSamples {
     val incorrectSamples = Set[String]("12", "1.a")
 }
 
+object LongestMatchGrammar4 extends Grammar with StringSamples {
+    val name = "LongestMatchGrammar4"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("A").star),
+        "A" -> ListSet(
+            n("N"),
+            n("M")),
+        "N" -> ListSet(
+            longest(chars('0' to '9').plus)),
+        "M" -> ListSet(
+            longest(chars('a' to 'z').plus)))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String](
+        "123")
+    val incorrectSamples = Set[String](
+        "a")
+}
+
 object LongestMatchGrammars {
     val grammars: Set[Grammar with Samples] = Set(
         LongestMatchGrammar1,
@@ -231,7 +251,8 @@ object LongestMatchGrammars {
         LongestMatchGrammar2_2,
         LongestMatchGrammar2_3,
         LongestMatchGrammar3_1,
-        LongestMatchGrammar3_3)
+        LongestMatchGrammar3_3,
+        LongestMatchGrammar4)
 }
 
 class LongestMatchGrammarTestSuite1 extends BasicParseTest(LongestMatchGrammars.grammars)
