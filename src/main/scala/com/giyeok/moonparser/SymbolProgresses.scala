@@ -239,7 +239,7 @@ trait SymbolProgresses extends SeqOrderedTester {
     case class EagerLongestProgress(symbol: EagerLongest, parsed: Option[ParsedSymbol[EagerLongest]], derivedGen: Int) extends SymbolProgressNonterminal {
         override def lift(source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = {
             val lifting = NontermLifting(this, lift0(source), source, edge)
-            (lifting, Set(AlwaysTriggeredLiftReverter(lifting)))
+            (lifting, Set(AliveTriggeredLiftReverter(this, lifting)))
         }
         def lift0(source: SymbolProgress): SymbolProgressNonterminal = EagerLongestProgress(symbol, Some(ParsedSymbol[EagerLongest](symbol, source.parsed.get)), derivedGen)
         def derive(gen: Int) = if (parsed.isEmpty) (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set()) else (Set(), Set())

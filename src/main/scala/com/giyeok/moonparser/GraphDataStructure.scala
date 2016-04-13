@@ -49,25 +49,31 @@ trait GraphDataStructure {
         val targetNode: Node
     }
 
-    sealed trait ReverterTrigger extends Reverter
-    sealed trait ConditionalTrigger extends ReverterTrigger
+    sealed trait Triggered extends Reverter
+    sealed trait ConditionalTrigger extends Triggered
     sealed trait LiftTriggered extends ConditionalTrigger {
         val trigger: Node
     }
+
+    sealed trait ReverterTrigger
+    case class LiftTrigger(trigger: Node) extends ReverterTrigger
+    case class AliveTrigger(trigger: Node) extends ReverterTrigger
     sealed trait MultiLiftTriggered extends ConditionalTrigger {
         // 이 트리거가 "모두" 만족되어야 말동
-        val triggers: Set[Node]
+        val triggers: Set[ReverterTrigger]
     }
-    sealed trait AlwaysTriggered extends ReverterTrigger
+    sealed trait AliveTriggered extends Triggered {
+        val trigger: Node
+    }
 
     case class LiftTriggeredDeriveReverter(trigger: Node, targetEdge: SimpleEdge) extends LiftTriggered with DeriveReverter
     case class LiftTriggeredLiftReverter(trigger: Node, targetLifting: NontermLifting) extends LiftTriggered with LiftReverter {
         def withNewTargetLifting(newTargetLifting: NontermLifting): LiftReverter = LiftTriggeredLiftReverter(trigger, newTargetLifting)
     }
-    case class AlwaysTriggeredLiftReverter(targetLifting: NontermLifting) extends AlwaysTriggered with LiftReverter {
-        def withNewTargetLifting(newTargetLifting: NontermLifting): LiftReverter = AlwaysTriggeredLiftReverter(newTargetLifting)
+    case class AliveTriggeredLiftReverter(trigger: Node, targetLifting: NontermLifting) extends AliveTriggered with LiftReverter {
+        def withNewTargetLifting(newTargetLifting: NontermLifting): LiftReverter = AliveTriggeredLiftReverter(trigger, newTargetLifting)
     }
-    case class MultiLiftTriggeredNodeKillReverter(triggers: Set[Node], targetNode: Node) extends MultiLiftTriggered with NodeKillReverter
+    case class MultiTriggeredNodeKillReverter(triggers: Set[ReverterTrigger], targetNode: Node) extends MultiLiftTriggered with NodeKillReverter
 
     implicit class AugEdges(edges: Set[DeriveEdge]) {
         def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }

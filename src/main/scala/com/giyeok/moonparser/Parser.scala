@@ -305,14 +305,14 @@ class Parser(val grammar: Grammar)
         val liftRevertersByLiftingAfter: Map[Node, Set[LiftReverter]] = treatedLiftReverters groupBy { _.targetLifting.after }
         val workingNodeKillReverters: Set[NodeKillReverter] = (liftRevertersByLiftingAfter map { kv =>
             val (affectedNode, liftReverters) = kv
-            val triggers: Set[Node] = liftReverters flatMap {
+            val triggers: Set[ReverterTrigger] = liftReverters map {
                 _ match {
-                    case x: LiftTriggeredLiftReverter => Some(x.trigger)
-                    case x: AlwaysTriggeredLiftReverter => None
+                    case x: LiftTriggeredLiftReverter => LiftTrigger(x.trigger)
+                    case x: AliveTriggeredLiftReverter => AliveTrigger(x.trigger)
                 }
             }
             // 실은 MultiLift도 필요 없을지 몰라
-            MultiLiftTriggeredNodeKillReverter(triggers, affectedNode)
+            MultiTriggeredNodeKillReverter(triggers, affectedNode)
         }).toSet
 
         workingDeriveReverters ++ workingNodeKillReverters
@@ -363,7 +363,15 @@ class Parser(val grammar: Grammar)
                 val activatedReverters: Set[WorkingReverter] = reverters filter {
                     _ match {
                         case r: LiftTriggered => liftings0 exists { _.before == r.trigger }
-                        case r: MultiLiftTriggered => r.triggers forall { trigger => liftings0 exists { _.before == trigger } }
+                        case r: MultiLiftTriggered => r.triggers forall {
+                            _ match {
+                                case LiftTrigger(trigger) => liftings0 exists { _.before == trigger }
+                                case AliveTrigger(trigger) =>
+                                    // 여기가 true이면 AlwaysTriggered랑 똑같음
+                                    // ExpandResult가 나타내는 그래프에서(루트 포함) trigger가 살아있으면 activated되어야 하므로 true, 아니면 false
+                                    ???
+                            }
+                        }
                     }
                 }
 

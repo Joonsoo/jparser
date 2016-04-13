@@ -184,11 +184,11 @@ object LongestMatchGrammar3_1 extends Grammar with StringSamples {
             // eager longest로 바꿔서도 해보기
             longest(n("Float"))),
         "Float" -> ListSet(
-            seq(chars('1' to '9'), seq(chars('0' to '9').star, i("."), chars('0' to '9').plus).opt)),
+            seq(chars('1' to '9'), chars('0' to '9').star, seq(i("."), chars('0' to '9').plus).opt)),
         "Punc" -> ListSet(
             chars(".,;[](){}")),
         "Id" -> ListSet(
-            chars('a' to 'z', 'A' to 'Z').plus))
+            longest(chars('a' to 'z', 'A' to 'Z').plus)))
     val startSymbol = n("S")
 
     val correctSamples = Set[String](

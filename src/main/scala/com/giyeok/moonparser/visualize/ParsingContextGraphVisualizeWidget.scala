@@ -208,7 +208,7 @@ trait ParsingContextGraphVisualize {
                 edge2.setText("e")
                 vreverters(x) = List(edge1, edge2)
 
-            case x: Parser#MultiLiftTriggeredNodeKillReverter =>
+            case x: Parser#MultiTriggeredNodeKillReverter =>
                 // Working Reverter
                 if (x.triggers.isEmpty) {
                     val end = registerNode(x.targetNode)
@@ -218,9 +218,21 @@ trait ParsingContextGraphVisualize {
                     edge.setText("always")
                     vreverters(x) = List(edge)
                 } else {
-                    val starts = x.triggers.toList map { registerNode(_) }
                     val end = registerNode(x.targetNode)
-                    val edges = starts map { s => new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, s, end) }
+                    val edges = x.triggers.toList map {
+                        _ match {
+                            case t: Parser#LiftTrigger =>
+                                val start = registerNode(t.trigger)
+                                val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
+                                edge.setText("if Lifted")
+                                edge
+                            case t: Parser#AliveTrigger =>
+                                val start = registerNode(t.trigger)
+                                val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
+                                edge.setText("if Alive")
+                                edge
+                        }
+                    }
                     edges.zipWithIndex foreach { ei =>
                         val (edge, idx) = ei
                         edge.setLineColor(liftReverterEdgeColor)
@@ -232,7 +244,7 @@ trait ParsingContextGraphVisualize {
             case x: Parser#LiftTriggeredLiftReverter =>
                 // Pre Reverter
                 vreverters(x) = List()
-            case x: Parser#AlwaysTriggeredLiftReverter =>
+            case x: Parser#AliveTriggeredLiftReverter =>
                 // Pre Reverter
                 vreverters(x) = List()
         }
