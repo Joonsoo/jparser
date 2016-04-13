@@ -65,6 +65,7 @@ trait SymbolProgresses extends SeqOrderedTester {
             case symbol: Join => JoinProgress(symbol, None, gen)
             case symbol: Proxy => ProxyProgress(symbol, None, gen)
             case symbol: Longest => LongestProgress(symbol, None, gen)
+            case symbol: EagerLongest => EagerLongestProgress(symbol, None, gen)
         }
     }
 
@@ -229,10 +230,18 @@ trait SymbolProgresses extends SeqOrderedTester {
     case class LongestProgress(symbol: Longest, parsed: Option[ParsedSymbol[Longest]], derivedGen: Int) extends SymbolProgressNonterminal {
         override def lift(source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = {
             val lifting = NontermLifting(this, lift0(source), source, edge)
-            // EagerLongest에서는 AliveTriggeredLiftReverter(this, lifting)이 되어야 함
             (lifting, Set(LiftTriggeredLiftReverter(this, lifting)))
         }
         def lift0(source: SymbolProgress): SymbolProgressNonterminal = LongestProgress(symbol, Some(ParsedSymbol[Longest](symbol, source.parsed.get)), derivedGen)
+        def derive(gen: Int) = if (parsed.isEmpty) (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set()) else (Set(), Set())
+    }
+
+    case class EagerLongestProgress(symbol: EagerLongest, parsed: Option[ParsedSymbol[EagerLongest]], derivedGen: Int) extends SymbolProgressNonterminal {
+        override def lift(source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = {
+            val lifting = NontermLifting(this, lift0(source), source, edge)
+            (lifting, Set(AlwaysTriggeredLiftReverter(lifting)))
+        }
+        def lift0(source: SymbolProgress): SymbolProgressNonterminal = EagerLongestProgress(symbol, Some(ParsedSymbol[EagerLongest](symbol, source.parsed.get)), derivedGen)
         def derive(gen: Int) = if (parsed.isEmpty) (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set()) else (Set(), Set())
     }
 
@@ -256,6 +265,7 @@ trait SymbolProgresses extends SeqOrderedTester {
                 case BackupProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case JoinProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
                 case LongestProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
+                case EagerLongestProgress(symbol, parsed, _) => locate(parsed, symbol.toShortString)
             })
         }
     }

@@ -210,15 +210,24 @@ trait ParsingContextGraphVisualize {
 
             case x: Parser#MultiLiftTriggeredNodeKillReverter =>
                 // Working Reverter
-                val starts = x.triggers.toList map { registerNode(_) }
-                val end = registerNode(x.targetNode)
-                val edges = starts map { s => new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, s, end) }
-                edges.zipWithIndex foreach { ei =>
-                    val (edge, idx) = ei
+                if (x.triggers.isEmpty) {
+                    val end = registerNode(x.targetNode)
+                    val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, end, end)
                     edge.setLineColor(liftReverterEdgeColor)
-                    edge.setCurveDepth(-20 * (idx + 1))
+                    edge.setCurveDepth(-20)
+                    edge.setText("always")
+                    vreverters(x) = List(edge)
+                } else {
+                    val starts = x.triggers.toList map { registerNode(_) }
+                    val end = registerNode(x.targetNode)
+                    val edges = starts map { s => new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, s, end) }
+                    edges.zipWithIndex foreach { ei =>
+                        val (edge, idx) = ei
+                        edge.setLineColor(liftReverterEdgeColor)
+                        edge.setCurveDepth(-20 * (idx + 1))
+                    }
+                    vreverters(x) = edges
                 }
-                vreverters(x) = edges
 
             case x: Parser#LiftTriggeredLiftReverter =>
                 // Pre Reverter

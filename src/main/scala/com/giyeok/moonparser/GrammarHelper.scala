@@ -34,6 +34,7 @@ object GrammarHelper {
     def lookahead_except(except: Symbol) = LookaheadExcept(except)
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
     def longest(sym: Symbol) = Longest(sym)
+    def elongest(sym: Symbol) = EagerLongest(sym)
     def join(sym: Symbol, join: Symbol) = new Join(sym, join)
 
     // def lgst(t: Terminal) = seq(t, LookaheadExcept(t))

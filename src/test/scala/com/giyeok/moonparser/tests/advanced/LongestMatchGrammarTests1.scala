@@ -197,6 +197,28 @@ object LongestMatchGrammar3_1 extends Grammar with StringSamples {
     val incorrectSamples = Set[String]("12")
 }
 
+object LongestMatchGrammar3_2 extends Grammar with StringSamples {
+    val name = "LongestMatchGrammar3_2"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            oneof(n("Number"), n("Punc"), n("Id")).star),
+        "Number" -> ListSet(
+            // eager longest로 바꿔서도 해보기
+            n("Float")),
+        "Float" -> ListSet(
+            elongest(seq(chars('1' to '9'), chars('0' to '9').star, seq(i("."), chars('0' to '9').plus).opt))),
+        "Punc" -> ListSet(
+            chars(".,;[](){}")),
+        "Id" -> ListSet(
+            elongest(chars('a' to 'z', 'A' to 'Z').plus)))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String](
+        "1.2",
+        "1.a")
+    val incorrectSamples = Set[String]("12")
+}
+
 object LongestMatchGrammar3_3 extends Grammar with StringSamples {
     val name = "LongestMatchGrammar3_3"
     val rules: RuleMap = ListMap(
@@ -251,6 +273,7 @@ object LongestMatchGrammars {
         LongestMatchGrammar2_2,
         LongestMatchGrammar2_3,
         LongestMatchGrammar3_1,
+        LongestMatchGrammar3_2,
         LongestMatchGrammar3_3,
         LongestMatchGrammar4)
 }

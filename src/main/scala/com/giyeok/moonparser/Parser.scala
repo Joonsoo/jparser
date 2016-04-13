@@ -24,7 +24,7 @@ class Parser(val grammar: Grammar)
 
     case class VerboseProceedLog(
         activatedReverters: Set[WorkingReverter],
-        terminalLiftings: Set[Lifting],
+        terminalLiftings: Set[TermLifting],
         liftings: Set[Lifting],
         newNodes: Set[Node],
         newEdges: Set[DeriveEdge],
@@ -332,7 +332,7 @@ class Parser(val grammar: Grammar)
             }
         }
 
-        def proceedTerminal1(next: Input): Set[Lifting] =
+        def proceedTerminal1(next: Input): Set[TermLifting] =
             (nodes flatMap {
                 case s: SymbolProgressTerminal => (s proceedTerminal next) map { TermLifting(s, _, next) }
                 case _ => None
@@ -347,20 +347,19 @@ class Parser(val grammar: Grammar)
                 println()
             }
 
-            val terminalLiftings: Set[Lifting] = proceedTerminal1(next)
-            if (terminalLiftings isEmpty) {
+            val terminalLiftings0: Set[TermLifting] = proceedTerminal1(next)
+            if (terminalLiftings0.isEmpty) {
                 Right(ParsingErrors.UnexpectedInput(next))
             } else {
                 val nextGenId = gen + 1
-                val expandTasks = terminalLiftings.toList map { lifting => LiftTask(lifting) }
 
-                val expand0 = expand(nodes, edges, nextGenId, expandTasks)
+                val expand0 = expand(nodes, edges, nextGenId, terminalLiftings0.toList map { lifting => LiftTask(lifting) })
 
                 var revertersLog = Map[Reverter, String]()
 
                 val ExpandResult(liftings0, newNodes0, newEdges0, newReverters0, proceededEdges0) = expand0
 
-                assert(terminalLiftings subsetOf liftings0)
+                assert(terminalLiftings0.asInstanceOf[Set[Lifting]] subsetOf liftings0)
                 val activatedReverters: Set[WorkingReverter] = reverters filter {
                     _ match {
                         case r: LiftTriggered => liftings0 exists { _.before == r.trigger }
@@ -368,18 +367,51 @@ class Parser(val grammar: Grammar)
                     }
                 }
 
-                val ExpandResult(liftings, newNodes, newEdges, newReverters, proceededEdges) = {
+                val (terminalLiftings: Set[TermLifting], ExpandResult(liftings, newNodes, newEdges, newReverters, proceededEdges)) = {
                     if (activatedReverters.isEmpty) {
-                        expand0
+                        (terminalLiftings0, expand0)
                     } else {
-                        val ignoredDerives = activatedReverters collect { case x: DeriveReverter => x.targetEdge }
-                        val ignoredNodes = activatedReverters collect { case x: NodeKillReverter => x.targetNode }
+                        sealed trait KillTask
+                        case class EdgeKill(edge: DeriveEdge) extends KillTask
+                        case class NodeKill(node: Node) extends KillTask
 
-                        val treatedNodes = nodes -- ignoredNodes
-                        val treatedEdges = (edges -- ignoredDerives) filter { e => (e.nodes intersect ignoredNodes).isEmpty }
+                        def collectKills(queue: List[KillTask], nodesCC: Set[Node], edgesCC: Set[DeriveEdge]): (Set[Node], Set[DeriveEdge]) =
+                            queue match {
+                                case task +: rest =>
+                                    task match {
+                                        case EdgeKill(edge) =>
+                                            assert(!(edgesCC contains edge))
+                                            edge match {
+                                                case SimpleEdge(start, end) =>
+                                                    if (edgesCC.incomingEdgesOf(end).isEmpty) {
+                                                        collectKills(NodeKill(end) +: rest, nodesCC - end, edgesCC)
+                                                    } else {
+                                                        collectKills(rest, nodesCC, edgesCC)
+                                                    }
+                                                case JoinEdge(start, end, join, _) =>
+                                                    if (edgesCC.incomingEdgesOf(end).isEmpty) {
+                                                        collectKills(NodeKill(end) +: rest, nodesCC - end, edgesCC)
+                                                    } else {
+                                                        collectKills(rest, nodesCC, edgesCC)
+                                                    }
+                                            }
+                                        case NodeKill(node) =>
+                                            assert(!(nodesCC contains node))
+                                            val relatedEdges: Set[DeriveEdge] = edgesCC.incomingEdgesOf(node) ++ edgesCC.outgoingEdgesOf(node)
+                                            val relatedEdgesKillTasks: List[EdgeKill] = relatedEdges.toList map { EdgeKill(_) }
+                                            collectKills(relatedEdgesKillTasks ++ rest, nodesCC - node, edgesCC -- relatedEdges)
+                                    }
+                                case List() => (nodesCC, edgesCC)
+                            }
+                        val killEdges = activatedReverters collect { case x: DeriveReverter => x.targetEdge }
+                        val killNodes = activatedReverters collect { case x: NodeKillReverter => x.targetNode }
+                        val killTasks: List[KillTask] = (killEdges.toList map { EdgeKill(_) }) ++ (killNodes.toList map { NodeKill(_) })
+                        val (treatedNodes, treatedEdges) = collectKills(killTasks, nodes -- killNodes, edges -- killEdges)
 
-                        // expandTasks에는 ignoredNodes가 들어갈 수 없나?
-                        expand(treatedNodes, treatedEdges, nextGenId, expandTasks)
+                        val terminalLiftings = terminalLiftings0 filter { lifting => treatedNodes contains lifting.before }
+                        val expand1 = expand(treatedNodes, treatedEdges, nextGenId, terminalLiftings.toList map { lifting => LiftTask(lifting) })
+                        assert(terminalLiftings.asInstanceOf[Set[Lifting]] subsetOf expand1.liftings)
+                        (terminalLiftings, expand1)
                     }
                 }
                 val roots: Set[DeriveEdge] = (proceededEdges.values flatMap { pe => edges.rootsOf(pe.start) }).toSet

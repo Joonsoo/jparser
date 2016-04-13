@@ -17,6 +17,7 @@ import com.giyeok.moonparser.Symbols.Symbol
 import com.giyeok.moonparser.Symbols.Terminal
 import com.giyeok.moonparser.Symbols.Terminals
 import com.giyeok.moonparser.Symbols.Longest
+import com.giyeok.moonparser.Symbols.EagerLongest
 import com.giyeok.moonparser.Symbols.Proxy
 import java.lang.Character.UnicodeBlock
 import FigureGenerator.Spacing
@@ -107,6 +108,8 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
                 g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("&", ap.default), symbolFig(join)))
             case Longest(sym) =>
                 g.horizontalFig(Spacing.Small, Seq(g.textFig("L(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
+            case EagerLongest(sym) =>
+                g.horizontalFig(Spacing.Small, Seq(g.textFig("EL(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
         }
     }
 }
