@@ -329,7 +329,7 @@ class Parser(val grammar: Grammar)
         // var deriveRevertersFromLiftReverters: Set[DeriveReverter] = ???
         def proceedLiftReverters(queue: List[LiftReverter], cc: Set[LiftReverter]): Set[LiftReverter] = queue match {
             case reverter +: rest =>
-                // 제거 대상인 targetLift로 인해 발생한 Lifting도 삭제 대상으로 포함 - by ParseNode가 동일하다는 건 해당 리프팅이 생성된 경로가 targetLift를 마지막으로 거쳤음을 의미한다
+                // 제거 대상인 targetLift로 인해 발생한 Lifting도 삭제 대상으로 포함 - `by` ParseNode가 동일하다는 건 해당 리프팅이 생성된 경로가 targetLift를 마지막으로 거쳤음을 의미한다
                 val newTargets: Set[NontermLifting] = nontermLiftings filter { _.by == reverter.targetLifting.after }
                 val newReverters0: Set[LiftReverter] = newTargets map { newTarget => reverter.withNewTargetLifting(newTarget) }
                 val newReverters = newReverters0 -- cc
@@ -337,7 +337,7 @@ class Parser(val grammar: Grammar)
             case List() => cc
         }
         val initLiftReverters = newLiftReverters
-        val treatedLiftReverters: Set[LiftReverter] = proceedLiftReverters(newLiftReverters.toList, newLiftReverters)
+        val treatedLiftReverters: Set[LiftReverter] = proceedLiftReverters(newLiftReverters.toList, newLiftReverters) filter { _.targetLifting.after.canFinish }
 
         // LiftReverter -> NodeKillReverter 변환
         // val liftingsByAfter: Map[Node, Set[Lifting]] = liftings groupBy { _.after } // 이 조건 비교는 불필요할듯
