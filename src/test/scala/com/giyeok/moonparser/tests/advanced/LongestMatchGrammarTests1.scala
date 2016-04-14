@@ -181,9 +181,7 @@ object LongestMatchGrammar3_1 extends Grammar with StringSamples {
             oneof(n("Number"), n("Punc"), n("Id")).star),
         "Number" -> ListSet(
             // eager longest로 바꿔서도 해보기
-            longest(n("Float"))),
-        "Float" -> ListSet(
-            seq(chars('1' to '9'), chars('0' to '9').star, seq(i("."), chars('0' to '9').plus).opt)),
+            longest(seq(chars('1' to '9'), chars('0' to '9').star, seq(i("."), chars('0' to '9').plus).opt))),
         "Punc" -> ListSet(
             chars(".,;[](){}")),
         "Id" -> ListSet(
@@ -205,7 +203,7 @@ object LongestMatchGrammar3_2 extends Grammar with StringSamples {
             // eager longest로 바꿔서도 해보기
             n("Float")),
         "Float" -> ListSet(
-            elongest(seq(chars('1' to '9'), chars('0' to '9').star, seq(i("."), chars('0' to '9').plus).opt))),
+            elongest(seq(chars('1' to '9'), chars('0' to '9').star, i("."), chars('0' to '9').plus))),
         "Punc" -> ListSet(
             chars(".,;[](){}")),
         "Id" -> ListSet(
@@ -228,7 +226,7 @@ object LongestMatchGrammar3_3 extends Grammar with StringSamples {
             longest(n("Float")),
             longest(n("Int"))),
         "Float" -> ListSet(
-            seq(chars('1' to '9'), chars('0' to '9').star, seq(i("."), chars('0' to '9').plus).opt)),
+            seq(chars('1' to '9'), chars('0' to '9').star, i("."), chars('0' to '9').plus)),
         "Int" -> ListSet(
             seq(chars('1' to '9'), chars('0' to '9').star)),
         "Punc" -> ListSet(
