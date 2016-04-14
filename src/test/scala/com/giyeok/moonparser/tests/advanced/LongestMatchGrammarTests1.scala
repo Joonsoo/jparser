@@ -7,6 +7,7 @@ import scala.collection.immutable.ListSet
 import com.giyeok.moonparser.GrammarHelper._
 import com.giyeok.moonparser.tests.Samples
 import com.giyeok.moonparser.tests.BasicParseTest
+import com.giyeok.moonparser.tests.AmbiguousSamples
 
 object LongestMatchGrammar1 extends Grammar with StringSamples {
     val name = "LongestMatchGrammar1"
@@ -128,17 +129,17 @@ object LongestMatchGrammar2_2 extends Grammar with StringSamples {
             n("Punc"),
             n("Whitespace")),
         "IdName" -> ListSet(
-            longest(oneof(n("IdStart"), seq(n("IdName"), n("IdPart"))))),
+            elongest(oneof(n("IdStart"), seq(n("IdName"), n("IdPart"))))),
         "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
         "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
-        "Number" -> ListSet(longest(seq(
+        "Number" -> ListSet(elongest(seq(
             i("-").opt,
             seq(chars('1' to '9'), chars('0' to '9').star),
             seq(i("."), seq(chars('0' to '9').plus)).opt,
             seq(chars("eE"), seq(chars('1' to '9'), chars('0' to '9').star)).opt))),
         "Punc" -> ListSet(
             chars(".,;[](){}")),
-        "Whitespace" -> ListSet(longest(seq(wsChars.plus))))
+        "Whitespace" -> ListSet(elongest(seq(wsChars.plus))))
     val startSymbol = n("S")
 
     val correctSamples = Set[String](
@@ -155,13 +156,53 @@ object LongestMatchGrammar2_2 extends Grammar with StringSamples {
     val incorrectSamples = Set[String]()
 }
 
-object LongestMatchGrammar2_3 extends Grammar with StringSamples {
+object LongestMatchGrammar2_3 extends Grammar with StringSamples with AmbiguousSamples {
     val name = "LongestMatchGrammar2_3"
+    val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
             n("Token").star),
         "Token" -> ListSet(
+            n("IdName"),
             n("Number"),
+            n("Punc"),
+            n("Whitespace")),
+        "IdName" -> ListSet(
+            longest(oneof(n("IdStart"), seq(n("IdName"), n("IdPart"))))),
+        "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
+        "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
+        "Number" -> ListSet(longest(seq(
+            i("-").opt,
+            seq(chars('1' to '9'), chars('0' to '9').star),
+            seq(i("."), seq(chars('0' to '9').plus)).opt,
+            seq(chars("eE"), seq(chars('1' to '9'), chars('0' to '9').star)).opt))),
+        "Punc" -> ListSet(
+            chars(".,;[](){}")),
+        "Whitespace" -> ListSet(longest(seq(wsChars.plus))))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String](
+        "abc a123123 def",
+        "    abcdedr     afsdf   j1jdf1j35j",
+        "aaaaa 11111    bbbbb",
+        "aaaaa -11111   bbbbb",
+        "12")
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String](
+        "111.222e333",
+        "aaaaa 11111.222222   bbbbb",
+        "aaaaa 11111e33333   bbbbb",
+        "aaaaa 11111.222222e33333   bbbbb",
+        "aaaaa -11111.22222e33333   bbbbb")
+}
+
+object LongestMatchGrammar2_4 extends Grammar with StringSamples {
+    val name = "LongestMatchGrammar2_4"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("Token").star),
+        "Token" -> ListSet(
+            elongest(n("Number")),
             n("Punc")),
         "Number" -> ListSet(seq(
             i("-").opt,
@@ -173,11 +214,12 @@ object LongestMatchGrammar2_3 extends Grammar with StringSamples {
     val startSymbol = n("S")
 
     val correctSamples = Set[String](
-        "1.2;")
-    val incorrectSamples = Set[String]("12")
+        "-1111.2222E123123;")
+    val incorrectSamples = Set[String](
+        "0.1")
 }
 
-object LongestMatchGrammar3_1 extends Grammar with StringSamples {
+object LongestMatchGrammar3_1 extends Grammar with StringSamples with AmbiguousSamples {
     val name = "LongestMatchGrammar3_1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -192,9 +234,11 @@ object LongestMatchGrammar3_1 extends Grammar with StringSamples {
     val startSymbol = n("S")
 
     val correctSamples = Set[String](
-        "1.2",
+        "12",
         "1.a")
-    val incorrectSamples = Set[String]("12")
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String](
+        "1.2")
 }
 
 object LongestMatchGrammar3_2 extends Grammar with StringSamples {
@@ -214,23 +258,23 @@ object LongestMatchGrammar3_2 extends Grammar with StringSamples {
     val startSymbol = n("S")
 
     val correctSamples = Set[String](
-        "1.2",
-        "1.a")
-    val incorrectSamples = Set[String]("12")
+        "1.2")
+    val incorrectSamples = Set[String]("1.a")
 }
 
 object LongestMatchGrammar3_3 extends Grammar with StringSamples {
     val name = "LongestMatchGrammar3_3"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
-            oneof(n("Number"), n("Punc"), n("Id")).star),
+            oneof(elongest(n("Number")), n("Punc"), n("Id")).star),
         "Number" -> ListSet(
             // eager longest로 바꿔서도 해보기
-            longest(n("Float")),
-            longest(n("Int"))),
+            n("Float"),
+            n("Int")),
         "Float" -> ListSet(
-            seq(chars('1' to '9'), chars('0' to '9').star, i("."), chars('0' to '9').plus)),
+            seq(oneof(i("0"), seq(chars('1' to '9'), chars('0' to '9').star)), i("."), chars('0' to '9').plus)),
         "Int" -> ListSet(
+            i("0"),
             seq(chars('1' to '9'), chars('0' to '9').star)),
         "Punc" -> ListSet(
             chars(".,;[](){}")),
@@ -239,8 +283,11 @@ object LongestMatchGrammar3_3 extends Grammar with StringSamples {
     val startSymbol = n("S")
 
     val correctSamples = Set[String](
-        "1.2")
-    val incorrectSamples = Set[String]("12", "1.a")
+        "0.11233221",
+        "1000.123123",
+        "0",
+        "123123")
+    val incorrectSamples = Set[String]()
 }
 
 object LongestMatchGrammar4 extends Grammar with StringSamples {
@@ -272,6 +319,7 @@ object LongestMatchGrammars {
         LongestMatchGrammar2_1,
         LongestMatchGrammar2_2,
         LongestMatchGrammar2_3,
+        LongestMatchGrammar2_4,
         LongestMatchGrammar3_1,
         LongestMatchGrammar3_2,
         LongestMatchGrammar3_3,
