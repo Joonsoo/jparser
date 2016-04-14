@@ -84,7 +84,7 @@ class Parser(val grammar: Grammar)
                     case x: LiftTriggered => x.trigger
                     case x: AliveTriggered => x.trigger
                 }
-                val newTriggerNodes = (reverterTriggers -- cc.nodes)
+                val newTriggerNodes = (reverterTriggers -- oldNodes -- cc.nodes)
                 logging("reverters") {
                     println(reverterTriggers)
                     if (!newTriggerNodes.isEmpty) {
@@ -222,7 +222,7 @@ class Parser(val grammar: Grammar)
                         if (!afterDerives.isEmpty) {
                             logging("expand", "  hasDerives")
 
-                            var proceededEdges: Map[SimpleEdge, SimpleEdge] = (incomingDeriveEdges map { edge =>
+                            val proceededEdges: Map[SimpleEdge, SimpleEdge] = (incomingDeriveEdges map { edge =>
                                 edge match {
                                     case e: SimpleEdge =>
                                         (e -> SimpleEdge(e.start, after))
@@ -350,6 +350,9 @@ class Parser(val grammar: Grammar)
             // 실은 MultiLift도 필요 없을지 몰라
             MultiTriggeredNodeKillReverter(triggers, affectedNode)
         }).toSet
+
+        // 기존의 NodeKillReverter -> 새 NodeKillReverter로 변환
+        // TODO
 
         // TemporaryLiftBlockedReverter는 그냥 그대로 가면 되나?
         // TODO 일단 그냥 가게 해놨는데 잘 보고 필요하면 고칠것
