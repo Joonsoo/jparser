@@ -70,6 +70,15 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
         if (isValidLocation(newLocation)) {
             currentLocation = newLocation
 
+            val text = if (currentLocation.showResult) {
+                ctxLogAt(currentLocation) match {
+                    case Left((ctx, log)) =>
+                        s"${currentLocation.location + 1} r=${ctx.resultCandidates.size}"
+                    case _ =>
+                        s"${currentLocation.location + 1}"
+                }
+            } else s"${currentLocation.location} -> ${currentLocation.location + 1}"
+
             sourceView.setContents({
                 val f = new Figure
                 f.setLayoutManager(new ToolbarLayout(true))
@@ -126,12 +135,19 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                     term.addMouseListener(listener(location))
                     term
                 }
+                def textFig(text: String): Figure = {
+                    val label = new draw2d.Label()
+                    label.setText(text)
+                    label.setFont(textFont)
+                    label
+                }
                 f.add(pointerFig(VisualizationLocation(-1, false), 5))
                 source.zipWithIndex foreach { s =>
                     f.add(pointerFig(VisualizationLocation(s._2 - 1, true), 0))
                     f.add(terminalFig(VisualizationLocation(s._2, false), s._1))
                 }
                 f.add(pointerFig(VisualizationLocation(source.length - 1, true), 200))
+                f.add(textFig(text))
                 f
             })
 
@@ -147,6 +163,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
     sourceView.setLayoutData(new GridData(GridData.FILL_HORIZONTAL))
     sourceView.setBackground(ColorConstants.white)
     val sourceFont = new Font(null, JFaceResources.getTextFont.getFontData.head.getName, 14, SWT.BOLD)
+    val textFont = new Font(null, JFaceResources.getTextFont.getFontData.head.getName, 8, SWT.BOLD)
 
     val layout = new StackLayout
 
@@ -190,6 +207,9 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
     val fin = finReversed.reverse
     assert(fin.length == source.length + 1)
 
+    def ctxLogAt(location: VisualizationLocation): Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError] =
+        fin(location.location + 1)
+
     def isValidLocation(location: VisualizationLocation): Boolean = {
         val VisualizationLocation(charLocation, showResult) = location
         if (charLocation >= -1 && charLocation < finReversed.size - 1) {
@@ -204,7 +224,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
             case Some(cached) => cached
             case None =>
                 val VisualizationLocation(charLocation, showResult) = location
-                val control = fin(charLocation + 1) match {
+                val control = ctxLogAt(location) match {
                     case Left((ctx, log)) =>
                         if (showResult) {
                             println(s"ResultCandidates: ${ctx.resultCandidates.size}")
