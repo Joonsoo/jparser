@@ -62,6 +62,20 @@ object Symbols {
                 case _ => false
             }
         }
+        def compare(t1: Terminal, t2: Terminal): Int = (t1, t2) match {
+            case (Any, _) => -1
+            case (_, Any) => 1
+            case (AnyChar, _) => -1
+            case (_, AnyChar) => -1
+            case (Unicode(c1), Unicode(c2)) => if (c1.min != c2.min) c1.min - c2.min else c1.max - c2.max
+            case (Unicode(_), _) => -1
+            case (_, Unicode(_)) => 1
+            case (ExactChar(c1), ExactChar(c2)) => c1 - c2
+            case (Chars(c1), ExactChar(c2)) => c1.min - c2
+            case (ExactChar(c1), Chars(c2)) => c1 - c2.min
+            case (Chars(c1), Chars(c2)) => if (c1.min != c2.min) c1.min - c2.min else c1.max - c2.max
+            case _ => -1
+        }
     }
     sealed trait Nonterm extends Symbol
 
@@ -162,6 +176,7 @@ object Symbols {
         def toReadable(c: Char): String = c match {
             case '\n' => "\\n"
             case '\t' => "\\t"
+            case '\r' => "\\r"
             case '\\' => "\\\\"
             case _ => c.toString
         }

@@ -28,6 +28,8 @@ import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.KeyAdapter
 import org.eclipse.swt.events.MouseEvent
 import com.giyeok.moonparser.Symbols
+import com.giyeok.moonparser.Symbols.Terminal
+import com.giyeok.moonparser.Symbols.Terminals
 
 trait ParsingContextGraphVisualize {
     def initGraph(): Graph
@@ -312,6 +314,30 @@ trait ParsingContextGraphVisualize {
             }
         }
     })
+
+    var terminalHighlighted: Boolean = false
+    def toggleHighlightTerminals(forced: Boolean): Unit = {
+        terminalHighlighted = forced || !terminalHighlighted
+        vnodes filter { _._1.symbol.isInstanceOf[Terminal] } foreach { kv =>
+            val node = kv._2
+            node.setBackgroundColor(if (terminalHighlighted) ColorConstants.cyan else ColorConstants.white)
+            node.highlight()
+        }
+    }
+    def reorderTerminals(): Unit = {
+        val totalDim = graph.getSize()
+        val sortedNodesKv = (vnodes map { kv => (kv, kv._1.symbol) } collect {
+            case (kv, t: Terminal) => (kv, t)
+        }).toSeq.sortWith((kv1, kv2) => Terminals.compare(kv1._2, kv2._2) < 0)
+        (sortedNodesKv map { _._1 }).foldLeft(0) { (y, kv) =>
+            val node = kv._2
+            val dim = node.getSize()
+            node.setLocation(totalDim.x - dim.width, y)
+            node.setBackgroundColor(if (terminalHighlighted) ColorConstants.cyan else ColorConstants.white)
+            node.highlight()
+            y + dim.height + 5
+        }
+    }
 }
 
 class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {

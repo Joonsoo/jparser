@@ -37,6 +37,7 @@ import com.giyeok.moonparser.Inputs
 import org.eclipse.draw2d.AbstractBorder
 import org.eclipse.draw2d.Graphics
 import org.eclipse.swt.graphics.Color
+import com.giyeok.moonparser.Symbols.Terminal
 
 class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Display, shell: Shell, resources: ParseGraphVisualizer.Resources) {
     case class VisualizationLocation(location: Int, showResult: Boolean) {
@@ -178,7 +179,19 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                 case SWT.ARROW_RIGHT => updateLocation(currentLocation.nextLocation)
                 case SWT.ARROW_UP => updateLocation(VisualizationLocation(currentLocation.location - 1, true))
                 case SWT.ARROW_DOWN => updateLocation(VisualizationLocation(currentLocation.location + 1, true))
+                case 't' | 'T' =>
+                    graphAt(currentLocation) match {
+                        case v: ParsingContextGraphVisualize =>
+                            if ((x.stateMask & SWT.SHIFT) != 0) {
+                                v.toggleHighlightTerminals(true)
+                                v.reorderTerminals()
+                            } else {
+                                v.toggleHighlightTerminals(false)
+                            }
+                        case _ => // nothing to do
+                    }
                 case code =>
+                    println(s"keyPressed: $code")
             }
         }
 

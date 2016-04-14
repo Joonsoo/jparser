@@ -40,7 +40,7 @@ class Parser(val grammar: Grammar)
         liftBlockedNodes: Set[Node])
 
     val logConfs = Map[String, Boolean](
-        "PCG" -> false,
+        "PCG" -> true,
         "expand" -> false,
         "proceedTerminal" -> false,
         "initialPC" -> false,
@@ -481,7 +481,14 @@ class Parser(val grammar: Grammar)
 
                 val finalEdges = newEdges ++ roots
                 val finalNodes = finalEdges flatMap { _.nodes }
-                val workingReverters = proceedReverters(reverters, newReverters, liftings, proceededEdges)
+                val workingReverters0 = proceedReverters(reverters, newReverters, liftings, proceededEdges)
+                val workingReverters = workingReverters0 filter {
+                    _ match {
+                        case x: DeriveReverter => finalEdges contains x.targetEdge
+                        case x: TemporaryLiftBlockReverter => finalNodes contains x.targetNode
+                        case x: NodeKillReverter => finalNodes contains x.targetNode
+                    }
+                }
 
                 logging("proceedTerminal") {
                     println("- liftings")
