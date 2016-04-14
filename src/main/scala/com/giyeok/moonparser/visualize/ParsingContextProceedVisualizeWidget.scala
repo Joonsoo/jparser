@@ -1,6 +1,7 @@
 package com.giyeok.moonparser.visualize
 
 import org.eclipse.draw2d.ColorConstants
+import org.eclipse.draw2d.Graphics
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.SelectionAdapter
 import org.eclipse.swt.events.SelectionEvent
@@ -26,6 +27,8 @@ import scala.collection.JavaConversions._
 import org.eclipse.draw2d.MarginBorder
 import org.eclipse.draw2d.LineBorder
 import org.eclipse.draw2d.Figure
+import org.eclipse.zest.core.widgets.CGraphNode
+import org.eclipse.swt.widgets.Display
 
 class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val lastContext: Option[Parser#ParsingContext], private val log: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
@@ -135,6 +138,20 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
 
     log.activatedReverters foreach { activatedReverter =>
         vreverters(activatedReverter) foreach { e => e.setLineWidth(5) }
+    }
+
+    val revertedNodeBorderColor = new Color(Display.getDefault(), 200, 200, 200)
+    log.revertedNodes foreach { revertedNode =>
+        val cg = vnodes(revertedNode)
+        val blurBorder = new LineBorder
+        blurBorder.setColor(revertedNodeBorderColor)
+        blurBorder.setStyle(Graphics.LINE_DASHDOT)
+        cg.getFigure.setBorder(blurBorder)
+    }
+    log.revertedEdges foreach { revertedEdge =>
+        val e = vedges(revertedEdge)
+        e.setLineWidth(2)
+        e.setLineStyle(Graphics.LINE_DASHDOT)
     }
     //    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122) // dark salmon
     //    log.propagatedAssassinEdges foreach { e =>

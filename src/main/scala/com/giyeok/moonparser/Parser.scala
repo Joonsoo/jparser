@@ -34,14 +34,17 @@ class Parser(val grammar: Grammar)
         revertersLog: Map[Reverter, String],
         finalNodes: Set[Node],
         finalEdges: Set[DeriveEdge],
-        finalReverters: Set[WorkingReverter])
+        finalReverters: Set[WorkingReverter],
+        revertedNodes: Set[Node],
+        revertedEdges: Set[DeriveEdge])
 
     val logConfs = Map[String, Boolean](
         "PCG" -> false,
         "expand" -> false,
         "proceedTerminal" -> false,
         "initialPC" -> false,
-        "reverters" -> false)
+        "reverters" -> false,
+        "reverterKill" -> true)
     def logging(logType: String)(block: => Unit): Unit = {
         logConfs get logType match {
             case Some(true) => block
@@ -381,9 +384,9 @@ class Parser(val grammar: Grammar)
                     }
                 }
 
-                val (terminalLiftings: Set[TermLifting], ExpandResult(liftings, newNodes, newEdges, newReverters, proceededEdges)) = {
+                val (terminalLiftings: Set[TermLifting], ExpandResult(liftings, newNodes, newEdges, newReverters, proceededEdges), (revertedNodes: Set[Node], revertedEdges: Set[DeriveEdge])) = {
                     if (activatedReverters.isEmpty) {
-                        (terminalLiftings0, expand0)
+                        (terminalLiftings0, expand0, (Set(), Set()))
                     } else {
                         sealed trait KillTask
                         case class EdgeKill(edge: DeriveEdge) extends KillTask
@@ -392,6 +395,7 @@ class Parser(val grammar: Grammar)
                         def collectKills(queue: List[KillTask], nodesCC: Set[Node], edgesCC: Set[DeriveEdge]): (Set[Node], Set[DeriveEdge]) =
                             queue match {
                                 case task +: rest =>
+                                    logging("reverterKill", s"Reverter Kill Task: $task @ $gen")
                                     task match {
                                         case EdgeKill(edge) =>
                                             assert(!(edgesCC contains edge))
@@ -425,7 +429,7 @@ class Parser(val grammar: Grammar)
                         val terminalLiftings = terminalLiftings0 filter { lifting => treatedNodes contains lifting.before }
                         val expand1 = expand(treatedNodes, treatedEdges, nextGenId, terminalLiftings.toList map { lifting => LiftTask(lifting) })
                         assert(terminalLiftings.asInstanceOf[Set[Lifting]] subsetOf expand1.liftings)
-                        (terminalLiftings, expand1)
+                        (terminalLiftings, expand1, ((nodes -- treatedNodes), (edges -- treatedEdges)))
                     }
                 }
                 val roots: Set[DeriveEdge] = rootTipsOfProceededEdges(proceededEdges) flatMap { edges.rootsOf(_) }
@@ -454,7 +458,8 @@ class Parser(val grammar: Grammar)
                     println("============ End of generation =======")
                 }
 
-                val nextParsingContext = ParsingContext(gen + 1, finalNodes, finalEdges, workingReverters, collectResultCandidates(liftings))
+                val resultCandidates = collectResultCandidates(liftings)
+                val nextParsingContext = ParsingContext(gen + 1, finalNodes, finalEdges, workingReverters, resultCandidates)
                 val verboseProceedLog = VerboseProceedLog(
                     activatedReverters,
                     terminalLiftings,
@@ -467,7 +472,9 @@ class Parser(val grammar: Grammar)
                     revertersLog,
                     finalNodes,
                     finalEdges,
-                    workingReverters)
+                    workingReverters,
+                    revertedNodes,
+                    revertedEdges)
                 Left((nextParsingContext, verboseProceedLog))
             }
         }
@@ -528,7 +535,8 @@ class Parser(val grammar: Grammar)
             // val finishable: Set[Lifting] = nodes collect { case n if n.canFinish => Lifting(n, n, None) }
 
             val workingReverters = proceedReverters(Set(), reverters, liftings, proceededEdges)
-            val startingContext = ParsingContext(0, nodes, edges, workingReverters, collectResultCandidates(liftings))
+            val resultCandidates = collectResultCandidates(liftings)
+            val startingContext = ParsingContext(0, nodes, edges, workingReverters, resultCandidates)
             val verboseProceedLog = VerboseProceedLog(
                 Set(),
                 Set(),
@@ -541,7 +549,9 @@ class Parser(val grammar: Grammar)
                 Map(),
                 Set(),
                 Set(),
-                workingReverters)
+                workingReverters,
+                Set(),
+                Set())
             (startingContext, verboseProceedLog)
         }
         def fromSeed(seed: Symbol): ParsingContext = fromSeedVerbose(seed)._1

@@ -207,6 +207,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                 val control = fin(charLocation + 1) match {
                     case Left((ctx, log)) =>
                         if (showResult) {
+                            println(s"ResultCandidates: ${ctx.resultCandidates.size}")
                             finalizeView(new ParsingContextGraphVisualizeWidget(graphView, resources, ctx))
                         } else {
                             val lastCtx: Option[Parser#ParsingContext] = if (charLocation >= 0) Some(fin(charLocation).left.get._1) else None
