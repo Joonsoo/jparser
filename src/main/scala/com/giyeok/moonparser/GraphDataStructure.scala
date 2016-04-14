@@ -48,6 +48,9 @@ trait GraphDataStructure {
     sealed trait NodeKillReverter extends WorkingReverter {
         val targetNode: Node
     }
+    sealed trait TemporaryLiftBlockReverter extends PreReverter with WorkingReverter {
+        val targetNode: Node
+    }
 
     sealed trait Triggered extends Reverter
     sealed trait ConditionalTrigger extends Triggered
@@ -74,6 +77,8 @@ trait GraphDataStructure {
         def withNewTargetLifting(newTargetLifting: NontermLifting): LiftReverter = AliveTriggeredLiftReverter(trigger, newTargetLifting)
     }
     case class MultiTriggeredNodeKillReverter(triggers: Set[ReverterTrigger], targetNode: Node) extends MultiLiftTriggered with NodeKillReverter
+
+    case class LiftTriggeredTemporaryLiftBlockReverter(trigger: Node, targetNode: Node) extends LiftTriggered with TemporaryLiftBlockReverter
 
     implicit class AugEdges(edges: Set[DeriveEdge]) {
         def simpleEdges: Set[SimpleEdge] = edges collect { case e: SimpleEdge => e }

@@ -168,6 +168,7 @@ trait ParsingContextGraphVisualize {
     val darkerRed = new Color(null, 139, 0, 0)
     val deriveReverterEdgeColor = darkerRed
     val liftReverterEdgeColor = darkerRed
+    val tempLiftBlockReverterEdgeColor = darkerRed
 
     def registerEdge(edges: Set[Parser#DeriveEdge])(e: Parser#DeriveEdge): GraphConnection = {
         val edge = e match {
@@ -236,6 +237,16 @@ trait ParsingContextGraphVisualize {
                     }
                     vreverters(x) = edges
                 }
+
+            case x: Parser#LiftTriggeredTemporaryLiftBlockReverter =>
+                // Working Reverter
+                val start = registerNode(x.trigger)
+                val end = registerNode(x.targetNode)
+                val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
+                edge.setLineColor(tempLiftBlockReverterEdgeColor)
+                edge.setCurveDepth(-40)
+                edge.setText("TempLiftBlock")
+                vreverters(x) = List(edge)
 
             case x: Parser#LiftTriggeredLiftReverter =>
                 // Pre Reverter

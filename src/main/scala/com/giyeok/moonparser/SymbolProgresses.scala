@@ -172,8 +172,8 @@ trait SymbolProgresses extends SeqOrderedTester {
         }
         def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
             if (parsed.isEmpty) {
-                val edge = SimpleEdge(this, SymbolProgress(symbol.sym, gen))
-                (Set(edge), Set(LiftTriggeredDeriveReverter(SymbolProgress(symbol.except, gen), edge)))
+                (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))),
+                    Set(LiftTriggeredTemporaryLiftBlockReverter(SymbolProgress(symbol.except, gen), this)))
             } else (Set(), Set())
     }
 

@@ -36,7 +36,8 @@ class Parser(val grammar: Grammar)
         finalEdges: Set[DeriveEdge],
         finalReverters: Set[WorkingReverter],
         revertedNodes: Set[Node],
-        revertedEdges: Set[DeriveEdge])
+        revertedEdges: Set[DeriveEdge],
+        liftBlockedNodes: Set[Node])
 
     val logConfs = Map[String, Boolean](
         "PCG" -> false,
@@ -65,8 +66,6 @@ class Parser(val grammar: Grammar)
 
     case class ExpandResult(liftings: Set[Lifting], nodes: Set[Node], edges: Set[DeriveEdge], reverters: Set[PreReverter], proceededEdges: Map[SimpleEdge, SimpleEdge]) {
         // proceededEdges: 이전 세대의 DeriveEdge중 내용이 바뀌어서 추가되는 DeriveEdge
-        def +(n: ExpandResult) = ExpandResult(n.liftings ++ liftings, n.nodes ++ nodes, n.edges ++ edges, n.reverters ++ reverters, n.proceededEdges ++ proceededEdges)
-        def +(n: (Set[Lifting], Set[Node], Set[DeriveEdge], Set[PreReverter], Map[SimpleEdge, SimpleEdge])) = ExpandResult(n._1 ++ liftings, n._2 ++ nodes, n._3 ++ edges, n._4 ++ reverters, n._5 ++ proceededEdges)
         def withNode(newNode: Node) = ExpandResult(liftings, nodes + newNode, edges, reverters, proceededEdges)
         def withNodes(newNodes: Set[Node]) = ExpandResult(liftings, nodes ++ newNodes, edges, reverters, proceededEdges)
         def withLifting(newLifting: Lifting) = ExpandResult(liftings + newLifting, nodes, edges, reverters, proceededEdges)
@@ -77,29 +76,47 @@ class Parser(val grammar: Grammar)
         def withReverters(newReverters: Set[PreReverter]) = ExpandResult(liftings, nodes, edges, reverters ++ newReverters, proceededEdges)
     }
 
-    def expand(oldNodes: Set[Node], oldEdges: Set[DeriveEdge], newGenId: Int, queue: List[ExpandTask]): ExpandResult = {
-        def expand0(queue: List[ExpandTask], allTasksCC: Set[ExpandTask], cc: ExpandResult): (Set[ExpandTask], ExpandResult) = {
-            val allEdges: Set[DeriveEdge] = oldEdges ++ cc.edges
-            logging("expand") {
-                println("left queues:")
-                queue foreach { q => println(s"  $q") }
-            }
-            def addReverters(q: List[ExpandTask], cc: ExpandResult, newReverters: Set[PreReverter]): (List[ExpandTask], ExpandResult) = {
+    def expand(oldNodes: Set[Node], oldEdges: Set[DeriveEdge], liftBlockedNodes: Set[Node], newGenId: Int, queue: List[ExpandTask]): ExpandResult = {
+        case class Qcc(queue: List[ExpandTask], cc: ExpandResult) {
+            // Queue and CC
+            def withReverters(newReverters: Set[PreReverter]): Qcc = {
                 val reverterTriggers = newReverters collect {
                     case x: LiftTriggered => x.trigger
                     case x: AliveTriggered => x.trigger
                 }
                 val newTriggerNodes = (reverterTriggers -- cc.nodes)
-                println(reverterTriggers)
-                if (!newTriggerNodes.isEmpty) {
-                    println(newTriggerNodes)
+                logging("reverters") {
+                    println(reverterTriggers)
+                    if (!newTriggerNodes.isEmpty) {
+                        println(newTriggerNodes)
+                    }
                 }
                 val newReverterTriggerDeriveTasks = newTriggerNodes collect { case x: NonterminalNode => x } map { DeriveTask(_) }
-                (newReverterTriggerDeriveTasks.toList ++ q, cc.withNodes(reverterTriggers).withReverters(newReverters))
+                Qcc(newReverterTriggerDeriveTasks.toList ++ queue, cc.withNodes(reverterTriggers).withReverters(newReverters))
             }
-            def addLiftingsAndReverters(q: List[ExpandTask], cc: ExpandResult, newLiftings: Set[Lifting], newReverters: Set[PreReverter]): (List[ExpandTask], ExpandResult) = {
-                val newLiftTasks = newLiftings map { LiftTask(_) }
-                addReverters(newLiftTasks.toList ++ q, cc.withLiftings(newLiftings), newReverters)
+            def withLiftings(newLiftings: Set[Lifting]): Qcc = {
+                val treatedLiftings = newLiftings filterNot { liftBlockedNodes contains _.before }
+                val newLiftTasks = treatedLiftings map { LiftTask(_) }
+                Qcc(newLiftTasks.toList ++: queue, cc.withLiftings(treatedLiftings))
+            }
+            def withLiftingsAndReverters(newLiftings: Set[Lifting], newReverters: Set[PreReverter]): Qcc = {
+                withLiftings(newLiftings).withReverters(newReverters)
+            }
+            def withNewNodesAndEdges(newNodes: Set[Node], newEdges: Set[DeriveEdge]): Qcc = {
+                val newDeriveTasks = newNodes collect { case n: NonterminalNode => DeriveTask(n) }
+                val newCC = cc.withNodes(newNodes).withEdges(newEdges)
+                Qcc(newDeriveTasks.toList ++: queue, newCC)
+            }
+            def withNewLiftedNodeAndProceededEdges(liftedNode: NonterminalNode, proceededEdges: Map[SimpleEdge, SimpleEdge]): Qcc = {
+                Qcc(DeriveTask(liftedNode) +: queue, cc.withNode(liftedNode).withEdges(proceededEdges.values.toSet).withProceededEdges(proceededEdges))
+            }
+        }
+
+        def expand0(queue: List[ExpandTask], allTasksCC: Set[ExpandTask], cc: ExpandResult): (Set[ExpandTask], ExpandResult) = {
+            val allEdges: Set[DeriveEdge] = oldEdges ++ cc.edges
+            logging("expand") {
+                println("left queues:")
+                queue foreach { q => println(s"  $q") }
             }
 
             // TODO queue에 중복된 아이템 2개 들어가지 않도록 수정
@@ -110,7 +127,7 @@ class Parser(val grammar: Grammar)
                         logging("expand", s"DeriveTask($node)")
                         assert(cc.nodes contains node)
 
-                        var (nextQueue, nextCC) = (rest, cc)
+                        var nextQcc = Qcc(rest, cc)
 
                         // `node`에서 derive할 수 있는 edge를 모두 찾고, 이미 처리된 edge는 제외
                         val (derivedEdges: Set[DeriveEdge], derivedReverters: Set[PreReverter]) = node.derive(newGenId)
@@ -119,10 +136,7 @@ class Parser(val grammar: Grammar)
                         // `newNode`에서는 cc.nodes를 빼면 안됨. 이걸 빼면 아래 "이미 처리된 노드가 lift된 경우"가 확인이 안됨
                         val newNodes: Set[Node] = newDerivedEdges.flatMap(_.nodes)
 
-                        nextQueue ++:= newNodes collect { case n: NonterminalNode => DeriveTask(n) }
-                        nextCC += ExpandResult(Set(), newNodes, newDerivedEdges, Set(), Map())
-                        val (q1, c1) = addReverters(nextQueue, nextCC, newDerivedReverters)
-                        nextQueue = q1; nextCC = c1
+                        nextQcc = nextQcc.withNewNodesAndEdges(newNodes, newDerivedEdges).withReverters(newDerivedReverters)
 
                         logging("expand") {
                             newDerivedEdges foreach { edge =>
@@ -144,8 +158,7 @@ class Parser(val grammar: Grammar)
                             }
                         }
 
-                        val (q2, c2) = addLiftingsAndReverters(nextQueue, nextCC, newLiftings, newReverters)
-                        nextQueue = q2; nextCC = c2
+                        nextQcc = nextQcc.withLiftingsAndReverters(newLiftings, newReverters)
 
                         // 새로 만들어진 노드가 이미 처리된 노드인 경우, 이미 처리된 노드가 lift되었을 경우를 확인해서 처리(SimpleGrammar6 참고)
                         val allNodes = allEdges flatMap { _.nodes }
@@ -158,10 +171,9 @@ class Parser(val grammar: Grammar)
                             }
                             (x flatMap { _._1 }, x flatMap { _._2 })
                         }
-                        val (q3, c3) = addLiftingsAndReverters(nextQueue, nextCC, alreadyProcessedNodesLifting, alreadyProcessedReverters)
-                        nextQueue = q3; nextCC = c3
+                        nextQcc = nextQcc.withLiftingsAndReverters(alreadyProcessedNodesLifting, alreadyProcessedReverters)
 
-                        expand0(nextQueue, allTasksCC + task, nextCC)
+                        expand0(nextQcc.queue, allTasksCC + task, nextQcc.cc)
 
                     case LiftTask(TermLifting(before, after, by)) =>
                         // terminal element가 lift되는 경우 처리
@@ -174,32 +186,30 @@ class Parser(val grammar: Grammar)
                         // 또 이번에 생성된 terminal element가 바로 lift되는 것은 불가능하므로 before는 반드시 oldGraph 소속이어야 한다.
                         assert(oldNodes contains before)
 
-                        var (nextQueue, nextCC) = (rest, cc)
+                        var nextQcc = Qcc(rest, cc)
 
                         allEdges.incomingEdgesOf(before) foreach { edge =>
                             edge match {
                                 case e: SimpleEdge =>
                                     val (lifting, newReverters): (Lifting, Set[PreReverter]) = e.start.lift(after, e)
-                                    val (q, c) = addLiftingsAndReverters(nextQueue, nextCC, Set(lifting), newReverters)
-                                    nextQueue = q; nextCC = c
+                                    nextQcc = nextQcc.withLiftingsAndReverters(Set(lifting), newReverters)
                                 case e: JoinEdge =>
                                     val constraint: Option[Lifting] = cc.liftings.find { _.before == e.constraint }
                                     if (constraint.isDefined) {
                                         val lifting = e.start.liftJoin(after, constraint.get.after, e)
-                                        nextQueue +:= LiftTask(lifting)
-                                        nextCC = nextCC.withLifting(lifting)
+                                        nextQcc = nextQcc.withLiftings(Set(lifting))
                                     }
                             }
                         }
 
-                        expand0(nextQueue, allTasksCC + task, nextCC)
+                        expand0(nextQcc.queue, allTasksCC + task, nextQcc.cc)
 
                     case LiftTask(NontermLifting(before, after, by, _)) =>
                         // nonterminal element가 lift되는 경우 처리
                         // 문제가 되는 lift는 전부 여기 문제
                         logging("expand", s"NontermLiftTask($before, $after, $by)")
 
-                        var (nextQueue, nextCC) = (rest, cc)
+                        var nextQcc = Qcc(rest, cc)
 
                         val incomingDeriveEdges = allEdges.incomingEdgesOf(before)
 
@@ -223,10 +233,7 @@ class Parser(val grammar: Grammar)
                                         throw new java.lang.AssertionError("should not happen")
                                 }
                             }).toMap
-                            nextQueue +:= DeriveTask(after)
-                            nextCC = nextCC.withNode(after).withEdges(proceededEdges.values.toSet).withProceededEdges(proceededEdges)
-                            val (q, c) = addReverters(nextQueue, nextCC, afterReverters)
-                            nextQueue = q; nextCC = c
+                            nextQcc = nextQcc.withNewLiftedNodeAndProceededEdges(after, proceededEdges).withReverters(afterReverters)
                         }
 
                         // lift된 node, 즉 `after`가 canFinish인 경우
@@ -239,8 +246,7 @@ class Parser(val grammar: Grammar)
                                 edge match {
                                     case e: SimpleEdge =>
                                         val (lifting, newReverters) = e.start.lift(after, e)
-                                        val (q, c) = addLiftingsAndReverters(nextQueue, nextCC, Set(lifting), newReverters)
-                                        nextQueue = q; nextCC = c
+                                        nextQcc = nextQcc.withLiftingsAndReverters(Set(lifting), newReverters)
                                     case e: JoinEdge =>
                                         val constraintLifted = cc.liftings filter { _.before == e.constraint }
                                         if (!constraintLifted.isEmpty) {
@@ -251,15 +257,14 @@ class Parser(val grammar: Grammar)
                                                 if (!e.endConstraintReversed) e.start.liftJoin(after, constraint.after, e)
                                                 else e.start.liftJoin(constraint.after, after, e)
                                             }
-                                            nextQueue ++:= liftings map { lifting => LiftTask(lifting) }
-                                            nextCC = nextCC.withLiftings(liftings)
+                                            nextQcc = nextQcc.withLiftings(liftings)
                                         }
                                     // just ignore if the constraint is not matched
                                 }
                             }
                         }
 
-                        expand0(nextQueue, allTasksCC + task, nextCC)
+                        expand0(nextQcc.queue, allTasksCC + task, nextQcc.cc)
                 }
                 case List() => (allTasksCC, cc)
             }
@@ -346,7 +351,13 @@ class Parser(val grammar: Grammar)
             MultiTriggeredNodeKillReverter(triggers, affectedNode)
         }).toSet
 
-        workingDeriveReverters ++ workingNodeKillReverters
+        // TemporaryLiftBlockedReverter는 그냥 그대로 가면 되나?
+        // TODO 일단 그냥 가게 해놨는데 잘 보고 필요하면 고칠것
+        val workingTempLiftBlockReverters: Set[TemporaryLiftBlockReverter] =
+            (oldReverters collect { case x: TemporaryLiftBlockReverter => x }) ++
+                (newReverters collect { case x: TemporaryLiftBlockReverter => x })
+
+        workingDeriveReverters ++ workingNodeKillReverters ++ workingTempLiftBlockReverters
     }
 
     def collectResultCandidates(liftings: Set[Lifting]): Set[Node] =
@@ -384,7 +395,7 @@ class Parser(val grammar: Grammar)
             } else {
                 val nextGenId = gen + 1
 
-                val expand0 = expand(nodes, edges, nextGenId, terminalLiftings0.toList map { lifting => LiftTask(lifting) })
+                val expand0 = expand(nodes, edges, Set(), nextGenId, terminalLiftings0.toList map { lifting => LiftTask(lifting) })
 
                 var revertersLog = Map[Reverter, String]()
 
@@ -407,9 +418,11 @@ class Parser(val grammar: Grammar)
                     }
                 }
 
-                val (terminalLiftings: Set[TermLifting], (treatedNodes: Set[Node], treatedEdges: Set[DeriveEdge]), ExpandResult(liftings, newNodes, newEdges, newReverters, proceededEdges)) = {
+                logging("reverters")(s"activated: $activatedReverters")
+
+                val (terminalLiftings: Set[TermLifting], (treatedNodes: Set[Node], treatedEdges: Set[DeriveEdge], liftBlockedNodes: Set[Node]), ExpandResult(liftings, newNodes, newEdges, newReverters, proceededEdges)) = {
                     if (activatedReverters.isEmpty) {
-                        (terminalLiftings0, (nodes, edges), expand0)
+                        (terminalLiftings0, (nodes, edges, Set()), expand0)
                     } else {
                         sealed trait KillTask
                         case class EdgeKill(edge: DeriveEdge) extends KillTask
@@ -449,10 +462,13 @@ class Parser(val grammar: Grammar)
                         val killTasks: List[KillTask] = (killEdges.toList map { EdgeKill(_) }) ++ (killNodes.toList map { NodeKill(_) })
                         val (treatedNodes, treatedEdges) = collectKills(killTasks, nodes -- killNodes, edges -- killEdges)
 
-                        val terminalLiftings = terminalLiftings0 filter { lifting => treatedNodes contains lifting.before }
-                        val expand1 = expand(treatedNodes, treatedEdges, nextGenId, terminalLiftings.toList map { lifting => LiftTask(lifting) })
+                        val liftBlockedNodes = activatedReverters collect { case x: TemporaryLiftBlockReverter => x.targetNode }
+                        logging("reverters", s"LiftBlockedNodes: $gen -> $liftBlockedNodes")
+
+                        val terminalLiftings = (terminalLiftings0 filter { lifting => (treatedNodes contains lifting.before) && !(liftBlockedNodes contains lifting.before) })
+                        val expand1 = expand(treatedNodes, treatedEdges, liftBlockedNodes, nextGenId, terminalLiftings.toList map { lifting => LiftTask(lifting) })
                         assert(terminalLiftings.asInstanceOf[Set[Lifting]] subsetOf expand1.liftings)
-                        (terminalLiftings, (treatedNodes, treatedEdges), expand1)
+                        (terminalLiftings, (treatedNodes, treatedEdges, liftBlockedNodes), expand1)
                     }
                 }
                 val roots: Set[DeriveEdge] = rootTipsOfProceededEdges(proceededEdges) flatMap { treatedEdges.rootsOf(_) }
@@ -497,7 +513,8 @@ class Parser(val grammar: Grammar)
                     finalEdges,
                     workingReverters,
                     nodes -- treatedNodes,
-                    edges -- treatedEdges)
+                    edges -- treatedEdges,
+                    liftBlockedNodes)
                 Left((nextParsingContext, verboseProceedLog))
             }
         }
@@ -525,7 +542,7 @@ class Parser(val grammar: Grammar)
         def fromSeedVerbose(seed: Symbol): (ParsingContext, VerboseProceedLog) = {
             val startProgress = SymbolProgress(seed, 0)
             assert(startProgress.isInstanceOf[SymbolProgressNonterminal])
-            val ExpandResult(liftings, nodes, edges, reverters, proceededEdges) = expand(Set(), Set(), 0, List(DeriveTask(startProgress.asInstanceOf[NonterminalNode])))
+            val ExpandResult(liftings, nodes, edges, reverters, proceededEdges) = expand(Set(), Set(), Set(), 0, List(DeriveTask(startProgress.asInstanceOf[NonterminalNode])))
             // expand2(seeds.toList, seeds, Set(), Set())
 
             logging("initialPC") {
@@ -573,6 +590,7 @@ class Parser(val grammar: Grammar)
                 Set(),
                 Set(),
                 workingReverters,
+                Set(),
                 Set(),
                 Set())
             (startingContext, verboseProceedLog)

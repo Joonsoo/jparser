@@ -7,11 +7,10 @@ import com.giyeok.moonparser.Grammar
 
 class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends FlatSpec {
     def log(s: String): Unit = {
-        // println(s)
+        println(s)
     }
 
     private def testCorrect(grammar: Grammar)(source: Inputs.Source) = {
-        log(s"Testing ${grammar.name} on '${source.toCleanString}'")
         val result = new Parser(grammar).parse(source)
         it should s"${grammar.name} properly parsed on '${source.toCleanString}'" in {
             result match {
@@ -29,9 +28,7 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
     }
 
     private def testIncorrect(grammar: Grammar)(source: Inputs.Source) = {
-        log(s"Testing ${grammar.name} on '${source.toCleanString}'")
         val result = new Parser(grammar).parse(source)
-        log("  - Parsing Done")
         it should s"${grammar.name} failed to parse on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) => assert(ctx.resultCandidates.isEmpty)

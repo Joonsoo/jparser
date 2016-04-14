@@ -141,6 +141,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
     }
 
     val revertedNodeBorderColor = new Color(Display.getDefault(), 200, 200, 200)
+    val liftBlockedNodeBorderColor = new Color(Display.getDefault(), 255, 100, 100)
     log.revertedNodes foreach { revertedNode =>
         val cg = vnodes(revertedNode)
         val blurBorder = new LineBorder
@@ -152,6 +153,13 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         val e = vedges(revertedEdge)
         e.setLineWidth(2)
         e.setLineStyle(Graphics.LINE_DASHDOT)
+    }
+    log.liftBlockedNodes foreach { liftBlockedNode =>
+        val cg = vnodes(liftBlockedNode)
+        val blurBorder = new LineBorder
+        blurBorder.setColor(liftBlockedNodeBorderColor)
+        blurBorder.setStyle(Graphics.LINE_DASHDOT)
+        cg.getFigure.setBorder(blurBorder)
     }
     //    val propagatedAssassinEdgeColor = new Color(null, 233, 150, 122) // dark salmon
     //    log.propagatedAssassinEdges foreach { e =>
