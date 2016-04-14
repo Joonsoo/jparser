@@ -284,6 +284,9 @@ class Parser(val grammar: Grammar)
         assert((result.proceededEdges map { _._2.end }).toSet subsetOf result.nodes)
         assert(result.proceededEdges forall { oldNew => (oldNew._1.start == oldNew._2.start) })
         // assert(result.proceededEdges forall { oldNodes contains _._1.start }) // 이건 만족해야되지 않나?
+
+        // oldNodes의 노드들로부터 derive되는 경우가 있으면 안됨
+        assert(((allTasks collect { case DeriveTask(node) => node }).asInstanceOf[Set[Node]] intersect oldNodes).isEmpty)
         result
     }
 

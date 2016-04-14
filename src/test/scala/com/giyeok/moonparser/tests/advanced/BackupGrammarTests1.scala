@@ -15,7 +15,9 @@ object BackupGrammar1 extends Grammar with StringSamples {
         "S" -> ListSet(seq(seq(c('a').plus), seq(wsChars.star, c(';')).backup(wsChars.plus)).star))
     val startSymbol = n("S")
 
-    val correctSamples = Set[String]("aa;a ")
+    val correctSamples = Set[String](
+        "aa;a ",
+        "aaaa aaaa ")
     val incorrectSamples = Set[String]()
 }
 

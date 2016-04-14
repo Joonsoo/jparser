@@ -7,7 +7,7 @@ import com.giyeok.moonparser.Grammar
 
 class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends FlatSpec {
     def log(s: String): Unit = {
-        println(s)
+        // println(s)
     }
 
     private def testCorrect(grammar: Grammar)(source: Inputs.Source) = {

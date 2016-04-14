@@ -110,7 +110,9 @@ object LongestMatchGrammar2_1 extends Grammar with StringSamples {
         "Whitespace" -> ListSet(seq(wsChars.plus, lookahead_except(wsChars))))
     val startSymbol = n("S")
 
-    val correctSamples = Set[String]("abc a123123 def", "    abcdedr     afsdf   j1jdf1j35j")
+    val correctSamples = Set[String](
+        "abc a123123 def",
+        "    abcdedr     afsdf   j1jdf1j35j")
     val incorrectSamples = Set[String]("12")
 }
 
@@ -148,8 +150,9 @@ object LongestMatchGrammar2_2 extends Grammar with StringSamples {
         "aaaaa 11111.222222   bbbbb",
         "aaaaa 11111e33333   bbbbb",
         "aaaaa 11111.222222e33333   bbbbb",
-        "aaaaa -11111.22222e33333   bbbbb")
-    val incorrectSamples = Set[String]("12")
+        "aaaaa -11111.22222e33333   bbbbb",
+        "12")
+    val incorrectSamples = Set[String]()
 }
 
 object LongestMatchGrammar2_3 extends Grammar with StringSamples {
