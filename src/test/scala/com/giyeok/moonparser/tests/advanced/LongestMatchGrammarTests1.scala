@@ -126,8 +126,7 @@ object LongestMatchGrammar2_2 extends Grammar with StringSamples {
             n("Punc"),
             n("Whitespace")),
         "IdName" -> ListSet(
-            longest(n("IdStart")),
-            longest(seq(n("IdName"), n("IdPart")))),
+            longest(oneof(n("IdStart"), seq(n("IdName"), n("IdPart"))))),
         "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
         "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
         "Number" -> ListSet(longest(seq(
@@ -258,9 +257,9 @@ object LongestMatchGrammar4 extends Grammar with StringSamples {
     val startSymbol = n("S")
 
     val correctSamples = Set[String](
-        "123")
+        "123", "123abc123")
     val incorrectSamples = Set[String](
-        "a")
+        ".")
 }
 
 object LongestMatchGrammars {

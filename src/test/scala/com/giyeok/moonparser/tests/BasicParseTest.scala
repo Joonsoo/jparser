@@ -7,7 +7,7 @@ import com.giyeok.moonparser.Grammar
 
 class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends FlatSpec {
     def log(s: String): Unit = {
-        // println(s)
+        println(s)
     }
 
     private def testCorrect(grammar: Grammar)(source: Inputs.Source) = {
@@ -16,12 +16,12 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
         it should s"${grammar.name} properly parsed on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) =>
-//                    if (ctx.resultCandidates.size != 1) {
-//                        ctx.resultCandidates.zipWithIndex foreach { result =>
-//                            println(s"=== ${result._2} ===")
-//                            println(result._1.parsed.get.toHorizontalHierarchyString)
-//                        }
-//                    }
+                    if (ctx.resultCandidates.size != 1) {
+                        ctx.resultCandidates.zipWithIndex foreach { result =>
+                            log(s"=== ${result._2} ===")
+                            log(result._1.parsed.get.toHorizontalHierarchyString)
+                        }
+                    }
                     assert(ctx.resultCandidates.size == 1)
                 case Right(error) => fail(error.msg)
             }
@@ -31,6 +31,7 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
     private def testIncorrect(grammar: Grammar)(source: Inputs.Source) = {
         log(s"Testing ${grammar.name} on '${source.toCleanString}'")
         val result = new Parser(grammar).parse(source)
+        log("  - Parsing Done")
         it should s"${grammar.name} failed to parse on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) => assert(ctx.resultCandidates.isEmpty)
@@ -42,6 +43,7 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
     private def testAmbiguous(grammar: Grammar)(source: Inputs.Source) = {
         log(s"Testing ${grammar.name} on '${source.toCleanString}'")
         val result = new Parser(grammar).parse(source)
+        log("  - Parsing Done")
         it should s"${grammar.name} is ambiguous on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) => assert(ctx.resultCandidates.size > 1)

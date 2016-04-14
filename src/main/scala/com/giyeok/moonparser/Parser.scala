@@ -41,7 +41,7 @@ class Parser(val grammar: Grammar)
         "expand" -> false,
         "proceedTerminal" -> false,
         "initialPC" -> false,
-        "reverters" -> true)
+        "reverters" -> false)
     def logging(logType: String)(block: => Unit): Unit = {
         logConfs get logType match {
             case Some(true) => block
@@ -251,8 +251,13 @@ class Parser(val grammar: Grammar)
         // assert((result.proceededEdges map { _._2.start }).toSet subsetOf oldNodes)
         assert((result.proceededEdges map { _._2 }).toSet subsetOf result.edges)
         assert((result.proceededEdges map { _._2.end }).toSet subsetOf result.nodes)
+        assert(result.proceededEdges forall { oldNew => (oldNew._1.start == oldNew._2.start) })
+        // assert(result.proceededEdges forall { oldNodes contains _._1.start }) // 이건 만족해야되지 않나?
         result
     }
+
+    def rootTipsOfProceededEdges(proceededEdges: Map[SimpleEdge, SimpleEdge]): Set[Node] =
+        proceededEdges.keySet map { _.start }
 
     def proceedReverters(oldReverters: Set[WorkingReverter], newReverters: Set[PreReverter], liftings: Set[Lifting], proceededEdges: Map[SimpleEdge, SimpleEdge]): Set[WorkingReverter] = {
         val nontermLiftings: Set[NontermLifting] = liftings collect { case nl: NontermLifting => nl }
@@ -360,6 +365,7 @@ class Parser(val grammar: Grammar)
                 val ExpandResult(liftings0, newNodes0, newEdges0, newReverters0, proceededEdges0) = expand0
 
                 assert(terminalLiftings0.asInstanceOf[Set[Lifting]] subsetOf liftings0)
+                val rootNodes0: Set[Node] = rootTipsOfProceededEdges(proceededEdges0) flatMap { edges.rootsOf(_) } flatMap { _.nodes }
                 val activatedReverters: Set[WorkingReverter] = reverters filter {
                     _ match {
                         case r: LiftTriggered => liftings0 exists { _.before == r.trigger }
@@ -369,7 +375,7 @@ class Parser(val grammar: Grammar)
                                 case AliveTrigger(trigger) =>
                                     // 여기가 true이면 AlwaysTriggered랑 똑같음
                                     // ExpandResult가 나타내는 그래프에서(루트 포함) trigger가 살아있으면 activated되어야 하므로 true, 아니면 false
-                                    ???
+                                    rootNodes0 contains trigger
                             }
                         }
                     }
@@ -422,7 +428,7 @@ class Parser(val grammar: Grammar)
                         (terminalLiftings, expand1)
                     }
                 }
-                val roots: Set[DeriveEdge] = (proceededEdges.values flatMap { pe => edges.rootsOf(pe.start) }).toSet
+                val roots: Set[DeriveEdge] = rootTipsOfProceededEdges(proceededEdges) flatMap { edges.rootsOf(_) }
 
                 val finalEdges = newEdges ++ roots
                 val finalNodes = finalEdges flatMap { _.nodes }
