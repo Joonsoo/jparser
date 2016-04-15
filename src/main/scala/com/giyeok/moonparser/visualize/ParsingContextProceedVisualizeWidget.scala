@@ -94,6 +94,24 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
     val liftingsByBy = liftings collect { case l: Parser#NontermLifting => l } groupBy { _.by }
     graph.addSelectionListener(new SelectionAdapter() {
         override def widgetSelected(e: SelectionEvent): Unit = {
+            val selectedEdges = vedges filter { p => e.item == p._2 }
+            println(selectedEdges)
+            selectedEdges foreach { p =>
+                p._1.nodes foreach { vnodes(_).highlight() }
+                p._2.highlight()
+            }
+
+            val selectedLiftings = vliftings filter { p => e.item == p._2._3 }
+            println(selectedLiftings)
+            selectedLiftings foreach { p =>
+                p._2._1.highlight()
+                p._2._2.highlight()
+                p._2._3.highlight()
+            }
+
+            val selectedNodes = vnodes filter { p => e.item == p._2 }
+            println(selectedNodes)
+
             unhighlightAllLiftings()
             val interactiveLift = liftingsByBy filter { p => getNode(p._1) match { case Some(node) if node == e.item => true case _ => false } }
             if (!interactiveLift.isEmpty) {
@@ -133,7 +151,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
 
     // visualize reverters
     lastContext foreach { _.reverters foreach { registerReverter(_) } }
-    // log.newReverters foreach { registerReverter(_) }
+    log.newReverters foreach { registerReverter(_) }
     log.finalReverters foreach { registerReverter(_) }
 
     log.activatedReverters foreach { activatedReverter =>

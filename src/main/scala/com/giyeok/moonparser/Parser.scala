@@ -17,7 +17,7 @@ class Parser(val grammar: Grammar)
     case class TermLifting(before: SymbolProgressTerminal, after: SymbolProgressTerminal, by: Input) extends Lifting {
         def toShortString = s"${before.toShortString} => ${after.toShortString} (by ${by.toShortString})"
     }
-    case class NontermLifting(before: SymbolProgressNonterminal, after: SymbolProgressNonterminal, by: SymbolProgress, edge: DeriveEdge) extends Lifting {
+    case class NontermLifting(before: SymbolProgressNonterminal, after: SymbolProgressNonterminal, by: SymbolProgress, join: Option[SymbolProgress], edge: DeriveEdge) extends Lifting {
         def toShortString = s"${before.toShortString} => ${after.toShortString} (by ${by.toShortString})"
     }
     // DeriveReverter에서 각 Lifting이 어떤 DeriveEdge를 거쳐서 나온 것인지 알 필요가 있음.
@@ -40,7 +40,7 @@ class Parser(val grammar: Grammar)
         liftBlockedNodes: Set[Node])
 
     val logConfs = Map[String, Boolean](
-        "PCG" -> true,
+        "PCG" -> false,
         "expand" -> false,
         "proceedTerminal" -> false,
         "initialPC" -> false,
@@ -177,7 +177,7 @@ class Parser(val grammar: Grammar)
                         val alreadyProcessedNodes: Set[NonterminalNode] = newNodes.intersect(allNodes) collect { case n: NonterminalNode => n }
                         val (alreadyProcessedNodesLifting, alreadyProcessedReverters): (Set[Lifting], Set[PreReverter]) = {
                             val x = alreadyProcessedNodes map { n =>
-                                val lifters: Set[(Node, DeriveEdge)] = cc.liftings collect { case NontermLifting(before, _, by, edge) if before == n => (by, edge) }
+                                val lifters: Set[(Node, DeriveEdge)] = cc.liftings collect { case NontermLifting(before, _, by, _, edge) if before == n => (by, edge) }
                                 val lifts: Set[(Lifting, Set[PreReverter])] = lifters map { se => n.lift(se._1, se._2) }
                                 (lifts map { _._1 }, lifts flatMap { _._2 })
                             }
@@ -216,7 +216,7 @@ class Parser(val grammar: Grammar)
 
                         expand0(nextQcc.queue, allTasksCC + task, nextQcc.cc)
 
-                    case LiftTask(NontermLifting(before, after, by, _)) =>
+                    case LiftTask(NontermLifting(before, after, by, _, _)) =>
                         // nonterminal element가 lift되는 경우 처리
                         // 문제가 되는 lift는 전부 여기 문제
                         logging("expand", s"NontermLiftTask($before, $after, $by)")
@@ -343,14 +343,16 @@ class Parser(val grammar: Grammar)
         def proceedLiftReverters(queue: List[LiftReverter], cc: Set[LiftReverter]): Set[LiftReverter] = queue match {
             case reverter +: rest =>
                 // 제거 대상인 targetLift로 인해 발생한 Lifting도 삭제 대상으로 포함 - `by` ParseNode가 동일하다는 건 해당 리프팅이 생성된 경로가 targetLift를 마지막으로 거쳤음을 의미한다
-                val newTargets: Set[NontermLifting] = nontermLiftings filter { _.by == reverter.targetLifting.after }
+                val newTargets: Set[NontermLifting] = nontermLiftings filter { l => (l.by == reverter.targetLifting.after) || (l.join contains reverter.targetLifting.after) }
+                logging("reverters", "joinequals: " + (nontermLiftings filter { l => (l.join contains reverter.targetLifting.after) }).toString)
                 val newReverters0: Set[LiftReverter] = newTargets map { newTarget => reverter.withNewTargetLifting(newTarget) }
                 val newReverters = newReverters0 -- cc
                 proceedLiftReverters(newReverters.toList ++: rest, cc ++ newReverters)
             case List() => cc
         }
         val initLiftReverters = newLiftReverters
-        val treatedLiftReverters: Set[LiftReverter] = proceedLiftReverters(newLiftReverters.toList, newLiftReverters) filter { _.targetLifting.after.canFinish }
+        val treatedLiftReverters0: Set[LiftReverter] = proceedLiftReverters(newLiftReverters.toList, newLiftReverters)
+        val treatedLiftReverters: Set[LiftReverter] = treatedLiftReverters0
 
         // LiftReverter -> NodeKillReverter 변환
         // val liftingsByAfter: Map[Node, Set[Lifting]] = liftings groupBy { _.after } // 이 조건 비교는 불필요할듯

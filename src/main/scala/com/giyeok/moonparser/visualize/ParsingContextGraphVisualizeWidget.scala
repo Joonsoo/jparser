@@ -252,7 +252,13 @@ trait ParsingContextGraphVisualize {
 
             case x: Parser#LiftTriggeredLiftReverter =>
                 // Pre Reverter
-                vreverters(x) = List()
+                val start = registerNode(x.trigger)
+                val end = registerNode(x.targetLifting.after)
+                val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
+                edge.setLineColor(liftReverterEdgeColor)
+                edge.setCurveDepth(-40)
+                edge.setText("LiftRevert")
+                vreverters(x) = List(edge)
             case x: Parser#AliveTriggeredLiftReverter =>
                 // Pre Reverter
                 vreverters(x) = List()

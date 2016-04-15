@@ -32,7 +32,7 @@ trait SymbolProgresses extends SeqOrderedTester {
          * the finished nodes will be transferred to the origin node via `lift` method
          */
         def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter])
-        def lift(source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = (NontermLifting(this, lift0(source), source, edge), Set())
+        def lift(source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = (NontermLifting(this, lift0(source), source, None, edge), Set())
         def lift0(source: SymbolProgress): SymbolProgressNonterminal
     }
     case class EmptyProgress(derivedGen: Int) extends SymbolProgress {
@@ -218,7 +218,7 @@ trait SymbolProgresses extends SeqOrderedTester {
             assert(source.parsed.isDefined)
             assert(constraint.parsed.isDefined)
             val after = JoinProgress(symbol, Some(ParsedSymbolJoin(symbol, source.parsed.get, constraint.parsed.get)), derivedGen)
-            NontermLifting(this, after, source, edge)
+            NontermLifting(this, after, source, Some(constraint), edge)
         }
         def derive(gen: Int) =
             if (parsed.isEmpty) (Set(
@@ -229,7 +229,7 @@ trait SymbolProgresses extends SeqOrderedTester {
 
     case class LongestProgress(symbol: Longest, parsed: Option[ParsedSymbol[Longest]], derivedGen: Int) extends SymbolProgressNonterminal {
         override def lift(source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = {
-            val lifting = NontermLifting(this, lift0(source), source, edge)
+            val lifting = NontermLifting(this, lift0(source), source, None, edge)
             (lifting, Set(LiftTriggeredLiftReverter(this, lifting)))
         }
         def lift0(source: SymbolProgress): SymbolProgressNonterminal = LongestProgress(symbol, Some(ParsedSymbol[Longest](symbol, source.parsed.get)), derivedGen)
@@ -238,7 +238,7 @@ trait SymbolProgresses extends SeqOrderedTester {
 
     case class EagerLongestProgress(symbol: EagerLongest, parsed: Option[ParsedSymbol[EagerLongest]], derivedGen: Int) extends SymbolProgressNonterminal {
         override def lift(source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = {
-            val lifting = NontermLifting(this, lift0(source), source, edge)
+            val lifting = NontermLifting(this, lift0(source), source, None, edge)
             (lifting, Set(AliveTriggeredLiftReverter(this, lifting)))
         }
         def lift0(source: SymbolProgress): SymbolProgressNonterminal = EagerLongestProgress(symbol, Some(ParsedSymbol[EagerLongest](symbol, source.parsed.get)), derivedGen)

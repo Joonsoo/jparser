@@ -76,7 +76,7 @@ object VarDecGrammar1_1 extends Grammar0 with StringSamples {
             n("Number"))))
 
     val correctSamples = Set(
-        "var abc = 123 + 321;\n\nvar xyz = 321 * (423-1); var if = 154;")
+        "var abc = 123;\n\nvar xyz = 321; var if = 154;")
     val incorrectSamples = Set(
         "varx=1;")
 }
@@ -126,15 +126,15 @@ object VarDecGrammar2 extends Grammar0 with StringSamples {
 
 object VarDecGrammar3 extends Grammar0 with StringSamples {
     val name = "JS VarDec with Semicolon Backup Test 1"
-    private val lineend = i(";").backup(oneof(seq(oneof(n("WhiteSpace"), n("Comment")).star, n("LineTerminator"))))
+    private val lineend = i(";").backup(oneof(seq(longest(oneof(n("WhiteSpace"), n("Comment")).star), n("LineTerminator"))))
 
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
         "VarStmt" -> ListSet(
-            expr(token(i("var")), n("VarDecList"), lineend))))
+            seq(expr(token(i("var")), n("VarDecList")), lineend))))
 
     val correctSamples = Set(
-        "var abc = 123\n\nvar xyz = 321; var if = 154")
+        "var abc = 123\n\nvar xyz = 321; var if = 154;")
     val incorrectSamples = Set(
         "")
 }
