@@ -103,12 +103,18 @@ class Parser(val grammar: Grammar)
                 withLiftings(newLiftings).withReverters(newReverters)
             }
             def withNewNodesAndEdges(newNodes: Set[Node], newEdges: Set[DeriveEdge]): Qcc = {
-                val newDeriveTasks = newNodes collect { case n: NonterminalNode => DeriveTask(n) }
+                // 원래는 어떤 노드에서 derive해서 나온 엣지들이 가리키는 노드들은 DeriveTask를 돌아야 되는데, 같은 DeriveTask를 두 번 이상 하지 않도록 처리
+                val alreadyExistingNodes = newNodes.intersect(cc.nodes)
+                // 이미 derive해서 나온 엣지가 가리키는 노드들 중에 nullable이라 lift처리된 것들은 lift 태스크를 다시 돌도록 추가
+                val newLiftTasks = alreadyExistingNodes flatMap { enode => cc.liftings filter { _.before == enode } } map { LiftTask(_) }
+                val newDeriveTasks = (newNodes -- alreadyExistingNodes) collect { case n: NonterminalNode => DeriveTask(n) }
                 val newCC = cc.withNodes(newNodes).withEdges(newEdges)
-                Qcc(newDeriveTasks.toList ++: queue, newCC)
+                Qcc(newDeriveTasks.toList ++: newLiftTasks.toList ++: queue, newCC)
             }
             def withNewLiftedNodeAndProceededEdges(liftedNode: NonterminalNode, proceededEdges: Map[SimpleEdge, SimpleEdge]): Qcc = {
-                Qcc(DeriveTask(liftedNode) +: queue, cc.withNode(liftedNode).withEdges(proceededEdges.values.toSet).withProceededEdges(proceededEdges))
+                val n = withNewNodesAndEdges(Set(liftedNode), proceededEdges.values.toSet)
+                Qcc(n.queue, n.cc.withProceededEdges(proceededEdges))
+                // Qcc(DeriveTask(liftedNode) +: queue, cc.withNode(liftedNode).withEdges(proceededEdges.values.toSet).withProceededEdges(proceededEdges))
             }
         }
 
@@ -119,7 +125,13 @@ class Parser(val grammar: Grammar)
                 queue foreach { q => println(s"  $q") }
             }
 
-            // TODO queue에 중복된 아이템 2개 들어가지 않도록 수정
+            // queue에 중복된 DeriveTask 2개 들어가지 않는지 확인
+            // TODO 중복된 LiftTask도 최소화
+            assert(queue match {
+                case List() => true
+                case (task: DeriveTask) +: rest => !(allTasksCC contains task)
+                case (task: LiftTask) +: rest => true
+            })
             queue match {
                 case task +: rest => task match {
                     case DeriveTask(node) =>
@@ -276,6 +288,7 @@ class Parser(val grammar: Grammar)
             println(newGenId)
             println(allTasks.filter(_.isInstanceOf[DeriveTask]).size, allTasks.filter(_.isInstanceOf[DeriveTask]))
             println(allTasks.size, allTasks)
+            println(result.edges.size, result.nodes.size)
         }
         // nullable한 node는 바로 lift가 되어서 바로 proceededEdges에 추가될 수 있어서 아래 assert는 맞지 않음
         // assert((result.proceededEdges map { _._1 }).toSet subsetOf oldEdges)
