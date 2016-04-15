@@ -11,7 +11,10 @@ object Visualization extends Viewer {
         val rules = JavaScriptGrammar.rules
         val startSymbol = JavaScriptGrammar.startSymbol
 
-        val correctSamples = Set("var x = 1;", "iff=1;")
+        val correctSamples = Set(
+            "var x = 1;",
+            "varx = 1;",
+            "iff=1;")
         val incorrectSamples = Set("sasd")
     }
 
