@@ -200,8 +200,6 @@ trait SymbolProgresses extends SeqOrderedTester {
     case class BackupProgress(symbol: Backup, parsed: Option[ParsedSymbol[Backup]], derivedGen: Int)
             extends SymbolProgressNonterminal {
         def lift0(source: SymbolProgress): SymbolProgressNonterminal = {
-            println(this)
-            println(source)
             BackupProgress(symbol, Some(ParsedSymbol[Backup](symbol, source.parsed.get)), derivedGen)
         }
         def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
