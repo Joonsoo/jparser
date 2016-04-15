@@ -40,7 +40,7 @@ class Parser(val grammar: Grammar)
         liftBlockedNodes: Set[Node])
 
     val logConfs = Map[String, Boolean](
-        "PCG" -> false,
+        "PCG" -> true,
         "expand" -> false,
         "proceedTerminal" -> false,
         "initialPC" -> false,

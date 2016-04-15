@@ -65,10 +65,10 @@ object JavaScriptGrammar extends Grammar {
             n("NumericLiteral"),
             n("StringLiteral")),
         "Identifier" -> ListSet(
-            n("IdentifierName").butnot(n("ReservedWord"))),
+            elongest(n("IdentifierName")).butnot(n("ReservedWord"))),
         "IdentifierName" -> ListSet(
-            lex(n("IdentifierStart"), lookahead_except(n("IdentifierPart"))),
-            lex(n("IdentifierName"), n("IdentifierPart"), lookahead_except(n("IdentifierPart")))),
+            lex(n("IdentifierStart")),
+            lex(n("IdentifierName"), n("IdentifierPart"))),
         "IdentifierStart" -> ListSet(
             n("UnicodeLetter"),
             i("$"),
