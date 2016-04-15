@@ -365,7 +365,7 @@ class Parser(val grammar: Grammar)
                     case x: AliveTriggeredLiftReverter => AliveTrigger(x.trigger)
                 }
             }
-            // 실은 MultiLift도 필요 없을지 몰라
+            // NOTE 실은 MultiLift도 필요 없을지 몰라
             MultiTriggeredNodeKillReverter(triggers, affectedNode)
         }).toSet
 
@@ -449,6 +449,7 @@ class Parser(val grammar: Grammar)
                         case class EdgeKill(edge: DeriveEdge) extends KillTask
                         case class NodeKill(node: Node) extends KillTask
 
+                        // TODO `killEdges`랑 `killNodes`를 빼고 startSymbol(하고 reverter의 trigger?)에서 reachable한 애들만 남기고 다 없애버리는 걸로 바꿔야겠다 - 싸이클때문에
                         def collectKills(queue: List[KillTask], nodesCC: Set[Node], edgesCC: Set[DeriveEdge]): (Set[Node], Set[DeriveEdge]) =
                             queue match {
                                 case task +: rest =>
@@ -478,8 +479,8 @@ class Parser(val grammar: Grammar)
                                     }
                                 case List() => (nodesCC, edgesCC)
                             }
-                        val killEdges = activatedReverters collect { case x: DeriveReverter => x.targetEdge }
-                        val killNodes = activatedReverters collect { case x: NodeKillReverter => x.targetNode }
+                        val killEdges: Set[SimpleEdge] = activatedReverters collect { case x: DeriveReverter => x.targetEdge }
+                        val killNodes: Set[Node] = activatedReverters collect { case x: NodeKillReverter => x.targetNode }
                         val killTasks: List[KillTask] = (killEdges.toList map { EdgeKill(_) }) ++ (killNodes.toList map { NodeKill(_) })
                         val (treatedNodes, treatedEdges) = collectKills(killTasks, nodes -- killNodes, edges -- killEdges)
 

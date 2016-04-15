@@ -124,12 +124,12 @@ object LongestMatchGrammar2_2 extends Grammar with StringSamples {
         "S" -> ListSet(
             n("Token").star),
         "Token" -> ListSet(
-            n("IdName"),
+            elongest(n("IdName")),
             n("Number"),
             n("Punc"),
             n("Whitespace")),
         "IdName" -> ListSet(
-            elongest(oneof(n("IdStart"), seq(n("IdName"), n("IdPart"))))),
+            oneof(n("IdStart"), seq(n("IdName"), n("IdPart")))),
         "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
         "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
         "Number" -> ListSet(elongest(seq(
@@ -163,12 +163,13 @@ object LongestMatchGrammar2_3 extends Grammar with StringSamples with AmbiguousS
         "S" -> ListSet(
             n("Token").star),
         "Token" -> ListSet(
-            n("IdName"),
+            longest(n("IdName")),
             n("Number"),
             n("Punc"),
             n("Whitespace")),
         "IdName" -> ListSet(
-            longest(oneof(n("IdStart"), seq(n("IdName"), n("IdPart"))))),
+            n("IdStart"),
+            seq(n("IdName"), n("IdPart"))),
         "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
         "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
         "Number" -> ListSet(longest(seq(

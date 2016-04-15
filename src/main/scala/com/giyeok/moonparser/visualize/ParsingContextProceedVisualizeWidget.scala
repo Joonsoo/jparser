@@ -135,18 +135,17 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         connection.setLineWidth(3)
     }
 
-    // TODO visualize proceededEdges
-    //    log.rootTips foreach { n =>
-    //        // assert(nodes contains n)
-    //        val node = registerNode(n)
-    //        node.getFigure.asInstanceOf[Figure].setBorder(new LineBorder(rootColor))
-    //    }
     log.roots foreach { e =>
         assert(edges contains e)
         val edge = registerEdge(edges)(e)
         if (e.isInstanceOf[Parser#SimpleEdge]) {
             edge.setLineColor(rootColor)
         }
+    }
+    log.proceededEdges foreach { n =>
+        val proceededEdge = vedges(n._2)
+        proceededEdge.setLineColor(rootColor)
+        proceededEdge.setLineWidth(3)
     }
 
     // visualize reverters
