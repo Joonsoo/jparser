@@ -40,7 +40,7 @@ class Parser(val grammar: Grammar)
         liftBlockedNodes: Set[Node])
 
     val logConfs = Map[String, Boolean](
-        "PCG" -> true,
+        "PCG" -> false,
         "expand" -> false,
         "proceedTerminal" -> false,
         "initialPC" -> false,
@@ -288,7 +288,7 @@ class Parser(val grammar: Grammar)
             println(newGenId)
             println(allTasks.filter(_.isInstanceOf[DeriveTask]).size, allTasks.filter(_.isInstanceOf[DeriveTask]))
             println(allTasks.size, allTasks)
-            println(result.edges.size, result.nodes.size)
+            println(s"edges=${result.edges.size}, nodes=${result.nodes.size}")
         }
         // nullable한 node는 바로 lift가 되어서 바로 proceededEdges에 추가될 수 있어서 아래 assert는 맞지 않음
         // assert((result.proceededEdges map { _._1 }).toSet subsetOf oldEdges)

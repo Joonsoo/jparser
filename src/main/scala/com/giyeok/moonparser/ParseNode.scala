@@ -13,6 +13,7 @@ object ParseTree {
     case class ParsedSymbol[T <: Symbol](symbol: T, body: ParseNode[Symbol]) extends ParseNode[T]
     // bodyWS는 whitespace를 포함한 자식 노드의 Seq, 그 중 실제 body의 위치를 나타낸다. 따라서 bodyWS._2.size == body.size 를 항상 만족해야 함  
     case class ParsedSymbolsSeq[T <: Symbol](symbol: T, body: Seq[ParseNode[Symbol]], bodyWS: Option[(Seq[ParseNode[Symbol]], Seq[Int])]) extends ParseNode[T] {
+        override lazy val hashCode = super.hashCode
         if (bodyWS.isDefined) {
             val bws = bodyWS.get
             assert(bws._2.size == body.size)
