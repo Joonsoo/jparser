@@ -58,7 +58,7 @@ trait GraphDataStructure {
         val trigger: Node
     }
 
-    sealed trait ReverterTrigger
+    sealed trait ReverterTrigger { val trigger: Node }
     case class LiftTrigger(trigger: Node) extends ReverterTrigger
     case class AliveTrigger(trigger: Node) extends ReverterTrigger
     sealed trait MultiLiftTriggered extends ConditionalTrigger {

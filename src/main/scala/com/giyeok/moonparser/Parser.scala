@@ -387,7 +387,7 @@ class Parser(val grammar: Grammar)
         }
 
     // 이 프로젝트 전체에서 asInstanceOf가 등장하는 경우는 대부분이 Set이 invariant해서 추가된 부분 - covariant한 Set으로 바꾸면 없앨 수 있음
-    case class ParsingContext(gen: Int, nodes: Set[Node], edges: Set[DeriveEdge], reverters: Set[WorkingReverter], resultCandidates: Set[SymbolProgress]) {
+    case class ParsingContext(startNode: NonterminalNode, gen: Int, nodes: Set[Node], edges: Set[DeriveEdge], reverters: Set[WorkingReverter], resultCandidates: Set[SymbolProgress]) {
         logging("reverters") {
             println(s"- Reverters @ $gen")
             reverters foreach { r =>
@@ -445,44 +445,38 @@ class Parser(val grammar: Grammar)
                     if (activatedReverters.isEmpty) {
                         (terminalLiftings0, (nodes, edges, Set()), expand0)
                     } else {
-                        sealed trait KillTask
-                        case class EdgeKill(edge: DeriveEdge) extends KillTask
-                        case class NodeKill(node: Node) extends KillTask
-
-                        // TODO `killEdges`랑 `killNodes`를 빼고 startSymbol(하고 reverter의 trigger?)에서 reachable한 애들만 남기고 다 없애버리는 걸로 바꿔야겠다 - 싸이클때문에
-                        def collectKills(queue: List[KillTask], nodesCC: Set[Node], edgesCC: Set[DeriveEdge]): (Set[Node], Set[DeriveEdge]) =
-                            queue match {
-                                case task +: rest =>
-                                    logging("reverterKill", s"Reverter Kill Task: $task @ $gen")
-                                    task match {
-                                        case EdgeKill(edge) =>
-                                            assert(!(edgesCC contains edge))
-                                            edge match {
-                                                case SimpleEdge(start, end) =>
-                                                    if (edgesCC.incomingEdgesOf(end).isEmpty) {
-                                                        collectKills(NodeKill(end) +: rest, nodesCC - end, edgesCC)
-                                                    } else {
-                                                        collectKills(rest, nodesCC, edgesCC)
-                                                    }
-                                                case JoinEdge(start, end, join, _) =>
-                                                    if (edgesCC.incomingEdgesOf(end).isEmpty) {
-                                                        collectKills(NodeKill(end) +: rest, nodesCC - end, edgesCC)
-                                                    } else {
-                                                        collectKills(rest, nodesCC, edgesCC)
-                                                    }
+                        val killEdges: Set[SimpleEdge] = activatedReverters collect { case x: DeriveReverter => x.targetEdge }
+                        val killNodes: Set[Node] = activatedReverters collect { case x: NodeKillReverter => x.targetNode }
+                        // `killEdges`랑 `killNodes`를 빼고 startNode와 reverter의 trigger에서 reachable한 애들만 남기고 다 없애버리는 걸로 바꿔야겠다 - 싸이클때문에
+                        def collectReachables(queue: List[Node], killNodes: Set[Node], killEdges: Set[SimpleEdge]): (Set[Node], Set[DeriveEdge]) = {
+                            val survivedEdges = edges -- killEdges
+                            def traverse(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[DeriveEdge]): (Set[Node], Set[DeriveEdge]) = queue match {
+                                case node +: rest =>
+                                    if (killNodes contains node) {
+                                        traverse(rest, nodesCC, edgesCC)
+                                    } else if (nodesCC contains node) {
+                                        traverse(rest, nodesCC, edgesCC)
+                                    } else {
+                                        val traversingEdges: Set[DeriveEdge] = (survivedEdges.outgoingEdgesOf(node)) filter { _.nodes.intersect(killNodes).isEmpty }
+                                        val traversingNodes: Set[Node] = traversingEdges flatMap {
+                                            _ match {
+                                                case SimpleEdge(_, end) => Set(end)
+                                                case JoinEdge(_, end, join, _) => Set(end, join)
                                             }
-                                        case NodeKill(node) =>
-                                            assert(!(nodesCC contains node))
-                                            val relatedEdges: Set[DeriveEdge] = edgesCC.incomingEdgesOf(node) ++ edgesCC.outgoingEdgesOf(node)
-                                            val relatedEdgesKillTasks: List[EdgeKill] = relatedEdges.toList map { EdgeKill(_) }
-                                            collectKills(relatedEdgesKillTasks ++ rest, nodesCC - node, edgesCC -- relatedEdges)
+                                        }
+                                        traverse((traversingNodes -- nodesCC).toList ++: queue, nodesCC + node, edgesCC ++ traversingEdges)
                                     }
                                 case List() => (nodesCC, edgesCC)
                             }
-                        val killEdges: Set[SimpleEdge] = activatedReverters collect { case x: DeriveReverter => x.targetEdge }
-                        val killNodes: Set[Node] = activatedReverters collect { case x: NodeKillReverter => x.targetNode }
-                        val killTasks: List[KillTask] = (killEdges.toList map { EdgeKill(_) }) ++ (killNodes.toList map { NodeKill(_) })
-                        val (treatedNodes, treatedEdges) = collectKills(killTasks, nodes -- killNodes, edges -- killEdges)
+                            traverse(queue, Set(), Set())
+                        }
+                        val activatedReverterTriggers: Set[Node] = activatedReverters flatMap {
+                            _ match {
+                                case r: LiftTriggered => Set(r.trigger)
+                                case r: MultiLiftTriggered => r.triggers map { _.trigger }
+                            }
+                        }
+                        val (treatedNodes, treatedEdges) = collectReachables(startNode +: activatedReverterTriggers.toList, killNodes, killEdges)
 
                         val liftBlockedNodes = activatedReverters collect { case x: TemporaryLiftBlockReverter => x.targetNode }
                         logging("reverters", s"LiftBlockedNodes: $gen -> $liftBlockedNodes")
@@ -527,7 +521,7 @@ class Parser(val grammar: Grammar)
                 }
 
                 val resultCandidates = collectResultCandidates(liftings)
-                val nextParsingContext = ParsingContext(gen + 1, finalNodes, finalEdges, workingReverters, resultCandidates)
+                val nextParsingContext = ParsingContext(startNode, gen + 1, finalNodes, finalEdges, workingReverters, resultCandidates)
                 val verboseProceedLog = VerboseProceedLog(
                     activatedReverters,
                     terminalLiftings,
@@ -568,10 +562,10 @@ class Parser(val grammar: Grammar)
     }
 
     object ParsingContext {
-        def fromSeedVerbose(seed: Symbol): (ParsingContext, VerboseProceedLog) = {
-            val startProgress = SymbolProgress(seed, 0)
-            assert(startProgress.isInstanceOf[SymbolProgressNonterminal])
-            val ExpandResult(liftings, nodes, edges, reverters, proceededEdges) = expand(Set(), Set(), Set(), 0, List(DeriveTask(startProgress.asInstanceOf[NonterminalNode])))
+        def fromSeedVerbose(startSymbol: Symbol): (ParsingContext, VerboseProceedLog) = {
+            val startNode = SymbolProgress(startSymbol, 0)
+            assert(startNode.isInstanceOf[SymbolProgressNonterminal])
+            val ExpandResult(liftings, nodes, edges, reverters, proceededEdges) = expand(Set(), Set(), Set(), 0, List(DeriveTask(startNode.asInstanceOf[NonterminalNode])))
             // expand2(seeds.toList, seeds, Set(), Set())
 
             logging("initialPC") {
@@ -585,7 +579,7 @@ class Parser(val grammar: Grammar)
                 }
             }
 
-            assert(nodes contains startProgress)
+            assert(nodes contains startNode)
             assertForAll[SymbolProgressNonterminal](nodes collect { case x: SymbolProgressNonterminal => x }, { node =>
                 val derivation = node.derive(0)
                 (derivation._1 subsetOf edges) && (derivation._2 subsetOf reverters)
@@ -605,7 +599,7 @@ class Parser(val grammar: Grammar)
 
             val workingReverters = proceedReverters(Set(), reverters, liftings, proceededEdges)
             val resultCandidates = collectResultCandidates(liftings)
-            val startingContext = ParsingContext(0, nodes, edges, workingReverters, resultCandidates)
+            val startingContext = ParsingContext(startNode.asInstanceOf[NonterminalNode], 0, nodes, edges, workingReverters, resultCandidates)
             val verboseProceedLog = VerboseProceedLog(
                 Set(),
                 Set(),
@@ -624,7 +618,7 @@ class Parser(val grammar: Grammar)
                 Set())
             (startingContext, verboseProceedLog)
         }
-        def fromSeed(seed: Symbol): ParsingContext = fromSeedVerbose(seed)._1
+        def fromSeed(startSymbol: Symbol): ParsingContext = fromSeedVerbose(startSymbol)._1
     }
 
     val startingContextVerbose = ParsingContext.fromSeedVerbose(grammar.startSymbol)
