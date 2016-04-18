@@ -100,7 +100,7 @@ trait ParsingContextGraphVisualize {
         }
         val tooltipFig = node match {
             case n: Parser#SymbolProgressNonterminal =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"Gen ${n.derivedGen}", figureAppearances.small), tooltipFig0))
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"${n.derivedGen}${n.lastLiftedGen match { case Some(x) => s"-$x" case _ => "" }}", figureAppearances.small), tooltipFig0))
             case _ => tooltipFig0
         }
         tooltipFig.setBackgroundColor(ColorConstants.white)
@@ -157,6 +157,13 @@ trait ParsingContextGraphVisualize {
         node.setFont(resources.bold14Font)
         node.setBackgroundColor(ColorConstants.orange)
         node.highlight()
+    }
+
+    val rootColor = new Color(null, 238, 130, 238) // supposedly violet
+    def highlightProceededEdge(e: Parser#SimpleEdge): Unit = {
+        val proceededEdge = vedges(e)
+        proceededEdge.setLineColor(rootColor)
+        proceededEdge.setLineWidth(3)
     }
 
     private def calculateCurve(edges: Set[Parser#DeriveEdge], e: Parser#DeriveEdge): Int = {
@@ -359,6 +366,8 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: Parse
     context.reverters foreach { registerReverter(_) }
 
     context.resultCandidates foreach { highlightResultCandidate _ }
+
+    context.proceededEdges foreach { highlightProceededEdge _ }
 
     import org.eclipse.zest.layouts.algorithms._
     val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)

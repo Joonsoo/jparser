@@ -66,7 +66,6 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
     // violet edges are roots
 
     val newNodeBackgroundColor = ColorConstants.lightGray
-    val rootColor = new Color(null, 238, 130, 238) // supposedly violet
 
     val liftings = (log.terminalLiftings ++ log.liftings).asInstanceOf[Set[Parser#Lifting]]
     val vliftings: Map[Parser#Lifting, (GraphNode, GraphNode, GraphConnection)] = (liftings map { lifting =>
@@ -142,11 +141,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
             edge.setLineColor(rootColor)
         }
     }
-    log.proceededEdges foreach { n =>
-        val proceededEdge = vedges(n._2)
-        proceededEdge.setLineColor(rootColor)
-        proceededEdge.setLineWidth(3)
-    }
+    log.proceededEdges foreach { n => highlightProceededEdge(n._2) }
 
     // visualize reverters
     lastContext foreach { _.reverters foreach { registerReverter(_) } }

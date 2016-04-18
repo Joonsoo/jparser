@@ -177,8 +177,8 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
             x.keyCode match {
                 case SWT.ARROW_LEFT => updateLocation(currentLocation.previousLocation)
                 case SWT.ARROW_RIGHT => updateLocation(currentLocation.nextLocation)
-                case SWT.ARROW_UP => updateLocation(VisualizationLocation(currentLocation.location - 1, true))
-                case SWT.ARROW_DOWN => updateLocation(VisualizationLocation(currentLocation.location + 1, true))
+                case SWT.ARROW_UP => updateLocation(VisualizationLocation(currentLocation.location - 1, currentLocation.showResult))
+                case SWT.ARROW_DOWN => updateLocation(VisualizationLocation(currentLocation.location + 1, currentLocation.showResult))
                 case 't' | 'T' =>
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualize =>
@@ -188,6 +188,12 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                             } else {
                                 v.toggleHighlightTerminals(false)
                             }
+                        case _ => // nothing to do
+                    }
+                case 'r' | 'R' =>
+                    graphAt(currentLocation) match {
+                        case v: ParsingContextGraphVisualize =>
+                            v.graph.applyLayout()
                         case _ => // nothing to do
                     }
                 case code =>

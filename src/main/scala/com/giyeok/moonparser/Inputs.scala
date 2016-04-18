@@ -8,6 +8,12 @@ object Inputs {
     }
     case class Character(char: Char, location: Location) extends Input
     case class Virtual(name: String, location: Location) extends Input
+    case class AbstractInput(chars: CharGroupDescription, location: Location) extends Input
+
+    trait CharGroupDescription {
+        ???
+        // TODO
+    }
 
     type Source = Iterable[Input]
 
