@@ -196,6 +196,23 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                             v.graph.applyLayout()
                         case _ => // nothing to do
                     }
+                case 'k' | 'K' =>
+                    graphAt(currentLocation) match {
+                        case v: ParsingContextGraphVisualizeWidget =>
+                            println(s"=== IPN of ${v.context.gen} ===")
+                            val ipns = v.context.proceededEdges map { _.end }
+                            val ipnsByKernel = ipns groupBy { _.kernel }
+                            ipnsByKernel.toSeq foreach { kv =>
+                                val (kernel, nodes) = kv
+                                println(s"  ${kernel.toShortString} -> ${nodes map { _.id }}")
+                                (nodes groupBy { n => (n.derivedGen, n.lastLiftedGen) }).toSeq sortBy { _._1 } foreach { kv =>
+                                    val (cover, nodes) = kv
+                                    println(s"    ${cover} -> (${nodes.size}) ${nodes map { _.id }}")
+                                }
+                            }
+                            println(s"================")
+                        case _ => // nothing to do
+                    }
                 case code =>
                     println(s"keyPressed: $code")
             }
@@ -299,7 +316,6 @@ object ParseGraphVisualizer {
             val bold14Font = new Font(null, defaultFontName, 14, SWT.BOLD)
         }
         new ParseGraphVisualizer(grammar, source, display, shell, resources).start()
-
     }
 
     def start(grammar: Grammar, source: Seq[Input]): Unit = {

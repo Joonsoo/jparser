@@ -330,7 +330,8 @@ object LongestMatchGrammar5 extends Grammar with StringSamples {
     val startSymbol = n("S")
 
     val correctSamples = Set[String](
-        "if(true)if(false){}else{}")
+        "if(true)if(false){}else{}",
+        "if(true)if(false){}else{}else{}")
     val incorrectSamples = Set[String]()
 }
 
@@ -352,7 +353,8 @@ object LongestMatchGrammar5_1 extends Grammar with StringSamples {
             i("false")))
     val startSymbol = n("S")
 
-    val correctSamples = Set[String]()
+    val correctSamples = Set[String](
+        "if(true)if(false){}else{}else{}")
     val incorrectSamples = Set[String](
         "if(true)if(false){}else{}")
 }

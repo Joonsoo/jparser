@@ -353,7 +353,7 @@ trait ParsingContextGraphVisualize {
     }
 }
 
-class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val context: Parser#ParsingContext) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
+class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, val context: Parser#ParsingContext) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
 
     def initGraph() = new Graph(this, SWT.NONE)

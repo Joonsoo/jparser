@@ -154,6 +154,21 @@ object SimpleGrammar1_10 extends Grammar with StringSamples with AmbiguousSample
     val ambiguousSamples = Set[String]("asdf")
 }
 
+object SimpleGrammar1_11 extends Grammar with StringSamples with AmbiguousSamples {
+    val name = "Simple Grammar 1_11 (ambiguous)"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            oneof(chars(" "), n("A")).star),
+        "A" -> ListSet(
+            chars('a' to 'z'),
+            seq(chars('a' to 'z'), n("A"))))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]("abcd")
+}
+
 object SimpleGrammarSet1 {
     val grammars: Set[Grammar with Samples] = Set(
         SimpleGrammar1,
@@ -168,7 +183,8 @@ object SimpleGrammarSet1 {
         SimpleGrammar1_7,
         SimpleGrammar1_8,
         SimpleGrammar1_9,
-        SimpleGrammar1_10)
+        SimpleGrammar1_10,
+        SimpleGrammar1_11)
 }
 
 class SimpleGrammarTestSuite1 extends BasicParseTest(SimpleGrammarSet1.grammars)

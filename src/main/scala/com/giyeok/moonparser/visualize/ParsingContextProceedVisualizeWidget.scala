@@ -30,12 +30,12 @@ import org.eclipse.draw2d.Figure
 import org.eclipse.zest.core.widgets.CGraphNode
 import org.eclipse.swt.widgets.Display
 
-class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, private val lastContext: Option[Parser#ParsingContext], private val log: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
+class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, val context: Option[Parser#ParsingContext], private val proceedLog: Parser#VerboseProceedLog) extends Composite(parent, SWT.NONE) with ParsingContextGraphVisualize {
     this.setLayout(new FillLayout)
 
     def initGraph() = new Graph(this, SWT.NONE)
 
-    private val (nodes: Set[Parser#Node], edges: Set[Parser#DeriveEdge]) = lastContext match {
+    private val (nodes: Set[Parser#Node], edges: Set[Parser#DeriveEdge]) = context match {
         case Some(ctx) => (ctx.nodes.asInstanceOf[Set[Parser#Node]], ctx.edges.asInstanceOf[Set[Parser#DeriveEdge]])
         case _ => (Set(), Set())
     }
@@ -67,11 +67,11 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
 
     val newNodeBackgroundColor = ColorConstants.lightGray
 
-    val liftings = (log.terminalLiftings ++ log.liftings).asInstanceOf[Set[Parser#Lifting]]
+    val liftings = (proceedLog.terminalLiftings ++ proceedLog.liftings).asInstanceOf[Set[Parser#Lifting]]
     val vliftings: Map[Parser#Lifting, (GraphNode, GraphNode, GraphConnection)] = (liftings map { lifting =>
         val (before, after, by, connection) = registerLifting(lifting)
 
-        if (log.terminalLiftings.asInstanceOf[Set[Parser#Lifting]] contains lifting) {
+        if (proceedLog.terminalLiftings.asInstanceOf[Set[Parser#Lifting]] contains lifting) {
             after.setFont(resources.bold14Font)
             after.setBackgroundColor(ColorConstants.orange)
             connection.setLineColor(ColorConstants.blue)
@@ -122,7 +122,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         }
     })
 
-    log.newEdges foreach { e =>
+    proceedLog.newEdges foreach { e =>
         val (from, to, connection) = registerEdge1(edges)(e)
 
         if (!(nodes contains e.start)) {
@@ -134,39 +134,39 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         connection.setLineWidth(3)
     }
 
-    log.roots foreach { e =>
+    proceedLog.roots foreach { e =>
         assert(edges contains e)
         val edge = registerEdge(edges)(e)
         if (e.isInstanceOf[Parser#SimpleEdge]) {
             edge.setLineColor(rootColor)
         }
     }
-    log.proceededEdges foreach { n => highlightProceededEdge(n._2) }
+    proceedLog.proceededEdges foreach { n => highlightProceededEdge(n._2) }
 
     // visualize reverters
-    lastContext foreach { _.reverters foreach { registerReverter(_) } }
-    log.newReverters foreach { registerReverter(_) }
-    log.finalReverters foreach { registerReverter(_) }
+    context foreach { _.reverters foreach { registerReverter(_) } }
+    proceedLog.newReverters foreach { registerReverter(_) }
+    proceedLog.finalReverters foreach { registerReverter(_) }
 
-    log.activatedReverters foreach { activatedReverter =>
+    proceedLog.activatedReverters foreach { activatedReverter =>
         vreverters(activatedReverter) foreach { e => e.setLineWidth(5) }
     }
 
     val revertedNodeBorderColor = new Color(Display.getDefault(), 200, 200, 200)
     val liftBlockedNodeBorderColor = new Color(Display.getDefault(), 255, 100, 100)
-    log.revertedNodes foreach { revertedNode =>
+    proceedLog.revertedNodes foreach { revertedNode =>
         val cg = vnodes(revertedNode)
         val blurBorder = new LineBorder
         blurBorder.setColor(revertedNodeBorderColor)
         blurBorder.setStyle(Graphics.LINE_DASHDOT)
         cg.getFigure.setBorder(blurBorder)
     }
-    log.revertedEdges foreach { revertedEdge =>
+    proceedLog.revertedEdges foreach { revertedEdge =>
         val e = vedges(revertedEdge)
         e.setLineWidth(2)
         e.setLineStyle(Graphics.LINE_DASHDOT)
     }
-    log.liftBlockedNodes foreach { liftBlockedNode =>
+    proceedLog.liftBlockedNodes foreach { liftBlockedNode =>
         val cg = vnodes(liftBlockedNode)
         val blurBorder = new LineBorder
         blurBorder.setColor(liftBlockedNodeBorderColor)

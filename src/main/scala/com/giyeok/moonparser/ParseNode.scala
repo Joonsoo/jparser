@@ -36,6 +36,13 @@ object ParseTree {
         }
     }
     implicit class TreePrintableParseNode(node: ParseNode[Symbol]) {
+        def toShortString: String = node match {
+            case ParsedEmpty(sym) => s"${sym.toShortString}()"
+            case ParsedTerminal(sym, child) => s"${sym.toShortString}(${child.toShortString})"
+            case ParsedSymbol(sym, body) => s"${sym.toShortString}(${body.toShortString})"
+            case ParsedSymbolsSeq(sym, body, _) => s"${sym.toShortString}(${body map { _.toShortString } mkString "/"})"
+            case ParsedSymbolJoin(sym, body, join) => s"${sym.toShortString}(${body.toShortString})"
+        }
         def printTree(): Unit = println(toTreeString("", "  "))
         def toTreeString(indent: String, indentUnit: String): String = node match {
             case ParsedEmpty(sym) =>

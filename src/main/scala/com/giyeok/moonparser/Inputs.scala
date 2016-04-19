@@ -24,7 +24,7 @@ object Inputs {
                     case '\n' => "\\n"
                     case '\t' => "\\t"
                     case '\\' => "\\\\"
-                    case _ => s"'$char'"
+                    case _ => s"$char"
                 }
             case Virtual(name, _) => s"{$name}"
         }
