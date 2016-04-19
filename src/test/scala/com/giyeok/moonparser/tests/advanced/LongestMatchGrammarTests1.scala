@@ -311,6 +311,52 @@ object LongestMatchGrammar4 extends Grammar with StringSamples {
         ".")
 }
 
+object LongestMatchGrammar5 extends Grammar with StringSamples {
+    def expr(syms: Symbol*) = seq(syms.toSeq, Set[Symbol](n("WS")))
+    val name = "LongestMatchGrammar5 (dangling else solution)"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("Stmt").star),
+        "WS" -> ListSet(
+            chars(" \r\n\t")),
+        "Stmt" -> ListSet(
+            n("IfStmt"),
+            seq(i("{"), n("Stmt").star, i("}"))),
+        "IfStmt" -> ListSet(
+            longest(expr(i("if"), i("("), n("Cond"), i(")"), n("Stmt"), expr(i("else"), n("Stmt")).opt))),
+        "Cond" -> ListSet(
+            i("true"),
+            i("false")))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String](
+        "if(true)if(false){}else{}")
+    val incorrectSamples = Set[String]()
+}
+
+object LongestMatchGrammar5_1 extends Grammar with StringSamples {
+    def expr(syms: Symbol*) = seq(syms.toSeq, Set[Symbol](n("WS")))
+    val name = "LongestMatchGrammar5-1 (ambiguous, dangling else)"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("Stmt").star),
+        "WS" -> ListSet(
+            chars(" \r\n\t")),
+        "Stmt" -> ListSet(
+            n("IfStmt"),
+            seq(i("{"), n("Stmt").star, i("}"))),
+        "IfStmt" -> ListSet(
+            expr(i("if"), i("("), n("Cond"), i(")"), n("Stmt"), expr(i("else"), n("Stmt")).opt)),
+        "Cond" -> ListSet(
+            i("true"),
+            i("false")))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String](
+        "if(true)if(false){}else{}")
+}
+
 object LongestMatchGrammars {
     val grammars: Set[Grammar with Samples] = Set(
         LongestMatchGrammar1,
@@ -324,7 +370,9 @@ object LongestMatchGrammars {
         LongestMatchGrammar3_1,
         LongestMatchGrammar3_2,
         LongestMatchGrammar3_3,
-        LongestMatchGrammar4)
+        LongestMatchGrammar4,
+        LongestMatchGrammar5,
+        LongestMatchGrammar5_1)
 }
 
 class LongestMatchGrammarTestSuite1 extends BasicParseTest(LongestMatchGrammars.grammars)

@@ -59,7 +59,11 @@ object SimpleGrammar7_1 extends Grammar with StringSamples {
             elongest(chars('0' to '9').plus)))
     val startSymbol = n("S")
 
-    val correctSamples = Set("1+2+3")
+    val correctSamples = Set(
+        "1+2+3",
+        "123+456+abc+sdf+123+wer+aasdfwer+123123",
+        "123*456*abc*sdf*123*wer*aasdfwer*123123",
+        "123+456*abc+sdf*123+wer*aasdfwer*123123")
     val incorrectSamples = Set("")
 }
 
@@ -86,7 +90,11 @@ object SimpleGrammar7_2 extends Grammar with StringSamples {
             elongest(chars('0' to '9').plus)))
     val startSymbol = n("S")
 
-    val correctSamples = Set("1+2+3")
+    val correctSamples = Set(
+        "1+2+3",
+        "123+456+abc+sdf+123+wer+aasdfwer+123123",
+        "123*456*abc*sdf*123*wer*aasdfwer*123123",
+        "123+456*abc+sdf*123+wer*aasdfwer*123123")
     val incorrectSamples = Set("")
 }
 

@@ -307,6 +307,8 @@ class Parser(val grammar: Grammar)
         proceededEdges.keySet map { _.start }
 
     def proceedReverters(oldReverters: Set[WorkingReverter], newReverters: Set[PreReverter], liftings: Set[Lifting], proceededEdges: Map[SimpleEdge, SimpleEdge]): Set[WorkingReverter] = {
+        assert(oldReverters forall { r => r.isInstanceOf[DeriveReverter] || r.isInstanceOf[NodeKillReverter] || r.isInstanceOf[TemporaryLiftBlockReverter] })
+        assert(newReverters forall { r => r.isInstanceOf[DeriveReverter] || r.isInstanceOf[LiftReverter] || r.isInstanceOf[TemporaryLiftBlockReverter] })
         val nontermLiftings: Set[NontermLifting] = liftings collect { case nl: NontermLifting => nl }
         var newLiftReverters: Set[LiftReverter] = newReverters collect { case lr: LiftReverter => lr }
 
@@ -370,7 +372,8 @@ class Parser(val grammar: Grammar)
         }).toSet
 
         // 기존의 NodeKillReverter -> 새 NodeKillReverter로 변환
-        // TODO
+        // TODO 일단 그냥 가게 해놨는데 잘 보고 필요하면 고칠것
+        val existingNodeKillReverters: Set[NodeKillReverter] = (oldReverters collect { case x: NodeKillReverter => x })
 
         // TemporaryLiftBlockedReverter는 그냥 그대로 가면 되나?
         // TODO 일단 그냥 가게 해놨는데 잘 보고 필요하면 고칠것
@@ -378,7 +381,7 @@ class Parser(val grammar: Grammar)
             (oldReverters collect { case x: TemporaryLiftBlockReverter => x }) ++
                 (newReverters collect { case x: TemporaryLiftBlockReverter => x })
 
-        workingDeriveReverters ++ workingNodeKillReverters ++ workingTempLiftBlockReverters
+        workingDeriveReverters ++ workingNodeKillReverters ++ existingNodeKillReverters ++ workingTempLiftBlockReverters
     }
 
     def collectResultCandidates(liftings: Set[Lifting]): Set[Node] =
