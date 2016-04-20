@@ -202,7 +202,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                             println(s"=== IPN of ${v.context.gen} ===")
                             val ipns = v.context.proceededEdges map { _.end }
                             val ipnsByKernel = ipns groupBy { _.kernel }
-                            ipnsByKernel.toSeq foreach { kv =>
+                            ipnsByKernel.toSeq sortBy { _._1.symbol.id } foreach { kv =>
                                 val (kernel, nodes) = kv
                                 println(s"  ${kernel.toShortString} -> ${nodes map { _.id }}")
                                 (nodes groupBy { n => (n.derivedGen, n.lastLiftedGen) }).toSeq sortBy { _._1 } foreach { kv =>

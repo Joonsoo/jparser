@@ -1,7 +1,22 @@
 package com.giyeok.moonparser
 
 object Symbols {
-    sealed trait Symbol
+    sealed trait Symbol {
+        val id = Symbol.getId(this)
+    }
+    object Symbol {
+        private var cache: Map[Symbol, Int] = Map()
+        private var counter = 0
+        def getId(sp: Symbol): Int = {
+            cache get sp match {
+                case Some(i) => i
+                case None =>
+                    counter += 1
+                    cache += ((sp, counter))
+                    counter
+            }
+        }
+    }
     // AtomicSymbol은 매칭이 되거나/안되거나 - 한 번 lift된 symbolProgress에서 derive가 되거나 하는 일은 생기지 않음
     sealed trait AtomicSymbol extends Symbol
 

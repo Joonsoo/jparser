@@ -40,7 +40,7 @@ class Parser(val grammar: Grammar)
         liftBlockedNodes: Set[Node])
 
     val logConfs = Map[String, Boolean](
-        "PCG" -> true,
+        "PCG" -> false,
         "expand" -> false,
         "proceedTerminal" -> false,
         "initialPC" -> false,
@@ -374,15 +374,17 @@ class Parser(val grammar: Grammar)
         // 기존의 NodeKillReverter -> 새 NodeKillReverter로 변환
         //  - target node가 lift되어서 나오는 모든 node로 확대되어야 함
         //  - lift된 다음 derive되는 경우에 대해서는 생각해 봐야 함
-        val existingNodeKillReverters0: Set[NodeKillReverter] = (oldReverters collect {
-            case x: NodeKillReverter => x
-        })
-        val existingNodeKillReverters: Set[NodeKillReverter] = existingNodeKillReverters0 flatMap { r =>
-            r match {
-                case MultiTriggeredNodeKillReverter(triggers, node) =>
-                    Set(r) ++ (liftings filter { _.before == node } map { _.after } map { MultiTriggeredNodeKillReverter(triggers, _) })
+        val existingNodeKillReverters0: Set[NodeKillReverter] = (oldReverters collect { case x: NodeKillReverter => x })
+        def propagateNodeKillReverters(queue: List[NodeKillReverter], cc: Set[NodeKillReverter]): Set[NodeKillReverter] =
+            queue match {
+                case MultiTriggeredNodeKillReverter(triggers, targetNode) +: rest =>
+                    val lifted: Set[Node] = liftings filter { _.before == targetNode } map { _.after }
+                    val liftedReverters: Set[NodeKillReverter] = lifted map { MultiTriggeredNodeKillReverter(triggers, _) }
+                    val newReverters: Set[NodeKillReverter] = liftedReverters -- cc
+                    propagateNodeKillReverters(newReverters.toList ++: rest, cc ++ newReverters)
+                case List() => cc
             }
-        }
+        val existingNodeKillReverters: Set[NodeKillReverter] = propagateNodeKillReverters(existingNodeKillReverters0.toList, existingNodeKillReverters0)
 
         // TemporaryLiftBlockedReverter는 그냥 그대로 가면 되나?
         // TODO 일단 그냥 가게 해놨는데 잘 보고 필요하면 고칠것

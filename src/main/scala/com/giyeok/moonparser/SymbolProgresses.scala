@@ -179,13 +179,13 @@ trait SymbolProgresses extends SeqOrderedTester {
 
         val kernel = {
             val kernelPointer = if (symbol.range.upperBounded) {
+                _children.size
+            } else {
                 (canDerive, canFinish) match {
                     case (true, false) => 0
                     case (true, true) => 1
                     case (false, true) => 2
                 }
-            } else {
-                _children.size
             }
             Kernel(symbol, kernelPointer)
         }

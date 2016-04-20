@@ -154,7 +154,8 @@ object LongestMatchGrammar2_2 extends Grammar with StringSamples {
         "aaaaa -11111.22222e33333   bbbbb",
         "12")
     val incorrectSamples = Set[String](
-        "1111e")
+        "1111e",
+        "1.a")
 }
 
 object LongestMatchGrammar2_3 extends Grammar with StringSamples with AmbiguousSamples {
@@ -189,6 +190,7 @@ object LongestMatchGrammar2_3 extends Grammar with StringSamples with AmbiguousS
         "aaaaa 11111    bbbbb",
         "aaaaa -11111   bbbbb",
         "12",
+        "1.a",
         "1111e",
         "111.222e333",
         "aaaaa 11111.222222   bbbbb",
