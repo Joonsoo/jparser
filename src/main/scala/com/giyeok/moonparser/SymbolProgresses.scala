@@ -177,11 +177,18 @@ trait SymbolProgresses extends SeqOrderedTester {
             if (canDerive) (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set())
             else (Set(), Set())
 
-        val kernel = Kernel(symbol, (canDerive, canFinish) match {
-            case (true, false) => 0
-            case (true, true) => 1
-            case (false, true) => 2
-        })
+        val kernel = {
+            val kernelPointer = if (symbol.range.upperBounded) {
+                (canDerive, canFinish) match {
+                    case (true, false) => 0
+                    case (true, true) => 1
+                    case (false, true) => 2
+                }
+            } else {
+                _children.size
+            }
+            Kernel(symbol, kernelPointer)
+        }
     }
 
     case class ExceptProgress(symbol: Except, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[Except]])

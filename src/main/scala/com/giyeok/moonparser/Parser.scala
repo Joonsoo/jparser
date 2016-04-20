@@ -372,8 +372,17 @@ class Parser(val grammar: Grammar)
         }).toSet
 
         // 기존의 NodeKillReverter -> 새 NodeKillReverter로 변환
-        // TODO 일단 그냥 가게 해놨는데 잘 보고 필요하면 고칠것
-        val existingNodeKillReverters: Set[NodeKillReverter] = (oldReverters collect { case x: NodeKillReverter => x })
+        //  - target node가 lift되어서 나오는 모든 node로 확대되어야 함
+        //  - lift된 다음 derive되는 경우에 대해서는 생각해 봐야 함
+        val existingNodeKillReverters0: Set[NodeKillReverter] = (oldReverters collect {
+            case x: NodeKillReverter => x
+        })
+        val existingNodeKillReverters: Set[NodeKillReverter] = existingNodeKillReverters0 flatMap { r =>
+            r match {
+                case MultiTriggeredNodeKillReverter(triggers, node) =>
+                    Set(r) ++ (liftings filter { _.before == node } map { _.after } map { MultiTriggeredNodeKillReverter(triggers, _) })
+            }
+        }
 
         // TemporaryLiftBlockedReverter는 그냥 그대로 가면 되나?
         // TODO 일단 그냥 가게 해놨는데 잘 보고 필요하면 고칠것

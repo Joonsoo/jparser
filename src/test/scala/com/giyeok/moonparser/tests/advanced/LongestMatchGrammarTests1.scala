@@ -153,7 +153,8 @@ object LongestMatchGrammar2_2 extends Grammar with StringSamples {
         "aaaaa 11111.222222e33333   bbbbb",
         "aaaaa -11111.22222e33333   bbbbb",
         "12")
-    val incorrectSamples = Set[String]()
+    val incorrectSamples = Set[String](
+        "1111e")
 }
 
 object LongestMatchGrammar2_3 extends Grammar with StringSamples with AmbiguousSamples {
@@ -187,14 +188,15 @@ object LongestMatchGrammar2_3 extends Grammar with StringSamples with AmbiguousS
         "    abcdedr     afsdf   j1jdf1j35j",
         "aaaaa 11111    bbbbb",
         "aaaaa -11111   bbbbb",
-        "12")
-    val incorrectSamples = Set[String]()
-    val ambiguousSamples = Set[String](
+        "12",
+        "1111e",
         "111.222e333",
         "aaaaa 11111.222222   bbbbb",
         "aaaaa 11111e33333   bbbbb",
         "aaaaa 11111.222222e33333   bbbbb",
         "aaaaa -11111.22222e33333   bbbbb")
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]()
 }
 
 object LongestMatchGrammar2_4 extends Grammar with StringSamples {
@@ -236,10 +238,10 @@ object LongestMatchGrammar3_1 extends Grammar with StringSamples with AmbiguousS
 
     val correctSamples = Set[String](
         "12",
-        "1.a")
-    val incorrectSamples = Set[String]()
-    val ambiguousSamples = Set[String](
+        "1.a",
         "1.2")
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]()
 }
 
 object LongestMatchGrammar3_2 extends Grammar with StringSamples {
@@ -335,7 +337,7 @@ object LongestMatchGrammar5 extends Grammar with StringSamples {
     val incorrectSamples = Set[String]()
 }
 
-object LongestMatchGrammar5_1 extends Grammar with StringSamples {
+object LongestMatchGrammar5_1 extends Grammar with StringSamples with AmbiguousSamples {
     def expr(syms: Symbol*) = seq(syms.toSeq, Set[Symbol](n("WS")))
     val name = "LongestMatchGrammar5-1 (ambiguous, dangling else)"
     val rules: RuleMap = ListMap(
@@ -355,7 +357,8 @@ object LongestMatchGrammar5_1 extends Grammar with StringSamples {
 
     val correctSamples = Set[String](
         "if(true)if(false){}else{}else{}")
-    val incorrectSamples = Set[String](
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String](
         "if(true)if(false){}else{}")
 }
 
