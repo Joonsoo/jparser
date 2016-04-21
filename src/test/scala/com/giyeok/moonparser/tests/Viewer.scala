@@ -19,6 +19,7 @@ import com.giyeok.moonparser.visualize.ParseGraphVisualizer
 import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.moonparser.Inputs
 import com.giyeok.moonparser.visualize.FigureGenerator
+import com.giyeok.moonparser.visualize.PCGVisualizer
 
 trait Viewer {
     val allTests: Set[Grammar with Samples]
@@ -48,6 +49,7 @@ trait Viewer {
         val textList = new org.eclipse.swt.widgets.List(rightFrame, SWT.BORDER | SWT.V_SCROLL)
         val testText = new org.eclipse.swt.widgets.Text(rightFrame, SWT.MULTI)
         val testButton = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
+        val pcgButton = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
 
         textList.setFont(JFaceResources.getTextFont)
 
@@ -101,6 +103,7 @@ trait Viewer {
         })
 
         testButton.setText("Show")
+        pcgButton.setText("PCG")
         def startParse(): Unit = {
             if (grammarList.getSelectionIndex() >= 0) {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
@@ -118,6 +121,14 @@ trait Viewer {
         testButton.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 startParse()
+            }
+        })
+        pcgButton.addListener(SWT.Selection, new Listener() {
+            def handleEvent(e: Event): Unit = {
+                if (grammarList.getSelectionIndex >= 0) {
+                    val grammar = sortedGrammars(grammarList.getSelectionIndex())
+                    PCGVisualizer.start(grammar, display, new Shell(display))
+                }
             }
         })
 

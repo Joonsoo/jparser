@@ -38,6 +38,7 @@ import org.eclipse.draw2d.AbstractBorder
 import org.eclipse.draw2d.Graphics
 import org.eclipse.swt.graphics.Color
 import com.giyeok.moonparser.Symbols.Terminal
+import org.eclipse.swt.layout.FillLayout
 
 class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Display, shell: Shell, resources: ParseGraphVisualizer.Resources) {
     case class VisualizationLocation(location: Int, showResult: Boolean) {
@@ -216,9 +217,9 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                 case 'x' | 'X' =>
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualizeWidget =>
-                            println("======= AbstractInput =======")
+                            println("======= Possible input groups =======")
                             v.context.termGroupsForTerminals foreach { d => println(d.toShortString) }
-                            println("=============================")
+                            println("=====================================")
                     }
                 case code =>
                     println(s"keyPressed: $code")
@@ -241,7 +242,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
     val parser = new Parser(grammar)
 
     val finReversed: List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError])] =
-        source.foldLeft[List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError])]](List((Left(parser.startingContext, parser.startingContextVerbose._2)))) { (cl, terminal) =>
+        source.foldLeft[List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError])]](List((Left(parser.initialContext, parser.initialContextVerbose._2)))) { (cl, terminal) =>
             cl.head match {
                 case Left((ctx, _)) => (ctx proceedTerminalVerbose terminal) +: cl
                 case error @ Right(_) => error +: cl

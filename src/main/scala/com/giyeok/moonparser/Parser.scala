@@ -668,11 +668,11 @@ class Parser(val grammar: Grammar)
         def fromSeed(startSymbol: Symbol): ParsingContext = fromSeedVerbose(startSymbol)._1
     }
 
-    val startingContextVerbose = ParsingContext.fromSeedVerbose(grammar.startSymbol)
-    val startingContext = startingContextVerbose._1
+    val initialContextVerbose = ParsingContext.fromSeedVerbose(grammar.startSymbol)
+    val initialContext = initialContextVerbose._1
 
     def parse(source: Inputs.Source): Either[ParsingContext, ParsingError] =
-        source.foldLeft[Either[ParsingContext, ParsingError]](Left(startingContext)) {
+        source.foldLeft[Either[ParsingContext, ParsingError]](Left(initialContext)) {
             (ctx, terminal) =>
                 ctx match {
                     case Left(ctx) => ctx proceedTerminal terminal

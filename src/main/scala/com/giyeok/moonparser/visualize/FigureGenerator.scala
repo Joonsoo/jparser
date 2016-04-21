@@ -19,6 +19,7 @@ import com.giyeok.moonparser.Symbols.Terminals
 import java.lang.Character.UnicodeBlock
 import org.eclipse.draw2d.Border
 import org.eclipse.draw2d.AbstractBorder
+import org.eclipse.mylar.zest.core.internal.viewers.figures.SubSupFigure
 
 object FigureGenerator {
     trait Appearance[Figure] {
@@ -53,6 +54,8 @@ object FigureGenerator {
         // def textSubFig(text: String, appearance: Appearance[Figure]): Figure
         def horizontalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure
         def verticalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure
+        def subFig(child: Figure): Figure
+        def supFig(child: Figure): Figure
     }
 
     object Spacing extends Enumeration {
@@ -147,6 +150,25 @@ object FigureGenerator {
                 figWith(toolbarLayoutWith(true, spacing), children)
             def verticalFig(spacing: Spacing.Value, children: Seq[Figure]): Figure =
                 figWith(toolbarLayoutWith(false, spacing), children)
+
+            def subFig(child: Figure): Figure = subFig(0.75, child)
+            def supFig(child: Figure): Figure = supFig(0.75, child)
+            def subFig(ratio: Double, child: Figure): Figure = {
+                val fig = new SubSupFigure()
+                fig.setLayoutManager(toolbarLayoutWith(true, Spacing.None))
+                fig.add(child)
+                fig.setScale(ratio)
+                fig.setStickToTop(false)
+                fig
+            }
+            def supFig(ratio: Double, child: Figure): Figure = {
+                val fig = new SubSupFigure()
+                fig.setLayoutManager(toolbarLayoutWith(true, Spacing.None))
+                fig.add(child)
+                fig.setScale(ratio)
+                fig.setStickToTop(true)
+                fig
+            }
         }
     }
 
@@ -165,6 +187,10 @@ object FigureGenerator {
                 <table><tr>{ children map { fig => <td>{ fig }</td> } }</tr></table>
             def verticalFig(spacing: Spacing.Value, children: Seq[xml.Elem]): xml.Elem =
                 <table>{ children map { fig => <tr><td>{ fig }</td></tr> } }</table>
+            def subFig(child: xml.Elem): xml.Elem =
+                <sub>child</sub>
+            def supFig(child: xml.Elem): xml.Elem =
+                <sup>child</sup>
         }
     }
 }
