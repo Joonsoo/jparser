@@ -368,6 +368,7 @@ class Parser(val grammar: Grammar)
                 }
             }
             // NOTE 실은 MultiLift도 필요 없을지 몰라
+            assert(triggers.size == 1)
             MultiTriggeredNodeKillReverter(triggers, affectedNode)
         }).toSet
 
@@ -409,11 +410,40 @@ class Parser(val grammar: Grammar)
             }
         }
 
+        def terminalNodes: Set[TerminalNode] = nodes collect { case s: SymbolProgressTerminal => s }
+        def termGroupsForTerminals: Set[TermGroupDesc] = {
+            import Symbols.Terminals._
+
+            val terminals = terminalNodes map { _.symbol }
+            val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
+            val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
+
+            val charIntersects: Set[CharacterTermGroupDesc] = charTerms flatMap { term1 =>
+                charTerms collect {
+                    case term2 if term1 != term2 => term1 intersect term2
+                } filterNot { _.isEmpty }
+            }
+            val virtIntersects: Set[VirtualTermGroupDesc] = virtTerms flatMap { term1 =>
+                virtTerms collect {
+                    case term2 if term1 != term2 => term1 intersect term2
+                } filterNot { _.isEmpty }
+            }
+
+            // charIntersects foreach { d => println(d.toShortString) }
+            // virtIntersects foreach { d => println(d.toShortString) }
+
+            val charTermGroups = (charTerms map { term =>
+                charIntersects.foldLeft(term) { _ - _ }
+            }) ++ charIntersects
+            val virtTermGroups = (virtTerms map { term =>
+                virtIntersects.foldLeft(term) { _ - _ }
+            }) ++ virtIntersects
+
+            charTermGroups ++ virtTermGroups
+        }
+
         def proceedTerminal1(nextGen: Int, next: Input): Set[TermLifting] =
-            (nodes flatMap {
-                case s: SymbolProgressTerminal => (s.proceedTerminal(nextGen, next)) map { TermLifting(s, _, next) }
-                case _ => None
-            })
+            terminalNodes flatMap { s => (s.proceedTerminal(nextGen, next)) map { TermLifting(s, _, next) } }
         def proceedTerminalVerbose(next: Input): (Either[(ParsingContext, VerboseProceedLog), ParsingError]) = {
             // `nextNodes` is actually type of `Set[(SymbolProgressTerminal, SymbolProgressTerminal)]`
             // but the invariance of `Set` of Scala, which I don't understand why, it is defined as Set[(SymbolProgress, SymbolProgress)]
@@ -505,12 +535,15 @@ class Parser(val grammar: Grammar)
 
                 val finalEdges = newEdges ++ roots
                 val finalNodes = finalEdges flatMap { _.nodes }
-                val workingReverters0 = proceedReverters(reverters, newReverters, liftings, proceededEdges)
-                val workingReverters = workingReverters0 filter {
+                val workingReverters0: Set[WorkingReverter] = proceedReverters(reverters, newReverters, liftings, proceededEdges)
+                val workingReverters: Set[WorkingReverter] = workingReverters0 filter {
                     _ match {
-                        case x: DeriveReverter => finalEdges contains x.targetEdge
-                        case x: TemporaryLiftBlockReverter => finalNodes contains x.targetNode
-                        case x: NodeKillReverter => finalNodes contains x.targetNode
+                        // Working Reverter는 이렇게 세 종류
+                        case LiftTriggeredDeriveReverter(trigger, targetEdge) => finalEdges contains targetEdge
+                        case LiftTriggeredTemporaryLiftBlockReverter(trigger, targetNode) => finalNodes contains targetNode
+                        case MultiTriggeredNodeKillReverter(triggers, targetNode) =>
+                            // TODO triggers 조건은 잘 확인해봐야 함
+                            (finalNodes contains targetNode) && (triggers map { _.trigger } subsetOf finalNodes)
                     }
                 }
 

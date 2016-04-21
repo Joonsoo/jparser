@@ -1,7 +1,7 @@
 package com.giyeok.moonparser.utils
 
 object UnicodeUtil {
-    def translateCategoryNamesToByte(categories: Set[String]) = categories map (_ match {
+    def categoryNameToCode(category: String): Int = (category match {
         case "Mc" => Character.COMBINING_SPACING_MARK
         case "Pc" => Character.CONNECTOR_PUNCTUATION
         case "Cc" => Character.CONTROL
@@ -34,9 +34,10 @@ object UnicodeUtil {
         case "Lt" => Character.TITLECASE_LETTER
         case "Cn" => Character.UNASSIGNED
         case "Lu" => Character.UPPERCASE_LETTER
-    })
+    }).toInt
+    def categoryNamesToCodes(categories: Set[String]) = categories map { categoryNameToCode _ }
 
-    def translateToString(categories: Set[Byte]) = categories map (_ match {
+    def categoryCodeToName(category: Int): String = category match {
         case Character.COMBINING_SPACING_MARK => "Mc"
         case Character.CONNECTOR_PUNCTUATION => "Pc"
         case Character.CONTROL => "Cc"
@@ -69,5 +70,15 @@ object UnicodeUtil {
         case Character.TITLECASE_LETTER => "Lt"
         case Character.UNASSIGNED => "Cn"
         case Character.UPPERCASE_LETTER => "Lu"
-    })
+    }
+    def categoryCodesToNames(categories: Set[Int]): Set[String] = categories map { categoryCodeToName(_) }
+
+    def toReadable(char: Char): String = char match {
+        case c if 33 <= c && c <= 126 => c.toString
+        case '\n' => "\\n"
+        case '\r' => "\\r"
+        case '\t' => "\\t"
+        case '\\' => "\\\\"
+        case c => f"\\u$c%04x"
+    }
 }

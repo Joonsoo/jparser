@@ -1,8 +1,6 @@
 package com.giyeok.moonparser
 
-import com.giyeok.moonparser.utils.SeqOrderedTester
-
-trait SymbolProgresses extends SeqOrderedTester {
+trait SymbolProgresses {
     this: Parser =>
 
     import Symbols._
@@ -28,6 +26,7 @@ trait SymbolProgresses extends SeqOrderedTester {
         override def toString = toShortString
     }
     abstract sealed class SymbolProgressTerminal extends SymbolProgress {
+        override val symbol: Terminal
         def proceedTerminal(gen: Int, next: Input): Option[SymbolProgressTerminal]
     }
     abstract sealed class SymbolProgressNonterminal extends SymbolProgress {

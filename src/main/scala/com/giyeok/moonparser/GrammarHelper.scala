@@ -22,7 +22,7 @@ object GrammarHelper {
     def chars(ranges: NumericRange[Char]*) = charSymbol(ranges.toSet.flatten)
     def chars(chars: String) = charSymbol(chars.toCharArray().toSet)
     def unicode(categories: String*): Terminals.Unicode = unicode(categories toSet)
-    def unicode(categories: Set[String]) = Terminals.Unicode(UnicodeUtil.translateCategoryNamesToByte(categories))
+    def unicode(categories: Set[String]) = Terminals.Unicode(UnicodeUtil.categoryNamesToCodes(categories))
     // def virtual(name: String) = VirtualInputElem(name)
     def seq(seq: Seq[Symbol], whitespace: Set[Symbol]) = Sequence(seq, whitespace)
     def seq(seq: Symbol*) = Sequence(seq, Set())

@@ -213,6 +213,13 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                             println(s"================")
                         case _ => // nothing to do
                     }
+                case 'x' | 'X' =>
+                    graphAt(currentLocation) match {
+                        case v: ParsingContextGraphVisualizeWidget =>
+                            println("======= AbstractInput =======")
+                            v.context.termGroupsForTerminals foreach { d => println(d.toShortString) }
+                            println("=============================")
+                    }
                 case code =>
                     println(s"keyPressed: $code")
             }

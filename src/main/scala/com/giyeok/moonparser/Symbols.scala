@@ -24,46 +24,104 @@ object Symbols {
         def accept(input: Inputs.Input): Boolean
     }
     object Terminals {
-        import Inputs.{ Input, Character, Virtual }
+        import Inputs.{ Input, Character, Virtual, AbstractInput, CharsGroup, CharsUnicodeExcluding, AllCharsExcluding, VirtualsGroup }
+
+        sealed trait CharacterTerminal extends Terminal
+        sealed trait VirtualTerminal extends Terminal
         case object Any extends Terminal {
             def accept(input: Input) = true
         }
-        case object AnyChar extends Terminal {
-            def accept(input: Input) =
-                input.isInstanceOf[Character]
+        case object AnyChar extends CharacterTerminal {
+            def accept(input: Input) = input match {
+                case Character(_, _) => true
+                case AbstractInput(CharsGroup(_) | CharsUnicodeExcluding(_, _)) => true
+                case _ => false
+            }
         }
-        case class ExactChar(char: Char) extends Terminal {
+        case class ExactChar(char: Char) extends CharacterTerminal {
             override val hashCode = char.hashCode
             def accept(input: Input) = input match {
                 case Character(c, _) if char == c => true
+                case AbstractInput(termGroup) =>
+                    assert(!termGroup.isEmpty)
+                    termGroup match {
+                        case CharsGroup(set) if set == Set(char) => true
+                        case CharsGroup(set) if set contains char =>
+                            throw new AssertionError("Invalid AbstractInput")
+                        case CharsUnicodeExcluding(unicodeCategories, excludingChars) if (unicodeCategories contains char.getType) && !(excludingChars contains char) =>
+                            throw new AssertionError("Invalid AbstractInput")
+                        case AllCharsExcluding(excludingCategories, excludingChars) if !(excludingCategories contains char.getType) || !(excludingChars contains char) =>
+                            throw new AssertionError("Invalid AbstractInput")
+                        case _ => false
+                    }
                 case _ => false
             }
         }
-        case class Chars(chars: Set[Char]) extends Terminal {
+        case class Chars(chars: Set[Char]) extends CharacterTerminal {
             override val hashCode = chars.hashCode
             def accept(input: Input) = input match {
                 case Character(c, _) if chars contains c => true
+                case AbstractInput(termGroup) =>
+                    assert(!termGroup.isEmpty)
+                    termGroup match {
+                        case CharsGroup(set) if set subsetOf chars => true
+                        case CharsGroup(set) if !(set intersect chars).isEmpty =>
+                            throw new AssertionError("Invalid AbstractInput")
+                        case CharsUnicodeExcluding(unicodeCategories, excludingChars) if !((chars filter { unicodeCategories contains _.getType }) subsetOf excludingChars) =>
+                            throw new AssertionError("Invalid AbstractInput")
+                        case AllCharsExcluding(excludingCategories, excludingChars) if !(chars forall { c => (excludingCategories contains c.getType) || (excludingChars contains c) }) =>
+                            throw new AssertionError("Invalid AbstractInput")
+                        case _ => false
+                    }
                 case _ => false
             }
         }
-        case class Unicode(categories: Set[Byte]) extends Terminal {
+        case class Unicode(categories: Set[Int]) extends CharacterTerminal {
             override val hashCode = categories.hashCode
             def accept(input: Input) =
                 input match {
-                    case Character(c, _) if categories contains c.getType.toByte => true
+                    case Character(c, _) if categories contains c.getType => true
+                    case AbstractInput(termGroup) =>
+                        assert(!termGroup.isEmpty)
+                        termGroup match {
+                            case CharsGroup(chars) if chars forall { categories contains _.getType } => true
+                            case CharsGroup(chars) if chars exists { categories contains _.getType } => false
+                            case CharsUnicodeExcluding(unicodeCategories, _) if unicodeCategories subsetOf categories =>
+                                true
+                            case CharsUnicodeExcluding(unicodeCategories, _) if !(unicodeCategories intersect categories).isEmpty =>
+                                throw new AssertionError("Invalid AbstractInput")
+                            case AllCharsExcluding(excludingCategories, _) if !(categories subsetOf excludingCategories) =>
+                                throw new AssertionError("Invalid AbstractInput")
+                            case _ => false
+                        }
                     case _ => false
                 }
         }
-        case class ExactVirtual(name: String) extends Terminal {
+        case class ExactVirtual(name: String) extends VirtualTerminal {
             def accept(input: Input) = input match {
                 case Virtual(n, _) if n == name => true
+                case AbstractInput(termGroup) =>
+                    assert(!termGroup.isEmpty)
+                    termGroup match {
+                        case VirtualsGroup(virtualNames) if virtualNames == Set(name) => true
+                        case VirtualsGroup(virtualNames) if virtualNames contains name => throw new AssertionError("Invalid AbstractInput")
+                        case _ => false
+                    }
                 case _ => false
             }
         }
-        case class Virtuals(names: Set[String]) extends Terminal {
+        case class Virtuals(names: Set[String]) extends VirtualTerminal {
             override val hashCode = names.hashCode
             def accept(input: Input) = input match {
                 case Virtual(n, _) if names contains n => true
+                case AbstractInput(termGroup) =>
+                    assert(!termGroup.isEmpty)
+                    termGroup match {
+                        case VirtualsGroup(virtualNames) if virtualNames subsetOf names => true
+                        case VirtualsGroup(virtualNames) if !(virtualNames intersect names).isEmpty =>
+                            throw new AssertionError("Invalid AbstractInput")
+                        case _ => false
+                    }
                 case _ => false
             }
         }
@@ -180,13 +238,8 @@ object Symbols {
 
     implicit class ShortStringSymbols(sym: Symbol) {
         // TODO improve short string
-        def toReadable(c: Char): String = c match {
-            case '\n' => "\\n"
-            case '\t' => "\\t"
-            case '\r' => "\\r"
-            case '\\' => "\\\\"
-            case _ => c.toString
-        }
+        import com.giyeok.moonparser.utils.UnicodeUtil.{ toReadable, categoryCodeToName }
+
         def toShortString: String = sym match {
             case Any => "<any>"
             case AnyChar => "<any>"
@@ -197,7 +250,7 @@ object Symbols {
                     else if (range._1 + 1 == range._2) s"'${toReadable(range._1)}'-'${toReadable(range._2)}'"
                     else s"'${toReadable(range._1)}'-'${toReadable(range._2)}'"
                 } mkString "|") + ")"
-            case Unicode(c) => s"<unicode ${(c.toSeq map { cid => cid }).sorted mkString ", "}>"
+            case Unicode(c) => s"<unicode ${(c.toSeq.sorted map { categoryCodeToName(_) }) mkString ", "}>"
             case t: Terminal => t.toShortString
             case Empty => "<empty>"
             case s: Nonterminal => s.name
