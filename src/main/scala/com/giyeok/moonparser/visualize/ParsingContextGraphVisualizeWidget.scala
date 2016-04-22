@@ -89,7 +89,9 @@ trait ParsingContextGraphVisualize {
         val figFunc: (ParseTree.ParseNode[Symbols.Symbol], ParseNodeFigureGenerator.RenderingConfiguration) => Figure =
             if (horizontal) tooltipParseNodeFigureGenerator.parseNodeHFig else tooltipParseNodeFigureGenerator.parseNodeVFig
         val tooltipFig0: Figure = node match {
-            case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
+            case rep: Parser#RepeatBoundedProgress if !rep.children.isEmpty =>
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { figFunc(_, renderConf) })
+            case rep: Parser#RepeatUnboundedProgress if !rep.children.isEmpty =>
                 figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { figFunc(_, renderConf) })
             case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
                 figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { figFunc(_, renderConf) })
@@ -132,7 +134,10 @@ trait ParsingContextGraphVisualize {
                         println(graphNode.asInstanceOf[CGraphNode].getFigure.getInsets)
                         val printString =
                             n match {
-                                case rep: Parser#RepeatProgress if !rep.children.isEmpty =>
+                                case rep: Parser#RepeatBoundedProgress if !rep.children.isEmpty =>
+                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
+                                    list._2 mkString "\n"
+                                case rep: Parser#RepeatUnboundedProgress if !rep.children.isEmpty =>
                                     val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
                                     list._2 mkString "\n"
                                 case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>

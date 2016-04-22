@@ -68,7 +68,8 @@ trait SymbolProgresses {
             case symbol: OneOf => OneOfProgress(symbol, gen, None, None)
             case symbol: Except => ExceptProgress(symbol, gen, None, None)
             case symbol: LookaheadExcept => LookaheadExceptProgress(symbol, gen, None, None)
-            case symbol: Repeat => RepeatProgress(symbol, gen, None, List())
+            case symbol: RepeatBounded => RepeatBoundedProgress(symbol, gen, None, List())
+            case symbol: RepeatUnbounded => RepeatUnboundedProgress(symbol, gen, None, List())
             case symbol: Backup => BackupProgress(symbol, gen, None, None)
             case symbol: Join => JoinProgress(symbol, gen, None, None)
             case symbol: Proxy => ProxyProgress(symbol, gen, None, None)
@@ -161,33 +162,36 @@ trait SymbolProgresses {
         val kernel = Kernel(symbol, if (canFinish) 1 else 0)
     }
 
-    case class RepeatProgress(symbol: Repeat, derivedGen: Int, lastLiftedGen: Option[Int], _children: List[ParseNode[Symbol]])
+    case class RepeatBoundedProgress(symbol: RepeatBounded, derivedGen: Int, lastLiftedGen: Option[Int], _children: List[ParseNode[Symbol]])
             extends SymbolProgressNonterminal {
         lazy val children = _children.reverse
-        val canDerive = symbol.range canProceed _children.size
-        val parsed = if (symbol.range contains _children.size) { if (_children.size == 0) Some(ParsedEmpty(symbol)) else Some(ParsedSymbolsSeq(symbol, children, None)) } else None
+        val canDerive = _children.size < symbol.upper
+        val parsed = if (_children.size >= symbol.lower) { if (_children.size == 0) Some(ParsedEmpty(symbol)) else Some(ParsedSymbolsSeq(symbol, children, None)) } else None
         def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
-            assert(symbol.range canProceed _children.size)
+            assert(_children.size < symbol.upper)
             assert(source.parsed.isDefined)
             assert(source.symbol == symbol.sym)
-            RepeatProgress(symbol, derivedGen, Some(gen), source.parsed.get +: _children)
+            RepeatBoundedProgress(symbol, derivedGen, Some(gen), source.parsed.get +: _children)
         }
         def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
             if (canDerive) (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set())
             else (Set(), Set())
 
-        val kernel = {
-            val kernelPointer = if (symbol.range.upperBounded) {
-                _children.size
-            } else {
-                (canDerive, canFinish) match {
-                    case (true, false) => 0
-                    case (true, true) => 1
-                    case (false, true) => 2
-                }
-            }
-            Kernel(symbol, kernelPointer)
+        val kernel = Kernel(symbol, _children.size)
+    }
+
+    case class RepeatUnboundedProgress(symbol: RepeatUnbounded, derivedGen: Int, lastLiftedGen: Option[Int], _children: List[ParseNode[Symbol]])
+            extends SymbolProgressNonterminal {
+        lazy val children = _children.reverse
+        val parsed = if (_children.size >= symbol.lower) { if (_children.size == 0) Some(ParsedEmpty(symbol)) else Some(ParsedSymbolsSeq(symbol, children, None)) } else None
+        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
+            assert(source.parsed.isDefined)
+            assert(source.symbol == symbol.sym)
+            RepeatUnboundedProgress(symbol, derivedGen, Some(gen), source.parsed.get +: _children)
         }
+        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) = (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set())
+
+        val kernel = Kernel(symbol, if (!canFinish) 0 else 1)
     }
 
     case class ExceptProgress(symbol: Except, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[Except]])
@@ -291,8 +295,10 @@ trait SymbolProgresses {
                     "(" + (((ls._1 ++ ("*" +: ls._2)) ++ (if ((!ls._2.isEmpty) && seq.canFinish) Seq("*") else Seq())) mkString " ") + ")"
                 case OneOfProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
                 case ExceptProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-                case rep @ RepeatProgress(symbol, _, _, _children) =>
-                    (if (symbol.range canProceed _children.size) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
+                case rep @ RepeatBoundedProgress(symbol, _, _, _children) =>
+                    (if (_children.size < symbol.upper) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
+                case rep @ RepeatUnboundedProgress(symbol, _, _, _children) =>
+                    "* " + symbol.toShortString + (if (rep.canFinish) " *" else "")
                 case LookaheadExceptProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
                 case ProxyProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
                 case BackupProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)

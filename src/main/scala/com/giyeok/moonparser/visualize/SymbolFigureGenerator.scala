@@ -11,6 +11,8 @@ import com.giyeok.moonparser.Symbols.LookaheadExcept
 import com.giyeok.moonparser.Symbols.Nonterminal
 import com.giyeok.moonparser.Symbols.OneOf
 import com.giyeok.moonparser.Symbols.Repeat
+import com.giyeok.moonparser.Symbols.RepeatBounded
+import com.giyeok.moonparser.Symbols.RepeatUnbounded
 import com.giyeok.moonparser.Symbols.Sequence
 import com.giyeok.moonparser.Symbols.ShortStringSymbols
 import com.giyeok.moonparser.Symbols.Symbol
@@ -79,16 +81,17 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
                     if (needParentheses(sym)) g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
                     else symbolFig(sym)
                 }).toList, g.textFig("|", ap.default)))
-            case Repeat(sym, range) =>
-                val rep: String = range match {
-                    case Repeat.RangeFrom(from) if from == 0 => "*"
-                    case Repeat.RangeFrom(from) if from == 1 => "+"
-                    case Repeat.RangeTo(from, to) if from == 0 && to == 1 => "?"
-                    case r => s"[${r.toShortString}]"
+            case r: Repeat =>
+                val rep: String = r match {
+                    case RepeatBounded(_, 0, 1) => "?"
+                    case RepeatBounded(_, lower, upper) => s"[$lower-$upper]"
+                    case RepeatUnbounded(_, 0) => "*"
+                    case RepeatUnbounded(_, 1) => "+"
+                    case RepeatUnbounded(_, lower) => s"[$lower-]"
                 }
-                if (needParentheses(sym))
-                    g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(sym), g.textFig(")" + rep, ap.default)))
-                else g.horizontalFig(Spacing.None, Seq(symbolFig(sym), g.textFig(rep, ap.default)))
+                if (needParentheses(r.sym))
+                    g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(r.sym), g.textFig(")" + rep, ap.default)))
+                else g.horizontalFig(Spacing.None, Seq(symbolFig(r.sym), g.textFig(rep, ap.default)))
             case Except(sym, except) =>
                 val symFig =
                     if (!needParentheses(sym)) symbolFig(sym)

@@ -48,13 +48,12 @@ object GrammarHelper {
         def butnot(e: Symbol*) = except(oneof(e.toSet))
     }
     implicit class GrammarElementRepeatable(self: Symbol) {
-        def repeat(range: Repeat.Range): Repeat = self match {
-            case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Repeat | _: Join =>
-                Repeat(self, range)
+        def checking[T <: Symbol](r: => T): T = self match {
+            case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Repeat | _: Join => r
             case _ => throw new Exception("Applied repeat to the items that cannot be")
         }
-        def repeat(from: Int, to: Int): Repeat = repeat(Repeat.RangeTo(from, to))
-        def repeat(from: Int): Repeat = repeat(Repeat.RangeFrom(from))
+        def repeat(lower: Int, upper: Int): Repeat = checking { RepeatBounded(self, lower, upper) }
+        def repeat(lower: Int): Repeat = checking { RepeatUnbounded(self, lower) }
 
         // optional
         def opt = repeat(0, 1)

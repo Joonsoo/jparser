@@ -160,37 +160,14 @@ object Symbols {
     case class OneOf(syms: Set[Symbol]) extends Nonterm with AtomicSymbol {
         override val hashCode = (classOf[OneOf], syms).hashCode
     }
-    case class Repeat(sym: Symbol, range: Repeat.Range) extends Nonterm with NonAtomicSymbol {
-        override val hashCode = (classOf[Repeat], sym, range).hashCode
+    sealed trait Repeat extends Nonterm with NonAtomicSymbol {
+        val sym: Symbol
     }
-    object Repeat {
-        trait Range {
-            def contains(v: Int): Boolean
-            def canProceed(x: Int): Boolean
-            val isNullable: Boolean
-            def toShortString: String
-            val upperBounded: Boolean
-        }
-        case class RangeFrom(val from: Int) extends Range {
-            override def contains(v: Int) = from <= v
-            override def canProceed(x: Int): Boolean = true
-            override val isNullable = from == 0
-
-            override val hashCode = from
-
-            def toShortString = s"$from-"
-            val upperBounded = false
-        }
-        case class RangeTo(val from: Int, val to: Int) extends Range {
-            override def contains(v: Int) = from <= v && v <= to
-            override def canProceed(x: Int): Boolean = x < to
-            override val isNullable = from == 0
-
-            override val hashCode = (from, to).hashCode
-
-            def toShortString = s"$from-$to"
-            val upperBounded = true
-        }
+    case class RepeatBounded(sym: Symbol, lower: Int, upper: Int) extends Repeat {
+        override val hashCode = (classOf[RepeatBounded], sym, lower, upper).hashCode
+    }
+    case class RepeatUnbounded(sym: Symbol, lower: Int) extends Repeat {
+        override val hashCode = (classOf[RepeatUnbounded], sym, lower).hashCode
     }
     case class Except(sym: Symbol, except: Symbol) extends Nonterm with AtomicSymbol {
         override val hashCode = (classOf[Except], sym, except).hashCode
@@ -258,7 +235,8 @@ object Symbols {
             case s: Nonterminal => s.name
             case s: Sequence => "(" + (s.seq map { _.toShortString } mkString " ") + ")"
             case s: OneOf => s.syms map { _.toShortString } mkString "|"
-            case s: Repeat => s"${s.sym.toShortString}[${s.range.toShortString}]"
+            case RepeatBounded(sym, lower, upper) => s"${sym.toShortString}[$lower-$upper]"
+            case RepeatUnbounded(sym, lower) => s"${sym.toShortString}[$lower-]"
             case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
             case LookaheadExcept(except) => s"la_except ${except.toShortString}"
             case Proxy(sym) => s"P(${sym.toShortString})"
