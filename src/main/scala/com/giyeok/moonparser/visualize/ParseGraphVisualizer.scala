@@ -201,6 +201,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualizeWidget =>
                             println(s"=== IPN of ${v.context.gen} ===")
+                            /*
                             val ipns = v.context.proceededEdges map { _.end }
                             val ipnsByKernel = ipns groupBy { _.kernel }
                             ipnsByKernel.toSeq sortBy { _._1.symbol.id } foreach { kv =>
@@ -211,6 +212,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                                     println(s"    ${cover} -> (${nodes.size}) ${nodes map { _.id }}")
                                 }
                             }
+                            */
                             println(s"================")
                         case _ => // nothing to do
                     }

@@ -20,6 +20,25 @@ object ParseTree {
             assert((bws._2 map { idx => bws._1(idx) }) == body)
         }
     }
+    case class ParsedSymbolsSeq1[T <: NonAtomicSymbol](symbol: T, _childrenWS: List[ParseNode[Symbol]], _childrenIdx: List[Int]) extends ParseNode[T] {
+        val childrenSize = _childrenIdx.length
+
+        lazy val childrenIdx = _childrenIdx.reverse
+        lazy val childrenWS = _childrenWS.reverse
+        lazy val children: List[ParseNode[Symbol]] = {
+            def pick(_childrenIdx: List[Int], _childrenWS: List[ParseNode[Symbol]], current: Int, cc: List[ParseNode[Symbol]]): List[ParseNode[Symbol]] =
+                if (_childrenIdx.isEmpty) cc else {
+                    val dropped = _childrenWS drop (current - _childrenIdx.head)
+                    pick(_childrenIdx.tail, dropped.tail, _childrenIdx.head - 1, dropped.head +: cc)
+                }
+            pick(_childrenIdx, _childrenWS, _childrenWS.length - 1, List())
+        }
+
+        def appendWhitespace(wsChild: ParseNode[Symbol]): ParsedSymbolsSeq1[T] =
+            ParsedSymbolsSeq1[T](symbol, wsChild +: _childrenWS, _childrenIdx)
+        def appendContent(child: ParseNode[Symbol]): ParsedSymbolsSeq1[T] =
+            ParsedSymbolsSeq1[T](symbol, child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
+    }
     case class ParsedSymbolJoin(symbol: Join, body: ParseNode[Symbol], constraint: ParseNode[Symbol]) extends ParseNode[Join]
 
     object HorizontalTreeStringSeqUtil {
