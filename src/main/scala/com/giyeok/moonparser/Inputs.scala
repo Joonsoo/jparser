@@ -6,17 +6,25 @@ object Inputs {
     type Location = Int
 
     sealed trait Input
-    case class Character(char: Char, location: Location) extends Input
-    case class Virtual(name: String, location: Location) extends Input
+    sealed trait ConcreteInput extends Input
+    case class Character(char: Char, location: Location) extends ConcreteInput
+    case class Virtual(name: String, location: Location) extends ConcreteInput
     case class AbstractInput(termGroup: TermGroupDesc) extends Input
 
     sealed trait TermGroupDesc {
         def toShortString: String
         def isEmpty: Boolean
+
+        def contains(input: ConcreteInput): Boolean
     }
     sealed trait CharacterTermGroupDesc extends TermGroupDesc {
         def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc
+
+        def contains(input: ConcreteInput): Boolean = input match {
+            case Character(char, _) => contains(char)
+            case Virtual(_, _) => false
+        }
         def contains(char: Char): Boolean
     }
     sealed trait VirtualTermGroupDesc extends TermGroupDesc {
@@ -113,6 +121,11 @@ object Inputs {
 
         def toShortString: String = virtualNames.toSeq.sorted mkString ","
         def isEmpty = virtualNames.isEmpty
+
+        def contains(input: ConcreteInput) = input match {
+            case Character(_, _) => false
+            case Virtual(name, _) => virtualNames contains name
+        }
     }
 
     object TermGroupDesc {

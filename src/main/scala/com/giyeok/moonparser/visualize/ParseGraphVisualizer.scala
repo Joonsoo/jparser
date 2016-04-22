@@ -39,6 +39,7 @@ import org.eclipse.draw2d.Graphics
 import org.eclipse.swt.graphics.Color
 import com.giyeok.moonparser.Symbols.Terminal
 import org.eclipse.swt.layout.FillLayout
+import com.giyeok.moonparser.ParsingErrors.ParsingError
 
 class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Display, shell: Shell, resources: ParseGraphVisualizer.Resources) {
     case class VisualizationLocation(location: Int, showResult: Boolean) {
@@ -243,8 +244,8 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
 
     val parser = new Parser(grammar)
 
-    val finReversed: List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError])] =
-        source.foldLeft[List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError])]](List((Left(parser.initialContext, parser.initialContextVerbose._2)))) { (cl, terminal) =>
+    val finReversed: List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), ParsingError])] =
+        source.foldLeft[List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), ParsingError])]](List((Left(parser.initialContext, parser.initialContextVerbose._2)))) { (cl, terminal) =>
             cl.head match {
                 case Left((ctx, _)) => (ctx proceedTerminalVerbose terminal) +: cl
                 case error @ Right(_) => error +: cl
@@ -253,7 +254,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
     val fin = finReversed.reverse
     assert(fin.length == source.length + 1)
 
-    def ctxLogAt(location: VisualizationLocation): Either[(Parser#ParsingContext, Parser#VerboseProceedLog), Parser#ParsingError] =
+    def ctxLogAt(location: VisualizationLocation): Either[(Parser#ParsingContext, Parser#VerboseProceedLog), ParsingError] =
         fin(location.location + 1)
 
     def isValidLocation(location: VisualizationLocation): Boolean = {

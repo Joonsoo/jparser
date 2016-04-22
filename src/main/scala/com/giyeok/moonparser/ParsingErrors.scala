@@ -1,8 +1,6 @@
 package com.giyeok.moonparser
 
-trait ParsingErrors {
-    this: Parser =>
-
+object ParsingErrors {
     import Inputs._
 
     abstract class ParsingError {
@@ -15,13 +13,12 @@ trait ParsingErrors {
             val msg = _msg
         }
     }
-    object ParsingErrors {
-        case class UnexpectedInput(next: Input) extends ParsingError {
-            val msg = next match {
-                case Character(char, location) => s"Unexpected input '$char' at $location"
-                case Virtual(name, location) => s"Unexpected virtual input $name at $location"
-                case AbstractInput(chars) => throw new AssertionError("Wrong Abstract Input")
-            }
+
+    case class UnexpectedInput(next: Input) extends ParsingError {
+        val msg = next match {
+            case Character(char, location) => s"Unexpected input '$char' at $location"
+            case Virtual(name, location) => s"Unexpected virtual input $name at $location"
+            case AbstractInput(chars) => throw new AssertionError("Wrong Abstract Input")
         }
     }
 }

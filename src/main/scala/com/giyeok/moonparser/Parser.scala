@@ -4,10 +4,10 @@ case class ParseResult(parseNode: ParseTree.ParseNode[Symbols.Symbol])
 
 class Parser(val grammar: Grammar)
         extends SymbolProgresses
-        with GraphDataStructure
-        with ParsingErrors {
+        with GraphDataStructure {
     import Inputs._
     import Symbols.Symbol
+    import ParsingErrors.ParsingError
 
     sealed trait Lifting {
         val before: SymbolProgress

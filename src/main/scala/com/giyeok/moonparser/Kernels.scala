@@ -1,8 +1,6 @@
 package com.giyeok.moonparser
 
-trait Kernels {
-    this: Parser =>
-
+object Kernels {
     import Symbols._
     import Inputs._
     import ParseTree._
@@ -12,7 +10,8 @@ trait Kernels {
         val pointer: Int
         def toShortString = s"Kernel(${symbol.toShortString}, $pointer)"
 
-        // TODO finishable인지 알아내는 메소드 필요
+        def derivable: Boolean
+        def finishable: Boolean
     }
     object Kernel {
         def apply(symbol: Symbol): Kernel = symbol match {
@@ -49,12 +48,17 @@ trait Kernels {
     case object EmptyKernel extends Kernel {
         val symbol = Empty
         val pointer = 0
+        val derivable = false
+        val finishable = true
     }
     sealed trait NonEmptyKernel extends Kernel {
     }
     sealed trait AtomicKernel[T <: AtomicSymbol] extends NonEmptyKernel {
         assert(pointer == 0 || pointer == 1)
-        def lifted(selfNode: SymbolProgress): Kernel
+        def lifted: Kernel
+
+        val derivable = pointer == 0
+        val finishable = pointer == 1
     }
     trait NontermKernel[T <: Nonterm] extends NonEmptyKernel {
         def derive: (Set[EdgeTmpl], Set[ReverterTmpl])
@@ -73,20 +77,20 @@ trait Kernels {
     }
 
     case class TerminalKernel(symbol: Terminal, pointer: Int) extends AtomicKernel[Terminal] {
-        def lifted(selfNode: SymbolProgress) = TerminalKernel(symbol, 1) ensuring pointer == 0
+        def lifted = TerminalKernel(symbol, 1) ensuring pointer == 0
     }
     case class NonterminalKernel(symbol: Nonterminal, pointer: Int) extends AtomicNontermKernel[Nonterminal] {
-        def lifted(selfNode: SymbolProgress) = NonterminalKernel(symbol, 1) ensuring pointer == 0
+        def lifted = NonterminalKernel(symbol, 1) ensuring pointer == 0
         def derive0: (Set[EdgeTmpl], Set[ReverterTmpl]) =
-            (grammar.rules(symbol.name) map { s => SimpleEdgeTmpl(this, Kernel(s)) }, Set())
+            ??? //(grammar.rules(symbol.name) map { s => SimpleEdgeTmpl(this, Kernel(s)) }, Set())
     }
     case class OneOfKernel(symbol: OneOf, pointer: Int) extends AtomicNontermKernel[OneOf] {
-        def lifted(selfNode: SymbolProgress) = OneOfKernel(symbol, 1) ensuring pointer == 0
+        def lifted = OneOfKernel(symbol, 1) ensuring pointer == 0
         def derive0: (Set[EdgeTmpl], Set[ReverterTmpl]) =
             (symbol.syms map { s => SimpleEdgeTmpl(this, Kernel(s)) }, Set())
     }
     case class ExceptKernel(symbol: Except, pointer: Int) extends AtomicNontermKernel[Except] {
-        def lifted(selfNode: SymbolProgress) = ExceptKernel(symbol, 1) ensuring pointer == 0
+        def lifted = ExceptKernel(symbol, 1) ensuring pointer == 0
         def derive0: (Set[EdgeTmpl], Set[ReverterTmpl]) = {
             val edges: Set[EdgeTmpl] = Set(SimpleEdgeTmpl(this, Kernel(symbol.sym)))
             val reverters: Set[ReverterTmpl] = Set(LiftTriggeredTempLiftBlockTmpl(Kernel(symbol.except), this))
@@ -94,7 +98,7 @@ trait Kernels {
         }
     }
     case class LookaheadExceptKernel(symbol: LookaheadExcept, pointer: Int) extends AtomicNontermKernel[LookaheadExcept] {
-        def lifted(selfNode: SymbolProgress) = LookaheadExceptKernel(symbol, 1) ensuring pointer == 0
+        def lifted = LookaheadExceptKernel(symbol, 1) ensuring pointer == 0
         def derive0: (Set[EdgeTmpl], Set[ReverterTmpl]) = {
             val edge = SimpleEdgeTmpl(this, Kernel(Empty))
             val reverters: Set[ReverterTmpl] = Set(LiftTriggeredDeriveReverterTmpl(Kernel(symbol.except), edge))
@@ -102,7 +106,7 @@ trait Kernels {
         }
     }
     case class BackupKernel(symbol: Backup, pointer: Int) extends AtomicNontermKernel[Backup] {
-        def lifted(selfNode: SymbolProgress) = BackupKernel(symbol, 1) ensuring pointer == 0
+        def lifted = BackupKernel(symbol, 1) ensuring pointer == 0
         def derive0: (Set[EdgeTmpl], Set[ReverterTmpl]) = {
             val symKernel = Kernel(symbol.sym)
             val backupEdge = SimpleEdgeTmpl(this, Kernel(symbol.backup))
@@ -110,7 +114,7 @@ trait Kernels {
         }
     }
     case class JoinKernel(symbol: Join, pointer: Int) extends AtomicNontermKernel[Join] {
-        def lifted(selfNode: SymbolProgress) = JoinKernel(symbol, 1) ensuring pointer == 0
+        def lifted = JoinKernel(symbol, 1) ensuring pointer == 0
         def derive0: (Set[EdgeTmpl], Set[ReverterTmpl]) = {
             val edge1 = JoinEdgeTmpl(this, Kernel(symbol.sym), Kernel(symbol.join), false)
             val edge2 = JoinEdgeTmpl(this, Kernel(symbol.join), Kernel(symbol.sym), true)
@@ -118,18 +122,18 @@ trait Kernels {
         }
     }
     case class ProxyKernel(symbol: Proxy, pointer: Int) extends AtomicNontermKernel[Proxy] {
-        def lifted(selfNode: SymbolProgress) = ProxyKernel(symbol, 1) ensuring pointer == 0
+        def lifted = ProxyKernel(symbol, 1) ensuring pointer == 0
         def derive0: (Set[EdgeTmpl], Set[ReverterTmpl]) =
             (Set(SimpleEdgeTmpl(this, Kernel(symbol.sym))), Set())
     }
     // Longest와 EagerLongest는 생성되는 노드 자체가 lfit시 lift돼서 생긴 노드에 대해 Lift/SurviveTriggeredNodeCreationReverter 를 추가하도록 수정
     case class LongestKernel(symbol: Longest, pointer: Int) extends AtomicNontermKernel[Longest] {
-        def lifted(selfNode: SymbolProgress) = LongestKernel(symbol, 1) ensuring pointer == 0
+        def lifted = LongestKernel(symbol, 1) ensuring pointer == 0
         def derive0: (Set[EdgeTmpl], Set[ReverterTmpl]) =
             (Set(SimpleEdgeTmpl(this, Kernel(symbol.sym))), Set())
     }
     case class EagerLongestKernel(symbol: EagerLongest, pointer: Int) extends AtomicNontermKernel[EagerLongest] {
-        def lifted(selfNode: SymbolProgress) = EagerLongestKernel(symbol, 1) ensuring pointer == 0
+        def lifted = EagerLongestKernel(symbol, 1) ensuring pointer == 0
         def derive0: (Set[EdgeTmpl], Set[ReverterTmpl]) =
             (Set(SimpleEdgeTmpl(this, Kernel(symbol.sym))), Set())
     }
@@ -153,17 +157,26 @@ trait Kernels {
             } else {
                 (Set(), Set())
             }
+
+        val derivable = pointer < symbol.seq.size
+        val finishable = pointer == symbol.seq.size
     }
     case class RepeatBoundedKernel(symbol: RepeatBounded, pointer: Int) extends NonAtomicNontermKernel[RepeatBounded] {
         // TODO
         def lifted(before: ParsedSymbolsSeq1[RepeatBounded], accepted: ParseNode[Symbol]): (RepeatBoundedKernel, ParsedSymbolsSeq1[RepeatBounded]) = ???
         def derive: (Set[EdgeTmpl], Set[ReverterTmpl]) =
-            if (pointer < symbol.upper) (Set(SimpleEdgeTmpl(this, Kernel(symbol.sym))), Set()) else (Set(), Set())
+            if (derivable) (Set(SimpleEdgeTmpl(this, Kernel(symbol.sym))), Set()) else (Set(), Set())
+
+        val derivable = pointer < symbol.upper
+        val finishable = pointer >= symbol.lower
     }
     case class RepeatUnboundedKernel(symbol: RepeatUnbounded, pointer: Int) extends NonAtomicNontermKernel[RepeatUnbounded] {
         // TODO
         def lifted(before: ParsedSymbolsSeq1[RepeatUnbounded], accepted: ParseNode[Symbol]): (RepeatUnboundedKernel, ParsedSymbolsSeq1[RepeatUnbounded]) = ???
         def derive: (Set[EdgeTmpl], Set[ReverterTmpl]) =
             (Set(SimpleEdgeTmpl(this, Kernel(symbol.sym))), Set())
+
+        val derivable = true
+        val finishable = pointer >= symbol.lower
     }
 }
