@@ -20,6 +20,10 @@ import org.eclipse.draw2d.ColorConstants
 import com.giyeok.moonparser.visualize.utils.VerticalResizableSplittedComposite
 import org.eclipse.zest.layouts.LayoutStyles
 import org.eclipse.zest.core.widgets.GraphNode
+import org.eclipse.swt.events.SelectionListener
+import org.eclipse.swt.events.SelectionAdapter
+import org.eclipse.swt.events.SelectionEvent
+import org.eclipse.zest.core.widgets.GraphConnection
 
 class PCGVisualizer(grammar: Grammar, parent: Composite, resources: ParseGraphVisualizer.Resources) {
     val parser = new Parser(grammar)
@@ -43,15 +47,45 @@ class PCGVisualizer(grammar: Grammar, parent: Composite, resources: ParseGraphVi
         parent.setLayout(new FillLayout())
         val graph = new Graph(parent, style)
 
-        val (g, a) = (figureGenerator, figureAppearances)
-        val nodeFig = g.horizontalFig(FigureGenerator.Spacing.None, Seq(g.textFig("PC", a.default), g.subFig(g.textFig("0", a.default))))
-        nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
-        nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
-        nodeFig.setOpaque(true)
-        nodeFig.setSize(nodeFig.getPreferredSize())
-        // nodeFig.setToolTip(newSymbolProgressContentFig(n, true, ParseNodeFigureGenerator.cleanestConfiguration))
+        val (g, ap) = (figureGenerator, figureAppearances)
 
-        new CGraphNode(graph, SWT.NONE, nodeFig)
+        val ctxId2Node = scala.collection.mutable.Map[Int, CGraphNode]()
+        val ctxLogId2Edge = scala.collection.mutable.Map[(Int, Int), GraphConnection]()
+        val highlightedNodes = scala.collection.mutable.Set[Int]()
+        val highlightedEdges = scala.collection.mutable.Set[(Int, Int)]()
+
+        def addNode(text: String, ctx: Parser#ParsingContext): CGraphNode = {
+            val nodeFig = g.textFig(text, ap.default)
+            nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
+            nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
+            nodeFig.setOpaque(true)
+            nodeFig.setSize(nodeFig.getPreferredSize())
+            // nodeFig.setToolTip(newSymbolProgressContentFig(n, true, ParseNodeFigureGenerator.cleanestConfiguration))
+
+            val node = new CGraphNode(graph, SWT.NONE, nodeFig)
+            node.setData(ctx)
+            ctxId2Node(ctx.id) = node
+
+            node
+        }
+
+        def unhighlightAll(): Unit = {
+            highlightedNodes foreach { id =>
+                val node = ctxId2Node(id)
+                node.getFigure.setBackgroundColor(ColorConstants.buttonLightest)
+            }
+            highlightedNodes.clear()
+        }
+        def highlightPC(ctx: Parser#ParsingContext): Unit = {
+            ctxId2Node(ctx.id).getFigure.setBackgroundColor(ColorConstants.red)
+            highlightedNodes += ctx.id
+        }
+        def highlightEdge(lastCtx: Parser#ParsingContext, log: Parser#VerboseProceedLog): Unit = {
+            val edge = ctxLogId2Edge((lastCtx.id, log.id))
+            edge.setLineColor(ColorConstants.black)
+            edge.setLineWidth(3)
+            highlightedEdges += ((lastCtx.id, log.id))
+        }
 
         import org.eclipse.zest.layouts.algorithms._
         val layoutAlgorithm = new HorizontalTreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)
@@ -62,6 +96,39 @@ class PCGVisualizer(grammar: Grammar, parent: Composite, resources: ParseGraphVi
     val kernelsGraph = new Button(upper.rightPanel, SWT.NONE)
     val pcGraph = new Button(lower.leftPanel, SWT.NONE)
     val expansionList = new Button(lower.rightPanel, SWT.NONE)
+
+    expansionGraph.addNode("\u03B5", parser.initialContext)
+
+    expansionGraph.graph.addSelectionListener(new SelectionAdapter() {
+        override def widgetSelected(e: SelectionEvent): Unit = {
+            e.item match {
+                case n: CGraphNode =>
+                    n.getData match {
+                        case pc: Parser#ParsingContext =>
+                            selectPC(pc)
+                        case _ =>
+                    }
+                case e: GraphConnection =>
+                    e.getData match {
+                        case (lastCtx: Parser#ParsingContext, log: Parser#VerboseProceedLog) =>
+                            selectProceed(lastCtx, log)
+                        case _ =>
+                    }
+                case _ =>
+            }
+        }
+    })
+
+    def selectPC(ctx: Parser#ParsingContext): Unit = {
+        expansionGraph.unhighlightAll()
+        expansionGraph.highlightPC(ctx)
+        println(ctx.id)
+    }
+    def selectProceed(lastCtx: Parser#ParsingContext, log: Parser#VerboseProceedLog): Unit = {
+        expansionGraph.unhighlightAll()
+        expansionGraph.highlightEdge(lastCtx, log)
+        println(lastCtx.id, log.id)
+    }
     /*
     case 'y' | 'Y' =>
         graphAt(currentLocation) match {

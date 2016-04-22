@@ -37,7 +37,7 @@ class Parser(val grammar: Grammar)
         finalReverters: Set[WorkingReverter],
         revertedNodes: Set[Node],
         revertedEdges: Set[DeriveEdge],
-        liftBlockedNodes: Set[Node])
+        liftBlockedNodes: Set[Node]) { val id = IdGen.nextId }
 
     val logConfs = Map[String, Boolean](
         "PCG" -> false,
@@ -403,6 +403,7 @@ class Parser(val grammar: Grammar)
 
     // 이 프로젝트 전체에서 asInstanceOf가 등장하는 경우는 대부분이 Set이 invariant해서 추가된 부분 - covariant한 Set으로 바꾸면 없앨 수 있음
     case class ParsingContext(startNode: NonterminalNode, gen: Int, nodes: Set[Node], edges: Set[DeriveEdge], reverters: Set[WorkingReverter], resultCandidates: Set[SymbolProgress], proceededEdges: Set[SimpleEdge]) {
+        val id = IdGen.nextId
         logging("reverters") {
             println(s"- Reverters @ $gen")
             reverters foreach { r =>
@@ -681,4 +682,12 @@ class Parser(val grammar: Grammar)
         }
     def parse(source: String): Either[ParsingContext, ParsingError] =
         parse(Inputs.fromString(source))
+
+    object IdGen {
+        private var counter = 0
+        def nextId(): Int = {
+            counter += 1
+            counter
+        }
+    }
 }

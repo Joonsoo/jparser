@@ -10,6 +10,7 @@ import com.giyeok.moonparser.Parser
 import com.giyeok.moonparser.tests.BasicParseTest
 import com.giyeok.moonparser.tests.Samples
 import com.giyeok.moonparser.tests.StringSamples
+import com.giyeok.moonparser.tests.AmbiguousSamples
 
 object SimpleGrammar5 extends Grammar with StringSamples {
     val name = "Simple Grammar 5"
@@ -98,6 +99,49 @@ object SimpleGrammar7_2 extends Grammar with StringSamples {
     val incorrectSamples = Set("")
 }
 
+object SimpleGrammar8 extends Grammar with StringSamples {
+    val name = "Simple Grammar 8"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("A").star),
+        "A" -> ListSet(
+            seq(c('('), n("A"), c(')')),
+            c('0')))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String](
+        "(((0)))(((0)))",
+        "(0)(0)(0)",
+        "")
+    val incorrectSamples = Set[String]()
+}
+
+object SimpleGrammar8_1 extends Grammar with StringSamples {
+    val name = "Simple Grammar 8-1 (ambiguous)"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(c('('), n("S"), c(')')),
+            seq(i("("), n("S"), i(")")),
+            c('0')))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+}
+
+object SimpleGrammar8_2 extends Grammar with StringSamples with AmbiguousSamples {
+    val name = "Simple Grammar 8-2 (ambiguous)"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(c('a').opt, c('a').opt, c('a').opt, c('a').opt)))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String](
+        "a")
+}
+
 object AsteriskNullable extends Grammar with StringSamples {
     val name = "*-nullable"
     val rules: RuleMap = ListMap(
@@ -114,6 +158,9 @@ object SimpleGrammarSet3 {
         SimpleGrammar6,
         SimpleGrammar7_1,
         SimpleGrammar7_2,
+        SimpleGrammar8,
+        SimpleGrammar8_1,
+        SimpleGrammar8_2,
         AsteriskNullable)
 }
 

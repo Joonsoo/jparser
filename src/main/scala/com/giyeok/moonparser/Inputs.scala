@@ -17,6 +17,7 @@ object Inputs {
     sealed trait CharacterTermGroupDesc extends TermGroupDesc {
         def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc
+        def contains(char: Char): Boolean
     }
     sealed trait VirtualTermGroupDesc extends TermGroupDesc {
         def -(other: VirtualTermGroupDesc): VirtualTermGroupDesc
@@ -41,6 +42,8 @@ object Inputs {
             case other: CharsGroup =>
                 CharsGroup(other.chars -- excludingChars filterNot { excludingUnicodeCategories contains _.getType })
         }
+
+        def contains(char: Char) = !((excludingUnicodeCategories contains char.getType) || (excludingChars contains char))
 
         def toShortString: String = "AllCharsExcluding(" + (excludingChars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "")
         def isEmpty = false
@@ -93,6 +96,8 @@ object Inputs {
             case other: CharsGroup =>
                 CharsGroup(chars intersect other.chars)
         }
+
+        def contains(char: Char) = chars contains char
 
         def toShortString: String = "CharsGroup(" + (chars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "") + ")"
         def isEmpty = chars.isEmpty
