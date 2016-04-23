@@ -39,7 +39,7 @@ class PreprocessedParser(spec: PreprocessedParserSpec) {
         }
     }
 
-    // TODO IPNPath - join, reverter 어떻게 할 지 고민
+    // TODO IPNPath - join 어떻게 할 지 고민
     case class IPNPath() {
         def applyAction(action: KernelAction, terminal: Input): IPNPath = ???
     }
@@ -70,4 +70,16 @@ object PreprocessedParserSpec {
 
     // TODO ParseNodeCreationSpec
     case class ParseNodeCreationSpec()
+}
+
+trait PreprocessedParserSpecSerializer {
+    def serialize(spec: PreprocessedParserSpec): String
+}
+
+object PreprocessedParserSpecSerializer {
+    object ToScala extends PreprocessedParserSpecSerializer {
+        def serialize(spec: PreprocessedParserSpec): String = {
+            ???
+        }
+    }
 }
