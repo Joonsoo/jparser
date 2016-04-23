@@ -89,12 +89,12 @@ trait ParsingContextGraphVisualize {
         val figFunc: (ParseTree.ParseNode[Symbols.Symbol], ParseNodeFigureGenerator.RenderingConfiguration) => Figure =
             if (horizontal) tooltipParseNodeFigureGenerator.parseNodeHFig else tooltipParseNodeFigureGenerator.parseNodeVFig
         val tooltipFig0: Figure = node match {
-            case rep: Parser#RepeatBoundedProgress if !rep.children.isEmpty =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { figFunc(_, renderConf) })
-            case rep: Parser#RepeatUnboundedProgress if !rep.children.isEmpty =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep.children map { figFunc(_, renderConf) })
-            case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq.childrenWS map { figFunc(_, renderConf) })
+            case rep: Parser#RepeatBoundedProgress if !rep._parsed.children.isEmpty =>
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep._parsed.children map { figFunc(_, renderConf) })
+            case rep: Parser#RepeatUnboundedProgress if !rep._parsed.children.isEmpty =>
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep._parsed.children map { figFunc(_, renderConf) })
+            case seq: Parser#SequenceProgress if !seq._parsed.childrenWS.isEmpty =>
+                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq._parsed.childrenWS map { figFunc(_, renderConf) })
             case n if n.canFinish =>
                 figFunc(n.parsed.get, renderConf)
             case _ =>
@@ -134,14 +134,14 @@ trait ParsingContextGraphVisualize {
                         println(graphNode.asInstanceOf[CGraphNode].getFigure.getInsets)
                         val printString =
                             n match {
-                                case rep: Parser#RepeatBoundedProgress if !rep.children.isEmpty =>
-                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
+                                case rep: Parser#RepeatBoundedProgress if !rep._parsed.children.isEmpty =>
+                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep._parsed.children map { _.toHorizontalHierarchyStringSeq })
                                     list._2 mkString "\n"
-                                case rep: Parser#RepeatUnboundedProgress if !rep.children.isEmpty =>
-                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep.children map { _.toHorizontalHierarchyStringSeq })
+                                case rep: Parser#RepeatUnboundedProgress if !rep._parsed.children.isEmpty =>
+                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep._parsed.children map { _.toHorizontalHierarchyStringSeq })
                                     list._2 mkString "\n"
-                                case seq: Parser#SequenceProgress if !seq.childrenWS.isEmpty =>
-                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq.childrenWS map { _.toHorizontalHierarchyStringSeq })
+                                case seq: Parser#SequenceProgress if !seq._parsed.childrenWS.isEmpty =>
+                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq._parsed.childrenWS map { _.toHorizontalHierarchyStringSeq })
                                     list._2 mkString "\n"
                                 case n if n.canFinish =>
                                     println(n.parsed.get.toHorizontalHierarchyString)

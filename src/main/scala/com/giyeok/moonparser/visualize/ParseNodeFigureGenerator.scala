@@ -44,29 +44,29 @@ class ParseNodeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: Figur
                 vfig(Spacing.Small, Seq(
                     symbolBorder.applyToFigure(parseNodeFig(body)),
                     symbolFigureGenerator.symbolFig(sym)))
-            case ParsedSymbolsSeq(sym, body, bodyWS) =>
-                val seq: Seq[Fig] = if (renderConf.renderWS && bodyWS.isDefined) {
-                    val (bws, idx0) = bodyWS.get
-                    val idx = if (idx0.last == bws.size - 1) idx0 else (idx0 :+ bws.size)
+            case s @ ParsedSymbolsSeq1(sym, _, _) =>
+                val seq: Seq[Fig] = if (renderConf.renderWS) {
+                    val (childrenWS, idx0) = (s.childrenWS, s.childrenIdx)
+                    val idx = if (idx0.last == childrenWS.size - 1) idx0 else (idx0 :+ childrenWS.size)
                     (idx.foldLeft(0, Seq[Fig]()) { (m, idx) =>
                         val (lastIdx, seq) = m
                         if (renderConf.renderLookaheadExcept) {
-                            val wsFigs = (lastIdx until idx) map { wsIdx => ap.wsBorder.applyToFigure(parseNodeFig(bws(wsIdx))) }
-                            val symFig = symbolBorder.applyToFigure(parseNodeFig(bws(idx)))
+                            val wsFigs = (lastIdx until idx) map { wsIdx => ap.wsBorder.applyToFigure(parseNodeFig(childrenWS(wsIdx))) }
+                            val symFig = symbolBorder.applyToFigure(parseNodeFig(childrenWS(idx)))
                             val newSeq = (seq ++ wsFigs) :+ symFig
                             (idx + 1, newSeq)
                         } else {
-                            val wsFigs = (lastIdx until idx) filterNot { bws(_).symbol.isInstanceOf[LookaheadExcept] } map { wsIdx => ap.wsBorder.applyToFigure(parseNodeFig(bws(wsIdx))) }
-                            val symFig = if (bws(idx).symbol.isInstanceOf[LookaheadExcept]) None else Some(symbolBorder.applyToFigure(parseNodeFig(bws(idx))))
+                            val wsFigs = (lastIdx until idx) filterNot { childrenWS(_).symbol.isInstanceOf[LookaheadExcept] } map { wsIdx => ap.wsBorder.applyToFigure(parseNodeFig(childrenWS(wsIdx))) }
+                            val symFig = if (childrenWS(idx).symbol.isInstanceOf[LookaheadExcept]) None else Some(symbolBorder.applyToFigure(parseNodeFig(childrenWS(idx))))
                             val newSeq = (seq ++ wsFigs) ++ symFig
                             (idx + 1, newSeq)
                         }
                     })._2
                 } else {
                     if (renderConf.renderLookaheadExcept) {
-                        body map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
+                        s.children map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
                     } else {
-                        body filterNot { _.symbol.isInstanceOf[LookaheadExcept] } map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
+                        s.children filterNot { _.symbol.isInstanceOf[LookaheadExcept] } map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
                     }
                 }
                 vfig(Spacing.Small, Seq(

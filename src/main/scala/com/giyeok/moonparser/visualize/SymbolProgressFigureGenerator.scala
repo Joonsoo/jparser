@@ -26,9 +26,8 @@ class SymbolProgressFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: 
             case n: Parser#ExceptProgress =>
                 g.textFig(n.toShortString, ap.default)
             case n: Parser#RepeatBoundedProgress =>
-                val canProceed = n._children.size < n.symbol.upper
                 g.horizontalFig(Spacing.Small,
-                    ((if (canProceed) Seq(dot) else Seq()) :+ symbolFigureGenerator.symbolFig(n.symbol)) ++ (if (n.canFinish) Seq(dot) else Seq()))
+                    ((if (n.canDerive) Seq(dot) else Seq()) :+ symbolFigureGenerator.symbolFig(n.symbol)) ++ (if (n.canFinish) Seq(dot) else Seq()))
             case n: Parser#RepeatUnboundedProgress =>
                 g.horizontalFig(Spacing.Small, (Seq(dot) :+ symbolFigureGenerator.symbolFig(n.symbol)) ++ (if (n.canFinish) Seq(dot) else Seq()))
             case n: Parser#LookaheadExceptProgress =>

@@ -60,12 +60,12 @@ trait SymbolProgresses {
             case symbol: Terminal => TerminalProgress(symbol, gen, None, None)
             case Empty => EmptyProgress(gen)
             case symbol: Nonterminal => NonterminalProgress(symbol, gen, None, None)
-            case symbol: Sequence => SequenceProgress(symbol, gen, None, false, List(), List())
+            case symbol: Sequence => SequenceProgress(symbol, gen, None, false, ParsedSymbolsSeq1[Sequence](symbol, List(), List()))
             case symbol: OneOf => OneOfProgress(symbol, gen, None, None)
             case symbol: Except => ExceptProgress(symbol, gen, None, None)
             case symbol: LookaheadExcept => LookaheadExceptProgress(symbol, gen, None, None)
-            case symbol: RepeatBounded => RepeatBoundedProgress(symbol, gen, None, List())
-            case symbol: RepeatUnbounded => RepeatUnboundedProgress(symbol, gen, None, List())
+            case symbol: RepeatBounded => RepeatBoundedProgress(symbol, gen, None, ParsedSymbolsSeq1[RepeatBounded](symbol, List(), List()))
+            case symbol: RepeatUnbounded => RepeatUnboundedProgress(symbol, gen, None, ParsedSymbolsSeq1[RepeatUnbounded](symbol, List(), List()))
             case symbol: Backup => BackupProgress(symbol, gen, None, None)
             case symbol: Join => JoinProgress(symbol, gen, None, None)
             case symbol: Proxy => ProxyProgress(symbol, gen, None, None)
@@ -99,43 +99,26 @@ trait SymbolProgresses {
         // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
     }
 
-    case class SequenceProgress(symbol: Sequence, derivedGen: Int, lastLiftedGen: Option[Int], wsAcceptable: Boolean, _childrenWS: List[ParseNode[Symbol]], _childrenIdx: List[Int])
+    case class SequenceProgress(symbol: Sequence, derivedGen: Int, lastLiftedGen: Option[Int], wsAcceptable: Boolean, _parsed: ParsedSymbolsSeq1[Sequence])
             extends SymbolProgressNonterminal {
-        // childrenIdx: index of childrenWS
-        // _childrenIdx: reverse of chidlrenIdx
-        assert(_childrenIdx.size <= symbol.seq.size)
-
-        val locInSeq = _childrenIdx.length
-
-        // childrenWS: all children with whitespace
-        // children: children with ParseEmpty
-        lazy val childrenIdx = _childrenIdx.reverse
-        lazy val childrenWS = _childrenWS.reverse
-        lazy val children: List[ParseNode[Symbol]] = {
-            def pick(_childrenIdx: List[Int], _childrenWS: List[ParseNode[Symbol]], current: Int, cc: List[ParseNode[Symbol]]): List[ParseNode[Symbol]] =
-                if (_childrenIdx.isEmpty) cc else {
-                    val dropped = _childrenWS drop (current - _childrenIdx.head)
-                    pick(_childrenIdx.tail, dropped.tail, _childrenIdx.head - 1, dropped.head +: cc)
-                }
-            pick(_childrenIdx, _childrenWS, _childrenWS.length - 1, List())
-        }
+        val locInSeq = _parsed.childrenSize
+        assert(locInSeq <= symbol.seq.size)
 
         override def canFinish = (locInSeq == symbol.seq.size)
-        val parsed = if (canFinish) Some(ParsedSymbolsSeq[Sequence](symbol, children, Some((childrenWS, childrenIdx)))) else None
+        val parsed = if (canFinish) Some(_parsed) else None
         def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
             assert(source.parsed.isDefined)
             val next = source.parsed.get
             val _wsAcceptable = !(next.isInstanceOf[ParsedEmpty[_]]) // && wsAcceptable
             if (source.symbol == symbol.seq(locInSeq)) {
-                SequenceProgress(symbol, derivedGen, Some(gen), _wsAcceptable, next +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
+                SequenceProgress(symbol, derivedGen, Some(gen), _wsAcceptable, _parsed.appendContent(next))
             } else {
                 // Whitespace
-                SequenceProgress(symbol, derivedGen, Some(gen), _wsAcceptable, next +: _childrenWS, _childrenIdx)
+                SequenceProgress(symbol, derivedGen, Some(gen), _wsAcceptable, _parsed.appendWhitespace(next))
             }
         }
         def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
             if (locInSeq < symbol.seq.size) {
-                assert(derivedGen == gen)
                 val elemDerive = SimpleEdge(this, SymbolProgress(symbol.seq(locInSeq), gen))
                 if (wsAcceptable) {
                     val wsDerive = (symbol.whitespace map { s => SimpleEdge(this, SymbolProgress(s, gen)) })
@@ -159,16 +142,15 @@ trait SymbolProgresses {
         // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
     }
 
-    case class RepeatBoundedProgress(symbol: RepeatBounded, derivedGen: Int, lastLiftedGen: Option[Int], _children: List[ParseNode[Symbol]])
+    case class RepeatBoundedProgress(symbol: RepeatBounded, derivedGen: Int, lastLiftedGen: Option[Int], _parsed: ParsedSymbolsSeq1[RepeatBounded])
             extends SymbolProgressNonterminal {
-        lazy val children = _children.reverse
-        val canDerive = _children.size < symbol.upper
-        val parsed = if (_children.size >= symbol.lower) { if (_children.size == 0) Some(ParsedEmpty(symbol)) else Some(ParsedSymbolsSeq(symbol, children, None)) } else None
+        val canDerive = _parsed.childrenSize < symbol.upper
+        val parsed = if (_parsed.childrenSize >= symbol.lower) { if (_parsed.childrenSize == 0) Some(ParsedEmpty(symbol)) else Some(_parsed) } else None
         def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
-            assert(_children.size < symbol.upper)
+            assert(_parsed.childrenSize < symbol.upper)
             assert(source.parsed.isDefined)
             assert(source.symbol == symbol.sym)
-            RepeatBoundedProgress(symbol, derivedGen, Some(gen), source.parsed.get +: _children)
+            RepeatBoundedProgress(symbol, derivedGen, Some(gen), _parsed.appendContent(source.parsed.get))
         }
         def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
             if (canDerive) (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set())
@@ -177,14 +159,13 @@ trait SymbolProgresses {
         // val kernel = Kernel(symbol, _children.size)
     }
 
-    case class RepeatUnboundedProgress(symbol: RepeatUnbounded, derivedGen: Int, lastLiftedGen: Option[Int], _children: List[ParseNode[Symbol]])
+    case class RepeatUnboundedProgress(symbol: RepeatUnbounded, derivedGen: Int, lastLiftedGen: Option[Int], _parsed: ParsedSymbolsSeq1[RepeatUnbounded])
             extends SymbolProgressNonterminal {
-        lazy val children = _children.reverse
-        val parsed = if (_children.size >= symbol.lower) { if (_children.size == 0) Some(ParsedEmpty(symbol)) else Some(ParsedSymbolsSeq(symbol, children, None)) } else None
+        val parsed = if (_parsed.childrenSize >= symbol.lower) { if (_parsed.childrenSize == 0) Some(ParsedEmpty(symbol)) else Some(_parsed) } else None
         def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
             assert(source.parsed.isDefined)
             assert(source.symbol == symbol.sym)
-            RepeatUnboundedProgress(symbol, derivedGen, Some(gen), source.parsed.get +: _children)
+            RepeatUnboundedProgress(symbol, derivedGen, Some(gen), _parsed.appendContent(source.parsed.get))
         }
         def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) = (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set())
 
@@ -296,7 +277,7 @@ trait SymbolProgresses {
                 case OneOfProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
                 case ExceptProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
                 case rep @ RepeatBoundedProgress(symbol, _, _, _children) =>
-                    (if (_children.size < symbol.upper) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
+                    (if (rep.canDerive) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
                 case rep @ RepeatUnboundedProgress(symbol, _, _, _children) =>
                     "* " + symbol.toShortString + (if (rep.canFinish) " *" else "")
                 case LookaheadExceptProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
