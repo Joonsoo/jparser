@@ -377,8 +377,11 @@ class Parser(val grammar: Grammar)
         def propagateNodeKillReverters(queue: List[NodeKillReverter], cc: Set[NodeKillReverter]): Set[NodeKillReverter] =
             queue match {
                 case MultiTriggeredNodeKillReverter(triggers, targetNode) +: rest =>
-                    println(s"NodeKillPropagation ${targetNode.toShortString}")
-                    val lifted: Set[Node] = liftings filter { lifting => lifting.before == targetNode } map { _.after }
+                    val liftedFrom: Set[Node] = liftings filter { lifting => lifting.before == targetNode } map { _.after }
+                    val liftedBy: Set[Node] = if (targetNode.kernel.finishable) {
+                        nontermLiftings filter { lifting => lifting.by == targetNode.parsed.get } map { _.after }
+                    } else Set()
+                    val lifted = liftedFrom ++ liftedBy
                     val liftedReverters: Set[NodeKillReverter] = lifted map { MultiTriggeredNodeKillReverter(triggers, _) }
                     val newReverters: Set[NodeKillReverter] = liftedReverters -- cc
                     propagateNodeKillReverters(newReverters.toList ++: rest, cc ++ newReverters)
@@ -499,13 +502,13 @@ class Parser(val grammar: Grammar)
 
                 logging("reverters")(s"activated: $activatedReverters")
 
-                val (terminalLiftings: Set[TermLifting], (treatedNodes: Set[Node], treatedEdges: Set[DeriveEdge], liftBlockedNodes: Set[Node]), ExpandResult(liftings, newNodes, newEdges, derivedReverters, proceededEdges, internalProceededEdges)) = {
+                val (terminalLiftings: Set[TermLifting], (treatedNodes: Set[Node], treatedEdges: Set[DeriveEdge], liftBlockedNodes: Set[Node], reservedReverters: Set[MultiTriggeredNodeKillReverter]), ExpandResult(liftings, newNodes, newEdges, derivedReverters, proceededEdges, internalProceededEdges)) = {
                     if (activatedReverters.isEmpty) {
-                        (terminalLiftings0, (nodes, edges, Set()), expand0)
+                        (terminalLiftings0, (nodes, edges, Set(), Set()), expand0)
                     } else {
                         // activated된 reverter를 적용한다
 
-                        val (treatedNodes: Set[Node], treatedEdges: Set[DeriveEdge], liftBlockedNodes: Set[Node], treatedTerminalLiftings: Set[TermLifting]) = {
+                        val (treatedNodes: Set[Node], treatedEdges: Set[DeriveEdge], liftBlockedNodes: Set[Node], treatedTerminalLiftings: Set[TermLifting], reservedReverters: Set[MultiTriggeredNodeKillReverter]) = {
                             var killEdges = Set[SimpleEdge]()
                             var killNodes = Set[Node]()
                             var liftBlockedNodes = Set[Node]() // activatedReverters collect { case x: TempLiftBlockReverter => x.targetNode }
@@ -560,18 +563,18 @@ class Parser(val grammar: Grammar)
 
                             val treatedTerminalLiftings = (terminalLiftings0 filter { lifting => (treatedNodes contains lifting.before) && !(liftBlockedNodes contains lifting.before) })
 
-                            (treatedNodes, treatedEdges, liftBlockedNodes, treatedTerminalLiftings)
+                            (treatedNodes, treatedEdges, liftBlockedNodes, treatedTerminalLiftings, reservedReverters)
                         }
                         val expand1 = expand(treatedNodes, treatedEdges, liftBlockedNodes, nextGenId, treatedTerminalLiftings.toList map { lifting => LiftTask(lifting) })
                         assert(treatedTerminalLiftings.asInstanceOf[Set[Lifting]] subsetOf expand1.liftings)
-                        (treatedTerminalLiftings, (treatedNodes, treatedEdges, liftBlockedNodes), expand1)
+                        (treatedTerminalLiftings, (treatedNodes, treatedEdges, liftBlockedNodes, reservedReverters), expand1)
                     }
                 }
                 val roots: Set[DeriveEdge] = rootTipsOfProceededEdges(proceededEdges) flatMap { treatedEdges.rootsOf(_) }
 
                 val finalEdges = newEdges ++ roots
                 val finalNodes = finalEdges flatMap { _.nodes }
-                val workingReverters0: Set[Reverter] = proceedReverters(reverters, derivedReverters, liftings, proceededEdges, internalProceededEdges)
+                val workingReverters0: Set[Reverter] = proceedReverters(reverters, derivedReverters ++ reservedReverters, liftings, proceededEdges, internalProceededEdges)
                 val workingReverters: Set[Reverter] = workingReverters0 filter {
                     _ match {
                         case r: DeriveReverter => finalEdges contains r.targetEdge
