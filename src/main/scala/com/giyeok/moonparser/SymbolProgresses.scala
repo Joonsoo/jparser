@@ -16,8 +16,8 @@ trait SymbolProgresses {
 
         val id = SymbolProgress.getId(this)
 
-        def toShortString = s"(${kernel.toShortString}, $derivedGen-$lastLiftedGen, ${parsed map { _.toShortString }})"
-        override def toString = toShortString
+        def toShortString = s"($id, ${kernel.toShortString}, $derivedGen-$lastLiftedGen)"
+        override def toString = s"($id, ${kernel.toShortString}, $derivedGen-$lastLiftedGen, ${parsed map { _.toShortString }})"
     }
     object SymbolProgress {
         private var cache: Map[SymbolProgress, Int] = Map()
@@ -75,7 +75,7 @@ trait SymbolProgresses {
                     case LiftTriggeredTempLiftBlockReverterTmpl(trigger, target) =>
                         LiftTriggeredTempLiftBlockReverter(SymbolProgress(trigger, gen), SymbolProgress(target, gen))
                     case LiftTriggeredDeriveReverterTmpl(trigger, deriveFrom, deriveTo) =>
-                        LiftTriggeredDeriveReverter(SymbolProgress(trigger, gen), SimpleEdge(SymbolProgress(deriveFrom, gen), SymbolProgress(deriveTo, gen)))
+                        MultiTriggeredDeriveReverter(Set(TriggerIfLift(SymbolProgress(trigger, gen))), SimpleEdge(SymbolProgress(deriveFrom, gen), SymbolProgress(deriveTo, gen)))
                     case ReservedLiftTriggeredLiftedNodeReverterTmpl(trigger) =>
                         ReservedLiftTriggeredLiftedNodeReverter(SymbolProgress(trigger, gen))
                     case ReservedAliveTriggeredLiftedNodeReverterTmpl(trigger) =>
@@ -110,6 +110,7 @@ trait SymbolProgresses {
             NonAtomicSymbolProgress(nextKernel, derivedGen, Some(gen), nextParsed)
         }
 
-        override def toShortString = s"(${kernel.toShortString}, $derivedGen-$lastLiftedGen, ${_parsed.children map { _.toShortString }})"
+        override def toShortString = s"($id, ${kernel.toShortString}, $derivedGen-$lastLiftedGen)"
+        override def toString = s"($id, ${kernel.toShortString}, $derivedGen-$lastLiftedGen, ${_parsed.children map { _.toShortString }})"
     }
 }

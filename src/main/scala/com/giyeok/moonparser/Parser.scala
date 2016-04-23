@@ -40,11 +40,13 @@ class Parser(val grammar: Grammar)
     }
     object Lifting {
         def apply(before: NonterminalSymbolProgress, liftGen: Int, byNode: Node, edge: SimpleEdge) = {
+            assert(edge.start == before)
             val by = byNode.parsed.get
             val after = before.lift(liftGen, by)
             NontermLifting(before, after, byNode, edge)
         }
         def apply(before: JoinSymbolProgress, liftGen: Int, byNode: Node, joinNode: Node, edge: JoinEdge) = {
+            assert(edge.start == before)
             val by = byNode.parsed.get
             val join = joinNode.parsed.get
             val after = before.liftJoin(liftGen, by, join)
@@ -112,8 +114,12 @@ class Parser(val grammar: Grammar)
         case class Qcc(queue: List[ExpandTask], cc: ExpandResult) {
             // Queue and CC
             def withReverters(newReverters: Set[Reverter]): Qcc = {
-                assert(newReverters forall { _.isInstanceOf[LiftTriggered] })
-                val reverterTriggers = newReverters collect { case x: LiftTriggered => x.trigger }
+                val reverterTriggers = newReverters flatMap {
+                    _ match {
+                        case x: LiftTriggered => Set(x.trigger)
+                        case x: MultiTriggered[_] => x.triggers map { _.trigger }
+                    }
+                }
                 val newTriggerNodes = (reverterTriggers -- oldNodes -- cc.nodes)
                 logging("reverters") {
                     println(reverterTriggers)
@@ -333,68 +339,96 @@ class Parser(val grammar: Grammar)
     def rootTipsOfProceededEdges(proceededEdges: Map[SimpleEdge, SimpleEdge]): Set[Node] =
         proceededEdges.keySet map { _.start }
 
-    def proceedReverters(oldReverters: Set[Reverter], newReverters: Set[Reverter], liftings: Set[Lifting], proceededEdges: Map[SimpleEdge, SimpleEdge], internalProceededEdges: Map[SimpleEdge, SimpleEdge]): Set[Reverter] = {
+    def proceedReverters(oldReverters: Set[Reverter], newReverters: Set[Reverter], liftings: Set[Lifting], proceededEdges: Map[SimpleEdge, SimpleEdge], internalProceededEdges: Map[SimpleEdge, SimpleEdge], nextGenId: Int): Set[Reverter] = {
         // trigger는 관계가 없고, target이 변경된 내용을 추적하면 됨
+        val nontermLiftings: Set[NonterminalLifting[DeriveEdge]] = liftings collect { case l: NonterminalLifting[_] => l }
+        val allProceededEdges = proceededEdges ++ internalProceededEdges
+
         var resultReverters = Set[Reverter]()
 
-        // DeriveReverter 처리
-        //   - LiftTriggeredDeriveReverter
-        //   - lift중 target edge로 인해 발생한 것들(의 after 노드)가 kill 대상이 된다
-        val oldDeriveReverters: Set[DeriveReverter] = oldReverters collect { case r: DeriveReverter => r }
-        val newDeriveReverters: Set[DeriveReverter] = newReverters collect { case r: DeriveReverter => r }
-        val initDeriveReverters = newDeriveReverters ++ oldDeriveReverters
-        val nontermLiftings: Set[NonterminalLifting[_]] = liftings collect { case l: NonterminalLifting[_] => l }
-
-        val allProceededEdges = proceededEdges ++ internalProceededEdges
-        def proceedDeriveReverters(queue: List[DeriveReverter], cc: Set[DeriveReverter], nodeKillsCC: Set[MultiTriggeredNodeKillReverter]): (Set[DeriveReverter], Set[MultiTriggeredNodeKillReverter]) = queue match {
-            case (reverter: LiftTriggeredDeriveReverter) +: rest =>
-                // 제거 대상인 DeriveEdge로 인해 발생한 Lifting도 삭제 대상으로 포함
-                val newNodeKillReverters = (nontermLiftings filter { _.edge == reverter.targetEdge } map { lifting => MultiTriggeredNodeKillReverter(Set(TriggerIfLift(reverter.trigger)), lifting.after) })
-                // proceededEdges의 정보를 바탕으로 기존의 DeriveEdge에서 변경된 DeriveEdge가 있는 경우 변경된 DeriveEdge도 revert 대상으로 추가
-                allProceededEdges get reverter.targetEdge match {
-                    case Some(newEdge) =>
-                        val newReverter = LiftTriggeredDeriveReverter(reverter.trigger, newEdge)
-                        if (cc contains newReverter) {
-                            proceedDeriveReverters(rest, cc, nodeKillsCC ++ newNodeKillReverters)
-                        } else {
-                            proceedDeriveReverters(newReverter +: rest, cc + newReverter, nodeKillsCC ++ newNodeKillReverters)
-                        }
-                    case None => proceedDeriveReverters(rest, cc, nodeKillsCC ++ newNodeKillReverters)
+        // DeriveReverter하고 NodeKillReverter는 묶어서 처리
+        sealed trait ReverterPropagationTask
+        case class PropagateDerive(deriveReverter: MultiTriggeredDeriveReverter) extends ReverterPropagationTask
+        case class PropagateNodeKill(nodeKillReverter: MultiTriggeredNodeKillReverter) extends ReverterPropagationTask
+        def propagateDeriveAndNodeKillReverters(queue: List[ReverterPropagationTask], deriveCC: Set[MultiTriggeredDeriveReverter], nodeKillCC: Set[MultiTriggeredNodeKillReverter]): (Set[MultiTriggeredDeriveReverter], Set[MultiTriggeredNodeKillReverter]) = {
+            logging("reverters") {
+                if (!queue.isEmpty) {
+                    println(nextGenId + " " + queue.head)
                 }
-            case List() => (cc, nodeKillsCC)
-        }
-        val (deriveReverters: Set[DeriveReverter], nodeKillRevertersFromDeriveReverters: Set[MultiTriggeredNodeKillReverter]) = proceedDeriveReverters(initDeriveReverters.toList, initDeriveReverters, Set())
-        resultReverters ++= deriveReverters
-
-        // NodeKillReverter 처리
-        //   - MultiTriggeredNodeKillReverter
-        //   - old/new에서 대상이 겹치는 것들 하나로 묶어주기
-        //   - target node가 lift되어서 나오는 모든 node로 확대되어야 함
-        //   - TODO lift된 다음 derive되는 경우에는 어떻게 하지?
-        val oldNodeKillReverters: Set[NodeKillReverter] = oldReverters collect { case r: NodeKillReverter => r }
-        val newNodeKillReverters: Set[NodeKillReverter] = newReverters collect { case r: NodeKillReverter => r }
-        val nodeKillReverters0: Set[NodeKillReverter] = oldNodeKillReverters ++ newNodeKillReverters ++ nodeKillRevertersFromDeriveReverters
-        def propagateNodeKillReverters(queue: List[NodeKillReverter], cc: Set[NodeKillReverter]): Set[NodeKillReverter] =
+            }
             queue match {
-                case MultiTriggeredNodeKillReverter(triggers, targetNode) +: rest =>
+                case PropagateDerive(reverter @ MultiTriggeredDeriveReverter(triggers, targetEdge)) +: rest =>
+                    // DeriveReverter 처리
+                    //   - Subclass: LiftTriggeredDeriveReverter
+                    //   - lift중 target edge로 인해 발생한 것들(의 after 노드)가 kill 대상이 된다
+
+                    assert(deriveCC contains reverter)
+
+                    // 제거 대상인 DeriveEdge로 인해 발생한 Lifting도 삭제 대상으로 포함
+                    val liftedNodesThroughThisEdge = nontermLiftings filter { _.edge == targetEdge } map { _.after }
+                    val newNodeKillReverters = (liftedNodesThroughThisEdge map { MultiTriggeredNodeKillReverter(triggers, _) }) -- nodeKillCC
+
+                    // proceededEdges의 정보를 바탕으로 기존의 DeriveEdge에서 변경된 DeriveEdge가 있는 경우 변경된 DeriveEdge도 revert 대상으로 추가
+                    val newDeriveReverters = ((allProceededEdges get targetEdge) map { MultiTriggeredDeriveReverter(triggers, _) }).toSet -- deriveCC
+
+                    propagateDeriveAndNodeKillReverters(
+                        (newNodeKillReverters map { PropagateNodeKill(_) }) ++: (newDeriveReverters map { PropagateDerive(_) }) ++: rest,
+                        deriveCC ++ newDeriveReverters,
+                        nodeKillCC ++ newNodeKillReverters)
+
+                case PropagateNodeKill(reverter @ MultiTriggeredNodeKillReverter(triggers, targetNode)) +: rest =>
+                    // NodeKillReverter 처리
+                    //   - Subclass: MultiTriggeredNodeKillReverter
+                    //   - old/new에서 대상이 겹치는 것들 하나로 묶어주기
+                    //   - target node가 lift되어서 나오는 모든 node로 확대되어야 함
+                    //   - lift된 다음 derive되는 게 있는 경우에는 DeriveReverter 추가
+
+                    assert(nodeKillCC contains reverter)
+
+                    // (제거 대상인 노드가 lift되어 생긴 노드 + 제거 대상인 노드에 의해 lift되어 생긴 노드)를 계산해서 삭제 대상으로 추가
                     val liftedFrom: Set[Node] = liftings filter { lifting => lifting.before == targetNode } map { _.after }
                     val liftedBy: Set[Node] = if (targetNode.kernel.finishable) {
-                        nontermLiftings filter { lifting => lifting.by == targetNode.parsed.get } map { _.after }
+                        nontermLiftings collect {
+                            case l: NontermLifting if l.by == targetNode.parsed.get => l.after
+                            case l: JoinLifting if l.by == targetNode.parsed.get => l.after
+                            case l: JoinLifting if l.join == targetNode.parsed.get => l.after
+                        }
                     } else Set()
                     val lifted = liftedFrom ++ liftedBy
-                    val liftedReverters: Set[NodeKillReverter] = lifted map { MultiTriggeredNodeKillReverter(triggers, _) }
-                    val newReverters: Set[NodeKillReverter] = liftedReverters -- cc
-                    propagateNodeKillReverters(newReverters.toList ++: rest, cc ++ newReverters)
-                case List() => cc
+                    val newNodeKillReverters = (lifted map { MultiTriggeredNodeKillReverter(triggers, _) }) -- nodeKillCC
+
+                    // lift된 이후에 derive가 되려면 non atomic 심볼인 repeat/sequence만 가능하므로 전부 SimpleEdge임
+                    // TODO 이 부분을 좀 더 우아하게 하는 방법을 찾아보자(nextGenId 안받고)
+                    val newDeriveEdges = (lifted collect { case n: NonterminalSymbolProgress if n.kernel.derivable => n.derive(grammar, nextGenId)._1 }).flatten map { _.asInstanceOf[SimpleEdge] }
+                    val newDeriveReverters = (newDeriveEdges map { MultiTriggeredDeriveReverter(triggers, _) }) -- deriveCC
+
+                    propagateDeriveAndNodeKillReverters(
+                        (newNodeKillReverters map { PropagateNodeKill(_) }) ++: (newDeriveReverters map { PropagateDerive(_) }) ++: rest,
+                        deriveCC ++ newDeriveReverters,
+                        nodeKillCC ++ newNodeKillReverters)
+
+                case List() => (deriveCC, nodeKillCC)
             }
-        val nodeKillReverters: Set[NodeKillReverter] = propagateNodeKillReverters(nodeKillReverters0.toList, nodeKillReverters0)
-        val nodeKillRevertersMap: Map[Node, Set[NodeKillReverter]] = nodeKillReverters groupBy { _.targetNode }
-        val groupedNodeKillReverters = nodeKillRevertersMap map { kv =>
-            assert(kv._2 forall { _.isInstanceOf[MultiTriggeredNodeKillReverter] })
-            val (targetNode, reverters) = (kv._1, kv._2.asInstanceOf[Set[MultiTriggeredNodeKillReverter]])
-            MultiTriggeredNodeKillReverter(reverters.foldLeft(Set[TriggerCondition]()) { _ ++ _.triggers }, kv._1)
         }
-        resultReverters ++= groupedNodeKillReverters
+        val initDeriveReverters = (oldReverters ++ newReverters) collect { case r: DeriveReverter => r } map { _.asInstanceOf[MultiTriggeredDeriveReverter] }
+        val initNodeKillReverters = (oldReverters ++ newReverters) collect { case r: NodeKillReverter => r } map { _.asInstanceOf[MultiTriggeredNodeKillReverter] }
+        val propagationTasks = (initDeriveReverters.toList map { PropagateDerive(_) }) ++ (initNodeKillReverters.toList map { PropagateNodeKill(_) })
+        val propagationCC = initDeriveReverters ++ initNodeKillReverters
+        val (deriveReverters, nodeKillReverters) = propagateDeriveAndNodeKillReverters(propagationTasks, initDeriveReverters, initNodeKillReverters)
+
+        // MultiTriggerReverter들이므로 같은 타겟에 대해 그룹핑해줌
+        def groupMultiTriggerReverters[X, T <: MultiTriggered[X]](reverters: Set[T], creator: (Set[TriggerCondition], X) => T): Set[T] = {
+            // NodeKillReverter는 MultiTriggeredNodeKillReverter인데, 같은 타겟 노드에 대해 그룹핑해주어야 함
+            val revertersMap = reverters groupBy { _.target }
+            val groupedReverters: Set[T] = (revertersMap map { kv =>
+                val (target, reverters) = (kv._1, kv._2)
+                creator(reverters.foldLeft(Set[TriggerCondition]()) { _ ++ _.triggers }, kv._1)
+            }).toSet
+            groupedReverters
+        }
+
+        resultReverters ++= groupMultiTriggerReverters[SimpleEdge, MultiTriggeredDeriveReverter](deriveReverters, { MultiTriggeredDeriveReverter(_, _) })
+        resultReverters ++= groupMultiTriggerReverters[Node, MultiTriggeredNodeKillReverter](nodeKillReverters, { MultiTriggeredNodeKillReverter(_, _) })
 
         // TempLiftBlockReverter 처리
         //   - except에서만 사용되는 reverter
@@ -408,6 +442,9 @@ class Parser(val grammar: Grammar)
         resultReverters ++= oldReverters collect { case x: ReservedReverter => x }
         resultReverters ++= newReverters collect { case x: ReservedReverter => x }
 
+        logging("reverters") {
+            resultReverters foreach { println _ }
+        }
         resultReverters
     }
 
@@ -487,7 +524,7 @@ class Parser(val grammar: Grammar)
                 val activatedReverters: Set[Reverter] = reverters filter {
                     _ match {
                         case r: LiftTriggered => liftings0 exists { _.before == r.trigger }
-                        case r: MultiTriggered => r.triggers forall {
+                        case r: MultiTriggered[_] => r.triggers forall {
                             _ match {
                                 case TriggerIfLift(trigger) => liftings0 exists { _.before == trigger }
                                 case TriggerIfAlive(trigger) =>
@@ -555,8 +592,9 @@ class Parser(val grammar: Grammar)
                             }
                             val activatedReverterTriggers: Set[Node] = activatedReverters flatMap {
                                 _ match {
+                                    case r: ReservedReverter => Set[Node]() // if (finalNodes contains r.node) Set(r.node) else Set() -> 이런 의미인데, startNode에서 reachable하단 얘기이므로 같은 얘기
                                     case r: LiftTriggered => Set(r.trigger)
-                                    case r: MultiTriggered => r.triggers map { _.trigger }
+                                    case r: MultiTriggered[_] => r.triggers map { _.trigger }
                                 }
                             }
                             val (treatedNodes, treatedEdges) = collectReachables(startNode +: activatedReverterTriggers.toList, killNodes, killEdges)
@@ -574,7 +612,7 @@ class Parser(val grammar: Grammar)
 
                 val finalEdges = newEdges ++ roots
                 val finalNodes = finalEdges flatMap { _.nodes }
-                val workingReverters0: Set[Reverter] = proceedReverters(reverters, derivedReverters ++ reservedReverters, liftings, proceededEdges, internalProceededEdges)
+                val workingReverters0: Set[Reverter] = proceedReverters(reverters, derivedReverters ++ reservedReverters, liftings, proceededEdges, internalProceededEdges, nextGenId)
                 val workingReverters: Set[Reverter] = workingReverters0 filter {
                     _ match {
                         case r: DeriveReverter => finalEdges contains r.targetEdge
@@ -582,10 +620,12 @@ class Parser(val grammar: Grammar)
                         case r: TempLiftBlockReverter => finalNodes contains r.targetNode
                         case r: ReservedReverter => finalNodes contains r.node
                     }
-                } filter {
+                } flatMap {
                     _ match {
-                        case r: LiftTriggered => finalNodes contains r.trigger
-                        case r: MultiTriggered => (r.triggers map { _.trigger } subsetOf finalNodes)
+                        case r: LiftTriggered => if (finalNodes contains r.trigger) Some(r) else None
+                        case r: MultiTriggered[_] =>
+                            val leftTriggers = (r.triggers filter { t => finalNodes contains t.trigger })
+                            if (leftTriggers.isEmpty) None else Some(r.withNewTriggers(leftTriggers))
                     }
                 }
 
@@ -688,7 +728,7 @@ class Parser(val grammar: Grammar)
 
             // val finishable: Set[Lifting] = nodes collect { case n if n.canFinish => Lifting(n, n, None) }
 
-            val workingReverters = proceedReverters(Set(), reverters, liftings, proceededEdges, internalProceededEdges)
+            val workingReverters = proceedReverters(Set(), reverters, liftings, proceededEdges, internalProceededEdges, 0)
             val resultCandidates = collectResultCandidates(liftings)
             val startingContext = ParsingContext(startNode.asInstanceOf[NonterminalNode], 0, nodes, edges, workingReverters, resultCandidates, Set())
             val verboseProceedLog = VerboseProceedLog(

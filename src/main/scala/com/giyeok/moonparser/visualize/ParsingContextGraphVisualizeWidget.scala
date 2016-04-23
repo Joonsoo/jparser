@@ -195,48 +195,50 @@ trait ParsingContextGraphVisualize {
     }
     def registerReverter(reverter: Parser#Reverter): Unit = {
         reverter match {
-            case x: Parser#LiftTriggeredDeriveReverter =>
+            case x: Parser#MultiTriggeredDeriveReverter =>
                 // Working Reverter
-                val start = registerNode(x.trigger)
                 val end = registerNode(x.targetEdge.end)
-                val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
-                edge.setCurveDepth(-40)
-                edge.setLineColor(deriveReverterEdgeColor)
-                edge.setText(s"${x.targetEdge.start.id}->${x.targetEdge.end.id}")
-                vreverters(x) = List(edge)
+                val edges = x.triggers.toList map {
+                    _ match {
+                        case t: Parser#TriggerIfLift =>
+                            val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, registerNode(t.trigger), end)
+                            edge.setCurveDepth(-40)
+                            edge.setLineColor(deriveReverterEdgeColor)
+                            edge.setText(s"${x.targetEdge.start.id}->${x.targetEdge.end.id} if Lifted")
+                            edge
+                        case t: Parser#TriggerIfAlive =>
+                            val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, registerNode(t.trigger), end)
+                            edge.setCurveDepth(-40)
+                            edge.setLineColor(deriveReverterEdgeColor)
+                            edge.setText(s"${x.targetEdge.start.id}->${x.targetEdge.end.id} if Alive")
+                            edge
+                    }
+                }
+                vreverters(x) = edges
 
             case x: Parser#MultiTriggeredNodeKillReverter =>
                 // Working Reverter
-                if (x.triggers.isEmpty) {
-                    val end = registerNode(x.targetNode)
-                    val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, end, end)
-                    edge.setLineColor(liftReverterEdgeColor)
-                    edge.setCurveDepth(-20)
-                    edge.setText("always")
-                    vreverters(x) = List(edge)
-                } else {
-                    val end = registerNode(x.targetNode)
-                    val edges = x.triggers.toList map {
-                        _ match {
-                            case t: Parser#TriggerIfLift =>
-                                val start = registerNode(t.trigger)
-                                val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
-                                edge.setText("if Lifted")
-                                edge
-                            case t: Parser#TriggerIfAlive =>
-                                val start = registerNode(t.trigger)
-                                val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
-                                edge.setText("if Alive")
-                                edge
-                        }
+                val end = registerNode(x.targetNode)
+                val edges = x.triggers.toList map {
+                    _ match {
+                        case t: Parser#TriggerIfLift =>
+                            val start = registerNode(t.trigger)
+                            val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
+                            edge.setText("if Lifted")
+                            edge
+                        case t: Parser#TriggerIfAlive =>
+                            val start = registerNode(t.trigger)
+                            val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
+                            edge.setText("if Alive")
+                            edge
                     }
-                    edges.zipWithIndex foreach { ei =>
-                        val (edge, idx) = ei
-                        edge.setLineColor(liftReverterEdgeColor)
-                        edge.setCurveDepth(-20 * (idx + 1))
-                    }
-                    vreverters(x) = edges
                 }
+                edges.zipWithIndex foreach { ei =>
+                    val (edge, idx) = ei
+                    edge.setLineColor(liftReverterEdgeColor)
+                    edge.setCurveDepth(-20 * (idx + 1))
+                }
+                vreverters(x) = edges
 
             case x: Parser#LiftTriggeredTempLiftBlockReverter =>
                 // Working Reverter

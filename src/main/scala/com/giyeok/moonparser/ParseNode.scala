@@ -8,9 +8,15 @@ object ParseTree {
         val symbol: T
     }
 
-    case class ParsedEmpty[T <: Symbol](symbol: T) extends ParseNode[T]
-    case class ParsedTerminal(symbol: Terminal, child: Input) extends ParseNode[Terminal]
-    case class ParsedSymbol[T <: AtomicSymbol](symbol: T, body: ParseNode[Symbol]) extends ParseNode[T]
+    case class ParsedEmpty[T <: Symbol](symbol: T) extends ParseNode[T] {
+        override val hashCode = (classOf[ParsedEmpty[T]], symbol).hashCode
+    }
+    case class ParsedTerminal(symbol: Terminal, child: Input) extends ParseNode[Terminal] {
+        override val hashCode = (classOf[ParsedTerminal], symbol, child).hashCode
+    }
+    case class ParsedSymbol[T <: AtomicSymbol](symbol: T, body: ParseNode[Symbol]) extends ParseNode[T] {
+        override val hashCode = (classOf[ParsedSymbol[T]], symbol, body).hashCode
+    }
     case class ParsedSymbolsSeq[T <: NonAtomicSymbol](symbol: T, _childrenWS: List[ParseNode[Symbol]], _childrenIdx: List[Int]) extends ParseNode[T] {
         // childrenIdx: index of childrenWS
         // _childrenIdx: reverse of chidlrenIdx
@@ -32,6 +38,8 @@ object ParseTree {
             ParsedSymbolsSeq[T](symbol, wsChild +: _childrenWS, _childrenIdx)
         def appendContent(child: ParseNode[Symbol]): ParsedSymbolsSeq[T] =
             ParsedSymbolsSeq[T](symbol, child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
+
+        override val hashCode = (classOf[ParsedSymbolsSeq[T]], symbol, _childrenWS, _childrenIdx).hashCode
     }
     class ParsedSymbolJoin(symbol: Join, body: ParseNode[Symbol], val constraint: ParseNode[Symbol]) extends ParsedSymbol[Join](symbol, body)
     object ParsedSymbolJoin {
