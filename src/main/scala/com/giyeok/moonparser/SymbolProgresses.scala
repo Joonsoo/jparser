@@ -60,12 +60,12 @@ trait SymbolProgresses {
             case symbol: Terminal => TerminalProgress(symbol, gen, None, None)
             case Empty => EmptyProgress(gen)
             case symbol: Nonterminal => NonterminalProgress(symbol, gen, None, None)
-            case symbol: Sequence => SequenceProgress(symbol, gen, None, false, ParsedSymbolsSeq1[Sequence](symbol, List(), List()))
+            case symbol: Sequence => SequenceProgress(symbol, gen, None, false, ParsedSymbolsSeq[Sequence](symbol, List(), List()))
             case symbol: OneOf => OneOfProgress(symbol, gen, None, None)
             case symbol: Except => ExceptProgress(symbol, gen, None, None)
             case symbol: LookaheadExcept => LookaheadExceptProgress(symbol, gen, None, None)
-            case symbol: RepeatBounded => RepeatBoundedProgress(symbol, gen, None, ParsedSymbolsSeq1[RepeatBounded](symbol, List(), List()))
-            case symbol: RepeatUnbounded => RepeatUnboundedProgress(symbol, gen, None, ParsedSymbolsSeq1[RepeatUnbounded](symbol, List(), List()))
+            case symbol: RepeatBounded => RepeatBoundedProgress(symbol, gen, None, ParsedSymbolsSeq[RepeatBounded](symbol, List(), List()))
+            case symbol: RepeatUnbounded => RepeatUnboundedProgress(symbol, gen, None, ParsedSymbolsSeq[RepeatUnbounded](symbol, List(), List()))
             case symbol: Backup => BackupProgress(symbol, gen, None, None)
             case symbol: Join => JoinProgress(symbol, gen, None, None)
             case symbol: Proxy => ProxyProgress(symbol, gen, None, None)
@@ -99,7 +99,7 @@ trait SymbolProgresses {
         // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
     }
 
-    case class SequenceProgress(symbol: Sequence, derivedGen: Int, lastLiftedGen: Option[Int], wsAcceptable: Boolean, _parsed: ParsedSymbolsSeq1[Sequence])
+    case class SequenceProgress(symbol: Sequence, derivedGen: Int, lastLiftedGen: Option[Int], wsAcceptable: Boolean, _parsed: ParsedSymbolsSeq[Sequence])
             extends SymbolProgressNonterminal {
         val locInSeq = _parsed.childrenSize
         assert(locInSeq <= symbol.seq.size)
@@ -142,7 +142,7 @@ trait SymbolProgresses {
         // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
     }
 
-    case class RepeatBoundedProgress(symbol: RepeatBounded, derivedGen: Int, lastLiftedGen: Option[Int], _parsed: ParsedSymbolsSeq1[RepeatBounded])
+    case class RepeatBoundedProgress(symbol: RepeatBounded, derivedGen: Int, lastLiftedGen: Option[Int], _parsed: ParsedSymbolsSeq[RepeatBounded])
             extends SymbolProgressNonterminal {
         val canDerive = _parsed.childrenSize < symbol.upper
         val parsed = if (_parsed.childrenSize >= symbol.lower) { if (_parsed.childrenSize == 0) Some(ParsedEmpty(symbol)) else Some(_parsed) } else None
@@ -159,7 +159,7 @@ trait SymbolProgresses {
         // val kernel = Kernel(symbol, _children.size)
     }
 
-    case class RepeatUnboundedProgress(symbol: RepeatUnbounded, derivedGen: Int, lastLiftedGen: Option[Int], _parsed: ParsedSymbolsSeq1[RepeatUnbounded])
+    case class RepeatUnboundedProgress(symbol: RepeatUnbounded, derivedGen: Int, lastLiftedGen: Option[Int], _parsed: ParsedSymbolsSeq[RepeatUnbounded])
             extends SymbolProgressNonterminal {
         val parsed = if (_parsed.childrenSize >= symbol.lower) { if (_parsed.childrenSize == 0) Some(ParsedEmpty(symbol)) else Some(_parsed) } else None
         def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {

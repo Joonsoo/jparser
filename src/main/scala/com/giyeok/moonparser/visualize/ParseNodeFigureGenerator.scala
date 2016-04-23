@@ -44,7 +44,7 @@ class ParseNodeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: Figur
                 vfig(Spacing.Small, Seq(
                     symbolBorder.applyToFigure(parseNodeFig(body)),
                     symbolFigureGenerator.symbolFig(sym)))
-            case s @ ParsedSymbolsSeq1(sym, _, _) =>
+            case s @ ParsedSymbolsSeq(sym, _, _) =>
                 val seq: Seq[Fig] = if (renderConf.renderWS) {
                     val (childrenWS, idx0) = (s.childrenWS, s.childrenIdx)
                     val idx = if (idx0.last == childrenWS.size - 1) idx0 else (idx0 :+ childrenWS.size)

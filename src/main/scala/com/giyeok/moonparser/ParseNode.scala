@@ -11,7 +11,7 @@ object ParseTree {
     case class ParsedEmpty[T <: Symbol](symbol: T) extends ParseNode[T]
     case class ParsedTerminal(symbol: Terminal, child: Input) extends ParseNode[Terminal]
     case class ParsedSymbol[T <: AtomicSymbol](symbol: T, body: ParseNode[Symbol]) extends ParseNode[T]
-    case class ParsedSymbolsSeq1[T <: NonAtomicSymbol](symbol: T, _childrenWS: List[ParseNode[Symbol]], _childrenIdx: List[Int]) extends ParseNode[T] {
+    case class ParsedSymbolsSeq[T <: NonAtomicSymbol](symbol: T, _childrenWS: List[ParseNode[Symbol]], _childrenIdx: List[Int]) extends ParseNode[T] {
         // childrenIdx: index of childrenWS
         // _childrenIdx: reverse of chidlrenIdx
 
@@ -28,10 +28,10 @@ object ParseTree {
             pick(_childrenIdx, _childrenWS, _childrenWS.length - 1, List())
         }
 
-        def appendWhitespace(wsChild: ParseNode[Symbol]): ParsedSymbolsSeq1[T] =
-            ParsedSymbolsSeq1[T](symbol, wsChild +: _childrenWS, _childrenIdx)
-        def appendContent(child: ParseNode[Symbol]): ParsedSymbolsSeq1[T] =
-            ParsedSymbolsSeq1[T](symbol, child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
+        def appendWhitespace(wsChild: ParseNode[Symbol]): ParsedSymbolsSeq[T] =
+            ParsedSymbolsSeq[T](symbol, wsChild +: _childrenWS, _childrenIdx)
+        def appendContent(child: ParseNode[Symbol]): ParsedSymbolsSeq[T] =
+            ParsedSymbolsSeq[T](symbol, child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
     }
     case class ParsedSymbolJoin(symbol: Join, body: ParseNode[Symbol], constraint: ParseNode[Symbol]) extends ParseNode[Join]
 
@@ -53,7 +53,7 @@ object ParseTree {
             case ParsedEmpty(sym) => s"${sym.toShortString}()"
             case ParsedTerminal(sym, child) => s"${sym.toShortString}(${child.toShortString})"
             case ParsedSymbol(sym, body) => s"${sym.toShortString}(${body.toShortString})"
-            case s @ ParsedSymbolsSeq1(_, _, _) => s"${s.symbol.toShortString}(${s.children map { _.toShortString } mkString "/"})"
+            case s @ ParsedSymbolsSeq(_, _, _) => s"${s.symbol.toShortString}(${s.children map { _.toShortString } mkString "/"})"
             case ParsedSymbolJoin(sym, body, join) => s"${sym.toShortString}(${body.toShortString})"
         }
         def printTree(): Unit = println(toTreeString("", "  "))
@@ -64,7 +64,7 @@ object ParseTree {
                 indent + s"- $sym('$child')"
             case ParsedSymbol(sym, body) =>
                 (indent + s"- $sym\n") + body.toTreeString(indent + indentUnit, indentUnit)
-            case s @ ParsedSymbolsSeq1(_, _, _) =>
+            case s @ ParsedSymbolsSeq(_, _, _) =>
                 (indent + s"- ${s.symbol}\n") + (s.children map { _.toTreeString(indent + indentUnit, indentUnit) } mkString "\n")
             case ParsedSymbolJoin(sym, body, join) =>
                 (indent + s"- $sym\n") + (body.toTreeString(indent + indentUnit, indentUnit)) + "\n" +
@@ -109,7 +109,7 @@ object ParseTree {
                     val actual = body.toHorizontalHierarchyStringSeq
                     val symbolic = sym.toShortString
                     appendBottom(actual, sym.toShortString)
-                case s @ ParsedSymbolsSeq1(_, _, _) =>
+                case s @ ParsedSymbolsSeq(_, _, _) =>
                     val (sym, body) = (s.symbol, s.children)
                     if (body.isEmpty) {
                         val symbolic = sym.toShortString

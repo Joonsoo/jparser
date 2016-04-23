@@ -75,7 +75,7 @@ object Kernels {
     }
     trait NonAtomicNontermKernel[T <: NonAtomicSymbol with Nonterm] extends NontermKernel[T] {
         val pointer: Int
-        def lifted(before: ParsedSymbolsSeq1[T], accepted: ParseNode[Symbol]): (NonAtomicNontermKernel[T], ParsedSymbolsSeq1[T])
+        def lifted(before: ParsedSymbolsSeq[T], accepted: ParseNode[Symbol]): (NonAtomicNontermKernel[T], ParsedSymbolsSeq[T])
     }
 
     case class TerminalKernel(symbol: Terminal, pointer: Int) extends AtomicKernel[Terminal] {
@@ -142,7 +142,7 @@ object Kernels {
 
     case class SequenceKernel(symbol: Sequence, pointer: Int) extends NonAtomicNontermKernel[Sequence] {
         assert(0 <= pointer && pointer <= symbol.seq.size)
-        def lifted(before: ParsedSymbolsSeq1[Sequence], accepted: ParseNode[Symbol]): (SequenceKernel, ParsedSymbolsSeq1[Sequence]) = {
+        def lifted(before: ParsedSymbolsSeq[Sequence], accepted: ParseNode[Symbol]): (SequenceKernel, ParsedSymbolsSeq[Sequence]) = {
             val isContent = (accepted.symbol == symbol.seq(pointer))
             if (isContent) (SequenceKernel(symbol, pointer + 1), before.appendContent(accepted))
             else (SequenceKernel(symbol, pointer), before.appendWhitespace(accepted))
@@ -166,7 +166,7 @@ object Kernels {
     }
     case class RepeatBoundedKernel(symbol: RepeatBounded, pointer: Int) extends NonAtomicNontermKernel[RepeatBounded] {
         assert(0 <= pointer && pointer <= symbol.upper)
-        def lifted(before: ParsedSymbolsSeq1[RepeatBounded], accepted: ParseNode[Symbol]): (RepeatBoundedKernel, ParsedSymbolsSeq1[RepeatBounded]) =
+        def lifted(before: ParsedSymbolsSeq[RepeatBounded], accepted: ParseNode[Symbol]): (RepeatBoundedKernel, ParsedSymbolsSeq[RepeatBounded]) =
             (RepeatBoundedKernel(symbol, pointer + 1), before.appendContent(accepted))
         def derive(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) =
             if (derivable) (Set(SimpleEdgeTmpl(this, Kernel(symbol.sym))), Set()) else (Set(), Set())
@@ -176,7 +176,7 @@ object Kernels {
     }
     case class RepeatUnboundedKernel(symbol: RepeatUnbounded, pointer: Int) extends NonAtomicNontermKernel[RepeatUnbounded] {
         assert(0 <= pointer && pointer <= symbol.lower)
-        def lifted(before: ParsedSymbolsSeq1[RepeatUnbounded], accepted: ParseNode[Symbol]): (RepeatUnboundedKernel, ParsedSymbolsSeq1[RepeatUnbounded]) =
+        def lifted(before: ParsedSymbolsSeq[RepeatUnbounded], accepted: ParseNode[Symbol]): (RepeatUnboundedKernel, ParsedSymbolsSeq[RepeatUnbounded]) =
             (RepeatUnboundedKernel(symbol, if (pointer < symbol.lower) pointer + 1 else pointer), before.appendContent(accepted))
         def derive(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) =
             (Set(SimpleEdgeTmpl(this, Kernel(symbol.sym))), Set())
