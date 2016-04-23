@@ -14,11 +14,10 @@ import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
 import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
 import com.giyeok.moonparser.ParseTree
-import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
+import com.giyeok.moonparser.ParseTree.TreePrint
 import com.giyeok.moonparser.Parser
 import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Event
-import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
 import org.eclipse.swt.widgets.Widget
 import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.events.KeyListener
@@ -52,7 +51,8 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, before, after)
 
         val by = lifting match {
-            case l: Parser#NontermLifting => Some(registerNode(l.by))
+            case l: Parser#NontermLifting => Some(registerNode(l.byNode))
+            case l: Parser#JoinLifting => Some(registerNode(l.byNode))
             case l: Parser#TermLifting => None
         }
 
@@ -90,7 +90,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         vliftings foreach { v => v._2._3.setLineWidth(1) }
     }
     unhighlightAllLiftings()
-    val liftingsByBy = liftings collect { case l: Parser#NontermLifting => l } groupBy { _.by }
+    val liftingsByBy = liftings collect { case l: Parser#NontermLifting => l } groupBy { _.byNode }
     graph.addSelectionListener(new SelectionAdapter() {
         override def widgetSelected(e: SelectionEvent): Unit = {
             val selectedEdges = vedges filter { p => e.item == p._2 }

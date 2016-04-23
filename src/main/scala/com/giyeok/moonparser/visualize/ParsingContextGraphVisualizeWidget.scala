@@ -14,7 +14,7 @@ import org.eclipse.zest.layouts.LayoutStyles
 import com.giyeok.moonparser.Inputs
 import com.giyeok.moonparser.ParseTree
 import com.giyeok.moonparser.Parser
-import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
+import com.giyeok.moonparser.ParseTree.TreePrint
 import org.eclipse.swt.graphics.Color
 import org.eclipse.zest.core.widgets.CGraphNode
 import org.eclipse.draw2d.Figure
@@ -89,22 +89,14 @@ trait ParsingContextGraphVisualize {
         val figFunc: (ParseTree.ParseNode[Symbols.Symbol], ParseNodeFigureGenerator.RenderingConfiguration) => Figure =
             if (horizontal) tooltipParseNodeFigureGenerator.parseNodeHFig else tooltipParseNodeFigureGenerator.parseNodeVFig
         val tooltipFig0: Figure = node match {
-            case rep: Parser#RepeatBoundedProgress if !rep._parsed.children.isEmpty =>
+            case rep: Parser#NonAtomicSymbolProgress[_] if !rep._parsed.children.isEmpty =>
                 figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep._parsed.children map { figFunc(_, renderConf) })
-            case rep: Parser#RepeatUnboundedProgress if !rep._parsed.children.isEmpty =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, rep._parsed.children map { figFunc(_, renderConf) })
-            case seq: Parser#SequenceProgress if !seq._parsed.childrenWS.isEmpty =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, seq._parsed.childrenWS map { figFunc(_, renderConf) })
-            case n if n.canFinish =>
+            case n if n.kernel.finishable =>
                 figFunc(n.parsed.get, renderConf)
             case _ =>
                 symbolProgressFigureGenerator.symbolProgFig(node)
         }
-        val tooltipFig = node match {
-            case n: Parser#SymbolProgressNonterminal =>
-                figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"${n.derivedGen}${n.lastLiftedGen match { case Some(x) => s"-$x" case _ => "" }}", figureAppearances.small), tooltipFig0))
-            case _ => tooltipFig0
-        }
+        val tooltipFig = figureGenerator.horizontalFig(FigureGenerator.Spacing.Big, Seq(figureGenerator.textFig(s"${node.derivedGen}${node.lastLiftedGen match { case Some(x) => s"-$x" case _ => "" }}", figureAppearances.small), tooltipFig0))
         tooltipFig.setBackgroundColor(ColorConstants.white)
         tooltipFig.setOpaque(true)
         tooltipFig
@@ -134,16 +126,10 @@ trait ParsingContextGraphVisualize {
                         println(graphNode.asInstanceOf[CGraphNode].getFigure.getInsets)
                         val printString =
                             n match {
-                                case rep: Parser#RepeatBoundedProgress if !rep._parsed.children.isEmpty =>
+                                case rep: Parser#NonAtomicSymbolProgress[_] if !rep._parsed.children.isEmpty =>
                                     val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep._parsed.children map { _.toHorizontalHierarchyStringSeq })
                                     list._2 mkString "\n"
-                                case rep: Parser#RepeatUnboundedProgress if !rep._parsed.children.isEmpty =>
-                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(rep._parsed.children map { _.toHorizontalHierarchyStringSeq })
-                                    list._2 mkString "\n"
-                                case seq: Parser#SequenceProgress if !seq._parsed.childrenWS.isEmpty =>
-                                    val list = ParseTree.HorizontalTreeStringSeqUtil.merge(seq._parsed.childrenWS map { _.toHorizontalHierarchyStringSeq })
-                                    list._2 mkString "\n"
-                                case n if n.canFinish =>
+                                case n if n.kernel.finishable =>
                                     println(n.parsed.get.toHorizontalHierarchyString)
                                 case n =>
                                     n.toShortString
@@ -232,12 +218,12 @@ trait ParsingContextGraphVisualize {
                     val end = registerNode(x.targetNode)
                     val edges = x.triggers.toList map {
                         _ match {
-                            case t: Parser#LiftTrigger =>
+                            case t: Parser#TriggerCondition =>
                                 val start = registerNode(t.trigger)
                                 val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
                                 edge.setText("if Lifted")
                                 edge
-                            case t: Parser#AliveTrigger =>
+                            case t: Parser#TriggerCondition =>
                                 val start = registerNode(t.trigger)
                                 val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
                                 edge.setText("if Alive")
@@ -252,7 +238,7 @@ trait ParsingContextGraphVisualize {
                     vreverters(x) = edges
                 }
 
-            case x: Parser#LiftTriggeredTemporaryLiftBlockReverter =>
+            case x: Parser#LiftTriggeredTempLiftBlockReverter =>
                 // Working Reverter
                 val start = registerNode(x.trigger)
                 val end = registerNode(x.targetNode)
@@ -261,19 +247,9 @@ trait ParsingContextGraphVisualize {
                 edge.setCurveDepth(-40)
                 edge.setText("TempLiftBlock")
                 vreverters(x) = List(edge)
-
-            case x: Parser#LiftTriggeredLiftReverter =>
-                // Pre Reverter
-                val start = registerNode(x.trigger)
-                val end = registerNode(x.targetLifting.after)
-                val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
-                edge.setLineColor(liftReverterEdgeColor)
-                edge.setCurveDepth(-40)
-                edge.setText("LiftRevert")
-                vreverters(x) = List(edge)
-            case x: Parser#AliveTriggeredLiftReverter =>
-                // Pre Reverter
-                vreverters(x) = List()
+                
+            case x: Parser#ReservedAliveTriggeredLiftedNodeReverter =>
+            case x: Parser#ReservedLiftTriggeredLiftedNodeReverter =>
         }
     }
 
@@ -336,7 +312,7 @@ trait ParsingContextGraphVisualize {
     var terminalHighlighted: Boolean = false
     def toggleHighlightTerminals(forced: Boolean): Unit = {
         terminalHighlighted = forced || !terminalHighlighted
-        vnodes filter { _._1.symbol.isInstanceOf[Terminal] } foreach { kv =>
+        vnodes filter { _._1.kernel.symbol.isInstanceOf[Terminal] } foreach { kv =>
             val node = kv._2
             node.setBackgroundColor(if (terminalHighlighted) ColorConstants.cyan else ColorConstants.white)
             node.highlight()
@@ -344,7 +320,7 @@ trait ParsingContextGraphVisualize {
     }
     def reorderTerminals(): Unit = {
         val totalDim = graph.getSize()
-        val sortedNodesKv = (vnodes map { kv => (kv, kv._1.symbol) } collect {
+        val sortedNodesKv = (vnodes map { kv => (kv, kv._1.kernel.symbol) } collect {
             case (kv, t: Terminal) => (kv, t)
         }).toSeq.sortWith((kv1, kv2) => Terminals.compare(kv1._2, kv2._2) < 0)
         (sortedNodesKv map { _._1 }).foldLeft(0) { (y, kv) =>

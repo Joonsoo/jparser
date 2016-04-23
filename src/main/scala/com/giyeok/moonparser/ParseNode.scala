@@ -61,7 +61,7 @@ object ParseTree {
             case ParsedSymbolJoin(sym, body, join) => s"${sym.toShortString}(${body.toShortString})"
         }
     }
-    implicit class TreePrintableParseNode(node: ParseNode[Symbol]) {
+    implicit class TreePrint(node: ParseNode[Symbol]) {
         def printTree(): Unit = println(toTreeString("", "  "))
         def toTreeString(indent: String, indentUnit: String): String = node match {
             case ParsedEmpty(sym) =>

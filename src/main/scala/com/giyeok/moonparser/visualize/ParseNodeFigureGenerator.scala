@@ -2,7 +2,7 @@ package com.giyeok.moonparser.visualize
 
 import com.giyeok.moonparser.ParseTree.ParseNode
 import com.giyeok.moonparser.Symbols._
-import com.giyeok.moonparser.ParseTree.TreePrintableParseNode
+import com.giyeok.moonparser.ParseTree.TreePrint
 import com.giyeok.moonparser.visualize.FigureGenerator.Appearance
 
 object ParseNodeFigureGenerator {

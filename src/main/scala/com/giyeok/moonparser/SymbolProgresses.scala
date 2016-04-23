@@ -58,27 +58,26 @@ trait SymbolProgresses {
     trait NonterminalSymbolProgress extends SymbolProgress {
         val kernel: NontermKernel[Nonterm]
 
-        assert(kernel.finishable == parsed.isDefined)
-
         def derive(grammar: Grammar, gen: Int): (Set[DeriveEdge], Set[Reverter]) = {
             def concretizeEdge(tmpl: EdgeTmpl): DeriveEdge = tmpl match {
-                case SimpleEdgeTmpl(start, end) =>
-                    SimpleEdge(SymbolProgress(start, gen), SymbolProgress(end, gen))
-                case JoinEdgeTmpl(start, end, join, endJoinSwitched) =>
-                    JoinEdge(new JoinSymbolProgress(start, gen, None, None), SymbolProgress(end, gen), SymbolProgress(join, gen), endJoinSwitched)
+                case SimpleEdgeTmpl(end) =>
+                    SimpleEdge(this, SymbolProgress(end, gen))
+                case JoinEdgeTmpl(end, join, endJoinSwitched) =>
+                    assert(this.isInstanceOf[JoinSymbolProgress])
+                    JoinEdge(this.asInstanceOf[JoinSymbolProgress], SymbolProgress(end, gen), SymbolProgress(join, gen), endJoinSwitched)
             }
             val (edgeTmpls, reverterTmpls) = kernel.derive(grammar)
             val edges: Set[DeriveEdge] = edgeTmpls map { concretizeEdge _ }
             val reverters: Set[Reverter] = reverterTmpls map {
                 _ match {
-                    case LiftTriggeredTempLiftBlockTmpl(trigger, target) =>
+                    case LiftTriggeredTempLiftBlockReverterTmpl(trigger, target) =>
                         LiftTriggeredTempLiftBlockReverter(SymbolProgress(trigger, gen), SymbolProgress(target, gen))
-                    case LiftTriggeredDeriveReverterTmpl(trigger, target) =>
-                        LiftTriggeredDeriveReverter(SymbolProgress(trigger, gen), SimpleEdge(SymbolProgress(target.start, gen), SymbolProgress(target.end, gen)))
+                    case LiftTriggeredDeriveReverterTmpl(trigger, deriveFrom, deriveTo) =>
+                        LiftTriggeredDeriveReverter(SymbolProgress(trigger, gen), SimpleEdge(SymbolProgress(deriveFrom, gen), SymbolProgress(deriveTo, gen)))
                     case ReservedLiftTriggeredLiftedNodeReverterTmpl(trigger) =>
-                        ReservedLiftTriggeredNodeKillReverter(SymbolProgress(trigger, gen))
+                        ReservedLiftTriggeredLiftedNodeReverter(SymbolProgress(trigger, gen))
                     case ReservedAliveTriggeredLiftedNodeReverterTmpl(trigger) =>
-                        ReservedAliveTriggeredNodeKillReverter(SymbolProgress(trigger, gen))
+                        ReservedAliveTriggeredLiftedNodeReverter(SymbolProgress(trigger, gen))
                 }
             }
             (edges, reverters)
@@ -88,6 +87,8 @@ trait SymbolProgresses {
     }
 
     case class AtomicSymbolProgress[T <: AtomicSymbol with Nonterm](kernel: AtomicNontermKernel[T], derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[T]]) extends NonterminalSymbolProgress {
+        assert(kernel.finishable == parsed.isDefined)
+
         def lift(gen: Int, accepted: ParseNode[Symbol]) = AtomicSymbolProgress[T](kernel.lifted, derivedGen, Some(gen), Some(ParsedSymbol[T](kernel.symbol, accepted)))
     }
 
@@ -101,5 +102,10 @@ trait SymbolProgresses {
 
     case class NonAtomicSymbolProgress[T <: NonAtomicSymbol with Nonterm](kernel: NonAtomicNontermKernel[T], derivedGen: Int, lastLiftedGen: Option[Int], _parsed: ParsedSymbolsSeq[T]) extends NonterminalSymbolProgress {
         val parsed = if (kernel.finishable) Some(_parsed) else None
+
+        def lift(gen: Int, accepted: ParseNode[Symbol]) = {
+            val (nextKernel, nextParsed) = kernel.lifted(_parsed, accepted)
+            NonAtomicSymbolProgress(nextKernel, derivedGen, Some(gen), nextParsed)
+        }
     }
 }

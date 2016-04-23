@@ -7,44 +7,45 @@ trait Reverters {
         def toShortString: String = toString
     }
 
+    // 실제 하는 액션의 종류 - DeriveReverter, NodeKillReverter, TempLiftBlock, Reserved
     sealed trait DeriveReverter extends Reverter {
         val targetEdge: SimpleEdge
     }
     sealed trait NodeKillReverter extends Reverter {
         val targetNode: Node
     }
-    sealed trait TemporaryLiftBlockReverter extends Reverter {
+    sealed trait TempLiftBlockReverter extends Reverter {
         val targetNode: Node
     }
+    sealed trait ReservedReverter extends Reverter {
+        val node: Node
+    }
 
-    sealed trait ReverterTrigger
-    sealed trait MultiLiftTriggered extends ReverterTrigger {
-        // 이 트리거가 "모두" 만족되어야 말동
-        val triggers: Set[MultiLiftTriggered.Condition]
-    }
-    object MultiLiftTriggered {
-        sealed trait Condition { val trigger: Node }
-        case class Lift(trigger: Node) extends Condition
-        case class Alive(trigger: Node) extends Condition
-    }
+    // Reverter가 activate되는 트리거의 종류 - Lift, Multi
+    sealed trait ReverterTrigger extends Reverter
     sealed trait LiftTriggered extends ReverterTrigger {
         val trigger: Node
     }
-    sealed trait AliveTriggered extends ReverterTrigger {
-        val trigger: Node
+    sealed trait MultiTriggered extends ReverterTrigger {
+        // 이 트리거가 "모두" 만족되어야 말동
+        val triggers: Set[TriggerCondition]
     }
+    sealed trait TriggerCondition { val trigger: Node }
+    case class TriggerIfLift(trigger: Node) extends TriggerCondition
+    case class TriggerIfAlive(trigger: Node) extends TriggerCondition
 
-    sealed trait ReservedReverter extends Reverter
-
-    // lookahead_except에서 사용
+    // lookahead_except, backup에서 사용
     case class LiftTriggeredDeriveReverter(trigger: Node, targetEdge: SimpleEdge) extends LiftTriggered with DeriveReverter
-    case class MultiTriggeredNodeKillReverter(triggers: Set[MultiLiftTriggered.Condition], targetNode: Node) extends MultiLiftTriggered with NodeKillReverter
     // except에서 사용
-    case class LiftTriggeredTempLiftBlockReverter(trigger: Node, targetNode: Node) extends LiftTriggered with TemporaryLiftBlockReverter
+    case class LiftTriggeredTempLiftBlockReverter(trigger: Node, targetNode: Node) extends LiftTriggered with TempLiftBlockReverter
     // longest match가 lift될 때 생성
-    case class ReservedLiftTriggeredNodeKillReverter(trigger: Node) extends LiftTriggered with ReservedReverter
-    case class LiftTriggeredNodeKillReverter(trigger: Node, targetNode: Node) extends LiftTriggered with NodeKillReverter
+    case class ReservedLiftTriggeredLiftedNodeReverter(trigger: Node) extends LiftTriggered with ReservedReverter { val node = trigger }
     // eager longest match가 lift될 때 생성
-    case class ReservedAliveTriggeredNodeKillReverter(trigger: Node) extends LiftTriggered with ReservedReverter
-    case class AliveTriggeredNodeKillReverter(trigger: Node, targetNode: Node) extends AliveTriggered with NodeKillReverter
+    case class ReservedAliveTriggeredLiftedNodeReverter(trigger: Node) extends LiftTriggered with ReservedReverter { val node = trigger }
+    // ReservedNodeReverter는 조건이 맞으면
+    //  - MultiTriggeredNodeKillReverter를 만들 수도 있고
+    //  - DeriveReverter를 만들 수도 있을듯
+
+    // derive reverter에서 파생됨
+    case class MultiTriggeredNodeKillReverter(triggers: Set[TriggerCondition], targetNode: Node) extends MultiTriggered with NodeKillReverter
 }
