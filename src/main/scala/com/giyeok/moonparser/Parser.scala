@@ -294,7 +294,7 @@ class Parser(val grammar: Grammar)
                                             // println(constraintLifted)
                                             val liftings: Set[Lifting] = constraintLifted map { constraint =>
                                                 if (!e.endConstraintReversed) Lifting(e.start, newGenId, after, constraint.after, e)
-                                                else Lifting(e.start, newGenId, after, constraint.after, e)
+                                                else Lifting(e.start, newGenId, constraint.after, after, e)
                                             }
                                             nextQcc = nextQcc.withLiftings(liftings)
                                         }
@@ -359,7 +359,7 @@ class Parser(val grammar: Grammar)
                         } else {
                             proceedDeriveReverters(newReverter +: rest, cc + newReverter, nodeKillsCC ++ newNodeKillReverters)
                         }
-                    case None => proceedDeriveReverters(rest, cc, nodeKillsCC)
+                    case None => proceedDeriveReverters(rest, cc, nodeKillsCC ++ newNodeKillReverters)
                 }
             case List() => (cc, nodeKillsCC)
         }
@@ -377,7 +377,8 @@ class Parser(val grammar: Grammar)
         def propagateNodeKillReverters(queue: List[NodeKillReverter], cc: Set[NodeKillReverter]): Set[NodeKillReverter] =
             queue match {
                 case MultiTriggeredNodeKillReverter(triggers, targetNode) +: rest =>
-                    val lifted: Set[Node] = liftings filter { _.before == targetNode } map { _.after }
+                    println(s"NodeKillPropagation ${targetNode.toShortString}")
+                    val lifted: Set[Node] = liftings filter { lifting => lifting.before == targetNode } map { _.after }
                     val liftedReverters: Set[NodeKillReverter] = lifted map { MultiTriggeredNodeKillReverter(triggers, _) }
                     val newReverters: Set[NodeKillReverter] = liftedReverters -- cc
                     propagateNodeKillReverters(newReverters.toList ++: rest, cc ++ newReverters)
@@ -390,9 +391,7 @@ class Parser(val grammar: Grammar)
             val (targetNode, reverters) = (kv._1, kv._2.asInstanceOf[Set[MultiTriggeredNodeKillReverter]])
             MultiTriggeredNodeKillReverter(reverters.foldLeft(Set[TriggerCondition]()) { _ ++ _.triggers }, kv._1)
         }
-
-        val existingNodeKillReverters0: Set[NodeKillReverter] = (oldReverters collect { case x: NodeKillReverter => x })
-        val existingNodeKillReverters: Set[NodeKillReverter] = propagateNodeKillReverters(existingNodeKillReverters0.toList, existingNodeKillReverters0)
+        resultReverters ++= groupedNodeKillReverters
 
         // TempLiftBlockReverter 처리
         //   - except에서만 사용되는 reverter

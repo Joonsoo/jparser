@@ -33,6 +33,7 @@ trait SymbolProgresses {
         }
 
         def apply(kernel: NontermKernel[Nonterm], gen: Int): NonterminalSymbolProgress = kernel match {
+            case kernel: JoinKernel => new JoinSymbolProgress(kernel, gen, None, None)
             case kernel: AtomicNontermKernel[_] => AtomicSymbolProgress(kernel, gen, None, None)
             case kernel: NonAtomicNontermKernel[_] => NonAtomicSymbolProgress(kernel, gen, None, ParsedSymbolsSeq(kernel.symbol, List(), List()))
         }
@@ -59,15 +60,16 @@ trait SymbolProgresses {
         val kernel: NontermKernel[Nonterm]
 
         def derive(grammar: Grammar, gen: Int): (Set[DeriveEdge], Set[Reverter]) = {
-            def concretizeEdge(tmpl: EdgeTmpl): DeriveEdge = tmpl match {
-                case SimpleEdgeTmpl(end) =>
-                    SimpleEdge(this, SymbolProgress(end, gen))
-                case JoinEdgeTmpl(end, join, endJoinSwitched) =>
-                    assert(this.isInstanceOf[JoinSymbolProgress])
-                    JoinEdge(this.asInstanceOf[JoinSymbolProgress], SymbolProgress(end, gen), SymbolProgress(join, gen), endJoinSwitched)
-            }
             val (edgeTmpls, reverterTmpls) = kernel.derive(grammar)
-            val edges: Set[DeriveEdge] = edgeTmpls map { concretizeEdge _ }
+            val edges: Set[DeriveEdge] = edgeTmpls map {
+                _ match {
+                    case SimpleEdgeTmpl(end) =>
+                        SimpleEdge(this, SymbolProgress(end, gen))
+                    case JoinEdgeTmpl(end, join, endJoinSwitched) =>
+                        assert(this.isInstanceOf[JoinSymbolProgress])
+                        JoinEdge(this.asInstanceOf[JoinSymbolProgress], SymbolProgress(end, gen), SymbolProgress(join, gen), endJoinSwitched)
+                }
+            }
             val reverters: Set[Reverter] = reverterTmpls map {
                 _ match {
                     case LiftTriggeredTempLiftBlockReverterTmpl(trigger, target) =>
