@@ -107,5 +107,7 @@ trait SymbolProgresses {
             val (nextKernel, nextParsed) = kernel.lifted(_parsed, accepted)
             NonAtomicSymbolProgress(nextKernel, derivedGen, Some(gen), nextParsed)
         }
+
+        override def toShortString = s"(${kernel.toShortString}, $derivedGen-$lastLiftedGen, ${_parsed.children map { _.toShortString }})"
     }
 }

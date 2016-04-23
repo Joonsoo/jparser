@@ -579,7 +579,9 @@ class Parser(val grammar: Grammar)
                         case r: NodeKillReverter => finalNodes contains r.targetNode
                         case r: TempLiftBlockReverter => finalNodes contains r.targetNode
                         case r: ReservedReverter => finalNodes contains r.node
-                        // 이 밑에 두개는 아마 좀이따 unreachable code라고 에러가 나올 것 - filter 두번으로 고치기
+                    }
+                } filter {
+                    _ match {
                         case r: LiftTriggered => finalNodes contains r.trigger
                         case r: MultiTriggered => (r.triggers map { _.trigger } subsetOf finalNodes)
                     }

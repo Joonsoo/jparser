@@ -56,9 +56,9 @@ object ParseTree {
         def toShortString: String = node match {
             case ParsedEmpty(sym) => s"${sym.toShortString}()"
             case ParsedTerminal(sym, child) => s"${sym.toShortString}(${child.toShortString})"
+            case ParsedSymbolJoin(sym, body, join) => s"${sym.toShortString}(${body.toShortString})"
             case ParsedSymbol(sym, body) => s"${sym.toShortString}(${body.toShortString})"
             case s @ ParsedSymbolsSeq(_, _, _) => s"${s.symbol.toShortString}(${s.children map { _.toShortString } mkString "/"})"
-            case ParsedSymbolJoin(sym, body, join) => s"${sym.toShortString}(${body.toShortString})"
         }
     }
     implicit class TreePrint(node: ParseNode[Symbol]) {
@@ -68,13 +68,13 @@ object ParseTree {
                 indent + s"- $sym"
             case ParsedTerminal(sym, child) =>
                 indent + s"- $sym('$child')"
+            case ParsedSymbolJoin(sym, body, join) =>
+                (indent + s"- $sym\n") + (body.toTreeString(indent + indentUnit, indentUnit)) + "\n" +
+                    (indent + s"- $sym\n") + (join.toTreeString(indent + indentUnit, indentUnit))
             case ParsedSymbol(sym, body) =>
                 (indent + s"- $sym\n") + body.toTreeString(indent + indentUnit, indentUnit)
             case s @ ParsedSymbolsSeq(_, _, _) =>
                 (indent + s"- ${s.symbol}\n") + (s.children map { _.toTreeString(indent + indentUnit, indentUnit) } mkString "\n")
-            case ParsedSymbolJoin(sym, body, join) =>
-                (indent + s"- $sym\n") + (body.toTreeString(indent + indentUnit, indentUnit)) + "\n" +
-                    (indent + s"- $sym\n") + (join.toTreeString(indent + indentUnit, indentUnit))
         }
 
         def toHorizontalHierarchyStringSeq(): (Int, Seq[String]) = {

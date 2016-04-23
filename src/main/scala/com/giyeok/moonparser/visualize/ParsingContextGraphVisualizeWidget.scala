@@ -218,12 +218,12 @@ trait ParsingContextGraphVisualize {
                     val end = registerNode(x.targetNode)
                     val edges = x.triggers.toList map {
                         _ match {
-                            case t: Parser#TriggerCondition =>
+                            case t: Parser#TriggerIfLift =>
                                 val start = registerNode(t.trigger)
                                 val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
                                 edge.setText("if Lifted")
                                 edge
-                            case t: Parser#TriggerCondition =>
+                            case t: Parser#TriggerIfAlive =>
                                 val start = registerNode(t.trigger)
                                 val edge = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, start, end)
                                 edge.setText("if Alive")
@@ -247,9 +247,12 @@ trait ParsingContextGraphVisualize {
                 edge.setCurveDepth(-40)
                 edge.setText("TempLiftBlock")
                 vreverters(x) = List(edge)
-                
+
             case x: Parser#ReservedAliveTriggeredLiftedNodeReverter =>
+                vreverters(x) = List()
+
             case x: Parser#ReservedLiftTriggeredLiftedNodeReverter =>
+                vreverters(x) = List()
         }
     }
 
