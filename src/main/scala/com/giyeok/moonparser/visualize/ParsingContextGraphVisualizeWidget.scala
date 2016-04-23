@@ -357,7 +357,7 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: Parse
 
     context.resultCandidates foreach { highlightResultCandidate _ }
 
-    context.proceededEdges foreach { highlightProceededEdge _ }
+    context.externalProceededEdges foreach { highlightProceededEdge _ }
     context.internalProceededEdges foreach { highlightInternalProceededEdge _ }
 
     import org.eclipse.zest.layouts.algorithms._

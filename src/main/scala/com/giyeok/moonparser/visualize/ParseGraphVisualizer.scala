@@ -23,6 +23,7 @@ import com.giyeok.moonparser.Grammar
 import com.giyeok.moonparser.Inputs.Input
 import com.giyeok.moonparser.Inputs.InputToShortString
 import com.giyeok.moonparser.Parser
+import com.giyeok.moonparser.preprocessed.AnalyzedParser
 import org.eclipse.draw2d.geometry.Insets
 import org.eclipse.draw2d.IFigure
 import org.eclipse.draw2d.BorderLayout
@@ -40,6 +41,8 @@ import org.eclipse.swt.graphics.Color
 import com.giyeok.moonparser.Symbols.Terminal
 import org.eclipse.swt.layout.FillLayout
 import com.giyeok.moonparser.ParsingErrors.ParsingError
+import com.giyeok.moonparser.Kernels
+import com.giyeok.moonparser.Symbols._
 
 class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Display, shell: Shell, resources: ParseGraphVisualizer.Resources) {
     case class VisualizationLocation(location: Int, showResult: Boolean) {
@@ -201,11 +204,10 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                 case 'k' | 'K' =>
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualizeWidget =>
+                            val analyzedCtx = new parser.AnalyzedParsingContext(v.context.asInstanceOf[parser.ParsingContext])
                             println(s"=== IPN of ${v.context.gen} ===")
-                            /*
-                            val ipns = v.context.proceededEdges map { _.end }
-                            val ipnsByKernel = ipns groupBy { _.kernel }
-                            ipnsByKernel.toSeq sortBy { _._1.symbol.id } foreach { kv =>
+                            val ipnsByKernel: Seq[(Kernels.NonAtomicNontermKernel[NonAtomicSymbol with Nonterm], Set[parser.NonAtomicSymbolProgress[NonAtomicSymbol with Nonterm]])] = analyzedCtx.ipnsByKernel.toSeq
+                            ipnsByKernel sortBy { _._1.symbol.id } foreach { kv =>
                                 val (kernel, nodes) = kv
                                 println(s"  ${kernel.toShortString} -> ${nodes map { _.id }}")
                                 (nodes groupBy { n => (n.derivedGen, n.lastLiftedGen) }).toSeq sortBy { _._1 } foreach { kv =>
@@ -213,7 +215,6 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                                     println(s"    ${cover} -> (${nodes.size}) ${nodes map { _.id }}")
                                 }
                             }
-                            */
                             println(s"================")
                         case _ => // nothing to do
                     }
@@ -221,7 +222,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualizeWidget =>
                             println("======= Possible input groups =======")
-                            v.context.termGroupsForTerminals foreach { d => println(d.toShortString) }
+                            new parser.AnalyzedParsingContext(v.context.asInstanceOf[parser.ParsingContext]).termGroups foreach { d => println(d.toShortString) }
                             println("=====================================")
                     }
                 case code =>
@@ -242,7 +243,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
     }
     sourceView.addKeyListener(keyListener)
 
-    val parser = new Parser(grammar)
+    val parser = new AnalyzedParser(grammar)
 
     val finReversed: List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), ParsingError])] =
         source.foldLeft[List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), ParsingError])]](List((Left(parser.initialContext, parser.initialContextVerbose._2)))) { (cl, terminal) =>

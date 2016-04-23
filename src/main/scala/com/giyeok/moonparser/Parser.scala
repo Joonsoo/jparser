@@ -460,7 +460,7 @@ class Parser(val grammar: Grammar)
         }
 
     // 이 프로젝트 전체에서 asInstanceOf가 등장하는 경우는 대부분이 Set이 invariant해서 추가된 부분 - covariant한 Set으로 바꾸면 없앨 수 있음
-    case class ParsingContext(startNode: NonterminalNode, gen: Int, nodes: Set[Node], edges: Set[DeriveEdge], reverters: Set[Reverter], resultCandidates: Set[SymbolProgress], proceededEdges: Set[SimpleEdge], internalProceededEdges: Set[SimpleEdge]) {
+    case class ParsingContext(startNode: NonterminalNode, gen: Int, nodes: Set[Node], edges: Set[DeriveEdge], reverters: Set[Reverter], resultCandidates: Set[SymbolProgress], externalProceededEdges: Set[SimpleEdge], internalProceededEdges: Set[SimpleEdge]) {
         val id = IdGen.nextId
         logging("reverters") {
             println(s"- Reverters @ $gen")
@@ -469,37 +469,10 @@ class Parser(val grammar: Grammar)
             }
         }
 
+        val allProceededEdges = (externalProceededEdges ++ internalProceededEdges)
+        // assert(allProceededEdges forall { e => e.end.isInstanceOf[NonAtomicSymbolProgress[_]] })
+
         def terminalNodes: Set[TerminalNode] = nodes collect { case s: TerminalSymbolProgress => s }
-        def termGroupsForTerminals: Set[TermGroupDesc] = {
-            import Symbols.Terminals._
-
-            val terminals = terminalNodes map { _.kernel.symbol }
-            val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
-            val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
-
-            val charIntersects: Set[CharacterTermGroupDesc] = charTerms flatMap { term1 =>
-                charTerms collect {
-                    case term2 if term1 != term2 => term1 intersect term2
-                } filterNot { _.isEmpty }
-            }
-            val virtIntersects: Set[VirtualTermGroupDesc] = virtTerms flatMap { term1 =>
-                virtTerms collect {
-                    case term2 if term1 != term2 => term1 intersect term2
-                } filterNot { _.isEmpty }
-            }
-
-            // charIntersects foreach { d => println(d.toShortString) }
-            // virtIntersects foreach { d => println(d.toShortString) }
-
-            val charTermGroups = (charTerms map { term =>
-                charIntersects.foldLeft(term) { _ - _ }
-            }) ++ charIntersects
-            val virtTermGroups = (virtTerms map { term =>
-                virtIntersects.foldLeft(term) { _ - _ }
-            }) ++ virtIntersects
-
-            charTermGroups ++ virtTermGroups
-        }
 
         def proceedTerminal1(nextGen: Int, next: Input): Set[TermLifting] =
             terminalNodes flatMap { s => (s.proceedTerminal(nextGen, next)) map { TermLifting(s, _, next) } }

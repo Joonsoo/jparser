@@ -77,14 +77,15 @@ object SimpleGrammar1_3_3 extends Grammar with StringSamples {
     val incorrectSamples = Set[String]()
 }
 
-object SimpleGrammar1_4 extends Grammar with StringSamples {
+object SimpleGrammar1_4 extends Grammar with StringSamples with AmbiguousSamples {
     val name = "Simple Grammar 1_4"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(Seq[Symbol](i("ab"), i("qt").opt, i("cd")), Set[Symbol](chars(" \t\n")))))
     val startSymbol = n("S")
 
-    val correctSamples = Set("ab   \tqt\t  cd", "abcd", "ab  cd", "abqtcd")
+    val correctSamples = Set("ab   \tqt\t  cd", "abcd", "abqtcd")
     val incorrectSamples = Set("a  bcd", "abc  d")
+    val ambiguousSamples = Set("ab cd", "ab  cd")
 }
 
 object SimpleGrammar1_5 extends Grammar with StringSamples {
@@ -180,7 +181,8 @@ object SimpleGrammar1_12 extends Grammar with StringSamples {
 
     val correctSamples = Set[String](
         "",
-        "abcdef")
+        "abcdef",
+        "abbbbbbbbbbcdef")
     val incorrectSamples = Set[String]()
 }
 
