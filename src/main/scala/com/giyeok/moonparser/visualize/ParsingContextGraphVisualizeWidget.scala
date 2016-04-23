@@ -150,11 +150,15 @@ trait ParsingContextGraphVisualize {
         node.highlight()
     }
 
-    val rootColor = new Color(null, 238, 130, 238) // supposedly violet
+    val proceededEdgeColor = new Color(null, 255, 128, 128)
     def highlightProceededEdge(e: Parser#SimpleEdge): Unit = {
         val proceededEdge = vedges(e)
-        proceededEdge.setLineColor(rootColor)
+        proceededEdge.setLineColor(proceededEdgeColor)
         proceededEdge.setLineWidth(3)
+    }
+    def highlightInternalProceededEdge(e: Parser#SimpleEdge): Unit = {
+        val proceededEdge = vedges(e)
+        proceededEdge.setLineColor(proceededEdgeColor)
     }
 
     private def calculateCurve(edges: Set[Parser#DeriveEdge], e: Parser#DeriveEdge): Int = {
@@ -354,6 +358,7 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: Parse
     context.resultCandidates foreach { highlightResultCandidate _ }
 
     context.proceededEdges foreach { highlightProceededEdge _ }
+    context.internalProceededEdges foreach { highlightInternalProceededEdge _ }
 
     import org.eclipse.zest.layouts.algorithms._
     val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)

@@ -131,9 +131,10 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         if (!(nodes contains e.end)) {
             to.setBackgroundColor(newNodeBackgroundColor)
         }
-        connection.setLineWidth(3)
+        connection.setLineStyle(Graphics.LINE_DOT)
     }
 
+    val rootColor = new Color(null, 238, 130, 238) // supposedly violet
     proceedLog.roots foreach { e =>
         assert(edges contains e)
         val edge = registerEdge(edges)(e)
@@ -142,6 +143,7 @@ class ParsingContextProceedVisualizeWidget(parent: Composite, val resources: Par
         }
     }
     proceedLog.proceededEdges foreach { n => highlightProceededEdge(n._2) }
+    proceedLog.internalProceededEdges foreach { n => highlightInternalProceededEdge(n._2) }
 
     // visualize reverters
     context foreach { _.reverters foreach { registerReverter(_) } }
