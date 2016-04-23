@@ -33,8 +33,8 @@ object Kernels {
     }
 
     sealed trait EdgeTmpl
-    case class SimpleEdgeTmpl(start: Kernel, end: Kernel) extends EdgeTmpl
-    case class JoinEdgeTmpl(start: Kernel, end: Kernel, join: Kernel, endJoinSwitched: Boolean) extends EdgeTmpl
+    case class SimpleEdgeTmpl(start: NontermKernel[Nonterm], end: Kernel) extends EdgeTmpl
+    case class JoinEdgeTmpl(start: JoinKernel, end: Kernel, join: Kernel, endJoinSwitched: Boolean) extends EdgeTmpl
 
     sealed trait ReverterTmpl
     // 1. 노드가 만들어지면서 동시에 만들어지는 reverter
@@ -44,8 +44,9 @@ object Kernels {
 
     // 2. 기존에는 longest/eager_longest가 lift시 (this -> lift된 노드)로 가는 reverter를 만들어내는 방식으로 처리됐었는데,
     //    이제 기존 동작을 나타내는 트리거를 derive시 반환하고 노드 자체에 속성을 부여해서 파서에서 처리하는 형태로 바꾸기로 함
-    case class ReservedLiftTriggeredLiftedNodeReverterTmpl(trigger: Kernel) extends ReverterTmpl
-    case class ReservedAliveTriggeredLiftedNodeReverterTmpl(trigger: Kernel) extends ReverterTmpl
+    trait ReservedReverterTmpl extends ReverterTmpl
+    case class ReservedLiftTriggeredLiftedNodeReverterTmpl(trigger: Kernel) extends ReservedReverterTmpl
+    case class ReservedAliveTriggeredLiftedNodeReverterTmpl(trigger: Kernel) extends ReservedReverterTmpl
 
     case object EmptyKernel extends Kernel {
         val symbol = Empty
@@ -55,26 +56,31 @@ object Kernels {
     }
     sealed trait NonEmptyKernel extends Kernel {
     }
-    sealed trait AtomicKernel[T <: AtomicSymbol] extends NonEmptyKernel {
+    sealed trait AtomicKernel[+T <: AtomicSymbol] extends NonEmptyKernel {
         assert(pointer == 0 || pointer == 1)
-        def lifted: Kernel
+        def lifted: AtomicKernel[T]
 
         // def lifted: Self = Self(symbol, 1) ensuring pointer == 0
 
         val derivable = (pointer == 0)
         val finishable = (pointer == 1)
     }
-    trait NontermKernel[T <: Nonterm] extends NonEmptyKernel {
+    sealed trait NontermKernel[+T <: Nonterm] extends NonEmptyKernel {
+        val symbol: T
+
         def derive(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl])
     }
-    trait AtomicNontermKernel[T <: AtomicSymbol with Nonterm] extends NontermKernel[T] with AtomicKernel[T] {
+    sealed trait AtomicNontermKernel[+T <: AtomicSymbol with Nonterm] extends NontermKernel[T] with AtomicKernel[T] {
         assert(pointer == 0 || pointer == 1)
+
+        val symbol: T
 
         override def derive(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) = if (pointer == 0) derive0(grammar) else (Set(), Set())
         def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl])
+        def lifted: AtomicNontermKernel[T]
     }
-    trait NonAtomicNontermKernel[T <: NonAtomicSymbol with Nonterm] extends NontermKernel[T] {
-        val pointer: Int
+    sealed trait NonAtomicNontermKernel[+T <: NonAtomicSymbol with Nonterm] extends NontermKernel[T] {
+        val symbol: T
         def lifted(before: ParsedSymbolsSeq[T], accepted: ParseNode[Symbol]): (NonAtomicNontermKernel[T], ParsedSymbolsSeq[T])
     }
 
@@ -164,7 +170,8 @@ object Kernels {
         val derivable = pointer < symbol.seq.size
         val finishable = pointer == symbol.seq.size
     }
-    case class RepeatBoundedKernel(symbol: RepeatBounded, pointer: Int) extends NonAtomicNontermKernel[RepeatBounded] {
+    trait RepeatKernel[T <: Repeat] extends NonAtomicNontermKernel[T]
+    case class RepeatBoundedKernel(symbol: RepeatBounded, pointer: Int) extends RepeatKernel[RepeatBounded] {
         assert(0 <= pointer && pointer <= symbol.upper)
         def lifted(before: ParsedSymbolsSeq[RepeatBounded], accepted: ParseNode[Symbol]): (RepeatBoundedKernel, ParsedSymbolsSeq[RepeatBounded]) =
             (RepeatBoundedKernel(symbol, pointer + 1), before.appendContent(accepted))
@@ -174,7 +181,7 @@ object Kernels {
         val derivable = pointer < symbol.upper
         val finishable = pointer >= symbol.lower
     }
-    case class RepeatUnboundedKernel(symbol: RepeatUnbounded, pointer: Int) extends NonAtomicNontermKernel[RepeatUnbounded] {
+    case class RepeatUnboundedKernel(symbol: RepeatUnbounded, pointer: Int) extends RepeatKernel[RepeatUnbounded] {
         assert(0 <= pointer && pointer <= symbol.lower)
         def lifted(before: ParsedSymbolsSeq[RepeatUnbounded], accepted: ParseNode[Symbol]): (RepeatUnboundedKernel, ParsedSymbolsSeq[RepeatUnbounded]) =
             (RepeatUnboundedKernel(symbol, if (pointer < symbol.lower) pointer + 1 else pointer), before.appendContent(accepted))
@@ -183,5 +190,20 @@ object Kernels {
 
         val derivable = true
         val finishable = pointer >= symbol.lower
+    }
+
+    implicit class ShortString(k: Kernel) {
+        def toShortString: String = {
+            (k match {
+                case EmptyKernel => "ε *"
+                case k: AtomicKernel[_] =>
+                    (if (k.derivable) "* " else "") + (k.symbol.toShortString) + (if (k.finishable) " *" else "") ensuring (k.derivable != k.finishable)
+                case SequenceKernel(symbol, pointer) =>
+                    val (past, future) = symbol.seq.splitAt(pointer)
+                    (((past map { _.toShortString }) :+ "*") ++ (future map { _.toShortString })) mkString " "
+                case k: RepeatKernel[_] =>
+                    (if (k.derivable) "* " else "") + (k.symbol.toShortString) + (if (k.finishable) " *" else "")
+            })
+        }
     }
 }

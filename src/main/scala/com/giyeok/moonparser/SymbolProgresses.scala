@@ -6,42 +6,18 @@ trait SymbolProgresses {
     import Symbols._
     import Inputs._
     import ParseTree._
+    import Kernels._
 
-    abstract sealed class SymbolProgress {
-        val symbol: Symbol
+    sealed trait SymbolProgress {
+        val kernel: Kernel
         val derivedGen: Int
         val lastLiftedGen: Option[Int]
         val parsed: Option[ParseNode[Symbol]]
-        def canFinish = parsed.isDefined
-
-        // val kernel: Kernel
 
         val id = SymbolProgress.getId(this)
-        def toShortString = this.toShortString1
 
+        def toShortString = s"(${kernel.toShortString}, $derivedGen-$lastLiftedGen, ${parsed map { _.toShortString }})"
         override def toString = toShortString
-    }
-    abstract sealed class SymbolProgressTerminal extends SymbolProgress {
-        override val symbol: Terminal
-        def proceedTerminal(gen: Int, next: Input): Option[SymbolProgressTerminal]
-    }
-    abstract sealed class SymbolProgressNonterminal extends SymbolProgress {
-        override val symbol: Nonterm
-        override val parsed: Option[ParseNode[Nonterm]]
-        /*
-         * `derive` and `lift` are opposite operations in a way
-         * When the nodes created from `derive` are finished,
-         * the finished nodes will be transferred to the origin node via `lift` method
-         */
-        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter])
-        def lift(gen: Int, source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = (NontermLifting(this, lift0(gen, source), source, None, edge), Set())
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal
-    }
-    case class EmptyProgress(derivedGen: Int) extends SymbolProgress {
-        val symbol = Empty
-        val parsed = Some(ParsedEmpty(symbol))
-        val lastLiftedGen: Option[Int] = Some(derivedGen)
-        // val kernel = Kernel(symbol, 0)
     }
     object SymbolProgress {
         private var cache: Map[SymbolProgress, Int] = Map()
@@ -56,237 +32,74 @@ trait SymbolProgresses {
             }
         }
 
-        def apply(symbol: Symbol, gen: Int): SymbolProgress = symbol match {
-            case symbol: Terminal => TerminalProgress(symbol, gen, None, None)
-            case Empty => EmptyProgress(gen)
-            case symbol: Nonterminal => NonterminalProgress(symbol, gen, None, None)
-            case symbol: Sequence => SequenceProgress(symbol, gen, None, false, ParsedSymbolsSeq[Sequence](symbol, List(), List()))
-            case symbol: OneOf => OneOfProgress(symbol, gen, None, None)
-            case symbol: Except => ExceptProgress(symbol, gen, None, None)
-            case symbol: LookaheadExcept => LookaheadExceptProgress(symbol, gen, None, None)
-            case symbol: RepeatBounded => RepeatBoundedProgress(symbol, gen, None, ParsedSymbolsSeq[RepeatBounded](symbol, List(), List()))
-            case symbol: RepeatUnbounded => RepeatUnboundedProgress(symbol, gen, None, ParsedSymbolsSeq[RepeatUnbounded](symbol, List(), List()))
-            case symbol: Backup => BackupProgress(symbol, gen, None, None)
-            case symbol: Join => JoinProgress(symbol, gen, None, None)
-            case symbol: Proxy => ProxyProgress(symbol, gen, None, None)
-            case symbol: Longest => LongestProgress(symbol, gen, None, None)
-            case symbol: EagerLongest => EagerLongestProgress(symbol, gen, None, None)
+        def apply(kernel: NontermKernel[Nonterm], gen: Int): NonterminalSymbolProgress = kernel match {
+            case kernel: AtomicNontermKernel[_] => AtomicSymbolProgress(kernel, gen, None, None)
+            case kernel: NonAtomicNontermKernel[_] => NonAtomicSymbolProgress(kernel, gen, None, ParsedSymbolsSeq(kernel.symbol, List(), List()))
+        }
+        def apply(kernel: Kernel, gen: Int): SymbolProgress = kernel match {
+            case EmptyKernel => EmptySymbolProgress(gen)
+            case kernel: TerminalKernel => TerminalSymbolProgress(kernel, gen, None, None)
+            case kernel: NontermKernel[Nonterm] => SymbolProgress(kernel, gen)
         }
     }
 
-    case class TerminalProgress(symbol: Terminal, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedTerminal])
-            extends SymbolProgressTerminal {
-        def proceedTerminal(gen: Int, next: Input) = {
-            assert(parsed.isEmpty)
-            if (symbol accept next) Some(TerminalProgress(symbol, derivedGen, Some(gen), Some(ParsedTerminal(symbol, next))))
+    case class EmptySymbolProgress(derivedGen: Int) extends SymbolProgress {
+        val kernel = EmptyKernel
+        val lastLiftedGen = Some(derivedGen)
+        val parsed = Some(ParsedEmpty(Empty))
+    }
+
+    case class TerminalSymbolProgress(kernel: TerminalKernel, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedTerminal]) extends SymbolProgress {
+        def proceedTerminal(gen: Int, next: Input): Option[TerminalSymbolProgress] =
+            if (kernel.symbol accept next) Some(TerminalSymbolProgress(kernel.lifted, derivedGen, Some(gen), Some(ParsedTerminal(kernel.symbol, next))))
             else None
-        }
-        // val kernel = Kernel(symbol, if (parsed.isDefined) 1 else 0)
     }
 
-    case class NonterminalProgress(symbol: Nonterminal, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[Nonterminal]])
-            extends SymbolProgressNonterminal {
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
-            // assuming grammar rules have a rule for symbol.name
-            assert(grammar.rules(symbol.name) contains source.symbol)
-            assert(source.parsed.isDefined)
-            NonterminalProgress(symbol, derivedGen, Some(gen), Some(ParsedSymbol[Nonterminal](symbol, source.parsed.get)))
-        }
-        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
-            if (parsed.isEmpty) (grammar.rules(symbol.name) map { s => SimpleEdge(this, SymbolProgress(s, gen)) }, Set())
-            else (Set(), Set())
+    trait NonterminalSymbolProgress extends SymbolProgress {
+        val kernel: NontermKernel[Nonterm]
 
-        // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
-    }
+        assert(kernel.finishable == parsed.isDefined)
 
-    case class SequenceProgress(symbol: Sequence, derivedGen: Int, lastLiftedGen: Option[Int], wsAcceptable: Boolean, _parsed: ParsedSymbolsSeq[Sequence])
-            extends SymbolProgressNonterminal {
-        val locInSeq = _parsed.childrenSize
-        assert(locInSeq <= symbol.seq.size)
-
-        override def canFinish = (locInSeq == symbol.seq.size)
-        val parsed = if (canFinish) Some(_parsed) else None
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
-            assert(source.parsed.isDefined)
-            val next = source.parsed.get
-            val _wsAcceptable = !(next.isInstanceOf[ParsedEmpty[_]]) // && wsAcceptable
-            if (source.symbol == symbol.seq(locInSeq)) {
-                SequenceProgress(symbol, derivedGen, Some(gen), _wsAcceptable, _parsed.appendContent(next))
-            } else {
-                // Whitespace
-                SequenceProgress(symbol, derivedGen, Some(gen), _wsAcceptable, _parsed.appendWhitespace(next))
+        def derive(grammar: Grammar, gen: Int): (Set[DeriveEdge], Set[Reverter]) = {
+            def concretizeEdge(tmpl: EdgeTmpl): DeriveEdge = tmpl match {
+                case SimpleEdgeTmpl(start, end) =>
+                    SimpleEdge(SymbolProgress(start, gen), SymbolProgress(end, gen))
+                case JoinEdgeTmpl(start, end, join, endJoinSwitched) =>
+                    JoinEdge(new JoinSymbolProgress(start, gen, None, None), SymbolProgress(end, gen), SymbolProgress(join, gen), endJoinSwitched)
             }
+            val (edgeTmpls, reverterTmpls) = kernel.derive(grammar)
+            val edges: Set[DeriveEdge] = edgeTmpls map { concretizeEdge _ }
+            val reverters: Set[Reverter] = reverterTmpls map {
+                _ match {
+                    case LiftTriggeredTempLiftBlockTmpl(trigger, target) =>
+                        LiftTriggeredTempLiftBlockReverter(SymbolProgress(trigger, gen), SymbolProgress(target, gen))
+                    case LiftTriggeredDeriveReverterTmpl(trigger, target) =>
+                        LiftTriggeredDeriveReverter(SymbolProgress(trigger, gen), SimpleEdge(SymbolProgress(target.start, gen), SymbolProgress(target.end, gen)))
+                    case ReservedLiftTriggeredLiftedNodeReverterTmpl(trigger) =>
+                        ReservedLiftTriggeredNodeKillReverter(SymbolProgress(trigger, gen))
+                    case ReservedAliveTriggeredLiftedNodeReverterTmpl(trigger) =>
+                        ReservedAliveTriggeredNodeKillReverter(SymbolProgress(trigger, gen))
+                }
+            }
+            (edges, reverters)
         }
-        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
-            if (locInSeq < symbol.seq.size) {
-                val elemDerive = SimpleEdge(this, SymbolProgress(symbol.seq(locInSeq), gen))
-                if (wsAcceptable) {
-                    val wsDerive = (symbol.whitespace map { s => SimpleEdge(this, SymbolProgress(s, gen)) })
-                    ((wsDerive + elemDerive).asInstanceOf[Set[DeriveEdge]], Set())
-                } else (Set(elemDerive), Set())
-            } else (Set(), Set())
 
-        // val kernel = Kernel(symbol, locInSeq)
+        def lift(gen: Int, accepted: ParseNode[Symbol]): NonterminalSymbolProgress
     }
 
-    case class OneOfProgress(symbol: OneOf, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[OneOf]])
-            extends SymbolProgressNonterminal {
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
-            assert(symbol.syms contains source.symbol)
-            assert(source.parsed.isDefined)
-            OneOfProgress(symbol, derivedGen, Some(gen), Some(ParsedSymbol[OneOf](symbol, source.parsed.get)))
-        }
-        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
-            if (parsed.isEmpty) (symbol.syms map { s => SimpleEdge(this, SymbolProgress(s, gen)) }, Set())
-            else (Set(), Set())
-        // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
+    case class AtomicSymbolProgress[T <: AtomicSymbol with Nonterm](kernel: AtomicNontermKernel[T], derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[T]]) extends NonterminalSymbolProgress {
+        def lift(gen: Int, accepted: ParseNode[Symbol]) = AtomicSymbolProgress[T](kernel.lifted, derivedGen, Some(gen), Some(ParsedSymbol[T](kernel.symbol, accepted)))
     }
 
-    case class RepeatBoundedProgress(symbol: RepeatBounded, derivedGen: Int, lastLiftedGen: Option[Int], _parsed: ParsedSymbolsSeq[RepeatBounded])
-            extends SymbolProgressNonterminal {
-        val canDerive = _parsed.childrenSize < symbol.upper
-        val parsed = if (_parsed.childrenSize >= symbol.lower) { if (_parsed.childrenSize == 0) Some(ParsedEmpty(symbol)) else Some(_parsed) } else None
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
-            assert(_parsed.childrenSize < symbol.upper)
-            assert(source.parsed.isDefined)
-            assert(source.symbol == symbol.sym)
-            RepeatBoundedProgress(symbol, derivedGen, Some(gen), _parsed.appendContent(source.parsed.get))
+    class JoinSymbolProgress(kernel: JoinKernel, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbolJoin]) extends AtomicSymbolProgress[Join](kernel, derivedGen, lastLiftedGen, parsed) {
+        override def lift(gen: Int, accepted: ParseNode[Symbol]) = {
+            throw new AssertionError("JoinSymbolProgress.lift should not be called")
         }
-        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
-            if (canDerive) (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set())
-            else (Set(), Set())
-
-        // val kernel = Kernel(symbol, _children.size)
+        def liftJoin(gen: Int, accepted: ParseNode[Symbol], constraint: ParseNode[Symbol]): JoinSymbolProgress =
+            new JoinSymbolProgress(kernel.lifted, derivedGen, Some(gen), Some(new ParsedSymbolJoin(kernel.symbol, accepted, constraint)))
     }
 
-    case class RepeatUnboundedProgress(symbol: RepeatUnbounded, derivedGen: Int, lastLiftedGen: Option[Int], _parsed: ParsedSymbolsSeq[RepeatUnbounded])
-            extends SymbolProgressNonterminal {
-        val parsed = if (_parsed.childrenSize >= symbol.lower) { if (_parsed.childrenSize == 0) Some(ParsedEmpty(symbol)) else Some(_parsed) } else None
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
-            assert(source.parsed.isDefined)
-            assert(source.symbol == symbol.sym)
-            RepeatUnboundedProgress(symbol, derivedGen, Some(gen), _parsed.appendContent(source.parsed.get))
-        }
-        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) = (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set())
-
-        // val kernel = Kernel(symbol, if (!canFinish) 0 else 1)
-    }
-
-    case class ExceptProgress(symbol: Except, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[Except]])
-            extends SymbolProgressNonterminal {
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
-            // assassin edge will take care of except progress
-            assert(source.parsed.isDefined)
-            assert(source.symbol == symbol.sym)
-            ExceptProgress(symbol, derivedGen, Some(gen), Some(ParsedSymbol[Except](symbol, source.parsed.get)))
-        }
-        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
-            if (parsed.isEmpty) {
-                assert(derivedGen == gen)
-                (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))),
-                    Set(LiftTriggeredTemporaryLiftBlockReverter(SymbolProgress(symbol.except, gen), this)))
-            } else (Set(), Set())
-        // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
-    }
-
-    case class LookaheadExceptProgress(symbol: LookaheadExcept, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedEmpty[LookaheadExcept]]) extends SymbolProgressNonterminal {
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
-            assert(source.isInstanceOf[EmptyProgress])
-            LookaheadExceptProgress(symbol, derivedGen, Some(gen), Some(ParsedEmpty[LookaheadExcept](symbol)))
-        }
-        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
-            if (parsed.isEmpty) {
-                assert(derivedGen == gen)
-                val edge = SimpleEdge(this, SymbolProgress(Empty, gen))
-                (Set(edge), Set(LiftTriggeredDeriveReverter(SymbolProgress(symbol.except, gen), edge)))
-            } else (Set(), Set())
-        // derive는 그냥 SimpleEdge만 주고, lift에서 LiftTriggeredLiftReverter를 줘도 동일 효과가 날듯
-        // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
-    }
-
-    case class ProxyProgress(symbol: Proxy, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[Proxy]]) extends SymbolProgressNonterminal {
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = ProxyProgress(symbol, derivedGen, Some(gen), Some(ParsedSymbol[Proxy](symbol, source.parsed.get)))
-        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
-            if (!parsed.isEmpty) (Set(), Set())
-            else (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set())
-        // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
-    }
-
-    case class BackupProgress(symbol: Backup, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[Backup]])
-            extends SymbolProgressNonterminal {
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = {
-            BackupProgress(symbol, derivedGen, Some(gen), Some(ParsedSymbol[Backup](symbol, source.parsed.get)))
-        }
-        def derive(gen: Int): (Set[DeriveEdge], Set[PreReverter]) =
-            if (parsed.isEmpty) {
-                assert(derivedGen == gen)
-                val symP = SymbolProgress(symbol.sym, gen)
-                val bkEdge = SimpleEdge(this, SymbolProgress(symbol.backup, gen))
-                (Set(SimpleEdge(this, symP), bkEdge), Set(LiftTriggeredDeriveReverter(symP, bkEdge)))
-            } else (Set(), Set())
-        // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
-    }
-
-    case class JoinProgress(symbol: Join, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbolJoin]) extends SymbolProgressNonterminal {
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = ??? // should never be called
-        def liftJoin(gen: Int, source: SymbolProgress, constraint: SymbolProgress, edge: JoinEdge): Lifting = {
-            assert(source.parsed.isDefined)
-            assert(constraint.parsed.isDefined)
-            val after = JoinProgress(symbol, derivedGen, Some(gen), Some(ParsedSymbolJoin(symbol, source.parsed.get, constraint.parsed.get)))
-            NontermLifting(this, after, source, Some(constraint), edge)
-        }
-        def derive(gen: Int) =
-            if (parsed.isEmpty) (Set(
-                JoinEdge(this, SymbolProgress(symbol.sym, gen), SymbolProgress(symbol.join, gen), false),
-                JoinEdge(this, SymbolProgress(symbol.join, gen), SymbolProgress(symbol.sym, gen), true)), Set())
-            else (Set(), Set())
-        // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
-    }
-
-    case class LongestProgress(symbol: Longest, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[Longest]]) extends SymbolProgressNonterminal {
-        override def lift(gen: Int, source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = {
-            val lifting = NontermLifting(this, lift0(gen, source), source, None, edge)
-            (lifting, Set(LiftTriggeredLiftReverter(this, lifting)))
-        }
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = LongestProgress(symbol, derivedGen, Some(gen), Some(ParsedSymbol[Longest](symbol, source.parsed.get)))
-        def derive(gen: Int) = if (parsed.isEmpty) (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set()) else (Set(), Set())
-        // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
-    }
-
-    case class EagerLongestProgress(symbol: EagerLongest, derivedGen: Int, lastLiftedGen: Option[Int], parsed: Option[ParsedSymbol[EagerLongest]]) extends SymbolProgressNonterminal {
-        override def lift(gen: Int, source: SymbolProgress, edge: DeriveEdge): (Lifting, Set[PreReverter]) = {
-            val lifting = NontermLifting(this, lift0(gen, source), source, None, edge)
-            (lifting, Set(AliveTriggeredLiftReverter(this, lifting)))
-        }
-        def lift0(gen: Int, source: SymbolProgress): SymbolProgressNonterminal = EagerLongestProgress(symbol, derivedGen, Some(gen), Some(ParsedSymbol[EagerLongest](symbol, source.parsed.get)))
-        def derive(gen: Int) = if (parsed.isEmpty) (Set(SimpleEdge(this, SymbolProgress(symbol.sym, gen))), Set()) else (Set(), Set())
-        // val kernel = Kernel(symbol, if (canFinish) 1 else 0)
-    }
-
-    implicit class ShortStringProgresses(prog: SymbolProgress) {
-        def toShortString1: String = toShortString
-        def toShortString: String = {
-            def locate[T](parsed: Option[T], s: String) = if (parsed.isEmpty) ("* " + s) else (s + " *")
-            prog.id + " " + (prog match {
-                case EmptyProgress(_) => "ε *"
-                case TerminalProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-                case NonterminalProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-                case seq: SequenceProgress =>
-                    val ls: (Seq[String], Seq[String]) = seq.symbol.seq map { _.toShortString } splitAt seq.locInSeq
-                    "(" + (((ls._1 ++ ("*" +: ls._2)) ++ (if ((!ls._2.isEmpty) && seq.canFinish) Seq("*") else Seq())) mkString " ") + ")"
-                case OneOfProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-                case ExceptProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-                case rep @ RepeatBoundedProgress(symbol, _, _, _children) =>
-                    (if (rep.canDerive) "* " else "") + symbol.toShortString + (if (rep.canFinish) " *" else "")
-                case rep @ RepeatUnboundedProgress(symbol, _, _, _children) =>
-                    "* " + symbol.toShortString + (if (rep.canFinish) " *" else "")
-                case LookaheadExceptProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-                case ProxyProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-                case BackupProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-                case JoinProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-                case LongestProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-                case EagerLongestProgress(symbol, _, _, parsed) => locate(parsed, symbol.toShortString)
-            })
-        }
+    case class NonAtomicSymbolProgress[T <: NonAtomicSymbol with Nonterm](kernel: NonAtomicNontermKernel[T], derivedGen: Int, lastLiftedGen: Option[Int], _parsed: ParsedSymbolsSeq[T]) extends NonterminalSymbolProgress {
+        val parsed = if (kernel.finishable) Some(_parsed) else None
     }
 }

@@ -33,7 +33,11 @@ object ParseTree {
         def appendContent(child: ParseNode[Symbol]): ParsedSymbolsSeq[T] =
             ParsedSymbolsSeq[T](symbol, child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
     }
-    case class ParsedSymbolJoin(symbol: Join, body: ParseNode[Symbol], constraint: ParseNode[Symbol]) extends ParseNode[Join]
+    class ParsedSymbolJoin(symbol: Join, body: ParseNode[Symbol], val constraint: ParseNode[Symbol]) extends ParsedSymbol[Join](symbol, body)
+    object ParsedSymbolJoin {
+        def unapply(j: ParsedSymbolJoin): Option[(Join, ParseNode[Symbol], ParseNode[Symbol])] =
+            Some((j.symbol, j.body, j.constraint))
+    }
 
     object HorizontalTreeStringSeqUtil {
         def merge(list: Seq[(Int, Seq[String])]): (Int, Seq[String]) = {
@@ -48,7 +52,7 @@ object ParseTree {
             mergedList ensuring (mergedList._2.forall(_.length == mergedList._1))
         }
     }
-    implicit class TreePrintableParseNode(node: ParseNode[Symbol]) {
+    implicit class ShortString(node: ParseNode[Symbol]) {
         def toShortString: String = node match {
             case ParsedEmpty(sym) => s"${sym.toShortString}()"
             case ParsedTerminal(sym, child) => s"${sym.toShortString}(${child.toShortString})"
@@ -56,6 +60,8 @@ object ParseTree {
             case s @ ParsedSymbolsSeq(_, _, _) => s"${s.symbol.toShortString}(${s.children map { _.toShortString } mkString "/"})"
             case ParsedSymbolJoin(sym, body, join) => s"${sym.toShortString}(${body.toShortString})"
         }
+    }
+    implicit class TreePrintableParseNode(node: ParseNode[Symbol]) {
         def printTree(): Unit = println(toTreeString("", "  "))
         def toTreeString(indent: String, indentUnit: String): String = node match {
             case ParsedEmpty(sym) =>
@@ -105,6 +111,11 @@ object ParseTree {
                     val symbolic = sym.toShortString
                     val finlen = math.max(actual.length, symbolic.length)
                     (finlen, Seq(centerize(actual, finlen), centerize(symbolic, finlen)))
+                case ParsedSymbolJoin(sym, body, join) =>
+                    val actual = body.toHorizontalHierarchyStringSeq
+                    val actualJoin = join.toHorizontalHierarchyStringSeq
+                    val symbolic = sym.toShortString
+                    appendBottom(actual, sym.toShortString)
                 case ParsedSymbol(sym, body) =>
                     val actual = body.toHorizontalHierarchyStringSeq
                     val symbolic = sym.toShortString
@@ -118,11 +129,6 @@ object ParseTree {
                         val list: Seq[(Int, Seq[String])] = body map { _.toHorizontalHierarchyStringSeq }
                         appendBottom(HorizontalTreeStringSeqUtil.merge(list), sym.toShortString)
                     }
-                case ParsedSymbolJoin(sym, body, join) =>
-                    val actual = body.toHorizontalHierarchyStringSeq
-                    val actualJoin = join.toHorizontalHierarchyStringSeq
-                    val symbolic = sym.toShortString
-                    appendBottom(actual, sym.toShortString)
             }
             result ensuring (result._2.forall(_.length == result._1))
         }
