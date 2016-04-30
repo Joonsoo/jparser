@@ -262,19 +262,22 @@ trait ParsingContextGraphVisualize {
         }
     }
 
-    graph.addMouseListener(new MouseAdapter() {
+    def nodesAt(ex: Int, ey: Int): Seq[Parser#SymbolProgress] = {
         import scala.collection.JavaConversions._
 
+        val (x, y) = (ex + graph.getHorizontalBar().getSelection(), ey + graph.getVerticalBar().getSelection())
+        println(graph.getFigureAt(x, y))
+
+        val selectedNodeData = graph.getNodes.toList collect {
+            case n: GraphNode if n != null && n.getNodeFigure() != null && n.getNodeFigure().containsPoint(x, y) => n.getData
+        }
+        selectedNodeData collect { case node: Parser#SymbolProgress => node }
+    }
+
+    graph.addMouseListener(new MouseAdapter() {
         override def mouseDoubleClick(e: MouseEvent): Unit = {
             println("ClickedFigure:")
-            val (x, y) = (e.x + graph.getHorizontalBar().getSelection(), e.y + graph.getVerticalBar().getSelection())
-            println(graph.getFigureAt(x, y))
-
-            val selectedNodeData = graph.getNodes.toList collect {
-                case n: GraphNode if n != null && n.getNodeFigure() != null && n.getNodeFigure().containsPoint(x, y) => n.getData
-            }
-            val selectedNodes = selectedNodeData collect { case node: Parser#SymbolProgress => node }
-            selectedNodes foreach { node =>
+            nodesAt(e.x, e.y) foreach { node =>
                 import org.eclipse.swt.widgets._
                 val shell = new Shell(Display.getDefault())
                 shell.setLayout(new FillLayout())

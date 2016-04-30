@@ -43,6 +43,7 @@ import org.eclipse.swt.layout.FillLayout
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.Kernels
 import com.giyeok.jparser.Symbols._
+import java.awt.MouseInfo
 
 class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Display, shell: Shell, resources: ParseGraphVisualizer.Resources) {
     case class VisualizationLocation(location: Int, showResult: Boolean) {
@@ -177,6 +178,12 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
     graphView.setLayout(layout)
     graphView.setLayoutData(new GridData(GridData.FILL_BOTH))
 
+    def blockedPrint(title: String)(block: => Unit): Unit = {
+        println(s"======= $title =======")
+        block
+        println(("=" * (s"======= $title =======").length) mkString "")
+    }
+
     def keyListener = new KeyListener() {
         def keyPressed(x: KeyEvent): Unit = {
             x.keyCode match {
@@ -205,25 +212,46 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualizeWidget =>
                             val analyzedCtx = new parser.AnalyzedParsingContext(v.context.asInstanceOf[parser.ParsingContext])
-                            println(s"=== IPN of ${v.context.gen} ===")
-                            val ipnsByKernel: Seq[(Kernels.NonAtomicNontermKernel[NonAtomicSymbol with Nonterm], Set[parser.NonAtomicSymbolProgress[NonAtomicSymbol with Nonterm]])] = analyzedCtx.ipnsByKernel.toSeq
-                            ipnsByKernel sortBy { _._1.symbol.id } foreach { kv =>
-                                val (kernel, nodes) = kv
-                                println(s"  ${kernel.toShortString} -> ${nodes map { _.id }}")
-                                (nodes groupBy { n => (n.derivedGen, n.lastLiftedGen) }).toSeq sortBy { _._1 } foreach { kv =>
-                                    val (cover, nodes) = kv
-                                    println(s"    ${cover} -> (${nodes.size}) ${nodes map { _.id }}")
+                            blockedPrint(s"IPN of ${v.context.gen}") {
+                                val ipnsByKernel: Seq[(Kernels.NonAtomicNontermKernel[NonAtomicSymbol with Nonterm], Set[parser.NonAtomicSymbolProgress[NonAtomicSymbol with Nonterm]])] = analyzedCtx.ipnsByKernel.toSeq
+                                ipnsByKernel sortBy { _._1.symbol.id } foreach { kv =>
+                                    val (kernel, nodes) = kv
+                                    println(s"  ${kernel.toShortString} -> ${nodes map { _.id }}")
+                                    (nodes groupBy { n => (n.derivedGen, n.lastLiftedGen) }).toSeq sortBy { _._1 } foreach { kv =>
+                                        val (cover, nodes) = kv
+                                        println(s"    ${cover} -> (${nodes.size}) ${nodes map { _.id }}")
+                                    }
                                 }
                             }
-                            println(s"================")
                         case _ => // nothing to do
                     }
                 case 'x' | 'X' =>
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualizeWidget =>
-                            println("======= Possible input groups =======")
-                            new parser.AnalyzedParsingContext(v.context.asInstanceOf[parser.ParsingContext]).termGroups foreach { d => println(d.toShortString) }
-                            println("=====================================")
+                            blockedPrint("Possible input groups") {
+                                new parser.AnalyzedParsingContext(v.context.asInstanceOf[parser.ParsingContext]).termGroups foreach { d => println(d.toShortString) }
+                            }
+                    }
+                case 'c' | 'C' =>
+                    graphAt(currentLocation) match {
+                        case v: ParsingContextGraphVisualizeWidget =>
+                            val point = v.toControl(Display.getDefault.getCursorLocation)
+                            val pointedNodes = v.nodesAt(point.x, point.y)
+                            pointedNodes foreach { pointedNode =>
+                                val actx = new parser.AnalyzedParsingContext(v.context.asInstanceOf[parser.ParsingContext])
+                                pointedNode match {
+                                    case pointedNode: Parser#NonterminalNode =>
+                                        blockedPrint(s"Cycles from ${pointedNode.toShortString}") {
+                                            actx.cyclesFrom(pointedNode.kernel) foreach { kv =>
+                                                println(s"${kv._1.toShortString}")
+                                                kv._2 foreach { cycle =>
+                                                    println(s"  ${cycle map { _.toShortString } mkString ", "}")
+                                                }
+                                            }
+                                        }
+                                    case _ =>
+                                }
+                            }
                     }
                 case code =>
                     println(s"keyPressed: $code")

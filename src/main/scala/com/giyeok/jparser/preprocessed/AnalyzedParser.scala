@@ -53,6 +53,46 @@ class AnalyzedParser(grammar: Grammar) extends Parser(grammar) {
 
             charTermGroups ++ virtTermGroups
         }
+
+        def cyclesFrom(kernel: NontermKernel[Nonterm]): Map[Kernel, Set[Seq[Kernel]]] = {
+            def cycles(kernel: Kernel, path: Seq[Kernel], cc: Map[Kernel, Set[Seq[Kernel]]]): Map[Kernel, Set[Seq[Kernel]]] = {
+                kernel match {
+                    case kernel: NontermKernel[Nonterm] =>
+                        val idx = path indexOf kernel
+                        if (idx >= 0) {
+                            assert(path(idx) == kernel)
+                            cc + (kernel -> (cc.get(kernel).getOrElse(Set()) + path.slice(idx + 1, path.length)))
+                        } else {
+                            val (edges, reverters) = kernel.derive(grammar)
+                            edges.foldLeft(cc) { (cc, edge) =>
+                                edge match {
+                                    case SimpleEdgeTmpl(next) =>
+                                        cycles(next, path :+ kernel, cc)
+                                    case JoinEdgeTmpl(next, join, _) =>
+                                        cycles(next, path :+ kernel, cycles(join, path :+ kernel, cc))
+                                }
+                            }
+                        }
+                    case _ => cc
+                }
+            }
+            cycles(kernel, Seq(), Map())
+        }
+
+        def reachable(kernel: NontermKernel[Nonterm], terminals: Set[TerminalNode]): OriginExpand = {
+            val cycles = cyclesFrom(kernel)
+            ???
+        }
+
+        def actionFor(termGroup: TermGroupDesc): PreprocessedParserSpec.KernelSetAction = {
+            assert(termGroups contains termGroup)
+            val activatedTerminals = ctx.terminalNodes filter { _.kernel.symbol.accept(AbstractInput(termGroup)) }
+            // 각 ipn에서 activatedTerminals로 도달하는 subgraph들을 추려서 OriginExpand를 만든다
+            ipns map { ipn =>
+                reachable(ipn.kernel, activatedTerminals)
+            }
+            ???
+        }
     }
 
     // TODO 구체적인 Node 없이 Kernel로만 derive하는 것도 만들어야겠다

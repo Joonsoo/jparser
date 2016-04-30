@@ -38,14 +38,15 @@ class PreprocessedParser(spec: PreprocessedParserSpec) {
         }
     }
 
-    case class ProgGraph(tips: Seq[ProgGraphNode]) {
+    case class ProgGraph(tips: Seq[ProgNode]) {
 
     }
 
-    case class ProgGraphNode(parent: Option[ProgGraphNode], kernel: Kernel, parsed: Seq[ParseNode[Symbol]], cycled: Seq[Seq[Symbol]]) {
+    // TODO reverter
+    case class ProgNode(parent: Option[ProgNode], kernel: Kernel, parsed: Seq[ParseNode[Symbol]], cycled: Seq[Seq[Symbol]]) {
     }
 
     val startingContext = Context(
         KernelSet(Set(spec.startingKernel)),
-        ProgGraph(Seq(ProgGraphNode(None, spec.startingKernel, Seq(), Seq()))))
+        ProgGraph(Seq(ProgNode(None, spec.startingKernel, Seq(), Seq()))))
 }
