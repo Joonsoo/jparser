@@ -12,21 +12,36 @@ import com.giyeok.jparser.Inputs._
 import com.giyeok.jparser.Kernels._
 import com.giyeok.jparser.ParseTree._
 import PreprocessedParserSpec._
+import DerivationGraph._
 
-class AnalyzedParser(grammar: Grammar) extends Parser(grammar) {
+class ParserPreprocessor(grammar: Grammar) {
     type IPNSymbol = NonAtomicSymbol with Nonterm
 
-    val ctx0 = initialContext
+    object AbstractParsingContext {
+        def ipnsOf(ctx: Parser#ParsingContext): Set[Parser#NonAtomicSymbolProgress[IPNSymbol]] = ctx.allProceededEdges map { _.end.asInstanceOf[Parser#NonAtomicSymbolProgress[IPNSymbol]] }
+        def ipnsByKernelOf(ctx: Parser#ParsingContext): Map[NonAtomicNontermKernel[IPNSymbol], Set[Parser#NonAtomicSymbolProgress[IPNSymbol]]] = ipnsOf(ctx) groupBy { _.kernel }
 
-    class AnalyzedParsingContext(val ctx: ParsingContext) {
-        val ipns: Set[NonAtomicSymbolProgress[IPNSymbol]] = ctx.allProceededEdges map { _.end.asInstanceOf[NonAtomicSymbolProgress[IPNSymbol]] }
-        val ipnsByKernel: Map[NonAtomicNontermKernel[IPNSymbol], Set[NonAtomicSymbolProgress[IPNSymbol]]] = ipns groupBy { _.kernel }
-        val kernelSet = ipnsByKernel.keySet
+        def fromParsingContext(ctx: Parser#ParsingContext): AbstractParsingContext = new AbstractParsingContext((ipnsOf(ctx) map { _.kernel }).asInstanceOf[Set[NontermKernel[Nonterm]]])
+    }
+    class AbstractParsingContext(kernelSet: Set[NontermKernel[Nonterm]]) {
+        lazy val derivationGraph: Nothing = {
+            val cyclesMap: Map[Kernel, Map[Kernel, Set[Seq[Kernel]]]] = (kernelSet map { kernel => kernel -> cyclesFrom(kernel) }).toMap
+
+            kernelSet map { kernel =>
+                val (edges: Set[EdgeTmpl], reverters: Set[ReverterTmpl]) = kernel.derive(grammar)
+                ???
+            }
+            ???
+        }
+
+        lazy val derivedReverterTriggers: Nothing = ???
+
+        lazy val terminalKernels: Set[TerminalKernel] = ???
 
         lazy val termGroups: Set[TermGroupDesc] = {
             import Symbols.Terminals._
 
-            val terminals = ctx.terminalNodes map { _.kernel.symbol }
+            val terminals = terminalKernels map { _.symbol }
             val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
             val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
 
@@ -55,6 +70,7 @@ class AnalyzedParser(grammar: Grammar) extends Parser(grammar) {
         }
 
         def cyclesFrom(kernel: NontermKernel[Nonterm]): Map[Kernel, Set[Seq[Kernel]]] = {
+            // nullable해서 lift되는 경우가 고려가 안되고 있음 - 고쳐야함
             def cycles(kernel: Kernel, path: Seq[Kernel], cc: Map[Kernel, Set[Seq[Kernel]]]): Map[Kernel, Set[Seq[Kernel]]] = {
                 kernel match {
                     case kernel: NontermKernel[Nonterm] =>
@@ -79,24 +95,13 @@ class AnalyzedParser(grammar: Grammar) extends Parser(grammar) {
             cycles(kernel, Seq(), Map())
         }
 
-        def reachable(kernel: NontermKernel[Nonterm], terminals: Set[TerminalNode]): OriginExpand = {
-            val cycles = cyclesFrom(kernel)
-            ???
-        }
-
-        def actionFor(termGroup: TermGroupDesc): PreprocessedParserSpec.KernelSetAction = {
+        def actionFor(termGroup: TermGroupDesc): KernelSetAction = {
             assert(termGroups contains termGroup)
-            val activatedTerminals = ctx.terminalNodes filter { _.kernel.symbol.accept(AbstractInput(termGroup)) }
+            val activatedTerminals = terminalKernels filter { _.symbol.accept(AbstractInput(termGroup)) }
             // 각 ipn에서 activatedTerminals로 도달하는 subgraph들을 추려서 OriginExpand를 만든다
-            ipns map { ipn =>
-                reachable(ipn.kernel, activatedTerminals)
-            }
             ???
         }
     }
-
-    // TODO 구체적인 Node 없이 Kernel로만 derive하는 것도 만들어야겠다
-    //   - 그래서 얻어낸 Kernel들 중에 TerminalKernel들로 TermGroupDesc를 만들어야지
 
     private val knownKernelSetActions = scala.collection.mutable.Map[KernelSet, Map[TermGroupDesc, Option[KernelSetAction]]]()
     // Option[KernelSetAction]이 None이면 아직 처리를 안했다는 의미

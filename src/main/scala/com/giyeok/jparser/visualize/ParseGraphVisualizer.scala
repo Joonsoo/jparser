@@ -23,7 +23,6 @@ import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.Inputs.InputToShortString
 import com.giyeok.jparser.Parser
-import com.giyeok.jparser.preprocessed.AnalyzedParser
 import org.eclipse.draw2d.geometry.Insets
 import org.eclipse.draw2d.IFigure
 import org.eclipse.draw2d.BorderLayout
@@ -44,6 +43,7 @@ import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.Kernels
 import com.giyeok.jparser.Symbols._
 import java.awt.MouseInfo
+import com.giyeok.jparser.preprocessed.ParserPreprocessor
 
 class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Display, shell: Shell, resources: ParseGraphVisualizer.Resources) {
     case class VisualizationLocation(location: Int, showResult: Boolean) {
@@ -211,9 +211,8 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                 case 'k' | 'K' =>
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualizeWidget =>
-                            val analyzedCtx = new parser.AnalyzedParsingContext(v.context.asInstanceOf[parser.ParsingContext])
+                            val ipnsByKernel = new ParserPreprocessor(grammar).AbstractParsingContext.ipnsByKernelOf(v.context.asInstanceOf[parser.ParsingContext]).toSeq
                             blockedPrint(s"IPN of ${v.context.gen}") {
-                                val ipnsByKernel: Seq[(Kernels.NonAtomicNontermKernel[NonAtomicSymbol with Nonterm], Set[parser.NonAtomicSymbolProgress[NonAtomicSymbol with Nonterm]])] = analyzedCtx.ipnsByKernel.toSeq
                                 ipnsByKernel sortBy { _._1.symbol.id } foreach { kv =>
                                     val (kernel, nodes) = kv
                                     println(s"  ${kernel.toShortString} -> ${nodes map { _.id }}")
@@ -229,7 +228,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualizeWidget =>
                             blockedPrint("Possible input groups") {
-                                new parser.AnalyzedParsingContext(v.context.asInstanceOf[parser.ParsingContext]).termGroups foreach { d => println(d.toShortString) }
+                                preprocessor.AbstractParsingContext.fromParsingContext(v.context).termGroups foreach { d => println(d.toShortString) }
                             }
                     }
                 case 'c' | 'C' =>
@@ -238,7 +237,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                             val point = v.toControl(Display.getDefault.getCursorLocation)
                             val pointedNodes = v.nodesAt(point.x, point.y)
                             pointedNodes foreach { pointedNode =>
-                                val actx = new parser.AnalyzedParsingContext(v.context.asInstanceOf[parser.ParsingContext])
+                                val actx = preprocessor.AbstractParsingContext.fromParsingContext(v.context)
                                 pointedNode match {
                                     case pointedNode: Parser#NonterminalNode =>
                                         blockedPrint(s"Cycles from ${pointedNode.toShortString}") {
@@ -271,7 +270,8 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
     }
     sourceView.addKeyListener(keyListener)
 
-    val parser = new AnalyzedParser(grammar)
+    val parser = new Parser(grammar)
+    val preprocessor = new ParserPreprocessor(grammar)
 
     val finReversed: List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), ParsingError])] =
         source.foldLeft[List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), ParsingError])]](List((Left(parser.initialContext, parser.initialContextVerbose._2)))) { (cl, terminal) =>
