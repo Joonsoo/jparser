@@ -11,6 +11,7 @@ import com.giyeok.moonparser.Symbols._
 import com.giyeok.moonparser.Inputs._
 import com.giyeok.moonparser.Kernels._
 import com.giyeok.moonparser.ParseTree._
+import PreprocessedParserSpec._
 
 class AnalyzedParser(grammar: Grammar) extends Parser(grammar) {
     type IPNSymbol = NonAtomicSymbol with Nonterm
@@ -52,5 +53,19 @@ class AnalyzedParser(grammar: Grammar) extends Parser(grammar) {
 
             charTermGroups ++ virtTermGroups
         }
+    }
+
+    // TODO 구체적인 Node 없이 Kernel로만 derive하는 것도 만들어야겠다
+    //   - 그래서 얻어낸 Kernel들 중에 TerminalKernel들로 TermGroupDesc를 만들어야지
+
+    private val knownKernelSetActions = scala.collection.mutable.Map[KernelSet, Map[TermGroupDesc, Option[KernelSetAction]]]()
+    // Option[KernelSetAction]이 None이면 아직 처리를 안했다는 의미
+
+    def expand0(kernelSet: KernelSet, term: TermGroupDesc): KernelSetAction = {
+        val ksAction: KernelSetAction = ???
+        if (!(knownKernelSetActions contains kernelSet)) {
+            knownKernelSetActions(kernelSet) = ??? // kernelSet으로부터 derive해서 얻어낸 TerminalKernel들로 TermGroupDesc를 구한다
+        }
+        ksAction
     }
 }

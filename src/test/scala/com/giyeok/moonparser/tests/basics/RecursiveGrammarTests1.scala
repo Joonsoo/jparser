@@ -12,7 +12,7 @@ import com.giyeok.moonparser.tests.Samples
 import com.giyeok.moonparser.tests.StringSamples
 
 object RecursiveGrammar1 extends Grammar with StringSamples {
-    val name = "Recursive Grammar 1"
+    val name = "Recursive Grammar 1 (Right Recursion)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(chars('a' to 'z'), seq(chars('a' to 'z'), n("S"))))
     val startSymbol = n("S")
@@ -22,12 +22,24 @@ object RecursiveGrammar1 extends Grammar with StringSamples {
 }
 
 object RecursiveGrammar1_1 extends Grammar with StringSamples {
-    val name = "Recursive Grammar 1-1"
+    val name = "Recursive Grammar 1-1 (Left Recursion)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(chars('a' to 'z'), seq(n("S"), chars('a' to 'z'))))
     val startSymbol = n("S")
 
     val correctSamples = Set("a", "aaa")
+    val incorrectSamples = Set[String]()
+}
+
+object RecursiveGrammar1_2 extends Grammar with StringSamples {
+    val name = "Recursive Grammar 1-2 (Left Recursion 2)"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(c('s'), seq(n("A"), c('s')), seq(n("S"), c('s'))),
+        "A" -> ListSet(c('a'), seq(n("B"), c('a'))),
+        "B" -> ListSet(c('b'), seq(n("S"), c('b'))))
+    val startSymbol = n("S")
+
+    val correctSamples = Set("as", "bas", "sssbas")
     val incorrectSamples = Set[String]()
 }
 
@@ -76,6 +88,7 @@ object RecursiveGrammarSet1 {
     val grammars: Set[Grammar with Samples] = Set(
         RecursiveGrammar1,
         RecursiveGrammar1_1,
+        RecursiveGrammar1_2,
         RecursiveGrammar2,
         RecursiveGrammar3)
 }
