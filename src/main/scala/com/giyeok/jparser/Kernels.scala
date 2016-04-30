@@ -1,4 +1,4 @@
-package com.giyeok.moonparser
+package com.giyeok.jparser
 
 // will be used in Parser and PreprocessedParser
 object Kernels {

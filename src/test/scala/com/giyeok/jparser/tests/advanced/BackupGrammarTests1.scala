@@ -1,11 +1,11 @@
-package com.giyeok.moonparser.tests.advanced
+package com.giyeok.jparser.tests.advanced
 
-import com.giyeok.moonparser.tests.BasicParseTest
-import com.giyeok.moonparser.Grammar
-import com.giyeok.moonparser.tests.Samples
-import com.giyeok.moonparser.tests.StringSamples
+import com.giyeok.jparser.tests.BasicParseTest
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.tests.Samples
+import com.giyeok.jparser.tests.StringSamples
 import scala.collection.immutable.ListMap
-import com.giyeok.moonparser.GrammarHelper._
+import com.giyeok.jparser.GrammarHelper._
 import scala.collection.immutable.ListSet
 
 object BackupGrammar1 extends Grammar with StringSamples {

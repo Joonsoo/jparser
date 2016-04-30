@@ -1,9 +1,9 @@
-package com.giyeok.moonparser.tests.javascript
+package com.giyeok.jparser.tests.javascript
 
-import com.giyeok.moonparser.Grammar
-import com.giyeok.moonparser.tests.Samples
-import com.giyeok.moonparser.tests.BasicParseTest
-import com.giyeok.moonparser.tests.StringSamples
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.tests.Samples
+import com.giyeok.jparser.tests.BasicParseTest
+import com.giyeok.jparser.tests.StringSamples
 
 object JavaScriptTest1 extends Grammar with StringSamples {
     val name = JavaScriptGrammar.name + " (1)"

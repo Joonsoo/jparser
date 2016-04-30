@@ -1,6 +1,6 @@
-package com.giyeok.moonparser.tests
+package com.giyeok.jparser.tests
 
-import com.giyeok.moonparser.Grammar
+import com.giyeok.jparser.Grammar
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.FigureCanvas
@@ -14,12 +14,12 @@ import org.eclipse.swt.widgets.Shell
 import org.eclipse.draw2d.ToolbarLayout
 import org.eclipse.draw2d.Label
 import org.eclipse.jface.resource.JFaceResources
-import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
-import com.giyeok.moonparser.visualize.ParseGraphVisualizer
-import com.giyeok.moonparser.visualize.GrammarTextFigureGenerator
-import com.giyeok.moonparser.Inputs
-import com.giyeok.moonparser.visualize.FigureGenerator
-import com.giyeok.moonparser.visualize.PCGVisualizer
+import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
+import com.giyeok.jparser.visualize.ParseGraphVisualizer
+import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
+import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.visualize.FigureGenerator
+import com.giyeok.jparser.visualize.PCGVisualizer
 
 trait Viewer {
     val allTests: Set[Grammar with Samples]

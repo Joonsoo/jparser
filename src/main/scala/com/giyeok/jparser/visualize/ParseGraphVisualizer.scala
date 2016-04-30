@@ -1,4 +1,4 @@
-package com.giyeok.moonparser.visualize
+package com.giyeok.jparser.visualize
 
 import scala.Left
 import scala.Right
@@ -19,11 +19,11 @@ import org.eclipse.swt.widgets.Control
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.Shell
-import com.giyeok.moonparser.Grammar
-import com.giyeok.moonparser.Inputs.Input
-import com.giyeok.moonparser.Inputs.InputToShortString
-import com.giyeok.moonparser.Parser
-import com.giyeok.moonparser.preprocessed.AnalyzedParser
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.Inputs.Input
+import com.giyeok.jparser.Inputs.InputToShortString
+import com.giyeok.jparser.Parser
+import com.giyeok.jparser.preprocessed.AnalyzedParser
 import org.eclipse.draw2d.geometry.Insets
 import org.eclipse.draw2d.IFigure
 import org.eclipse.draw2d.BorderLayout
@@ -34,15 +34,15 @@ import org.eclipse.draw2d.geometry.Dimension
 import org.eclipse.draw2d.geometry.PrecisionRectangle
 import org.eclipse.draw2d.geometry.Rectangle
 import org.eclipse.jface.resource.JFaceResources
-import com.giyeok.moonparser.Inputs
+import com.giyeok.jparser.Inputs
 import org.eclipse.draw2d.AbstractBorder
 import org.eclipse.draw2d.Graphics
 import org.eclipse.swt.graphics.Color
-import com.giyeok.moonparser.Symbols.Terminal
+import com.giyeok.jparser.Symbols.Terminal
 import org.eclipse.swt.layout.FillLayout
-import com.giyeok.moonparser.ParsingErrors.ParsingError
-import com.giyeok.moonparser.Kernels
-import com.giyeok.moonparser.Symbols._
+import com.giyeok.jparser.ParsingErrors.ParsingError
+import com.giyeok.jparser.Kernels
+import com.giyeok.jparser.Symbols._
 
 class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Display, shell: Shell, resources: ParseGraphVisualizer.Resources) {
     case class VisualizationLocation(location: Int, showResult: Boolean) {

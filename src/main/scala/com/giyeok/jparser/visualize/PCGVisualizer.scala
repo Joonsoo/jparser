@@ -1,15 +1,15 @@
-package com.giyeok.moonparser.visualize
+package com.giyeok.jparser.visualize
 
-import com.giyeok.moonparser.Grammar
+import com.giyeok.jparser.Grammar
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.SWT
 import org.eclipse.swt.widgets.Shell
 import org.eclipse.swt.layout.FillLayout
-import com.giyeok.moonparser.visualize.utils.HorizontalResizableSplittedComposite
+import com.giyeok.jparser.visualize.utils.HorizontalResizableSplittedComposite
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.widgets.Button
-import com.giyeok.moonparser.visualize.utils.VerticalResizableSplittedComposite
-import com.giyeok.moonparser.Parser
+import com.giyeok.jparser.visualize.utils.VerticalResizableSplittedComposite
+import com.giyeok.jparser.Parser
 import org.eclipse.swt.widgets.Control
 import org.eclipse.zest.core.widgets.Graph
 import org.eclipse.swt.widgets.Composite
@@ -17,7 +17,7 @@ import org.eclipse.zest.core.widgets.CGraphNode
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.LineBorder
 import org.eclipse.draw2d.ColorConstants
-import com.giyeok.moonparser.visualize.utils.VerticalResizableSplittedComposite
+import com.giyeok.jparser.visualize.utils.VerticalResizableSplittedComposite
 import org.eclipse.zest.layouts.LayoutStyles
 import org.eclipse.zest.core.widgets.GraphNode
 import org.eclipse.swt.events.SelectionListener
@@ -133,7 +133,7 @@ class PCGVisualizer(grammar: Grammar, parent: Composite, resources: ParseGraphVi
     case 'y' | 'Y' =>
         graphAt(currentLocation) match {
             case v: ParsingContextGraphVisualizeWidget =>
-                import com.giyeok.moonparser.Inputs._
+                import com.giyeok.jparser.Inputs._
                 val termGroup = v.context.termGroupsForTerminals.toSeq(1)
                 val abstractInput = AbstractInput(termGroup)
                 println(s"Proceeding with ${termGroup.toShortString}")

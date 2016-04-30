@@ -1,9 +1,9 @@
-package com.giyeok.moonparser.visualize
+package com.giyeok.jparser.visualize
 
 import org.eclipse.draw2d.Figure
-import com.giyeok.moonparser.Parser
-import com.giyeok.moonparser.visualize.FigureGenerator.Spacing
-import com.giyeok.moonparser.Kernels._
+import com.giyeok.jparser.Parser
+import com.giyeok.jparser.visualize.FigureGenerator.Spacing
+import com.giyeok.jparser.Kernels._
 
 class SymbolProgressFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGenerator.Appearances[Fig]) {
     val symbolFigureGenerator = new SymbolFigureGenerator(g, ap)

@@ -1,16 +1,16 @@
-package com.giyeok.moonparser.tests.basics
+package com.giyeok.jparser.tests.basics
 
-import com.giyeok.moonparser.Grammar
-import com.giyeok.moonparser.GrammarHelper._
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.GrammarHelper._
 import scala.collection.immutable.ListMap
-import com.giyeok.moonparser.Parser
-import com.giyeok.moonparser.Inputs._
+import com.giyeok.jparser.Parser
+import com.giyeok.jparser.Inputs._
 import scala.collection.immutable.ListSet
-import com.giyeok.moonparser.Parser
-import com.giyeok.moonparser.tests.BasicParseTest
-import com.giyeok.moonparser.tests.Samples
-import com.giyeok.moonparser.tests.StringSamples
-import com.giyeok.moonparser.tests.AmbiguousSamples
+import com.giyeok.jparser.Parser
+import com.giyeok.jparser.tests.BasicParseTest
+import com.giyeok.jparser.tests.Samples
+import com.giyeok.jparser.tests.StringSamples
+import com.giyeok.jparser.tests.AmbiguousSamples
 
 object SimpleGrammar5 extends Grammar with StringSamples {
     val name = "Simple Grammar 5"

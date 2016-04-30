@@ -1,10 +1,10 @@
-package com.giyeok.moonparser.tests.basics
+package com.giyeok.jparser.tests.basics
 
-import com.giyeok.moonparser.Grammar
-import com.giyeok.moonparser.tests.javascript.JavaScriptGrammar
-import com.giyeok.moonparser.tests.Samples
-import com.giyeok.moonparser.tests.StringSamples
-import com.giyeok.moonparser.tests.Viewer
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.tests.javascript.JavaScriptGrammar
+import com.giyeok.jparser.tests.Samples
+import com.giyeok.jparser.tests.StringSamples
+import com.giyeok.jparser.tests.Viewer
 
 object Visualization extends Viewer {
     val allTests: Set[Grammar with Samples] = Set(

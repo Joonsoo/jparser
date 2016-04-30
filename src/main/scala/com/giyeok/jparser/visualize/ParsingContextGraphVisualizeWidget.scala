@@ -1,4 +1,4 @@
-package com.giyeok.moonparser.visualize
+package com.giyeok.jparser.visualize
 
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.swt.SWT
@@ -11,10 +11,10 @@ import org.eclipse.zest.core.widgets.GraphConnection
 import org.eclipse.zest.core.widgets.GraphNode
 import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
-import com.giyeok.moonparser.Inputs
-import com.giyeok.moonparser.ParseTree
-import com.giyeok.moonparser.Parser
-import com.giyeok.moonparser.ParseTree.TreePrint
+import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.ParseTree
+import com.giyeok.jparser.Parser
+import com.giyeok.jparser.ParseTree.TreePrint
 import org.eclipse.swt.graphics.Color
 import org.eclipse.zest.core.widgets.CGraphNode
 import org.eclipse.draw2d.Figure
@@ -27,9 +27,9 @@ import org.eclipse.swt.events.MouseAdapter
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.KeyAdapter
 import org.eclipse.swt.events.MouseEvent
-import com.giyeok.moonparser.Symbols
-import com.giyeok.moonparser.Symbols.Terminal
-import com.giyeok.moonparser.Symbols.Terminals
+import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.Symbols.Terminal
+import com.giyeok.jparser.Symbols.Terminals
 
 trait ParsingContextGraphVisualize {
     def initGraph(): Graph

@@ -1,4 +1,4 @@
-package com.giyeok.moonparser
+package com.giyeok.jparser
 
 object ParsingErrors {
     import Inputs._

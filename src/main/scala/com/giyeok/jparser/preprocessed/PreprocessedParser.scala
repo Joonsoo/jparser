@@ -1,19 +1,19 @@
-package com.giyeok.moonparser.preprocessed
+package com.giyeok.jparser.preprocessed
 
-import com.giyeok.moonparser.Kernels.Kernel
+import com.giyeok.jparser.Kernels.Kernel
 import PreprocessedParserSpec._
-import com.giyeok.moonparser.ParsingErrors.ParsingError
-import com.giyeok.moonparser.ParsingErrors
-import com.giyeok.moonparser.Inputs
+import com.giyeok.jparser.ParsingErrors.ParsingError
+import com.giyeok.jparser.ParsingErrors
+import com.giyeok.jparser.Inputs
 import scala.Right
-import com.giyeok.moonparser.Inputs.TermGroupDesc
-import com.giyeok.moonparser.ParseTree.ParseNode
-import com.giyeok.moonparser.Symbols._
+import com.giyeok.jparser.Inputs.TermGroupDesc
+import com.giyeok.jparser.ParseTree.ParseNode
+import com.giyeok.jparser.Symbols._
 
 // KernelSet이 state의 의미라고 보면 됨
 
 class PreprocessedParser(spec: PreprocessedParserSpec) {
-    import com.giyeok.moonparser.Inputs.{ ConcreteInput => Input }
+    import com.giyeok.jparser.Inputs.{ ConcreteInput => Input }
 
     // TODO Context에 Reverter 정보 넣기
     case class Context(kernelSet: KernelSet, pastGraph: ProgGraph) {

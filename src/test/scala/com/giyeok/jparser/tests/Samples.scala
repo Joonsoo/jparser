@@ -1,6 +1,6 @@
-package com.giyeok.moonparser.tests
+package com.giyeok.jparser.tests
 
-import com.giyeok.moonparser.Inputs
+import com.giyeok.jparser.Inputs
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.Source]

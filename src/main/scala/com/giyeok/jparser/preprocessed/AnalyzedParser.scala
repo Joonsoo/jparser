@@ -1,16 +1,16 @@
-package com.giyeok.moonparser.preprocessed
+package com.giyeok.jparser.preprocessed
 
-import com.giyeok.moonparser.Grammar
-import com.giyeok.moonparser.Inputs
-import com.giyeok.moonparser.Kernels
-import com.giyeok.moonparser.Symbols
-import com.giyeok.moonparser.ParseTree
-import com.giyeok.moonparser.Parser
-import com.giyeok.moonparser.preprocessed.PreprocessedParserSpec.KernelSet
-import com.giyeok.moonparser.Symbols._
-import com.giyeok.moonparser.Inputs._
-import com.giyeok.moonparser.Kernels._
-import com.giyeok.moonparser.ParseTree._
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.Kernels
+import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.ParseTree
+import com.giyeok.jparser.Parser
+import com.giyeok.jparser.preprocessed.PreprocessedParserSpec.KernelSet
+import com.giyeok.jparser.Symbols._
+import com.giyeok.jparser.Inputs._
+import com.giyeok.jparser.Kernels._
+import com.giyeok.jparser.ParseTree._
 import PreprocessedParserSpec._
 
 class AnalyzedParser(grammar: Grammar) extends Parser(grammar) {

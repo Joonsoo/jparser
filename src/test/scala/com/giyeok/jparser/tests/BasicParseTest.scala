@@ -1,9 +1,9 @@
-package com.giyeok.moonparser.tests
+package com.giyeok.jparser.tests
 
-import com.giyeok.moonparser.Inputs
-import com.giyeok.moonparser.Parser
+import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.Parser
 import org.scalatest.FlatSpec
-import com.giyeok.moonparser.Grammar
+import com.giyeok.jparser.Grammar
 
 class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends FlatSpec {
     def log(s: String): Unit = {

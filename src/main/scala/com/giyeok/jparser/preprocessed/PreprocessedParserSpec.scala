@@ -1,12 +1,12 @@
-package com.giyeok.moonparser.preprocessed
+package com.giyeok.jparser.preprocessed
 
-import com.giyeok.moonparser.Kernels.Kernel
+import com.giyeok.jparser.Kernels.Kernel
 import PreprocessedParserSpec._
-import com.giyeok.moonparser.ParsingErrors.ParsingError
-import com.giyeok.moonparser.ParsingErrors
-import com.giyeok.moonparser.Inputs
+import com.giyeok.jparser.ParsingErrors.ParsingError
+import com.giyeok.jparser.ParsingErrors
+import com.giyeok.jparser.Inputs
 import scala.Right
-import com.giyeok.moonparser.Inputs.TermGroupDesc
+import com.giyeok.jparser.Inputs.TermGroupDesc
 
 case class PreprocessedParserSpec(startingKernel: Kernel, kernelSetActions: Map[KernelSet, Map[TermGroupDesc, KernelSetAction]]) {
     assert(kernelSetActions forall { ksa =>

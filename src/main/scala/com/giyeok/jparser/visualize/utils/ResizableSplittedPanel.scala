@@ -1,9 +1,9 @@
-package com.giyeok.moonparser.visualize.utils
+package com.giyeok.jparser.visualize.utils
 
-import com.giyeok.moonparser.Grammar
+import com.giyeok.jparser.Grammar
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.SWT
-import com.giyeok.moonparser.Inputs.Input
+import com.giyeok.jparser.Inputs.Input
 import org.eclipse.swt.widgets.Shell
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.GridLayout

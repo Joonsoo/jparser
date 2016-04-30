@@ -1,4 +1,4 @@
-package com.giyeok.moonparser.utils
+package com.giyeok.jparser.utils
 
 object UnicodeUtil {
     def categoryNameToCode(category: String): Int = (category match {

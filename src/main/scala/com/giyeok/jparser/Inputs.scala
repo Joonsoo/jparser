@@ -1,6 +1,6 @@
-package com.giyeok.moonparser
+package com.giyeok.jparser
 
-import com.giyeok.moonparser.utils.UnicodeUtil
+import com.giyeok.jparser.utils.UnicodeUtil
 
 object Inputs {
     type Location = Int

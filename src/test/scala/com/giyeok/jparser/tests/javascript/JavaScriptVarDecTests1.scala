@@ -1,15 +1,15 @@
-package com.giyeok.moonparser.tests.javascript
+package com.giyeok.jparser.tests.javascript
 
-import com.giyeok.moonparser.tests.BasicParseTest
-import com.giyeok.moonparser.Grammar
-import com.giyeok.moonparser.tests.Samples
-import com.giyeok.moonparser.tests.StringSamples
+import com.giyeok.jparser.tests.BasicParseTest
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.tests.Samples
+import com.giyeok.jparser.tests.StringSamples
 
 import scala.collection.immutable.ListMap
-import com.giyeok.moonparser.GrammarHelper._
-import com.giyeok.moonparser.Grammar
+import com.giyeok.jparser.GrammarHelper._
+import com.giyeok.jparser.Grammar
 import scala.collection.immutable.ListSet
-import com.giyeok.moonparser.Symbols.Symbol
+import com.giyeok.jparser.Symbols.Symbol
 
 trait Grammar0 extends Grammar {
     def expr(s: Symbol*): Symbol = seq(s.toSeq, ListSet[Symbol](n("WhiteSpace"), n("LineTerminator"), n("Comment")))

@@ -1,4 +1,4 @@
-package com.giyeok.moonparser
+package com.giyeok.jparser
 
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet

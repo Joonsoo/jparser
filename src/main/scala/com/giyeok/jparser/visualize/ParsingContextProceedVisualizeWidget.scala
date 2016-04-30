@@ -1,4 +1,4 @@
-package com.giyeok.moonparser.visualize
+package com.giyeok.jparser.visualize
 
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Graphics
@@ -13,9 +13,9 @@ import org.eclipse.zest.core.widgets.GraphNode
 import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
 import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
-import com.giyeok.moonparser.ParseTree
-import com.giyeok.moonparser.ParseTree.TreePrint
-import com.giyeok.moonparser.Parser
+import com.giyeok.jparser.ParseTree
+import com.giyeok.jparser.ParseTree.TreePrint
+import com.giyeok.jparser.Parser
 import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Event
 import org.eclipse.swt.widgets.Widget

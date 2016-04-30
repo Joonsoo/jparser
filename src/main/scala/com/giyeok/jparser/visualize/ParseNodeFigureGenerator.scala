@@ -1,9 +1,9 @@
-package com.giyeok.moonparser.visualize
+package com.giyeok.jparser.visualize
 
-import com.giyeok.moonparser.ParseTree.ParseNode
-import com.giyeok.moonparser.Symbols._
-import com.giyeok.moonparser.ParseTree.TreePrint
-import com.giyeok.moonparser.visualize.FigureGenerator.Appearance
+import com.giyeok.jparser.ParseTree.ParseNode
+import com.giyeok.jparser.Symbols._
+import com.giyeok.jparser.ParseTree.TreePrint
+import com.giyeok.jparser.visualize.FigureGenerator.Appearance
 
 object ParseNodeFigureGenerator {
     case class RenderingConfiguration(renderJoin: Boolean, renderWS: Boolean, renderLookaheadExcept: Boolean)
@@ -11,8 +11,8 @@ object ParseNodeFigureGenerator {
 }
 
 class ParseNodeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGenerator.Appearances[Fig]) {
-    import com.giyeok.moonparser.ParseTree._
-    import com.giyeok.moonparser.visualize.FigureGenerator.Spacing
+    import com.giyeok.jparser.ParseTree._
+    import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
     val symbolFigureGenerator = new SymbolFigureGenerator(g, ap)
 

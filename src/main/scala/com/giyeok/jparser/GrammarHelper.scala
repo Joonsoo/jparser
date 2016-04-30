@@ -1,4 +1,4 @@
-package com.giyeok.moonparser
+package com.giyeok.jparser
 
 import scala.collection.immutable.NumericRange
 import scala.collection.immutable.ListSet

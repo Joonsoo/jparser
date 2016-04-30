@@ -1,4 +1,4 @@
-package com.giyeok.moonparser
+package com.giyeok.jparser
 
 object Symbols {
     sealed trait Symbol {
@@ -217,7 +217,7 @@ object Symbols {
 
     implicit class ShortStringSymbols(sym: Symbol) {
         // TODO improve short string
-        import com.giyeok.moonparser.utils.UnicodeUtil.{ toReadable, categoryCodeToName }
+        import com.giyeok.jparser.utils.UnicodeUtil.{ toReadable, categoryCodeToName }
 
         def toShortString: String = sym match {
             case Any => "<any>"

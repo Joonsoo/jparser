@@ -1,4 +1,4 @@
-package com.giyeok.moonparser
+package com.giyeok.jparser
 
 case class ParseResult(parseNode: ParseTree.ParseNode[Symbols.Symbol])
 

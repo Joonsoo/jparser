@@ -1,7 +1,7 @@
-package com.giyeok.moonparser
+package com.giyeok.jparser
 
-import com.giyeok.moonparser.ParseTree._
-import com.giyeok.moonparser.Symbols._
+import com.giyeok.jparser.ParseTree._
+import com.giyeok.jparser.Symbols._
 
 trait GraphDataStructure {
     this: Parser =>

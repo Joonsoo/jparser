@@ -1,4 +1,4 @@
-package com.giyeok.moonparser
+package com.giyeok.jparser
 
 trait SymbolProgresses {
     this: Parser =>
