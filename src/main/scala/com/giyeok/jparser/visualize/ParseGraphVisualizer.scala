@@ -42,8 +42,7 @@ import org.eclipse.swt.layout.FillLayout
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.Kernels
 import com.giyeok.jparser.Symbols._
-import java.awt.MouseInfo
-import com.giyeok.jparser.preprocessed.ParserPreprocessor
+// import com.giyeok.jparser.preprocessed.ParserPreprocessor
 
 class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Display, shell: Shell, resources: ParseGraphVisualizer.Resources) {
     case class VisualizationLocation(location: Int, showResult: Boolean) {
@@ -208,6 +207,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                             v.graph.applyLayout()
                         case _ => // nothing to do
                     }
+                    /*
                 case 'k' | 'K' =>
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualizeWidget =>
@@ -252,6 +252,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                                 }
                             }
                     }
+                    */
                 case code =>
                     println(s"keyPressed: $code")
             }
@@ -271,7 +272,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
     sourceView.addKeyListener(keyListener)
 
     val parser = new Parser(grammar)
-    val preprocessor = new ParserPreprocessor(grammar)
+    // val preprocessor = new ParserPreprocessor(grammar)
 
     val finReversed: List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), ParsingError])] =
         source.foldLeft[List[(Either[(Parser#ParsingContext, Parser#VerboseProceedLog), ParsingError])]](List((Left(parser.initialContext, parser.initialContextVerbose._2)))) { (cl, terminal) =>
