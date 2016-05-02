@@ -174,6 +174,11 @@ class Parser(val grammar: Grammar)
                     case DeriveTask(node) =>
                         // `node`로부터 derive 처리
                         logging("expand", s"DeriveTask($node)")
+
+                        // TODO DerivationGraph.deriveFromKernel(grammar, node.kernel)을 이용하도록 수정
+                        //   - deriveFromKernel 함수로 얻어진 DerivationGraph의 baseNode를 node로 해서 nodes, edges, edgeReverters, reservedReverters 추가하고
+                        //   - DerivationGraph.lifts(node)로 lift task 추가
+
                         assert(cc.nodes contains node)
 
                         var nextQcc = Qcc(rest, cc)
