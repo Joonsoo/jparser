@@ -33,21 +33,24 @@ object Kernels {
         }
     }
 
-    sealed trait EdgeTmpl
-    case class SimpleEdgeTmpl(end: Kernel) extends EdgeTmpl
-    case class JoinEdgeTmpl(end: Kernel, join: Kernel, endJoinSwitched: Boolean) extends EdgeTmpl
-
-    sealed trait ReverterTmpl
-    // 1. 노드가 만들어지면서 동시에 만들어지는 reverter
-    case class LiftTriggeredTempLiftBlockReverterTmpl(trigger: Kernel, target: Kernel) extends ReverterTmpl
-    case class LiftTriggeredDeriveReverterTmpl(trigger: Kernel, deriveFrom: NontermKernel[Nonterm], deriveTo: Kernel) extends ReverterTmpl
-    // 이 reverter들에서는 trigger, target(엣지인 경우 엣지 시작점 도착점 모두)이 전부 같은 derivedGen
-
-    // 2. 기존에는 longest/eager_longest가 lift시 (this -> lift된 노드)로 가는 reverter를 만들어내는 방식으로 처리됐었는데,
-    //    이제 기존 동작을 나타내는 트리거를 derive시 반환하고 노드 자체에 속성을 부여해서 파서에서 처리하는 형태로 바꾸기로 함
-    sealed trait ReservedReverterTmpl extends ReverterTmpl
-    case class ReservedLiftTriggeredLiftedNodeReverterTmpl(trigger: Kernel) extends ReservedReverterTmpl
-    case class ReservedAliveTriggeredLiftedNodeReverterTmpl(trigger: Kernel) extends ReservedReverterTmpl
+    sealed trait Derivation
+    // 빈 derive
+    case object EmptyDerivation extends Derivation
+    // 일반적인 derive
+    case class SymbolDerivation(derives: Set[Kernel]) extends Derivation
+    // join
+    case class JoinDerivation(derive: Kernel, join: Kernel) extends Derivation
+    // except - (self->derive)로 가는 SimpleEdge + (blockTrigger->self)로 오는 TempLiftBlockReverter
+    case class TempLiftBlockableDerivation(derive: Kernel, blockTrigger: Kernel) extends Derivation
+    // lookahead_except - (self->derive)로 가는 SimpleEdge + (revertTrigger->(self->derive))인 DeriveReverter
+    case class RevertableDerivation(derive: Kernel, revertTrigger: Kernel) extends Derivation
+    // backup - (self->derive)로 가는 SimpleEdge + (self->deriveRevertTrigger)로 가는 SimpleEdge + (deriveRevertTrigger->(self->derive))인 DeriveReverter
+    case class DeriveRevertableDerivation(derive: Kernel, deriveRevertTrigger: Kernel) extends Derivation
+    // longest/eager_longest
+    // derive로 가는 SimpleEdge가 있고, 노드 자신에 ReservedReverter가 붙어 있음
+    sealed trait ReservedLiftRevertableDerivation extends Derivation
+    case class ReservedLiftTriggeredLiftRevertableDerivation(derive: Kernel) extends Derivation
+    case class ReservedAliveTriggeredLiftRevertableDerivation(derive: Kernel) extends Derivation
 
     case object EmptyKernel extends Kernel {
         val symbol = Empty
@@ -69,15 +72,15 @@ object Kernels {
     sealed trait NontermKernel[+T <: Nonterm] extends NonEmptyKernel {
         val symbol: T
 
-        def derive(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl])
+        def derive(grammar: Grammar): Derivation
     }
     sealed trait AtomicNontermKernel[+T <: AtomicSymbol with Nonterm] extends NontermKernel[T] with AtomicKernel[T] {
         assert(pointer == 0 || pointer == 1)
 
         val symbol: T
 
-        override def derive(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) = if (pointer == 0) derive0(grammar) else (Set(), Set())
-        def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl])
+        override def derive(grammar: Grammar): Derivation = if (pointer == 0) derive0(grammar) else EmptyDerivation
+        def derive0(grammar: Grammar): Derivation
         def lifted: AtomicNontermKernel[T]
     }
     sealed trait NonAtomicNontermKernel[T <: NonAtomicSymbol with Nonterm] extends NontermKernel[T] {
@@ -90,60 +93,49 @@ object Kernels {
     }
     case class NonterminalKernel(symbol: Nonterminal, pointer: Int) extends AtomicNontermKernel[Nonterminal] {
         def lifted = NonterminalKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) =
-            (grammar.rules(symbol.name) map { s => SimpleEdgeTmpl(Kernel(s)) }, Set())
+        def derive0(grammar: Grammar): Derivation =
+            SymbolDerivation(grammar.rules(symbol.name) map { Kernel(_) })
     }
     case class OneOfKernel(symbol: OneOf, pointer: Int) extends AtomicNontermKernel[OneOf] {
         def lifted = OneOfKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) =
-            (symbol.syms map { s => SimpleEdgeTmpl(Kernel(s)) }, Set())
+        def derive0(grammar: Grammar): Derivation =
+            SymbolDerivation(symbol.syms map { Kernel(_) })
     }
     case class ExceptKernel(symbol: Except, pointer: Int) extends AtomicNontermKernel[Except] {
         def lifted = ExceptKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) = {
-            val edges: Set[EdgeTmpl] = Set(SimpleEdgeTmpl(Kernel(symbol.sym)))
-            val reverters: Set[ReverterTmpl] = Set(LiftTriggeredTempLiftBlockReverterTmpl(Kernel(symbol.except), this))
-            (edges, reverters)
-        }
+        def derive0(grammar: Grammar): Derivation =
+            TempLiftBlockableDerivation(Kernel(symbol.sym), Kernel(symbol.except))
     }
     case class LookaheadExceptKernel(symbol: LookaheadExcept, pointer: Int) extends AtomicNontermKernel[LookaheadExcept] {
         def lifted = LookaheadExceptKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) = {
-            val reverters: Set[ReverterTmpl] = Set(LiftTriggeredDeriveReverterTmpl(Kernel(symbol.except), this, Kernel(Empty)))
-            (Set(SimpleEdgeTmpl(Kernel(Empty))), reverters)
-        }
+        def derive0(grammar: Grammar): Derivation =
+            RevertableDerivation(Kernel(Empty), Kernel(symbol.except))
     }
     case class BackupKernel(symbol: Backup, pointer: Int) extends AtomicNontermKernel[Backup] {
         def lifted = BackupKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) = {
-            val symKernel = Kernel(symbol.sym)
-            val backupKernel = Kernel(symbol.backup)
-            (Set(SimpleEdgeTmpl(symKernel), SimpleEdgeTmpl(backupKernel)), Set(LiftTriggeredDeriveReverterTmpl(symKernel, this, backupKernel)))
-        }
+        def derive0(grammar: Grammar): Derivation =
+            DeriveRevertableDerivation(Kernel(symbol.backup), Kernel(symbol.sym))
     }
     case class JoinKernel(symbol: Join, pointer: Int) extends AtomicNontermKernel[Join] {
         def lifted = JoinKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) = {
-            val edge1 = JoinEdgeTmpl(Kernel(symbol.sym), Kernel(symbol.join), false)
-            val edge2 = JoinEdgeTmpl(Kernel(symbol.join), Kernel(symbol.sym), true)
-            (Set(edge1, edge2), Set())
-        }
+        def derive0(grammar: Grammar): Derivation =
+            JoinDerivation(Kernel(symbol.sym), Kernel(symbol.join))
     }
     case class ProxyKernel(symbol: Proxy, pointer: Int) extends AtomicNontermKernel[Proxy] {
         def lifted = ProxyKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) =
-            (Set(SimpleEdgeTmpl(Kernel(symbol.sym))), Set())
+        def derive0(grammar: Grammar): Derivation =
+            SymbolDerivation(Set(Kernel(symbol.sym)))
     }
     // Longest와 EagerLongest는 생성되는 노드 자체가 lfit시 lift돼서 생긴 노드에 대해 Lift/SurviveTriggeredNodeCreationReverter 를 추가하도록 수정
     case class LongestKernel(symbol: Longest, pointer: Int) extends AtomicNontermKernel[Longest] {
         def lifted = LongestKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) =
-            (Set(SimpleEdgeTmpl(Kernel(symbol.sym))), Set(ReservedLiftTriggeredLiftedNodeReverterTmpl(this)))
+        def derive0(grammar: Grammar): Derivation =
+            ReservedLiftTriggeredLiftRevertableDerivation(Kernel(symbol.sym))
     }
     case class EagerLongestKernel(symbol: EagerLongest, pointer: Int) extends AtomicNontermKernel[EagerLongest] {
         def lifted = EagerLongestKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) =
-            (Set(SimpleEdgeTmpl(Kernel(symbol.sym))), Set(ReservedAliveTriggeredLiftedNodeReverterTmpl(this)))
+        def derive0(grammar: Grammar): Derivation =
+            ReservedAliveTriggeredLiftRevertableDerivation(Kernel(symbol.sym))
     }
 
     case class SequenceKernel(symbol: Sequence, pointer: Int) extends NonAtomicNontermKernel[Sequence] {
@@ -153,18 +145,18 @@ object Kernels {
             if (isContent) (SequenceKernel(symbol, pointer + 1), before.appendContent(accepted))
             else (SequenceKernel(symbol, pointer), before.appendWhitespace(accepted))
         }
-        def derive(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) =
+        def derive(grammar: Grammar): Derivation =
             if (pointer < symbol.seq.size) {
-                val elemDerive = SimpleEdgeTmpl(Kernel(symbol.seq(pointer)))
+                val elemDerive = Kernel(symbol.seq(pointer))
                 if (pointer > 0 && pointer < symbol.seq.size) {
                     // whitespace only between symbols
-                    val wsDerives: Set[EdgeTmpl] = symbol.whitespace map { s => SimpleEdgeTmpl(Kernel(s)) }
-                    ((wsDerives + elemDerive), Set())
+                    val wsDerives: Set[Kernel] = symbol.whitespace map { Kernel(_) }
+                    SymbolDerivation(wsDerives + elemDerive)
                 } else {
-                    (Set(elemDerive), Set())
+                    SymbolDerivation(Set(elemDerive))
                 }
             } else {
-                (Set(), Set())
+                EmptyDerivation
             }
 
         val derivable = pointer < symbol.seq.size
@@ -175,8 +167,8 @@ object Kernels {
         assert(0 <= pointer && pointer <= symbol.upper)
         def lifted(before: ParsedSymbolsSeq[RepeatBounded], accepted: ParseNode[Symbol]): (RepeatBoundedKernel, ParsedSymbolsSeq[RepeatBounded]) =
             (RepeatBoundedKernel(symbol, pointer + 1), before.appendContent(accepted))
-        def derive(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) =
-            if (derivable) (Set(SimpleEdgeTmpl(Kernel(symbol.sym))), Set()) else (Set(), Set())
+        def derive(grammar: Grammar): Derivation =
+            if (derivable) SymbolDerivation(Set(Kernel(symbol.sym))) else EmptyDerivation
 
         val derivable = pointer < symbol.upper
         val finishable = pointer >= symbol.lower
@@ -185,8 +177,8 @@ object Kernels {
         assert(0 <= pointer && pointer <= symbol.lower)
         def lifted(before: ParsedSymbolsSeq[RepeatUnbounded], accepted: ParseNode[Symbol]): (RepeatUnboundedKernel, ParsedSymbolsSeq[RepeatUnbounded]) =
             (RepeatUnboundedKernel(symbol, if (pointer < symbol.lower) pointer + 1 else pointer), before.appendContent(accepted))
-        def derive(grammar: Grammar): (Set[EdgeTmpl], Set[ReverterTmpl]) =
-            (Set(SimpleEdgeTmpl(Kernel(symbol.sym))), Set())
+        def derive(grammar: Grammar): Derivation =
+            SymbolDerivation(Set(Kernel(symbol.sym)))
 
         val derivable = true
         val finishable = pointer >= symbol.lower

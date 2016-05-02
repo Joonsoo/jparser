@@ -1,5 +1,7 @@
 package com.giyeok.jparser
 
+import com.giyeok.jparser.Kernels.Derivation
+
 trait SymbolProgresses {
     this: Parser =>
 
@@ -60,29 +62,36 @@ trait SymbolProgresses {
         val kernel: NontermKernel[Nonterm]
 
         def derive(grammar: Grammar, gen: Int): (Set[DeriveEdge], Set[Reverter]) = {
-            val (edgeTmpls, reverterTmpls) = kernel.derive(grammar)
-            val edges: Set[DeriveEdge] = edgeTmpls map {
-                _ match {
-                    case SimpleEdgeTmpl(end) =>
-                        SimpleEdge(this, SymbolProgress(end, gen))
-                    case JoinEdgeTmpl(end, join, endJoinSwitched) =>
-                        assert(this.isInstanceOf[JoinSymbolProgress])
-                        JoinEdge(this.asInstanceOf[JoinSymbolProgress], SymbolProgress(end, gen), SymbolProgress(join, gen), endJoinSwitched)
-                }
+            kernel.derive(grammar) match {
+                case EmptyDerivation => (Set[DeriveEdge](), Set[Reverter]())
+                case SymbolDerivation(derives) =>
+                    (derives map { k => SimpleEdge(this, SymbolProgress(k, gen)) }, Set[Reverter]())
+                case JoinDerivation(derive, join) =>
+                    assert(this.isInstanceOf[JoinSymbolProgress])
+                    val self = this.asInstanceOf[JoinSymbolProgress]
+                    (Set(
+                        JoinEdge(self, SymbolProgress(derive, gen), SymbolProgress(join, gen), false),
+                        JoinEdge(self, SymbolProgress(join, gen), SymbolProgress(derive, gen), true)),
+                        Set[Reverter]())
+                case TempLiftBlockableDerivation(derive, blockTrigger) =>
+                    (Set(SimpleEdge(this, SymbolProgress(derive, gen))),
+                        Set(LiftTriggeredTempLiftBlockReverter(SymbolProgress(blockTrigger, gen), this)))
+                case RevertableDerivation(derive, revertTrigger) =>
+                    val deriveEdge = SimpleEdge(this, SymbolProgress(derive, gen))
+                    (Set(deriveEdge),
+                        Set(MultiTriggeredDeriveReverter(Set(TriggerIfLift(SymbolProgress(revertTrigger, gen))), deriveEdge)))
+                case DeriveRevertableDerivation(derive, deriveRevertTrigger) =>
+                    val deriveEdge = SimpleEdge(this, SymbolProgress(derive, gen))
+                    val revertableDeriveNode = SymbolProgress(deriveRevertTrigger, gen)
+                    (Set(deriveEdge, SimpleEdge(this, revertableDeriveNode)),
+                        Set(MultiTriggeredDeriveReverter(Set(TriggerIfLift(revertableDeriveNode)), deriveEdge)))
+                case ReservedLiftTriggeredLiftRevertableDerivation(derive) =>
+                    (Set(SimpleEdge(this, SymbolProgress(derive, gen))),
+                        Set(ReservedLiftTriggeredLiftedNodeReverter(this)))
+                case ReservedAliveTriggeredLiftRevertableDerivation(derive) =>
+                    (Set(SimpleEdge(this, SymbolProgress(derive, gen))),
+                        Set(ReservedAliveTriggeredLiftedNodeReverter(this)))
             }
-            val reverters: Set[Reverter] = reverterTmpls map {
-                _ match {
-                    case LiftTriggeredTempLiftBlockReverterTmpl(trigger, target) =>
-                        LiftTriggeredTempLiftBlockReverter(SymbolProgress(trigger, gen), SymbolProgress(target, gen))
-                    case LiftTriggeredDeriveReverterTmpl(trigger, deriveFrom, deriveTo) =>
-                        MultiTriggeredDeriveReverter(Set(TriggerIfLift(SymbolProgress(trigger, gen))), SimpleEdge(SymbolProgress(deriveFrom, gen), SymbolProgress(deriveTo, gen)))
-                    case ReservedLiftTriggeredLiftedNodeReverterTmpl(trigger) =>
-                        ReservedLiftTriggeredLiftedNodeReverter(SymbolProgress(trigger, gen))
-                    case ReservedAliveTriggeredLiftedNodeReverterTmpl(trigger) =>
-                        ReservedAliveTriggeredLiftedNodeReverter(SymbolProgress(trigger, gen))
-                }
-            }
-            (edges, reverters)
         }
 
         def lift(gen: Int, accepted: ParseNode[Symbol]): NonterminalSymbolProgress
