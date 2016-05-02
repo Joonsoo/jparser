@@ -36,17 +36,17 @@ object Kernels {
     sealed trait Derivation
     // 빈 derive
     case object EmptyDerivation extends Derivation
-    // 일반적인 derive
+    // Nonterminal, OneOf, Repeat, Proxy, Sequence - 일반적인 derive
     case class SymbolDerivation(derives: Set[Kernel]) extends Derivation
-    // join
+    // Join
     case class JoinDerivation(derive: Kernel, join: Kernel) extends Derivation
-    // except - (self->derive)로 가는 SimpleEdge + (blockTrigger->self)로 오는 TempLiftBlockReverter
+    // Except - (self->derive)로 가는 SimpleEdge + (blockTrigger->self)로 오는 TempLiftBlockReverter
     case class TempLiftBlockableDerivation(derive: Kernel, blockTrigger: Kernel) extends Derivation
-    // lookahead_except - (self->derive)로 가는 SimpleEdge + (revertTrigger->(self->derive))인 DeriveReverter
+    // LookaheadExcept - (self->derive)로 가는 SimpleEdge + (revertTrigger->(self->derive))인 DeriveReverter
     case class RevertableDerivation(derive: Kernel, revertTrigger: Kernel) extends Derivation
-    // backup - (self->derive)로 가는 SimpleEdge + (self->deriveRevertTrigger)로 가는 SimpleEdge + (deriveRevertTrigger->(self->derive))인 DeriveReverter
+    // Backup - (self->derive)로 가는 SimpleEdge + (self->deriveRevertTrigger)로 가는 SimpleEdge + (deriveRevertTrigger->(self->derive))인 DeriveReverter
     case class DeriveRevertableDerivation(derive: Kernel, deriveRevertTrigger: Kernel) extends Derivation
-    // longest/eager_longest
+    // Longest/EagerLongest
     // derive로 가는 SimpleEdge가 있고, 노드 자신에 ReservedReverter가 붙어 있음
     sealed trait ReservedLiftRevertableDerivation extends Derivation
     case class ReservedLiftTriggeredLiftRevertableDerivation(derive: Kernel) extends Derivation
