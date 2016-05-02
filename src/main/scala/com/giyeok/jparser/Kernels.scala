@@ -31,6 +31,26 @@ object Kernels {
             case symbol: Longest => LongestKernel(symbol, 0)
             case symbol: EagerLongest => EagerLongestKernel(symbol, 0)
         }
+
+        def allKernelsOf(symbol: Symbol): Set[Kernel] = symbol match {
+            case Empty => Set(EmptyKernel)
+            case symbol: AtomicSymbol =>
+                symbol match {
+                    case s: Terminal => Set(TerminalKernel(s, 0), TerminalKernel(s, 1))
+                    case s: Nonterminal => Set(NonterminalKernel(s, 0), NonterminalKernel(s, 1))
+                    case s: OneOf => Set(OneOfKernel(s, 0), OneOfKernel(s, 1))
+                    case s: Except => Set(ExceptKernel(s, 0), ExceptKernel(s, 1))
+                    case s: LookaheadExcept => Set(LookaheadExceptKernel(s, 0), LookaheadExceptKernel(s, 1))
+                    case s: Backup => Set(BackupKernel(s, 0), BackupKernel(s, 1))
+                    case s: Join => Set(JoinKernel(s, 0), JoinKernel(s, 1))
+                    case s: Proxy => Set(ProxyKernel(s, 0), ProxyKernel(s, 1))
+                    case s: Longest => Set(LongestKernel(s, 0), LongestKernel(s, 1))
+                    case s: EagerLongest => Set(EagerLongestKernel(s, 0), EagerLongestKernel(s, 1))
+                }
+            case s: Sequence => ((0 to s.seq.length) map { SequenceKernel(s, _) }).toSet
+            case s: RepeatBounded => ((0 to s.upper) map { RepeatBoundedKernel(s, _) }).toSet
+            case s: RepeatUnbounded => ((0 to s.lower) map { RepeatUnboundedKernel(s, _) }).toSet
+        }
     }
 
     sealed trait Derivation
@@ -48,9 +68,9 @@ object Kernels {
     case class DeriveRevertableDerivation(derive: Kernel, deriveRevertTrigger: Kernel) extends Derivation
     // Longest/EagerLongest
     // derive로 가는 SimpleEdge가 있고, 노드 자신에 ReservedReverter가 붙어 있음
-    sealed trait ReservedLiftRevertableDerivation extends Derivation
-    case class ReservedLiftTriggeredLiftRevertableDerivation(derive: Kernel) extends Derivation
-    case class ReservedAliveTriggeredLiftRevertableDerivation(derive: Kernel) extends Derivation
+    sealed trait ReservedLiftRevertableDerivation extends Derivation { val derive: Kernel }
+    case class ReservedLiftTriggeredLiftRevertableDerivation(derive: Kernel) extends ReservedLiftRevertableDerivation
+    case class ReservedAliveTriggeredLiftRevertableDerivation(derive: Kernel) extends ReservedLiftRevertableDerivation
 
     case object EmptyKernel extends Kernel {
         val symbol = Empty
