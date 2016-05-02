@@ -43,7 +43,7 @@ object PreprocessedGrammar {
         val termExpansions: Map[TermGroupDesc, BaseSubDerive]
     }
     case class AtomicKernelExpansion(immediateLifts: Set[ParseNode[Symbol]], termExpansions: Map[TermGroupDesc, BaseSubDerive]) extends KernelExpansion
-    case class NonAtomicKernelExpansion(immediateLifts: Set[Seq[ParseNode[Symbol]]], termExpansions: Map[TermGroupDesc, BaseSubDerive]) extends KernelExpansion
+    case class NonAtomicKernelExpansion(immediateLifts: Set[ParsedSymbolsSeq[NonAtomicSymbol]], termExpansions: Map[TermGroupDesc, BaseSubDerive]) extends KernelExpansion
 }
 
 // TODO 같은 내용의 SubDerive에는 같은 id가 붙어서 바로 비교가 가능하게 했으면 좋겠는데..

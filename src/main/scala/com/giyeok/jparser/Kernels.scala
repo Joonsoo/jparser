@@ -1,11 +1,12 @@
 package com.giyeok.jparser
 
+import Symbols._
+import Inputs._
+import ParseTree._
+import Derivations._
+
 // will be used in Parser and PreprocessedParser
 object Kernels {
-    import Symbols._
-    import Inputs._
-    import ParseTree._
-
     sealed trait Kernel {
         val symbol: Symbol
         val pointer: Int
@@ -17,6 +18,7 @@ object Kernels {
     object Kernel {
         def apply(symbol: Symbol): Kernel = symbol match {
             case Empty => EmptyKernel
+            case Start => StartKernel(0)
             case symbol: Terminal => TerminalKernel(symbol, 0)
             case symbol: Nonterminal => NonterminalKernel(symbol, 0)
             case symbol: Sequence => SequenceKernel(symbol, 0)
@@ -36,6 +38,7 @@ object Kernels {
             case Empty => Set(EmptyKernel)
             case symbol: AtomicSymbol =>
                 symbol match {
+                    case Start => Set(StartKernel(0), StartKernel(1))
                     case s: Terminal => Set(TerminalKernel(s, 0), TerminalKernel(s, 1))
                     case s: Nonterminal => Set(NonterminalKernel(s, 0), NonterminalKernel(s, 1))
                     case s: OneOf => Set(OneOfKernel(s, 0), OneOfKernel(s, 1))
@@ -52,25 +55,6 @@ object Kernels {
             case s: RepeatUnbounded => ((0 to s.lower) map { RepeatUnboundedKernel(s, _) }).toSet
         }
     }
-
-    sealed trait Derivation
-    // 빈 derive
-    case object EmptyDerivation extends Derivation
-    // Nonterminal, OneOf, Repeat, Proxy, Sequence - 일반적인 derive
-    case class SymbolDerivation(derives: Set[Kernel]) extends Derivation
-    // Join
-    case class JoinDerivation(derive: Kernel, join: Kernel) extends Derivation
-    // Except - (self->derive)로 가는 SimpleEdge + (blockTrigger->self)로 오는 TempLiftBlockReverter
-    case class TempLiftBlockableDerivation(derive: Kernel, blockTrigger: Kernel) extends Derivation
-    // LookaheadExcept - (self->derive)로 가는 SimpleEdge + (revertTrigger->(self->derive))인 DeriveReverter
-    case class RevertableDerivation(derive: Kernel, revertTrigger: Kernel) extends Derivation
-    // Backup - (self->derive)로 가는 SimpleEdge + (self->deriveRevertTrigger)로 가는 SimpleEdge + (deriveRevertTrigger->(self->derive))인 DeriveReverter
-    case class DeriveRevertableDerivation(derive: Kernel, deriveRevertTrigger: Kernel) extends Derivation
-    // Longest/EagerLongest
-    // derive로 가는 SimpleEdge가 있고, 노드 자신에 ReservedReverter가 붙어 있음
-    sealed trait ReservedLiftRevertableDerivation extends Derivation { val derive: Kernel }
-    case class ReservedLiftTriggeredLiftRevertableDerivation(derive: Kernel) extends ReservedLiftRevertableDerivation
-    case class ReservedAliveTriggeredLiftRevertableDerivation(derive: Kernel) extends ReservedLiftRevertableDerivation
 
     case object EmptyKernel extends Kernel {
         val symbol = Empty
@@ -110,6 +94,13 @@ object Kernels {
 
     case class TerminalKernel(symbol: Terminal, pointer: Int) extends AtomicKernel[Terminal] {
         def lifted = TerminalKernel(symbol, 1) ensuring pointer == 0
+    }
+    case class StartKernel(pointer: Int) extends AtomicNontermKernel[Start.type] {
+        assert(pointer == 0 || pointer == 1)
+        val symbol = Start
+        def lifted = StartKernel(1) ensuring pointer == 0
+        def derive0(grammar: Grammar): Derivation =
+            SymbolDerivation(Set(Kernel(grammar.startSymbol)))
     }
     case class NonterminalKernel(symbol: Nonterminal, pointer: Int) extends AtomicNontermKernel[Nonterminal] {
         def lifted = NonterminalKernel(symbol, 1) ensuring pointer == 0

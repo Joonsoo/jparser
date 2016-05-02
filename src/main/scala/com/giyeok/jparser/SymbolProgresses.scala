@@ -1,7 +1,5 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.Kernels.Derivation
-
 trait SymbolProgresses {
     this: Parser =>
 
@@ -62,6 +60,7 @@ trait SymbolProgresses {
         val kernel: NontermKernel[Nonterm]
 
         def derive(grammar: Grammar, gen: Int): (Set[DeriveEdge], Set[Reverter]) = {
+            import Derivations._
             kernel.derive(grammar) match {
                 case EmptyDerivation => (Set[DeriveEdge](), Set[Reverter]())
                 case SymbolDerivation(derives) =>

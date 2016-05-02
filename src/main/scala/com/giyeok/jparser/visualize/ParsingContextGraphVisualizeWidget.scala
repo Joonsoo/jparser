@@ -351,14 +351,14 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, val resources: Parse
 
     def initGraph() = new Graph(this, SWT.NONE)
 
-    (context.nodes ++ context.resultCandidates) foreach { registerNode _ }
+    (context.nodes ++ context.resultCandidateNodes) foreach { registerNode _ }
 
     val registerEdge1 = registerEdge(context.edges.asInstanceOf[Set[Parser#DeriveEdge]]) _
     context.edges foreach { registerEdge1(_) }
 
     context.reverters foreach { registerReverter(_) }
 
-    context.resultCandidates foreach { highlightResultCandidate _ }
+    context.resultCandidateNodes foreach { highlightResultCandidate _ }
 
     context.externalProceededEdges foreach { highlightProceededEdge _ }
     context.internalProceededEdges foreach { highlightInternalProceededEdge _ }

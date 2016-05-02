@@ -25,6 +25,7 @@ object Grammar {
                     visited += symbol
                     symbol match {
                         case Empty => cc
+                        case Start => traverse(grammar.startSymbol, cc)
                         case _: Terminal => cc
                         case Nonterminal(name) =>
                             (grammar.rules get name) match {
@@ -44,7 +45,7 @@ object Grammar {
                     }
                 }
             }
-            traverse(grammar.startSymbol, Set())
+            traverse(Start, Set())
         }
 
         def wrongLookaheads: Set[Symbol] = {
@@ -55,8 +56,13 @@ object Grammar {
                     visited += symbol
                     symbol match {
                         case Empty => cc
+                        case Start => traverse(grammar.startSymbol, Some(Start), cc)
                         case _: Terminal => cc
-                        case Nonterminal(name) => cc
+                        case Nonterminal(name) =>
+                            (grammar.rules get name) match {
+                                case Some(rhs) => rhs.foldRight(cc) { traverse(_, Some(symbol), _) }
+                                case None => cc
+                            }
                         case Sequence(seq, ws) => (seq ++ ws).foldRight(cc) { traverse(_, Some(symbol), _) }
                         case OneOf(syms) => syms.foldRight(cc) { traverse(_, Some(symbol), _) }
                         case Except(sym, except) => traverse(sym, Some(symbol), traverse(except, Some(symbol), cc))
@@ -74,7 +80,7 @@ object Grammar {
                     }
                 }
             }
-            traverse(grammar.startSymbol, None, Set())
+            traverse(Start, None, Set())
         }
 
         def usedSymbols: Set[Symbol] = {
@@ -82,6 +88,7 @@ object Grammar {
                 if (cc contains symbol) cc else
                     symbol match {
                         case Empty => cc + symbol
+                        case Start => traverse(grammar.startSymbol, cc)
                         case _: Terminal => cc + symbol
                         case Nonterminal(name) =>
                             (grammar.rules get name) match {
@@ -100,7 +107,7 @@ object Grammar {
                         case EagerLongest(sym) => traverse(sym, cc + symbol)
                     }
             }
-            traverse(grammar.startSymbol, Set())
+            traverse(Start, Set())
         }
 
         def unusedSymbols: Set[Symbol] =

@@ -1,7 +1,5 @@
 package com.giyeok.jparser
 
-case class ParseResult(parseNode: ParseTree.ParseNode[Symbols.Symbol])
-
 class Parser(val grammar: Grammar)
         extends SymbolProgresses
         with GraphDataStructure
@@ -9,7 +7,7 @@ class Parser(val grammar: Grammar)
     import Inputs._
     import Kernels._
     import ParseTree._
-    import Symbols.Symbol
+    import Symbols.{ Symbol, Start }
     import ParsingErrors.ParsingError
 
     sealed trait Lifting {
@@ -454,13 +452,8 @@ class Parser(val grammar: Grammar)
         resultReverters
     }
 
-    def collectResultCandidates(liftings: Set[Lifting]): Set[Node] =
-        liftings map { _.after } filter { _.kernel.symbol == grammar.startSymbol } collect {
-            case n: SymbolProgress if n.derivedGen == 0 && n.kernel.finishable => n
-        }
-
     // 이 프로젝트 전체에서 asInstanceOf가 등장하는 경우는 대부분이 Set이 invariant해서 추가된 부분 - covariant한 Set으로 바꾸면 없앨 수 있음
-    case class ParsingContext(startNode: NonterminalNode, gen: Int, nodes: Set[Node], edges: Set[DeriveEdge], reverters: Set[Reverter], resultCandidates: Set[SymbolProgress], externalProceededEdges: Set[SimpleEdge], internalProceededEdges: Set[SimpleEdge]) {
+    case class ParsingContext(startNode: NonterminalNode, gen: Int, nodes: Set[Node], edges: Set[DeriveEdge], reverters: Set[Reverter], liftings: Set[Lifting], externalProceededEdges: Set[SimpleEdge], internalProceededEdges: Set[SimpleEdge]) {
         val id = IdGen.nextId
         logging("reverters") {
             println(s"- Reverters @ $gen")
@@ -468,6 +461,11 @@ class Parser(val grammar: Grammar)
                 println(r)
             }
         }
+
+        def resultCandidateNodes: Set[Node] = liftings collect {
+            case NonterminalLifting(`startNode`, result, _, _, _) if result.derivedGen == 0 && result.kernel.finishable => result
+        }
+        def resultCandidates: Set[ParseNode[Symbol]] = resultCandidateNodes map { _.parsed.get }
 
         val allProceededEdges = (externalProceededEdges ++ internalProceededEdges)
         // assert(allProceededEdges forall { e => e.end.isInstanceOf[NonAtomicSymbolProgress[_]] })
@@ -629,8 +627,7 @@ class Parser(val grammar: Grammar)
                 }
 
                 // liftings의 Lifting 중 동일한 after를 갖는 Lifting이 없는 것 assert
-                val resultCandidates = collectResultCandidates(liftings)
-                val nextParsingContext = ParsingContext(startNode, gen + 1, finalNodes, finalEdges, workingReverters, resultCandidates, proceededEdges.values.toSet, internalProceededEdges.values.toSet)
+                val nextParsingContext = ParsingContext(startNode, gen + 1, finalNodes, finalEdges, workingReverters, liftings, proceededEdges.values.toSet, internalProceededEdges.values.toSet)
                 val verboseProceedLog = VerboseProceedLog(
                     activatedReverters,
                     terminalLiftings,
@@ -656,11 +653,6 @@ class Parser(val grammar: Grammar)
                 case Left((ctx, _)) => Left(ctx)
                 case Right(error) => Right(error)
             }
-
-        def toResult: Option[ParseResult] = {
-            if (resultCandidates.size != 1) None
-            else resultCandidates.iterator.next.parsed map { ParseResult(_) }
-        }
     }
 
     def assertForAll[T](set: Iterable[T], p: T => Boolean): Unit = {
@@ -672,8 +664,11 @@ class Parser(val grammar: Grammar)
     }
 
     object ParsingContext {
-        def fromSeedVerbose(startSymbol: Symbol): (ParsingContext, VerboseProceedLog) = {
-            val startNode = SymbolProgress(Kernel(startSymbol), 0)
+        def fromSymbolVerbose(startSymbol: Symbol): (ParsingContext, VerboseProceedLog) = {
+            fromKernelVerbose(Kernel(startSymbol))
+        }
+        def fromKernelVerbose(startKernel: Kernel): (ParsingContext, VerboseProceedLog) = {
+            val startNode = SymbolProgress(startKernel, 0)
             assert(startNode.isInstanceOf[NonterminalSymbolProgress])
             val ExpandResult(liftings, nodes, edges, reverters, proceededEdges, internalProceededEdges) = expand(Set(), Set(), Set(), 0, List(DeriveTask(startNode.asInstanceOf[NonterminalNode])))
             // expand2(seeds.toList, seeds, Set(), Set())
@@ -710,8 +705,7 @@ class Parser(val grammar: Grammar)
             // val finishable: Set[Lifting] = nodes collect { case n if n.canFinish => Lifting(n, n, None) }
 
             val workingReverters = proceedReverters(Set(), reverters, liftings, proceededEdges ++ internalProceededEdges, 0)
-            val resultCandidates = collectResultCandidates(liftings)
-            val startingContext = ParsingContext(startNode.asInstanceOf[NonterminalNode], 0, nodes, edges, workingReverters, resultCandidates, Set(), internalProceededEdges.values.toSet)
+            val startingContext = ParsingContext(startNode.asInstanceOf[NonterminalNode], 0, nodes, edges, workingReverters, liftings, Set(), internalProceededEdges.values.toSet)
             val verboseProceedLog = VerboseProceedLog(
                 Set(),
                 Set(),
@@ -731,10 +725,11 @@ class Parser(val grammar: Grammar)
                 Set())
             (startingContext, verboseProceedLog)
         }
-        def fromSeed(startSymbol: Symbol): ParsingContext = fromSeedVerbose(startSymbol)._1
+        def fromSymbol(startSymbol: Symbol): ParsingContext = fromSymbolVerbose(startSymbol)._1
+        def fromKernel(startKernel: Kernel): ParsingContext = fromKernelVerbose(startKernel)._1
     }
 
-    val initialContextVerbose = ParsingContext.fromSeedVerbose(grammar.startSymbol)
+    val initialContextVerbose = ParsingContext.fromSymbolVerbose(Start)
     val initialContext = initialContextVerbose._1
 
     def parse(source: Inputs.Source): Either[ParsingContext, ParsingError] =

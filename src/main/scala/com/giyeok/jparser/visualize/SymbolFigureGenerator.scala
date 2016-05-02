@@ -2,25 +2,7 @@ package com.giyeok.jparser.visualize
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.Symbols.Backup
-import com.giyeok.jparser.Symbols.Join
-import com.giyeok.jparser.Symbols.CharsGrouping
-import com.giyeok.jparser.Symbols.Empty
-import com.giyeok.jparser.Symbols.Except
-import com.giyeok.jparser.Symbols.LookaheadExcept
-import com.giyeok.jparser.Symbols.Nonterminal
-import com.giyeok.jparser.Symbols.OneOf
-import com.giyeok.jparser.Symbols.Repeat
-import com.giyeok.jparser.Symbols.RepeatBounded
-import com.giyeok.jparser.Symbols.RepeatUnbounded
-import com.giyeok.jparser.Symbols.Sequence
-import com.giyeok.jparser.Symbols.ShortStringSymbols
-import com.giyeok.jparser.Symbols.Symbol
-import com.giyeok.jparser.Symbols.Terminal
-import com.giyeok.jparser.Symbols.Terminals
-import com.giyeok.jparser.Symbols.Longest
-import com.giyeok.jparser.Symbols.EagerLongest
-import com.giyeok.jparser.Symbols.Proxy
+import com.giyeok.jparser.Symbols._
 import java.lang.Character.UnicodeBlock
 import FigureGenerator.Spacing
 
@@ -59,6 +41,7 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
                 }, g.textFig("|", ap.default)))
             case t: Terminal => g.textFig(t.toShortString, ap.terminal)
             case Empty => g.textFig("ε", ap.nonterminal)
+            case Start => g.textFig("Start", ap.default)
             case Nonterminal(name) => g.textFig(name, ap.nonterminal)
             case Sequence(seq, ws) =>
                 if (seq.isEmpty) {

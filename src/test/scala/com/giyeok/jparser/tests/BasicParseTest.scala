@@ -18,7 +18,7 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
                     if (ctx.resultCandidates.size != 1) {
                         ctx.resultCandidates.zipWithIndex foreach { result =>
                             log(s"=== ${result._2} ===")
-                            log(result._1.parsed.get.toHorizontalHierarchyString)
+                            log(result._1.toHorizontalHierarchyString)
                         }
                     }
                     assert(ctx.resultCandidates.size == 1)

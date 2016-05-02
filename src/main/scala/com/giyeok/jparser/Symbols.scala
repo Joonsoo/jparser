@@ -151,6 +151,7 @@ object Symbols {
     val Unicode = Terminals.Unicode
 
     case object Empty extends Nonterm
+    case object Start extends Nonterm with AtomicSymbol
     case class Nonterminal(name: String) extends Nonterm with AtomicSymbol {
         override val hashCode = (classOf[Nonterminal], name).hashCode
     }
@@ -232,6 +233,7 @@ object Symbols {
             case Unicode(c) => s"<unicode ${(c.toSeq.sorted map { categoryCodeToName(_) }) mkString ", "}>"
             case t: Terminal => t.toShortString
             case Empty => "<empty>"
+            case Start => "<start>"
             case s: Nonterminal => s.name
             case s: Sequence => "(" + (s.seq map { _.toShortString } mkString " ") + ")"
             case s: OneOf => s.syms map { _.toShortString } mkString "|"
