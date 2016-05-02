@@ -10,7 +10,7 @@ import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.Inputs._
 import com.giyeok.jparser.Kernels._
 import com.giyeok.jparser.ParseTree._
-import PreprocessedParserSpec._
+import PreprocessedGrammar._
 
-class PreprocessedParserGenerator(grammar: Grammar) {
+class GrammarPreprocessor(grammar: Grammar) {
 }
