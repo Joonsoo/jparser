@@ -38,6 +38,10 @@ object ParseTree {
             ParsedSymbolsSeq[T](symbol, wsChild +: _childrenWS, _childrenIdx)
         def appendContent(child: ParseNode[Symbol]): ParsedSymbolsSeq[T] =
             ParsedSymbolsSeq[T](symbol, child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
+        def merge(other: ParsedSymbolsSeq[T]): ParsedSymbolsSeq[T] = {
+            assert(symbol == other.symbol)
+            ???
+        }
 
         override val hashCode = (classOf[ParsedSymbolsSeq[T]], symbol, _childrenWS, _childrenIdx).hashCode
     }

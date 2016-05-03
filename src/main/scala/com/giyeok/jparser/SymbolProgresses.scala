@@ -1,12 +1,12 @@
 package com.giyeok.jparser
 
+import Symbols._
+import Inputs._
+import ParseTree._
+import Kernels._
+
 trait SymbolProgresses {
     this: Parser =>
-
-    import Symbols._
-    import Inputs._
-    import ParseTree._
-    import Kernels._
 
     sealed trait SymbolProgress {
         val kernel: Kernel
