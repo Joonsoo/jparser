@@ -190,6 +190,7 @@ object Symbols {
         override val hashCode = (classOf[Backup], sym, backup).hashCode
     }
     case class Join(sym: AtomicSymbol, join: AtomicSymbol) extends Nonterm with AtomicSymbol {
+        assert(sym != join)
         def this(sym: Symbol, join: Symbol) = this(Proxy.of(sym), Proxy.of(join))
         override val hashCode = (classOf[Join], sym, join).hashCode
     }
