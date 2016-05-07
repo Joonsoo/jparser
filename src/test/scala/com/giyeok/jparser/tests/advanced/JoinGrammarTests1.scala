@@ -42,9 +42,27 @@ object JoinGrammar1 extends Grammar with StringSamples {
     val incorrectSamples = Set[String]()
 }
 
+object JoinGrammar2 extends Grammar with StringSamples {
+    val name = "JoinGrammar2 (nullable case)"
+
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("A").join(n("B"))),
+        "A" -> ListSet(
+            chars('a' to 'z').star),
+        "B" -> ListSet(
+            chars('a' to 'z').star))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String](
+        "")
+    val incorrectSamples = Set[String]()
+}
+
 object JoinGrammars {
     val grammars: Set[Grammar with Samples] = Set(
-        JoinGrammar1)
+        JoinGrammar1,
+        JoinGrammar2)
 }
 
 class JoinGrammarTestSuite1 extends BasicParseTest(JoinGrammars.grammars)

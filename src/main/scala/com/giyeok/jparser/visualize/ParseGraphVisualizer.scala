@@ -213,31 +213,18 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                         case v: ParsingContextGraphVisualizeWidget =>
                             val point = v.toControl(Display.getDefault.getCursorLocation)
                             val pointedNodes = v.nodesAt(point.x, point.y)
-                            pointedNodes collect {
-                                case x: Parser#NonterminalSymbolProgress =>
-                                    val dgraph = DerivationGraph.deriveFromKernel(grammar, x.kernel)
-                                    blockedPrint(s"Derivation graph from ${x.kernel}") {
-                                        println(s"Base: ${dgraph.baseNode}")
-                                        println("Nodes:")
-                                        dgraph.nodes foreach { node =>
-                                            println("  " + node.kernel.toShortString)
-                                        }
-                                        println("Edges:")
-                                        dgraph.edges foreach { edge =>
-                                            edge match {
-                                                case DerivationGraph.SimpleEdge(start, end, revertTriggers) =>
-                                                    println("  " + start.kernel.toShortString + " -> " + end.kernel.toShortString + "  * revert:" + revertTriggers)
-                                                case edge @ DerivationGraph.JoinEdge(start, end, join) =>
-                                                    println("  " + edge)
-                                            }
-                                        }
-                                        println("BaseLifts:")
-                                        dgraph.baseNodeLifts foreach { lift =>
-                                            println("  " + lift)
-                                        }
-                                    }
-                                case _ =>
-                                // nothing to do
+                            pointedNodes foreach {
+                                _ match {
+                                    case x: Parser#NonterminalSymbolProgress =>
+                                        val dgraph = DerivationGraph.deriveFromKernel(grammar, x.kernel)
+                                        val shell = new Shell(display)
+                                        shell.setLayout(new FillLayout())
+                                        new DerivationGraphVisualizeWidget(shell, resources, dgraph)
+                                        shell.setText(s"Derivation Graph of ${x.kernel.toShortString}")
+                                        shell.open()
+                                    case _ =>
+                                    // nothing to do
+                                }
                             }
                         case _ => // nothing to do
                     }

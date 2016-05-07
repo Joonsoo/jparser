@@ -88,7 +88,10 @@ object DerivationGraph {
 
     case object EmptyNode extends NewNode { val kernel = EmptyKernel }
     case class NewTermNode(kernel: TerminalKernel) extends NewNode with NonEmptyNode
-    case class NewAtomicNode[T <: AtomicSymbol with Nonterm](kernel: AtomicNontermKernel[T], liftBlockTrigger: Option[Node], reservedReverter: Option[Trigger.Type.Value]) extends NewNode with AtomicNontermNode[T]
+    case class NewAtomicNode[T <: AtomicSymbol with Nonterm](kernel: AtomicNontermKernel[T], liftBlockTrigger: Option[Node], reservedReverter: Option[Trigger.Type.Value]) extends NewNode with AtomicNontermNode[T] {
+        // liftBlockTrigger와 reservedReverter가 동시에 있을 수는 없다
+        assert(liftBlockTrigger.isEmpty || reservedReverter.isEmpty)
+    }
     case class NewNonAtomicNode[T <: NonAtomicSymbol with Nonterm](kernel: NonAtomicNontermKernel[T], progress: ParsedSymbolsSeq[T]) extends NewNode with NonAtomicNontermNode[T]
     case class BaseAtomicNode[T <: AtomicSymbol with Nonterm](kernel: AtomicNontermKernel[T]) extends BaseNode with AtomicNontermNode[T]
     case class BaseNonAtomicNode[T <: NonAtomicSymbol with Nonterm](kernel: NonAtomicNontermKernel[T]) extends BaseNode with NonAtomicNontermNode[T] {
@@ -245,7 +248,7 @@ object DerivationGraph {
                     }
 
                     // newDerivedNodes중 (그 자체로는) finishable하지 않은데 cc.lifts에 empty lift 가능한 것으로 되어 있는 것들 추려서 Lift 태스크 추가
-                    val liftAgain: Set[LiftTask] = newDerivedNodes flatMap { derivedNode =>
+                    val liftAgain: Set[LiftTask] = (derivedNodes intersect cc.nodes) flatMap { derivedNode =>
                         cc.liftsMap get derivedNode match {
                             case Some(lifts) =>
                                 lifts map { lift =>
@@ -307,16 +310,17 @@ object DerivationGraph {
                             assert(e.start.kernel.isInstanceOf[JoinKernel])
                             assert(reservedRevertTrigger.isEmpty)
                             val startKernel = e.start.kernel.asInstanceOf[JoinKernel]
-                            val lifts: Set[(ParsedSymbolJoin, Set[Trigger])] = if (node == e.end) {
-                                cc.liftsMap(e.join) map { lift =>
-                                    (new ParsedSymbolJoin(startKernel.symbol, parsed, lift.parsed), lift.revertTriggers)
+                            val lifts: Set[(ParsedSymbolJoin, Set[Trigger])] =
+                                if (node == e.end) {
+                                    cc.liftsMap(e.join) map { lift =>
+                                        (new ParsedSymbolJoin(startKernel.symbol, parsed, lift.parsed), lift.revertTriggers)
+                                    }
+                                } else {
+                                    assert(node == e.join)
+                                    cc.liftsMap(e.end) map { lift =>
+                                        (new ParsedSymbolJoin(startKernel.symbol, lift.parsed, parsed), lift.revertTriggers)
+                                    }
                                 }
-                            } else {
-                                assert(node == e.join)
-                                cc.liftsMap(e.join) map { lift =>
-                                    (new ParsedSymbolJoin(startKernel.symbol, lift.parsed, parsed), lift.revertTriggers)
-                                }
-                            }
                             lifts map { pr =>
                                 LiftTask(e.start, startKernel.lifted, pr._1, revertTriggers ++ pr._2)
                             }
@@ -332,13 +336,10 @@ object DerivationGraph {
                         // 따라서 parsed도 ParsedSymbolsSeq여야 한다
                         (afterKernel, parsed) match {
                             case (afterKernel: NonAtomicNontermKernel[_], parsed: ParsedSymbolsSeq[_]) =>
-                                // afterKernel로 된 노드 및 (incoming 노드->추가된 노드) 엣지들 추가 추가
+                                // afterKernel로 된 노드 및 (incoming 노드->추가된 노드) 엣지들 및 Lift.after를 추가된 노드로 지정한 Lift 추가
                                 val newNode = NewNonAtomicNode(afterKernel.asInstanceOf[NonAtomicNontermKernel[NonAtomicSymbol with Nonterm]], parsed.asInstanceOf[ParsedSymbolsSeq[NonAtomicSymbol with Nonterm]])
                                 val newEdges: Set[SimpleEdge] = incomingSimpleEdges map { e => SimpleEdge(e.start, newNode, revertTriggers) }
-                                cc.withNodesEdges(Set(newNode), newEdges.toSet[Edge])
-
-                                // Lift.after를 추가된 노드로 지정
-                                newCC = cc.withLift(Lift(node, afterKernel, parsed, Some(newNode), revertTriggers))
+                                newCC = cc.withNodesEdges(Set(newNode), newEdges.toSet[Edge]).withLift(Lift(node, afterKernel, parsed, Some(newNode), revertTriggers))
 
                                 // DeriveTask 추가
                                 newQueue +:= DeriveTask(newNode, revertTriggers)
@@ -360,6 +361,7 @@ object DerivationGraph {
         // TODO assertion
         // - 각 노드에 대한 테스트
         // - 노드에서 나와야 할 엣지에 대한 테스트
+        // - 각 노드의 커널에서 deriveFromKernel해서 나오는 그래프가 subgraph인지 테스트
         // - reverter 테스트
         result
     }
