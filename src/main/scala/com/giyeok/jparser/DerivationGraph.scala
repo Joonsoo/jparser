@@ -40,11 +40,9 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
         DerivationGraph(baseNode, nodes, edges, lifts + newLift)
     }
 
-    def incomingEdgesTo(node: Node): Set[Edge] = edges filter {
-        _ match {
-            case SimpleEdge(_, end, _) if end == node => true
-            case JoinEdge(_, end, join) if end == node || join == node => true
-        }
+    def incomingEdgesTo(node: Node): Set[Edge] = edges collect {
+        case e @ SimpleEdge(_, end, _) if end == node => e
+        case e @ JoinEdge(_, end, join) if end == node || join == node => e
     }
     def incomingSimpleEdgesTo(node: Node): Set[SimpleEdge] = edges collect {
         case edge @ SimpleEdge(_, `node`, _) => edge
@@ -53,10 +51,47 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
         case edge @ (JoinEdge(_, _, `node`) | JoinEdge(_, `node`, _)) => edge.asInstanceOf[JoinEdge]
     }
 
+    lazy val terminals: Set[Terminal] = nodes collect { case NewTermNode(TerminalKernel(terminal, 0)) => terminal }
+    lazy val termGroups: Set[TermGroupDesc] = {
+        val terminals = this.terminals
+
+        import Symbols.Terminals._
+        import Inputs._
+
+        val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
+        val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
+
+        val charIntersects: Set[CharacterTermGroupDesc] = charTerms flatMap { term1 =>
+            charTerms collect {
+                case term2 if term1 != term2 => term1 intersect term2
+            } filterNot { _.isEmpty }
+        }
+        val virtIntersects: Set[VirtualTermGroupDesc] = virtTerms flatMap { term1 =>
+            virtTerms collect {
+                case term2 if term1 != term2 => term1 intersect term2
+            } filterNot { _.isEmpty }
+        }
+
+        val charTermGroups = (charTerms map { term =>
+            charIntersects.foldLeft(term) { _ - _ }
+        }) ++ charIntersects
+        val virtTermGroups = (virtTerms map { term =>
+            virtIntersects.foldLeft(term) { _ - _ }
+        }) ++ virtIntersects
+
+        charTermGroups ++ virtTermGroups
+    }
+    lazy val sliceByTermGroups: Map[TermGroupDesc, DerivationGraph] = {
+        ???
+    }
+    def subgraphTo(termGroup: TermGroupDesc): DerivationGraph =
+        sliceByTermGroups(termGroup) ensuring (termGroups contains termGroup)
     def compaction: DerivationGraph = ???
-    def terminals: Set[Terminal] = ???
-    def termGroups: Set[TermGroupDesc] = ???
-    def sliceByTermGroups: Map[TermGroupDesc, DerivationGraph] = ???
+
+    // 이 그래프가 superGraph의 superGraphBaseNode를 이 그래프의 baseNode로 했을 때 subgraph인지 확인
+    def isSubgraphOf(superGraph: DerivationGraph, superGraphBaseNode: Node): Boolean = {
+        ???
+    }
 }
 
 object DerivationGraph {
@@ -200,8 +235,8 @@ object DerivationGraph {
             queue match {
                 case DeriveTask(baseNode, revertTriggers) +: rest =>
                     assert(baseNode.kernel.derivable)
-                    // lift하면서 revertTriggers가 쌓인 상태에서 derive를 시작하는 경우에만 revertTriggers가 있을 수 있고 그 외의 경우엔 없어야 한다
-                    assert(if (!baseNode.isInstanceOf[AtomicNontermNode[_]]) revertTriggers.isEmpty else true)
+                    // lift하면서 revertTriggers가 쌓인 상태에서 derive를 시작하는 경우에만(baseNode가 NonAtomicNontermNode인 경우에만) revertTriggers가 있을 수 있고 그 외의 경우엔 없어야 한다
+                    assert(baseNode.isInstanceOf[NonAtomicNontermNode[_]] || revertTriggers.isEmpty)
 
                     var newQueue = rest
                     var newCC = cc
@@ -226,7 +261,7 @@ object DerivationGraph {
                     val newDerivedNodes = derivedNodes -- cc.nodes
 
                     // newDerivedNodes 중 derivable한 것들(nonterm kernel들) 추려서 Derive 태스크 추가
-                    newQueue ++:= (newDerivedNodes.toList collect { case nonterm: NontermNode => DeriveTask(nonterm, Set()) })
+                    newQueue ++:= (newDerivedNodes.toList collect { case nonterm: NontermNode if nonterm.kernel.derivable => DeriveTask(nonterm, Set()) })
                     newCC = cc.withNodesEdges(newDerivedNodes, newDerivedEdges)
 
                     // newDerivedNodes중 finishable한 것들을 추려서 Lift 태스크 추가

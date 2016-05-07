@@ -19,6 +19,10 @@ import org.eclipse.swt.widgets.Event
 import org.eclipse.swt.widgets.Label
 import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.draw2d.MarginBorder
+import org.eclipse.swt.events.KeyListener
+import org.eclipse.draw2d.geometry.Point
+import org.eclipse.draw2d.MouseListener
+import com.giyeok.jparser.Inputs
 
 class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, derivationGraph: DerivationGraph) extends Composite(parent, SWT.NONE) {
     this.setLayout(new FillLayout())
@@ -66,7 +70,6 @@ class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGrap
                 FigureGenerator.draw2d.BorderAppearance(new MarginBorder(1, 1, 1, 1)),
                 FigureGenerator.draw2d.NewFigureAppearance(),
                 FigureGenerator.draw2d.BorderAppearance(new LineBorder(ColorConstants.red)))
-
     }
 
     val symbolProgressFigureGenerator = new SymbolProgressFigureGenerator(figureGenerator, figureAppearances)
@@ -89,18 +92,17 @@ class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGrap
                 val nodeFig0 = g.horizontalFig(Spacing.Small, Seq(
                     g.supFig(g.textFig("" + nodeId, ap.default)),
                     symbolProgressFigureGenerator.kernelFig(node.kernel)))
+                nodeFig0.setBorder(new LineBorder(ColorConstants.darkGray))
 
                 val nodeFig = node match {
                     case base: BaseNode =>
                         nodeFig0.setBackgroundColor(ColorConstants.yellow)
-                        nodeFig0.setBorder(new LineBorder(ColorConstants.darkGray))
                         nodeFig0
                     case NewAtomicNode(kernel, Some(liftBlockTrigger), None) =>
                         val f = g.verticalFig(Spacing.Small, Seq(
                             nodeFig0,
                             g.textFig(s"LiftBlockedIf(${addNode(liftBlockTrigger).id} lifted)", ap.default)))
                         nodeFig0.setBackgroundColor(ColorConstants.buttonLightest)
-                        nodeFig0.setBorder(new LineBorder(ColorConstants.darkGray))
                         f.setBackgroundColor(ColorConstants.buttonLightest)
                         f.setBorder(new LineBorder(ColorConstants.darkGray))
                         f
@@ -112,13 +114,11 @@ class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGrap
                                 case Trigger.Type.Alive => "ReservedIfAlive"
                             }, ap.default)))
                         nodeFig0.setBackgroundColor(ColorConstants.buttonLightest)
-                        nodeFig0.setBorder(new LineBorder(ColorConstants.darkGray))
                         f.setBackgroundColor(ColorConstants.buttonLightest)
                         f.setBorder(new LineBorder(ColorConstants.darkGray))
                         f
                     case node: NewNode =>
                         nodeFig0.setBackgroundColor(ColorConstants.buttonLightest)
-                        nodeFig0.setBorder(new LineBorder(ColorConstants.darkGray))
                         nodeFig0
                 }
                 nodeFig.setOpaque(true)
@@ -148,12 +148,15 @@ class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGrap
                 if (!revertTriggers.isEmpty) {
                     connection.setText(triggersToString(revertTriggers))
                 }
+                connection.setLineColor(ColorConstants.lightGray)
                 vedges(edge) = Set(connection)
             case JoinEdge(start, end, join) =>
                 val connectionEnd = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(start).node, vnodes(end).node)
                 val connectionJoin = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(start).node, vnodes(join).node)
                 connectionEnd.setText("main")
                 connectionJoin.setText("constraint")
+                connectionEnd.setLineColor(ColorConstants.lightGray)
+                connectionJoin.setLineColor(ColorConstants.lightGray)
                 vedges(edge) = Set(connectionEnd, connectionJoin)
         }
     }
@@ -170,6 +173,73 @@ class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGrap
         }
         connection.setLineColor(ColorConstants.blue)
     }
+
+    val termGroups = derivationGraph.termGroups
+    var highlightedTermGroup = Option.empty[Inputs.TermGroupDesc]
+    val termGroupButtons: Map[Inputs.TermGroupDesc, (Figure, CGraphNode)] = {
+        (termGroups map { termGroup =>
+            val fig = figureGenerator.textFig(termGroup.toShortString, figureAppearances.default)
+            fig.setOpaque(true)
+            fig.setBorder(new LineBorder())
+            fig.setSize(fig.getPreferredSize())
+            val node = new CGraphNode(graph, SWT.NONE, fig)
+
+            fig.setVisible(false)
+
+            fig.addMouseListener(new org.eclipse.draw2d.MouseListener() {
+                def mousePressed(event: org.eclipse.draw2d.MouseEvent): Unit = {
+                    if (highlightedTermGroup.isDefined) {
+                        dehighlightAllTermGroupButtons()
+                    }
+                    if (highlightedTermGroup != Some(termGroup)) {
+                        highlightedTermGroup = Some(termGroup)
+                        termGroupButtons(termGroup)._1.setBackgroundColor(ColorConstants.lightBlue)
+                        val subgraph = derivationGraph.subgraphTo(termGroup)
+                        subgraph.nodes foreach { node => vnodes(node).node.setBorderColor(ColorConstants.red) }
+                        subgraph.edges foreach { edge => vedges(edge) foreach { _.setLineColor(ColorConstants.red) } }
+                    } else {
+                        highlightedTermGroup = None
+                    }
+                }
+                def mouseReleased(event: org.eclipse.draw2d.MouseEvent): Unit = {}
+                def mouseDoubleClicked(event: org.eclipse.draw2d.MouseEvent): Unit = {}
+            })
+            termGroup -> (fig, node)
+        }).toMap
+    }
+    def dehighlightAllTermGroupButtons(): Unit = {
+        vnodes map { _._2.node.setBorderColor(ColorConstants.lightGray) }
+        vedges.values map { _ foreach { _.setLineColor(ColorConstants.lightGray) } }
+        termGroupButtons foreach { _._2._1.setBackgroundColor(ColorConstants.white) }
+    }
+
+    var termGroupButtonsVisible = false
+    graph.addListener(SWT.KeyDown, new Listener() {
+        def handleEvent(e: Event): Unit = {
+            e.keyCode match {
+                case 't' | 'T' =>
+                    termGroupButtonsVisible = !termGroupButtonsVisible
+                    if (termGroupButtonsVisible) {
+                        highlightedTermGroup = None
+                        var y = 0
+                        termGroupButtons foreach { kv =>
+                            kv._2._2.setLocation(0, y)
+                            y += kv._2._1.getPreferredSize().height + 5
+                            kv._2._1.setVisible(true)
+                        }
+                    } else {
+                        highlightedTermGroup = None
+                        dehighlightAllTermGroupButtons()
+                        termGroupButtons foreach { kv =>
+                            kv._2._1.setVisible(false)
+                        }
+                    }
+                case 'r' | 'R' =>
+                    graph.applyLayout()
+                case _ =>
+            }
+        }
+    })
 
     import org.eclipse.zest.layouts.algorithms._
     val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)
