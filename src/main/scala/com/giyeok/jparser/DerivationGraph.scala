@@ -106,6 +106,9 @@ object DerivationGraph {
         // before 노드, afterKernel, parsed 모두 동일한 심볼을 갖고 있어야 한다
         assert((before.kernel.symbol == afterKernel.symbol) && (afterKernel.symbol == parsed.symbol))
         // afterKernel.derivable하면 after가 있어야 한다. 단 before가 BaseNode인 경우에는 after를 직접 만들지 않고 파서에 일임하기 때문에 어떤 경우든 after가 비어있어야 한다
+        println(s"before: ${before.kernel.toShortString}")
+        println(s"afterKernel: ${afterKernel.toShortString}")
+        println(s"after: ${after map { _.kernel.toShortString }}")
         assert(if (!before.isInstanceOf[BaseNode]) (afterKernel.derivable == after.isDefined) else after.isEmpty)
         // after 노드가 있다면 그 심볼도 역시 동일해야 한다
         assert(after forall { _.kernel.symbol == afterKernel.symbol })
@@ -181,7 +184,7 @@ object DerivationGraph {
     }
 
     def deriveFromKernel(grammar: Grammar, startKernel: NontermKernel[Nonterm]): DerivationGraph = {
-        assert(startKernel.symbol == Start || startKernel.symbol.isInstanceOf[NonAtomicSymbol])
+        // assert(startKernel.symbol == Start || startKernel.symbol.isInstanceOf[NonAtomicSymbol])
 
         sealed trait Task
         case class DeriveTask(node: NontermNode, revertTriggers: Set[Trigger]) extends Task
@@ -260,12 +263,12 @@ object DerivationGraph {
                     derive(newQueue, newCC)
 
                 case LiftTask(node: BaseNode, afterKernel, parsed, revertTriggers) +: rest =>
-                    assert(cc.liftsMap(node) exists { _.parsed == parsed })
                     // TODO base node에 붙은 reserved reverter는 여기 말고 밖에 파서에서 처리해야 하나?
                     derive(rest, cc.withLift(Lift(node, afterKernel, parsed, None, revertTriggers)))
 
                 case LiftTask(node: NewNode, afterKernel, parsed, revertTriggers) +: rest =>
                     var newQueue = rest
+                    var newCC = cc
 
                     val incomingSimpleEdges: Set[SimpleEdge] = cc.incomingSimpleEdgesTo(node)
                     val incomingJoinEdges: Set[JoinEdge] = cc.incomingJoinEdgesTo(node)
@@ -335,15 +338,18 @@ object DerivationGraph {
                                 cc.withNodesEdges(Set(newNode), newEdges.toSet[Edge])
 
                                 // Lift.after를 추가된 노드로 지정
-                                val lift = Lift(node, afterKernel, parsed, Some(newNode), revertTriggers)
+                                newCC = cc.withLift(Lift(node, afterKernel, parsed, Some(newNode), revertTriggers))
 
                                 // DeriveTask 추가
                                 newQueue +:= DeriveTask(newNode, revertTriggers)
 
                             case _ => throw new AssertionError("should be nonatomic")
                         }
+                    } else {
+                        newCC = cc.withLift(Lift(node, afterKernel, parsed, None, revertTriggers))
                     }
-                    derive(newQueue, cc.withLift(Lift(node, afterKernel, parsed, None, revertTriggers)))
+                    derive(newQueue, newCC)
+                case List() => cc
             }
         }
         val baseNode = startKernel match {

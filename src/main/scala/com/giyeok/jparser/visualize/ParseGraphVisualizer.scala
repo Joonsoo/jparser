@@ -42,6 +42,7 @@ import org.eclipse.swt.layout.FillLayout
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.Kernels
 import com.giyeok.jparser.Symbols._
+import com.giyeok.jparser.DerivationGraph
 // import com.giyeok.jparser.preprocessed.ParserPreprocessor
 
 class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Display, shell: Shell, resources: ParseGraphVisualizer.Resources) {
@@ -207,7 +208,40 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                             v.graph.applyLayout()
                         case _ => // nothing to do
                     }
-                    /*
+                case 'd' | 'D' =>
+                    graphAt(currentLocation) match {
+                        case v: ParsingContextGraphVisualizeWidget =>
+                            val point = v.toControl(Display.getDefault.getCursorLocation)
+                            val pointedNodes = v.nodesAt(point.x, point.y)
+                            pointedNodes collect {
+                                case x: Parser#NonterminalSymbolProgress =>
+                                    val dgraph = DerivationGraph.deriveFromKernel(grammar, x.kernel)
+                                    blockedPrint(s"Derivation graph from ${x.kernel}") {
+                                        println(s"Base: ${dgraph.baseNode}")
+                                        println("Nodes:")
+                                        dgraph.nodes foreach { node =>
+                                            println("  " + node.kernel.toShortString)
+                                        }
+                                        println("Edges:")
+                                        dgraph.edges foreach { edge =>
+                                            edge match {
+                                                case DerivationGraph.SimpleEdge(start, end, revertTriggers) =>
+                                                    println("  " + start.kernel.toShortString + " -> " + end.kernel.toShortString + "  * revert:" + revertTriggers)
+                                                case edge @ DerivationGraph.JoinEdge(start, end, join) =>
+                                                    println("  " + edge)
+                                            }
+                                        }
+                                        println("BaseLifts:")
+                                        dgraph.baseNodeLifts foreach { lift =>
+                                            println("  " + lift)
+                                        }
+                                    }
+                                case _ =>
+                                // nothing to do
+                            }
+                        case _ => // nothing to do
+                    }
+                /*
                 case 'k' | 'K' =>
                     graphAt(currentLocation) match {
                         case v: ParsingContextGraphVisualizeWidget =>
