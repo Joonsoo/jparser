@@ -24,6 +24,7 @@ object Symbols {
 
     sealed trait Terminal extends AtomicSymbol {
         def accept(input: Inputs.Input): Boolean
+        def accept(termGroup: Inputs.TermGroupDesc): Boolean = accept(Inputs.AbstractInput(termGroup))
     }
     object Terminals {
         import Inputs.{ Input, Character, Virtual, AbstractInput, CharsGroup, CharsUnicodeExcluding, AllCharsExcluding, VirtualsGroup }
@@ -84,6 +85,9 @@ object Symbols {
                 input match {
                     case Character(c, _) if categories contains c.getType => true
                     case AbstractInput(termGroup) =>
+                        if (termGroup.isEmpty) {
+                            println(termGroup)
+                        }
                         assert(!termGroup.isEmpty)
                         termGroup match {
                             case CharsGroup(chars) if chars forall { categories contains _.getType } => true

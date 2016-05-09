@@ -6,6 +6,8 @@ import Symbols._
 import ParseTree._
 import Derivations._
 import com.giyeok.jparser.Inputs.TermGroupDesc
+import com.giyeok.jparser.Inputs.AbstractInput
+import com.giyeok.jparser.Inputs.ConcreteInput
 
 case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], lifts: Set[Lift]) {
     // baseNode가 nodes에 포함되어야 함
@@ -51,7 +53,8 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
         case edge @ (JoinEdge(_, _, `node`) | JoinEdge(_, `node`, _)) => edge.asInstanceOf[JoinEdge]
     }
 
-    lazy val terminals: Set[Terminal] = nodes collect { case NewTermNode(TerminalKernel(terminal, 0)) => terminal }
+    lazy val terminalNodes: Set[NewTermNode] = nodes collect { case node: NewTermNode => node }
+    lazy val terminals: Set[Terminal] = terminalNodes map { _.kernel.symbol }
     lazy val termGroups: Set[TermGroupDesc] = {
         val terminals = this.terminals
 
@@ -79,13 +82,81 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
             virtIntersects.foldLeft(term) { _ - _ }
         }) ++ virtIntersects
 
-        charTermGroups ++ virtTermGroups
+        (charTermGroups ++ virtTermGroups) filterNot { _.isEmpty }
     }
-    lazy val sliceByTermGroups: Map[TermGroupDesc, DerivationGraph] = {
-        ???
+    lazy val reachablesMap: Map[Node, Set[TermGroupDesc]] = {
+        val cc = scala.collection.mutable.Map[Node, Set[TermGroupDesc]]()
+        nodes foreach {
+            case node @ NewTermNode(TerminalKernel(terminal, 0)) =>
+                cc(node) = termGroups filter { terminal accept _ }
+            case node => cc(node) = Set()
+        }
+        def reverseTraverse(node: Node): Unit = {
+            val incomingEdges = incomingEdgesTo(node)
+            incomingEdges foreach {
+                case SimpleEdge(start, end, _) =>
+                    if (!(cc(end) subsetOf cc(start))) {
+                        cc(start) ++= cc(end)
+                        reverseTraverse(start)
+                    }
+                case JoinEdge(start, end, join) =>
+                    val intersect = cc(end) intersect cc(join)
+                    if (!(intersect subsetOf cc(start))) {
+                        cc(start) ++= intersect
+                        reverseTraverse(start)
+                    }
+            }
+        }
+        terminalNodes foreach { node => reverseTraverse(node) }
+
+        val result: Map[Node, Set[TermGroupDesc]] = cc.toMap
+        assert(result.keySet == nodes)
+        result foreach { kv =>
+            println(s"${kv._1} -> ${kv._2}")
+        }
+        assert(edges forall {
+            case SimpleEdge(start, end, _) =>
+                result(end) subsetOf result(start)
+            case JoinEdge(start, end, join) =>
+                result(start) == (result(end) intersect result(join))
+        })
+        result
     }
-    def subgraphTo(termGroup: TermGroupDesc): DerivationGraph =
+    lazy val sliceByTermGroups: Map[TermGroupDesc, Option[DerivationGraph]] = {
+        (termGroups map { termGroup =>
+            val subgraph = if (reachablesMap(baseNode) contains termGroup) {
+                val input = AbstractInput(termGroup)
+                val subnodes0 = nodes filter { node => reachablesMap(node) contains termGroup }
+                // liftBlockTrigger 거르기
+                val subnodesMap = (subnodes0 map {
+                    case node @ NewAtomicNode(kernel, liftBlockTrigger, reservedReverter) =>
+                        node -> NewAtomicNode(kernel, liftBlockTrigger filter { subnodes0 contains _ }, reservedReverter)
+                    case node => node -> node
+                }).toMap
+                def refineRevertTriggers(revertTriggers: Set[Trigger], map: Map[Node, Node]): Set[Trigger] = revertTriggers collect {
+                    case IfLift(node) if subnodes0 contains node => IfLift(map(node))
+                    case IfAlive(node) if subnodes0 contains node => IfAlive(map(node))
+                }
+                // revertTriggers 거르기, liftBlockTrigger 걸러진 노드로 바꾸기
+                val subedges: Set[Edge] = edges collect {
+                    case e @ SimpleEdge(start, end, revertTriggers) if (subnodes0 contains start) && (subnodes0 contains end) =>
+                        SimpleEdge(subnodesMap(start).asInstanceOf[NontermNode], subnodesMap(end), refineRevertTriggers(revertTriggers, subnodesMap))
+                    case e @ JoinEdge(start, end, join) if (subnodes0 contains start) && (subnodes0 contains end) && (subnodes0 contains join) =>
+                        JoinEdge(subnodesMap(start).asInstanceOf[NontermNode], subnodesMap(end), subnodesMap(join))
+                }
+                val sublifts = lifts collect {
+                    case Lift(before, afterKernel, parsed, after, revertTriggers) if (subnodes0 contains before) && (after forall { subnodes0 contains _ }) =>
+                        Lift(subnodesMap(before), afterKernel, parsed, after map { subnodesMap(_) }, refineRevertTriggers(revertTriggers, subnodesMap))
+                }
+                Some(DerivationGraph(baseNode, subnodesMap.values.toSet, subedges, sublifts))
+            } else None
+            termGroup -> subgraph
+        }).toMap
+    }
+    def subgraphTo(termGroup: TermGroupDesc): Option[DerivationGraph] =
         sliceByTermGroups(termGroup) ensuring (termGroups contains termGroup)
+    def subgraphTo(input: ConcreteInput): Option[DerivationGraph] =
+        termGroups find { _.contains(input) } flatMap { subgraphTo(_) }
     def compaction: DerivationGraph = ???
 
     // 이 그래프가 superGraph의 superGraphBaseNode를 이 그래프의 baseNode로 했을 때 subgraph인지 확인

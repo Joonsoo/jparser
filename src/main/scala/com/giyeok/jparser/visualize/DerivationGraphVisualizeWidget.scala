@@ -23,6 +23,7 @@ import org.eclipse.swt.events.KeyListener
 import org.eclipse.draw2d.geometry.Point
 import org.eclipse.draw2d.MouseListener
 import com.giyeok.jparser.Inputs
+import org.eclipse.zest.core.widgets.GraphNode
 
 class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, derivationGraph: DerivationGraph) extends Composite(parent, SWT.NONE) {
     this.setLayout(new FillLayout())
@@ -193,10 +194,17 @@ class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGrap
                     }
                     if (highlightedTermGroup != Some(termGroup)) {
                         highlightedTermGroup = Some(termGroup)
+                        vnodes filter { v => derivationGraph.reachablesMap(v._1) contains termGroup } foreach { v =>
+                            v._2.node.setBackgroundColor(ColorConstants.lightBlue)
+                        }
                         termGroupButtons(termGroup)._1.setBackgroundColor(ColorConstants.lightBlue)
-                        val subgraph = derivationGraph.subgraphTo(termGroup)
-                        subgraph.nodes foreach { node => vnodes(node).node.setBorderColor(ColorConstants.red) }
-                        subgraph.edges foreach { edge => vedges(edge) foreach { _.setLineColor(ColorConstants.red) } }
+                        derivationGraph.sliceByTermGroups
+                        derivationGraph.subgraphTo(termGroup) match {
+                            case Some(subgraph) =>
+                                subgraph.nodes foreach { node => vnodes(node).node.setBorderColor(ColorConstants.red) }
+                                subgraph.edges foreach { edge => vedges(edge) foreach { _.setLineColor(ColorConstants.red) } }
+                            case None =>
+                        }
                     } else {
                         highlightedTermGroup = None
                     }
@@ -209,6 +217,8 @@ class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGrap
     }
     def dehighlightAllTermGroupButtons(): Unit = {
         vnodes map { _._2.node.setBorderColor(ColorConstants.lightGray) }
+        vnodes map { _._2.node.setBackgroundColor(ColorConstants.buttonLightest) }
+        vnodes(derivationGraph.baseNode).node.setBackgroundColor(ColorConstants.yellow)
         vedges.values map { _ foreach { _.setLineColor(ColorConstants.lightGray) } }
         termGroupButtons foreach { _._2._1.setBackgroundColor(ColorConstants.white) }
     }
@@ -226,6 +236,9 @@ class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGrap
                             kv._2._2.setLocation(0, y)
                             y += kv._2._1.getPreferredSize().height + 5
                             kv._2._1.setVisible(true)
+                        }
+                        derivationGraph.reachablesMap foreach { kv =>
+                            println(s"${kv._1} -> ${kv._2}")
                         }
                     } else {
                         highlightedTermGroup = None
