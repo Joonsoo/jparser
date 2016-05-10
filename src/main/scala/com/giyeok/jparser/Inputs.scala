@@ -144,6 +144,7 @@ object Inputs {
     }
 
     type Source = Iterable[Input]
+    type ConcreteSource = Iterable[ConcreteInput]
 
     implicit class InputToShortString(input: Input) {
         def toShortString: String = input match {
@@ -174,6 +175,6 @@ object Inputs {
         def toCleanString: String = (source map { _.toCleanString }).mkString
     }
 
-    def fromString(source: String): Seq[Input] =
+    def fromString(source: String): Seq[ConcreteInput] =
         source.toCharArray.zipWithIndex map { ci => Character(ci._1, ci._2) }
 }

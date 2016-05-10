@@ -19,7 +19,7 @@ import com.giyeok.jparser.visualize.ParseGraphVisualizer
 import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.visualize.FigureGenerator
-import com.giyeok.jparser.visualize.PCGVisualizer
+import com.giyeok.jparser.visualize.NewParserVisualizer
 
 trait Viewer {
     val allTests: Set[Grammar with Samples]
@@ -49,7 +49,7 @@ trait Viewer {
         val textList = new org.eclipse.swt.widgets.List(rightFrame, SWT.BORDER | SWT.V_SCROLL)
         val testText = new org.eclipse.swt.widgets.Text(rightFrame, SWT.MULTI)
         val testButton = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
-        val pcgButton = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
+        val newParserButton = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
 
         textList.setFont(JFaceResources.getTextFont)
 
@@ -103,7 +103,7 @@ trait Viewer {
         })
 
         testButton.setText("Show")
-        pcgButton.setText("PCG")
+        newParserButton.setText("New Parser")
         def startParse(): Unit = {
             if (grammarList.getSelectionIndex() >= 0) {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
@@ -123,11 +123,12 @@ trait Viewer {
                 startParse()
             }
         })
-        pcgButton.addListener(SWT.Selection, new Listener() {
+        newParserButton.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedGrammars(grammarList.getSelectionIndex())
-                    PCGVisualizer.start(grammar, display, new Shell(display))
+                    val source = Inputs.fromString(testText.getText())
+                    NewParserVisualizer.start(grammar, source.toSeq, display, new Shell(display))
                 }
             }
         })

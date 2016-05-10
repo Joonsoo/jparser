@@ -10,10 +10,13 @@ import com.giyeok.jparser.Inputs.Input
 
 class NewParser(val grammar: Grammar) {
     sealed trait Node
-    sealed trait NontermNode[+T <: Nonterm] extends Node { val kernel: NontermKernel[T] }
+    sealed trait NontermNode[+T <: Nonterm] extends Node {
+        val kernel: NontermKernel[T]
+        val gen: Int
+    }
     case class TermNode(kernel: TerminalKernel) extends Node
-    case class AtomicNode[+T <: AtomicSymbol with Nonterm](kernel: AtomicNontermKernel[T], liftBlockTrigger: Option[Node], reservedReverter: Option[Trigger.Type.Value]) extends NontermNode[T]
-    case class NonAtomicNode[T <: NonAtomicSymbol with Nonterm](kernel: NonAtomicNontermKernel[T], progress: ParsedSymbolsSeq[T]) extends NontermNode[T]
+    case class AtomicNode[+T <: AtomicSymbol with Nonterm](kernel: AtomicNontermKernel[T], gen: Int, liftBlockTrigger: Option[Node], reservedReverter: Option[Trigger.Type.Value]) extends NontermNode[T]
+    case class NonAtomicNode[T <: NonAtomicSymbol with Nonterm](kernel: NonAtomicNontermKernel[T], gen: Int, progress: ParsedSymbolsSeq[T]) extends NontermNode[T]
 
     case class Derivable(node: NontermNode[Nonterm], reverters: Set[Trigger])
 
@@ -48,15 +51,15 @@ class NewParser(val grammar: Grammar) {
     case class Graph(nodes: Set[Node], edges: Set[Edge]) {
         def termNodes: Set[TermNode] = nodes collect { case n: TermNode => n }
 
-        def expand(baseDerivable: Derivable, derivationGraph: DerivationGraph): (Graph, Set[TermNode]) = {
+        def expand(gen: Int, baseDerivable: Derivable, derivationGraph: DerivationGraph): (Graph, Set[TermNode]) = {
             val Derivable(baseNode: NontermNode[Nonterm], givenRevertTriggers: Set[Trigger]) = baseDerivable
             assert(derivationGraph.baseNode.kernel == baseNode.kernel)
             def newNode(dnode: NewNode with NonEmptyNode): Node = dnode match {
                 case NewTermNode(kernel) => TermNode(kernel)
                 case NewAtomicNode(kernel, liftBlockTrigger, reservedReverter) =>
-                    AtomicNode(kernel, liftBlockTrigger map { t => newNode(t.asInstanceOf[NewNode with NonEmptyNode]) }, reservedReverter map { Trigger.Type.of _ })
+                    AtomicNode(kernel, gen, liftBlockTrigger map { t => newNode(t.asInstanceOf[NewNode with NonEmptyNode]) }, reservedReverter map { Trigger.Type.of _ })
                 case NewNonAtomicNode(kernel, progress) =>
-                    NonAtomicNode(kernel, progress)
+                    NonAtomicNode(kernel, gen, progress)
             }
             val nodesMap: Map[DerivationGraph.Node, Node] =
                 (((derivationGraph.nodes - derivationGraph.baseNode) map { n =>
@@ -81,7 +84,7 @@ class NewParser(val grammar: Grammar) {
             (Graph(nodes ++ nodesMap.values.toSet, edges ++ newEdges), nodesMap.values.toSet[Node] collect { case n: TermNode => n })
         }
 
-        def lift(termLifts: Set[(TermNode, Input)], liftBlockedNodes: Set[AtomicNode[_]]): (Graph, Set[Derivable], Set[Lift]) = {
+        def lift(gen: Int, termLifts: Set[(TermNode, Input)], liftBlockedNodes: Set[AtomicNode[_]]): (Graph, Set[Derivable], Set[Lift]) = {
             sealed trait LiftTask
             case class TermLift(before: TermNode, by: Input) extends LiftTask
             case class NontermLift(before: NontermNode[Nonterm], by: ParseNode[Symbol], revertTriggers: Set[Trigger], isRoot: Boolean) extends LiftTask
@@ -119,7 +122,7 @@ class NewParser(val grammar: Grammar) {
                         val (newLiftTasks, incomingEdges) = chainLift(before, parsed, Set(), false)
                         lift(rest ++ newLiftTasks.toList, graph.remove(before, incomingEdges), derivables, lifts + newLift)
 
-                    case NontermLift(before @ AtomicNode(kernel, _, reservedReverter), by, revertTriggers, isRoot) +: rest =>
+                    case NontermLift(before @ AtomicNode(kernel, _, _, reservedReverter), by, revertTriggers, isRoot) +: rest =>
                         val (afterKernel, parsed) = (kernel.lifted, ParsedSymbol(kernel.symbol, by))
                         // Atomic node는 한 번 lift하면 finishable && !derivable 해진다
                         assert(afterKernel.finishable && !afterKernel.derivable)
@@ -131,28 +134,36 @@ class NewParser(val grammar: Grammar) {
                         val (newLiftTasks, incomingEdges) = chainLift(before, parsed, newRevertTriggers, isRoot)
                         lift(rest ++ newLiftTasks.toList, if (isRoot) graph else graph.remove(before, incomingEdges), derivables, lifts + newLift)
 
-                    case NontermLift(before @ NonAtomicNode(kernel, progress), by, revertTriggers, isRoot) +: rest =>
+                    case NontermLift(before @ NonAtomicNode(kernel, _, progress), by, revertTriggers, isRoot) +: rest =>
                         val (afterKernel: NonAtomicNontermKernel[_], parsed: ParsedSymbolsSeq[_]) = kernel.lifted(progress, by)
                         val incomingEdges0 = graph.incomingEdgesTo(before)
                         assert(incomingEdges0 forall { _.isInstanceOf[SimpleEdge] })
                         val incomingEdges = incomingEdges0 map { _.asInstanceOf[SimpleEdge] }
-                        val (afterNode: Option[Node], newDerivables: Set[Derivable]) = if (afterKernel.derivable) {
+
+                        var newDerivables = derivables
+                        var afterNode: Option[Node] = None
+                        // afterKernel.derivable하면 새로 생긴 노드는 roottip이 되고 그 이후로는 root 노드가 되므로 살려야 한다
+                        val newIsRoot = isRoot || afterKernel.derivable
+                        var newGraph = if (newIsRoot) graph else graph.remove(before, incomingEdges0)
+
+                        if (afterKernel.derivable) {
                             // afterKernel과 newProgress로 새로운 node 만들고 start -> 새 노드로 가는 엣지 추가하고, 이 때 before에 붙어있던 edge revert trigger들은 이 엣지에도 붙여준다
-                            val afterNode = NonAtomicNode(afterKernel, parsed)
-                            val newEdges = incomingEdges map { case SimpleEdge(start, _, edgeRevertTriggers) => SimpleEdge(start, afterNode, edgeRevertTriggers ++ revertTriggers) }
+                            val newNode = NonAtomicNode(afterKernel, gen, parsed)
+                            val newEdges: Set[Edge] = incomingEdges map {
+                                case SimpleEdge(start, _, edgeRevertTriggers) =>
+                                    SimpleEdge(start, newNode, edgeRevertTriggers ++ revertTriggers)
+                            }
                             // 새로 생성된 노드는 아래에서 만드는 Lift에 after node로 지정해주고 derviables에 추가한다
-                            val newDerivable = Derivable(afterNode, revertTriggers)
+                            newDerivables += Derivable(newNode, revertTriggers)
+                            newGraph = newGraph.withNodeAndEdges(newNode, newEdges)
+                            afterNode = Some(newNode)
                             // TODO DerivationGraph of 새로 생성된 노드에 baseNodeLift가 있는 경우
                             // - parsed와 lift의 parsed를 merge해서 위에서 newEdges 만든것처럼 새 노드를 만들고
                             // - 위에서 newEdges 만든 것처럼 새 노드로 엣지 만들어주고
                             // - 새로운 lift task를 만들어서 추가해준다
                             derive(afterKernel).baseNodeLifts
-                            (Some(afterNode), derivables + newDerivable)
-                        } else (None, derivables)
-                        // val afterNode = Option.empty[Node]
-                        // afterKernel.derivable하면 새로 생긴 노드는 roottip이 되고 그 이후로는 root 노드가 되므로 살려야 한다
-                        val newIsRoot = isRoot || afterKernel.derivable
-                        val newGraph = if (newIsRoot) graph else graph.remove(before, incomingEdges0)
+                        }
+
                         // dangled == true이면 before를 graph에서 지우고
                         if (afterKernel.finishable) {
                             // before로 incoming node들에 대해 새로운 LiftTask를 추가
@@ -170,18 +181,18 @@ class NewParser(val grammar: Grammar) {
         }
 
         // lifts에 의해 trigger되는 node/edge를 제거한 그래프와 temporarily lift block되는 노드들의 집합을 반환
-        def reverted(lifts: Set[Lift]): (Graph, Set[AtomicNode[_]]) = {
+        def revert(liftedGraph: Graph, lifts: Set[Lift]): (Graph, Set[AtomicNode[_]]) = {
             val liftedNodes = lifts map { _.before }
             assert(liftedNodes subsetOf nodes)
 
             val tempLiftBlockNodes: Set[AtomicNode[_]] = nodes collect {
-                case node @ AtomicNode(_, Some(liftBlockTrigger), _) if liftedNodes contains liftBlockTrigger => node
+                case node @ AtomicNode(_, _, Some(liftBlockTrigger), _) if liftedNodes contains liftBlockTrigger => node
             }
             val survivedEdges = edges filterNot {
                 case SimpleEdge(_, _, revertTriggers) =>
                     revertTriggers exists {
                         case Trigger(node, Trigger.Type.Lift) => liftedNodes contains node
-                        case Trigger(node, Trigger.Type.Alive) => nodes contains node
+                        case Trigger(node, Trigger.Type.Alive) => liftedGraph.nodes contains node
                     }
                 case _ => false
             }
@@ -200,7 +211,7 @@ class NewParser(val grammar: Grammar) {
                             case JoinEdge(_, end, join) =>
                                 Set(end, join)
                         }
-                        traverse(queue ++ (newNodes -- cc.nodes).toList, Graph(cc.nodes ++ newNodes, cc.edges ++ outgoingEdges))
+                        traverse(rest ++ (newNodes -- cc.nodes).toList, Graph(cc.nodes ++ newNodes, cc.edges ++ outgoingEdges))
                     case List() => cc
                 }
             traverse(List(baseNode), Graph(Set(baseNode), Set()))
@@ -216,45 +227,66 @@ class NewParser(val grammar: Grammar) {
             case JoinEdge(start, _, _) => start == node
         }
         def remove(node: Node, edges: Set[Edge]): Graph = Graph(this.nodes - node, this.edges -- edges)
+        def withNodeAndEdges(node: Node, edges: Set[Edge]): Graph = Graph(this.nodes + node, this.edges ++ edges)
     }
 
-    case class ProceedDetail(nextContext: ParsingContext)
+    case class ProceedDetail(
+            expandedGraph: Graph,
+            eligibleTermNodes0: Set[TermNode],
+            liftedGraph0: Graph,
+            lifts0: Set[Lift],
+            revertedGraph: Graph,
+            tempLiftBlockNodes: Set[AtomicNode[_]],
+            trimmedRevertedGraph: Graph,
+            eligibleTermNodes: Set[TermNode],
+            liftedGraph: Graph,
+            nextDerivables: Set[Derivable],
+            lifts: Set[Lift],
+            nextContext: ParsingContext) {
+        def expandStage = expandedGraph
+        def preLiftStage = (eligibleTermNodes0, liftedGraph0, lifts0)
+        def revertStage = (revertedGraph, tempLiftBlockNodes, trimmedRevertedGraph)
+        def finalLiftStage = (eligibleTermNodes, liftedGraph, nextDerivables, lifts)
+    }
 
-    class ParsingContext(val startNode: NontermNode[Start.type], val graph: Graph, val derivables: Set[Derivable], val results: Set[ParseNode[Symbol]]) {
-        assert(derivables.asInstanceOf[Set[Node]] subsetOf graph.nodes)
+    case class ParsingContext(gen: Int, startNode: NontermNode[Start.type], graph: Graph, derivables: Set[Derivable], results: Set[ParseNode[Symbol]]) {
+        assert((derivables map { _.node }).asInstanceOf[Set[Node]] subsetOf graph.nodes)
         def proceedDetail(input: ConcreteInput): Either[ProceedDetail, ParsingError] = {
-            val (expandedGraph, eligibleTermNodes) = derivables.foldLeft((graph, Set[TermNode]())) { (cc, derivable) =>
+            val (expandedGraph, eligibleTermNodes0) = derivables.foldLeft((graph, Set[TermNode]())) { (cc, derivable) =>
                 derive(derivable.node.kernel).subgraphTo(input) match {
                     case Some(graph) =>
                         // expand `graph` from `derivable` node
                         // and lift from terminal nodes with `input`
-                        val d = cc._1.expand(derivable, graph)
+                        val d = cc._1.expand(gen, derivable, graph)
                         (d._1, cc._2 ++ d._2)
                     case None =>
+                        // cc._1(그래프)에서 derivable 로 reachable하고 다른 derivable로는 reachable하지 않은 노드/엣지를 지웠으면 좋겠는데..
+                        // alive trigger가 제대로 동작하려면 이 기능이 필요
                         cc
                 }
             }
-            if (eligibleTermNodes.isEmpty) {
+            if (eligibleTermNodes0.isEmpty) {
                 Right(UnexpectedInput(input))
             } else {
-                assert(eligibleTermNodes forall { _.kernel.symbol.accept(input) })
+                assert(eligibleTermNodes0 forall { _.kernel.symbol.accept(input) })
                 def liftsFromTermNodes(termNodes: Set[TermNode]): Set[(TermNode, Input)] = termNodes map { (_, input) }
-                // reverter 무시하고 우선 한번 lift를 진행한다
-                val (_, _, lifts0) = expandedGraph.lift(liftsFromTermNodes(eligibleTermNodes), Set())
-                // lift가 진행된 뒤 trigger되는 reverter를 적용한 그래프를 만든다
-                val (revertedGraph, tempLiftBlockNodes) = expandedGraph.reverted(lifts0)
-                // (optional) baseNode에서 reachable한 node와 edge로만 구성된 그래프를 추린다
+
+                // 1. reverter 무시하고 우선 한번 lift를 진행한다
+                val (liftedGraph0, _, lifts0) = expandedGraph.lift(gen, liftsFromTermNodes(eligibleTermNodes0), Set())
+                // 2. lift가 진행된 뒤 trigger되는 reverter를 적용한 그래프를 만든다
+                val (revertedGraph, tempLiftBlockNodes) = expandedGraph.revert(liftedGraph0, lifts0)
+                // 3. (optional?) baseNode에서 reachable한 node와 edge로만 구성된 그래프를 추린다
                 val trimmedRevertedGraph = revertedGraph.reachableFrom(startNode)
-                // 추려진 그래프에 대해 다시 lift를 진행한다
-                val eligibleTermNodes1 = eligibleTermNodes intersect trimmedRevertedGraph.termNodes
-                // 그런 뒤에 eligibleTermNodes1이 비어있으면 에러를 반환한다
-                if (eligibleTermNodes1.isEmpty) {
+                // 4. 추려진 그래프에 대해 다시 lift를 진행한다 (사실은 liftedGraph0, lifts0 등을 고쳐서 쓸 수도 있겠지만 귀찮으니..)
+                val eligibleTermNodes = eligibleTermNodes0 intersect trimmedRevertedGraph.termNodes
+                // 5. 그런 뒤에 eligibleTermNodes1이 비어있으면 에러를 반환한다
+                if (eligibleTermNodes.isEmpty) {
                     Right(UnexpectedInput(input))
                 } else {
-                    val (liftedGraph, nextDerivables, lifts) = trimmedRevertedGraph.lift(liftsFromTermNodes(eligibleTermNodes1), tempLiftBlockNodes)
-                    // reverter가 적용되어 계산된 ParsingContext를 반환한다
-                    val nextContext = new ParsingContext(startNode, liftedGraph, nextDerivables, lifts collect { case Lift(`startNode`, _, parsed, _, _) => parsed })
-                    Left(new ProceedDetail(nextContext))
+                    val (liftedGraph, nextDerivables, lifts) = trimmedRevertedGraph.lift(gen, liftsFromTermNodes(eligibleTermNodes), tempLiftBlockNodes)
+                    // 6. reverter가 적용되어 계산된 ParsingContext를 반환한다
+                    val nextContext = new ParsingContext(gen + 1, startNode, liftedGraph, nextDerivables, lifts collect { case Lift(`startNode`, _, parsed, _, _) => parsed })
+                    Left(new ProceedDetail(expandedGraph, eligibleTermNodes0, liftedGraph0, lifts0, revertedGraph, tempLiftBlockNodes, trimmedRevertedGraph, eligibleTermNodes, liftedGraph, nextDerivables, lifts, nextContext))
                 }
             }
         }
@@ -264,9 +296,20 @@ class NewParser(val grammar: Grammar) {
         }
     }
 
-    val startingContext = {
+    val initialContext = {
         val startKernel = StartKernel(0)
-        val startNode = AtomicNode(startKernel, None, None)
-        new ParsingContext(startNode, Graph(Set(startNode), Set()), Set(Derivable(startNode, Set())), derive(startKernel).baseNodeLifts map { _.parsed })
+        val startNode = AtomicNode(startKernel, 0, None, None)
+        new ParsingContext(0, startNode, Graph(Set(startNode), Set()), Set(Derivable(startNode, Set())), derive(startKernel).baseNodeLifts map { _.parsed })
     }
+
+    def parse(source: Inputs.ConcreteSource): Either[ParsingContext, ParsingError] =
+        source.foldLeft[Either[ParsingContext, ParsingError]](Left(initialContext)) {
+            (ctx, input) =>
+                ctx match {
+                    case Left(ctx) => ctx proceed input
+                    case error @ Right(_) => error
+                }
+        }
+    def parse(source: String): Either[ParsingContext, ParsingError] =
+        parse(Inputs.fromString(source))
 }
