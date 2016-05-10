@@ -12,6 +12,8 @@ import com.giyeok.jparser.Inputs.ConcreteInput
 case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], lifts: Set[Lift]) {
     // baseNode가 nodes에 포함되어야 함
     assert(nodes contains baseNode)
+    // baseNode를 제외하고는 전부 NewNode여야 함
+    assert((nodes - baseNode) forall { _.isInstanceOf[NewNode] })
     // edges의 모든 노드가 nodes에 포함되어야 함
     assert({
         val nodesOfEdges = edges flatMap {
@@ -134,8 +136,7 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
                     case node => node -> node
                 }).toMap
                 def refineRevertTriggers(revertTriggers: Set[Trigger], map: Map[Node, Node]): Set[Trigger] = revertTriggers collect {
-                    case IfLift(node) if subnodes0 contains node => IfLift(map(node))
-                    case IfAlive(node) if subnodes0 contains node => IfAlive(map(node))
+                    case Trigger(node, ttype) if subnodes0 contains node => Trigger(map(node), ttype)
                 }
                 // revertTriggers 거르기, liftBlockTrigger 걸러진 노드로 바꾸기
                 val subedges: Set[Edge] = edges collect {
@@ -158,11 +159,6 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
     def subgraphTo(input: ConcreteInput): Option[DerivationGraph] =
         termGroups find { _.contains(input) } flatMap { subgraphTo(_) }
     def compaction: DerivationGraph = ???
-
-    // 이 그래프가 superGraph의 superGraphBaseNode를 이 그래프의 baseNode로 했을 때 subgraph인지 확인
-    def isSubgraphOf(superGraph: DerivationGraph, superGraphBaseNode: Node): Boolean = {
-        ???
-    }
 }
 
 object DerivationGraph {
@@ -223,17 +219,12 @@ object DerivationGraph {
         assert(after forall { _.kernel.symbol == afterKernel.symbol })
     }
 
-    sealed trait Trigger {
-        val node: Node
-        val triggerType: Trigger.Type.Value
-    }
+    case class Trigger(node: Node, triggerType: Trigger.Type.Value)
     object Trigger {
         object Type extends Enumeration {
             val Lift, Alive = Value
         }
     }
-    case class IfLift(node: Node) extends Trigger { val triggerType = Trigger.Type.Lift }
-    case class IfAlive(node: Node) extends Trigger { val triggerType = Trigger.Type.Alive }
 
     // case class CompactNode(path: Seq[NewNode]) extends Node
 
@@ -258,11 +249,11 @@ object DerivationGraph {
         case k: OneOfKernel =>
             k.symbol.syms map { s => SimpleEdge(baseNode, newNode(s), Set()) }
         case k: LookaheadExceptKernel =>
-            Set(SimpleEdge(baseNode, newNode(Empty), Set(IfLift(newNode(k.symbol.except)))))
+            Set(SimpleEdge(baseNode, newNode(Empty), Set(Trigger(newNode(k.symbol.except), Trigger.Type.Lift))))
         case k: BackupKernel =>
             val preferNode = newNode(k.symbol.sym)
             Set(SimpleEdge(baseNode, preferNode, Set()),
-                SimpleEdge(baseNode, newNode(k.symbol.backup), Set(IfLift(preferNode))))
+                SimpleEdge(baseNode, newNode(k.symbol.backup), Set(Trigger(preferNode, Trigger.Type.Lift))))
         case k: SequenceKernel =>
             assert(k.pointer < k.symbol.seq.size)
             val (symbol, pointer) = (k.symbol, k.pointer)
@@ -395,11 +386,7 @@ object DerivationGraph {
 
                         val reservedRevertTrigger: Set[Trigger] = node match {
                             case node: NewAtomicNode[_] => node.reservedReverter match {
-                                case Some(triggerType) =>
-                                    triggerType match {
-                                        case Trigger.Type.Lift => Set(IfLift(node))
-                                        case Trigger.Type.Alive => Set(IfAlive(node))
-                                    }
+                                case Some(triggerType) => Set(Trigger(node, triggerType))
                                 case None => Set()
                             }
                             case _ => Set()

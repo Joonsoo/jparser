@@ -136,10 +136,7 @@ class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGrap
     }
 
     def triggersToString(revertTriggers: Set[Trigger]): String = (revertTriggers map {
-        _ match {
-            case IfLift(node) => s"Lift(${vnodes(node).id})"
-            case IfAlive(node) => s"Alive(${vnodes(node).id})"
-        }
+        case Trigger(node, ttype) => s"${ttype}(${vnodes(node).id})"
     }).mkString(", ")
 
     derivationGraph.edges foreach { edge =>
