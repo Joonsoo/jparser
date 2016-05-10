@@ -33,6 +33,7 @@ import org.eclipse.draw2d.geometry.PrecisionRectangle
 import org.eclipse.draw2d
 import org.eclipse.swt.widgets.Label
 import com.giyeok.jparser.ParsingErrors.ParsingError
+import org.eclipse.swt.layout.FillLayout
 
 class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: NewParserVisualizer.Resources) {
     val parser = new NewParser(grammar)
@@ -208,18 +209,53 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
         proceedCache get gen match {
             case Some(context) => context
             case None =>
-                contextAt(gen)
+                contextAt(gen + 1)
                 proceedCache(gen)
         }
+
+    def errorControl(message: String): Control = {
+        val control = new Label(graphView, SWT.NONE)
+        control.setText(message)
+        control
+    }
 
     val graphCache = scala.collection.mutable.Map[VisualizationLocation, Control]()
     def graphAt(location: VisualizationLocation): Control = {
         graphCache get location match {
             case Some(control) => control
             case None =>
-                val control = new Label(graphView, SWT.NONE)
-                control.setText("TODO")
-                graphCache(location) = control
+                val control = location.stage match {
+                    case 0 =>
+                        contextAt(location.baseGen) match {
+                            case Left(context) =>
+                                new NewParsingContextGraphVisualizeWidget(graphView, SWT.NONE, grammar, context)
+                            case Right(error) =>
+                                errorControl(error.msg)
+                        }
+                    case 1 =>
+                        // Expand
+                        (contextAt(location.baseGen), proceedAt(location.baseGen)) match {
+                            case (Left(context), Left(proceed)) =>
+                                new NewParserExpandedGraphVisualizeWidget(graphView, SWT.NONE, grammar, context, proceed)
+                            case (Right(error), _) => errorControl(error.msg)
+                            case (_, Right(error)) => errorControl(error.msg)
+                        }
+                    case 2 =>
+                        // PreLift
+                        (contextAt(location.baseGen), proceedAt(location.baseGen)) match {
+                            case (Left(context), Left(proceed)) =>
+                                new NewParserPreLiftGraphVisualizeWidget(graphView, SWT.NONE, grammar, context, proceed)
+                            case (Right(error), _) => errorControl(error.msg)
+                            case (_, Right(error)) => errorControl(error.msg)
+                        }
+                    case 3 =>
+                        // Revert and Trim
+                        errorControl("TODO")
+                    case 4 =>
+                        // Final Lift
+                        errorControl("TODO")
+                }
+                graphCache(location) = finalizeView(control)
                 control
         }
     }

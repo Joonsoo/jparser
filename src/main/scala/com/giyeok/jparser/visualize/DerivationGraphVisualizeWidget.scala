@@ -25,7 +25,7 @@ import org.eclipse.draw2d.MouseListener
 import com.giyeok.jparser.Inputs
 import org.eclipse.zest.core.widgets.GraphNode
 
-class DerivationGraphVisualizeWidget(parent: Composite, val resources: ParseGraphVisualizer.Resources, derivationGraph: DerivationGraph) extends Composite(parent, SWT.NONE) {
+class DerivationGraphVisualizeWidget(parent: Composite, derivationGraph: DerivationGraph) extends Composite(parent, SWT.NONE) {
     this.setLayout(new FillLayout())
     this.setBackground(ColorConstants.red)
 

@@ -219,7 +219,7 @@ class ParseGraphVisualizer(grammar: Grammar, source: Seq[Input], display: Displa
                                         val dgraph = DerivationGraph.deriveFromKernel(grammar, x.kernel)
                                         val shell = new Shell(display)
                                         shell.setLayout(new FillLayout())
-                                        new DerivationGraphVisualizeWidget(shell, resources, dgraph)
+                                        new DerivationGraphVisualizeWidget(shell, dgraph)
                                         shell.setText(s"Derivation Graph of ${x.kernel.toShortString}")
                                         shell.open()
                                     case _ =>
