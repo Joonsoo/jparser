@@ -172,14 +172,15 @@ class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val g
     def initialize(): Unit = {
         addGraph(context.graph)
 
-        context.derivables foreach {
-            case NewParser.Derivable(node, revertTriggers) =>
-                nodesMap(node).setBackgroundColor(ColorConstants.yellow)
+        context.derivables foreach { node =>
+            nodesMap(node).setBackgroundColor(ColorConstants.yellow)
         }
         context.results foreach { result =>
             val resultNode = nodeFromFigure(parseNodeFigureGenerator.parseNodeHFig(result))
-            val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(context.startNode), resultNode)
-            connection.setLineColor(ColorConstants.blue)
+            if (context.graph.nodes contains context.startNode) {
+                val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(context.startNode), resultNode)
+                connection.setLineColor(ColorConstants.blue)
+            }
         }
 
         import org.eclipse.zest.layouts.algorithms._
@@ -214,8 +215,19 @@ class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val gr
     def initialize(): Unit = {
         addGraph(proceed.expandedGraph)
         addGraph(proceed.liftedGraph0)
-        // TODO expandedGraph에서 liftedGraph0로 오면서 사라진 노드들 표시
+        // expandedGraph에서 liftedGraph0로 오면서 사라진 노드들 표시
+        (proceed.expandedGraph.nodes -- proceed.liftedGraph0.nodes) foreach { removedNode =>
+            nodesMap(removedNode).getFigure.setBorder(new LineBorder(ColorConstants.red))
+        }
+        // expandedGraph에서 liftedGraph0로 오면서 사라진 엣지들 표시
+        (proceed.expandedGraph.edges -- proceed.liftedGraph0.edges) foreach { removedEdge =>
+            edgesMap(removedEdge) foreach { _.setLineColor(ColorConstants.red) }
+        }
+        // 사용 가능한 term node 배경 노랗게 표시
         proceed.eligibleTermNodes0 foreach { node =>
+            nodesMap(node).setBackgroundColor(ColorConstants.orange)
+        }
+        proceed.nextDerivables0 foreach { node =>
             nodesMap(node).setBackgroundColor(ColorConstants.yellow)
         }
         proceed.lifts0 foreach { lift =>
