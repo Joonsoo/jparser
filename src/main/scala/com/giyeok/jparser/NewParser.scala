@@ -122,6 +122,7 @@ class NewParser(val grammar: Grammar) {
                         var afterNode: Option[Node] = None
                         // afterKernel.derivable하면 새로 생긴 노드는 roottip이 되고 그 이후로는 root 노드가 되므로 살려야 한다
                         var newGraph = graph
+                        var newLiftTasks = List[LiftTask]()
 
                         if (afterKernel.derivable) {
                             // afterKernel과 newProgress로 새로운 node 만들고 start -> 새 노드로 가는 엣지 추가하고, 이 때 before에 붙어있던 edge revert trigger들은 이 엣지에도 붙여준다
@@ -139,11 +140,17 @@ class NewParser(val grammar: Grammar) {
                             // - 위에서 newEdges 만든 것처럼 새 노드로 엣지 만들어주고
                             // - 새로운 lift task를 만들어서 추가해준다
                             val baseNodeLifts = derive(afterKernel).baseNodeLifts
-                            // baseNodeLifts.head.rev
+                            assert(baseNodeLifts forall { lift => lift.after.isEmpty && lift.parsed.isInstanceOf[ParsedSymbolsSeq[_]] })
+                            newLiftTasks ++:= baseNodeLifts map { lift =>
+                                // TODO lift.revertTriggers 처리
+                                NontermLift(newNode, lift.parsed.asInstanceOf[ParsedSymbolsSeq[_]].children.head, revertTriggers)
+                            }
                         }
 
                         val newLift = Lift(before, afterKernel, parsed, afterNode, revertTriggers)
-                        val newLiftTasks = if (afterKernel.finishable) chainLift(before, parsed, revertTriggers).toList else List()
+                        if (afterKernel.finishable) {
+                            newLiftTasks ++:= chainLift(before, parsed, revertTriggers).toList
+                        }
                         lift(newLiftTasks ++: rest, newGraph, newDerivables, lifts + newLift)
 
                     case List() => (graph, derivables, lifts)
@@ -158,7 +165,7 @@ class NewParser(val grammar: Grammar) {
         // lifts에 의해 trigger되는 node/edge를 제거한 그래프와 temporarily lift block되는 노드들의 집합을 반환
         def revert(liftedGraph: Graph, lifts: Set[Lift]): (Graph, Set[AtomicNode[_]]) = {
             val liftedNodes = lifts map { _.before }
-            assert(liftedNodes subsetOf nodes)
+            // assert(liftedNodes subsetOf nodes)
 
             val tempLiftBlockNodes: Set[AtomicNode[_]] = nodes collect {
                 case node @ AtomicNode(_, _, Some(liftBlockTrigger), _) if liftedNodes contains liftBlockTrigger => node
@@ -197,6 +204,8 @@ class NewParser(val grammar: Grammar) {
         }
 
         // nodes로 reachable한 노드들로만 구성된 subgraph를 반환한다
+        // - 이 때 reachability는 node에 붙은 liftBlockTrigger나 simple edge에 붙은 edgeRevertTriggers와는 무관하게 계산되고
+        // - reachability 계산이 끝난 뒤에 subgraph를 만들 때 subgraph에 포함되지 못한 node가 trigger가 되는 경우 해당 trigger들은 제외된다
         def reachableTo(nodes: Set[Node]): Graph = {
             object Reachability extends Enumeration {
                 val True, False, Unknown = Value

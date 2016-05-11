@@ -363,7 +363,7 @@ object DerivationGraph {
                     derive(newQueue, newCC)
 
                 case LiftTask(node: BaseNode, afterKernel, parsed, revertTriggers) +: rest =>
-                    // TODO base node에 붙은 reserved reverter는 여기 말고 밖에 파서에서 처리해야 하나?
+                    // base node에 붙은 reserved reverter는 파서에서 처리한다
                     derive(rest, cc.withLift(Lift(node, afterKernel, parsed, None, revertTriggers)))
 
                 case LiftTask(node: NewNode, afterKernel, parsed, revertTriggers) +: rest =>
