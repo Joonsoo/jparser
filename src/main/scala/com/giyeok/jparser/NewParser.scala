@@ -63,14 +63,14 @@ class NewParser(val grammar: Grammar) {
         }
 
         def lift(gen: Int, termLifts: Set[(TermNode, Input)], liftBlockedNodes: Set[AtomicNode[_]]): (Graph, Set[NontermNode[Nonterm]], Set[Lift]) = {
-            sealed trait LiftTask
+            sealed trait LiftTask { val before: Node }
             case class TermLift(before: TermNode, by: Input) extends LiftTask
             case class NontermLift(before: NontermNode[Nonterm], by: ParseNode[Symbol], revertTriggers: Set[Trigger]) extends LiftTask
             case class JoinLift(before: NontermNode[Join], by: ParseNode[Symbol], join: ParseNode[Symbol], revertTriggers: Set[Trigger]) extends LiftTask
             def lift(queue: List[LiftTask], graph: Graph, derivables: Set[NontermNode[Nonterm]], lifts: Set[Lift]): (Graph, Set[NontermNode[Nonterm]], Set[Lift]) = {
                 def chainLift(node: Node, parsed: ParseNode[Symbol], revertTriggers: Set[Trigger]): Set[LiftTask] = {
                     val incomingEdges = graph.incomingEdgesTo(node)
-                    incomingEdges flatMap {
+                    val chains = incomingEdges flatMap {
                         case SimpleEdge(start, end, edgeRevertTriggers) =>
                             assert(node == end)
                             Set[LiftTask](NontermLift(start, parsed, revertTriggers ++ edgeRevertTriggers))
@@ -86,6 +86,7 @@ class NewParser(val grammar: Grammar) {
                                 }).toSet[LiftTask]
                             }
                     }
+                    chains filterNot { liftBlockedNodes.toSet[Node] contains _.before }
                 }
                 queue match {
                     case TermLift(before, by) +: rest =>
@@ -179,12 +180,16 @@ class NewParser(val grammar: Grammar) {
                 queue match {
                     case node +: rest =>
                         val outgoingEdges = outgoingEdgesFrom(node)
-                        val newNodes = outgoingEdges flatMap {
+                        val liftBlockTrigger = node match {
+                            case AtomicNode(_, _, Some(liftBlockTrigger), _) => Set(liftBlockTrigger)
+                            case _ => Set()
+                        }
+                        val newNodes = liftBlockTrigger ++ (outgoingEdges flatMap {
                             case SimpleEdge(_, end, revertTriggers) =>
                                 Set(end) ++ (revertTriggers map { _.node })
                             case JoinEdge(_, end, join) =>
                                 Set(end, join)
-                        }
+                        })
                         traverse(rest ++ (newNodes -- cc.nodes).toList, Graph(cc.nodes ++ newNodes, cc.edges ++ outgoingEdges))
                     case List() => cc
                 }
@@ -208,12 +213,19 @@ class NewParser(val grammar: Grammar) {
                             } else if (path contains node) {
                                 Reachability.Unknown
                             } else {
-                                val r = outgoingEdgesFrom(node) exists {
-                                    case SimpleEdge(_, end, _) => (_reachable(end, node +: path) == Reachability.True)
-                                    case JoinEdge(_, end, join) => (_reachable(end, node +: path) == Reachability.True) && (_reachable(join, node +: path) == Reachability.True)
+                                val outgoingEdges = outgoingEdgesFrom(node)
+                                val unknown = outgoingEdges forall {
+                                    case SimpleEdge(_, end, _) => (_reachable(end, node +: path) == Reachability.Unknown)
+                                    case JoinEdge(_, end, join) => (_reachable(end, node +: path) == Reachability.Unknown) || (_reachable(join, node +: path) == Reachability.Unknown)
                                 }
-                                cache(node) = r
-                                if (r) Reachability.True else Reachability.False
+                                if (unknown) Reachability.Unknown else {
+                                    val r = outgoingEdges exists {
+                                        case SimpleEdge(_, end, _) => (_reachable(end, node +: path) == Reachability.True)
+                                        case JoinEdge(_, end, join) => (_reachable(end, node +: path) == Reachability.True) && (_reachable(join, node +: path) == Reachability.True)
+                                    }
+                                    cache(node) = r
+                                    if (r) Reachability.True else Reachability.False
+                                }
                             }
                     }
                 _reachable(node, Seq()) == Reachability.True

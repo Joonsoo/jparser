@@ -25,6 +25,7 @@ import com.giyeok.jparser.Symbols.Nonterm
 import org.eclipse.zest.core.widgets.GraphNode
 import org.eclipse.swt.events.MouseAdapter
 import org.eclipse.swt.events.MouseEvent
+import org.eclipse.swt.events.KeyListener
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
