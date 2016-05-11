@@ -28,6 +28,7 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
     assert(lifts map { _.before } subsetOf nodes)
     // lifts의 after 노드가 있는 경우 모두 nodes에 포함되어야 함
     assert(lifts flatMap { _.after } subsetOf nodes)
+    // new node들은 모두 kernel이 달라야 함
 
     // liftReverter는 결국 전부 edgeReverter로 바뀔 건데, baseNode가 lift되면서 edgeReverter가 따라온 경우에는 위쪽으로 올릴 수 없기 때문에 저장해둠
     // 그래서 실은 여기서 lifts랑 liftReverters 중에는 base와 관련 있는 baseNodeLifts, baseNodeLiftReverters만 의미가 있음

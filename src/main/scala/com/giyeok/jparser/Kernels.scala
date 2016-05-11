@@ -10,7 +10,7 @@ object Kernels {
     sealed trait Kernel {
         val symbol: Symbol
         val pointer: Int
-        def toShortString = s"Kernel(${symbol.toShortString}, $pointer)"
+        // def toShortString = s"Kernel(${symbol.toShortString}, $pointer)"
 
         def derivable: Boolean
         def finishable: Boolean

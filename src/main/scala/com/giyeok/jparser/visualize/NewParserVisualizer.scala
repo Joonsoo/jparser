@@ -219,6 +219,8 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
         control
     }
 
+    val nodeIdCache = new NodeIdCache()
+
     val graphCache = scala.collection.mutable.Map[VisualizationLocation, Control]()
     def graphAt(location: VisualizationLocation): Control = {
         graphCache get location match {
@@ -228,7 +230,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                     case 0 =>
                         contextAt(location.baseGen) match {
                             case Left(context) =>
-                                new NewParsingContextGraphVisualizeWidget(graphView, SWT.NONE, grammar, context)
+                                new NewParsingContextGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, context)
                             case Right(error) =>
                                 errorControl(error.msg)
                         }
@@ -236,7 +238,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                         // Expand
                         (contextAt(location.baseGen), proceedAt(location.baseGen)) match {
                             case (Left(context), Left(proceed)) =>
-                                new NewParserExpandedGraphVisualizeWidget(graphView, SWT.NONE, grammar, context, proceed)
+                                new NewParserExpandedGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, context, proceed)
                             case (Right(error), _) => errorControl(error.msg)
                             case (_, Right(error)) => errorControl(error.msg)
                         }
@@ -244,7 +246,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                         // PreLift
                         (contextAt(location.baseGen), proceedAt(location.baseGen)) match {
                             case (Left(context), Left(proceed)) =>
-                                new NewParserPreLiftGraphVisualizeWidget(graphView, SWT.NONE, grammar, context, proceed)
+                                new NewParserPreLiftGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, context, proceed)
                             case (Right(error), _) => errorControl(error.msg)
                             case (_, Right(error)) => errorControl(error.msg)
                         }
