@@ -63,8 +63,8 @@ object ScalaGrammar extends Grammar {
         "symbolLiteral" -> ListSet(
             seq(i("'"), n("plainid"))),
         "comment" -> ListSet(
-            seq(i("/*"), seq(c, lookahead_except(i("*/"))).star, i("*/")),
-            seq(i("//"), c.butnot(n("nl")).star)),
+            seq(i("/*"), seq(anychar, lookahead_except(i("*/"))).star, i("*/")),
+            seq(i("//"), anychar.butnot(n("nl")).star)),
         "nl" -> ListSet( // TODO
         ),
         "semi" -> ListSet(i(";"), n("nl").plus),

@@ -51,6 +51,7 @@ class NewParser(val grammar: Grammar) {
                 case NewNonAtomicNode(kernel, progress) =>
                     NonAtomicNode(kernel, gen, progress)
             }
+            // TODO kernel이 동일한 두 개의 baseNode가 있는 경우 처리
             val nodesMap: Map[DerivationGraph.Node, Node] =
                 baseAndGraphs.foldLeft(Map[DerivationGraph.Node, Node]()) { (cc, baseAndGraph) =>
                     val (baseNode, derivationGraph) = baseAndGraph
@@ -83,7 +84,7 @@ class NewParser(val grammar: Grammar) {
                     // - expand되지 않았으면 해당 트리거는 제거
                     val newRevertTriggers: Set[Trigger] = revertTriggers collect {
                         case trigger: NodeTrigger => trigger
-                        case PendedNodeTrigger(dnode, ttype) =>
+                        case PendedNodeTrigger(dnode, ttype) if nodesMap contains dnode =>
                             NodeTrigger(nodesMap(dnode), ttype)
                     }
                     SimpleEdge(start, end, newRevertTriggers)
@@ -185,6 +186,14 @@ class NewParser(val grammar: Grammar) {
                         val newLiftTasks = chainLift(before, parsed, newRevertTriggers)
                         lift(newLiftTasks.toList ++: rest, graph, derivables, lifts + newLift)
 
+                    case JoinLift(before @ AtomicNode(kernel, _, _, reservedReverter), by, join, revertTriggers) +: rest =>
+                        // AtomicNode NontermLift와 사실상 동일
+                        val (afterKernel, parsed) = (kernel.lifted, new ParsedSymbolJoin(kernel.symbol, by, join))
+                        assert(afterKernel.finishable && !afterKernel.derivable)
+                        val newLift = Lift(before, afterKernel, parsed, None, revertTriggers)
+                        val newLiftTasks = chainLift(before, parsed, revertTriggers)
+                        lift(newLiftTasks.toList ++: rest, graph, derivables, lifts + newLift)
+
                     case NontermLift(before @ NonAtomicNode(kernel, _, progress), by, revertTriggers) +: rest =>
                         val (afterKernel: NonAtomicNontermKernel[_], parsed: ParsedSymbolsSeq[_]) = kernel.lifted(progress, by)
                         val incomingEdges0 = graph.incomingEdgesTo(before)
@@ -250,6 +259,9 @@ class NewParser(val grammar: Grammar) {
                     revertTriggers exists {
                         case NodeTrigger(node, Trigger.Type.Lift) => liftedNodes contains node
                         case NodeTrigger(node, Trigger.Type.Alive) => liftedGraph.nodes contains node
+                        case pended: PendedNodeTrigger =>
+                            // TODO 이 시점에 Pended가 있는건 어떤건지 고민
+                            false
                     }
                 case _ => false
             }

@@ -31,7 +31,7 @@ object JavaScriptGrammar extends Grammar {
         "Start" -> ListSet(n("Program")),
 
         // A.1 Lexical Grammar
-        "SourceCharacter" -> ListSet(c),
+        "SourceCharacter" -> ListSet(anychar),
         "InputElementDiv" -> ListSet(
             n("WhiteSpace"), n("LineTerminator"), n("Comment"), n("Token"), n("DivPunctuator")),
         "InputElementRegExp" -> ListSet(

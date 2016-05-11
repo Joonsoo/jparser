@@ -98,7 +98,8 @@ object Inputs {
                 CharsGroup(chars -- other.chars)
         }
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
-            case AllCharsExcluding(otherExcludingUnicodeCategories, otherExcludingChars) => ???
+            case AllCharsExcluding(otherExcludingUnicodeCategories, otherExcludingChars) =>
+                ???
             case other: CharsUnicodeExcluding =>
                 CharsGroup(chars filter { other contains _ })
             case other: CharsGroup =>

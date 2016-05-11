@@ -14,7 +14,7 @@ object GrammarHelper {
     def e = Empty
     def n(name: String) = Nonterminal(name)
     def i(string: String) = Sequence(string.toCharArray() map { c => ExactChar(c) }, Set())
-    def c = AnyChar
+    def anychar = AnyChar
     def c(char: Char) = ExactChar(char)
     def c(chars: Char*) = charSymbol(chars.toSet)
     def c(chars: Set[Char]) = charSymbol(chars)
