@@ -1,5 +1,7 @@
 package com.giyeok.jparser
 
+import com.giyeok.jparser.utils.UnicodeUtil
+
 object Symbols {
     sealed trait Symbol {
         val id = Symbol.getId(this)
@@ -27,7 +29,7 @@ object Symbols {
         def accept(termGroup: Inputs.TermGroupDesc): Boolean = accept(Inputs.AbstractInput(termGroup))
     }
     object Terminals {
-        import Inputs.{ Input, Character, Virtual, AbstractInput, CharsGroup, CharsUnicodeExcluding, AllCharsExcluding, VirtualsGroup }
+        import Inputs._
 
         sealed trait CharacterTerminal extends Terminal
         sealed trait VirtualTerminal extends Terminal
@@ -37,7 +39,7 @@ object Symbols {
         case object AnyChar extends CharacterTerminal {
             def accept(input: Input) = input match {
                 case Character(_, _) => true
-                case AbstractInput(CharsGroup(_) | CharsUnicodeExcluding(_, _)) => true
+                case AbstractInput(_: CharacterTermGroupDesc) => true
                 case _ => false
             }
         }
@@ -48,14 +50,15 @@ object Symbols {
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
                     termGroup match {
-                        case CharsGroup(set) if set == Set(char) => true
-                        case CharsGroup(set) if set contains char =>
-                            throw new AssertionError("Invalid AbstractInput")
-                        case CharsUnicodeExcluding(unicodeCategories, excludingChars) if (unicodeCategories contains char.getType) && !(excludingChars contains char) =>
-                            throw new AssertionError("Invalid AbstractInput")
-                        case AllCharsExcluding(excludingCategories, excludingChars) if !(excludingCategories contains char.getType) || !(excludingChars contains char) =>
-                            throw new AssertionError("Invalid AbstractInput")
-                        case _ => false
+                        case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if (baseUnicodeCategories.isEmpty && excludingChars.isEmpty && (additionalChars == Set(char))) =>
+                            true
+                        case group: CharacterTermGroupDesc =>
+                            assert({
+                                val intersect = group intersect CharsGroup(Set(), Set(), Set(char))
+                                intersect.isEmpty || intersect == group
+                            })
+                            false
+                        case _: VirtualTermGroupDesc => false
                     }
                 case _ => false
             }
@@ -67,14 +70,16 @@ object Symbols {
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
                     termGroup match {
-                        case CharsGroup(set) if set subsetOf chars => true
-                        case CharsGroup(set) if !(set intersect chars).isEmpty =>
-                            throw new AssertionError("Invalid AbstractInput")
-                        case CharsUnicodeExcluding(unicodeCategories, excludingChars) if !((chars filter { unicodeCategories contains _.getType }) subsetOf excludingChars) =>
-                            throw new AssertionError("Invalid AbstractInput")
-                        case AllCharsExcluding(excludingCategories, excludingChars) if !(chars forall { c => (excludingCategories contains c.getType) || (excludingChars contains c) }) =>
-                            throw new AssertionError("Invalid AbstractInput")
-                        case _ => false
+                        case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if (baseUnicodeCategories.isEmpty && excludingChars.isEmpty && (additionalChars subsetOf chars)) =>
+                            // 사실 subsetOf일 필요도 없고 additionalChars contains chars.head 로만 해도 상관 없음
+                            true
+                        case group: CharacterTermGroupDesc =>
+                            assert({
+                                val intersect = group intersect CharsGroup(Set(), Set(), chars)
+                                intersect.isEmpty || intersect == group
+                            })
+                            false
+                        case _: VirtualTermGroupDesc => false
                     }
                 case _ => false
             }
@@ -85,20 +90,17 @@ object Symbols {
                 input match {
                     case Character(c, _) if categories contains c.getType => true
                     case AbstractInput(termGroup) =>
-                        if (termGroup.isEmpty) {
-                            println(termGroup)
-                        }
                         assert(!termGroup.isEmpty)
                         termGroup match {
-                            case CharsGroup(chars) if chars forall { categories contains _.getType } => true
-                            case CharsGroup(chars) if chars exists { categories contains _.getType } => false
-                            case CharsUnicodeExcluding(unicodeCategories, _) if unicodeCategories subsetOf categories =>
+                            case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if (baseUnicodeCategories subsetOf categories) && (additionalChars forall { categories contains _.getType }) =>
                                 true
-                            case CharsUnicodeExcluding(unicodeCategories, _) if !(unicodeCategories intersect categories).isEmpty =>
-                                throw new AssertionError("Invalid AbstractInput")
-                            case AllCharsExcluding(excludingCategories, _) if !(categories subsetOf excludingCategories) =>
-                                throw new AssertionError("Invalid AbstractInput")
-                            case _ => false
+                            case group: CharacterTermGroupDesc =>
+                                assert({
+                                    val intersect = group intersect CharsGroup(categories, Set(), Set())
+                                    intersect.isEmpty || intersect == group
+                                })
+                                false
+                            case _: VirtualTermGroupDesc => false
                         }
                     case _ => false
                 }

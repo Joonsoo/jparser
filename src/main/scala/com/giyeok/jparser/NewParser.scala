@@ -51,11 +51,10 @@ class NewParser(val grammar: Grammar) {
                 case NewNonAtomicNode(kernel, progress) =>
                     NonAtomicNode(kernel, gen, progress)
             }
-            // TODO kernel이 동일한 두 개의 baseNode가 있는 경우 처리
+            // TODO 같은 baseNode를 여러 노드에서 쓰는 경우 처리
             val nodesMap: Map[DerivationGraph.Node, Node] =
                 baseAndGraphs.foldLeft(Map[DerivationGraph.Node, Node]()) { (cc, baseAndGraph) =>
                     val (baseNode, derivationGraph) = baseAndGraph
-                    // TODO cc에 이미 있는 노드는 만들 필요 없음
                     cc ++ ((((derivationGraph.nodes - derivationGraph.baseNode) map { n =>
                         (n -> newNode(n.asInstanceOf[NewNode with NonEmptyNode]))
                     }).toMap) + (derivationGraph.baseNode -> baseNode))

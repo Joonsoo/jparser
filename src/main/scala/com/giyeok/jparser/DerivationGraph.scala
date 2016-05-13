@@ -8,6 +8,8 @@ import Derivations._
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.Inputs.AbstractInput
 import com.giyeok.jparser.Inputs.ConcreteInput
+import Symbols.Terminals._
+import Inputs._
 
 case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], lifts: Set[Lift]) {
     // baseNode가 nodes에 포함되어야 함
@@ -60,9 +62,6 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
     lazy val terminals: Set[Terminal] = terminalNodes map { _.kernel.symbol }
     lazy val termGroups: Set[TermGroupDesc] = {
         val terminals = this.terminals
-
-        import Symbols.Terminals._
-        import Inputs._
 
         val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
         val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }

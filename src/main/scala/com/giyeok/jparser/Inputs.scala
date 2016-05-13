@@ -18,6 +18,7 @@ object Inputs {
         def contains(input: ConcreteInput): Boolean
     }
     sealed trait CharacterTermGroupDesc extends TermGroupDesc {
+        def +(other: CharacterTermGroupDesc): CharacterTermGroupDesc
         def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc
 
@@ -31,85 +32,84 @@ object Inputs {
         def -(other: VirtualTermGroupDesc): VirtualTermGroupDesc
         def intersect(other: VirtualTermGroupDesc): VirtualTermGroupDesc
     }
-    case class AllCharsExcluding(excludingUnicodeCategories: Set[Int], excludingChars: Set[Char]) extends CharacterTermGroupDesc {
-        // 이미 excludingUnicodeCategories에서 빠진 문자가 excludingChars에 또 들어있으면 안된다
-        assert(excludingChars forall { c => !(excludingUnicodeCategories contains c.getType) })
-
+    case class AllCharsExcluding(excluding: CharsGroup) extends CharacterTermGroupDesc {
+        def +(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
+            case AllCharsExcluding(otherExcluding) =>
+                AllCharsExcluding((excluding intersect otherExcluding).asInstanceOf[CharsGroup])
+            case other: CharsGroup =>
+                AllCharsExcluding((excluding - other).asInstanceOf[CharsGroup])
+        }
         def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
-            case AllCharsExcluding(otherExcludingUnicodeCategories, otherExcludingChars) => ???
-            case other: CharsUnicodeExcluding =>
-                AllCharsExcluding.of(excludingUnicodeCategories ++ other.unicodeCategories, excludingChars ++ other.excludingChars)
-            case CharsGroup(chars) =>
-                AllCharsExcluding.of(excludingUnicodeCategories, excludingChars ++ chars)
+            case other: AllCharsExcluding =>
+                other - excluding
+            case other: CharsGroup =>
+                AllCharsExcluding((excluding + other).asInstanceOf[CharsGroup])
         }
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
             case other: AllCharsExcluding =>
-                AllCharsExcluding.of(excludingUnicodeCategories ++ other.excludingUnicodeCategories, excludingChars ++ other.excludingChars)
-            case other: CharsUnicodeExcluding =>
-                CharsUnicodeExcluding.of(other.unicodeCategories, excludingChars ++ other.excludingChars)
+                AllCharsExcluding((excluding + other).asInstanceOf[CharsGroup])
             case other: CharsGroup =>
-                CharsGroup(other.chars -- excludingChars filterNot { excludingUnicodeCategories contains _.getType })
+                other - excluding
         }
 
-        def contains(char: Char) = !((excludingUnicodeCategories contains char.getType) || (excludingChars contains char))
+        def contains(char: Char) = !(excluding contains char)
 
-        def toShortString: String = "AllCharsExcluding(" + (excludingChars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "")
+        def toShortString: String = "AllCharsExcluding(" + (excluding.toShortString) + ")"
         def isEmpty = false
     }
-    object AllCharsExcluding {
-        def of(excludingCategories: Set[Int], excludingChars: Set[Char]): AllCharsExcluding =
-            AllCharsExcluding(excludingCategories, excludingChars filterNot { excludingCategories contains _.getType })
-    }
-    case class CharsUnicodeExcluding(unicodeCategories: Set[Int], excludingChars: Set[Char]) extends CharacterTermGroupDesc {
-        // base가 되는 unicodeCategories에 속하지 않은 excludingChars가 있으면 안된다
-        assert(excludingChars forall { unicodeCategories contains _.getType })
 
-        def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
-            case AllCharsExcluding(otherExcludingUnicodeCategories, otherExcludingChars) => ???
-            case other: CharsUnicodeExcluding =>
-                CharsUnicodeExcluding.of(unicodeCategories -- other.unicodeCategories, excludingChars ++ other.excludingChars)
+    case class CharsGroup(unicodeCategories: Set[Int], excludingChars: Set[Char], val chars: Set[Char]) extends CharacterTermGroupDesc {
+        assert((excludingChars intersect chars).isEmpty)
+        assert(excludingChars forall { c => (unicodeCategories contains c.getType) })
+        assert(chars forall { c => !(unicodeCategories contains c.getType) })
+
+        def +(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
+            case other: AllCharsExcluding =>
+                other + this
             case other: CharsGroup =>
-                CharsUnicodeExcluding.of(unicodeCategories, excludingChars ++ other.chars)
+                val baseUnicodes = unicodeCategories ++ other.unicodeCategories
+                val excludings = (excludingChars filterNot { other contains _ }) ++ (other.excludingChars filterNot { this contains _ })
+                val chars = this.chars ++ other.chars
+                CharsGroup(baseUnicodes, excludings -- chars, chars filterNot { baseUnicodes contains _.getType })
+        }
+        def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
+            case AllCharsExcluding(excluding) =>
+                this intersect excluding
+            case other: CharsGroup =>
+                val baseUnicodes = unicodeCategories -- other.unicodeCategories
+                val excludings = (excludingChars ++ other.chars) filter { baseUnicodes contains _.getType }
+                val chars = (other.excludingChars filter { this contains _ }) ++ (this.chars filterNot { other contains _ })
+                CharsGroup(baseUnicodes, excludings, chars)
         }
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
-            case AllCharsExcluding(otherExcludingUnicodeCategories, otherExcludingChars) => ???
-            case other: CharsUnicodeExcluding =>
-                CharsUnicodeExcluding(unicodeCategories intersect other.unicodeCategories, excludingChars ++ other.excludingChars)
+            case other: AllCharsExcluding =>
+                other intersect this
             case other: CharsGroup =>
-                CharsGroup((other.chars filter { unicodeCategories contains _.getType }) -- excludingChars)
+                val baseUnicodes = unicodeCategories intersect other.unicodeCategories
+                val excludings = (excludingChars ++ other.excludingChars) filter { baseUnicodes contains _.getType }
+                val chars = (this.chars filter { other contains _ }) ++ (other.chars filter { this contains _ })
+                CharsGroup(baseUnicodes, excludings, chars)
         }
 
-        def contains(char: Char) = (unicodeCategories contains char.getType) && !(excludingChars contains char)
+        def contains(char: Char) = ((unicodeCategories contains char.getType) && !(excludingChars contains char)) || (chars contains char)
 
-        def toShortString: String = "CharsUnicodeExcluding(" + (unicodeCategories.toSeq.sorted map { UnicodeUtil.categoryCodeToName _ } mkString ",") + "-" + (excludingChars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "") + ")"
-        def isEmpty = unicodeCategories.isEmpty
-    }
-    object CharsUnicodeExcluding {
-        def of(categories: Set[Int], excludingChars: Set[Char]): CharsUnicodeExcluding =
-            // TODO 혹시 excludingChars가 category 전부를 포함하는 경우 categories에서 제외해주기
-            CharsUnicodeExcluding(categories, excludingChars filter { categories contains _.getType })
-    }
-    case class CharsGroup(chars: Set[Char]) extends CharacterTermGroupDesc {
-        def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
-            case AllCharsExcluding(otherExcludingUnicodeCategories, otherExcludingChars) => ???
-            case other: CharsUnicodeExcluding =>
-                CharsGroup(chars filterNot { other contains _ })
-            case other: CharsGroup =>
-                CharsGroup(chars -- other.chars)
+        def toShortString: String = {
+            var string = "CharsGroup("
+            if (!unicodeCategories.isEmpty) {
+                string += "{" + (unicodeCategories.toSeq.sorted map { UnicodeUtil.categoryCodeToName _ } mkString ",") + "}"
+                if (!excludingChars.isEmpty) {
+                    string += "-{" + (excludingChars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "") + "}"
+                }
+                if (!chars.isEmpty) {
+                    string += "+{" + (chars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "") + "}"
+                }
+            } else {
+                string += (chars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "")
+            }
+            string += ")"
+            string
         }
-        def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
-            case AllCharsExcluding(otherExcludingUnicodeCategories, otherExcludingChars) =>
-                ???
-            case other: CharsUnicodeExcluding =>
-                CharsGroup(chars filter { other contains _ })
-            case other: CharsGroup =>
-                CharsGroup(chars intersect other.chars)
-        }
-
-        def contains(char: Char) = chars contains char
-
-        def toShortString: String = "CharsGroup(" + (chars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "") + ")"
-        def isEmpty = chars.isEmpty
+        def isEmpty = unicodeCategories.isEmpty && chars.isEmpty
     }
 
     case class VirtualsGroup(virtualNames: Set[String]) extends VirtualTermGroupDesc {
@@ -133,10 +133,10 @@ object Inputs {
         import Symbols.Terminals._
 
         def descOf(term: CharacterTerminal): CharacterTermGroupDesc = term match {
-            case AnyChar => AllCharsExcluding(Set(), Set())
-            case ExactChar(char) => CharsGroup(Set(char))
-            case Chars(chars) => CharsGroup(chars)
-            case Unicode(categories) => CharsUnicodeExcluding(categories, Set())
+            case AnyChar => new AllCharsExcluding(CharsGroup(Set(), Set(), Set()))
+            case ExactChar(char) => CharsGroup(Set(), Set(), Set(char))
+            case Chars(chars) => CharsGroup(Set(), Set(), chars)
+            case Unicode(categories) => CharsGroup(categories, Set(), Set())
         }
         def descOf(term: VirtualTerminal): VirtualTermGroupDesc = term match {
             case ExactVirtual(name) => VirtualsGroup(Set(name))
