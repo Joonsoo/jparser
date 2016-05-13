@@ -66,20 +66,24 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
         val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
         val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
 
-        val charIntersects: Set[CharacterTermGroupDesc] = charTerms flatMap { term1 =>
-            charTerms collect {
-                case term2 if term1 != term2 => term1 intersect term2
-            } filterNot { _.isEmpty }
+        def sliceTermGroups(termGroups: Set[CharacterTermGroupDesc]): Set[CharacterTermGroupDesc] = {
+            val charIntersects: Set[CharacterTermGroupDesc] = termGroups flatMap { term1 =>
+                termGroups collect {
+                    case term2 if term1 != term2 => term1 intersect term2
+                } filterNot { _.isEmpty }
+            }
+            val essentials = (termGroups map { g => charIntersects.foldLeft(g) { _ - _ } }) filterNot { _.isEmpty }
+            val intersections = if (charIntersects.isEmpty) Set() else sliceTermGroups(charIntersects)
+            essentials ++ intersections
         }
+        val charTermGroups = sliceTermGroups(charTerms)
+
+        // TODO VirtualTermGroupDesc도 charTermGroups처럼 해야 되는지 고민해보기
         val virtIntersects: Set[VirtualTermGroupDesc] = virtTerms flatMap { term1 =>
             virtTerms collect {
                 case term2 if term1 != term2 => term1 intersect term2
             } filterNot { _.isEmpty }
         }
-
-        val charTermGroups = (charTerms map { term =>
-            charIntersects.foldLeft(term) { _ - _ }
-        }) ++ charIntersects
         val virtTermGroups = (virtTerms map { term =>
             virtIntersects.foldLeft(term) { _ - _ }
         }) ++ virtIntersects
