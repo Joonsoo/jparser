@@ -51,17 +51,13 @@ class NewParser(val grammar: Grammar) {
                 case NewNonAtomicNode(kernel, progress) =>
                     NonAtomicNode(kernel, gen, progress)
             }
-            // TODO 같은 baseNode를 여러 노드에서 쓰는 경우 처리
-            val nodesMap: Map[DerivationGraph.Node, Node] =
-                baseAndGraphs.foldLeft(Map[DerivationGraph.Node, Node]()) { (cc, baseAndGraph) =>
-                    val (baseNode, derivationGraph) = baseAndGraph
-                    cc ++ ((((derivationGraph.nodes - derivationGraph.baseNode) map { n =>
-                        (n -> newNode(n.asInstanceOf[NewNode with NonEmptyNode]))
-                    }).toMap) + (derivationGraph.baseNode -> baseNode))
-                }
-            val newEdges: Set[Edge] = baseAndGraphs.foldLeft(Set[Edge]()) { (cc, baseAndGraph) =>
-                val (baseNode, derivationGraph) = baseAndGraph
-                val newEdges = derivationGraph.edges map {
+            val derivationGraphs = baseAndGraphs map { _._2 }
+            val nodesMap: Map[DerivationGraph.Node, Node] = {
+                val newNodes = derivationGraphs.foldLeft(Set[DerivationGraph.NewNode]()) { _ ++ _.newNodes }
+                (newNodes map { n => n -> newNode(n.asInstanceOf[NewNode with NonEmptyNode]) }).toMap
+            }
+            val newEdges: Set[Edge] = derivationGraphs flatMap { derivationGraph =>
+                (derivationGraph.edges -- derivationGraph.edgesFromBaseNode) map {
                     case DerivationGraph.SimpleEdge(start, end, edgeRevertTriggers) =>
                         val derivedRevertTriggers: Set[Trigger] = edgeRevertTriggers map {
                             case DerivationGraph.Trigger(node, triggerType) =>
@@ -74,7 +70,20 @@ class NewParser(val grammar: Grammar) {
                         val startNode = nodesMap(start).asInstanceOf[AtomicNode[Join]]
                         JoinEdge(startNode, nodesMap(end), nodesMap(join))
                 }
-                cc ++ newEdges
+            }
+            val newEdgesFromBase: Set[Edge] = baseAndGraphs flatMap { baseAndGraph =>
+                val (baseNode, derivationGraph) = baseAndGraph
+                derivationGraph.edgesFromBaseNode map {
+                    case DerivationGraph.SimpleEdge(start, end, edgeRevertTriggers) =>
+                        assert(start.kernel == baseNode.kernel)
+                        val derivedRevertTriggers: Set[Trigger] = edgeRevertTriggers map {
+                            case DerivationGraph.Trigger(node, triggerType) =>
+                                NodeTrigger(nodesMap(node), Trigger.Type.of(triggerType))
+                        }
+                        SimpleEdge(baseNode, nodesMap(end), derivedRevertTriggers)
+                    case DerivationGraph.JoinEdge(start, end, join) =>
+                        throw new AssertionError("")
+                }
             }
             val pendedProcessedEdges: Set[Edge] = edges collect {
                 case SimpleEdge(start, end, revertTriggers) if baseNodes contains end =>
@@ -89,7 +98,7 @@ class NewParser(val grammar: Grammar) {
                     SimpleEdge(start, end, newRevertTriggers)
                 case edge => edge
             }
-            val result = Graph(nodes ++ nodesMap.values.toSet, pendedProcessedEdges ++ newEdges)
+            val result = Graph(nodes ++ nodesMap.values.toSet, pendedProcessedEdges ++ newEdges ++ newEdgesFromBase)
             (result, nodesMap.values.toSet[Node] collect { case n: TermNode => n })
         }
         def expand(gen: Int, baseNode: NontermNode[Nonterm], derivationGraph: DerivationGraph): (Graph, Set[TermNode]) = {
@@ -150,12 +159,12 @@ class NewParser(val grammar: Grammar) {
                         case JoinEdge(start, end, join) =>
                             if (end == node) {
                                 (lifts filter { _.before == join } map { l =>
-                                    JoinLift(start, parsed, l.parsed, revertTriggers)
+                                    JoinLift(start, parsed, l.parsed, revertTriggers ++ l.revertTriggers)
                                 }).toSet[LiftTask]
                             } else {
                                 assert(join == node)
                                 (lifts filter { _.before == end } map { l =>
-                                    JoinLift(start, l.parsed, parsed, revertTriggers)
+                                    JoinLift(start, l.parsed, parsed, revertTriggers ++ l.revertTriggers)
                                 }).toSet[LiftTask]
                             }
                     }

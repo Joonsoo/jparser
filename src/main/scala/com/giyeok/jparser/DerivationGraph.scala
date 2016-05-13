@@ -35,6 +35,14 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
     // liftReverter는 결국 전부 edgeReverter로 바뀔 건데, baseNode가 lift되면서 edgeReverter가 따라온 경우에는 위쪽으로 올릴 수 없기 때문에 저장해둠
     // 그래서 실은 여기서 lifts랑 liftReverters 중에는 base와 관련 있는 baseNodeLifts, baseNodeLiftReverters만 의미가 있음
 
+    val newNodes = (nodes - baseNode) map { _.asInstanceOf[NewNode] }
+    val edgesFromBaseNode = edges filter {
+        case SimpleEdge(start, _, _) => start == baseNode
+        case JoinEdge(start, _, _) =>
+            // 이런 경우는 일반적으로 발생하진 않아야 함(visualize나 test시에만 발생 가능)
+            start == baseNode
+    }
+
     val liftsMap: Map[Node, Set[Lift]] = lifts groupBy { _.before }
     assert(liftsMap.values forall { !_.isEmpty })
 
@@ -117,9 +125,6 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
 
         val result: Map[Node, Set[TermGroupDesc]] = cc.toMap
         assert(result.keySet == nodes)
-        result foreach { kv =>
-            println(s"${kv._1} -> ${kv._2}")
-        }
         assert(edges forall {
             case SimpleEdge(start, end, _) =>
                 result(end) subsetOf result(start)
@@ -215,9 +220,9 @@ object DerivationGraph {
         // before 노드, afterKernel, parsed 모두 동일한 심볼을 갖고 있어야 한다
         assert((before.kernel.symbol == afterKernel.symbol) && (afterKernel.symbol == parsed.symbol))
         // afterKernel.derivable하면 after가 있어야 한다. 단 before가 BaseNode인 경우에는 after를 직접 만들지 않고 파서에 일임하기 때문에 어떤 경우든 after가 비어있어야 한다
-        println(s"before: ${before.kernel.toShortString}")
-        println(s"afterKernel: ${afterKernel.toShortString}")
-        println(s"after: ${after map { _.kernel.toShortString }}")
+        // println(s"before: ${before.kernel.toShortString}")
+        // println(s"afterKernel: ${afterKernel.toShortString}")
+        // println(s"after: ${after map { _.kernel.toShortString }}")
         assert(if (!before.isInstanceOf[BaseNode]) (afterKernel.derivable == after.isDefined) else after.isEmpty)
         // after 노드가 있다면 그 심볼도 역시 동일해야 한다
         assert(after forall { _.kernel.symbol == afterKernel.symbol })
@@ -410,12 +415,12 @@ object DerivationGraph {
                             val lifts: Set[(ParsedSymbolJoin, Set[Trigger])] =
                                 if (node == e.end) {
                                     cc.liftsMap(e.join) map { lift =>
-                                        (new ParsedSymbolJoin(startKernel.symbol, parsed, lift.parsed), lift.revertTriggers)
+                                        (new ParsedSymbolJoin(startKernel.symbol, parsed, lift.parsed), revertTriggers ++ lift.revertTriggers)
                                     }
                                 } else {
                                     assert(node == e.join)
                                     cc.liftsMap(e.end) map { lift =>
-                                        (new ParsedSymbolJoin(startKernel.symbol, lift.parsed, parsed), lift.revertTriggers)
+                                        (new ParsedSymbolJoin(startKernel.symbol, lift.parsed, parsed), revertTriggers ++ lift.revertTriggers)
                                     }
                                 }
                             lifts map { pr =>
