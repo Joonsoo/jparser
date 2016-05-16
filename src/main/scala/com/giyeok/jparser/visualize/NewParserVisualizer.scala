@@ -89,6 +89,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
     val cursorBorder = new UnderbarBorder(ColorConstants.black, 10)
 
     def updateLocation(newLocation: VisualizationLocation): Unit = {
+        val sourceViewHeight = 30
         if (isValidLocation(newLocation)) {
             currentLocation = newLocation
 
@@ -126,7 +127,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                 def pointerFig(location: VisualizationLocation, addingWidth: Int): Figure = {
                     val pointer = new draw2d.Figure
                     val stageLabelFrame = new draw2d.Figure
-                    stageLabelFrame.setSize(6, 20)
+                    stageLabelFrame.setSize(6, sourceViewHeight)
                     stageLabelFrame.setLayoutManager(new CenterLayout)
                     if (location == newLocation) {
                         stageLabelFrame.setBorder(cursorBorder)
@@ -143,7 +144,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                         stageLabelFrame.add(stageLabel)
                     }
                     pointer.add(stageLabelFrame)
-                    pointer.setSize(5 + addingWidth, 20)
+                    pointer.setSize(5 + addingWidth, sourceViewHeight)
                     pointer.addMouseListener(listener(location))
                     pointer
                 }

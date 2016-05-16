@@ -172,6 +172,19 @@ class DerivationGraphVisualizeWidget(parent: Composite, derivationGraph: Derivat
         connection.setLineColor(ColorConstants.blue)
     }
 
+    derivationGraph.lifts foreach { lift =>
+        val fig = parseNodeFigureGenerator.parseNodeHFig(lift.parsed)
+        fig.setOpaque(true)
+        fig.setBorder(new LineBorder(ColorConstants.blue))
+        fig.setSize(fig.getPreferredSize())
+        val node = new CGraphNode(graph, SWT.NONE, fig)
+        val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_SOLID, vnodes(lift.before).node, node)
+        if (!lift.revertTriggers.isEmpty) {
+            connection.setText(triggersToString(lift.revertTriggers))
+        }
+        connection.setLineColor(ColorConstants.blue)
+    }
+
     val termGroups = derivationGraph.termGroups
     var highlightedTermGroup = Option.empty[Inputs.TermGroupDesc]
     val termGroupButtons: Map[Inputs.TermGroupDesc, (Figure, CGraphNode)] = {

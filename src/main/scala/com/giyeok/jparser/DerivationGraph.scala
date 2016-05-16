@@ -254,7 +254,7 @@ object DerivationGraph {
         case k: NonAtomicNontermKernel[_] => NewNonAtomicNode(k, ParsedSymbolsSeq(k.symbol, List(), List()))
     }
 
-    def deriveNode(grammar: Grammar, baseNode: NontermNode, revertTriggers: Set[Trigger]): Set[Edge] = baseNode.kernel match {
+    def deriveNode(grammar: Grammar, baseNode: NontermNode): Set[Edge] = baseNode.kernel match {
         case k: StartKernel =>
             Set(SimpleEdge(baseNode, newNode(grammar.startSymbol), Set()))
         case k: NonterminalKernel =>
@@ -273,9 +273,9 @@ object DerivationGraph {
             val sym = symbol.seq(pointer)
             if (pointer > 0 && pointer < symbol.seq.size) {
                 // whitespace only between symbols
-                (symbol.whitespace + sym) map { newNode _ } map { SimpleEdge(baseNode, _, revertTriggers) }
+                (symbol.whitespace + sym) map { newNode _ } map { SimpleEdge(baseNode, _, Set()) }
             } else {
-                Set(SimpleEdge(baseNode, newNode(sym), revertTriggers))
+                Set(SimpleEdge(baseNode, newNode(sym), Set()))
             }
 
         case k: JoinKernel =>
@@ -300,7 +300,7 @@ object DerivationGraph {
         // assert(startKernel.symbol == Start || startKernel.symbol.isInstanceOf[NonAtomicSymbol])
 
         sealed trait Task
-        case class DeriveTask(node: NontermNode, revertTriggers: Set[Trigger]) extends Task
+        case class DeriveTask(node: NontermNode) extends Task
         // node가 finishable해져서 lift하면 afterKernel의 커널과 parsed의 노드를 갖게 된다는 의미
         case class LiftTask(node: Node, afterKernel: Kernel, parsed: ParseNode[Symbol], revertTriggers: Set[Trigger]) extends Task {
             assert(node.kernel.symbol == afterKernel.symbol && afterKernel.symbol == parsed.symbol)
@@ -308,10 +308,8 @@ object DerivationGraph {
 
         def derive(queue: List[Task], cc: DerivationGraph): DerivationGraph = {
             queue match {
-                case DeriveTask(baseNode, revertTriggers) +: rest =>
+                case DeriveTask(baseNode) +: rest =>
                     assert(baseNode.kernel.derivable)
-                    // lift하면서 revertTriggers가 쌓인 상태에서 derive를 시작하는 경우에만(baseNode가 NonAtomicNontermNode인 경우에만) revertTriggers가 있을 수 있고 그 외의 경우엔 없어야 한다
-                    assert(baseNode.isInstanceOf[NonAtomicNontermNode[_]] || revertTriggers.isEmpty)
 
                     var newQueue = rest
                     var newCC = cc
@@ -319,7 +317,7 @@ object DerivationGraph {
                     val kernel = baseNode.kernel
 
                     // TODO derivedEdges가 cc.edges하고 겹치는게 있으면 안 될 것 같은데 확인해보기
-                    val newDerivedEdges: Set[Edge] = deriveNode(grammar, baseNode, revertTriggers) -- cc.edges
+                    val newDerivedEdges: Set[Edge] = deriveNode(grammar, baseNode) -- cc.edges
 
                     val derivedNodes0: Set[Node] = (newDerivedEdges flatMap {
                         _ match {
@@ -336,7 +334,7 @@ object DerivationGraph {
                     val newDerivedNodes = derivedNodes -- cc.nodes
 
                     // newDerivedNodes 중 derivable한 것들(nonterm kernel들) 추려서 Derive 태스크 추가
-                    newQueue ++:= (newDerivedNodes.toList collect { case nonterm: NontermNode if nonterm.kernel.derivable => DeriveTask(nonterm, Set()) })
+                    newQueue ++:= (newDerivedNodes.toList collect { case nonterm: NontermNode if nonterm.kernel.derivable => DeriveTask(nonterm) })
                     newCC = cc.withNodesEdges(newDerivedNodes, newDerivedEdges)
 
                     // newDerivedNodes중 finishable한 것들을 추려서 Lift 태스크 추가
@@ -457,7 +455,7 @@ object DerivationGraph {
                                 newCC = cc.withNodesEdges(Set(newNode), newEdges.toSet[Edge]).withLift(Lift(node, afterKernel, parsed, Some(newNode), revertTriggers))
 
                                 // DeriveTask 추가
-                                newQueue +:= DeriveTask(newNode, revertTriggers)
+                                newQueue +:= DeriveTask(newNode)
 
                             case _ => throw new AssertionError("should be nonatomic")
                         }
@@ -472,7 +470,7 @@ object DerivationGraph {
             case kernel: AtomicNontermKernel[_] => BaseAtomicNode(kernel)
             case kernel: NonAtomicNontermKernel[_] => BaseNonAtomicNode(kernel)
         }
-        val result = derive(List(DeriveTask(baseNode, Set())), DerivationGraph(baseNode, Set(baseNode), Set(), Set(), Set()))
+        val result = derive(List(DeriveTask(baseNode)), DerivationGraph(baseNode, Set(baseNode), Set(), Set(), Set()))
         // TODO assertion
         // - 각 노드에 대한 테스트
         // - 노드에서 나와야 할 엣지에 대한 테스트
