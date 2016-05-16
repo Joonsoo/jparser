@@ -11,7 +11,7 @@ import com.giyeok.jparser.Inputs.ConcreteInput
 import Symbols.Terminals._
 import Inputs._
 
-case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], lifts: Set[Lift]) {
+case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], lifts: Set[Lift], baseLifts: Set[BaseLift]) {
     // baseNode가 nodes에 포함되어야 함
     assert(nodes contains baseNode)
     // baseNode를 제외하고는 전부 NewNode여야 함
@@ -46,13 +46,16 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
     val liftsMap: Map[Node, Set[Lift]] = lifts groupBy { _.before }
     assert(liftsMap.values forall { !_.isEmpty })
 
-    val baseNodeLifts = (liftsMap get baseNode).getOrElse(Set())
+    assert(liftsMap.keys forall { _.isInstanceOf[NewNode] })
 
     def withNodesEdges(newNodes: Set[Node], newEdges: Set[Edge]): DerivationGraph = {
-        DerivationGraph(baseNode, nodes ++ newNodes, edges ++ newEdges, lifts)
+        DerivationGraph(baseNode, nodes ++ newNodes, edges ++ newEdges, lifts, baseLifts)
     }
     def withLift(newLift: Lift): DerivationGraph = {
-        DerivationGraph(baseNode, nodes, edges, lifts + newLift)
+        DerivationGraph(baseNode, nodes, edges, lifts + newLift, baseLifts)
+    }
+    def withBaseLift(newBaseLift: BaseLift): DerivationGraph = {
+        DerivationGraph(baseNode, nodes, edges, lifts, baseLifts + newBaseLift)
     }
 
     def incomingEdgesTo(node: Node): Set[Edge] = edges collect {
@@ -158,7 +161,7 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
                     case Lift(before, afterKernel, parsed, after, revertTriggers) if (subnodes0 contains before) && (after forall { subnodes0 contains _ }) =>
                         Lift(subnodesMap(before), afterKernel, parsed, after map { subnodesMap(_) }, refineRevertTriggers(revertTriggers, subnodesMap))
                 }
-                Some(DerivationGraph(baseNode, subnodesMap.values.toSet, subedges, sublifts))
+                Some(DerivationGraph(baseNode, subnodesMap.values.toSet, subedges, sublifts, baseLifts))
             } else None
             termGroup -> subgraph
         }).toMap
@@ -227,6 +230,7 @@ object DerivationGraph {
         // after 노드가 있다면 그 심볼도 역시 동일해야 한다
         assert(after forall { _.kernel.symbol == afterKernel.symbol })
     }
+    case class BaseLift(parsedBy: ParseNode[Symbol], revertTriggers: Set[Trigger])
 
     case class Trigger(node: Node, triggerType: Trigger.Type.Value)
     object Trigger {
@@ -373,7 +377,16 @@ object DerivationGraph {
 
                 case LiftTask(node: BaseNode, afterKernel, parsed, revertTriggers) +: rest =>
                     // base node에 붙은 reserved reverter는 파서에서 처리한다
-                    derive(rest, cc.withLift(Lift(node, afterKernel, parsed, None, revertTriggers)))
+                    node match {
+                        case atomic: BaseAtomicNode[_] =>
+                            assert(atomic.kernel.symbol == parsed.symbol)
+                            derive(rest, cc.withBaseLift(BaseLift(parsed.asInstanceOf[ParsedSymbol[_]].body, revertTriggers)))
+                        case nonatomic: BaseNonAtomicNode[_] =>
+                            assert(nonatomic.kernel.symbol == parsed.symbol)
+                            val parsedSeq = parsed.asInstanceOf[ParsedSymbolsSeq[_]]
+                            assert(parsedSeq.children.size == 1)
+                            derive(rest, cc.withBaseLift(BaseLift(parsedSeq.children.head, revertTriggers)))
+                    }
 
                 case LiftTask(node: NewNode, afterKernel, parsed, revertTriggers) +: rest =>
                     var newQueue = rest
@@ -459,7 +472,7 @@ object DerivationGraph {
             case kernel: AtomicNontermKernel[_] => BaseAtomicNode(kernel)
             case kernel: NonAtomicNontermKernel[_] => BaseNonAtomicNode(kernel)
         }
-        val result = derive(List(DeriveTask(baseNode, Set())), DerivationGraph(baseNode, Set(baseNode), Set(), Set()))
+        val result = derive(List(DeriveTask(baseNode, Set())), DerivationGraph(baseNode, Set(baseNode), Set(), Set(), Set()))
         // TODO assertion
         // - 각 노드에 대한 테스트
         // - 노드에서 나와야 할 엣지에 대한 테스트

@@ -159,8 +159,8 @@ class DerivationGraphVisualizeWidget(parent: Composite, derivationGraph: Derivat
         }
     }
 
-    derivationGraph.baseNodeLifts foreach { lift =>
-        val fig = parseNodeFigureGenerator.parseNodeHFig(lift.parsed)
+    derivationGraph.baseLifts foreach { lift =>
+        val fig = parseNodeFigureGenerator.parseNodeHFig(lift.parsedBy)
         fig.setOpaque(true)
         fig.setBorder(new LineBorder(ColorConstants.blue))
         fig.setSize(fig.getPreferredSize())

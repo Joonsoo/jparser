@@ -227,15 +227,14 @@ class NewParser(val grammar: Grammar) {
                             afterNode = Some(newNode)
                             // DerivationGraph of 새로 생성된 노드에 baseNodeLift가 있는 경우(nullable 처리)
                             // - 새로운 lift task를 만들어서 추가해준다
-                            val baseNodeLifts = derive(afterKernel).baseNodeLifts
-                            assert(baseNodeLifts forall { lift => lift.after.isEmpty && lift.parsed.isInstanceOf[ParsedSymbolsSeq[_]] })
+                            val baseNodeLifts = derive(afterKernel).baseLifts
                             newLiftTasks ++:= baseNodeLifts map { lift =>
                                 // lift.revertTriggers는 PendedNode에 의해 trigger되는 것으로 처리
                                 val pendedTriggers: Set[Trigger] = lift.revertTriggers map {
                                     case DerivationGraph.Trigger(node, triggerType) =>
                                         PendedNodeTrigger(node, Trigger.Type.of(triggerType))
                                 }
-                                NontermLift(newNode, lift.parsed.asInstanceOf[ParsedSymbolsSeq[_]].children.head, revertTriggers ++ pendedTriggers)
+                                NontermLift(newNode, lift.parsedBy, revertTriggers ++ pendedTriggers)
                             }
                         }
 
@@ -454,7 +453,7 @@ class NewParser(val grammar: Grammar) {
     val initialContext = {
         val startKernel = StartKernel(0)
         val startNode = AtomicNode(startKernel, 0, None, None)
-        new ParsingContext(0, startNode, Graph(Set(startNode), Set()), Set(startNode), derive(startKernel).baseNodeLifts map { _.parsed })
+        new ParsingContext(0, startNode, Graph(Set(startNode), Set()), Set(startNode), derive(startKernel).baseLifts map { l => ParsedSymbol(Start, l.parsedBy) })
     }
 
     def parse(source: Inputs.ConcreteSource): Either[ParsingContext, ParsingError] =

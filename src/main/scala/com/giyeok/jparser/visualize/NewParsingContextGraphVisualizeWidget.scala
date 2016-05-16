@@ -28,6 +28,8 @@ import org.eclipse.swt.events.MouseEvent
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.KeyAdapter
 import org.eclipse.swt.events.KeyEvent
+import com.giyeok.jparser.ParseTree.ParseNode
+import com.giyeok.jparser.Symbols.Symbol
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -110,9 +112,8 @@ trait NewParserGraphVisualizeWidget {
         nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
         nodeFig.setOpaque(true)
         nodeFig.setSize(nodeFig.getPreferredSize())
-        // nodeFig.setToolTip(newSymbolProgressContentFig(n, true, ParseNodeFigureGenerator.cleanestConfiguration))
 
-        new CGraphNode(graphView, SWT.NONE, nodeFig) //new GraphNode(graph, SWT.NONE, n.toShortString)
+        new CGraphNode(graphView, SWT.NONE, nodeFig)
     }
 
     def revertTriggersString(revertTriggers: Set[NewParser.Trigger]): String =
@@ -179,22 +180,23 @@ trait NewParserGraphVisualizeWidget {
         }
     }
 
-    def nodesAt(ex: Int, ey: Int): Seq[NewParser.Node] = {
+    def nodesAt(ex: Int, ey: Int): Seq[Any] = {
         import scala.collection.JavaConversions._
 
         val (x, y) = (ex + graphView.getHorizontalBar().getSelection(), ey + graphView.getVerticalBar().getSelection())
-        println(graphView.getFigureAt(x, y))
 
-        val selectedNodeData = graphView.getNodes.toList collect {
-            case n: GraphNode if n != null && n.getNodeFigure() != null && n.getNodeFigure().containsPoint(x, y) => n.getData
+        graphView.getNodes.toSeq collect {
+            case n: CGraphNode if n != null && n.getNodeFigure() != null && n.getNodeFigure().containsPoint(x, y) =>
+                n.getData
         }
-        selectedNodeData collect { case node: NewParser.Node => node }
     }
 
     def initializeListeners(): Unit = {
         graphView.addMouseListener(new MouseAdapter() {
             override def mouseDoubleClick(e: MouseEvent): Unit = {
-                nodesAt(e.x, e.y) foreach {
+                val nodes = nodesAt(e.x, e.y)
+                nodes foreach { n => println(s"  -> $n") }
+                nodes foreach {
                     case node: NewParser.NontermNode[Nonterm] =>
                         val dgraph = DerivationGraph.deriveFromKernel(grammar, node.kernel)
                         val shell = new Shell(Display.getCurrent())
@@ -202,6 +204,8 @@ trait NewParserGraphVisualizeWidget {
                         new DerivationGraphVisualizeWidget(shell, dgraph)
                         shell.setText(s"Derivation Graph of ${node.kernel.toShortString}")
                         shell.open()
+                    case node: ParseNode[_] =>
+                        new ParseNodeViewer(node.asInstanceOf[ParseNode[Symbol]], figureGenerator, figureAppearances, parseNodeFigureGenerator).start()
                     case _ => // nothing to do
                 }
             }
@@ -232,6 +236,7 @@ class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val g
         }
         context.results foreach { result =>
             val resultNode = nodeFromFigure(parseNodeFigureGenerator.parseNodeHFig(result))
+            resultNode.setData(result)
             if (context.graph.nodes contains context.startNode) {
                 val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(context.startNode), resultNode)
                 connection.setLineColor(ColorConstants.blue)
@@ -287,6 +292,7 @@ class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val gr
         }
         proceed.lifts0 foreach { lift =>
             val parseNode = nodeFromFigure(parseNodeFigureGenerator.parseNodeHFig(lift.parsed))
+            parseNode.setData("Hello")
             val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(lift.before), parseNode)
             if (!(lift.revertTriggers.isEmpty)) {
                 connection.setText(revertTriggersString(lift.revertTriggers))

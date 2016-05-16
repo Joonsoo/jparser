@@ -278,6 +278,7 @@ trait ParsingContextGraphVisualize {
         override def mouseDoubleClick(e: MouseEvent): Unit = {
             println("ClickedFigure:")
             nodesAt(e.x, e.y) foreach { node =>
+                // new ParseNodeViewer(node).start()
                 import org.eclipse.swt.widgets._
                 val shell = new Shell(Display.getDefault())
                 shell.setLayout(new FillLayout())
