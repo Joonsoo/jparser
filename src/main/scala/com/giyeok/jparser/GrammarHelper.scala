@@ -30,6 +30,8 @@ object GrammarHelper {
     def ws(set: Symbol*): Set[Symbol] = Set[Symbol](set: _*)
     def oneof(items: Symbol*) = OneOf(items toSet)
     def oneof(items: Set[Symbol]) = OneOf(items)
+    def lookahead_is(lookahead: Symbol) = LookaheadIs(lookahead)
+    def lookahead_is(lookaheads: Symbol*) = LookaheadIs(oneof(lookaheads.toSet))
     def lookahead_except(except: Symbol) = LookaheadExcept(except)
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
     def longest(sym: Symbol) = Longest(sym)

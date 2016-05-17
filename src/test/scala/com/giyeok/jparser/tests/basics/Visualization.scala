@@ -13,7 +13,8 @@ object Visualization extends Viewer {
         SimpleGrammarSet3.grammars,
         RecursiveGrammarSet1.grammars,
         GrammarWithExcept.grammars,
-        GrammarWithLookaheadExcept.grammars).flatten
+        GrammarWithLookaheadExcept.grammars,
+        GrammarWithLookaheadIs.grammars).flatten
 
     def main(args: Array[String]): Unit = {
         start()

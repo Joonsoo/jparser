@@ -264,17 +264,26 @@ class NewParser(val grammar: Grammar) {
             // DeadUntilLift/WaitUntilLift reverter는 만약 대상 노드가 survive하지 못했으면(alive와 반대 조건) 엣지가 revert되고, 만약 대상 노드가 lift되었으면 엣지에서 그 reverter만 제거된다
             // DeadUntilLift와 WaitUntilLift의 차이점은 WaitUntilLift는 revertTrigger에 WaitUntilLift reverter가 섞여있는 lift는 최종 결과로 인정되지 않는다는 점이다
             // DeadUntilLift는 그런 제약이 없음 - 현재는 쓰이지도 않고 있는데 필요한 부분이 있을지도 몰라서 일단 만들어 놓음
-            val survivedEdges = edges filterNot {
-                case SimpleEdge(_, _, revertTriggers) =>
-                    revertTriggers exists {
+            val survivedEdges: Set[Edge] = edges flatMap {
+                case edge @ SimpleEdge(start, end, revertTriggers) =>
+                    val triggered = revertTriggers exists {
                         case NodeTrigger(node, Trigger.Type.Lift) => liftedNodes contains node
                         case NodeTrigger(node, Trigger.Type.Alive) => liftedGraph.nodes contains node
-                        case NodeTrigger(node, Trigger.Type.DeadUntilLift | Trigger.Type.WaitUntilLift) => ???
+                        case NodeTrigger(node, Trigger.Type.DeadUntilLift | Trigger.Type.WaitUntilLift) =>
+                            !(liftedNodes contains node) && !(liftedGraph.nodes contains node)
                         case pended: PendedNodeTrigger =>
                             // TODO 이 시점에 Pended가 있는건 어떤건지 고민
                             false
                     }
-                case _ => false
+                    if (!triggered) {
+                        val newRevertTriggers = revertTriggers filterNot {
+                            case NodeTrigger(node, Trigger.Type.DeadUntilLift | Trigger.Type.WaitUntilLift) =>
+                                liftedNodes contains node
+                            case trigger => false
+                        }
+                        Some(SimpleEdge(start, end, newRevertTriggers))
+                    } else None
+                case edge: JoinEdge => Some(edge)
             }
             (Graph(nodes, survivedEdges), tempLiftBlockNodes)
         }
