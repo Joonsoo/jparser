@@ -40,7 +40,11 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
-    sourceView.setLayoutData(new GridData(GridData.FILL_HORIZONTAL))
+    sourceView.setLayoutData({
+        val d = new GridData(GridData.FILL_HORIZONTAL)
+        d.heightHint = 40
+        d
+    })
     sourceView.setBackground(ColorConstants.white)
 
     val layout = new StackLayout
@@ -89,7 +93,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
     val cursorBorder = new UnderbarBorder(ColorConstants.black, 10)
 
     def updateLocation(newLocation: VisualizationLocation): Unit = {
-        val sourceViewHeight = 50
+        val sourceViewHeight = 20
         if (isValidLocation(newLocation)) {
             currentLocation = newLocation
 
