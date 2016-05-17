@@ -24,7 +24,7 @@ object Derivations {
     case class ReservedLiftTriggeredLiftRevertableDerivation(derive: Kernel) extends ReservedLiftRevertableDerivation
     case class ReservedAliveTriggeredLiftRevertableDerivation(derive: Kernel) extends ReservedLiftRevertableDerivation
 
-    def derive(grammar: Grammar, kernel: Kernel) = kernel match {
+    def derive(grammar: Grammar, kernel: NontermKernel[_]) = kernel match {
         case kernel: AtomicNontermKernel[_] =>
             if (kernel.pointer == 0) deriveAtomicKernel(grammar, kernel) else EmptyDerivation
 

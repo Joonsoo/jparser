@@ -140,7 +140,7 @@ object Kernels {
         val derivable = pointer < symbol.seq.size
         val finishable = pointer == symbol.seq.size
     }
-    trait RepeatKernel[T <: Repeat] extends NonAtomicNontermKernel[T]
+    sealed trait RepeatKernel[T <: Repeat] extends NonAtomicNontermKernel[T]
     case class RepeatBoundedKernel(symbol: RepeatBounded, pointer: Int) extends RepeatKernel[RepeatBounded] {
         assert(0 <= pointer && pointer <= symbol.upper)
         def lifted(before: ParsedSymbolsSeq[RepeatBounded], accepted: ParseNode[Symbol]): (RepeatBoundedKernel, ParsedSymbolsSeq[RepeatBounded]) =

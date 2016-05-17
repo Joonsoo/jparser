@@ -261,13 +261,15 @@ class NewParser(val grammar: Grammar) {
             val tempLiftBlockNodes: Set[AtomicNode[_]] = nodes collect {
                 case node @ AtomicNode(_, _, Some(liftBlockTrigger), _) if liftedNodes contains liftBlockTrigger => node
             }
-            // DeadUntilLift reverter는 만약 대상 노드가 survive하지 못했으면(alive와 반대 조건) 엣지가 revert되고, 만약 대상 노드가 lift되었으면 엣지에서 그 reverter만 제거된다
+            // DeadUntilLift/WaitUntilLift reverter는 만약 대상 노드가 survive하지 못했으면(alive와 반대 조건) 엣지가 revert되고, 만약 대상 노드가 lift되었으면 엣지에서 그 reverter만 제거된다
+            // DeadUntilLift와 WaitUntilLift의 차이점은 WaitUntilLift는 revertTrigger에 WaitUntilLift reverter가 섞여있는 lift는 최종 결과로 인정되지 않는다는 점이다
+            // DeadUntilLift는 그런 제약이 없음 - 현재는 쓰이지도 않고 있는데 필요한 부분이 있을지도 몰라서 일단 만들어 놓음
             val survivedEdges = edges filterNot {
                 case SimpleEdge(_, _, revertTriggers) =>
                     revertTriggers exists {
                         case NodeTrigger(node, Trigger.Type.Lift) => liftedNodes contains node
                         case NodeTrigger(node, Trigger.Type.Alive) => liftedGraph.nodes contains node
-                        case NodeTrigger(node, Trigger.Type.DeadUntilLift) => ???
+                        case NodeTrigger(node, Trigger.Type.DeadUntilLift | Trigger.Type.WaitUntilLift) => ???
                         case pended: PendedNodeTrigger =>
                             // TODO 이 시점에 Pended가 있는건 어떤건지 고민
                             false
@@ -421,11 +423,16 @@ class NewParser(val grammar: Grammar) {
                 assert(eligibleTermNodes0 forall { _.kernel.symbol.accept(input) })
                 def liftsFromTermNodes(termNodes: Set[TermNode]): Set[(TermNode, Input)] = termNodes map { (_, input) }
 
+                def collectResultsFromLifts(lifts: Set[Lift]): Set[ParseNode[Symbol]] =
+                    lifts collect {
+                        case Lift(`startNode`, _, parsed, _, revertTriggers) if revertTriggers forall { _.triggerType != Trigger.Type.WaitUntilLift } => parsed
+                    }
+
                 // 1. reverter 무시하고 우선 한번 lift를 진행한다
                 val (liftedGraph0, nextDerivables0, lifts0) = expandedGraph.lift(gen, liftsFromTermNodes(eligibleTermNodes0), Set())
                 // liftedGraph0에 startNode가 없는 경우 -> 파싱이 종료되었음을 의미
                 if (!(liftedGraph0.nodes contains startNode)) {
-                    val nextContext = new ParsingContext(gen + 1, startNode, liftedGraph0, Set(), lifts0 collect { case Lift(`startNode`, _, parsed, _, _) => parsed })
+                    val nextContext = new ParsingContext(gen + 1, startNode, liftedGraph0, Set(), collectResultsFromLifts(lifts0))
                     Left(new FinishedProceedDetail(expandedGraph, eligibleTermNodes0, liftedGraph0, nextDerivables0, lifts0, nextContext))
                 } else {
                     // 2. lift가 진행된 뒤 trigger되는 reverter를 적용한 그래프를 만든다
@@ -440,7 +447,7 @@ class NewParser(val grammar: Grammar) {
                     } else {
                         val (liftedGraph, nextDerivables, lifts) = trimmedRevertedGraph.lift(gen, liftsFromTermNodes(eligibleTermNodes), tempLiftBlockNodes)
                         // 6. reverter가 적용되어 계산된 ParsingContext를 반환한다
-                        val nextContext = new ParsingContext(gen + 1, startNode, liftedGraph, nextDerivables, lifts collect { case Lift(`startNode`, _, parsed, _, _) => parsed })
+                        val nextContext = new ParsingContext(gen + 1, startNode, liftedGraph, nextDerivables, collectResultsFromLifts(lifts))
                         Left(UnfinishedProceedDetail(expandedGraph, eligibleTermNodes0, liftedGraph0, nextDerivables0, lifts0, revertedGraph, tempLiftBlockNodes, trimmedRevertedGraph, eligibleTermNodes, liftedGraph, nextDerivables, lifts, nextContext))
                     }
                 }
@@ -491,11 +498,12 @@ object NewParser {
     }
     object Trigger {
         object Type extends Enumeration {
-            val Lift, Alive, DeadUntilLift = Value
+            val Lift, Alive, DeadUntilLift, WaitUntilLift = Value
             def of(t: DerivationGraph.Trigger.Type.Value) = t match {
                 case DerivationGraph.Trigger.Type.Lift => Lift
                 case DerivationGraph.Trigger.Type.Alive => Alive
                 case DerivationGraph.Trigger.Type.DeadUntilLift => DeadUntilLift
+                case DerivationGraph.Trigger.Type.WaitUntilLift => WaitUntilLift
             }
         }
     }

@@ -234,7 +234,7 @@ object DerivationGraph {
     case class Trigger(node: Node, triggerType: Trigger.Type.Value)
     object Trigger {
         object Type extends Enumeration {
-            val Lift, Alive, DeadUntilLift = Value
+            val Lift, Alive, DeadUntilLift, WaitUntilLift = Value
         }
     }
 
@@ -261,7 +261,7 @@ object DerivationGraph {
         case k: OneOfKernel =>
             k.symbol.syms map { s => SimpleEdge(baseNode, newNode(s), Set()) }
         case k: LookaheadIsKernel =>
-            Set(SimpleEdge(baseNode, newNode(Empty), Set(Trigger(newNode(k.symbol.lookahead), Trigger.Type.DeadUntilLift))))
+            Set(SimpleEdge(baseNode, newNode(Empty), Set(Trigger(newNode(k.symbol.lookahead), Trigger.Type.WaitUntilLift))))
         case k: LookaheadExceptKernel =>
             Set(SimpleEdge(baseNode, newNode(Empty), Set(Trigger(newNode(k.symbol.except), Trigger.Type.Lift))))
         case k: BackupKernel =>
