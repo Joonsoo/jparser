@@ -216,7 +216,7 @@ class NewParser(val grammar: Grammar) {
 
                         if (afterKernel.derivable) {
                             // afterKernel과 newProgress로 새로운 node 만들고 start -> 새 노드로 가는 엣지 추가하고, 이 때 before에 붙어있던 edge revert trigger들은 이 엣지에도 붙여준다
-                            val newNode = NonAtomicNode(afterKernel, gen, parsed)
+                            val newNode = NonAtomicNode(afterKernel, before.gen, parsed)
                             val newEdges: Set[Edge] = incomingEdges map {
                                 case SimpleEdge(start, _, edgeRevertTriggers) =>
                                     SimpleEdge(start, newNode, edgeRevertTriggers ++ revertTriggers)

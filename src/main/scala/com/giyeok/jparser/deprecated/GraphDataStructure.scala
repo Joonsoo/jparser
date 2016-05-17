@@ -1,4 +1,4 @@
-package com.giyeok.jparser
+package com.giyeok.jparser.deprecated
 
 import com.giyeok.jparser.ParseTree._
 import com.giyeok.jparser.Symbols._

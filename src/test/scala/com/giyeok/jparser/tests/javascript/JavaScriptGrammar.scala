@@ -15,9 +15,8 @@ object JavaScriptGrammar extends Grammar {
     def expr(s: Symbol*) = seq(s toList, whitespace)
     def lex(s: Symbol*) = seq(s: _*)
     def line(s: Symbol*) = seq(oneline, s: _*)
-    def longest(s: Symbol) = seq(s.star, lookahead_except(s))
-    val lineend = seq(longest(oneof(whitespace)), i(";")).backup(seq(longest(oneof(whitespace)), n("LineTerminator")))
-    def stmt(s: Symbol*) = seq(expr(s: _*), lineend)
+    val lineend = i(";").backup(e)
+    def stmt(s: Symbol*) = longest(expr((s.toSeq :+ lineend): _*))
 
     def token(s: String) = i(s).join(n("Token"))
     def token(s: Symbol) = s.join(n("Token"))
@@ -245,12 +244,12 @@ object JavaScriptGrammar extends Grammar {
             n("HexIntegerLiteral")),
         "StrDecimalLiteral" -> ListSet(
             n("StrUnsignedDecimalLiteral"),
-            lex(token("+"), n("StrUnsignedDecimalLiteral")),
-            lex(token("-"), n("StrUnsignedDecimalLiteral"))),
+            lex(i("+"), n("StrUnsignedDecimalLiteral")),
+            lex(i("-"), n("StrUnsignedDecimalLiteral"))),
         "StrUnsignedDecimalLiteral" -> ListSet(
             token("Infinity"),
-            lex(n("DecimalDigits"), token("."), n("DecimalDigits").opt, n("ExponentPart").opt),
-            lex(token("."), n("DecimalDigits"), n("ExponentPart").opt),
+            lex(n("DecimalDigits"), i("."), n("DecimalDigits").opt, n("ExponentPart").opt),
+            lex(i("."), n("DecimalDigits"), n("ExponentPart").opt),
             lex(n("DecimalDigits"), n("ExponentPart").opt)),
         "DecimalDigits" -> ListSet(
             n("DecimalDigit"),
@@ -263,11 +262,11 @@ object JavaScriptGrammar extends Grammar {
             chars("eE")),
         "SignedInteger" -> ListSet(
             n("DecimalDigits"),
-            lex(token("+"), n("DecimalDigits")),
-            lex(token("-"), n("DecimalDigits"))),
+            lex(i("+"), n("DecimalDigits")),
+            lex(i("-"), n("DecimalDigits"))),
         "HexIntegerLiteral" -> ListSet(
-            lex(token("0x"), n("HexDigit")),
-            lex(token("0X"), n("HexDigit")),
+            lex(i("0x"), n("HexDigit")),
+            lex(i("0X"), n("HexDigit")),
             lex(n("HexIntegerLiteral"), n("HexDigit"))),
         "HexDigit" -> ListSet(
             chars('0' to '9', 'a' to 'f', 'A' to 'F')),
@@ -275,8 +274,8 @@ object JavaScriptGrammar extends Grammar {
         // A.3 Expressions
         "PrimaryExpression" -> ListSet(
             token("this"),
-            n("Identifier"),
-            n("Literal"),
+            token(n("Identifier")),
+            token(n("Literal")),
             n("ArrayLiteral"),
             n("ObjectLiteral"),
             expr(token("("), n("Expression"), token(")"))),
@@ -302,16 +301,16 @@ object JavaScriptGrammar extends Grammar {
             expr(token("get"), n("PropertyName"), token("("), token(")"), token("{"), n("FunctionBody"), token("}")),
             expr(token("set"), n("PropertyName"), token("("), n("PropertySetParameterList"), token(")"), token("{"), n("FunctionBody"), token("}"))),
         "PropertyName" -> ListSet(
-            n("IdentifierName"),
-            n("StringLiteral"),
-            n("NumericLiteral")),
+            token(n("IdentifierName")),
+            token(n("StringLiteral")),
+            token(n("NumericLiteral"))),
         "PropertySetParameterList" -> ListSet(
-            n("Identifier")),
+            token(n("Identifier"))),
         "MemberExpression" -> ListSet(
             n("PrimaryExpression"),
             n("FunctionExpression"),
             expr(n("MemberExpression"), token("["), n("Expression"), token("]")),
-            expr(n("MemberExpression"), token("."), n("IdentifierName")),
+            expr(n("MemberExpression"), token("."), token(n("IdentifierName"))),
             expr(token("new"), n("MemberExpression"), n("Arguments"))),
         "NewExpression" -> ListSet(
             n("MemberExpression"),
@@ -320,7 +319,7 @@ object JavaScriptGrammar extends Grammar {
             expr(n("MemberExpression"), n("Arguments")),
             expr(n("CallExpression"), n("Arguments")),
             expr(n("CallExpression"), token("["), n("Expression"), token("]")),
-            expr(n("CallExpression"), token("."), n("IdentifierName"))),
+            expr(n("CallExpression"), token("."), token(n("IdentifierName")))),
         "Arguments" -> ListSet(
             expr(token("("), token(")")),
             expr(token("("), n("ArgumentList"), token(")"))),
@@ -477,9 +476,9 @@ object JavaScriptGrammar extends Grammar {
         "InitialiserNoIn" -> ListSet(
             expr(token("="), n("AssignmentExpressionNoIn"))),
         "EmptyStatement" -> ListSet(
-            stmt()),
+            i(";")),
         "ExpressionStatement" -> ListSet(
-            stmt(lookahead_except(token("{"), seq(token("function"), n("WhiteSpace"))), n("Expression"))),
+            seq(lookahead_except(token("{"), seq(token("function"), n("WhiteSpace"))), stmt(n("Expression")))),
         "IfStatement" -> ListSet(
             expr(token("if"), token("("), n("Expression"), token(")"), n("Statement"), token("else"), n("Statement")),
             expr(token("if"), token("("), n("Expression"), token(")"), n("Statement"))),
@@ -492,10 +491,10 @@ object JavaScriptGrammar extends Grammar {
             expr(token("for"), token("("), token("var"), n("VariableDeclarationNoIn"), token("in"), n("Expression"), token(")"), n("Statement"))),
         "ContinueStatement" -> ListSet(
             stmt(token("continue")),
-            stmt(line(token("continue"), n("Identifier")))),
+            stmt(line(token("continue"), token(n("Identifier"))))),
         "BreakStatement" -> ListSet(
             stmt(token("break")),
-            stmt(line(token("break"), n("Identifier")))),
+            stmt(line(token("break"), token(n("Identifier"))))),
         "ReturnStatement" -> ListSet(
             stmt(token("return")),
             stmt(line(token("return"), n("Expression")))),
@@ -514,7 +513,7 @@ object JavaScriptGrammar extends Grammar {
         "DefaultClause" -> ListSet(
             expr(token("default"), token(":"), n("StatementList").opt)),
         "LabelledStatement" -> ListSet(
-            expr(n("Identifier"), token(":"), n("Statement"))),
+            expr(token(n("Identifier")), token(":"), n("Statement"))),
         "ThrowStatement" -> ListSet(
             stmt(line(token("throw"), n("Expression")))),
         "TryStatement" -> ListSet(
@@ -522,7 +521,7 @@ object JavaScriptGrammar extends Grammar {
             expr(token("try"), n("Block"), n("Finally")),
             expr(token("try"), n("Block"), n("Catch"), n("Finally"))),
         "Catch" -> ListSet(
-            expr(token("catch"), token("("), n("Identifier"), token(")"), n("Block"))),
+            expr(token("catch"), token("("), token(n("Identifier")), token(")"), n("Block"))),
         "Finally" -> ListSet(
             expr(token("finally"), n("Block"))),
         "DebuggerStatement" -> ListSet(
@@ -530,12 +529,12 @@ object JavaScriptGrammar extends Grammar {
 
         // A.5 Functions and Programs
         "FunctionDeclaration" -> ListSet(
-            expr(token("function"), n("Identifier"), token("("), n("FormalParameterList").opt, token(")"), token("{"), n("FunctionBody"), token("}"))),
+            expr(token("function"), token(n("Identifier")), token("("), n("FormalParameterList").opt, token(")"), token("{"), n("FunctionBody"), token("}"))),
         "FunctionExpression" -> ListSet(
-            expr(token("function"), n("Identifier").opt, token("("), n("FormalParameterList").opt, token(")"), token("{"), n("FunctionBody"), token("}"))),
+            expr(token("function"), token(n("Identifier")).opt, token("("), n("FormalParameterList").opt, token(")"), token("{"), n("FunctionBody"), token("}"))),
         "FormalParameterList" -> ListSet(
-            n("Identifier"),
-            expr(n("FormalParameterList"), token(","), n("Identifier"))),
+            token(n("Identifier")),
+            expr(n("FormalParameterList"), token(","), token(n("Identifier")))),
         "FunctionBody" -> ListSet(
             n("SourceElements").opt),
         "Program" -> ListSet(
@@ -563,7 +562,7 @@ object JavaScriptGrammar extends Grammar {
             n("DecimalDigit"),
             n("uriMark")),
         "uriEscaped" -> ListSet(
-            lex(token("%"), n("HexDigit"), n("HexDigit"))),
+            lex(i("%"), n("HexDigit"), n("HexDigit"))),
         "uriAlpha" -> ListSet(
             chars('a' to 'z', 'A' to 'Z')),
         "uriMark" -> ListSet(
@@ -574,7 +573,7 @@ object JavaScriptGrammar extends Grammar {
             n("Disjunction")),
         "Disjunction" -> ListSet(
             n("Alternative"),
-            lex(n("Alternative"), token("|"), n("Disjunction"))),
+            lex(n("Alternative"), i("|"), n("Disjunction"))),
         "Alternative" -> ListSet(
             e,
             lex(n("Alternative"), n("Term"))),

@@ -89,7 +89,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
     val cursorBorder = new UnderbarBorder(ColorConstants.black, 10)
 
     def updateLocation(newLocation: VisualizationLocation): Unit = {
-        val sourceViewHeight = 30
+        val sourceViewHeight = 50
         if (isValidLocation(newLocation)) {
             currentLocation = newLocation
 

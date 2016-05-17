@@ -139,24 +139,31 @@ class DerivationGraphVisualizeWidget(parent: Composite, derivationGraph: Derivat
         case Trigger(node, ttype) => s"${ttype}(${vnodes(node).id})"
     }).mkString(", ")
 
-    derivationGraph.edges foreach { edge =>
-        edge match {
-            case edge @ SimpleEdge(start, end, revertTriggers) =>
-                val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(start).node, vnodes(end).node)
-                if (!revertTriggers.isEmpty) {
-                    connection.setText(triggersToString(revertTriggers))
-                }
-                connection.setLineColor(ColorConstants.lightGray)
-                vedges(edge) = Set(connection)
-            case JoinEdge(start, end, join) =>
-                val connectionEnd = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(start).node, vnodes(end).node)
-                val connectionJoin = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(start).node, vnodes(join).node)
-                connectionEnd.setText("main")
-                connectionJoin.setText("constraint")
-                connectionEnd.setLineColor(ColorConstants.lightGray)
-                connectionJoin.setLineColor(ColorConstants.lightGray)
-                vedges(edge) = Set(connectionEnd, connectionJoin)
+    def addEdge(edge: Edge): Set[GraphConnection] = {
+        if (!(vedges contains edge)) {
+            edge match {
+                case edge @ SimpleEdge(start, end, revertTriggers) =>
+                    val connection = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(start).node, vnodes(end).node)
+                    if (!revertTriggers.isEmpty) {
+                        connection.setText(triggersToString(revertTriggers))
+                    }
+                    connection.setLineColor(ColorConstants.lightGray)
+                    vedges(edge) = Set(connection)
+                case JoinEdge(start, end, join) =>
+                    val connectionEnd = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(start).node, vnodes(end).node)
+                    val connectionJoin = new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, vnodes(start).node, vnodes(join).node)
+                    connectionEnd.setText("main")
+                    connectionJoin.setText("constraint")
+                    connectionEnd.setLineColor(ColorConstants.lightGray)
+                    connectionJoin.setLineColor(ColorConstants.lightGray)
+                    vedges(edge) = Set(connectionEnd, connectionJoin)
+            }
         }
+        vedges(edge)
+    }
+
+    derivationGraph.edges foreach { edge =>
+        addEdge(edge)
     }
 
     derivationGraph.baseLifts foreach { lift =>
@@ -204,15 +211,15 @@ class DerivationGraphVisualizeWidget(parent: Composite, derivationGraph: Derivat
                     }
                     if (highlightedTermGroup != Some(termGroup)) {
                         highlightedTermGroup = Some(termGroup)
-                        vnodes filter { v => derivationGraph.reachablesMap(v._1) contains termGroup } foreach { v =>
+                        vnodes filter { v => derivationGraph.reachablesMap get v._1 forall { _ contains termGroup } } foreach { v =>
                             v._2.node.setBackgroundColor(ColorConstants.lightBlue)
                         }
                         termGroupButtons(termGroup)._1.setBackgroundColor(ColorConstants.lightBlue)
                         derivationGraph.sliceByTermGroups
                         derivationGraph.subgraphTo(termGroup) match {
                             case Some(subgraph) =>
-                                subgraph.nodes foreach { node => vnodes(node).node.setBorderColor(ColorConstants.red) }
-                                subgraph.edges foreach { edge => vedges(edge) foreach { _.setLineColor(ColorConstants.red) } }
+                                subgraph.nodes foreach { node => addNode(node).node.getFigure().setBorder(new LineBorder(ColorConstants.red)) }
+                                subgraph.edges foreach { edge => addEdge(edge) foreach { _.setLineColor(ColorConstants.red) } }
                             case None =>
                         }
                     } else {
@@ -226,7 +233,7 @@ class DerivationGraphVisualizeWidget(parent: Composite, derivationGraph: Derivat
         }).toMap
     }
     def dehighlightAllTermGroupButtons(): Unit = {
-        vnodes map { _._2.node.setBorderColor(ColorConstants.lightGray) }
+        vnodes map { _._2.node.getFigure().setBorder(new LineBorder(ColorConstants.lightGray)) }
         vnodes map { _._2.node.setBackgroundColor(ColorConstants.buttonLightest) }
         vnodes(derivationGraph.baseNode).node.setBackgroundColor(ColorConstants.yellow)
         vedges.values map { _ foreach { _.setLineColor(ColorConstants.lightGray) } }

@@ -15,7 +15,7 @@ import org.eclipse.zest.layouts.LayoutStyles
 import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
 import com.giyeok.jparser.ParseTree
 import com.giyeok.jparser.ParseTree.TreePrint
-import com.giyeok.jparser.Parser
+import com.giyeok.jparser.deprecated.Parser
 import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Event
 import org.eclipse.swt.widgets.Widget

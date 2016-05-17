@@ -1,4 +1,4 @@
-package com.giyeok.jparser
+package com.giyeok.jparser.deprecated
 
 trait Reverters {
     this: Parser =>

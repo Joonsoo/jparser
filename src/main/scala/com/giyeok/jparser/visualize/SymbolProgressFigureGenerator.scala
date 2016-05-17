@@ -1,7 +1,7 @@
 package com.giyeok.jparser.visualize
 
 import org.eclipse.draw2d.Figure
-import com.giyeok.jparser.Parser
+import com.giyeok.jparser.deprecated.Parser
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 import com.giyeok.jparser.Kernels._
 

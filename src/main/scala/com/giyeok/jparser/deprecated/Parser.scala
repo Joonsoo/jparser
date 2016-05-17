@@ -1,4 +1,15 @@
-package com.giyeok.jparser
+package com.giyeok.jparser.deprecated
+
+import com.giyeok.jparser.Kernels.Kernel
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.Kernels
+import com.giyeok.jparser.ParseTree
+import com.giyeok.jparser.ParseTree.ParseNode
+import com.giyeok.jparser.ParsingErrors
+import com.giyeok.jparser.Symbols
+import scala.Left
+import scala.Right
 
 class Parser(val grammar: Grammar)
         extends SymbolProgresses

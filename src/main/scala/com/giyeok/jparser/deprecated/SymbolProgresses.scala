@@ -1,9 +1,11 @@
-package com.giyeok.jparser
+package com.giyeok.jparser.deprecated
 
-import Symbols._
-import Inputs._
-import ParseTree._
-import Kernels._
+import com.giyeok.jparser.Symbols._
+import com.giyeok.jparser.Inputs._
+import com.giyeok.jparser.ParseTree._
+import com.giyeok.jparser.Kernels._
+import com.giyeok.jparser.Derivations
+import com.giyeok.jparser.Grammar
 
 trait SymbolProgresses {
     this: Parser =>

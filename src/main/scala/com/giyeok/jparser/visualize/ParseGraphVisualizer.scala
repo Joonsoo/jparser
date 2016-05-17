@@ -22,7 +22,7 @@ import org.eclipse.swt.widgets.Shell
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.Inputs.InputToShortString
-import com.giyeok.jparser.Parser
+import com.giyeok.jparser.deprecated.Parser
 import org.eclipse.draw2d.geometry.Insets
 import org.eclipse.draw2d.IFigure
 import org.eclipse.draw2d.BorderLayout

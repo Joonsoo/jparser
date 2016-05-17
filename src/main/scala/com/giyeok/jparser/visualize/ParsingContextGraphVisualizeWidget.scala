@@ -13,7 +13,7 @@ import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ParseTree
-import com.giyeok.jparser.Parser
+import com.giyeok.jparser.deprecated.Parser
 import com.giyeok.jparser.ParseTree.TreePrint
 import org.eclipse.swt.graphics.Color
 import org.eclipse.zest.core.widgets.CGraphNode

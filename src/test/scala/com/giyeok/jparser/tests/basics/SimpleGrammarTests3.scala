@@ -3,10 +3,10 @@ package com.giyeok.jparser.tests.basics
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.GrammarHelper._
 import scala.collection.immutable.ListMap
-import com.giyeok.jparser.Parser
+import com.giyeok.jparser.deprecated.Parser
 import com.giyeok.jparser.Inputs._
 import scala.collection.immutable.ListSet
-import com.giyeok.jparser.Parser
+import com.giyeok.jparser.deprecated.Parser
 import com.giyeok.jparser.tests.BasicParseTest
 import com.giyeok.jparser.tests.Samples
 import com.giyeok.jparser.tests.StringSamples
