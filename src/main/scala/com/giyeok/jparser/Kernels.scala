@@ -3,7 +3,6 @@ package com.giyeok.jparser
 import Symbols._
 import Inputs._
 import ParseTree._
-import Derivations._
 
 // will be used in Parser and PreprocessedParser
 object Kernels {
@@ -24,6 +23,7 @@ object Kernels {
             case symbol: Sequence => SequenceKernel(symbol, 0)
             case symbol: OneOf => OneOfKernel(symbol, 0)
             case symbol: Except => ExceptKernel(symbol, 0)
+            case symbol: LookaheadIs => LookaheadIsKernel(symbol, 0)
             case symbol: LookaheadExcept => LookaheadExceptKernel(symbol, 0)
             case symbol: RepeatBounded => RepeatBoundedKernel(symbol, 0)
             case symbol: RepeatUnbounded => RepeatUnboundedKernel(symbol, 0)
@@ -43,6 +43,7 @@ object Kernels {
                     case s: Nonterminal => Set(NonterminalKernel(s, 0), NonterminalKernel(s, 1))
                     case s: OneOf => Set(OneOfKernel(s, 0), OneOfKernel(s, 1))
                     case s: Except => Set(ExceptKernel(s, 0), ExceptKernel(s, 1))
+                    case s: LookaheadIs => Set(LookaheadIsKernel(s, 0), LookaheadIsKernel(s, 1))
                     case s: LookaheadExcept => Set(LookaheadExceptKernel(s, 0), LookaheadExceptKernel(s, 1))
                     case s: Backup => Set(BackupKernel(s, 0), BackupKernel(s, 1))
                     case s: Join => Set(JoinKernel(s, 0), JoinKernel(s, 1))
@@ -75,16 +76,12 @@ object Kernels {
     }
     sealed trait NontermKernel[+T <: Nonterm] extends NonEmptyKernel {
         val symbol: T
-
-        def derive(grammar: Grammar): Derivation
     }
     sealed trait AtomicNontermKernel[+T <: AtomicSymbol with Nonterm] extends NontermKernel[T] with AtomicKernel[T] {
         assert(pointer == 0 || pointer == 1)
 
         val symbol: T
 
-        override def derive(grammar: Grammar): Derivation = if (pointer == 0) derive0(grammar) else EmptyDerivation
-        def derive0(grammar: Grammar): Derivation
         def lifted: AtomicNontermKernel[T]
     }
     sealed trait NonAtomicNontermKernel[T <: NonAtomicSymbol with Nonterm] extends NontermKernel[T] {
@@ -99,54 +96,37 @@ object Kernels {
         assert(pointer == 0 || pointer == 1)
         val symbol = Start
         def lifted = StartKernel(1) ensuring pointer == 0
-        def derive0(grammar: Grammar): Derivation =
-            SymbolDerivation(Set(Kernel(grammar.startSymbol)))
     }
     case class NonterminalKernel(symbol: Nonterminal, pointer: Int) extends AtomicNontermKernel[Nonterminal] {
         def lifted = NonterminalKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): Derivation =
-            SymbolDerivation(grammar.rules(symbol.name) map { Kernel(_) })
     }
     case class OneOfKernel(symbol: OneOf, pointer: Int) extends AtomicNontermKernel[OneOf] {
         def lifted = OneOfKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): Derivation =
-            SymbolDerivation(symbol.syms map { Kernel(_) })
     }
     case class ExceptKernel(symbol: Except, pointer: Int) extends AtomicNontermKernel[Except] {
         def lifted = ExceptKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): Derivation =
-            TempLiftBlockableDerivation(Kernel(symbol.sym), Kernel(symbol.except))
+    }
+    case class LookaheadIsKernel(symbol: LookaheadIs, pointer: Int) extends AtomicNontermKernel[LookaheadIs] {
+        def lifted = LookaheadIsKernel(symbol, 1) ensuring pointer == 0
     }
     case class LookaheadExceptKernel(symbol: LookaheadExcept, pointer: Int) extends AtomicNontermKernel[LookaheadExcept] {
         def lifted = LookaheadExceptKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): Derivation =
-            RevertableDerivation(Kernel(Empty), Kernel(symbol.except))
     }
     case class BackupKernel(symbol: Backup, pointer: Int) extends AtomicNontermKernel[Backup] {
         def lifted = BackupKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): Derivation =
-            DeriveRevertableDerivation(Kernel(symbol.backup), Kernel(symbol.sym))
     }
     case class JoinKernel(symbol: Join, pointer: Int) extends AtomicNontermKernel[Join] {
         def lifted = JoinKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): Derivation =
-            JoinDerivation(Kernel(symbol.sym), Kernel(symbol.join))
     }
     case class ProxyKernel(symbol: Proxy, pointer: Int) extends AtomicNontermKernel[Proxy] {
         def lifted = ProxyKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): Derivation =
-            SymbolDerivation(Set(Kernel(symbol.sym)))
     }
     // Longest와 EagerLongest는 생성되는 노드 자체가 lfit시 lift돼서 생긴 노드에 대해 Lift/SurviveTriggeredNodeCreationReverter 를 추가하도록 수정
     case class LongestKernel(symbol: Longest, pointer: Int) extends AtomicNontermKernel[Longest] {
         def lifted = LongestKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): Derivation =
-            ReservedLiftTriggeredLiftRevertableDerivation(Kernel(symbol.sym))
     }
     case class EagerLongestKernel(symbol: EagerLongest, pointer: Int) extends AtomicNontermKernel[EagerLongest] {
         def lifted = EagerLongestKernel(symbol, 1) ensuring pointer == 0
-        def derive0(grammar: Grammar): Derivation =
-            ReservedAliveTriggeredLiftRevertableDerivation(Kernel(symbol.sym))
     }
 
     case class SequenceKernel(symbol: Sequence, pointer: Int) extends NonAtomicNontermKernel[Sequence] {
@@ -156,19 +136,6 @@ object Kernels {
             if (isContent) (SequenceKernel(symbol, pointer + 1), before.appendContent(accepted))
             else (SequenceKernel(symbol, pointer), before.appendWhitespace(accepted))
         }
-        def derive(grammar: Grammar): Derivation =
-            if (pointer < symbol.seq.size) {
-                val elemDerive = Kernel(symbol.seq(pointer))
-                if (pointer > 0 && pointer < symbol.seq.size) {
-                    // whitespace only between symbols
-                    val wsDerives: Set[Kernel] = symbol.whitespace map { Kernel(_) }
-                    SymbolDerivation(wsDerives + elemDerive)
-                } else {
-                    SymbolDerivation(Set(elemDerive))
-                }
-            } else {
-                EmptyDerivation
-            }
 
         val derivable = pointer < symbol.seq.size
         val finishable = pointer == symbol.seq.size
@@ -178,8 +145,6 @@ object Kernels {
         assert(0 <= pointer && pointer <= symbol.upper)
         def lifted(before: ParsedSymbolsSeq[RepeatBounded], accepted: ParseNode[Symbol]): (RepeatBoundedKernel, ParsedSymbolsSeq[RepeatBounded]) =
             (RepeatBoundedKernel(symbol, pointer + 1), before.appendContent(accepted))
-        def derive(grammar: Grammar): Derivation =
-            if (derivable) SymbolDerivation(Set(Kernel(symbol.sym))) else EmptyDerivation
 
         val derivable = pointer < symbol.upper
         val finishable = pointer >= symbol.lower
@@ -188,8 +153,6 @@ object Kernels {
         assert(0 <= pointer && pointer <= symbol.lower)
         def lifted(before: ParsedSymbolsSeq[RepeatUnbounded], accepted: ParseNode[Symbol]): (RepeatUnboundedKernel, ParsedSymbolsSeq[RepeatUnbounded]) =
             (RepeatUnboundedKernel(symbol, if (pointer < symbol.lower) pointer + 1 else pointer), before.appendContent(accepted))
-        def derive(grammar: Grammar): Derivation =
-            SymbolDerivation(Set(Kernel(symbol.sym)))
 
         val derivable = true
         val finishable = pointer >= symbol.lower

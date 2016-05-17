@@ -4,7 +4,6 @@ import Kernels._
 import DerivationGraph._
 import Symbols._
 import ParseTree._
-import Derivations._
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.Inputs.AbstractInput
 import com.giyeok.jparser.Inputs.ConcreteInput
@@ -235,7 +234,7 @@ object DerivationGraph {
     case class Trigger(node: Node, triggerType: Trigger.Type.Value)
     object Trigger {
         object Type extends Enumeration {
-            val Lift, Alive = Value
+            val Lift, Alive, DeadUntilLift = Value
         }
     }
 
@@ -261,6 +260,8 @@ object DerivationGraph {
             grammar.rules(k.symbol.name) map { s => SimpleEdge(baseNode, newNode(s), Set()) }
         case k: OneOfKernel =>
             k.symbol.syms map { s => SimpleEdge(baseNode, newNode(s), Set()) }
+        case k: LookaheadIsKernel =>
+            Set(SimpleEdge(baseNode, newNode(Empty), Set(Trigger(newNode(k.symbol.lookahead), Trigger.Type.DeadUntilLift))))
         case k: LookaheadExceptKernel =>
             Set(SimpleEdge(baseNode, newNode(Empty), Set(Trigger(newNode(k.symbol.except), Trigger.Type.Lift))))
         case k: BackupKernel =>
@@ -478,25 +479,4 @@ object DerivationGraph {
         // - reverter 테스트
         result
     }
-}
-
-sealed trait Derivation
-object Derivations {
-    // 빈 derive
-    case object EmptyDerivation extends Derivation
-    // Nonterminal, OneOf, Repeat, Proxy, Sequence - 일반적인 derive
-    case class SymbolDerivation(derives: Set[Kernel]) extends Derivation
-    // Join
-    case class JoinDerivation(derive: Kernel, join: Kernel) extends Derivation
-    // Except - (self->derive)로 가는 SimpleEdge + (blockTrigger->self)로 오는 TempLiftBlockReverter
-    case class TempLiftBlockableDerivation(derive: Kernel, blockTrigger: Kernel) extends Derivation
-    // LookaheadExcept - (self->derive)로 가는 SimpleEdge + (revertTrigger->(self->derive))인 DeriveReverter
-    case class RevertableDerivation(derive: Kernel, revertTrigger: Kernel) extends Derivation
-    // Backup - (self->derive)로 가는 SimpleEdge + (self->deriveRevertTrigger)로 가는 SimpleEdge + (deriveRevertTrigger->(self->derive))인 DeriveReverter
-    case class DeriveRevertableDerivation(derive: Kernel, deriveRevertTrigger: Kernel) extends Derivation
-    // Longest/EagerLongest
-    // derive로 가는 SimpleEdge가 있고, 노드 자신에 ReservedReverter가 붙어 있음
-    sealed trait ReservedLiftRevertableDerivation extends Derivation { val derive: Kernel }
-    case class ReservedLiftTriggeredLiftRevertableDerivation(derive: Kernel) extends ReservedLiftRevertableDerivation
-    case class ReservedAliveTriggeredLiftRevertableDerivation(derive: Kernel) extends ReservedLiftRevertableDerivation
 }

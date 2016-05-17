@@ -4,7 +4,7 @@ import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.Inputs._
 import com.giyeok.jparser.ParseTree._
 import com.giyeok.jparser.Kernels._
-import com.giyeok.jparser.Derivations
+import com.giyeok.jparser.deprecated.Derivations._
 import com.giyeok.jparser.Grammar
 
 trait SymbolProgresses {
@@ -63,7 +63,7 @@ trait SymbolProgresses {
 
         def derive(grammar: Grammar, gen: Int): (Set[DeriveEdge], Set[Reverter]) = {
             import Derivations._
-            kernel.derive(grammar) match {
+            Derivations.derive(grammar, kernel) match {
                 case EmptyDerivation => (Set[DeriveEdge](), Set[Reverter]())
                 case SymbolDerivation(derives) =>
                     (derives map { k => SimpleEdge(this, SymbolProgress(k, gen)) }, Set[Reverter]())

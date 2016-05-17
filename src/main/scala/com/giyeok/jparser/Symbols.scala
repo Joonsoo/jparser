@@ -179,6 +179,9 @@ object Symbols {
     case class Except(sym: Symbol, except: Symbol) extends Nonterm with AtomicSymbol {
         override val hashCode = (classOf[Except], sym, except).hashCode
     }
+    case class LookaheadIs(lookahead: Symbol) extends Nonterm with AtomicSymbol {
+        override val hashCode = (classOf[LookaheadIs], lookahead).hashCode
+    }
     case class LookaheadExcept(except: Symbol) extends Nonterm with AtomicSymbol {
         override val hashCode = (classOf[LookaheadExcept], except).hashCode
     }
@@ -247,6 +250,7 @@ object Symbols {
             case RepeatBounded(sym, lower, upper) => s"${sym.toShortString}[$lower-$upper]"
             case RepeatUnbounded(sym, lower) => s"${sym.toShortString}[$lower-]"
             case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
+            case LookaheadIs(lookahead) => s"la_is ${lookahead.toShortString}"
             case LookaheadExcept(except) => s"la_except ${except.toShortString}"
             case Proxy(sym) => s"P(${sym.toShortString})"
             case Backup(sym, backup) => s"${sym.toShortString} backedupby ${backup.toShortString}"

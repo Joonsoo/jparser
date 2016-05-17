@@ -261,11 +261,13 @@ class NewParser(val grammar: Grammar) {
             val tempLiftBlockNodes: Set[AtomicNode[_]] = nodes collect {
                 case node @ AtomicNode(_, _, Some(liftBlockTrigger), _) if liftedNodes contains liftBlockTrigger => node
             }
+            // DeadUntilLift reverter는 만약 대상 노드가 survive하지 못했으면(alive와 반대 조건) 엣지가 revert되고, 만약 대상 노드가 lift되었으면 엣지에서 그 reverter만 제거된다
             val survivedEdges = edges filterNot {
                 case SimpleEdge(_, _, revertTriggers) =>
                     revertTriggers exists {
                         case NodeTrigger(node, Trigger.Type.Lift) => liftedNodes contains node
                         case NodeTrigger(node, Trigger.Type.Alive) => liftedGraph.nodes contains node
+                        case NodeTrigger(node, Trigger.Type.DeadUntilLift) => ???
                         case pended: PendedNodeTrigger =>
                             // TODO 이 시점에 Pended가 있는건 어떤건지 고민
                             false
@@ -493,6 +495,7 @@ object NewParser {
             def of(t: DerivationGraph.Trigger.Type.Value) = t match {
                 case DerivationGraph.Trigger.Type.Lift => Lift
                 case DerivationGraph.Trigger.Type.Alive => Alive
+                case DerivationGraph.Trigger.Type.DeadUntilLift => DeadUntilLift
             }
         }
     }

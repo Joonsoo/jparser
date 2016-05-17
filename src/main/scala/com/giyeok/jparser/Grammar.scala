@@ -36,6 +36,7 @@ object Grammar {
                         case OneOf(syms) => syms.foldRight(cc) { traverse(_, _) }
                         case Except(sym, except) => traverse(sym, traverse(except, cc))
                         case r: Repeat => traverse(r.sym, cc)
+                        case LookaheadIs(lookahead) => traverse(lookahead, cc)
                         case LookaheadExcept(except) => traverse(except, cc)
                         case Backup(sym, backup) => traverse(sym, traverse(backup, cc))
                         case Join(sym, join) => traverse(sym, traverse(join, cc))
@@ -67,6 +68,11 @@ object Grammar {
                         case OneOf(syms) => syms.foldRight(cc) { traverse(_, Some(symbol), _) }
                         case Except(sym, except) => traverse(sym, Some(symbol), traverse(except, Some(symbol), cc))
                         case r: Repeat => traverse(r.sym, Some(symbol), cc)
+                        case LookaheadIs(lookahead) =>
+                            parent match {
+                                case Some(Sequence(_, _)) => traverse(lookahead, Some(symbol), cc + symbol)
+                                case _ => traverse(lookahead, Some(symbol), cc)
+                            }
                         case LookaheadExcept(except) =>
                             parent match {
                                 case Some(Sequence(_, _)) => traverse(except, Some(symbol), cc + symbol)
@@ -99,6 +105,7 @@ object Grammar {
                         case OneOf(syms) => (syms).foldRight(cc + symbol) { traverse(_, _) }
                         case Except(sym, except) => traverse(sym, traverse(except, cc + symbol))
                         case r: Repeat => traverse(r.sym, cc + symbol)
+                        case LookaheadIs(lookahead) => traverse(lookahead, cc + symbol)
                         case LookaheadExcept(except) => traverse(except, cc + symbol)
                         case Backup(sym, backup) => traverse(sym, traverse(backup, cc + symbol))
                         case Join(sym, join) => traverse(sym, traverse(join, cc + symbol))
