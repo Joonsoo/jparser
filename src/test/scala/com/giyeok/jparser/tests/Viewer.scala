@@ -20,6 +20,8 @@ import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.NewParserVisualizer
+import org.eclipse.swt.widgets.MessageBox
+import com.giyeok.jparser.visualize.NewParserResultVisualizer
 
 trait Viewer {
     val allTests: Set[Grammar with Samples]
@@ -46,15 +48,28 @@ trait Viewer {
         val grammarList = new org.eclipse.swt.widgets.List(leftFrame, SWT.BORDER | SWT.V_SCROLL)
         val grammarFig = new FigureCanvas(leftFrame)
 
+        val parserSelector = new org.eclipse.swt.widgets.Composite(rightFrame, SWT.BORDER)
+        parserSelector.setLayout(new FillLayout(SWT.HORIZONTAL))
+        val newParserSelected = new org.eclipse.swt.widgets.Button(parserSelector, SWT.RADIO)
+        val oldParserSelected = new org.eclipse.swt.widgets.Button(parserSelector, SWT.RADIO)
+        newParserSelected.setText("New Parser")
+        oldParserSelected.setText("(Deprecated) Old Parser")
+        newParserSelected.setSelection(true)
+
         val textList = new org.eclipse.swt.widgets.List(rightFrame, SWT.BORDER | SWT.V_SCROLL)
         val testText = new org.eclipse.swt.widgets.Text(rightFrame, SWT.MULTI)
-        val testButton = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
-        val newParserButton = new org.eclipse.swt.widgets.Button(rightFrame, SWT.NONE)
+
+        val testButtons = new org.eclipse.swt.widgets.Composite(rightFrame, SWT.BORDER)
+        testButtons.setLayout(new FillLayout(SWT.HORIZONTAL))
+        val proceedView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
+        val resultView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
+        proceedView.setText("Proceed View")
+        resultView.setText("Result View")
 
         textList.setFont(JFaceResources.getTextFont)
 
         sortedGrammars foreach { t => grammarList.add(t.name) }
-        var shownTexts: Seq[Inputs.Source] = Seq()
+        var shownTexts: Seq[Inputs.ConcreteSource] = Seq()
         grammarList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
@@ -86,7 +101,7 @@ trait Viewer {
                 textList.removeAll()
 
                 shownTexts = Seq()
-                def addText(input: Inputs.Source, text: String): Unit = {
+                def addText(input: Inputs.ConcreteSource, text: String): Unit = {
                     shownTexts = shownTexts :+ input
                     textList.add(text)
                 }
@@ -98,37 +113,40 @@ trait Viewer {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
                 val source = shownTexts(textList.getSelectionIndex())
-                ParseGraphVisualizer.start(grammar, source.toSeq, display, new Shell(display))
-            }
-        })
-
-        testButton.setText("Show")
-        newParserButton.setText("New Parser")
-        def startParse(): Unit = {
-            if (grammarList.getSelectionIndex() >= 0) {
-                val grammar = sortedGrammars(grammarList.getSelectionIndex())
-                val source = Inputs.fromString(testText.getText())
-                ParseGraphVisualizer.start(grammar, source.toSeq, display, new Shell(display))
-            }
-        }
-        testText.addListener(SWT.KeyDown, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                if (e.stateMask == SWT.SHIFT && e.keyCode == SWT.CR) {
-                    startParse()
+                if (newParserSelected.getSelection()) {
+                    NewParserVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                } else {
+                    ParseGraphVisualizer.start(grammar, source.toSeq, display, new Shell(display))
                 }
             }
         })
-        testButton.addListener(SWT.Selection, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                startParse()
-            }
-        })
-        newParserButton.addListener(SWT.Selection, new Listener() {
+
+        proceedView.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedGrammars(grammarList.getSelectionIndex())
                     val source = Inputs.fromString(testText.getText())
-                    NewParserVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                    if (newParserSelected.getSelection()) {
+                        NewParserVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                    } else {
+                        ParseGraphVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                    }
+                }
+            }
+        })
+
+        resultView.addListener(SWT.Selection, new Listener() {
+            def handleEvent(e: Event): Unit = {
+                if (grammarList.getSelectionIndex >= 0) {
+                    val grammar = sortedGrammars(grammarList.getSelectionIndex())
+                    val source = Inputs.fromString(testText.getText())
+                    if (newParserSelected.getSelection()) {
+                        NewParserResultVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                    } else {
+                        val messageBox = new MessageBox(shell, SWT.ICON_WARNING)
+                        messageBox.setMessage("Not implemented")
+                        messageBox.open()
+                    }
                 }
             }
         })

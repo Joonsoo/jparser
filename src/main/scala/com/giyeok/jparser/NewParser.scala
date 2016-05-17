@@ -489,7 +489,7 @@ object NewParser {
     }
     object Trigger {
         object Type extends Enumeration {
-            val Lift, Alive = Value
+            val Lift, Alive, DeadUntilLift = Value
             def of(t: DerivationGraph.Trigger.Type.Value) = t match {
                 case DerivationGraph.Trigger.Type.Lift => Lift
                 case DerivationGraph.Trigger.Type.Alive => Alive
