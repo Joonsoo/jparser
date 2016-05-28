@@ -49,7 +49,7 @@ class NewParser(val grammar: Grammar) {
                 case NewAtomicNode(kernel, liftBlockTrigger, reservedReverter) =>
                     AtomicNode(kernel, gen, liftBlockTrigger map { t => newNode(t.asInstanceOf[NewNode with NonEmptyNode]) }, reservedReverter map { Trigger.Type.of _ })
                 case NewNonAtomicNode(kernel, progress) =>
-                    NonAtomicNode(kernel, gen, progress)
+                    NonAtomicNode(kernel, gen, gen, progress)
             }
             val derivationGraphs = baseAndGraphs map { _._2 }
             val nodesMap: Map[DerivationGraph.Node, Node] = {
@@ -108,7 +108,7 @@ class NewParser(val grammar: Grammar) {
                 case NewAtomicNode(kernel, liftBlockTrigger, reservedReverter) =>
                     AtomicNode(kernel, gen, liftBlockTrigger map { t => newNode(t.asInstanceOf[NewNode with NonEmptyNode]) }, reservedReverter map { Trigger.Type.of _ })
                 case NewNonAtomicNode(kernel, progress) =>
-                    NonAtomicNode(kernel, gen, progress)
+                    NonAtomicNode(kernel, gen, gen, progress)
             }
             val nodesMap: Map[DerivationGraph.Node, Node] =
                 (((derivationGraph.nodes - derivationGraph.baseNode) map { n =>
@@ -202,7 +202,7 @@ class NewParser(val grammar: Grammar) {
                         val newLiftTasks = chainLift(before, parsed, revertTriggers)
                         lift(newLiftTasks.toList ++: rest, graph, derivables, lifts + newLift)
 
-                    case NontermLift(before @ NonAtomicNode(kernel, _, progress), by, revertTriggers) +: rest =>
+                    case NontermLift(before @ NonAtomicNode(kernel, _, _, progress), by, revertTriggers) +: rest =>
                         val (afterKernel: NonAtomicNontermKernel[_], parsed: ParsedSymbolsSeq[_]) = kernel.lifted(progress, by)
                         val incomingEdges0 = graph.incomingEdgesTo(before)
                         assert(incomingEdges0 forall { _.isInstanceOf[SimpleEdge] })
@@ -216,7 +216,7 @@ class NewParser(val grammar: Grammar) {
 
                         if (afterKernel.derivable) {
                             // afterKernel과 newProgress로 새로운 node 만들고 start -> 새 노드로 가는 엣지 추가하고, 이 때 before에 붙어있던 edge revert trigger들은 이 엣지에도 붙여준다
-                            val newNode = NonAtomicNode(afterKernel, before.gen, parsed)
+                            val newNode = NonAtomicNode(afterKernel, before.beginGen, gen, parsed)
                             val newEdges: Set[Edge] = incomingEdges map {
                                 case SimpleEdge(start, _, edgeRevertTriggers) =>
                                     SimpleEdge(start, newNode, edgeRevertTriggers ++ revertTriggers)
@@ -347,8 +347,8 @@ class NewParser(val grammar: Grammar) {
                 _reachable(node, Seq()) == Reachability.True
             }
             val reachableNodes: Map[Node, Node] = (this.nodes collect {
-                case node @ AtomicNode(kernel, gen, liftBlockTrigger, reservedReverter) if reachable(node) =>
-                    node -> AtomicNode(kernel, gen, liftBlockTrigger filter { reachable _ }, reservedReverter)
+                case node @ AtomicNode(kernel, beginGen, liftBlockTrigger, reservedReverter) if reachable(node) =>
+                    node -> AtomicNode(kernel, beginGen, liftBlockTrigger filter { reachable _ }, reservedReverter)
                 case node if reachable(node) =>
                     node -> node
             }).toMap
@@ -492,11 +492,11 @@ object NewParser {
     }
     sealed trait NontermNode[+T <: Nonterm] extends Node {
         val kernel: NontermKernel[T]
-        val gen: Int
+        val beginGen: Int
     }
     case class TermNode(kernel: TerminalKernel) extends Node
-    case class AtomicNode[+T <: AtomicSymbol with Nonterm](kernel: AtomicNontermKernel[T], gen: Int, liftBlockTrigger: Option[Node], reservedReverter: Option[Trigger.Type.Value]) extends NontermNode[T]
-    case class NonAtomicNode[T <: NonAtomicSymbol with Nonterm](kernel: NonAtomicNontermKernel[T], gen: Int, progress: ParsedSymbolsSeq[T]) extends NontermNode[T]
+    case class AtomicNode[+T <: AtomicSymbol with Nonterm](kernel: AtomicNontermKernel[T], beginGen: Int, liftBlockTrigger: Option[Node], reservedReverter: Option[Trigger.Type.Value]) extends NontermNode[T]
+    case class NonAtomicNode[T <: NonAtomicSymbol with Nonterm](kernel: NonAtomicNontermKernel[T], beginGen: Int, endGen: Int, progress: ParsedSymbolsSeq[T]) extends NontermNode[T]
 
     trait Trigger {
         val triggerType: Trigger.Type.Value

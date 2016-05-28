@@ -136,16 +136,16 @@ trait NewParserGraphVisualizeWidget {
                         g.horizontalFig(Spacing.Big, Seq(
                             g.supFig(g.textFig(s"$nodeId", ap.default)),
                             symbolProgressFigureGenerator.kernelFig(kernel)))
-                    case NewParser.AtomicNode(kernel, gen, _, _) =>
+                    case NewParser.AtomicNode(kernel, beginGen, _, _) =>
                         g.horizontalFig(Spacing.Big, Seq(
                             g.supFig(g.textFig(s"$nodeId", ap.default)),
                             symbolProgressFigureGenerator.kernelFig(kernel),
-                            g.textFig(s"$gen", ap.default)))
-                    case NewParser.NonAtomicNode(kernel, gen, progress) =>
+                            g.textFig(s"$beginGen", ap.default)))
+                    case NewParser.NonAtomicNode(kernel, beginGen, endGen, progress) =>
                         val f = g.horizontalFig(Spacing.Big, Seq(
                             g.supFig(g.textFig(s"$nodeId", ap.default)),
                             symbolProgressFigureGenerator.kernelFig(kernel),
-                            g.textFig(s"$gen", ap.default)))
+                            g.textFig(s"$beginGen-$endGen", ap.default)))
                         val tooltip = parseNodeFigureGenerator.parseNodeHFig(progress)
                         tooltip.setOpaque(true)
                         tooltip.setBackgroundColor(ColorConstants.white)

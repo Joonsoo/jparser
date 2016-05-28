@@ -160,7 +160,8 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
                     case Lift(before, afterKernel, parsed, after, revertTriggers) if (subnodes0 contains before) && (after forall { subnodes0 contains _ }) =>
                         Lift(subnodesMap(before), afterKernel, parsed, after map { subnodesMap(_) }, refineRevertTriggers(revertTriggers, subnodesMap))
                 }
-                Some(DerivationGraph(baseNode, subnodesMap.values.toSet, subedges, sublifts, baseLifts))
+                // TODO Trigger type이 DeadUntilLift나 WaitUntilLift이고 그 대상이 슬라이스된 그래프에 포함되지 않으면 그 엣지는 제거하기
+                Some(DerivationGraph(baseNode, subnodesMap.values.toSet, subedges, sublifts, baseLifts).trim)
             } else None
             termGroup -> subgraph
         }).toMap
@@ -169,6 +170,10 @@ case class DerivationGraph(baseNode: Node, nodes: Set[Node], edges: Set[Edge], l
         sliceByTermGroups(termGroup) ensuring (termGroups contains termGroup)
     def subgraphTo(input: ConcreteInput): Option[DerivationGraph] =
         termGroups find { _.contains(input) } flatMap { subgraphTo(_) }
+    def trim: DerivationGraph = {
+        // TODO baseNode에서 reachable한 node/edge로만 구성된 subgraph 반환
+        this
+    }
     def compaction: DerivationGraph = ???
 }
 
@@ -414,13 +419,13 @@ object DerivationGraph {
                         }
 
                         // incomingSimpleEdges
-                        newQueue ++:= incomingSimpleEdges map { e =>
+                        val chainLiftTasks = incomingSimpleEdges map { e =>
                             val (newAfterKernel, newParsed) = e.start.lift(parsed)
                             LiftTask(e.start, newAfterKernel, newParsed, e.revertTriggers ++ revertTriggers ++ reservedRevertTrigger)
                         }
 
                         // eligibleJoinEdges
-                        newQueue ++:= eligibleJoinEdges flatMap { e =>
+                        val chainJoinLiftTasks = eligibleJoinEdges flatMap { e =>
                             assert(e.start.kernel.isInstanceOf[JoinKernel])
                             assert(reservedRevertTrigger.isEmpty)
                             val startKernel = e.start.kernel.asInstanceOf[JoinKernel]
@@ -439,6 +444,7 @@ object DerivationGraph {
                                 LiftTask(e.start, startKernel.lifted, pr._1, revertTriggers ++ pr._2)
                             }
                         }
+                        newQueue ++:= (chainLiftTasks ++ chainJoinLiftTasks).toList
                     }
 
                     // lift된 노드가 derivable하면 Derive 태스크 추가
