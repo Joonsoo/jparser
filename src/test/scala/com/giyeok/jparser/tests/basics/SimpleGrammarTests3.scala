@@ -157,6 +157,20 @@ object SimpleGrammar9 extends Grammar with StringSamples {
     val incorrectSamples = Set[String]()
 }
 
+object SimpleGrammar10 extends Grammar with StringSamples {
+    val name = "Simple Grammar 10 (Ambiguous Reverter)"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("A"), c('0'))),
+        "A" -> ListSet(
+            longest(chars('a' to 'z').star),
+            longest(chars('b' to 'z').star)))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+}
+
 object AsteriskNullable extends Grammar with StringSamples {
     val name = "*-nullable"
     val rules: RuleMap = ListMap(
@@ -177,6 +191,7 @@ object SimpleGrammarSet3 {
         SimpleGrammar8_1,
         SimpleGrammar8_2,
         SimpleGrammar9,
+        SimpleGrammar10,
         AsteriskNullable)
 }
 
