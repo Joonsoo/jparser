@@ -2,7 +2,6 @@ package com.giyeok.jparser
 
 import Symbols._
 import Inputs._
-import ParseTree._
 
 // will be used in Parser and PreprocessedParser
 object Kernels {
@@ -86,7 +85,8 @@ object Kernels {
     }
     sealed trait NonAtomicNontermKernel[T <: NonAtomicSymbol with Nonterm] extends NontermKernel[T] {
         val symbol: T
-        def lifted(before: ParsedSymbolsSeq[T], accepted: ParseNode[Symbol]): (NonAtomicNontermKernel[T], ParsedSymbolsSeq[T])
+        // acceptedSymbol이 실제 content이면 true, whitespace이면 false를 반환한다
+        def lifted(acceptedSymbol: Symbol): (NonAtomicNontermKernel[T], Boolean)
     }
 
     case class TerminalKernel(symbol: Terminal, pointer: Int) extends AtomicKernel[Terminal] {
@@ -131,10 +131,10 @@ object Kernels {
 
     case class SequenceKernel(symbol: Sequence, pointer: Int) extends NonAtomicNontermKernel[Sequence] {
         assert(0 <= pointer && pointer <= symbol.seq.size)
-        def lifted(before: ParsedSymbolsSeq[Sequence], accepted: ParseNode[Symbol]): (SequenceKernel, ParsedSymbolsSeq[Sequence]) = {
-            val isContent = (accepted.symbol == symbol.seq(pointer))
-            if (isContent) (SequenceKernel(symbol, pointer + 1), before.appendContent(accepted))
-            else (SequenceKernel(symbol, pointer), before.appendWhitespace(accepted))
+        def lifted(acceptedSymbol: Symbol): (SequenceKernel, Boolean) = {
+            val isContent = (acceptedSymbol == symbol.seq(pointer))
+            val nextKernel = if (isContent) SequenceKernel(symbol, pointer + 1) else SequenceKernel(symbol, pointer)
+            (nextKernel, isContent)
         }
 
         val derivable = pointer < symbol.seq.size
@@ -143,16 +143,16 @@ object Kernels {
     sealed trait RepeatKernel[T <: Repeat] extends NonAtomicNontermKernel[T]
     case class RepeatBoundedKernel(symbol: RepeatBounded, pointer: Int) extends RepeatKernel[RepeatBounded] {
         assert(0 <= pointer && pointer <= symbol.upper)
-        def lifted(before: ParsedSymbolsSeq[RepeatBounded], accepted: ParseNode[Symbol]): (RepeatBoundedKernel, ParsedSymbolsSeq[RepeatBounded]) =
-            (RepeatBoundedKernel(symbol, pointer + 1), before.appendContent(accepted))
+        def lifted(acceptedSymbol: Symbol): (RepeatBoundedKernel, Boolean) =
+            (RepeatBoundedKernel(symbol, pointer + 1), true)
 
         val derivable = pointer < symbol.upper
         val finishable = pointer >= symbol.lower
     }
     case class RepeatUnboundedKernel(symbol: RepeatUnbounded, pointer: Int) extends RepeatKernel[RepeatUnbounded] {
         assert(0 <= pointer && pointer <= symbol.lower)
-        def lifted(before: ParsedSymbolsSeq[RepeatUnbounded], accepted: ParseNode[Symbol]): (RepeatUnboundedKernel, ParsedSymbolsSeq[RepeatUnbounded]) =
-            (RepeatUnboundedKernel(symbol, if (pointer < symbol.lower) pointer + 1 else pointer), before.appendContent(accepted))
+        def lifted(acceptedSymbol: Symbol): (RepeatUnboundedKernel, Boolean) =
+            (RepeatUnboundedKernel(symbol, if (pointer < symbol.lower) pointer + 1 else pointer), true)
 
         val derivable = true
         val finishable = pointer >= symbol.lower
