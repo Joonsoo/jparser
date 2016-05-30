@@ -19,7 +19,7 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.zest.core.widgets.ZestStyles
 import com.giyeok.jparser.Grammar
 import org.eclipse.swt.widgets.Shell
-import com.giyeok.jparser.DerivationGraph
+import com.giyeok.jparser.DGraph
 import org.eclipse.swt.widgets.Display
 import com.giyeok.jparser.Symbols.Nonterm
 import org.eclipse.zest.core.widgets.GraphNode
@@ -28,7 +28,7 @@ import org.eclipse.swt.events.MouseEvent
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.KeyAdapter
 import org.eclipse.swt.events.KeyEvent
-import com.giyeok.jparser.ParseTree.ParseNode
+import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.Symbols.Symbol
 
 trait BasicGenerators {

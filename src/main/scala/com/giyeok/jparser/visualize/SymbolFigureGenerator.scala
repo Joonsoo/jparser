@@ -64,17 +64,15 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
                     if (needParentheses(sym)) g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
                     else symbolFig(sym)
                 }).toList, g.textFig("|", ap.default)))
-            case r: Repeat =>
-                val rep: String = r match {
-                    case RepeatBounded(_, 0, 1) => "?"
-                    case RepeatBounded(_, lower, upper) => s"[$lower-$upper]"
-                    case RepeatUnbounded(_, 0) => "*"
-                    case RepeatUnbounded(_, 1) => "+"
-                    case RepeatUnbounded(_, lower) => s"[$lower-]"
+            case Repeat(sym, lower) =>
+                val rep: String = lower match {
+                    case 0 => "*"
+                    case 1 => "+"
+                    case n => s"$n+"
                 }
-                if (needParentheses(r.sym))
-                    g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(r.sym), g.textFig(")" + rep, ap.default)))
-                else g.horizontalFig(Spacing.None, Seq(symbolFig(r.sym), g.textFig(rep, ap.default)))
+                if (needParentheses(sym))
+                    g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(sym), g.textFig(")" + rep, ap.default)))
+                else g.horizontalFig(Spacing.None, Seq(symbolFig(sym), g.textFig(rep, ap.default)))
             case Except(sym, except) =>
                 val symFig =
                     if (!needParentheses(sym)) symbolFig(sym)

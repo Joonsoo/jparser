@@ -19,10 +19,13 @@ object Symbols {
             }
         }
     }
+
+    case object Empty extends Symbol
+    sealed trait NonEmpty extends Symbol
     // AtomicSymbol은 매칭이 되거나/안되거나 - 한 번 lift된 symbolProgress에서 derive가 되거나 하는 일은 생기지 않음
-    sealed trait AtomicSymbol extends Symbol
-    // NonAtomicSymbol은 repeat/seq 밖에 없음
-    sealed trait NonAtomicSymbol extends Symbol
+    sealed trait AtomicSymbol extends NonEmpty
+    // NonAtomicSymbol은 sequence 밖에 없음
+    sealed trait NonAtomicSymbol extends NonEmpty
 
     sealed trait Terminal extends AtomicSymbol {
         def accept(input: Inputs.Input): Boolean
@@ -149,6 +152,8 @@ object Symbols {
         }
     }
     sealed trait Nonterm extends Symbol
+    sealed trait AtomicNonterm extends Nonterm with AtomicSymbol
+    sealed trait NonAtomicNonterm extends Nonterm with NonAtomicSymbol
 
     val Any = Terminals.Any
     val AnyChar = Terminals.AnyChar
@@ -156,36 +161,30 @@ object Symbols {
     val Chars = Terminals.Chars
     val Unicode = Terminals.Unicode
 
-    case object Empty extends Nonterm
-    case object Start extends Nonterm with AtomicSymbol
-    case class Nonterminal(name: String) extends Nonterm with AtomicSymbol {
+    case object Start extends AtomicNonterm
+    case class Nonterminal(name: String) extends AtomicNonterm {
         override val hashCode = (classOf[Nonterminal], name).hashCode
     }
-    case class Sequence(seq: Seq[Symbol], whitespace: Set[Symbol]) extends Nonterm with NonAtomicSymbol {
+    case class Sequence(seq: Seq[Symbol], whitespace: Set[Symbol]) extends NonAtomicNonterm {
         override val hashCode = (classOf[Sequence], seq, whitespace).hashCode
     }
-    case class OneOf(syms: Set[Symbol]) extends Nonterm with AtomicSymbol {
+    case class OneOf(syms: Set[Symbol]) extends AtomicNonterm {
         override val hashCode = (classOf[OneOf], syms).hashCode
     }
-    sealed trait Repeat extends Nonterm with NonAtomicSymbol {
-        val sym: Symbol
+    case class Repeat(sym: Symbol, lower: Int) extends AtomicNonterm {
+        override val hashCode = (classOf[Repeat], sym, lower).hashCode
     }
-    case class RepeatBounded(sym: Symbol, lower: Int, upper: Int) extends Repeat {
-        override val hashCode = (classOf[RepeatBounded], sym, lower, upper).hashCode
-    }
-    case class RepeatUnbounded(sym: Symbol, lower: Int) extends Repeat {
-        override val hashCode = (classOf[RepeatUnbounded], sym, lower).hashCode
-    }
-    case class Except(sym: Symbol, except: Symbol) extends Nonterm with AtomicSymbol {
+    case class Except(sym: Symbol, except: Symbol) extends AtomicNonterm {
         override val hashCode = (classOf[Except], sym, except).hashCode
     }
-    case class LookaheadIs(lookahead: Symbol) extends Nonterm with AtomicSymbol {
+    sealed trait Lookahead extends AtomicNonterm
+    case class LookaheadIs(lookahead: Symbol) extends Lookahead {
         override val hashCode = (classOf[LookaheadIs], lookahead).hashCode
     }
-    case class LookaheadExcept(except: Symbol) extends Nonterm with AtomicSymbol {
+    case class LookaheadExcept(except: Symbol) extends Lookahead {
         override val hashCode = (classOf[LookaheadExcept], except).hashCode
     }
-    case class Proxy(val sym: Symbol) extends Nonterm with AtomicSymbol {
+    case class Proxy(sym: Symbol) extends AtomicNonterm {
         override val hashCode = (classOf[Proxy], sym).hashCode
     }
     object Proxy {
@@ -194,19 +193,19 @@ object Symbols {
             case sym => Proxy(sym)
         }
     }
-    case class Backup(sym: AtomicSymbol, backup: AtomicSymbol) extends Nonterm with AtomicSymbol {
+    case class Backup(sym: AtomicSymbol, backup: AtomicSymbol) extends AtomicNonterm {
         def this(sym: Symbol, backup: Symbol) = this(Proxy.of(sym), Proxy.of(backup))
         override val hashCode = (classOf[Backup], sym, backup).hashCode
     }
-    case class Join(sym: AtomicSymbol, join: AtomicSymbol) extends Nonterm with AtomicSymbol {
+    case class Join(sym: AtomicSymbol, join: AtomicSymbol) extends AtomicNonterm {
         assert(sym != join)
         def this(sym: Symbol, join: Symbol) = this(Proxy.of(sym), Proxy.of(join))
         override val hashCode = (classOf[Join], sym, join).hashCode
     }
-    case class Longest(sym: Symbol) extends Nonterm with AtomicSymbol {
+    case class Longest(sym: Symbol) extends AtomicNonterm {
         override val hashCode = (classOf[Longest], sym).hashCode
     }
-    case class EagerLongest(sym: Symbol) extends Nonterm with AtomicSymbol {
+    case class EagerLongest(sym: Symbol) extends AtomicNonterm {
         override val hashCode = (classOf[EagerLongest], sym).hashCode
     }
 
@@ -247,8 +246,7 @@ object Symbols {
             case s: Nonterminal => s.name
             case s: Sequence => "(" + (s.seq map { _.toShortString } mkString " ") + ")"
             case s: OneOf => s.syms map { _.toShortString } mkString "|"
-            case RepeatBounded(sym, lower, upper) => s"${sym.toShortString}[$lower-$upper]"
-            case RepeatUnbounded(sym, lower) => s"${sym.toShortString}[$lower-]"
+            case Repeat(sym, lower) => s"${sym.toShortString}[$lower-]"
             case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
             case LookaheadIs(lookahead) => s"la_is ${lookahead.toShortString}"
             case LookaheadExcept(except) => s"la_except ${except.toShortString}"

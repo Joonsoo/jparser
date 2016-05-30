@@ -34,9 +34,10 @@ import org.eclipse.draw2d
 import org.eclipse.swt.widgets.Label
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import org.eclipse.swt.layout.FillLayout
+import com.giyeok.jparser.ParseForestFunc
 
 class NewParserResultVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: NewParserResultVisualizer.Resources) {
-    val parser = new NewParser(grammar)
+    val parser = new NewParser(grammar, new ParseForestFunc)
 
     // 좌측 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)

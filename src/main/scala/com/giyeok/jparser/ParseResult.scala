@@ -1,41 +1,44 @@
 package com.giyeok.jparser
 
+import Symbols._
+
 trait ParseResult {
     // ParseResult는 동일성 비교가 가능해야 한다
+    def ==(other: ParseResult): Boolean
 }
 
 trait ParseResultFunc[R <: ParseResult] {
-    def empty(): R
-    def terminal(input: Inputs.Input): R
-    def bind(symbol: Symbol, body: R)
+    def empty(gen: Int): R
+    def terminal(input: Inputs.Input, gen: Int): R
+    def bind(symbol: Symbol, body: R): R
     def join(body: R, constraint: R): R
+
+    // sequence는 Sequence에서만 쓰임
     def sequence(): R
     def append(sequence: R, child: R): R
     def appendWhitespace(sequence: R, whitespace: R): R
 
-    def merge(base: R, merging: R)
+    def merge(base: R, merging: R): R
+    def merge(results: Iterable[R]): Option[R] =
+        if (results.isEmpty) None
+        else Some(results.tail.foldLeft(results.head)(merge(_, _)))
+    def shiftGen(result: R, shiftingGen: Int): R
 }
 
-trait DerivationFunc[T <: ParseResult] {
-
-}
-
-case class ParseForest(trees: Set[ParseTree.Node]) extends ParseResult {
-
-}
+case class ParseForest(trees: Set[ParseResultTree.Node]) extends ParseResult
 
 class ParseForestFunc extends ParseResultFunc[ParseForest] {
-    import ParseTree._
+    import ParseResultTree._
 
-    def empty() = ParseForest(Set(EmptyNode))
-    def terminal(input: Inputs.Input) = ParseForest(Set(TerminalNode(input)))
+    def empty(gen: Int) = ParseForest(Set(EmptyNode(gen)))
+    def terminal(input: Inputs.Input, gen: Int) = ParseForest(Set(TerminalNode(input, gen)))
     def bind(symbol: Symbols.Nonterm, body: ParseForest) =
-        ParseForest(body.trees map { NontermNode(symbol, _) })
+        ParseForest(body.trees map { b => NontermNode(symbol, b, b.beginGen, b.endGen) })
     def join(body: ParseForest, constraint: ParseForest) = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
-        ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
+        ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c, b.beginGen, b.endGen) } })
     }
-    def sequence() = ParseForest(Set(SequenceNode(List(), List())))
+    def sequence(gen: Int) = ParseForest(Set(SequenceNode(List(), List(), gen, gen)))
     def append(sequence: ParseForest, child: ParseForest) = {
         assert(sequence.trees forall { _.isInstanceOf[SequenceNode] })
         // sequence의 tree 각각에 child 각각을 추가한다
@@ -49,18 +52,43 @@ class ParseForestFunc extends ParseResultFunc[ParseForest] {
 
     def merge(base: ParseForest, merging: ParseForest) =
         ParseForest(base.trees ++ merging.trees)
+    def shiftGen(result: ParseForest, shiftingGen: Int): ParseForest =
+        ParseForest(result.trees map { _.shiftGen(shiftingGen) })
 }
 
-object ParseTree {
+object ParseResultTree {
     import Inputs._
 
-    sealed trait Node
+    sealed trait Node {
+        val beginGen: Int
+        val endGen: Int
+        def cover: (Int, Int)
 
-    case object EmptyNode extends Node
-    case class TerminalNode(input: Input) extends Node
-    case class NontermNode(symbol: Symbols.Nonterm, child: Node) extends Node
-    case class JoinNode(body: Node, join: Node) extends Node
-    case class SequenceNode(_childrenWS: List[Node], _childrenIdx: List[Int]) extends Node {
+        def shiftGen(shiftingGen: Int): Node
+    }
+
+    case class EmptyNode(gen: Int) extends Node {
+        val (beginGen, endGen) = (gen, gen)
+        def shiftGen(shiftingGen: Int) = EmptyNode(gen + shiftingGen)
+    }
+    case class TerminalNode(input: Input, beginGen: Int) extends Node {
+        val endGen = beginGen + 1
+        def shiftGen(shiftingGen: Int) = {
+            // shiftGen은 DerivationGraph를 expand할 때 사용되는 것인데
+            // DerivationGraph의 ParseResult에는 Terminal이 있으면 안 되므로 이 함수는 호출되면 안됨
+            assert(false)
+            ???
+        }
+    }
+    case class NontermNode(symbol: Symbols.Nonterm, body: Node, beginGen: Int, endGen: Int) extends Node {
+        assert(body.cover == this.cover)
+        // def shiftGen(shiftingGen: Int) = NontermNode(symbol, body.shiftGen(shiftingGen), beginGen + shiftingGen, endGen + shiftingGen)
+    }
+    case class JoinNode(body: Node, join: Node, beginGen: Int, endGen: Int) extends Node {
+        assert(body.cover == join.cover && body.cover == this.cover)
+        // def shiftGen(shiftingGen: Int) = JoinNode(body.shiftGen(shiftingGen), join.shiftGen(shiftingGen), beginGen + shiftingGen, endGen + shiftingGen)
+    }
+    case class SequenceNode(_childrenWS: List[Node], _childrenIdx: List[Int], beginGen: Int, endGen: Int) extends Node {
         // childrenIdx: index of childrenWS
         // _childrenIdx: reverse of chidlrenIdx
 
@@ -77,10 +105,17 @@ object ParseTree {
             pick(_childrenIdx, _childrenWS, _childrenWS.length - 1, List())
         }
 
-        def append(child: Node): SequenceNode =
-            SequenceNode(child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
-        def appendWhitespace(wsChild: Node): SequenceNode =
-            SequenceNode(wsChild +: _childrenWS, _childrenIdx)
+        def append(child: Node): SequenceNode = {
+            assert(endGen == child.beginGen)
+            SequenceNode(child +: _childrenWS, (_childrenWS.length) +: _childrenIdx, beginGen, child.endGen)
+        }
+        def appendWhitespace(wsChild: Node): SequenceNode = {
+            assert(endGen == wsChild.beginGen)
+            SequenceNode(wsChild +: _childrenWS, _childrenIdx, beginGen, wsChild.endGen)
+        }
+
+        def shiftGen(shiftingGen: Int) =
+            SequenceNode(_childrenWS map { _.shiftGen(shiftingGen) }, _childrenIdx, beginGen + shiftingGen, endGen + shiftingGen)
     }
 
     object HorizontalTreeStringSeqUtil {
@@ -98,25 +133,25 @@ object ParseTree {
     }
     implicit class ShortString(node: Node) {
         def toShortString: String = node match {
-            case EmptyNode => "()"
-            case TerminalNode(input) => input.toShortString
-            case NontermNode(sym, body) => s"${sym.toShortString}(${body.toShortString})"
-            case JoinNode(body, join) => s"${body.toShortString}(&${join.toShortString})"
+            case n: EmptyNode => "()"
+            case n: TerminalNode => n.input.toShortString
+            case n: NontermNode => s"${n.symbol.toShortString}(${n.body.toShortString})"
+            case n: JoinNode => s"${n.body.toShortString}(&${n.join.toShortString})"
             case s: SequenceNode => (s.children map { _.toShortString } mkString "/")
         }
     }
     implicit class TreePrint(node: Node) {
         def printTree(): Unit = println(toTreeString("", "  "))
         def toTreeString(indent: String, indentUnit: String): String = node match {
-            case EmptyNode =>
+            case n: EmptyNode =>
                 indent + s"- empty\n"
-            case TerminalNode(input) =>
-                indent + s"- $input\n"
-            case NontermNode(sym, body) =>
-                (indent + s"- $sym\n") + body.toTreeString(indent + indentUnit, indentUnit)
-            case JoinNode(body, join) =>
-                (indent + s"- \n") + (body.toTreeString(indent + indentUnit, indentUnit)) + "\n" +
-                    (indent + s"& \n") + (join.toTreeString(indent + indentUnit, indentUnit))
+            case n: TerminalNode =>
+                indent + s"- ${n.input}\n"
+            case n: NontermNode =>
+                (indent + s"- ${n.symbol}\n") + n.body.toTreeString(indent + indentUnit, indentUnit)
+            case n: JoinNode =>
+                (indent + s"- \n") + (n.body.toTreeString(indent + indentUnit, indentUnit)) + "\n" +
+                    (indent + s"& \n") + (n.join.toTreeString(indent + indentUnit, indentUnit))
             case s: SequenceNode =>
                 (indent + "[\n") + (s.children map { _.toTreeString(indent + indentUnit, indentUnit) } mkString "\n") + (indent + "]")
         }
@@ -146,18 +181,18 @@ object ParseTree {
                     result ensuring (result._2.forall(_.length == result._1))
                 }
             val result: (Int, Seq[String]) = node match {
-                case EmptyNode =>
+                case n: EmptyNode =>
                     (2, Seq("()"))
-                case TerminalNode(input) =>
-                    val str = input.toShortString
+                case n: TerminalNode =>
+                    val str = n.input.toShortString
                     (str.length, Seq(str))
-                case NontermNode(sym, body) =>
-                    val actual = body.toHorizontalHierarchyStringSeq
-                    val symbolic = sym.toShortString
-                    appendBottom(actual, sym.toShortString)
-                case JoinNode(body, join) =>
-                    val actual = body.toHorizontalHierarchyStringSeq
-                    val actualJoin = join.toHorizontalHierarchyStringSeq
+                case n: NontermNode =>
+                    val actual = n.body.toHorizontalHierarchyStringSeq
+                    val symbolic = n.symbol.toShortString
+                    appendBottom(actual, n.symbol.toShortString)
+                case n: JoinNode =>
+                    val actual = n.body.toHorizontalHierarchyStringSeq
+                    val actualJoin = n.join.toHorizontalHierarchyStringSeq
                     // ignoring actualJoin
                     actual
                 case s: SequenceNode =>

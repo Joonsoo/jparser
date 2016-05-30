@@ -40,22 +40,14 @@ object GrammarHelper {
 
     // def lgst(t: Terminal) = seq(t, LookaheadExcept(t))
 
-    implicit class GrammarElementExcludable(self: Symbol) {
-        def except(e: Symbol) = self match {
-            case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Except | _: Repeat | _: Join | _: Longest | _: EagerLongest =>
-                Except(self, e)
-            case _ => throw GrammarDefinitionException("Applied butnot to the items that cannot be")
-        }
+    implicit class GrammarElementExcludable(sym: Symbol) {
+        def except(e: Symbol) = Except(sym, e)
         def butnot(e: Symbol) = except(e)
         def butnot(e: Symbol*) = except(oneof(e.toSet))
     }
-    implicit class GrammarElementRepeatable(self: Symbol) {
-        def checking[T <: Symbol](r: => T): T = self match {
-            case _: Terminal | _: Nonterminal | _: Sequence | _: OneOf | _: Repeat | _: Join => r
-            case _ => throw new Exception("Applied repeat to the items that cannot be")
-        }
-        def repeat(lower: Int, upper: Int): Repeat = checking { RepeatBounded(self, lower, upper) }
-        def repeat(lower: Int): Repeat = checking { RepeatUnbounded(self, lower) }
+    implicit class GrammarElementRepeatable(sym: Symbol) {
+        def repeat(lower: Int, upper: Int): OneOf = OneOf(((lower to upper) map { count => Sequence((0 until count).toSeq map { _ => sym }, Set()) }).toSet)
+        def repeat(lower: Int): Repeat = Repeat(sym, lower)
 
         // optional
         def opt = repeat(0, 1)
@@ -68,16 +60,11 @@ object GrammarHelper {
         // more than once
         def plus = repeat(1)
     }
-    implicit class GrammarElementBackupable(self: Symbol) {
-        def backup(backup: Symbol): Backup = self match {
-            case _: Nonterminal | _: Sequence =>
-                // NOTE consider which elements are deserved to be backed up
-                new Backup(self, backup)
-            case _ => throw GrammarDefinitionException("Applied backup to the items that cannot be")
-        }
+    implicit class GrammarElementBackupable(sym: Symbol) {
+        def backup(backup: Symbol): Backup = new Backup(sym, backup)
     }
-    implicit class GrammarElementJoinable(self: Symbol) {
-        def join(joinWith: Symbol): Join = new Join(self, joinWith)
+    implicit class GrammarElementJoinable(sym: Symbol) {
+        def join(joinWith: Symbol): Join = new Join(sym, joinWith)
     }
 
     implicit class GrammarMergeable(rules: Grammar#RuleMap) {

@@ -24,8 +24,7 @@ object Kernels {
             case symbol: Except => ExceptKernel(symbol, 0)
             case symbol: LookaheadIs => LookaheadIsKernel(symbol, 0)
             case symbol: LookaheadExcept => LookaheadExceptKernel(symbol, 0)
-            case symbol: RepeatBounded => RepeatBoundedKernel(symbol, 0)
-            case symbol: RepeatUnbounded => RepeatUnboundedKernel(symbol, 0)
+            case symbol: Repeat => RepeatKernel(symbol, 0)
             case symbol: Backup => BackupKernel(symbol, 0)
             case symbol: Join => JoinKernel(symbol, 0)
             case symbol: Proxy => ProxyKernel(symbol, 0)
@@ -51,8 +50,7 @@ object Kernels {
                     case s: EagerLongest => Set(EagerLongestKernel(s, 0), EagerLongestKernel(s, 1))
                 }
             case s: Sequence => ((0 to s.seq.length) map { SequenceKernel(s, _) }).toSet
-            case s: RepeatBounded => ((0 to s.upper) map { RepeatBoundedKernel(s, _) }).toSet
-            case s: RepeatUnbounded => ((0 to s.lower) map { RepeatUnboundedKernel(s, _) }).toSet
+            case s: Repeat => ((0 to s.lower) map { RepeatKernel(s, _) }).toSet
         }
     }
 
@@ -93,7 +91,6 @@ object Kernels {
         def lifted = TerminalKernel(symbol, 1) ensuring pointer == 0
     }
     case class StartKernel(pointer: Int) extends AtomicNontermKernel[Start.type] {
-        assert(pointer == 0 || pointer == 1)
         val symbol = Start
         def lifted = StartKernel(1) ensuring pointer == 0
     }
@@ -128,6 +125,11 @@ object Kernels {
     case class EagerLongestKernel(symbol: EagerLongest, pointer: Int) extends AtomicNontermKernel[EagerLongest] {
         def lifted = EagerLongestKernel(symbol, 1) ensuring pointer == 0
     }
+    case class RepeatKernel(symbol: Repeat, pointer: Int) extends AtomicNontermKernel[Repeat] {
+        val repeatingSequence = OneOf(Set(Sequence(((0 until symbol.lower) map { _ => symbol.sym }).toSeq, Set()), Sequence(Seq(symbol, symbol.sym), Set())))
+
+        def lifted = RepeatKernel(symbol, 1) ensuring pointer == 0
+    }
 
     case class SequenceKernel(symbol: Sequence, pointer: Int) extends NonAtomicNontermKernel[Sequence] {
         assert(0 <= pointer && pointer <= symbol.seq.size)
@@ -140,23 +142,6 @@ object Kernels {
         val derivable = pointer < symbol.seq.size
         val finishable = pointer == symbol.seq.size
     }
-    sealed trait RepeatKernel[T <: Repeat] extends NonAtomicNontermKernel[T]
-    case class RepeatBoundedKernel(symbol: RepeatBounded, pointer: Int) extends RepeatKernel[RepeatBounded] {
-        assert(0 <= pointer && pointer <= symbol.upper)
-        def lifted(acceptedSymbol: Symbol): (RepeatBoundedKernel, Boolean) =
-            (RepeatBoundedKernel(symbol, pointer + 1), true)
-
-        val derivable = pointer < symbol.upper
-        val finishable = pointer >= symbol.lower
-    }
-    case class RepeatUnboundedKernel(symbol: RepeatUnbounded, pointer: Int) extends RepeatKernel[RepeatUnbounded] {
-        assert(0 <= pointer && pointer <= symbol.lower)
-        def lifted(acceptedSymbol: Symbol): (RepeatUnboundedKernel, Boolean) =
-            (RepeatUnboundedKernel(symbol, if (pointer < symbol.lower) pointer + 1 else pointer), true)
-
-        val derivable = true
-        val finishable = pointer >= symbol.lower
-    }
 
     implicit class ShortString(k: Kernel) {
         def toShortString: String = {
@@ -167,8 +152,6 @@ object Kernels {
                 case SequenceKernel(symbol, pointer) =>
                     val (past, future) = symbol.seq.splitAt(pointer)
                     (((past map { _.toShortString }) :+ "*") ++ (future map { _.toShortString })) mkString " "
-                case k: RepeatKernel[_] =>
-                    (if (k.derivable) "* " else "") + (k.symbol.toShortString) + (if (k.finishable) " *" else "")
             })
         }
     }
