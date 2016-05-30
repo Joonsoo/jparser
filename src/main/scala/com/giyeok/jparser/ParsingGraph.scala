@@ -14,7 +14,9 @@ object ParsingGraph {
     sealed trait NontermNode extends Node {
         val beginGen: Int
     }
-    case object EmptyNode extends Node
+    case object EmptyNode extends Node {
+        val symbol = Empty
+    }
     case class TermNode(symbol: Terminal) extends Node
 
     // liftBlockTrigger, liftRevertTrigger는 symbol에 따라서만 결정되는 것이므로 equals 등에서 고려할 필요가 없다
@@ -83,10 +85,10 @@ trait ParsingGraph[R <: ParseResult] {
     }
 
     // Modification
-    def updateResultOf[S <: ParsingGraph[R]](node: Node, triggers: Set[Trigger], newResult: R): S
-    def updateProgressOf[S <: ParsingGraph[R]](node: SequenceNode, triggers: Set[Trigger], newProgress: R): S
-    def withNodeEdgesProgresses[S <: ParsingGraph[R]](newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): S
-    def withNodesEdgesResultsProgresses[S <: ParsingGraph[R]](newNodes: Set[Node], newEdges: Set[Edge], newResults: Map[Node, Map[Set[Trigger], R]], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): S
+    def updateResultOf(node: Node, triggers: Set[Trigger], newResult: R): ParsingGraph[R]
+    def updateProgressOf(node: SequenceNode, triggers: Set[Trigger], newProgress: R): ParsingGraph[R]
+    def withNodeEdgesProgresses(newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): ParsingGraph[R]
+    def withNodesEdgesResultsProgresses(newNodes: Set[Node], newEdges: Set[Edge], newResults: Map[Node, Map[Set[Trigger], R]], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): ParsingGraph[R]
 }
 
 trait TerminalInfo[R <: ParseResult] extends ParsingGraph[R] {
@@ -164,6 +166,7 @@ trait Reachability[R <: ParseResult] extends TerminalInfo[R] {
 
 object DGraph {
     case class BaseNode(symbol: Nonterm, pointer: Int) extends NontermNode {
+        val beginGen = 0
         assert(symbol match {
             case _: AtomicNonterm => pointer == 0
             case Sequence(seq, _) => 0 <= pointer && pointer < seq.length
@@ -184,7 +187,7 @@ case class DGraph[R <: ParseResult](
 
     // DerivationGraph에 등장하는 모든 gen이 0이어야 한다
     assert(nodes forall {
-        case EmptyNode | TermNode(_) => true
+        case EmptyNode | TermNode(_) | DGraph.BaseNode(_, _) => true
         case AtomicNode(_, beginGen) => beginGen == 0
         case SequenceNode(_, _, beginGen, endGen) => beginGen == 0 && endGen == 0
     })
@@ -208,8 +211,7 @@ case class DGraph[R <: ParseResult](
         val updatedProgresses = ??? // results ++ newProgresses
         DGraph(baseNode, nodes ++ newNodes, edges ++ newEdges, results ++ newResults, progresses ++ newProgresses)
     }
-    def withNodeEdgesProgresses(newNode: Node, newEdges: Set[Edge], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): DGraph[R] = {
-        assert(!newNode.isInstanceOf[DGraph.BaseNode])
+    def withNodeEdgesProgresses(newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): DGraph[R] = {
         val updatedResults = ??? // results ++ newResults
         val updatedProgresses = ??? // results ++ newProgresses
         DGraph(baseNode, nodes + newNode, edges ++ newEdges, results, progresses ++ newProgresses)
@@ -219,7 +221,7 @@ case class DGraph[R <: ParseResult](
         val updatedResults = ???
         DGraph(baseNode, nodes, edges, updatedResults, progresses)
     }
-    def updateProgressOf(node: Node, triggers: Set[Trigger], progress: R): DGraph[R] = {
+    def updateProgressOf(node: SequenceNode, triggers: Set[Trigger], progress: R): DGraph[R] = {
         val updatedProgresses = ???
         DGraph(baseNode, nodes, edges, results, updatedProgresses)
     }

@@ -1,6 +1,5 @@
 package com.giyeok.jparser
 
-import Kernels._
 import Symbols._
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.Inputs.AbstractInput
@@ -11,7 +10,7 @@ import ParsingGraph._
 import com.giyeok.jparser.DGraph.BaseNode
 import com.giyeok.jparser.DGraph.BaseNode
 
-class DerivationFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFunc[R])
+class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseResultFunc[R])
         extends LiftTasks[R, DGraph[R]] with DeriveTasks[R, DGraph[R]] {
     // cc에서 task를 처리해서
     // (변경된 cc, 새로 추가되어야 하는 task)를 반환한다

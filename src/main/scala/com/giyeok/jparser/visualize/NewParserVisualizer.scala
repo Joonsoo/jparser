@@ -35,9 +35,12 @@ import org.eclipse.swt.widgets.Label
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import org.eclipse.swt.layout.FillLayout
 import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.ParseForest
 
 class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: NewParserVisualizer.Resources) {
-    val parser = new NewParser(grammar, new ParseForestFunc)
+    val parser = new NewParser(grammar, ParseForestFunc)
+
+    type Parser = NewParser[ParseForest]
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -176,7 +179,11 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                 f.add(pointerFig(VisualizationLocation(source.length, 0), 200))
                 contextAt(newLocation.baseGen) match {
                     case Left(context) =>
-                        f.add(textFig(s"r=${context.results.size}"))
+                        context.result match {
+                            case Some(results) =>
+                                f.add(textFig(s"r=${results.trees.size}"))
+                            case _ =>
+                        }
                     case Right(_) => // nothing to do
                 }
                 f
@@ -190,13 +197,13 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
         }
     }
 
-    val contextCache = scala.collection.mutable.Map[Int, Either[NewParser#ParsingContext, ParsingError]]()
-    val proceedCache = scala.collection.mutable.Map[Int, Either[NewParser#ProceedDetail, ParsingError]]()
-    def contextAt(gen: Int): Either[NewParser#ParsingContext, ParsingError] =
+    val contextCache = scala.collection.mutable.Map[Int, Either[Parser#ParsingCtx, ParsingError]]()
+    val proceedCache = scala.collection.mutable.Map[Int, Either[Parser#ProceedDetail, ParsingError]]()
+    def contextAt(gen: Int): Either[Parser#ParsingCtx, ParsingError] =
         contextCache get gen match {
             case Some(context) => context
             case None =>
-                val context: Either[NewParser#ParsingContext, ParsingError] = if (gen == 0) Left(parser.initialContext) else {
+                val context: Either[Parser#ParsingCtx, ParsingError] = if (gen == 0) Left(parser.initialContext) else {
                     contextAt(gen - 1) match {
                         case Left(prevContext) =>
                             val detail = prevContext.proceedDetail(source(gen - 1))
@@ -211,7 +218,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                 contextCache(gen) = context
                 context
         }
-    def proceedAt(gen: Int): Either[NewParser#ProceedDetail, ParsingError] =
+    def proceedAt(gen: Int): Either[Parser#ProceedDetail, ParsingError] =
         proceedCache get gen match {
             case Some(context) => context
             case None =>
@@ -285,8 +292,9 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
     def finalizeView(v: Control): Control = {
         v.addKeyListener(keyListener)
         v match {
-            case v: ParsingContextGraphVisualizeWidget => v.graph.addKeyListener(keyListener)
-            case v: ParsingContextProceedVisualizeWidget => v.graph.addKeyListener(keyListener)
+            case v: NewParsingContextGraphVisualizeWidget => v.graphView.addKeyListener(keyListener)
+            case v: NewParserExpandedGraphVisualizeWidget => v.graphView.addKeyListener(keyListener)
+            case v: NewParserPreLiftGraphVisualizeWidget => v.graphView.addKeyListener(keyListener)
             case _ =>
         }
         v

@@ -30,6 +30,15 @@ import org.eclipse.swt.events.KeyAdapter
 import org.eclipse.swt.events.KeyEvent
 import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.Symbols.Symbol
+import com.giyeok.jparser.NewParser
+import com.giyeok.jparser.ParseResult
+import com.giyeok.jparser.CtxGraph
+import com.giyeok.jparser.ParsingGraph
+import com.giyeok.jparser.ParseForest
+import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.DerivationFunc
+import com.giyeok.jparser.ParsingGraph.AtomicNode
+import com.giyeok.jparser.ParseResultTree
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -74,15 +83,15 @@ trait BasicGenerators {
                 FigureGenerator.draw2d.BorderAppearance(new LineBorder(ColorConstants.red)))
 
     }
-    val symbolProgressFigureGenerator = new SymbolProgressFigureGenerator(figureGenerator, figureAppearances)
-    val parseNodeFigureGenerator = new ParseNodeFigureGenerator(figureGenerator, tooltipAppearances)
+    val symbolFigureGenerator = new SymbolFigureGenerator(figureGenerator, figureAppearances)
+    val parseNodeFigureGenerator = new ParseResultTreeFigureGenerator(figureGenerator, tooltipAppearances)
 }
 
 class NodeIdCache {
     private var counter = 0
-    private val nodeIdMap = scala.collection.mutable.Map[NewParser.Node, Int]()
+    private val nodeIdMap = scala.collection.mutable.Map[ParsingGraph.Node, Int]()
 
-    def of(node: NewParser.Node): Int = {
+    def of(node: ParsingGraph.Node): Int = {
         nodeIdMap get node match {
             case Some(id) => id
             case None =>
@@ -100,11 +109,11 @@ trait NewParserGraphVisualizeWidget {
 
     val figureGenerator: FigureGenerator.Generator[Figure]
     val figureAppearances: FigureGenerator.Appearances[Figure]
-    val symbolProgressFigureGenerator: SymbolProgressFigureGenerator[Figure]
-    val parseNodeFigureGenerator: ParseNodeFigureGenerator[Figure]
+    val symbolFigureGenerator: SymbolFigureGenerator[Figure]
+    val parseNodeFigureGenerator: ParseResultTreeFigureGenerator[Figure]
 
-    val nodesMap = scala.collection.mutable.Map[NewParser.Node, CGraphNode]()
-    val edgesMap = scala.collection.mutable.Map[NewParser.Edge, Seq[GraphConnection]]()
+    val nodesMap = scala.collection.mutable.Map[ParsingGraph.Node, CGraphNode]()
+    val edgesMap = scala.collection.mutable.Map[ParsingGraph.Edge, Seq[GraphConnection]]()
 
     def nodeFromFigure(fig: Figure): CGraphNode = {
         val nodeFig = figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, Seq(fig))
@@ -116,40 +125,42 @@ trait NewParserGraphVisualizeWidget {
         new CGraphNode(graphView, SWT.NONE, nodeFig)
     }
 
-    def revertTriggersString(revertTriggers: Set[NewParser.Trigger]): String =
+    def revertTriggersString(revertTriggers: Set[ParsingGraph.Trigger]): String =
         revertTriggers map {
-            case NewParser.NodeTrigger(node, ttype) =>
+            case ParsingGraph.Trigger(node, ttype) =>
                 s"$ttype(${nodeIdCache.of(node)})"
-            case NewParser.PendedNodeTrigger(node, ttype) =>
-                s"$ttype(Pended ${node.kernel.toShortString})"
         } mkString " or "
 
-    def addGraph(graph: NewParser#Graph): Unit = {
+    def addGraph(graph: CtxGraph[ParseForest]): Unit = {
         val (g, ap) = (figureGenerator, figureAppearances)
 
         graph.nodes foreach { node =>
             if (!(nodesMap contains node)) {
                 val nodeId = nodeIdCache.of(node)
+                def dot = g.textFig("\u2022", ap.kernelDot)
 
                 val fig = node match {
-                    case NewParser.TermNode(kernel) =>
+                    case ParsingGraph.TermNode(symbol) =>
                         g.horizontalFig(Spacing.Big, Seq(
                             g.supFig(g.textFig(s"$nodeId", ap.default)),
-                            symbolProgressFigureGenerator.kernelFig(kernel)))
-                    case NewParser.AtomicNode(kernel, beginGen, _, _) =>
+                            g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol)))))
+                    case ParsingGraph.AtomicNode(symbol, beginGen) =>
                         g.horizontalFig(Spacing.Big, Seq(
                             g.supFig(g.textFig(s"$nodeId", ap.default)),
-                            symbolProgressFigureGenerator.kernelFig(kernel),
+                            g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol))),
                             g.textFig(s"$beginGen", ap.default)))
-                    case NewParser.NonAtomicNode(kernel, beginGen, endGen, progress) =>
+                    case ParsingGraph.SequenceNode(symbol, pointer, beginGen, endGen) =>
+                        val seqFigure = {
+                            val (p, f) = symbol.seq.splitAt(pointer)
+                            val f0 = g.horizontalFig(Spacing.Medium, p map { symbolFigureGenerator.symbolFig _ })
+                            val f1 = g.horizontalFig(Spacing.Medium, f map { symbolFigureGenerator.symbolFig _ })
+                            g.horizontalFig(Spacing.Small, Seq(f0, dot, f1))
+                        }
                         val f = g.horizontalFig(Spacing.Big, Seq(
                             g.supFig(g.textFig(s"$nodeId", ap.default)),
-                            symbolProgressFigureGenerator.kernelFig(kernel),
+                            seqFigure,
                             g.textFig(s"$beginGen-$endGen", ap.default)))
-                        val tooltip = parseNodeFigureGenerator.parseNodeHFig(progress)
-                        tooltip.setOpaque(true)
-                        tooltip.setBackgroundColor(ColorConstants.white)
-                        f.setToolTip(tooltip)
+                        // TODO progresses 표시
                         f
                 }
                 fig.setBorder(new MarginBorder(1, 2, 1, 2))
@@ -163,13 +174,13 @@ trait NewParserGraphVisualizeWidget {
         graph.edges foreach { edge =>
             if (!(edgesMap contains edge)) {
                 edge match {
-                    case NewParser.SimpleEdge(start, end, revertTriggers) =>
+                    case ParsingGraph.SimpleEdge(start, end, revertTriggers) =>
                         val conn = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
                         if (!(revertTriggers.isEmpty)) {
                             conn.setText(revertTriggersString(revertTriggers))
                         }
                         edgesMap(edge) = Seq(conn)
-                    case NewParser.JoinEdge(start, end, join) =>
+                    case ParsingGraph.JoinEdge(start, end, join) =>
                         val conn = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
                         val connJoin = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(join))
                         conn.setText("main")
@@ -197,15 +208,22 @@ trait NewParserGraphVisualizeWidget {
                 val nodes = nodesAt(e.x, e.y)
                 nodes foreach { n => println(s"  -> $n") }
                 nodes foreach {
-                    case node: NewParser.NontermNode[Nonterm] =>
-                        val dgraph = DerivationGraph.deriveFromKernel(grammar, node.kernel)
+                    case node: ParsingGraph.NontermNode =>
+                        val derivationFunc = new DerivationFunc(grammar, ParseForestFunc)
+                        val dgraph = node match {
+                            case node: ParsingGraph.AtomicNode =>
+                                derivationFunc.deriveAtomic(node.symbol)
+                            case node: ParsingGraph.SequenceNode =>
+                                derivationFunc.deriveSequence(node.symbol, node.pointer)
+                        }
+
                         val shell = new Shell(Display.getCurrent())
                         shell.setLayout(new FillLayout())
-                        new DerivationGraphVisualizeWidget(shell, dgraph)
-                        shell.setText(s"Derivation Graph of ${node.kernel.toShortString}")
+                        new DerivationGraphVisualizeWidget(shell, SWT.NONE, grammar, new NodeIdCache(), dgraph)
+                        shell.setText(s"Derivation Graph of $node")
                         shell.open()
-                    case node: ParseNode[_] =>
-                        new ParseNodeViewer(node.asInstanceOf[ParseNode[Symbol]], figureGenerator, figureAppearances, parseNodeFigureGenerator).start()
+                    case node: ParseResultTree.Node =>
+                        new ParseResultTreeViewer(node.asInstanceOf[ParseResultTree.Node], figureGenerator, figureAppearances, parseNodeFigureGenerator).start()
                     case _ => // nothing to do
                 }
             }
@@ -224,7 +242,18 @@ trait NewParserGraphVisualizeWidget {
     }
 }
 
-class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser#ParsingContext) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget {
+class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, val dgraph: DGraph[ParseForest]) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget {
+    setLayout(new FillLayout)
+    val graphView = new Graph(this, SWT.NONE)
+
+    def initialize(): Unit = {
+        ???
+    }
+
+    initialize()
+}
+
+class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget {
     setLayout(new FillLayout)
     val graphView = new Graph(this, SWT.NONE)
 
@@ -234,13 +263,17 @@ class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val g
         context.derivables foreach { node =>
             nodesMap(node).setBackgroundColor(ColorConstants.yellow)
         }
-        context.results foreach { result =>
-            val resultNode = nodeFromFigure(parseNodeFigureGenerator.parseNodeHFig(result))
-            resultNode.setData(result)
-            if (context.graph.nodes contains context.startNode) {
-                val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(context.startNode), resultNode)
-                connection.setLineColor(ColorConstants.blue)
-            }
+        context.result match {
+            case Some(forest) =>
+                forest.trees foreach { result =>
+                    val resultNode = nodeFromFigure(parseNodeFigureGenerator.parseNodeHFig(result))
+                    resultNode.setData(result)
+                    if (context.graph.nodes contains context.startNode) {
+                        val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(context.startNode), resultNode)
+                        connection.setLineColor(ColorConstants.blue)
+                    }
+                }
+            case None =>
         }
 
         import org.eclipse.zest.layouts.algorithms._
@@ -252,7 +285,7 @@ class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val g
     initializeListeners()
 }
 
-class NewParserExpandedGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseContext: NewParser#ParsingContext, proceed: NewParser#ProceedDetail) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget {
+class NewParserExpandedGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseContext: NewParser[ParseForest]#ParsingCtx, proceed: NewParser[ParseForest]#ProceedDetail) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget {
     setLayout(new FillLayout)
     val graphView = new Graph(this, SWT.NONE)
 
@@ -268,7 +301,7 @@ class NewParserExpandedGraphVisualizeWidget(parent: Composite, style: Int, val g
     initializeListeners()
 }
 
-class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseContext: NewParser#ParsingContext, proceed: NewParser#ProceedDetail) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget {
+class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseContext: NewParser[ParseForest]#ParsingCtx, proceed: NewParser[ParseForest]#ProceedDetail) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget {
     setLayout(new FillLayout)
     val graphView = new Graph(this, SWT.NONE)
 
@@ -290,6 +323,7 @@ class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val gr
         proceed.nextDerivables0 foreach { node =>
             nodesMap(node).setBackgroundColor(ColorConstants.yellow)
         }
+        /*
         proceed.lifts0 foreach { lift =>
             val parseNode = nodeFromFigure(parseNodeFigureGenerator.parseNodeHFig(lift.parsed))
             parseNode.setData("Hello")
@@ -306,6 +340,7 @@ class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val gr
             }
             println(lift)
         }
+        */
 
         import org.eclipse.zest.layouts.algorithms._
         val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)

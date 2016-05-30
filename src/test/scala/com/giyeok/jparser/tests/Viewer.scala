@@ -15,7 +15,6 @@ import org.eclipse.draw2d.ToolbarLayout
 import org.eclipse.draw2d.Label
 import org.eclipse.jface.resource.JFaceResources
 import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
-import com.giyeok.jparser.visualize.ParseGraphVisualizer
 import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.visualize.FigureGenerator
@@ -48,14 +47,6 @@ trait Viewer {
         val grammarList = new org.eclipse.swt.widgets.List(leftFrame, SWT.BORDER | SWT.V_SCROLL)
         val grammarFig = new FigureCanvas(leftFrame)
 
-        val parserSelector = new org.eclipse.swt.widgets.Composite(rightFrame, SWT.BORDER)
-        parserSelector.setLayout(new FillLayout(SWT.HORIZONTAL))
-        val newParserSelected = new org.eclipse.swt.widgets.Button(parserSelector, SWT.RADIO)
-        val oldParserSelected = new org.eclipse.swt.widgets.Button(parserSelector, SWT.RADIO)
-        newParserSelected.setText("New Parser")
-        oldParserSelected.setText("(Deprecated) Old Parser")
-        newParserSelected.setSelection(true)
-
         val textList = new org.eclipse.swt.widgets.List(rightFrame, SWT.BORDER | SWT.V_SCROLL)
         val testText = new org.eclipse.swt.widgets.Text(rightFrame, SWT.MULTI)
 
@@ -63,8 +54,10 @@ trait Viewer {
         testButtons.setLayout(new FillLayout(SWT.HORIZONTAL))
         val proceedView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
         val resultView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
+        val derivationView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
         proceedView.setText("Proceed View")
         resultView.setText("Result View")
+        derivationView.setText("Derivation View")
 
         textList.setFont(JFaceResources.getTextFont)
 
@@ -113,11 +106,7 @@ trait Viewer {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
                 val source = shownTexts(textList.getSelectionIndex())
-                if (newParserSelected.getSelection()) {
-                    NewParserVisualizer.start(grammar, source.toSeq, display, new Shell(display))
-                } else {
-                    ParseGraphVisualizer.start(grammar, source.toSeq, display, new Shell(display))
-                }
+                NewParserVisualizer.start(grammar, source.toSeq, display, new Shell(display))
             }
         })
 
@@ -126,11 +115,7 @@ trait Viewer {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedGrammars(grammarList.getSelectionIndex())
                     val source = Inputs.fromString(testText.getText())
-                    if (newParserSelected.getSelection()) {
-                        NewParserVisualizer.start(grammar, source.toSeq, display, new Shell(display))
-                    } else {
-                        ParseGraphVisualizer.start(grammar, source.toSeq, display, new Shell(display))
-                    }
+                    NewParserVisualizer.start(grammar, source.toSeq, display, new Shell(display))
                 }
             }
         })
@@ -140,13 +125,18 @@ trait Viewer {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedGrammars(grammarList.getSelectionIndex())
                     val source = Inputs.fromString(testText.getText())
-                    if (newParserSelected.getSelection()) {
-                        NewParserResultVisualizer.start(grammar, source.toSeq, display, new Shell(display))
-                    } else {
-                        val messageBox = new MessageBox(shell, SWT.ICON_WARNING)
-                        messageBox.setMessage("Not implemented")
-                        messageBox.open()
-                    }
+                    NewParserResultVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                }
+            }
+        })
+
+        derivationView.addListener(SWT.Selection, new Listener() {
+            def handleEvent(e: Event): Unit = {
+                if (grammarList.getSelectionIndex >= 0) {
+                    val grammar = sortedGrammars(grammarList.getSelectionIndex())
+                    val source = Inputs.fromString(testText.getText())
+                    // TODO
+                    ???
                 }
             }
         })

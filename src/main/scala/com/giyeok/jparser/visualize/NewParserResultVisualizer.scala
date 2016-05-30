@@ -37,7 +37,7 @@ import org.eclipse.swt.layout.FillLayout
 import com.giyeok.jparser.ParseForestFunc
 
 class NewParserResultVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: NewParserResultVisualizer.Resources) {
-    val parser = new NewParser(grammar, new ParseForestFunc)
+    val parser = new NewParser(grammar, ParseForestFunc)
 
     // 좌측 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)

@@ -33,15 +33,15 @@ class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap:
 
     private def parseNodeFig(symbolBorder: FigureGenerator.Appearance[Fig], vfig: (Spacing.Value, Seq[Fig]) => Fig, hfig: (Spacing.Value, Seq[Fig]) => Fig, renderConf: ParseResultTreeFigureGenerator.RenderingConfiguration)(n: Node): Fig = {
         def parseNodeFig(n: Node): Fig = n match {
-            case EmptyNode(_) =>
+            case EmptyNode =>
                 g.textFig("", ap.default)
-            case TerminalNode(input, _) =>
+            case TerminalNode(input) =>
                 g.textFig(input.toShortString, ap.input)
-            case NontermNode(sym, body, _, _) =>
+            case BindedNode(sym, body) =>
                 vfig(Spacing.Small, Seq(
                     symbolBorder.applyToFigure(parseNodeFig(body)),
                     symbolFigureGenerator.symbolFig(sym)))
-            case JoinNode(body, join, _, _) =>
+            case JoinNode(body, join) =>
                 var content = Seq(symbolBorder.applyToFigure(parseNodeFig(body)))
                 if (renderConf.renderJoin) {
                     content :+= ap.joinHighlightBorder.applyToFigure(hfig(Spacing.Small, Seq(g.textFig("&", ap.default), parseNodeFig(join))))
@@ -53,8 +53,8 @@ class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap:
                         g.textFig("", ap.default)))
                 } else {
                     def isLookaheadNode(node: Node): Boolean = node match {
-                        case NontermNode(_: Symbols.LookaheadExcept, _, _, _) => true
-                        case NontermNode(_: Symbols.LookaheadIs, _, _, _) => true
+                        case BindedNode(_: Symbols.LookaheadExcept, _) => true
+                        case BindedNode(_: Symbols.LookaheadIs, _) => true
                         case _ => false
                     }
                     val seq: Seq[Fig] = if (renderConf.renderWS) {

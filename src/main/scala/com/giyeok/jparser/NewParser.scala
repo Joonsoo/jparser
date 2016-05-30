@@ -1,6 +1,5 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.Kernels._
 import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.Inputs.ConcreteInput
 import com.giyeok.jparser.ParsingErrors._
@@ -22,6 +21,11 @@ case class CtxGraph[R <: ParseResult](
     def reachableFrom(baseNode: Node): CtxGraph[R] = {
         ???
     }
+
+    def updateResultOf(node: Node, triggers: Set[Trigger], newResult: R): CtxGraph[R] = ???
+    def updateProgressOf(node: SequenceNode, triggers: Set[Trigger], newProgress: R): CtxGraph[R] = ???
+    def withNodeEdgesProgresses(newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): CtxGraph[R] = ???
+    def withNodesEdgesResultsProgresses(newNodes: Set[Node], newEdges: Set[Edge], newResults: Map[Node, Map[Set[Trigger], R]], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): CtxGraph[R] = ???
 }
 
 class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseResultFunc[R]) extends LiftTasks[R, CtxGraph[R]] {
@@ -49,6 +53,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
     def derive(node: NontermNode): DGraph[R] = node match {
         case AtomicNode(symbol, _) => deriveAtomic(symbol)
         case SequenceNode(symbol, pointer, _, _) => deriveSequence(symbol, pointer)
+        case _: DGraph.BaseNode => ??? // BaseNode일 수 없음
     }
 
     /*
@@ -179,15 +184,14 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         def withNodeAndEdges(node: Node, edges: Set[Edge]): Graph = Graph(this.nodes + node, this.edges ++ edges)
     }
 */
-    /*
     trait ProceedDetail {
         val expandedGraph: Graph
         val eligibleTermNodes0: Set[TermNode]
         val liftedGraph0: Graph
-        val nextDerivables0: Set[NontermNode[Nonterm]]
-        val lifts0: Set[Lift]
-        val nextContext: ParsingContext
+        val nextDerivables0: Set[NontermNode]
+        val nextContext: ParsingCtx
     }
+    /*
     case class FinishedProceedDetail(
         expandedGraph: Graph,
         eligibleTermNodes0: Set[TermNode],
@@ -322,12 +326,15 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 }
 
             val initialTasks = termNodes.toList map {
-                FinishingTask(nextGen, _, resultFunc.terminal(input, gen), Set())
+                FinishingTask(nextGen, _, resultFunc.terminal(input), Set())
             }
             rec(initialTasks, graph, Set())
         }
 
-        def proceed(input: Inputs.Input): Either[ParsingCtx, ParsingError] = {
+        def proceedDetail(input: ConcreteInput): Either[ProceedDetail, ParsingError] = {
+            ???
+        }
+        def proceed(input: ConcreteInput): Either[ParsingCtx, ParsingError] = {
             ???
         }
     }
