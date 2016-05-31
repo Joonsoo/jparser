@@ -88,8 +88,9 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
         // 1. Derivation
         val newEdges = deriveNode(baseNode)
 
-        // 1-1. TODO derive된 엣지 중 revertTriggers의 조건이 cc.results에서 이미 만족된 게 있는 경우 처리해주기(Lift/Wait - Lift는 엣지 제거, Wait는 트리거 제거)
-        // - 그런데 그냥 lookahead 조건은 nullable일 수 없다고 하면 끝날 문제같긴 한데..
+        // NOTE derive된 엣지 중 revertTriggers의 조건이 cc.results에서 이미 만족된 게 있는 경우는 생기지 않는다고 가정한다
+        // - 즉, lookahead/backup 조건이 nullable일 수 없다
+        // - lookahead 조건이나 backup 조건이 nullable이면 아무 의미가 없고, 파싱을 시작하기 전에 문법만 보고 확인해서 수정이 가능하기 때문
 
         // 2. 새로 추가되는 노드에 대한 DeriveTask 만들고 derive된 edge/node를 cc에 넣기
         // 이 때, 새로 생성된 노드 중
@@ -158,8 +159,8 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
 trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks[R, Graph] {
     def finishingTask(task: FinishingTask, cc: Graph): (Graph, Seq[Task]) = {
         val FinishingTask(nextGen, node, result, revertTriggers) = task
-        // TODO 혹시 node를 트리거로 하는 reverter가 걸려있는 경우 해당 엣지 처리(Lift/Wait - Lift는 엣지 제거, Wait는 트리거 제거)
-        // - 이것도 그냥 lookahead 조건은 nullable일 수 없다고 하면 끝날 문제같긴 한데..
+
+        // NOTE finish되는 노드에 의해 발동되는 revertTrigger는 없다고 가정한다. 위의 deriveTask의 설명과 동일
 
         // 1. cc의 기존 result가 있는지 확인하고 기존 result가 있으면 merge하고 없으면 새로 생성
         val updatedResult: Option[R] = {

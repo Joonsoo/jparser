@@ -49,9 +49,9 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         }
     }
     def derive(node: NontermNode): DGraph[R] = node match {
+        case _: DGraph.BaseNode => ??? // BaseNode일 수 없음
         case AtomicNode(symbol, _) => deriveAtomic(symbol)
         case SequenceNode(symbol, pointer, _, _) => deriveSequence(symbol, pointer)
-        case _: DGraph.BaseNode => ??? // BaseNode일 수 없음
     }
 
     /*
