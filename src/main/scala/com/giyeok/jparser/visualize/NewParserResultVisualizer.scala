@@ -36,7 +36,7 @@ import com.giyeok.jparser.ParsingErrors.ParsingError
 import org.eclipse.swt.layout.FillLayout
 import com.giyeok.jparser.ParseForestFunc
 
-class NewParserResultVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: NewParserResultVisualizer.Resources) {
+class NewParserResultVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
     val parser = new NewParser(grammar, ParseForestFunc)
 
     // 좌측 test string
@@ -73,23 +73,8 @@ class NewParserResultVisualizer(grammar: Grammar, source: Seq[ConcreteInput], di
 }
 
 object NewParserResultVisualizer {
-    trait Resources {
-        val default12Font: Font
-        val fixedWidth12Font: Font
-        val italic14Font: Font
-        val bold14Font: Font
-        val smallFont: Font
-    }
-
     def start(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
-        val resources = new Resources {
-            val defaultFontName = JFaceResources.getTextFont.getFontData.head.getName
-            val default12Font = new Font(null, defaultFontName, 12, SWT.NONE)
-            val fixedWidth12Font = new Font(null, defaultFontName, 12, SWT.NONE)
-            val italic14Font = new Font(null, defaultFontName, 14, SWT.ITALIC)
-            val bold14Font = new Font(null, defaultFontName, 14, SWT.BOLD)
-            val smallFont = new Font(null, defaultFontName, 6, SWT.NONE)
-        }
+        val resources = BasicVisualizeResources
         new NewParserResultVisualizer(grammar, source, display, shell, resources).start()
     }
 

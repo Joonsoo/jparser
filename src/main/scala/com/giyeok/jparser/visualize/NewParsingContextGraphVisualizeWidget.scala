@@ -22,6 +22,7 @@ import org.eclipse.swt.widgets.Shell
 import com.giyeok.jparser.DGraph
 import org.eclipse.swt.widgets.Display
 import com.giyeok.jparser.Symbols.Nonterm
+import com.giyeok.jparser.Symbols.AtomicSymbol
 import org.eclipse.zest.core.widgets.GraphNode
 import org.eclipse.swt.events.MouseAdapter
 import org.eclipse.swt.events.MouseEvent
@@ -39,6 +40,9 @@ import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.DerivationFunc
 import com.giyeok.jparser.ParsingGraph.AtomicNode
 import com.giyeok.jparser.ParseResultTree
+import com.giyeok.jparser.Symbols.Sequence
+import com.giyeok.jparser.Symbols.Empty
+import com.giyeok.jparser.Symbols.AtomicNonterm
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -87,6 +91,23 @@ trait BasicGenerators {
     val parseNodeFigureGenerator = new ParseResultTreeFigureGenerator(figureGenerator, tooltipAppearances)
 }
 
+trait KernelFigureGenerator[Fig] {
+    val figureGenerator: FigureGenerator.Generator[Fig]
+    val figureAppearances: FigureGenerator.Appearances[Fig]
+    val symbolFigureGenerator: SymbolFigureGenerator[Fig]
+
+    def dot = figureGenerator.textFig("\u2022", figureAppearances.kernelDot)
+    def atomicFigure(symbol: AtomicSymbol) = {
+        figureGenerator.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol)))
+    }
+    def sequenceFigure(symbol: Sequence, pointer: Int) = {
+        val (p, f) = symbol.seq.splitAt(pointer)
+        val f0 = figureGenerator.horizontalFig(Spacing.Medium, p map { symbolFigureGenerator.symbolFig _ })
+        val f1 = figureGenerator.horizontalFig(Spacing.Medium, f map { symbolFigureGenerator.symbolFig _ })
+        figureGenerator.horizontalFig(Spacing.Small, Seq(f0, dot, f1))
+    }
+}
+
 class NodeIdCache {
     private var counter = 0
     private val nodeIdMap = scala.collection.mutable.Map[ParsingGraph.Node, Int]()
@@ -102,7 +123,7 @@ class NodeIdCache {
     }
 }
 
-trait NewParserGraphVisualizeWidget {
+trait NewParserGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
     val graphView: Graph
     val grammar: Grammar
     val nodeIdCache: NodeIdCache
@@ -125,68 +146,82 @@ trait NewParserGraphVisualizeWidget {
         new CGraphNode(graphView, SWT.NONE, nodeFig)
     }
 
+    def nodeOf(node: ParsingGraph.Node): CGraphNode = {
+        val nodeId = nodeIdCache.of(node)
+
+        val (g, ap) = (figureGenerator, figureAppearances)
+        val fig = node match {
+            case ParsingGraph.EmptyNode =>
+                g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    g.horizontalFig(Spacing.Small, Seq(symbolFigureGenerator.symbolFig(Empty), dot))))
+            case ParsingGraph.TermNode(symbol) =>
+                g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol)))))
+            case ParsingGraph.AtomicNode(symbol, beginGen) =>
+                g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    atomicFigure(symbol),
+                    g.textFig(s"$beginGen", ap.default)))
+            case ParsingGraph.SequenceNode(symbol, pointer, beginGen, endGen) =>
+                val f = g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    sequenceFigure(symbol, pointer),
+                    g.textFig(s"$beginGen-$endGen", ap.default)))
+                // TODO progresses 표시
+                f
+            case node: DGraph.BaseNode =>
+                val f = node.symbol match {
+                    case symbol: AtomicNonterm =>
+                        atomicFigure(symbol)
+                    case symbol: Sequence =>
+                        sequenceFigure(symbol, node.pointer)
+                }
+                f.setOpaque(true)
+                f.setBackgroundColor(ColorConstants.yellow)
+                f
+        }
+        fig.setBorder(new MarginBorder(1, 2, 1, 2))
+
+        val n = nodeFromFigure(fig)
+        n.setData(node)
+        n
+    }
+
+    def edgeOf(edge: ParsingGraph.Edge): Seq[GraphConnection] = {
+        edge match {
+            case ParsingGraph.SimpleEdge(start, end, revertTriggers) =>
+                val conn = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
+                if (!(revertTriggers.isEmpty)) {
+                    conn.setText(revertTriggersString(revertTriggers))
+                }
+                Seq(conn)
+            case ParsingGraph.JoinEdge(start, end, join) =>
+                val conn = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
+                val connJoin = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(join))
+                conn.setText("main")
+                connJoin.setText("join")
+                Seq(conn, connJoin)
+        }
+    }
+
     def revertTriggersString(revertTriggers: Set[ParsingGraph.Trigger]): String =
         revertTriggers map {
             case ParsingGraph.Trigger(node, ttype) =>
                 s"$ttype(${nodeIdCache.of(node)})"
         } mkString " or "
 
-    def addGraph(graph: CtxGraph[ParseForest]): Unit = {
-        val (g, ap) = (figureGenerator, figureAppearances)
-
+    def addGraph(graph: ParsingGraph[ParseForest]): Unit = {
         graph.nodes foreach { node =>
             if (!(nodesMap contains node)) {
-                val nodeId = nodeIdCache.of(node)
-                def dot = g.textFig("\u2022", ap.kernelDot)
-
-                val fig = node match {
-                    case ParsingGraph.TermNode(symbol) =>
-                        g.horizontalFig(Spacing.Big, Seq(
-                            g.supFig(g.textFig(s"$nodeId", ap.default)),
-                            g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol)))))
-                    case ParsingGraph.AtomicNode(symbol, beginGen) =>
-                        g.horizontalFig(Spacing.Big, Seq(
-                            g.supFig(g.textFig(s"$nodeId", ap.default)),
-                            g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol))),
-                            g.textFig(s"$beginGen", ap.default)))
-                    case ParsingGraph.SequenceNode(symbol, pointer, beginGen, endGen) =>
-                        val seqFigure = {
-                            val (p, f) = symbol.seq.splitAt(pointer)
-                            val f0 = g.horizontalFig(Spacing.Medium, p map { symbolFigureGenerator.symbolFig _ })
-                            val f1 = g.horizontalFig(Spacing.Medium, f map { symbolFigureGenerator.symbolFig _ })
-                            g.horizontalFig(Spacing.Small, Seq(f0, dot, f1))
-                        }
-                        val f = g.horizontalFig(Spacing.Big, Seq(
-                            g.supFig(g.textFig(s"$nodeId", ap.default)),
-                            seqFigure,
-                            g.textFig(s"$beginGen-$endGen", ap.default)))
-                        // TODO progresses 표시
-                        f
-                }
-                fig.setBorder(new MarginBorder(1, 2, 1, 2))
-
-                val n = nodeFromFigure(fig)
-                n.setData(node)
-                nodesMap(node) = n
+                nodesMap(node) = nodeOf(node)
             }
         }
 
         graph.edges foreach { edge =>
             if (!(edgesMap contains edge)) {
-                edge match {
-                    case ParsingGraph.SimpleEdge(start, end, revertTriggers) =>
-                        val conn = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
-                        if (!(revertTriggers.isEmpty)) {
-                            conn.setText(revertTriggersString(revertTriggers))
-                        }
-                        edgesMap(edge) = Seq(conn)
-                    case ParsingGraph.JoinEdge(start, end, join) =>
-                        val conn = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
-                        val connJoin = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(join))
-                        conn.setText("main")
-                        connJoin.setText("join")
-                        edgesMap(edge) = Seq(conn, connJoin)
-                }
+                edgesMap(edge) = edgeOf(edge)
             }
         }
     }
@@ -247,7 +282,7 @@ class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar:
     val graphView = new Graph(this, SWT.NONE)
 
     def initialize(): Unit = {
-        ???
+        addGraph(dgraph)
     }
 
     initialize()

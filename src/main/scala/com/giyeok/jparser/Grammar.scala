@@ -94,7 +94,7 @@ object Grammar {
                 if (cc contains symbol) cc else
                     symbol match {
                         case Empty => cc + symbol
-                        case Start => traverse(grammar.startSymbol, cc)
+                        case Start => traverse(grammar.startSymbol, cc + Start)
                         case _: Terminal => cc + symbol
                         case Nonterminal(name) =>
                             (grammar.rules get name) match {
@@ -104,7 +104,10 @@ object Grammar {
                         case Sequence(seq, ws) => (seq ++ ws).foldRight(cc + symbol) { traverse(_, _) }
                         case OneOf(syms) => (syms).foldRight(cc + symbol) { traverse(_, _) }
                         case Except(sym, except) => traverse(sym, traverse(except, cc + symbol))
-                        case r: Repeat => traverse(r.sym, cc + symbol)
+                        case Repeat(sym, lower) =>
+                            val baseSeq = Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
+                            val repeatSeq = Sequence(Seq(symbol, sym), Set())
+                            traverse(repeatSeq, traverse(baseSeq, cc + symbol))
                         case LookaheadIs(lookahead) => traverse(lookahead, cc + symbol)
                         case LookaheadExcept(except) => traverse(except, cc + symbol)
                         case Backup(sym, backup) => traverse(sym, traverse(backup, cc + symbol))

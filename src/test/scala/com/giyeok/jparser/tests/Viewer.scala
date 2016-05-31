@@ -21,6 +21,7 @@ import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.NewParserVisualizer
 import org.eclipse.swt.widgets.MessageBox
 import com.giyeok.jparser.visualize.NewParserResultVisualizer
+import com.giyeok.jparser.visualize.NewParserDerivationGraphVisualizer
 
 trait Viewer {
     val allTests: Set[Grammar with Samples]
@@ -120,23 +121,22 @@ trait Viewer {
             }
         })
 
+        derivationView.addListener(SWT.Selection, new Listener() {
+            def handleEvent(e: Event): Unit = {
+                if (grammarList.getSelectionIndex >= 0) {
+                    val grammar = sortedGrammars(grammarList.getSelectionIndex())
+                    val source = Inputs.fromString(testText.getText())
+                    NewParserDerivationGraphVisualizer.start(grammar, display, new Shell(display))
+                }
+            }
+        })
+
         resultView.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedGrammars(grammarList.getSelectionIndex())
                     val source = Inputs.fromString(testText.getText())
                     NewParserResultVisualizer.start(grammar, source.toSeq, display, new Shell(display))
-                }
-            }
-        })
-
-        derivationView.addListener(SWT.Selection, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                if (grammarList.getSelectionIndex >= 0) {
-                    val grammar = sortedGrammars(grammarList.getSelectionIndex())
-                    val source = Inputs.fromString(testText.getText())
-                    // TODO
-                    ???
                 }
             }
         })
