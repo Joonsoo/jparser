@@ -43,6 +43,9 @@ import com.giyeok.jparser.ParseResultTree
 import com.giyeok.jparser.Symbols.Sequence
 import com.giyeok.jparser.Symbols.Empty
 import com.giyeok.jparser.Symbols.AtomicNonterm
+import org.eclipse.draw2d.ToolbarLayout
+import com.giyeok.jparser.Results
+import org.eclipse.swt.graphics.Color
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -98,7 +101,8 @@ trait KernelFigureGenerator[Fig] {
 
     def dot = figureGenerator.textFig("\u2022", figureAppearances.kernelDot)
     def atomicFigure(symbol: AtomicSymbol) = {
-        figureGenerator.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol)))
+        symbolFigureGenerator.symbolFig(symbol)
+        // figureGenerator.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol)))
     }
     def sequenceFigure(symbol: Sequence, pointer: Int) = {
         val (p, f) = symbol.seq.splitAt(pointer)
@@ -171,16 +175,11 @@ trait NewParserGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
                     g.textFig(s"$beginGen-$endGen", ap.default)))
                 // TODO progresses 표시
                 f
-            case node: DGraph.BaseNode =>
-                val f = node.symbol match {
-                    case symbol: AtomicNonterm =>
-                        atomicFigure(symbol)
-                    case symbol: Sequence =>
-                        sequenceFigure(symbol, node.pointer)
-                }
-                f.setOpaque(true)
-                f.setBackgroundColor(ColorConstants.yellow)
-                f
+        }
+        if (node.isInstanceOf[DGraph.BaseNode]) {
+            fig.setOpaque(true)
+            fig.setBackgroundColor(ColorConstants.yellow)
+            fig
         }
         fig.setBorder(new MarginBorder(1, 2, 1, 2))
 
@@ -283,6 +282,33 @@ class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar:
 
     def initialize(): Unit = {
         addGraph(dgraph)
+
+        def addResults[N <: ParsingGraph.Node](results: Results[N, ParseForest], bind: Boolean, lineColor: Color): Unit = {
+            results.asMap foreach { result =>
+                val (node, matches) = result
+                matches foreach { m =>
+                    val (triggers, result) = m
+                    val forestFigure = new Figure()
+                    forestFigure.setLayoutManager({
+                        val l = new ToolbarLayout(false)
+                        l.setSpacing(3)
+                        l
+                    })
+                    val trees = if (bind) ParseForestFunc.bind(node.symbol, result).trees else result.trees
+                    trees foreach { tree =>
+                        val treeFigure = parseNodeFigureGenerator.parseNodeHFig(tree)
+                        treeFigure.setBorder(new LineBorder(1))
+                        forestFigure.add(treeFigure)
+                    }
+                    val forestNode = nodeFromFigure(forestFigure)
+                    forestNode.setData(result)
+                    val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(node), forestNode)
+                    connection.setLineColor(lineColor)
+                }
+            }
+        }
+        addResults(dgraph.results, true, ColorConstants.blue)
+        addResults(dgraph.progresses, false, ColorConstants.red)
 
         import org.eclipse.zest.layouts.algorithms._
         val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)

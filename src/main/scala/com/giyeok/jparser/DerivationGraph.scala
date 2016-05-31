@@ -9,6 +9,8 @@ import Inputs._
 import ParsingGraph._
 import com.giyeok.jparser.DGraph.BaseNode
 import com.giyeok.jparser.DGraph.BaseNode
+import com.giyeok.jparser.DGraph.BaseAtomicNode
+import com.giyeok.jparser.DGraph.BaseSequenceNode
 
 class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseResultFunc[R])
         extends LiftTasks[R, DGraph[R]] with DeriveTasks[R, DGraph[R]] {
@@ -28,17 +30,17 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
             case task +: rest =>
                 println(task)
                 val (newCC, newTasks) = process(task, cc)
-                rec((rest ++ newTasks).distinct, newCC)
+                rec((newTasks.toList ++ rest).distinct, newCC)
             case List() => cc
         }
 
     def deriveAtomic(symbol: AtomicNonterm): DGraph[R] = {
-        val baseNode = BaseNode(symbol, 0)
+        val baseNode = new BaseAtomicNode(symbol)
         rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results()))
     }
 
     def deriveSequence(symbol: Sequence, pointer: Int): DGraph[R] = {
-        val baseNode = BaseNode(symbol, pointer)
-        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results()))
+        val baseNode = new BaseSequenceNode(symbol, pointer)
+        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(baseNode -> Map(Set[Trigger]() -> resultFunc.sequence()))))
     }
 }

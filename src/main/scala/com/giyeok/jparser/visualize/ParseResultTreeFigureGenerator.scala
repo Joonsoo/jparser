@@ -34,7 +34,7 @@ class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap:
     private def parseNodeFig(symbolBorder: FigureGenerator.Appearance[Fig], vfig: (Spacing.Value, Seq[Fig]) => Fig, hfig: (Spacing.Value, Seq[Fig]) => Fig, renderConf: ParseResultTreeFigureGenerator.RenderingConfiguration)(n: Node): Fig = {
         def parseNodeFig(n: Node): Fig = n match {
             case EmptyNode =>
-                g.textFig("", ap.default)
+                g.textFig("ε", ap.default)
             case TerminalNode(input) =>
                 g.textFig(input.toShortString, ap.input)
             case BindedNode(sym, body) =>

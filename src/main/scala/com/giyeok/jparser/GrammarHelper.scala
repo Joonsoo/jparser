@@ -46,7 +46,9 @@ object GrammarHelper {
         def butnot(e: Symbol*) = except(oneof(e.toSet))
     }
     implicit class GrammarElementRepeatable(sym: Symbol) {
-        def repeat(lower: Int, upper: Int): OneOf = OneOf(((lower to upper) map { count => Sequence((0 until count).toSeq map { _ => sym }, Set()) }).toSet)
+        def repeat(lower: Int, upper: Int): OneOf = OneOf(((lower to upper) map { count =>
+            if (count == 0) Empty else Sequence((0 until count).toSeq map { _ => sym }, Set())
+        }).toSet)
         def repeat(lower: Int): Repeat = Repeat(sym, lower)
 
         // optional
