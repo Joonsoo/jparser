@@ -110,19 +110,20 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
         // - 바로 finishable한 노드(empty node, 빈 sequence node)들은 results에 추가해주고,
         // - 비어있지 않은 sequence는 progresses에 추가해준다
         val newDeriveTasks: Set[DeriveTask] = newNodes collect {
-            case n: NontermNode => DeriveTask(nextGen, n)
+            case n: AtomicNode => DeriveTask(nextGen, n)
+            case n: SequenceNode if n.symbol.seq.length > 0 => DeriveTask(nextGen, n)
         }
         val ncc: Graph = {
-            val newResults: Map[Node, Map[Set[Trigger], R]] = (newNodes collect {
+            val newResults: Results[Node, R] = Results((newNodes collect {
                 case node @ EmptyNode =>
                     node -> Map(Set[Trigger]() -> resultFunc.empty())
                 case node @ SequenceNode(Sequence(seq, _), 0, _, _) if seq.isEmpty => // 이 시점에서 SequenceNode의 pointer는 반드시 0
                     node -> Map(Set[Trigger]() -> resultFunc.sequence())
-            }).toMap
-            val newProgresses: Map[SequenceNode, Map[Set[Trigger], R]] = (newNodes collect {
+            }).toSeq: _*)
+            val newProgresses: Results[SequenceNode, R] = Results((newNodes collect {
                 case node @ SequenceNode(Sequence(seq, _), 0, _, _) if !seq.isEmpty =>
                     node -> Map(Set[Trigger]() -> resultFunc.sequence())
-            }).toMap
+            }).toSeq: _*)
             cc.withNodesEdgesResultsProgresses(newNodes, newEdges, newResults, newProgresses).asInstanceOf[Graph]
         }
 
@@ -130,7 +131,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
         // - 바로 끝낼 수 있는 empty node나 빈 sequence node가 이미 ncc의 results에 들어있으므로 ncc의 results에 있는 것들만 추가해주면 된다
         val newFinishingTasks: Set[FinishingTask] = (newNodes collect {
             case node if ncc.results contains node =>
-                ncc.results(node) map { r => FinishingTask(nextGen, node, r._2, r._1) }
+                ncc.results.of(node).get map { r => FinishingTask(nextGen, node, r._2, r._1) }
         }).flatten
 
         (ncc, newFinishingTasks.toSeq ++ newDeriveTasks.toSeq)
@@ -142,7 +143,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
         val FinishingTask(nextGen, node, result, revertTriggers) = task
         // 1. cc의 기존 result가 있는지 확인하고 기존 result가 있으면 merge하고 없으면 새로 생성
         val updatedResult: Option[R] = {
-            cc.resultOf(node, revertTriggers) match {
+            cc.results.of(node, revertTriggers) match {
                 case Some(baseResult) =>
                     val merged = resultFunc.merge(baseResult, result)
                     if (merged != baseResult) Some(merged) else None
@@ -183,13 +184,21 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 val joinEdgeTasks: Set[Task] = incomingJoinEdges flatMap {
                     case JoinEdge(start, end, join) =>
                         if (node == end) {
-                            cc.resultOf(join) map { r =>
-                                FinishingTask(nextGen, start, resultFunc.join(finishedResult, r._2), revertTriggers ++ r._1)
+                            cc.results.of(join) match {
+                                case Some(results) =>
+                                    results map { r =>
+                                        FinishingTask(nextGen, start, resultFunc.join(finishedResult, r._2), revertTriggers ++ r._1)
+                                    }
+                                case None => Seq()
                             }
                         } else {
                             assert(node == join)
-                            cc.resultOf(end) map { r =>
-                                FinishingTask(nextGen, start, resultFunc.join(r._2, finishedResult), revertTriggers ++ r._1)
+                            cc.results.of(end) match {
+                                case Some(results) =>
+                                    results map { r =>
+                                        FinishingTask(nextGen, start, resultFunc.join(r._2, finishedResult), revertTriggers ++ r._1)
+                                    }
+                                case None => Seq()
                             }
                         }
                 }
@@ -240,7 +249,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                         SimpleEdge(start, appendedNode, revertTriggers ++ edgeRevertTriggers)
                 }
                 assert(cc.incomingJoinEdgesTo(appendedNode).isEmpty)
-                (cc.withNodeEdgesProgresses(appendedNode, newEdges, Map(appendedNode -> Map(revertTriggers -> appendedSequence))).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
+                (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> Map(revertTriggers -> appendedSequence))).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
             }
         } else {
             // append되면 finish할 수 있는 상태

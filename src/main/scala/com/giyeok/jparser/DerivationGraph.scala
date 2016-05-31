@@ -26,18 +26,19 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
     def rec(tasks: List[Task], cc: DGraph[R]): DGraph[R] =
         tasks match {
             case task +: rest =>
+                println(task)
                 val (newCC, newTasks) = process(task, cc)
-                rec((tasks ++ newTasks).distinct, newCC)
+                rec((rest ++ newTasks).distinct, newCC)
             case List() => cc
         }
 
     def deriveAtomic(symbol: AtomicNonterm): DGraph[R] = {
         val baseNode = BaseNode(symbol, 0)
-        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Map(), Map()))
+        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results()))
     }
 
     def deriveSequence(symbol: Sequence, pointer: Int): DGraph[R] = {
         val baseNode = BaseNode(symbol, pointer)
-        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Map(), Map()))
+        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results()))
     }
 }

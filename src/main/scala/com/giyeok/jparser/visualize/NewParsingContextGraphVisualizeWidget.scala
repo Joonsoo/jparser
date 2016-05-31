@@ -283,6 +283,10 @@ class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar:
 
     def initialize(): Unit = {
         addGraph(dgraph)
+
+        import org.eclipse.zest.layouts.algorithms._
+        val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)
+        graphView.setLayoutAlgorithm(layoutAlgorithm, true)
     }
 
     initialize()

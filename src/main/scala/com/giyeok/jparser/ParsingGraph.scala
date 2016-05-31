@@ -40,15 +40,52 @@ object ParsingGraph {
     }
 }
 
+// Results는 ParsingGraph의 results/progresses에서 사용된다
+class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigger], R]]) {
+    def keyNodesSet = resultsMap.keySet.toSet[Node]
+
+    def contains(node: N): Boolean = resultsMap contains node
+    def of(node: N): Option[Map[Set[Trigger], R]] = resultsMap get node
+    def of(node: N, triggers: Set[Trigger]): Option[R] = (resultsMap get node) flatMap { m => m get triggers }
+    def entries: Iterable[(N, Set[Trigger], R)] = resultsMap flatMap { kv => kv._2 map { p => (kv._1, p._1, p._2) } }
+
+    // - results와 progresses의 업데이트는 같은 원리로 동작하는데,
+    //   - 해당하는 Node, Set[Trigger]에 대한 R이 없을 경우 새로 추가해주고
+    //   - 같은 Node, Set[Trigger]에 대한 R이 이미 있는 경우 덮어쓴다.
+    def update(node: N, triggers: Set[Trigger], newResult: R): Results[N, R] = {
+        resultsMap get node match {
+            case Some(rMap) =>
+                new Results(resultsMap + (node -> (rMap + (triggers -> newResult))))
+            case None =>
+                new Results(resultsMap + (node -> Map(triggers -> newResult)))
+        }
+    }
+    def update(other: Results[N, R]): Results[N, R] = {
+        other.entries.foldLeft(this) { (m, i) => m.update(i._1, i._2, i._3) }
+    }
+
+    def mapTo(func: (N, Set[Trigger], R) => (N, Set[Trigger], R)): Results[N, R] = {
+        entries.foldLeft(new Results(Map[N, Map[Set[Trigger], R]]())) { (newResultsMap, e) =>
+            val (node, triggers, result) = func(e._1, e._2, e._3)
+            newResultsMap.update(node, triggers, result)
+        }
+    }
+}
+object Results {
+    def apply[N <: Node, R <: ParseResult](): Results[N, R] = new Results(Map())
+    def apply[N <: Node, R <: ParseResult](items: (N, Map[Set[ParsingGraph.Trigger], R])*): Results[N, R] =
+        new Results((items map { kv => kv._1 -> kv._2 }).toMap)
+}
+
 trait ParsingGraph[R <: ParseResult] {
     val nodes: Set[Node]
     val edges: Set[Edge]
     // results는 가장 마지막 surround를 안한 상태.
     // 즉 진짜 기존의 lift.parsedBy에 해당하는 값이 들어가는 것으로, 진짜 결과값을 구하려면 node.symbol로 surround를 한번 해줘야 한다
     // - 이렇게 해야 DerivationGraph 쓸 때 편함
-    val results: Map[Node, Map[Set[Trigger], R]]
+    val results: Results[Node, R]
     // progresses는 시퀀스 노드의 현재까지 진행 상황을 나타내는 것이므로 여기서 R은 기존의 PraseTree.SequenceNode에 해당하는 것이어야 함
-    val progresses: Map[SequenceNode, Map[Set[Trigger], R]]
+    val progresses: Results[SequenceNode, R]
 
     // (edges의 모든 노드)+(progresses의 trigger에 등장하는 노드)가 모두 nodes에 포함되어야 함
     assert({
@@ -58,21 +95,16 @@ trait ParsingGraph[R <: ParseResult] {
                 case JoinEdge(start, end, join) => Set(start, end, join)
             }
         }
-        val nodesOfReverters = (progresses flatMap { _._2 flatMap { _._1 map { _.node } } })
+        val nodesOfReverters = (progresses.resultsMap flatMap { _._2 flatMap { _._1 map { _.node } } })
         (nodesOfEdges ++ nodesOfReverters) subsetOf nodes
     })
     // progresses의 keySet의 모든 노드가 nodes에 포함되어야 함
-    assert(progresses.keySet.toSet[Node] subsetOf nodes)
+    assert(progresses.keyNodesSet subsetOf nodes)
 
     // Information Retrieval
-    def resultOf(node: Node): Map[Set[Trigger], R] = ???
-    def flatResultOf(node: Node, resultFunc: ParseResultFunc[R]): Option[R] = {
-        val results = resultOf(node) map { _._2 }
-        if (results.isEmpty) None
-        else Some(results.foldLeft(results.head) { resultFunc.merge(_, _) })
-    }
-    def resultOf(node: Node, triggers: Set[Trigger]): Option[R] = ???
-    def progressOf(node: SequenceNode, triggers: Set[Trigger]): R = progresses(node)(triggers)
+    //    def resultOf(node: Node): Option[Map[Set[Trigger], R]] = results.of(node)
+    //    def resultOf(node: Node, triggers: Set[Trigger]): Option[R] = results.of(node, triggers)
+    def progressOf(node: SequenceNode, triggers: Set[Trigger]): R = { val opt = progresses.of(node, triggers); opt.get ensuring opt.isDefined }
     def incomingEdgesTo(node: Node): Set[Edge] = edges collect {
         case edge @ SimpleEdge(_, `node`, _) => edge
         case edge @ (JoinEdge(_, _, `node`) | JoinEdge(_, `node`, _)) => edge
@@ -85,10 +117,21 @@ trait ParsingGraph[R <: ParseResult] {
     }
 
     // Modification
-    def updateResultOf(node: Node, triggers: Set[Trigger], newResult: R): ParsingGraph[R]
-    def updateProgressOf(node: SequenceNode, triggers: Set[Trigger], newProgress: R): ParsingGraph[R]
-    def withNodeEdgesProgresses(newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): ParsingGraph[R]
-    def withNodesEdgesResultsProgresses(newNodes: Set[Node], newEdges: Set[Edge], newResults: Map[Node, Map[Set[Trigger], R]], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): ParsingGraph[R]
+    def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): ParsingGraph[R]
+    def updateResultOf(node: Node, triggers: Set[Trigger], result: R): ParsingGraph[R] = {
+        create(nodes, edges, results.update(node, triggers, result), progresses)
+    }
+    def updateProgressOf(node: SequenceNode, triggers: Set[Trigger], progress: R): ParsingGraph[R] = {
+        create(nodes, edges, results, progresses.update(node, triggers, progress))
+    }
+    def withNodeEdgesProgresses(newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
+        create(nodes + newNode, edges ++ newEdges, results, progresses.update(newProgresses))
+    }
+    def withNodesEdgesResultsProgresses(newNodes: Set[Node], newEdges: Set[Edge], newResults: Results[Node, R], newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
+        assert(newNodes forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
+        create(nodes ++ newNodes, edges ++ newEdges, results.update(newResults), progresses.update(newProgresses))
+    }
+
 }
 
 trait TerminalInfo[R <: ParseResult] extends ParsingGraph[R] {
@@ -178,8 +221,8 @@ case class DGraph[R <: ParseResult](
         baseNode: DGraph.BaseNode,
         nodes: Set[Node],
         edges: Set[Edge],
-        results: Map[Node, Map[Set[Trigger], R]],
-        progresses: Map[SequenceNode, Map[Set[Trigger], R]]) extends ParsingGraph[R] with Reachability[R] {
+        results: Results[Node, R],
+        progresses: Results[SequenceNode, R]) extends ParsingGraph[R] with Reachability[R] {
     // baseNode가 nodes에 포함되어야 함
     assert(nodes contains baseNode)
     // baseNode를 제외하고는 전부 BaseNode가 아니어야 함
@@ -202,29 +245,8 @@ case class DGraph[R <: ParseResult](
     def edgesNotFromBaseNode = edges -- edgesFromBaseNode
 
     // Modification
-    // - results와 progresses의 업데이트는 같은 원리로 동작하는데,
-    //   - 해당하는 Node, Set[Trigger]에 대한 R이 없을 경우 새로 추가해주고
-    //   - 같은 Node, Set[Trigger]에 대한 R이 이미 있는 경우 덮어쓴다.
-    def withNodesEdgesResultsProgresses(newNodes: Set[Node], newEdges: Set[Edge], newResults: Map[Node, Map[Set[Trigger], R]], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): DGraph[R] = {
-        assert(newNodes forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
-        val updatedResults = ??? // results ++ newResults
-        val updatedProgresses = ??? // results ++ newProgresses
-        DGraph(baseNode, nodes ++ newNodes, edges ++ newEdges, results ++ newResults, progresses ++ newProgresses)
-    }
-    def withNodeEdgesProgresses(newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): DGraph[R] = {
-        val updatedResults = ??? // results ++ newResults
-        val updatedProgresses = ??? // results ++ newProgresses
-        DGraph(baseNode, nodes + newNode, edges ++ newEdges, results, progresses ++ newProgresses)
-    }
-
-    def updateResultOf(node: Node, triggers: Set[Trigger], result: R): DGraph[R] = {
-        val updatedResults = ???
-        DGraph(baseNode, nodes, edges, updatedResults, progresses)
-    }
-    def updateProgressOf(node: SequenceNode, triggers: Set[Trigger], progress: R): DGraph[R] = {
-        val updatedProgresses = ???
-        DGraph(baseNode, nodes, edges, results, updatedProgresses)
-    }
+    def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): DGraph[R] =
+        DGraph(baseNode, nodes, edges, results, progresses)
 
     def shiftGen(gen: Int): DGraph[R] = {
         def shiftNode[T <: Node](node: T): T = node match {
@@ -238,11 +260,11 @@ case class DGraph[R <: ParseResult](
             case SimpleEdge(start, end, revertTriggers) => SimpleEdge(shiftNode(start), shiftNode(end), revertTriggers map { shiftTrigger _ })
             case JoinEdge(start, end, join) => JoinEdge(shiftNode(start), shiftNode(end), shiftNode(join))
         }
-        val shiftedResults = results map { kv =>
-            (shiftNode(kv._1), kv._2 map { p => (p._1 map { shiftTrigger _ }, p._2) })
+        val shiftedResults = results mapTo { (node, triggers, result) =>
+            (shiftNode(node), triggers map { shiftTrigger _ }, result)
         }
-        val shiftedProgresses = progresses map { kv =>
-            (shiftNode(kv._1), kv._2 map { p => (p._1 map { shiftTrigger _ }, p._2) })
+        val shiftedProgresses = progresses mapTo { (node, triggers, result) =>
+            (shiftNode(node), triggers map { shiftTrigger _ }, result)
         }
         // baseNode는 shiftGen 할 필요 없음
         DGraph(baseNode, shiftedNodes, shiftedEdges, shiftedResults, shiftedProgresses)

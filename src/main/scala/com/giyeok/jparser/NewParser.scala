@@ -9,8 +9,8 @@ import ParsingGraph._
 case class CtxGraph[R <: ParseResult](
         nodes: Set[Node],
         edges: Set[Edge],
-        results: Map[Node, Map[Set[Trigger], R]],
-        progresses: Map[SequenceNode, Map[Set[Trigger], R]]) extends ParsingGraph[R] with TerminalInfo[R] {
+        results: Results[Node, R],
+        progresses: Results[SequenceNode, R]) extends ParsingGraph[R] with TerminalInfo[R] {
 
     // results를 이용해서 revertTrigger 조건을 비교해서 지워야 할 edge/results를 제거한 그래프를 반환한다
     def revert: CtxGraph[R] = {
@@ -22,10 +22,8 @@ case class CtxGraph[R <: ParseResult](
         ???
     }
 
-    def updateResultOf(node: Node, triggers: Set[Trigger], newResult: R): CtxGraph[R] = ???
-    def updateProgressOf(node: SequenceNode, triggers: Set[Trigger], newProgress: R): CtxGraph[R] = ???
-    def withNodeEdgesProgresses(newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): CtxGraph[R] = ???
-    def withNodesEdgesResultsProgresses(newNodes: Set[Node], newEdges: Set[Edge], newResults: Map[Node, Map[Set[Trigger], R]], newProgresses: Map[SequenceNode, Map[Set[Trigger], R]]): CtxGraph[R] = ???
+    def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): CtxGraph[R] =
+        CtxGraph(nodes, edges, results, progresses)
 }
 
 class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseResultFunc[R]) extends LiftTasks[R, CtxGraph[R]] {
@@ -285,12 +283,14 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
         val nextGen = gen + 1
 
-        def result = {
+        def result: Option[R] = {
             // startNode의 result들 중 Wait 타입의 Trigger가 없는 것들만 추려서 merge해서 반환한다
-            resultFunc.merge(
-                graph.resultOf(startNode) collect {
-                    case (triggers, result) if triggers forall { _.triggerType != Trigger.Type.Wait } => result
-                })
+            graph.results.of(startNode) flatMap { results =>
+                resultFunc.merge(
+                    results collect {
+                        case (triggers, result) if triggers forall { _.triggerType != Trigger.Type.Wait } => result
+                    })
+            }
         }
 
         def expandMulti(baseAndGraphs: Set[(NontermNode, DGraph[R])]): (Graph, Set[TermNode]) = {
@@ -332,6 +332,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         }
 
         def proceedDetail(input: ConcreteInput): Either[ProceedDetail, ParsingError] = {
+            // 이 때 새로 만들어지는 CtxGraph에서 results와 progresses는 빈 상태로 시작해야 함
             ???
         }
         def proceed(input: ConcreteInput): Either[ParsingCtx, ParsingError] = {
@@ -341,9 +342,17 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
     val initialContext = {
         val startNode = AtomicNode(Start, 0)(None, None)
+        val emptyResult: Results[Node, R] = derive(startNode).results.of(startNode) match {
+            case Some(r) => Results[Node, R](startNode -> r)
+            case None => Results[Node, R]()
+        }
         ParsingCtx(
             0,
-            CtxGraph[R](Set(startNode), Set(), Map(startNode -> derive(startNode).resultOf(startNode)), Map()),
+            CtxGraph[R](
+                Set(startNode),
+                Set(),
+                emptyResult,
+                Results[SequenceNode, R]()),
             startNode,
             Set(startNode))
     }
