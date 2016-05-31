@@ -283,32 +283,44 @@ class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar:
     def initialize(): Unit = {
         addGraph(dgraph)
 
-        def addResults[N <: ParsingGraph.Node](results: Results[N, ParseForest], bind: Boolean, lineColor: Color): Unit = {
+        def addResults[N <: ParsingGraph.Node](results: Results[N, ParseForest], bind: Boolean, ignoreEmpty: Boolean, lineColor: Color): Unit = {
             results.asMap foreach { result =>
                 val (node, matches) = result
                 matches foreach { m =>
                     val (triggers, result) = m
-                    val forestFigure = new Figure()
-                    forestFigure.setLayoutManager({
-                        val l = new ToolbarLayout(false)
-                        l.setSpacing(3)
-                        l
-                    })
                     val trees = if (bind) ParseForestFunc.bind(node.symbol, result).trees else result.trees
-                    trees foreach { tree =>
-                        val treeFigure = parseNodeFigureGenerator.parseNodeHFig(tree)
-                        treeFigure.setBorder(new LineBorder(1))
-                        forestFigure.add(treeFigure)
+
+                    val trees1 =
+                        if (!ignoreEmpty) trees else {
+                            trees filter {
+                                case n: ParseResultTree.SequenceNode => !n.children.isEmpty
+                                case _ => true
+                            }
+                        }
+
+                    if (!trees1.isEmpty) {
+                        val forestFigure = new Figure()
+                        forestFigure.setLayoutManager({
+                            val l = new ToolbarLayout(false)
+                            l.setSpacing(3)
+                            l
+                        })
+                        trees1 foreach { tree =>
+                            val treeFigure = parseNodeFigureGenerator.parseNodeHFig(tree)
+                            treeFigure.setBorder(new LineBorder(1))
+                            forestFigure.add(treeFigure)
+                        }
+                        val forestNode = nodeFromFigure(forestFigure)
+                        forestNode.setData(result)
+                        val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(node), forestNode)
+                        connection.setLineColor(lineColor)
+                        connection.setText(revertTriggersString(triggers))
                     }
-                    val forestNode = nodeFromFigure(forestFigure)
-                    forestNode.setData(result)
-                    val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(node), forestNode)
-                    connection.setLineColor(lineColor)
                 }
             }
         }
-        addResults(dgraph.results, true, ColorConstants.blue)
-        addResults(dgraph.progresses, false, ColorConstants.red)
+        addResults(dgraph.results, true, false, ColorConstants.blue)
+        addResults(dgraph.progresses, false, true, ColorConstants.red)
 
         import org.eclipse.zest.layouts.algorithms._
         val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)

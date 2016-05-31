@@ -158,7 +158,6 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
 trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks[R, Graph] {
     def finishingTask(task: FinishingTask, cc: Graph): (Graph, Seq[Task]) = {
         val FinishingTask(nextGen, node, result, revertTriggers) = task
-        // TODO AtomicNode.reservedReverterType 처리해주기
         // TODO 혹시 node를 트리거로 하는 reverter가 걸려있는 경우 해당 엣지 처리(Lift/Wait - Lift는 엣지 제거, Wait는 트리거 제거)
         // - 이것도 그냥 lookahead 조건은 nullable일 수 없다고 하면 끝날 문제같긴 한데..
 
@@ -185,6 +184,12 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
             // - incomingEdge의 대상이 sequence인 경우 SequenceProgressTask가 생성됨
             // - result로 들어온 내용은 node의 symbol로 bind가 안 되어 있으므로 여기서 만드는 태스크에서는 resultFunc.bind(node.symbol, result) 로 줘야함 
             val newTasks: Seq[Task] = {
+                // AtomicNode.reservedReverterType 처리
+                val reservedReverter: Option[Trigger] = node match {
+                    case node: AtomicNode => node.reservedReverterType map { Trigger(node, _) }
+                    case _ => None
+                }
+
                 val incomingSimpleEdges = cc.incomingSimpleEdgesTo(node)
                 val incomingJoinEdges = cc.incomingJoinEdgesTo(node)
 
@@ -193,9 +198,9 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 assert(incomingSimpleEdges forall { _.end == node })
                 val simpleEdgeTasks: Set[Task] = incomingSimpleEdges collect {
                     case SimpleEdge(incoming: AtomicNode, _, edgeRevertTriggers) =>
-                        FinishingTask(nextGen, incoming, finishedResult, revertTriggers ++ edgeRevertTriggers)
+                        FinishingTask(nextGen, incoming, finishedResult, revertTriggers ++ edgeRevertTriggers ++ reservedReverter)
                     case SimpleEdge(incoming: SequenceNode, _, edgeRevertTriggers) =>
-                        SequenceProgressTask(nextGen, incoming, finishedResult, revertTriggers ++ edgeRevertTriggers)
+                        SequenceProgressTask(nextGen, incoming, finishedResult, revertTriggers ++ edgeRevertTriggers ++ reservedReverter)
                 }
 
                 val joinEdgeTasks: Set[Task] = incomingJoinEdges flatMap {
@@ -204,7 +209,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                             cc.results.of(join) match {
                                 case Some(results) =>
                                     results map { r =>
-                                        FinishingTask(nextGen, start, resultFunc.join(finishedResult, r._2), revertTriggers ++ r._1)
+                                        FinishingTask(nextGen, start, resultFunc.join(finishedResult, r._2), revertTriggers ++ r._1 ++ reservedReverter)
                                     }
                                 case None => Seq()
                             }
@@ -213,7 +218,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                             cc.results.of(end) match {
                                 case Some(results) =>
                                     results map { r =>
-                                        FinishingTask(nextGen, start, resultFunc.join(r._2, finishedResult), revertTriggers ++ r._1)
+                                        FinishingTask(nextGen, start, resultFunc.join(r._2, finishedResult), revertTriggers ++ r._1 ++ reservedReverter)
                                     }
                                 case None => Seq()
                             }
@@ -241,15 +246,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
         //         - merge된 result가 기존의 progress와 다르면(b)
         //     - a나 b의 경우 추가된 노드에 대한 DeriveTask를 만들어 준다
 
-        val baseResult = {
-            val opt = cc.progresses.of(node)
-            if (opt.isEmpty) {
-                println(node)
-                val cccc = cc.progresses.resultsMap
-                println("??")
-            }
-            opt.get ensuring opt.isDefined
-        }
+        val baseResult = { val opt = cc.progresses.of(node); opt.get ensuring opt.isDefined }
         val appendedResult = baseResult map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.append(kv._2, child)) }
 
         if (node.pointer + 1 < node.symbol.seq.length) {
