@@ -19,7 +19,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
     def newNode(symbol: Symbol): Node = symbol match {
         case Empty => EmptyNode
 
-        case s: Terminal => TermNode(s)
+        case s: Terminal => TermNode(s, 0)
 
         case s: Except => AtomicNode(s, 0)(Some(newNode(s.except)), None)
         case s: Longest => AtomicNode(s, 0)(None, Some(Trigger.Type.Lift))

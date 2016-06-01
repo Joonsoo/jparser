@@ -38,9 +38,9 @@ import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.ParseForest
 
 class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
-    val parser = new NewParser(grammar, ParseForestFunc)
-
     type Parser = NewParser[ParseForest]
+
+    val parser = new NewParser(grammar, ParseForestFunc)
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)

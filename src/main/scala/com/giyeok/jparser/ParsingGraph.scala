@@ -17,12 +17,12 @@ object ParsingGraph {
     case object EmptyNode extends Node {
         val symbol = Empty
     }
-    case class TermNode(symbol: Terminal) extends Node
+    case class TermNode(symbol: Terminal, beginGen: Int) extends Node
 
     // liftBlockTrigger, liftRevertTrigger는 symbol에 따라서만 결정되는 것이므로 equals 등에서 고려할 필요가 없다
     case class AtomicNode(symbol: AtomicNonterm, beginGen: Int)(val liftBlockTrigger: Option[Node], val reservedReverterType: Option[Trigger.Type.Value]) extends NontermNode {
         override def toString = {
-            symbol.toShortString
+            s"(${symbol.toShortString}, $beginGen)"
         }
     }
     // TODO Compaction
@@ -30,7 +30,8 @@ object ParsingGraph {
     case class SequenceNode(symbol: Sequence, pointer: Int, beginGen: Int, endGen: Int) extends NontermNode {
         override def toString = {
             val (p, f) = symbol.seq.splitAt(pointer)
-            ((p map { _.toShortString }) ++ Seq("*") ++ (f map { _.toShortString })).mkString(" ")
+            val kernelStr = ((p map { _.toShortString }) ++ Seq("*") ++ (f map { _.toShortString })).mkString(" ")
+            s"($kernelStr, $beginGen-$endGen)"
         }
     }
 
@@ -51,7 +52,7 @@ object ParsingGraph {
 
 // Results는 ParsingGraph의 results/progresses에서 사용된다
 class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigger], R]]) {
-    def keyNodesSet = resultsMap.keySet.toSet[Node]
+    assert(!(resultsMap exists { _._2.isEmpty }))
 
     def contains(node: N): Boolean = resultsMap contains node
     def of(node: N): Option[Map[Set[Trigger], R]] = resultsMap get node
@@ -85,12 +86,12 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigge
 
     // resultsMap과 등장하는 trigger 중에서 nodes에 포함되는 것만 남기고 전부 날려서 반환하는 함수
     // 만약 resultsMap에서 trigger를 날리다가 key가 같아지는 경우가 생기면 resultFunc로 merge
-    def subresultOf(nodes: Set[N], resultFunc: ParseResultFunc[R]): Results[N, R] = {
+    def subresultOf(nodes: Set[Node], resultFunc: ParseResultFunc[R]): Results[N, R] = {
         val newResultsMap: Map[N, Map[Set[Trigger], R]] = resultsMap collect {
             case (node, tr) if nodes contains node =>
                 val newTriggersResult = tr.foldLeft(Map[Set[Trigger], R]()) { (map, tr) =>
                     val (triggers, result) = tr
-                    val filteredTriggers = triggers filter { t => nodes.asInstanceOf[Set[Node]] contains t.node }
+                    val filteredTriggers = triggers filter { t => nodes contains t.node }
                     map get filteredTriggers match {
                         case Some(existingResult) =>
                             map + (filteredTriggers -> (resultFunc.merge(existingResult, result)))
@@ -99,10 +100,12 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigge
                 }
                 node -> newTriggersResult
         }
+        assert(newResultsMap.keySet.asInstanceOf[Set[Node]] subsetOf nodes)
         new Results(newResultsMap)
     }
 
     def asMap = resultsMap
+    def keyNodesSet = resultsMap.keySet
 }
 object Results {
     def apply[N <: Node, R <: ParseResult](): Results[N, R] = new Results(Map())
@@ -120,19 +123,21 @@ trait ParsingGraph[R <: ParseResult] {
     // progresses는 시퀀스 노드의 현재까지 진행 상황을 나타내는 것이므로 여기서 R은 기존의 PraseTree.SequenceNode에 해당하는 것이어야 함
     val progresses: Results[SequenceNode, R]
 
-    // (edges의 모든 노드)+(progresses의 trigger에 등장하는 노드)가 모두 nodes에 포함되어야 함
+    // edges의 모든 노드가 nodes에 포함되어야 함
+    // - progresses의 trigger에 등장하는 노드 중에는 다음 generation에서 발생할 노드가 포함될 수 있으므로 확인하지 않음
     assert({
         val nodesOfEdges = edges flatMap {
             _ match {
-                case SimpleEdge(start, end, revertTriggers) => Set(start, end) ++ (revertTriggers map { _.node })
+                case SimpleEdge(start, end, revertTriggers) => Set(start, end) // ++ (revertTriggers map { _.node })
                 case JoinEdge(start, end, join) => Set(start, end, join)
             }
         }
-        val nodesOfReverters = (progresses.resultsMap flatMap { _._2 flatMap { _._1 map { _.node } } })
-        (nodesOfEdges ++ nodesOfReverters) subsetOf nodes
+        // val nodesOfReverters = (progresses.resultsMap flatMap { _._2 flatMap { _._1 map { _.node } } })
+
+        nodesOfEdges subsetOf nodes
     })
     // progresses의 keySet의 모든 노드가 nodes에 포함되어야 함
-    assert(progresses.keyNodesSet subsetOf nodes)
+    assert(progresses.keyNodesSet.asInstanceOf[Set[Node]] subsetOf nodes)
 
     // Information Retrieval
     //    def resultOf(node: Node): Option[Map[Set[Trigger], R]] = results.of(node)
@@ -173,13 +178,14 @@ trait ParsingGraph[R <: ParseResult] {
         assert(newNodes forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
         create(nodes ++ newNodes, edges ++ newEdges, results, progresses.update(newProgresses))
     }
+    def withNoResults: ParsingGraph[R] =
+        create(nodes, edges, Results(), progresses)
 
     // nodes와 edges만 포함하는 서브그래프를 반환한다
     // - 이 때, nodes, edges, results, progresses에 붙어 있는 트리거 중 이 nodes에 포함되지 않은 것들은 제거한다
     // - results나 progresses에서 트리거를 제거하면 합쳐져야 할 엔트리들이 생기면 resultFunc로 merge해준다 
     def subgraphOf(subNodes: Set[Node], subEdges: Set[Edge], resultFunc: ParseResultFunc[R]): ParsingGraph[R] = {
-        val subSequenceNodes = subNodes collect { case n: SequenceNode => n }
-        create(subNodes, subEdges, results.subresultOf(subNodes, resultFunc), progresses.subresultOf(subSequenceNodes, resultFunc))
+        create(subNodes, subEdges, results.subresultOf(subNodes, resultFunc), progresses.subresultOf(subNodes, resultFunc))
     }
     // start에서 ends(중 아무곳이나) 도달할 수 있는 모든 경로만 포함하는 서브그래프를 반환한다
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
@@ -194,7 +200,7 @@ trait ParsingGraph[R <: ParseResult] {
                 val incomingEdges = incomingEdgesTo(task)
                 val reachables: Set[(Set[Node], Option[Edge])] = incomingEdges map {
                     case edge @ SimpleEdge(start, end, revertTriggers) =>
-                        val newNodes: Set[Node] = Set(start) ++ (revertTriggers map { _.node })
+                        val newNodes: Set[Node] = Set(start) ++ ((revertTriggers map { _.node }) intersect nodes)
                         (newNodes, Some(edge))
                     case edge @ JoinEdge(start, end, join) =>
                         if ((end == task && (nodesCC contains join)) || (join == task && (nodesCC contains end))) (Set[Node](start), Some(edge))
@@ -214,7 +220,7 @@ trait ParsingGraph[R <: ParseResult] {
                 val outgoingEdges = outgoingEdgesFrom(task)
                 val reachables: Set[(Set[Node], Edge)] = outgoingEdges map {
                     case edge @ SimpleEdge(start, end, revertTriggers) =>
-                        val newNodes: Set[Node] = Set(end) ++ (revertTriggers map { _.node })
+                        val newNodes: Set[Node] = Set(end) ++ ((revertTriggers map { _.node }) intersect nodes)
                         (newNodes, edge)
                     case edge @ JoinEdge(start, end, join) =>
                         (Set(end, join), edge)
@@ -229,7 +235,11 @@ trait ParsingGraph[R <: ParseResult] {
             None
         } else {
             val reachableFromStarts = traverseForward(List(start), Set(start), Set())
-            Some(subgraphOf(reachableToEnds._1 intersect reachableFromStarts._1, reachableToEnds._2 intersect reachableFromStarts._2, resultFunc))
+
+            val subNodes = reachableToEnds._1 intersect reachableFromStarts._1
+            val subEdges = reachableToEnds._2 intersect reachableFromStarts._2
+            assert(subNodes subsetOf nodes)
+            Some(subgraphOf(subNodes, subEdges, resultFunc))
         }
     }
 

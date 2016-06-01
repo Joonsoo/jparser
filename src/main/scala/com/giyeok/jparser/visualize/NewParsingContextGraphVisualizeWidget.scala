@@ -159,10 +159,11 @@ trait NewParserGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
                 g.horizontalFig(Spacing.Big, Seq(
                     g.supFig(g.textFig(s"$nodeId", ap.default)),
                     g.horizontalFig(Spacing.Small, Seq(symbolFigureGenerator.symbolFig(Empty), dot))))
-            case ParsingGraph.TermNode(symbol) =>
+            case ParsingGraph.TermNode(symbol, beginGen) =>
                 g.horizontalFig(Spacing.Big, Seq(
                     g.supFig(g.textFig(s"$nodeId", ap.default)),
-                    g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol)))))
+                    g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol))),
+                    g.textFig(s"$beginGen", ap.default)))
             case ParsingGraph.AtomicNode(symbol, beginGen) =>
                 g.horizontalFig(Spacing.Big, Seq(
                     g.supFig(g.textFig(s"$nodeId", ap.default)),
@@ -211,7 +212,7 @@ trait NewParserGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
                 s"$ttype(${nodeIdCache.of(node)})"
         } mkString " or "
 
-    def addGraph(graph: ParsingGraph[ParseForest]): Unit = {
+    def addGraph(graph: ParsingGraph[ParseForest], showResults: Boolean): Unit = {
         graph.nodes foreach { node =>
             if (!(nodesMap contains node)) {
                 nodesMap(node) = nodeOf(node)
@@ -221,6 +222,50 @@ trait NewParserGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
         graph.edges foreach { edge =>
             if (!(edgesMap contains edge)) {
                 edgesMap(edge) = edgeOf(edge)
+            }
+        }
+
+        if (showResults) {
+            addResults(graph.results, true, false, ColorConstants.blue)
+            addResults(graph.progresses, false, true, ColorConstants.red)
+        }
+    }
+
+    def addResults[N <: ParsingGraph.Node](results: Results[N, ParseForest], bind: Boolean, ignoreEmpty: Boolean, lineColor: Color): Unit = {
+        results.asMap foreach { result =>
+            val (node, matches) = result
+            matches foreach { m =>
+                val (triggers, result) = m
+
+                val trees = if (bind) ParseForestFunc.bind(node.symbol, result).trees else result.trees
+                val trees1 =
+                    if (!ignoreEmpty) trees else {
+                        trees filter {
+                            case n: ParseResultTree.SequenceNode => !n.children.isEmpty
+                            case _ => true
+                        }
+                    }
+
+                if (!trees1.isEmpty) {
+                    val forestFigure = new Figure()
+                    forestFigure.setLayoutManager({
+                        val l = new ToolbarLayout(false)
+                        l.setSpacing(3)
+                        l
+                    })
+                    trees1 foreach { tree =>
+                        val treeFigure = parseNodeFigureGenerator.parseNodeHFig(tree)
+                        treeFigure.setBorder(new LineBorder(1))
+                        forestFigure.add(treeFigure)
+                    }
+                    val forestNode = nodeFromFigure(forestFigure)
+                    forestNode.setData(result)
+                    val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(node), forestNode)
+                    connection.setLineColor(lineColor)
+                    if (!triggers.isEmpty) {
+                        connection.setText(revertTriggersString(triggers))
+                    }
+                }
             }
         }
     }
@@ -281,46 +326,10 @@ class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar:
     val graphView = new Graph(this, SWT.NONE)
 
     def initialize(): Unit = {
-        addGraph(dgraph)
+        addGraph(dgraph, true)
 
-        def addResults[N <: ParsingGraph.Node](results: Results[N, ParseForest], bind: Boolean, ignoreEmpty: Boolean, lineColor: Color): Unit = {
-            results.asMap foreach { result =>
-                val (node, matches) = result
-                matches foreach { m =>
-                    val (triggers, result) = m
-                    val trees = if (bind) ParseForestFunc.bind(node.symbol, result).trees else result.trees
-
-                    val trees1 =
-                        if (!ignoreEmpty) trees else {
-                            trees filter {
-                                case n: ParseResultTree.SequenceNode => !n.children.isEmpty
-                                case _ => true
-                            }
-                        }
-
-                    if (!trees1.isEmpty) {
-                        val forestFigure = new Figure()
-                        forestFigure.setLayoutManager({
-                            val l = new ToolbarLayout(false)
-                            l.setSpacing(3)
-                            l
-                        })
-                        trees1 foreach { tree =>
-                            val treeFigure = parseNodeFigureGenerator.parseNodeHFig(tree)
-                            treeFigure.setBorder(new LineBorder(1))
-                            forestFigure.add(treeFigure)
-                        }
-                        val forestNode = nodeFromFigure(forestFigure)
-                        forestNode.setData(result)
-                        val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(node), forestNode)
-                        connection.setLineColor(lineColor)
-                        connection.setText(revertTriggersString(triggers))
-                    }
-                }
-            }
-        }
-        addResults(dgraph.results, true, false, ColorConstants.blue)
-        addResults(dgraph.progresses, false, true, ColorConstants.red)
+        addResults(dgraph._baseResults, true, false, ColorConstants.blue)
+        addResults(dgraph._baseProgresses, false, false, ColorConstants.green)
 
         import org.eclipse.zest.layouts.algorithms._
         val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)
@@ -335,7 +344,7 @@ class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val g
     val graphView = new Graph(this, SWT.NONE)
 
     def initialize(): Unit = {
-        addGraph(context.graph)
+        addGraph(context.graph, true)
 
         context.derivables foreach { node =>
             nodesMap(node).setBackgroundColor(ColorConstants.yellow)
@@ -348,6 +357,7 @@ class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val g
                     if (context.graph.nodes contains context.startNode) {
                         val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(context.startNode), resultNode)
                         connection.setLineColor(ColorConstants.blue)
+                        connection.setLineWidth(3)
                     }
                 }
             case None =>
@@ -367,7 +377,7 @@ class NewParserExpandedGraphVisualizeWidget(parent: Composite, style: Int, val g
     val graphView = new Graph(this, SWT.NONE)
 
     def initialize(): Unit = {
-        addGraph(proceed.expandedGraph)
+        addGraph(proceed.expandedGraph, true)
 
         import org.eclipse.zest.layouts.algorithms._
         val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)
@@ -383,8 +393,8 @@ class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val gr
     val graphView = new Graph(this, SWT.NONE)
 
     def initialize(): Unit = {
-        addGraph(proceed.expandedGraph)
-        addGraph(proceed.liftedGraph0)
+        addGraph(proceed.expandedGraph, false)
+        addGraph(proceed.liftedGraph0, true)
         // expandedGraph에서 liftedGraph0로 오면서 사라진 노드들 표시
         (proceed.expandedGraph.nodes -- proceed.liftedGraph0.nodes) foreach { removedNode =>
             nodesMap(removedNode).getFigure.setBorder(new LineBorder(ColorConstants.red))
@@ -394,7 +404,7 @@ class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val gr
             edgesMap(removedEdge) foreach { _.setLineColor(ColorConstants.red) }
         }
         // 사용 가능한 term node 배경 노랗게 표시
-        proceed.eligibleTermNodes0 foreach { node =>
+        proceed.eligibleTermNodes foreach { node =>
             nodesMap(node).setBackgroundColor(ColorConstants.orange)
         }
         proceed.nextDerivables0 foreach { node =>
