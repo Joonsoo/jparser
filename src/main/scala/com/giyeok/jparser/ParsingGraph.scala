@@ -83,6 +83,25 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigge
         }
     }
 
+    // resultsMap과 등장하는 trigger 중에서 nodes에 포함되는 것만 남기고 전부 날려서 반환하는 함수
+    // 만약 resultsMap에서 trigger를 날리다가 key가 같아지는 경우가 생기면 resultFunc로 merge
+    def subresultOf(nodes: Set[N], resultFunc: ParseResultFunc[R]): Results[N, R] = {
+        val newResultsMap: Map[N, Map[Set[Trigger], R]] = resultsMap collect {
+            case (node, tr) if nodes contains node =>
+                val newTriggersResult = tr.foldLeft(Map[Set[Trigger], R]()) { (map, tr) =>
+                    val (triggers, result) = tr
+                    val filteredTriggers = triggers filter { t => nodes.asInstanceOf[Set[Node]] contains t.node }
+                    map get filteredTriggers match {
+                        case Some(existingResult) =>
+                            map + (filteredTriggers -> (resultFunc.merge(existingResult, result)))
+                        case None => map + (filteredTriggers -> result)
+                    }
+                }
+                node -> newTriggersResult
+        }
+        new Results(newResultsMap)
+    }
+
     def asMap = resultsMap
 }
 object Results {
@@ -128,6 +147,10 @@ trait ParsingGraph[R <: ParseResult] {
     def incomingJoinEdgesTo(node: Node): Set[JoinEdge] = edges collect {
         case edge @ (JoinEdge(_, _, `node`) | JoinEdge(_, `node`, _)) => edge.asInstanceOf[JoinEdge]
     }
+    def outgoingEdgesFrom(node: Node): Set[Edge] = edges collect {
+        case edge @ SimpleEdge(`node`, _, _) => edge
+        case edge @ JoinEdge(`node`, _, _) => edge
+    }
     def outgoingSimpleEdgesFrom(node: Node): Set[SimpleEdge] = edges collect {
         case edge @ SimpleEdge(`node`, _, _) => edge
     }
@@ -149,6 +172,65 @@ trait ParsingGraph[R <: ParseResult] {
     def withNodesEdgesProgresses(newNodes: Set[Node], newEdges: Set[Edge], newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
         assert(newNodes forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
         create(nodes ++ newNodes, edges ++ newEdges, results, progresses.update(newProgresses))
+    }
+
+    // nodes와 edges만 포함하는 서브그래프를 반환한다
+    // - 이 때, nodes, edges, results, progresses에 붙어 있는 트리거 중 이 nodes에 포함되지 않은 것들은 제거한다
+    // - results나 progresses에서 트리거를 제거하면 합쳐져야 할 엔트리들이 생기면 resultFunc로 merge해준다 
+    def subgraphOf(subNodes: Set[Node], subEdges: Set[Edge], resultFunc: ParseResultFunc[R]): ParsingGraph[R] = {
+        val subSequenceNodes = subNodes collect { case n: SequenceNode => n }
+        create(subNodes, subEdges, results.subresultOf(subNodes, resultFunc), progresses.subresultOf(subSequenceNodes, resultFunc))
+    }
+    // start에서 ends(중 아무곳이나) 도달할 수 있는 모든 경로만 포함하는 서브그래프를 반환한다
+    // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
+    def subgraphIn(start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
+        def traverseBackward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
+            case task +: rest =>
+                val liftBlockTriggerNode = task match {
+                    case node: AtomicNode => node.liftBlockTrigger
+                    case _ => None
+                }
+
+                val incomingEdges = incomingEdgesTo(task)
+                val reachables: Set[(Set[Node], Option[Edge])] = incomingEdges map {
+                    case edge @ SimpleEdge(start, end, revertTriggers) =>
+                        val newNodes: Set[Node] = Set(start) ++ (revertTriggers map { _.node })
+                        (newNodes, Some(edge))
+                    case edge @ JoinEdge(start, end, join) =>
+                        if ((end == task && (nodesCC contains join)) || (join == task && (nodesCC contains end))) (Set[Node](start), Some(edge))
+                        else (Set[Node](), None)
+                }
+                val (reachableNodes, reachableEdges) = reachables.foldLeft((liftBlockTriggerNode.toSet, Set[Edge]())) { (m, i) => (m._1 ++ i._1, m._2 ++ i._2) }
+                traverseBackward(rest ++ (reachableNodes -- nodesCC).toList, nodesCC ++ reachableNodes, edgesCC ++ reachableEdges)
+            case List() => (nodesCC, edgesCC)
+        }
+        def traverseForward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
+            case task +: rest =>
+                val liftBlockTriggerNode = task match {
+                    case node: AtomicNode => node.liftBlockTrigger
+                    case _ => None
+                }
+
+                val outgoingEdges = outgoingEdgesFrom(task)
+                val reachables: Set[(Set[Node], Edge)] = outgoingEdges map {
+                    case edge @ SimpleEdge(start, end, revertTriggers) =>
+                        val newNodes: Set[Node] = Set(end) ++ (revertTriggers map { _.node })
+                        (newNodes, edge)
+                    case edge @ JoinEdge(start, end, join) =>
+                        (Set(end, join), edge)
+                }
+                val (reachableNodes, reachableEdges) = reachables.foldLeft((liftBlockTriggerNode.toSet, Set[Edge]())) { (m, i) => (m._1 ++ i._1, m._2 + i._2) }
+                traverseForward(rest ++ (reachableNodes -- nodesCC).toList, nodesCC ++ reachableNodes, edgesCC ++ reachableEdges)
+            case List() => (nodesCC, edgesCC)
+        }
+
+        val reachableToEnds = traverseBackward(ends.toList, ends, Set())
+        if (!(reachableToEnds._1 contains start)) {
+            None
+        } else {
+            val reachableFromStarts = traverseForward(List(start), Set(start), Set())
+            Some(subgraphOf(reachableToEnds._1 intersect reachableFromStarts._1, reachableToEnds._2 intersect reachableFromStarts._2, resultFunc))
+        }
     }
 
 }
@@ -186,124 +268,4 @@ trait TerminalInfo[R <: ParseResult] extends ParsingGraph[R] {
 
         (charTermGroups ++ virtTermGroups) filterNot { _.isEmpty }
     }
-}
-
-trait Reachability[R <: ParseResult] extends TerminalInfo[R] {
-    lazy val reachablesMap: Map[Node, Set[TermGroupDesc]] = {
-        val cc = scala.collection.mutable.Map[Node, Set[TermGroupDesc]]()
-        nodes foreach {
-            case node @ TermNode(terminal) =>
-                cc(node) = termGroups filter { terminal accept _ }
-            case node => cc(node) = Set()
-        }
-        def reverseTraverse(node: Node): Unit = {
-            val incomingEdges = incomingEdgesTo(node)
-            incomingEdges foreach {
-                case SimpleEdge(start, end, _) =>
-                    if (!(cc(end) subsetOf cc(start))) {
-                        cc(start) ++= cc(end)
-                        reverseTraverse(start)
-                    }
-                case JoinEdge(start, end, join) =>
-                    val intersect = cc(end) intersect cc(join)
-                    if (!(intersect subsetOf cc(start))) {
-                        cc(start) ++= intersect
-                        reverseTraverse(start)
-                    }
-            }
-        }
-        terminalNodes foreach { node => reverseTraverse(node) }
-
-        val result: Map[Node, Set[TermGroupDesc]] = cc.toMap
-        assert(result.keySet == nodes)
-        assert(edges forall {
-            case SimpleEdge(start, end, _) =>
-                result(end) subsetOf result(start)
-            case JoinEdge(start, end, join) =>
-                result(start) == (result(end) intersect result(join))
-        })
-        result
-    }
-}
-
-object DGraph {
-    trait BaseNode
-    class BaseAtomicNode(_symbol: AtomicNonterm) extends AtomicNode(_symbol, 0)(None, None) with BaseNode
-    class BaseSequenceNode(_symbol: Sequence, _pointer: Int) extends SequenceNode(_symbol, _pointer, 0, 0) with BaseNode
-}
-
-case class DGraph[R <: ParseResult](
-        baseNode: DGraph.BaseNode,
-        nodes: Set[Node],
-        edges: Set[Edge],
-        results: Results[Node, R],
-        progresses: Results[SequenceNode, R]) extends ParsingGraph[R] with Reachability[R] {
-    // baseNode가 nodes에 포함되어야 함
-    assert(nodes contains baseNode.asInstanceOf[Node])
-    // baseNode를 제외하고는 전부 BaseNode가 아니어야 함
-    assert((nodes - baseNode.asInstanceOf[Node]) forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
-
-    // DerivationGraph에 등장하는 모든 gen이 0이어야 한다
-    assert(nodes forall {
-        case EmptyNode | TermNode(_) => true
-        case _: DGraph.BaseNode => true
-        case AtomicNode(_, beginGen) => beginGen == 0
-        case SequenceNode(_, _, beginGen, endGen) => beginGen == 0 && endGen == 0
-    })
-
-    // Information Retrieval
-    def edgesFromBaseNode = edges filter {
-        case SimpleEdge(start, _, _) => start == baseNode
-        case JoinEdge(start, _, _) =>
-            // 이런 경우는 일반적으로 발생하진 않아야 함(visualize나 test시에만 발생 가능)
-            start == baseNode
-    }
-    def edgesNotFromBaseNode = edges -- edgesFromBaseNode
-
-    // Modification
-    def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): DGraph[R] =
-        DGraph(baseNode, nodes, edges, results, progresses)
-
-    def shiftGen(gen: Int): DGraph[R] = {
-        def shiftNode[T <: Node](node: T): T = node match {
-            case n: AtomicNode => (AtomicNode(n.symbol, n.beginGen + gen)(n.liftBlockTrigger map { shiftNode _ }, n.reservedReverterType)).asInstanceOf[T]
-            case n: SequenceNode => SequenceNode(n.symbol, n.pointer, n.beginGen + gen, n.endGen + gen).asInstanceOf[T]
-            case n => n
-        }
-        def shiftTrigger(trigger: Trigger): Trigger = Trigger(shiftNode(trigger.node), trigger.triggerType)
-        val shiftedNodes: Set[Node] = nodes map { shiftNode _ }
-        val shiftedEdges: Set[Edge] = edges map {
-            case SimpleEdge(start, end, revertTriggers) => SimpleEdge(shiftNode(start), shiftNode(end), revertTriggers map { shiftTrigger _ })
-            case JoinEdge(start, end, join) => JoinEdge(shiftNode(start), shiftNode(end), shiftNode(join))
-        }
-        val shiftedResults = results mapTo { (node, triggers, result) =>
-            (shiftNode(node), triggers map { shiftTrigger _ }, result)
-        }
-        val shiftedProgresses = progresses mapTo { (node, triggers, result) =>
-            (shiftNode(node), triggers map { shiftTrigger _ }, result)
-        }
-        // baseNode는 shiftGen 할 필요 없음
-        DGraph(baseNode, shiftedNodes, shiftedEdges, shiftedResults, shiftedProgresses)
-    }
-
-    // Misc.
-    lazy val sliceByTermGroups: Map[TermGroupDesc, Option[DGraph[R]]] = {
-        (termGroups map { termGroup =>
-            val subgraph = if (reachablesMap(baseNode.asInstanceOf[Node]) contains termGroup) {
-                // TODO 다시 구현
-                Some(this)
-            } else None
-            termGroup -> subgraph
-        }).toMap
-    }
-
-    def subgraphTo(termGroup: TermGroupDesc): Option[DGraph[R]] =
-        sliceByTermGroups(termGroup) ensuring (termGroups contains termGroup)
-    def subgraphTo(input: ConcreteInput): Option[DGraph[R]] =
-        termGroups find { _.contains(input) } flatMap { subgraphTo(_) }
-    def trim: DGraph[R] = {
-        // TODO baseNode에서 reachable한 node/edge로만 구성된 subgraph 반환
-        this
-    }
-    def compaction: DGraph[R] = ???
 }

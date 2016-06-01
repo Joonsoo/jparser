@@ -20,6 +20,13 @@ import com.giyeok.jparser.DerivationFunc
 import com.giyeok.jparser.ParseForestFunc
 import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.Control
+import org.eclipse.swt.widgets.List
+import com.giyeok.jparser.DGraph
+import com.giyeok.jparser.Inputs.TermGroupDesc
+import com.giyeok.jparser.ParseForest
+import org.eclipse.swt.events.SelectionListener
+import org.eclipse.swt.widgets.Listener
+import org.eclipse.swt.widgets.Event
 
 class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell, resources: VisualizeResources) extends BasicGenerators with KernelFigureGenerator[Figure] {
     val derivationFunc = new DerivationFunc(grammar, ParseForestFunc)
@@ -32,6 +39,9 @@ class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, she
     })
     kernelList.setBackground(ColorConstants.buttonLightest)
 
+    val termGroupsList = new List(shell, SWT.NONE)
+    var termGroupsItems = Seq[Option[TermGroupDesc]]() // None은 전체를 의미
+
     val layout = new StackLayout
 
     val derivationGraphs = new Composite(shell, SWT.NONE)
@@ -41,7 +51,41 @@ class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, she
 
     type Kernel = Either[AtomicSymbol, (Sequence, Int)]
 
-    val dgraphCache = scala.collection.mutable.Map[Kernel, Control]()
+    case class DGraphWidget(
+            dgraph: DGraph[ParseForest]) {
+        val nodeIdCache = new NodeIdCache
+
+        val sliceMap: Map[TermGroupDesc, Option[DGraph[ParseForest]]] = dgraph.sliceByTermGroups(ParseForestFunc)
+
+        val graphWidget: DerivationGraphVisualizeWidget =
+            new DerivationGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, dgraph)
+
+        def showAllGraph(): Unit = {
+            layout.topControl = graphWidget
+            derivationGraphs.layout()
+        }
+
+        val sliceWidgetCache = scala.collection.mutable.Map[TermGroupDesc, DerivationGraphVisualizeWidget]()
+
+        def sliceWidgetOf(termGroupDesc: TermGroupDesc): DerivationGraphVisualizeWidget = {
+            assert(sliceMap(termGroupDesc).isDefined)
+            sliceWidgetCache get termGroupDesc match {
+                case Some(widget) => widget
+                case None =>
+                    val widget = new DerivationGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, sliceMap(termGroupDesc).get)
+                    sliceWidgetCache(termGroupDesc) = widget
+                    widget
+            }
+        }
+
+        def showSliceGraphOf(termGroupDesc: TermGroupDesc): Unit = {
+            layout.topControl = sliceWidgetOf(termGroupDesc)
+            derivationGraphs.layout()
+        }
+    }
+
+    val dgraphCache = scala.collection.mutable.Map[Kernel, DGraphWidget]()
+    var currentDGraph: DGraphWidget = null
 
     val (kernelListFig, buttonsMap) = {
         val fig = new Figure
@@ -60,14 +104,19 @@ class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, she
             box
         }
         def setData(symbol: Figure, data: Kernel): Figure = {
-            symbol.addMouseListener(new MouseListener() {
-                def mouseDoubleClicked(e: MouseEvent): Unit = {}
-                def mousePressed(e: MouseEvent): Unit = {
-                    println(data)
-                    updateKernel(data)
-                }
-                def mouseReleased(e: MouseEvent): Unit = {}
-            })
+            data match {
+                case Left(_: AtomicNonterm) | Right(_) =>
+                    symbol.addMouseListener(new MouseListener() {
+                        def mouseDoubleClicked(e: MouseEvent): Unit = {}
+                        def mousePressed(e: MouseEvent): Unit = {
+                            println(data)
+                            updateKernel(data)
+                        }
+                        def mouseReleased(e: MouseEvent): Unit = {}
+                    })
+                case _ =>
+                    symbol.setBorder(new LineBorder(ColorConstants.buttonLightest)) // do nothing
+            }
             symbol
         }
 
@@ -91,25 +140,54 @@ class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, she
     }
     kernelList.setContents(kernelListFig)
 
+    termGroupsList.addListener(SWT.Selection, new Listener() {
+        def handleEvent(e: Event): Unit = {
+            val idx = termGroupsList.getSelectionIndex
+            if (idx < termGroupsItems.length) {
+                termGroupsItems(idx) match {
+                    case None =>
+                        currentDGraph.showAllGraph()
+                    case Some(termGroupDesc) =>
+                        currentDGraph.showSliceGraphOf(termGroupDesc)
+                }
+            } else {
+                // Something's wrong
+            }
+        }
+    })
+    def updateTermGroupDescList(): Unit = {
+        termGroupsItems = Seq(None) ++ (currentDGraph.sliceMap.keys.toSeq map { Some(_) })
+        termGroupsList.removeAll()
+        termGroupsItems foreach {
+            case None =>
+                termGroupsList.add("All")
+            case Some(termGroup) =>
+                termGroupsList.add(termGroup.toShortString)
+        }
+        termGroupsList.select(0)
+    }
+
     def updateKernel(selected: Kernel): Unit = {
         buttonsMap foreach { _._2.setBackgroundColor(ColorConstants.white) }
         buttonsMap(selected).setBackgroundColor(ColorConstants.buttonDarker)
 
-        dgraphCache get selected match {
-            case Some(graph) =>
-                layout.topControl = graph
-                derivationGraphs.layout()
+        val widget = dgraphCache get selected match {
+            case Some(cached) => cached
             case None =>
-                val dgraph = selected match {
-                    case Left(symbol: AtomicNonterm) => new DerivationGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, new NodeIdCache, derivationFunc.deriveAtomic(symbol))
-                    case Left(symbol) =>
-                        val l = new Label(derivationGraphs, SWT.NONE); l.setText("Terminal node has no derivation graph"); l
-                    case Right((symbol, pointer)) => new DerivationGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, new NodeIdCache, derivationFunc.deriveSequence(symbol, pointer))
+                val dgraph: DGraph[ParseForest] = selected match {
+                    case Left(symbol: AtomicNonterm) => derivationFunc.deriveAtomic(symbol)
+                    case Right((symbol, pointer)) => derivationFunc.deriveSequence(symbol, pointer)
+                    case Left(symbol) => ??? // not going to happen
                 }
-                dgraphCache(selected) = dgraph
-                layout.topControl = dgraph
-                derivationGraphs.layout()
+                val cache = DGraphWidget(dgraph)
+                dgraphCache(selected) = cache
+                cache
         }
+
+        currentDGraph = widget
+        updateTermGroupDescList()
+        layout.topControl = widget.graphWidget
+        derivationGraphs.layout()
     }
 
     def initialize(): Unit = {
@@ -119,7 +197,7 @@ class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, she
     def start(): Unit = {
         shell.setText("Derivation Graph")
         shell.setLayout({
-            val l = new GridLayout(2, false)
+            val l = new GridLayout(3, false)
             l.marginWidth = 0
             l.marginHeight = 0
             l.verticalSpacing = 0
