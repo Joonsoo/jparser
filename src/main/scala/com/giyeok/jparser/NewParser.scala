@@ -247,8 +247,19 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                 case node: AtomicNode if (node.liftBlockTrigger flatMap { liftedGraph0.results.of(_) }).isDefined =>
                                     val results = liftedGraph0.results.of(node.liftBlockTrigger.get).get
                                     // 이 지점에서 results에 들어있는 실제 파싱 결과는 관심이 없음
-                                    results.keySet
-                                    node -> Set[Trigger]()
+                                    // TODO 여기서 results.keys를 flatten해버리면 되나? 고민해보기
+                                    val reverseTriggers = results.keys.flatten map {
+                                        case Trigger(node, ttype) =>
+                                            val reverseType = ttype match {
+                                                case Trigger.Type.Lift => Trigger.Type.Wait
+                                                case Trigger.Type.Wait => Trigger.Type.Lift
+                                                // Alive - Dead는 아직 안됨
+                                                case Trigger.Type.Alive => ???
+                                                // case Trigger.Type.Dead => Trigger.Type.Alive
+                                            }
+                                            Trigger(node, reverseType)
+                                    }
+                                    node -> reverseTriggers.toSet
                             }
                             d.toMap
                         }

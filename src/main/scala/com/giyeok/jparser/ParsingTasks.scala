@@ -302,8 +302,9 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                         (cc, finishingTasks.toSeq)
                     }
                 } else {
+                    val appendedNode = SequenceNode(node.symbol, node.pointer, node.beginGen, nextGen)
                     val appendedProgresses = baseProgresses map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.appendWhitespace(kv._2, child)) }
-                    (cc.updateProgressesOf(node, appendedProgresses).asInstanceOf[Graph], Seq(DeriveTask(nextGen, node)))
+                    (cc.updateProgressesOf(appendedNode, appendedProgresses).asInstanceOf[Graph], Seq(DeriveTask(nextGen, node)))
                 }
         }
     }
