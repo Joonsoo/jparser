@@ -16,7 +16,7 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
 
         def needParentheses(symbol: Symbol): Boolean =
             symbol match {
-                case _@ (Nonterminal(_) | Terminals.ExactChar(_) | Sequence(Seq(Terminals.ExactChar(_)), _)) => false
+                case _@ (Nonterminal(_) | Terminals.ExactChar(_) | Sequence(Seq(Terminals.ExactChar(_)), _) | Empty) => false
                 case _ => true
             }
 

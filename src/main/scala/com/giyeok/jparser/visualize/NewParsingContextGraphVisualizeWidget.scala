@@ -394,14 +394,14 @@ class NewParserRevertedGraphVisualizeWidget(parent: Composite, style: Int, val g
 
     def initialize(): Unit = {
         addGraph(proceed.expandedGraph, false)
-        addGraph(proceed.revertedGraph, true)
+        addGraph(proceed.revertedGraph.get, true)
 
         // expandedGraph에서 revertedGraph로 오면서 사라진 노드들 표시
-        (proceed.expandedGraph.nodes -- proceed.revertedGraph.nodes) foreach { removedNode =>
+        (proceed.expandedGraph.nodes -- proceed.revertedGraph.get.nodes) foreach { removedNode =>
             nodesMap(removedNode).getFigure.setBorder(new LineBorder(ColorConstants.red))
         }
         // expandedGraph에서 revertedGraph로 오면서 사라진 엣지들 표시
-        (proceed.expandedGraph.edges -- proceed.revertedGraph.edges) foreach { removedEdge =>
+        (proceed.expandedGraph.edges -- proceed.revertedGraph.get.edges) foreach { removedEdge =>
             edgesMap(removedEdge) foreach { _.setLineColor(ColorConstants.red) }
         }
 
@@ -478,7 +478,7 @@ class NewParserFinalLiftGraphVisualizeWidget(parent: Composite, style: Int, val 
     val graphView = new Graph(this, SWT.NONE)
 
     def initialize(): Unit = {
-        addLiftGraph(proceed.revertedGraph, proceed.liftedGraph, proceed.eligibleTermNodes, proceed.nextDerivables)
+        addLiftGraph(proceed.revertedGraph.get, proceed.liftedGraph.get, proceed.eligibleTermNodes, proceed.nextDerivables.get)
 
         import org.eclipse.zest.layouts.algorithms._
         val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)

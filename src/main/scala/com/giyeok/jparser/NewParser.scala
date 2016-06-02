@@ -44,20 +44,28 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         }
     }
 
+    case class ParsingStage(
+        baseGraph: Graph,
+        eligibleTermNodes: Set[TermNode],
+        liftedGraphPre: Graph,
+        liftedGraph: Graph,
+        nextDerivables: Set[SequenceNode])
+
     case class ProceedDetail(
-            expandedGraph: Graph,
-            eligibleTermNodes: Set[TermNode],
-            liftedGraph0pre: Graph,
-            liftedGraph0: Graph,
-            nextDerivables0: Set[SequenceNode],
-            revertedGraph: Graph,
-            // tempLiftBlocking
-            liftedGraphPre: Graph,
-            liftedGraph: Graph,
-            nextDerivables: Set[SequenceNode],
+            firstStage: ParsingStage,
+            finalStage: Option[ParsingStage],
             nextContext: ParsingCtx) {
-        val firstStage = (liftedGraph0, nextDerivables0)
-        val finalStage = (liftedGraph, nextDerivables)
+
+        val expandedGraph = firstStage.baseGraph
+        val eligibleTermNodes = firstStage.eligibleTermNodes
+        val liftedGraph0pre = firstStage.liftedGraphPre
+        val liftedGraph0 = firstStage.liftedGraph
+        val nextDerivables0 = firstStage.nextDerivables
+
+        val revertedGraph = finalStage map { _.baseGraph }
+        val liftedGraphPre = finalStage map { _.liftedGraphPre }
+        val liftedGraph = finalStage map { _.liftedGraph }
+        val nextDerivables = finalStage map { _.nextDerivables }
     }
 
     type Graph = CtxGraph[R]
@@ -103,13 +111,27 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         liftedGraphOpt match {
                             case Some(liftedGraph) =>
                                 val nextContext: ParsingCtx = ParsingCtx(nextGen, liftedGraph, startNode, (nextDerivables.asInstanceOf[Set[Node]] intersect liftedGraph.nodes).asInstanceOf[Set[NontermNode]])
-                                Left(ProceedDetail(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0, nextDerivables0, revertedGraph, liftedGraphPre, liftedGraph, nextDerivables, nextContext))
+                                Left(ProceedDetail(
+                                    ParsingStage(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0, nextDerivables0),
+                                    Some(ParsingStage(revertedGraph, termNodes, liftedGraphPre, liftedGraph, nextDerivables)),
+                                    nextContext))
                             case None =>
                                 ???
                         }
                     case None =>
                         // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
-                        ???
+                        Left(ProceedDetail(
+                            ParsingStage(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0pre, nextDerivables0),
+                            None,
+                            ParsingCtx(
+                                nextGen,
+                                CtxGraph(
+                                    Set(startNode),
+                                    Set(),
+                                    Results(startNode -> liftedGraph0pre.results.of(startNode).get),
+                                    Results()),
+                                startNode,
+                                Set())))
                 }
             }
         }
