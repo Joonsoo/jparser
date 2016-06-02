@@ -254,60 +254,63 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 // baseProgresses가 revert에 의해 없어진 경우에는 무시하고 지나간다
                 (cc, Seq())
             case Some(baseProgresses) =>
-                if (node.symbol.seq(node.pointer) == childSymbol) {
-                    // whitespace가 아닌 실제 내용인 경우
+                val isContent = node.symbol.seq(node.pointer) == childSymbol
+                if (isContent && (node.pointer + 1 >= node.symbol.seq.length)) {
+                    // append되면 finish할 수 있는 상태
+                    // - FinishingTask만 만들어 주면 될듯
+                    val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
                     val appendedProgresses = baseProgresses map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.append(kv._2, child)) }
-
-                    if (node.pointer + 1 < node.symbol.seq.length) {
-                        // append된 뒤에도 아직 finishable이 되지 않는 상태
-                        val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
-                        if (cc.nodes contains appendedNode) {
-                            // appendedNode가 이미 그래프에 있는 경우
-                            // - baseProgresses에는 없고 appendedProgresses에 생긴 triggerSet이 있으면 그 부분 추가하고
-                            // - 겹치는 triggerSet에 대해서는 resultFunc.merge 해서
-                            // - 만들어진 mergedProgresses가 baseProgresses와 같으면 무시하고 진행하고 다르면 DeriveTask(appendedNode)를 추가한다
-
-                            val appendedNodeProgresses = cc.progresses.of(appendedNode).get
-
-                            val (mergedProgresses: Map[Set[Trigger], R], needDerive: Boolean) = appendedNodeProgresses.foldLeft((baseProgresses, false)) { (cc, entry) =>
-                                val (progresses, needDerive) = cc
-                                val (triggers, result) = entry
-                                progresses get triggers match {
-                                    case Some(existingResult) =>
-                                        val mergedResult = resultFunc.merge(existingResult, result)
-                                        if (existingResult == mergedResult) {
-                                            cc
-                                        } else {
-                                            (progresses + (triggers -> mergedResult), needDerive)
-                                        }
-                                    case None =>
-                                        (progresses + entry, true)
-                                }
-                            }
-
-                            (cc.updateProgressesOf(appendedNode, mergedProgresses).asInstanceOf[Graph], if (needDerive) Seq(DeriveTask(nextGen, appendedNode)) else Seq())
-                        } else {
-                            // append한 노드가 아직 cc에 없는 경우
-                            // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다
-                            val newEdges: Set[Edge] = cc.incomingSimpleEdgesTo(node) map {
-                                case SimpleEdge(start, end, edgeRevertTriggers) =>
-                                    assert(end == node)
-                                    // TODO 여기서 revertTrigger를 이렇게 주는게 맞나? edgeRevertTriggers만 주면 될 것 같기도 하고? (revertTriggers는 result에 반영되니까)
-                                    SimpleEdge(start, appendedNode, revertTriggers ++ edgeRevertTriggers)
-                            }
-                            assert(cc.incomingJoinEdgesTo(node).isEmpty)
-                            (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> appendedProgresses)).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
-                        }
-                    } else {
-                        // append되면 finish할 수 있는 상태
-                        // - FinishingTask만 만들어 주면 될듯
-                        val finishingTasks = appendedProgresses map { kv => FinishingTask(nextGen, node, kv._2, kv._1 ++ revertTriggers) }
-                        (cc, finishingTasks.toSeq)
-                    }
+                    val finishingTasks = appendedProgresses map { kv => FinishingTask(nextGen, node, kv._2, kv._1 ++ revertTriggers) }
+                    (cc, finishingTasks.toSeq)
                 } else {
-                    val appendedNode = SequenceNode(node.symbol, node.pointer, node.beginGen, nextGen)
-                    val appendedProgresses = baseProgresses map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.appendWhitespace(kv._2, child)) }
-                    (cc.updateProgressesOf(appendedNode, appendedProgresses).asInstanceOf[Graph], Seq(DeriveTask(nextGen, node)))
+                    val (appendedNode, appendedProgresses) = if (isContent) {
+                        // whitespace가 아닌 실제 내용인 경우
+                        assert(node.pointer + 1 < node.symbol.seq.length)
+                        val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
+                        val appendedProgresses = baseProgresses map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.append(kv._2, child)) }
+                        (appendedNode, appendedProgresses)
+                    } else {
+                        // whitespace인 경우
+                        val appendedNode = SequenceNode(node.symbol, node.pointer, node.beginGen, nextGen)
+                        val appendedProgresses = baseProgresses map { kv => (kv._1 ++ revertTriggers) -> resultFunc.appendWhitespace(kv._2, child) }
+                        (appendedNode, appendedProgresses)
+                    }
+
+                    if (cc.nodes contains appendedNode) {
+                        // appendedNode가 이미 그래프에 있는 경우
+                        // - baseProgresses에는 없고 appendedProgresses에 생긴 triggerSet이 있으면 그 부분 추가하고
+                        // - 겹치는 triggerSet에 대해서는 resultFunc.merge 해서
+                        // - 만들어진 mergedProgresses가 baseProgresses와 같으면 무시하고 진행하고 다르면 DeriveTask(appendedNode)를 추가한다
+
+                        val (mergedProgresses: Map[Set[Trigger], R], needDerive: Boolean) = appendedProgresses.foldLeft((cc.progresses.of(appendedNode).get, false)) { (cc, entry) =>
+                            val (progresses, needDerive) = cc
+                            val (triggers, result) = entry
+                            progresses get triggers match {
+                                case Some(existingResult) =>
+                                    val mergedResult = resultFunc.merge(existingResult, result)
+                                    if (existingResult == mergedResult) {
+                                        cc
+                                    } else {
+                                        (progresses + (triggers -> mergedResult), needDerive)
+                                    }
+                                case None =>
+                                    (progresses + entry, true)
+                            }
+                        }
+
+                        (cc.updateProgressesOf(appendedNode, mergedProgresses).asInstanceOf[Graph], if (needDerive) Seq(DeriveTask(nextGen, appendedNode)) else Seq())
+                    } else {
+                        // append한 노드가 아직 cc에 없는 경우
+                        // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다
+                        val newEdges: Set[Edge] = cc.incomingSimpleEdgesTo(node) map {
+                            case SimpleEdge(start, end, edgeRevertTriggers) =>
+                                assert(end == node)
+                                // TODO 여기서 revertTrigger를 이렇게 주는게 맞나? edgeRevertTriggers만 주면 될 것 같기도 하고? (revertTriggers는 result에 반영되니까)
+                                SimpleEdge(start, appendedNode, revertTriggers ++ edgeRevertTriggers)
+                        }
+                        assert(cc.incomingJoinEdgesTo(node).isEmpty)
+                        (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> appendedProgresses)).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
+                    }
                 }
         }
     }

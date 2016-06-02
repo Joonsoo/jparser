@@ -246,7 +246,7 @@ trait NewParserGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
                         }
                     }
 
-                if (!trees1.isEmpty) {
+                if (!trees1.isEmpty && (nodesMap contains node)) {
                     val forestFigure = new Figure()
                     forestFigure.setLayoutManager({
                         val l = new ToolbarLayout(false)
@@ -434,7 +434,9 @@ trait LiftGraphWidget extends NewParserGraphVisualizeWidget {
             }
         }
         nextDerivables foreach { node =>
-            nodesMap(node).setBackgroundColor(ColorConstants.yellow)
+            if (nodesMap contains node) {
+                nodesMap(node).setBackgroundColor(ColorConstants.yellow)
+            }
         }
     }
 }

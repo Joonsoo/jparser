@@ -69,6 +69,7 @@ object ParseResultTree {
 
         lazy val childrenIdx = _childrenIdx.reverse
         lazy val childrenWS = _childrenWS.reverse
+        lazy val wsIdx = (0 until childrenWS.length).toSet -- childrenIdx
         lazy val children: List[Node] = {
             def pick(_childrenIdx: List[Int], _childrenWS: List[Node], current: Int, cc: List[Node]): List[Node] =
                 if (_childrenIdx.isEmpty) cc else {
