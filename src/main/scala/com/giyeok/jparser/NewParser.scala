@@ -191,15 +191,12 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
                                 // derive(node)._1.baseProgresses 있으면 SequenceProgressTask
                                 val seqNode = node.asInstanceOf[SequenceNode]
-                                val immediateProgresses: Seq[SequenceProgressTask] = derive(seqNode)._1.baseProgresses match {
-                                    case None => Seq()
-                                    case Some(results) => (results map { kv =>
-                                        val (triggers, result) = kv
-                                        // triggers를 nextGen만큼 shift해주기
-                                        val shiftedTriggers: Set[Trigger] = triggers map { shiftTrigger(_, nextGen) }
-                                        SequenceProgressTask(nextGen, node.asInstanceOf[SequenceNode], result, ???, shiftedTriggers)
-                                    }).toSeq
-                                }
+                                val immediateProgresses: Seq[SequenceProgressTask] = (derive(seqNode)._1.baseProgresses map { kv =>
+                                    val (triggers, (result, resultSymbol)) = kv
+                                    // triggers를 nextGen만큼 shift해주기
+                                    val shiftedTriggers: Set[Trigger] = triggers map { shiftTrigger(_, nextGen) }
+                                    SequenceProgressTask(nextGen, node.asInstanceOf[SequenceNode], result, resultSymbol, shiftedTriggers)
+                                }).toSeq
 
                                 rec(rest ++ immediateProgresses, graphCC, derivablesCC + node.asInstanceOf[SequenceNode])
                             case task: FinishingTask =>

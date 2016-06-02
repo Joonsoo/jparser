@@ -24,7 +24,7 @@ case class DGraph[R <: ParseResult](
         results: Results[Node, R],
         progresses: Results[SequenceNode, R],
         _baseResults: Results[Node, R],
-        _baseProgresses: Results[SequenceNode, R]) extends ParsingGraph[R] with TerminalInfo[R] {
+        baseProgresses: Map[Set[Trigger], (R, Symbol)]) extends ParsingGraph[R] with TerminalInfo[R] {
     // baseNode가 nodes에 포함되어야 함
     assert(nodes contains baseNode.asInstanceOf[Node])
     // baseNode를 제외하고는 전부 BaseNode가 아니어야 함
@@ -40,9 +40,9 @@ case class DGraph[R <: ParseResult](
     })
 
     // baseNode의 result나 progress는 results/progresses에는 있어선 안 되고 
-    // baseResults/baseProgresses에는 baseNode의 result나 progress만 있어야 한다
+    // baseResults에는 baseNode의 result나 progress만 있어야 한다
     assert(results.of(baseNode).isEmpty && (!baseNode.isInstanceOf[SequenceNode] || progresses.of(baseNode.asInstanceOf[SequenceNode]).isEmpty))
-    assert((_baseResults.keyNodesSet subsetOf Set(baseNode)) && (!baseNode.isInstanceOf[SequenceNode] || (_baseProgresses.keyNodesSet subsetOf Set(baseNode.asInstanceOf[SequenceNode]))))
+    assert(_baseResults.keyNodesSet subsetOf Set(baseNode))
 
     // Information Retrieval
     val nonBaseNodes = nodes - baseNode
@@ -55,19 +55,19 @@ case class DGraph[R <: ParseResult](
     lazy val edgesNotFromBaseNode = edges -- edgesFromBaseNode
 
     def baseResults = _baseResults.of(baseNode)
-    def baseProgresses = baseNode match {
-        case baseNode: SequenceNode => _baseProgresses.of(baseNode)
-        case _ => None
-    }
+    def _baseProgresses = Results(baseNode -> (baseProgresses mapValues { _._1 }))
 
     // Modification
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): DGraph[R] =
-        DGraph(baseNode, nodes, edges, results, progresses, _baseResults, _baseProgresses)
+        DGraph(baseNode, nodes, edges, results, progresses, _baseResults, baseProgresses)
 
     def updateBaseResults(newBaseResults: Results[Node, R]): DGraph[R] =
-        DGraph(baseNode, nodes, edges, results, progresses, newBaseResults, _baseProgresses)
-    def updateBaseProgresses(newBaseProgresses: Results[SequenceNode, R]): DGraph[R] =
+        DGraph(baseNode, nodes, edges, results, progresses, newBaseResults, baseProgresses)
+    def updateBaseProgresses(triggers: Set[Trigger], child: R, childSymbol: Symbol): DGraph[R] = {
+        val newBaseProgresses: Map[Set[Trigger], (R, Symbol)] =
+            baseProgresses + (triggers -> (child, childSymbol))
         DGraph(baseNode, nodes, edges, results, progresses, _baseResults, newBaseProgresses)
+    }
 
     // Misc.
     def sliceByTermGroups(resultFunc: ParseResultFunc[R]): Map[TermGroupDesc, Option[DGraph[R]]] = {
@@ -97,10 +97,10 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
                 if (task.node.isInstanceOf[BaseNode]) {
                     (cc.updateBaseResults(cc._baseResults.update(task.node, task.revertTriggers, task.result)), Seq())
                 } else finishingTask(task, cc)
-            case task: SequenceProgressTask =>
-                if (task.node.isInstanceOf[BaseNode]) {
-                    // 여기서 어떤 식으로든 task.childSymbol를 남겨놨다가 전달해줬음 좋겠는데..
-                    (cc.updateBaseProgresses(cc._baseProgresses.update(task.node, task.revertTriggers, task.child)), Seq())
+            case task @ SequenceProgressTask(_, node, child, childSymbol, revertTriggers) =>
+                if (node.isInstanceOf[BaseNode]) {
+                    // 여기서 어떤 식으로든 childSymbol를 남겨놨다가 전달해줬음 좋겠는데..
+                    (cc.updateBaseProgresses(revertTriggers, child, childSymbol), Seq())
                 } else sequenceProgressTask(task, cc)
         }
     }
@@ -116,11 +116,11 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
 
     def deriveAtomic(symbol: AtomicNonterm): DGraph[R] = {
         val baseNode = new BaseAtomicNode(symbol)
-        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Results(), Results()))
+        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Results(), Map()))
     }
 
     def deriveSequence(symbol: Sequence, pointer: Int): DGraph[R] = {
         val baseNode = new BaseSequenceNode(symbol, pointer)
-        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Results(), Results()))
+        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Results(), Map()))
     }
 }
