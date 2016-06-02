@@ -227,7 +227,7 @@ trait NewParserGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
 
         if (showResults) {
             addResults(graph.results, true, false, ColorConstants.blue)
-            addResults(graph.progresses, false, true, ColorConstants.red)
+            addResults(graph.progresses, false, true, ColorConstants.green)
         }
     }
 
@@ -388,26 +388,52 @@ class NewParserExpandedGraphVisualizeWidget(parent: Composite, style: Int, val g
     initializeListeners()
 }
 
-class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseContext: NewParser[ParseForest]#ParsingCtx, proceed: NewParser[ParseForest]#ProceedDetail) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget {
+class NewParserRevertedGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseContext: NewParser[ParseForest]#ParsingCtx, proceed: NewParser[ParseForest]#ProceedDetail) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget {
     setLayout(new FillLayout)
     val graphView = new Graph(this, SWT.NONE)
 
     def initialize(): Unit = {
         addGraph(proceed.expandedGraph, false)
-        addGraph(proceed.liftedGraph0, true)
-        // expandedGraph에서 liftedGraph0로 오면서 사라진 노드들 표시
-        (proceed.expandedGraph.nodes -- proceed.liftedGraph0.nodes) foreach { removedNode =>
+        addGraph(proceed.revertedGraph, true)
+
+        // expandedGraph에서 revertedGraph로 오면서 사라진 노드들 표시
+        (proceed.expandedGraph.nodes -- proceed.revertedGraph.nodes) foreach { removedNode =>
             nodesMap(removedNode).getFigure.setBorder(new LineBorder(ColorConstants.red))
         }
-        // expandedGraph에서 liftedGraph0로 오면서 사라진 엣지들 표시
-        (proceed.expandedGraph.edges -- proceed.liftedGraph0.edges) foreach { removedEdge =>
+        // expandedGraph에서 revertedGraph로 오면서 사라진 엣지들 표시
+        (proceed.expandedGraph.edges -- proceed.revertedGraph.edges) foreach { removedEdge =>
             edgesMap(removedEdge) foreach { _.setLineColor(ColorConstants.red) }
         }
-        // 사용 가능한 term node 배경 노랗게 표시
-        proceed.eligibleTermNodes foreach { node =>
-            nodesMap(node).setBackgroundColor(ColorConstants.orange)
+
+        import org.eclipse.zest.layouts.algorithms._
+        val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)
+        graphView.setLayoutAlgorithm(layoutAlgorithm, true)
+    }
+
+    initialize()
+    initializeListeners()
+}
+
+trait LiftGraphWidget extends NewParserGraphVisualizeWidget {
+    def addLiftGraph(expandedGraph: ParsingGraph[ParseForest], liftedGraph: ParsingGraph[ParseForest], eligibleTermNodes: Set[ParsingGraph.TermNode], nextDerivables: Set[ParsingGraph.SequenceNode]): Unit = {
+        addGraph(expandedGraph, false)
+        addGraph(liftedGraph, true)
+        // expandedGraph에서 liftedGraph로 오면서 사라진 노드들 표시
+        (expandedGraph.nodes -- liftedGraph.nodes) foreach { removedNode =>
+            nodesMap(removedNode).getFigure.setBorder(new LineBorder(ColorConstants.red))
         }
-        proceed.nextDerivables0 foreach { node =>
+        // expandedGraph에서 liftedGraph로 오면서 사라진 엣지들 표시
+        (expandedGraph.edges -- liftedGraph.edges) foreach { removedEdge =>
+            edgesMap(removedEdge) foreach { _.setLineColor(ColorConstants.red) }
+        }
+
+        // 사용 가능한 term node 배경 노랗게 표시
+        eligibleTermNodes foreach { node =>
+            if (nodesMap contains node) {
+                nodesMap(node).setBackgroundColor(ColorConstants.orange)
+            }
+        }
+        nextDerivables foreach { node =>
             nodesMap(node).setBackgroundColor(ColorConstants.yellow)
         }
         /*
@@ -428,6 +454,31 @@ class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val gr
             println(lift)
         }
         */
+    }
+}
+
+class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseContext: NewParser[ParseForest]#ParsingCtx, proceed: NewParser[ParseForest]#ProceedDetail) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget with LiftGraphWidget {
+    setLayout(new FillLayout)
+    val graphView = new Graph(this, SWT.NONE)
+
+    def initialize(): Unit = {
+        addLiftGraph(proceed.expandedGraph, proceed.liftedGraph0, proceed.eligibleTermNodes, proceed.nextDerivables0)
+
+        import org.eclipse.zest.layouts.algorithms._
+        val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)
+        graphView.setLayoutAlgorithm(layoutAlgorithm, true)
+    }
+
+    initialize()
+    initializeListeners()
+}
+
+class NewParserFinalLiftGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseContext: NewParser[ParseForest]#ParsingCtx, proceed: NewParser[ParseForest]#ProceedDetail) extends Composite(parent, style) with BasicGenerators with NewParserGraphVisualizeWidget with LiftGraphWidget {
+    setLayout(new FillLayout)
+    val graphView = new Graph(this, SWT.NONE)
+
+    def initialize(): Unit = {
+        addLiftGraph(proceed.revertedGraph, proceed.liftedGraph, proceed.eligibleTermNodes, proceed.nextDerivables)
 
         import org.eclipse.zest.layouts.algorithms._
         val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)

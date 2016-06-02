@@ -10,7 +10,7 @@ trait ParsingTasks[R <: ParseResult, Graph <: ParsingGraph[R]] {
     case class DeriveTask(nextGen: Int, baseNode: NontermNode) extends Task
     // node가 finishable해져서 lift하면 afterKernel의 커널과 parsed의 노드를 갖게 된다는 의미
     case class FinishingTask(nextGen: Int, node: Node, result: R, revertTriggers: Set[Trigger]) extends Task
-    case class SequenceProgressTask(nextGen: Int, node: SequenceNode, child: R, revertTriggers: Set[Trigger]) extends Task
+    case class SequenceProgressTask(nextGen: Int, node: SequenceNode, child: R, childSymbol: Symbol, revertTriggers: Set[Trigger]) extends Task
 }
 
 trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks[R, Graph] {
@@ -146,7 +146,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                         case baseNode: AtomicNode =>
                             FinishingTask(nextGen, baseNode, finishedResult, resultRevertTriggers ++ edgeRevertTriggers)
                         case baseNode: SequenceNode =>
-                            SequenceProgressTask(nextGen, baseNode, finishedResult, resultRevertTriggers ++ edgeRevertTriggers)
+                            SequenceProgressTask(nextGen, baseNode, finishedResult, end.symbol, resultRevertTriggers ++ edgeRevertTriggers)
                     }
                 }
             case _ => Set()
@@ -201,7 +201,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                     case SimpleEdge(incoming: AtomicNode, _, edgeRevertTriggers) =>
                         FinishingTask(nextGen, incoming, finishedResult, revertTriggers ++ edgeRevertTriggers ++ reservedReverter)
                     case SimpleEdge(incoming: SequenceNode, _, edgeRevertTriggers) =>
-                        SequenceProgressTask(nextGen, incoming, finishedResult, revertTriggers ++ edgeRevertTriggers ++ reservedReverter)
+                        SequenceProgressTask(nextGen, incoming, finishedResult, node.symbol, revertTriggers ++ edgeRevertTriggers ++ reservedReverter)
                 }
 
                 val joinEdgeTasks: Set[Task] = incomingJoinEdges flatMap {
@@ -235,7 +235,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
 
     // 나중에 parser 코드랑 합칠 때 정리해야될듯
     def sequenceProgressTask(task: SequenceProgressTask, cc: Graph): (Graph, Seq[Task]) = {
-        val SequenceProgressTask(nextGen, node, child, revertTriggers) = task
+        val SequenceProgressTask(nextGen, node, child, childSymbol, revertTriggers) = task
         // 1. cc에
         // - 기존의 progress에 append
         // - pointer + 1된 SequenceNode 만들어서
@@ -247,51 +247,59 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
         //         - merge된 result가 기존의 progress와 다르면(b)
         //     - a나 b의 경우 추가된 노드에 대한 DeriveTask를 만들어 준다
 
+        assert(node.pointer < node.symbol.seq.length)
+
         val baseResult = { val opt = cc.progresses.of(node); opt.get ensuring opt.isDefined }
-        val appendedResult = baseResult map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.append(kv._2, child)) }
+        if (node.symbol.seq(node.pointer) == childSymbol) {
+            // whitespace가 아닌 실제 내용인 경우
+            val appendedResult = baseResult map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.append(kv._2, child)) }
 
-        if (node.pointer + 1 < node.symbol.seq.length) {
-            // append된 뒤에도 아직 finishable이 되지 않는 상태
-            val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
-            if (cc.nodes contains appendedNode) {
-                // appendedNode에서 나가는 엣지들 중 result가 있는 것들로 appendedNode를 다시 progress 혹은 finish 시켜줘야 한다
+            if (node.pointer + 1 < node.symbol.seq.length) {
+                // append된 뒤에도 아직 finishable이 되지 않는 상태
+                val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
+                if (cc.nodes contains appendedNode) {
+                    // appendedNode에서 나가는 엣지들 중 result가 있는 것들로 appendedNode를 다시 progress 혹은 finish 시켜줘야 한다
 
-                val outgoingEdges = cc.outgoingSimpleEdgesFrom(appendedNode)
+                    val outgoingEdges = cc.outgoingSimpleEdgesFrom(appendedNode)
 
-                // SequenceNode에서 JoinEdge가 나올 수 없음
-                assert(cc.outgoingJoinEdgesFrom(node).isEmpty)
+                    // SequenceNode에서 JoinEdge가 나올 수 없음
+                    assert(cc.outgoingJoinEdgesFrom(node).isEmpty)
 
-                val moreLiftTasks = outgoingEdges flatMap {
-                    case SimpleEdge(start, end, edgeRevertTriggers) if cc.results.of(end).isDefined =>
-                        // 이런 경우는 DerivationGraph에서만 생길 것으로 생각됨
-                        val results = cc.results.of(end).get
-                        results map { tr =>
-                            val (resultRevertTriggers, result) = tr
-                            val finishedResult = resultFunc.bind(end.symbol, result)
-                            val finalRevertTriggers = resultRevertTriggers ++ edgeRevertTriggers ++ revertTriggers
-                            SequenceProgressTask(nextGen, appendedNode, finishedResult, finalRevertTriggers)
-                        }
-                    case _ => Set()
+                    val moreLiftTasks = outgoingEdges flatMap {
+                        case SimpleEdge(start, end, edgeRevertTriggers) if cc.results.of(end).isDefined =>
+                            // 이런 경우는 DerivationGraph에서만 생길 것으로 생각됨
+                            val results = cc.results.of(end).get
+                            results map { tr =>
+                                val (resultRevertTriggers, result) = tr
+                                val finishedResult = resultFunc.bind(end.symbol, result)
+                                val finalRevertTriggers = resultRevertTriggers ++ edgeRevertTriggers ++ revertTriggers
+                                SequenceProgressTask(nextGen, appendedNode, finishedResult, end.symbol, finalRevertTriggers)
+                            }
+                        case _ => Set()
+                    }
+
+                    (cc.updateProgressesOf(appendedNode, appendedResult).asInstanceOf[Graph], moreLiftTasks.toSeq)
+                } else {
+                    // append한 노드가 아직 cc에 없는 경우
+                    // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다
+                    val newEdges: Set[Edge] = cc.incomingSimpleEdgesTo(node) map {
+                        case SimpleEdge(start, end, edgeRevertTriggers) =>
+                            assert(end == node)
+                            // TODO 여기서 revertTrigger를 이렇게 주는게 맞나? edgeRevertTriggers만 주면 될 것 같기도 하고? (revertTriggers는 result에 반영되니까)
+                            SimpleEdge(start, appendedNode, revertTriggers ++ edgeRevertTriggers)
+                    }
+                    assert(cc.incomingJoinEdgesTo(node).isEmpty)
+                    (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> appendedResult)).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
                 }
-
-                (cc.updateProgressesOf(appendedNode, appendedResult).asInstanceOf[Graph], moreLiftTasks.toSeq)
             } else {
-                // append한 노드가 아직 cc에 없는 경우
-                // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다
-                val newEdges: Set[Edge] = cc.incomingSimpleEdgesTo(node) map {
-                    case SimpleEdge(start, end, edgeRevertTriggers) =>
-                        assert(end == node)
-                        // TODO 여기서 revertTrigger를 이렇게 주는게 맞나? edgeRevertTriggers만 주면 될 것 같기도 하고? (revertTriggers는 result에 반영되니까)
-                        SimpleEdge(start, appendedNode, revertTriggers ++ edgeRevertTriggers)
-                }
-                assert(cc.incomingJoinEdgesTo(node).isEmpty)
-                (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> appendedResult)).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
+                // append되면 finish할 수 있는 상태
+                // - FinishingTask만 만들어 주면 될듯
+                val finishingTasks = appendedResult map { kv => FinishingTask(nextGen, node, kv._2, kv._1) }
+                (cc, finishingTasks.toSeq)
             }
         } else {
-            // append되면 finish할 수 있는 상태
-            // - FinishingTask만 만들어 주면 될듯
-            val finishingTasks = appendedResult map { kv => FinishingTask(nextGen, node, kv._2, kv._1) }
-            (cc, finishingTasks.toSeq)
+            val appendedResult = baseResult map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.appendWhitespace(kv._2, child)) }
+            (cc.updateProgressesOf(node, appendedResult).asInstanceOf[Graph], Seq(DeriveTask(nextGen, node)))
         }
     }
 }

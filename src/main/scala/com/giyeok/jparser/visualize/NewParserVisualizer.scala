@@ -265,10 +265,20 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                         }
                     case 3 =>
                         // Revert and Trim
-                        errorControl("TODO")
+                        (contextAt(location.baseGen), proceedAt(location.baseGen)) match {
+                            case (Left(context), Left(proceed)) =>
+                                new NewParserRevertedGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, context, proceed)
+                            case (Right(error), _) => errorControl(error.msg)
+                            case (_, Right(error)) => errorControl(error.msg)
+                        }
                     case 4 =>
                         // Final Lift
-                        errorControl("TODO")
+                        (contextAt(location.baseGen), proceedAt(location.baseGen)) match {
+                            case (Left(context), Left(proceed)) =>
+                                new NewParserFinalLiftGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, context, proceed)
+                            case (Right(error), _) => errorControl(error.msg)
+                            case (_, Right(error)) => errorControl(error.msg)
+                        }
                 }
                 graphCache(location) = finalizeView(control)
                 control

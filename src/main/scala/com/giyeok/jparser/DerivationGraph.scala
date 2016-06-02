@@ -99,6 +99,7 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
                 } else finishingTask(task, cc)
             case task: SequenceProgressTask =>
                 if (task.node.isInstanceOf[BaseNode]) {
+                    // 여기서 어떤 식으로든 task.childSymbol를 남겨놨다가 전달해줬음 좋겠는데..
                     (cc.updateBaseProgresses(cc._baseProgresses.update(task.node, task.revertTriggers, task.child)), Seq())
                 } else sequenceProgressTask(task, cc)
         }

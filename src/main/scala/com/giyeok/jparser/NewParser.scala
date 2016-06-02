@@ -59,60 +59,6 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         val firstStage = (liftedGraph0, nextDerivables0)
         val finalStage = (liftedGraph, nextDerivables)
     }
-    /*
-    case class ParsingContext(gen: Int, startNode: NontermNode[Start.type], graph: Graph, derivables: Set[NontermNode[Nonterm]], results: Option[R]) {
-        assert(derivables.toSet[Node] subsetOf graph.nodes)
-        def proceedDetail(input: ConcreteInput): Either[ProceedDetail, ParsingError] = {
-            val baseNodeAndSubgraphs = derivables map { derivable =>
-                (derivable, derive(derivable.kernel).subgraphTo(input))
-            } collect {
-                case (derivable, Some(subgraph)) => (derivable, subgraph)
-            }
-            val (expandedGraph, eligibleTermNodes0) = graph.expandMulti(gen, baseNodeAndSubgraphs)
-            if (eligibleTermNodes0.isEmpty) {
-                Right(UnexpectedInput(input))
-            } else {
-                assert(eligibleTermNodes0 forall { _.kernel.symbol.accept(input) })
-                def liftsFromTermNodes(termNodes: Set[TermNode]): Set[(TermNode, Input)] = termNodes map { (_, input) }
-
-                def collectResultsFromLifts(lifts: Set[Lift[R]]): Option[R] = {
-                    val resultLifts = lifts collect {
-                        case Lift(`startNode`, _, parsed, _, revertTriggers) if revertTriggers forall { _.triggerType != Trigger.Type.WaitUntilLift } => parsed
-                    }
-                    resultFunc.merge(resultLifts)
-                }
-
-                // 1. reverter 무시하고 우선 한번 lift를 진행한다
-                val (liftedGraph0, nextDerivables0, lifts0) = expandedGraph.lift(gen, liftsFromTermNodes(eligibleTermNodes0), Set())
-                // liftedGraph0에 startNode가 없는 경우 -> 파싱이 종료되었음을 의미
-                if (!(liftedGraph0.nodes contains startNode)) {
-                    val nextContext = new ParsingContext(gen + 1, startNode, liftedGraph0, Set(), collectResultsFromLifts(lifts0))
-                    Left(new FinishedProceedDetail(expandedGraph, eligibleTermNodes0, liftedGraph0, nextDerivables0, lifts0, nextContext))
-                } else {
-                    // 2. lift가 진행된 뒤 trigger되는 reverter를 적용한 그래프를 만든다
-                    val (revertedGraph, tempLiftBlockNodes) = expandedGraph.revert(liftedGraph0, lifts0)
-                    // 3. (optional?) baseNode에서 reachable한 node와 edge로만 구성된 그래프를 추린다
-                    val trimmedRevertedGraph = revertedGraph.reachableFrom(startNode)
-                    // 4. 추려진 그래프에 대해 다시 lift를 진행한다 (사실은 liftedGraph0, lifts0 등을 고쳐서 쓸 수도 있겠지만 귀찮으니..)
-                    val eligibleTermNodes = eligibleTermNodes0 intersect trimmedRevertedGraph.termNodes
-                    // 5. 그런 뒤에 eligibleTermNodes1이 비어있으면 에러를 반환한다
-                    if (eligibleTermNodes.isEmpty) {
-                        Right(UnexpectedInput(input))
-                    } else {
-                        val (liftedGraph, nextDerivables, lifts) = trimmedRevertedGraph.lift(gen, liftsFromTermNodes(eligibleTermNodes), tempLiftBlockNodes)
-                        // 6. reverter가 적용되어 계산된 ParsingContext를 반환한다
-                        val nextContext = new ParsingContext(gen + 1, startNode, liftedGraph, nextDerivables, collectResultsFromLifts(lifts))
-                        Left(UnfinishedProceedDetail(expandedGraph, eligibleTermNodes0, liftedGraph0, nextDerivables0, lifts0, revertedGraph, tempLiftBlockNodes, trimmedRevertedGraph, eligibleTermNodes, liftedGraph, nextDerivables, lifts, nextContext))
-                    }
-                }
-            }
-        }
-        def proceed(input: ConcreteInput): Either[ParsingContext, ParsingError] = proceedDetail(input) match {
-            case Left(detail) => Left(detail.nextContext)
-            case Right(error) => Right(error)
-        }
-    }
-    */
 
     type Graph = CtxGraph[R]
 
@@ -150,13 +96,17 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 val liftedGraph0opt = liftedGraph0pre.subgraphIn(startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
                 liftedGraph0opt match {
                     case Some(liftedGraph0) =>
-                        val revertedGraph: Graph = liftedGraph0 // TODO liftedGraph0에서 revert되어야 할 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
-                        val liftedGraphPre: Graph = liftedGraph0 // TODO
-                        val liftedGraph: Graph = liftedGraph0 // TODO
-                        val nextDerivables: Set[SequenceNode] = nextDerivables0 // TODO nextDerivables0 중에서 liftedGraph에 남아있는 것들만 추린다
-                        val nextContext: ParsingCtx = ParsingCtx(nextGen, liftedGraph, startNode, nextDerivables.asInstanceOf[Set[NontermNode]])
-
-                        Left(ProceedDetail(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0, nextDerivables0, revertedGraph, liftedGraphPre, liftedGraph, nextDerivables, nextContext))
+                        // TODO expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
+                        val revertedGraph: Graph = ParsingCtx.revert(expandedGraph, liftedGraph0)
+                        val (liftedGraphPre, nextDerivables) = ParsingCtx.lift(revertedGraph, nextGen, termNodes map { (_, input) }, Results()) // TODO
+                        val liftedGraphOpt = liftedGraphPre.subgraphIn(startNode, nextDerivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
+                        liftedGraphOpt match {
+                            case Some(liftedGraph) =>
+                                val nextContext: ParsingCtx = ParsingCtx(nextGen, liftedGraph, startNode, (nextDerivables.asInstanceOf[Set[Node]] intersect liftedGraph.nodes).asInstanceOf[Set[NontermNode]])
+                                Left(ProceedDetail(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0, nextDerivables0, revertedGraph, liftedGraphPre, liftedGraph, nextDerivables, nextContext))
+                            case None =>
+                                ???
+                        }
                     case None =>
                         // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
                         ???
@@ -172,6 +122,16 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
     }
 
     object ParsingCtx {
+        def shiftNode[T <: Node](node: T, gen: Int): T = node match {
+            case EmptyNode => node
+            case TermNode(symbol, beginGen) => TermNode(symbol, beginGen + gen).asInstanceOf[T]
+            case n: AtomicNode => (AtomicNode(n.symbol, n.beginGen + gen)(n.liftBlockTrigger map { shiftNode(_, gen) }, n.reservedReverterType)).asInstanceOf[T]
+            case SequenceNode(symbol, pointer, beginGen, endGen) => SequenceNode(symbol, pointer, beginGen + gen, endGen + gen).asInstanceOf[T]
+        }
+        def shiftTrigger(trigger: Trigger, gen: Int): Trigger = trigger match {
+            case Trigger(node, ttype) => Trigger(shiftNode(node, gen), ttype)
+        }
+
         // graph를 expand한다
         // - baseAndGraphs에 있는 튜플의 _1를 base로 해서 _2의 내용을 shiftGen해서 그래프에 추가한다
         def expandMulti(graph: Graph, gen: Int, baseAndGraphs: Set[(NontermNode, DGraph[R])]): (Graph, Set[TermNode]) = {
@@ -186,19 +146,10 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             baseAndGraphs.foldLeft((graph, Set[TermNode]())) { (result, pair) =>
                 val (baseNode, dgraph) = pair
 
-                def shiftNode[T <: Node](node: T): T = node match {
-                    case n: AtomicNode => (AtomicNode(n.symbol, n.beginGen + gen)(n.liftBlockTrigger map { shiftNode _ }, n.reservedReverterType)).asInstanceOf[T]
-                    case n: SequenceNode => SequenceNode(n.symbol, n.pointer, n.beginGen + gen, n.endGen + gen).asInstanceOf[T]
-                    case n => n
-                }
-                def shiftTrigger(trigger: Trigger): Trigger = trigger match {
-                    case Trigger(node, ttype) => Trigger(shiftNode(node), ttype)
-                }
-
                 val newNodes = (dgraph.nodes map { node =>
                     val newNode = node match {
                         case _: BaseNode => baseNode
-                        case n => shiftNode(n)
+                        case n => shiftNode(n, gen)
                     }
                     node -> newNode
                 }).toMap
@@ -207,7 +158,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         SimpleEdge(
                             newNodes(start).asInstanceOf[NontermNode],
                             newNodes(end),
-                            revertTriggers map { shiftTrigger _ })
+                            revertTriggers map { shiftTrigger(_, gen) })
                     case JoinEdge(start, end, join) =>
                         JoinEdge(
                             newNodes(start).asInstanceOf[NontermNode],
@@ -217,9 +168,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 // dgraph.results.of(dgraph.baseNode)와 dgraph.progresses.of(dgraph.baseNode)는 항상 비어 있으므로 여기서 신경쓰지 않아도 됨
                 // - 이 내용들은 dgraph.baseResults와 dgraph.baseProgresses로 들어는데 이 부분은 이전 세대의 lift에서 이미 처리되었을 것임
 
-                val newProgresses = dgraph.progresses mapTo { (node, triggers, result) =>
-                    (shiftNode(node), triggers map { shiftTrigger _ }, result)
-                }
+                val newProgresses = dgraph.progresses mapNodesTriggers (shiftNode(_, gen), _ map { shiftTrigger(_, gen) })
 
                 val newNodesSet = newNodes.values.toSet
                 val updatedGraph = result._1.withNodesEdgesProgresses(newNodesSet, newEdges, newProgresses).asInstanceOf[Graph]
@@ -247,17 +196,8 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                     case Some(results) => (results map { kv =>
                                         val (triggers, result) = kv
                                         // triggers를 nextGen만큼 shift해주기
-                                        val shiftedTriggers: Set[Trigger] = triggers map {
-                                            case Trigger(node, ttype) =>
-                                                val shiftedNode = node match {
-                                                    case EmptyNode => node
-                                                    case TermNode(symbol, beginGen) => TermNode(symbol, beginGen + nextGen)
-                                                    case node: AtomicNode => AtomicNode(node.symbol, node.beginGen + nextGen)(node.liftBlockTrigger, node.reservedReverterType)
-                                                    case SequenceNode(symbol, pointer, beginGen, endGen) => SequenceNode(symbol, pointer, beginGen + nextGen, endGen + nextGen)
-                                                }
-                                                Trigger(shiftedNode, ttype)
-                                        }
-                                        SequenceProgressTask(nextGen, node.asInstanceOf[SequenceNode], result, shiftedTriggers)
+                                        val shiftedTriggers: Set[Trigger] = triggers map { shiftTrigger(_, nextGen) }
+                                        SequenceProgressTask(nextGen, node.asInstanceOf[SequenceNode], result, ???, shiftedTriggers)
                                     }).toSeq
                                 }
 
@@ -283,8 +223,20 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         }
 
         // graph.results를 이용해서 revertTrigger 조건을 비교해서 지워야 할 edge/results를 제거한 그래프를 반환한다
-        def revert(graph: Graph): Graph = {
-            ???
+        def revert(graph: Graph, prelift: Graph): Graph = {
+            def triggerActivated(trigger: Trigger): Boolean = trigger match {
+                case Trigger(node, Trigger.Type.Lift) => prelift.results contains node
+                case Trigger(node, Trigger.Type.Alive) => prelift.nodes contains node
+                case _ => false
+            }
+
+            val edgeFiltered = graph filterEdges {
+                case SimpleEdge(_, _, revertTriggers) if revertTriggers exists { triggerActivated _ } => false
+                case _ => true
+            }
+            // result는 이후에 lift할 때 없애고 시작하므로 따로 필터링할 필요 없음
+            val progressesFiltered = edgeFiltered.updateProgresses(edgeFiltered.progresses filterTo { (_, triggers, _) => !(triggers exists { triggerActivated _ }) })
+            progressesFiltered.asInstanceOf[Graph]
         }
     }
 

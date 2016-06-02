@@ -77,11 +77,22 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigge
         nodeResults.foldLeft(this) { (m, i) => m.update(node, i._1, i._2) }
     }
 
-    def mapTo(func: (N, Set[Trigger], R) => (N, Set[Trigger], R)): Results[N, R] = {
-        entries.foldLeft(new Results(Map[N, Map[Set[Trigger], R]]())) { (newResultsMap, e) =>
-            val (node, triggers, result) = func(e._1, e._2, e._3)
-            newResultsMap.update(node, triggers, result)
+    // results에서 node와 trigger를 map해서 변경한다
+    // - 이 때, nodeMap과 triggerMap은 모두 1-1 대응 함수여야 한다. 즉, 두 개의 노드가 같은 노드로 매핑되거나, 두 개의 트리거가 하나의 트리거로 매핑되면 안된다
+    def mapNodesTriggers(nodeMap: N => N, triggerMap: Set[Trigger] => Set[Trigger]): Results[N, R] = {
+        val mappedMap = resultsMap map { kv =>
+            val (node, results) = kv
+            nodeMap(node) -> (results map { kv => triggerMap(kv._1) -> kv._2 })
         }
+        new Results(mappedMap)
+    }
+
+    def filterTo(func: (N, Set[Trigger], R) => Boolean): Results[N, R] = {
+        val filteredMap = resultsMap map { kv =>
+            val (node, results) = kv
+            node -> (results filter { kv => func(node, kv._1, kv._2) })
+        }
+        new Results(filteredMap filterNot { _._2.isEmpty })
     }
 
     // resultsMap과 등장하는 trigger 중에서 nodes에 포함되는 것만 남기고 전부 날려서 반환하는 함수
@@ -178,8 +189,18 @@ trait ParsingGraph[R <: ParseResult] {
         assert(newNodes forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
         create(nodes ++ newNodes, edges ++ newEdges, results, progresses.update(newProgresses))
     }
-    def withNoResults: ParsingGraph[R] =
+    def withNoResults: ParsingGraph[R] = {
         create(nodes, edges, Results(), progresses)
+    }
+    def filterEdges(func: Edge => Boolean): ParsingGraph[R] = {
+        create(nodes, edges filter { func(_) }, results, progresses)
+    }
+    def updateResults(newResults: Results[Node, R]): ParsingGraph[R] = {
+        create(nodes, edges, newResults, progresses)
+    }
+    def updateProgresses(newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
+        create(nodes, edges, results, newProgresses)
+    }
 
     // nodes와 edges만 포함하는 서브그래프를 반환한다
     // - 이 때, nodes, edges, results, progresses에 붙어 있는 트리거 중 이 nodes에 포함되지 않은 것들은 제거한다
@@ -242,7 +263,6 @@ trait ParsingGraph[R <: ParseResult] {
             Some(subgraphOf(subNodes, subEdges, resultFunc))
         }
     }
-
 }
 
 trait TerminalInfo[R <: ParseResult] extends ParsingGraph[R] {
