@@ -264,8 +264,6 @@ trait NewParserGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
                     connection.setLineColor(lineColor)
                     if (!triggers.isEmpty) {
                         connection.setText(revertTriggersString(triggers))
-                    } else {
-                        connection.setText("No Trigger")
                     }
                 }
             }

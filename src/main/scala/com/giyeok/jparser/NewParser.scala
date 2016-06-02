@@ -70,81 +70,6 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
     type Graph = CtxGraph[R]
 
-    case class ParsingCtx(gen: Int, graph: Graph, startNode: NontermNode, derivables: Set[NontermNode]) {
-        assert(startNode.symbol == Start)
-
-        // startNode에서 derivables에 도달 가능한 경로 내의 노드들만 포함되어야 하는데..?
-        // assert(graph.subgraphIn(startNode, derivables.asInstanceOf[Set[Node]], resultFunc) == Some(graph))
-
-        def result: Option[R] = {
-            // startNode의 result들 중 Wait 타입의 Trigger가 없는 것들만 추려서 merge해서 반환한다
-            graph.results.of(startNode) flatMap { results =>
-                resultFunc.merge(
-                    results collect {
-                        case (triggers, result) if triggers forall { _.triggerType != Trigger.Type.Wait } => result
-                    })
-            }
-        }
-
-        def proceedDetail(input: ConcreteInput): Either[ProceedDetail, ParsingError] = {
-            val baseAndGraphs = derivables flatMap { dnode =>
-                val coll = derive(dnode)._2 collect { case (termGroup, dgraph) if termGroup contains input => dnode -> dgraph }
-                coll ensuring (coll.size <= 1)
-            }
-            // 1. expand
-            val (expandedGraph, termNodes) = ParsingCtx.expandMulti(graph, gen, baseAndGraphs)
-            // slice된 그래프에서 골라서 추가했으므로 termNodes는 모두 input을 받을 수 있어야 한다
-            assert(termNodes forall { _.symbol accept input })
-            if (termNodes.isEmpty) {
-                Right(UnexpectedInput(input))
-            } else {
-                val nextGen = gen + 1
-                // 2. 1차 lift
-                val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, termNodes map { (_, input) }, Map())
-                val liftedGraph0opt = liftedGraph0pre.subgraphIn(gen, startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
-                liftedGraph0opt match {
-                    case Some(liftedGraph0) =>
-                        // expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
-                        val revertedGraph: Graph = ParsingCtx.revert(expandedGraph, liftedGraph0)
-                        // TODO lift 막을 노드 정보 수집해서 ParsingCtx.lift에 넘겨주어야 함
-                        val liftBlockedNodes: Map[AtomicNode, Set[Trigger]] = Map()
-                        val (liftedGraphPre, nextDerivables) = ParsingCtx.lift(revertedGraph, nextGen, termNodes map { (_, input) }, liftBlockedNodes)
-                        val liftedGraphOpt = liftedGraphPre.subgraphIn(gen, startNode, nextDerivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
-                        liftedGraphOpt match {
-                            case Some(liftedGraph) =>
-                                val nextContext: ParsingCtx = ParsingCtx(nextGen, liftedGraph, startNode, (nextDerivables.asInstanceOf[Set[Node]] intersect liftedGraph.nodes).asInstanceOf[Set[NontermNode]])
-                                Left(ProceedDetail(
-                                    ParsingStage(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0, nextDerivables0),
-                                    Some(ParsingStage(revertedGraph, termNodes, liftedGraphPre, liftedGraph, nextDerivables)),
-                                    nextContext))
-                            case None =>
-                                ???
-                        }
-                    case None =>
-                        // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
-                        Left(ProceedDetail(
-                            ParsingStage(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0pre, nextDerivables0),
-                            None,
-                            ParsingCtx(
-                                nextGen,
-                                CtxGraph(
-                                    Set(startNode),
-                                    Set(),
-                                    Results(startNode -> liftedGraph0pre.results.of(startNode).get),
-                                    Results()),
-                                startNode,
-                                Set())))
-                }
-            }
-        }
-
-        def proceed(input: ConcreteInput): Either[ParsingCtx, ParsingError] =
-            proceedDetail(input) match {
-                case Left(detail) => Left(detail.nextContext)
-                case Right(error) => Right(error)
-            }
-    }
-
     object ParsingCtx {
         def shiftNode[T <: Node](node: T, gen: Int): T = node match {
             case EmptyNode => node
@@ -230,12 +155,24 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                 rec(rest ++ immediateProgresses, graphCC.withNodes(shiftedTriggerNodes).asInstanceOf[Graph], derivablesCC + node.asInstanceOf[SequenceNode])
                             case DeriveTask(_, _) => ??? // 이런 상황은 발생할 수 없음
                             case task: FinishingTask =>
-                                //                                if (liftBlockedNodes.asInstanceOf[Set[Node]] contains task.node) {
-                                //                                    // liftBlockNode이면 task 진행하지 않음
-                                //                                    rec(rest, graphCC, derivablesCC)
-                                //                                }
-                                val (newGraphCC, newTasks) = finishingTask(task, graphCC)
-                                rec(rest ++ newTasks, newGraphCC, derivablesCC)
+                                val liftBlocking = task.node match {
+                                    case node: AtomicNode => liftBlockedNodes get node
+                                    case _ => None
+                                }
+                                liftBlocking match {
+                                    case None =>
+                                        // liftedBlockedNodes에 있지 않으면 일반 진행
+                                        val (newGraphCC, newTasks) = finishingTask(task, graphCC)
+                                        rec(rest ++ newTasks, newGraphCC, derivablesCC)
+                                    case Some(triggers) if triggers.isEmpty =>
+                                        // liftBlockNode이면 task 진행하지 않음
+                                        rec(rest, graphCC, derivablesCC)
+                                    case Some(triggers) =>
+                                        // except 조건부에서 reverter가 올라온 경우 두 조건을 합쳐서 계속 진행
+                                        // FinishingTask(nextGen, node, result, revertTriggers)
+                                        val (newGraphCC, newTasks) = finishingTask(FinishingTask(task.nextGen, task.node, task.result, task.revertTriggers ++ triggers), graphCC)
+                                        rec(rest ++ newTasks, newGraphCC, derivablesCC)
+                                }
                             case task: SequenceProgressTask =>
                                 val (newGraphCC, newTasks) = sequenceProgressTask(task, graphCC)
                                 rec(rest ++ newTasks, newGraphCC, derivablesCC)
@@ -265,6 +202,92 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             val progressesFiltered = edgeFiltered.updateProgresses(edgeFiltered.progresses filterTo { (_, triggers, _) => !(triggers exists { triggerActivated _ }) })
             progressesFiltered.asInstanceOf[Graph]
         }
+    }
+
+    case class ParsingCtx(gen: Int, graph: Graph, startNode: NontermNode, derivables: Set[NontermNode]) {
+        assert(startNode.symbol == Start)
+
+        // startNode에서 derivables에 도달 가능한 경로 내의 노드들만 포함되어야 하는데..?
+        // assert(graph.subgraphIn(startNode, derivables.asInstanceOf[Set[Node]], resultFunc) == Some(graph))
+
+        def result: Option[R] = {
+            // startNode의 result들 중 Wait 타입의 Trigger가 없는 것들만 추려서 merge해서 반환한다
+            graph.results.of(startNode) flatMap { results =>
+                resultFunc.merge(
+                    results collect {
+                        case (triggers, result) if triggers forall { _.triggerType != Trigger.Type.Wait } => result
+                    })
+            }
+        }
+
+        def proceedDetail(input: ConcreteInput): Either[ProceedDetail, ParsingError] = {
+            val baseAndGraphs = derivables flatMap { dnode =>
+                val coll = derive(dnode)._2 collect { case (termGroup, dgraph) if termGroup contains input => dnode -> dgraph }
+                coll ensuring (coll.size <= 1)
+            }
+            // 1. expand
+            val (expandedGraph, termNodes) = ParsingCtx.expandMulti(graph, gen, baseAndGraphs)
+            // slice된 그래프에서 골라서 추가했으므로 termNodes는 모두 input을 받을 수 있어야 한다
+            assert(termNodes forall { _.symbol accept input })
+            if (termNodes.isEmpty) {
+                Right(UnexpectedInput(input))
+            } else {
+                val nextGen = gen + 1
+                // 2. 1차 lift
+                val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, termNodes map { (_, input) }, Map())
+                val liftedGraph0opt = liftedGraph0pre.subgraphIn(gen, startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
+                liftedGraph0opt match {
+                    case Some(liftedGraph0) =>
+                        // expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
+                        val revertedGraph: Graph = ParsingCtx.revert(expandedGraph, liftedGraph0)
+                        // TODO lift 막을 노드 정보 수집해서 ParsingCtx.lift에 넘겨주어야 함
+                        val liftBlockedNodes: Map[AtomicNode, Set[Trigger]] = {
+                            val d = revertedGraph.nodes collect {
+                                // liftBlockTrigger가 정의되어 있는 AtomicNode 중 results가 있는 것들을 추려서
+                                case node: AtomicNode if (node.liftBlockTrigger flatMap { liftedGraph0.results.of(_) }).isDefined =>
+                                    val results = liftedGraph0.results.of(node.liftBlockTrigger.get).get
+                                    // 이 지점에서 results에 들어있는 실제 파싱 결과는 관심이 없음
+                                    results.keySet
+                                    node -> Set[Trigger]()
+                            }
+                            d.toMap
+                        }
+
+                        val (liftedGraphPre, nextDerivables) = ParsingCtx.lift(revertedGraph, nextGen, termNodes map { (_, input) }, liftBlockedNodes)
+                        val liftedGraphOpt = liftedGraphPre.subgraphIn(gen, startNode, nextDerivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
+                        liftedGraphOpt match {
+                            case Some(liftedGraph) =>
+                                val nextContext: ParsingCtx = ParsingCtx(nextGen, liftedGraph, startNode, (nextDerivables.asInstanceOf[Set[Node]] intersect liftedGraph.nodes).asInstanceOf[Set[NontermNode]])
+                                Left(ProceedDetail(
+                                    ParsingStage(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0, nextDerivables0),
+                                    Some(ParsingStage(revertedGraph, termNodes, liftedGraphPre, liftedGraph, nextDerivables)),
+                                    nextContext))
+                            case None =>
+                                ???
+                        }
+                    case None =>
+                        // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
+                        Left(ProceedDetail(
+                            ParsingStage(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0pre, nextDerivables0),
+                            None,
+                            ParsingCtx(
+                                nextGen,
+                                CtxGraph(
+                                    Set(startNode),
+                                    Set(),
+                                    Results(startNode -> liftedGraph0pre.results.of(startNode).get),
+                                    Results()),
+                                startNode,
+                                Set())))
+                }
+            }
+        }
+
+        def proceed(input: ConcreteInput): Either[ParsingCtx, ParsingError] =
+            proceedDetail(input) match {
+                case Left(detail) => Left(detail.nextContext)
+                case Right(error) => Right(error)
+            }
     }
 
     val initialContext = {
