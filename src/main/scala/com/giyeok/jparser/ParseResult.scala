@@ -61,20 +61,28 @@ object ParseResultTree {
     case class TerminalNode(input: Input) extends Node
     case class BindedNode(symbol: Symbol, body: Node) extends Node
     case class JoinNode(body: Node, join: Node) extends Node
-    case class SequenceNode(_childrenWS: List[Node], _children: List[Node]) extends Node {
+    case class SequenceNode(_childrenWS: List[Node], _childrenIdx: List[Int]) extends Node {
         // childrenIdx: index of childrenWS
         // _childrenIdx: reverse of chidlrenIdx
 
-        val childrenSize = _children.length
+        val childrenSize = _childrenIdx.length
 
-        lazy val children = _children.reverse
+        lazy val childrenIdx = _childrenIdx.reverse
         lazy val childrenWS = _childrenWS.reverse
+        lazy val children: List[Node] = {
+            def pick(_childrenIdx: List[Int], _childrenWS: List[Node], current: Int, cc: List[Node]): List[Node] =
+                if (_childrenIdx.isEmpty) cc else {
+                    val dropped = _childrenWS drop (current - _childrenIdx.head)
+                    pick(_childrenIdx.tail, dropped.tail, _childrenIdx.head - 1, dropped.head +: cc)
+                }
+            pick(_childrenIdx, _childrenWS, _childrenWS.length - 1, List())
+        }
 
         def append(child: Node): SequenceNode = {
-            SequenceNode(child +: _childrenWS, child +: _children)
+            SequenceNode(child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
         }
         def appendWhitespace(wsChild: Node): SequenceNode = {
-            SequenceNode(wsChild +: _childrenWS, _children)
+            SequenceNode(wsChild +: _childrenWS, _childrenIdx)
         }
     }
 

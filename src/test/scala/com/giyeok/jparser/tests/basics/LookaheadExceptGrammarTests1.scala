@@ -200,4 +200,4 @@ object GrammarWithLookaheadExcept {
         LookaheadExceptGrammar9)
 }
 
-class GrammarWithLookaheadTestSuite1 extends BasicParseTest(GrammarWithLookaheadExcept.grammars)
+class LookaheadExceptTestSuite1 extends BasicParseTest(GrammarWithLookaheadExcept.grammars)

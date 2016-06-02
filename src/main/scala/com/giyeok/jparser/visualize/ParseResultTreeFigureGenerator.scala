@@ -37,6 +37,17 @@ class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap:
                 g.textFig("ε", ap.default)
             case TerminalNode(input) =>
                 g.textFig(input.toShortString, ap.input)
+            case BindedNode(sym: Repeat, body) =>
+                def childrenOf(node: Node, sym: Symbol): Seq[Node] = node match {
+                    case EmptyNode => Seq()
+                    case BindedNode(s, body) if s == sym => Seq(node)
+                    case BindedNode(s, body) => childrenOf(body, sym)
+                    case s: SequenceNode => s.children flatMap { childrenOf(_, sym) }
+                }
+                val children = childrenOf(body, sym.sym)
+                vfig(Spacing.Small, Seq(
+                    symbolBorder.applyToFigure(hfig(Spacing.Small, children map { parseNodeFig _ })),
+                    symbolFigureGenerator.symbolFig(sym)))
             case BindedNode(sym, body) =>
                 vfig(Spacing.Small, Seq(
                     symbolBorder.applyToFigure(parseNodeFig(body)),
@@ -58,11 +69,22 @@ class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap:
                         case _ => false
                     }
                     val seq: Seq[Fig] = if (renderConf.renderWS) {
-                        if (renderConf.renderLookaheadExcept) {
-                            s.childrenWS map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
-                        } else {
-                            s.childrenWS filterNot { isLookaheadNode _ } map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
-                        }
+                        val (childrenWS, idx0) = (s.childrenWS, s.childrenIdx)
+                        val idx = if (idx0.last == childrenWS.size - 1) idx0 else (idx0 :+ childrenWS.size)
+                        (idx.foldLeft(0, Seq[Fig]()) { (m, idx) =>
+                            val (lastIdx, seq) = m
+                            if (renderConf.renderLookaheadExcept) {
+                                val wsFigs = (lastIdx until idx) map { wsIdx => ap.wsBorder.applyToFigure(parseNodeFig(childrenWS(wsIdx))) }
+                                val symFig = symbolBorder.applyToFigure(parseNodeFig(childrenWS(idx)))
+                                val newSeq = (seq ++ wsFigs) :+ symFig
+                                (idx + 1, newSeq)
+                            } else {
+                                val wsFigs = (lastIdx until idx) filterNot { idx => isLookaheadNode(childrenWS(idx)) } map { wsIdx => ap.wsBorder.applyToFigure(parseNodeFig(childrenWS(wsIdx))) }
+                                val symFig = if (isLookaheadNode(childrenWS(idx))) None else Some(symbolBorder.applyToFigure(parseNodeFig(childrenWS(idx))))
+                                val newSeq = (seq ++ wsFigs) ++ symFig
+                                (idx + 1, newSeq)
+                            }
+                        })._2
                     } else {
                         if (renderConf.renderLookaheadExcept) {
                             s.children map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }

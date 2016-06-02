@@ -27,4 +27,4 @@ object GrammarWithLookaheadIs {
         LookaheadIsGrammar1)
 }
 
-class GrammarWithLookaheadIsTestSuite1 extends BasicParseTest(GrammarWithLookaheadIs.grammars)
+class LookaheadIsTestSuite1 extends BasicParseTest(GrammarWithLookaheadIs.grammars)

@@ -216,11 +216,13 @@ trait ParsingGraph[R <: ParseResult] {
                 SimpleEdge(start, end, filteredRevertTriggers)
             case e => e
         }
-        create(subNodes, triggerFilteredSubEdges, results.subresultOf(subNodes, resultFunc), progresses.subresultOf(subNodes, resultFunc))
+        // results는 이 그래프의 이전 세대 그래프 노드->결과 이기 때문에 subresultOf를 하지 않는다
+        create(subNodes, triggerFilteredSubEdges, results, progresses.subresultOf(subNodes, resultFunc))
     }
     // start에서 ends(중 아무곳이나) 도달할 수 있는 모든 경로만 포함하는 서브그래프를 반환한다
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
     def subgraphIn(genLimit: Int, start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
+        // TODO traverse할 때 SimpleEdge에서 revertTriggers 어떻게 해야 하는지 고민
         def traverseBackward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
                 val liftBlockTriggerNode = task match {
@@ -231,7 +233,7 @@ trait ParsingGraph[R <: ParseResult] {
                 val incomingEdges = incomingEdgesTo(task)
                 val reachables: Set[(Set[Node], Option[Edge])] = incomingEdges map {
                     case edge @ SimpleEdge(start, end, revertTriggers) =>
-                        val newNodes: Set[Node] = Set(start) ++ ((revertTriggers map { _.node }) intersect nodes)
+                        val newNodes: Set[Node] = Set(start) // ++ ((revertTriggers map { _.node }) intersect nodes)
                         (newNodes, Some(edge))
                     case edge @ JoinEdge(start, end, join) =>
                         if ((end == task && (nodesCC contains join)) || (join == task && (nodesCC contains end))) (Set[Node](start), Some(edge))
@@ -251,8 +253,8 @@ trait ParsingGraph[R <: ParseResult] {
 
                 val outgoingEdges = outgoingEdgesFrom(task)
                 val reachables: Set[(Set[Node], Edge)] = outgoingEdges map {
-                    case edge @ SimpleEdge(start, end, _) =>
-                        val newNodes: Set[Node] = Set(end)
+                    case edge @ SimpleEdge(start, end, revertTriggers) =>
+                        val newNodes: Set[Node] = Set(end) // ++ ((revertTriggers map { _.node }) intersect nodes)
                         (newNodes, edge)
                     case edge @ JoinEdge(start, end, join) =>
                         (Set(end, join), edge)
@@ -272,7 +274,7 @@ trait ParsingGraph[R <: ParseResult] {
                 case EmptyNode => false
                 case TermNode(_, gen) => gen > genLimit
                 case AtomicNode(_, gen) => gen > genLimit
-                case SequenceNode(_, _, beginGen, _) => beginGen > genLimit
+                case SequenceNode(_, _, _, gen) => gen > genLimit
             }
             val subNodes = (reachableToEnds._1 intersect reachableFromStarts._1) ++ pendedNodes
             val subEdges = reachableToEnds._2 intersect reachableFromStarts._2
