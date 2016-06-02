@@ -174,7 +174,7 @@ object Symbols {
     case class Repeat(sym: Symbol, lower: Int) extends AtomicNonterm {
         override val hashCode = (classOf[Repeat], sym, lower).hashCode
     }
-    case class Except(sym: Symbol, except: Symbol) extends AtomicNonterm {
+    case class Except(sym: Symbol, except: AtomicSymbol) extends AtomicNonterm {
         override val hashCode = (classOf[Except], sym, except).hashCode
     }
     sealed trait Lookahead extends AtomicNonterm

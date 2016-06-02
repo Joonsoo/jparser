@@ -100,13 +100,15 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             } else {
                 val nextGen = gen + 1
                 // 2. 1차 lift
-                val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, termNodes map { (_, input) }, Results())
+                val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, termNodes map { (_, input) }, Map())
                 val liftedGraph0opt = liftedGraph0pre.subgraphIn(startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
                 liftedGraph0opt match {
                     case Some(liftedGraph0) =>
-                        // TODO expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
+                        // expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
                         val revertedGraph: Graph = ParsingCtx.revert(expandedGraph, liftedGraph0)
-                        val (liftedGraphPre, nextDerivables) = ParsingCtx.lift(revertedGraph, nextGen, termNodes map { (_, input) }, Results()) // TODO
+                        // TODO lift 막을 노드 정보 수집해서 ParsingCtx.lift에 넘겨주어야 함
+                        val liftBlockedNodes: Map[AtomicNode, Set[Trigger]] = ???
+                        val (liftedGraphPre, nextDerivables) = ParsingCtx.lift(revertedGraph, nextGen, termNodes map { (_, input) }, liftBlockedNodes)
                         val liftedGraphOpt = liftedGraphPre.subgraphIn(startNode, nextDerivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
                         liftedGraphOpt match {
                             case Some(liftedGraph) =>
@@ -200,7 +202,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         }
 
         // 이 그래프에서 lift한 그래프와 그 그래프의 derivation tip nodes를 반환한다
-        def lift(graph: Graph, nextGen: Int, proceedingTerms: Set[(TermNode, Inputs.Input)], liftBlockedNodes: Results[AtomicNode, R]): (Graph, Set[SequenceNode]) = {
+        def lift(graph: Graph, nextGen: Int, proceedingTerms: Set[(TermNode, Inputs.Input)], liftBlockedNodes: Map[AtomicNode, Set[Trigger]]): (Graph, Set[SequenceNode]) = {
             // FinishingTask.node가 liftBlockedNodes에 있으면 해당 task는 제외
             // DeriveTask(node)가 나오면 실제 Derive 진행하지 않고 derivation tip nodes로 넣는다 (이 때 node는 항상 SequenceNode임)
             def rec(tasks: List[Task], graphCC: Graph, derivablesCC: Set[SequenceNode]): (Graph, Set[SequenceNode]) =

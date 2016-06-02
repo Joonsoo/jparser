@@ -41,7 +41,10 @@ object GrammarHelper {
     // def lgst(t: Terminal) = seq(t, LookaheadExcept(t))
 
     implicit class GrammarElementExcludable(sym: Symbol) {
-        def except(e: Symbol) = Except(sym, e)
+        def except(e: Symbol) = e match {
+            case e: AtomicSymbol => Except(sym, e)
+            case e: Sequence => Except(sym, Proxy(e))
+        }
         def butnot(e: Symbol) = except(e)
         def butnot(e: Symbol*) = except(oneof(e.toSet))
     }

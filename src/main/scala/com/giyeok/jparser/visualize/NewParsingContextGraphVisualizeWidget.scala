@@ -436,24 +436,6 @@ trait LiftGraphWidget extends NewParserGraphVisualizeWidget {
         nextDerivables foreach { node =>
             nodesMap(node).setBackgroundColor(ColorConstants.yellow)
         }
-        /*
-        proceed.lifts0 foreach { lift =>
-            val parseNode = nodeFromFigure(parseNodeFigureGenerator.parseNodeHFig(lift.parsed))
-            parseNode.setData("Hello")
-            val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(lift.before), parseNode)
-            if (!(lift.revertTriggers.isEmpty)) {
-                connection.setText(revertTriggersString(lift.revertTriggers))
-            }
-            connection.setLineColor(ColorConstants.blue)
-            if (lift.after.isDefined) {
-                val liftConnection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(lift.before), nodesMap(lift.after.get))
-                liftConnection.setLineColor(ColorConstants.cyan)
-                val liftToAfterConnection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, parseNode, nodesMap(lift.after.get))
-                liftToAfterConnection.setLineColor(ColorConstants.cyan)
-            }
-            println(lift)
-        }
-        */
     }
 }
 
