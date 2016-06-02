@@ -1,4 +1,4 @@
-package com.giyeok.jparser.tests.advanced
+package com.giyeok.jparser.tests.basics
 
 import com.giyeok.jparser.tests.BasicParseTest
 import com.giyeok.jparser.Grammar

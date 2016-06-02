@@ -201,6 +201,9 @@ trait ParsingGraph[R <: ParseResult] {
     def updateProgresses(newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
         create(nodes, edges, results, newProgresses)
     }
+    def withNodes(newNodes: Set[Node]): ParsingGraph[R] = {
+        create(nodes ++ newNodes, edges, results, progresses)
+    }
 
     // nodes와 edges만 포함하는 서브그래프를 반환한다
     // - 이 때, nodes, edges, results, progresses에 붙어 있는 트리거 중 이 nodes에 포함되지 않은 것들은 제거한다
@@ -210,7 +213,7 @@ trait ParsingGraph[R <: ParseResult] {
     }
     // start에서 ends(중 아무곳이나) 도달할 수 있는 모든 경로만 포함하는 서브그래프를 반환한다
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
-    def subgraphIn(start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
+    def subgraphIn(genLimit: Int, start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
         def traverseBackward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
                 val liftBlockTriggerNode = task match {
@@ -257,7 +260,13 @@ trait ParsingGraph[R <: ParseResult] {
         } else {
             val reachableFromStarts = traverseForward(List(start), Set(start), Set())
 
-            val subNodes = reachableToEnds._1 intersect reachableFromStarts._1
+            val pendedNodes = nodes filter {
+                case EmptyNode => false
+                case TermNode(_, gen) => gen > genLimit
+                case AtomicNode(_, gen) => gen > genLimit
+                case SequenceNode(_, _, beginGen, _) => beginGen > genLimit
+            }
+            val subNodes = (reachableToEnds._1 intersect reachableFromStarts._1) ++ pendedNodes
             val subEdges = reachableToEnds._2 intersect reachableFromStarts._2
             assert(subNodes subsetOf nodes)
             Some(subgraphOf(subNodes, subEdges, resultFunc))

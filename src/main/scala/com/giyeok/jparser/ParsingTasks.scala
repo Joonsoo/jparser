@@ -249,57 +249,62 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
 
         assert(node.pointer < node.symbol.seq.length)
 
-        val baseResult = { val opt = cc.progresses.of(node); opt.get ensuring opt.isDefined }
-        if (node.symbol.seq(node.pointer) == childSymbol) {
-            // whitespace가 아닌 실제 내용인 경우
-            val appendedResult = baseResult map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.append(kv._2, child)) }
+        cc.progresses.of(node) match {
+            case None =>
+                // baseProgresses가 revert에 의해 없어진 경우에는 무시하고 지나간다
+                (cc, Seq())
+            case Some(baseProgresses) =>
+                if (node.symbol.seq(node.pointer) == childSymbol) {
+                    // whitespace가 아닌 실제 내용인 경우
+                    val appendedProgresses = baseProgresses map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.append(kv._2, child)) }
 
-            if (node.pointer + 1 < node.symbol.seq.length) {
-                // append된 뒤에도 아직 finishable이 되지 않는 상태
-                val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
-                if (cc.nodes contains appendedNode) {
-                    // appendedNode에서 나가는 엣지들 중 result가 있는 것들로 appendedNode를 다시 progress 혹은 finish 시켜줘야 한다
+                    if (node.pointer + 1 < node.symbol.seq.length) {
+                        // append된 뒤에도 아직 finishable이 되지 않는 상태
+                        val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
+                        if (cc.nodes contains appendedNode) {
+                            // appendedNode에서 나가는 엣지들 중 result가 있는 것들로 appendedNode를 다시 progress 혹은 finish 시켜줘야 한다
 
-                    val outgoingEdges = cc.outgoingSimpleEdgesFrom(appendedNode)
+                            val outgoingEdges = cc.outgoingSimpleEdgesFrom(appendedNode)
 
-                    // SequenceNode에서 JoinEdge가 나올 수 없음
-                    assert(cc.outgoingJoinEdgesFrom(node).isEmpty)
+                            // SequenceNode에서 JoinEdge가 나올 수 없음
+                            assert(cc.outgoingJoinEdgesFrom(node).isEmpty)
 
-                    val moreLiftTasks = outgoingEdges flatMap {
-                        case SimpleEdge(start, end, edgeRevertTriggers) if cc.results.of(end).isDefined =>
-                            // 이런 경우는 DerivationGraph에서만 생길 것으로 생각됨
-                            val results = cc.results.of(end).get
-                            results map { tr =>
-                                val (resultRevertTriggers, result) = tr
-                                val finishedResult = resultFunc.bind(end.symbol, result)
-                                val finalRevertTriggers = resultRevertTriggers ++ edgeRevertTriggers ++ revertTriggers
-                                SequenceProgressTask(nextGen, appendedNode, finishedResult, end.symbol, finalRevertTriggers)
+                            val moreLiftTasks = outgoingEdges flatMap {
+                                case SimpleEdge(start, end, edgeRevertTriggers) if cc.results.of(end).isDefined =>
+                                    // 이런 경우는 DerivationGraph에서만 생길 것으로 생각됨
+                                    val results = cc.results.of(end).get
+                                    results map { tr =>
+                                        val (resultRevertTriggers, result) = tr
+                                        val finishedResult = resultFunc.bind(end.symbol, result)
+                                        val finalRevertTriggers = resultRevertTriggers ++ edgeRevertTriggers ++ revertTriggers
+                                        SequenceProgressTask(nextGen, appendedNode, finishedResult, end.symbol, finalRevertTriggers)
+                                    }
+                                case _ => Set()
                             }
-                        case _ => Set()
-                    }
 
-                    (cc.updateProgressesOf(appendedNode, appendedResult).asInstanceOf[Graph], moreLiftTasks.toSeq)
-                } else {
-                    // append한 노드가 아직 cc에 없는 경우
-                    // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다
-                    val newEdges: Set[Edge] = cc.incomingSimpleEdgesTo(node) map {
-                        case SimpleEdge(start, end, edgeRevertTriggers) =>
-                            assert(end == node)
-                            // TODO 여기서 revertTrigger를 이렇게 주는게 맞나? edgeRevertTriggers만 주면 될 것 같기도 하고? (revertTriggers는 result에 반영되니까)
-                            SimpleEdge(start, appendedNode, revertTriggers ++ edgeRevertTriggers)
+                            (cc.updateProgressesOf(appendedNode, appendedProgresses).asInstanceOf[Graph], moreLiftTasks.toSeq)
+                        } else {
+                            // append한 노드가 아직 cc에 없는 경우
+                            // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다
+                            val newEdges: Set[Edge] = cc.incomingSimpleEdgesTo(node) map {
+                                case SimpleEdge(start, end, edgeRevertTriggers) =>
+                                    assert(end == node)
+                                    // TODO 여기서 revertTrigger를 이렇게 주는게 맞나? edgeRevertTriggers만 주면 될 것 같기도 하고? (revertTriggers는 result에 반영되니까)
+                                    SimpleEdge(start, appendedNode, revertTriggers ++ edgeRevertTriggers)
+                            }
+                            assert(cc.incomingJoinEdgesTo(node).isEmpty)
+                            (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> appendedProgresses)).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
+                        }
+                    } else {
+                        // append되면 finish할 수 있는 상태
+                        // - FinishingTask만 만들어 주면 될듯
+                        val finishingTasks = appendedProgresses map { kv => FinishingTask(nextGen, node, kv._2, kv._1 ++ revertTriggers) }
+                        (cc, finishingTasks.toSeq)
                     }
-                    assert(cc.incomingJoinEdgesTo(node).isEmpty)
-                    (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> appendedResult)).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
+                } else {
+                    val appendedProgresses = baseProgresses map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.appendWhitespace(kv._2, child)) }
+                    (cc.updateProgressesOf(node, appendedProgresses).asInstanceOf[Graph], Seq(DeriveTask(nextGen, node)))
                 }
-            } else {
-                // append되면 finish할 수 있는 상태
-                // - FinishingTask만 만들어 주면 될듯
-                val finishingTasks = appendedResult map { kv => FinishingTask(nextGen, node, kv._2, kv._1) }
-                (cc, finishingTasks.toSeq)
-            }
-        } else {
-            val appendedResult = baseResult map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.appendWhitespace(kv._2, child)) }
-            (cc.updateProgressesOf(node, appendedResult).asInstanceOf[Graph], Seq(DeriveTask(nextGen, node)))
         }
     }
 }

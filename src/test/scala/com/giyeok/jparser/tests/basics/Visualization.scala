@@ -14,7 +14,10 @@ object Visualization extends Viewer {
         RecursiveGrammarSet1.grammars,
         GrammarWithExcept.grammars,
         GrammarWithLookaheadExcept.grammars,
-        GrammarWithLookaheadIs.grammars).flatten
+        GrammarWithLookaheadIs.grammars,
+        BackupGrammars.grammars,
+        JoinGrammars.grammars,
+        LongestMatchGrammars.grammars).flatten
 
     def main(args: Array[String]): Unit = {
         start()

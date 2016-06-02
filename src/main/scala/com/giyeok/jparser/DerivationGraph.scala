@@ -55,7 +55,7 @@ case class DGraph[R <: ParseResult](
     lazy val edgesNotFromBaseNode = edges -- edgesFromBaseNode
 
     def baseResults = _baseResults.of(baseNode)
-    def _baseProgresses = Results(baseNode -> (baseProgresses mapValues { _._1 }))
+    def _baseProgresses: Results[Node, R] = if (baseProgresses.isEmpty) Results() else Results(baseNode -> (baseProgresses mapValues { _._1 }))
 
     // Modification
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): DGraph[R] =
@@ -73,7 +73,7 @@ case class DGraph[R <: ParseResult](
     def sliceByTermGroups(resultFunc: ParseResultFunc[R]): Map[TermGroupDesc, Option[DGraph[R]]] = {
         (termGroups map { termGroup =>
             val eligibleTerminalNodes = (terminalNodes filter { _.symbol.accept(termGroup) }).toSet[Node]
-            termGroup -> (subgraphIn(baseNode, eligibleTerminalNodes, resultFunc) map { _.asInstanceOf[DGraph[R]] })
+            termGroup -> (subgraphIn(0, baseNode, eligibleTerminalNodes, resultFunc) map { _.asInstanceOf[DGraph[R]] })
         }).toMap
     }
 

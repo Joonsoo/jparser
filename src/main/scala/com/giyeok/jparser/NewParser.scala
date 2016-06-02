@@ -101,15 +101,15 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 val nextGen = gen + 1
                 // 2. 1차 lift
                 val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, termNodes map { (_, input) }, Map())
-                val liftedGraph0opt = liftedGraph0pre.subgraphIn(startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
+                val liftedGraph0opt = liftedGraph0pre.subgraphIn(gen, startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
                 liftedGraph0opt match {
                     case Some(liftedGraph0) =>
                         // expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
                         val revertedGraph: Graph = ParsingCtx.revert(expandedGraph, liftedGraph0)
                         // TODO lift 막을 노드 정보 수집해서 ParsingCtx.lift에 넘겨주어야 함
-                        val liftBlockedNodes: Map[AtomicNode, Set[Trigger]] = ???
+                        val liftBlockedNodes: Map[AtomicNode, Set[Trigger]] = Map()
                         val (liftedGraphPre, nextDerivables) = ParsingCtx.lift(revertedGraph, nextGen, termNodes map { (_, input) }, liftBlockedNodes)
-                        val liftedGraphOpt = liftedGraphPre.subgraphIn(startNode, nextDerivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
+                        val liftedGraphOpt = liftedGraphPre.subgraphIn(gen, startNode, nextDerivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
                         liftedGraphOpt match {
                             case Some(liftedGraph) =>
                                 val nextContext: ParsingCtx = ParsingCtx(nextGen, liftedGraph, startNode, (nextDerivables.asInstanceOf[Set[Node]] intersect liftedGraph.nodes).asInstanceOf[Set[NontermNode]])
@@ -152,18 +152,18 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             case n: AtomicNode => (AtomicNode(n.symbol, n.beginGen + gen)(n.liftBlockTrigger map { shiftNode(_, gen) }, n.reservedReverterType)).asInstanceOf[T]
             case SequenceNode(symbol, pointer, beginGen, endGen) => SequenceNode(symbol, pointer, beginGen + gen, endGen + gen).asInstanceOf[T]
         }
-        def shiftTrigger(trigger: Trigger, gen: Int): Trigger = trigger match {
-            case Trigger(node, ttype) => Trigger(shiftNode(node, gen), ttype)
-        }
 
         // graph를 expand한다
         // - baseAndGraphs에 있는 튜플의 _1를 base로 해서 _2의 내용을 shiftGen해서 그래프에 추가한다
         def expandMulti(graph: Graph, gen: Int, baseAndGraphs: Set[(NontermNode, DGraph[R])]): (Graph, Set[TermNode]) = {
             // baseAndGraphs의 베이스 노드가 모두 graph에 포함되어 있어야 한다
             assert(baseAndGraphs map { _._1.asInstanceOf[Node] } subsetOf graph.nodes)
-            // 현재 파서 구조에서 expand 하기 전에는 TermNode가 그래프에 있으면 안 됨
-            println(graph.nodes filter { _.isInstanceOf[TermNode] })
-            assert(!(graph.nodes exists { _.isInstanceOf[TermNode] }))
+            // expand 하기 전에는 이전 세대의 TermNode가 그래프에 있으면 안 됨
+            assert((graph.nodes collect { case node @ TermNode(sym, nodeGen) if nodeGen < gen => node }).isEmpty)
+
+            def shiftTrigger(trigger: Trigger, gen: Int): Trigger = trigger match {
+                case Trigger(node, ttype) => Trigger(shiftNode(node, gen), ttype)
+            }
 
             // graph에 DerivationGraph.shiftGen해서 추가해준다
             // - edgesFromBaseNode/edgesNotFromBaseNode 구분해서 잘 처리
@@ -209,20 +209,26 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 tasks match {
                     case task +: rest =>
                         task match {
-                            case DeriveTask(_, node) =>
-                                assert(node.isInstanceOf[SequenceNode])
-                                // TODO derive(node)._1.baseResults 가 있는 경우는 맨 처음에 Start에서만 생길 수 있음 - 별도 처리가 필요한가?
+                            case DeriveTask(_, node: SequenceNode) =>
+                                var shiftedTriggerNodes: Set[Node] = Set()
 
-                                // derive(node)._1.baseProgresses 있으면 SequenceProgressTask
-                                val seqNode = node.asInstanceOf[SequenceNode]
-                                val immediateProgresses: Seq[SequenceProgressTask] = (derive(seqNode)._1.baseProgresses map { kv =>
+                                val immediateProgresses: Seq[SequenceProgressTask] = (derive(node)._1.baseProgresses map { kv =>
                                     val (triggers, (result, resultSymbol)) = kv
                                     // triggers를 nextGen만큼 shift해주기
-                                    val shiftedTriggers: Set[Trigger] = triggers map { shiftTrigger(_, nextGen) }
+                                    val shiftedNodesAndTriggers = triggers map {
+                                        case Trigger(node, ttype) =>
+                                            val shiftedNode = shiftNode(node, nextGen)
+                                            (shiftedNode, Trigger(shiftedNode, ttype))
+                                    }
+                                    shiftedTriggerNodes ++= shiftedNodesAndTriggers map { _._1 }
+
+                                    val shiftedTriggers: Set[Trigger] = shiftedNodesAndTriggers map { _._2 }
+
                                     SequenceProgressTask(nextGen, node.asInstanceOf[SequenceNode], result, resultSymbol, shiftedTriggers)
                                 }).toSeq
 
-                                rec(rest ++ immediateProgresses, graphCC, derivablesCC + node.asInstanceOf[SequenceNode])
+                                rec(rest ++ immediateProgresses, graphCC.withNodes(shiftedTriggerNodes).asInstanceOf[Graph], derivablesCC + node.asInstanceOf[SequenceNode])
+                            case DeriveTask(_, _) => ??? // 이런 상황은 발생할 수 없음
                             case task: FinishingTask =>
                                 //                                if (liftBlockedNodes.asInstanceOf[Set[Node]] contains task.node) {
                                 //                                    // liftBlockNode이면 task 진행하지 않음
