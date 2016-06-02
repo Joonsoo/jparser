@@ -262,27 +262,30 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                         // append된 뒤에도 아직 finishable이 되지 않는 상태
                         val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
                         if (cc.nodes contains appendedNode) {
-                            // appendedNode에서 나가는 엣지들 중 result가 있는 것들로 appendedNode를 다시 progress 혹은 finish 시켜줘야 한다
+                            // appendedNode가 이미 그래프에 있는 경우
+                            // - baseProgresses에는 없고 appendedProgresses에 생긴 triggerSet이 있으면 그 부분 추가하고
+                            // - 겹치는 triggerSet에 대해서는 resultFunc.merge 해서
+                            // - 만들어진 mergedProgresses가 baseProgresses와 같으면 무시하고 진행하고 다르면 DeriveTask(appendedNode)를 추가한다
 
-                            val outgoingEdges = cc.outgoingSimpleEdgesFrom(appendedNode)
+                            val appendedNodeProgresses = cc.progresses.of(appendedNode).get
 
-                            // SequenceNode에서 JoinEdge가 나올 수 없음
-                            assert(cc.outgoingJoinEdgesFrom(node).isEmpty)
-
-                            val moreLiftTasks = outgoingEdges flatMap {
-                                case SimpleEdge(start, end, edgeRevertTriggers) if cc.results.of(end).isDefined =>
-                                    // 이런 경우는 DerivationGraph에서만 생길 것으로 생각됨
-                                    val results = cc.results.of(end).get
-                                    results map { tr =>
-                                        val (resultRevertTriggers, result) = tr
-                                        val finishedResult = resultFunc.bind(end.symbol, result)
-                                        val finalRevertTriggers = resultRevertTriggers ++ edgeRevertTriggers ++ revertTriggers
-                                        SequenceProgressTask(nextGen, appendedNode, finishedResult, end.symbol, finalRevertTriggers)
-                                    }
-                                case _ => Set()
+                            val (mergedProgresses: Map[Set[Trigger], R], needDerive: Boolean) = appendedNodeProgresses.foldLeft((baseProgresses, false)) { (cc, entry) =>
+                                val (progresses, needDerive) = cc
+                                val (triggers, result) = entry
+                                progresses get triggers match {
+                                    case Some(existingResult) =>
+                                        val mergedResult = resultFunc.merge(existingResult, result)
+                                        if (existingResult == mergedResult) {
+                                            cc
+                                        } else {
+                                            (progresses + (triggers -> mergedResult), needDerive)
+                                        }
+                                    case None =>
+                                        (progresses + entry, true)
+                                }
                             }
 
-                            (cc.updateProgressesOf(appendedNode, appendedProgresses).asInstanceOf[Graph], moreLiftTasks.toSeq)
+                            (cc.updateProgressesOf(appendedNode, mergedProgresses).asInstanceOf[Graph], if (needDerive) Seq(DeriveTask(nextGen, appendedNode)) else Seq())
                         } else {
                             // append한 노드가 아직 cc에 없는 경우
                             // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다

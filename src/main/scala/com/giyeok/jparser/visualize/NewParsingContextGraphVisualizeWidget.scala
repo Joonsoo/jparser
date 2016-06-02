@@ -344,7 +344,7 @@ class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val g
     val graphView = new Graph(this, SWT.NONE)
 
     def initialize(): Unit = {
-        addGraph(context.graph, true)
+        addGraph(context.graph, false)
 
         context.derivables foreach { node =>
             nodesMap(node).setBackgroundColor(ColorConstants.yellow)
@@ -444,7 +444,7 @@ class NewParserPreLiftGraphVisualizeWidget(parent: Composite, style: Int, val gr
     val graphView = new Graph(this, SWT.NONE)
 
     def initialize(): Unit = {
-        addLiftGraph(proceed.expandedGraph, proceed.liftedGraph0pre, proceed.eligibleTermNodes, proceed.nextDerivables0)
+        addLiftGraph(proceed.expandedGraph, proceed.liftedGraph0, proceed.eligibleTermNodes, proceed.nextDerivables0)
 
         import org.eclipse.zest.layouts.algorithms._
         val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)

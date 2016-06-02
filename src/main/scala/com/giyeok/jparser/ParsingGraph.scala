@@ -38,6 +38,7 @@ object ParsingGraph {
     case class Trigger(node: Node, triggerType: Trigger.Type.Value)
     object Trigger {
         object Type extends Enumeration {
+            // Lift <> Wait, Alive <> Dead - 반대 관계
             val Lift, Alive, Wait = Value
         }
     }
@@ -148,7 +149,7 @@ trait ParsingGraph[R <: ParseResult] {
         nodesOfEdges subsetOf nodes
     })
     // progresses의 keySet의 모든 노드가 nodes에 포함되어야 함
-    assert(progresses.keyNodesSet.asInstanceOf[Set[Node]] subsetOf nodes)
+    // assert(progresses.keyNodesSet.asInstanceOf[Set[Node]] subsetOf nodes)
 
     // Information Retrieval
     //    def resultOf(node: Node): Option[Map[Set[Trigger], R]] = results.of(node)
@@ -209,7 +210,13 @@ trait ParsingGraph[R <: ParseResult] {
     // - 이 때, nodes, edges, results, progresses에 붙어 있는 트리거 중 이 nodes에 포함되지 않은 것들은 제거한다
     // - results나 progresses에서 트리거를 제거하면 합쳐져야 할 엔트리들이 생기면 resultFunc로 merge해준다 
     def subgraphOf(subNodes: Set[Node], subEdges: Set[Edge], resultFunc: ParseResultFunc[R]): ParsingGraph[R] = {
-        create(subNodes, subEdges, results.subresultOf(subNodes, resultFunc), progresses.subresultOf(subNodes, resultFunc))
+        val triggerFilteredSubEdges = subEdges map {
+            case SimpleEdge(start, end, revertTriggers) =>
+                val filteredRevertTriggers = revertTriggers filter { subNodes contains _.node }
+                SimpleEdge(start, end, filteredRevertTriggers)
+            case e => e
+        }
+        create(subNodes, triggerFilteredSubEdges, results.subresultOf(subNodes, resultFunc), progresses.subresultOf(subNodes, resultFunc))
     }
     // start에서 ends(중 아무곳이나) 도달할 수 있는 모든 경로만 포함하는 서브그래프를 반환한다
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
@@ -236,6 +243,7 @@ trait ParsingGraph[R <: ParseResult] {
         }
         def traverseForward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
+                // 이것도 빼야되나?
                 val liftBlockTriggerNode = task match {
                     case node: AtomicNode => node.liftBlockTrigger
                     case _ => None
@@ -243,8 +251,8 @@ trait ParsingGraph[R <: ParseResult] {
 
                 val outgoingEdges = outgoingEdgesFrom(task)
                 val reachables: Set[(Set[Node], Edge)] = outgoingEdges map {
-                    case edge @ SimpleEdge(start, end, revertTriggers) =>
-                        val newNodes: Set[Node] = Set(end) ++ ((revertTriggers map { _.node }) intersect nodes)
+                    case edge @ SimpleEdge(start, end, _) =>
+                        val newNodes: Set[Node] = Set(end)
                         (newNodes, edge)
                     case edge @ JoinEdge(start, end, join) =>
                         (Set(end, join), edge)

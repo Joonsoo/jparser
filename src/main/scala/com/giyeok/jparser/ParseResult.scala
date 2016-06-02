@@ -61,28 +61,20 @@ object ParseResultTree {
     case class TerminalNode(input: Input) extends Node
     case class BindedNode(symbol: Symbol, body: Node) extends Node
     case class JoinNode(body: Node, join: Node) extends Node
-    case class SequenceNode(_childrenWS: List[Node], _childrenIdx: List[Int]) extends Node {
+    case class SequenceNode(_childrenWS: List[Node], _children: List[Node]) extends Node {
         // childrenIdx: index of childrenWS
         // _childrenIdx: reverse of chidlrenIdx
 
-        val childrenSize = _childrenIdx.length
+        val childrenSize = _children.length
 
-        lazy val childrenIdx = _childrenIdx.reverse
+        lazy val children = _children.reverse
         lazy val childrenWS = _childrenWS.reverse
-        lazy val children: List[Node] = {
-            def pick(_childrenIdx: List[Int], _childrenWS: List[Node], current: Int, cc: List[Node]): List[Node] =
-                if (_childrenIdx.isEmpty) cc else {
-                    val dropped = _childrenWS drop (current - _childrenIdx.head)
-                    pick(_childrenIdx.tail, dropped.tail, _childrenIdx.head - 1, dropped.head +: cc)
-                }
-            pick(_childrenIdx, _childrenWS, _childrenWS.length - 1, List())
-        }
 
         def append(child: Node): SequenceNode = {
-            SequenceNode(child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
+            SequenceNode(child +: _childrenWS, child +: _children)
         }
         def appendWhitespace(wsChild: Node): SequenceNode = {
-            SequenceNode(wsChild +: _childrenWS, _childrenIdx)
+            SequenceNode(wsChild +: _childrenWS, _children)
         }
     }
 
@@ -102,7 +94,7 @@ object ParseResultTree {
     implicit class ShortString(node: Node) {
         def toShortString: String = node match {
             case EmptyNode => "()"
-            case n: TerminalNode => n.input.toShortString
+            case n: TerminalNode => s"Term(${n.input.toShortString})"
             case n: BindedNode => s"${n.symbol.toShortString}(${n.body.toShortString})"
             case n: JoinNode => s"${n.body.toShortString}(&${n.join.toShortString})"
             case s: SequenceNode => (s.children map { _.toShortString } mkString "/")

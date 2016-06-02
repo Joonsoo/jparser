@@ -51,12 +51,13 @@ object JoinGrammar2 extends Grammar with StringSamples {
         "A" -> ListSet(
             chars('a' to 'z').star),
         "B" -> ListSet(
-            chars('a' to 'z').star))
+            chars('b' to 'y').star))
     val startSymbol = n("S")
 
     val correctSamples = Set[String](
-        "")
-    val incorrectSamples = Set[String]()
+        "bcd")
+    val incorrectSamples = Set[String](
+        "bca")
 }
 
 object JoinGrammars {

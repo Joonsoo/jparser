@@ -84,7 +84,13 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             // baseAndGraphs의 베이스 노드가 모두 graph에 포함되어 있어야 한다
             assert(baseAndGraphs map { _._1.asInstanceOf[Node] } subsetOf graph.nodes)
             // expand 하기 전에는 이전 세대의 TermNode가 그래프에 있으면 안 됨
-            assert((graph.nodes collect { case node @ TermNode(sym, nodeGen) if nodeGen < gen => node }).isEmpty)
+            assert({
+                val invalidTermNodes = (graph.nodes collect { case node @ TermNode(sym, nodeGen) if nodeGen < gen => node })
+                if (!invalidTermNodes.isEmpty) {
+                    println(invalidTermNodes)
+                }
+                invalidTermNodes.isEmpty
+            })
 
             def shiftTrigger(trigger: Trigger, gen: Int): Trigger = trigger match {
                 case Trigger(node, ttype) => Trigger(shiftNode(node, gen), ttype)
@@ -188,9 +194,15 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
         // graph.results를 이용해서 revertTrigger 조건을 비교해서 지워야 할 edge/results를 제거한 그래프를 반환한다
         def revert(graph: Graph, prelift: Graph): Graph = {
+            // TODO 다시 구현
+            // Lift 트리거는 대상 노드가 리프트되면 트리거가 붙어있는 엣지/결과를 무효화
+            // Alive 트리거는 대상 노드가 살아있으면 트리거가 붙어있는 엣지/결과를 무효화
+            // Wait 트리거는 대상 노드가 리프트되지도 않고 살아있지도 않으면 트리거가 붙어 있는 엣지/결과를 무효화하고,
+            //   대상 노드가 리프트되면 트리거만 사라짐
             def triggerActivated(trigger: Trigger): Boolean = trigger match {
                 case Trigger(node, Trigger.Type.Lift) => prelift.results contains node
                 case Trigger(node, Trigger.Type.Alive) => prelift.nodes contains node
+                case Trigger(node, Trigger.Type.Wait) => !(prelift.nodes contains node)
                 case _ => false
             }
 
@@ -274,7 +286,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                     Some(ParsingStage(revertedGraph, termNodes, liftedGraphPre, liftedGraph, nextDerivables)),
                                     nextContext))
                             case None =>
-                                ???
+                                Right(UnexpectedInput(input))
                         }
                     case None =>
                         // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
@@ -283,11 +295,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                             None,
                             ParsingCtx(
                                 nextGen,
-                                CtxGraph(
-                                    Set(startNode),
-                                    Set(),
-                                    Results(startNode -> liftedGraph0pre.results.of(startNode).get),
-                                    Results()),
+                                CtxGraph(Set(), Set(), Results((liftedGraph0pre.results.of(startNode) map { startNode -> _ }).toSeq: _*), Results()),
                                 startNode,
                                 Set())))
                 }

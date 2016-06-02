@@ -108,7 +108,6 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
     def rec(tasks: List[Task], cc: DGraph[R]): DGraph[R] =
         tasks match {
             case task +: rest =>
-                println(task)
                 val (newCC, newTasks) = process(task, cc)
                 rec((newTasks.toList ++ rest).distinct, newCC)
             case List() => cc

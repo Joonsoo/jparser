@@ -8,7 +8,7 @@ import com.giyeok.jparser.Symbols
 
 object ParseResultTreeFigureGenerator {
     case class RenderingConfiguration(renderJoin: Boolean, renderWS: Boolean, renderLookaheadExcept: Boolean)
-    val cleanestConfiguration = RenderingConfiguration(false, false, false)
+    val cleanestConfiguration = RenderingConfiguration(false, true, false)
 }
 
 class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGenerator.Appearances[Fig]) {
@@ -58,22 +58,11 @@ class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap:
                         case _ => false
                     }
                     val seq: Seq[Fig] = if (renderConf.renderWS) {
-                        val (childrenWS, idx0) = (s.childrenWS, s.childrenIdx)
-                        val idx = if (idx0.last == childrenWS.size - 1) idx0 else (idx0 :+ childrenWS.size)
-                        (idx.foldLeft(0, Seq[Fig]()) { (m, idx) =>
-                            val (lastIdx, seq) = m
-                            if (renderConf.renderLookaheadExcept) {
-                                val wsFigs = (lastIdx until idx) map { wsIdx => ap.wsBorder.applyToFigure(parseNodeFig(childrenWS(wsIdx))) }
-                                val symFig = symbolBorder.applyToFigure(parseNodeFig(childrenWS(idx)))
-                                val newSeq = (seq ++ wsFigs) :+ symFig
-                                (idx + 1, newSeq)
-                            } else {
-                                val wsFigs = (lastIdx until idx) filterNot { idx => isLookaheadNode(childrenWS(idx)) } map { wsIdx => ap.wsBorder.applyToFigure(parseNodeFig(childrenWS(wsIdx))) }
-                                val symFig = if (isLookaheadNode(childrenWS(idx))) None else Some(symbolBorder.applyToFigure(parseNodeFig(childrenWS(idx))))
-                                val newSeq = (seq ++ wsFigs) ++ symFig
-                                (idx + 1, newSeq)
-                            }
-                        })._2
+                        if (renderConf.renderLookaheadExcept) {
+                            s.childrenWS map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
+                        } else {
+                            s.childrenWS filterNot { isLookaheadNode _ } map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
+                        }
                     } else {
                         if (renderConf.renderLookaheadExcept) {
                             s.children map { b => symbolBorder.applyToFigure(parseNodeFig(b)) }
