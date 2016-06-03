@@ -17,8 +17,8 @@ object LookaheadIsGrammar1 extends Grammar with StringSamples {
             chars(" ")))
     val startSymbol = n("S")
 
-    val correctSamples = Set("abc ", "abc def ")
-    val incorrectSamples = Set[String]()
+    val correctSamples = Set[String]("abc ", "abc def ")
+    val incorrectSamples = Set[String]("abc")
 }
 
 object GrammarWithLookaheadIs {

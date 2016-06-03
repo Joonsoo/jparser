@@ -209,36 +209,38 @@ trait ParsingGraph[R <: ParseResult] {
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
     def subgraphIn(genLimit: Int, start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
         // TODO traverse할 때 SimpleEdge에서 revertTriggers 어떻게 해야 하는지 고민
+        // backward순환할 때는 trigger들은 모두 무시한다
         def traverseBackward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
-                val liftBlockTriggerOpt: Option[Node] = task match {
-                    case task: AtomicNode => task.liftBlockTrigger
-                    case _ => None
-                }
                 val incomingEdges = incomingEdgesTo(task)
                 val reachables: Set[(Set[Node], Option[Edge])] = incomingEdges map {
-                    case edge @ SimpleEdge(start, _, revertTriggers) =>
-                        val newNodes: Set[Node] = Set(start) ++ ((revertTriggers map { _.node }) intersect nodes)
+                    case edge @ SimpleEdge(start, _, _) =>
+                        val newNodes: Set[Node] = Set(start)
                         (newNodes, Some(edge))
                     case edge @ JoinEdge(start, end, join) =>
                         if ((end == task && (nodesCC contains join)) || (join == task && (nodesCC contains end))) (Set[Node](start), Some(edge))
                         else (Set[Node](), None)
                 }
-                val (reachableNodes, reachableEdges) = reachables.foldLeft((liftBlockTriggerOpt.toSet, Set[Edge]())) { (m, i) => (m._1 ++ i._1, m._2 ++ i._2) }
+                val (reachableNodes, reachableEdges) = reachables.foldLeft((Set[Node](), Set[Edge]())) { (m, i) => (m._1 ++ i._1, m._2 ++ i._2) }
                 traverseBackward(rest ++ (reachableNodes -- nodesCC).toList, nodesCC ++ reachableNodes, edgesCC ++ reachableEdges)
             case List() => (nodesCC, edgesCC)
         }
+        // forward순회할 때는 trigger들의 노드도 모두 포함한다
         def traverseForward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
+                val liftBlockTriggerOpt: Option[Node] = task match {
+                    case task: AtomicNode => task.liftBlockTrigger
+                    case _ => None
+                }
                 val outgoingEdges = outgoingEdgesFrom(task)
                 val reachables: Set[(Set[Node], Edge)] = outgoingEdges map {
-                    case edge @ SimpleEdge(_, end, _) =>
-                        val newNodes: Set[Node] = Set(end)
+                    case edge @ SimpleEdge(_, end, revertTriggers) =>
+                        val newNodes: Set[Node] = Set(end) ++ ((revertTriggers map { _.node }) intersect nodes)
                         (newNodes, edge)
                     case edge @ JoinEdge(_, end, join) =>
                         (Set(end, join), edge)
                 }
-                val (reachableNodes, reachableEdges) = reachables.foldLeft((Set[Node]().toSet, Set[Edge]())) { (m, i) => (m._1 ++ i._1, m._2 + i._2) }
+                val (reachableNodes, reachableEdges) = reachables.foldLeft((liftBlockTriggerOpt.toSet, Set[Edge]())) { (m, i) => (m._1 ++ i._1, m._2 + i._2) }
                 traverseForward(rest ++ (reachableNodes -- nodesCC).toList, nodesCC ++ reachableNodes, edgesCC ++ reachableEdges)
             case List() => (nodesCC, edgesCC)
         }

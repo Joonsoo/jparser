@@ -197,58 +197,54 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             //   대상 노드가 리프트되면 트리거만 사라짐
 
             // (activated, survived)
-            def triggerActivated(trigger: Trigger): (Boolean, Boolean) = trigger match {
-                case Trigger(node, Trigger.Type.Lift) =>
-                    // 노드가 리프트되었으면 트리거되고, 노드가 살아있으면 트리거도 유지된다
-                    (prelift.results contains node, prelift.nodes contains node)
-                case Trigger(node, Trigger.Type.Wait) =>
-                    // 노드가 죽으면 트리거되고, 노드가 리프트되면 트리거는 제거된다
-                    (!(prelift.nodes contains node), !(prelift.results contains node))
-                case Trigger(node, Trigger.Type.Alive) =>
-                    // 노드가 살아있으면 트리거되고, 노드가 살아있어야 트리거도 산다
-                    (prelift.nodes contains node, prelift.results contains node)
-                case Trigger(node, Trigger.Type.Dead) =>
-                    // 노드가 죽으면 트리거되고, 노드가 살아있어야 트리거도 산다
-                    (!(prelift.nodes contains node), prelift.nodes contains node)
+            def triggerActivated(trigger: Trigger): (Boolean, Boolean) = {
+                val activatedSurvived = trigger match {
+                    case Trigger(node, Trigger.Type.Lift) =>
+                        // 노드가 리프트되었으면 트리거되고, 노드가 살아있으면 트리거도 유지된다
+                        (prelift.results contains node, prelift.nodes contains node)
+                    case Trigger(node, Trigger.Type.Wait) =>
+                        // 노드가 죽으면 트리거되고, 노드가 리프트되면 트리거는 제거된다
+                        (!(prelift.nodes contains node) && !(prelift.results contains node), !(prelift.results contains node))
+                    case Trigger(node, Trigger.Type.Alive) =>
+                        // 노드가 살아있으면 트리거되고, 노드가 살아있어야 트리거도 산다
+                        (prelift.nodes contains node, prelift.results contains node)
+                    case Trigger(node, Trigger.Type.Dead) =>
+                        // 노드가 죽으면 트리거되고, 노드가 살아있어야 트리거도 산다
+                        (!(prelift.nodes contains node), prelift.nodes contains node)
+                }
+                val (activated, survived) = activatedSurvived
+                // 대상 노드가 사라진 경우, activated되던지 트리거가 죽던지 둘 중 하나는 해야 한다
+                assert((prelift.nodes contains trigger.node) || activated || !survived)
+                activatedSurvived
             }
-            def processTriggers(triggers: Set[Trigger], nextNodesMap: Map[Node, Node]): (Boolean, Set[Trigger]) =
+            def processTriggers(triggers: Set[Trigger]): (Boolean, Set[Trigger]) =
                 triggers.foldLeft((false, Set[Trigger]())) { (cc, trigger) =>
                     val (shouldRemove, filtered) = cc
                     val (activated, survived) = triggerActivated(trigger)
                     (shouldRemove || activated, if (survived) filtered + trigger else filtered)
                 }
 
-            val nextNodesMap: Map[Node, Node] = (graph.nodes map {
-                case node: AtomicNode =>
-                    val nextNode = node.liftBlockTrigger match {
-                        case Some(triggerNode) if !(prelift.nodes contains triggerNode) => node.noLiftBlockTrigger
-                        case _ => node
-                    }
-                    node -> nextNode
-                case node => node -> node
-            }).toMap
             val nextEdges = graph.edges flatMap {
                 case SimpleEdge(start, end, revertTriggers) =>
-                    val (shouldRemove, filteredTriggers) = processTriggers(revertTriggers, nextNodesMap)
-                    if (shouldRemove) None else Some(SimpleEdge(nextNodesMap(start).asInstanceOf[NontermNode], nextNodesMap(end), filteredTriggers map { case Trigger(node, ttype) => Trigger(nextNodesMap(node), ttype) }))
+                    val (shouldRemove, filteredTriggers) = processTriggers(revertTriggers)
+                    if (shouldRemove) None else Some(SimpleEdge(start, end, filteredTriggers map { case Trigger(node, ttype) => Trigger(node, ttype) }))
                 case edge => Some(edge)
             }
             val nextProgresses = graph.progresses.entries.foldLeft(Results[SequenceNode, R]()) { (cc, entry) =>
                 val (node, triggers, result) = entry
-                val (shouldRemove, filteredTriggers) = processTriggers(triggers, nextNodesMap)
+                val (shouldRemove, filteredTriggers) = processTriggers(triggers)
                 if (shouldRemove) cc else {
                     cc.of(node, filteredTriggers) match {
                         case Some(existingResult) =>
-                            cc.update(node, triggers, resultFunc.merge(existingResult, result))
+                            cc.update(node, filteredTriggers, resultFunc.merge(existingResult, result))
                         case None =>
-                            cc.update(node, triggers, result)
+                            cc.update(node, filteredTriggers, result)
                     }
                 }
             }
 
-            val nextNodes = nextNodesMap.values.toSet
             // result는 이후에 lift할 때 없애고 시작하기 때문에 의미 없어서 따로 필터링할 필요 없음
-            graph.create(nextNodes, nextEdges, graph.results, nextProgresses)
+            graph.create(graph.nodes, nextEdges, graph.results, nextProgresses)
         }
     }
 
@@ -346,6 +342,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                 // TODO unexpected input 맞나?
                                 (transition, Right(UnexpectedInput(input)))
                         }
+                    case Some(_) => throw new AssertionError("")
                     case None =>
                         // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
                         val transition = ParsingCtxTransition(Some(expandTransition, firstLiftTransition), None, None)
