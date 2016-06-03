@@ -39,7 +39,7 @@ object ParsingGraph {
     object Trigger {
         object Type extends Enumeration {
             // Lift <> Wait, Alive <> Dead - 반대 관계
-            val Lift, Alive, Wait = Value
+            val Lift, Wait, Alive, Dead = Value
         }
     }
 

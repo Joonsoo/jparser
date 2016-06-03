@@ -74,21 +74,36 @@ object ExceptGrammar2 extends Grammar with StringSamples {
 object ExceptGrammar3_1 extends Grammar with StringSamples {
     val name = "Except Grammar 3-1 (except with lookahead_is)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(n("A").except(n("B")))),
-        "A" -> ListSet(c('a').star),
-        "B" -> ListSet(seq(i("aaa"), lookahead_is(c('a')))))
+        "S" -> ListSet(seq(n("A").except(n("B")), chars('0' to '9'))),
+        "A" -> ListSet(chars('a' to 'z').star),
+        "B" -> ListSet(seq(i("abc"), lookahead_is(c('0')))))
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String]("abc0")
+    val incorrectSamples = Set[String]()
+}
+
+object ExceptGrammar3_2 extends Grammar with StringSamples {
+    val name = "Except Grammar 3-2 (except with lookahead_except)"
+    val rules: RuleMap = ListMap("S" -> ListSet() /* TODO */ )
     val startSymbol = n("S")
 
     val correctSamples = Set[String]()
     val incorrectSamples = Set[String]()
 }
 
-object ExceptGrammar3_2 extends Grammar with StringSamples {
-    val name = "Except Grammar 3-2 (except with lookahead_except)"
-    val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(n("A").except(n("B")))),
-        "A" -> ListSet(c('a').star),
-        "B" -> ListSet(seq(i("aaa"), lookahead_except(c('a')))))
+object ExceptGrammar3_3 extends Grammar with StringSamples {
+    val name = "Except Grammar 3-3 (except with longest match)"
+    val rules: RuleMap = ListMap("S" -> ListSet() /* TODO */ )
+    val startSymbol = n("S")
+
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+}
+
+object ExceptGrammar3_4 extends Grammar with StringSamples {
+    val name = "Except Grammar 3-4 (except with eager longest match)"
+    val rules: RuleMap = ListMap("S" -> ListSet() /* TODO */ )
     val startSymbol = n("S")
 
     val correctSamples = Set[String]()
@@ -103,7 +118,9 @@ object GrammarWithExcept {
         ExceptGrammar1_3,
         ExceptGrammar2,
         ExceptGrammar3_1,
-        ExceptGrammar3_2)
+        ExceptGrammar3_2,
+        ExceptGrammar3_3,
+        ExceptGrammar3_4)
 }
 
 class ExceptGrammarTestSuite1 extends BasicParseTest(GrammarWithExcept.grammars)

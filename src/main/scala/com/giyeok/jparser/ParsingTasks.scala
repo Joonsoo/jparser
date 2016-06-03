@@ -260,9 +260,10 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                     // - FinishingTask만 만들어 주면 될듯
                     val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
                     val appendedProgresses = baseProgresses map { kv => (kv._1 ++ revertTriggers) -> (resultFunc.append(kv._2, child)) }
-                    val finishingTasks = appendedProgresses map { kv => FinishingTask(nextGen, node, kv._2, kv._1 ++ revertTriggers) }
+                    val finishingTasks = appendedProgresses map { kv => FinishingTask(nextGen, node, kv._2, kv._1) }
                     (cc, finishingTasks.toSeq)
                 } else {
+                    // append되어도 finish할 수는 없는 상태
                     val (appendedNode, appendedProgresses) = if (isContent) {
                         // whitespace가 아닌 실제 내용인 경우
                         assert(node.pointer + 1 < node.symbol.seq.length)
@@ -283,7 +284,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                         // - 만들어진 mergedProgresses가 baseProgresses와 같으면 무시하고 진행하고 다르면 DeriveTask(appendedNode)를 추가한다
 
                         val (mergedProgresses: Map[Set[Trigger], R], needDerive: Boolean) = appendedProgresses.foldLeft((cc.progresses.of(appendedNode).get, false)) { (cc, entry) =>
-                            val (progresses, needDerive) = cc
+                            val (progresses, _) = cc
                             val (triggers, result) = entry
                             progresses get triggers match {
                                 case Some(existingResult) =>
@@ -291,7 +292,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                                     if (existingResult == mergedResult) {
                                         cc
                                     } else {
-                                        (progresses + (triggers -> mergedResult), needDerive)
+                                        (progresses + (triggers -> mergedResult), true)
                                     }
                                 case None =>
                                     (progresses + entry, true)

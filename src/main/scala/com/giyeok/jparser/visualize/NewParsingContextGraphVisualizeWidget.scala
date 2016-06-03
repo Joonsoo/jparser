@@ -127,6 +127,69 @@ class NodeIdCache {
     }
 }
 
+trait ParsingGraphTransitionVisualizeWidget extends KernelFigureGenerator[Figure] {
+    val graphView: Graph
+    val grammar: Grammar
+    val nodeIdCache: NodeIdCache
+
+    val figureGenerator: FigureGenerator.Generator[Figure]
+    val figureAppearances: FigureGenerator.Appearances[Figure]
+    val symbolFigureGenerator: SymbolFigureGenerator[Figure]
+    val parseNodeFigureGenerator: ParseResultTreeFigureGenerator[Figure]
+
+    val nodesMap = scala.collection.mutable.Map[ParsingGraph.Node, CGraphNode]()
+    val edgesMap = scala.collection.mutable.Map[ParsingGraph.Edge, Seq[GraphConnection]]()
+
+    def nodeFromFigure(fig: Figure): CGraphNode = {
+        val nodeFig = figureGenerator.horizontalFig(FigureGenerator.Spacing.Medium, Seq(fig))
+        nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
+        nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
+        nodeFig.setOpaque(true)
+        nodeFig.setSize(nodeFig.getPreferredSize())
+
+        new CGraphNode(graphView, SWT.NONE, nodeFig)
+    }
+
+    def nodeOf(node: ParsingGraph.Node): CGraphNode = {
+        val nodeId = nodeIdCache.of(node)
+
+        val (g, ap) = (figureGenerator, figureAppearances)
+        val fig = node match {
+            case ParsingGraph.EmptyNode =>
+                g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    g.horizontalFig(Spacing.Small, Seq(symbolFigureGenerator.symbolFig(Empty), dot))))
+            case ParsingGraph.TermNode(symbol, beginGen) =>
+                g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol))),
+                    g.textFig(s"$beginGen", ap.default)))
+            case ParsingGraph.AtomicNode(symbol, beginGen) =>
+                g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    atomicFigure(symbol),
+                    g.textFig(s"$beginGen", ap.default)))
+            case ParsingGraph.SequenceNode(symbol, pointer, beginGen, endGen) =>
+                val f = g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    sequenceFigure(symbol, pointer),
+                    g.textFig(s"$beginGen-$endGen", ap.default)))
+                // TODO progresses 표시
+                f
+        }
+        if (node.isInstanceOf[DGraph.BaseNode]) {
+            fig.setOpaque(true)
+            fig.setBackgroundColor(ColorConstants.yellow)
+            fig
+        }
+        fig.setBorder(new MarginBorder(1, 2, 1, 2))
+
+        val n = nodeFromFigure(fig)
+        n.setData(node)
+        n
+    }
+}
+
 trait NewParserGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
     val graphView: Graph
     val grammar: Grammar

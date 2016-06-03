@@ -32,7 +32,8 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             case Some(dgraph) => dgraph
             case None =>
                 val dgraph = baseNode match {
-                    case _: DGraph.BaseNode => ??? // BaseNode일 수 없음
+                    case _: DGraph.BaseNode => // BaseNode일 수 없음
+                        throw new AssertionError("")
                     case AtomicNode(symbol, _) => derivationFunc.deriveAtomic(symbol)
                     case SequenceNode(symbol, pointer, _, _) => derivationFunc.deriveSequence(symbol, pointer)
                 }
@@ -159,7 +160,9 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                 }).toSeq
 
                                 rec(rest ++ immediateProgresses, graphCC.withNodes(shiftedTriggerNodes).asInstanceOf[Graph], derivablesCC + node.asInstanceOf[SequenceNode])
-                            case DeriveTask(_, _) => ??? // 이런 상황은 발생할 수 없음
+                            case DeriveTask(_, _) =>
+                                // 이런 상황은 발생할 수 없음
+                                throw new AssertionError("")
                             case task: FinishingTask =>
                                 val liftBlocking = task.node match {
                                     case node: AtomicNode => liftBlockedNodes get node
@@ -199,19 +202,29 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             // Alive 트리거는 대상 노드가 살아있으면 트리거가 붙어있는 엣지/결과를 무효화
             // Wait 트리거는 대상 노드가 리프트되지도 않고 살아있지도 않으면 트리거가 붙어 있는 엣지/결과를 무효화하고,
             //   대상 노드가 리프트되면 트리거만 사라짐
-            def triggerActivated(trigger: Trigger): Boolean = trigger match {
-                case Trigger(node, Trigger.Type.Lift) => prelift.results contains node
-                case Trigger(node, Trigger.Type.Alive) => prelift.nodes contains node
-                case Trigger(node, Trigger.Type.Wait) => !(prelift.nodes contains node)
-                case _ => false
+
+            // (activated, survived)
+            def triggerActivated(trigger: Trigger): (Boolean, Boolean) = trigger match {
+                case Trigger(node, Trigger.Type.Lift) =>
+                    // 노드가 리프트되었으면 트리거되고, 노드가 살아있으면 트리거도 유지된다
+                    (prelift.results contains node, prelift.nodes contains node)
+                case Trigger(node, Trigger.Type.Wait) =>
+                    // 노드가 죽으면 트리거되고, 노드가 리프트되면 트리거는 제거된다
+                    (!(prelift.nodes contains node), !(prelift.results contains node))
+                case Trigger(node, Trigger.Type.Alive) =>
+                    // 노드가 살아있으면 트리거되고, 노드가 살아있어야 트리거도 산다
+                    (prelift.nodes contains node, prelift.results contains node)
+                case Trigger(node, Trigger.Type.Dead) =>
+                    // 노드가 죽으면 트리거되고, 노드가 살아있어야 트리거도 산다
+                    (!(prelift.nodes contains node), prelift.nodes contains node)
             }
 
             val edgeFiltered = graph filterEdges {
-                case SimpleEdge(_, _, revertTriggers) if revertTriggers exists { triggerActivated _ } => false
+                case SimpleEdge(_, _, revertTriggers) if revertTriggers exists { t => triggerActivated(t)._1 } => false
                 case _ => true
             }
             // result는 이후에 lift할 때 없애고 시작하므로 따로 필터링할 필요 없음
-            val progressesFiltered = edgeFiltered.updateProgresses(edgeFiltered.progresses filterTo { (_, triggers, _) => !(triggers exists { triggerActivated _ }) })
+            val progressesFiltered = edgeFiltered.updateProgresses(edgeFiltered.progresses filterTo { (_, triggers, _) => !(triggers exists { t => triggerActivated(t)._1 }) })
             progressesFiltered.asInstanceOf[Graph]
         }
     }
@@ -233,18 +246,22 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         }
 
         def proceedDetail(input: ConcreteInput): Either[ProceedDetail, ParsingError] = {
+            val nextGen = gen + 1
+
             val baseAndGraphs = derivables flatMap { dnode =>
                 val coll = derive(dnode)._2 collect { case (termGroup, dgraph) if termGroup contains input => dnode -> dgraph }
                 coll ensuring (coll.size <= 1)
             }
             // 1. expand
-            val (expandedGraph, termNodes) = ParsingCtx.expandMulti(graph, gen, baseAndGraphs)
+            val (expandedGraph, termNodes0) = ParsingCtx.expandMulti(graph, gen, baseAndGraphs)
             // slice된 그래프에서 골라서 추가했으므로 termNodes는 모두 input을 받을 수 있어야 한다
-            assert(termNodes forall { _.symbol accept input })
-            if (termNodes.isEmpty) {
+            assert(termNodes0 forall { _.symbol accept input })
+            if (termNodes0.isEmpty) {
                 Right(UnexpectedInput(input))
             } else {
-                val nextGen = gen + 1
+                // Pended terminal nodes
+                val pendedTermNodes = graph.nodes collect { case node: TermNode if node.symbol accept input => node ensuring (node.beginGen == gen) }
+                val termNodes = pendedTermNodes ++ termNodes0
                 // 2. 1차 lift
                 val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, termNodes map { (_, input) }, Map())
                 val liftedGraph0opt = liftedGraph0pre.subgraphIn(gen, startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
