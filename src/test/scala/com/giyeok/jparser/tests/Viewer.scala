@@ -18,7 +18,7 @@ import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.visualize.FigureGenerator
-import com.giyeok.jparser.visualize.ParseProcessVisualizer
+import com.giyeok.jparser.visualize.ParsingProcessVisualizer
 import org.eclipse.swt.widgets.MessageBox
 import com.giyeok.jparser.visualize.DerivationGraphVisualizer
 
@@ -104,7 +104,7 @@ trait Viewer {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
                 val source = shownTexts(textList.getSelectionIndex())
-                ParseProcessVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                ParsingProcessVisualizer.start(grammar, source.toSeq, display, new Shell(display))
             }
         })
 
@@ -113,7 +113,7 @@ trait Viewer {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedGrammars(grammarList.getSelectionIndex())
                     val source = Inputs.fromString(testText.getText())
-                    ParseProcessVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                    ParsingProcessVisualizer.start(grammar, source.toSeq, display, new Shell(display))
                 }
             }
         })

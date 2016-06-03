@@ -39,7 +39,7 @@ import com.giyeok.jparser.ParseForest
 import javax.swing.plaf.basic.CenterLayout
 import org.eclipse.draw2d.LineBorder
 
-class ParseProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
+class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
     type Parser = NewParser[ParseForest]
 
     val parser = new NewParser(grammar, ParseForestFunc)
@@ -193,6 +193,7 @@ class ParseProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], displ
                     val ellipse = new draw2d.Ellipse
                     ellipse.setSize(width, height)
                     ellipse.setBackgroundColor(ColorConstants.lightGray)
+                    ellipse.setForegroundColor(ColorConstants.white)
                     ellipse
                 }
                 def emptyBoxFig(width: Int, height: Int): Figure = {
@@ -205,14 +206,19 @@ class ParseProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], displ
 
                 val height = if (source.isEmpty) 15 else terminalFig(source.head).getPreferredSize.height
                 def pointerFig(pointer: Pointer): Figure = {
-                    val fig = emptyBoxFig(11, height)
+                    val fig = emptyBoxFig(12, height)
                     fig.setLayoutManager(new CenterLayout(0, 0))
-                    val ellipse = ellipseFig(7, 7)
+                    val ellipse = ellipseFig(10, 10)
                     fig.add(ellipse)
+                    pointer match {
+                        case ParsingContextPointer(gen) =>
+                            val genFig = textFig(s"$gen", resources.smallFont)
+                            fig.add(genFig)
+                            fig.setPreferredSize(math.max(genFig.getPreferredSize.width, fig.getPreferredSize.width), height)
+                        case _ =>
+                    }
                     if (pointer == currentLocation) {
-                        ellipse.setBackgroundColor(ColorConstants.red)
-                    } else {
-                        ellipse.setForegroundColor(ColorConstants.white)
+                        ellipse.setBackgroundColor(ColorConstants.green)
                     }
                     fig.addMouseListener(listener(pointer))
                     fig
@@ -220,7 +226,7 @@ class ParseProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], displ
                 val transitionBoxWidth = (Seq("1", "2", "3", "4", "5", "6") map { textFig(_, resources.smallFont).getPreferredSize.width }).max
                 def transitionPointerFig(gen: Int): Figure = {
                     val fig = emptyBoxFig(transitionBoxWidth, height)
-                    fig.setLayoutManager(new GroundLayout(0, 0))
+                    fig.setLayoutManager(new CenterLayout(0, 0))
                     currentLocation match {
                         case ParsingContextTransitionPointer(`gen`, stage) =>
                             fig.add(textFig(s"$stage", resources.smallFont))
@@ -391,10 +397,10 @@ class ParseProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], displ
     }
 }
 
-object ParseProcessVisualizer {
+object ParsingProcessVisualizer {
     def start(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
         val resources = BasicVisualizeResources
-        new ParseProcessVisualizer(grammar, source, display, shell, resources).start()
+        new ParsingProcessVisualizer(grammar, source, display, shell, resources).start()
     }
 
     def start(grammar: Grammar, source: Seq[ConcreteInput]): Unit = {

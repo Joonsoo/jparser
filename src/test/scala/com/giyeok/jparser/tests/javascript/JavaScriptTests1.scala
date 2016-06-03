@@ -14,7 +14,7 @@ object JavaScriptTest1 extends Grammar with StringSamples {
         "var x = 1;",
         "varx = 1;",
         "iff=1;",
-        //"a=b\nc=d;",
+        "a=b\nc=d;",
         "")
     val incorrectSamples = Set[String]()
 }

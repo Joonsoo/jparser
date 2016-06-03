@@ -15,7 +15,9 @@ object JavaScriptGrammar extends Grammar {
     def expr(s: Symbol*) = seq(s toList, whitespace)
     def lex(s: Symbol*) = seq(s: _*)
     def line(s: Symbol*) = seq(oneline, s: _*)
-    val lineend = i(";").backup(e)
+    val lineend = i(";").backup(oneof(
+        seq(n("WhiteSpace").star, lookahead_is(n("LineTerminator"))),
+        seq(n("WhiteSpace").star, lookahead_is(i(";")))))
     def stmt(s: Symbol*) = longest(expr((s.toSeq :+ lineend): _*))
 
     def token(s: String) = i(s).join(n("Token"))

@@ -10,6 +10,7 @@ trait VisualizeResources {
     val italic14Font: Font
     val bold14Font: Font
     val smallFont: Font
+    val smallerFont: Font
 }
 
 object BasicVisualizeResources extends VisualizeResources {
@@ -19,4 +20,5 @@ object BasicVisualizeResources extends VisualizeResources {
     val italic14Font = new Font(null, defaultFontName, 14, SWT.ITALIC)
     val bold14Font = new Font(null, defaultFontName, 14, SWT.BOLD)
     val smallFont = new Font(null, defaultFontName, 8, SWT.NONE)
+    val smallerFont = new Font(null, defaultFontName, 6, SWT.NONE)
 }
