@@ -36,6 +36,8 @@ import com.giyeok.jparser.ParsingErrors.ParsingError
 import org.eclipse.swt.layout.FillLayout
 import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.ParseForest
+import javax.swing.plaf.basic.CenterLayout
+import org.eclipse.draw2d.LineBorder
 
 class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
     type Parser = NewParser[ParseForest]
@@ -58,55 +60,89 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
     graphView.setLayout(layout)
     graphView.setLayoutData(new GridData(GridData.FILL_BOTH))
 
-    case class VisualizationLocation(baseGen: Int, stage: Int) {
-        // stage 0: base generation의 parsing context
+    sealed trait Pointer {
+        def previous: Pointer
+        def next: Pointer
+        def previousBase: Pointer
+        def nextBase: Pointer
+
+        def stringRepr: String
+
+        def <=(other: Pointer): Boolean
+    }
+    case object ParsingContextInitializingPointer extends Pointer {
+        def previous = this
+        def next = ParsingContextPointer(0)
+        def previousBase = this
+        def nextBase = ParsingContextPointer(0)
+
+        def stringRepr: String = ">" + (source map { _.toCleanString }).mkString
+
+        def <=(other: Pointer) = other != this
+    }
+    case class ParsingContextPointer(gen: Int) extends Pointer {
+        def previous = if (gen == 0) ParsingContextInitializingPointer else ParsingContextTransitionPointer(gen - 1, 6)
+        def next = ParsingContextTransitionPointer(gen, 1)
+        def previousBase = ParsingContextPointer(gen - 1)
+        def nextBase = ParsingContextPointer(gen + 1)
+
+        def stringRepr = {
+            val (before, after) = source map { _.toCleanString } splitAt gen
+            (before.mkString + ("*") + after.mkString)
+        }
+
+        def <=(other: Pointer) = other match {
+            case ParsingContextInitializingPointer => false
+            case ParsingContextPointer(otherGen) => gen <= otherGen
+            case ParsingContextTransitionPointer(otherGen, _) => gen <= otherGen
+        }
+    }
+    case class ParsingContextTransitionPointer(gen: Int, stage: Int) extends Pointer {
         // stage 1: expand
-        // stage 2: pre-lift
-        // stage 3: revert and trimmed
-        // stage 4: final lift
-        def previousLocation = if (stage == 0) VisualizationLocation(baseGen - 1, 4) else VisualizationLocation(baseGen, stage - 1)
-        def nextLocation = if (stage == 4) VisualizationLocation(baseGen + 1, 0) else VisualizationLocation(baseGen, stage + 1)
-        def previousBase = if (stage == 0) VisualizationLocation(baseGen - 1, 0) else VisualizationLocation(baseGen, 0)
-        def nextBase = VisualizationLocation(baseGen + 1, 0)
+        // stage 2: 1차 lift
+        // stage 3: 1차 lift 트리밍
+        // stage 4: revert
+        // stage 5: 2차 lift
+        // stage 6: 2차 lift 트리밍
+        assert(1 <= stage && stage <= 6)
+        def previous = if (stage == 1) ParsingContextPointer(gen) else ParsingContextTransitionPointer(gen, stage - 1)
+        def next = if (stage == 6) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
+        def previousBase = if (stage == 1) ParsingContextPointer(gen - 1) else ParsingContextPointer(gen)
+        def nextBase = ParsingContextPointer(gen + 1)
 
-        def stringRepresentation = {
-            val sourceStr = source map { _.toCleanString }
+        def stringRepr = {
+            val (before, after) = source map { _.toCleanString } splitAt (gen + 1)
+            (before.mkString + (">" * stage) + after.mkString)
+        }
 
-            val divider = baseGen + (if (stage > 0) 1 else 0)
-            ((sourceStr take divider).mkString + (if (stage == 0) "*" else ">") + (sourceStr drop divider).mkString)
+        def <=(other: Pointer) = other match {
+            case ParsingContextInitializingPointer => false
+            case ParsingContextPointer(otherGen) => gen <= otherGen
+            case ParsingContextTransitionPointer(otherGen, otherStage) => gen < otherGen || (gen == otherGen && stage <= otherStage)
         }
     }
-    def isValidLocation(location: VisualizationLocation): Boolean = {
-        val VisualizationLocation(baseGen, stage) = location
-        (((0 <= baseGen && baseGen < source.length) && (0 <= stage && stage <= 4)) ||
-            ((baseGen == source.length) && (stage == 0)))
+
+    def isValidLocation(pointer: Pointer): Boolean = pointer match {
+        case ParsingContextInitializingPointer => true
+        case ParsingContextPointer(gen) => 0 <= gen && gen <= source.length
+        case ParsingContextTransitionPointer(gen, stage) => 0 <= gen && gen < source.length
     }
 
-    var currentLocation = VisualizationLocation(0, 0)
+    val firstLocation = ParsingContextPointer(0)
+    lazy val lastValidLocation = ParsingContextPointer(((0 to source.length).toSeq.reverse.find { contextAt(_).isLeft }).get)
+    val lastLocation = ParsingContextPointer(source.length)
+    var currentLocation: Pointer = firstLocation
 
-    class UnderbarBorder(color: Color, width: Int) extends AbstractBorder {
-        def getInsets(figure: IFigure): Insets = new Insets(0)
-        def paint(figure: IFigure, graphics: Graphics, insets: Insets): Unit = {
-            graphics.setLineWidth(width)
-            val bounds = figure.getBounds
-            graphics.setLineWidth(width)
-            graphics.setForegroundColor(color)
-            graphics.drawLine(bounds.x, bounds.bottom, bounds.right, bounds.bottom)
-        }
-    }
-    val cursorBorder = new UnderbarBorder(ColorConstants.black, 10)
-
-    def updateLocation(newLocation: VisualizationLocation): Unit = {
+    def updateLocation(newLocation: Pointer): Unit = {
         val sourceViewHeight = 20
         if (isValidLocation(newLocation)) {
             currentLocation = newLocation
 
-            println(newLocation)
             sourceView.setContents({
                 val f = new Figure
                 f.setLayoutManager(new ToolbarLayout(true))
 
-                class CenterLayout extends AbstractLayout {
+                abstract class RelocationLayout(offsetX: Int, offsetY: Int) extends AbstractLayout {
                     protected def calculatePreferredSize(container: IFigure, w: Int, h: Int): Dimension = {
                         new Dimension(w, h)
                     }
@@ -114,47 +150,32 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                     def layout(container: IFigure): Unit = {
                         val children = container.getChildren().asInstanceOf[java.util.List[IFigure]]
                         val i = children.iterator()
+                        val containerBound: Rectangle = container.getBounds()
+                        val containerSize = container.getPreferredSize()
                         while (i.hasNext()) {
                             val c = i.next()
-                            val allbound: Rectangle = container.getBounds()
-                            val containerSize = container.getPreferredSize()
                             val childSize = c.getPreferredSize()
-                            val bound = new PrecisionRectangle(
-                                allbound.x + allbound.width / 2 + (containerSize.width - childSize.width) / 2,
-                                allbound.y + allbound.height / 2 + (containerSize.height - childSize.height) / 2,
-                                childSize.width, childSize.height)
+                            val (x, y) = calculate(containerBound.width, containerBound.height, childSize.width, childSize.height)
+                            val bound = new PrecisionRectangle(containerBound.x + x + offsetX, containerBound.y + y + offsetY, childSize.width, childSize.height)
                             c.setBounds(bound)
                         }
                     }
+
+                    def calculate(boundWidth: Int, boundHeight: Int, childWidth: Int, childHeight: Int): (Int, Int)
                 }
-                def listener(location: VisualizationLocation) = new draw2d.MouseListener() {
+                class CenterLayout(offsetX: Int, offsetY: Int) extends RelocationLayout(offsetX, offsetY) {
+                    def calculate(boundWidth: Int, boundHeight: Int, childWidth: Int, childHeight: Int): (Int, Int) =
+                        ((boundWidth - childWidth) / 2 + offsetX, (boundHeight - childHeight) / 2 + offsetY)
+                }
+                class GroundLayout(offsetX: Int, offsetY: Int) extends RelocationLayout(offsetX, offsetY) {
+                    def calculate(boundWidth: Int, boundHeight: Int, childWidth: Int, childHeight: Int): (Int, Int) =
+                        ((boundWidth - childWidth) / 2, boundHeight - childHeight)
+                }
+
+                def listener(location: Pointer) = new draw2d.MouseListener() {
                     def mousePressed(e: draw2d.MouseEvent): Unit = { updateLocation(location) }
                     def mouseReleased(e: draw2d.MouseEvent): Unit = {}
                     def mouseDoubleClicked(e: draw2d.MouseEvent): Unit = {}
-                }
-                def pointerFig(location: VisualizationLocation, addingWidth: Int): Figure = {
-                    val pointer = new draw2d.Figure
-                    val stageLabelFrame = new draw2d.Figure
-                    stageLabelFrame.setSize(6, sourceViewHeight)
-                    stageLabelFrame.setLayoutManager(new CenterLayout)
-                    if (location == newLocation) {
-                        stageLabelFrame.setBorder(cursorBorder)
-                    }
-                    if (location.stage == 0) {
-                        val ellipse = new draw2d.Ellipse
-                        ellipse.setSize(3, 3)
-                        ellipse.setBackgroundColor(ColorConstants.lightGray)
-                        stageLabelFrame.add(ellipse)
-                    } else {
-                        val stageLabel = new draw2d.Label()
-                        stageLabel.setText(s"${location.stage}")
-                        stageLabel.setFont(resources.smallFont)
-                        stageLabelFrame.add(stageLabel)
-                    }
-                    pointer.add(stageLabelFrame)
-                    pointer.setSize(5 + addingWidth, sourceViewHeight)
-                    pointer.addMouseListener(listener(location))
-                    pointer
                 }
                 def terminalFig(s: ConcreteInput): Figure = {
                     val term = new draw2d.Label(s.toCleanString)
@@ -162,35 +183,81 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                     term.setFont(resources.fixedWidth12Font)
                     term
                 }
-                def textFig(text: String): Figure = {
+                def textFig(text: String, font: Font): Figure = {
                     val label = new draw2d.Label()
                     label.setText(text)
-                    label.setFont(resources.smallFont)
+                    label.setFont(font)
                     label
                 }
+                def ellipseFig(width: Int, height: Int): Figure = {
+                    val ellipse = new draw2d.Ellipse
+                    ellipse.setSize(width, height)
+                    ellipse.setBackgroundColor(ColorConstants.lightGray)
+                    ellipse
+                }
+                def emptyBoxFig(width: Int, height: Int): Figure = {
+                    val box = new draw2d.Figure
+                    box.setLayoutManager(new ToolbarLayout)
+                    box.setSize(width, height)
+                    box.setPreferredSize(width, height)
+                    box
+                }
+
+                val height = if (source.isEmpty) 15 else terminalFig(source.head).getPreferredSize.height
+                def pointerFig(pointer: Pointer): Figure = {
+                    val fig = emptyBoxFig(11, height)
+                    fig.setLayoutManager(new CenterLayout(0, 0))
+                    val ellipse = ellipseFig(7, 7)
+                    fig.add(ellipse)
+                    if (pointer == currentLocation) {
+                        ellipse.setBackgroundColor(ColorConstants.red)
+                    } else {
+                        ellipse.setForegroundColor(ColorConstants.white)
+                    }
+                    fig.addMouseListener(listener(pointer))
+                    fig
+                }
+                val transitionBoxWidth = (Seq("1", "2", "3", "4", "5", "6") map { textFig(_, resources.smallFont).getPreferredSize.width }).max
+                def transitionPointerFig(gen: Int): Figure = {
+                    val fig = emptyBoxFig(transitionBoxWidth, height)
+                    fig.setLayoutManager(new CenterLayout(0, 0))
+                    currentLocation match {
+                        case ParsingContextTransitionPointer(`gen`, stage) =>
+                            fig.add(textFig(s"$stage", resources.smallFont))
+                        case _ => // nothing to do
+                    }
+                    fig.addMouseListener(listener(ParsingContextTransitionPointer(gen, 1)))
+                    fig
+                }
+
+                f.add(pointerFig(ParsingContextInitializingPointer))
                 source.zipWithIndex foreach { s =>
                     val (input, gen) = s
-                    f.add(pointerFig(VisualizationLocation(gen, 0), 0))
+                    f.add(pointerFig(ParsingContextPointer(gen)))
                     f.add(terminalFig(input))
-                    (1 to 4) foreach { stage =>
-                        f.add(pointerFig(VisualizationLocation(gen, stage), 0))
-                    }
+                    f.add(transitionPointerFig(gen))
                 }
-                f.add(pointerFig(VisualizationLocation(source.length, 0), 200))
-                contextAt(newLocation.baseGen) match {
-                    case Left(context) =>
-                        context.result match {
-                            case Some(results) =>
-                                f.add(textFig(s"r=${results.trees.size}"))
-                            case _ =>
+                f.add(pointerFig(ParsingContextPointer(source.length)))
+
+                currentLocation match {
+                    case ParsingContextPointer(gen) =>
+                        contextAt(gen) match {
+                            case Left(context) =>
+                                context.result match {
+                                    case Some(results) =>
+                                        f.add(emptyBoxFig(100, 5))
+                                        f.add(textFig(s"r=${results.trees.size}", resources.smallFont))
+                                    case _ =>
+                                }
+                            case Right(_) => // nothing to do
                         }
-                    case Right(_) => // nothing to do
+                    case _ =>
                 }
                 f
             })
 
-            shell.setText(s"${grammar.name}: ${currentLocation.stringRepresentation}")
-            layout.topControl = graphAt(currentLocation)
+            shell.setText(s"${grammar.name}: ${currentLocation.stringRepr}")
+            layout.topControl = controlAt(currentLocation)
             graphView.layout()
             shell.layout()
             sourceView.setFocus()
@@ -198,32 +265,34 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
     }
 
     val contextCache = scala.collection.mutable.Map[Int, Either[Parser#ParsingCtx, ParsingError]]()
-    val proceedCache = scala.collection.mutable.Map[Int, Either[Parser#ProceedDetail, ParsingError]]()
+    val transitionCache = scala.collection.mutable.Map[Int, Either[Parser#ParsingCtxTransition, ParsingError]]()
     def contextAt(gen: Int): Either[Parser#ParsingCtx, ParsingError] =
         contextCache get gen match {
-            case Some(context) => context
+            case Some(cached) => cached
             case None =>
                 val context: Either[Parser#ParsingCtx, ParsingError] = if (gen == 0) Left(parser.initialContext) else {
                     contextAt(gen - 1) match {
                         case Left(prevContext) =>
                             val detail = prevContext.proceedDetail(source(gen - 1))
-                            proceedCache(gen - 1) = detail
-                            detail match {
-                                case Left(detail) => Left(detail.nextContext)
+                            transitionCache(gen - 1) = Left(detail._1.asInstanceOf[Parser#ParsingCtxTransition])
+                            detail._2 match {
+                                case Left(nextCtx) => Left(nextCtx)
                                 case Right(error) => Right(error)
                             }
-                        case Right(error) => Right(error)
+                        case Right(error) =>
+                            transitionCache(gen - 1) = Right(error)
+                            Right(error)
                     }
                 }
                 contextCache(gen) = context
                 context
         }
-    def proceedAt(gen: Int): Either[Parser#ProceedDetail, ParsingError] =
-        proceedCache get gen match {
-            case Some(context) => context
+    def transitionAt(gen: Int): Either[Parser#ParsingCtxTransition, ParsingError] =
+        transitionCache get gen match {
+            case Some(cached) => cached
             case None =>
                 contextAt(gen + 1)
-                proceedCache(gen)
+                transitionCache(gen)
         }
 
     def errorControl(message: String): Control = {
@@ -234,53 +303,28 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
 
     val nodeIdCache = new NodeIdCache()
 
-    val graphCache = scala.collection.mutable.Map[VisualizationLocation, Control]()
-    def graphAt(location: VisualizationLocation): Control = {
-        graphCache get location match {
-            case Some(control) => control
+    val controlCache = scala.collection.mutable.Map[Pointer, Control]()
+
+    def controlAt(pointer: Pointer): Control = {
+        controlCache get pointer match {
+            case Some(cached) => cached
             case None =>
-                val control = location.stage match {
-                    case 0 =>
-                        contextAt(location.baseGen) match {
-                            case Left(context) =>
-                                new NewParsingContextGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, context)
-                            case Right(error) =>
-                                errorControl(error.msg)
+                val control = pointer match {
+                    case ParsingContextInitializingPointer =>
+                        errorControl("TODO")
+                    case ParsingContextPointer(gen) =>
+                        contextAt(gen) match {
+                            case Left(ctx) => new NewParsingContextGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, ctx)
+                            case Right(error) => errorControl(error.msg)
                         }
-                    case 1 =>
-                        // Expand
-                        (contextAt(location.baseGen), proceedAt(location.baseGen)) match {
-                            case (Left(context), Left(proceed)) =>
-                                new NewParserExpandedGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, context, proceed)
-                            case (Right(error), _) => errorControl(error.msg)
-                            case (_, Right(error)) => errorControl(error.msg)
-                        }
-                    case 2 =>
-                        // PreLift
-                        (contextAt(location.baseGen), proceedAt(location.baseGen)) match {
-                            case (Left(context), Left(proceed)) =>
-                                new NewParserPreLiftGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, context, proceed)
-                            case (Right(error), _) => errorControl(error.msg)
-                            case (_, Right(error)) => errorControl(error.msg)
-                        }
-                    case 3 =>
-                        // Revert and Trim
-                        (contextAt(location.baseGen), proceedAt(location.baseGen)) match {
-                            case (Left(context), Left(proceed)) =>
-                                new NewParserRevertedGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, context, proceed)
-                            case (Right(error), _) => errorControl(error.msg)
-                            case (_, Right(error)) => errorControl(error.msg)
-                        }
-                    case 4 =>
-                        // Final Lift
-                        (contextAt(location.baseGen), proceedAt(location.baseGen)) match {
-                            case (Left(context), Left(proceed)) =>
-                                new NewParserFinalLiftGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, context, proceed)
-                            case (Right(error), _) => errorControl(error.msg)
-                            case (_, Right(error)) => errorControl(error.msg)
-                        }
+                    case ParsingContextTransitionPointer(gen, stage) =>
+                        errorControl("TODO")
                 }
-                graphCache(location) = finalizeView(control)
+                def finalizeView(v: Control): Control = {
+                    // 나중에 이벤트 리스너들 넣기
+                    v
+                }
+                controlCache(pointer) = finalizeView(control)
                 control
         }
     }
@@ -288,26 +332,19 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
     def keyListener = new KeyListener() {
         def keyPressed(x: KeyEvent): Unit = {
             x.keyCode match {
-                case SWT.ARROW_LEFT => updateLocation(currentLocation.previousLocation)
-                case SWT.ARROW_RIGHT => updateLocation(currentLocation.nextLocation)
+                case SWT.ARROW_LEFT => updateLocation(currentLocation.previous)
+                case SWT.ARROW_RIGHT => updateLocation(currentLocation.next)
                 case SWT.ARROW_UP => updateLocation(currentLocation.previousBase)
                 case SWT.ARROW_DOWN => updateLocation(currentLocation.nextBase)
+                case SWT.HOME => updateLocation(firstLocation)
+                case SWT.END =>
+                    if (lastValidLocation <= currentLocation && lastLocation != currentLocation) updateLocation(lastLocation) else updateLocation(lastValidLocation)
                 case code =>
                     println(s"keyPressed: $code")
             }
         }
 
         def keyReleased(x: KeyEvent): Unit = {}
-    }
-    def finalizeView(v: Control): Control = {
-        v.addKeyListener(keyListener)
-        v match {
-            case v: NewParsingContextGraphVisualizeWidget => v.graphView.addKeyListener(keyListener)
-            case v: NewParserExpandedGraphVisualizeWidget => v.graphView.addKeyListener(keyListener)
-            case v: NewParserPreLiftGraphVisualizeWidget => v.graphView.addKeyListener(keyListener)
-            case _ =>
-        }
-        v
     }
     sourceView.addKeyListener(keyListener)
 

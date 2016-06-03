@@ -45,31 +45,27 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         }
     }
 
-    case class ParsingStage(
-        baseGraph: Graph,
-        eligibleTermNodes: Set[TermNode],
-        liftedGraphPre: Graph,
-        liftedGraph: Graph,
-        nextDerivables: Set[SequenceNode])
-
-    case class ProceedDetail(
-            firstStage: ParsingStage,
-            finalStage: Option[ParsingStage],
-            nextContext: ParsingCtx) {
-
-        val expandedGraph = firstStage.baseGraph
-        val eligibleTermNodes = firstStage.eligibleTermNodes
-        val liftedGraph0pre = firstStage.liftedGraphPre
-        val liftedGraph0 = firstStage.liftedGraph
-        val nextDerivables0 = firstStage.nextDerivables
-
-        val revertedGraph = finalStage map { _.baseGraph }
-        val liftedGraphPre = finalStage map { _.liftedGraphPre }
-        val liftedGraph = finalStage map { _.liftedGraph }
-        val nextDerivables = finalStage map { _.nextDerivables }
-    }
-
     type Graph = CtxGraph[R]
+
+    trait CtxGraphTransition {
+        val baseGraph: Graph
+        val nextGraph: Graph
+    }
+    trait ParsingTaskTransition {
+        val baseGraph: Graph
+        val initialTasks: Seq[ParsingTasks[R, Graph]#Task]
+        // TODO
+    }
+    case class ExpandTransition(baseGraph: Graph, nextGraph: Graph, expandedTermNodes: Set[TermNode], pendedTermNodes: Set[TermNode]) extends CtxGraphTransition
+    // TODO LiftTransition에서 liftBlockTrigger 정보도 받기
+    case class LiftTransition(baseGraph: Graph, nextGraph: Graph, startingNodes: Set[(TermNode, Input)], nextDerivables: Set[Node]) extends CtxGraphTransition
+    case class TrimmingTransition(baseGraph: Graph, nextGraph: Graph) extends CtxGraphTransition
+    case class RevertTransition(baseGraph: Graph, nextGraph: Graph, revertResult: Graph) extends CtxGraphTransition
+
+    case class ParsingCtxTransition(
+        firstStage: Option[(ExpandTransition, LiftTransition)],
+        secondStage: Option[(TrimmingTransition, RevertTransition, LiftTransition)],
+        finalTrimming: Option[TrimmingTransition])
 
     object ParsingCtx {
         def shiftNode[T <: Node](node: T, gen: Int): T = node match {
@@ -245,7 +241,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             }
         }
 
-        def proceedDetail(input: ConcreteInput): Either[ProceedDetail, ParsingError] = {
+        def proceedDetail(input: ConcreteInput): (ParsingCtxTransition, Either[ParsingCtx, ParsingError]) = {
             val nextGen = gen + 1
 
             val baseAndGraphs = derivables flatMap { dnode =>
@@ -257,18 +253,27 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             // slice된 그래프에서 골라서 추가했으므로 termNodes는 모두 input을 받을 수 있어야 한다
             assert(termNodes0 forall { _.symbol accept input })
             if (termNodes0.isEmpty) {
-                Right(UnexpectedInput(input))
+                (ParsingCtxTransition(None, None, None), Right(UnexpectedInput(input)))
             } else {
                 // Pended terminal nodes
                 val pendedTermNodes = graph.nodes collect { case node: TermNode if node.symbol accept input => node ensuring (node.beginGen == gen) }
                 val termNodes = pendedTermNodes ++ termNodes0
+                val termNodesInput: Set[(TermNode, Input)] = termNodes map { (_, input) }
+
+                val expandTransition = ExpandTransition(graph, expandedGraph, termNodes0, pendedTermNodes)
+
                 // 2. 1차 lift
-                val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, termNodes map { (_, input) }, Map())
-                val liftedGraph0opt = liftedGraph0pre.subgraphIn(gen, startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
-                liftedGraph0opt match {
-                    case Some(liftedGraph0) =>
+                val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, termNodesInput, Map())
+
+                val firstLiftTransition = LiftTransition(expandedGraph, liftedGraph0pre, termNodesInput, nextDerivables0.asInstanceOf[Set[Node]])
+                (liftedGraph0pre.subgraphIn(gen, startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc)) match {
+                    case Some(liftedGraph0: Graph) =>
+                        val firstLiftTrimmingTransition = TrimmingTransition(liftedGraph0pre, liftedGraph0)
+
                         // expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
                         val revertedGraph: Graph = ParsingCtx.revert(expandedGraph, liftedGraph0)
+                        val revertTransition = RevertTransition(expandedGraph, revertedGraph, liftedGraph0)
+
                         // TODO lift 막을 노드 정보 수집해서 ParsingCtx.lift에 넘겨주어야 함
                         val liftBlockedNodes: Map[AtomicNode, Set[Trigger]] = {
                             val d = revertedGraph.nodes collect {
@@ -293,37 +298,40 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                             d.toMap
                         }
 
-                        val (liftedGraphPre, nextDerivables) = ParsingCtx.lift(revertedGraph, nextGen, termNodes map { (_, input) }, liftBlockedNodes)
+                        val (liftedGraphPre, nextDerivables) = ParsingCtx.lift(revertedGraph, nextGen, termNodesInput, liftBlockedNodes)
+                        val secondLiftTransition = LiftTransition(revertedGraph, liftedGraphPre, termNodesInput, nextDerivables.asInstanceOf[Set[Node]])
+
                         val liftedGraphOpt = liftedGraphPre.subgraphIn(gen, startNode, nextDerivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
                         liftedGraphOpt match {
                             case Some(liftedGraph) =>
+                                val secondLiftTrimmingTransition = TrimmingTransition(liftedGraphPre, liftedGraph)
                                 val nextContext: ParsingCtx = ParsingCtx(nextGen, liftedGraph, startNode, (nextDerivables.asInstanceOf[Set[Node]] intersect liftedGraph.nodes).asInstanceOf[Set[NontermNode]])
-                                Left(ProceedDetail(
-                                    ParsingStage(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0, nextDerivables0),
-                                    Some(ParsingStage(revertedGraph, termNodes, liftedGraphPre, liftedGraph, nextDerivables)),
-                                    nextContext))
+                                val transition = ParsingCtxTransition(
+                                    Some(expandTransition, firstLiftTransition),
+                                    Some(firstLiftTrimmingTransition, revertTransition, secondLiftTransition),
+                                    Some(secondLiftTrimmingTransition))
+                                (transition, Left(nextContext))
                             case None =>
-                                Right(UnexpectedInput(input))
+                                val transition = ParsingCtxTransition(
+                                    Some(expandTransition, firstLiftTransition),
+                                    Some(firstLiftTrimmingTransition, revertTransition, secondLiftTransition),
+                                    None)
+                                // TODO unexpected input 맞나?
+                                (transition, Right(UnexpectedInput(input)))
                         }
                     case None =>
                         // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
-                        Left(ProceedDetail(
-                            ParsingStage(expandedGraph, termNodes, liftedGraph0pre, liftedGraph0pre, nextDerivables0),
-                            None,
-                            ParsingCtx(
-                                nextGen,
-                                CtxGraph(Set(), Set(), Results((liftedGraph0pre.results.of(startNode) map { startNode -> _ }).toSeq: _*), Results()),
-                                startNode,
-                                Set())))
+                        val transition = ParsingCtxTransition(Some(expandTransition, firstLiftTransition), None, None)
+                        (transition, Left(ParsingCtx(
+                            nextGen,
+                            CtxGraph(Set(), Set(), Results((liftedGraph0pre.results.of(startNode) map { startNode -> _ }).toSeq: _*), Results()),
+                            startNode,
+                            Set())))
                 }
             }
         }
 
-        def proceed(input: ConcreteInput): Either[ParsingCtx, ParsingError] =
-            proceedDetail(input) match {
-                case Left(detail) => Left(detail.nextContext)
-                case Right(error) => Right(error)
-            }
+        def proceed(input: ConcreteInput): Either[ParsingCtx, ParsingError] = proceedDetail(input)._2
     }
 
     val initialContext = {

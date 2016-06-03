@@ -18,5 +18,5 @@ object BasicVisualizeResources extends VisualizeResources {
     val fixedWidth12Font = new Font(null, defaultFontName, 12, SWT.NONE)
     val italic14Font = new Font(null, defaultFontName, 14, SWT.ITALIC)
     val bold14Font = new Font(null, defaultFontName, 14, SWT.BOLD)
-    val smallFont = new Font(null, defaultFontName, 6, SWT.NONE)
+    val smallFont = new Font(null, defaultFontName, 8, SWT.NONE)
 }
