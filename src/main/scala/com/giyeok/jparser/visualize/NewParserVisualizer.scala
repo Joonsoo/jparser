@@ -220,7 +220,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                 val transitionBoxWidth = (Seq("1", "2", "3", "4", "5", "6") map { textFig(_, resources.smallFont).getPreferredSize.width }).max
                 def transitionPointerFig(gen: Int): Figure = {
                     val fig = emptyBoxFig(transitionBoxWidth, height)
-                    fig.setLayoutManager(new CenterLayout(0, 0))
+                    fig.setLayoutManager(new GroundLayout(0, 0))
                     currentLocation match {
                         case ParsingContextTransitionPointer(`gen`, stage) =>
                             fig.add(textFig(s"$stage", resources.smallFont))
@@ -239,13 +239,14 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                 }
                 f.add(pointerFig(ParsingContextPointer(source.length)))
 
+                f.add({ val x = emptyBoxFig(100, height); x.addMouseListener(listener(ParsingContextPointer(source.length))); x })
+
                 currentLocation match {
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
                             case Left(context) =>
                                 context.result match {
                                     case Some(results) =>
-                                        f.add(emptyBoxFig(100, 5))
                                         f.add(textFig(s"r=${results.trees.size}", resources.smallFont))
                                     case _ =>
                                 }

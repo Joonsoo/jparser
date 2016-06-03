@@ -48,6 +48,8 @@ import com.giyeok.jparser.Results
 import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.events.MouseListener
 import org.eclipse.zest.core.viewers.GraphViewer
+import com.giyeok.jparser.ParseForest
+import com.giyeok.jparser.ParseResultTree
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -96,6 +98,18 @@ trait BasicGenerators {
     val parseResultTreeFigureGenerator = new ParseResultTreeFigureGenerator(figureGenerator, tooltipAppearances)
 }
 
+trait ParseForestFigureGenerator[Fig] {
+    val figureGenerator: FigureGenerator.Generator[Fig]
+    val figureAppearances: FigureGenerator.Appearances[Fig]
+    val parseResultTreeFigureGenerator: ParseResultTreeFigureGenerator[Fig]
+
+    def parseResultTreesFigureOf(trees: Set[ParseResultTree.Node]): Fig = {
+        val (g, ap) = (figureGenerator, figureAppearances)
+        g.verticalFig(Spacing.Medium, trees.toSeq map { parseResultTreeFigureGenerator.parseNodeHFig _ })
+    }
+    def parseResultForestFigureOf(forest: ParseForest): Fig = parseResultTreesFigureOf(forest.trees)
+}
+
 trait KernelFigureGenerator[Fig] {
     val figureGenerator: FigureGenerator.Generator[Fig]
     val figureAppearances: FigureGenerator.Appearances[Fig]
@@ -129,7 +143,7 @@ class NodeIdCache {
     }
 }
 
-trait ParsingGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
+trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] with KernelFigureGenerator[Figure] {
     type R = ParseForest
 
     val graphView: Graph
@@ -238,40 +252,31 @@ trait ParsingGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
         }
     }
 
-    def resultsOf[N <: ParsingGraph.Node](results: Results[N, R], bind: Boolean, ignoreEmpty: Boolean, lineColor: Color): Unit = {
-        results.asMap foreach { result =>
-            val (node, matches) = result
-            matches foreach { m =>
-                val (triggers, result) = m
+    def addResults[N <: ParsingGraph.Node](results: Results[N, R], bind: Boolean, ignoreEmpty: Boolean, lineDecorator: GraphConnection => Unit): Unit = {
+        results.asMap foreach { result => resultsOf(result, bind, ignoreEmpty, lineDecorator) }
+    }
 
-                val trees = if (bind) ParseForestFunc.bind(node.symbol, result).trees else result.trees
-                val trees1 =
-                    if (!ignoreEmpty) trees else {
-                        trees filter {
-                            case n: ParseResultTree.SequenceNode => !n.children.isEmpty
-                            case _ => true
-                        }
-                    }
+    def resultsOf[N <: ParsingGraph.Node](results: (N, Map[Set[ParsingGraph.Trigger], R]), bind: Boolean, ignoreEmpty: Boolean, lineDecorator: GraphConnection => Unit): Unit = {
+        val (node, matches) = results
+        matches foreach { m =>
+            val (triggers, result) = m
 
-                if (!trees1.isEmpty && (nodesMap contains node)) {
-                    val forestFigure = new Figure()
-                    forestFigure.setLayoutManager({
-                        val l = new ToolbarLayout(false)
-                        l.setSpacing(3)
-                        l
-                    })
-                    trees1 foreach { tree =>
-                        val treeFigure = parseResultTreeFigureGenerator.parseNodeHFig(tree)
-                        treeFigure.setBorder(new LineBorder(1))
-                        forestFigure.add(treeFigure)
+            val trees = if (bind) ParseForestFunc.bind(node.symbol, result).trees else result.trees
+            val trees1 =
+                if (!ignoreEmpty) trees else {
+                    trees filter {
+                        case n: ParseResultTree.SequenceNode => !n.children.isEmpty
+                        case _ => true
                     }
-                    val forestNode = nodeFromFigure(forestFigure)
-                    forestNode.setData(result)
-                    val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(node), forestNode)
-                    connection.setLineColor(lineColor)
-                    if (!triggers.isEmpty) {
-                        connection.setText(revertTriggersString(triggers))
-                    }
+                }
+
+            if (!trees1.isEmpty && (nodesMap contains node)) {
+                val forestNode = nodeFromFigure(parseResultTreesFigureOf(trees))
+                forestNode.setData(result)
+                val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(node), forestNode)
+                lineDecorator(connection)
+                if (!triggers.isEmpty) {
+                    connection.setText(revertTriggersString(triggers))
                 }
             }
         }
@@ -321,7 +326,7 @@ trait ParsingGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
     }
 }
 
-abstract class GraphControl(parent: Composite, style: Int) extends Composite(parent, style) with ParsingGraphVisualizeWidget with BasicGenerators with KernelFigureGenerator[Figure] {
+abstract class GraphControl(parent: Composite, style: Int) extends Composite(parent, style) with ParsingGraphVisualizeWidget with BasicGenerators with KernelFigureGenerator[Figure] with ParseForestFigureGenerator[Figure] {
     setLayout(new FillLayout())
     val graphViewer = new GraphViewer(this, style)
     val graphView = graphViewer.getGraphControl()
@@ -362,16 +367,45 @@ class DerivationSliceGraphVisualizeWidget(parent: Composite, style: Int, val gra
 
 class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx) extends GraphControl(parent, style) {
     addGraph(context.graph)
+
+    // ParsingContext 그래프에서는 파싱 결과만 별도로 표시
+    val resultNode = context.result match {
+        case Some(result) =>
+            val forestFig = parseResultForestFigureOf(result)
+            val node = nodeFromFigure(forestFig)
+            node.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
+            if (context.graph.nodes contains context.startNode) {
+                new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodeOf(context.startNode), node).setLineColor(ColorConstants.green)
+            }
+        case None =>
+    }
+
+    // derivation tip node는 노란 배경으로
+    context.derivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
+
     applyLayout(false)
 }
 
 class ExpandTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#ExpandTransition) extends GraphControl(parent, style) {
     addGraphTransition(transition.baseGraph, transition.nextGraph)
     applyLayout(false)
+
+    // 적용 가능한 터미널 노드는 오렌지색 배경으로
+    (transition.expandedTermNodes ++ transition.pendedTermNodes) foreach { nodeOf(_).setBackgroundColor(ColorConstants.orange) }
 }
 class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#LiftTransition) extends GraphControl(parent, style) {
     addGraphTransition(transition.baseGraph, transition.nextGraph)
     applyLayout(false)
+
+    // lift된 results는 초록색 실선으로, progresses는 옅은 초록색 점선으로
+    addResults(transition.nextGraph.results, true, false, { conn => conn.setLineColor(ColorConstants.green) })
+    addResults(transition.nextGraph.progresses, false, true, { conn => conn.setLineColor(ColorConstants.lightGreen); conn.setLineStyle(SWT.LINE_DASH) })
+
+    // 리프트 시작 노드는 오렌지색 배경으로
+    (transition.startingNodes) foreach { p => nodeOf(p._1).setBackgroundColor(ColorConstants.orange) }
+
+    // derivation tip node는 노란 배경으로
+    transition.nextDerivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
 }
 class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#TrimmingTransition) extends GraphControl(parent, style) {
     addGraphTransition(transition.baseGraph, transition.nextGraph)
