@@ -347,7 +347,7 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
                                     case 5 =>
                                         controlOpt(transition.secondStage, "No Lift") { t => new LiftTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._3) }
                                     case 6 =>
-                                        controlOpt(transition.finalTrimming, "No Lift") { t => new TrimmingTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t) }
+                                        controlOpt(transition.finalTrimming, "No Final Trimming") { t => new TrimmingTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t) }
                                 }
                             case Right(error) => errorControl(error.msg)
                         }

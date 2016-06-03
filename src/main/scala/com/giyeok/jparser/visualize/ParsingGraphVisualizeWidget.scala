@@ -419,6 +419,7 @@ class ExpandTransitionVisualize(parent: Composite, style: Int, val grammar: Gram
     // 적용 가능한 터미널 노드는 오렌지색 배경으로
     (transition.expandedTermNodes ++ transition.pendedTermNodes) foreach { nodeOf(_).setBackgroundColor(ColorConstants.orange) }
 }
+
 class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#LiftTransition) extends GraphControl(parent, style) {
     addGraphTransition(transition.baseGraph, transition.nextGraph)
     applyLayout(false)
@@ -433,10 +434,15 @@ class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Gramma
     // derivation tip node는 노란 배경으로
     transition.nextDerivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
 }
+
 class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#TrimmingTransition) extends GraphControl(parent, style) {
     addGraphTransition(transition.baseGraph, transition.nextGraph)
     applyLayout(false)
+
+    nodeOf(transition.startNode).setBackgroundColor(ColorConstants.yellow)
+    transition.endNodes foreach { nodeOf(_).setBackgroundColor(ColorConstants.orange) }
 }
+
 class RevertTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#RevertTransition) extends GraphControl(parent, style) {
     addGraphTransition(transition.baseGraph, transition.nextGraph)
     applyLayout(false)

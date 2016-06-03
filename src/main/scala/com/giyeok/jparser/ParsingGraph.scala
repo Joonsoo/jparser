@@ -251,9 +251,9 @@ trait ParsingGraph[R <: ParseResult] {
 
             val pendedNodes = nodes filter {
                 case EmptyNode => false
-                case TermNode(_, gen) => gen > genLimit
-                case AtomicNode(_, gen) => gen > genLimit
-                case SequenceNode(_, _, _, gen) => gen > genLimit
+                case TermNode(_, beginGen) => beginGen > genLimit
+                case AtomicNode(_, beginGen) => beginGen > genLimit
+                case SequenceNode(_, _, beginGen, _) => beginGen > genLimit
             }
             val subNodes = (reachableToEnds._1 intersect reachableFromStarts._1) ++ pendedNodes
             val subEdges = reachableToEnds._2 intersect reachableFromStarts._2
