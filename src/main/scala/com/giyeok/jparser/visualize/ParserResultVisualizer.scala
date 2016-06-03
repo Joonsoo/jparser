@@ -36,7 +36,7 @@ import com.giyeok.jparser.ParsingErrors.ParsingError
 import org.eclipse.swt.layout.FillLayout
 import com.giyeok.jparser.ParseForestFunc
 
-class NewParserResultVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
+class ParseResultVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
     val parser = new NewParser(grammar, ParseForestFunc)
 
     // 좌측 test string
@@ -72,10 +72,10 @@ class NewParserResultVisualizer(grammar: Grammar, source: Seq[ConcreteInput], di
     }
 }
 
-object NewParserResultVisualizer {
+object ParseResultVisualizer {
     def start(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
         val resources = BasicVisualizeResources
-        new NewParserResultVisualizer(grammar, source, display, shell, resources).start()
+        new ParseResultVisualizer(grammar, source, display, shell, resources).start()
     }
 
     def start(grammar: Grammar, source: Seq[ConcreteInput]): Unit = {

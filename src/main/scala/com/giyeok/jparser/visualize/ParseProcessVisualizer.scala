@@ -39,7 +39,7 @@ import com.giyeok.jparser.ParseForest
 import javax.swing.plaf.basic.CenterLayout
 import org.eclipse.draw2d.LineBorder
 
-class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
+class ParseProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
     type Parser = NewParser[ParseForest]
 
     val parser = new NewParser(grammar, ParseForestFunc)
@@ -315,7 +315,7 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                         errorControl("TODO")
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
-                            case Left(ctx) => new NewParsingContextGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, ctx)
+                            case Left(ctx) => new ParsingContextGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, ctx)
                             case Right(error) => errorControl(error.msg)
                         }
                     case ParsingContextTransitionPointer(gen, stage) =>
@@ -391,10 +391,10 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
     }
 }
 
-object NewParserVisualizer {
+object ParseProcessVisualizer {
     def start(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
         val resources = BasicVisualizeResources
-        new NewParserVisualizer(grammar, source, display, shell, resources).start()
+        new ParseProcessVisualizer(grammar, source, display, shell, resources).start()
     }
 
     def start(grammar: Grammar, source: Seq[ConcreteInput]): Unit = {

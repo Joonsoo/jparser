@@ -1,4 +1,5 @@
 package com.giyeok.jparser.visualize
+
 import com.giyeok.jparser.Grammar
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
@@ -27,8 +28,10 @@ import com.giyeok.jparser.ParseForest
 import org.eclipse.swt.events.SelectionListener
 import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Event
+import com.giyeok.jparser.ParsingGraph
+import DerivationGraphVisualizer.Kernel
 
-class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell, resources: VisualizeResources) extends BasicGenerators with KernelFigureGenerator[Figure] {
+class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell, resources: VisualizeResources, defaultKernel: Kernel) extends BasicGenerators with KernelFigureGenerator[Figure] {
     val derivationFunc = new DerivationFunc(grammar, ParseForestFunc)
 
     val kernelList = new FigureCanvas(shell, SWT.NONE)
@@ -48,8 +51,6 @@ class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, she
     derivationGraphs.setLayout(layout)
     derivationGraphs.setLayoutData(new GridData(GridData.FILL_BOTH))
     derivationGraphs.setBackground(ColorConstants.white)
-
-    type Kernel = Either[AtomicSymbol, (Sequence, Int)]
 
     case class DGraphWidget(
             dgraph: DGraph[ParseForest]) {
@@ -156,7 +157,7 @@ class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, she
         }
     })
     def updateTermGroupDescList(): Unit = {
-        termGroupsItems = Seq(None) ++ (currentDGraph.sliceMap.keys.toSeq map { Some(_) })
+        termGroupsItems = Seq(None) ++ (currentDGraph.sliceMap collect { case (key, Some(_)) => Some(key) })
         termGroupsList.removeAll()
         termGroupsItems foreach {
             case None =>
@@ -191,7 +192,7 @@ class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, she
     }
 
     def initialize(): Unit = {
-        updateKernel(Left(Start))
+        updateKernel(defaultKernel)
     }
 
     def start(): Unit = {
@@ -211,17 +212,33 @@ class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, she
     }
 }
 
-object NewParserDerivationGraphVisualizer {
+object DerivationGraphVisualizer {
+    type Kernel = Either[AtomicSymbol, (Sequence, Int)]
+
+    def kernelOf(node: ParsingGraph.NontermNode): Kernel =
+        node match {
+            case n: ParsingGraph.AtomicNode => Left(n.symbol)
+            case n: ParsingGraph.SequenceNode => Right(n.symbol, n.pointer)
+        }
+
     def start(grammar: Grammar, display: Display, shell: Shell): Unit = {
+        start(grammar, display, shell, Left(Start))
+    }
+
+    def start(grammar: Grammar, display: Display, shell: Shell, defaultKernel: Kernel): Unit = {
         val resources = BasicVisualizeResources
-        new NewParserDerivationGraphVisualizer(grammar, display, shell, resources).start()
+        new DerivationGraphVisualizer(grammar, display, shell, resources, defaultKernel).start()
     }
 
     def start(grammar: Grammar): Unit = {
+        start(grammar, Left(Start))
+    }
+
+    def start(grammar: Grammar, defaultKernel: Kernel): Unit = {
         val display = Display.getDefault()
         val shell = new Shell(display)
 
-        start(grammar, display, shell)
+        start(grammar, display, shell, defaultKernel)
 
         while (!shell.isDisposed()) {
             if (!display.readAndDispatch()) {

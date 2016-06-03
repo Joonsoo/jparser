@@ -58,9 +58,9 @@ object ParseResultTree {
     sealed trait Node
 
     case object EmptyNode extends Node
-    case class TerminalNode(input: Input) extends Node
-    case class BindedNode(symbol: Symbol, body: Node) extends Node
-    case class JoinNode(body: Node, join: Node) extends Node
+    case class TerminalNode(input: Input) extends Node { override lazy val hashCode = (classOf[TerminalNode], input).hashCode }
+    case class BindedNode(symbol: Symbol, body: Node) extends Node { override lazy val hashCode = (classOf[BindedNode], symbol, body).hashCode }
+    case class JoinNode(body: Node, join: Node) extends Node { override lazy val hashCode = (classOf[JoinNode], body, join).hashCode }
     case class SequenceNode(_childrenWS: List[Node], _childrenIdx: List[Int]) extends Node {
         // childrenIdx: index of childrenWS
         // _childrenIdx: reverse of chidlrenIdx
@@ -85,6 +85,8 @@ object ParseResultTree {
         def appendWhitespace(wsChild: Node): SequenceNode = {
             SequenceNode(wsChild +: _childrenWS, _childrenIdx)
         }
+
+        override lazy val hashCode = (classOf[SequenceNode], _childrenWS, _childrenIdx).hashCode
     }
 
     object HorizontalTreeStringSeqUtil {

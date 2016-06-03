@@ -157,7 +157,6 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
     val nodesMap = scala.collection.mutable.Map[ParsingGraph.Node, CGraphNode]()
     val edgesMap = scala.collection.mutable.Map[ParsingGraph.Edge, Seq[GraphConnection]]()
     val edgesBetween = scala.collection.mutable.Map[(ParsingGraph.Node, ParsingGraph.Node), Int]()
-    // val resultsMap = scala.collection.mutable.Map[R, CGraphNode]()
     val parseResultTreeFigureGenerator: ParseResultTreeFigureGenerator[Figure]
 
     def nodeFromFigure(fig: Figure): CGraphNode = {
@@ -256,6 +255,18 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
         results.asMap foreach { result => resultsOf(result, bind, ignoreEmpty, lineDecorator) }
     }
 
+    val resultMap = scala.collection.mutable.Map[R, CGraphNode]()
+    def resultOf(result: R): CGraphNode = {
+        resultMap get result match {
+            case Some(cached) => cached
+            case None =>
+                val resultNode = nodeFromFigure(parseResultTreesFigureOf(result.trees))
+                resultNode.setData(result)
+                resultMap(result) = resultNode
+                resultNode
+        }
+    }
+
     def resultsOf[N <: ParsingGraph.Node](results: (N, Map[Set[ParsingGraph.Trigger], R]), bind: Boolean, ignoreEmpty: Boolean, lineDecorator: GraphConnection => Unit): Unit = {
         val (node, matches) = results
         matches foreach { m =>
@@ -271,9 +282,8 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
                 }
 
             if (!trees1.isEmpty && (nodesMap contains node)) {
-                val forestNode = nodeFromFigure(parseResultTreesFigureOf(trees))
-                forestNode.setData(result)
-                val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(node), forestNode)
+                val resultNode = resultOf(result)
+                val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(node), resultNode)
                 lineDecorator(connection)
                 if (!triggers.isEmpty) {
                     connection.setText(revertTriggersString(triggers))
@@ -320,7 +330,8 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
         val (x, y) = (ex + graphView.getHorizontalBar().getSelection(), ey + graphView.getVerticalBar().getSelection())
 
         graphView.getNodes.toSeq collect {
-            case n: CGraphNode if n != null && n.getNodeFigure() != null && n.getNodeFigure().containsPoint(x, y) =>
+            case n: GraphNode if n != null && n.getNodeFigure() != null && n.getNodeFigure().containsPoint(x, y) && n.getData() != null =>
+                println(n)
                 n.getData
         }
     }
@@ -351,6 +362,22 @@ abstract class GraphControl(parent: Composite, style: Int) extends Composite(par
         }
         def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
     })
+    graphView.addMouseListener(new MouseListener() {
+        def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+        def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+        def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
+            nodesAt(e.x, e.y) foreach {
+                case ParseForest(trees) =>
+                    trees foreach { tree =>
+                        new ParseResultTreeViewer(tree, figureGenerator, figureAppearances, parseResultTreeFigureGenerator).start()
+                    }
+                case node: ParsingGraph.NontermNode =>
+                    DerivationGraphVisualizer.start(grammar, getDisplay(), new Shell(getDisplay()), DerivationGraphVisualizer.kernelOf(node))
+                case data =>
+                    println(data)
+            }
+        }
+    })
 
     override def addKeyListener(keyListener: KeyListener): Unit = graphView.addKeyListener(keyListener)
     override def addMouseListener(mouseListener: MouseListener): Unit = graphView.addMouseListener(mouseListener)
@@ -365,17 +392,16 @@ class DerivationSliceGraphVisualizeWidget(parent: Composite, style: Int, val gra
     applyLayout(false)
 }
 
-class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx) extends GraphControl(parent, style) {
+class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx) extends GraphControl(parent, style) {
     addGraph(context.graph)
 
     // ParsingContext 그래프에서는 파싱 결과만 별도로 표시
     val resultNode = context.result match {
         case Some(result) =>
-            val forestFig = parseResultForestFigureOf(result)
-            val node = nodeFromFigure(forestFig)
-            node.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
+            val resultNode = resultOf(result)
+            resultNode.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
             if (context.graph.nodes contains context.startNode) {
-                new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodeOf(context.startNode), node).setLineColor(ColorConstants.green)
+                new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodeOf(context.startNode), resultNode).setLineColor(ColorConstants.green)
             }
         case None =>
     }

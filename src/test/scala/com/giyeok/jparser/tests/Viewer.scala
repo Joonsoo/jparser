@@ -18,10 +18,9 @@ import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.visualize.FigureGenerator
-import com.giyeok.jparser.visualize.NewParserVisualizer
+import com.giyeok.jparser.visualize.ParseProcessVisualizer
 import org.eclipse.swt.widgets.MessageBox
-import com.giyeok.jparser.visualize.NewParserResultVisualizer
-import com.giyeok.jparser.visualize.NewParserDerivationGraphVisualizer
+import com.giyeok.jparser.visualize.DerivationGraphVisualizer
 
 trait Viewer {
     val allTests: Set[Grammar with Samples]
@@ -54,10 +53,8 @@ trait Viewer {
         val testButtons = new org.eclipse.swt.widgets.Composite(rightFrame, SWT.BORDER)
         testButtons.setLayout(new FillLayout(SWT.HORIZONTAL))
         val proceedView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
-        val resultView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
         val derivationView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
         proceedView.setText("Proceed View")
-        resultView.setText("Result View")
         derivationView.setText("Derivation View")
 
         textList.setFont(JFaceResources.getTextFont)
@@ -107,7 +104,7 @@ trait Viewer {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedGrammars(grammarList.getSelectionIndex())
                 val source = shownTexts(textList.getSelectionIndex())
-                NewParserVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                ParseProcessVisualizer.start(grammar, source.toSeq, display, new Shell(display))
             }
         })
 
@@ -116,7 +113,7 @@ trait Viewer {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedGrammars(grammarList.getSelectionIndex())
                     val source = Inputs.fromString(testText.getText())
-                    NewParserVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                    ParseProcessVisualizer.start(grammar, source.toSeq, display, new Shell(display))
                 }
             }
         })
@@ -126,17 +123,7 @@ trait Viewer {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedGrammars(grammarList.getSelectionIndex())
                     val source = Inputs.fromString(testText.getText())
-                    NewParserDerivationGraphVisualizer.start(grammar, display, new Shell(display))
-                }
-            }
-        })
-
-        resultView.addListener(SWT.Selection, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                if (grammarList.getSelectionIndex >= 0) {
-                    val grammar = sortedGrammars(grammarList.getSelectionIndex())
-                    val source = Inputs.fromString(testText.getText())
-                    NewParserResultVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                    DerivationGraphVisualizer.start(grammar, display, new Shell(display))
                 }
             }
         })
