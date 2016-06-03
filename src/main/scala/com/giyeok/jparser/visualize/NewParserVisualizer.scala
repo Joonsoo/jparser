@@ -224,9 +224,9 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                     currentLocation match {
                         case ParsingContextTransitionPointer(`gen`, stage) =>
                             fig.add(textFig(s"$stage", resources.smallFont))
-                        case _ => // nothing to do
+                        case _ =>
+                            fig.addMouseListener(listener(ParsingContextTransitionPointer(gen, 1)))
                     }
-                    fig.addMouseListener(listener(ParsingContextTransitionPointer(gen, 1)))
                     fig
                 }
 
@@ -318,10 +318,33 @@ class NewParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display:
                             case Right(error) => errorControl(error.msg)
                         }
                     case ParsingContextTransitionPointer(gen, stage) =>
-                        errorControl("TODO")
+                        def controlOpt[T](opt: Option[T], errorMsg: String)(func: T => Control): Control =
+                            opt match {
+                                case None => errorControl(errorMsg)
+                                case Some(tuple) => func(tuple)
+                            }
+                        transitionAt(gen) match {
+                            case Left(transition) =>
+                                stage match {
+                                    case 1 =>
+                                        controlOpt(transition.firstStage, "No Expansion") { t => new ExpandTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._1) }
+                                    case 2 =>
+                                        controlOpt(transition.firstStage, "No Expansion") { t => new LiftTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._2) }
+                                    case 3 =>
+                                        controlOpt(transition.secondStage, "No Lift") { t => new TrimmingTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._1) }
+                                    case 4 =>
+                                        controlOpt(transition.secondStage, "No Lift") { t => new RevertTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._2) }
+                                    case 5 =>
+                                        controlOpt(transition.secondStage, "No Lift") { t => new LiftTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._3) }
+                                    case 6 =>
+                                        controlOpt(transition.finalTrimming, "No Lift") { t => new TrimmingTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t) }
+                                }
+                            case Right(error) => errorControl(error.msg)
+                        }
                 }
                 def finalizeView(v: Control): Control = {
                     // 나중에 이벤트 리스너들 넣기
+                    v.addKeyListener(keyListener)
                     v
                 }
                 controlCache(pointer) = finalizeView(control)

@@ -60,7 +60,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
     // TODO LiftTransition에서 liftBlockTrigger 정보도 받기
     case class LiftTransition(baseGraph: Graph, nextGraph: Graph, startingNodes: Set[(TermNode, Input)], nextDerivables: Set[Node]) extends CtxGraphTransition
     case class TrimmingTransition(baseGraph: Graph, nextGraph: Graph) extends CtxGraphTransition
-    case class RevertTransition(baseGraph: Graph, nextGraph: Graph, revertResult: Graph) extends CtxGraphTransition
+    case class RevertTransition(baseGraph: Graph, nextGraph: Graph, firstLiftResult: Graph) extends CtxGraphTransition
 
     case class ParsingCtxTransition(
         firstStage: Option[(ExpandTransition, LiftTransition)],

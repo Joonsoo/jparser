@@ -46,6 +46,8 @@ import com.giyeok.jparser.Symbols.AtomicNonterm
 import org.eclipse.draw2d.ToolbarLayout
 import com.giyeok.jparser.Results
 import org.eclipse.swt.graphics.Color
+import org.eclipse.swt.events.MouseListener
+import org.eclipse.zest.core.viewers.GraphViewer
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -194,6 +196,15 @@ trait ParsingGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
                 val n = nodeFromFigure(fig)
                 n.setData(node)
                 nodesMap(node) = n
+
+                // liftBlockTrigger 표시
+                node match {
+                    case node: ParsingGraph.AtomicNode if node.liftBlockTrigger.isDefined =>
+                        val liftBlockTriggerNode = nodeOf(node.liftBlockTrigger.get)
+                        new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, liftBlockTriggerNode, n).setText("BlockLiftIfLifted")
+                    case _ => // nothing to do
+                }
+
                 n
         }
     }
@@ -201,7 +212,7 @@ trait ParsingGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
     def edgeOf(edge: ParsingGraph.Edge): Seq[GraphConnection] = {
         def setCurveTo(conn: GraphConnection, start: ParsingGraph.Node, end: ParsingGraph.Node): GraphConnection = {
             val curve = edgesBetween.getOrElse((start, end), 0) + edgesBetween.getOrElse((end, start), 0)
-            conn.setCurveDepth(curve * 5)
+            conn.setCurveDepth(curve * 15)
             edgesBetween((start, end)) = edgesBetween.getOrElse((start, end), 0) + 1
             conn
         }
@@ -272,7 +283,24 @@ trait ParsingGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
     }
 
     def addGraphTransition(baseGraph: ParsingGraph[R], afterGraph: ParsingGraph[R]): Unit = {
-        ???
+        addGraph(baseGraph)
+        addGraph(afterGraph)
+
+        // baseGraph -> afterGraph 과정에서 없어진 노드/엣지 빨간색으로 표시
+        (baseGraph.nodes -- afterGraph.nodes) foreach { newNode =>
+            nodeOf(newNode).getFigure().setBorder(new LineBorder(ColorConstants.red))
+        }
+        (baseGraph.edges -- afterGraph.edges) foreach { newEdge =>
+            edgeOf(newEdge) foreach { conn => conn.setLineColor(ColorConstants.red) }
+        }
+
+        // 새로 추가된 노드/엣지 파란색으로 표시
+        (afterGraph.nodes -- baseGraph.nodes) foreach { removedNode =>
+            nodeOf(removedNode).getFigure().setBorder(new LineBorder(ColorConstants.blue))
+        }
+        (afterGraph.edges -- baseGraph.edges) foreach { removedEdge =>
+            edgeOf(removedEdge) foreach { conn => conn.setLineColor(ColorConstants.blue) }
+        }
     }
 
     def revertTriggersString(revertTriggers: Set[ParsingGraph.Trigger]): String =
@@ -293,25 +321,63 @@ trait ParsingGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
     }
 }
 
-abstract class GraphControl(parent: Composite, style: Int) extends Composite(parent, style) {
+abstract class GraphControl(parent: Composite, style: Int) extends Composite(parent, style) with ParsingGraphVisualizeWidget with BasicGenerators with KernelFigureGenerator[Figure] {
     setLayout(new FillLayout())
-    val graphView = new Graph(this, style)
+    val graphViewer = new GraphViewer(this, style)
+    val graphView = graphViewer.getGraphControl()
 
-    def applyLayout(): Unit = {
+    def applyLayout(animation: Boolean): Unit = {
+        if (animation) {
+            graphViewer.setNodeStyle(ZestStyles.NONE)
+        } else {
+            graphViewer.setNodeStyle(ZestStyles.NODES_NO_LAYOUT_ANIMATION)
+        }
         import org.eclipse.zest.layouts.algorithms._
         val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)
         graphView.setLayoutAlgorithm(layoutAlgorithm, true)
     }
+
+    graphView.addKeyListener(new KeyListener() {
+        def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
+            e.keyCode match {
+                case 'R' | 'r' => applyLayout(true)
+                case _ =>
+            }
+        }
+        def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
+    })
+
+    override def addKeyListener(keyListener: KeyListener): Unit = graphView.addKeyListener(keyListener)
+    override def addMouseListener(mouseListener: MouseListener): Unit = graphView.addMouseListener(mouseListener)
 }
 
-class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, dgraph: DGraph[ParseForest])
-        extends GraphControl(parent, style) with ParsingGraphVisualizeWidget with BasicGenerators with KernelFigureGenerator[Figure] {
+class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, dgraph: DGraph[ParseForest]) extends GraphControl(parent, style) {
     addGraph(dgraph)
-    applyLayout()
+    applyLayout(false)
+}
+class DerivationSliceGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseDGraph: DGraph[ParseForest], sliceDGraph: DGraph[ParseForest]) extends GraphControl(parent, style) {
+    addGraphTransition(baseDGraph, sliceDGraph)
+    applyLayout(false)
 }
 
-class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx)
-        extends GraphControl(parent, style) with ParsingGraphVisualizeWidget with BasicGenerators with KernelFigureGenerator[Figure] {
+class NewParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx) extends GraphControl(parent, style) {
     addGraph(context.graph)
-    applyLayout()
+    applyLayout(false)
+}
+
+class ExpandTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#ExpandTransition) extends GraphControl(parent, style) {
+    addGraphTransition(transition.baseGraph, transition.nextGraph)
+    applyLayout(false)
+}
+class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#LiftTransition) extends GraphControl(parent, style) {
+    addGraphTransition(transition.baseGraph, transition.nextGraph)
+    applyLayout(false)
+}
+class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#TrimmingTransition) extends GraphControl(parent, style) {
+    addGraphTransition(transition.baseGraph, transition.nextGraph)
+    applyLayout(false)
+}
+class RevertTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#RevertTransition) extends GraphControl(parent, style) {
+    addGraphTransition(transition.baseGraph, transition.nextGraph)
+    applyLayout(false)
 }

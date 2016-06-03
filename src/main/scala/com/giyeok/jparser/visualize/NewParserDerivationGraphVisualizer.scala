@@ -65,14 +65,14 @@ class NewParserDerivationGraphVisualizer(grammar: Grammar, display: Display, she
             derivationGraphs.layout()
         }
 
-        val sliceWidgetCache = scala.collection.mutable.Map[TermGroupDesc, DerivationGraphVisualizeWidget]()
+        val sliceWidgetCache = scala.collection.mutable.Map[TermGroupDesc, Control]()
 
-        def sliceWidgetOf(termGroupDesc: TermGroupDesc): DerivationGraphVisualizeWidget = {
+        def sliceWidgetOf(termGroupDesc: TermGroupDesc): Control = {
             assert(sliceMap(termGroupDesc).isDefined)
             sliceWidgetCache get termGroupDesc match {
                 case Some(widget) => widget
                 case None =>
-                    val widget = new DerivationGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, sliceMap(termGroupDesc).get)
+                    val widget = new DerivationSliceGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, dgraph, sliceMap(termGroupDesc).get)
                     sliceWidgetCache(termGroupDesc) = widget
                     widget
             }
