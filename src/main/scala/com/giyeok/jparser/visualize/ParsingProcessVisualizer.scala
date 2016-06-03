@@ -204,21 +204,22 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
                     box
                 }
 
+                val cursorColor = ColorConstants.lightGreen
                 val height = if (source.isEmpty) 15 else terminalFig(source.head).getPreferredSize.height
                 def pointerFig(pointer: Pointer): Figure = {
                     val fig = emptyBoxFig(12, height)
                     fig.setLayoutManager(new CenterLayout(0, 0))
-                    val ellipse = ellipseFig(10, 10)
+                    val ellipse = ellipseFig(12, 12)
                     fig.add(ellipse)
                     pointer match {
                         case ParsingContextPointer(gen) =>
-                            val genFig = textFig(s"$gen", resources.smallFont)
+                            val genFig = textFig(s"$gen", resources.smallerFont)
                             fig.add(genFig)
                             fig.setPreferredSize(math.max(genFig.getPreferredSize.width, fig.getPreferredSize.width), height)
                         case _ =>
                     }
                     if (pointer == currentLocation) {
-                        ellipse.setBackgroundColor(ColorConstants.green)
+                        ellipse.setBackgroundColor(cursorColor)
                     }
                     fig.addMouseListener(listener(pointer))
                     fig
@@ -229,7 +230,9 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
                     fig.setLayoutManager(new CenterLayout(0, 0))
                     currentLocation match {
                         case ParsingContextTransitionPointer(`gen`, stage) =>
-                            fig.add(textFig(s"$stage", resources.smallFont))
+                            val stageFig = textFig(s"$stage", resources.smallFont)
+                            stageFig.setForegroundColor(cursorColor)
+                            fig.add(stageFig)
                         case _ =>
                             fig.addMouseListener(listener(ParsingContextTransitionPointer(gen, 1)))
                     }

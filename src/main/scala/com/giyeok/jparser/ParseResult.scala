@@ -21,6 +21,9 @@ trait ParseResultFunc[R <: ParseResult] {
     def merge(results: Iterable[R]): Option[R] =
         if (results.isEmpty) None
         else Some(results.tail.foldLeft(results.head)(merge(_, _)))
+
+    def termFunc(): R
+    def substTermFunc(r: R, input: Inputs.Input): R
 }
 
 case class ParseForest(trees: Set[ParseResultTree.Node]) extends ParseResult
@@ -50,17 +53,36 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
 
     def merge(base: ParseForest, merging: ParseForest) =
         ParseForest(base.trees ++ merging.trees)
+
+    def termFunc() = ParseForest(Set(TermFuncNode))
+    def substTermFunc(r: ParseForest, input: Inputs.Input) = ParseForest(r.trees map { _.substTerm(input) })
 }
 
 object ParseResultTree {
     import Inputs._
 
-    sealed trait Node
+    sealed trait Node {
+        def substTerm(input: Input): Node
+    }
 
-    case object EmptyNode extends Node
-    case class TerminalNode(input: Input) extends Node { override lazy val hashCode = (classOf[TerminalNode], input).hashCode }
-    case class BindedNode(symbol: Symbol, body: Node) extends Node { override lazy val hashCode = (classOf[BindedNode], symbol, body).hashCode }
-    case class JoinNode(body: Node, join: Node) extends Node { override lazy val hashCode = (classOf[JoinNode], body, join).hashCode }
+    case object EmptyNode extends Node {
+        def substTerm(input: Input) = EmptyNode
+    }
+    case object TermFuncNode extends Node {
+        def substTerm(input: Input) = TerminalNode(input)
+    }
+    case class TerminalNode(input: Input) extends Node {
+        def substTerm(input: Input) = this
+        override lazy val hashCode = (classOf[TerminalNode], input).hashCode
+    }
+    case class BindedNode(symbol: Symbol, body: Node) extends Node {
+        def substTerm(input: Input) = BindedNode(symbol, body.substTerm(input))
+        override lazy val hashCode = (classOf[BindedNode], symbol, body).hashCode
+    }
+    case class JoinNode(body: Node, join: Node) extends Node {
+        def substTerm(input: Input) = JoinNode(body.substTerm(input), join.substTerm(input))
+        override lazy val hashCode = (classOf[JoinNode], body, join).hashCode
+    }
     case class SequenceNode(_childrenWS: List[Node], _childrenIdx: List[Int]) extends Node {
         // childrenIdx: index of childrenWS
         // _childrenIdx: reverse of chidlrenIdx
@@ -86,6 +108,7 @@ object ParseResultTree {
             SequenceNode(wsChild +: _childrenWS, _childrenIdx)
         }
 
+        def substTerm(input: Input): SequenceNode = SequenceNode(_childrenWS map { _.substTerm(input) }, _childrenIdx)
         override lazy val hashCode = (classOf[SequenceNode], _childrenWS, _childrenIdx).hashCode
     }
 
@@ -105,6 +128,7 @@ object ParseResultTree {
     implicit class ShortString(node: Node) {
         def toShortString: String = node match {
             case EmptyNode => "()"
+            case TermFuncNode => s"TermFunc"
             case n: TerminalNode => s"Term(${n.input.toShortString})"
             case n: BindedNode => s"${n.symbol.toShortString}(${n.body.toShortString})"
             case n: JoinNode => s"${n.body.toShortString}(&${n.join.toShortString})"
@@ -116,6 +140,8 @@ object ParseResultTree {
         def toTreeString(indent: String, indentUnit: String): String = node match {
             case EmptyNode =>
                 indent + s"- empty\n"
+            case TermFuncNode =>
+                indent + "- termFunc\n"
             case n: TerminalNode =>
                 indent + s"- ${n.input}\n"
             case n: BindedNode =>
@@ -154,6 +180,8 @@ object ParseResultTree {
             val result: (Int, Seq[String]) = node match {
                 case EmptyNode =>
                     (2, Seq("()"))
+                case TermFuncNode =>
+                    (2, Seq("λt"))
                 case n: TerminalNode =>
                     val str = n.input.toShortString
                     (str.length, Seq(str))

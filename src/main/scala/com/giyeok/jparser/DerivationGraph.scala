@@ -68,21 +68,6 @@ case class DGraph[R <: ParseResult](
             baseProgresses + (triggers -> (child, childSymbol))
         DGraph(baseNode, nodes, edges, results, progresses, _baseResults, newBaseProgresses)
     }
-
-    // Misc.
-    def sliceByTermGroups(resultFunc: ParseResultFunc[R]): Map[TermGroupDesc, Option[DGraph[R]]] = {
-        (termGroups map { termGroup =>
-            val eligibleTerminalNodes = (terminalNodes filter { _.symbol.accept(termGroup) }).toSet[Node]
-            termGroup -> (subgraphIn(0, baseNode, eligibleTerminalNodes, resultFunc) map { _.asInstanceOf[DGraph[R]] })
-        }).toMap
-    }
-
-    //    def subgraphTo(termGroup: TermGroupDesc): Option[DGraph[R]] =
-    //        sliceByTermGroups(termGroup) ensuring (termGroups contains termGroup)
-    //    def subgraphTo(input: ConcreteInput): Option[DGraph[R]] =
-    //        termGroups find { _.contains(input) } flatMap { subgraphTo(_) }
-
-    // TODO def compaction: DGraph[R] = ???
 }
 
 class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseResultFunc[R])
@@ -121,5 +106,18 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
     def deriveSequence(symbol: Sequence, pointer: Int): DGraph[R] = {
         val baseNode = new BaseSequenceNode(symbol, pointer)
         rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Results(), Map()))
+    }
+
+    def sliceByTermGroups(dgraph: DGraph[R]): Map[TermGroupDesc, DGraph[R]] = {
+        (dgraph.termGroups map { termGroup =>
+            val eligibleTerminalNodes = (dgraph.terminalNodes filter { _.symbol.accept(termGroup) }).toSet[Node]
+            // eligibleTerminalNodes에서 각 terminalNode의 result로 resultFunc.termFunc()를 주고 시작해서 lift 및 trimming을 한 번 진행한다
+            // lift할 때 derivable로 나온 노드만 progresses에 남기고, 실제 파싱시 이 지점을 시작점으로 삼는다.
+            // 실제 파싱할 때는 
+            // - 기존 expand와 동일하게 노드/엣지 추가하고,
+            // - progresses의 노드들(즉 derivable)에 대해 DeriveTask를 시작한다
+            // 간단하게는 그냥 이렇게 하면 될 것 같은데 PendedNode가 걸리네..
+            termGroup -> ???
+        }).toMap
     }
 }

@@ -37,9 +37,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                     case AtomicNode(symbol, _) => derivationFunc.deriveAtomic(symbol)
                     case SequenceNode(symbol, pointer, _, _) => derivationFunc.deriveSequence(symbol, pointer)
                 }
-                val sliceMap = dgraph.sliceByTermGroups(resultFunc) collect {
-                    case (termGroupDesc, Some(sliced)) => termGroupDesc -> sliced
-                }
+                val sliceMap = derivationFunc.sliceByTermGroups(dgraph)
                 derivationGraphCache(kernel) = (dgraph, sliceMap)
                 (dgraph, sliceMap)
         }
@@ -120,7 +118,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 // dgraph.results.of(dgraph.baseNode)와 dgraph.progresses.of(dgraph.baseNode)는 항상 비어 있으므로 여기서 신경쓰지 않아도 됨
                 // - 이 내용들은 dgraph.baseResults와 dgraph.baseProgresses로 들어는데 이 부분은 이전 세대의 lift에서 이미 처리되었을 것임
 
-                val newProgresses = dgraph.progresses mapNodesTriggers (shiftNode(_, gen), _ map { shiftTrigger(_, gen) })
+                val newProgresses = dgraph.progresses map (node => shiftNode(node, gen), triggers => triggers map { shiftTrigger(_, gen) }, result => result)
 
                 val newNodesSet = newNodes.values.toSet
                 val updatedGraph = result._1.withNodesEdgesProgresses(newNodesSet, newEdges, newProgresses).asInstanceOf[Graph]
@@ -193,7 +191,6 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
         // graph.results를 이용해서 revertTrigger 조건을 비교해서 지워야 할 edge/results를 제거한 그래프를 반환한다
         def revert(graph: Graph, prelift: Graph): Graph = {
-            // TODO 다시 구현
             // Lift 트리거는 대상 노드가 리프트되면 트리거가 붙어있는 엣지/결과를 무효화
             // Alive 트리거는 대상 노드가 살아있으면 트리거가 붙어있는 엣지/결과를 무효화
             // Wait 트리거는 대상 노드가 리프트되지도 않고 살아있지도 않으면 트리거가 붙어 있는 엣지/결과를 무효화하고,
@@ -214,14 +211,44 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                     // 노드가 죽으면 트리거되고, 노드가 살아있어야 트리거도 산다
                     (!(prelift.nodes contains node), prelift.nodes contains node)
             }
+            def processTriggers(triggers: Set[Trigger], nextNodesMap: Map[Node, Node]): (Boolean, Set[Trigger]) =
+                triggers.foldLeft((false, Set[Trigger]())) { (cc, trigger) =>
+                    val (shouldRemove, filtered) = cc
+                    val (activated, survived) = triggerActivated(trigger)
+                    (shouldRemove || activated, if (survived) filtered + trigger else filtered)
+                }
 
-            val edgeFiltered = graph filterEdges {
-                case SimpleEdge(_, _, revertTriggers) if revertTriggers exists { t => triggerActivated(t)._1 } => false
-                case _ => true
+            val nextNodesMap: Map[Node, Node] = (graph.nodes map {
+                case node: AtomicNode =>
+                    val nextNode = node.liftBlockTrigger match {
+                        case Some(triggerNode) if !(prelift.nodes contains triggerNode) => node.noLiftBlockTrigger
+                        case _ => node
+                    }
+                    node -> nextNode
+                case node => node -> node
+            }).toMap
+            val nextEdges = graph.edges flatMap {
+                case SimpleEdge(start, end, revertTriggers) =>
+                    val (shouldRemove, filteredTriggers) = processTriggers(revertTriggers, nextNodesMap)
+                    if (shouldRemove) None else Some(SimpleEdge(nextNodesMap(start).asInstanceOf[NontermNode], nextNodesMap(end), filteredTriggers map { case Trigger(node, ttype) => Trigger(nextNodesMap(node), ttype) }))
+                case edge => Some(edge)
             }
-            // result는 이후에 lift할 때 없애고 시작하므로 따로 필터링할 필요 없음
-            val progressesFiltered = edgeFiltered.updateProgresses(edgeFiltered.progresses filterTo { (_, triggers, _) => !(triggers exists { t => triggerActivated(t)._1 }) })
-            progressesFiltered.asInstanceOf[Graph]
+            val nextProgresses = graph.progresses.entries.foldLeft(Results[SequenceNode, R]()) { (cc, entry) =>
+                val (node, triggers, result) = entry
+                val (shouldRemove, filteredTriggers) = processTriggers(triggers, nextNodesMap)
+                if (shouldRemove) cc else {
+                    cc.of(node, filteredTriggers) match {
+                        case Some(existingResult) =>
+                            cc.update(node, triggers, resultFunc.merge(existingResult, result))
+                        case None =>
+                            cc.update(node, triggers, result)
+                    }
+                }
+            }
+
+            val nextNodes = nextNodesMap.values.toSet
+            // result는 이후에 lift할 때 없애고 시작하기 때문에 의미 없어서 따로 필터링할 필요 없음
+            graph.create(nextNodes, nextEdges, graph.results, nextProgresses)
         }
     }
 
@@ -287,9 +314,8 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                             val reverseType = ttype match {
                                                 case Trigger.Type.Lift => Trigger.Type.Wait
                                                 case Trigger.Type.Wait => Trigger.Type.Lift
-                                                // Alive - Dead는 아직 안됨
-                                                case Trigger.Type.Alive => ???
-                                                // case Trigger.Type.Dead => Trigger.Type.Alive
+                                                case Trigger.Type.Alive => Trigger.Type.Dead
+                                                case Trigger.Type.Dead => Trigger.Type.Alive
                                             }
                                             Trigger(node, reverseType)
                                     }

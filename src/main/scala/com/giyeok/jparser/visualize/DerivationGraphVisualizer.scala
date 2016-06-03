@@ -56,7 +56,7 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
             dgraph: DGraph[ParseForest]) {
         val nodeIdCache = new NodeIdCache
 
-        val sliceMap: Map[TermGroupDesc, Option[DGraph[ParseForest]]] = dgraph.sliceByTermGroups(ParseForestFunc)
+        val sliceMap: Map[TermGroupDesc, DGraph[ParseForest]] = derivationFunc.sliceByTermGroups(dgraph)
 
         val graphWidget: DerivationGraphVisualizeWidget =
             new DerivationGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, dgraph)
@@ -69,11 +69,10 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
         val sliceWidgetCache = scala.collection.mutable.Map[TermGroupDesc, Control]()
 
         def sliceWidgetOf(termGroupDesc: TermGroupDesc): Control = {
-            assert(sliceMap(termGroupDesc).isDefined)
             sliceWidgetCache get termGroupDesc match {
                 case Some(widget) => widget
                 case None =>
-                    val widget = new DerivationSliceGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, dgraph, sliceMap(termGroupDesc).get)
+                    val widget = new DerivationSliceGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, dgraph, sliceMap(termGroupDesc))
                     sliceWidgetCache(termGroupDesc) = widget
                     widget
             }
@@ -157,7 +156,7 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
         }
     })
     def updateTermGroupDescList(): Unit = {
-        termGroupsItems = Seq(None) ++ (currentDGraph.sliceMap collect { case (key, Some(_)) => Some(key) })
+        termGroupsItems = Seq(None) ++ (currentDGraph.sliceMap.keys map { Some(_) })
         termGroupsList.removeAll()
         termGroupsItems foreach {
             case None =>
