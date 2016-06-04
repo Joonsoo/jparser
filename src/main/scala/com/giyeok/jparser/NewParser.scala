@@ -54,7 +54,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         val initialTasks: Seq[ParsingTasks[R, Graph]#Task]
         // TODO
     }
-    case class ExpandTransition(baseGraph: Graph, nextGraph: Graph, expandedTermNodes: Set[TermNode], pendedTermNodes: Set[TermNode]) extends CtxGraphTransition
+    case class ExpandTransition(baseGraph: Graph, nextGraph: Graph, expandedTermNodes: Set[TermNode]) extends CtxGraphTransition
     case class LiftTransition(baseGraph: Graph, nextGraph: Graph, initialTasks: Set[NewParser[R]#Task], nextDerivables: Set[Node], liftBlockedNodes: Map[AtomicNode, Set[Trigger]]) extends CtxGraphTransition
     case class TrimmingTransition(baseGraph: Graph, nextGraph: Graph, startNode: Node, endNodes: Set[Node]) extends CtxGraphTransition
     case class RevertTransition(baseGraph: Graph, nextGraph: Graph, firstLiftResult: Graph) extends CtxGraphTransition
@@ -263,6 +263,15 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
     case class ParsingCtx(gen: Int, graph: Graph, startNode: NontermNode, derivables: Set[NontermNode]) {
         assert(startNode.symbol == Start)
 
+        // graph.nodes는 모두 gen이 <= 현재 gen 을 만족해야 한다
+        // results나 progresses의 trigger node에서는 이 조건이 만족되지 않을 수 있음
+        assert(graph.nodes forall {
+            case EmptyNode => true
+            case node: TermNode => node.beginGen <= gen
+            case node: AtomicNode => node.beginGen <= gen
+            case node: SequenceNode => node.beginGen <= gen
+        })
+
         // startNode에서 derivables에 도달 가능한 경로 내의 노드들만 포함되어야 하는데..?
         // assert(graph.subgraphIn(startNode, derivables.asInstanceOf[Set[Node]], resultFunc) == Some(graph))
 
@@ -292,17 +301,21 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 (ParsingCtxTransition(None, None, None), Right(UnexpectedInput(input)))
             } else {
                 // Pended terminal nodes
-                val pendedTermNodes = graph.nodes collect { case node: TermNode if node.symbol accept input => node ensuring (node.beginGen == gen) }
-                val termNodes = pendedTermNodes ++ termNodes0
+                // Pended node는 이전 세대에 미리 만들어진 현재 세대의 노드
+                // revert trigger 등에서 다음 세대의 노드가 미리 만들어질 수 있는데 이런 경우 발생한다
+                // 근데 expand될 때 안생겼으면 필요 없어서 안 생긴거 아닌가?
+                // 우선 지금은 slice안된 상태로 dgraph의 모든 노드를 expand하니 확실히 필요 없긴 한데.. slice할 때도 필요 없는거 맞나?
+                // val pendedTermNodes = graph.nodes collect { case node: TermNode if node.symbol accept input => node ensuring (node.beginGen == gen) }
+                val termNodes = termNodes0 // ++ pendedTermNodes
                 val initialTasks: Set[Task] = termNodes map { termNode => FinishingTask(nextGen, termNode, resultFunc.terminal(input), Set()) }
 
-                val expandTransition = ExpandTransition(graph, expandedGraph, termNodes0, pendedTermNodes)
+                val expandTransition = ExpandTransition(graph, expandedGraph, termNodes0)
 
                 // 2. 1차 lift
                 val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, initialTasks, Map())
 
                 val firstLiftTransition = LiftTransition(expandedGraph, liftedGraph0pre, initialTasks.asInstanceOf[Set[NewParser[R]#Task]], nextDerivables0.asInstanceOf[Set[Node]], Map())
-                (liftedGraph0pre.subgraphIn(gen, startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc)) match {
+                (liftedGraph0pre.subgraphIn(startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc)) match {
                     case Some(liftedGraph0: Graph) =>
                         val firstLiftTrimmingTransition = TrimmingTransition(liftedGraph0pre, liftedGraph0, startNode, nextDerivables0.asInstanceOf[Set[Node]])
 
@@ -336,7 +349,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         val (liftedGraphPre, nextDerivables) = ParsingCtx.lift(revertedGraph, nextGen, initialTasks, liftBlockedNodes)
                         val secondLiftTransition = LiftTransition(revertedGraph, liftedGraphPre, initialTasks.asInstanceOf[Set[NewParser[R]#Task]], nextDerivables.asInstanceOf[Set[Node]], liftBlockedNodes)
 
-                        val liftedGraphOpt = liftedGraphPre.subgraphIn(gen, startNode, nextDerivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
+                        val liftedGraphOpt = liftedGraphPre.subgraphIn(startNode, nextDerivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
                         liftedGraphOpt match {
                             case Some(liftedGraph) =>
                                 val secondLiftTrimmingTransition = TrimmingTransition(liftedGraphPre, liftedGraph, startNode, nextDerivables.asInstanceOf[Set[Node]])

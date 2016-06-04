@@ -35,8 +35,15 @@ object BackupGrammar2 extends Grammar with StringSamples {
             seq(Seq[Symbol](n("Stmt"), n("S")), Set[Symbol](n("WS"))),
             empty),
         "Stmt" -> ListSet(
-            seq(c('a').plus, lineend),
+            seq(longest(n("Expr")), lineend),
             expr(c('{'), n("S"), c('}'))),
+        "Expr" -> ListSet(
+            n("Term"),
+            expr(chars("+-"), n("Term")),
+            expr(n("Term"), chars("+-*/"), n("Expr"))),
+        "Term" -> ListSet(
+            c('a').plus,
+            expr(c('('), n("Expr"), c(')'))),
         "WS" -> ListSet(chars(" \n\r\t")),
         "LT" -> ListSet(chars("\n\r")))
     val startSymbol = n("S")
@@ -46,7 +53,9 @@ object BackupGrammar2 extends Grammar with StringSamples {
         "aaa\naaa\n",
         "{aaa;\naaa}",
         "{{}}",
-        "{aaa\naaa\naaa;\naaa\naaa}")
+        "{aaa\naaa\naaa;\naaa\naaa}",
+        "{aaa\n+aaa\n+aaa}",
+        "{aaa;\n+aaa}")
     val incorrectSamples = Set[String]()
 }
 

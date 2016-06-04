@@ -135,24 +135,6 @@ trait ParsingGraph[R <: ParseResult] {
     // progresses는 시퀀스 노드의 현재까지 진행 상황을 나타내는 것이므로 여기서 R은 기존의 PraseTree.SequenceNode에 해당하는 것이어야 함
     val progresses: Results[SequenceNode, R]
 
-    // edges의 모든 노드가 nodes에 포함되어야 함
-    // - progresses의 trigger에 등장하는 노드 중에는 다음 generation에서 발생할 노드가 포함될 수 있으므로 확인하지 않음
-    /*
-    assert({
-        val nodesOfEdges = edges flatMap {
-            _ match {
-                case SimpleEdge(start, end, revertTriggers) => Set(start, end) // ++ (revertTriggers map { _.node })
-                case JoinEdge(start, end, join) => Set(start, end, join)
-            }
-        }
-        // val nodesOfReverters = (progresses.resultsMap flatMap { _._2 flatMap { _._1 map { _.node } } })
-
-        nodesOfEdges subsetOf nodes
-    })
-    */
-    // progresses의 keySet의 모든 노드가 nodes에 포함되어야 함
-    // assert(progresses.keyNodesSet.asInstanceOf[Set[Node]] subsetOf nodes)
-
     // Information Retrieval
     //    def resultOf(node: Node): Option[Map[Set[Trigger], R]] = results.of(node)
     //    def resultOf(node: Node, triggers: Set[Trigger]): Option[R] = results.of(node, triggers)
@@ -207,7 +189,7 @@ trait ParsingGraph[R <: ParseResult] {
 
     // start에서 ends(중 아무곳이나) 도달할 수 있는 모든 경로만 포함하는 서브그래프를 반환한다
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
-    def subgraphIn(genLimit: Int, start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
+    def subgraphIn(start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
         // TODO traverse할 때 SimpleEdge에서 revertTriggers 어떻게 해야 하는지 고민
         // backward순환할 때는 trigger들은 모두 무시한다
         def traverseBackward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
@@ -251,13 +233,7 @@ trait ParsingGraph[R <: ParseResult] {
         } else {
             val reachableFromStarts = traverseForward(List(start), Set(start), Set())
 
-            val pendedNodes = nodes filter {
-                case EmptyNode => false
-                case TermNode(_, beginGen) => beginGen > genLimit
-                case AtomicNode(_, beginGen) => beginGen > genLimit
-                case SequenceNode(_, _, beginGen, _) => beginGen > genLimit
-            }
-            val subNodes = (reachableToEnds._1 intersect reachableFromStarts._1) ++ pendedNodes
+            val subNodes = reachableToEnds._1 intersect reachableFromStarts._1
             val subEdges = reachableToEnds._2 intersect reachableFromStarts._2
             assert(subNodes subsetOf nodes)
             Some(create(subNodes, subEdges, results, progresses))
