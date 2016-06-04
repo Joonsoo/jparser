@@ -8,7 +8,7 @@ import com.giyeok.jparser.Symbols
 
 object ParseResultTreeFigureGenerator {
     case class RenderingConfiguration(renderJoin: Boolean, renderWS: Boolean, renderLookaheadExcept: Boolean)
-    val cleanestConfiguration = RenderingConfiguration(false, true, false)
+    val cleanestConfiguration = RenderingConfiguration(true, true, true)
 }
 
 class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGenerator.Appearances[Fig]) {

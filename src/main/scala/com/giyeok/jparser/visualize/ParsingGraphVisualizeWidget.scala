@@ -50,6 +50,7 @@ import org.eclipse.swt.events.MouseListener
 import org.eclipse.zest.core.viewers.GraphViewer
 import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseResultTree
+import org.eclipse.draw2d.FigureCanvas
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -131,6 +132,7 @@ trait KernelFigureGenerator[Fig] {
 class NodeIdCache {
     private var counter = 0
     private val nodeIdMap = scala.collection.mutable.Map[ParsingGraph.Node, Int]()
+    private val idNodeMap = scala.collection.mutable.Map[Int, ParsingGraph.Node]()
 
     def of(node: ParsingGraph.Node): Int = {
         nodeIdMap get node match {
@@ -138,9 +140,11 @@ class NodeIdCache {
             case None =>
                 counter += 1
                 nodeIdMap(node) = counter
+                idNodeMap(counter) = node
                 counter
         }
     }
+    def of(id: Int): Option[ParsingGraph.Node] = idNodeMap get id
 }
 
 trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] with KernelFigureGenerator[Figure] {
@@ -169,56 +173,90 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
         new CGraphNode(graphView, SWT.NONE, nodeFig)
     }
 
+    def nodeFigureOf(node: ParsingGraph.Node): Figure = {
+        val nodeId = nodeIdCache.of(node)
+
+        val (g, ap) = (figureGenerator, figureAppearances)
+        val fig = node match {
+            case ParsingGraph.EmptyNode =>
+                g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    g.horizontalFig(Spacing.Small, Seq(symbolFigureGenerator.symbolFig(Empty), dot))))
+            case ParsingGraph.TermNode(symbol, beginGen) =>
+                g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol))),
+                    g.textFig(s"$beginGen", ap.default)))
+            case ParsingGraph.AtomicNode(symbol, beginGen) =>
+                g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    atomicFigure(symbol),
+                    g.textFig(s"$beginGen", ap.default)))
+            case ParsingGraph.SequenceNode(symbol, pointer, beginGen, endGen) =>
+                val f = g.horizontalFig(Spacing.Big, Seq(
+                    g.supFig(g.textFig(s"$nodeId", ap.default)),
+                    sequenceFigure(symbol, pointer),
+                    g.textFig(s"$beginGen-$endGen", ap.default)))
+                // TODO progresses 표시
+                f
+        }
+        if (node.isInstanceOf[DGraph.BaseNode]) {
+            fig.setOpaque(true)
+            fig.setBackgroundColor(ColorConstants.yellow)
+            fig
+        }
+        fig.setBorder(new MarginBorder(1, 2, 1, 2))
+        fig
+    }
+
     def nodeOf(node: ParsingGraph.Node): CGraphNode = {
         nodesMap get node match {
             case Some(cgnode) => cgnode
             case None =>
-                val nodeId = nodeIdCache.of(node)
-
-                val (g, ap) = (figureGenerator, figureAppearances)
-                val fig = node match {
-                    case ParsingGraph.EmptyNode =>
-                        g.horizontalFig(Spacing.Big, Seq(
-                            g.supFig(g.textFig(s"$nodeId", ap.default)),
-                            g.horizontalFig(Spacing.Small, Seq(symbolFigureGenerator.symbolFig(Empty), dot))))
-                    case ParsingGraph.TermNode(symbol, beginGen) =>
-                        g.horizontalFig(Spacing.Big, Seq(
-                            g.supFig(g.textFig(s"$nodeId", ap.default)),
-                            g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol))),
-                            g.textFig(s"$beginGen", ap.default)))
-                    case ParsingGraph.AtomicNode(symbol, beginGen) =>
-                        g.horizontalFig(Spacing.Big, Seq(
-                            g.supFig(g.textFig(s"$nodeId", ap.default)),
-                            atomicFigure(symbol),
-                            g.textFig(s"$beginGen", ap.default)))
-                    case ParsingGraph.SequenceNode(symbol, pointer, beginGen, endGen) =>
-                        val f = g.horizontalFig(Spacing.Big, Seq(
-                            g.supFig(g.textFig(s"$nodeId", ap.default)),
-                            sequenceFigure(symbol, pointer),
-                            g.textFig(s"$beginGen-$endGen", ap.default)))
-                        // TODO progresses 표시
-                        f
-                }
-                if (node.isInstanceOf[DGraph.BaseNode]) {
-                    fig.setOpaque(true)
-                    fig.setBackgroundColor(ColorConstants.yellow)
-                    fig
-                }
-                fig.setBorder(new MarginBorder(1, 2, 1, 2))
+                val fig = nodeFigureOf(node)
 
                 val n = nodeFromFigure(fig)
                 n.setData(node)
                 nodesMap(node) = n
 
-                // liftBlockTrigger 표시
                 node match {
                     case node: ParsingGraph.AtomicNode if node.liftBlockTrigger.isDefined =>
+                        // liftBlockTrigger 표시
                         val liftBlockTriggerNode = nodeOf(node.liftBlockTrigger.get)
                         new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, liftBlockTriggerNode, n).setText("BlockLiftIfLifted")
                     case _ => // nothing to do
                 }
 
                 n
+        }
+    }
+
+    def setResultsTooltipForNode(node: ParsingGraph.Node, results: Results[ParsingGraph.Node, R]): Unit = {
+        results.of(node) foreach {
+            _ foreach { entry =>
+                val tooltipFig = new Figure()
+                tooltipFig.setOpaque(true)
+                tooltipFig.setBackgroundColor(ColorConstants.white)
+                tooltipFig.setLayoutManager(new ToolbarLayout(false))
+                tooltipFig.add(figureGenerator.textFig(revertTriggersString(entry._1), figureAppearances.default))
+                tooltipFig.add(parseResultForestFigureOf(entry._2))
+                nodeOf(node).getFigure().setToolTip(tooltipFig)
+            }
+        }
+    }
+    def setProgressesTooltipForNode(node: ParsingGraph.SequenceNode, progresses: Results[ParsingGraph.SequenceNode, R]): Unit = {
+        if (node.pointer > 0) {
+            progresses.of(node) foreach {
+                _ foreach { entry =>
+                    val tooltipFig = new Figure()
+                    tooltipFig.setOpaque(true)
+                    tooltipFig.setBackgroundColor(ColorConstants.white)
+                    tooltipFig.setLayoutManager(new ToolbarLayout(false))
+                    tooltipFig.add(figureGenerator.textFig(revertTriggersString(entry._1), figureAppearances.default))
+                    tooltipFig.add(parseResultForestFigureOf(entry._2))
+                    nodeOf(node).getFigure().setToolTip(tooltipFig)
+                }
+            }
         }
     }
 
@@ -295,32 +333,19 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
     def addGraph(graph: ParsingGraph[R]): Unit = {
         graph.nodes foreach { nodeOf(_) }
         graph.edges foreach { edgeOf(_) }
-    }
 
-    def addGraphTransition(baseGraph: ParsingGraph[R], afterGraph: ParsingGraph[R]): Unit = {
-        addGraph(baseGraph)
-        addGraph(afterGraph)
-
-        // baseGraph -> afterGraph 과정에서 없어진 노드/엣지 빨간색으로 표시
-        (baseGraph.nodes -- afterGraph.nodes) foreach { newNode =>
-            nodeOf(newNode).getFigure().setBorder(new LineBorder(ColorConstants.red))
-        }
-        (baseGraph.edges -- afterGraph.edges) foreach { newEdge =>
-            edgeOf(newEdge) foreach { conn => conn.setLineColor(ColorConstants.red) }
-        }
-
-        // 새로 추가된 노드/엣지 파란색으로 표시
-        (afterGraph.nodes -- baseGraph.nodes) foreach { removedNode =>
-            nodeOf(removedNode).getFigure().setBorder(new LineBorder(ColorConstants.blue))
-        }
-        (afterGraph.edges -- baseGraph.edges) foreach { removedEdge =>
-            edgeOf(removedEdge) foreach { conn => conn.setLineColor(ColorConstants.blue) }
+        // 현재 그래프의 progress를 툴팁으로 추가
+        graph.nodes foreach {
+            case node: ParsingGraph.SequenceNode =>
+                setProgressesTooltipForNode(node, graph.progresses)
+            case _ =>
         }
     }
 
     def revertTriggersString(revertTriggers: Set[ParsingGraph.Trigger]): String =
         revertTriggers map {
             case ParsingGraph.Trigger(node, ttype) =>
+                // s"$ttype($node)"
                 s"$ttype(${nodeIdCache.of(node)})"
         } mkString " or "
 
@@ -337,7 +362,80 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
     }
 }
 
-abstract class GraphControl(parent: Composite, style: Int) extends Composite(parent, style) with ParsingGraphVisualizeWidget with BasicGenerators with KernelFigureGenerator[Figure] with ParseForestFigureGenerator[Figure] {
+trait InteractionSupport extends Composite with ParsingGraphVisualizeWidget {
+    var visibleNodes = Seq[CGraphNode]()
+    var visibleEdges = Seq[GraphConnection]()
+
+    def setSubgraph(nodes: Seq[CGraphNode], edges: Seq[GraphConnection]): Unit = {
+        nodesMap.values foreach { _.setVisible(false) }
+        edgesMap.values foreach { _ foreach { _.setVisible(false) } }
+
+        visibleNodes = nodes
+        visibleEdges = edges
+
+        nodes foreach { _.setVisible(true) }
+        edges foreach { _.setVisible(true) }
+    }
+
+    override def nodeOf(node: ParsingGraph.Node): CGraphNode = {
+        val n = super.nodeOf(node)
+        visibleNodes +:= n
+        n
+    }
+    override def edgeOf(edge: ParsingGraph.Edge): Seq[GraphConnection] = {
+        val e = super.edgeOf(edge)
+        visibleEdges ++:= e
+        e
+    }
+
+    val blinkInterval = 100
+    val blinkCycle = 10
+    val highlightedNodes = scala.collection.mutable.Map[CGraphNode, Int]()
+
+    def highlightNode(cgnode: CGraphNode): Unit = {
+        val display = getDisplay()
+        if (!(highlightedNodes contains cgnode) && (visibleNodes contains cgnode)) {
+            cgnode.highlight()
+            highlightedNodes(cgnode) = 0
+            display.timerExec(100, new Runnable() {
+                def run(): Unit = {
+                    highlightedNodes get cgnode match {
+                        case Some(count) =>
+                            if (count % 2 == 0) {
+                                cgnode.setVisible(true)
+                            } else {
+                                cgnode.setVisible(false)
+                            }
+                            highlightedNodes(cgnode) = count + 1
+                            if (count < blinkCycle) {
+                                display.timerExec(blinkInterval, this)
+                            } else {
+                                cgnode.setVisible(true)
+                            }
+                        case None => // nothing to do
+                    }
+                }
+            })
+        }
+    }
+    def unhighlightAllNodes(): Unit = {
+        highlightedNodes foreach { kv =>
+            val (cgnode, _) = kv
+            cgnode.unhighlight()
+            cgnode.setVisible(visibleNodes contains cgnode)
+        }
+        highlightedNodes.clear()
+    }
+}
+
+case class InputAccum(textSoFar: String, lastTime: Long) {
+    def accum(char: Char, thisTime: Long) =
+        if (thisTime - lastTime < 500) InputAccum(textSoFar + char, thisTime) else InputAccum("" + char, thisTime)
+    def textAsInt: Option[Int] = try { Some(textSoFar.toInt) } catch { case _: Throwable => None }
+}
+
+abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[ParseForest])
+        extends Composite(parent, style) with ParsingGraphVisualizeWidget with BasicGenerators with KernelFigureGenerator[Figure] with ParseForestFigureGenerator[Figure] with InteractionSupport {
     setLayout(new FillLayout())
     val graphViewer = new GraphViewer(this, style)
     val graphView = graphViewer.getGraphControl()
@@ -353,15 +451,68 @@ abstract class GraphControl(parent: Composite, style: Int) extends Composite(par
         graphView.setLayoutAlgorithm(layoutAlgorithm, true)
     }
 
+    var inputAccum: InputAccum = InputAccum("", 0)
     graphView.addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {
                 case 'R' | 'r' => applyLayout(true)
+                case c if '0' <= c && c <= '9' =>
+                    unhighlightAllNodes()
+                    inputAccum = inputAccum.accum(c.toChar, System.currentTimeMillis())
+                    val highlightingNode = inputAccum.textAsInt flatMap { nodeIdCache.of(_) }
+                    val highlightingCGNode = highlightingNode flatMap { nodesMap.get(_) }
+                    highlightingCGNode match {
+                        case Some(cgnode) =>
+                            highlightNode(cgnode)
+                        case None => // nothing to do
+                    }
                 case _ =>
             }
         }
         def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
     })
+
+    def resultsOf(node: ParsingGraph.NontermNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = graph.results.of(node)
+    def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = graph.progresses.of(node)
+
+    def resultAndProgressFigureOf(node: ParsingGraph.NontermNode): Figure = {
+        val progressFig = new Figure()
+        progressFig.setLayoutManager(new ToolbarLayout(false))
+        node match {
+            case node: ParsingGraph.SequenceNode =>
+                progressesOf(node) match {
+                    case Some(progresses) =>
+                        progressFig.add(figureGenerator.textFig("Progresses --", figureAppearances.default))
+                        progresses foreach { p =>
+                            progressFig.add(figureGenerator.textFig(revertTriggersString(p._1), figureAppearances.default))
+                            progressFig.add(parseResultForestFigureOf(p._2))
+                        }
+                    case None => // nothing to do
+                }
+            case _ => // nothing to do
+        }
+
+        val resultFig = new Figure()
+        resultFig.setLayoutManager(new ToolbarLayout(false))
+        resultsOf(node) match {
+            case Some(results) =>
+                resultFig.add(figureGenerator.textFig("Results --", figureAppearances.default))
+                results foreach { p =>
+                    resultFig.add(figureGenerator.textFig(revertTriggersString(p._1), figureAppearances.default))
+                    resultFig.add(parseResultForestFigureOf(p._2))
+                }
+            case _ => // nothing to do
+        }
+
+        val allFig = new Figure()
+        allFig.setLayoutManager(new ToolbarLayout(true))
+        allFig.add(nodeFigureOf(node))
+        allFig.add(progressFig)
+        allFig.add(resultFig)
+
+        allFig
+    }
+
     graphView.addMouseListener(new MouseListener() {
         def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
         def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
@@ -372,7 +523,15 @@ abstract class GraphControl(parent: Composite, style: Int) extends Composite(par
                         new ParseResultTreeViewer(tree, figureGenerator, figureAppearances, parseResultTreeFigureGenerator).start()
                     }
                 case node: ParsingGraph.NontermNode =>
-                    DerivationGraphVisualizer.start(grammar, getDisplay(), new Shell(getDisplay()), DerivationGraphVisualizer.kernelOf(node))
+                    if ((e.stateMask & SWT.SHIFT) != 0) {
+                        DerivationGraphVisualizer.start(grammar, getDisplay(), new Shell(getDisplay()), DerivationGraphVisualizer.kernelOf(node))
+                    } else {
+                        val figureShell = new Shell(getDisplay())
+                        figureShell.setLayout(new FillLayout)
+                        val figureCanv = new FigureCanvas(figureShell, SWT.NONE)
+                        figureCanv.setContents(resultAndProgressFigureOf(node))
+                        figureShell.open()
+                    }
                 case data =>
                     println(data)
             }
@@ -381,20 +540,68 @@ abstract class GraphControl(parent: Composite, style: Int) extends Composite(par
 
     override def addKeyListener(keyListener: KeyListener): Unit = graphView.addKeyListener(keyListener)
     override def addMouseListener(mouseListener: MouseListener): Unit = graphView.addMouseListener(mouseListener)
-}
 
-class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, dgraph: DGraph[ParseForest]) extends GraphControl(parent, style) {
-    addGraph(dgraph)
-    applyLayout(false)
-}
-class DerivationSliceGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseDGraph: DGraph[ParseForest], sliceDGraph: DGraph[ParseForest]) extends GraphControl(parent, style) {
-    addGraphTransition(baseDGraph, sliceDGraph)
+    addGraph(graph)
     applyLayout(false)
 }
 
-class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx) extends GraphControl(parent, style) {
-    addGraph(context.graph)
+abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: ParsingGraph[ParseForest], afterGraph: ParsingGraph[ParseForest]) extends GraphControl(parent, style, baseGraph) {
+    addGraph(baseGraph)
+    addGraph(afterGraph)
 
+    override def resultsOf(node: ParsingGraph.NontermNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = afterGraph.results.of(node)
+    override def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = afterGraph.progresses.of(node)
+
+    // baseGraph -> afterGraph 과정에서 없어진 노드/엣지 빨간색으로 표시
+    (baseGraph.nodes -- afterGraph.nodes) foreach { removedNode =>
+        nodeOf(removedNode).getFigure().setBorder(new LineBorder(ColorConstants.red))
+    }
+    (baseGraph.edges -- afterGraph.edges) foreach { removedEdge =>
+        edgeOf(removedEdge) foreach { conn => conn.setLineColor(ColorConstants.red) }
+    }
+
+    // 새로 추가된 노드/엣지 파란색으로 표시
+    (afterGraph.nodes -- baseGraph.nodes) foreach { newNode =>
+        nodeOf(newNode).getFigure().setBorder(new LineBorder(ColorConstants.blue))
+    }
+    (afterGraph.edges -- baseGraph.edges) foreach { newEdge =>
+        edgeOf(newEdge) foreach { conn => conn.setLineColor(ColorConstants.blue) }
+    }
+
+    // 이전 세대 그래프의 results를 툴팁으로 추가
+    baseGraph.nodes foreach {
+        case node =>
+            setResultsTooltipForNode(node, afterGraph.results)
+    }
+
+    val (allNodes, allEdges) = (baseGraph.nodes ++ afterGraph.nodes, baseGraph.edges ++ afterGraph.edges)
+    addKeyListener(new KeyListener() {
+        def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
+            e.keyCode match {
+                case 'q' | 'Q' =>
+                    // 전 그래프만 보여주기
+                    setSubgraph(baseGraph.nodes.toSeq map { nodesMap(_) }, baseGraph.edges.toSeq flatMap { edgesMap(_) })
+                case 'w' | 'W' =>
+                    // 후 그래프만 보여주기
+                    // - 후그래프 보이기
+                    setSubgraph(afterGraph.nodes.toSeq map { nodesMap(_) }, afterGraph.edges.toSeq flatMap { edgesMap(_) })
+                case 'e' | 'E' =>
+                    // 전후 그래프 모두 보여주기
+                    setSubgraph(allNodes.toSeq map { nodesMap(_) }, allEdges.toSeq flatMap { edgesMap(_) })
+                case _ =>
+            }
+        }
+        def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
+    })
+}
+
+class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, dgraph: DGraph[ParseForest])
+    extends GraphControl(parent, style, dgraph)
+class DerivationSliceGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseDGraph: DGraph[ParseForest], sliceDGraph: DGraph[ParseForest])
+    extends GraphTransitionControl(parent, style, baseDGraph, sliceDGraph)
+
+class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx)
+        extends GraphControl(parent, style, context.graph) {
     // ParsingContext 그래프에서는 파싱 결과만 별도로 표시
     val resultNode = context.result match {
         case Some(result) =>
@@ -409,24 +616,23 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val gram
     // derivation tip node는 노란 배경으로
     context.derivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
 
+    // addResults(context.graph.results, true, false, { conn => conn.setLineColor(ColorConstants.lightGreen); })
+    // addResults(context.graph.progresses, false, true, { conn => conn.setLineColor(ColorConstants.lightGreen); conn.setLineStyle(SWT.LINE_DASH) })
+
     applyLayout(false)
 }
 
-class ExpandTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#ExpandTransition) extends GraphControl(parent, style) {
-    addGraphTransition(transition.baseGraph, transition.nextGraph)
-    applyLayout(false)
-
+class ExpandTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#ExpandTransition)
+        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph) {
     // 적용 가능한 터미널 노드는 오렌지색 배경으로
     (transition.expandedTermNodes ++ transition.pendedTermNodes) foreach { nodeOf(_).setBackgroundColor(ColorConstants.orange) }
 }
 
-class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#LiftTransition) extends GraphControl(parent, style) {
-    addGraphTransition(transition.baseGraph, transition.nextGraph)
-    applyLayout(false)
-
-    // lift된 results는 초록색 실선으로, progresses는 옅은 초록색 점선으로
-    addResults(transition.nextGraph.results, true, false, { conn => conn.setLineColor(ColorConstants.green) })
-    addResults(transition.nextGraph.progresses, false, true, { conn => conn.setLineColor(ColorConstants.lightGreen); conn.setLineStyle(SWT.LINE_DASH) })
+class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#LiftTransition)
+        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph) {
+    // (lift된 results는 초록색 실선으로, progresses는 옅은 초록색 점선으로)
+    // addResults(transition.nextGraph.results, true, false, { conn => conn.setLineColor(ColorConstants.green) })
+    // addResults(transition.nextGraph.progresses, false, true, { conn => conn.setLineColor(ColorConstants.lightGreen); conn.setLineStyle(SWT.LINE_DASH) })
 
     // 리프트 시작 노드는 오렌지색 배경으로
     (transition.startingNodes) foreach { p => nodeOf(p._1).setBackgroundColor(ColorConstants.orange) }
@@ -435,15 +641,11 @@ class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Gramma
     transition.nextDerivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
 }
 
-class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#TrimmingTransition) extends GraphControl(parent, style) {
-    addGraphTransition(transition.baseGraph, transition.nextGraph)
-    applyLayout(false)
-
+class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#TrimmingTransition)
+        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph) {
     nodeOf(transition.startNode).setBackgroundColor(ColorConstants.yellow)
     transition.endNodes foreach { nodeOf(_).setBackgroundColor(ColorConstants.orange) }
 }
 
-class RevertTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#RevertTransition) extends GraphControl(parent, style) {
-    addGraphTransition(transition.baseGraph, transition.nextGraph)
-    applyLayout(false)
-}
+class RevertTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#RevertTransition)
+    extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph)

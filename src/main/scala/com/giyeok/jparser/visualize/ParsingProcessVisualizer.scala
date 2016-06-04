@@ -267,10 +267,11 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
             })
 
             shell.setText(s"${grammar.name}: ${currentLocation.stringRepr}")
-            layout.topControl = controlAt(currentLocation)
+            val currentControl = controlAt(currentLocation)
+            layout.topControl = currentControl
             graphView.layout()
             shell.layout()
-            sourceView.setFocus()
+            currentControl.setFocus()
         }
     }
 

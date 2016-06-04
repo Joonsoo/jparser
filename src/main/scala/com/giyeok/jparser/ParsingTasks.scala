@@ -307,7 +307,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                             case SimpleEdge(start, end, edgeRevertTriggers) =>
                                 assert(end == node)
                                 // TODO 여기서 revertTrigger를 이렇게 주는게 맞나? edgeRevertTriggers만 주면 될 것 같기도 하고? (revertTriggers는 result에 반영되니까)
-                                SimpleEdge(start, appendedNode, revertTriggers ++ edgeRevertTriggers)
+                                SimpleEdge(start, appendedNode, edgeRevertTriggers)
                         }
                         assert(cc.incomingJoinEdgesTo(node).isEmpty)
                         (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> appendedProgresses)).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
