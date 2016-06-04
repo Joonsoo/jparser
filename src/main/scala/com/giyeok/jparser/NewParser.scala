@@ -230,12 +230,6 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                     (shouldRemove || activated, if (survived) filtered + trigger else filtered)
                 }
 
-            val nextEdges = graph.edges flatMap {
-                case SimpleEdge(start, end, revertTriggers) =>
-                    val (shouldRemove, filteredTriggers) = processTriggers(revertTriggers)
-                    if (shouldRemove) None else Some(SimpleEdge(start, end, filteredTriggers map { case Trigger(node, ttype) => Trigger(node, ttype) }))
-                case edge => Some(edge)
-            }
             val nextProgresses = graph.progresses.entries.foldLeft(Results[SequenceNode, R]()) { (cc, entry) =>
                 val (node, triggers, result) = entry
                 val (shouldRemove, filteredTriggers) = processTriggers(triggers)
@@ -249,10 +243,21 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 }
             }
 
-            // TODO graph.nodes 중 progress가 없는 sequence node는 없애주어야 함
+            // graph.nodes 중 progress가 없는 sequence node는 없애주어야 함
             val validNodes = graph.nodes filter {
                 case node: SequenceNode => nextProgresses.of(node).isDefined
                 case _ => true
+            }
+
+            // validNodes에 속하지 않는 노드와 연관이 있는 엣지를 제거한다
+            val nextEdges: Set[Edge] = graph.edges flatMap {
+                case SimpleEdge(start, end, revertTriggers) =>
+                    if ((validNodes contains start) && (validNodes contains end)) {
+                        val (shouldRemove, filteredTriggers) = processTriggers(revertTriggers)
+                        if (shouldRemove) None else Some(SimpleEdge(start, end, filteredTriggers map { case Trigger(node, ttype) => Trigger(node, ttype) }))
+                    } else None
+                case edge @ JoinEdge(start, end, join) =>
+                    if ((validNodes contains start) && (validNodes contains end) && (validNodes contains join)) Some(edge) else None
             }
 
             // result는 이후에 lift할 때 없애고 시작하기 때문에 의미 없어서 따로 필터링할 필요 없음
