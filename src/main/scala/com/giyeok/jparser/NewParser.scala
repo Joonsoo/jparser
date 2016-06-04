@@ -202,8 +202,19 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         // 노드가 리프트되었으면 트리거되고, 노드가 살아있으면 트리거도 유지된다
                         (prelift.results contains node, prelift.nodes contains node)
                     case Trigger(node, Trigger.Type.Wait) =>
+                        // (!(prelift.nodes contains node) && !(prelift.results contains node), !(prelift.results contains node))
                         // 노드가 죽으면 트리거되고, 노드가 리프트되면 트리거는 제거된다
-                        (!(prelift.nodes contains node) && !(prelift.results contains node), !(prelift.results contains node))
+                        // lift될 때까지 기다린다
+                        // - lift가 되었으면 소리소문없이 트리거만 사라진다
+                        if (prelift.results contains node) (false, false)
+                        else {
+                            // lift가 되지 않았는데 노드가 사라지면 트리거가 발동된다
+                            if (!(prelift.nodes contains node)) (true, false)
+                            else {
+                                // 둘 다 아니면 그냥 계속 기다린다
+                                (false, true)
+                            }
+                        }
                     case Trigger(node, Trigger.Type.Alive) =>
                         // 노드가 살아있으면 트리거되고, 노드가 살아있어야 트리거도 산다
                         (prelift.nodes contains node, prelift.results contains node)

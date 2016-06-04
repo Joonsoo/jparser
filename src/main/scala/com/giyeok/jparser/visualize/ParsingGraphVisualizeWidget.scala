@@ -181,11 +181,11 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
             case ParsingGraph.EmptyNode =>
                 g.horizontalFig(Spacing.Big, Seq(
                     g.supFig(g.textFig(s"$nodeId", ap.default)),
-                    g.horizontalFig(Spacing.Small, Seq(symbolFigureGenerator.symbolFig(Empty), dot))))
+                    symbolFigureGenerator.symbolFig(Empty)))
             case ParsingGraph.TermNode(symbol, beginGen) =>
                 g.horizontalFig(Spacing.Big, Seq(
                     g.supFig(g.textFig(s"$nodeId", ap.default)),
-                    g.horizontalFig(Spacing.Small, Seq(dot, symbolFigureGenerator.symbolFig(symbol))),
+                    symbolFigureGenerator.symbolFig(symbol),
                     g.textFig(s"$beginGen", ap.default)))
             case ParsingGraph.AtomicNode(symbol, beginGen) =>
                 g.horizontalFig(Spacing.Big, Seq(
@@ -617,6 +617,9 @@ class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Gramma
 
     // derivation tip node는 노란 배경으로
     transition.nextDerivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
+
+    // liftBlock된 노드는 회색 배경으로
+    transition.liftBlockedNodes.keys foreach { nodeOf(_).setBackgroundColor(ColorConstants.gray) }
 }
 
 class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#TrimmingTransition)
@@ -626,4 +629,5 @@ class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Gr
 }
 
 class RevertTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#RevertTransition)
-    extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph)
+        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph) {
+}
