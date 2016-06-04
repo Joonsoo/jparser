@@ -15,14 +15,11 @@ import org.eclipse.draw2d.geometry.Insets
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.FigureCanvas
 import org.eclipse.swt.custom.StackLayout
-import org.eclipse.swt.layout.GridData
-import org.eclipse.swt.layout.GridData
 import org.eclipse.jface.resource.JFaceResources
 import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.widgets.Control
-import org.eclipse.swt.layout.GridLayout
 import com.giyeok.jparser.NewParser
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.ToolbarLayout
@@ -38,6 +35,9 @@ import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.ParseForest
 import javax.swing.plaf.basic.CenterLayout
 import org.eclipse.draw2d.LineBorder
+import org.eclipse.swt.layout.FormData
+import org.eclipse.swt.layout.FormAttachment
+import org.eclipse.swt.layout.FormLayout
 
 class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
     type Parser = NewParser[ParseForest]
@@ -47,9 +47,11 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
     sourceView.setLayoutData({
-        val d = new GridData(GridData.FILL_HORIZONTAL)
-        d.heightHint = 40
-        d
+        val formData = new FormData()
+        formData.top = new FormAttachment(0, 0)
+        formData.left = new FormAttachment(0, 0)
+        formData.right = new FormAttachment(100, 0)
+        formData
     })
     sourceView.setBackground(ColorConstants.white)
 
@@ -58,7 +60,14 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
     // 하단 그래프 뷰
     val graphView = new Composite(shell, SWT.NONE)
     graphView.setLayout(layout)
-    graphView.setLayoutData(new GridData(GridData.FILL_BOTH))
+    graphView.setLayoutData({
+        val formData = new FormData()
+        formData.top = new FormAttachment(sourceView)
+        formData.bottom = new FormAttachment(100, 0)
+        formData.right = new FormAttachment(100, 0)
+        formData.left = new FormAttachment(0, 0)
+        formData
+    })
 
     sealed trait Pointer {
         def previous: Pointer
@@ -385,14 +394,7 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
 
     def start(): Unit = {
         shell.setText("Parsing Graph")
-        shell.setLayout({
-            val l = new GridLayout
-            l.marginWidth = 0
-            l.marginHeight = 0
-            l.verticalSpacing = 0
-            l.horizontalSpacing = 0
-            l
-        })
+        shell.setLayout(new FormLayout)
 
         updateLocation(currentLocation)
 

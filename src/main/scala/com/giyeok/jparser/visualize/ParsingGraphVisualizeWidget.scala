@@ -51,6 +51,10 @@ import org.eclipse.zest.core.viewers.GraphViewer
 import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseResultTree
 import org.eclipse.draw2d.FigureCanvas
+import org.eclipse.swt.widgets.Label
+import org.eclipse.swt.layout.FormLayout
+import org.eclipse.swt.layout.FormData
+import org.eclipse.swt.layout.FormAttachment
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -455,9 +459,27 @@ case class InputAccum(textSoFar: String, lastTime: Long) {
 
 abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[ParseForest])
         extends Composite(parent, style) with ParsingGraphVisualizeWidget with BasicGenerators with KernelFigureGenerator[Figure] with ParseForestFigureGenerator[Figure] with InteractionSupport {
-    setLayout(new FillLayout())
+    setLayout(new FormLayout())
+
+    val titleLabel = new Label(this, SWT.NONE)
+    titleLabel.setLayoutData({
+        val formData = new FormData()
+        formData.top = new FormAttachment(0, 0)
+        formData.left = new FormAttachment(0, 0)
+        formData.right = new FormAttachment(100, 0)
+        formData
+    })
+
     val graphViewer = new GraphViewer(this, style)
     val graphView = graphViewer.getGraphControl()
+    graphView.setLayoutData({
+        val formData = new FormData()
+        formData.top = new FormAttachment(titleLabel)
+        formData.bottom = new FormAttachment(100, -10)
+        formData.left = new FormAttachment(0, 0)
+        formData.right = new FormAttachment(100, 0)
+        formData
+    })
 
     def applyLayout(animation: Boolean): Unit = {
         if (animation) {
@@ -526,7 +548,7 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
     applyLayout(false)
 }
 
-abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: ParsingGraph[ParseForest], afterGraph: ParsingGraph[ParseForest]) extends GraphControl(parent, style, baseGraph) {
+abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: ParsingGraph[ParseForest], afterGraph: ParsingGraph[ParseForest], title: String) extends GraphControl(parent, style, baseGraph) {
     addGraph(baseGraph)
     addGraph(afterGraph)
 
@@ -571,12 +593,14 @@ abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: 
         }
         def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
     })
+
+    titleLabel.setText(title)
 }
 
 class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, dgraph: DGraph[ParseForest])
     extends GraphControl(parent, style, dgraph)
 class DerivationSliceGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseDGraph: DGraph[ParseForest], sliceDGraph: DGraph[ParseForest])
-    extends GraphTransitionControl(parent, style, baseDGraph, sliceDGraph)
+    extends GraphTransitionControl(parent, style, baseDGraph, sliceDGraph, "Sliced DGraph")
 
 class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx)
         extends GraphControl(parent, style, context.graph) {
@@ -597,17 +621,18 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val gram
     // addResults(context.graph.results, true, false, { conn => conn.setLineColor(ColorConstants.lightGreen); })
     // addResults(context.graph.progresses, false, true, { conn => conn.setLineColor(ColorConstants.lightGreen); conn.setLineStyle(SWT.LINE_DASH) })
 
+    titleLabel.setText(s"Gen ${context.gen}")
     applyLayout(false)
 }
 
 class ExpandTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#ExpandTransition)
-        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph) {
+        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) {
     // 적용 가능한 터미널 노드는 오렌지색 배경으로
     (transition.expandedTermNodes) foreach { nodeOf(_).setBackgroundColor(ColorConstants.orange) }
 }
 
 class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#LiftTransition)
-        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph) {
+        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) {
     // (lift된 results는 초록색 실선으로, progresses는 옅은 초록색 점선으로)
     // addResults(transition.nextGraph.results, true, false, { conn => conn.setLineColor(ColorConstants.green) })
     // addResults(transition.nextGraph.progresses, false, true, { conn => conn.setLineColor(ColorConstants.lightGreen); conn.setLineStyle(SWT.LINE_DASH) })
@@ -627,11 +652,11 @@ class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Gramma
 }
 
 class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#TrimmingTransition)
-        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph) {
+        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) {
     nodeOf(transition.startNode).setBackgroundColor(ColorConstants.yellow)
     transition.endNodes foreach { nodeOf(_).setBackgroundColor(ColorConstants.orange) }
 }
 
 class RevertTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#RevertTransition)
-        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph) {
+        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) {
 }
