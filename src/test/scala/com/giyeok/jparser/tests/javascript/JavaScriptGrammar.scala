@@ -16,7 +16,7 @@ object JavaScriptGrammar extends Grammar {
     def lex(s: Symbol*) = seq(s: _*)
     def line(s: Symbol*) = seq(oneline, s: _*)
     val lineend = i(";").backup(oneof(
-        seq(n("WhiteSpace").star, lookahead_is(n("LineTerminator"))),
+        seq((n("WhiteSpace").except(n("LineTerminator"))).star, n("LineTerminator")),
         seq(n("WhiteSpace").star, lookahead_is(i("}")))))
     def stmt(s: Symbol*) = longest(expr((s.toSeq :+ lineend): _*))
 
