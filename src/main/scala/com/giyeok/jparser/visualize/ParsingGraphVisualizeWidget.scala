@@ -231,35 +231,6 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
         }
     }
 
-    def setResultsTooltipForNode(node: ParsingGraph.Node, results: Results[ParsingGraph.Node, R]): Unit = {
-        results.of(node) foreach {
-            _ foreach { entry =>
-                val tooltipFig = new Figure()
-                tooltipFig.setOpaque(true)
-                tooltipFig.setBackgroundColor(ColorConstants.white)
-                tooltipFig.setLayoutManager(new ToolbarLayout(false))
-                tooltipFig.add(figureGenerator.textFig(revertTriggersString(entry._1), figureAppearances.default))
-                tooltipFig.add(parseResultForestFigureOf(entry._2))
-                nodeOf(node).getFigure().setToolTip(tooltipFig)
-            }
-        }
-    }
-    def setProgressesTooltipForNode(node: ParsingGraph.SequenceNode, progresses: Results[ParsingGraph.SequenceNode, R]): Unit = {
-        if (node.pointer > 0) {
-            progresses.of(node) foreach {
-                _ foreach { entry =>
-                    val tooltipFig = new Figure()
-                    tooltipFig.setOpaque(true)
-                    tooltipFig.setBackgroundColor(ColorConstants.white)
-                    tooltipFig.setLayoutManager(new ToolbarLayout(false))
-                    tooltipFig.add(figureGenerator.textFig(revertTriggersString(entry._1), figureAppearances.default))
-                    tooltipFig.add(parseResultForestFigureOf(entry._2))
-                    nodeOf(node).getFigure().setToolTip(tooltipFig)
-                }
-            }
-        }
-    }
-
     def edgeOf(edge: ParsingGraph.Edge): Seq[GraphConnection] = {
         def setCurveTo(conn: GraphConnection, start: ParsingGraph.Node, end: ParsingGraph.Node): GraphConnection = {
             val curve = edgesBetween.getOrElse((start, end), 0) + edgesBetween.getOrElse((end, start), 0)
@@ -330,6 +301,54 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
         }
     }
 
+    def resultsOf(node: ParsingGraph.Node): Option[Map[Set[ParsingGraph.Trigger], ParseForest]]
+    def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]]
+
+    def resultAndProgressFigureOf(node: ParsingGraph.Node): Figure = {
+        val progressFig = new Figure()
+        progressFig.setLayoutManager(new ToolbarLayout(false))
+        node match {
+            case node: ParsingGraph.SequenceNode =>
+                progressesOf(node) match {
+                    case Some(progresses) =>
+                        progressFig.add(figureGenerator.textFig("Progresses --", figureAppearances.default))
+                        progresses foreach { p =>
+                            progressFig.add(figureGenerator.textFig(revertTriggersString(p._1), figureAppearances.default))
+                            progressFig.add(parseResultForestFigureOf(p._2))
+                        }
+                    case None => // nothing to do
+                }
+            case _ => // nothing to do
+        }
+
+        val resultFig = new Figure()
+        resultFig.setLayoutManager(new ToolbarLayout(false))
+        resultsOf(node) match {
+            case Some(results) =>
+                resultFig.add(figureGenerator.textFig("Results --", figureAppearances.default))
+                results foreach { p =>
+                    resultFig.add(figureGenerator.textFig(revertTriggersString(p._1), figureAppearances.default))
+                    resultFig.add(parseResultForestFigureOf(p._2))
+                }
+            case _ => // nothing to do
+        }
+
+        val allFig = new Figure()
+        allFig.setLayoutManager(new ToolbarLayout(true))
+        allFig.add(nodeFigureOf(node))
+        allFig.add(progressFig)
+        allFig.add(resultFig)
+
+        allFig
+    }
+
+    def setTooltipForNode(node: ParsingGraph.Node): Unit = {
+        val tooltipFig = resultAndProgressFigureOf(node)
+        tooltipFig.setOpaque(true)
+        tooltipFig.setBackgroundColor(ColorConstants.white)
+        nodeOf(node).getFigure().setToolTip(tooltipFig)
+    }
+
     def addGraph(graph: ParsingGraph[R]): Unit = {
         graph.nodes foreach { nodeOf(_) }
         graph.edges foreach { edgeOf(_) }
@@ -337,7 +356,7 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
         // 현재 그래프의 progress를 툴팁으로 추가
         graph.nodes foreach {
             case node: ParsingGraph.SequenceNode =>
-                setProgressesTooltipForNode(node, graph.progresses)
+                setTooltipForNode(node)
             case _ =>
         }
     }
@@ -472,47 +491,6 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
         def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
     })
 
-    def resultsOf(node: ParsingGraph.NontermNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = graph.results.of(node)
-    def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = graph.progresses.of(node)
-
-    def resultAndProgressFigureOf(node: ParsingGraph.NontermNode): Figure = {
-        val progressFig = new Figure()
-        progressFig.setLayoutManager(new ToolbarLayout(false))
-        node match {
-            case node: ParsingGraph.SequenceNode =>
-                progressesOf(node) match {
-                    case Some(progresses) =>
-                        progressFig.add(figureGenerator.textFig("Progresses --", figureAppearances.default))
-                        progresses foreach { p =>
-                            progressFig.add(figureGenerator.textFig(revertTriggersString(p._1), figureAppearances.default))
-                            progressFig.add(parseResultForestFigureOf(p._2))
-                        }
-                    case None => // nothing to do
-                }
-            case _ => // nothing to do
-        }
-
-        val resultFig = new Figure()
-        resultFig.setLayoutManager(new ToolbarLayout(false))
-        resultsOf(node) match {
-            case Some(results) =>
-                resultFig.add(figureGenerator.textFig("Results --", figureAppearances.default))
-                results foreach { p =>
-                    resultFig.add(figureGenerator.textFig(revertTriggersString(p._1), figureAppearances.default))
-                    resultFig.add(parseResultForestFigureOf(p._2))
-                }
-            case _ => // nothing to do
-        }
-
-        val allFig = new Figure()
-        allFig.setLayoutManager(new ToolbarLayout(true))
-        allFig.add(nodeFigureOf(node))
-        allFig.add(progressFig)
-        allFig.add(resultFig)
-
-        allFig
-    }
-
     graphView.addMouseListener(new MouseListener() {
         def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
         def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
@@ -541,6 +519,9 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
     override def addKeyListener(keyListener: KeyListener): Unit = graphView.addKeyListener(keyListener)
     override def addMouseListener(mouseListener: MouseListener): Unit = graphView.addMouseListener(mouseListener)
 
+    def resultsOf(node: ParsingGraph.Node): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = graph.results.of(node)
+    def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = graph.progresses.of(node)
+
     addGraph(graph)
     applyLayout(false)
 }
@@ -549,7 +530,7 @@ abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: 
     addGraph(baseGraph)
     addGraph(afterGraph)
 
-    override def resultsOf(node: ParsingGraph.NontermNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = afterGraph.results.of(node)
+    override def resultsOf(node: ParsingGraph.Node): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = afterGraph.results.of(node)
     override def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = afterGraph.progresses.of(node)
 
     // baseGraph -> afterGraph 과정에서 없어진 노드/엣지 빨간색으로 표시
@@ -569,10 +550,7 @@ abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: 
     }
 
     // 이전 세대 그래프의 results를 툴팁으로 추가
-    baseGraph.nodes foreach {
-        case node =>
-            setResultsTooltipForNode(node, afterGraph.results)
-    }
+    baseGraph.nodes foreach { setTooltipForNode(_) }
 
     val (allNodes, allEdges) = (baseGraph.nodes ++ afterGraph.nodes, baseGraph.edges ++ afterGraph.edges)
     addKeyListener(new KeyListener() {

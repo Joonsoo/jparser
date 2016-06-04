@@ -37,7 +37,7 @@ object SimpleGrammar3 extends Grammar with StringSamples {
         "A" -> ListSet(seq(c('a'), n("C"))),
         "B" -> ListSet(i("bcd")),
         "C" -> ListSet(seq(n("B"), n("E"))),
-        "D" -> ListSet(e),
+        "D" -> ListSet(empty),
         "E" -> ListSet(i("e")))
     val startSymbol = n("S")
 

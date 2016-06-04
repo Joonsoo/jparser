@@ -14,8 +14,8 @@ object SimpleGrammar5 extends Grammar with StringSamples {
     val name = "Simple Grammar 5"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A"), n("B"))),
-        "A" -> ListSet(i("a"), e),
-        "B" -> ListSet(i("b"), e))
+        "A" -> ListSet(i("a"), empty),
+        "B" -> ListSet(i("b"), empty))
     val startSymbol = n("S")
 
     val correctSamples = Set("", "a", "b", "ab")
@@ -27,7 +27,7 @@ object SimpleGrammar6 extends Grammar with StringSamples {
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A"), n("C"))),
         "A" -> ListSet(seq(n("B"), i("a").star)),
-        "B" -> ListSet(i("b"), e),
+        "B" -> ListSet(i("b"), empty),
         "C" -> ListSet(seq(n("B"), i("c").star)))
     val startSymbol = n("S")
 
@@ -144,10 +144,10 @@ object SimpleGrammar9 extends Grammar with StringSamples {
     val name = "Simple Grammar 9 (Infinitely ambiguous)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
-            e,
+            empty,
             seq(n("S"), n("A"))),
         "A" -> ListSet(
-            e,
+            empty,
             seq(n("A"), c('a'))))
     val startSymbol = n("S")
 

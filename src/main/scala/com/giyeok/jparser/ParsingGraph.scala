@@ -139,6 +139,7 @@ trait ParsingGraph[R <: ParseResult] {
 
     // edges의 모든 노드가 nodes에 포함되어야 함
     // - progresses의 trigger에 등장하는 노드 중에는 다음 generation에서 발생할 노드가 포함될 수 있으므로 확인하지 않음
+    /*
     assert({
         val nodesOfEdges = edges flatMap {
             _ match {
@@ -150,6 +151,7 @@ trait ParsingGraph[R <: ParseResult] {
 
         nodesOfEdges subsetOf nodes
     })
+    */
     // progresses의 keySet의 모든 노드가 nodes에 포함되어야 함
     // assert(progresses.keyNodesSet.asInstanceOf[Set[Node]] subsetOf nodes)
 

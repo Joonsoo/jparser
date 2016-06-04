@@ -242,6 +242,12 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 }
             }
 
+            // TODO graph.nodes 중 progress가 없는 sequence node는 없애주어야 함
+            val validNodes = graph.nodes filter {
+                case node: SequenceNode => nextProgresses.of(node).isDefined
+                case _ => true
+            }
+
             // result는 이후에 lift할 때 없애고 시작하기 때문에 의미 없어서 따로 필터링할 필요 없음
             graph.create(graph.nodes, nextEdges, graph.results, nextProgresses)
         }

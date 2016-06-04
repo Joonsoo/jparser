@@ -103,7 +103,7 @@ object SimpleGrammar1_5 extends Grammar with StringSamples {
 object SimpleGrammar1_6 extends Grammar with StringSamples {
     val name = "Simple Grammar 1_6"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("A"), e),
+        "S" -> ListSet(n("A"), empty),
         "A" -> ListSet(i("abc")))
     val startSymbol = n("S")
 

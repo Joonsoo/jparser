@@ -206,7 +206,7 @@ object JavaScriptGrammar extends Grammar {
         "RegularExpressionBody" -> ListSet(
             lex(n("RegularExpressionFirstChar"), n("RegularExpressionChars"))),
         "RegularExpressionChars" -> ListSet(
-            e,
+            empty,
             lex(n("RegularExpressionChars"), n("RegularExpressionChar"))),
         "RegularExpressionFirstChar" -> ListSet(
             n("RegularExpressionNonTerminator").butnot(chars("*\\/[")),
@@ -223,13 +223,13 @@ object JavaScriptGrammar extends Grammar {
         "RegularExpressionClass" -> ListSet(
             lex(i("["), n("RegularExpressionClassChars"), i("]"))),
         "RegularExpressionClassChars" -> ListSet(
-            e,
+            empty,
             lex(n("RegularExpressionClassChars"), n("RegularExpressionClassChar"))),
         "RegularExpressionClassChar" -> ListSet(
             n("RegularExpressionNonTerminator").butnot(chars("]\\")),
             n("RegularExpressionBackslashSequence")),
         "RegularExpressionFlags" -> ListSet(
-            e,
+            empty,
             lex(n("RegularExpressionFlags"), n("IdentifierPart"))),
 
         // A.2 Number Conversions
@@ -577,7 +577,7 @@ object JavaScriptGrammar extends Grammar {
             n("Alternative"),
             lex(n("Alternative"), i("|"), n("Disjunction"))),
         "Alternative" -> ListSet(
-            e,
+            empty,
             lex(n("Alternative"), n("Term"))),
         "Term" -> ListSet(
             n("Assertion"),
@@ -633,7 +633,7 @@ object JavaScriptGrammar extends Grammar {
             lex(token("["), lookahead_except(token("^")), n("ClassRanges"), token("]")),
             lex(token("["), token("^"), n("ClassRanges"), token("]"))),
         "ClassRanges" -> ListSet(
-            e,
+            empty,
             n("NonemptyClassRanges")),
         "NonemptyClassRanges" -> ListSet(
             n("ClassAtom"),

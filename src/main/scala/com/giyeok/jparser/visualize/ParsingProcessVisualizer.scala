@@ -307,8 +307,9 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
         }
 
     def errorControl(message: String): Control = {
-        val control = new Label(graphView, SWT.NONE)
-        control.setText(message)
+        val control = new Composite(graphView, SWT.NONE)
+        control.setLayout(new FillLayout)
+        new Label(control, SWT.NONE).setText(message)
         control
     }
 
