@@ -30,27 +30,31 @@ import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Event
 import com.giyeok.jparser.ParsingGraph
 import DerivationGraphVisualizer.Kernel
+import org.eclipse.swt.custom.SashForm
+import org.eclipse.swt.layout.FillLayout
+import org.eclipse.swt.events.ShellListener
 
 class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell, resources: VisualizeResources, defaultKernel: Kernel) extends BasicGenerators with KernelFigureGenerator[Figure] {
     val derivationFunc = new DerivationFunc(grammar, ParseForestFunc)
 
-    val kernelList = new FigureCanvas(shell, SWT.NONE)
-    kernelList.setLayoutData({
-        val d = new GridData(GridData.FILL_VERTICAL)
-        d.widthHint = 200
-        d
-    })
-    kernelList.setBackground(ColorConstants.buttonLightest)
+    shell.setLayout(new FillLayout)
 
-    val termGroupsList = new List(shell, SWT.NONE)
+    val sash = new SashForm(shell, SWT.HORIZONTAL)
+
+    val kernelList = new FigureCanvas(sash, SWT.NONE)
+    kernelList.setBackground(ColorConstants.white)
+
+    val termGroupsList = new List(sash, SWT.NONE)
     var termGroupsItems = Seq[Option[TermGroupDesc]]() // None은 전체를 의미
 
     val layout = new StackLayout
 
-    val derivationGraphs = new Composite(shell, SWT.NONE)
+    val derivationGraphs = new Composite(sash, SWT.NONE)
     derivationGraphs.setLayout(layout)
-    derivationGraphs.setLayoutData(new GridData(GridData.FILL_BOTH))
-    derivationGraphs.setBackground(ColorConstants.white)
+    derivationGraphs.setBackground(ColorConstants.buttonDarkest)
+
+    sash.setBackground(ColorConstants.lightGray)
+    sash.setWeights(Seq[Int](1, 1, 3).toArray)
 
     case class DGraphWidget(
             dgraph: DGraph[ParseForest]) {
@@ -196,14 +200,6 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
 
     def start(): Unit = {
         shell.setText("Derivation Graph")
-        shell.setLayout({
-            val l = new GridLayout(3, false)
-            l.marginWidth = 0
-            l.marginHeight = 0
-            l.verticalSpacing = 0
-            l.horizontalSpacing = 0
-            l
-        })
 
         initialize()
 

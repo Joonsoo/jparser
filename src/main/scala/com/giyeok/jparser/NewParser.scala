@@ -264,7 +264,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         assert(startNode.symbol == Start)
 
         // graph.nodes는 모두 gen이 <= 현재 gen 을 만족해야 한다
-        // results나 progresses의 trigger node에서는 이 조건이 만족되지 않을 수 있음
+        // results나 progresses의 trigger node에서는 beginGen = gen + 1 세대인 노드가 있을 수도 있다
         assert(graph.nodes forall {
             case EmptyNode => true
             case node: TermNode => node.beginGen <= gen
