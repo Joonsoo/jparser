@@ -111,6 +111,7 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
     def sliceByTermGroups(dgraph: DGraph[R]): Map[TermGroupDesc, DGraph[R]] = {
         (dgraph.termGroups flatMap { termGroup =>
             val eligibleTerminalNodes = (dgraph.terminalNodes filter { _.symbol.accept(termGroup) }).toSet[Node]
+            eligibleTerminalNodes -> resultFunc.termFunc()
             // TODO 다시 구현
             // eligibleTerminalNodes에서 각 terminalNode의 result로 resultFunc.termFunc()를 주고 시작해서 lift 및 trimming을 한 번 진행한다
             // lift할 때 derivable로 나온 노드만 progresses에 남기고, 실제 파싱시 이 지점을 시작점으로 삼는다.
@@ -120,5 +121,12 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
             // 간단하게는 그냥 이렇게 하면 될 것 같은데 PendedNode가 걸리네..
             Some(termGroup -> dgraph)
         }).toMap
+    }
+
+    def compaction(dgraph: DGraph[R]): DGraph[R] = {
+        // Compaction
+        // 가능한 지점에서 atomic node path를 하나의 atomic node로 묶어서 반환
+        // atomic node이되 symbol이 특수 심볼
+        ???
     }
 }

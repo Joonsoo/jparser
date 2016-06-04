@@ -27,8 +27,6 @@ object ParsingGraph {
             s"(${symbol.toShortString}, $beginGen)"
         }
     }
-    // TODO Compaction
-    // case class CompactedNode(symbols: Seq[AtomicNonterm]) extends Node
     case class SequenceNode(symbol: Sequence, pointer: Int, beginGen: Int, endGen: Int) extends NontermNode {
         override def toString = {
             val (p, f) = symbol.seq.splitAt(pointer)

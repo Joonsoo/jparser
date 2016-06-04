@@ -612,8 +612,12 @@ class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Gramma
     // addResults(transition.nextGraph.results, true, false, { conn => conn.setLineColor(ColorConstants.green) })
     // addResults(transition.nextGraph.progresses, false, true, { conn => conn.setLineColor(ColorConstants.lightGreen); conn.setLineStyle(SWT.LINE_DASH) })
 
-    // 리프트 시작 노드는 오렌지색 배경으로
-    (transition.startingNodes) foreach { p => nodeOf(p._1).setBackgroundColor(ColorConstants.orange) }
+    transition.initialTasks foreach {
+        case deriveTask: NewParser[_]#DeriveTask =>
+            ???
+        case finishingTask: NewParser[_]#FinishingTask =>
+            nodeOf(finishingTask.node).setBackgroundColor(ColorConstants.orange)
+    }
 
     // derivation tip node는 노란 배경으로
     transition.nextDerivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
