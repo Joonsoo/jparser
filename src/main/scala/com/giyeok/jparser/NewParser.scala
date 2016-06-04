@@ -329,7 +329,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         val revertedGraph: Graph = ParsingCtx.revert(expandedGraph, liftedGraph0)
                         val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", expandedGraph, revertedGraph, liftedGraph0)
 
-                        // TODO lift 막을 노드 정보 수집해서 ParsingCtx.lift에 넘겨주어야 함
+                        // lift 막을 노드 정보 수집해서 ParsingCtx.lift에 넘겨주어야 함
                         val liftBlockedNodes: Map[AtomicNode, Set[Trigger]] = {
                             val d = revertedGraph.nodes collect {
                                 // liftBlockTrigger가 정의되어 있는 AtomicNode 중 results가 있는 것들을 추려서
@@ -375,13 +375,18 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         }
                     case Some(_) => throw new AssertionError("")
                     case None =>
-                        // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
                         val transition = ParsingCtxTransition(Some(expandTransition, firstLiftTransition), None, None)
-                        (transition, Left(ParsingCtx(
-                            nextGen,
-                            CtxGraph(Set(), Set(), Results((liftedGraph0pre.results.of(startNode) map { startNode -> _ }).toSeq: _*), Results()),
-                            startNode,
-                            Set())))
+                        liftedGraph0pre.results.of(startNode) match {
+                            case Some(result) =>
+                                // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
+                                (transition, Left(ParsingCtx(
+                                    nextGen,
+                                    CtxGraph(Set(), Set(), Results(startNode -> result), Results()),
+                                    startNode,
+                                    Set())))
+                            case None =>
+                                (transition, Right(UnexpectedInput(input)))
+                        }
                 }
             }
         }
