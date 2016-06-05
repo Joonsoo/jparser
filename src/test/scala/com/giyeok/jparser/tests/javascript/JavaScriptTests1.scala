@@ -28,7 +28,8 @@ object JavaScriptTest1_1 extends Grammar with StringSamples {
         "abc=  function(a){return a+1;}(1);",
         "console.log(function(a){return a+1;}(1));",
         "function x(a) { return a + 1; }",
-        "{return a}")
+        "{return a}",
+        "var vara = function ifx(a){return(function(y){return (y+1);})(a)};")
     val incorrectSamples = Set[String]()
 }
 

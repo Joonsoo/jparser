@@ -37,6 +37,8 @@ class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap:
                 g.textFig("ε", ap.default)
             case TerminalNode(input) =>
                 g.textFig(input.toShortString, ap.input)
+            case TermFuncNode =>
+                g.textFig("λt", ap.input)
             case BindedNode(sym: Repeat, body) =>
                 def childrenOf(node: Node, sym: Symbol): Seq[Node] = node match {
                     case EmptyNode => Seq()

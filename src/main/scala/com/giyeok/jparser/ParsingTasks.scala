@@ -149,6 +149,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                             SequenceProgressTask(nextGen, baseNode, finishedResult, end.symbol, resultRevertTriggers ++ edgeRevertTriggers)
                     }
                 }
+            // TODO JoinEdge는 안해줘도 되는지 고민해보기
             case _ => Set()
         }
 
@@ -233,7 +234,6 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
         }
     }
 
-    // 나중에 parser 코드랑 합칠 때 정리해야될듯
     def sequenceProgressTask(task: SequenceProgressTask, cc: Graph): (Graph, Seq[Task]) = {
         val SequenceProgressTask(nextGen, node, child, childSymbol, revertTriggers) = task
         // 1. cc에

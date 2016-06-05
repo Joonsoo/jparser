@@ -75,7 +75,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
         // graph를 expand한다
         // - baseAndGraphs에 있는 튜플의 _1를 base로 해서 _2의 내용을 shiftGen해서 그래프에 추가한다
-        def expandMulti(graph: Graph, gen: Int, baseAndGraphs: Set[(NontermNode, DGraph[R])]): (Graph, Set[TermNode]) = {
+        def expandAll(graph: Graph, gen: Int, baseAndGraphs: Set[(NontermNode, DGraph[R])]): (Graph, Set[TermNode]) = {
             // baseAndGraphs의 베이스 노드가 모두 graph에 포함되어 있어야 한다
             assert(baseAndGraphs map { _._1.asInstanceOf[Node] } subsetOf graph.nodes)
             // expand 하기 전에는 이전 세대의 TermNode가 그래프에 있으면 안 됨
@@ -299,7 +299,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 coll ensuring (coll.size <= 1)
             }
             // 1. expand
-            val (expandedGraph, termNodes0All) = ParsingCtx.expandMulti(graph, gen, baseAndGraphs)
+            val (expandedGraph, termNodes0All) = ParsingCtx.expandAll(graph, gen, baseAndGraphs)
             // (원래는) slice된 그래프에서 골라서 추가했으므로 termNodes는 모두 input을 받을 수 있어야 한다
             // assert(termNodes0 forall { _.symbol accept input })
             val termNodes0 = termNodes0All filter { _.symbol accept input }

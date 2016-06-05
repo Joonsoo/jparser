@@ -597,10 +597,37 @@ abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: 
     titleLabel.setText(title)
 }
 
+trait DerivationGraph extends GraphControl {
+    def addBaseResults(dgraph: DGraph[ParseForest]): Unit = {
+        dgraph.baseResults foreach {
+            _ foreach { baseResult =>
+                val (triggers, result) = baseResult
+                val resultNode = resultOf(result)
+                resultNode.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
+                new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodeOf(dgraph.baseNode), resultNode).setLineColor(ColorConstants.green)
+            }
+        }
+    }
+    def addBaseProgresses(dgraph: DGraph[ParseForest]): Unit = {
+        dgraph.baseProgresses foreach { baseProgress =>
+            val (triggers, (child, childSymbol)) = baseProgress
+            val progressNode = resultOf(ParseForestFunc.bind(childSymbol, child))
+            progressNode.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
+            new GraphConnection(graphView, ZestStyles.CONNECTIONS_DASH, nodeOf(dgraph.baseNode), progressNode).setLineColor(ColorConstants.green)
+        }
+    }
+}
+
 class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, dgraph: DGraph[ParseForest])
-    extends GraphControl(parent, style, dgraph)
+        extends GraphControl(parent, style, dgraph) with DerivationGraph {
+    addBaseResults(dgraph)
+    addBaseProgresses(dgraph)
+}
 class DerivationSliceGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseDGraph: DGraph[ParseForest], sliceDGraph: DGraph[ParseForest])
-    extends GraphTransitionControl(parent, style, baseDGraph, sliceDGraph, "Sliced DGraph")
+        extends GraphTransitionControl(parent, style, baseDGraph, sliceDGraph, "Sliced DGraph") with DerivationGraph {
+    addBaseResults(sliceDGraph)
+    addBaseProgresses(sliceDGraph)
+}
 
 class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx)
         extends GraphControl(parent, style, context.graph) {

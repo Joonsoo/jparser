@@ -30,15 +30,6 @@ case class DGraph[R <: ParseResult](
     // baseNode를 제외하고는 전부 BaseNode가 아니어야 함
     assert((nodes - baseNode) forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
 
-    // DerivationGraph에 등장하는 모든 gen이 0이어야 한다
-    assert(nodes forall {
-        case EmptyNode => true
-        case TermNode(_, beginGen) => beginGen == 0
-        case _: DGraph.BaseNode => true
-        case AtomicNode(_, beginGen) => beginGen == 0
-        case SequenceNode(_, _, beginGen, endGen) => beginGen == 0 && endGen == 0
-    })
-
     // baseNode의 result나 progress는 results/progresses에는 있어선 안 되고 
     // baseResults에는 baseNode의 result나 progress만 있어야 한다
     assert(results.of(baseNode).isEmpty && (!baseNode.isInstanceOf[SequenceNode] || progresses.of(baseNode.asInstanceOf[SequenceNode]).isEmpty))
@@ -98,28 +89,75 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
             case List() => cc
         }
 
-    def deriveAtomic(symbol: AtomicNonterm): DGraph[R] = {
-        val baseNode = new BaseAtomicNode(symbol)
-        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Results(), Map()))
+    def derive(baseNode: BaseNode with NontermNode): DGraph[R] = {
+        val dgraph = rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Results(), Map()))
+        assert(dgraph.nodes forall {
+            case EmptyNode => true
+            case TermNode(_, beginGen) => beginGen <= 1
+            case _: DGraph.BaseNode => true
+            case AtomicNode(_, beginGen) => beginGen <= 1
+            case SequenceNode(_, _, beginGen, endGen) => beginGen <= 1 && endGen <= 1
+        })
+        dgraph
     }
 
-    def deriveSequence(symbol: Sequence, pointer: Int): DGraph[R] = {
-        val baseNode = new BaseSequenceNode(symbol, pointer)
-        rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Results(), Map()))
-    }
+    def deriveAtomic(symbol: AtomicNonterm): DGraph[R] = derive(new BaseAtomicNode(symbol))
+    def deriveSequence(symbol: Sequence, pointer: Int): DGraph[R] = derive(new BaseSequenceNode(symbol, pointer))
 
     def sliceByTermGroups(dgraph: DGraph[R]): Map[TermGroupDesc, DGraph[R]] = {
         (dgraph.termGroups flatMap { termGroup =>
-            val eligibleTerminalNodes = (dgraph.terminalNodes filter { _.symbol.accept(termGroup) }).toSet[Node]
-            eligibleTerminalNodes -> resultFunc.termFunc()
-            // TODO 다시 구현
-            // eligibleTerminalNodes에서 각 terminalNode의 result로 resultFunc.termFunc()를 주고 시작해서 lift 및 trimming을 한 번 진행한다
-            // lift할 때 derivable로 나온 노드만 progresses에 남기고, 실제 파싱시 이 지점을 시작점으로 삼는다.
-            // 실제 파싱할 때는 
-            // - 기존 expand와 동일하게 노드/엣지 추가하고,
-            // - progresses의 노드들(즉 derivable)에 대해 DeriveTask를 시작한다
+            // 이 곳에서의 일은 원래 NewParser에서 하던 일의 일부를 미리 해두는 것이라고 보면 된다
+            // - 즉, baseNode 이하 derivation graph에서의 1차 리프트+1차 트리밍을 여기서 대신 해주는 것
+            // 실제 파싱할 때는
+            // - 기존 expand와 마찬가지로 
+            //   - 노드 및 엣지 추가하고
+            //   - results와 progresses도 trigger들을 shiftGen하고 result는 resultFunc.substTermFunc해서 추가해준다
+            // - 새로 추가된 derivables에 대한 DeriveTask와
+            // - baseNode에 대한 FinishingTask/SequenceProgressTask 들을 진행한다
+            //   - 이 때, Task들도 모두 nextGen으로 shiftGen 해서 진행해야 함
             // 간단하게는 그냥 이렇게 하면 될 것 같은데 PendedNode가 걸리네..
-            Some(termGroup -> dgraph)
+            def lift(graph: DGraph[R], nextGen: Int, termNodes: Set[TermNode]): (DGraph[R], Set[SequenceNode]) = {
+                val initialTasks = termNodes map { termNode => FinishingTask(1, termNode, resultFunc.termFunc(), Set()) }
+                // FinishingTask.node가 liftBlockedNodes에 있으면 해당 task는 제외
+                // DeriveTask(node)가 나오면 실제 Derive 진행하지 않고 derivation tip nodes로 넣는다 (이 때 node는 항상 SequenceNode임)
+                def rec(tasks: List[Task], graphCC: DGraph[R], derivablesCC: Set[SequenceNode]): (DGraph[R], Set[SequenceNode]) =
+                    tasks match {
+                        case task +: rest =>
+                            task match {
+                                case task: DeriveTask =>
+                                    assert(!task.baseNode.isInstanceOf[BaseNode] && task.baseNode.isInstanceOf[SequenceNode])
+                                    rec(rest, graphCC, derivablesCC + task.baseNode.asInstanceOf[SequenceNode])
+                                case task: FinishingTask =>
+                                    if (task.node.isInstanceOf[BaseNode]) {
+                                        rec(rest, graphCC.updateBaseResults(graphCC._baseResults.update(task.node, task.revertTriggers, task.result)), derivablesCC)
+                                    } else {
+                                        val (newGraphCC, newTasks) = finishingTask(task, graphCC)
+                                        rec(rest ++ newTasks, newGraphCC, derivablesCC)
+                                    }
+                                case task: SequenceProgressTask =>
+                                    if (task.node.isInstanceOf[BaseNode]) {
+                                        rec(rest, graphCC.updateBaseProgresses(task.revertTriggers, task.child, task.childSymbol), derivablesCC)
+                                    } else {
+                                        val (newGraphCC, newTasks) = sequenceProgressTask(task, graphCC)
+                                        rec(rest ++ newTasks, newGraphCC, derivablesCC)
+                                    }
+                            }
+                        case List() => (graphCC, derivablesCC)
+                    }
+                rec(initialTasks.toList, graph.withNoResults.asInstanceOf[DGraph[R]], Set())
+            }
+
+            // eligibleTerminalNodes에서 각 terminalNode의 result로 resultFunc.termFunc()를 주고 시작해서 lift 및 trimming을 한 번 진행한다
+            val eligibleTerminalNodes = dgraph.terminalNodes filter { _.symbol.accept(termGroup) }
+
+            val (liftedGraph, derivables) = lift(dgraph, 1, eligibleTerminalNodes)
+            // assert(liftedGraph.progresses.keyNodesSet == derivables)
+            val trimmedGraph = liftedGraph.subgraphIn(dgraph.baseNode, derivables.asInstanceOf[Set[Node]], resultFunc)
+
+            // trimmedGraph에 등장하는 노드는 모두 gen이 0이나 1이어야 함
+            // - 원래 있던 노드는 gen이 0이고 새로 생긴 노드는 gen이 1이어야 함
+
+            trimmedGraph map { slicedGraph => termGroup -> slicedGraph.asInstanceOf[DGraph[R]] }
         }).toMap
     }
 
