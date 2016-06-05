@@ -603,16 +603,16 @@ trait DerivationGraph extends GraphControl {
             val (triggers, result) = baseResult
             val resultNode = resultOf(result)
             resultNode.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
-            new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodeOf(dgraph.baseNode), resultNode).setLineColor(ColorConstants.green)
+            new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodeOf(dgraph.baseNode), resultNode).setLineColor(ColorConstants.green)
         }
     }
     def addBaseProgresses(dgraph: DGraph[ParseForest]): Unit = {
         dgraph.baseProgresses foreach { baseProgress =>
             val (triggers, (child, childSymbol)) = baseProgress
             val progressNode = resultOf(ParseForestFunc.bind(childSymbol, child))
-            progressNode.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
+            progressNode.getFigure.setBorder(new LineBorder(ColorConstants.lightGreen, 1))
             val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DASH, nodeOf(dgraph.baseNode), progressNode)
-            connection.setLineColor(ColorConstants.green)
+            connection.setLineColor(ColorConstants.lightGreen)
             connection.setLineStyle(SWT.LINE_DASH)
         }
     }
@@ -623,10 +623,13 @@ class DerivationGraphVisualizeWidget(parent: Composite, style: Int, val grammar:
     addBaseResults(dgraph)
     addBaseProgresses(dgraph)
 }
-class DerivationSliceGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseDGraph: DGraph[ParseForest], sliceDGraph: DGraph[ParseForest])
-        extends GraphTransitionControl(parent, style, baseDGraph, sliceDGraph, "Sliced DGraph") with DerivationGraph {
+class DerivationSliceGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, baseDGraph: DGraph[ParseForest], sliceDGraph: DGraph[ParseForest], derivables: Set[ParsingGraph.NontermNode])
+        extends GraphTransitionControl(parent, style, baseDGraph, sliceDGraph, s"Sliced DGraph (${baseDGraph.nodes.size},${baseDGraph.edges.size})->(${sliceDGraph.nodes.size},${sliceDGraph.edges.size})") with DerivationGraph {
     addBaseResults(sliceDGraph)
     addBaseProgresses(sliceDGraph)
+
+    // derivation tip node는 노란 배경으로
+    derivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
 }
 
 class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx)

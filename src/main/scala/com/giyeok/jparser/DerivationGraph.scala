@@ -47,6 +47,8 @@ case class DGraph[R <: ParseResult](
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): DGraph[R] =
         DGraph(baseNode, nodes, edges, results, progresses, baseResults, baseProgresses)
 
+    override def withNoResults: DGraph[R] = DGraph(baseNode, nodes, edges, Results(), progresses, Map(), baseProgresses)
+
     def updateBaseResults(triggers: Set[Trigger], result: R): DGraph[R] = {
         val newBaseResults: Map[Set[Trigger], R] = baseResults + (triggers -> result)
         DGraph(baseNode, nodes, edges, results, progresses, newBaseResults, baseProgresses)
@@ -102,7 +104,7 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
     def deriveAtomic(symbol: AtomicNonterm): DGraph[R] = derive(new BaseAtomicNode(symbol))
     def deriveSequence(symbol: Sequence, pointer: Int): DGraph[R] = derive(new BaseSequenceNode(symbol, pointer))
 
-    def sliceByTermGroups(dgraph: DGraph[R]): Map[TermGroupDesc, DGraph[R]] = {
+    def sliceByTermGroups(dgraph: DGraph[R]): Map[TermGroupDesc, (DGraph[R], Set[NontermNode])] = {
         val baseNode = dgraph.baseNode
         (dgraph.termGroups flatMap { termGroup =>
             // 이 곳에서의 일은 원래 NewParser에서 하던 일의 일부를 미리 해두는 것이라고 보면 된다
@@ -159,9 +161,12 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
             // - 원래 있던 노드는 gen이 0이고 새로 생긴 노드는 gen이 1이어야 함
 
             trimmedGraph match {
-                case Some(trimmedGraph) => Some(termGroup -> trimmedGraph)
+                case Some(trimmedGraph) =>
+                    val survivedDerivables: Set[NontermNode] = (trimmedGraph.nodes intersect derivables.asInstanceOf[Set[Node]]).asInstanceOf[Set[NontermNode]]
+                    Some(termGroup -> ((trimmedGraph, survivedDerivables)))
                 case None if !(liftedGraph.baseResults.isEmpty) || !(liftedGraph.baseProgresses.isEmpty) =>
-                    Some(termGroup -> DGraph(baseNode, Set[Node](baseNode), Set(), Results(), Results(), liftedGraph.baseResults, liftedGraph.baseProgresses))
+                    val sliceGraph = DGraph(baseNode, Set[Node](baseNode), Set(), Results(), Results(), liftedGraph.baseResults, liftedGraph.baseProgresses)
+                    Some(termGroup -> ((sliceGraph, Set[NontermNode]())))
                 case None => None
             }
         }).toMap

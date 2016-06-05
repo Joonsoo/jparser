@@ -60,7 +60,7 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
             dgraph: DGraph[ParseForest]) {
         val nodeIdCache = new NodeIdCache
 
-        val sliceMap: Map[TermGroupDesc, DGraph[ParseForest]] = derivationFunc.sliceByTermGroups(dgraph)
+        val sliceMap: Map[TermGroupDesc, (DGraph[ParseForest], Set[ParsingGraph.NontermNode])] = derivationFunc.sliceByTermGroups(dgraph)
 
         val graphWidget: DerivationGraphVisualizeWidget =
             new DerivationGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, dgraph)
@@ -76,7 +76,8 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
             sliceWidgetCache get termGroupDesc match {
                 case Some(widget) => widget
                 case None =>
-                    val widget = new DerivationSliceGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, dgraph, sliceMap(termGroupDesc))
+                    val slice = sliceMap(termGroupDesc)
+                    val widget = new DerivationSliceGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, dgraph, slice._1, slice._2)
                     sliceWidgetCache(termGroupDesc) = widget
                     widget
             }
@@ -147,7 +148,7 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
     termGroupsList.addListener(SWT.Selection, new Listener() {
         def handleEvent(e: Event): Unit = {
             val idx = termGroupsList.getSelectionIndex
-            if (idx < termGroupsItems.length) {
+            if (0 <= idx && idx < termGroupsItems.length) {
                 termGroupsItems(idx) match {
                     case None =>
                         currentDGraph.showAllGraph()
