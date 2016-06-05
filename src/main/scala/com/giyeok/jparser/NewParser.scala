@@ -55,7 +55,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         val initialTasks: Seq[ParsingTasks[R, Graph]#Task]
         // TODO
     }
-    case class ExpandTransition(title: String, baseGraph: Graph, nextGraph: Graph, expandedTermNodes: Set[TermNode]) extends CtxGraphTransition
+    case class ExpandTransition(title: String, baseGraph: Graph, nextGraph: Graph, initialTasks: Set[NewParser[R]#Task]) extends CtxGraphTransition
     case class LiftTransition(title: String, baseGraph: Graph, nextGraph: Graph, initialTasks: Set[NewParser[R]#Task], nextDerivables: Set[Node], liftBlockedNodes: Map[AtomicNode, Set[Trigger]]) extends CtxGraphTransition
     case class TrimmingTransition(title: String, baseGraph: Graph, nextGraph: Graph, startNode: Node, endNodes: Set[Node]) extends CtxGraphTransition
     case class RevertTransition(title: String, baseGraph: Graph, nextGraph: Graph, firstLiftResult: Graph) extends CtxGraphTransition
@@ -75,7 +75,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
         // graph를 expand한다
         // - baseAndGraphs에 있는 튜플의 _1를 base로 해서 _2의 내용을 shiftGen해서 그래프에 추가한다
-        def expandAll(graph: Graph, gen: Int, derivables: Set[NontermNode], input: ConcreteInput): (Graph, Set[TermNode]) = {
+        def expandAll(graph: Graph, gen: Int, nextGen: Int, derivables: Set[NontermNode], input: ConcreteInput): (Graph, Set[Task]) = {
             val baseAndGraphs: Set[(NontermNode, DGraph[R])] = derivables map { node => node -> derive(node)._1 }
 
             // baseAndGraphs의 베이스 노드가 모두 graph에 포함되어 있어야 한다
@@ -95,7 +95,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
             // graph에 DerivationGraph.shiftGen해서 추가해준다
             // - edgesFromBaseNode/edgesNotFromBaseNode 구분해서 잘 처리
-            baseAndGraphs.foldLeft((graph, Set[TermNode]())) { (result, pair) =>
+            val (newGraph, termNodes) = baseAndGraphs.foldLeft((graph, Set[TermNode]())) { (result, pair) =>
                 val (baseNode, dgraph) = pair
 
                 val newNodes = (dgraph.nodes map { node =>
@@ -127,6 +127,8 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 val updatedTermNodes = result._2 ++ (newNodesSet collect { case n: TermNode => n })
                 (updatedGraph, updatedTermNodes)
             }
+            val termFinishingTasks: Set[Task] = termNodes collect { case termNode: TermNode if termNode.symbol accept input => FinishingTask(nextGen, termNode, resultFunc.terminal(input), Set()) }
+            (newGraph, termFinishingTasks)
         }
 
         // 이 그래프에서 lift한 그래프와 그 그래프의 derivation tip nodes를 반환한다
@@ -297,11 +299,10 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             val nextGen = gen + 1
 
             // 1. expand
-            val (expandedGraph, termNodes0All) = ParsingCtx.expandAll(graph, gen, derivables, input)
+            val (expandedGraph, initialTasks: Set[Task]) = ParsingCtx.expandAll(graph, gen, nextGen, derivables, input)
             // (원래는) slice된 그래프에서 골라서 추가했으므로 termNodes는 모두 input을 받을 수 있어야 한다
             // assert(termNodes0 forall { _.symbol accept input })
-            val termNodes0 = termNodes0All filter { _.symbol accept input }
-            if (termNodes0.isEmpty) {
+            if (initialTasks.isEmpty) {
                 (ParsingCtxTransition(None, None, None), Right(UnexpectedInput(input)))
             } else {
                 // Pended terminal nodes
@@ -310,10 +311,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 // 근데 expand될 때 안생겼으면 필요 없어서 안 생긴거 아닌가?
                 // 우선 지금은 slice안된 상태로 dgraph의 모든 노드를 expand하니 확실히 필요 없긴 한데.. slice할 때도 필요 없는거 맞나?
                 // val pendedTermNodes = graph.nodes collect { case node: TermNode if node.symbol accept input => node ensuring (node.beginGen == gen) }
-                val termNodes = termNodes0 // ++ pendedTermNodes
-                val initialTasks: Set[Task] = termNodes map { termNode => FinishingTask(nextGen, termNode, resultFunc.terminal(input), Set()) }
-
-                val expandTransition = ExpandTransition(s"Gen $gen > (1) Expansion", graph, expandedGraph, termNodes0)
+                val expandTransition = ExpandTransition(s"Gen $gen > (1) Expansion", graph, expandedGraph, initialTasks.asInstanceOf[Set[NewParser[R]#Task]])
 
                 // 2. 1차 lift
                 val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, initialTasks, Map())

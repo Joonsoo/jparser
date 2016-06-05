@@ -658,7 +658,14 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val gram
 class ExpandTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#ExpandTransition)
         extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) {
     // 적용 가능한 터미널 노드는 오렌지색 배경으로
-    (transition.expandedTermNodes) foreach { nodeOf(_).setBackgroundColor(ColorConstants.orange) }
+    (transition.initialTasks) foreach {
+        case task: NewParser[_]#FinishingTask =>
+            nodeOf(task.node).setBackgroundColor(ColorConstants.orange)
+        case task: NewParser[_]#DeriveTask =>
+            ???
+        case task: NewParser[_]#SequenceProgressTask =>
+            ???
+    }
 }
 
 class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#LiftTransition)
