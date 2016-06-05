@@ -599,13 +599,11 @@ abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: 
 
 trait DerivationGraph extends GraphControl {
     def addBaseResults(dgraph: DGraph[ParseForest]): Unit = {
-        dgraph.baseResults foreach {
-            _ foreach { baseResult =>
-                val (triggers, result) = baseResult
-                val resultNode = resultOf(result)
-                resultNode.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
-                new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodeOf(dgraph.baseNode), resultNode).setLineColor(ColorConstants.green)
-            }
+        dgraph.baseResults foreach { baseResult =>
+            val (triggers, result) = baseResult
+            val resultNode = resultOf(result)
+            resultNode.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
+            new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodeOf(dgraph.baseNode), resultNode).setLineColor(ColorConstants.green)
         }
     }
     def addBaseProgresses(dgraph: DGraph[ParseForest]): Unit = {
@@ -613,7 +611,9 @@ trait DerivationGraph extends GraphControl {
             val (triggers, (child, childSymbol)) = baseProgress
             val progressNode = resultOf(ParseForestFunc.bind(childSymbol, child))
             progressNode.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
-            new GraphConnection(graphView, ZestStyles.CONNECTIONS_DASH, nodeOf(dgraph.baseNode), progressNode).setLineColor(ColorConstants.green)
+            val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_DASH, nodeOf(dgraph.baseNode), progressNode)
+            connection.setLineColor(ColorConstants.green)
+            connection.setLineStyle(SWT.LINE_DASH)
         }
     }
 }

@@ -23,7 +23,7 @@ case class DGraph[R <: ParseResult](
         edges: Set[Edge],
         results: Results[Node, R],
         progresses: Results[SequenceNode, R],
-        _baseResults: Results[Node, R],
+        baseResults: Map[Set[Trigger], R],
         baseProgresses: Map[Set[Trigger], (R, Symbol)]) extends ParsingGraph[R] with TerminalInfo[R] {
     // baseNode가 nodes에 포함되어야 함
     assert(nodes contains baseNode.asInstanceOf[Node])
@@ -31,9 +31,7 @@ case class DGraph[R <: ParseResult](
     assert((nodes - baseNode) forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
 
     // baseNode의 result나 progress는 results/progresses에는 있어선 안 되고 
-    // baseResults에는 baseNode의 result나 progress만 있어야 한다
     assert(results.of(baseNode).isEmpty && (!baseNode.isInstanceOf[SequenceNode] || progresses.of(baseNode.asInstanceOf[SequenceNode]).isEmpty))
-    assert(_baseResults.keyNodesSet subsetOf Set(baseNode))
 
     // Information Retrieval
     val nonBaseNodes = nodes - baseNode
@@ -45,19 +43,17 @@ case class DGraph[R <: ParseResult](
     }
     lazy val edgesNotFromBaseNode = edges -- edgesFromBaseNode
 
-    def baseResults = _baseResults.of(baseNode)
-    def _baseProgresses: Results[Node, R] = if (baseProgresses.isEmpty) Results() else Results(baseNode -> (baseProgresses mapValues { _._1 }))
-
     // Modification
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): DGraph[R] =
-        DGraph(baseNode, nodes, edges, results, progresses, _baseResults, baseProgresses)
+        DGraph(baseNode, nodes, edges, results, progresses, baseResults, baseProgresses)
 
-    def updateBaseResults(newBaseResults: Results[Node, R]): DGraph[R] =
+    def updateBaseResults(triggers: Set[Trigger], result: R): DGraph[R] = {
+        val newBaseResults: Map[Set[Trigger], R] = baseResults + (triggers -> result)
         DGraph(baseNode, nodes, edges, results, progresses, newBaseResults, baseProgresses)
+    }
     def updateBaseProgresses(triggers: Set[Trigger], child: R, childSymbol: Symbol): DGraph[R] = {
-        val newBaseProgresses: Map[Set[Trigger], (R, Symbol)] =
-            baseProgresses + (triggers -> (child, childSymbol))
-        DGraph(baseNode, nodes, edges, results, progresses, _baseResults, newBaseProgresses)
+        val newBaseProgresses: Map[Set[Trigger], (R, Symbol)] = baseProgresses + (triggers -> (child, childSymbol))
+        DGraph(baseNode, nodes, edges, results, progresses, baseResults, newBaseProgresses)
     }
 }
 
@@ -71,10 +67,12 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
             case task: DeriveTask => deriveTask(task, cc)
             case task: FinishingTask =>
                 if (task.node.isInstanceOf[BaseNode]) {
-                    (cc.updateBaseResults(cc._baseResults.update(task.node, task.revertTriggers, task.result)), Seq())
+                    assert(task.node == cc.baseNode)
+                    (cc.updateBaseResults(task.revertTriggers, task.result), Seq())
                 } else finishingTask(task, cc)
             case task @ SequenceProgressTask(_, node, child, childSymbol, revertTriggers) =>
                 if (node.isInstanceOf[BaseNode]) {
+                    assert(node == cc.baseNode)
                     // 여기서 어떤 식으로든 childSymbol를 남겨놨다가 전달해줬음 좋겠는데..
                     (cc.updateBaseProgresses(revertTriggers, child, childSymbol), Seq())
                 } else sequenceProgressTask(task, cc)
@@ -90,7 +88,7 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
         }
 
     def derive(baseNode: BaseNode with NontermNode): DGraph[R] = {
-        val dgraph = rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Results(), Map()))
+        val dgraph = rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Map(), Map()))
         assert(dgraph.nodes forall {
             case EmptyNode => true
             case TermNode(_, beginGen) => beginGen <= 1
@@ -105,6 +103,7 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
     def deriveSequence(symbol: Sequence, pointer: Int): DGraph[R] = derive(new BaseSequenceNode(symbol, pointer))
 
     def sliceByTermGroups(dgraph: DGraph[R]): Map[TermGroupDesc, DGraph[R]] = {
+        val baseNode = dgraph.baseNode
         (dgraph.termGroups flatMap { termGroup =>
             // 이 곳에서의 일은 원래 NewParser에서 하던 일의 일부를 미리 해두는 것이라고 보면 된다
             // - 즉, baseNode 이하 derivation graph에서의 1차 리프트+1차 트리밍을 여기서 대신 해주는 것
@@ -129,13 +128,15 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
                                     rec(rest, graphCC, derivablesCC + task.baseNode.asInstanceOf[SequenceNode])
                                 case task: FinishingTask =>
                                     if (task.node.isInstanceOf[BaseNode]) {
-                                        rec(rest, graphCC.updateBaseResults(graphCC._baseResults.update(task.node, task.revertTriggers, task.result)), derivablesCC)
+                                        assert(task.node == baseNode)
+                                        rec(rest, graphCC.updateBaseResults(task.revertTriggers, task.result), derivablesCC)
                                     } else {
                                         val (newGraphCC, newTasks) = finishingTask(task, graphCC)
                                         rec(rest ++ newTasks, newGraphCC, derivablesCC)
                                     }
                                 case task: SequenceProgressTask =>
                                     if (task.node.isInstanceOf[BaseNode]) {
+                                        assert(task.node == baseNode)
                                         rec(rest, graphCC.updateBaseProgresses(task.revertTriggers, task.child, task.childSymbol), derivablesCC)
                                     } else {
                                         val (newGraphCC, newTasks) = sequenceProgressTask(task, graphCC)
@@ -152,12 +153,17 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
 
             val (liftedGraph, derivables) = lift(dgraph, 1, eligibleTerminalNodes)
             // assert(liftedGraph.progresses.keyNodesSet == derivables)
-            val trimmedGraph = liftedGraph.subgraphIn(dgraph.baseNode, derivables.asInstanceOf[Set[Node]], resultFunc)
+            val trimmedGraph = liftedGraph.subgraphIn(baseNode, derivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[DGraph[R]] }
 
             // trimmedGraph에 등장하는 노드는 모두 gen이 0이나 1이어야 함
             // - 원래 있던 노드는 gen이 0이고 새로 생긴 노드는 gen이 1이어야 함
 
-            trimmedGraph map { slicedGraph => termGroup -> slicedGraph.asInstanceOf[DGraph[R]] }
+            trimmedGraph match {
+                case Some(trimmedGraph) => Some(termGroup -> trimmedGraph)
+                case None if !(liftedGraph.baseResults.isEmpty) || !(liftedGraph.baseProgresses.isEmpty) =>
+                    Some(termGroup -> DGraph(baseNode, Set[Node](baseNode), Set(), Results(), Results(), liftedGraph.baseResults, liftedGraph.baseProgresses))
+                case None => None
+            }
         }).toMap
     }
 

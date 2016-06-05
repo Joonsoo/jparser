@@ -396,9 +396,9 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
     val initialContext = {
         val startNode = AtomicNode(Start, 0)(None, None)
-        val emptyResult: Results[Node, R] = derive(startNode)._1.baseResults match {
-            case Some(r) => Results[Node, R](startNode -> r)
-            case None => Results[Node, R]()
+        val emptyResult: Results[Node, R] = {
+            val baseResults = derive(startNode)._1.baseResults
+            if (baseResults.isEmpty) Results[Node, R]() else Results[Node, R](startNode -> baseResults)
         }
         ParsingCtx(
             0,
