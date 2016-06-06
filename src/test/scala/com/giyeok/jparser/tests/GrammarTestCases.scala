@@ -27,5 +27,22 @@ trait AmbiguousSamples extends Samples {
 trait GrammarTestCases extends Samples {
     val grammar: Grammar
 
-    lazy val parser = new NewParser(grammar, ParseForestFunc, new DerivationSliceFunc(grammar, ParseForestFunc))
+    lazy val parser = {
+        val dgraph = new DerivationSliceFunc(grammar, ParseForestFunc)
+        // println(s"DerivationSliceFunc(${grammar.name}) created")
+        val parser = new NewParser(grammar, ParseForestFunc, dgraph)
+        // println(s"Parser(${grammar.name}) created")
+        parser
+    }
+}
+
+trait PreprocessedParser extends GrammarTestCases {
+    override lazy val parser = {
+        val dfunc = new DerivationSliceFunc(grammar, ParseForestFunc)
+        val startTime = System.currentTimeMillis()
+        println("Preprocess begins")
+        dfunc.preprocess
+        println(s"Preprocess done in ${System.currentTimeMillis() - startTime} ms")
+        new NewParser(grammar, ParseForestFunc, dfunc)
+    }
 }

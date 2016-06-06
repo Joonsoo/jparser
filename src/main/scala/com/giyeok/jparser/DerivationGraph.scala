@@ -114,6 +114,22 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
 
 class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFunc[R])
         extends DerivationFunc[R](grammar, resultFunc) {
+    def preprocess: Unit = {
+        grammar.usedSymbols foreach {
+            case symbol: AtomicNonterm =>
+                val dgraph = deriveAtomic(symbol)
+                derivationGraphCache((symbol, 0)) = dgraph
+                derivationSliceCache((symbol, 0)) = sliceByTermGroups(dgraph)
+            case symbol: Sequence =>
+                (0 until symbol.seq.length) foreach { pointer =>
+                    val dgraph = deriveSequence(symbol, pointer)
+                    derivationGraphCache((symbol, pointer)) = dgraph
+                    derivationSliceCache((symbol, pointer)) = sliceByTermGroups(dgraph)
+                }
+            case _ => // nothing to do
+        }
+    }
+
     private val derivationGraphCache = scala.collection.mutable.Map[(Nonterm, Int), DGraph[R]]()
     private val derivationSliceCache = scala.collection.mutable.Map[(Nonterm, Int), Map[TermGroupDesc, (DGraph[R], Set[NontermNode])]]()
 
