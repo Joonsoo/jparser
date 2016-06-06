@@ -7,8 +7,9 @@ import com.giyeok.jparser.tests.StringSamples
 import scala.collection.immutable.ListMap
 import com.giyeok.jparser.GrammarHelper._
 import scala.collection.immutable.ListSet
+import com.giyeok.jparser.tests.GrammarTestCases
 
-object JoinGrammar1 extends Grammar with StringSamples {
+object JoinGrammar1 extends Grammar with GrammarTestCases with StringSamples {
     def token(sym: Symbol): Symbol = sym.join(n("Token"))
     def expr(syms: Symbol*): Symbol = seq(syms.toSeq, Set[Symbol](token(n("Whitespace"))))
 
@@ -37,12 +38,13 @@ object JoinGrammar1 extends Grammar with StringSamples {
         "Whitespace" -> ListSet(chars(" \t\n").plus))
     val startSymbol = n("S")
 
+    val grammar = this
     val correctSamples = Set[String](
         "var xyz = (123 + 456)")
     val incorrectSamples = Set[String]()
 }
 
-object JoinGrammar2 extends Grammar with StringSamples {
+object JoinGrammar2 extends Grammar with GrammarTestCases with StringSamples {
     val name = "JoinGrammar2 (nullable case)"
 
     val rules: RuleMap = ListMap(
@@ -54,6 +56,7 @@ object JoinGrammar2 extends Grammar with StringSamples {
             chars('b' to 'y').star))
     val startSymbol = n("S")
 
+    val grammar = this
     val correctSamples = Set[String](
         "bcd")
     val incorrectSamples = Set[String](
@@ -61,9 +64,9 @@ object JoinGrammar2 extends Grammar with StringSamples {
 }
 
 object JoinGrammars {
-    val grammars: Set[Grammar with Samples] = Set(
+    val tests: Set[GrammarTestCases] = Set(
         JoinGrammar1,
         JoinGrammar2)
 }
 
-class JoinGrammarTestSuite1 extends BasicParseTest(JoinGrammars.grammars)
+class JoinGrammarTestSuite1 extends BasicParseTest(JoinGrammars.tests)

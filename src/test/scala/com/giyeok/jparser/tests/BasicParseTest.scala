@@ -5,16 +5,16 @@ import org.scalatest.FlatSpec
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.NewParser
 import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.DerivationSliceFunc
 
-class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends FlatSpec {
+class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends FlatSpec {
     def log(s: String): Unit = {
         // println(s)
     }
 
-    private def testCorrect(grammar: Grammar)(source: Inputs.ConcreteSource) = {
-        val parser = new NewParser(grammar, ParseForestFunc)
-        val result = parser.parse(source)
-        it should s"${grammar.name} properly parsed on '${source.toCleanString}'" in {
+    private def testCorrect(test: GrammarTestCases)(source: Inputs.ConcreteSource) = {
+        val result = test.parser.parse(source)
+        it should s"${test.grammar.name} properly parsed on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) =>
                     assert(ctx.result.isDefined)
@@ -31,9 +31,9 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
         }
     }
 
-    private def testIncorrect(grammar: Grammar)(source: Inputs.ConcreteSource) = {
-        val result = new NewParser(grammar, ParseForestFunc).parse(source)
-        it should s"${grammar.name} failed to parse on '${source.toCleanString}'" in {
+    private def testIncorrect(tests: GrammarTestCases)(source: Inputs.ConcreteSource) = {
+        val result = tests.parser.parse(source)
+        it should s"${tests.grammar.name} failed to parse on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) => assert(ctx.result.isEmpty)
                 case Right(_) => assert(true)
@@ -41,11 +41,11 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
         }
     }
 
-    private def testAmbiguous(grammar: Grammar)(source: Inputs.ConcreteSource) = {
-        log(s"Testing ${grammar.name} on '${source.toCleanString}'")
-        val result = new NewParser(grammar, ParseForestFunc).parse(source)
+    private def testAmbiguous(tests: GrammarTestCases)(source: Inputs.ConcreteSource) = {
+        log(s"Testing ${tests.grammar.name} on '${source.toCleanString}'")
+        val result = tests.parser.parse(source)
         log("  - Parsing Done")
-        it should s"${grammar.name} is ambiguous on '${source.toCleanString}'" in {
+        it should s"${tests.grammar.name} is ambiguous on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) =>
                     assert(ctx.result.isDefined)
@@ -62,9 +62,9 @@ class BasicParseTest(val grammars: Traversable[Grammar with Samples]) extends Fl
         }
     }
 
-    grammars foreach { grammar =>
-        grammar.correctSampleInputs foreach { testCorrect(grammar) }
-        grammar.incorrectSampleInputs foreach { testIncorrect(grammar) }
-        if (grammar.isInstanceOf[AmbiguousSamples]) grammar.asInstanceOf[AmbiguousSamples].ambiguousSampleInputs foreach { testAmbiguous(grammar) }
+    testsSuite foreach { test =>
+        test.correctSampleInputs foreach { testCorrect(test) }
+        test.incorrectSampleInputs foreach { testIncorrect(test) }
+        if (test.isInstanceOf[AmbiguousSamples]) test.asInstanceOf[AmbiguousSamples].ambiguousSampleInputs foreach { testAmbiguous(test) }
     }
 }

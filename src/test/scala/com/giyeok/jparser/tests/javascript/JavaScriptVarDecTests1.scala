@@ -4,19 +4,19 @@ import com.giyeok.jparser.tests.BasicParseTest
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.tests.Samples
 import com.giyeok.jparser.tests.StringSamples
-
 import scala.collection.immutable.ListMap
 import com.giyeok.jparser.GrammarHelper._
 import com.giyeok.jparser.Grammar
 import scala.collection.immutable.ListSet
 import com.giyeok.jparser.Symbols.Symbol
+import com.giyeok.jparser.tests.GrammarTestCases
 
 trait Grammar0 extends Grammar {
     def expr(s: Symbol*): Symbol = seq(s.toSeq, ListSet[Symbol](n("WhiteSpace"), n("LineTerminator"), n("Comment")))
     def token(s: Symbol): Symbol = s.join(n("Token"))
 }
 
-object VarDecGrammar1 extends Grammar0 with StringSamples {
+object VarDecGrammar1 extends Grammar0 with GrammarTestCases with StringSamples {
     val name = "JS VarDec Test 1"
 
     val startSymbol = n("Start")
@@ -61,13 +61,15 @@ object VarDecGrammar1 extends Grammar0 with StringSamples {
         "Comment" -> ListSet(
             seq(i("/*"), chars(" abcdefghijklmnopqrstuvwxyz\n\r\t").plus, i("*/"))))
     val rules = _rules
+
+    val grammar = this
     val correctSamples = Set(
         "var abc = 123;\n\nvar xyz = 321; var if = 154;")
     val incorrectSamples = Set(
         "")
 }
 
-object VarDecGrammar1_1 extends Grammar0 with StringSamples {
+object VarDecGrammar1_1 extends Grammar0 with GrammarTestCases with StringSamples {
     val name = "JS VarDec Test 1_1"
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
@@ -75,13 +77,14 @@ object VarDecGrammar1_1 extends Grammar0 with StringSamples {
             seq(n("_IdName"), lookahead_except(n("_IdName"))),
             n("Number"))))
 
+    val grammar = this
     val correctSamples = Set(
         "var abc = 123;\n\nvar xyz = 321; var if = 154;")
     val incorrectSamples = Set(
         "varx=1;")
 }
 
-object VarDecGrammar1_2 extends Grammar0 with StringSamples {
+object VarDecGrammar1_2 extends Grammar0 with GrammarTestCases with StringSamples {
     val name = "JS VarDec Test 1_2"
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
@@ -93,13 +96,14 @@ object VarDecGrammar1_2 extends Grammar0 with StringSamples {
             expr(n("TestExpr"), i("/"), n("TestExpr")),
             expr(i("("), n("TestExpr"), i(")")))))
 
+    val grammar = this
     val correctSamples = Set(
         "var abc = 123 + 321;\n\nvar xyz = 321 * (423-1); var if = 154;")
     val incorrectSamples = Set(
         "")
 }
 
-object VarDecGrammar2 extends Grammar0 with StringSamples {
+object VarDecGrammar2 extends Grammar0 with GrammarTestCases with StringSamples {
     val name = "VarDecGrammar2"
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
@@ -120,11 +124,12 @@ object VarDecGrammar2 extends Grammar0 with StringSamples {
         "Token" -> ListSet(
             n("Id"))))
 
+    val grammar = this
     val correctSamples = Set[String]()
     val incorrectSamples = Set[String]()
 }
 
-object VarDecGrammar3 extends Grammar0 with StringSamples {
+object VarDecGrammar3 extends Grammar0 with GrammarTestCases with StringSamples {
     val name = "JS VarDec with Semicolon Backup Test 1"
     private val lineend = i(";").backup(seq(longest(oneof(n("WhiteSpace"), n("Comment")).star), n("LineTerminator")))
 
@@ -133,6 +138,7 @@ object VarDecGrammar3 extends Grammar0 with StringSamples {
         "VarStmt" -> ListSet(
             seq(expr(token(i("var")), n("VarDecList")), lineend))))
 
+    val grammar = this
     val correctSamples = Set(
         "var abc = 123\n\nvar xyz = 321; var if = 154;")
     val incorrectSamples = Set(
@@ -140,7 +146,7 @@ object VarDecGrammar3 extends Grammar0 with StringSamples {
 }
 
 object JavaScriptVarDecTestSuite1 {
-    val grammars: Set[Grammar with Samples] = Set(
+    val tests: Set[GrammarTestCases] = Set(
         VarDecGrammar1,
         VarDecGrammar1_1,
         VarDecGrammar1_2,
@@ -148,4 +154,4 @@ object JavaScriptVarDecTestSuite1 {
         VarDecGrammar3)
 }
 
-class JavaScriptVarDecTestSuite1 extends BasicParseTest(JavaScriptVarDecTestSuite1.grammars)
+class JavaScriptVarDecTestSuite1 extends BasicParseTest(JavaScriptVarDecTestSuite1.tests)

@@ -7,8 +7,9 @@ import com.giyeok.jparser.tests.StringSamples
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet
 import com.giyeok.jparser.GrammarHelper._
+import com.giyeok.jparser.tests.GrammarTestCases
 
-object LookaheadIsGrammar1 extends Grammar with StringSamples {
+object LookaheadIsGrammar1 extends Grammar with GrammarTestCases with StringSamples {
     val name = "LookaheadIsGrammar1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(n("A").star),
@@ -17,14 +18,15 @@ object LookaheadIsGrammar1 extends Grammar with StringSamples {
             chars(" ")))
     val startSymbol = n("S")
 
+    val grammar = this
     val correctSamples = Set[String]("abc ", "abc def ")
     val incorrectSamples = Set[String]("abc")
 }
 
 object GrammarWithLookaheadIs {
     // Grammar 1, 2, 7 are double-* ambiguous language
-    val grammars: Set[Grammar with Samples] = Set(
+    val tests: Set[GrammarTestCases] = Set(
         LookaheadIsGrammar1)
 }
 
-class LookaheadIsTestSuite1 extends BasicParseTest(GrammarWithLookaheadIs.grammars)
+class LookaheadIsTestSuite1 extends BasicParseTest(GrammarWithLookaheadIs.tests)

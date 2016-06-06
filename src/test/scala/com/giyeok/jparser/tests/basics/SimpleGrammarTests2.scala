@@ -9,8 +9,9 @@ import scala.collection.immutable.ListMap
 import com.giyeok.jparser.tests.BasicParseTest
 import com.giyeok.jparser.tests.Samples
 import com.giyeok.jparser.tests.StringSamples
+import com.giyeok.jparser.tests.GrammarTestCases
 
-object SimpleGrammar2 extends Grammar with StringSamples {
+object SimpleGrammar2 extends Grammar with GrammarTestCases with StringSamples {
     val name = "Simple Grammar 2"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -26,11 +27,12 @@ object SimpleGrammar2 extends Grammar with StringSamples {
         "HD1" -> ListSet(chars('1' to '9', 'a' to 'f', 'A' to 'F')))
     val startSymbol = n("S")
 
+    val grammar = this
     val correctSamples = Set("10.1e2", "10.1e-00002")
     val incorrectSamples = Set("--10.1e2")
 }
 
-object SimpleGrammar3 extends Grammar with StringSamples {
+object SimpleGrammar3 extends Grammar with GrammarTestCases with StringSamples {
     val name = "Simple Grammar 3 - Donald Knuth 63"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A"), n("D"))),
@@ -41,25 +43,27 @@ object SimpleGrammar3 extends Grammar with StringSamples {
         "E" -> ListSet(i("e")))
     val startSymbol = n("S")
 
+    val grammar = this
     val correctSamples = Set("abcde")
     val incorrectSamples = Set("f")
 }
 
-object SimpleGrammar4 extends Grammar with StringSamples {
+object SimpleGrammar4 extends Grammar with GrammarTestCases with StringSamples {
     val name = "Simple Grammar 4 - StackOverflow"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(chars("ab").star, c('a'), chars("ab").star)))
     val startSymbol = n("S")
 
+    val grammar = this
     val correctSamples = Set("abb", "bbbabbb")
     val incorrectSamples = Set("c")
 }
 
 object SimpleGrammarSet2 {
-    val grammars: Set[Grammar with Samples] = Set(
+    val tests: Set[GrammarTestCases] = Set(
         SimpleGrammar2,
         SimpleGrammar3,
         SimpleGrammar4)
 }
 
-class SimpleGrammarTestSuite2 extends BasicParseTest(SimpleGrammarSet2.grammars)
+class SimpleGrammarTestSuite2 extends BasicParseTest(SimpleGrammarSet2.tests)

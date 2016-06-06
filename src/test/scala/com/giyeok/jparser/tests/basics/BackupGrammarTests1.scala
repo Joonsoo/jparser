@@ -7,21 +7,23 @@ import com.giyeok.jparser.tests.StringSamples
 import scala.collection.immutable.ListMap
 import com.giyeok.jparser.GrammarHelper._
 import scala.collection.immutable.ListSet
+import com.giyeok.jparser.tests.GrammarTestCases
 
-object BackupGrammar1 extends Grammar with StringSamples {
+object BackupGrammar1 extends Grammar with GrammarTestCases with StringSamples {
     val wsChars = chars(" ")
     val name = "BackupGrammar1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(seq(c('a').plus), seq(wsChars.star, c(';')).backup(wsChars.plus)).star))
     val startSymbol = n("S")
 
+    val grammar = this
     val correctSamples = Set[String](
         "aa;a ",
         "aaaa aaaa ")
     val incorrectSamples = Set[String]()
 }
 
-object BackupGrammar2 extends Grammar with StringSamples {
+object BackupGrammar2 extends Grammar with GrammarTestCases with StringSamples {
     val wsChars = chars(" ")
     val name = "BackupGrammar2 (automatic semicolon insertion)"
 
@@ -48,6 +50,7 @@ object BackupGrammar2 extends Grammar with StringSamples {
         "LT" -> ListSet(chars("\n\r")))
     val startSymbol = n("S")
 
+    val grammar = this
     val correctSamples = Set[String](
         "{aaa\naaa}",
         "aaa\naaa\n",
@@ -60,9 +63,9 @@ object BackupGrammar2 extends Grammar with StringSamples {
 }
 
 object BackupGrammars {
-    val grammars: Set[Grammar with Samples] = Set(
+    val tests: Set[GrammarTestCases] = Set(
         BackupGrammar1,
         BackupGrammar2)
 }
 
-class BackupGrammarTestSuite1 extends BasicParseTest(BackupGrammars.grammars)
+class BackupGrammarTestSuite1 extends BasicParseTest(BackupGrammars.tests)

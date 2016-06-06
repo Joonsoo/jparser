@@ -23,7 +23,7 @@ import org.eclipse.swt.widgets.MessageBox
 import com.giyeok.jparser.visualize.DerivationGraphVisualizer
 
 trait Viewer {
-    val allTests: Set[Grammar with Samples]
+    val allTests: Set[GrammarTestCases]
 
     def start(): Unit = {
         val display = Display.getDefault()
@@ -37,7 +37,7 @@ trait Viewer {
             val terminal = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.red)
         }
 
-        val sortedGrammars = allTests.toSeq.sortBy(_.name)
+        val sortedTestCases = allTests.toSeq.sortBy(_.grammar.name)
 
         val leftFrame = new org.eclipse.swt.widgets.Composite(shell, SWT.NONE)
         leftFrame.setLayout({ val layout = new FillLayout; layout.`type` = SWT.VERTICAL; layout })
@@ -59,11 +59,12 @@ trait Viewer {
 
         textList.setFont(JFaceResources.getTextFont)
 
-        sortedGrammars foreach { t => grammarList.add(t.name) }
+        sortedTestCases foreach { t => grammarList.add(t.grammar.name) }
         var shownTexts: Seq[Inputs.ConcreteSource] = Seq()
         grammarList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
-                val grammar = sortedGrammars(grammarList.getSelectionIndex())
+                val testCases = sortedTestCases(grammarList.getSelectionIndex())
+                val grammar = testCases.grammar
                 def generateHtml(): xml.Elem =
                     new GrammarTextFigureGenerator[xml.Elem](grammar, new FigureGenerator.Appearances[xml.Elem] {
                         val default = FigureGenerator.html.AppearanceByClass("default")
@@ -96,13 +97,13 @@ trait Viewer {
                     shownTexts = shownTexts :+ input
                     textList.add(text)
                 }
-                grammar.correctSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
-                grammar.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
+                testCases.correctSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
+                testCases.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
             }
         })
         textList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
-                val grammar = sortedGrammars(grammarList.getSelectionIndex())
+                val grammar = sortedTestCases(grammarList.getSelectionIndex()).grammar
                 val source = shownTexts(textList.getSelectionIndex())
                 ParsingProcessVisualizer.start(grammar, source.toSeq, display, new Shell(display))
             }
@@ -111,7 +112,7 @@ trait Viewer {
         proceedView.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 if (grammarList.getSelectionIndex >= 0) {
-                    val grammar = sortedGrammars(grammarList.getSelectionIndex())
+                    val grammar = sortedTestCases(grammarList.getSelectionIndex()).grammar
                     val source = Inputs.fromString(testText.getText())
                     ParsingProcessVisualizer.start(grammar, source.toSeq, display, new Shell(display))
                 }
@@ -121,7 +122,7 @@ trait Viewer {
         derivationView.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 if (grammarList.getSelectionIndex >= 0) {
-                    val grammar = sortedGrammars(grammarList.getSelectionIndex())
+                    val grammar = sortedTestCases(grammarList.getSelectionIndex()).grammar
                     val source = Inputs.fromString(testText.getText())
                     DerivationGraphVisualizer.start(grammar, display, new Shell(display))
                 }
