@@ -6,9 +6,9 @@ import com.giyeok.jparser.Symbols.Symbol
 import com.giyeok.jparser.GrammarHelper._
 import com.giyeok.jparser.Symbols._
 import scala.collection.immutable.ListSet
+import com.giyeok.jparser.DerivationFunc
 
 object JavaScriptGrammar extends Grammar {
-
     private val whitespace = ListSet[Symbol](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
     private val oneline = Set[Symbol](n("WhiteSpace"), n("Comment"))
 

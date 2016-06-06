@@ -107,12 +107,13 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
         }
     }
     case class ParsingContextTransitionPointer(gen: Int, stage: Int) extends Pointer {
-        // stage 1: expand
+        // stage 1: 1차 expand
         // stage 2: 1차 lift
         // stage 3: 1차 lift 트리밍
         // stage 4: revert
-        // stage 5: 2차 lift
-        // stage 6: 2차 lift 트리밍
+        // stage 5: 2차 expand
+        // stage 6: 2차 lift
+        // stage 7: 2차 lift 트리밍
         assert(1 <= stage && stage <= 6)
         def previous = if (stage == 1) ParsingContextPointer(gen) else ParsingContextTransitionPointer(gen, stage - 1)
         def next = if (stage == 6) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
@@ -356,8 +357,10 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
                                     case 4 =>
                                         controlOpt(transition.secondStage, "No Lift") { t => new RevertTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._2) }
                                     case 5 =>
-                                        controlOpt(transition.secondStage, "No Lift") { t => new LiftTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._3) }
+                                        controlOpt(transition.secondStage, "No Lift") { t => new ExpandTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._3) }
                                     case 6 =>
+                                        controlOpt(transition.secondStage, "No Lift") { t => new LiftTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._4) }
+                                    case 7 =>
                                         controlOpt(transition.finalTrimming, "No Final Trimming") { t => new TrimmingTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t) }
                                 }
                             case Right(error) => errorControl(error.msg)
