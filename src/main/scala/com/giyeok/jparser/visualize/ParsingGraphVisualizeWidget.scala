@@ -264,8 +264,8 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
         }
     }
 
-    def addResults[N <: ParsingGraph.Node](results: Results[N, R], bind: Boolean, ignoreEmpty: Boolean, lineDecorator: GraphConnection => Unit): Unit = {
-        results.asMap foreach { result => resultsOf(result, bind, ignoreEmpty, lineDecorator) }
+    def addResults[N <: ParsingGraph.Node](results: Results[N, R], bind: Boolean, ignoreEmpty: Boolean, forceAddNode: Boolean, lineDecorator: GraphConnection => Unit): Unit = {
+        results.asMap foreach { result => resultsOf(result, bind, ignoreEmpty, forceAddNode, lineDecorator) }
     }
 
     val resultMap = scala.collection.mutable.Map[R, CGraphNode]()
@@ -280,7 +280,7 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
         }
     }
 
-    def resultsOf[N <: ParsingGraph.Node](results: (N, Map[Set[ParsingGraph.Trigger], R]), bind: Boolean, ignoreEmpty: Boolean, lineDecorator: GraphConnection => Unit): Unit = {
+    def resultsOf[N <: ParsingGraph.Node](results: (N, Map[Set[ParsingGraph.Trigger], R]), bind: Boolean, ignoreEmpty: Boolean, forceAddNode: Boolean, lineDecorator: GraphConnection => Unit): Unit = {
         val (node, matches) = results
         matches foreach { m =>
             val (triggers, result) = m
@@ -294,9 +294,9 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
                     }
                 }
 
-            if (!trees1.isEmpty && (nodesMap contains node)) {
+            if (!trees1.isEmpty && ((nodesMap contains node) || forceAddNode)) {
                 val resultNode = resultOf(result)
-                val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodesMap(node), resultNode)
+                val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodeOf(node), resultNode)
                 lineDecorator(connection)
                 if (!triggers.isEmpty) {
                     connection.setText(revertTriggersString(triggers))
@@ -368,8 +368,8 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
     def revertTriggersString(revertTriggers: Set[ParsingGraph.Trigger]): String =
         revertTriggers map {
             case ParsingGraph.Trigger(node, ttype) =>
-                // s"$ttype($node)"
-                s"$ttype(${nodeIdCache.of(node)})"
+                s"$ttype(${nodeIdCache.of(node)}: $node)"
+            // s"$ttype(${nodeIdCache.of(node)})"
         } mkString " or "
 
     def nodesAt(ex: Int, ey: Int): Seq[Any] = {
@@ -496,7 +496,19 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
     graphView.addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {
-                case 'R' | 'r' => applyLayout(true)
+                case 'R' | 'r' =>
+                    if ((e.stateMask & SWT.SHIFT) != 0) {
+                        graph.results.asMap foreach { kv =>
+                            val (node, results) = kv
+                            println(s"${nodeIdCache.of(node)}: $node")
+                            results foreach { kv =>
+                                val (triggers, result) = kv
+                                println(s"  $triggers -> $result")
+                            }
+                        }
+                    } else {
+                        applyLayout(true)
+                    }
                 case c if '0' <= c && c <= '9' =>
                     unhighlightAllNodes()
                     inputAccum = inputAccum.accum(c.toChar, System.currentTimeMillis())
@@ -630,6 +642,8 @@ class DerivationSliceGraphVisualizeWidget(parent: Composite, style: Int, val gra
 
     // derivation tip node는 노란 배경으로
     derivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
+
+    addResults(sliceDGraph.results, true, false, true, { conn => conn.setLineColor(ColorConstants.green) })
 }
 
 class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, context: NewParser[ParseForest]#ParsingCtx)
@@ -655,31 +669,46 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val gram
     applyLayout(false)
 }
 
-class ExpandTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#ExpandTransition)
-        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) {
-    // 적용 가능한 터미널 노드는 오렌지색 배경으로
-    (transition.initialTasks) foreach {
-        case task: NewParser[_]#FinishingTask =>
-            nodeOf(task.node).setBackgroundColor(ColorConstants.orange)
-        case task: NewParser[_]#DeriveTask =>
-            ???
-        case task: NewParser[_]#SequenceProgressTask =>
-            ???
+trait TaskHighlight extends GraphControl {
+    def highlightTasks(tasks: Iterable[NewParser[ParseForest]#Task]): Unit = {
+        tasks foreach {
+            case task: NewParser[_]#FinishingTask =>
+                nodeOf(task.node).getFigure.add(figureGenerator.textFig("FinishingTask", figureAppearances.default))
+                nodeOf(task.node).setBackgroundColor(ColorConstants.orange)
+            case task: NewParser[_]#DeriveTask =>
+                nodeOf(task.baseNode).getFigure.add(figureGenerator.textFig("DeriveTask", figureAppearances.default))
+                nodeOf(task.baseNode).setBackgroundColor(ColorConstants.orange)
+            case task: NewParser[_]#SequenceProgressTask =>
+                nodeOf(task.node).getFigure.add(figureGenerator.textFig("SequenceProgressTask", figureAppearances.default))
+                nodeOf(task.node).setBackgroundColor(ColorConstants.orange)
+        }
     }
 }
 
+class ExpandTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#ExpandTransition)
+        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) with TaskHighlight {
+    // 적용 가능한 터미널 노드는 오렌지색 배경으로
+    highlightTasks(transition.initialTasks)
+
+    graphView.addKeyListener(new KeyListener() {
+        def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
+            e.keyCode match {
+                case 't' | 'T' =>
+                    transition.initialTasks foreach { println _ }
+                case _ => // nothing to do
+            }
+        }
+        def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
+    })
+}
+
 class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#LiftTransition)
-        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) {
+        extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) with TaskHighlight {
     // (lift된 results는 초록색 실선으로, progresses는 옅은 초록색 점선으로)
     // addResults(transition.nextGraph.results, true, false, { conn => conn.setLineColor(ColorConstants.green) })
     // addResults(transition.nextGraph.progresses, false, true, { conn => conn.setLineColor(ColorConstants.lightGreen); conn.setLineStyle(SWT.LINE_DASH) })
 
-    transition.initialTasks foreach {
-        case deriveTask: NewParser[_]#DeriveTask =>
-            ???
-        case finishingTask: NewParser[_]#FinishingTask =>
-            nodeOf(finishingTask.node).setBackgroundColor(ColorConstants.orange)
-    }
+    highlightTasks(transition.initialTasks)
 
     // derivation tip node는 노란 배경으로
     transition.nextDerivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
@@ -696,4 +725,5 @@ class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Gr
 
 class RevertTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#RevertTransition)
         extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) {
+    addResults(transition.revertBaseResults, true, false, true, { conn => conn.setLineColor(ColorConstants.green) })
 }

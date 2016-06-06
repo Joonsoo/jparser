@@ -33,9 +33,10 @@ import DerivationGraphVisualizer.Kernel
 import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.events.ShellListener
+import com.giyeok.jparser.DerivationSliceFunc
 
 class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell, resources: VisualizeResources, defaultKernel: Kernel) extends BasicGenerators with KernelFigureGenerator[Figure] {
-    val derivationFunc = new DerivationFunc(grammar, ParseForestFunc)
+    val derivationFunc = new DerivationSliceFunc(grammar, ParseForestFunc)
 
     shell.setLayout(new FillLayout)
 

@@ -10,24 +10,34 @@ import Inputs._
 object ParsingGraph {
     sealed trait Node {
         val symbol: Symbol
+
+        def shiftGen(shiftGen: Int): Node
     }
     sealed trait NontermNode extends Node {
         val beginGen: Int
     }
     case object EmptyNode extends Node {
         val symbol = Empty
+
+        def shiftGen(shiftGen: Int) = this
     }
-    case class TermNode(symbol: Terminal, beginGen: Int) extends Node
+    case class TermNode(symbol: Terminal, beginGen: Int) extends Node {
+        def shiftGen(shiftGen: Int) = TermNode(symbol, beginGen + shiftGen)
+
+        override def toString = s"(${symbol.toShortString}, $beginGen)"
+    }
 
     // liftBlockTrigger, liftRevertTrigger는 symbol에 따라서만 결정되는 것이므로 equals 등에서 고려할 필요가 없다
     case class AtomicNode(symbol: AtomicNonterm, beginGen: Int)(val liftBlockTrigger: Option[Node], val reservedReverterType: Option[Trigger.Type.Value]) extends NontermNode {
         def noLiftBlockTrigger = AtomicNode(symbol, beginGen)(None, reservedReverterType)
+        def shiftGen(shiftGen: Int) = AtomicNode(symbol, beginGen + shiftGen)(liftBlockTrigger map { _.shiftGen(shiftGen) }, reservedReverterType)
 
         override def toString = {
             s"(${symbol.toShortString}, $beginGen)"
         }
     }
     case class SequenceNode(symbol: Sequence, pointer: Int, beginGen: Int, endGen: Int) extends NontermNode {
+        def shiftGen(shiftGen: Int) = SequenceNode(symbol, pointer, beginGen + shiftGen, endGen + shiftGen)
         override def toString = {
             val (p, f) = symbol.seq.splitAt(pointer)
             val kernelStr = ((p map { _.toShortString }) ++ Seq("*") ++ (f map { _.toShortString })).mkString(" ")
@@ -35,7 +45,9 @@ object ParsingGraph {
         }
     }
 
-    case class Trigger(node: Node, triggerType: Trigger.Type.Value)
+    case class Trigger(node: Node, triggerType: Trigger.Type.Value) {
+        def shiftGen(shiftGen: Int) = Trigger(node.shiftGen(shiftGen), triggerType)
+    }
     object Trigger {
         object Type extends Enumeration {
             // Lift <> Wait, Alive <> Dead - 반대 관계

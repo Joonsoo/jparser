@@ -47,7 +47,7 @@ case class DGraph[R <: ParseResult](
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): DGraph[R] =
         DGraph(baseNode, nodes, edges, results, progresses, baseResults, baseProgresses)
 
-    override def withNoResults: DGraph[R] = DGraph(baseNode, nodes, edges, Results(), progresses, Map(), baseProgresses)
+    def withNoBaseResults: DGraph[R] = DGraph(baseNode, nodes, edges, results, progresses, Map(), Map())
 
     def updateBaseResults(triggers: Set[Trigger], result: R): DGraph[R] = {
         val newBaseResults: Map[Set[Trigger], R] = baseResults + (triggers -> result)
@@ -104,6 +104,50 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
     def deriveAtomic(symbol: AtomicNonterm): DGraph[R] = derive(new BaseAtomicNode(symbol))
     def deriveSequence(symbol: Sequence, pointer: Int): DGraph[R] = derive(new BaseSequenceNode(symbol, pointer))
 
+    def compaction(dgraph: DGraph[R]): DGraph[R] = {
+        // Compaction
+        // 가능한 지점에서 atomic node path를 하나의 atomic node로 묶어서 반환
+        // atomic node이되 symbol이 특수 심볼
+        ???
+    }
+}
+
+class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFunc[R])
+        extends DerivationFunc[R](grammar, resultFunc) {
+
+    private val derivationGraphCache = scala.collection.mutable.Map[(Nonterm, Int), DGraph[R]]()
+    private val derivationSliceCache = scala.collection.mutable.Map[(Nonterm, Int), Map[TermGroupDesc, (DGraph[R], Set[NontermNode])]]()
+
+    def kernelOf(node: NontermNode) = node match {
+        case AtomicNode(symbol, _) => (symbol, 0)
+        case SequenceNode(symbol, pointer, _, _) => (symbol, pointer)
+    }
+    def derive(baseNode: NontermNode): DGraph[R] = {
+        val kernel = kernelOf(baseNode)
+        derivationGraphCache get kernel match {
+            case Some(cached) => cached
+            case None =>
+                val dgraph = baseNode match {
+                    case _: DGraph.BaseNode => // BaseNode일 수 없음
+                        throw new AssertionError("")
+                    case AtomicNode(symbol, _) => deriveAtomic(symbol)
+                    case SequenceNode(symbol, pointer, _, _) => deriveSequence(symbol, pointer)
+                }
+                derivationGraphCache(kernel) = dgraph
+                dgraph
+        }
+    }
+    def deriveSlice(baseNode: NontermNode): Map[TermGroupDesc, (DGraph[R], Set[NontermNode])] = {
+        val kernel = kernelOf(baseNode)
+        derivationSliceCache get kernel match {
+            case Some(cache) => cache
+            case None =>
+                val sliceMap = sliceByTermGroups(derive(baseNode))
+                derivationSliceCache(kernel) = sliceMap
+                sliceMap
+        }
+    }
+
     def sliceByTermGroups(dgraph: DGraph[R]): Map[TermGroupDesc, (DGraph[R], Set[NontermNode])] = {
         val baseNode = dgraph.baseNode
         (dgraph.termGroups flatMap { termGroup =>
@@ -126,7 +170,16 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
                             task match {
                                 case task: DeriveTask =>
                                     assert(!task.baseNode.isInstanceOf[BaseNode] && task.baseNode.isInstanceOf[SequenceNode])
-                                    rec(rest, graphCC, derivablesCC + task.baseNode.asInstanceOf[SequenceNode])
+
+                                    val immediateProgresses: Seq[SequenceProgressTask] = (derive(task.baseNode).baseProgresses map { kv =>
+                                        val (triggers, (result, resultSymbol)) = kv
+                                        // triggers를 nextGen만큼 shift해주기
+                                        val shiftedTriggers: Set[Trigger] = triggers map { _.shiftGen(nextGen) }
+
+                                        SequenceProgressTask(nextGen, task.baseNode.asInstanceOf[SequenceNode], result, resultSymbol, shiftedTriggers)
+                                    }).toSeq
+
+                                    rec(rest ++ immediateProgresses, graphCC, derivablesCC + task.baseNode.asInstanceOf[SequenceNode])
                                 case task: FinishingTask =>
                                     if (task.node.isInstanceOf[BaseNode]) {
                                         assert(task.node == baseNode)
@@ -146,7 +199,7 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
                             }
                         case List() => (graphCC, derivablesCC)
                     }
-                rec(initialTasks.toList, graph.withNoResults.asInstanceOf[DGraph[R]], Set())
+                rec(initialTasks.toList, graph.withNoBaseResults.withNoResults.asInstanceOf[DGraph[R]], Set())
             }
 
             // eligibleTerminalNodes에서 각 terminalNode의 result로 resultFunc.termFunc()를 주고 시작해서 lift 및 trimming을 한 번 진행한다
@@ -170,12 +223,5 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
                 case None => None
             }
         }).toMap
-    }
-
-    def compaction(dgraph: DGraph[R]): DGraph[R] = {
-        // Compaction
-        // 가능한 지점에서 atomic node path를 하나의 atomic node로 묶어서 반환
-        // atomic node이되 symbol이 특수 심볼
-        ???
     }
 }
