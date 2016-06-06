@@ -38,11 +38,12 @@ import org.eclipse.draw2d.LineBorder
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
 import org.eclipse.swt.layout.FormLayout
+import com.giyeok.jparser.DerivationSliceFunc
 
 class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
     type Parser = NewParser[ParseForest]
 
-    val parser = new NewParser(grammar, ParseForestFunc)
+    val parser = new NewParser(grammar, ParseForestFunc, new DerivationSliceFunc(grammar, ParseForestFunc))
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)

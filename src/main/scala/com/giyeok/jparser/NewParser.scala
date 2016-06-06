@@ -19,9 +19,7 @@ case class CtxGraph[R <: ParseResult](
     }
 }
 
-class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseResultFunc[R]) extends LiftTasks[R, CtxGraph[R]] {
-    val derivationFunc = new DerivationSliceFunc(grammar, resultFunc)
-
+class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseResultFunc[R], derivationFunc: DerivationSliceFunc[R]) extends LiftTasks[R, CtxGraph[R]] {
     type Graph = CtxGraph[R]
 
     trait CtxGraphTransition {
@@ -175,24 +173,16 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                     case task +: rest =>
                         task match {
                             case DeriveTask(_, node: SequenceNode) =>
-                                var shiftedTriggerNodes: Set[Node] = Set()
-
                                 val immediateProgresses: Seq[SequenceProgressTask] = (derivationFunc.derive(node).baseProgresses map { kv =>
                                     val (triggers, (result, resultSymbol)) = kv
-                                    // triggers를 nextGen만큼 shift해주기
-                                    val shiftedNodesAndTriggers = triggers map {
-                                        case Trigger(node, ttype) =>
-                                            val shiftedNode = node.shiftGen(nextGen)
-                                            (shiftedNode, Trigger(shiftedNode, ttype))
-                                    }
-                                    shiftedTriggerNodes ++= shiftedNodesAndTriggers map { _._1 }
 
-                                    val shiftedTriggers: Set[Trigger] = shiftedNodesAndTriggers map { _._2 }
+                                    // triggers를 nextGen만큼 shift해주기
+                                    val shiftedTriggers: Set[Trigger] = triggers map { _.shiftGen(nextGen) }
 
                                     SequenceProgressTask(nextGen, node.asInstanceOf[SequenceNode], result, resultSymbol, shiftedTriggers)
                                 }).toSeq
 
-                                rec(rest ++ immediateProgresses, graphCC.withNodes(shiftedTriggerNodes).asInstanceOf[Graph], derivablesCC + node.asInstanceOf[SequenceNode])
+                                rec(rest ++ immediateProgresses, graphCC, derivablesCC + node.asInstanceOf[SequenceNode])
                             case DeriveTask(_, _) =>
                                 // 이런 상황은 발생할 수 없음
                                 throw new AssertionError("")

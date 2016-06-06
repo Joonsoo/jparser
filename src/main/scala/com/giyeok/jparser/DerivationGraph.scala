@@ -114,7 +114,6 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
 
 class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFunc[R])
         extends DerivationFunc[R](grammar, resultFunc) {
-
     private val derivationGraphCache = scala.collection.mutable.Map[(Nonterm, Int), DGraph[R]]()
     private val derivationSliceCache = scala.collection.mutable.Map[(Nonterm, Int), Map[TermGroupDesc, (DGraph[R], Set[NontermNode])]]()
 

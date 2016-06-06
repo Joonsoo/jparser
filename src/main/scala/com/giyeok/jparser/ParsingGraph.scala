@@ -177,9 +177,6 @@ trait ParsingGraph[R <: ParseResult] {
     def updateProgresses(newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
         create(nodes, edges, results, newProgresses)
     }
-    def withNodes(newNodes: Set[Node]): ParsingGraph[R] = {
-        create(nodes ++ newNodes, edges, results, progresses)
-    }
 
     // start에서 ends(중 아무곳이나) 도달할 수 있는 모든 경로만 포함하는 서브그래프를 반환한다
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
