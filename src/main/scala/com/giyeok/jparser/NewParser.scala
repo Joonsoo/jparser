@@ -73,9 +73,15 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             case SequenceNode(symbol, pointer, beginGen, endGen) => SequenceNode(symbol, pointer, beginGen + gen, endGen + gen).asInstanceOf[T]
         }
 
+        def shiftTrigger(trigger: Trigger, gen: Int): Trigger = trigger match {
+            case Trigger(node, ttype) => Trigger(shiftNode(node, gen), ttype)
+        }
+
         // graph를 expand한다
         // - baseAndGraphs에 있는 튜플의 _1를 base로 해서 _2의 내용을 shiftGen해서 그래프에 추가한다
-        def expandAll(graph: Graph, gen: Int, nextGen: Int, derivables: Set[NontermNode], input: ConcreteInput): (Graph, Set[Task]) = {
+        // - expandAll은 base node의 dgraph 전체를 추가하고
+        // - expand는 base node의 dgraph중 input이 prelift된 것을 추가한다
+        def expandAll(graph: Graph, gen: Int, nextGen: Int, derivables: Set[NontermNode], input: ConcreteInput): (Graph, Set[Task], Results[Node, R]) = {
             val baseAndGraphs: Set[(NontermNode, DGraph[R])] = derivables map { node => node -> derive(node)._1 }
 
             // baseAndGraphs의 베이스 노드가 모두 graph에 포함되어 있어야 한다
@@ -88,10 +94,6 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 }
                 invalidTermNodes.isEmpty
             })
-
-            def shiftTrigger(trigger: Trigger, gen: Int): Trigger = trigger match {
-                case Trigger(node, ttype) => Trigger(shiftNode(node, gen), ttype)
-            }
 
             // graph에 DerivationGraph.shiftGen해서 추가해준다
             // - edgesFromBaseNode/edgesNotFromBaseNode 구분해서 잘 처리
@@ -127,8 +129,73 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 val updatedTermNodes = result._2 ++ (newNodesSet collect { case n: TermNode => n })
                 (updatedGraph, updatedTermNodes)
             }
-            val termFinishingTasks: Set[Task] = termNodes collect { case termNode: TermNode if termNode.symbol accept input => FinishingTask(nextGen, termNode, resultFunc.terminal(input), Set()) }
-            (newGraph, termFinishingTasks)
+            val termFinishingTasks: Set[Task] = termNodes collect {
+                case termNode: TermNode if termNode.symbol accept input => FinishingTask(nextGen, termNode, resultFunc.terminal(input), Set())
+            }
+            (newGraph, termFinishingTasks, Results[Node, R]())
+        }
+
+        // - expand는 base node의 dgraph중 input이 prelift된 것을 추가한다
+        //   - expand에서는 result도 잘 추가해야 함
+        //   - sliced dgraph의 
+        //     - baseProgresses로 SequenceProgressTask를, 
+        //     - baseResult로 FinishingTask(DeriveTask인가?)를 추가하고
+        //     - derivables로 DeriveTask(맞나?)를 추가한다
+        def expand(graph: Graph, gen: Int, nextGen: Int, derivables: Set[NontermNode], input: ConcreteInput): (Graph, Set[Task], Results[Node, R]) = {
+            val baseAndGraphs: Set[(NontermNode, (DGraph[R], Set[NontermNode]))] = derivables flatMap { node =>
+                derive(node)._2 find { _._1 contains input } map { kv => (node -> kv._2) }
+            }
+            val (newGraph, tasks, results) = baseAndGraphs.foldLeft((graph, Set[Task](), Results[Node, R]())) { (cc, pair) =>
+                val (graphCC, tasksCC, resultsCC) = cc
+                val (baseNode, (dgraph, newDerivables)) = pair
+                assert(graph.nodes contains baseNode)
+
+                // 그래프에 baseNode로부터 dgraph를 추가
+                // - 이 때 dgraph.progresses의 result에 substTermFunc를 해줘야 함
+                val newNodes = (dgraph.nodes map { node =>
+                    val newNode = node match {
+                        case _: BaseNode => baseNode
+                        case n => shiftNode(n, gen)
+                    }
+                    node -> newNode
+                }).toMap
+                val newEdges: Set[Edge] = dgraph.edges map {
+                    case SimpleEdge(start, end, revertTriggers) =>
+                        SimpleEdge(
+                            newNodes(start).asInstanceOf[NontermNode],
+                            newNodes(end),
+                            revertTriggers map { shiftTrigger(_, gen) })
+                    case JoinEdge(start, end, join) =>
+                        JoinEdge(
+                            newNodes(start).asInstanceOf[NontermNode],
+                            newNodes(end),
+                            newNodes(join))
+                }
+                val newProgresses = dgraph.progresses.map(shiftNode(_, gen), _ map { shiftTrigger(_, gen) }, resultFunc.substTermFunc(_, input))
+                val newNodesSet = newNodes.values.toSet
+                val expandedGraph = graphCC.withNodesEdgesProgresses(newNodesSet, newEdges, newProgresses).asInstanceOf[Graph]
+
+                // 이제 확장된 부분에서 필요한 task를 만들어줌
+                // - newDerivables 각각에 대해 DeriveTask 만들어주고
+                val deriveTasks = newDerivables map { derivableNode => DeriveTask(nextGen, derivableNode) }
+                // - dgraph.baseResults 각각에 대해 FinishingTask 만들어주고
+                val finishingTasks = dgraph.baseResults map { kv =>
+                    val (triggers, result) = kv
+                    FinishingTask(nextGen, baseNode, resultFunc.substTermFunc(result, input), triggers map { shiftTrigger(_, gen) })
+                }
+                // - dgraph.baseProgresses 각각에 대해 SequenceProgressTask 만들어주고
+                val progressTasks = dgraph.baseProgresses map { kv =>
+                    val (triggers, (child, childSymbol)) = kv
+                    SequenceProgressTask(nextGen, baseNode.asInstanceOf[SequenceNode], resultFunc.substTermFunc(child, input), childSymbol, triggers map { shiftTrigger(_, gen) })
+                }
+                val newTasks: Set[Task] = (deriveTasks ++ finishingTasks ++ progressTasks)
+
+                // dgraph.results는 revertTrigger 처리할 때 필요하므로 substTermFunc/merge해서 전달해주고
+                val preliftResults = dgraph.results.map(shiftNode(_, gen), _ map { shiftTrigger(_, gen) }, resultFunc.substTermFunc(_, input))
+
+                (expandedGraph, tasksCC ++ newTasks, resultsCC.merge(preliftResults, resultFunc))
+            }
+            (newGraph, tasks, results)
         }
 
         // 이 그래프에서 lift한 그래프와 그 그래프의 derivation tip nodes를 반환한다
@@ -190,7 +257,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         }
 
         // graph.results를 이용해서 revertTrigger 조건을 비교해서 지워야 할 edge/results를 제거한 그래프를 반환한다
-        def revert(graph: Graph, prelift: Graph): Graph = {
+        def revert(graph: Graph, preliftResults: Results[Node, R], preliftNodes: Set[Node]): Graph = {
             // Lift 트리거는 대상 노드가 리프트되면 트리거가 붙어있는 엣지/결과를 무효화
             // Alive 트리거는 대상 노드가 살아있으면 트리거가 붙어있는 엣지/결과를 무효화
             // Wait 트리거는 대상 노드가 리프트되지도 않고 살아있지도 않으면 트리거가 붙어 있는 엣지/결과를 무효화하고,
@@ -201,16 +268,16 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 val activatedSurvived = trigger match {
                     case Trigger(node, Trigger.Type.Lift) =>
                         // 노드가 리프트되었으면 트리거되고, 노드가 살아있으면 트리거도 유지된다
-                        (prelift.results contains node, prelift.nodes contains node)
+                        (preliftResults contains node, preliftNodes contains node)
                     case Trigger(node, Trigger.Type.Wait) =>
                         // (!(prelift.nodes contains node) && !(prelift.results contains node), !(prelift.results contains node))
                         // 노드가 죽으면 트리거되고, 노드가 리프트되면 트리거는 제거된다
                         // lift될 때까지 기다린다
                         // - lift가 되었으면 소리소문없이 트리거만 사라진다
-                        if (prelift.results contains node) (false, false)
+                        if (preliftResults contains node) (false, false)
                         else {
                             // lift가 되지 않았는데 노드가 사라지면 트리거가 발동된다
-                            if (!(prelift.nodes contains node)) (true, false)
+                            if (!(preliftNodes contains node)) (true, false)
                             else {
                                 // 둘 다 아니면 그냥 계속 기다린다
                                 (false, true)
@@ -218,14 +285,14 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         }
                     case Trigger(node, Trigger.Type.Alive) =>
                         // 노드가 살아있으면 트리거되고, 노드가 살아있어야 트리거도 산다
-                        (prelift.nodes contains node, prelift.results contains node)
+                        (preliftNodes contains node, preliftNodes contains node)
                     case Trigger(node, Trigger.Type.Dead) =>
                         // 노드가 죽으면 트리거되고, 노드가 살아있어야 트리거도 산다
-                        (!(prelift.nodes contains node), prelift.nodes contains node)
+                        (!(preliftNodes contains node), preliftNodes contains node)
                 }
                 val (activated, survived) = activatedSurvived
                 // 대상 노드가 사라진 경우, activated되던지 트리거가 죽던지 둘 중 하나는 해야 한다
-                assert((prelift.nodes contains trigger.node) || activated || !survived)
+                assert((preliftNodes contains trigger.node) || activated || !survived)
                 activatedSurvived
             }
             def processTriggers(triggers: Set[Trigger]): (Boolean, Set[Trigger]) =
@@ -282,6 +349,8 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             case node: SequenceNode => node.beginGen <= gen
         })
 
+        // assert(graph.progresses.keyNodesSet.asInstanceOf[Set[Node]] subsetOf graph.nodes)
+
         // startNode에서 derivables에 도달 가능한 경로 내의 노드들만 포함되어야 하는데..?
         // assert(graph.subgraphIn(startNode, derivables.asInstanceOf[Set[Node]], resultFunc) == Some(graph))
 
@@ -299,7 +368,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             val nextGen = gen + 1
 
             // 1. expand
-            val (expandedGraph, initialTasks: Set[Task]) = ParsingCtx.expandAll(graph, gen, nextGen, derivables, input)
+            val (expandedGraph, initialTasks: Set[Task], preliftResults) = ParsingCtx.expandAll(graph, gen, nextGen, derivables, input)
             // (원래는) slice된 그래프에서 골라서 추가했으므로 termNodes는 모두 input을 받을 수 있어야 한다
             // assert(termNodes0 forall { _.symbol accept input })
             if (initialTasks.isEmpty) {
@@ -322,7 +391,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         val firstLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph0pre, liftedGraph0, startNode, nextDerivables0.asInstanceOf[Set[Node]])
 
                         // expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
-                        val revertedGraph: Graph = ParsingCtx.revert(expandedGraph, liftedGraph0)
+                        val revertedGraph: Graph = ParsingCtx.revert(expandedGraph, liftedGraph0.results.merge(preliftResults, resultFunc), liftedGraph0.nodes)
                         val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", expandedGraph, revertedGraph, liftedGraph0)
 
                         // lift 막을 노드 정보 수집해서 ParsingCtx.lift에 넘겨주어야 함

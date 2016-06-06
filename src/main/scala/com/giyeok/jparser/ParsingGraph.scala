@@ -78,6 +78,16 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigge
         nodeResults.foldLeft(this) { (m, i) => m.update(node, i._1, i._2) }
     }
 
+    def merge(other: Results[N, R], resultFunc: ParseResultFunc[R]): Results[N, R] = {
+        other.entries.foldLeft(this) { (cc, entry) =>
+            val (node, triggers, result) = entry
+            cc.of(node, triggers) match {
+                case Some(existing) => cc.update(node, triggers, resultFunc.merge(existing, result))
+                case None => cc.update(node, triggers, result)
+            }
+        }
+    }
+
     // results에서 node와 trigger를 map해서 변경한다
     // - 이 때, nodeMap과 triggerMap은 모두 1-1 대응 함수여야 한다. 즉, 두 개의 노드가 같은 노드로 매핑되거나, 두 개의 트리거가 하나의 트리거로 매핑되면 안된다
     def map(nodeMap: N => N, triggerMap: Set[Trigger] => Set[Trigger], resultMap: R => R): Results[N, R] = {
@@ -86,34 +96,6 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigge
             nodeMap(node) -> (results map { kv => triggerMap(kv._1) -> resultMap(kv._2) })
         }
         new Results(mappedMap)
-    }
-
-    def filterTo(func: (N, Set[Trigger], R) => Boolean): Results[N, R] = {
-        val filteredMap = resultsMap map { kv =>
-            val (node, results) = kv
-            node -> (results filter { kv => func(node, kv._1, kv._2) })
-        }
-        new Results(filteredMap filterNot { _._2.isEmpty })
-    }
-
-    // resultsMap과 등장하는 trigger 중에서 nodes에 포함되는 것만 남기고 전부 날려서 반환하는 함수
-    // 만약 resultsMap에서 trigger를 날리다가 key가 같아지는 경우가 생기면 resultFunc로 merge
-    def subresultOf(nodes: Set[Node], resultFunc: ParseResultFunc[R]): Results[N, R] = {
-        val newResultsMap: Map[N, Map[Set[Trigger], R]] = resultsMap collect {
-            case (node, tr) if nodes contains node =>
-                val newTriggersResult = tr.foldLeft(Map[Set[Trigger], R]()) { (map, tr) =>
-                    val (triggers, result) = tr
-                    val filteredTriggers = triggers filter { t => nodes contains t.node }
-                    map get filteredTriggers match {
-                        case Some(existingResult) =>
-                            map + (filteredTriggers -> (resultFunc.merge(existingResult, result)))
-                        case None => map + (filteredTriggers -> result)
-                    }
-                }
-                node -> newTriggersResult
-        }
-        assert(newResultsMap.keySet.asInstanceOf[Set[Node]] subsetOf nodes)
-        new Results(newResultsMap)
     }
 
     def asMap = resultsMap
@@ -238,25 +220,6 @@ trait ParsingGraph[R <: ParseResult] {
             assert(subNodes subsetOf nodes)
             Some(create(subNodes, subEdges, results, progresses))
         }
-    }
-
-    def subgraphIn0(genLimit: Int, start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
-        // nodes와 edges만 포함하는 서브그래프를 반환한다
-        // - 이 때, nodes, edges, results, progresses에 붙어 있는 트리거 중 이 nodes에 포함되지 않은 것들은 제거한다
-        // - results나 progresses에서 트리거를 제거하면 합쳐져야 할 엔트리들이 생기면 resultFunc로 merge해준다 
-        def subgraphOf0(subNodes: Set[Node], subEdges: Set[Edge], resultFunc: ParseResultFunc[R]): ParsingGraph[R] = {
-            val triggerFilteredSubEdges = subEdges map {
-                case SimpleEdge(start, end, revertTriggers) =>
-                    val filteredRevertTriggers = revertTriggers filter { subNodes contains _.node }
-                    SimpleEdge(start, end, filteredRevertTriggers)
-                case e => e
-            }
-            // results는 이 그래프의 이전 세대 그래프 노드->결과 이기 때문에 subresultOf를 하지 않는다
-            create(subNodes, triggerFilteredSubEdges, results, progresses.subresultOf(subNodes, resultFunc))
-        }
-        // TODO 일단은 리프트랑 똑같은 서브그래프로 해놓는데 다시 검토해보아야 함
-        // subgraphIn(genLimit, start, ends, resultFunc)
-        Some(this)
     }
 }
 

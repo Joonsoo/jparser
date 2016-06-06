@@ -110,13 +110,12 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
             // 이 곳에서의 일은 원래 NewParser에서 하던 일의 일부를 미리 해두는 것이라고 보면 된다
             // - 즉, baseNode 이하 derivation graph에서의 1차 리프트+1차 트리밍을 여기서 대신 해주는 것
             // 실제 파싱할 때는
-            // - 기존 expand와 마찬가지로 
+            // - 기존 expand와 마찬가지로
             //   - 노드 및 엣지 추가하고
             //   - results와 progresses도 trigger들을 shiftGen하고 result는 resultFunc.substTermFunc해서 추가해준다
             // - 새로 추가된 derivables에 대한 DeriveTask와
             // - baseNode에 대한 FinishingTask/SequenceProgressTask 들을 진행한다
             //   - 이 때, Task들도 모두 nextGen으로 shiftGen 해서 진행해야 함
-            // 간단하게는 그냥 이렇게 하면 될 것 같은데 PendedNode가 걸리네..
             def lift(graph: DGraph[R], nextGen: Int, termNodes: Set[TermNode]): (DGraph[R], Set[SequenceNode]) = {
                 val initialTasks = termNodes map { termNode => FinishingTask(1, termNode, resultFunc.termFunc(), Set()) }
                 // FinishingTask.node가 liftBlockedNodes에 있으면 해당 task는 제외
@@ -162,10 +161,11 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
 
             trimmedGraph match {
                 case Some(trimmedGraph) =>
+                    assert(trimmedGraph.results == liftedGraph.results && trimmedGraph.baseResults == liftedGraph.baseResults && trimmedGraph.baseProgresses == liftedGraph.baseProgresses)
                     val survivedDerivables: Set[NontermNode] = (trimmedGraph.nodes intersect derivables.asInstanceOf[Set[Node]]).asInstanceOf[Set[NontermNode]]
                     Some(termGroup -> ((trimmedGraph, survivedDerivables)))
                 case None if !(liftedGraph.baseResults.isEmpty) || !(liftedGraph.baseProgresses.isEmpty) =>
-                    val sliceGraph = DGraph(baseNode, Set[Node](baseNode), Set(), Results(), Results(), liftedGraph.baseResults, liftedGraph.baseProgresses)
+                    val sliceGraph = DGraph(baseNode, Set[Node](baseNode), Set(), liftedGraph.results, Results(), liftedGraph.baseResults, liftedGraph.baseProgresses)
                     Some(termGroup -> ((sliceGraph, Set[NontermNode]())))
                 case None => None
             }
