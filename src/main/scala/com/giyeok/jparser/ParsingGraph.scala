@@ -45,6 +45,66 @@ object ParsingGraph {
         }
     }
 
+    object Condition {
+
+    }
+    sealed trait Condition {
+        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition
+        def neg: Condition
+    }
+    case class Value(value: Boolean) extends Condition {
+        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition = this
+        def neg: Condition = Value(!value)
+    }
+    case class And(c1: Condition, c2: Condition) extends Condition {
+        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition = {
+            val (nc1, nc2) = (c1.evaluate(results, aliveNodes), c2.evaluate(results, aliveNodes))
+            (nc1, nc2) match {
+                case (Value(false), _) | (_, Value(false)) => Value(false)
+                case (Value(true), nc) => nc
+                case (nc, Value(true)) => nc
+                case (nc1, nc2) => And(nc1, nc2)
+            }
+        }
+        def neg: Condition = Or(c1.neg, c2.neg)
+    }
+    case class Or(c1: Condition, c2: Condition) extends Condition {
+        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition = {
+            val (nc1, nc2) = (c1.evaluate(results, aliveNodes), c2.evaluate(results, aliveNodes))
+            (nc1, nc2) match {
+                case (Value(true), _) | (_, Value(true)) => Value(true)
+                case (Value(false), nc) => nc
+                case (nc, Value(false)) => nc
+                case (nc1, nc2) => Or(nc1, nc2)
+            }
+        }
+        def neg: Condition = And(c1.neg, c2.neg)
+    }
+    // 기존의 Lift type trigger에 해당
+    // - node가 완성되기 전에는 true, 완성된 이후에는 false, (당연히) 영영 완성되지 않으면 항상 true
+    case class FalseIfLifted(node: Node) extends Condition {
+        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition = {
+            // node가 완전히 완성되었으면 Value(false)
+            // TODO node가 results에서 조건부로 완성되면?
+            // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황이므로 그대로 반환
+            // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(true)
+            ???
+        }
+        def neg: Condition = ???
+    }
+    // 기존의 Wait type trigger에 해당
+    // - node가 완성되기 전에는 false, 완성된 이후에는 true, (당연히) 영영 완성되지 않으면 항상 false
+    case class TrueIfLifted(node: Node) extends Condition {
+        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition = {
+            // node가 완전히 완성되었으면 Value(true)
+            // TODO node가 results에서 조건부로 완성되면?
+            // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황이므로 그대로 반환
+            // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(false)
+            ???
+        }
+        def neg: Condition = ???
+    }
+
     case class Trigger(node: Node, triggerType: Trigger.Type.Value) {
         def shiftGen(shiftGen: Int) = Trigger(node.shiftGen(shiftGen), triggerType)
     }
@@ -67,6 +127,7 @@ object ParsingGraph {
 class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigger], R]]) {
     assert(!(resultsMap exists { _._2.isEmpty }))
 
+    def isEmpty = resultsMap.isEmpty
     def contains(node: N): Boolean = resultsMap contains node
     def of(node: N): Option[Map[Set[Trigger], R]] = resultsMap get node
     def of(node: N, triggers: Set[Trigger]): Option[R] = (resultsMap get node) flatMap { m => m get triggers }

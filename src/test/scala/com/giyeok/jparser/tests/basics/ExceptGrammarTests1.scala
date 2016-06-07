@@ -80,14 +80,14 @@ object ExceptGrammar2 extends Grammar with GrammarTestCases with StringSamples {
 object ExceptGrammar3_1 extends Grammar with GrammarTestCases with StringSamples {
     val name = "Except Grammar 3-1 (except with lookahead_is)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(n("A").except(n("B")), chars('0' to '9'))),
+        "S" -> ListSet(seq(n("A").except(n("B")), chars('0' to '9').plus)),
         "A" -> ListSet(chars('a' to 'z').star),
         "B" -> ListSet(seq(i("abc"), lookahead_is(c('0')))))
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]("abc0")
-    val incorrectSamples = Set[String]()
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]("abc0")
 }
 
 object ExceptGrammar3_2 extends Grammar with GrammarTestCases with StringSamples {

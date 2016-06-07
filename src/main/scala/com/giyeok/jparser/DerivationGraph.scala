@@ -235,6 +235,9 @@ class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseR
                 case None if !(liftedGraph.baseResults.isEmpty) || !(liftedGraph.baseProgresses.isEmpty) =>
                     val sliceGraph = DGraph(baseNode, Set[Node](baseNode), Set(), liftedGraph.results, Results(), liftedGraph.baseResults, liftedGraph.baseProgresses)
                     Some(termGroup -> ((sliceGraph, Set[NontermNode]())))
+                case None if !(liftedGraph.results.isEmpty) =>
+                    val sliceGraph = DGraph(baseNode, Set[Node](baseNode), Set(), liftedGraph.results, Results(), Map(), Map())
+                    Some(termGroup -> ((sliceGraph, Set[NontermNode]())))
                 case None => None
             }
         }).toMap

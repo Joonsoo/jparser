@@ -91,7 +91,7 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
         def <=(other: Pointer) = other != this
     }
     case class ParsingContextPointer(gen: Int) extends Pointer {
-        def previous = if (gen == 0) ParsingContextInitializingPointer else ParsingContextTransitionPointer(gen - 1, 6)
+        def previous = if (gen == 0) ParsingContextInitializingPointer else ParsingContextTransitionPointer(gen - 1, 7)
         def next = ParsingContextTransitionPointer(gen, 1)
         def previousBase = ParsingContextPointer(gen - 1)
         def nextBase = ParsingContextPointer(gen + 1)
@@ -115,9 +115,9 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
         // stage 5: 2차 expand
         // stage 6: 2차 lift
         // stage 7: 2차 lift 트리밍
-        assert(1 <= stage && stage <= 6)
+        assert(1 <= stage && stage <= 7)
         def previous = if (stage == 1) ParsingContextPointer(gen) else ParsingContextTransitionPointer(gen, stage - 1)
-        def next = if (stage == 6) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
+        def next = if (stage == 7) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
         def previousBase = if (stage == 1) ParsingContextPointer(gen - 1) else ParsingContextPointer(gen)
         def nextBase = ParsingContextPointer(gen + 1)
 

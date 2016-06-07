@@ -344,12 +344,15 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, initialTasks, Map())
 
                 val firstLiftTransition = LiftTransition(s"Gen $gen > (2) First Lift", expandedGraph, liftedGraph0pre, initialTasks.asInstanceOf[Set[NewParser[R]#Task]], nextDerivables0.asInstanceOf[Set[Node]], Map())
+
+                // revert할 때는 (expand할 때 발생한 results + liftedGraph0.results)를 사용해야 함
+                val revertBaseResults = liftedGraph0pre.results.merge(preliftResults, resultFunc)
+
                 (liftedGraph0pre.subgraphIn(startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc)) match {
                     case Some(liftedGraph0: Graph) =>
                         val firstLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph0pre, liftedGraph0, startNode, nextDerivables0.asInstanceOf[Set[Node]])
 
-                        // expand할 때 발생한 results + liftedGraph0.results를 revert나 liftBlockTrigger에서 사용해야 함
-                        val revertBaseResults = liftedGraph0.results.merge(preliftResults, resultFunc)
+                        assert(liftedGraph0.results == liftedGraph0pre.results)
 
                         // expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
                         val revertedGraph: Graph = ParsingCtx.revert(graph, revertBaseResults, liftedGraph0.nodes)

@@ -725,5 +725,5 @@ class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Gr
 
 class RevertTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#RevertTransition)
         extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) {
-    // addResults(transition.revertBaseResults, true, false, true, { conn => conn.setLineColor(ColorConstants.green) })
+    addResults(transition.revertBaseResults, true, false, true, { conn => conn.setLineColor(ColorConstants.green) })
 }
