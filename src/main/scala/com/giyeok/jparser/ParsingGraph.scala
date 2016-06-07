@@ -28,7 +28,7 @@ object ParsingGraph {
     }
 
     // liftBlockTrigger, liftRevertTrigger는 symbol에 따라서만 결정되는 것이므로 equals 등에서 고려할 필요가 없다
-    case class AtomicNode(symbol: AtomicNonterm, beginGen: Int)(val liftBlockTrigger: Option[Node], val reservedReverterType: Option[Trigger.Type.Value]) extends NontermNode {
+    case class AtomicNode(symbol: AtomicNonterm, beginGen: Int)(val liftBlockTrigger: Option[Node], val reservedReverterType: Option[ReservedRevertType.Value]) extends NontermNode {
         def noLiftBlockTrigger = AtomicNode(symbol, beginGen)(None, reservedReverterType)
         def shiftGen(shiftGen: Int) = AtomicNode(symbol, beginGen + shiftGen)(liftBlockTrigger map { _.shiftGen(shiftGen) }, reservedReverterType)
 
@@ -45,78 +45,136 @@ object ParsingGraph {
         }
     }
 
-    object Condition {
-
-    }
     sealed trait Condition {
-        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition
+        def nodes: Set[Node]
+        def shiftGen(shiftGen: Int): Condition
+
+        def permanentTrue: Boolean
+        def permanentFalse: Boolean
+
+        // evaluate return: (현재 상황에서 이 조건을 가진 results를 사용해도 되는지/아닌지, 이 조건을 다음에 어떻게 바꿔야 하는지)
+        // - edge에 붙어있는 Condition에서는 _1은 의미가 없고 _2가 Value(false)로 나오는 경우 그 엣지를 제거하면 되고, 그 외의 경우엔 엣지의 Condition을 _2로 바꾸면 된다
+        def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition
+        def eligible: Boolean
         def neg: Condition
     }
-    case class Value(value: Boolean) extends Condition {
-        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition = this
-        def neg: Condition = Value(!value)
-    }
-    case class And(c1: Condition, c2: Condition) extends Condition {
-        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition = {
-            val (nc1, nc2) = (c1.evaluate(results, aliveNodes), c2.evaluate(results, aliveNodes))
-            (nc1, nc2) match {
-                case (Value(false), _) | (_, Value(false)) => Value(false)
-                case (Value(true), nc) => nc
-                case (nc, Value(true)) => nc
-                case (nc1, nc2) => And(nc1, nc2)
+    object Condition {
+        val True: Condition = Value(true)
+        val False: Condition = Value(false)
+        def Lift(node: Node): Condition = TrueUntilLifted(node)
+        def Wait(node: Node): Condition = FalseUntilLifted(node)
+        def conjunct(conds: Condition*): Condition = {
+            if (conds forall { _.permanentTrue }) True
+            else if (conds exists { _.permanentFalse }) False
+            else And(conds.toSet filterNot { _.permanentTrue })
+        }
+        def disjunct(conds: Condition*): Condition = {
+            if (conds exists { _.permanentTrue }) True
+            else if (conds forall { _.permanentFalse }) False
+            else Or(conds.toSet filterNot { _.permanentFalse })
+        }
+
+        // 지금부터 영영 true 혹은 false임을 의미
+        case class Value(value: Boolean) extends Condition {
+            def nodes = Set()
+            def shiftGen(shiftGen: Int) = this
+
+            def permanentTrue = value == true
+            def permanentFalse = value == false
+
+            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = this
+            def eligible = value
+            def neg: Condition = Value(!value)
+        }
+        case class And(conds: Set[Condition]) extends Condition {
+            def nodes = conds flatMap { _.nodes }
+            def shiftGen(shiftGen: Int) = And(conds map { _.shiftGen(shiftGen) })
+
+            def permanentTrue = conds forall { _.permanentTrue }
+            def permanentFalse = conds forall { _.permanentFalse }
+
+            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+                conds.foldLeft(Condition.True) { (cc, condition) =>
+                    Condition.conjunct(condition.proceed(results, aliveNodes), cc)
+                }
             }
+            def eligible = conds forall { _.eligible }
+            def neg: Condition = Or(conds map { _.neg })
         }
-        def neg: Condition = Or(c1.neg, c2.neg)
-    }
-    case class Or(c1: Condition, c2: Condition) extends Condition {
-        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition = {
-            val (nc1, nc2) = (c1.evaluate(results, aliveNodes), c2.evaluate(results, aliveNodes))
-            (nc1, nc2) match {
-                case (Value(true), _) | (_, Value(true)) => Value(true)
-                case (Value(false), nc) => nc
-                case (nc, Value(false)) => nc
-                case (nc1, nc2) => Or(nc1, nc2)
+        case class Or(conds: Set[Condition]) extends Condition {
+            def nodes = conds flatMap { _.nodes }
+            def shiftGen(shiftGen: Int) = Or(conds map { _.shiftGen(shiftGen) })
+
+            def permanentTrue = conds exists { _.permanentTrue }
+            def permanentFalse = conds exists { _.permanentFalse }
+
+            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+                conds.foldLeft(Condition.False) { (cc, condition) =>
+                    Condition.disjunct(condition.proceed(results, aliveNodes), cc)
+                }
             }
+            def eligible = conds exists { _.eligible }
+            def neg: Condition = And(conds map { _.neg })
         }
-        def neg: Condition = And(c1.neg, c2.neg)
-    }
-    // 기존의 Lift type trigger에 해당
-    // - node가 완성되기 전에는 true, 완성된 이후에는 false, (당연히) 영영 완성되지 않으면 항상 true
-    case class FalseIfLifted(node: Node) extends Condition {
-        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition = {
-            // node가 완전히 완성되었으면 Value(false)
-            // TODO node가 results에서 조건부로 완성되면?
-            // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황이므로 그대로 반환
-            // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(true)
-            ???
+        // 기존의 Lift type trigger에 해당
+        // - node가 완성되기 전에는 true, 완성된 이후에는 false, (당연히) 영영 완성되지 않으면 항상 true
+        case class TrueUntilLifted(node: Node) extends Condition {
+            def nodes = Set(node)
+            def shiftGen(shiftGen: Int) = TrueUntilLifted(node.shiftGen(shiftGen))
+
+            def permanentTrue = false
+            def permanentFalse = false
+
+            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+                // node가 완전히 완성되었으면(될 수 있으면)(Condition이 Value(true)이면, 즉 condition.permanentTrue이면) Value(false)
+                // TODO node가 results에서 조건부로 완성되면?
+                // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황(이고 현재는 true인 상황)이므로 this
+                // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(true)
+                results.of(node) match {
+                    case Some(resultsMap) =>
+                        // TODO 임시
+                        if (resultsMap contains Condition.True) Condition.False else ???
+                    case None =>
+                        if (aliveNodes contains node) this
+                        else Condition.True
+                }
+            }
+            def eligible = true
+            def neg: Condition = ???
         }
-        def neg: Condition = ???
-    }
-    // 기존의 Wait type trigger에 해당
-    // - node가 완성되기 전에는 false, 완성된 이후에는 true, (당연히) 영영 완성되지 않으면 항상 false
-    case class TrueIfLifted(node: Node) extends Condition {
-        def evaluate(results: Map[Node, Condition], aliveNodes: Set[Node]): Condition = {
-            // node가 완전히 완성되었으면 Value(true)
-            // TODO node가 results에서 조건부로 완성되면?
-            // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황이므로 그대로 반환
-            // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(false)
-            ???
+        // 기존의 Wait type trigger에 해당
+        // - node가 완성되기 전에는 false, 완성된 이후에는 true, (당연히) 영영 완성되지 않으면 항상 false
+        case class FalseUntilLifted(node: Node) extends Condition {
+            def nodes = Set(node)
+            def shiftGen(shiftGen: Int) = FalseUntilLifted(node.shiftGen(shiftGen))
+
+            def permanentTrue = false
+            def permanentFalse = false
+
+            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+                // node가 완전히 완성되었으면 Value(true)
+                // TODO node가 results에서 조건부로 완성되면?
+                // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황(이고 현재는 false인 상황)이므로 this
+                // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(false)
+                results.of(node) match {
+                    case Some(resultsMap) =>
+                        if (resultsMap contains Condition.True) Condition.True else ???
+                    case None =>
+                        if (aliveNodes contains node) this
+                        else Condition.False
+                }
+            }
+            def eligible = false
+            def neg: Condition = ???
         }
-        def neg: Condition = ???
     }
 
-    case class Trigger(node: Node, triggerType: Trigger.Type.Value) {
-        def shiftGen(shiftGen: Int) = Trigger(node.shiftGen(shiftGen), triggerType)
-    }
-    object Trigger {
-        object Type extends Enumeration {
-            // Lift <> Wait, Alive <> Dead - 반대 관계
-            val Lift, Wait, Alive, Dead = Value
-        }
+    object ReservedRevertType extends Enumeration {
+        val Lift, Alive = Value
     }
 
     sealed trait Edge { val start: NontermNode }
-    case class SimpleEdge(start: NontermNode, end: Node, revertTriggers: Set[Trigger]) extends Edge
+    case class SimpleEdge(start: NontermNode, end: Node, aliveCondition: Condition) extends Edge
     case class JoinEdge(start: NontermNode, end: Node, join: Node) extends Edge {
         // start must be a node with join
         assert(start.symbol.isInstanceOf[Join])
@@ -124,49 +182,48 @@ object ParsingGraph {
 }
 
 // Results는 ParsingGraph의 results/progresses에서 사용된다
-class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigger], R]]) {
+class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Condition, R]]) {
     assert(!(resultsMap exists { _._2.isEmpty }))
 
     def isEmpty = resultsMap.isEmpty
-    def contains(node: N): Boolean = resultsMap contains node
-    def of(node: N): Option[Map[Set[Trigger], R]] = resultsMap get node
-    def of(node: N, triggers: Set[Trigger]): Option[R] = (resultsMap get node) flatMap { m => m get triggers }
-    def entries: Iterable[(N, Set[Trigger], R)] = resultsMap flatMap { kv => kv._2 map { p => (kv._1, p._1, p._2) } }
+    def of(node: N): Option[Map[Condition, R]] = resultsMap get node
+    def of(node: N, condition: Condition): Option[R] = (resultsMap get node) flatMap { m => m get condition }
+    def entries: Iterable[(N, Condition, R)] = resultsMap flatMap { kv => kv._2 map { p => (kv._1, p._1, p._2) } }
 
     // - results와 progresses의 업데이트는 같은 원리로 동작하는데,
-    //   - 해당하는 Node, Set[Trigger]에 대한 R이 없을 경우 새로 추가해주고
-    //   - 같은 Node, Set[Trigger]에 대한 R이 이미 있는 경우 덮어쓴다.
-    def update(node: N, triggers: Set[Trigger], newResult: R): Results[N, R] = {
+    //   - 해당하는 Node, Condition에 대한 R이 없을 경우 새로 추가해주고
+    //   - 같은 Node, Condition에 대한 R이 이미 있는 경우 덮어쓴다.
+    def update(node: N, condition: Condition, newResult: R): Results[N, R] = {
         resultsMap get node match {
             case Some(rMap) =>
-                new Results(resultsMap + (node -> (rMap + (triggers -> newResult))))
+                new Results(resultsMap + (node -> (rMap + (condition -> newResult))))
             case None =>
-                new Results(resultsMap + (node -> Map(triggers -> newResult)))
+                new Results(resultsMap + (node -> Map(condition -> newResult)))
         }
     }
     def update(other: Results[N, R]): Results[N, R] = {
         other.entries.foldLeft(this) { (m, i) => m.update(i._1, i._2, i._3) }
     }
-    def update(node: N, nodeResults: Map[Set[Trigger], R]): Results[N, R] = {
+    def update(node: N, nodeResults: Map[Condition, R]): Results[N, R] = {
         nodeResults.foldLeft(this) { (m, i) => m.update(node, i._1, i._2) }
     }
 
     def merge(other: Results[N, R], resultFunc: ParseResultFunc[R]): Results[N, R] = {
         other.entries.foldLeft(this) { (cc, entry) =>
-            val (node, triggers, result) = entry
-            cc.of(node, triggers) match {
-                case Some(existing) => cc.update(node, triggers, resultFunc.merge(existing, result))
-                case None => cc.update(node, triggers, result)
+            val (node, condition, result) = entry
+            cc.of(node, condition) match {
+                case Some(existing) => cc.update(node, condition, resultFunc.merge(existing, result))
+                case None => cc.update(node, condition, result)
             }
         }
     }
 
     // results에서 node와 trigger를 map해서 변경한다
     // - 이 때, nodeMap과 triggerMap은 모두 1-1 대응 함수여야 한다. 즉, 두 개의 노드가 같은 노드로 매핑되거나, 두 개의 트리거가 하나의 트리거로 매핑되면 안된다
-    def map(nodeMap: N => N, triggerMap: Set[Trigger] => Set[Trigger], resultMap: R => R): Results[N, R] = {
+    def map(nodeMap: N => N, conditionMap: Condition => Condition, resultMap: R => R): Results[N, R] = {
         val mappedMap = resultsMap map { kv =>
             val (node, results) = kv
-            nodeMap(node) -> (results map { kv => triggerMap(kv._1) -> resultMap(kv._2) })
+            nodeMap(node) -> (results map { kv => conditionMap(kv._1) -> resultMap(kv._2) })
         }
         new Results(mappedMap)
     }
@@ -176,7 +233,7 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Set[Trigge
 }
 object Results {
     def apply[N <: Node, R <: ParseResult](): Results[N, R] = new Results(Map())
-    def apply[N <: Node, R <: ParseResult](items: (N, Map[Set[ParsingGraph.Trigger], R])*): Results[N, R] =
+    def apply[N <: Node, R <: ParseResult](items: (N, Map[ParsingGraph.Condition, R])*): Results[N, R] =
         new Results((items map { kv => kv._1 -> kv._2 }).toMap)
 }
 
@@ -216,10 +273,10 @@ trait ParsingGraph[R <: ParseResult] {
 
     // Modification
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): ParsingGraph[R]
-    def updateResultOf(node: Node, triggers: Set[Trigger], result: R): ParsingGraph[R] = {
-        create(nodes, edges, results.update(node, triggers, result), progresses)
+    def updateResultOf(node: Node, condition: Condition, result: R): ParsingGraph[R] = {
+        create(nodes, edges, results.update(node, condition, result), progresses)
     }
-    def updateProgressesOf(node: SequenceNode, nodeProgresses: Map[Set[Trigger], R]): ParsingGraph[R] = {
+    def updateProgressesOf(node: SequenceNode, nodeProgresses: Map[Condition, R]): ParsingGraph[R] = {
         create(nodes, edges, results, progresses.update(node, nodeProgresses))
     }
     def withNodeEdgesProgresses(newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
@@ -243,7 +300,7 @@ trait ParsingGraph[R <: ParseResult] {
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
     def subgraphIn(start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
         // TODO traverse할 때 SimpleEdge에서 revertTriggers 어떻게 해야 하는지 고민
-        // backward순환할 때는 trigger들은 모두 무시한다
+        // backward순환할 때는 condition들은 모두 무시한다
         def traverseBackward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
                 val incomingEdges = incomingEdgesTo(task)
@@ -259,7 +316,7 @@ trait ParsingGraph[R <: ParseResult] {
                 traverseBackward(rest ++ (reachableNodes -- nodesCC).toList, nodesCC ++ reachableNodes, edgesCC ++ reachableEdges)
             case List() => (nodesCC, edgesCC)
         }
-        // forward순회할 때는 trigger들의 노드도 모두 포함한다
+        // forward순회할 때는 condition들의 노드도 모두 포함한다
         def traverseForward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
                 val liftBlockTriggerOpt: Option[Node] = task match {
@@ -268,8 +325,8 @@ trait ParsingGraph[R <: ParseResult] {
                 }
                 val outgoingEdges = outgoingEdgesFrom(task)
                 val reachables: Set[(Set[Node], Edge)] = outgoingEdges map {
-                    case edge @ SimpleEdge(_, end, revertTriggers) =>
-                        val newNodes: Set[Node] = Set(end) ++ ((revertTriggers map { _.node }) intersect nodes)
+                    case edge @ SimpleEdge(_, end, aliveCondition) =>
+                        val newNodes: Set[Node] = Set(end) ++ (aliveCondition.nodes intersect nodes)
                         (newNodes, edge)
                     case edge @ JoinEdge(_, end, join) =>
                         (Set(end, join), edge)
@@ -314,7 +371,6 @@ trait TerminalInfo[R <: ParseResult] extends ParsingGraph[R] {
         }
         val charTermGroups = sliceTermGroups(charTerms)
 
-        // TODO VirtualTermGroupDesc도 charTermGroups처럼 해야 되는지 고민해보기
         val virtIntersects: Set[VirtualTermGroupDesc] = virtTerms flatMap { term1 =>
             virtTerms collect {
                 case term2 if term1 != term2 => term1 intersect term2

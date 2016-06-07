@@ -23,8 +23,8 @@ case class DGraph[R <: ParseResult](
         edges: Set[Edge],
         results: Results[Node, R],
         progresses: Results[SequenceNode, R],
-        baseResults: Map[Set[Trigger], R],
-        baseProgresses: Map[Set[Trigger], (R, Symbol)]) extends ParsingGraph[R] with TerminalInfo[R] {
+        baseResults: Map[Condition, R],
+        baseProgresses: Map[Condition, (R, Symbol)]) extends ParsingGraph[R] with TerminalInfo[R] {
     // baseNode가 nodes에 포함되어야 함
     assert(nodes contains baseNode.asInstanceOf[Node])
     // baseNode를 제외하고는 전부 BaseNode가 아니어야 함
@@ -49,12 +49,12 @@ case class DGraph[R <: ParseResult](
 
     def withNoBaseResults: DGraph[R] = DGraph(baseNode, nodes, edges, results, progresses, Map(), Map())
 
-    def updateBaseResults(triggers: Set[Trigger], result: R): DGraph[R] = {
-        val newBaseResults: Map[Set[Trigger], R] = baseResults + (triggers -> result)
+    def updateBaseResults(condition: Condition, result: R): DGraph[R] = {
+        val newBaseResults: Map[Condition, R] = baseResults + (condition -> result)
         DGraph(baseNode, nodes, edges, results, progresses, newBaseResults, baseProgresses)
     }
-    def updateBaseProgresses(triggers: Set[Trigger], child: R, childSymbol: Symbol): DGraph[R] = {
-        val newBaseProgresses: Map[Set[Trigger], (R, Symbol)] = baseProgresses + (triggers -> (child, childSymbol))
+    def updateBaseProgresses(condition: Condition, child: R, childSymbol: Symbol): DGraph[R] = {
+        val newBaseProgresses: Map[Condition, (R, Symbol)] = baseProgresses + (condition -> (child, childSymbol))
         DGraph(baseNode, nodes, edges, results, progresses, baseResults, newBaseProgresses)
     }
 }
@@ -70,13 +70,13 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
             case task: FinishingTask =>
                 if (task.node.isInstanceOf[BaseNode]) {
                     assert(task.node == cc.baseNode)
-                    (cc.updateBaseResults(task.revertTriggers, task.result), Seq())
+                    (cc.updateBaseResults(task.condition, task.result), Seq())
                 } else finishingTask(task, cc)
-            case task @ SequenceProgressTask(_, node, child, childSymbol, revertTriggers) =>
+            case task @ SequenceProgressTask(_, node, child, childSymbol, condition) =>
                 if (node.isInstanceOf[BaseNode]) {
                     assert(node == cc.baseNode)
                     // 여기서 어떤 식으로든 childSymbol를 남겨놨다가 전달해줬음 좋겠는데..
-                    (cc.updateBaseProgresses(revertTriggers, child, childSymbol), Seq())
+                    (cc.updateBaseProgresses(condition, child, childSymbol), Seq())
                 } else sequenceProgressTask(task, cc)
         }
     }
@@ -176,7 +176,7 @@ class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseR
             // - baseNode에 대한 FinishingTask/SequenceProgressTask 들을 진행한다
             //   - 이 때, Task들도 모두 nextGen으로 shiftGen 해서 진행해야 함
             def lift(graph: DGraph[R], nextGen: Int, termNodes: Set[TermNode]): (DGraph[R], Set[SequenceNode]) = {
-                val initialTasks = termNodes map { termNode => FinishingTask(1, termNode, resultFunc.termFunc(), Set()) }
+                val initialTasks = termNodes map { termNode => FinishingTask(1, termNode, resultFunc.termFunc(), Condition.True) }
                 // FinishingTask.node가 liftBlockedNodes에 있으면 해당 task는 제외
                 // DeriveTask(node)가 나오면 실제 Derive 진행하지 않고 derivation tip nodes로 넣는다 (이 때 node는 항상 SequenceNode임)
                 def rec(tasks: List[Task], graphCC: DGraph[R], derivablesCC: Set[SequenceNode]): (DGraph[R], Set[SequenceNode]) =
@@ -187,18 +187,18 @@ class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseR
                                     assert(!task.baseNode.isInstanceOf[BaseNode] && task.baseNode.isInstanceOf[SequenceNode])
 
                                     val immediateProgresses: Seq[SequenceProgressTask] = (derive(task.baseNode).baseProgresses map { kv =>
-                                        val (triggers, (result, resultSymbol)) = kv
+                                        val (condition, (result, resultSymbol)) = kv
                                         // triggers를 nextGen만큼 shift해주기
-                                        val shiftedTriggers: Set[Trigger] = triggers map { _.shiftGen(nextGen) }
+                                        val shiftedCondition: Condition = condition.shiftGen(nextGen)
 
-                                        SequenceProgressTask(nextGen, task.baseNode.asInstanceOf[SequenceNode], result, resultSymbol, shiftedTriggers)
+                                        SequenceProgressTask(nextGen, task.baseNode.asInstanceOf[SequenceNode], result, resultSymbol, shiftedCondition)
                                     }).toSeq
 
                                     rec(rest ++ immediateProgresses, graphCC, derivablesCC + task.baseNode.asInstanceOf[SequenceNode])
                                 case task: FinishingTask =>
                                     if (task.node.isInstanceOf[BaseNode]) {
                                         assert(task.node == baseNode)
-                                        rec(rest, graphCC.updateBaseResults(task.revertTriggers, task.result), derivablesCC)
+                                        rec(rest, graphCC.updateBaseResults(task.condition, task.result), derivablesCC)
                                     } else {
                                         val (newGraphCC, newTasks) = finishingTask(task, graphCC)
                                         rec(rest ++ newTasks, newGraphCC, derivablesCC)
@@ -206,7 +206,7 @@ class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseR
                                 case task: SequenceProgressTask =>
                                     if (task.node.isInstanceOf[BaseNode]) {
                                         assert(task.node == baseNode)
-                                        rec(rest, graphCC.updateBaseProgresses(task.revertTriggers, task.child, task.childSymbol), derivablesCC)
+                                        rec(rest, graphCC.updateBaseProgresses(task.condition, task.child, task.childSymbol), derivablesCC)
                                     } else {
                                         val (newGraphCC, newTasks) = sequenceProgressTask(task, graphCC)
                                         rec(rest ++ newTasks, newGraphCC, derivablesCC)

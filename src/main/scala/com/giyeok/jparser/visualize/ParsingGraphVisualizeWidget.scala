@@ -246,10 +246,10 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
             case Some(conns) => conns
             case None =>
                 val conns = edge match {
-                    case ParsingGraph.SimpleEdge(start, end, revertTriggers) =>
+                    case ParsingGraph.SimpleEdge(start, end, condition) =>
                         val conn = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end)), start, end)
-                        if (!(revertTriggers.isEmpty)) {
-                            conn.setText(revertTriggersString(revertTriggers))
+                        if (condition != ParsingGraph.Condition.True) {
+                            conn.setText(aliveConditionString(condition))
                         }
                         Seq(conn)
                     case ParsingGraph.JoinEdge(start, end, join) =>
@@ -280,10 +280,10 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
         }
     }
 
-    def resultsOf[N <: ParsingGraph.Node](results: (N, Map[Set[ParsingGraph.Trigger], R]), bind: Boolean, ignoreEmpty: Boolean, forceAddNode: Boolean, lineDecorator: GraphConnection => Unit): Unit = {
+    def resultsOf[N <: ParsingGraph.Node](results: (N, Map[ParsingGraph.Condition, R]), bind: Boolean, ignoreEmpty: Boolean, forceAddNode: Boolean, lineDecorator: GraphConnection => Unit): Unit = {
         val (node, matches) = results
         matches foreach { m =>
-            val (triggers, result) = m
+            val (condition, result) = m
 
             val trees = if (bind) ParseForestFunc.bind(node.symbol, result).trees else result.trees
             val trees1 =
@@ -298,15 +298,15 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
                 val resultNode = resultOf(result)
                 val connection = new GraphConnection(graphView, ZestStyles.CONNECTIONS_SOLID, nodeOf(node), resultNode)
                 lineDecorator(connection)
-                if (!triggers.isEmpty) {
-                    connection.setText(revertTriggersString(triggers))
+                if (condition != ParsingGraph.Condition.True) {
+                    connection.setText(aliveConditionString(condition))
                 }
             }
         }
     }
 
-    def resultsOf(node: ParsingGraph.Node): Option[Map[Set[ParsingGraph.Trigger], ParseForest]]
-    def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]]
+    def resultsOf(node: ParsingGraph.Node): Option[Map[ParsingGraph.Condition, ParseForest]]
+    def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[ParsingGraph.Condition, ParseForest]]
 
     def resultAndProgressFigureOf(node: ParsingGraph.Node): Figure = {
         val progressFig = new Figure()
@@ -317,7 +317,7 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
                     case Some(progresses) =>
                         progressFig.add(figureGenerator.textFig("Progresses --", figureAppearances.default))
                         progresses foreach { p =>
-                            progressFig.add(figureGenerator.textFig(revertTriggersString(p._1), figureAppearances.default))
+                            progressFig.add(figureGenerator.textFig(aliveConditionString(p._1), figureAppearances.default))
                             progressFig.add(parseResultForestFigureOf(p._2))
                         }
                     case None => // nothing to do
@@ -331,7 +331,7 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
             case Some(results) =>
                 resultFig.add(figureGenerator.textFig("Results --", figureAppearances.default))
                 results foreach { p =>
-                    resultFig.add(figureGenerator.textFig(revertTriggersString(p._1), figureAppearances.default))
+                    resultFig.add(figureGenerator.textFig(aliveConditionString(p._1), figureAppearances.default))
                     resultFig.add(parseResultForestFigureOf(p._2))
                 }
             case _ => // nothing to do
@@ -365,12 +365,16 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
         }
     }
 
-    def revertTriggersString(revertTriggers: Set[ParsingGraph.Trigger]): String =
-        revertTriggers map {
-            case ParsingGraph.Trigger(node, ttype) =>
-                s"$ttype(${nodeIdCache.of(node)}: $node)"
-            // s"$ttype(${nodeIdCache.of(node)})"
-        } mkString " or "
+    def aliveConditionString(condition: ParsingGraph.Condition): String = {
+        def nodeString(node: ParsingGraph.Node): String = s"${nodeIdCache.of(node)}: $node"
+        condition match {
+            case ParsingGraph.Condition.Value(value) => s"$value"
+            case ParsingGraph.Condition.And(conds) => conds map { aliveConditionString _ } mkString " & "
+            case ParsingGraph.Condition.Or(conds) => conds map { aliveConditionString _ } mkString " | "
+            case ParsingGraph.Condition.TrueUntilLifted(node) => s"Lift(${nodeString(node)})"
+            case ParsingGraph.Condition.FalseUntilLifted(node) => s"Wait(${nodeString(node)})"
+        }
+    }
 
     def nodesAt(ex: Int, ey: Int): Seq[Any] = {
         import scala.collection.JavaConversions._
@@ -553,8 +557,8 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
     override def addKeyListener(keyListener: KeyListener): Unit = graphView.addKeyListener(keyListener)
     override def addMouseListener(mouseListener: MouseListener): Unit = graphView.addMouseListener(mouseListener)
 
-    def resultsOf(node: ParsingGraph.Node): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = graph.results.of(node)
-    def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = graph.progresses.of(node)
+    def resultsOf(node: ParsingGraph.Node): Option[Map[ParsingGraph.Condition, ParseForest]] = graph.results.of(node)
+    def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[ParsingGraph.Condition, ParseForest]] = graph.progresses.of(node)
 
     addGraph(graph)
     applyLayout(false)
@@ -564,8 +568,8 @@ abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: 
     addGraph(baseGraph)
     addGraph(afterGraph)
 
-    override def resultsOf(node: ParsingGraph.Node): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = afterGraph.results.of(node)
-    override def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[Set[ParsingGraph.Trigger], ParseForest]] = afterGraph.progresses.of(node)
+    override def resultsOf(node: ParsingGraph.Node): Option[Map[ParsingGraph.Condition, ParseForest]] = afterGraph.results.of(node)
+    override def progressesOf(node: ParsingGraph.SequenceNode): Option[Map[ParsingGraph.Condition, ParseForest]] = afterGraph.progresses.of(node)
 
     // baseGraph -> afterGraph 과정에서 없어진 노드/엣지 빨간색으로 표시
     (baseGraph.nodes -- afterGraph.nodes) foreach { removedNode =>
