@@ -192,7 +192,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                         node.reservedReverterType match {
                             case None => Condition.True
                             case Some(ReservedRevertType.Lift) => Condition.Lift(node)
-                            case Some(ReservedRevertType.Alive) => ???
+                            case Some(ReservedRevertType.Alive) => Condition.Alive(node)
                         }
                     case _ =>
                         Condition.True

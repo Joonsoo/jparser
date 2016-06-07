@@ -63,6 +63,7 @@ object ParsingGraph {
         val False: Condition = Value(false)
         def Lift(node: Node): Condition = TrueUntilLifted(node)
         def Wait(node: Node): Condition = FalseUntilLifted(node)
+        def Alive(node: Node): Condition = TrueUntilAlive(node)
         def conjunct(conds: Condition*): Condition = {
             if (conds forall { _.permanentTrue }) True
             else if (conds exists { _.permanentFalse }) False
@@ -165,6 +166,24 @@ object ParsingGraph {
                 }
             }
             def eligible = false
+            def neg: Condition = ???
+        }
+
+        // 기존의 Alive type trigger에 해당
+        // - node가 proceed 시점에 살아있으면 false, 죽어있으면 true
+        case class TrueUntilAlive(node: Node) extends Condition {
+            def nodes = Set(node)
+            def shiftGen(shiftGen: Int) = TrueUntilAlive(node.shiftGen(shiftGen))
+
+            def permanentTrue = false
+            def permanentFalse = false
+
+            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+                // (results에 관계 없이) node가 aliveNodes에 있으면 Condition.False, aliveNodes에 없으면 Condition.True
+                if (aliveNodes contains node) Condition.False
+                else Condition.True
+            }
+            def eligible = true
             def neg: Condition = ???
         }
     }
