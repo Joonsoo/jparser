@@ -12,9 +12,10 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         // println(s)
     }
 
-    private def testCorrect(test: GrammarTestCases)(source: Inputs.ConcreteSource) = {
-        val result = test.parser.parse(source)
-        it should s"${test.grammar.name} properly parsed on '${source.toCleanString}'" in {
+    private def testCorrect(tests: GrammarTestCases)(source: Inputs.ConcreteSource) = {
+        log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
+        val result = tests.parser.parse(source)
+        it should s"${tests.grammar.name} properly parsed on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) =>
                     assert(ctx.result.isDefined)
@@ -32,6 +33,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
     }
 
     private def testIncorrect(tests: GrammarTestCases)(source: Inputs.ConcreteSource) = {
+        log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
         val result = tests.parser.parse(source)
         it should s"${tests.grammar.name} failed to parse on '${source.toCleanString}'" in {
             result match {
@@ -42,20 +44,13 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
     }
 
     private def testAmbiguous(tests: GrammarTestCases)(source: Inputs.ConcreteSource) = {
-        log(s"Testing ${tests.grammar.name} on '${source.toCleanString}'")
+        log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
         val result = tests.parser.parse(source)
-        log("  - Parsing Done")
         it should s"${tests.grammar.name} is ambiguous on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) =>
                     assert(ctx.result.isDefined)
                     val trees = ctx.result.get.trees
-                    if (trees.size != 1) {
-                        trees.zipWithIndex foreach { result =>
-                            log(s"=== ${result._2} ===")
-                            log(result._1.toHorizontalHierarchyString)
-                        }
-                    }
                     assert(trees.size > 1)
                 case Right(_) => assert(false)
             }

@@ -129,11 +129,11 @@ object ParsingGraph {
             def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 // node가 완전히 완성되었으면(될 수 있으면)(Condition이 Value(true)이면, 즉 condition.permanentTrue이면) Value(false)
                 // TODO node가 results에서 조건부로 완성되면?
-                // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황(이고 현재는 true인 상황)이므로 this
+                // node가 results에는 없고 aliveNodes에 현있으면 아직 모르는 상황(이고 현재는 true인 상황)이므로 this
                 // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(true)
                 results.of(node) match {
                     case Some(resultsMap) =>
-                        // TODO 임시
+                        // TODO 임시 구현
                         if (resultsMap contains Condition.True) Condition.False else ???
                     case None =>
                         if (aliveNodes contains node) this
@@ -159,6 +159,7 @@ object ParsingGraph {
                 // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(false)
                 results.of(node) match {
                     case Some(resultsMap) =>
+                        // TODO 임시 구현
                         if (resultsMap contains Condition.True) Condition.True else ???
                     case None =>
                         if (aliveNodes contains node) this
@@ -267,28 +268,28 @@ trait ParsingGraph[R <: ParseResult] {
     val progresses: Results[SequenceNode, R]
 
     // Information Retrieval
-    //    def resultOf(node: Node): Option[Map[Set[Trigger], R]] = results.of(node)
-    //    def resultOf(node: Node, triggers: Set[Trigger]): Option[R] = results.of(node, triggers)
-    def incomingEdgesTo(node: Node): Set[Edge] = edges collect {
-        case edge @ SimpleEdge(_, `node`, _) => edge
-        case edge @ (JoinEdge(_, _, `node`) | JoinEdge(_, `node`, _)) => edge
+    lazy val edgesByStart: Map[Node, Set[Edge]] = edges groupBy { _.start }
+    lazy val edgesByEnds: Map[Node, Set[Edge]] = {
+        def addEdge(map: Map[Node, Set[Edge]], node: Node, edge: Edge): Map[Node, Set[Edge]] =
+            map get node match {
+                case Some(edges) => map + (node -> (edges + edge))
+                case None => map + (node -> Set(edge))
+            }
+        edges.foldLeft(Map[Node, Set[Edge]]()) { (cc, e) =>
+            e match {
+                case edge @ SimpleEdge(_, end, _) =>
+                    addEdge(cc, end, edge)
+                case edge @ JoinEdge(_, end, join) =>
+                    addEdge(addEdge(cc, end, edge), join, edge)
+            }
+        }
     }
-    def incomingSimpleEdgesTo(node: Node): Set[SimpleEdge] = edges collect {
-        case edge @ SimpleEdge(_, `node`, _) => edge
-    }
-    def incomingJoinEdgesTo(node: Node): Set[JoinEdge] = edges collect {
-        case edge @ (JoinEdge(_, _, `node`) | JoinEdge(_, `node`, _)) => edge.asInstanceOf[JoinEdge]
-    }
-    def outgoingEdgesFrom(node: Node): Set[Edge] = edges collect {
-        case edge @ SimpleEdge(`node`, _, _) => edge
-        case edge @ JoinEdge(`node`, _, _) => edge
-    }
-    def outgoingSimpleEdgesFrom(node: Node): Set[SimpleEdge] = edges collect {
-        case edge @ SimpleEdge(`node`, _, _) => edge
-    }
-    def outgoingJoinEdgesFrom(node: Node): Set[JoinEdge] = edges collect {
-        case edge @ JoinEdge(`node`, _, _) => edge
-    }
+    def incomingEdgesTo(node: Node): Set[Edge] = edgesByEnds.getOrElse(node, Set())
+    def incomingSimpleEdgesTo(node: Node): Set[SimpleEdge] = incomingEdgesTo(node) collect { case edge: SimpleEdge => edge }
+    def incomingJoinEdgesTo(node: Node): Set[JoinEdge] = incomingEdgesTo(node) collect { case edge: JoinEdge => edge }
+    def outgoingEdgesFrom(node: Node): Set[Edge] = edgesByStart.getOrElse(node, Set())
+    def outgoingSimpleEdgesFrom(node: Node): Set[SimpleEdge] = outgoingEdgesFrom(node) collect { case edge: SimpleEdge => edge }
+    def outgoingJoinEdgesFrom(node: Node): Set[JoinEdge] = outgoingEdgesFrom(node) collect { case edge: JoinEdge => edge }
 
     // Modification
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): ParsingGraph[R]

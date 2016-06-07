@@ -195,16 +195,14 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                         // liftedBlockedNodes에 있지 않으면 일반 진행
                                         val (newGraphCC, newTasks) = finishingTask(task, graphCC)
                                         rec(rest ++ newTasks, newGraphCC, derivablesCC)
-                                    case Some(triggers) =>
-                                        // TODO 이부분 고민 필요
+                                    case Some(condition) if condition.permanentFalse =>
+                                        // liftBlocking 조건이 permanentFalse이면 이 리프트는 무시하고 진행한다
                                         rec(rest, graphCC, derivablesCC)
-
-                                        // except 조건부에서 reverter가 올라온 경우 두 조건을 합쳐서 계속 진행
-                                        // FinishingTask(nextGen, node, result, revertTriggers)
-                                        val (newGraphCC, newTasks) = finishingTask(FinishingTask(task.nextGen, task.node, task.result, Condition.conjunct(task.condition, triggers)), graphCC)
+                                    case Some(condition) =>
+                                        // 여기서 condition이 만족되는 동안에는 이 lift가 실패한 것으로 동작해야 한다
+                                        // TODO permanentFalse가 아닌 조건이 올라왔으면 condition을 task.condition에 합쳐서 진행한다 - 우선은 conjunct로 합쳐지게 되어 있는데.. 맞는듯?
+                                        val (newGraphCC, newTasks) = finishingTask(FinishingTask(task.nextGen, task.node, task.result, Condition.conjunct(task.condition, condition)), graphCC)
                                         rec(rest ++ newTasks, newGraphCC, derivablesCC)
-
-                                        ???
                                 }
                             case task: SequenceProgressTask =>
                                 val (newGraphCC, newTasks) = sequenceProgressTask(task, graphCC)
@@ -318,30 +316,14 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
                         // lift 막을 노드 정보 수집해서 ParsingCtx.lift에 넘겨주어야 함
                         val liftBlockedNodes: Map[AtomicNode, Condition] = {
-                            /*
-                            val d = revertedGraph.nodes collect {
-                                // liftBlockTrigger가 정의되어 있는 AtomicNode 중 results가 있는 것들을 추려서
+                            (revertedGraph.nodes collect {
                                 case node: AtomicNode if (node.liftBlockTrigger flatMap { revertBaseResults.of(_) }).isDefined =>
-                                    val results = revertBaseResults.of(node.liftBlockTrigger.get).get
-                                    // 이 지점에서 results에 들어있는 실제 파싱 결과는 관심이 없음
-                                    // TODO 여기서 results.keys를 flatten해버리면 되나? 고민해보기
-                                    val reverseTriggers = results.keys.flatten map {
-                                        case Trigger(node, ttype) =>
-                                            val reverseType = ttype match {
-                                                case Trigger.Type.Lift => Trigger.Type.Wait
-                                                case Trigger.Type.Wait => Trigger.Type.Lift
-                                                case Trigger.Type.Alive => Trigger.Type.Dead
-                                                case Trigger.Type.Dead => Trigger.Type.Alive
-                                            }
-                                            Trigger(node, reverseType)
-                                    }
-                                    node -> reverseTriggers.toSet
-                            }
-                            d.toMap
-                            * 
-                            */
-                            // TODO 다시 구현
-                            Map()
+                                    // 이 지점에서 results에 들어있는 실제 파싱 결과, 즉 revertBaseResults.of(node).get.values는 관심이 없음
+                                    // TODO revertBaseResults.of(node).get.keySet의 조건들을 묶어서, node가 lift될 때 조건에 추가해준다
+                                    // - 근데 여기서 keySet의 조건들을 어떻게 묶을지(conjunct? disjunct?), neg는 어떤식으로 들어가는지, node가 lift될 때 조건에 추가하는건 어떻게 할 지 정확히 모르겠음
+                                    // - 일단 keySet의 조건 중에 permanentTrue인 게 있으면 결과는 permanentFalse(이를테면 Condition.False)여야 하는데..
+                                    node -> Condition.disjunct(revertBaseResults.of(node.liftBlockTrigger.get).get.keySet.toSeq: _*).neg
+                            }).toMap
                         }
 
                         // 5. 2차 expand
