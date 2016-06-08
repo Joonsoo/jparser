@@ -54,7 +54,7 @@ object ParsingGraph {
 
         // evaluate return: (현재 상황에서 이 조건을 가진 results를 사용해도 되는지/아닌지, 이 조건을 다음에 어떻게 바꿔야 하는지)
         // - edge에 붙어있는 Condition에서는 _1은 의미가 없고 _2가 Value(false)로 나오는 경우 그 엣지를 제거하면 되고, 그 외의 경우엔 엣지의 Condition을 _2로 바꾸면 된다
-        def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition
+        def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition
         def eligible: Boolean
         def neg: Condition
     }
@@ -83,7 +83,7 @@ object ParsingGraph {
             def permanentTrue = value == true
             def permanentFalse = value == false
 
-            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = this
+            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = this
             def eligible = value
             def neg: Condition = Value(!value)
         }
@@ -94,9 +94,9 @@ object ParsingGraph {
             def permanentTrue = conds forall { _.permanentTrue }
             def permanentFalse = conds forall { _.permanentFalse }
 
-            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 conds.foldLeft(Condition.True) { (cc, condition) =>
-                    Condition.conjunct(condition.proceed(results, aliveNodes), cc)
+                    Condition.conjunct(condition.evaluate(results, aliveNodes), cc)
                 }
             }
             def eligible = conds forall { _.eligible }
@@ -109,9 +109,9 @@ object ParsingGraph {
             def permanentTrue = conds exists { _.permanentTrue }
             def permanentFalse = conds exists { _.permanentFalse }
 
-            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 conds.foldLeft(Condition.False) { (cc, condition) =>
-                    Condition.disjunct(condition.proceed(results, aliveNodes), cc)
+                    Condition.disjunct(condition.evaluate(results, aliveNodes), cc)
                 }
             }
             def eligible = conds exists { _.eligible }
@@ -126,15 +126,17 @@ object ParsingGraph {
             def permanentTrue = false
             def permanentFalse = false
 
-            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 // node가 완전히 완성되었으면(될 수 있으면)(Condition이 Value(true)이면, 즉 condition.permanentTrue이면) Value(false)
                 // TODO node가 results에서 조건부로 완성되면?
                 // node가 results에는 없고 aliveNodes에 현있으면 아직 모르는 상황(이고 현재는 true인 상황)이므로 this
                 // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(true)
                 results.of(node) match {
                     case Some(resultsMap) =>
-                        // TODO 임시 구현
-                        if (resultsMap contains Condition.True) Condition.False else ???
+                        // 대상이 완성될 수 있는 시점에 나는 false가 돼야 함
+                        val resultConditions = resultsMap.keys
+                        // if (resultConditions exists { _.permanentTrue }) Condition.False else ???
+                        Condition.disjunct(resultConditions.toSeq: _*).evaluate(results, aliveNodes).neg
                     case None =>
                         if (aliveNodes contains node) this
                         else Condition.True
@@ -152,15 +154,17 @@ object ParsingGraph {
             def permanentTrue = false
             def permanentFalse = false
 
-            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 // node가 완전히 완성되었으면 Value(true)
                 // TODO node가 results에서 조건부로 완성되면?
                 // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황(이고 현재는 false인 상황)이므로 this
                 // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(false)
                 results.of(node) match {
                     case Some(resultsMap) =>
-                        // TODO 임시 구현
-                        if (resultsMap contains Condition.True) Condition.True else ???
+                        // 대상이 완성될 수 있는 시점에만 나도 true가 될 수 있음
+                        val resultConditions = resultsMap.keys
+                        // if (resultConditions exists { _.permanentTrue }) Condition.True else ???
+                        Condition.disjunct(resultConditions.toSeq: _*).evaluate(results, aliveNodes)
                     case None =>
                         if (aliveNodes contains node) this
                         else Condition.False
@@ -171,7 +175,7 @@ object ParsingGraph {
         }
 
         // 기존의 Alive type trigger에 해당
-        // - node가 proceed 시점에 살아있으면 false, 죽어있으면 true
+        // - node가 evaluate 시점에 살아있으면 false, 죽어있으면 true
         case class TrueUntilAlive(node: Node) extends Condition {
             def nodes = Set(node)
             def shiftGen(shiftGen: Int) = TrueUntilAlive(node.shiftGen(shiftGen))
@@ -179,7 +183,7 @@ object ParsingGraph {
             def permanentTrue = false
             def permanentFalse = false
 
-            def proceed[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 // (results에 관계 없이) node가 aliveNodes에 있으면 Condition.False, aliveNodes에 없으면 Condition.True
                 if (aliveNodes contains node) Condition.False
                 else Condition.True

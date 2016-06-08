@@ -217,7 +217,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         def revert(graph: Graph, preliftResults: Results[Node, R], preliftNodes: Set[Node]): Graph = {
             val nextProgresses = graph.progresses.entries.foldLeft(Results[SequenceNode, R]()) { (cc, entry) =>
                 val (node, condition, result) = entry
-                val evaluatedCondition = condition.proceed(preliftResults, preliftNodes)
+                val evaluatedCondition = condition.evaluate(preliftResults, preliftNodes)
                 if (evaluatedCondition.permanentFalse) cc else {
                     cc.of(node, evaluatedCondition) match {
                         case Some(existingResult) =>
@@ -238,7 +238,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             val nextEdges: Set[Edge] = graph.edges flatMap {
                 case SimpleEdge(start, end, condition) =>
                     if ((validNodes contains start) && (validNodes contains end)) {
-                        val evaluatedCondition = condition.proceed(preliftResults, preliftNodes)
+                        val evaluatedCondition = condition.evaluate(preliftResults, preliftNodes)
                         if (evaluatedCondition.permanentFalse) None else Some(SimpleEdge(start, end, evaluatedCondition))
                     } else None
                 case edge @ JoinEdge(start, end, join) =>
