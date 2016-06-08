@@ -128,7 +128,7 @@ object ParsingGraph {
 
             def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 // node가 완전히 완성되었으면(될 수 있으면)(Condition이 Value(true)이면, 즉 condition.permanentTrue이면) Value(false)
-                // TODO node가 results에서 조건부로 완성되면?
+                // node가 results에서 조건부로 완성되면 그 조건들의 disjunction(or)의 negation을 반환
                 // node가 results에는 없고 aliveNodes에 현있으면 아직 모르는 상황(이고 현재는 true인 상황)이므로 this
                 // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(true)
                 results.of(node) match {
@@ -143,7 +143,10 @@ object ParsingGraph {
                 }
             }
             def eligible = true
-            def neg: Condition = ???
+            def neg: Condition = {
+                // TODO 아마 이거 아닐거임
+                FalseUntilLifted(node)
+            }
         }
         // 기존의 Wait type trigger에 해당
         // - node가 완성되기 전에는 false, 완성된 이후에는 true, (당연히) 영영 완성되지 않으면 항상 false
@@ -156,7 +159,7 @@ object ParsingGraph {
 
             def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 // node가 완전히 완성되었으면 Value(true)
-                // TODO node가 results에서 조건부로 완성되면?
+                // node가 results에서 조건부로 완성되면 그 조건들의 disjunction(or)를 반환
                 // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황(이고 현재는 false인 상황)이므로 this
                 // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(false)
                 results.of(node) match {
@@ -171,7 +174,10 @@ object ParsingGraph {
                 }
             }
             def eligible = false
-            def neg: Condition = ???
+            def neg: Condition = {
+                // TODO 아마 이거 아닐거임
+                TrueUntilLifted(node)
+            }
         }
 
         // 기존의 Alive type trigger에 해당
@@ -323,7 +329,9 @@ trait ParsingGraph[R <: ParseResult] {
     // start에서 ends(중 아무곳이나) 도달할 수 있는 모든 경로만 포함하는 서브그래프를 반환한다
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
     def subgraphIn(start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
-        // TODO traverse할 때 SimpleEdge에서 revertTriggers 어떻게 해야 하는지 고민
+        // - condition을 통하지 않고는 접근 불가능한 노드들은 subgraph에 포함되지 않는다
+        // - 하지만 lift를 통해 그 결과가 바뀔 수 있는 노드들은 포함되어야 한다
+
         // backward순환할 때는 condition들은 모두 무시한다
         def traverseBackward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
