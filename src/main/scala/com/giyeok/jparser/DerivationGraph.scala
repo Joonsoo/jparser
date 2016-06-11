@@ -92,7 +92,6 @@ class DerivationFunc[R <: ParseResult](val grammar: Grammar, val resultFunc: Par
     def derive(baseNode: BaseNode with NontermNode): DGraph[R] = {
         val dgraph = rec(List(DeriveTask(0, baseNode)), DGraph(baseNode, Set(baseNode), Set(), Results(), Results(), Map(), Map()))
         assert(dgraph.nodes forall {
-            case EmptyNode => true
             case TermNode(_, beginGen) => beginGen <= 1
             case _: DGraph.BaseNode => true
             case AtomicNode(_, beginGen) => beginGen <= 1

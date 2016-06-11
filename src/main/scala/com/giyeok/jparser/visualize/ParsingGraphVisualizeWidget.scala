@@ -41,7 +41,6 @@ import com.giyeok.jparser.DerivationFunc
 import com.giyeok.jparser.ParsingGraph.AtomicNode
 import com.giyeok.jparser.ParseResultTree
 import com.giyeok.jparser.Symbols.Sequence
-import com.giyeok.jparser.Symbols.Empty
 import com.giyeok.jparser.Symbols.AtomicNonterm
 import org.eclipse.draw2d.ToolbarLayout
 import com.giyeok.jparser.Results
@@ -182,10 +181,6 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
 
         val (g, ap) = (figureGenerator, figureAppearances)
         val fig = node match {
-            case ParsingGraph.EmptyNode =>
-                g.horizontalFig(Spacing.Big, Seq(
-                    g.supFig(g.textFig(s"$nodeId", ap.default)),
-                    symbolFigureGenerator.symbolFig(Empty)))
             case ParsingGraph.TermNode(symbol, beginGen) =>
                 g.horizontalFig(Spacing.Big, Seq(
                     g.supFig(g.textFig(s"$nodeId", ap.default)),

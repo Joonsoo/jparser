@@ -20,12 +20,10 @@ object Symbols {
         }
     }
 
-    case object Empty extends Symbol
-    sealed trait NonEmpty extends Symbol
     // AtomicSymbol은 매칭이 되거나/안되거나 - 한 번 lift된 symbolProgress에서 derive가 되거나 하는 일은 생기지 않음
-    sealed trait AtomicSymbol extends NonEmpty
+    sealed trait AtomicSymbol extends Symbol
     // NonAtomicSymbol은 sequence 밖에 없음
-    sealed trait NonAtomicSymbol extends NonEmpty
+    sealed trait NonAtomicSymbol extends Symbol
 
     sealed trait Terminal extends AtomicSymbol {
         def accept(input: Inputs.Input): Boolean
@@ -241,7 +239,6 @@ object Symbols {
                 } mkString "|") + ")"
             case Unicode(c) => s"<unicode ${(c.toSeq.sorted map { categoryCodeToName(_) }) mkString ", "}>"
             case t: Terminal => t.toShortString
-            case Empty => "<empty>"
             case Start => "<start>"
             case s: Nonterminal => s.name
             case s: Sequence => "(" + (s.seq map { _.toShortString } mkString " ") + ")"

@@ -16,11 +16,6 @@ object ParsingGraph {
     sealed trait NontermNode extends Node {
         val beginGen: Int
     }
-    case object EmptyNode extends Node {
-        val symbol = Empty
-
-        def shiftGen(shiftGen: Int) = this
-    }
     case class TermNode(symbol: Terminal, beginGen: Int) extends Node {
         def shiftGen(shiftGen: Int) = TermNode(symbol, beginGen + shiftGen)
 

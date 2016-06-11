@@ -24,7 +24,6 @@ object Grammar {
                 else {
                     visited += symbol
                     symbol match {
-                        case Empty => cc
                         case Start => traverse(grammar.startSymbol, cc)
                         case _: Terminal => cc
                         case Nonterminal(name) =>
@@ -56,7 +55,6 @@ object Grammar {
                 else {
                     visited += symbol
                     symbol match {
-                        case Empty => cc
                         case Start => traverse(grammar.startSymbol, Some(Start), cc)
                         case _: Terminal => cc
                         case Nonterminal(name) =>
@@ -93,7 +91,6 @@ object Grammar {
             def traverse(symbol: Symbol, cc: Set[Symbol]): Set[Symbol] = {
                 if (cc contains symbol) cc else
                     symbol match {
-                        case Empty => cc + symbol
                         case Start => traverse(grammar.startSymbol, cc + Start)
                         case _: Terminal => cc + symbol
                         case Nonterminal(name) =>

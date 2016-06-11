@@ -17,8 +17,6 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
     val grammar: Grammar
 
     def newNode(symbol: Symbol): Node = symbol match {
-        case Empty => EmptyNode
-
         case s: Terminal => TermNode(s, 0)
 
         case s: Except => AtomicNode(s, 0)(Some(newNode(s.except)))
@@ -36,7 +34,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
             case OneOf(syms) =>
                 syms map { s => SimpleEdge(baseNode, newNode(s), Condition.True) }
             case Repeat(sym, lower) =>
-                val baseSeq = if (lower > 0) Sequence(((0 until lower) map { _ => sym }).toSeq, Set()) else Empty
+                val baseSeq = Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
                 val repeatSeq = Sequence(Seq(symbol, sym), Set())
                 Set(SimpleEdge(baseNode, newNode(baseSeq), Condition.True),
                     SimpleEdge(baseNode, newNode(repeatSeq), Condition.True))
@@ -133,8 +131,6 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
 
                 // 3. 새로 derive된 노드 중 바로 끝낼 수 있는 노드들에 대해 FinishingTask를 만든다
                 val newFinishingTasks: Set[FinishingTask] = newNodes collect {
-                    case node @ EmptyNode =>
-                        FinishingTask(nextGen, node, resultFunc.empty(), Condition.True)
                     case node @ SequenceNode(Sequence(seq, _), 0, _, _) if seq.isEmpty => // 이 시점에서 SequenceNode의 pointer는 반드시 0
                         FinishingTask(nextGen, node, resultFunc.sequence(), Condition.True)
                 }

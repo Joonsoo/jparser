@@ -16,7 +16,7 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
 
         def needParentheses(symbol: Symbol): Boolean =
             symbol match {
-                case _@ (Nonterminal(_) | Terminals.ExactChar(_) | Sequence(Seq(Terminals.ExactChar(_)), _) | Empty) => false
+                case _@ (Nonterminal(_) | Terminals.ExactChar(_) | Sequence(Seq(Terminals.ExactChar(_)), _)) => false
                 case _ => true
             }
 
@@ -40,12 +40,11 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
                         g.horizontalFig(Spacing.None, Seq(g.textFig(rangeStart, ap.terminal), g.textFig("-", ap.default), g.textFig(rangeEnd, ap.terminal)))
                 }, g.textFig("|", ap.default)))
             case t: Terminal => g.textFig(t.toShortString, ap.terminal)
-            case Empty => g.textFig("ε", ap.nonterminal)
             case Start => g.textFig("Start", ap.default)
             case Nonterminal(name) => g.textFig(name, ap.nonterminal)
             case Sequence(seq, ws) =>
                 if (seq.isEmpty) {
-                    g.horizontalFig(Spacing.Medium, Seq())
+                    g.textFig("ε", ap.nonterminal)
                 } else {
                     def adjExChars(list: List[Terminals.ExactChar]): Fig =
                         g.horizontalFig(Spacing.None, list map { symbolFig(_) })

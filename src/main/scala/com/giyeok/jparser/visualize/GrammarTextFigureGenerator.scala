@@ -5,7 +5,6 @@ import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.Symbols.Backup
 import com.giyeok.jparser.Symbols.Join
 import com.giyeok.jparser.Symbols.CharsGrouping
-import com.giyeok.jparser.Symbols.Empty
 import com.giyeok.jparser.Symbols.Except
 import com.giyeok.jparser.Symbols.LookaheadExcept
 import com.giyeok.jparser.Symbols.Nonterminal

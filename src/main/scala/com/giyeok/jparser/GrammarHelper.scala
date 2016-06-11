@@ -11,7 +11,7 @@ object GrammarHelper {
     private def charSymbol(set: Set[Char]): Terminal =
         if (set.size == 1) ExactChar(set.iterator.next) else Chars(set)
 
-    def empty = Empty
+    def empty = Sequence(Seq(), Set())
     def n(name: String) = Nonterminal(name)
     def i(string: String) = Sequence(string.toCharArray() map { c => ExactChar(c) }, Set())
     def anychar = AnyChar
@@ -50,7 +50,7 @@ object GrammarHelper {
     }
     implicit class GrammarElementRepeatable(sym: Symbol) {
         def repeat(lower: Int, upper: Int): OneOf = OneOf(((lower to upper) map { count =>
-            if (count == 0) Empty else Sequence((0 until count).toSeq map { _ => sym }, Set())
+            Sequence((0 until count).toSeq map { _ => sym }, Set())
         }).toSet)
         def repeat(lower: Int): Repeat = Repeat(sym, lower)
 
