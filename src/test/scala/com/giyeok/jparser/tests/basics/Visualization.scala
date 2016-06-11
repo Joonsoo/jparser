@@ -18,7 +18,9 @@ object Visualization extends Viewer {
         GrammarWithLookaheadIs.tests,
         BackupGrammars.tests,
         JoinGrammars.tests,
-        LongestMatchGrammars.tests).flatten
+        LongestMatchGrammars.tests,
+        ParsingTechniquesTests.tests,
+        PaperTests.tests).flatten
 
     def main(args: Array[String]): Unit = {
         start()
