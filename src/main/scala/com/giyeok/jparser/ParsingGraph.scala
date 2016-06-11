@@ -28,9 +28,9 @@ object ParsingGraph {
     }
 
     // liftBlockTrigger, liftRevertTrigger는 symbol에 따라서만 결정되는 것이므로 equals 등에서 고려할 필요가 없다
-    case class AtomicNode(symbol: AtomicNonterm, beginGen: Int)(val liftBlockTrigger: Option[Node], val reservedReverterType: Option[ReservedRevertType.Value]) extends NontermNode {
-        def noLiftBlockTrigger = AtomicNode(symbol, beginGen)(None, reservedReverterType)
-        def shiftGen(shiftGen: Int) = AtomicNode(symbol, beginGen + shiftGen)(liftBlockTrigger map { _.shiftGen(shiftGen) }, reservedReverterType)
+    case class AtomicNode(symbol: AtomicNonterm, beginGen: Int)(val liftBlockTrigger: Option[Node]) extends NontermNode {
+        def noLiftBlockTrigger = AtomicNode(symbol, beginGen)(None)
+        def shiftGen(shiftGen: Int) = AtomicNode(symbol, beginGen + shiftGen)(liftBlockTrigger map { _.shiftGen(shiftGen) })
 
         override def toString = {
             s"(${symbol.toShortString}, $beginGen)"
@@ -197,10 +197,6 @@ object ParsingGraph {
             def eligible = true
             def neg: Condition = ???
         }
-    }
-
-    object ReservedRevertType extends Enumeration {
-        val Lift, Alive = Value
     }
 
     sealed trait Edge { val start: NontermNode }

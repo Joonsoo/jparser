@@ -375,7 +375,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
     }
 
     val initialContext = {
-        val startNode = AtomicNode(Start, 0)(None, None)
+        val startNode = AtomicNode(Start, 0)(None)
         val emptyResult: Results[Node, R] = {
             val baseResults = derivationFunc.derive(startNode).baseResults
             if (baseResults.isEmpty) Results[Node, R]() else Results[Node, R](startNode -> baseResults)

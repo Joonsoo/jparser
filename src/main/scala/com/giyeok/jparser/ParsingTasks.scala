@@ -21,11 +21,9 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
 
         case s: Terminal => TermNode(s, 0)
 
-        case s: Except => AtomicNode(s, 0)(Some(newNode(s.except)), None)
-        case s: Longest => AtomicNode(s, 0)(None, Some(ReservedRevertType.Lift))
-        case s: EagerLongest => AtomicNode(s, 0)(None, Some(ReservedRevertType.Alive))
+        case s: Except => AtomicNode(s, 0)(Some(newNode(s.except)))
 
-        case s: AtomicNonterm => AtomicNode(s, 0)(None, None)
+        case s: AtomicNonterm => AtomicNode(s, 0)(None)
         case s: Sequence => SequenceNode(s, 0, 0, 0)
     }
 
@@ -189,10 +187,10 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 // AtomicNode.reservedReverterType 처리
                 val longestRevertCondition: Condition = node match {
                     case node: AtomicNode =>
-                        node.reservedReverterType match {
-                            case None => Condition.True
-                            case Some(ReservedRevertType.Lift) => Condition.Lift(node)
-                            case Some(ReservedRevertType.Alive) => Condition.Alive(node)
+                        node.symbol match {
+                            case s: Longest => Condition.Lift(node)
+                            case s: EagerLongest => Condition.Alive(node)
+                            case _ => Condition.True
                         }
                     case _ =>
                         Condition.True
