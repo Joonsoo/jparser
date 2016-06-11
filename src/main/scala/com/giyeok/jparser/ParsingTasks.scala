@@ -44,10 +44,6 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                 // baseNode가 BaseNode인 경우는 실제 파싱에선 생길 수 없고 테스트 중에만 발생 가능
                 // 일반적인 경우에는 baseNode가 AtomicNode이고 liftBlockTrigger가 k.symbol.except 가 들어있어야 함
                 Set(SimpleEdge(baseNode, newNode(sym), Condition.True))
-            case LookaheadIs(lookahead) =>
-                Set(SimpleEdge(baseNode, newNode(Empty), Condition.Wait(newNode(lookahead))))
-            case LookaheadExcept(except) =>
-                Set(SimpleEdge(baseNode, newNode(Empty), Condition.Lift(newNode(except))))
             case Proxy(sym) =>
                 Set(SimpleEdge(baseNode, newNode(sym), Condition.True))
             case Backup(sym, backup) =>
@@ -62,7 +58,8 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
             case EagerLongest(sym) =>
                 // baseNode가 NewAtomicNode이고 reservedRevertter가 Some(Trigger.Type.Alive)여야 함
                 Set(SimpleEdge(baseNode, newNode(sym), Condition.True))
-            // Except, Longest, EagerLongest의 경우를 제외하고는 모두 liftBlockTrigger와 reservedReverter가 비어있어야 함
+            // Except를 제외하고는 모두 liftBlockTrigger가 비어있어야 함
+            case LookaheadIs(_) | LookaheadExcept(_) => ??? // must not be called
         }
         def deriveSequence(symbol: Sequence, pointer: Int): Set[Edge] = {
             assert(pointer < symbol.seq.size)
@@ -83,75 +80,87 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
 
     def deriveTask(task: DeriveTask, cc: Graph): (Graph, Seq[Task]) = {
         val DeriveTask(nextGen, baseNode) = task
-        // 1. Derivation
-        val newEdges = deriveNode(baseNode)
 
-        // NOTE derive된 엣지 중 revertTriggers의 조건이 cc.results에서 이미 만족된 게 있는 경우는 생기지 않는다고 가정한다
-        // - 즉, lookahead/backup 조건이 nullable일 수 없다
-        // - lookahead 조건이나 backup 조건이 nullable이면 아무 의미가 없고, 파싱을 시작하기 전에 문법만 보고 확인해서 수정이 가능하기 때문
-
-        // 2. 새로 추가되는 노드에 대한 DeriveTask 만들고 derive된 edge/node를 cc에 넣기
-        // 이 때, 새로 생성된 노드 중
-        // - 바로 finishable한 노드(empty node, sequence.symbol.seq.isEmpty인 sequence node)들은 results에 추가해주고,
-        // - sequence.symbol.seq.isEmpty가 아닌 sequence는 progresses에 추가해준다
-        val newNodes = {
-            assert(newEdges forall { _.start == baseNode })
-            // derive된 엣지의 타겟들만 모으고
-            val newNodes0 = newEdges flatMap {
-                case SimpleEdge(start, end, aliveCondition) => Set(end) ++ aliveCondition.nodes
-                case JoinEdge(start, end, join) => Set(end, join)
-            }
-            // 그 중 liftBlockTrigger가 있으면 그것들도 모아서
-            val newNodes1 = newNodes0 flatMap {
-                case n: AtomicNode => Set(n) ++ n.liftBlockTrigger
-                case n => Set(n)
-            }
-            // 기존에 있던 것들 제외
-            newNodes1 -- cc.nodes
-        }
-
-        val newDeriveTasks: Set[DeriveTask] = newNodes collect {
-            case n: AtomicNode => DeriveTask(nextGen, n)
-            case n: SequenceNode if n.symbol.seq.length > 0 => DeriveTask(nextGen, n)
-        }
-
-        val ncc: Graph = {
-            val newProgresses: Results[SequenceNode, R] = Results((newNodes collect {
-                case node @ SequenceNode(Sequence(seq, _), pointer, _, _) if !seq.isEmpty =>
-                    node -> Map(Condition.True -> resultFunc.sequence()) ensuring (pointer == 0)
-            }).toSeq: _*)
-            cc.withNodesEdgesProgresses(newNodes, newEdges, newProgresses).asInstanceOf[Graph]
-        }
-
-        // 3. 새로 derive된 노드 중 바로 끝낼 수 있는 노드들에 대해 FinishingTask를 만든다
-        val newFinishingTasks: Set[FinishingTask] = newNodes collect {
-            case node @ EmptyNode =>
-                FinishingTask(nextGen, node, resultFunc.empty(), Condition.True)
-            case node @ SequenceNode(Sequence(seq, _), 0, _, _) if seq.isEmpty => // 이 시점에서 SequenceNode의 pointer는 반드시 0
-                FinishingTask(nextGen, node, resultFunc.sequence(), Condition.True)
-        }
-
-        // 4. existingNodes 중 cc.results에 들어 있는 것들로 baseNode에 대한 FinishingTask나 ProgressTask를 만들어준다
-        val duplFinishingTasks: Set[Task] = newEdges flatMap {
-            case SimpleEdge(start, end, edgeAliveCondition) if cc.results.of(end).isDefined =>
-                // cc.results에 결과가 있으면 노드도 당연히 이미 있었다는 의미
-                assert(!(newNodes contains end))
-                val results = cc.results.of(end).get
-                results map { tr =>
-                    val (resultCondition, result) = tr
-                    val finishedResult = resultFunc.bind(end.symbol, result)
-                    baseNode match {
-                        case baseNode: AtomicNode =>
-                            FinishingTask(nextGen, baseNode, finishedResult, Condition.conjunct(resultCondition, edgeAliveCondition))
-                        case baseNode: SequenceNode =>
-                            SequenceProgressTask(nextGen, baseNode, finishedResult, end.symbol, Condition.conjunct(resultCondition, edgeAliveCondition))
-                    }
+        baseNode.symbol match {
+            case baseNodeSymbol: Lookahead =>
+                val condition = baseNodeSymbol match {
+                    case LookaheadIs(lookahead) => Condition.Wait(newNode(lookahead))
+                    case LookaheadExcept(except) => Condition.Lift(newNode(except))
                 }
-            // TODO JoinEdge는 안해줘도 되는지 고민해보기
-            case _ => Set()
-        }
+                val newNodes = condition.nodes -- cc.nodes
+                val newDeriveTasks = newNodes collect { case node: NontermNode => DeriveTask(nextGen, node) }
+                (cc.withNodes(newNodes).asInstanceOf[Graph], Seq(FinishingTask(nextGen, baseNode, resultFunc.empty(), condition)) ++ newDeriveTasks)
+            case _ =>
+                // 1. Derivation
+                val newEdges = deriveNode(baseNode)
 
-        (ncc, newDeriveTasks.toSeq ++ newFinishingTasks.toSeq ++ duplFinishingTasks.toSeq)
+                // NOTE derive된 엣지 중 revertTriggers의 조건이 cc.results에서 이미 만족된 게 있는 경우는 생기지 않는다고 가정한다
+                // - 즉, lookahead/backup 조건이 nullable일 수 없다
+                // - lookahead 조건이나 backup 조건이 nullable이면 아무 의미가 없고, 파싱을 시작하기 전에 문법만 보고 확인해서 수정이 가능하기 때문
+
+                // 2. 새로 추가되는 노드에 대한 DeriveTask 만들고 derive된 edge/node를 cc에 넣기
+                // 이 때, 새로 생성된 노드 중
+                // - 바로 finishable한 노드(empty node, sequence.symbol.seq.isEmpty인 sequence node)들은 results에 추가해주고,
+                // - sequence.symbol.seq.isEmpty가 아닌 sequence는 progresses에 추가해준다
+                val newNodes = {
+                    assert(newEdges forall { _.start == baseNode })
+                    // derive된 엣지의 타겟들만 모으고
+                    val newNodes0 = newEdges flatMap {
+                        case SimpleEdge(start, end, aliveCondition) => Set(end) ++ aliveCondition.nodes
+                        case JoinEdge(start, end, join) => Set(end, join)
+                    }
+                    // 그 중 liftBlockTrigger가 있으면 그것들도 모아서
+                    val newNodes1 = newNodes0 flatMap {
+                        case n: AtomicNode => Set(n) ++ n.liftBlockTrigger
+                        case n => Set(n)
+                    }
+                    // 기존에 있던 것들 제외
+                    newNodes1 -- cc.nodes
+                }
+
+                val newDeriveTasks: Set[DeriveTask] = newNodes collect {
+                    case n: AtomicNode => DeriveTask(nextGen, n)
+                    case n: SequenceNode if n.symbol.seq.length > 0 => DeriveTask(nextGen, n)
+                }
+
+                val ncc: Graph = {
+                    val newProgresses: Results[SequenceNode, R] = Results((newNodes collect {
+                        case node @ SequenceNode(Sequence(seq, _), pointer, _, _) if !seq.isEmpty =>
+                            node -> Map(Condition.True -> resultFunc.sequence()) ensuring (pointer == 0)
+                    }).toSeq: _*)
+                    cc.withNodesEdgesProgresses(newNodes, newEdges, newProgresses).asInstanceOf[Graph]
+                }
+
+                // 3. 새로 derive된 노드 중 바로 끝낼 수 있는 노드들에 대해 FinishingTask를 만든다
+                val newFinishingTasks: Set[FinishingTask] = newNodes collect {
+                    case node @ EmptyNode =>
+                        FinishingTask(nextGen, node, resultFunc.empty(), Condition.True)
+                    case node @ SequenceNode(Sequence(seq, _), 0, _, _) if seq.isEmpty => // 이 시점에서 SequenceNode의 pointer는 반드시 0
+                        FinishingTask(nextGen, node, resultFunc.sequence(), Condition.True)
+                }
+
+                // 4. existingNodes 중 cc.results에 들어 있는 것들로 baseNode에 대한 FinishingTask나 ProgressTask를 만들어준다
+                val duplFinishingTasks: Set[Task] = newEdges flatMap {
+                    case SimpleEdge(start, end, edgeAliveCondition) if cc.results.of(end).isDefined =>
+                        // cc.results에 결과가 있으면 노드도 당연히 이미 있었다는 의미
+                        assert(!(newNodes contains end))
+                        val results = cc.results.of(end).get
+                        results map { tr =>
+                            val (resultCondition, result) = tr
+                            val finishedResult = resultFunc.bind(end.symbol, result)
+                            baseNode match {
+                                case baseNode: AtomicNode =>
+                                    FinishingTask(nextGen, baseNode, finishedResult, Condition.conjunct(resultCondition, edgeAliveCondition))
+                                case baseNode: SequenceNode =>
+                                    SequenceProgressTask(nextGen, baseNode, finishedResult, end.symbol, Condition.conjunct(resultCondition, edgeAliveCondition))
+                            }
+                        }
+                    // TODO JoinEdge는 안해줘도 되는지 고민해보기
+                    case _ => Set()
+                }
+
+                (ncc, newDeriveTasks.toSeq ++ newFinishingTasks.toSeq ++ duplFinishingTasks.toSeq)
+        }
     }
 }
 
