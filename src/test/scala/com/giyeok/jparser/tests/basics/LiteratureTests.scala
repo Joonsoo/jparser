@@ -7,6 +7,7 @@ import com.giyeok.jparser.GrammarHelper._
 import com.giyeok.jparser.tests.StringSamples
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet
+import com.giyeok.jparser.tests.AmbiguousSamples
 
 object Earley1970AE extends Grammar with GrammarTestCases with StringSamples {
     val name = "Earley 1970 Grammar AE"
@@ -36,7 +37,7 @@ class PaperTestSuite extends BasicParseTest(PaperTests.tests)
 
 // grammars in Parsing Techniques book (http://dickgrune.com/Books/PTAPG_1st_Edition/BookBody.pdf)
 
-object Fig7_4 extends Grammar with GrammarTestCases with StringSamples {
+object Fig7_4 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
     val name = "Parsing Techniques Grammar in Figure 7.4"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -46,9 +47,9 @@ object Fig7_4 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
-        "aaaab")
+    val correctSamples = Set[String]()
     val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]("aaaab")
 }
 
 object Fig7_8 extends Grammar with GrammarTestCases with StringSamples {
