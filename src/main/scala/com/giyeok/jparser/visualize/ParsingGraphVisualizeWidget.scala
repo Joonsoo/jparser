@@ -54,6 +54,7 @@ import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.layout.FormLayout
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
+import com.giyeok.jparser.Symbols.Start
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -653,8 +654,9 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val gram
         case Some(result) =>
             val resultNode = resultOf(result)
             resultNode.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
-            if (context.graph.nodes contains context.startNode) {
-                new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodeOf(context.startNode), resultNode).setLineColor(ColorConstants.green)
+            val startNode = AtomicNode(Start, 0)(None)
+            if (context.graph.nodes contains startNode) {
+                new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodeOf(startNode), resultNode).setLineColor(ColorConstants.green)
             }
         case None =>
     }

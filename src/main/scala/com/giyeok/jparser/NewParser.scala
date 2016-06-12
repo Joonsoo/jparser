@@ -20,6 +20,7 @@ case class CtxGraph[R <: ParseResult](
 
 class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseResultFunc[R], derivationFunc: DerivationSliceFunc[R]) extends LiftTasks[R, CtxGraph[R]] {
     type Graph = CtxGraph[R]
+    val startNode = AtomicNode(Start, 0)(None)
 
     trait CtxGraphTransition {
         val title: String
@@ -250,9 +251,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         }
     }
 
-    case class ParsingCtx(gen: Int, graph: Graph, startNode: NontermNode, derivables: Set[NontermNode]) {
-        assert(startNode.symbol == Start)
-
+    case class ParsingCtx(gen: Int, graph: Graph, derivables: Set[NontermNode]) {
         // graph.nodes는 모두 gen이 <= 현재 gen 을 만족해야 한다
         // results나 progresses의 trigger node에서는 beginGen = gen + 1 세대인 노드가 있을 수도 있다
         assert(graph.nodes forall {
@@ -338,7 +337,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         liftedGraphOpt match {
                             case Some(liftedGraph) =>
                                 val secondLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (7) Second Trimming", liftedGraphPre, liftedGraph, startNode, nextDerivables.asInstanceOf[Set[Node]])
-                                val nextContext: ParsingCtx = ParsingCtx(nextGen, liftedGraph, startNode, (nextDerivables.asInstanceOf[Set[Node]] intersect liftedGraph.nodes).asInstanceOf[Set[NontermNode]])
+                                val nextContext: ParsingCtx = ParsingCtx(nextGen, liftedGraph, (nextDerivables.asInstanceOf[Set[Node]] intersect liftedGraph.nodes).asInstanceOf[Set[NontermNode]])
                                 val transition = ParsingCtxTransition(
                                     Some(firstExpandTransition, firstLiftTransition),
                                     Some(firstLiftTrimmingTransition, revertTransition, secondExpandTransition, secondLiftTransition),
@@ -361,7 +360,6 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                 (transition, Left(ParsingCtx(
                                     nextGen,
                                     CtxGraph(Set(), Set(), Results(startNode -> result), Results()),
-                                    startNode,
                                     Set())))
                             case None =>
                                 (transition, Right(UnexpectedInput(input)))
@@ -386,7 +384,6 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 Set(),
                 emptyResult,
                 Results[SequenceNode, R]()),
-            startNode,
             Set(startNode))
     }
 
