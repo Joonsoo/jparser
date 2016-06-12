@@ -229,6 +229,8 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Condition,
         nodeResults.foldLeft(this) { (m, i) => m.update(node, i._1, i._2) }
     }
 
+    def filterKeys(keys: Set[Node]): Results[N, R] = new Results(resultsMap filterKeys keys)
+
     def merge(other: Results[N, R], resultFunc: ParseResultFunc[R]): Results[N, R] = {
         other.entries.foldLeft(this) { (cc, entry) =>
             val (node, condition, result) = entry
@@ -371,7 +373,7 @@ trait ParsingGraph[R <: ParseResult] {
             val subNodes = reachableToEnds._1 intersect reachableFromStarts._1
             val subEdges = reachableToEnds._2 intersect reachableFromStarts._2
             assert(subNodes subsetOf nodes)
-            Some(create(subNodes, subEdges, results, progresses))
+            Some(create(subNodes, subEdges, results, progresses filterKeys subNodes))
         }
     }
 }
