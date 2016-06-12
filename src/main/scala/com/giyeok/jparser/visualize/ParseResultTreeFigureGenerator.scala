@@ -33,21 +33,19 @@ class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap:
 
     private def parseNodeFig(symbolBorder: FigureGenerator.Appearance[Fig], vfig: (Spacing.Value, Seq[Fig]) => Fig, hfig: (Spacing.Value, Seq[Fig]) => Fig, renderConf: ParseResultTreeFigureGenerator.RenderingConfiguration)(n: Node): Fig = {
         def parseNodeFig(n: Node): Fig = n match {
-            case EmptyNode =>
-                g.textFig("ε", ap.default)
             case TerminalNode(input) =>
                 g.textFig(input.toShortString, ap.input)
             case TermFuncNode =>
                 g.textFig("λt", ap.input)
             case BindedNode(sym: Repeat, body) =>
                 def childrenOf(node: Node, sym: Symbol): Seq[Node] = node match {
-                    case EmptyNode => Seq()
                     case BindedNode(s, body) if s == sym => Seq(node)
                     case BindedNode(s, body) => childrenOf(body, sym)
                     case s: SequenceNode => s.children flatMap { childrenOf(_, sym) }
                 }
                 val children = childrenOf(body, sym.sym)
-                vfig(Spacing.Small, Seq(
+                if (children.isEmpty) g.textFig("ε", ap.default)
+                else vfig(Spacing.Small, Seq(
                     symbolBorder.applyToFigure(hfig(Spacing.Small, children map { parseNodeFig _ })),
                     symbolFigureGenerator.symbolFig(sym)))
             case BindedNode(sym, body) =>
@@ -62,8 +60,7 @@ class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap:
                 vfig(Spacing.Small, content)
             case s: SequenceNode =>
                 if (s.children.isEmpty) {
-                    hfig(Spacing.Medium, Seq(
-                        g.textFig("", ap.default)))
+                    g.textFig("ε", ap.default)
                 } else {
                     def isLookaheadNode(node: Node): Boolean = node match {
                         case BindedNode(_: Symbols.LookaheadExcept, _) => true

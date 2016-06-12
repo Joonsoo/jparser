@@ -31,7 +31,7 @@ case class ParseForest(trees: Set[ParseResultTree.Node]) extends ParseResult
 object ParseForestFunc extends ParseResultFunc[ParseForest] {
     import ParseResultTree._
 
-    def empty() = ParseForest(Set(EmptyNode))
+    def empty() = sequence()
     def terminal(input: Inputs.Input) = ParseForest(Set(TerminalNode(input)))
     def bind(symbol: Symbol, body: ParseForest) =
         ParseForest(body.trees map { b => BindedNode(symbol, b) })
@@ -65,9 +65,6 @@ object ParseResultTree {
         def substTerm(input: Input): Node
     }
 
-    case object EmptyNode extends Node {
-        def substTerm(input: Input) = EmptyNode
-    }
     case object TermFuncNode extends Node {
         def substTerm(input: Input) = TerminalNode(input)
     }
@@ -127,19 +124,17 @@ object ParseResultTree {
     }
     implicit class ShortString(node: Node) {
         def toShortString: String = node match {
-            case EmptyNode => "()"
             case TermFuncNode => s"TermFunc"
             case n: TerminalNode => s"Term(${n.input.toShortString})"
             case n: BindedNode => s"${n.symbol.toShortString}(${n.body.toShortString})"
             case n: JoinNode => s"${n.body.toShortString}(&${n.join.toShortString})"
-            case s: SequenceNode => (s.children map { _.toShortString } mkString "/")
+            case s: SequenceNode =>
+                if (s.children.isEmpty) "ε" else (s.children map { _.toShortString } mkString "/")
         }
     }
     implicit class TreePrint(node: Node) {
         def printTree(): Unit = println(toTreeString("", "  "))
         def toTreeString(indent: String, indentUnit: String): String = node match {
-            case EmptyNode =>
-                indent + s"- empty\n"
             case TermFuncNode =>
                 indent + "- termFunc\n"
             case n: TerminalNode =>
@@ -178,8 +173,6 @@ object ParseResultTree {
                     result ensuring (result._2.forall(_.length == result._1))
                 }
             val result: (Int, Seq[String]) = node match {
-                case EmptyNode =>
-                    (2, Seq("()"))
                 case TermFuncNode =>
                     (2, Seq("λt"))
                 case n: TerminalNode =>
@@ -197,7 +190,7 @@ object ParseResultTree {
                 case s: SequenceNode =>
                     val body = s.children
                     if (body.isEmpty) {
-                        (2, Seq("[]"))
+                        (1, Seq("ε"))
                     } else {
                         HorizontalTreeStringSeqUtil.merge(body map { _.toHorizontalHierarchyStringSeq })
                     }
