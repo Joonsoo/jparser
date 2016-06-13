@@ -367,9 +367,9 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
             case ParsingGraph.Condition.Value(value) => s"$value"
             case ParsingGraph.Condition.And(conds) => conds map { aliveConditionString _ } mkString " & "
             case ParsingGraph.Condition.Or(conds) => conds map { aliveConditionString _ } mkString " | "
-            case ParsingGraph.Condition.TrueUntilLifted(node) => s"Lift(${nodeString(node)})"
-            case ParsingGraph.Condition.TrueUntilAlive(node) => s"Alive(${nodeString(node)})"
-            case ParsingGraph.Condition.FalseUntilLifted(node) => s"Wait(${nodeString(node)})"
+            case ParsingGraph.Condition.TrueUntilLifted(node, gen) => s"Lift(${nodeString(node)} after $gen)"
+            case ParsingGraph.Condition.TrueUntilAlive(node, gen) => s"Alive(${nodeString(node)} after $gen)"
+            case ParsingGraph.Condition.FalseUntilLifted(node, gen) => s"Wait(${nodeString(node)} after $gen)"
         }
     }
 

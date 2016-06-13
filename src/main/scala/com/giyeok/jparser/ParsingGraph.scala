@@ -49,25 +49,31 @@ object ParsingGraph {
 
         // evaluate return: (현재 상황에서 이 조건을 가진 results를 사용해도 되는지/아닌지, 이 조건을 다음에 어떻게 바꿔야 하는지)
         // - edge에 붙어있는 Condition에서는 _1은 의미가 없고 _2가 Value(false)로 나오는 경우 그 엣지를 제거하면 되고, 그 외의 경우엔 엣지의 Condition을 _2로 바꾸면 된다
-        def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition
+        def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition
         def eligible: Boolean
         def neg: Condition
     }
     object Condition {
         val True: Condition = Value(true)
         val False: Condition = Value(false)
-        def Lift(node: Node): Condition = TrueUntilLifted(node)
-        def Wait(node: Node): Condition = FalseUntilLifted(node)
-        def Alive(node: Node): Condition = TrueUntilAlive(node)
+        def Lift(node: Node, pendedUntilGen: Int): Condition = TrueUntilLifted(node, pendedUntilGen)
+        def Wait(node: Node, pendedUntilGen: Int): Condition = FalseUntilLifted(node, pendedUntilGen)
+        def Alive(node: Node, pendedUntilGen: Int): Condition = TrueUntilAlive(node, pendedUntilGen)
         def conjunct(conds: Condition*): Condition = {
             if (conds forall { _.permanentTrue }) True
             else if (conds exists { _.permanentFalse }) False
-            else And(conds.toSet filterNot { _.permanentTrue })
+            else {
+                val conds1 = conds.toSet filterNot { _.permanentTrue }
+                if (conds1.size == 1) conds1.head else And(conds1)
+            }
         }
         def disjunct(conds: Condition*): Condition = {
             if (conds exists { _.permanentTrue }) True
             else if (conds forall { _.permanentFalse }) False
-            else Or(conds.toSet filterNot { _.permanentFalse })
+            else {
+                val conds1 = conds.toSet filterNot { _.permanentFalse }
+                if (conds1.size == 1) conds1.head else Or(conds1)
+            }
         }
 
         // 지금부터 영영 true 혹은 false임을 의미
@@ -78,7 +84,7 @@ object ParsingGraph {
             def permanentTrue = value == true
             def permanentFalse = value == false
 
-            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = this
+            def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = this
             def eligible = value
             def neg: Condition = Value(!value)
         }
@@ -89,13 +95,15 @@ object ParsingGraph {
             def permanentTrue = conds forall { _.permanentTrue }
             def permanentFalse = conds forall { _.permanentFalse }
 
-            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+            def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 conds.foldLeft(Condition.True) { (cc, condition) =>
-                    Condition.conjunct(condition.evaluate(results, aliveNodes), cc)
+                    Condition.conjunct(condition.evaluate(gen, results, aliveNodes), cc)
                 }
             }
             def eligible = conds forall { _.eligible }
-            def neg: Condition = Or(conds map { _.neg })
+            def neg: Condition = {
+                Condition.disjunct((conds map { _.neg }).toSeq: _*)
+            }
         }
         case class Or(conds: Set[Condition]) extends Condition {
             def nodes = conds flatMap { _.nodes }
@@ -104,93 +112,128 @@ object ParsingGraph {
             def permanentTrue = conds exists { _.permanentTrue }
             def permanentFalse = conds exists { _.permanentFalse }
 
-            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+            def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 conds.foldLeft(Condition.False) { (cc, condition) =>
-                    Condition.disjunct(condition.evaluate(results, aliveNodes), cc)
+                    Condition.disjunct(condition.evaluate(gen, results, aliveNodes), cc)
                 }
             }
             def eligible = conds exists { _.eligible }
-            def neg: Condition = And(conds map { _.neg })
+            def neg: Condition = {
+                Condition.conjunct((conds map { _.neg }).toSeq: _*)
+            }
         }
         // 기존의 Lift type trigger에 해당
         // - node가 완성되기 전에는 true, 완성된 이후에는 false, (당연히) 영영 완성되지 않으면 항상 true
-        case class TrueUntilLifted(node: Node) extends Condition {
+        case class TrueUntilLifted(node: Node, pendedUntilGen: Int) extends Condition {
             def nodes = Set(node)
-            def shiftGen(shiftGen: Int) = TrueUntilLifted(node.shiftGen(shiftGen))
+            def shiftGen(shiftGen: Int) = TrueUntilLifted(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
 
             def permanentTrue = false
             def permanentFalse = false
 
-            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
-                // node가 완전히 완성되었으면(될 수 있으면)(Condition이 Value(true)이면, 즉 condition.permanentTrue이면) Value(false)
-                // node가 results에서 조건부로 완성되면 그 조건들의 disjunction(or)의 negation을 반환
-                // node가 results에는 없고 aliveNodes에 현있으면 아직 모르는 상황(이고 현재는 true인 상황)이므로 this
-                // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(true)
-                results.of(node) match {
-                    case Some(resultsMap) =>
-                        // 대상이 완성될 수 있는 시점에 나는 false가 돼야 함
-                        val resultConditions = resultsMap.keys
-                        // if (resultConditions exists { _.permanentTrue }) Condition.False else ???
-                        Condition.disjunct(resultConditions.toSeq: _*).evaluate(results, aliveNodes).neg
-                    case None =>
-                        if (aliveNodes contains node) this
-                        else Condition.True
+            def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+                if (gen < pendedUntilGen) {
+                    // pendedUntilGen 이전에는 평가 보류
+                    this
+                } else {
+                    // node가 완전히 완성되었으면(될 수 있으면)(Condition이 Value(true)이면, 즉 condition.permanentTrue이면) Value(false)
+                    // node가 results에서 조건부로 완성되면 그 조건들의 disjunction(or)의 negation을 반환
+                    // node가 results에는 없고 aliveNodes에 현있으면 아직 모르는 상황(이고 현재는 true인 상황)이므로 this
+                    // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(true)
+                    results.of(node) match {
+                        case Some(resultsMap) =>
+                            // 대상이 완성될 수 있는 시점에 나는 false가 돼야 함
+                            val resultConditions = resultsMap.keys
+                            // if (resultConditions exists { _.permanentTrue }) Condition.False else ???
+                            Condition.disjunct(resultConditions.toSeq: _*).evaluate(gen, results, aliveNodes).neg
+                        case None =>
+                            if (aliveNodes contains node) this
+                            else Condition.True
+                    }
                 }
             }
             def eligible = true
             def neg: Condition = {
-                // TODO 아마 이거 아닐거임
-                FalseUntilLifted(node)
+                FalseUntilLifted(node, pendedUntilGen)
             }
         }
         // 기존의 Wait type trigger에 해당
         // - node가 완성되기 전에는 false, 완성된 이후에는 true, (당연히) 영영 완성되지 않으면 항상 false
-        case class FalseUntilLifted(node: Node) extends Condition {
+        case class FalseUntilLifted(node: Node, pendedUntilGen: Int) extends Condition {
             def nodes = Set(node)
-            def shiftGen(shiftGen: Int) = FalseUntilLifted(node.shiftGen(shiftGen))
+            def shiftGen(shiftGen: Int) = FalseUntilLifted(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
 
             def permanentTrue = false
             def permanentFalse = false
 
-            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
-                // node가 완전히 완성되었으면 Value(true)
-                // node가 results에서 조건부로 완성되면 그 조건들의 disjunction(or)를 반환
-                // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황(이고 현재는 false인 상황)이므로 this
-                // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(false)
-                results.of(node) match {
-                    case Some(resultsMap) =>
-                        // 대상이 완성될 수 있는 시점에만 나도 true가 될 수 있음
-                        val resultConditions = resultsMap.keys
-                        // if (resultConditions exists { _.permanentTrue }) Condition.True else ???
-                        Condition.disjunct(resultConditions.toSeq: _*).evaluate(results, aliveNodes)
-                    case None =>
-                        if (aliveNodes contains node) this
-                        else Condition.False
+            def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+                if (gen < pendedUntilGen) {
+                    // pendedUntilGen 이전에는 평가 보류
+                    this
+                } else {
+                    // node가 완전히 완성되었으면 Value(true)
+                    // node가 results에서 조건부로 완성되면 그 조건들의 disjunction(or)를 반환
+                    // node가 results에는 없고 aliveNodes에 있으면 아직 모르는 상황(이고 현재는 false인 상황)이므로 this
+                    // node가 results에도 없고 aliveNodes에도 없으면 영원히 node는 완성될 가능성이 없으므로 Value(false)
+                    results.of(node) match {
+                        case Some(resultsMap) =>
+                            // 대상이 완성될 수 있는 시점에만 나도 true가 될 수 있음
+                            val resultConditions = resultsMap.keys
+                            // if (resultConditions exists { _.permanentTrue }) Condition.True else ???
+                            Condition.disjunct(resultConditions.toSeq: _*).evaluate(gen, results, aliveNodes)
+                        case None =>
+                            if (aliveNodes contains node) this
+                            else Condition.False
+                    }
                 }
             }
             def eligible = false
             def neg: Condition = {
-                // TODO 아마 이거 아닐거임
-                TrueUntilLifted(node)
+                TrueUntilLifted(node, pendedUntilGen)
             }
         }
 
         // 기존의 Alive type trigger에 해당
         // - node가 evaluate 시점에 살아있으면 false, 죽어있으면 true
-        case class TrueUntilAlive(node: Node) extends Condition {
+        case class TrueUntilAlive(node: Node, pendedUntilGen: Int) extends Condition {
             def nodes = Set(node)
-            def shiftGen(shiftGen: Int) = TrueUntilAlive(node.shiftGen(shiftGen))
+            def shiftGen(shiftGen: Int) = TrueUntilAlive(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
 
             def permanentTrue = false
             def permanentFalse = false
 
-            def evaluate[R <: ParseResult](results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
-                // (results에 관계 없이) node가 aliveNodes에 있으면 Condition.False, aliveNodes에 없으면 Condition.True
-                if (aliveNodes contains node) Condition.False
-                else Condition.True
+            def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+                if (gen < pendedUntilGen) {
+                    // pendedUntilGen 이전에는 평가 보류
+                    this
+                } else {
+                    // (results에 관계 없이) node가 aliveNodes에 있으면 Condition.False, aliveNodes에 없으면 Condition.True
+                    if (aliveNodes contains node) Condition.False
+                    else Condition.True
+                }
             }
             def eligible = true
-            def neg: Condition = ???
+            def neg: Condition = FalseUntilAlive(node, pendedUntilGen)
+        }
+        case class FalseUntilAlive(node: Node, pendedUntilGen: Int) extends Condition {
+            def nodes = Set(node)
+            def shiftGen(shiftGen: Int) = TrueUntilAlive(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
+
+            def permanentTrue = false
+            def permanentFalse = false
+
+            def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
+                if (gen < pendedUntilGen) {
+                    // pendedUntilGen 이전에는 평가 보류
+                    this
+                } else {
+                    // (results에 관계 없이) node가 aliveNodes에 없으면 Condition.False, aliveNodes에 있으면 Condition.True
+                    if (aliveNodes contains node) Condition.True
+                    else Condition.False
+                }
+            }
+            def eligible = false
+            def neg: Condition = TrueUntilAlive(node, pendedUntilGen)
         }
     }
 

@@ -16,46 +16,46 @@ trait ParsingTasks[R <: ParseResult, Graph <: ParsingGraph[R]] {
 trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks[R, Graph] {
     val grammar: Grammar
 
-    def newNode(symbol: Symbol): Node = symbol match {
-        case s: Terminal => TermNode(s, 0)
+    def newNode(symbol: Symbol, gen: Int): Node = symbol match {
+        case s: Terminal => TermNode(s, gen)
 
-        case s: Except => AtomicNode(s, 0)(Some(newNode(s.except)))
+        case s: Except => AtomicNode(s, gen)(Some(newNode(s.except, gen)))
 
-        case s: AtomicNonterm => AtomicNode(s, 0)(None)
-        case s: Sequence => SequenceNode(s, 0, 0, 0)
+        case s: AtomicNonterm => AtomicNode(s, gen)(None)
+        case s: Sequence => SequenceNode(s, 0, gen, gen)
     }
 
-    def deriveNode(baseNode: NontermNode): Set[Edge] = {
+    def deriveNode(baseNode: NontermNode, gen: Int): Set[Edge] = {
         def deriveAtomic(symbol: AtomicNonterm): Set[Edge] = symbol match {
             case Start =>
-                Set(SimpleEdge(baseNode, newNode(grammar.startSymbol), Condition.True))
+                Set(SimpleEdge(baseNode, newNode(grammar.startSymbol, gen), Condition.True))
             case Nonterminal(nonterminalName) =>
-                grammar.rules(nonterminalName) map { s => SimpleEdge(baseNode, newNode(s), Condition.True) }
+                grammar.rules(nonterminalName) map { s => SimpleEdge(baseNode, newNode(s, gen), Condition.True) }
             case OneOf(syms) =>
-                syms map { s => SimpleEdge(baseNode, newNode(s), Condition.True) }
+                syms map { s => SimpleEdge(baseNode, newNode(s, gen), Condition.True) }
             case Repeat(sym, lower) =>
                 val baseSeq = Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
                 val repeatSeq = Sequence(Seq(symbol, sym), Set())
-                Set(SimpleEdge(baseNode, newNode(baseSeq), Condition.True),
-                    SimpleEdge(baseNode, newNode(repeatSeq), Condition.True))
+                Set(SimpleEdge(baseNode, newNode(baseSeq, gen), Condition.True),
+                    SimpleEdge(baseNode, newNode(repeatSeq, gen), Condition.True))
             case Except(sym, except) =>
                 // baseNode가 BaseNode인 경우는 실제 파싱에선 생길 수 없고 테스트 중에만 발생 가능
                 // 일반적인 경우에는 baseNode가 AtomicNode이고 liftBlockTrigger가 k.symbol.except 가 들어있어야 함
-                Set(SimpleEdge(baseNode, newNode(sym), Condition.True))
+                Set(SimpleEdge(baseNode, newNode(sym, gen), Condition.True))
             case Proxy(sym) =>
-                Set(SimpleEdge(baseNode, newNode(sym), Condition.True))
+                Set(SimpleEdge(baseNode, newNode(sym, gen), Condition.True))
             case Backup(sym, backup) =>
-                val preferNode = newNode(sym)
+                val preferNode = newNode(sym, gen)
                 Set(SimpleEdge(baseNode, preferNode, Condition.True),
-                    SimpleEdge(baseNode, newNode(backup), Condition.Lift(preferNode)))
+                    SimpleEdge(baseNode, newNode(backup, gen), Condition.Lift(preferNode, gen)))
             case Join(sym, join) =>
-                Set(JoinEdge(baseNode, newNode(sym), newNode(join)))
+                Set(JoinEdge(baseNode, newNode(sym, gen), newNode(join, gen)))
             case Longest(sym) =>
                 // baseNode가 NewAtomicNode이고 reservedRevertter가 Some(Trigger.Type.Lift)여야 함
-                Set(SimpleEdge(baseNode, newNode(sym), Condition.True))
+                Set(SimpleEdge(baseNode, newNode(sym, gen), Condition.True))
             case EagerLongest(sym) =>
                 // baseNode가 NewAtomicNode이고 reservedRevertter가 Some(Trigger.Type.Alive)여야 함
-                Set(SimpleEdge(baseNode, newNode(sym), Condition.True))
+                Set(SimpleEdge(baseNode, newNode(sym, gen), Condition.True))
             // Except를 제외하고는 모두 liftBlockTrigger가 비어있어야 함
             case LookaheadIs(_) | LookaheadExcept(_) => ??? // must not be called
         }
@@ -64,9 +64,9 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
             val sym = symbol.seq(pointer)
             if (pointer > 0 && pointer < symbol.seq.size) {
                 // whitespace only between symbols
-                (symbol.whitespace + sym) map { newNode _ } map { SimpleEdge(baseNode, _, Condition.True) }
+                (symbol.whitespace + sym) map { newNode(_, gen) } map { SimpleEdge(baseNode, _, Condition.True) }
             } else {
-                Set(SimpleEdge(baseNode, newNode(sym), Condition.True))
+                Set(SimpleEdge(baseNode, newNode(sym, gen), Condition.True))
             }
         }
 
@@ -82,15 +82,15 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
         baseNode.symbol match {
             case baseNodeSymbol: Lookahead =>
                 val condition = baseNodeSymbol match {
-                    case LookaheadIs(lookahead) => Condition.Wait(newNode(lookahead))
-                    case LookaheadExcept(except) => Condition.Lift(newNode(except))
+                    case LookaheadIs(lookahead) => Condition.Wait(newNode(lookahead, nextGen), nextGen)
+                    case LookaheadExcept(except) => Condition.Lift(newNode(except, nextGen), nextGen)
                 }
                 val newNodes = condition.nodes -- cc.nodes
                 val newDeriveTasks = newNodes collect { case node: NontermNode => DeriveTask(nextGen, node) }
                 (cc.withNodes(newNodes).asInstanceOf[Graph], Seq(FinishingTask(nextGen, baseNode, resultFunc.empty(), condition)) ++ newDeriveTasks)
             case _ =>
                 // 1. Derivation
-                val newEdges = deriveNode(baseNode)
+                val newEdges = deriveNode(baseNode, nextGen)
 
                 // NOTE derive된 엣지 중 revertTriggers의 조건이 cc.results에서 이미 만족된 게 있는 경우는 생기지 않는다고 가정한다
                 // - 즉, lookahead/backup 조건이 nullable일 수 없다
@@ -193,8 +193,8 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 val longestRevertCondition: Condition = node match {
                     case node: AtomicNode =>
                         node.symbol match {
-                            case s: Longest => Condition.Lift(node)
-                            case s: EagerLongest => Condition.Alive(node)
+                            case s: Longest => Condition.Lift(node, nextGen)
+                            case s: EagerLongest => Condition.Alive(node, nextGen)
                             case _ => Condition.True
                         }
                     case _ =>
