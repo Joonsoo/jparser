@@ -9,8 +9,8 @@ trait ParsingTasks[R <: ParseResult, Graph <: ParsingGraph[R]] {
     sealed trait Task
     case class DeriveTask(nextGen: Int, baseNode: NontermNode) extends Task
     // node가 finishable해져서 lift하면 afterKernel의 커널과 parsed의 노드를 갖게 된다는 의미
-    case class FinishingTask(nextGen: Int, node: Node, result: R, condition: Condition) extends Task
-    case class SequenceProgressTask(nextGen: Int, node: SequenceNode, child: R, childSymbol: Symbol, condition: Condition) extends Task
+    case class FinishingTask(nextGen: Int, node: Node, resultWithType: ParseResultWithType[R], condition: Condition) extends Task
+    case class SequenceProgressTask(nextGen: Int, node: SequenceNode, childAndSymbol: BindedResult[R], condition: Condition) extends Task
 }
 
 trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks[R, Graph] {
@@ -87,7 +87,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                 }
                 val newNodes = condition.nodes -- cc.nodes
                 val newDeriveTasks = newNodes collect { case node: NontermNode => DeriveTask(nextGen, node) }
-                (cc.withNodes(newNodes).asInstanceOf[Graph], Seq(FinishingTask(nextGen, baseNode, resultFunc.empty(), condition)) ++ newDeriveTasks)
+                (cc.withNodes(newNodes).asInstanceOf[Graph], Seq(FinishingTask(nextGen, baseNode, EmptyResult(resultFunc.empty()), condition)) ++ newDeriveTasks)
             case _ =>
                 // 1. Derivation
                 val newEdges = deriveNode(baseNode, nextGen)
@@ -132,7 +132,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                 // 3. 새로 derive된 노드 중 바로 끝낼 수 있는 노드들에 대해 FinishingTask를 만든다
                 val newFinishingTasks: Set[FinishingTask] = newNodes collect {
                     case node @ SequenceNode(Sequence(seq, _), 0, _, _) if seq.isEmpty => // 이 시점에서 SequenceNode의 pointer는 반드시 0
-                        FinishingTask(nextGen, node, resultFunc.sequence(), Condition.True)
+                        FinishingTask(nextGen, node, SequenceResult(resultFunc.sequence()), Condition.True)
                 }
 
                 // 4. existingNodes 중 cc.results에 들어 있는 것들로 baseNode에 대한 FinishingTask나 ProgressTask를 만들어준다
@@ -143,12 +143,12 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                         val results = cc.results.of(end).get
                         results map { tr =>
                             val (resultCondition, result) = tr
-                            val finishedResult = resultFunc.bind(end.symbol, result)
+                            val finishedResult = BindedResult(resultFunc.bind(end.symbol, result), end.symbol)
                             baseNode match {
                                 case baseNode: AtomicNode =>
                                     FinishingTask(nextGen, baseNode, finishedResult, Condition.conjunct(resultCondition, edgeAliveCondition))
                                 case baseNode: SequenceNode =>
-                                    SequenceProgressTask(nextGen, baseNode, finishedResult, end.symbol, Condition.conjunct(resultCondition, edgeAliveCondition))
+                                    SequenceProgressTask(nextGen, baseNode, finishedResult, Condition.conjunct(resultCondition, edgeAliveCondition))
                             }
                         }
                     // TODO JoinEdge는 안해줘도 되는지 고민해보기
@@ -162,17 +162,31 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
 
 trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks[R, Graph] {
     def finishingTask(task: FinishingTask, cc: Graph): (Graph, Seq[Task]) = {
-        val FinishingTask(nextGen, node, result, condition) = task
+        val FinishingTask(nextGen, node, resultAndSymbol, condition) = task
 
         // NOTE finish되는 노드에 의해 발동되는 revertTrigger는 없다고 가정한다. 위의 deriveTask의 설명과 동일
+
+        // assertion
+        resultAndSymbol match {
+            case EmptyResult(result) =>
+                assert(node.symbol.isInstanceOf[Lookahead])
+            case TermResult(result) =>
+                assert(node.symbol.isInstanceOf[Terminal])
+            case SequenceResult(result) =>
+                assert(node.symbol.isInstanceOf[Sequence])
+            case JoinResult(result) =>
+                assert(node.symbol.isInstanceOf[Join])
+            case BindedResult(result, symbol) =>
+                assert(node.symbol.isInstanceOf[AtomicNonterm])
+        }
 
         // 1. cc의 기존 result가 있는지 확인하고 기존 result가 있으면 merge하고 없으면 새로 생성
         val updatedResult: Option[R] = {
             cc.results.of(node, condition) match {
                 case Some(baseResult) =>
-                    val merged = resultFunc.merge(baseResult, result)
+                    val merged = resultFunc.merge(baseResult, resultAndSymbol.result)
                     if (merged != baseResult) Some(merged) else None
-                case None => Some(result)
+                case None => Some(resultAndSymbol.result)
             }
         }
 
@@ -204,14 +218,15 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 val incomingSimpleEdges = cc.incomingSimpleEdgesTo(node)
                 val incomingJoinEdges = cc.incomingJoinEdgesTo(node)
 
-                val finishedResult = resultFunc.bind(node.symbol, result)
+                val finishedResult = resultFunc.bind(node.symbol, resultAndSymbol.result)
+                val bindedResult = BindedResult(finishedResult, node.symbol)
 
                 assert(incomingSimpleEdges forall { _.end == node })
                 val simpleEdgeTasks: Set[Task] = incomingSimpleEdges collect {
                     case SimpleEdge(incoming: AtomicNode, _, edgeRevertTriggers) =>
-                        FinishingTask(nextGen, incoming, finishedResult, Condition.conjunct(condition, edgeRevertTriggers, longestRevertCondition))
+                        FinishingTask(nextGen, incoming, bindedResult, Condition.conjunct(condition, edgeRevertTriggers, longestRevertCondition))
                     case SimpleEdge(incoming: SequenceNode, _, edgeRevertTriggers) =>
-                        SequenceProgressTask(nextGen, incoming, finishedResult, node.symbol, Condition.conjunct(condition, edgeRevertTriggers, longestRevertCondition))
+                        SequenceProgressTask(nextGen, incoming, bindedResult, Condition.conjunct(condition, edgeRevertTriggers, longestRevertCondition))
                 }
 
                 val joinEdgeTasks: Set[Task] = incomingJoinEdges flatMap {
@@ -220,7 +235,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                             cc.results.of(join) match {
                                 case Some(results) =>
                                     results map { r =>
-                                        FinishingTask(nextGen, start, resultFunc.join(finishedResult, r._2), Condition.conjunct(condition, r._1, longestRevertCondition))
+                                        FinishingTask(nextGen, start, JoinResult(resultFunc.join(finishedResult, r._2)), Condition.conjunct(condition, r._1, longestRevertCondition))
                                     }
                                 case None => Seq()
                             }
@@ -229,7 +244,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                             cc.results.of(end) match {
                                 case Some(results) =>
                                     results map { r =>
-                                        FinishingTask(nextGen, start, resultFunc.join(r._2, finishedResult), Condition.conjunct(condition, r._1, longestRevertCondition))
+                                        FinishingTask(nextGen, start, JoinResult(resultFunc.join(r._2, finishedResult)), Condition.conjunct(condition, r._1, longestRevertCondition))
                                     }
                                 case None => Seq()
                             }
@@ -244,7 +259,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
     }
 
     def sequenceProgressTask(task: SequenceProgressTask, cc: Graph): (Graph, Seq[Task]) = {
-        val SequenceProgressTask(nextGen, node, child, childSymbol, condition) = task
+        val SequenceProgressTask(nextGen, node, BindedResult(child, childSymbol), condition) = task
         // 1. cc에
         // - 기존의 progress에 append
         // - pointer + 1된 SequenceNode 만들어서
@@ -269,7 +284,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                     // - FinishingTask만 만들어 주면 될듯
                     val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
                     val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> (resultFunc.append(kv._2, child)) }
-                    val finishingTasks = appendedProgresses map { kv => FinishingTask(nextGen, node, kv._2, kv._1) }
+                    val finishingTasks = appendedProgresses map { kv => FinishingTask(nextGen, node, SequenceResult(kv._2), kv._1) }
                     (cc, finishingTasks.toSeq)
                 } else {
                     // append되어도 finish할 수는 없는 상태

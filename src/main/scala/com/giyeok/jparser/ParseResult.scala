@@ -26,6 +26,26 @@ trait ParseResultFunc[R <: ParseResult] {
     def substTermFunc(r: R, input: Inputs.Input): R
 }
 
+sealed trait ParseResultWithType[R <: ParseResult] {
+    val result: R
+    def mapResult(func: R => R): ParseResultWithType[R]
+}
+case class EmptyResult[R <: ParseResult](result: R) extends ParseResultWithType[R] {
+    def mapResult(func: R => R): EmptyResult[R] = EmptyResult(func(result))
+}
+case class TermResult[R <: ParseResult](result: R) extends ParseResultWithType[R] {
+    def mapResult(func: R => R): TermResult[R] = TermResult(func(result))
+}
+case class SequenceResult[R <: ParseResult](result: R) extends ParseResultWithType[R] {
+    def mapResult(func: R => R): SequenceResult[R] = SequenceResult(func(result))
+}
+case class JoinResult[R <: ParseResult](result: R) extends ParseResultWithType[R] {
+    def mapResult(func: R => R): JoinResult[R] = JoinResult(func(result))
+}
+case class BindedResult[R <: ParseResult](result: R, symbol: Symbol) extends ParseResultWithType[R] {
+    def mapResult(func: R => R): BindedResult[R] = BindedResult(func(result), symbol)
+}
+
 case class ParseForest(trees: Set[ParseResultTree.Node]) extends ParseResult
 
 object ParseForestFunc extends ParseResultFunc[ParseForest] {

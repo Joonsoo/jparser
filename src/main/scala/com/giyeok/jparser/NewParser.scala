@@ -96,7 +96,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 (updatedGraph, updatedTermNodes)
             }
             val termFinishingTasks: Set[Task] = termNodes collect {
-                case termNode: TermNode if termNode.symbol accept input => FinishingTask(nextGen, termNode, resultFunc.terminal(input), Condition.True)
+                case termNode: TermNode if termNode.symbol accept input => FinishingTask(nextGen, termNode, TermResult(resultFunc.terminal(input)), Condition.True)
             }
             (newGraph, termFinishingTasks)
         }
@@ -146,13 +146,13 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 val deriveTasks = newDerivables map { derivableNode => DeriveTask(nextGen, derivableNode.shiftGen(gen).asInstanceOf[NontermNode]) }
                 // - dgraph.baseResults 각각에 대해 FinishingTask 만들어주고
                 val finishingTasks = dgraph.baseResults map { kv =>
-                    val (condition, result) = kv
-                    FinishingTask(nextGen, baseNode, resultFunc.substTermFunc(result, input), condition.shiftGen(gen))
+                    val (condition, resultAndSymbol) = kv
+                    FinishingTask(nextGen, baseNode, resultAndSymbol mapResult { resultFunc.substTermFunc(_, input) }, condition.shiftGen(gen))
                 }
                 // - dgraph.baseProgresses 각각에 대해 SequenceProgressTask 만들어주고
                 val progressTasks = dgraph.baseProgresses map { kv =>
-                    val (condition, (child, childSymbol)) = kv
-                    SequenceProgressTask(nextGen, baseNode.asInstanceOf[SequenceNode], resultFunc.substTermFunc(child, input), childSymbol, condition.shiftGen(gen))
+                    val (condition, childAndSymbol) = kv
+                    SequenceProgressTask(nextGen, baseNode.asInstanceOf[SequenceNode], childAndSymbol mapResult { resultFunc.substTermFunc(_, input) }, condition.shiftGen(gen))
                 }
                 val newTasks: Set[Task] = (deriveTasks ++ finishingTasks ++ progressTasks)
 
@@ -174,12 +174,12 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         task match {
                             case DeriveTask(_, node: SequenceNode) =>
                                 val immediateProgresses: Seq[SequenceProgressTask] = (derivationFunc.derive(node).baseProgresses map { kv =>
-                                    val (condition, (result, resultSymbol)) = kv
+                                    val (condition, childAndSymbol) = kv
 
                                     // triggers를 nextGen만큼 shift해주기
                                     val shiftedCondition: Condition = condition.shiftGen(nextGen)
 
-                                    SequenceProgressTask(nextGen, node.asInstanceOf[SequenceNode], result, resultSymbol, shiftedCondition)
+                                    SequenceProgressTask(nextGen, node.asInstanceOf[SequenceNode], childAndSymbol, shiftedCondition)
                                 }).toSeq
 
                                 rec(rest ++ immediateProgresses, graphCC, derivablesCC + node.asInstanceOf[SequenceNode])
@@ -202,7 +202,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                     case Some(condition) =>
                                         // 여기서 condition이 만족되는 동안에는 이 lift가 실패한 것으로 동작해야 한다
                                         // TODO permanentFalse가 아닌 조건이 올라왔으면 condition을 task.condition에 합쳐서 진행한다 - 우선은 conjunct로 합쳐지게 되어 있는데.. 맞는듯?
-                                        val (newGraphCC, newTasks) = finishingTask(FinishingTask(task.nextGen, task.node, task.result, Condition.conjunct(task.condition, condition)), graphCC)
+                                        val (newGraphCC, newTasks) = finishingTask(FinishingTask(task.nextGen, task.node, task.resultWithType, Condition.conjunct(task.condition, condition)), graphCC)
                                         rec(rest ++ newTasks, newGraphCC, derivablesCC)
                                 }
                             case task: SequenceProgressTask =>
@@ -374,7 +374,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
     val initialContext = {
         val startNode = AtomicNode(Start, 0)(None)
         val emptyResult: Results[Node, R] = {
-            val baseResults = derivationFunc.derive(startNode).baseResults
+            val baseResults = derivationFunc.derive(startNode).baseResults mapValues { _.result }
             if (baseResults.isEmpty) Results[Node, R]() else Results[Node, R](startNode -> baseResults)
         }
         ParsingCtx(
