@@ -31,8 +31,8 @@ trait GrammarTestCases extends Samples {
 
     lazy val parser: NewParser[ParseForest] = {
         val dgraph = new DerivationSliceFunc(grammar, ParseForestFunc)
-        // val parser = new NewParser(grammar, ParseForestFunc, dgraph)
-        val parser = new NaiveParser(grammar, ParseForestFunc, dgraph)
+        val parser = new NewParser(grammar, ParseForestFunc, dgraph)
+        // val parser = new NaiveParser(grammar, ParseForestFunc, dgraph)
         parser
     }
 }

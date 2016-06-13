@@ -241,7 +241,8 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
                         }
                         Seq(conn)
                     case ParsingGraph.ReferEdge(start, end) =>
-                        val conn = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED | ZestStyles.CONNECTIONS_DASH_DOT, nodesMap(start), nodesMap(end)), start, end)
+                        val conn = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end)), start, end)
+                        conn.setLineStyle(SWT.LINE_DASH)
                         Seq(conn)
                     case ParsingGraph.JoinEdge(start, end, join) =>
                         val conn = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end)), start, end)
