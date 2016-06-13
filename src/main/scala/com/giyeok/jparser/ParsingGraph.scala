@@ -58,7 +58,7 @@ object ParsingGraph {
         val False: Condition = Value(false)
         def Lift(node: Node, pendedUntilGen: Int): Condition = TrueUntilLifted(node, pendedUntilGen)
         def Wait(node: Node, pendedUntilGen: Int): Condition = FalseUntilLifted(node, pendedUntilGen)
-        def Alive(node: Node, pendedUntilGen: Int): Condition = TrueUntilAlive(node, pendedUntilGen)
+        def Alive(node: Node, pendedUntilGen: Int): Condition = FalseIfAlive(node, pendedUntilGen)
         def conjunct(conds: Condition*): Condition = {
             if (conds forall { _.permanentTrue }) True
             else if (conds exists { _.permanentFalse }) False
@@ -195,9 +195,9 @@ object ParsingGraph {
 
         // 기존의 Alive type trigger에 해당
         // - node가 evaluate 시점에 살아있으면 false, 죽어있으면 true
-        case class TrueUntilAlive(node: Node, pendedUntilGen: Int) extends Condition {
+        case class FalseIfAlive(node: Node, pendedUntilGen: Int) extends Condition {
             def nodes = Set(node)
-            def shiftGen(shiftGen: Int) = TrueUntilAlive(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
+            def shiftGen(shiftGen: Int) = FalseIfAlive(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
 
             def permanentTrue = false
             def permanentFalse = false
@@ -208,16 +208,16 @@ object ParsingGraph {
                     this
                 } else {
                     // (results에 관계 없이) node가 aliveNodes에 있으면 Condition.False, aliveNodes에 없으면 Condition.True
-                    if (aliveNodes contains node) Condition.False
-                    else Condition.True
+                    val survived = (aliveNodes contains node)
+                    if (survived) Condition.False else Condition.True
                 }
             }
             def eligible = true
-            def neg: Condition = FalseUntilAlive(node, pendedUntilGen)
+            def neg: Condition = TrueIfAlive(node, pendedUntilGen)
         }
-        case class FalseUntilAlive(node: Node, pendedUntilGen: Int) extends Condition {
+        case class TrueIfAlive(node: Node, pendedUntilGen: Int) extends Condition {
             def nodes = Set(node)
-            def shiftGen(shiftGen: Int) = TrueUntilAlive(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
+            def shiftGen(shiftGen: Int) = TrueIfAlive(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
 
             def permanentTrue = false
             def permanentFalse = false
@@ -228,12 +228,12 @@ object ParsingGraph {
                     this
                 } else {
                     // (results에 관계 없이) node가 aliveNodes에 없으면 Condition.False, aliveNodes에 있으면 Condition.True
-                    if (aliveNodes contains node) Condition.True
-                    else Condition.False
+                    val survived = (aliveNodes contains node)
+                    if (survived) Condition.True else Condition.False
                 }
             }
             def eligible = false
-            def neg: Condition = TrueUntilAlive(node, pendedUntilGen)
+            def neg: Condition = FalseIfAlive(node, pendedUntilGen)
         }
     }
 
@@ -371,10 +371,7 @@ trait ParsingGraph[R <: ParseResult] {
     // start에서 ends(중 아무곳이나) 도달할 수 있는 모든 경로만 포함하는 서브그래프를 반환한다
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
     def subgraphIn(start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
-        // - condition을 통하지 않고는 접근 불가능한 노드들은 subgraph에 포함되지 않는다
-        // - 하지만 lift를 통해 그 결과가 바뀔 수 있는 노드들은 포함되어야 한다
-
-        // backward순환할 때는 condition들은 모두 무시한다
+        // edge나 result에 붙은 condition의 nodes는 무시해도 된다
         def traverseBackward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
                 val incomingEdges = incomingEdgesTo(task)
@@ -391,13 +388,12 @@ trait ParsingGraph[R <: ParseResult] {
                 traverseBackward(rest ++ (reachableNodes -- nodesCC).toList, nodesCC ++ reachableNodes, edgesCC ++ reachableEdges)
             case List() => (nodesCC, edgesCC)
         }
-        // forward순회할 때는 condition들의 노드도 모두 포함한다
         def traverseForward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
                 val outgoingEdges = outgoingEdgesFrom(task)
                 val reachables: Set[(Set[Node], Edge)] = outgoingEdges map {
-                    case edge @ SimpleEdge(_, end, aliveCondition) =>
-                        (Set(end) ++ (aliveCondition.nodes intersect nodes), edge)
+                    case edge @ SimpleEdge(_, end, _) =>
+                        (Set(end), edge)
                     case edge @ ReferEdge(_, end) =>
                         (Set[Node](end), edge)
                     case edge @ JoinEdge(_, end, join) =>

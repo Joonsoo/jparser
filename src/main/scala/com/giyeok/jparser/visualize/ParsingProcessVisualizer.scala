@@ -39,11 +39,10 @@ import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
 import org.eclipse.swt.layout.FormLayout
 import com.giyeok.jparser.DerivationSliceFunc
+import com.giyeok.jparser.NaiveParser
 
-class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
+class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
     type Parser = NewParser[ParseForest]
-
-    val parser = new NewParser(grammar, ParseForestFunc, new DerivationSliceFunc(grammar, ParseForestFunc))
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -403,16 +402,25 @@ class ParsingProcessVisualizer(grammar: Grammar, source: Seq[ConcreteInput], dis
 }
 
 object ParsingProcessVisualizer {
-    def start(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+    def startNewParser(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+        val parser = new NewParser(grammar, ParseForestFunc, new DerivationSliceFunc(grammar, ParseForestFunc))
+        start(grammar, parser, source, display, shell)
+    }
+    def startNaiveParser(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+        val parser = new NaiveParser(grammar, ParseForestFunc, new DerivationSliceFunc(grammar, ParseForestFunc))
+        start(grammar, parser, source, display, shell)
+    }
+    def start(grammar: Grammar, parser: NewParser[ParseForest], source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
         val resources = BasicVisualizeResources
-        new ParsingProcessVisualizer(grammar, source, display, shell, resources).start()
+        new ParsingProcessVisualizer(grammar, parser, source, display, shell, resources).start()
     }
 
     def start(grammar: Grammar, source: Seq[ConcreteInput]): Unit = {
         val display = Display.getDefault()
         val shell = new Shell(display)
 
-        start(grammar, source, display, shell)
+        val parser = new NewParser(grammar, ParseForestFunc, new DerivationSliceFunc(grammar, ParseForestFunc))
+        start(grammar, parser, source, display, shell)
 
         while (!shell.isDisposed()) {
             if (!display.readAndDispatch()) {

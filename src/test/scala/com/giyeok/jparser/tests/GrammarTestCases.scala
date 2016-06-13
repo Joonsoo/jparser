@@ -5,6 +5,8 @@ import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.NewParser
 import com.giyeok.jparser.DerivationSliceFunc
 import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.NaiveParser
+import com.giyeok.jparser.ParseForest
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.ConcreteSource]
@@ -27,11 +29,10 @@ trait AmbiguousSamples extends Samples {
 trait GrammarTestCases extends Samples {
     val grammar: Grammar
 
-    lazy val parser = {
+    lazy val parser: NewParser[ParseForest] = {
         val dgraph = new DerivationSliceFunc(grammar, ParseForestFunc)
-        // println(s"DerivationSliceFunc(${grammar.name}) created")
-        val parser = new NewParser(grammar, ParseForestFunc, dgraph)
-        // println(s"Parser(${grammar.name}) created")
+        // val parser = new NewParser(grammar, ParseForestFunc, dgraph)
+        val parser = new NaiveParser(grammar, ParseForestFunc, dgraph)
         parser
     }
 }

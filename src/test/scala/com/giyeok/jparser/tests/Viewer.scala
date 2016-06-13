@@ -21,6 +21,7 @@ import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer
 import org.eclipse.swt.widgets.MessageBox
 import com.giyeok.jparser.visualize.DerivationGraphVisualizer
+import com.giyeok.jparser.Inputs.ConcreteInput
 
 trait Viewer {
     val allTests: Set[GrammarTestCases]
@@ -52,8 +53,10 @@ trait Viewer {
 
         val testButtons = new org.eclipse.swt.widgets.Composite(rightFrame, SWT.BORDER)
         testButtons.setLayout(new FillLayout(SWT.HORIZONTAL))
+        val parserTypeButton = new org.eclipse.swt.widgets.Button(testButtons, SWT.PUSH)
         val proceedView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
         val derivationView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
+        parserTypeButton.setText("Parser Type")
         proceedView.setText("Proceed View")
         derivationView.setText("Derivation View")
 
@@ -101,11 +104,48 @@ trait Viewer {
                 testCases.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
             }
         })
+
+        object ParserTypes extends Enumeration {
+            val Naive, New = Value
+        }
+
+        var selectedParserType: ParserTypes.Value = ParserTypes.New
+        def setParserType(newParserType: ParserTypes.Value): Unit = {
+            selectedParserType = newParserType
+            selectedParserType match {
+                case ParserTypes.Naive => parserTypeButton.setText("Naive Parser")
+                case ParserTypes.New => parserTypeButton.setText("New Parser")
+            }
+        }
+        setParserType(ParserTypes.New)
+        def nextParserType(): Unit = {
+            selectedParserType match {
+                case ParserTypes.Naive => setParserType(ParserTypes.New)
+                case ParserTypes.New => setParserType(ParserTypes.Naive)
+
+            }
+        }
+        def startParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+            selectedParserType match {
+                case ParserTypes.Naive =>
+                    ParsingProcessVisualizer.startNaiveParser(grammar, source, display, shell)
+                case ParserTypes.New =>
+                    ParsingProcessVisualizer.startNewParser(grammar, source, display, shell)
+            }
+        }
+
+        parserTypeButton.addListener(SWT.Selection, new Listener() {
+            def handleEvent(e: Event): Unit = {
+                nextParserType()
+            }
+        })
+
         textList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 val grammar = sortedTestCases(grammarList.getSelectionIndex()).grammar
                 val source = shownTexts(textList.getSelectionIndex())
-                ParsingProcessVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+
+                startParserVisualizer(grammar, source.toSeq, display, new Shell(display))
             }
         })
 
@@ -114,7 +154,7 @@ trait Viewer {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedTestCases(grammarList.getSelectionIndex()).grammar
                     val source = Inputs.fromString(testText.getText())
-                    ParsingProcessVisualizer.start(grammar, source.toSeq, display, new Shell(display))
+                    startParserVisualizer(grammar, source.toSeq, display, new Shell(display))
                 }
             }
         })
