@@ -11,51 +11,49 @@ trait ParsingTasks[R <: ParseResult, Graph <: ParsingGraph[R]] {
     // node가 finishable해져서 lift하면 afterKernel의 커널과 parsed의 노드를 갖게 된다는 의미
     case class FinishingTask(nextGen: Int, node: Node, resultWithType: ParseResultWithType[R], condition: Condition) extends Task
     case class SequenceProgressTask(nextGen: Int, node: SequenceNode, childAndSymbol: BindedResult[R], condition: Condition) extends Task
+
+    def nodeOf(symbol: Symbol, gen: Int): Node = symbol match {
+        case s: Terminal => TermNode(s, gen)
+        case s: AtomicNonterm => AtomicNode(s, gen)
+        case s: Sequence => SequenceNode(s, 0, gen, gen)
+    }
 }
 
 trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks[R, Graph] {
     val grammar: Grammar
 
-    def newNode(symbol: Symbol, gen: Int): Node = symbol match {
-        case s: Terminal => TermNode(s, gen)
-
-        case s: Except => AtomicNode(s, gen)(Some(newNode(s.except, gen)))
-
-        case s: AtomicNonterm => AtomicNode(s, gen)(None)
-        case s: Sequence => SequenceNode(s, 0, gen, gen)
-    }
-
     def deriveNode(baseNode: NontermNode, gen: Int): Set[Edge] = {
         def deriveAtomic(symbol: AtomicNonterm): Set[Edge] = symbol match {
             case Start =>
-                Set(SimpleEdge(baseNode, newNode(grammar.startSymbol, gen), Condition.True))
+                Set(SimpleEdge(baseNode, nodeOf(grammar.startSymbol, gen), Condition.True))
             case Nonterminal(nonterminalName) =>
-                grammar.rules(nonterminalName) map { s => SimpleEdge(baseNode, newNode(s, gen), Condition.True) }
+                grammar.rules(nonterminalName) map { s => SimpleEdge(baseNode, nodeOf(s, gen), Condition.True) }
             case OneOf(syms) =>
-                syms map { s => SimpleEdge(baseNode, newNode(s, gen), Condition.True) }
+                syms map { s => SimpleEdge(baseNode, nodeOf(s, gen), Condition.True) }
             case Repeat(sym, lower) =>
                 val baseSeq = Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
                 val repeatSeq = Sequence(Seq(symbol, sym), Set())
-                Set(SimpleEdge(baseNode, newNode(baseSeq, gen), Condition.True),
-                    SimpleEdge(baseNode, newNode(repeatSeq, gen), Condition.True))
+                Set(SimpleEdge(baseNode, nodeOf(baseSeq, gen), Condition.True),
+                    SimpleEdge(baseNode, nodeOf(repeatSeq, gen), Condition.True))
             case Except(sym, except) =>
                 // baseNode가 BaseNode인 경우는 실제 파싱에선 생길 수 없고 테스트 중에만 발생 가능
                 // 일반적인 경우에는 baseNode가 AtomicNode이고 liftBlockTrigger가 k.symbol.except 가 들어있어야 함
-                Set(SimpleEdge(baseNode, newNode(sym, gen), Condition.True))
+                Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True),
+                    SimpleEdge(baseNode, nodeOf(except, gen), Condition.True))
             case Proxy(sym) =>
-                Set(SimpleEdge(baseNode, newNode(sym, gen), Condition.True))
+                Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True))
             case Backup(sym, backup) =>
-                val preferNode = newNode(sym, gen)
+                val preferNode = nodeOf(sym, gen)
                 Set(SimpleEdge(baseNode, preferNode, Condition.True),
-                    SimpleEdge(baseNode, newNode(backup, gen), Condition.Lift(preferNode, gen)))
+                    SimpleEdge(baseNode, nodeOf(backup, gen), Condition.Lift(preferNode, gen)))
             case Join(sym, join) =>
-                Set(JoinEdge(baseNode, newNode(sym, gen), newNode(join, gen)))
+                Set(JoinEdge(baseNode, nodeOf(sym, gen), nodeOf(join, gen)))
             case Longest(sym) =>
                 // baseNode가 NewAtomicNode이고 reservedRevertter가 Some(Trigger.Type.Lift)여야 함
-                Set(SimpleEdge(baseNode, newNode(sym, gen), Condition.True))
+                Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True))
             case EagerLongest(sym) =>
                 // baseNode가 NewAtomicNode이고 reservedRevertter가 Some(Trigger.Type.Alive)여야 함
-                Set(SimpleEdge(baseNode, newNode(sym, gen), Condition.True))
+                Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True))
             // Except를 제외하고는 모두 liftBlockTrigger가 비어있어야 함
             case LookaheadIs(_) | LookaheadExcept(_) => ??? // must not be called
         }
@@ -64,9 +62,9 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
             val sym = symbol.seq(pointer)
             if (pointer > 0 && pointer < symbol.seq.size) {
                 // whitespace only between symbols
-                (symbol.whitespace + sym) map { newNode(_, gen) } map { SimpleEdge(baseNode, _, Condition.True) }
+                (symbol.whitespace + sym) map { nodeOf(_, gen) } map { SimpleEdge(baseNode, _, Condition.True) }
             } else {
-                Set(SimpleEdge(baseNode, newNode(sym, gen), Condition.True))
+                Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True))
             }
         }
 
@@ -82,8 +80,8 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
         baseNode.symbol match {
             case baseNodeSymbol: Lookahead =>
                 val condition = baseNodeSymbol match {
-                    case LookaheadIs(lookahead) => Condition.Wait(newNode(lookahead, nextGen), nextGen)
-                    case LookaheadExcept(except) => Condition.Lift(newNode(except, nextGen), nextGen)
+                    case LookaheadIs(lookahead) => Condition.Wait(nodeOf(lookahead, nextGen), nextGen)
+                    case LookaheadExcept(except) => Condition.Lift(nodeOf(except, nextGen), nextGen)
                 }
                 val newNodes = condition.nodes -- cc.nodes
                 val newDeriveTasks = newNodes collect { case node: NontermNode => DeriveTask(nextGen, node) }
@@ -103,17 +101,12 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                 val newNodes = {
                     assert(newEdges forall { _.start == baseNode })
                     // derive된 엣지의 타겟들만 모으고
-                    val newNodes0 = newEdges flatMap {
+                    val newNodes = newEdges flatMap {
                         case SimpleEdge(start, end, aliveCondition) => Set(end) ++ aliveCondition.nodes
                         case JoinEdge(start, end, join) => Set(end, join)
                     }
-                    // 그 중 liftBlockTrigger가 있으면 그것들도 모아서
-                    val newNodes1 = newNodes0 flatMap {
-                        case n: AtomicNode => Set(n) ++ n.liftBlockTrigger
-                        case n => Set(n)
-                    }
                     // 기존에 있던 것들 제외
-                    newNodes1 -- cc.nodes
+                    newNodes -- cc.nodes
                 }
 
                 val newDeriveTasks: Set[DeriveTask] = newNodes collect {
@@ -204,54 +197,64 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
             // - result로 들어온 내용은 node의 symbol로 bind가 안 되어 있으므로 여기서 만드는 태스크에서는 resultFunc.bind(node.symbol, result) 로 줘야함 
             val newTasks: Seq[Task] = {
                 // AtomicNode.reservedReverterType 처리
-                val longestRevertCondition: Condition = node match {
-                    case node: AtomicNode =>
-                        node.symbol match {
-                            case s: Longest => Condition.Lift(node, nextGen)
-                            case s: EagerLongest => Condition.Alive(node, nextGen)
-                            case _ => Condition.True
-                        }
-                    case _ =>
-                        Condition.True
-                }
-
-                val incomingSimpleEdges = cc.incomingSimpleEdgesTo(node)
-                val incomingJoinEdges = cc.incomingJoinEdgesTo(node)
-
-                val finishedResult = resultFunc.bind(node.symbol, resultAndSymbol.result)
-                val bindedResult = BindedResult(finishedResult, node.symbol)
-
-                assert(incomingSimpleEdges forall { _.end == node })
-                val simpleEdgeTasks: Set[Task] = incomingSimpleEdges collect {
-                    case SimpleEdge(incoming: AtomicNode, _, edgeRevertTriggers) =>
-                        FinishingTask(nextGen, incoming, bindedResult, Condition.conjunct(condition, edgeRevertTriggers, longestRevertCondition))
-                    case SimpleEdge(incoming: SequenceNode, _, edgeRevertTriggers) =>
-                        SequenceProgressTask(nextGen, incoming, bindedResult, Condition.conjunct(condition, edgeRevertTriggers, longestRevertCondition))
-                }
-
-                val joinEdgeTasks: Set[Task] = incomingJoinEdges flatMap {
-                    case JoinEdge(start, end, join) =>
-                        if (node == end) {
-                            cc.results.of(join) match {
-                                case Some(results) =>
-                                    results map { r =>
-                                        FinishingTask(nextGen, start, JoinResult(resultFunc.join(finishedResult, r._2)), Condition.conjunct(condition, r._1, longestRevertCondition))
-                                    }
-                                case None => Seq()
-                            }
+                val nodeCreatedCondition: Condition = node.symbol match {
+                    case s: Longest => Condition.Lift(node, nextGen)
+                    case s: EagerLongest => Condition.Alive(node, nextGen)
+                    case s: Except =>
+                        assert(resultAndSymbol.isInstanceOf[BindedResult[_]])
+                        val BindedResult(result, resultSymbol) = resultAndSymbol.asInstanceOf[BindedResult[R]]
+                        if (s.sym == resultSymbol) {
+                            Condition.Lift(nodeOf(s.except, node.beginGen), node.beginGen)
                         } else {
-                            assert(node == join)
-                            cc.results.of(end) match {
-                                case Some(results) =>
-                                    results map { r =>
-                                        FinishingTask(nextGen, start, JoinResult(resultFunc.join(r._2, finishedResult)), Condition.conjunct(condition, r._1, longestRevertCondition))
-                                    }
-                                case None => Seq()
-                            }
+                            assert(s.except == resultSymbol)
+                            // except가 lift되어 올라왔으면 그냥 무시하면 되므로
+                            Condition.False
                         }
+                    case _ => Condition.True
                 }
 
-                simpleEdgeTasks.toSeq ++ joinEdgeTasks.toSeq
+                if (nodeCreatedCondition.permanentFalse) {
+                    Seq()
+                } else {
+
+                    val incomingSimpleEdges = cc.incomingSimpleEdgesTo(node)
+                    val incomingJoinEdges = cc.incomingJoinEdgesTo(node)
+
+                    val finishedResult = resultFunc.bind(node.symbol, resultAndSymbol.result)
+                    val bindedResult = BindedResult(finishedResult, node.symbol)
+
+                    assert(incomingSimpleEdges forall { _.end == node })
+                    val simpleEdgeTasks: Set[Task] = incomingSimpleEdges collect {
+                        case SimpleEdge(incoming: AtomicNode, _, edgeRevertTriggers) =>
+                            FinishingTask(nextGen, incoming, bindedResult, Condition.conjunct(condition, edgeRevertTriggers, nodeCreatedCondition))
+                        case SimpleEdge(incoming: SequenceNode, _, edgeRevertTriggers) =>
+                            SequenceProgressTask(nextGen, incoming, bindedResult, Condition.conjunct(condition, edgeRevertTriggers, nodeCreatedCondition))
+                    }
+
+                    val joinEdgeTasks: Set[Task] = incomingJoinEdges flatMap {
+                        case JoinEdge(start, end, join) =>
+                            if (node == end) {
+                                cc.results.of(join) match {
+                                    case Some(results) =>
+                                        results map { r =>
+                                            FinishingTask(nextGen, start, JoinResult(resultFunc.join(finishedResult, r._2)), Condition.conjunct(condition, r._1, nodeCreatedCondition))
+                                        }
+                                    case None => Seq()
+                                }
+                            } else {
+                                assert(node == join)
+                                cc.results.of(end) match {
+                                    case Some(results) =>
+                                        results map { r =>
+                                            FinishingTask(nextGen, start, JoinResult(resultFunc.join(r._2, finishedResult)), Condition.conjunct(condition, r._1, nodeCreatedCondition))
+                                        }
+                                    case None => Seq()
+                                }
+                            }
+                    }
+
+                    simpleEdgeTasks.toSeq ++ joinEdgeTasks.toSeq
+                }
             }
 
             (ncc, newTasks)

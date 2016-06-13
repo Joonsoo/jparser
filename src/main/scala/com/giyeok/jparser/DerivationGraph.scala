@@ -13,7 +13,7 @@ import com.giyeok.jparser.DGraph.BaseSequenceNode
 
 object DGraph {
     sealed trait BaseNode
-    class BaseAtomicNode(_symbol: AtomicNonterm) extends AtomicNode(_symbol, 0)(None) with BaseNode
+    class BaseAtomicNode(_symbol: AtomicNonterm) extends AtomicNode(_symbol, 0) with BaseNode
     class BaseSequenceNode(_symbol: Sequence, _pointer: Int) extends SequenceNode(_symbol, _pointer, 0, 0) with BaseNode
 }
 

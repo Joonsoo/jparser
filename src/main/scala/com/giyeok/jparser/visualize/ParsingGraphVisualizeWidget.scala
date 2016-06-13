@@ -219,14 +219,6 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
                 n.setData(node)
                 nodesMap(node) = n
 
-                node match {
-                    case node: ParsingGraph.AtomicNode if node.liftBlockTrigger.isDefined =>
-                        // liftBlockTrigger 표시
-                        val liftBlockTriggerNode = nodeOf(node.liftBlockTrigger.get)
-                        new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, liftBlockTriggerNode, n).setText("BlockLiftIfLifted")
-                    case _ => // nothing to do
-                }
-
                 n
         }
     }
@@ -654,7 +646,7 @@ class ParsingContextGraphVisualizeWidget(parent: Composite, style: Int, val gram
         case Some(result) =>
             val resultNode = resultOf(result)
             resultNode.getFigure.setBorder(new LineBorder(ColorConstants.green, 1))
-            val startNode = AtomicNode(Start, 0)(None)
+            val startNode = AtomicNode(Start, 0)
             if (context.graph.nodes contains startNode) {
                 new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodeOf(startNode), resultNode).setLineColor(ColorConstants.green)
             }
@@ -714,9 +706,6 @@ class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Gramma
 
     // derivation tip node는 노란 배경으로
     transition.nextDerivables foreach { nodeOf(_).setBackgroundColor(ColorConstants.yellow) }
-
-    // liftBlock된 노드는 회색 배경으로
-    transition.liftBlockedNodes.keys foreach { nodeOf(_).setBackgroundColor(ColorConstants.gray) }
 }
 
 class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#TrimmingTransition)

@@ -10,6 +10,7 @@ import Inputs._
 object ParsingGraph {
     sealed trait Node {
         val symbol: Symbol
+        val beginGen: Int
 
         def shiftGen(shiftGen: Int): Node
     }
@@ -23,9 +24,8 @@ object ParsingGraph {
     }
 
     // liftBlockTrigger, liftRevertTrigger는 symbol에 따라서만 결정되는 것이므로 equals 등에서 고려할 필요가 없다
-    case class AtomicNode(symbol: AtomicNonterm, beginGen: Int)(val liftBlockTrigger: Option[Node]) extends NontermNode {
-        def noLiftBlockTrigger = AtomicNode(symbol, beginGen)(None)
-        def shiftGen(shiftGen: Int) = AtomicNode(symbol, beginGen + shiftGen)(liftBlockTrigger map { _.shiftGen(shiftGen) })
+    case class AtomicNode(symbol: AtomicNonterm, beginGen: Int) extends NontermNode {
+        def shiftGen(shiftGen: Int) = AtomicNode(symbol, beginGen + shiftGen)
 
         override def toString = {
             s"(${symbol.toShortString}, $beginGen)"
@@ -390,10 +390,6 @@ trait ParsingGraph[R <: ParseResult] {
         // forward순회할 때는 condition들의 노드도 모두 포함한다
         def traverseForward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
-                val liftBlockTriggerOpt: Option[Node] = task match {
-                    case task: AtomicNode => task.liftBlockTrigger
-                    case _ => None
-                }
                 val outgoingEdges = outgoingEdgesFrom(task)
                 val reachables: Set[(Set[Node], Edge)] = outgoingEdges map {
                     case edge @ SimpleEdge(_, end, aliveCondition) =>
@@ -402,7 +398,7 @@ trait ParsingGraph[R <: ParseResult] {
                     case edge @ JoinEdge(_, end, join) =>
                         (Set(end, join), edge)
                 }
-                val (reachableNodes, reachableEdges) = reachables.foldLeft((liftBlockTriggerOpt.toSet, Set[Edge]())) { (m, i) => (m._1 ++ i._1, m._2 + i._2) }
+                val (reachableNodes, reachableEdges) = reachables.foldLeft((Set[Node](), Set[Edge]())) { (m, i) => (m._1 ++ i._1, m._2 + i._2) }
                 traverseForward(rest ++ (reachableNodes -- nodesCC).toList, nodesCC ++ reachableNodes, edgesCC ++ reachableEdges)
             case List() => (nodesCC, edgesCC)
         }
