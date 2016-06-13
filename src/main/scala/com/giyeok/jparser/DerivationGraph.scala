@@ -37,6 +37,7 @@ case class DGraph[R <: ParseResult](
     val nonBaseNodes = nodes - baseNode
     lazy val edgesFromBaseNode = edges filter {
         case SimpleEdge(start, _, _) => start == baseNode
+        case ReferEdge(start, _) => start == baseNode
         case JoinEdge(start, _, _) =>
             // 이런 경우는 일반적으로 발생하진 않아야 함(visualize나 test시에만 발생 가능)
             start == baseNode

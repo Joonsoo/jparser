@@ -39,7 +39,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                 // baseNode가 BaseNode인 경우는 실제 파싱에선 생길 수 없고 테스트 중에만 발생 가능
                 // 일반적인 경우에는 baseNode가 AtomicNode이고 liftBlockTrigger가 k.symbol.except 가 들어있어야 함
                 Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True),
-                    SimpleEdge(baseNode, nodeOf(except, gen), Condition.True))
+                    ReferEdge(baseNode, nodeOf(except, gen)))
             case Proxy(sym) =>
                 Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True))
             case Backup(sym, backup) =>
@@ -84,8 +84,9 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                     case LookaheadExcept(except) => Condition.Lift(nodeOf(except, nextGen), nextGen)
                 }
                 val newNodes = condition.nodes -- cc.nodes
+                val newEdges: Set[Edge] = condition.nodes map { ReferEdge(baseNode, _) }
                 val newDeriveTasks = newNodes collect { case node: NontermNode => DeriveTask(nextGen, node) }
-                (cc.withNodes(newNodes).asInstanceOf[Graph], Seq(FinishingTask(nextGen, baseNode, EmptyResult(resultFunc.empty()), condition)) ++ newDeriveTasks)
+                (cc.withNodesEdges(newNodes, newEdges).asInstanceOf[Graph], Seq(FinishingTask(nextGen, baseNode, EmptyResult(resultFunc.empty()), condition)) ++ newDeriveTasks)
             case _ =>
                 // 1. Derivation
                 val newEdges = deriveNode(baseNode, nextGen)
@@ -103,6 +104,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                     // derive된 엣지의 타겟들만 모으고
                     val newNodes = newEdges flatMap {
                         case SimpleEdge(start, end, aliveCondition) => Set(end) ++ aliveCondition.nodes
+                        case ReferEdge(start, end) => Set(end)
                         case JoinEdge(start, end, join) => Set(end, join)
                     }
                     // 기존에 있던 것들 제외

@@ -79,6 +79,10 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                             newNodes(start).asInstanceOf[NontermNode],
                             newNodes(end),
                             condition.shiftGen(gen))
+                    case ReferEdge(start, end) =>
+                        ReferEdge(
+                            newNodes(start).asInstanceOf[NontermNode],
+                            newNodes(end))
                     case JoinEdge(start, end, join) =>
                         JoinEdge(
                             newNodes(start).asInstanceOf[NontermNode],
@@ -131,6 +135,10 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                             newNodes(start).asInstanceOf[NontermNode],
                             newNodes(end),
                             condition.shiftGen(gen))
+                    case ReferEdge(start, end) =>
+                        ReferEdge(
+                            newNodes(start).asInstanceOf[NontermNode],
+                            newNodes(end))
                     case JoinEdge(start, end, join) =>
                         JoinEdge(
                             newNodes(start).asInstanceOf[NontermNode],
@@ -229,6 +237,19 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 }
             }
 
+            val nextResults = graph.results.entries.foldLeft(Results[Node, R]()) { (cc, entry) =>
+                val (node, condition, result) = entry
+                val evaluatedCondition = condition.evaluate(gen, preliftResults, preliftNodes)
+                if (evaluatedCondition.permanentFalse) cc else {
+                    cc.of(node, evaluatedCondition) match {
+                        case Some(existingResult) =>
+                            cc.update(node, evaluatedCondition, resultFunc.merge(existingResult, result))
+                        case None =>
+                            cc.update(node, evaluatedCondition, result)
+                    }
+                }
+            }
+
             // graph.nodes 중 progress가 없는 sequence node는 없애주어야 함
             val validNodes = graph.nodes filter {
                 case node: SequenceNode => nextProgresses.of(node).isDefined
@@ -242,12 +263,14 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         val evaluatedCondition = condition.evaluate(gen, preliftResults, preliftNodes)
                         if (evaluatedCondition.permanentFalse) None else Some(SimpleEdge(start, end, evaluatedCondition))
                     } else None
+                case edge @ ReferEdge(start, end) =>
+                    if ((validNodes contains start) && (validNodes contains end)) Some(edge) else None
                 case edge @ JoinEdge(start, end, join) =>
                     if ((validNodes contains start) && (validNodes contains end) && (validNodes contains join)) Some(edge) else None
             }
 
             // result는 이후에 lift할 때 없애고 시작하기 때문에 의미 없어서 따로 필터링할 필요 없음
-            graph.create(graph.nodes, nextEdges, graph.results, nextProgresses)
+            graph.create(graph.nodes, nextEdges, nextResults, nextProgresses)
         }
     }
 

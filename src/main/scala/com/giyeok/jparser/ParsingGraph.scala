@@ -239,6 +239,7 @@ object ParsingGraph {
 
     sealed trait Edge { val start: NontermNode }
     case class SimpleEdge(start: NontermNode, end: Node, aliveCondition: Condition) extends Edge
+    case class ReferEdge(start: NontermNode, end: Node) extends Edge
     case class JoinEdge(start: NontermNode, end: Node, join: Node) extends Edge {
         // start must be a node with join
         assert(start.symbol.isInstanceOf[Join])
@@ -325,6 +326,8 @@ trait ParsingGraph[R <: ParseResult] {
             e match {
                 case edge @ SimpleEdge(_, end, _) =>
                     addEdge(cc, end, edge)
+                case edge @ ReferEdge(_, end) =>
+                    addEdge(cc, end, edge)
                 case edge @ JoinEdge(_, end, join) =>
                     addEdge(addEdge(cc, end, edge), join, edge)
             }
@@ -348,8 +351,8 @@ trait ParsingGraph[R <: ParseResult] {
     def withNodeEdgesProgresses(newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
         create(nodes + newNode, edges ++ newEdges, results, progresses.update(newProgresses))
     }
-    def withNodes(newNodes: Set[Node]): ParsingGraph[R] = {
-        create(nodes ++ newNodes, edges, results, progresses)
+    def withNodesEdges(newNodes: Set[Node], newEdges: Set[Edge]): ParsingGraph[R] = {
+        create(nodes ++ newNodes, edges ++ newEdges, results, progresses)
     }
     def withNodesEdgesProgresses(newNodes: Set[Node], newEdges: Set[Edge], newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
         assert(newNodes forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
@@ -377,8 +380,9 @@ trait ParsingGraph[R <: ParseResult] {
                 val incomingEdges = incomingEdgesTo(task)
                 val reachables: Set[(Set[Node], Option[Edge])] = incomingEdges map {
                     case edge @ SimpleEdge(start, _, _) =>
-                        val newNodes: Set[Node] = Set(start)
-                        (newNodes, Some(edge))
+                        (Set[Node](start), Some(edge))
+                    case edge @ ReferEdge(start, _) =>
+                        (Set[Node](start), Some(edge))
                     case edge @ JoinEdge(start, end, join) =>
                         if ((end == task && (nodesCC contains join)) || (join == task && (nodesCC contains end))) (Set[Node](start), Some(edge))
                         else (Set[Node](), None)
@@ -393,8 +397,9 @@ trait ParsingGraph[R <: ParseResult] {
                 val outgoingEdges = outgoingEdgesFrom(task)
                 val reachables: Set[(Set[Node], Edge)] = outgoingEdges map {
                     case edge @ SimpleEdge(_, end, aliveCondition) =>
-                        val newNodes: Set[Node] = Set(end) ++ (aliveCondition.nodes intersect nodes)
-                        (newNodes, edge)
+                        (Set(end) ++ (aliveCondition.nodes intersect nodes), edge)
+                    case edge @ ReferEdge(_, end) =>
+                        (Set[Node](end), edge)
                     case edge @ JoinEdge(_, end, join) =>
                         (Set(end, join), edge)
                 }

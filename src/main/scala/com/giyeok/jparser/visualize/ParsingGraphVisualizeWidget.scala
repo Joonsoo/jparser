@@ -240,6 +240,9 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
                             conn.setText(aliveConditionString(condition))
                         }
                         Seq(conn)
+                    case ParsingGraph.ReferEdge(start, end) =>
+                        val conn = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED | ZestStyles.CONNECTIONS_DASH_DOT, nodesMap(start), nodesMap(end)), start, end)
+                        Seq(conn)
                     case ParsingGraph.JoinEdge(start, end, join) =>
                         val conn = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end)), start, end)
                         val connJoin = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(join)), start, end)
@@ -360,8 +363,9 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
             case ParsingGraph.Condition.And(conds) => conds map { aliveConditionString _ } mkString " & "
             case ParsingGraph.Condition.Or(conds) => conds map { aliveConditionString _ } mkString " | "
             case ParsingGraph.Condition.TrueUntilLifted(node, gen) => s"Lift(${nodeString(node)} after $gen)"
-            case ParsingGraph.Condition.TrueUntilAlive(node, gen) => s"Alive(${nodeString(node)} after $gen)"
             case ParsingGraph.Condition.FalseUntilLifted(node, gen) => s"Wait(${nodeString(node)} after $gen)"
+            case ParsingGraph.Condition.TrueUntilAlive(node, gen) => s"Alive(${nodeString(node)} after $gen)"
+            case ParsingGraph.Condition.FalseUntilAlive(node, gen) => s"!Alive(${nodeString(node)} after $gen)"
         }
     }
 
