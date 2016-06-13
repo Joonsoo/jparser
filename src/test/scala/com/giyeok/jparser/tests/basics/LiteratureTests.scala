@@ -9,6 +9,26 @@ import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet
 import com.giyeok.jparser.tests.AmbiguousSamples
 
+object MyPaper1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "MyPaper Grammar 1"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("N").plus),
+        "N" -> ListSet(
+            n("A"),
+            n("B")),
+        "A" -> ListSet(
+            c('a').plus),
+        "B" -> ListSet(
+            c('b')))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]("aab")
+}
+
 object Earley1970AE extends Grammar with GrammarTestCases with StringSamples {
     val name = "Earley 1970 Grammar AE"
     val rules: RuleMap = ListMap(
@@ -30,6 +50,7 @@ object Earley1970AE extends Grammar with GrammarTestCases with StringSamples {
 
 object PaperTests {
     val tests: Set[GrammarTestCases] = Set(
+        MyPaper1,
         Earley1970AE)
 }
 
