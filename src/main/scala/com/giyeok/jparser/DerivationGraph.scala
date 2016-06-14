@@ -25,8 +25,8 @@ case class DGraph[R <: ParseResult](
         progresses: Results[SequenceNode, R],
         baseResults: Map[Condition, ParseResultWithType[R]],
         baseProgresses: Map[Condition, BindedResult[R]]) extends ParsingGraph[R] with TerminalInfo[R] {
-    // baseNode가 nodes에 포함되어야 함
-    assert(nodes contains baseNode.asInstanceOf[Node])
+    // baseNode가 nodes에 포함되어야 함 - subgraph할 때 그렇지 않을 수 있어서 assert 제외
+    // assert(nodes contains baseNode.asInstanceOf[Node])
     // baseNode를 제외하고는 전부 BaseNode가 아니어야 함
     assert((nodes - baseNode) forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
 
@@ -222,23 +222,25 @@ class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseR
 
             val (liftedGraph, derivables) = lift(dgraph, 1, eligibleTerminalNodes)
             // assert(liftedGraph.progresses.keyNodesSet == derivables)
-            val trimmedGraph = liftedGraph.subgraphIn(baseNode, derivables.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[DGraph[R]] }
+            val trimmedGraph = liftedGraph.subgraphIn(Set(baseNode), derivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[DGraph[R]]
 
             // trimmedGraph에 등장하는 노드는 모두 gen이 0이나 1이어야 함
             // - 원래 있던 노드는 gen이 0이고 새로 생긴 노드는 gen이 1이어야 함
 
-            trimmedGraph match {
-                case Some(trimmedGraph) =>
-                    assert(trimmedGraph.results == liftedGraph.results && trimmedGraph.baseResults == liftedGraph.baseResults && trimmedGraph.baseProgresses == liftedGraph.baseProgresses)
-                    val survivedDerivables: Set[NontermNode] = (trimmedGraph.nodes intersect derivables.asInstanceOf[Set[Node]]).asInstanceOf[Set[NontermNode]]
-                    Some(termGroup -> ((trimmedGraph, survivedDerivables)))
-                case None if !(liftedGraph.baseResults.isEmpty) || !(liftedGraph.baseProgresses.isEmpty) =>
+            if (trimmedGraph.nodes contains trimmedGraph.baseNode) {
+                assert(trimmedGraph.results == liftedGraph.results && trimmedGraph.baseResults == liftedGraph.baseResults && trimmedGraph.baseProgresses == liftedGraph.baseProgresses)
+                val survivedDerivables: Set[NontermNode] = (trimmedGraph.nodes intersect derivables.asInstanceOf[Set[Node]]).asInstanceOf[Set[NontermNode]]
+                Some(termGroup -> ((trimmedGraph, survivedDerivables)))
+            } else {
+                if (!(liftedGraph.baseResults.isEmpty) || !(liftedGraph.baseProgresses.isEmpty)) {
                     val sliceGraph = DGraph(baseNode, Set[Node](baseNode), Set(), liftedGraph.results, Results(), liftedGraph.baseResults, liftedGraph.baseProgresses)
                     Some(termGroup -> ((sliceGraph, Set[NontermNode]())))
-                case None if !(liftedGraph.results.isEmpty) =>
+                } else if (!(liftedGraph.results.isEmpty)) {
                     val sliceGraph = DGraph(baseNode, Set[Node](baseNode), Set(), liftedGraph.results, Results(), Map(), Map())
                     Some(termGroup -> ((sliceGraph, Set[NontermNode]())))
-                case None => None
+                } else {
+                    None
+                }
             }
         }).toMap
     }

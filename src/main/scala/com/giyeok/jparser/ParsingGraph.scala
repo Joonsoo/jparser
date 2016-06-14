@@ -398,7 +398,7 @@ trait ParsingGraph[R <: ParseResult] {
 
     // start에서 ends(중 아무곳이나) 도달할 수 있는 모든 경로만 포함하는 서브그래프를 반환한다
     // - 노드가 start로부터 도달 가능하고, ends중 하나 이상으로 도달 가능해야 포함시킨다
-    def subgraphIn(start: Node, ends: Set[Node], resultFunc: ParseResultFunc[R]): Option[ParsingGraph[R]] = {
+    def subgraphIn(starts: Set[Node], ends: Set[Node], resultFunc: ParseResultFunc[R]): ParsingGraph[R] = {
         // edge나 result에 붙은 condition의 nodes는 무시해도 된다
         def traverseBackward(queue: List[Node], nodesCC: Set[Node], edgesCC: Set[Edge]): (Set[Node], Set[Edge]) = queue match {
             case task +: rest =>
@@ -433,16 +433,12 @@ trait ParsingGraph[R <: ParseResult] {
         }
 
         val reachableToEnds = traverseBackward(ends.toList, ends, Set())
-        if (!(reachableToEnds._1 contains start)) {
-            None
-        } else {
-            val reachableFromStarts = traverseForward(List(start), Set(start), Set())
+        val reachableFromStarts = traverseForward(starts.toList, starts, Set())
 
-            val subNodes = reachableToEnds._1 intersect reachableFromStarts._1
-            val subEdges = reachableToEnds._2 intersect reachableFromStarts._2
-            assert(subNodes subsetOf nodes)
-            Some(create(subNodes, subEdges, results, progresses filterKeys subNodes))
-        }
+        val subNodes = reachableToEnds._1 intersect reachableFromStarts._1
+        val subEdges = reachableToEnds._2 intersect reachableFromStarts._2
+        assert(subNodes subsetOf nodes)
+        create(subNodes, subEdges, results, progresses filterKeys subNodes)
     }
 }
 

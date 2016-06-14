@@ -269,8 +269,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                     if ((validNodes contains start) && (validNodes contains end) && (validNodes contains join)) Some(edge) else None
             }
 
-            // result는 이후에 lift할 때 없애고 시작하기 때문에 의미 없어서 따로 필터링할 필요 없음
-            graph.create(graph.nodes, nextEdges, nextResults, nextProgresses)
+            graph.create(validNodes, nextEdges, nextResults, nextProgresses)
         }
     }
 
@@ -313,61 +312,37 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 // 근데 expand될 때 안생겼으면 필요 없어서 안 생긴거 아닌가?
                 // 우선 지금은 slice안된 상태로 dgraph의 모든 노드를 expand하니 확실히 필요 없긴 한데.. slice할 때도 필요 없는거 맞나?
                 // val pendedTermNodes = graph.nodes collect { case node: TermNode if node.symbol accept input => node ensuring (node.beginGen == gen) }
-                val firstExpandTransition = ExpandTransition(s"Gen $gen > (1) First Expansion", graph, expandedGraph, initialTasks.asInstanceOf[Set[NewParser[R]#Task]])
+                val expandTransition = ExpandTransition(s"Gen $gen > (1) Expansion", graph, expandedGraph, initialTasks.asInstanceOf[Set[NewParser[R]#Task]])
 
                 // 2. 1차 lift
-                val (liftedGraph0pre, nextDerivables0) = ParsingCtx.lift(expandedGraph, nextGen, initialTasks, Map())
+                val (liftedGraph, nextDerivables) = ParsingCtx.lift(expandedGraph, nextGen, initialTasks, Map())
 
-                val firstLiftTransition = LiftTransition(s"Gen $gen > (2) First Lift", expandedGraph, liftedGraph0pre, initialTasks.asInstanceOf[Set[NewParser[R]#Task]], nextDerivables0.asInstanceOf[Set[Node]])
+                val liftTransition = LiftTransition(s"Gen $gen > (2) First Lift", expandedGraph, liftedGraph, initialTasks.asInstanceOf[Set[NewParser[R]#Task]], nextDerivables.asInstanceOf[Set[Node]])
 
                 // revert할 때는 (expand할 때 발생한 results + liftedGraph0.results)를 사용해야 함
-                val revertBaseResults = liftedGraph0pre.results.merge(preliftResults, resultFunc)
+                val revertBaseResults = liftedGraph.results.merge(preliftResults, resultFunc)
 
                 // 3. 1차 트리밍
-                (liftedGraph0pre.subgraphIn(startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc)) match {
-                    case Some(liftedGraph0: Graph) =>
-                        val firstLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph0pre, liftedGraph0, startNode, nextDerivables0.asInstanceOf[Set[Node]])
+                val trimmedGraph = liftedGraph.subgraphIn(Set(startNode), nextDerivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[Graph]
+                val firstLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph, trimmedGraph, startNode, nextDerivables.asInstanceOf[Set[Node]])
 
-                        assert(liftedGraph0.results == liftedGraph0pre.results)
+                assert(trimmedGraph.results == liftedGraph.results)
 
-                        // 4. revert
-                        // expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
-                        val revertedGraph: Graph = ParsingCtx.revert(nextGen, liftedGraph0, revertBaseResults, liftedGraph0.nodes)
-                        val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", liftedGraph0, revertedGraph, liftedGraph0, revertBaseResults)
+                // 4. revert
+                // expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
+                val revertedGraph = ParsingCtx.revert(nextGen, trimmedGraph, revertBaseResults, trimmedGraph.nodes)
+                val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", trimmedGraph, revertedGraph, trimmedGraph, revertBaseResults)
 
-                        // 5. 2차 트리밍
-                        val finalGraphOpt = revertedGraph.subgraphIn(startNode, nextDerivables0.asInstanceOf[Set[Node]], resultFunc) map { _.asInstanceOf[Graph] }
-                        finalGraphOpt match {
-                            case Some(finalGraph) =>
-                                val secondLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (5) Second Trimming", revertedGraph, finalGraph, startNode, nextDerivables0.asInstanceOf[Set[Node]])
-                                val nextContext: ParsingCtx = ParsingCtx(nextGen, finalGraph, (nextDerivables0.asInstanceOf[Set[Node]] intersect finalGraph.nodes).asInstanceOf[Set[NontermNode]])
-                                val transition = ParsingCtxTransition(
-                                    Some(firstExpandTransition, firstLiftTransition),
-                                    Some(firstLiftTrimmingTransition, revertTransition),
-                                    Some(secondLiftTrimmingTransition))
-                                (transition, Left(nextContext))
-                            case None =>
-                                val transition = ParsingCtxTransition(
-                                    Some(firstExpandTransition, firstLiftTransition),
-                                    Some(firstLiftTrimmingTransition, revertTransition),
-                                    None)
-                                // TODO unexpected input 맞나?
-                                (transition, Right(UnexpectedInput(input)))
-                        }
-                    case Some(_) => throw new AssertionError("")
-                    case None =>
-                        val transition = ParsingCtxTransition(Some(firstExpandTransition, firstLiftTransition), None, None)
-                        liftedGraph0pre.results.of(startNode) match {
-                            case Some(result) =>
-                                // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
-                                (transition, Left(ParsingCtx(
-                                    nextGen,
-                                    CtxGraph(Set(), Set(), Results(startNode -> result), Results()),
-                                    Set())))
-                            case None =>
-                                (transition, Right(UnexpectedInput(input)))
-                        }
-                }
+                // 5. 2차 트리밍
+                val finalGraph = revertedGraph.subgraphIn(Set[Node](startNode), nextDerivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[Graph]
+
+                val secondLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (5) Second Trimming", revertedGraph, finalGraph, startNode, nextDerivables.asInstanceOf[Set[Node]])
+                val nextContext: ParsingCtx = ParsingCtx(nextGen, finalGraph, (nextDerivables.asInstanceOf[Set[Node]] intersect finalGraph.nodes).asInstanceOf[Set[NontermNode]])
+                val transition = ParsingCtxTransition(
+                    Some(expandTransition, liftTransition),
+                    Some(firstLiftTrimmingTransition, revertTransition),
+                    Some(secondLiftTrimmingTransition))
+                (transition, Left(nextContext))
             }
         }
 
@@ -406,6 +381,7 @@ class NaiveParser[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFun
         override def proceedDetail(input: ConcreteInput): (ParsingCtxTransition, Either[NaiveParsingCtx, ParsingError]) = {
             val nextGen = gen + 1
 
+            // 1. No expansion
             val termFinishingTasks = graph.nodes collect {
                 case node @ TermNode(term, _) if term accept input => FinishingTask(nextGen, node, TermResult(resultFunc.terminal(input)), Condition.True)
             }
@@ -413,51 +389,30 @@ class NaiveParser[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFun
             if (termFinishingTasks.isEmpty) {
                 (ParsingCtxTransition(None, None, None), Right(UnexpectedInput(input)))
             } else {
-                val liftedGraph0 = rec(termFinishingTasks.toList, graph.withNoResults.asInstanceOf[Graph])
-                val newTermNodes: Set[Node] = liftedGraph0.nodes collect { case node @ TermNode(_, `nextGen`) => node }
+                val expandTransition = ExpandTransition(s"Gen $gen > (1) - No Expansion", graph, graph, Set())
 
-                val firstExpandTransition = ExpandTransition(s"Gen $gen > (1) - No Expansion", graph, graph, Set())
-                val firstLiftTransition = LiftTransition(s"Gen $gen > (2) First Lift", graph, liftedGraph0, termFinishingTasks.asInstanceOf[Set[NewParser[R]#Task]], Set())
+                // 2. Lift
+                val liftedGraph = rec(termFinishingTasks.toList, graph.withNoResults.asInstanceOf[Graph])
+                val liftTransition = LiftTransition(s"Gen $gen > (2) Lift", graph, liftedGraph, termFinishingTasks.asInstanceOf[Set[NewParser[R]#Task]], Set())
 
-                liftedGraph0.subgraphIn(startNode, newTermNodes, resultFunc) match {
-                    case Some(liftedGraph: Graph) =>
-                        val firstLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph0, liftedGraph, startNode, newTermNodes)
-                        // 4.revert
-                        val revertedGraph: Graph = ParsingCtx.revert(nextGen, liftedGraph, liftedGraph.results, liftedGraph.nodes)
-                        val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", liftedGraph, revertedGraph, liftedGraph, liftedGraph.results)
+                // 3. Trimming
+                val newTermNodes: Set[Node] = liftedGraph.nodes collect { case node @ TermNode(_, `nextGen`) => node }
+                val trimmedGraph = liftedGraph.subgraphIn(Set(startNode), newTermNodes, resultFunc).asInstanceOf[Graph]
+                val firstTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph, trimmedGraph, startNode, newTermNodes)
 
-                        // 7. 2차 트리밍
-                        val finalGraphOpt = revertedGraph.subgraphIn(startNode, newTermNodes, resultFunc) map { _.asInstanceOf[Graph] }
-                        finalGraphOpt match {
-                            case Some(finalGraph) =>
-                                val secondLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (5) Second Trimming", revertedGraph, finalGraph, startNode, newTermNodes)
-                                val nextContext = new NaiveParsingCtx(nextGen, finalGraph)
-                                val transition = ParsingCtxTransition(
-                                    Some(firstExpandTransition, firstLiftTransition),
-                                    Some(firstLiftTrimmingTransition, revertTransition),
-                                    Some(secondLiftTrimmingTransition))
-                                (transition, Left(nextContext))
-                            case None =>
-                                val transition = ParsingCtxTransition(
-                                    Some(firstExpandTransition, firstLiftTransition),
-                                    Some(firstLiftTrimmingTransition, revertTransition),
-                                    None)
-                                // TODO unexpected input 맞나?
-                                (transition, Right(UnexpectedInput(input)))
-                        }
-                    case Some(_) => throw new AssertionError("")
-                    case None =>
-                        val transition = ParsingCtxTransition(Some(firstExpandTransition, firstLiftTransition), None, None)
-                        liftedGraph0.results.of(startNode) match {
-                            case Some(result) =>
-                                // 파싱 결과는 있는데 더이상 진행할 수 없는 경우
-                                (transition, Left(new NaiveParsingCtx(
-                                    nextGen,
-                                    CtxGraph(Set(), Set(), Results(startNode -> result), Results()))))
-                            case None =>
-                                (transition, Right(UnexpectedInput(input)))
-                        }
-                }
+                // 4. Revert
+                val revertedGraph = ParsingCtx.revert(nextGen, trimmedGraph, trimmedGraph.results, trimmedGraph.nodes)
+                val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", trimmedGraph, revertedGraph, trimmedGraph, trimmedGraph.results)
+
+                // 5. Second trimming
+                val finalGraph = revertedGraph.subgraphIn(Set(startNode), newTermNodes, resultFunc).asInstanceOf[Graph]
+                val secondTrimmingTransition = TrimmingTransition(s"Gen $gen > (5) Second Trimming", revertedGraph, finalGraph, startNode, newTermNodes)
+                val nextContext = new NaiveParsingCtx(nextGen, finalGraph)
+                val transition = ParsingCtxTransition(
+                    Some(expandTransition, liftTransition),
+                    Some(firstTrimmingTransition, revertTransition),
+                    Some(secondTrimmingTransition))
+                (transition, Left(nextContext))
             }
         }
 
