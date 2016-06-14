@@ -103,33 +103,35 @@ object ExceptGrammar3_1 extends Grammar with GrammarTestCases with StringSamples
     val incorrectSamples = Set[String]("abc0")
 }
 
-object ExceptGrammar3_2 extends Grammar with GrammarTestCases with StringSamples {
-    val name = "Except Grammar 3-2 (except with lookahead_except)"
-    val rules: RuleMap = ListMap("S" -> ListSet() /* TODO */ )
+object ExceptGrammar4_1 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "Except Grammar 4_1"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(chars('a' to 'z').repeat(0, 5)).except(c('a').star)))
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]()
-    val incorrectSamples = Set[String]()
+    val correctSamples = Set("abcd", "aaaab", "baaaa")
+    val incorrectSamples = Set("a", "aaaaa", "aaaaaaaaa", "")
 }
 
-object ExceptGrammar3_3 extends Grammar with GrammarTestCases with StringSamples {
-    val name = "Except Grammar 3-3 (except with longest match)"
-    val rules: RuleMap = ListMap("S" -> ListSet() /* TODO */ )
+object ExceptGrammar4_2 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "Except Grammar 4_2"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("N"), i("r")),
+            seq(n("N"), i("ch"))),
+        "N" -> ListSet(
+            n("I").except(n("K"))),
+        "I" -> ListSet(
+            chars('a' to 'z').star),
+        "K" -> ListSet(
+            i("for"),
+            i("foreach")))
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]()
-    val incorrectSamples = Set[String]()
-}
-
-object ExceptGrammar3_4 extends Grammar with GrammarTestCases with StringSamples {
-    val name = "Except Grammar 3-4 (except with eager longest match)"
-    val rules: RuleMap = ListMap("S" -> ListSet() /* TODO */ )
-    val startSymbol = n("S")
-
-    val grammar = this
-    val correctSamples = Set[String]()
+    val correctSamples = Set("abbbbr", "aaaabch", "baaaach", "for", "foreach")
     val incorrectSamples = Set[String]()
 }
 
@@ -142,9 +144,8 @@ object GrammarWithExcept {
         ExceptGrammar1_4,
         ExceptGrammar2,
         ExceptGrammar3_1,
-        ExceptGrammar3_2,
-        ExceptGrammar3_3,
-        ExceptGrammar3_4)
+        ExceptGrammar4_1,
+        ExceptGrammar4_2)
 }
 
 class ExceptGrammarTestSuite1 extends BasicParseTest(GrammarWithExcept.tests)

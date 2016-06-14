@@ -206,7 +206,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                         assert(resultAndSymbol.isInstanceOf[BindedResult[_]])
                         val BindedResult(result, resultSymbol) = resultAndSymbol.asInstanceOf[BindedResult[R]]
                         if (s.sym == resultSymbol) {
-                            Condition.Lift(nodeOf(s.except, node.beginGen), node.beginGen)
+                            Condition.Exclusion(nodeOf(s.except, node.beginGen), nextGen)
                         } else {
                             assert(s.except == resultSymbol)
                             // except가 lift되어 올라왔으면 그냥 무시하면 되므로

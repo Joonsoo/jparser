@@ -29,6 +29,40 @@ object MyPaper1 extends Grammar with GrammarTestCases with StringSamples with Am
     val ambiguousSamples = Set[String]("aab")
 }
 
+object MyPaper2 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "MyPaper Grammar 2"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            oneof(n("A"), n("Z")).plus),
+        "A" -> ListSet(
+            chars('a' to 'b').plus),
+        "Z" -> ListSet(
+            c('z')))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]("abz")
+}
+
+object MyPaper2_1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "MyPaper Grammar 2_1"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            oneof(n("A"), n("Z")).plus),
+        "A" -> ListSet(
+            seq(chars('a' to 'b').plus, lookahead_is(n("Z")))),
+        "Z" -> ListSet(
+            c('z')))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]("abz")
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]()
+}
+
 object Earley1970AE extends Grammar with GrammarTestCases with StringSamples {
     val name = "Earley 1970 Grammar AE"
     val rules: RuleMap = ListMap(
@@ -51,6 +85,8 @@ object Earley1970AE extends Grammar with GrammarTestCases with StringSamples {
 object PaperTests {
     val tests: Set[GrammarTestCases] = Set(
         MyPaper1,
+        MyPaper2,
+        MyPaper2_1,
         Earley1970AE)
 }
 

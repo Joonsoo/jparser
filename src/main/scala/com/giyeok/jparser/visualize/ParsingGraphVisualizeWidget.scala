@@ -363,10 +363,11 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
             case ParsingGraph.Condition.Value(value) => s"$value"
             case ParsingGraph.Condition.And(conds) => conds map { aliveConditionString _ } mkString " & "
             case ParsingGraph.Condition.Or(conds) => conds map { aliveConditionString _ } mkString " | "
-            case ParsingGraph.Condition.TrueUntilLifted(node, gen) => s"Lift(${nodeString(node)} after $gen)"
-            case ParsingGraph.Condition.FalseUntilLifted(node, gen) => s"Wait(${nodeString(node)} after $gen)"
-            case ParsingGraph.Condition.FalseIfAlive(node, gen) => s"Alive(${nodeString(node)} after $gen)"
-            case ParsingGraph.Condition.TrueIfAlive(node, gen) => s"!Alive(${nodeString(node)} after $gen)"
+            case ParsingGraph.Condition.TrueUntilLifted(node, gen) => s"Lift(${nodeString(node)} $gen<)"
+            case ParsingGraph.Condition.FalseUntilLifted(node, gen) => s"Wait(${nodeString(node)} $gen<)"
+            case ParsingGraph.Condition.FalseIfAlive(node, gen) => s"Alive(${nodeString(node)} $gen<)"
+            case ParsingGraph.Condition.TrueIfAlive(node, gen) => s"!Alive(${nodeString(node)} $gen<)"
+            case ParsingGraph.Condition.FalseIfLiftedAtExactGen(node, gen) => s"Exclude(${nodeString(node)} $gen=)"
         }
     }
 

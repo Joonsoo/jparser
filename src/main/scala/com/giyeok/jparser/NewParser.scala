@@ -223,10 +223,10 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
         }
 
         // graph.results를 이용해서 revertTrigger 조건을 비교해서 지워야 할 edge/results를 제거한 그래프를 반환한다
-        def revert(gen: Int, graph: Graph, preliftResults: Results[Node, R], preliftNodes: Set[Node]): Graph = {
+        def revert(nextGen: Int, graph: Graph, preliftResults: Results[Node, R], preliftNodes: Set[Node]): Graph = {
             val nextProgresses = graph.progresses.entries.foldLeft(Results[SequenceNode, R]()) { (cc, entry) =>
                 val (node, condition, result) = entry
-                val evaluatedCondition = condition.evaluate(gen, preliftResults, preliftNodes)
+                val evaluatedCondition = condition.evaluate(nextGen, preliftResults, preliftNodes)
                 if (evaluatedCondition.permanentFalse) cc else {
                     cc.of(node, evaluatedCondition) match {
                         case Some(existingResult) =>
@@ -239,7 +239,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
             val nextResults = graph.results.entries.foldLeft(Results[Node, R]()) { (cc, entry) =>
                 val (node, condition, result) = entry
-                val evaluatedCondition = condition.evaluate(gen, preliftResults, preliftNodes)
+                val evaluatedCondition = condition.evaluate(nextGen, preliftResults, preliftNodes)
                 if (evaluatedCondition.permanentFalse) cc else {
                     cc.of(node, evaluatedCondition) match {
                         case Some(existingResult) =>
@@ -260,7 +260,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             val nextEdges: Set[Edge] = graph.edges flatMap {
                 case SimpleEdge(start, end, condition) =>
                     if ((validNodes contains start) && (validNodes contains end)) {
-                        val evaluatedCondition = condition.evaluate(gen, preliftResults, preliftNodes)
+                        val evaluatedCondition = condition.evaluate(nextGen, preliftResults, preliftNodes)
                         if (evaluatedCondition.permanentFalse) None else Some(SimpleEdge(start, end, evaluatedCondition))
                     } else None
                 case edge @ ReferEdge(start, end) =>
@@ -332,7 +332,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
                         // 4. revert
                         // expandedGraph0에서 liftedGraph0의 results를 보고 조건이 만족된 엣지들/result들 제거 - unreachable 노드들은 밑에 liftedGraphPre->liftedGraph 에서 처리되므로 여기서는 무시해도 됨
-                        val revertedGraph: Graph = ParsingCtx.revert(gen, liftedGraph0, revertBaseResults, liftedGraph0.nodes)
+                        val revertedGraph: Graph = ParsingCtx.revert(nextGen, liftedGraph0, revertBaseResults, liftedGraph0.nodes)
                         val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", liftedGraph0, revertedGraph, liftedGraph0, revertBaseResults)
 
                         // 5. 2차 트리밍
@@ -423,7 +423,7 @@ class NaiveParser[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFun
                     case Some(liftedGraph: Graph) =>
                         val firstLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph0, liftedGraph, startNode, newTermNodes)
                         // 4.revert
-                        val revertedGraph: Graph = ParsingCtx.revert(gen, liftedGraph, liftedGraph.results, liftedGraph.nodes)
+                        val revertedGraph: Graph = ParsingCtx.revert(nextGen, liftedGraph, liftedGraph.results, liftedGraph.nodes)
                         val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", liftedGraph, revertedGraph, liftedGraph, liftedGraph.results)
 
                         // 7. 2차 트리밍
