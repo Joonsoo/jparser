@@ -34,14 +34,29 @@ object LookaheadIsGrammar2 extends Grammar with GrammarTestCases with StringSamp
 
     val grammar = this
     val correctSamples = Set[String]("abcdef")
-    val incorrectSamples = Set[String]("")
+    val incorrectSamples = Set[String]("abcdex")
+}
+
+object LookaheadIsGrammar2_1 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "LookaheadIsGrammar 2_1"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("B"), chars('a' to 'z').star)),
+        "B" -> ListSet(
+            seq(i("a"), lookahead_is(i("a")))))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]("aa", "aabbbbb")
+    val incorrectSamples = Set[String]("a", "ax", "axxxx")
 }
 
 object GrammarWithLookaheadIs {
     // Grammar 1, 2, 7 are double-* ambiguous language
     val tests: Set[GrammarTestCases] = Set(
         LookaheadIsGrammar1,
-        LookaheadIsGrammar2)
+        LookaheadIsGrammar2,
+        LookaheadIsGrammar2_1)
 }
 
 class LookaheadIsTestSuite1 extends BasicParseTest(GrammarWithLookaheadIs.tests)

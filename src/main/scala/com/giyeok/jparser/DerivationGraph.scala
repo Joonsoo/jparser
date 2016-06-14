@@ -44,6 +44,13 @@ case class DGraph[R <: ParseResult](
     }
     lazy val edgesNotFromBaseNode = edges -- edgesFromBaseNode
 
+    override def nodesInResultsAndProgresses: Set[Node] = {
+        val supers = super.nodesInResultsAndProgresses
+        val nodesInBaseResults = (baseResults flatMap { _._1.nodes })
+        val nodesInBaseProgresses = (baseProgresses flatMap { _._1.nodes })
+        supers ++ nodesInBaseResults ++ nodesInBaseProgresses
+    }
+
     // Modification
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): DGraph[R] =
         DGraph(baseNode, nodes, edges, results, progresses, baseResults, baseProgresses)
@@ -222,12 +229,12 @@ class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseR
 
             val (liftedGraph, derivables) = lift(dgraph, 1, eligibleTerminalNodes)
             // assert(liftedGraph.progresses.keyNodesSet == derivables)
-            val trimmedGraph = liftedGraph.subgraphIn(Set(baseNode), derivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[DGraph[R]]
+            val trimmedGraph = liftedGraph.subgraphIn(Set(baseNode) ++ dgraph.nodesInResultsAndProgresses, derivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[DGraph[R]]
 
             // trimmedGraph에 등장하는 노드는 모두 gen이 0이나 1이어야 함
             // - 원래 있던 노드는 gen이 0이고 새로 생긴 노드는 gen이 1이어야 함
 
-            if (trimmedGraph.nodes contains trimmedGraph.baseNode) {
+            if (!trimmedGraph.nodes.isEmpty) {
                 assert(trimmedGraph.results == liftedGraph.results && trimmedGraph.baseResults == liftedGraph.baseResults && trimmedGraph.baseProgresses == liftedGraph.baseProgresses)
                 val survivedDerivables: Set[NontermNode] = (trimmedGraph.nodes intersect derivables.asInstanceOf[Set[Node]]).asInstanceOf[Set[NontermNode]]
                 Some(termGroup -> ((trimmedGraph, survivedDerivables)))

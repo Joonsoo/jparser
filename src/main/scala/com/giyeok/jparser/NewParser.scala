@@ -339,6 +339,10 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 // 5. 2차 트리밍
                 val finalGraph = revertedGraph.subgraphIn(Set(startNode) ++ revertedGraph.nodesInResultsAndProgresses, nextDerivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[Graph]
 
+                if (!(finalGraph.nodes contains startNode)) {
+                    // TODO 이건 뭐지?
+                }
+
                 val secondLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (5) Second Trimming", revertedGraph, finalGraph, startNode, nextDerivables.asInstanceOf[Set[Node]])
                 val nextContext: ParsingCtx = ParsingCtx(nextGen, finalGraph, (nextDerivables.asInstanceOf[Set[Node]] intersect finalGraph.nodes).asInstanceOf[Set[NontermNode]])
                 val transition = ParsingCtxTransition(
