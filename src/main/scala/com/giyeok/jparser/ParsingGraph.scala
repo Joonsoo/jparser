@@ -282,6 +282,7 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Condition,
     def of(node: N): Option[Map[Condition, R]] = resultsMap get node
     def of(node: N, condition: Condition): Option[R] = (resultsMap get node) flatMap { m => m get condition }
     def entries: Iterable[(N, Condition, R)] = resultsMap flatMap { kv => kv._2 map { p => (kv._1, p._1, p._2) } }
+    def nodesInConditions: Set[Node] = (resultsMap flatMap { _._2 flatMap { _._1.nodes } }).toSet
 
     // - results와 progresses의 업데이트는 같은 원리로 동작하는데,
     //   - 해당하는 Node, Condition에 대한 R이 없을 경우 새로 추가해주고
@@ -367,6 +368,8 @@ trait ParsingGraph[R <: ParseResult] {
     def outgoingEdgesFrom(node: Node): Set[Edge] = edgesByStart.getOrElse(node, Set())
     def outgoingSimpleEdgesFrom(node: Node): Set[SimpleEdge] = outgoingEdgesFrom(node) collect { case edge: SimpleEdge => edge }
     def outgoingJoinEdgesFrom(node: Node): Set[JoinEdge] = outgoingEdgesFrom(node) collect { case edge: JoinEdge => edge }
+
+    def nodesInResultsAndProgresses: Set[Node] = results.nodesInConditions ++ progresses.nodesInConditions
 
     // Modification
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): ParsingGraph[R]
