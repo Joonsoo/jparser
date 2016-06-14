@@ -176,10 +176,10 @@ object Symbols {
         override val hashCode = (classOf[Except], sym, except).hashCode
     }
     sealed trait Lookahead extends AtomicNonterm
-    case class LookaheadIs(lookahead: Symbol) extends Lookahead {
+    case class LookaheadIs(lookahead: AtomicSymbol) extends Lookahead {
         override val hashCode = (classOf[LookaheadIs], lookahead).hashCode
     }
-    case class LookaheadExcept(except: Symbol) extends Lookahead {
+    case class LookaheadExcept(except: AtomicSymbol) extends Lookahead {
         override val hashCode = (classOf[LookaheadExcept], except).hashCode
     }
     case class Proxy(sym: Symbol) extends AtomicNonterm {
@@ -197,7 +197,6 @@ object Symbols {
     }
     case class Join(sym: AtomicSymbol, join: AtomicSymbol) extends AtomicNonterm {
         assert(sym != join)
-        def this(sym: Symbol, join: Symbol) = this(Proxy.of(sym), Proxy.of(join))
         override val hashCode = (classOf[Join], sym, join).hashCode
     }
     case class Longest(sym: Symbol) extends AtomicNonterm {

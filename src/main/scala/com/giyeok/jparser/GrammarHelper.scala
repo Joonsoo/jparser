@@ -30,13 +30,17 @@ object GrammarHelper {
     def ws(set: Symbol*): Set[Symbol] = Set[Symbol](set: _*)
     def oneof(items: Symbol*) = OneOf(items toSet)
     def oneof(items: Set[Symbol]) = OneOf(items)
-    def lookahead_is(lookahead: Symbol) = LookaheadIs(lookahead)
+    def lookahead_is(lookahead: Symbol) = LookaheadIs(proxyIfNeeded(lookahead))
     def lookahead_is(lookaheads: Symbol*) = LookaheadIs(oneof(lookaheads.toSet))
-    def lookahead_except(except: Symbol) = LookaheadExcept(except)
+    def lookahead_except(except: Symbol) = LookaheadExcept(proxyIfNeeded(except))
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
     def longest(sym: Symbol) = Longest(sym)
     def elongest(sym: Symbol) = EagerLongest(sym)
-    def join(sym: Symbol, join: Symbol) = new Join(sym, join)
+    def join(sym: Symbol, join: Symbol) = new Join(proxyIfNeeded(sym), proxyIfNeeded(join))
+    def proxyIfNeeded(sym: Symbol): AtomicSymbol = sym match {
+        case sym: Sequence => Proxy.of(sym)
+        case sym: AtomicSymbol => sym
+    }
 
     // def lgst(t: Terminal) = seq(t, LookaheadExcept(t))
 
@@ -69,7 +73,7 @@ object GrammarHelper {
         def backup(backup: Symbol): Backup = new Backup(sym, backup)
     }
     implicit class GrammarElementJoinable(sym: Symbol) {
-        def join(joinWith: Symbol): Join = new Join(sym, joinWith)
+        def join(joinWith: Symbol): Join = new Join(proxyIfNeeded(sym), proxyIfNeeded(joinWith))
     }
 
     implicit class GrammarMergeable(rules: Grammar#RuleMap) {

@@ -10,7 +10,7 @@ import com.giyeok.jparser.GrammarHelper._
 import com.giyeok.jparser.tests.GrammarTestCases
 
 object LookaheadIsGrammar1 extends Grammar with GrammarTestCases with StringSamples {
-    val name = "LookaheadIsGrammar1"
+    val name = "LookaheadIsGrammar 1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(n("A").star),
         "A" -> ListSet(
@@ -23,10 +23,25 @@ object LookaheadIsGrammar1 extends Grammar with GrammarTestCases with StringSamp
     val incorrectSamples = Set[String]("abc")
 }
 
+object LookaheadIsGrammar2 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "LookaheadIsGrammar 2"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("B"), chars('a' to 'z').star)),
+        "B" -> ListSet(
+            seq(i("abc"), lookahead_is(i("def")))))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]("abcdef")
+    val incorrectSamples = Set[String]("")
+}
+
 object GrammarWithLookaheadIs {
     // Grammar 1, 2, 7 are double-* ambiguous language
     val tests: Set[GrammarTestCases] = Set(
-        LookaheadIsGrammar1)
+        LookaheadIsGrammar1,
+        LookaheadIsGrammar2)
 }
 
 class LookaheadIsTestSuite1 extends BasicParseTest(GrammarWithLookaheadIs.tests)

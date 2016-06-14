@@ -135,6 +135,23 @@ object ExceptGrammar4_2 extends Grammar with GrammarTestCases with StringSamples
     val incorrectSamples = Set[String]()
 }
 
+object ExceptGrammar4_3 extends Grammar with GrammarTestCases with StringSamples {
+    // 4.2에서 for->x, ea->y, ch->z 로 바꾼 버젼
+    val name = "Except Grammar 4_3"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("N"), i("z"))),
+        "N" -> ListSet(
+            chars('a' to 'z').star.except(n("K"))),
+        "K" -> ListSet(
+            i("x"), i("xyz")))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set("xyz")
+    val incorrectSamples = Set[String]()
+}
+
 object GrammarWithExcept {
     val tests: Set[GrammarTestCases] = Set(
         ExceptGrammar1,
@@ -145,7 +162,8 @@ object GrammarWithExcept {
         ExceptGrammar2,
         ExceptGrammar3_1,
         ExceptGrammar4_1,
-        ExceptGrammar4_2)
+        ExceptGrammar4_2,
+        ExceptGrammar4_3)
 }
 
 class ExceptGrammarTestSuite1 extends BasicParseTest(GrammarWithExcept.tests)

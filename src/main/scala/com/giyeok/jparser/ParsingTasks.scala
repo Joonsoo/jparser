@@ -84,9 +84,8 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                     case LookaheadExcept(except) => Condition.Lift(nodeOf(except, nextGen), nextGen)
                 }
                 val newNodes = condition.nodes -- cc.nodes
-                val newEdges: Set[Edge] = condition.nodes map { ReferEdge(baseNode, _) }
                 val newDeriveTasks = newNodes collect { case node: NontermNode => DeriveTask(nextGen, node) }
-                (cc.withNodesEdges(newNodes, newEdges).asInstanceOf[Graph], Seq(FinishingTask(nextGen, baseNode, EmptyResult(resultFunc.empty()), condition)) ++ newDeriveTasks)
+                (cc.withNodes(newNodes).asInstanceOf[Graph], Seq(FinishingTask(nextGen, baseNode, EmptyResult(resultFunc.empty()), condition)) ++ newDeriveTasks)
             case _ =>
                 // 1. Derivation
                 val newEdges = deriveNode(baseNode, nextGen)
