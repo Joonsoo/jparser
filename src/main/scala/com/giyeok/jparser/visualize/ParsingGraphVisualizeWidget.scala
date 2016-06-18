@@ -531,6 +531,7 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
             nodesAt(e.x, e.y) foreach {
                 case ParseForest(trees) =>
                     trees foreach { tree =>
+                        println(tree.toOperationsString())
                         new ParseResultTreeViewer(tree, figureGenerator, figureAppearances, parseResultTreeFigureGenerator).start()
                     }
                 case node: ParsingGraph.NontermNode =>

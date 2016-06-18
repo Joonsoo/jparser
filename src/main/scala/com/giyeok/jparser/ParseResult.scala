@@ -220,5 +220,13 @@ object ParseResultTree {
 
         def toHorizontalHierarchyString(): String =
             toHorizontalHierarchyStringSeq._2 mkString "\n"
+
+        def toOperationsString(): String = node match {
+            case TermFuncNode => "λt"
+            case n: TerminalNode => s"term(${n.input.toShortString})"
+            case n: BindedNode => s"bind(${n.symbol.toShortString}, ${n.body.toOperationsString()})"
+            case n: JoinNode => s"join(${n.body.toOperationsString()}, ${n.join.toOperationsString()})"
+            case s: SequenceNode => "seq()" + (s.children map { _.toOperationsString() } map { s => s".append($s)" } mkString "")
+        }
     }
 }
