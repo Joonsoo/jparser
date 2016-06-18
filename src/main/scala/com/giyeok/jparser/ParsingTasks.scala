@@ -22,134 +22,108 @@ trait ParsingTasks[R <: ParseResult, Graph <: ParsingGraph[R]] {
 trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks[R, Graph] {
     val grammar: Grammar
 
-    def deriveNode(baseNode: NontermNode, gen: Int): Set[Edge] = {
-        def deriveAtomic(symbol: AtomicNonterm): Set[Edge] = symbol match {
-            case Start =>
-                Set(SimpleEdge(baseNode, nodeOf(grammar.startSymbol, gen), Condition.True))
-            case Nonterminal(nonterminalName) =>
-                grammar.rules(nonterminalName) map { s => SimpleEdge(baseNode, nodeOf(s, gen), Condition.True) }
-            case OneOf(syms) =>
-                syms map { s => SimpleEdge(baseNode, nodeOf(s, gen), Condition.True) }
-            case Repeat(sym, lower) =>
-                val baseSeq = Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
-                val repeatSeq = Sequence(Seq(symbol, sym), Set())
-                Set(SimpleEdge(baseNode, nodeOf(baseSeq, gen), Condition.True),
-                    SimpleEdge(baseNode, nodeOf(repeatSeq, gen), Condition.True))
-            case Except(sym, except) =>
-                // baseNode가 BaseNode인 경우는 실제 파싱에선 생길 수 없고 테스트 중에만 발생 가능
-                // 일반적인 경우에는 baseNode가 AtomicNode이고 liftBlockTrigger가 k.symbol.except 가 들어있어야 함
-                Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True),
-                    ReferEdge(baseNode, nodeOf(except, gen)))
-            case Proxy(sym) =>
-                Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True))
-            case Backup(sym, backup) =>
-                val preferNode = nodeOf(sym, gen)
-                Set(SimpleEdge(baseNode, preferNode, Condition.True),
-                    SimpleEdge(baseNode, nodeOf(backup, gen), Condition.Lift(preferNode, gen)))
-            case Join(sym, join) =>
-                Set(JoinEdge(baseNode, nodeOf(sym, gen), nodeOf(join, gen)))
-            case Longest(sym) =>
-                // baseNode가 NewAtomicNode이고 reservedRevertter가 Some(Trigger.Type.Lift)여야 함
-                Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True))
-            case EagerLongest(sym) =>
-                // baseNode가 NewAtomicNode이고 reservedRevertter가 Some(Trigger.Type.Alive)여야 함
-                Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True))
-            // Except를 제외하고는 모두 liftBlockTrigger가 비어있어야 함
-            case LookaheadIs(_) | LookaheadExcept(_) => ??? // must not be called
-        }
-        def deriveSequence(symbol: Sequence, pointer: Int): Set[Edge] = {
-            assert(pointer < symbol.seq.size)
-            val sym = symbol.seq(pointer)
-            if (pointer > 0 && pointer < symbol.seq.size) {
-                // whitespace only between symbols
-                (symbol.whitespace + sym) map { nodeOf(_, gen) } map { SimpleEdge(baseNode, _, Condition.True) }
-            } else {
-                Set(SimpleEdge(baseNode, nodeOf(sym, gen), Condition.True))
-            }
-        }
-
-        baseNode match {
-            case AtomicNode(symbol, _) => deriveAtomic(symbol)
-            case SequenceNode(symbol, pointer, _, _) => deriveSequence(symbol, pointer)
-        }
-    }
-
     def deriveTask(task: DeriveTask, cc: Graph): (Graph, Seq[Task]) = {
-        val DeriveTask(nextGen, baseNode) = task
+        val DeriveTask(gen, baseNode) = task
 
-        baseNode.symbol match {
-            case baseNodeSymbol: Lookahead =>
-                val condition = baseNodeSymbol match {
-                    case LookaheadIs(lookahead) => Condition.Wait(nodeOf(lookahead, nextGen), nextGen)
-                    case LookaheadExcept(except) => Condition.Lift(nodeOf(except, nextGen), nextGen)
+        case class TaskResult(graph: Graph, tasks: Seq[Task]) {
+            def addNodes(nodes: Set[Node]): TaskResult = {
+                val newNodes = nodes -- graph.nodes
+                // newNodes 중 SequenceNode에 대해서 progress 추가
+                val newSeqNodes = newNodes collect { case n: SequenceNode => n }
+                val newProgresses = newSeqNodes.foldLeft(graph.progresses) { (results, newSeqNode) => results.update(newSeqNode, Condition.True, resultFunc.sequence()) }
+                // 새로 추가된 노드들에 대한 derive task 및 그 중 바로 finishable한 sequence node에 대한 finish task
+                val newTasks = newNodes collect {
+                    case node @ SequenceNode(Sequence(seq, _), _, _, _) if seq.isEmpty =>
+                        FinishingTask(gen, node, SequenceResult(resultFunc.sequence()), Condition.True)
+                    case n: NontermNode => DeriveTask(gen, n)
                 }
-                val newNodes = condition.nodes -- cc.nodes
-                val newDeriveTasks = newNodes collect { case node: NontermNode => DeriveTask(nextGen, node) }
-                (cc.withNodes(newNodes).asInstanceOf[Graph], Seq(FinishingTask(nextGen, baseNode, EmptyResult(resultFunc.empty()), condition)) ++ newDeriveTasks)
-            case _ =>
-                // 1. Derivation
-                val newEdges = deriveNode(baseNode, nextGen)
+                TaskResult(graph.withNodes(newNodes).updateProgresses(newProgresses).asInstanceOf[Graph], tasks ++ newTasks)
+            }
+            def addEdges(edges: Set[Edge]): TaskResult = TaskResult(graph.withEdges(edges).asInstanceOf[Graph], tasks)
+            def addTasks(newTasks: Seq[Task]): TaskResult = TaskResult(graph, tasks ++ newTasks)
 
-                // NOTE derive된 엣지 중 revertTriggers의 조건이 cc.results에서 이미 만족된 게 있는 경우는 생기지 않는다고 가정한다
-                // - 즉, lookahead/backup 조건이 nullable일 수 없다
-                // - lookahead 조건이나 backup 조건이 nullable이면 아무 의미가 없고, 파싱을 시작하기 전에 문법만 보고 확인해서 수정이 가능하기 때문
+            // derive된 노드가 이미 바로 완성 가능함이 알려져 있을 때 처리
+            def finishable(node: Node): Seq[(Condition, R)] = {
+                graph.results.of(node) match {
+                    case Some(r) => r.toSeq
+                    case None => Seq()
+                }
+            }
 
-                // 2. 새로 추가되는 노드에 대한 DeriveTask 만들고 derive된 edge/node를 cc에 넣기
-                // 이 때, 새로 생성된 노드 중
-                // - 바로 finishable한 노드(empty node, sequence.symbol.seq.isEmpty인 sequence node)들은 results에 추가해주고,
-                // - sequence.symbol.seq.isEmpty가 아닌 sequence는 progresses에 추가해준다
-                val newNodes = {
-                    assert(newEdges forall { _.start == baseNode })
-                    // derive된 엣지의 타겟들만 모으고
-                    val newNodes = newEdges flatMap {
-                        case SimpleEdge(start, end, aliveCondition) => Set(end) ++ aliveCondition.nodes
-                        case ReferEdge(start, end) => Set(end)
-                        case JoinEdge(start, end, join) => Set(end, join)
+            def deriveAtomic(baseNode: AtomicNode, destNodeConds: Set[(Node, Condition)]): TaskResult = {
+                val newEdges: Set[Edge] = destNodeConds map { nc => SimpleEdge(baseNode, nc._1, nc._2) }
+                // destNodes중 finishable인 것들에 대한 FinishTask 추가
+                val finishableTasks = destNodeConds.toSeq flatMap { nc =>
+                    finishable(nc._1) map { cr =>
+                        FinishingTask(gen, baseNode, BindedResult(resultFunc.bind(nc._1.symbol, cr._2), nc._1.symbol), Condition.conjunct(nc._2, cr._1))
                     }
-                    // 기존에 있던 것들 제외
-                    newNodes -- cc.nodes
                 }
-
-                val newDeriveTasks: Set[DeriveTask] = newNodes collect {
-                    case n: AtomicNode => DeriveTask(nextGen, n)
-                    case n: SequenceNode if n.symbol.seq.length > 0 => DeriveTask(nextGen, n)
+                this.addNodes(destNodeConds map { _._1 }).addEdges(newEdges).addTasks(finishableTasks)
+            }
+            def deriveJoin(baseNode: NontermNode, dest: Node, join: Node): TaskResult = {
+                val newEdges: Set[Edge] = Set(JoinEdge(baseNode, dest, join))
+                // TODO dest와 join이 모두 nullable한 경우 FinishTask 추가
+                this.addNodes(Set(dest, join)).addEdges(newEdges)
+            }
+            def deriveSequence(baseNode: SequenceNode, destNodes: Set[Node]): TaskResult = {
+                val newEdges: Set[Edge] = destNodes map { n => SimpleEdge(baseNode, n, Condition.True) }
+                // destNodes중 finishable인 것들에 대한 FinishTask 추가
+                val finishableTasks = destNodes.toSeq flatMap { destNode =>
+                    finishable(destNode) map { cr =>
+                        SequenceProgressTask(gen, baseNode, BindedResult(resultFunc.bind(destNode.symbol, cr._2), destNode.symbol), cr._1)
+                    }
                 }
+                this.addNodes(destNodes).addEdges(newEdges).addTasks(finishableTasks)
+            }
 
-                val ncc: Graph = {
-                    val newProgresses: Results[SequenceNode, R] = Results((newNodes collect {
-                        case node @ SequenceNode(Sequence(seq, _), pointer, _, _) if !seq.isEmpty =>
-                            node -> Map(Condition.True -> resultFunc.sequence()) ensuring (pointer == 0)
-                    }).toSeq: _*)
-                    cc.withNodesEdgesProgresses(newNodes, newEdges, newProgresses).asInstanceOf[Graph]
-                }
+            def pair = (graph, tasks)
+        }
 
-                // 3. 새로 derive된 노드 중 바로 끝낼 수 있는 노드들에 대해 FinishingTask를 만든다
-                val newFinishingTasks: Set[FinishingTask] = newNodes collect {
-                    case node @ SequenceNode(Sequence(seq, _), 0, _, _) if seq.isEmpty => // 이 시점에서 SequenceNode의 pointer는 반드시 0
-                        FinishingTask(nextGen, node, SequenceResult(resultFunc.sequence()), Condition.True)
-                }
-
-                // 4. existingNodes 중 cc.results에 들어 있는 것들로 baseNode에 대한 FinishingTask나 ProgressTask를 만들어준다
-                val duplFinishingTasks: Set[Task] = newEdges flatMap {
-                    case SimpleEdge(start, end, edgeAliveCondition) if cc.results.of(end).isDefined =>
-                        // cc.results에 결과가 있으면 노드도 당연히 이미 있었다는 의미
-                        assert(!(newNodes contains end))
-                        val results = cc.results.of(end).get
-                        results map { tr =>
-                            val (resultCondition, result) = tr
-                            val finishedResult = BindedResult(resultFunc.bind(end.symbol, result), end.symbol)
-                            baseNode match {
-                                case baseNode: AtomicNode =>
-                                    FinishingTask(nextGen, baseNode, finishedResult, Condition.conjunct(resultCondition, edgeAliveCondition))
-                                case baseNode: SequenceNode =>
-                                    SequenceProgressTask(nextGen, baseNode, finishedResult, Condition.conjunct(resultCondition, edgeAliveCondition))
-                            }
-                        }
-                    // TODO JoinEdge는 안해줘도 되는지 고민해보기
-                    case _ => Set()
-                }
-
-                (ncc, newDeriveTasks.toSeq ++ newFinishingTasks.toSeq ++ duplFinishingTasks.toSeq)
+        val init = TaskResult(cc, Seq())
+        baseNode match {
+            case baseNode @ AtomicNode(symbol, _) =>
+                (symbol match {
+                    case Start =>
+                        init.deriveAtomic(baseNode, Set((nodeOf(grammar.startSymbol, gen), Condition.True)))
+                    case Nonterminal(nonterminalName) =>
+                        init.deriveAtomic(baseNode, grammar.rules(nonterminalName) map { s => (nodeOf(s, gen), Condition.True) })
+                    case OneOf(syms) =>
+                        init.deriveAtomic(baseNode, syms map { s => (nodeOf(s, gen), Condition.True) })
+                    case Proxy(sym) =>
+                        init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True)))
+                    case Repeat(sym, lower) =>
+                        val baseSeq = Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
+                        val repeatSeq = Sequence(Seq(symbol, sym), Set())
+                        init.deriveAtomic(baseNode, Set((nodeOf(baseSeq, gen), Condition.True), (nodeOf(repeatSeq, gen), Condition.True)))
+                    case Join(sym, join) =>
+                        init.deriveJoin(baseNode, nodeOf(sym, gen), nodeOf(join, gen))
+                    case LookaheadIs(lookahead) =>
+                        init.addNodes(Set(nodeOf(lookahead, gen)))
+                            .addTasks(Seq(FinishingTask(gen, baseNode, EmptyResult(resultFunc.empty()), Condition.Wait(nodeOf(lookahead, gen), gen))))
+                    case LookaheadExcept(except) =>
+                        init.addNodes(Set(nodeOf(except, gen)))
+                            .addTasks(Seq(FinishingTask(gen, baseNode, EmptyResult(resultFunc.empty()), Condition.Lift(nodeOf(except, gen), gen))))
+                    case Longest(sym) =>
+                        init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True)))
+                    case EagerLongest(sym) =>
+                        init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True)))
+                    case Backup(sym, backup) =>
+                        init.deriveAtomic(baseNode, Set(
+                            (nodeOf(sym, gen), Condition.True),
+                            (nodeOf(backup, gen), Condition.Lift(nodeOf(sym, gen), gen))))
+                    case Except(sym, except) =>
+                        init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True), (nodeOf(except, gen), Condition.True)))
+                }).pair
+            case baseNode @ SequenceNode(Sequence(seq, whitespace), pointer, beginGen, endGen) =>
+                assert(pointer < seq.size)
+                val destNodes =
+                    if (pointer > 0 && pointer < seq.size) {
+                        // whitespace only between symbols
+                        (whitespace + seq(pointer)) map { nodeOf(_, gen) }
+                    } else {
+                        Set(nodeOf(seq(pointer), gen))
+                    }
+                init.deriveSequence(baseNode, destNodes).pair
         }
     }
 }

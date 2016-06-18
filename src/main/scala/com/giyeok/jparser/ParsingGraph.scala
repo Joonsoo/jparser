@@ -385,6 +385,9 @@ trait ParsingGraph[R <: ParseResult] {
     def withNodes(newNodes: Set[Node]): ParsingGraph[R] = {
         create(nodes ++ newNodes, edges, results, progresses)
     }
+    def withEdges(newEdges: Set[Edge]): ParsingGraph[R] = {
+        create(nodes, edges ++ newEdges, results, progresses)
+    }
     def withNodesEdgesProgresses(newNodes: Set[Node], newEdges: Set[Edge], newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
         assert(newNodes forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
         create(nodes ++ newNodes, edges ++ newEdges, results, progresses.update(newProgresses))
