@@ -123,6 +123,115 @@ object MyPaper5 extends Grammar with GrammarTestCases with StringSamples with Am
     val ambiguousSamples = Set[String]()
 }
 
+object MyPaper6_1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "MyPaper Grammar 6_1"
+    val rules: RuleMap = ListMap(
+        "Name" -> ListSet(
+            longest(chars('a' to 'z').plus)),
+        "Id" -> ListSet(
+            n("Name").except(n("Kw"))),
+        "Kw" -> ListSet(
+            n("If"),
+            n("Boolean")),
+        "If" -> ListSet(
+            i("if").join(n("Name"))),
+        "Boolean" -> ListSet(
+            i("true").join(n("Name")),
+            i("false").join(n("Name"))),
+        "Stmt" -> ListSet(
+            n("IfStmt"),
+            n("FuncCall")),
+        "IfStmt" -> ListSet(
+            seq(n("If"), c('('), n("Expr"), c(')'), n("Stmt"), n("ElseOpt"))),
+        "ElseOpt" -> ListSet(
+            empty,
+            seq(i("else").join(n("Name")), n("Stmt"))),
+        "FuncCall" -> ListSet(
+            seq(n("Id"), c('('), n("ParamsOpt"), c(')'))),
+        "ParamsOpt" -> ListSet(
+            empty,
+            n("Params")),
+        "Params" -> ListSet(
+            n("Expr"),
+            seq(n("Params"), c(','), n("Expr"))),
+        "Expr" -> ListSet(
+            n("Boolean"),
+            n("Id")),
+        "S" -> ListSet(
+            n("Stmt").star))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]("ifx(ifx)abc()")
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]()
+}
+
+object MyPaper6_2 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "MyPaper Grammar 6_2"
+    val rules: RuleMap = ListMap(
+        "Name" -> ListSet(
+            longest(chars('a' to 'z').plus)),
+        "Id" -> ListSet(
+            n("Name").except(n("Kw"))),
+        "Kw" -> ListSet(
+            i("if").join(n("Name"))),
+        "Stmt" -> ListSet(
+            n("Assign"),
+            n("FuncCall")),
+        "Assign" -> ListSet(
+            seq(n("Id"), c('='), n("Expr"), c(';'))),
+        "FuncCall" -> ListSet(
+            seq(n("Id"), c('('), c(')'), c(';')),
+            seq(n("Id"), c('('), n("Params"), c(')'), c(';'))),
+        "Params" -> ListSet(
+            n("Expr"),
+            seq(n("Params"), c(','), n("Expr"))),
+        "Expr" -> ListSet(
+            n("Id")),
+        "S" -> ListSet(
+            n("Stmt").star))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]("ifx();")
+    val incorrectSamples = Set[String]("if();")
+    val ambiguousSamples = Set[String]()
+}
+
+object MyPaper6_3 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "MyPaper Grammar 6_3"
+    val rules: RuleMap = ListMap(
+        "Name" -> ListSet(
+            longest(chars('a' to 'z').plus)),
+        "WS" -> ListSet(
+            longest(c(' ').star)),
+        "Id" -> ListSet(
+            n("Name").except(n("Kw"))),
+        "Kw" -> ListSet(
+            n("Let")),
+        "Let" -> ListSet(
+            i("let").join(n("Name"))),
+        "Stmt" -> ListSet(
+            n("LetStmt"),
+            n("EvalStmt")),
+        "LetStmt" -> ListSet(
+            seq(n("Let"), n("WS"), n("Id"), n("WS"), n("Expr"))),
+        "EvalStmt" -> ListSet(
+            seq(n("Id"), n("WS"), n("Expr"))),
+        "Expr" -> ListSet(
+            n("Id"),
+            seq(n("Id"), n("WS"), n("Expr"))),
+        "S" -> ListSet(
+            n("Stmt")))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]("let a b c", "l a b c", "a b c d", "a b letx c d", "let a b c d e f g")
+    val incorrectSamples = Set[String]("let let a", "a b let c d")
+    val ambiguousSamples = Set[String]()
+}
+
 object Earley1970AE extends Grammar with GrammarTestCases with StringSamples {
     val name = "Earley 1970 Grammar AE"
     val rules: RuleMap = ListMap(
@@ -175,6 +284,9 @@ object PaperTests {
         MyPaper3,
         MyPaper4,
         MyPaper5,
+        MyPaper6_1,
+        MyPaper6_2,
+        MyPaper6_3,
         Earley1970AE,
         Knuth1965_24)
 }
