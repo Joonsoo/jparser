@@ -92,17 +92,17 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                     case Proxy(sym) =>
                         init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True)))
                     case Repeat(sym, lower) =>
-                        val baseSeq = Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
+                        val baseSeq = if (lower == 1) sym else Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
                         val repeatSeq = Sequence(Seq(symbol, sym), Set())
                         init.deriveAtomic(baseNode, Set((nodeOf(baseSeq, gen), Condition.True), (nodeOf(repeatSeq, gen), Condition.True)))
                     case Join(sym, join) =>
                         init.deriveJoin(baseNode, nodeOf(sym, gen), nodeOf(join, gen))
                     case LookaheadIs(lookahead) =>
                         init.addNodes(Set(nodeOf(lookahead, gen)))
-                            .addTasks(Seq(FinishingTask(gen, baseNode, EmptyResult(resultFunc.empty()), Condition.Wait(nodeOf(lookahead, gen), gen))))
+                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence()), Condition.Wait(nodeOf(lookahead, gen), gen))))
                     case LookaheadExcept(except) =>
                         init.addNodes(Set(nodeOf(except, gen)))
-                            .addTasks(Seq(FinishingTask(gen, baseNode, EmptyResult(resultFunc.empty()), Condition.Lift(nodeOf(except, gen), gen))))
+                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence()), Condition.Lift(nodeOf(except, gen), gen))))
                     case Longest(sym) =>
                         init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True)))
                     case EagerLongest(sym) =>
@@ -112,7 +112,9 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                             (nodeOf(sym, gen), Condition.True),
                             (nodeOf(backup, gen), Condition.Lift(nodeOf(sym, gen), gen))))
                     case Except(sym, except) =>
-                        init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True), (nodeOf(except, gen), Condition.True)))
+                        init.deriveAtomic(baseNode, Set(
+                            (nodeOf(sym, gen), Condition.True),
+                            (nodeOf(except, gen), Condition.True)))
                 }).pair
             case baseNode @ SequenceNode(Sequence(seq, whitespace), pointer, beginGen, endGen) =>
                 assert(pointer < seq.size)
@@ -136,16 +138,14 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
 
         // assertion
         resultAndSymbol match {
-            case EmptyResult(result) =>
-                assert(node.symbol.isInstanceOf[Lookahead])
             case TermResult(result) =>
                 assert(node.symbol.isInstanceOf[Terminal])
-            case SequenceResult(result) =>
-                assert(node.symbol.isInstanceOf[Sequence])
             case JoinResult(result) =>
                 assert(node.symbol.isInstanceOf[Join])
             case BindedResult(result, symbol) =>
                 assert(node.symbol.isInstanceOf[AtomicNonterm])
+            case SequenceResult(result) =>
+                assert(node.symbol.isInstanceOf[Lookahead] || node.symbol.isInstanceOf[Sequence])
         }
 
         // 1. cc의 기존 result가 있는지 확인하고 기존 result가 있으면 merge하고 없으면 새로 생성
@@ -191,7 +191,6 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 if (nodeCreatedCondition.permanentFalse) {
                     Seq()
                 } else {
-
                     val incomingSimpleEdges = cc.incomingSimpleEdgesTo(node)
                     val incomingJoinEdges = cc.incomingJoinEdgesTo(node)
 
@@ -251,70 +250,67 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
 
         assert(node.pointer < node.symbol.seq.length)
 
-        cc.progresses.of(node) match {
-            case None =>
-                // baseProgresses가 revert에 의해 없어진 경우에는 무시하고 지나간다
-                (cc, Seq())
-            case Some(baseProgresses) =>
-                val isContent = node.symbol.seq(node.pointer) == childSymbol
-                if (isContent && (node.pointer + 1 >= node.symbol.seq.length)) {
-                    // append되면 finish할 수 있는 상태
-                    // - FinishingTask만 만들어 주면 될듯
-                    val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
-                    val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> (resultFunc.append(kv._2, child)) }
-                    val finishingTasks = appendedProgresses map { kv => FinishingTask(nextGen, node, SequenceResult(kv._2), kv._1) }
-                    (cc, finishingTasks.toSeq)
-                } else {
-                    // append되어도 finish할 수는 없는 상태
-                    val (appendedNode, appendedProgresses: Map[Condition, R]) = if (isContent) {
-                        // whitespace가 아닌 실제 내용인 경우
-                        assert(node.pointer + 1 < node.symbol.seq.length)
-                        val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
-                        val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> resultFunc.append(kv._2, child) }
-                        (appendedNode, appendedProgresses)
-                    } else {
-                        // whitespace인 경우
-                        val appendedNode = SequenceNode(node.symbol, node.pointer, node.beginGen, nextGen)
-                        val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> resultFunc.appendWhitespace(kv._2, child) }
-                        (appendedNode, appendedProgresses)
-                    }
+        // progresses에 sequence node는 항상 포함되어야 한다
+        assert(cc.progresses.of(node).isDefined)
+        val baseProgresses = cc.progresses.of(node).get
 
-                    if (cc.nodes contains appendedNode) {
-                        // appendedNode가 이미 그래프에 있는 경우
-                        // - baseProgresses에는 없고 appendedProgresses에 생긴 triggerSet이 있으면 그 부분 추가하고
-                        // - 겹치는 triggerSet에 대해서는 resultFunc.merge 해서
-                        // - 만들어진 mergedProgresses가 baseProgresses와 같으면 무시하고 진행하고 다르면 DeriveTask(appendedNode)를 추가한다
+        val isContent = node.symbol.seq(node.pointer) == childSymbol
+        if (isContent && (node.pointer + 1 >= node.symbol.seq.length)) {
+            // append되면 finish할 수 있는 상태
+            // - FinishingTask만 만들어 주면 될듯
+            val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> (resultFunc.append(kv._2, child)) }
+            val finishingTasks = appendedProgresses map { kv => FinishingTask(nextGen, node, SequenceResult(kv._2), kv._1) }
+            (cc, finishingTasks.toSeq)
+        } else {
+            // append되어도 finish할 수는 없는 상태
+            val (appendedNode, appendedProgresses: Map[Condition, R]) = if (isContent) {
+                // whitespace가 아닌 실제 내용인 경우
+                assert(node.pointer + 1 < node.symbol.seq.length)
+                val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
+                val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> resultFunc.append(kv._2, child) }
+                (appendedNode, appendedProgresses)
+            } else {
+                // whitespace인 경우
+                val appendedNode = SequenceNode(node.symbol, node.pointer, node.beginGen, nextGen)
+                val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> resultFunc.appendWhitespace(kv._2, child) }
+                (appendedNode, appendedProgresses)
+            }
 
-                        val (mergedProgresses: Map[Condition, R], needDerive: Boolean) = appendedProgresses.foldLeft((cc.progresses.of(appendedNode).get, false)) { (cc, entry) =>
-                            val (progresses, _) = cc
-                            val (condition, result) = entry
-                            progresses get condition match {
-                                case Some(existingResult) =>
-                                    val mergedResult = resultFunc.merge(existingResult, result)
-                                    if (existingResult == mergedResult) {
-                                        cc
-                                    } else {
-                                        (progresses + (condition -> mergedResult), true)
-                                    }
-                                case None =>
-                                    (progresses + entry, true)
+            if (cc.nodes contains appendedNode) {
+                // appendedNode가 이미 그래프에 있는 경우
+                // - baseProgresses에는 없고 appendedProgresses에 생긴 triggerSet이 있으면 그 부분 추가하고
+                // - 겹치는 triggerSet에 대해서는 resultFunc.merge 해서
+                // - 만들어진 mergedProgresses가 baseProgresses와 같으면 무시하고 진행하고 다르면 DeriveTask(appendedNode)를 추가한다
+
+                val (mergedProgresses: Map[Condition, R], needDerive: Boolean) = appendedProgresses.foldLeft((cc.progresses.of(appendedNode).get, false)) { (cc, entry) =>
+                    val (progresses, _) = cc
+                    val (condition, result) = entry
+                    progresses get condition match {
+                        case Some(existingResult) =>
+                            val mergedResult = resultFunc.merge(existingResult, result)
+                            if (existingResult == mergedResult) {
+                                cc
+                            } else {
+                                (progresses + (condition -> mergedResult), true)
                             }
-                        }
-
-                        (cc.updateProgressesOf(appendedNode, mergedProgresses).asInstanceOf[Graph], if (needDerive) Seq(DeriveTask(nextGen, appendedNode)) else Seq())
-                    } else {
-                        // append한 노드가 아직 cc에 없는 경우
-                        // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다
-                        val newEdges: Set[Edge] = cc.incomingSimpleEdgesTo(node) map {
-                            case SimpleEdge(start, end, edgeCondition) =>
-                                assert(end == node)
-                                // TODO 여기서 condition을 이렇게 주는게 맞나? (task의) condition은 안 줘도 되나?
-                                SimpleEdge(start, appendedNode, edgeCondition)
-                        }
-                        assert(cc.incomingJoinEdgesTo(node).isEmpty)
-                        (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> appendedProgresses)).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
+                        case None =>
+                            (progresses + entry, true)
                     }
                 }
+
+                (cc.updateProgressesOf(appendedNode, mergedProgresses).asInstanceOf[Graph], if (needDerive) Seq(DeriveTask(nextGen, appendedNode)) else Seq())
+            } else {
+                // append한 노드가 아직 cc에 없는 경우
+                // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다
+                val newEdges: Set[Edge] = cc.incomingSimpleEdgesTo(node) map {
+                    case SimpleEdge(start, end, edgeCondition) =>
+                        assert(end == node)
+                        // 이미 progress에 반영되었기 때문에 여기서 task의 condition은 안 줘도 될듯
+                        SimpleEdge(start, appendedNode, edgeCondition)
+                }
+                assert(cc.incomingJoinEdgesTo(node).isEmpty)
+                (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> appendedProgresses)).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
+            }
         }
     }
 }

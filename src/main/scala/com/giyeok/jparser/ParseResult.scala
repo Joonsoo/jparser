@@ -7,7 +7,6 @@ trait ParseResult {
 }
 
 trait ParseResultFunc[R <: ParseResult] {
-    def empty(): R
     def terminal(input: Inputs.Input): R
     def bind(symbol: Symbol, body: R): R
     def join(body: R, constraint: R): R
@@ -29,9 +28,6 @@ trait ParseResultFunc[R <: ParseResult] {
 sealed trait ParseResultWithType[R <: ParseResult] {
     val result: R
     def mapResult(func: R => R): ParseResultWithType[R]
-}
-case class EmptyResult[R <: ParseResult](result: R) extends ParseResultWithType[R] {
-    def mapResult(func: R => R): EmptyResult[R] = EmptyResult(func(result))
 }
 case class TermResult[R <: ParseResult](result: R) extends ParseResultWithType[R] {
     def mapResult(func: R => R): TermResult[R] = TermResult(func(result))

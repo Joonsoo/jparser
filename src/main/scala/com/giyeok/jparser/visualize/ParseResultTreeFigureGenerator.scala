@@ -44,9 +44,10 @@ class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap:
                     case s: SequenceNode => s.children flatMap { childrenOf(_, sym) }
                 }
                 val children = childrenOf(body, sym.sym)
-                if (children.isEmpty) g.textFig("ε", ap.default)
-                else vfig(Spacing.Small, Seq(
-                    symbolBorder.applyToFigure(hfig(Spacing.Small, children map { parseNodeFig _ })),
+                vfig(Spacing.Small, Seq(
+                    symbolBorder.applyToFigure(hfig(Spacing.Small,
+                        if (children.isEmpty) Seq(g.textFig("ε", ap.default))
+                        else (children map { parseNodeFig _ }))),
                     symbolFigureGenerator.symbolFig(sym)))
             case BindedNode(sym, body) =>
                 vfig(Spacing.Small, Seq(

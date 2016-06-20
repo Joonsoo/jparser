@@ -202,33 +202,43 @@ object MyPaper6_2 extends Grammar with GrammarTestCases with StringSamples with 
 object MyPaper6_3 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
     val name = "MyPaper Grammar 6_3"
     val rules: RuleMap = ListMap(
-        "Name" -> ListSet(
-            longest(chars('a' to 'z').plus)),
-        "WS" -> ListSet(
-            longest(c(' ').star)),
-        "Id" -> ListSet(
-            n("Name").except(n("Kw"))),
-        "Kw" -> ListSet(
-            n("Let")),
-        "Let" -> ListSet(
-            i("let").join(n("Name"))),
+        "S" -> ListSet(
+            n("Stmt").plus),
         "Stmt" -> ListSet(
             n("LetStmt"),
-            n("EvalStmt")),
+            n("ExprStmt")),
         "LetStmt" -> ListSet(
-            seq(n("Let"), n("WS"), n("Id"), n("WS"), n("Expr"))),
-        "EvalStmt" -> ListSet(
-            seq(n("Id"), n("WS"), n("Expr"))),
+            seq(n("Let"), c(' '), n("Id"), c(' '), n("Expr"), c(';'))),
+        "ExprStmt" -> ListSet(
+            seq(n("Expr"), c(';'), lookahead_is(n("LetStmt")))),
+        "Let" -> ListSet(
+            n("Let0").join(n("Name"))),
+        "Let0" -> ListSet(
+            i("let")),
+        "Name" -> ListSet(
+            longest(chars('a' to 'z').plus)),
+        "Id" -> ListSet(
+            n("Name").except(n("Let"))),
         "Expr" -> ListSet(
-            n("Id"),
-            seq(n("Id"), n("WS"), n("Expr"))),
-        "S" -> ListSet(
-            n("Stmt")))
+            seq(n("Expr"), c(' '), n("Id")),
+            n("Id")))
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]("let a b c", "l a b c", "a b c d", "a b letx c d", "let a b c d e f g")
-    val incorrectSamples = Set[String]("let let a", "a b let c d")
+    val correctSamples = Set[String](
+        "let a b c;",
+        "l a b c;let a b;",
+        "a b c d;let x y;",
+        "a b letx c d;let z y;",
+        "let a b c d e f g;",
+        "abc def;let xyz zyx;",
+        "ab cd;let wx yz;")
+    val incorrectSamples = Set[String](
+        "let let a;",
+        "a b let c d;",
+        "l a b c;",
+        "a b c d;",
+        "a b letx c d;")
     val ambiguousSamples = Set[String]()
 }
 
