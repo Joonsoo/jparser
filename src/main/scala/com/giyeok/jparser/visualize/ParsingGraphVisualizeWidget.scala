@@ -55,6 +55,7 @@ import org.eclipse.swt.layout.FormLayout
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
 import com.giyeok.jparser.Symbols.Start
+import com.giyeok.jparser.ParsingGraph.TermNode
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
@@ -239,10 +240,6 @@ trait ParsingGraphVisualizeWidget extends ParseForestFigureGenerator[Figure] wit
                         if (condition != ParsingGraph.Condition.True) {
                             conn.setText(aliveConditionString(condition))
                         }
-                        Seq(conn)
-                    case ParsingGraph.ReferEdge(start, end) =>
-                        val conn = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end)), start, end)
-                        conn.setLineStyle(SWT.LINE_DASH)
                         Seq(conn)
                     case ParsingGraph.JoinEdge(start, end, join) =>
                         val conn = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end)), start, end)
@@ -518,6 +515,9 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
                             highlightNode(cgnode)
                         case None => // nothing to do
                     }
+                case 'D' | 'd' =>
+                    // graph as DOT language
+                    printDotGraph()
                 case _ =>
             }
         }
@@ -549,6 +549,10 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
             }
         }
     })
+
+    def printDotGraph(): Unit = {
+        new DotGraphGenerator(nodeIdCache).addGraph(graph).printDotGraph()
+    }
 
     override def addKeyListener(keyListener: KeyListener): Unit = graphView.addKeyListener(keyListener)
     override def addMouseListener(mouseListener: MouseListener): Unit = graphView.addMouseListener(mouseListener)
@@ -607,6 +611,10 @@ abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: 
     })
 
     titleLabel.setText(title)
+
+    override def printDotGraph(): Unit = {
+        new DotGraphGenerator(nodeIdCache).addGraph(baseGraph).addTransition(baseGraph, afterGraph).printDotGraph()
+    }
 }
 
 trait DerivationGraph extends GraphControl {

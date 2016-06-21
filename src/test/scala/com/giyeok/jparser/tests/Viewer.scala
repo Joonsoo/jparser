@@ -117,7 +117,7 @@ trait Viewer {
                 case ParserTypes.New => parserTypeButton.setText("New Parser")
             }
         }
-        setParserType(ParserTypes.New)
+        setParserType(ParserTypes.Naive)
         def nextParserType(): Unit = {
             selectedParserType match {
                 case ParserTypes.Naive => setParserType(ParserTypes.New)

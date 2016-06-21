@@ -163,14 +163,13 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
             (cc, Seq())
         } else {
             // 2. cc에 새로운 result를 업데이트하고
-            val ncc = cc.updateResultOf(node, condition, updatedResult.get).asInstanceOf[Graph]
 
             // 3. chain lift task 만들어서 추가
             // - 노드에 붙어 있는 reservedReverter, 타고 가는 엣지에 붙어 있는 revertTriggers 주의해서 처리
             // - join 처리
             // - incomingEdge의 대상이 sequence인 경우 SequenceProgressTask가 생성됨
             // - result로 들어온 내용은 node의 symbol로 bind가 안 되어 있으므로 여기서 만드는 태스크에서는 resultFunc.bind(node.symbol, result) 로 줘야함 
-            val newTasks: Seq[Task] = {
+            val (ncc, newTasks: Seq[Task]) = {
                 // AtomicNode.reservedReverterType 처리
                 val nodeCreatedCondition: Condition = node.symbol match {
                     case s: Longest => Condition.Lift(node, nextGen)
@@ -180,6 +179,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                         val BindedResult(result, resultSymbol) = resultAndSymbol.asInstanceOf[BindedResult[R]]
                         if (s.sym == resultSymbol) {
                             Condition.Exclusion(nodeOf(s.except, node.beginGen), nextGen)
+                            // Exclude는 cc.updateResultOf할 때 Condition.conjunct(condition, )하고 같이 들어가야 함
                         } else {
                             assert(s.except == resultSymbol)
                             // except가 lift되어 올라왔으면 그냥 무시하면 되므로
@@ -189,7 +189,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 }
 
                 if (nodeCreatedCondition.permanentFalse) {
-                    Seq()
+                    (cc, Seq())
                 } else {
                     val incomingSimpleEdges = cc.incomingSimpleEdgesTo(node)
                     val incomingJoinEdges = cc.incomingJoinEdgesTo(node)
@@ -227,7 +227,8 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                             }
                     }
 
-                    simpleEdgeTasks.toSeq ++ joinEdgeTasks.toSeq
+                    // TODO except일 때는 updateResultOf할 때 조건에 nodeCreatedCondition도 들어가야 함
+                    (cc.updateResultOf(node, condition, updatedResult.get).asInstanceOf[Graph], simpleEdgeTasks.toSeq ++ joinEdgeTasks.toSeq)
                 }
             }
 

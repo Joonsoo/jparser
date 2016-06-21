@@ -79,10 +79,6 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                             newNodes(start).asInstanceOf[NontermNode],
                             newNodes(end),
                             condition.shiftGen(gen))
-                    case ReferEdge(start, end) =>
-                        ReferEdge(
-                            newNodes(start).asInstanceOf[NontermNode],
-                            newNodes(end))
                     case JoinEdge(start, end, join) =>
                         JoinEdge(
                             newNodes(start).asInstanceOf[NontermNode],
@@ -135,10 +131,6 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                             newNodes(start).asInstanceOf[NontermNode],
                             newNodes(end),
                             condition.shiftGen(gen))
-                    case ReferEdge(start, end) =>
-                        ReferEdge(
-                            newNodes(start).asInstanceOf[NontermNode],
-                            newNodes(end))
                     case JoinEdge(start, end, join) =>
                         JoinEdge(
                             newNodes(start).asInstanceOf[NontermNode],
@@ -263,8 +255,6 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                         val evaluatedCondition = condition.evaluate(nextGen, preliftResults, preliftNodes)
                         if (evaluatedCondition.permanentFalse) None else Some(SimpleEdge(start, end, evaluatedCondition))
                     } else None
-                case edge @ ReferEdge(start, end) =>
-                    if ((validNodes contains start) && (validNodes contains end)) Some(edge) else None
                 case edge @ JoinEdge(start, end, join) =>
                     if ((validNodes contains start) && (validNodes contains end) && (validNodes contains join)) Some(edge) else None
             }
