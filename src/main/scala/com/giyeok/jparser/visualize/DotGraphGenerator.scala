@@ -52,6 +52,13 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
             properties(name) = value
             this.asInstanceOf[This]
         }
+        def addStyle(value: String): This = {
+            val newStyle = properties get "style" match {
+                case None => value
+                case Some(old) => old + "," + value
+            }
+            attr("style", newStyle)
+        }
         def attrString: String = {
             properties map { kv => kv._1 + "=\"" + kv._2 + "\"" } mkString ","
         }
@@ -86,7 +93,8 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
         node match {
             case node: ParsingGraph.SequenceNode =>
                 dotnode.attr("shape", "rectangle")
-            case _ =>
+            case node =>
+                dotnode.attr("shape", "rectangle").addStyle("rounded")
         }
         nodes(node) = dotnode
         dotnode
@@ -98,7 +106,9 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
         def traverseNode(): Unit = {
             val node = queue.head
             queue = queue.tail
-            addNode(node)
+            if (!(nodes contains node)) {
+                addNode(node)
+            }
             graph.outgoingSimpleEdgesFrom(node).toSeq sortWith { (x, y) =>
                 (x.end, y.end) match {
                     case (x: ParsingGraph.TermNode, y: ParsingGraph.TermNode) => labelOf(x) < labelOf(y)
@@ -137,16 +147,17 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
     }
 
     def addTransition(baseGraph: ParsingGraph[R], afterGraph: ParsingGraph[R]): DotGraphGenerator[R] = {
+        addGraph(baseGraph)
         // baseGraph -> afterGraph 과정에서 없어진 노드/엣지 스타일에 dotted 추가
         (baseGraph.nodes -- afterGraph.nodes) foreach { removedNode =>
-            nodes(removedNode).attr("style", "dotted")
+            nodes(removedNode).addStyle("dotted")
         }
         (baseGraph.edges -- afterGraph.edges) foreach { removedEdge =>
-            edges(removedEdge).attr("style", "dotted")
+            edges(removedEdge).addStyle("dotted")
         }
-        // 새로 추가된 노드/엣지 파란색으로 표시
+        // 새로 추가된 노드 스타일에 filled 추가
         (afterGraph.nodes -- baseGraph.nodes) foreach { node =>
-            addNode(node).attr("style", "filled")
+            addNode(node).addStyle("filled")
         }
         (afterGraph.edges -- baseGraph.edges) foreach { edge =>
             if (!(edges contains edge)) {

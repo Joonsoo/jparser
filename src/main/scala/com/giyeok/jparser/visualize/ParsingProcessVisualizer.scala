@@ -370,6 +370,8 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest],
         }
     }
 
+    private var dotGraphGen = Option.empty[DotGraphGenerator[ParseForest]]
+
     def keyListener = new KeyListener() {
         def keyPressed(x: KeyEvent): Unit = {
             x.keyCode match {
@@ -380,6 +382,37 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest],
                 case SWT.HOME => updateLocation(firstLocation)
                 case SWT.END =>
                     if (lastValidLocation <= currentLocation && lastLocation != currentLocation) updateLocation(lastLocation) else updateLocation(lastValidLocation)
+
+                case 'D' | 'd' =>
+                    if (dotGraphGen.isEmpty) {
+                        dotGraphGen = Some(new DotGraphGenerator(nodeIdCache))
+                    }
+                    currentLocation match {
+                        case ParsingContextPointer(gen) =>
+                            contextAt(gen) match {
+                                case Left(ctx) => dotGraphGen.get.addGraph(ctx.graph)
+                                case Right(_) => // nothing to do
+                            }
+                        case ParsingContextTransitionPointer(gen, stage) =>
+                            transitionAt(gen) match {
+                                case Left(transition) =>
+                                    stage match {
+                                        case 1 => dotGraphGen.get.addTransition(transition.firstStage.get._1.baseGraph, transition.firstStage.get._1.nextGraph)
+                                        case 2 => dotGraphGen.get.addTransition(transition.firstStage.get._2.baseGraph, transition.firstStage.get._2.nextGraph)
+                                        case 3 => dotGraphGen.get.addTransition(transition.secondStage.get._1.baseGraph, transition.secondStage.get._1.nextGraph)
+                                        case 4 => dotGraphGen.get.addTransition(transition.secondStage.get._2.baseGraph, transition.secondStage.get._2.nextGraph)
+                                        case 5 => dotGraphGen.get.addTransition(transition.finalTrimming.get.baseGraph, transition.finalTrimming.get.nextGraph)
+                                    }
+                                case Right(_) => // nothing to do
+                            }
+                        case _ => // nothing to do
+                    }
+                    dotGraphGen.get.printDotGraph()
+
+                case 'F' | 'f' =>
+                    dotGraphGen = None
+                    println("DOT graph generator cleared")
+
                 case code =>
                     println(s"keyPressed: $code")
             }

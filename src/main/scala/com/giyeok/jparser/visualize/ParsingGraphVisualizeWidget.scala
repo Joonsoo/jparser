@@ -515,9 +515,6 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
                             highlightNode(cgnode)
                         case None => // nothing to do
                     }
-                case 'D' | 'd' =>
-                    // graph as DOT language
-                    printDotGraph()
                 case _ =>
             }
         }
@@ -549,10 +546,6 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
             }
         }
     })
-
-    def printDotGraph(): Unit = {
-        new DotGraphGenerator(nodeIdCache).addGraph(graph).printDotGraph()
-    }
 
     override def addKeyListener(keyListener: KeyListener): Unit = graphView.addKeyListener(keyListener)
     override def addMouseListener(mouseListener: MouseListener): Unit = graphView.addMouseListener(mouseListener)
@@ -611,10 +604,6 @@ abstract class GraphTransitionControl(parent: Composite, style: Int, baseGraph: 
     })
 
     titleLabel.setText(title)
-
-    override def printDotGraph(): Unit = {
-        new DotGraphGenerator(nodeIdCache).addGraph(baseGraph).addTransition(baseGraph, afterGraph).printDotGraph()
-    }
 }
 
 trait DerivationGraph extends GraphControl {
