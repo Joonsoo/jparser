@@ -721,7 +721,9 @@ class LiftTransitionVisualize(parent: Composite, style: Int, val grammar: Gramma
 
 class TrimmingTransitionVisualize(parent: Composite, style: Int, val grammar: Grammar, val nodeIdCache: NodeIdCache, transition: NewParser[ParseForest]#TrimmingTransition)
         extends GraphTransitionControl(parent, style, transition.baseGraph, transition.nextGraph, transition.title) {
-    nodeOf(transition.startNode).setBackgroundColor(ColorConstants.yellow)
+    transition.startNodes foreach { node =>
+        nodeOf(node).setBackgroundColor(ColorConstants.yellow)
+    }
     transition.endNodes foreach { nodeOf(_).setBackgroundColor(ColorConstants.orange) }
 }
 

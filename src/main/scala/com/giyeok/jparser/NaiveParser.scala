@@ -28,16 +28,18 @@ class NaiveParser[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFun
 
                 // 3. Trimming
                 val newTermNodes: Set[Node] = liftedGraph.nodes collect { case node @ TermNode(_, `nextGen`) => node }
-                val trimmedGraph = liftedGraph.subgraphIn(Set(startNode) ++ liftedGraph.nodesInResultsAndProgresses, newTermNodes, resultFunc).asInstanceOf[Graph]
-                val firstTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph, trimmedGraph, startNode, newTermNodes)
+                val firstTrimmingStartNodes = Set(startNode) ++ liftedGraph.nodesInResultsAndProgresses
+                val trimmedGraph = liftedGraph.subgraphIn(firstTrimmingStartNodes, newTermNodes, resultFunc).asInstanceOf[Graph]
+                val firstTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph, trimmedGraph, firstTrimmingStartNodes, newTermNodes)
 
                 // 4. Revert
                 val revertedGraph = ParsingCtx.revert(nextGen, trimmedGraph, trimmedGraph.results, trimmedGraph.nodes)
                 val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", trimmedGraph, revertedGraph, trimmedGraph, trimmedGraph.results)
 
                 // 5. Second trimming
-                val finalGraph = revertedGraph.subgraphIn(Set(startNode) ++ revertedGraph.nodesInResultsAndProgresses, newTermNodes, resultFunc).asInstanceOf[Graph]
-                val secondTrimmingTransition = TrimmingTransition(s"Gen $gen > (5) Second Trimming", revertedGraph, finalGraph, startNode, newTermNodes)
+                val secondTrimmingStartNodes = Set(startNode) ++ revertedGraph.nodesInResultsAndProgresses
+                val finalGraph = revertedGraph.subgraphIn(secondTrimmingStartNodes, newTermNodes, resultFunc).asInstanceOf[Graph]
+                val secondTrimmingTransition = TrimmingTransition(s"Gen $gen > (5) Second Trimming", revertedGraph, finalGraph, secondTrimmingStartNodes, newTermNodes)
                 val nextContext = new NaiveParsingCtx(nextGen, finalGraph)
                 val transition = ParsingCtxTransition(
                     Some(expandTransition, liftTransition),
