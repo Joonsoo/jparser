@@ -39,8 +39,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
     case class ParsingCtxTransition(
         firstStage: Option[(ExpandTransition, LiftTransition)],
-        secondStage: Option[(TrimmingTransition, RevertTransition)],
-        finalTrimming: Option[TrimmingTransition])
+        secondStage: Option[(TrimmingTransition, RevertTransition)])
 
     object ParsingCtx {
         // graph를 expand한다
@@ -294,7 +293,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             val (expandedGraph, initialTasks: Set[Task], preliftResults) = ParsingCtx.expand(graph, gen, nextGen, derivables, input)
 
             if (initialTasks.isEmpty) {
-                (ParsingCtxTransition(None, None, None), Right(UnexpectedInput(input)))
+                (ParsingCtxTransition(None, None), Right(UnexpectedInput(input)))
             } else {
                 // Pended terminal nodes
                 // Pended node는 이전 세대에 미리 만들어진 현재 세대의 노드
@@ -327,20 +326,10 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 val revertedGraph = ParsingCtx.revert(nextGen, trimmedGraph, revertBaseResults, trimmedGraph.nodes)
                 val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", trimmedGraph, revertedGraph, trimmedGraph, revertBaseResults)
 
-                // 5. 2차 트리밍
-                val secondTrimmingStartNodes = Set(startNode) ++ revertedGraph.nodesInResultsAndProgresses
-                val finalGraph = revertedGraph.subgraphIn(secondTrimmingStartNodes, nextDerivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[Graph]
-
-                if (!(finalGraph.nodes contains startNode)) {
-                    // TODO 이건 뭐지?
-                }
-
-                val secondLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (5) Second Trimming", revertedGraph, finalGraph, secondTrimmingStartNodes, nextDerivables.asInstanceOf[Set[Node]])
-                val nextContext: ParsingCtx = ParsingCtx(nextGen, finalGraph, (nextDerivables.asInstanceOf[Set[Node]] intersect finalGraph.nodes).asInstanceOf[Set[NontermNode]])
+                val nextContext: ParsingCtx = ParsingCtx(nextGen, revertedGraph, (nextDerivables.asInstanceOf[Set[Node]] intersect revertedGraph.nodes).asInstanceOf[Set[NontermNode]])
                 val transition = ParsingCtxTransition(
                     Some(expandTransition, liftTransition),
-                    Some(firstLiftTrimmingTransition, revertTransition),
-                    Some(secondLiftTrimmingTransition))
+                    Some(firstLiftTrimmingTransition, revertTransition))
                 (transition, Left(nextContext))
             }
         }

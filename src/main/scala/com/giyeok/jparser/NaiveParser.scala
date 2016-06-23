@@ -18,7 +18,7 @@ class NaiveParser[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFun
             }
 
             if (termFinishingTasks.isEmpty) {
-                (ParsingCtxTransition(None, None, None), Right(UnexpectedInput(input)))
+                (ParsingCtxTransition(None, None), Right(UnexpectedInput(input)))
             } else {
                 val expandTransition = ExpandTransition(s"Gen $gen > (1) - No Expansion", graph, graph, Set())
 
@@ -36,15 +36,10 @@ class NaiveParser[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFun
                 val revertedGraph = ParsingCtx.revert(nextGen, trimmedGraph, trimmedGraph.results, trimmedGraph.nodes)
                 val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", trimmedGraph, revertedGraph, trimmedGraph, trimmedGraph.results)
 
-                // 5. Second trimming
-                val secondTrimmingStartNodes = Set(startNode) ++ revertedGraph.nodesInResultsAndProgresses
-                val finalGraph = revertedGraph.subgraphIn(secondTrimmingStartNodes, newTermNodes, resultFunc).asInstanceOf[Graph]
-                val secondTrimmingTransition = TrimmingTransition(s"Gen $gen > (5) Second Trimming", revertedGraph, finalGraph, secondTrimmingStartNodes, newTermNodes)
-                val nextContext = new NaiveParsingCtx(nextGen, finalGraph)
+                val nextContext = new NaiveParsingCtx(nextGen, revertedGraph)
                 val transition = ParsingCtxTransition(
                     Some(expandTransition, liftTransition),
-                    Some(firstTrimmingTransition, revertTransition),
-                    Some(secondTrimmingTransition))
+                    Some(firstTrimmingTransition, revertTransition))
                 (transition, Left(nextContext))
             }
         }

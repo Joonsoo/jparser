@@ -90,7 +90,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest],
         def <=(other: Pointer) = other != this
     }
     case class ParsingContextPointer(gen: Int) extends Pointer {
-        def previous = if (gen == 0) ParsingContextInitializingPointer else ParsingContextTransitionPointer(gen - 1, 5)
+        def previous = if (gen == 0) ParsingContextInitializingPointer else ParsingContextTransitionPointer(gen - 1, 4)
         def next = ParsingContextTransitionPointer(gen, 1)
         def previousBase = ParsingContextPointer(gen - 1)
         def nextBase = ParsingContextPointer(gen + 1)
@@ -107,14 +107,13 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest],
         }
     }
     case class ParsingContextTransitionPointer(gen: Int, stage: Int) extends Pointer {
-        // stage 1: 1차 expand
-        // stage 2: 1차 lift
-        // stage 3: 1차 lift 트리밍
+        // stage 1: expand
+        // stage 2: lift
+        // stage 3: 트리밍
         // stage 4: revert
-        // stage 5: 2차 lift 트리밍
-        assert(1 <= stage && stage <= 5)
+        assert(1 <= stage && stage <= 4)
         def previous = if (stage == 1) ParsingContextPointer(gen) else ParsingContextTransitionPointer(gen, stage - 1)
-        def next = if (stage == 5) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
+        def next = if (stage == 4) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
         def previousBase = if (stage == 1) ParsingContextPointer(gen - 1) else ParsingContextPointer(gen)
         def nextBase = ParsingContextPointer(gen + 1)
 
@@ -354,8 +353,6 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest],
                                         controlOpt(transition.secondStage, "No Lift") { t => new TrimmingTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._1) }
                                     case 4 =>
                                         controlOpt(transition.secondStage, "No Lift") { t => new RevertTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._2) }
-                                    case 5 =>
-                                        controlOpt(transition.finalTrimming, "No Final Trimming") { t => new TrimmingTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t) }
                                 }
                             case Right(error) => errorControl(error.msg)
                         }
@@ -401,7 +398,6 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest],
                                         case 2 => dotGraphGen.get.addTransition(transition.firstStage.get._2.baseGraph, transition.firstStage.get._2.nextGraph)
                                         case 3 => dotGraphGen.get.addTransition(transition.secondStage.get._1.baseGraph, transition.secondStage.get._1.nextGraph)
                                         case 4 => dotGraphGen.get.addTransition(transition.secondStage.get._2.baseGraph, transition.secondStage.get._2.nextGraph)
-                                        case 5 => dotGraphGen.get.addTransition(transition.finalTrimming.get.baseGraph, transition.finalTrimming.get.nextGraph)
                                     }
                                 case Right(_) => // nothing to do
                             }
