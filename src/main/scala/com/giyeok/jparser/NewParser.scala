@@ -303,7 +303,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 // val pendedTermNodes = graph.nodes collect { case node: TermNode if node.symbol accept input => node ensuring (node.beginGen == gen) }
                 val expandTransition = ExpandTransition(s"Gen $gen > (1) Expansion", graph, expandedGraph, initialTasks.asInstanceOf[Set[NewParser[R]#Task]])
 
-                // 2. 1차 lift
+                // 2. lift
                 val (liftedGraph, nextDerivables) = ParsingCtx.lift(expandedGraph, nextGen, initialTasks, Map())
 
                 val liftTransition = LiftTransition(s"Gen $gen > (2) First Lift", expandedGraph, liftedGraph, initialTasks.asInstanceOf[Set[NewParser[R]#Task]], nextDerivables.asInstanceOf[Set[Node]])
@@ -311,10 +311,10 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 // revert할 때는 (expand할 때 발생한 results + liftedGraph0.results)를 사용해야 함
                 val revertBaseResults = liftedGraph.results.merge(preliftResults, resultFunc)
 
-                // 3. 1차 트리밍
-                val firstTrimmingStartNodes = Set(startNode) ++ liftedGraph.nodesInResultsAndProgresses
-                val trimmedGraph = liftedGraph.subgraphIn(firstTrimmingStartNodes, nextDerivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[Graph]
-                val firstLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph, trimmedGraph, firstTrimmingStartNodes, nextDerivables.asInstanceOf[Set[Node]])
+                // 3. 트리밍
+                val trimmingStartNodes = Set(startNode) ++ liftedGraph.nodesInResultsAndProgresses
+                val trimmedGraph = liftedGraph.subgraphIn(trimmingStartNodes, nextDerivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[Graph]
+                val firstLiftTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph, trimmedGraph, trimmingStartNodes, nextDerivables.asInstanceOf[Set[Node]])
 
                 if (!(trimmedGraph.nodes contains startNode)) {
                     // TODO Unexpected input

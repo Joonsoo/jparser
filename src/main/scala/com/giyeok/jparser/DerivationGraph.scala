@@ -228,7 +228,8 @@ class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseR
 
             val (liftedGraph, derivables) = lift(dgraph, 1, eligibleTerminalNodes)
             // assert(liftedGraph.progresses.keyNodesSet == derivables)
-            val trimmedGraph = liftedGraph.subgraphIn(Set(baseNode) ++ dgraph.nodesInResultsAndProgresses, derivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[DGraph[R]]
+            val trimmingStartNodes = Set(baseNode) ++ dgraph.nodesInResultsAndProgresses
+            val trimmedGraph = liftedGraph.subgraphIn(trimmingStartNodes, derivables.asInstanceOf[Set[Node]], resultFunc).asInstanceOf[DGraph[R]]
 
             // trimmedGraph에 등장하는 노드는 모두 gen이 0이나 1이어야 함
             // - 원래 있던 노드는 gen이 0이고 새로 생긴 노드는 gen이 1이어야 함

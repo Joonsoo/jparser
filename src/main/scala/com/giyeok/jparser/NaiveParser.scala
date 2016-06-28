@@ -28,9 +28,9 @@ class NaiveParser[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFun
 
                 // 3. Trimming
                 val newTermNodes: Set[Node] = liftedGraph.nodes collect { case node @ TermNode(_, `nextGen`) => node }
-                val firstTrimmingStartNodes = Set(startNode) ++ liftedGraph.nodesInResultsAndProgresses
-                val trimmedGraph = liftedGraph.subgraphIn(firstTrimmingStartNodes, newTermNodes, resultFunc).asInstanceOf[Graph]
-                val firstTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph, trimmedGraph, firstTrimmingStartNodes, newTermNodes)
+                val trimmingStartNodes = Set(startNode) ++ liftedGraph.nodesInResultsAndProgresses
+                val trimmedGraph = liftedGraph.subgraphIn(trimmingStartNodes, newTermNodes, resultFunc).asInstanceOf[Graph]
+                val firstTrimmingTransition = TrimmingTransition(s"Gen $gen > (3) First Trimming", liftedGraph, trimmedGraph, trimmingStartNodes, newTermNodes)
 
                 // 4. Revert
                 val revertedGraph = ParsingCtx.revert(nextGen, trimmedGraph, trimmedGraph.results, trimmedGraph.nodes)

@@ -173,9 +173,11 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 // AtomicNode.reservedReverterType 처리
                 val (afterCC, afterCondition) = node.symbol match {
                     case s: Longest =>
-                        (cc.updateResultOf(node, condition, updatedResult.get).asInstanceOf[Graph], Condition.conjunct(condition, Condition.Lift(node, nextGen)))
+                        val newCond = Condition.conjunct(condition, Condition.Lift(node, nextGen))
+                        (cc.updateResultOf(node, condition, updatedResult.get).asInstanceOf[Graph], newCond)
                     case s: EagerLongest =>
-                        (cc.updateResultOf(node, condition, updatedResult.get).asInstanceOf[Graph], Condition.conjunct(condition, Condition.Alive(node, nextGen)))
+                        val newCond = Condition.conjunct(condition, Condition.Alive(node, nextGen))
+                        (cc.updateResultOf(node, condition, updatedResult.get).asInstanceOf[Graph], newCond)
                     case s: Except =>
                         assert(resultAndSymbol.isInstanceOf[BindedResult[_]])
                         val BindedResult(result, resultSymbol) = resultAndSymbol.asInstanceOf[BindedResult[R]]
