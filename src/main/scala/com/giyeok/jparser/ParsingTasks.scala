@@ -99,10 +99,10 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                         init.deriveJoin(baseNode, nodeOf(sym, gen), nodeOf(join, gen))
                     case LookaheadIs(lookahead) =>
                         init.addNodes(Set(nodeOf(lookahead, gen)))
-                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence()), Condition.Wait(nodeOf(lookahead, gen), gen))))
+                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence()), Condition.After(nodeOf(lookahead, gen), gen))))
                     case LookaheadExcept(except) =>
                         init.addNodes(Set(nodeOf(except, gen)))
-                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence()), Condition.Lift(nodeOf(except, gen), gen))))
+                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence()), Condition.Until(nodeOf(except, gen), gen))))
                     case Longest(sym) =>
                         init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True)))
                     case EagerLongest(sym) =>
@@ -110,7 +110,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                     case Backup(sym, backup) =>
                         init.deriveAtomic(baseNode, Set(
                             (nodeOf(sym, gen), Condition.True),
-                            (nodeOf(backup, gen), Condition.Lift(nodeOf(sym, gen), gen))))
+                            (nodeOf(backup, gen), Condition.Until(nodeOf(sym, gen), gen))))
                     case Except(sym, except) =>
                         init.deriveAtomic(baseNode, Set(
                             (nodeOf(sym, gen), Condition.True),
@@ -173,7 +173,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 // AtomicNode.reservedReverterType 처리
                 val (afterCC, afterCondition) = node.symbol match {
                     case s: Longest =>
-                        val newCond = Condition.conjunct(condition, Condition.Lift(node, nextGen))
+                        val newCond = Condition.conjunct(condition, Condition.Until(node, nextGen))
                         (cc.updateResultOf(node, condition, updatedResult.get).asInstanceOf[Graph], newCond)
                     case s: EagerLongest =>
                         val newCond = Condition.conjunct(condition, Condition.Alive(node, nextGen))
@@ -183,7 +183,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                         val BindedResult(result, resultSymbol) = resultAndSymbol.asInstanceOf[BindedResult[R]]
                         if (s.sym == resultSymbol) {
                             // except일 때는 updateResultOf할 때 조건에 nodeCreatedCondition도 들어가야 함
-                            val newCond = Condition.conjunct(condition, Condition.Exclusion(nodeOf(s.except, node.beginGen), nextGen))
+                            val newCond = Condition.conjunct(condition, Condition.Exclude(nodeOf(s.except, node.beginGen), nextGen))
                             (cc.updateResultOf(node, newCond, updatedResult.get).asInstanceOf[Graph], newCond)
                             // Exclude는 cc.updateResultOf할 때 Condition.conjunct(condition, )하고 같이 들어가야 함
                         } else {
@@ -195,7 +195,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                         (cc.updateResultOf(node, condition, updatedResult.get).asInstanceOf[Graph], condition)
                 }
 
-                if (afterCondition.permanentFalse) {
+                if (afterCondition == Condition.False) {
                     (cc, Seq())
                 } else {
                     val incomingSimpleEdges = cc.incomingSimpleEdgesTo(node)

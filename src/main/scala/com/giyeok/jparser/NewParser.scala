@@ -195,8 +195,9 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                                         // liftedBlockedNodes에 있지 않으면 일반 진행
                                         val (newGraphCC, newTasks) = finishingTask(task, graphCC)
                                         rec(rest ++ newTasks, newGraphCC, derivablesCC)
-                                    case Some(condition) if condition.permanentFalse =>
+                                    case Some(Condition.False) =>
                                         // liftBlocking 조건이 permanentFalse이면 이 리프트는 무시하고 진행한다
+                                        // TODO 근데 이런 경우가 생기나?
                                         rec(rest, graphCC, derivablesCC)
                                     case Some(condition) =>
                                         // 여기서 condition이 만족되는 동안에는 이 lift가 실패한 것으로 동작해야 한다
@@ -218,7 +219,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             val nextProgresses = graph.progresses.entries.foldLeft(Results[SequenceNode, R]()) { (cc, entry) =>
                 val (node, condition, result) = entry
                 val evaluatedCondition = condition.evaluate(nextGen, preliftResults, preliftNodes)
-                if (evaluatedCondition.permanentFalse) cc else {
+                if (evaluatedCondition == Condition.False) cc else {
                     cc.of(node, evaluatedCondition) match {
                         case Some(existingResult) =>
                             cc.update(node, evaluatedCondition, resultFunc.merge(existingResult, result))
@@ -231,7 +232,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             val nextResults = graph.results.entries.foldLeft(Results[Node, R]()) { (cc, entry) =>
                 val (node, condition, result) = entry
                 val evaluatedCondition = condition.evaluate(nextGen, preliftResults, preliftNodes)
-                if (evaluatedCondition.permanentFalse) cc else {
+                if (evaluatedCondition == Condition.False) cc else {
                     cc.of(node, evaluatedCondition) match {
                         case Some(existingResult) =>
                             cc.update(node, evaluatedCondition, resultFunc.merge(existingResult, result))
@@ -252,7 +253,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 case SimpleEdge(start, end, condition) =>
                     if ((validNodes contains start) && (validNodes contains end)) {
                         val evaluatedCondition = condition.evaluate(nextGen, preliftResults, preliftNodes)
-                        if (evaluatedCondition.permanentFalse) None else Some(SimpleEdge(start, end, evaluatedCondition))
+                        if (evaluatedCondition == Condition.False) None else Some(SimpleEdge(start, end, evaluatedCondition))
                     } else None
                 case edge @ JoinEdge(start, end, join) =>
                     if ((validNodes contains start) && (validNodes contains end) && (validNodes contains join)) Some(edge) else None

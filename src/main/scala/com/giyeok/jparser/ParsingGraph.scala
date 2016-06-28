@@ -44,9 +44,6 @@ object ParsingGraph {
         def nodes: Set[Node]
         def shiftGen(shiftGen: Int): Condition
 
-        def permanentTrue: Boolean
-        def permanentFalse: Boolean
-
         // evaluate return: (현재 상황에서 이 조건을 가진 results를 사용해도 되는지/아닌지, 이 조건을 다음에 어떻게 바꿔야 하는지)
         // - edge에 붙어있는 Condition에서는 _1은 의미가 없고 _2가 Value(false)로 나오는 경우 그 엣지를 제거하면 되고, 그 외의 경우엔 엣지의 Condition을 _2로 바꾸면 된다
         def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition
@@ -56,24 +53,26 @@ object ParsingGraph {
     object Condition {
         val True: Condition = Value(true)
         val False: Condition = Value(false)
-        def Lift(node: Node, pendedUntilGen: Int): Condition = TrueUntilLifted(node, pendedUntilGen)
-        def Wait(node: Node, pendedUntilGen: Int): Condition = FalseUntilLifted(node, pendedUntilGen)
+        def Until(node: Node, pendedUntilGen: Int): Condition = TrueUntilLifted(node, pendedUntilGen)
+        def After(node: Node, pendedUntilGen: Int): Condition = FalseUntilLifted(node, pendedUntilGen)
         def Alive(node: Node, pendedUntilGen: Int): Condition = FalseIfAlive(node, pendedUntilGen)
-        def Exclusion(node: Node, targetGen: Int): Condition = FalseIfLiftedAtExactGen(node, targetGen)
+        def Exclude(node: Node, targetGen: Int): Condition = FalseIfLiftedAtExactGen(node, targetGen)
         def conjunct(conds: Condition*): Condition = {
-            if (conds forall { _.permanentTrue }) True
-            else if (conds exists { _.permanentFalse }) False
+            if (conds exists { _ == False }) False
             else {
-                val conds1 = conds.toSet filterNot { _.permanentTrue }
-                if (conds1.size == 1) conds1.head else And(conds1)
+                val conds1 = conds.toSet filterNot { _ == True }
+                if (conds1.isEmpty) True
+                else if (conds1.size == 1) conds1.head
+                else And(conds1)
             }
         }
         def disjunct(conds: Condition*): Condition = {
-            if (conds exists { _.permanentTrue }) True
-            else if (conds forall { _.permanentFalse }) False
+            if (conds exists { _ == True }) True
             else {
-                val conds1 = conds.toSet filterNot { _.permanentFalse }
-                if (conds1.size == 1) conds1.head else Or(conds1)
+                val conds1 = conds.toSet filterNot { _ == False }
+                if (conds1.isEmpty) False
+                else if (conds1.size == 1) conds1.head
+                else Or(conds1)
             }
         }
 
@@ -82,19 +81,15 @@ object ParsingGraph {
             def nodes = Set()
             def shiftGen(shiftGen: Int) = this
 
-            def permanentTrue = value == true
-            def permanentFalse = value == false
-
             def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = this
             def eligible = value
             def neg: Condition = Value(!value)
         }
         case class And(conds: Set[Condition]) extends Condition {
+            assert(conds forall { c => c != True && c != False })
+
             def nodes = conds flatMap { _.nodes }
             def shiftGen(shiftGen: Int) = And(conds map { _.shiftGen(shiftGen) })
-
-            def permanentTrue = conds forall { _.permanentTrue }
-            def permanentFalse = conds forall { _.permanentFalse }
 
             def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 conds.foldLeft(Condition.True) { (cc, condition) =>
@@ -107,11 +102,10 @@ object ParsingGraph {
             }
         }
         case class Or(conds: Set[Condition]) extends Condition {
+            assert(conds forall { c => c != True && c != False })
+
             def nodes = conds flatMap { _.nodes }
             def shiftGen(shiftGen: Int) = Or(conds map { _.shiftGen(shiftGen) })
-
-            def permanentTrue = conds exists { _.permanentTrue }
-            def permanentFalse = conds exists { _.permanentFalse }
 
             def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 conds.foldLeft(Condition.False) { (cc, condition) =>
@@ -128,9 +122,6 @@ object ParsingGraph {
         case class TrueUntilLifted(node: Node, pendedUntilGen: Int) extends Condition {
             def nodes = Set(node)
             def shiftGen(shiftGen: Int) = TrueUntilLifted(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
-
-            def permanentTrue = false
-            def permanentFalse = false
 
             def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 if (gen <= pendedUntilGen) {
@@ -163,9 +154,6 @@ object ParsingGraph {
         case class FalseUntilLifted(node: Node, pendedUntilGen: Int) extends Condition {
             def nodes = Set(node)
             def shiftGen(shiftGen: Int) = FalseUntilLifted(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
-
-            def permanentTrue = false
-            def permanentFalse = false
 
             def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 if (gen <= pendedUntilGen) {
@@ -200,9 +188,6 @@ object ParsingGraph {
             def nodes = Set(node)
             def shiftGen(shiftGen: Int) = FalseIfAlive(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
 
-            def permanentTrue = false
-            def permanentFalse = false
-
             def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 if (gen <= pendedUntilGen) {
                     // pendedUntilGen 이전에는 평가 보류
@@ -219,9 +204,6 @@ object ParsingGraph {
         case class TrueIfAlive(node: Node, pendedUntilGen: Int) extends Condition {
             def nodes = Set(node)
             def shiftGen(shiftGen: Int) = TrueIfAlive(node.shiftGen(shiftGen), pendedUntilGen + shiftGen)
-
-            def permanentTrue = false
-            def permanentFalse = false
 
             def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 if (gen <= pendedUntilGen) {
@@ -241,22 +223,15 @@ object ParsingGraph {
             def nodes = Set(node)
             def shiftGen(shiftGen: Int) = FalseIfLiftedAtExactGen(node.shiftGen(shiftGen), targetGen + shiftGen)
 
-            def permanentTrue = false
-            def permanentFalse = false
-
             def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
                 assert(targetGen == gen)
                 results.of(node) match {
                     case Some(resultsMap) =>
                         val resultConditions = resultsMap.keys
-                        if (resultConditions exists { _.permanentTrue }) {
-                            // A-B에서 B가 항상 만족될 수 있는 해답이 있으면 A-B는 항상 실패
-                            Condition.False
-                        } else {
-                            // A-B에서 B가 완료될 수 있는 경우를 전부 OR로 묶은것의 neg 일 것 같은데
-                            // 인데 일단 이런 경우는 안생긴다고 가정하자
-                            Condition.disjunct(resultConditions.toSeq: _*).evaluate(gen, results, aliveNodes).neg
-                        }
+                        // TODO resultConditions 안에는 Exclude가 없어야 한다
+                        // A-B에서 B가 완료될 수 있는 경우를 전부 OR로 묶은것의 neg 일 것 같은데
+                        // - A-B에서 B가 항상 만족될 수 있는 해답이 있으면 A-B는 항상 실패
+                        Condition.disjunct(resultConditions.toSeq: _*).evaluate(gen, results, aliveNodes).neg
                     case None => Condition.True
                 }
             }
