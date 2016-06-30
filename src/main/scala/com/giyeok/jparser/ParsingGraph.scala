@@ -228,10 +228,21 @@ object ParsingGraph {
                 results.of(node) match {
                     case Some(resultsMap) =>
                         val resultConditions = resultsMap.keys
-                        // TODO resultConditions 안에는 Exclude가 없어야 한다
                         // A-B에서 B가 완료될 수 있는 경우를 전부 OR로 묶은것의 neg 일 것 같은데
                         // - A-B에서 B가 항상 만족될 수 있는 해답이 있으면 A-B는 항상 실패
-                        Condition.disjunct(resultConditions.toSeq: _*).evaluate(gen, results, aliveNodes).neg
+                        val evaluatedCondition = Condition.disjunct(resultConditions.toSeq: _*).evaluate(gen, results, aliveNodes)
+                        // TODO evaluatedConditions 안에는 Exclude가 없어야 한다
+                        assert({
+                            def check(condition: Condition): Boolean =
+                                condition match {
+                                    case _: FalseIfLiftedAtExactGen => false
+                                    case And(conds) => conds forall check
+                                    case Or(conds) => conds forall check
+                                    case _ => true
+                                }
+                            check(evaluatedCondition)
+                        })
+                        evaluatedCondition.neg
                     case None => Condition.True
                 }
             }

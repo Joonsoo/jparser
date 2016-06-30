@@ -376,6 +376,73 @@ object MyPaper7_2 extends Grammar with GrammarTestCases with StringSamples with 
     val ambiguousSamples = Set[String]()
 }
 
+object MyPaper8_1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "MyPaper Grammar 8_1 (ambiguous)"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("N"),
+            seq(n("S"), n("N"))),
+        "N" -> ListSet(
+            chars('a' to 'z'),
+            seq(n("N"), chars('a' to 'z'))))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "b",
+        "c")
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String](
+        "ab",
+        "bc")
+}
+
+object MyPaper8_2 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "MyPaper Grammar 8_2"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("L"),
+            seq(n("S"), n("L"))),
+        "L" -> ListSet(
+            seq(n("N"), lookahead_except(n("N")))),
+        "N" -> ListSet(
+            chars('a' to 'z'),
+            seq(n("N"), chars('a' to 'z'))))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "b",
+        "c",
+        "ab",
+        "bc",
+        "abcdefg")
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]()
+}
+
+object MyPaper8_3 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "MyPaper Grammar 8_3"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            longest(n("N")),
+            seq(n("S"), longest(n("N")))),
+        "N" -> ListSet(
+            chars('a' to 'z'),
+            seq(n("N"), chars('a' to 'z'))))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "b",
+        "c",
+        "ab",
+        "bc",
+        "abcdefg")
+    val incorrectSamples = Set[String]()
+    val ambiguousSamples = Set[String]()
+}
+
 object PaperTests {
     val tests: Set[GrammarTestCases] = Set(
         Earley1970AE,
@@ -391,7 +458,10 @@ object PaperTests {
         MyPaper6_3,
         MyPaper6_4,
         MyPaper7_1,
-        MyPaper7_2)
+        MyPaper7_2,
+        MyPaper8_1,
+        MyPaper8_2,
+        MyPaper8_3)
 }
 
 class PaperTestSuite extends BasicParseTest(PaperTests.tests)

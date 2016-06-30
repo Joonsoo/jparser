@@ -62,8 +62,17 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
             }
             def deriveJoin(baseNode: NontermNode, dest: Node, join: Node): TaskResult = {
                 val newEdges: Set[Edge] = Set(JoinEdge(baseNode, dest, join))
-                // TODO dest와 join이 모두 nullable한 경우 FinishTask 추가
-                this.addNodes(Set(dest, join)).addEdges(newEdges)
+                // dest와 join이 모두 nullable한 경우 FinishTask 추가
+                val finishableTasks: Seq[FinishingTask] = (cc.results.of(dest), cc.results.of(join)) match {
+                    case (Some(destResults), Some(joinResults)) =>
+                        destResults.toSeq flatMap { destResult =>
+                            joinResults map { joinResult =>
+                                FinishingTask(gen, baseNode, JoinResult(resultFunc.join(destResult._2, joinResult._2)), Condition.conjunct(destResult._1, joinResult._1))
+                            }
+                        }
+                    case _ => Seq()
+                }
+                this.addNodes(Set(dest, join)).addEdges(newEdges).addTasks(finishableTasks)
             }
             def deriveSequence(baseNode: SequenceNode, destNodes: Set[Node]): TaskResult = {
                 val newEdges: Set[Edge] = destNodes map { n => SimpleEdge(baseNode, n, Condition.True) }

@@ -71,7 +71,7 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
         def this() = this(scala.collection.mutable.Map[String, String]())
     }
 
-    private val nodes = scala.collection.mutable.ListMap[ParsingGraph.Node, DotGraphNode]()
+    private var _nodes = Seq[(ParsingGraph.Node, DotGraphNode)]()
     private val edges = scala.collection.mutable.Map[ParsingGraph.Edge, DotGraphEdge]()
 
     def nodeNameOf(node: ParsingGraph.Node): String = s"node${nodeIdCache.of(node)}"
@@ -88,16 +88,21 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
         }
     }
 
+    def getNode(node: ParsingGraph.Node): Option[DotGraphNode] = (_nodes find { _._1 == node } map { _._2 })
     def addNode(node: ParsingGraph.Node): DotGraphNode = {
-        val dotnode = new DotGraphNode(nodeNameOf(node)).attr("label", labelOf(node))
-        node match {
-            case node: ParsingGraph.SequenceNode =>
-                dotnode.attr("shape", "rectangle")
-            case node =>
-                dotnode.attr("shape", "rectangle").addStyle("rounded")
+        getNode(node) match {
+            case Some(dotnode) => dotnode
+            case None =>
+                val dotnode = new DotGraphNode(nodeNameOf(node)).attr("label", labelOf(node))
+                node match {
+                    case node: ParsingGraph.SequenceNode =>
+                        dotnode.attr("shape", "rectangle")
+                    case node =>
+                        dotnode.attr("shape", "rectangle").addStyle("rounded")
+                }
+                _nodes :+= (node, dotnode)
+                dotnode
         }
-        nodes(node) = dotnode
-        dotnode
     }
 
     def addGraph(graph: ParsingGraph[R]): DotGraphGenerator[R] = {
@@ -106,9 +111,7 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
         def traverseNode(): Unit = {
             val node = queue.head
             queue = queue.tail
-            if (!(nodes contains node)) {
-                addNode(node)
-            }
+            addNode(node)
             graph.outgoingSimpleEdgesFrom(node).toSeq sortWith { (x, y) =>
                 (x.end, y.end) match {
                     case (x: ParsingGraph.TermNode, y: ParsingGraph.TermNode) => labelOf(x) < labelOf(y)
@@ -121,13 +124,15 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
                 }
             } foreach {
                 case edge @ ParsingGraph.SimpleEdge(start, end, cond) =>
-                    if (!(visited contains end)) queue :+= end
+                    edges(edge) = new DotGraphEdge()
+                    if (!(visited contains end)) queue +:= end
                     visited += end
             }
             graph.outgoingJoinEdgesFrom(node) foreach {
                 case edge @ ParsingGraph.JoinEdge(start, end, join) =>
-                    if (!(visited contains end)) queue :+= end
-                    if (!(visited contains join)) queue :+= join
+                    edges(edge) = new DotGraphEdge()
+                    if (!(visited contains end)) queue +:= end
+                    if (!(visited contains join)) queue +:= join
                     queue :+ join
                     visited += end
                     visited += join
@@ -140,6 +145,9 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
         queue +:= ParsingGraph.AtomicNode(Start, 0)
         traverseNode()
 
+        graph.nodes foreach { node =>
+            addNode(node)
+        }
         graph.edges foreach { edge =>
             edges(edge) = new DotGraphEdge()
         }
@@ -150,10 +158,15 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
         addGraph(baseGraph)
         // baseGraph -> afterGraph 과정에서 없어진 노드/엣지 스타일에 dotted 추가
         (baseGraph.nodes -- afterGraph.nodes) foreach { removedNode =>
-            nodes(removedNode).addStyle("dotted")
+            getNode(removedNode) match {
+                case Some(node) => node.addStyle("dotted")
+                case _ => // nothing to do
+            }
         }
         (baseGraph.edges -- afterGraph.edges) foreach { removedEdge =>
-            edges(removedEdge).addStyle("dotted")
+            if (edges contains removedEdge) {
+                edges(removedEdge).addStyle("dotted")
+            }
         }
         // 새로 추가된 노드 스타일에 filled 추가
         (afterGraph.nodes -- baseGraph.nodes) foreach { node =>
@@ -170,7 +183,7 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
     def printDotGraph(): Unit = {
         println("digraph G {")
         println("    node[fontname=\"monospace\", height=.1];")
-        nodes foreach { kv =>
+        _nodes foreach { kv =>
             if (kv._1.symbol != Start) {
                 println(s"    ${nodeNameOf(kv._1)}[${kv._2.attrString}];")
             }

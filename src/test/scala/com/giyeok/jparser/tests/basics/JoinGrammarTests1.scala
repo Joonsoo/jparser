@@ -63,10 +63,42 @@ object JoinGrammar2 extends Grammar with GrammarTestCases with StringSamples {
         "bca")
 }
 
+object JoinGrammar3 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "JoinGrammar3 (a^n b^n c^n)"
+
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("L1").join(n("L2"))),
+        "L1" -> ListSet(
+            seq(n("A"), n("P"))),
+        "A" -> ListSet(
+            seq(c('a'), n("A"), c('b')),
+            empty),
+        "P" -> ListSet(
+            seq(c('c'), n("P")),
+            empty),
+        "L2" -> ListSet(
+            seq(n("Q"), n("C"))),
+        "Q" -> ListSet(
+            seq(c('a'), n("Q")),
+            empty),
+        "C" -> ListSet(
+            seq(c('b'), n("C"), c('c')),
+            empty))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "", "abc", "aabbcc", "aaabbbccc")
+    val incorrectSamples = Set[String](
+        "aaabbb")
+}
+
 object JoinGrammars {
     val tests: Set[GrammarTestCases] = Set(
         JoinGrammar1,
-        JoinGrammar2)
+        JoinGrammar2,
+        JoinGrammar3)
 }
 
 class JoinGrammarTestSuite1 extends BasicParseTest(JoinGrammars.tests)
