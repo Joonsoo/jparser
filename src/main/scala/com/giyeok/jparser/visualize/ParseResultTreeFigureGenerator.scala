@@ -5,33 +5,32 @@ import com.giyeok.jparser.ParseResultTree.TreePrint
 import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.visualize.FigureGenerator.Appearance
 import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.ParseResultTree._
+import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
-object ParseResultTreeFigureGenerator {
+object ParseResultFigureGenerator {
     case class RenderingConfiguration(renderJoin: Boolean, renderWS: Boolean, renderLookaheadExcept: Boolean)
     val cleanestConfiguration = RenderingConfiguration(true, true, true)
 }
 
 class ParseResultTreeFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGenerator.Appearances[Fig]) {
-    import com.giyeok.jparser.ParseResultTree._
-    import com.giyeok.jparser.visualize.FigureGenerator.Spacing
-
     val symbolFigureGenerator = new SymbolFigureGenerator(g, ap)
 
     def parseNodeHFig(n: Node): Fig =
-        parseNodeHFig(n: Node, ParseResultTreeFigureGenerator.cleanestConfiguration)
+        parseNodeHFig(n: Node, ParseResultFigureGenerator.cleanestConfiguration)
 
-    def parseNodeHFig(n: Node, renderConf: ParseResultTreeFigureGenerator.RenderingConfiguration): Fig = {
+    def parseNodeHFig(n: Node, renderConf: ParseResultFigureGenerator.RenderingConfiguration): Fig = {
         parseNodeFig(ap.hSymbolBorder, g.verticalFig _, g.horizontalFig _, renderConf)(n)
     }
 
     def parseNodeVFig(n: Node): Fig =
-        parseNodeVFig(n: Node, ParseResultTreeFigureGenerator.cleanestConfiguration)
+        parseNodeVFig(n: Node, ParseResultFigureGenerator.cleanestConfiguration)
 
-    def parseNodeVFig(n: Node, renderConf: ParseResultTreeFigureGenerator.RenderingConfiguration): Fig = {
+    def parseNodeVFig(n: Node, renderConf: ParseResultFigureGenerator.RenderingConfiguration): Fig = {
         parseNodeFig(ap.vSymbolBorder, g.horizontalFig _, g.verticalFig _, renderConf)(n)
     }
 
-    private def parseNodeFig(symbolBorder: FigureGenerator.Appearance[Fig], vfig: (Spacing.Value, Seq[Fig]) => Fig, hfig: (Spacing.Value, Seq[Fig]) => Fig, renderConf: ParseResultTreeFigureGenerator.RenderingConfiguration)(n: Node): Fig = {
+    private def parseNodeFig(symbolBorder: FigureGenerator.Appearance[Fig], vfig: (Spacing.Value, Seq[Fig]) => Fig, hfig: (Spacing.Value, Seq[Fig]) => Fig, renderConf: ParseResultFigureGenerator.RenderingConfiguration)(n: Node): Fig = {
         def parseNodeFig(n: Node): Fig = n match {
             case TerminalNode(input) =>
                 g.textFig(input.toShortString, ap.input)

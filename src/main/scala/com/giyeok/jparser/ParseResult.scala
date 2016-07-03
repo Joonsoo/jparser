@@ -52,16 +52,18 @@ object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivati
         ParseResultDerivationsSet(1, Set(Term(0, input)))
     def bind(symbol: Symbols.Symbol, body: ParseResultDerivationsSet): ParseResultDerivationsSet =
         body + (Bind(0, body.length, symbol))
-    def join(body: ParseResultDerivationsSet, constraint: ParseResultDerivationsSet): ParseResultDerivationsSet =
-        body // nothing to do?
+    def join(body: ParseResultDerivationsSet, join: ParseResultDerivationsSet): ParseResultDerivationsSet = {
+        val length = body.length ensuring (body.length == join.length)
+        ParseResultDerivationsSet(length, body.derivations ++ join.derivations)
+    }
 
     def sequence(): ParseResultDerivationsSet =
         ParseResultDerivationsSet(0, Set())
     def append(sequence: ParseResultDerivationsSet, child: ParseResultDerivationsSet): ParseResultDerivationsSet = {
-        ParseResultDerivationsSet(sequence.length + child.length, sequence.derivations ++ (child.derivations map { _.shift(sequence.length) }))
+        ParseResultDerivationsSet(sequence.length + child.length, sequence.derivations ++ (child.derivations map { _.shift(sequence.length) }) + LastChild(sequence.length, child.length, true))
     }
     def appendWhitespace(sequence: ParseResultDerivationsSet, whitespace: ParseResultDerivationsSet): ParseResultDerivationsSet = {
-        ParseResultDerivationsSet(sequence.length + whitespace.length, sequence.derivations ++ (whitespace.derivations map { _.shift(sequence.length) }))
+        ParseResultDerivationsSet(sequence.length + whitespace.length, sequence.derivations ++ (whitespace.derivations map { _.shift(sequence.length) }) + LastChild(sequence.length, whitespace.length, true))
     }
 
     def merge(base: ParseResultDerivationsSet, merging: ParseResultDerivationsSet): ParseResultDerivationsSet = {
@@ -85,6 +87,8 @@ object ParseResultDerivations {
         val position: Int
         val length: Int
         def shift(distance: Int): Derivation
+
+        val range = (position, position + length)
     }
 
     case class TermFunc(position: Int) extends Derivation {
@@ -97,5 +101,9 @@ object ParseResultDerivations {
     }
     case class Bind(position: Int, length: Int, symbol: Symbols.Symbol) extends Derivation {
         def shift(distance: Int) = Bind(position + distance, length, symbol)
+    }
+    case class LastChild(position: Int, length: Int, content: Boolean) extends Derivation {
+        val whitespace = !content
+        def shift(distance: Int) = LastChild(position + distance, length, content)
     }
 }

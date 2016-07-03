@@ -18,13 +18,12 @@ import org.eclipse.draw2d.LineBorder
 import org.eclipse.draw2d.MouseListener
 import org.eclipse.draw2d.MouseEvent
 import com.giyeok.jparser.DerivationFunc
-import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.ParseResultDerivationsSetFunc
 import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.Control
 import org.eclipse.swt.widgets.List
 import com.giyeok.jparser.DGraph
 import com.giyeok.jparser.Inputs.TermGroupDesc
-import com.giyeok.jparser.ParseForest
 import org.eclipse.swt.events.SelectionListener
 import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Event
@@ -34,9 +33,10 @@ import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.events.ShellListener
 import com.giyeok.jparser.DerivationSliceFunc
+import com.giyeok.jparser.ParseResultDerivationsSet
 
 class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell, resources: VisualizeResources, defaultKernel: Kernel) extends BasicGenerators with KernelFigureGenerator[Figure] {
-    val derivationFunc = new DerivationSliceFunc(grammar, ParseForestFunc)
+    val derivationFunc = new DerivationSliceFunc(grammar, ParseResultDerivationsSetFunc)
 
     shell.setLayout(new FillLayout)
 
@@ -58,10 +58,10 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
     sash.setWeights(Seq[Int](1, 1, 3).toArray)
 
     case class DGraphWidget(
-            dgraph: DGraph[ParseForest]) {
+            dgraph: DGraph[ParseResultDerivationsSet]) {
         val nodeIdCache = new NodeIdCache
 
-        val sliceMap: Map[TermGroupDesc, (DGraph[ParseForest], Set[ParsingGraph.NontermNode])] = derivationFunc.sliceByTermGroups(dgraph)
+        val sliceMap: Map[TermGroupDesc, (DGraph[ParseResultDerivationsSet], Set[ParsingGraph.NontermNode])] = derivationFunc.sliceByTermGroups(dgraph)
 
         val graphWidget: DerivationGraphVisualizeWidget =
             new DerivationGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, dgraph)
@@ -180,7 +180,7 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
         val widget = dgraphCache get selected match {
             case Some(cached) => cached
             case None =>
-                val dgraph: DGraph[ParseForest] = selected match {
+                val dgraph: DGraph[ParseResultDerivationsSet] = selected match {
                     case Left(symbol: AtomicNonterm) => derivationFunc.deriveAtomic(symbol)
                     case Right((symbol, pointer)) => derivationFunc.deriveSequence(symbol, pointer)
                     case Left(symbol) => ??? // not going to happen

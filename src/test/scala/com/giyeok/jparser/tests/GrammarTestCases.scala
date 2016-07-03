@@ -7,6 +7,8 @@ import com.giyeok.jparser.DerivationSliceFunc
 import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.NaiveParser
 import com.giyeok.jparser.ParseForest
+import com.giyeok.jparser.ParseResultDerivationsSet
+import com.giyeok.jparser.ParseResultDerivationsSetFunc
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.ConcreteSource]
@@ -29,21 +31,21 @@ trait AmbiguousSamples extends Samples {
 trait GrammarTestCases extends Samples {
     val grammar: Grammar
 
-    lazy val parser: NewParser[ParseForest] = {
-        val dgraph = new DerivationSliceFunc(grammar, ParseForestFunc)
-        val parser = new NewParser(grammar, ParseForestFunc, dgraph)
-        // val parser = new NaiveParser(grammar, ParseForestFunc, dgraph)
+    lazy val parser: NewParser[ParseResultDerivationsSet] = {
+        val dgraph = new DerivationSliceFunc(grammar, ParseResultDerivationsSetFunc)
+        val parser = new NewParser(grammar, ParseResultDerivationsSetFunc, dgraph)
+        // val parser = new NaiveParser(grammar, ParseResultDerivationsSetFunc, dgraph)
         parser
     }
 }
 
 trait PreprocessedParser extends GrammarTestCases {
     override lazy val parser = {
-        val dfunc = new DerivationSliceFunc(grammar, ParseForestFunc)
+        val dfunc = new DerivationSliceFunc(grammar, ParseResultDerivationsSetFunc)
         val startTime = System.currentTimeMillis()
         println("Preprocess begins")
         dfunc.preprocess
         println(s"Preprocess done in ${System.currentTimeMillis() - startTime} ms")
-        new NewParser(grammar, ParseForestFunc, dfunc)
+        new NewParser(grammar, ParseResultDerivationsSetFunc, dfunc)
     }
 }

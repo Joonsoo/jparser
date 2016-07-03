@@ -31,8 +31,6 @@ import org.eclipse.draw2d
 import org.eclipse.swt.widgets.Label
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import org.eclipse.swt.layout.FillLayout
-import com.giyeok.jparser.ParseForestFunc
-import com.giyeok.jparser.ParseForest
 import javax.swing.plaf.basic.CenterLayout
 import org.eclipse.draw2d.LineBorder
 import org.eclipse.swt.layout.FormData
@@ -40,9 +38,13 @@ import org.eclipse.swt.layout.FormAttachment
 import org.eclipse.swt.layout.FormLayout
 import com.giyeok.jparser.DerivationSliceFunc
 import com.giyeok.jparser.NaiveParser
+import com.giyeok.jparser.ParseResultDerivationsSet
+import com.giyeok.jparser.ParseResultDerivationsSetFunc
+import com.giyeok.jparser.ParseForest
+import com.giyeok.jparser.ParseForest
 
-class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
-    type Parser = NewParser[ParseForest]
+class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultDerivationsSet], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
+    type Parser = NewParser[ParseResultDerivationsSet]
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -263,7 +265,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest],
                             case Left(context) =>
                                 context.result match {
                                     case Some(results) =>
-                                        f.add(textFig(s"r=${results.trees.size}", resources.smallFont))
+                                    // f.add(textFig(s"r=${results.trees.size}", resources.smallFont))
                                     case _ =>
                                 }
                             case Right(_) => // nothing to do
@@ -381,6 +383,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest],
                     if (lastValidLocation <= currentLocation && lastLocation != currentLocation) updateLocation(lastLocation) else updateLocation(lastValidLocation)
 
                 case 'D' | 'd' =>
+                /*
                     if (dotGraphGen.isEmpty) {
                         dotGraphGen = Some(new DotGraphGenerator(nodeIdCache))
                     }
@@ -404,6 +407,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest],
                         case _ => // nothing to do
                     }
                     dotGraphGen.get.printDotGraph()
+                    */
 
                 case 'F' | 'f' =>
                     dotGraphGen = None
@@ -432,14 +436,14 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseForest],
 
 object ParsingProcessVisualizer {
     def startNewParser(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
-        val parser = new NewParser(grammar, ParseForestFunc, new DerivationSliceFunc(grammar, ParseForestFunc))
+        val parser = new NewParser(grammar, ParseResultDerivationsSetFunc, new DerivationSliceFunc(grammar, ParseResultDerivationsSetFunc))
         start(grammar, parser, source, display, shell)
     }
     def startNaiveParser(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
-        val parser = new NaiveParser(grammar, ParseForestFunc, new DerivationSliceFunc(grammar, ParseForestFunc))
+        val parser = new NaiveParser(grammar, ParseResultDerivationsSetFunc, new DerivationSliceFunc(grammar, ParseResultDerivationsSetFunc))
         start(grammar, parser, source, display, shell)
     }
-    def start(grammar: Grammar, parser: NewParser[ParseForest], source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+    def start(grammar: Grammar, parser: NewParser[ParseResultDerivationsSet], source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
         val resources = BasicVisualizeResources
         new ParsingProcessVisualizer(grammar, parser, source, display, shell, resources).start()
     }
@@ -448,7 +452,7 @@ object ParsingProcessVisualizer {
         val display = Display.getDefault()
         val shell = new Shell(display)
 
-        val parser = new NewParser(grammar, ParseForestFunc, new DerivationSliceFunc(grammar, ParseForestFunc))
+        val parser = new NewParser(grammar, ParseResultDerivationsSetFunc, new DerivationSliceFunc(grammar, ParseResultDerivationsSetFunc))
         start(grammar, parser, source, display, shell)
 
         while (!shell.isDisposed()) {
