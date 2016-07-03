@@ -17,7 +17,7 @@ object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivati
         ParseResultDerivationsSet(length, body.derivations ++ join.derivations)
     }
 
-    def sequence(position: Int): ParseResultDerivationsSet =
+    def sequence(position: Int, symbol: Symbols.Sequence): ParseResultDerivationsSet =
         ParseResultDerivationsSet(0, Set())
     def append(sequence: ParseResultDerivationsSet, child: ParseResultDerivationsSet): ParseResultDerivationsSet = {
         ParseResultDerivationsSet(sequence.length + child.length, (sequence.derivations ++ child.derivations) + LastChild(sequence.length, child.length, true))

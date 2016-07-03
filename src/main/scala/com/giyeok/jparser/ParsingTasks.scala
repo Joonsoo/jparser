@@ -30,11 +30,11 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                 val newNodes = nodes -- graph.nodes
                 // newNodes 중 SequenceNode에 대해서 progress 추가
                 val newSeqNodes = newNodes collect { case n: SequenceNode => n }
-                val newProgresses = newSeqNodes.foldLeft(graph.progresses) { (results, newSeqNode) => results.update(newSeqNode, Condition.True, resultFunc.sequence(gen)) }
+                val newProgresses = newSeqNodes.foldLeft(graph.progresses) { (results, newSeqNode) => results.update(newSeqNode, Condition.True, resultFunc.sequence(gen, newSeqNode.symbol)) }
                 // 새로 추가된 노드들에 대한 derive task 및 그 중 바로 finishable한 sequence node에 대한 finish task
                 val newTasks = newNodes collect {
-                    case node @ SequenceNode(Sequence(seq, _), _, _, _) if seq.isEmpty =>
-                        FinishingTask(gen, node, SequenceResult(resultFunc.sequence(gen)), Condition.True)
+                    case node @ SequenceNode(seqSymbol @ Sequence(seq, _), _, _, _) if seq.isEmpty =>
+                        FinishingTask(gen, node, SequenceResult(resultFunc.sequence(gen, seqSymbol)), Condition.True)
                     case n: NontermNode => DeriveTask(gen, n)
                 }
                 TaskResult(graph.withNodes(newNodes).updateProgresses(newProgresses).asInstanceOf[Graph], tasks ++ newTasks)
@@ -106,10 +106,10 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                         init.deriveJoin(baseNode, nodeOf(sym, gen), nodeOf(join, gen))
                     case LookaheadIs(lookahead) =>
                         init.addNodes(Set(nodeOf(lookahead, gen)))
-                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence(gen)), Condition.After(nodeOf(lookahead, gen), gen))))
+                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence(gen, Sequence(Seq(), Set()))), Condition.After(nodeOf(lookahead, gen), gen))))
                     case LookaheadExcept(except) =>
                         init.addNodes(Set(nodeOf(except, gen)))
-                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence(gen)), Condition.Until(nodeOf(except, gen), gen))))
+                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence(gen, Sequence(Seq(), Set()))), Condition.Until(nodeOf(except, gen), gen))))
                     case Longest(sym) =>
                         init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True)))
                     case EagerLongest(sym) =>
@@ -172,11 +172,16 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
 
         // 1. cc의 기존 result가 있는지 확인하고 기존 result가 있으면 merge하고 없으면 새로 생성
         val updatedResult: Option[R] = {
+            val bindedResult = node match {
+                case _: SequenceNode => resultAndSymbol.result
+                case node: AtomicNode => resultFunc.bind(node.symbol, resultAndSymbol.result)
+                case node: TermNode => resultFunc.bind(node.symbol, resultAndSymbol.result)
+            }
             cc.results.of(node, condition) match {
-                case Some(baseResult) =>
-                    val merged = resultFunc.merge(baseResult, resultFunc.bind(node.symbol, resultAndSymbol.result))
-                    if (merged != baseResult) Some(merged) else None
-                case None => Some(resultFunc.bind(node.symbol, resultAndSymbol.result))
+                case Some(existingResult) =>
+                    val merged = resultFunc.merge(existingResult, bindedResult)
+                    if (merged != existingResult) Some(merged) else None
+                case None => Some(bindedResult)
             }
         }
 

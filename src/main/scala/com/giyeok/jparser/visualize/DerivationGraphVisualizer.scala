@@ -34,9 +34,11 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.events.ShellListener
 import com.giyeok.jparser.DerivationSliceFunc
 import com.giyeok.jparser.ParseResultDerivationsSet
+import com.giyeok.jparser.ParseResultGraph
+import com.giyeok.jparser.ParseResultGraphFunc
 
 class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell, resources: VisualizeResources, defaultKernel: Kernel) extends BasicGenerators with KernelFigureGenerator[Figure] {
-    val derivationFunc = new DerivationSliceFunc(grammar, ParseResultDerivationsSetFunc)
+    val derivationFunc = new DerivationSliceFunc(grammar, ParseResultGraphFunc)
 
     shell.setLayout(new FillLayout)
 
@@ -58,10 +60,10 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
     sash.setWeights(Seq[Int](1, 1, 3).toArray)
 
     case class DGraphWidget(
-            dgraph: DGraph[ParseResultDerivationsSet]) {
+            dgraph: DGraph[ParseResultGraph]) {
         val nodeIdCache = new NodeIdCache
 
-        val sliceMap: Map[TermGroupDesc, (DGraph[ParseResultDerivationsSet], Set[ParsingGraph.NontermNode])] = derivationFunc.sliceByTermGroups(dgraph)
+        val sliceMap: Map[TermGroupDesc, (DGraph[ParseResultGraph], Set[ParsingGraph.NontermNode])] = derivationFunc.sliceByTermGroups(dgraph)
 
         val graphWidget: DerivationGraphVisualizeWidget =
             new DerivationGraphVisualizeWidget(derivationGraphs, SWT.NONE, grammar, nodeIdCache, dgraph)
@@ -180,7 +182,7 @@ class DerivationGraphVisualizer(grammar: Grammar, display: Display, shell: Shell
         val widget = dgraphCache get selected match {
             case Some(cached) => cached
             case None =>
-                val dgraph: DGraph[ParseResultDerivationsSet] = selected match {
+                val dgraph: DGraph[ParseResultGraph] = selected match {
                     case Left(symbol: AtomicNonterm) => derivationFunc.deriveAtomic(symbol)
                     case Right((symbol, pointer)) => derivationFunc.deriveSequence(symbol, pointer)
                     case Left(symbol) => ??? // not going to happen

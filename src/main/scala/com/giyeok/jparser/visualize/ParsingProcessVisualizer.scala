@@ -42,9 +42,11 @@ import com.giyeok.jparser.ParseResultDerivationsSet
 import com.giyeok.jparser.ParseResultDerivationsSetFunc
 import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseForest
+import com.giyeok.jparser.ParseResultGraph
+import com.giyeok.jparser.ParseResultGraphFunc
 
-class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultDerivationsSet], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
-    type Parser = NewParser[ParseResultDerivationsSet]
+class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGraph], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
+    type Parser = NewParser[ParseResultGraph]
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -436,14 +438,14 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultDe
 
 object ParsingProcessVisualizer {
     def startNewParser(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
-        val parser = new NewParser(grammar, ParseResultDerivationsSetFunc, new DerivationSliceFunc(grammar, ParseResultDerivationsSetFunc))
+        val parser = new NewParser(grammar, ParseResultGraphFunc, new DerivationSliceFunc(grammar, ParseResultGraphFunc))
         start(grammar, parser, source, display, shell)
     }
     def startNaiveParser(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
-        val parser = new NaiveParser(grammar, ParseResultDerivationsSetFunc, new DerivationSliceFunc(grammar, ParseResultDerivationsSetFunc))
+        val parser = new NaiveParser(grammar, ParseResultGraphFunc, new DerivationSliceFunc(grammar, ParseResultGraphFunc))
         start(grammar, parser, source, display, shell)
     }
-    def start(grammar: Grammar, parser: NewParser[ParseResultDerivationsSet], source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+    def start(grammar: Grammar, parser: NewParser[ParseResultGraph], source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
         val resources = BasicVisualizeResources
         new ParsingProcessVisualizer(grammar, parser, source, display, shell, resources).start()
     }
@@ -452,7 +454,7 @@ object ParsingProcessVisualizer {
         val display = Display.getDefault()
         val shell = new Shell(display)
 
-        val parser = new NewParser(grammar, ParseResultDerivationsSetFunc, new DerivationSliceFunc(grammar, ParseResultDerivationsSetFunc))
+        val parser = new NewParser(grammar, ParseResultGraphFunc, new DerivationSliceFunc(grammar, ParseResultGraphFunc))
         start(grammar, parser, source, display, shell)
 
         while (!shell.isDisposed()) {

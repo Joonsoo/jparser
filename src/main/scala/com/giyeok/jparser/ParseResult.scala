@@ -10,7 +10,7 @@ trait ParseResultFunc[R <: ParseResult] {
     def join(symbol: Symbols.Join, body: R, constraint: R): R
 
     // sequence는 Sequence에서만 쓰임
-    def sequence(position: Int): R
+    def sequence(position: Int, symbol: Symbols.Sequence): R
     def append(sequence: R, child: R): R
     def appendWhitespace(sequence: R, whitespace: R): R
 

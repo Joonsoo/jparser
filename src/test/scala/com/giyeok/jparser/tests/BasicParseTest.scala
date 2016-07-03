@@ -13,7 +13,7 @@ import com.giyeok.jparser.ParseResultDerivationsSet
 
 class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends FlatSpec {
     def log(s: String): Unit = {
-        println(s)
+        // println(s)
     }
 
     private def testCorrect(tests: GrammarTestCases)(source: Inputs.ConcreteSource) = {
@@ -69,56 +69,56 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         import ParseResultTree._
         parseTree match {
             case TermFuncNode => ??? // should not happen
-            case BindedNode(term: Terminal, TerminalNode(input)) =>
+            case BindNode(term: Terminal, TerminalNode(input)) =>
                 assert(term.accept(input))
-            case BindedNode(Start, body @ BindedNode(bodySym, _)) =>
+            case BindNode(Start, body @ BindNode(bodySym, _)) =>
                 assert(grammar.startSymbol == bodySym)
                 checkParse(body, grammar)
-            case BindedNode(Nonterminal(name), body @ BindedNode(bodySymbol, _)) =>
+            case BindNode(Nonterminal(name), body @ BindNode(bodySymbol, _)) =>
                 assert(grammar.rules(name) contains bodySymbol)
                 checkParse(body, grammar)
-            case BindedNode(sym: Join, body @ JoinNode(BindedNode(bodySym, _), BindedNode(joinSym, _))) =>
+            case BindNode(sym: Join, body @ JoinNode(BindNode(bodySym, _), BindNode(joinSym, _))) =>
                 assert(sym.sym == bodySym)
                 assert(sym.join == joinSym)
                 checkParse(body, grammar)
-            case BindedNode(Sequence(seq, ws), seqBody: SequenceNode) =>
-                assert((seqBody.children map { _.asInstanceOf[BindedNode].symbol }) == seq)
+            case BindNode(Sequence(seq, ws), seqBody: SequenceNode) =>
+                assert((seqBody.children map { _.asInstanceOf[BindNode].symbol }) == seq)
                 checkParse(seqBody, grammar)
-            case BindedNode(OneOf(syms), body @ BindedNode(bodySymbol, _)) =>
+            case BindNode(OneOf(syms), body @ BindNode(bodySymbol, _)) =>
                 assert(syms contains bodySymbol)
                 checkParse(body, grammar)
-            case BindedNode(Repeat(sym, _), body @ BindedNode(bodySymbol, _)) =>
-                def childrenOf(node: Node, sym: Symbol): Seq[BindedNode] = node match {
-                    case node @ BindedNode(s, body) if s == sym => Seq(node)
-                    case BindedNode(s, body) => childrenOf(body, sym)
+            case BindNode(Repeat(sym, _), body @ BindNode(bodySymbol, _)) =>
+                def childrenOf(node: Node, sym: Symbol): Seq[BindNode] = node match {
+                    case node @ BindNode(s, body) if s == sym => Seq(node)
+                    case BindNode(s, body) => childrenOf(body, sym)
                     case s: SequenceNode => s.children flatMap { childrenOf(_, sym) }
                 }
                 val children = childrenOf(body, sym)
                 assert(children forall { _.symbol == sym })
                 checkParse(body, grammar)
-            case BindedNode(Except(sym, _), body @ BindedNode(bodySym, _)) =>
+            case BindNode(Except(sym, _), body @ BindNode(bodySym, _)) =>
                 assert(sym == bodySym)
                 checkParse(body, grammar)
-            case BindedNode(Proxy(sym), body @ BindedNode(bodySym, _)) =>
+            case BindNode(Proxy(sym), body @ BindNode(bodySym, _)) =>
                 assert(sym == bodySym)
                 checkParse(body, grammar)
-            case BindedNode(Backup(sym, backup), body @ BindedNode(bodySym, _)) =>
+            case BindNode(Backup(sym, backup), body @ BindNode(bodySym, _)) =>
                 assert((sym == bodySym) || (backup == bodySym))
                 checkParse(body, grammar)
-            case BindedNode(Longest(sym), body @ BindedNode(bodySym, _)) =>
+            case BindNode(Longest(sym), body @ BindNode(bodySym, _)) =>
                 assert(sym == bodySym)
                 checkParse(body, grammar)
-            case BindedNode(EagerLongest(sym), body @ BindedNode(bodySym, _)) =>
+            case BindNode(EagerLongest(sym), body @ BindNode(bodySym, _)) =>
                 assert(sym == bodySym)
                 checkParse(body, grammar)
-            case BindedNode(_: LookaheadIs | _: LookaheadExcept, body) =>
-                assert(body == SequenceNode(List(), List()))
+            case BindNode(_: LookaheadIs | _: LookaheadExcept, body) =>
+                assert(body == SequenceNode(Sequence(List(), Set()), List(), List()))
             case node: SequenceNode =>
                 node.childrenWS foreach { checkParse(_, grammar) }
             case JoinNode(body, join) =>
                 checkParse(body, grammar)
                 checkParse(join, grammar)
-            case BindedNode(symbol, body) =>
+            case BindNode(symbol, body) =>
                 println(symbol)
                 ???
             case _ =>

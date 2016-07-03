@@ -9,12 +9,12 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
 
     def terminal(position: Int, input: Inputs.Input) = ParseForest(Set(TerminalNode(input)))
     def bind(symbol: Symbol, body: ParseForest) =
-        ParseForest(body.trees map { b => BindedNode(symbol, b) })
+        ParseForest(body.trees map { b => BindNode(symbol, b) })
     def join(symbol: Symbols.Join, body: ParseForest, constraint: ParseForest) = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
         ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
     }
-    def sequence(position: Int) = ParseForest(Set(SequenceNode(List(), List())))
+    def sequence(position: Int, symbol: Symbols.Sequence) = ParseForest(Set(SequenceNode(symbol, List(), List())))
     def append(sequence: ParseForest, child: ParseForest) = {
         assert(sequence.trees forall { _.isInstanceOf[SequenceNode] })
         // sequence의 tree 각각에 child 각각을 추가한다
@@ -47,15 +47,15 @@ object ParseResultTree {
         def substTerm(input: Input) = this
         override lazy val hashCode = (classOf[TerminalNode], input).hashCode
     }
-    case class BindedNode(symbol: Symbol, body: Node) extends Node {
-        def substTerm(input: Input) = BindedNode(symbol, body.substTerm(input))
-        override lazy val hashCode = (classOf[BindedNode], symbol, body).hashCode
+    case class BindNode(symbol: Symbol, body: Node) extends Node {
+        def substTerm(input: Input) = BindNode(symbol, body.substTerm(input))
+        override lazy val hashCode = (classOf[BindNode], symbol, body).hashCode
     }
     case class JoinNode(body: Node, join: Node) extends Node {
         def substTerm(input: Input) = JoinNode(body.substTerm(input), join.substTerm(input))
         override lazy val hashCode = (classOf[JoinNode], body, join).hashCode
     }
-    case class SequenceNode(_childrenWS: List[Node], _childrenIdx: List[Int]) extends Node {
+    case class SequenceNode(symbol: Symbols.Sequence, _childrenWS: List[Node], _childrenIdx: List[Int]) extends Node {
         // childrenIdx: index of childrenWS
         // _childrenIdx: reverse of chidlrenIdx
 
@@ -74,13 +74,13 @@ object ParseResultTree {
         }
 
         def append(child: Node): SequenceNode = {
-            SequenceNode(child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
+            SequenceNode(symbol, child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
         }
         def appendWhitespace(wsChild: Node): SequenceNode = {
-            SequenceNode(wsChild +: _childrenWS, _childrenIdx)
+            SequenceNode(symbol, wsChild +: _childrenWS, _childrenIdx)
         }
 
-        def substTerm(input: Input): SequenceNode = SequenceNode(_childrenWS map { _.substTerm(input) }, _childrenIdx)
+        def substTerm(input: Input): SequenceNode = SequenceNode(symbol, _childrenWS map { _.substTerm(input) }, _childrenIdx)
         override lazy val hashCode = (classOf[SequenceNode], _childrenWS, _childrenIdx).hashCode
     }
 
@@ -101,7 +101,7 @@ object ParseResultTree {
         def toShortString: String = node match {
             case TermFuncNode => s"TermFunc"
             case n: TerminalNode => s"Term(${n.input.toShortString})"
-            case n: BindedNode => s"${n.symbol.toShortString}(${n.body.toShortString})"
+            case n: BindNode => s"${n.symbol.toShortString}(${n.body.toShortString})"
             case n: JoinNode => s"${n.body.toShortString}(&${n.join.toShortString})"
             case s: SequenceNode =>
                 if (s.children.isEmpty) "ε" else (s.children map { _.toShortString } mkString "/")
@@ -114,7 +114,7 @@ object ParseResultTree {
                 indent + "- termFunc\n"
             case n: TerminalNode =>
                 indent + s"- ${n.input}\n"
-            case n: BindedNode =>
+            case n: BindNode =>
                 (indent + s"- ${n.symbol}\n") + n.body.toTreeString(indent + indentUnit, indentUnit)
             case n: JoinNode =>
                 (indent + s"- \n") + (n.body.toTreeString(indent + indentUnit, indentUnit)) + "\n" +
@@ -153,7 +153,7 @@ object ParseResultTree {
                 case n: TerminalNode =>
                     val str = n.input.toShortString
                     (str.length, Seq(str))
-                case n: BindedNode =>
+                case n: BindNode =>
                     val actual = n.body.toHorizontalHierarchyStringSeq
                     val symbolic = n.symbol.toShortString
                     appendBottom(actual, n.symbol.toShortString)
@@ -179,7 +179,7 @@ object ParseResultTree {
         def toOperationsString(): String = node match {
             case TermFuncNode => "λt"
             case n: TerminalNode => s"term(${n.input.toShortString})"
-            case n: BindedNode => s"bind(${n.symbol.toShortString}, ${n.body.toOperationsString()})"
+            case n: BindNode => s"bind(${n.symbol.toShortString}, ${n.body.toOperationsString()})"
             case n: JoinNode => s"join(${n.body.toOperationsString()}, ${n.join.toOperationsString()})"
             case s: SequenceNode => "seq()" + (s.children map { _.toOperationsString() } map { s => s".append($s)" } mkString "")
         }
