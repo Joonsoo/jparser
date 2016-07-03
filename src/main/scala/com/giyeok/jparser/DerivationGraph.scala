@@ -195,9 +195,9 @@ class DerivationSliceFunc[R <: ParseResult](grammar: Grammar, resultFunc: ParseR
                                         val (condition, childAndSymbol) = kv
                                         // triggers를 nextGen만큼 shift해주기
                                         val shiftedCondition: Condition = condition.shiftGen(nextGen)
+                                        val shiftedResult = childAndSymbol mapResult { resultFunc.shift(_, nextGen) }
 
-                                        // TODO childAndSymbol은 shift안해도 되나?
-                                        SequenceProgressTask(nextGen, task.baseNode.asInstanceOf[SequenceNode], childAndSymbol, shiftedCondition)
+                                        SequenceProgressTask(nextGen, task.baseNode.asInstanceOf[SequenceNode], shiftedResult, shiftedCondition)
                                     }).toSeq
 
                                     rec(rest ++ immediateProgresses, graphCC, derivablesCC + task.baseNode.asInstanceOf[SequenceNode])

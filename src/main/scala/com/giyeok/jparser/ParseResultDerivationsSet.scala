@@ -40,6 +40,7 @@ object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivati
             case d => d
         })
     }
+    def shift(r: ParseResultDerivationsSet, position: Int) = r
 }
 
 object ParseResultDerivations {

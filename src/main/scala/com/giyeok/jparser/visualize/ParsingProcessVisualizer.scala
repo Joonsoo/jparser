@@ -265,9 +265,14 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
                             case Left(context) =>
+                                f.add(textFig(s"v=${context.graph.nodes.size} e=${context.graph.edges.size} |R|=${context.graph.results.resultsMap.size} |P|=${context.graph.progresses.resultsMap.size}", resources.smallFont))
                                 context.result match {
-                                    case Some(results) =>
-                                    // f.add(textFig(s"r=${results.trees.size}", resources.smallFont))
+                                    case Some(r) =>
+                                        val (forest, cycleFound) = r.asParseForest
+                                        f.add(textFig(s" r=${r.nodes.size}/${r.edges.size}->${forest.trees.size}", resources.smallFont))
+                                        if (cycleFound) {
+                                            f.add(textFig(" cyclic", resources.smallFont))
+                                        }
                                     case _ =>
                                 }
                             case Right(_) => // nothing to do

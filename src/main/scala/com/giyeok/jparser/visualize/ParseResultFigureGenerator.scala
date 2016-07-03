@@ -161,8 +161,11 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                 case node @ Term(_, input) =>
                     g.textFig(s"T${node.range}${input.toShortString}", ap.input) ensuring (r.outgoingOf(node).isEmpty)
                 case node @ Sequence(position, length, symbol, pointer) =>
-                    hfig(Spacing.Small,
-                        Seq(g.textFig(s"${node.range}TODO", ap.default)))
+                    assert(r.outgoingOf(node) forall { _.isInstanceOf[AppendEdge] })
+                    val outgoingEdges = r.outgoingOf(node) map { _.asInstanceOf[AppendEdge] }
+                    val prevSeqs = outgoingEdges filter { _.edgeType == AppendType.Prev }
+                    vfig(Spacing.Small,
+                        Seq(g.textFig(s"${node.range}", ap.default)))
                 case node @ Bind(_, _, symbol) =>
                     val children = if (visited contains node) {
                         Seq(g.textFig("\u2672", ap.default))
@@ -184,6 +187,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                             case _ => ??? // JoinEdge 외에 다른 엣지가 오면 안됨
                         }) :+ symbolFigureGenerator.symbolFig(symbol))
             }
-        figureOf(r.root, Set())
+        // figureOf(r.root, Set())
+        parseForestResultFigure(symbolBorder, vfig, hfig, renderConf)(r.asParseForest._1)
     }
 }

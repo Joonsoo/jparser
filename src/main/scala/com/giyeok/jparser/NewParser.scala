@@ -177,8 +177,9 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
 
                                     // triggers를 nextGen만큼 shift해주기
                                     val shiftedCondition: Condition = condition.shiftGen(nextGen)
+                                    val shiftedResult = childAndSymbol mapResult { resultFunc.shift(_, nextGen) }
 
-                                    SequenceProgressTask(nextGen, node.asInstanceOf[SequenceNode], childAndSymbol, shiftedCondition)
+                                    SequenceProgressTask(nextGen, node.asInstanceOf[SequenceNode], shiftedResult, shiftedCondition)
                                 }).toSeq
 
                                 rec(rest ++ immediateProgresses, graphCC, derivablesCC + node.asInstanceOf[SequenceNode])

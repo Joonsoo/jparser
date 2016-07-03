@@ -16,6 +16,65 @@ case class ParseResultGraph(position: Int, length: Int, root: Node, nodes: Set[N
 
     lazy val outgoingEdges = edges groupBy { _.start }
     def outgoingOf(node: Node): Set[Edge] = outgoingEdges.getOrElse(node, Set())
+
+    def asParseForest: (ParseForest, Boolean) = {
+        var cycleFound = false
+        def reconstruct(node: Node, visited: Set[Node]): ParseForest = {
+            if (visited contains node) {
+                cycleFound = true
+                ParseForestFunc.sequence(-1, Symbols.Sequence(Seq(), Set()))
+            } else {
+                node match {
+                    case TermFunc(position) =>
+                        ParseForestFunc.termFunc()
+                    case Term(position, input) =>
+                        ParseForestFunc.terminal(position, input)
+                    case Sequence(position, length, symbol, pointer) =>
+                        if (pointer == 0) {
+                            ParseForestFunc.sequence(position, symbol)
+                        } else {
+                            val outgoings = outgoingOf(node)
+                            val bodies: Set[ParseForest] = outgoings collect {
+                                case AppendEdge(_, end, AppendType.Prev) =>
+                                    val contents = ParseForestFunc.merge(outgoings collect {
+                                        case AppendEdge(_, child, AppendType.Content) if child.position == end.position + end.length =>
+                                            reconstruct(child, visited + node)
+                                    })
+                                    val whitespaces = ParseForestFunc.merge(outgoings collect {
+                                        case AppendEdge(_, child, AppendType.Whitespace) if child.position == end.position + end.length =>
+                                            reconstruct(child, visited + node)
+                                    })
+                                    val prev = reconstruct(end, visited + node)
+                                    (contents, whitespaces) match {
+                                        case (Some(child), None) => ParseForestFunc.append(prev, child)
+                                        case (None, Some(whitespace)) => ParseForestFunc.appendWhitespace(prev, whitespace)
+                                        case (Some(child), Some(whitespace)) =>
+                                            ParseForestFunc.merge(ParseForestFunc.append(prev, child), ParseForestFunc.appendWhitespace(prev, whitespace))
+                                        case _ => assert(false); ???
+                                    }
+                            }
+                            ParseForestFunc.merge(bodies).get
+                        }
+                    case Bind(position, length, symbol) =>
+                        val bodies: Set[ParseForest] = outgoingOf(node) map {
+                            case BindEdge(_, end) =>
+                                reconstruct(end, visited + node)
+                            case _ => assert(false); ???
+                        }
+                        ParseForestFunc.bind(symbol, ParseForestFunc.merge(bodies).get)
+                    case Join(position, length, symbol) =>
+                        val bodies: Set[ParseForest] = outgoingOf(node) map {
+                            case JoinEdge(_, end, join) =>
+                                ParseForestFunc.join(symbol, reconstruct(end, visited + node), reconstruct(join, visited + node))
+                            case _ => assert(false); ???
+                        }
+                        ParseForestFunc.merge(bodies).get
+                }
+            }
+        }
+        val forest = reconstruct(root, Set())
+        (forest, cycleFound)
+    }
 }
 
 object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
@@ -48,17 +107,23 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
     }
     def append(sequence: ParseResultGraph, child: ParseResultGraph): ParseResultGraph = {
         assert(sequence.root.isInstanceOf[Sequence])
+        if (child.root.position != sequence.root.position + sequence.root.length) {
+            println(sequence)
+            println(child)
+        }
+        assert(child.root.position == sequence.root.position + sequence.root.length)
         val sequenceRoot = sequence.root.asInstanceOf[Sequence]
         val appendedSequence = Sequence(sequence.position, sequence.length + child.length, sequenceRoot.symbol, sequenceRoot.pointer + 1)
         ParseResultGraph(sequence.position, sequence.length + child.length, appendedSequence, (sequence.nodes ++ child.nodes) + appendedSequence,
-            (sequence.edges ++ child.edges) + AppendEdge(appendedSequence, sequence.root, true) + AppendEdge(appendedSequence, child.root, true))
+            (sequence.edges ++ child.edges) + AppendEdge(appendedSequence, sequence.root, AppendType.Prev) + AppendEdge(appendedSequence, child.root, AppendType.Content))
     }
     def appendWhitespace(sequence: ParseResultGraph, child: ParseResultGraph): ParseResultGraph = {
         assert(sequence.root.isInstanceOf[Sequence])
+        assert(child.root.position == sequence.root.position + sequence.root.length)
         val sequenceRoot = sequence.root.asInstanceOf[Sequence]
         val appendedSequence = Sequence(sequence.position, sequence.length + child.length, sequenceRoot.symbol, sequenceRoot.pointer)
         ParseResultGraph(sequence.position, sequence.length + child.length, appendedSequence, (sequence.nodes ++ child.nodes) + appendedSequence,
-            (sequence.edges ++ child.edges) + AppendEdge(appendedSequence, sequence.root, true) + AppendEdge(appendedSequence, child.root, false))
+            (sequence.edges ++ child.edges) + AppendEdge(appendedSequence, sequence.root, AppendType.Prev) + AppendEdge(appendedSequence, child.root, AppendType.Whitespace))
     }
 
     def merge(base: ParseResultGraph, merging: ParseResultGraph): ParseResultGraph = {
@@ -88,7 +153,23 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
             case AppendEdge(start, end, content) => AppendEdge(substNode(start), substNode(end), content)
             case JoinEdge(start, end, join) => JoinEdge(substNode(start), substNode(end), substNode(join))
         }
-        ParseResultGraph(position, r.length, substNode(r.root), r.nodes map { substNode(_) }, r.edges map { substEdge(_) })
+        ParseResultGraph(r.position + position, r.length, substNode(r.root), r.nodes map { substNode(_) }, r.edges map { substEdge(_) })
+    }
+    def shift(r: ParseResultGraph, position: Int): ParseResultGraph = {
+        def shiftNode(node: Node): Node = node match {
+            case TermFunc(p) => TermFunc(p + position)
+            case Term(p, input) => Term(p + position, input)
+            case Sequence(p, length, symbol, pointer) =>
+                Sequence(p + position, length, symbol, pointer)
+            case Bind(p, length, symbol) => Bind(p + position, length, symbol)
+            case Join(p, length, symbol) => Join(p + position, length, symbol)
+        }
+        def substEdge(edge: Edge): Edge = edge match {
+            case BindEdge(start, end) => BindEdge(shiftNode(start), shiftNode(end))
+            case AppendEdge(start, end, content) => AppendEdge(shiftNode(start), shiftNode(end), content)
+            case JoinEdge(start, end, join) => JoinEdge(shiftNode(start), shiftNode(end), shiftNode(join))
+        }
+        ParseResultGraph(r.position + position, r.length, shiftNode(r.root), r.nodes map { shiftNode(_) }, r.edges map { substEdge(_) })
     }
 }
 
@@ -114,6 +195,10 @@ object ParseResultGraph {
         val start: Node
     }
     case class BindEdge(start: Node, end: Node) extends Edge
-    case class AppendEdge(start: Node, end: Node, content: Boolean) extends Edge
+    case class AppendEdge(start: Node, end: Node, edgeType: AppendType.Value) extends Edge
     case class JoinEdge(start: Node, end: Node, join: Node) extends Edge
+
+    object AppendType extends Enumeration {
+        val Prev, Content, Whitespace = Value
+    }
 }

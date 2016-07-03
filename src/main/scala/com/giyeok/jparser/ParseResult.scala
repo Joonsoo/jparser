@@ -21,6 +21,7 @@ trait ParseResultFunc[R <: ParseResult] {
 
     def termFunc(): R
     def substTermFunc(r: R, position: Int, input: Inputs.Input): R
+    def shift(r: R, position: Int): R
 }
 
 sealed trait ParseResultWithType[R <: ParseResult] {

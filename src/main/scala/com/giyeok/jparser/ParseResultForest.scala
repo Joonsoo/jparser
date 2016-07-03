@@ -31,6 +31,7 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
 
     def termFunc() = ParseForest(Set(TermFuncNode))
     def substTermFunc(r: ParseForest, position: Int, input: Inputs.Input) = ParseForest(r.trees map { _.substTerm(input) })
+    def shift(r: ParseForest, position: Int) = r
 }
 
 object ParseResultTree {
