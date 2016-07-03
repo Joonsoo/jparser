@@ -11,7 +11,7 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
     def terminal(input: Inputs.Input) = ParseForest(Set(TerminalNode(input)))
     def bind(symbol: Symbol, body: ParseForest) =
         ParseForest(body.trees map { b => BindedNode(symbol, b) })
-    def join(body: ParseForest, constraint: ParseForest) = {
+    def join(symbol: Symbols.Join, body: ParseForest, constraint: ParseForest) = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
         ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
     }

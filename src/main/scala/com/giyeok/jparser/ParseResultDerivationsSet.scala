@@ -12,7 +12,7 @@ object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivati
         ParseResultDerivationsSet(1, Set(Term(0, input)))
     def bind(symbol: Symbols.Symbol, body: ParseResultDerivationsSet): ParseResultDerivationsSet =
         body + (Bind(0, body.length, symbol))
-    def join(body: ParseResultDerivationsSet, join: ParseResultDerivationsSet): ParseResultDerivationsSet = {
+    def join(symbol: Symbols.Join, body: ParseResultDerivationsSet, join: ParseResultDerivationsSet): ParseResultDerivationsSet = {
         val length = body.length ensuring (body.length == join.length)
         ParseResultDerivationsSet(length, body.derivations ++ join.derivations)
     }

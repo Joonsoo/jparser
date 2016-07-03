@@ -63,10 +63,11 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
             def deriveJoin(baseNode: NontermNode, dest: Node, join: Node): TaskResult = {
                 val newEdges: Set[Edge] = Set(JoinEdge(baseNode, dest, join))
                 // dest와 join이 모두 nullable한 경우 FinishTask 추가
+                val startSymbol = baseNode.symbol.asInstanceOf[Symbols.Join]
                 val finishableTasks: Seq[FinishingTask] =
                     finishable(dest) flatMap { destResult =>
                         finishable(join) map { joinResult =>
-                            FinishingTask(gen, baseNode, JoinResult(resultFunc.join(destResult._2, joinResult._2)), Condition.conjunct(destResult._1, joinResult._1))
+                            FinishingTask(gen, baseNode, JoinResult(resultFunc.join(startSymbol, destResult._2, joinResult._2)), Condition.conjunct(destResult._1, joinResult._1))
                         }
                     }
                 this.addNodes(Set(dest, join)).addEdges(newEdges).addTasks(finishableTasks)
@@ -214,11 +215,12 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
 
                 val joinEdgeTasks: Set[Task] = incomingJoinEdges flatMap {
                     case JoinEdge(start, end, join) =>
+                        val startSymbol = start.symbol.asInstanceOf[Symbols.Join]
                         if (node == end) {
                             cc.results.of(join) match {
                                 case Some(results) =>
                                     results map { r =>
-                                        FinishingTask(nextGen, start, JoinResult(resultFunc.join(updatedResult.get, r._2)), Condition.conjunct(r._1, afterCondition))
+                                        FinishingTask(nextGen, start, JoinResult(resultFunc.join(startSymbol, updatedResult.get, r._2)), Condition.conjunct(r._1, afterCondition))
                                     }
                                 case None => Seq()
                             }
@@ -227,7 +229,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                             cc.results.of(end) match {
                                 case Some(results) =>
                                     results map { r =>
-                                        FinishingTask(nextGen, start, JoinResult(resultFunc.join(r._2, updatedResult.get)), Condition.conjunct(r._1, afterCondition))
+                                        FinishingTask(nextGen, start, JoinResult(resultFunc.join(startSymbol, r._2, updatedResult.get)), Condition.conjunct(r._1, afterCondition))
                                     }
                                 case None => Seq()
                             }

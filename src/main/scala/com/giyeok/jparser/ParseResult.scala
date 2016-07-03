@@ -7,7 +7,7 @@ trait ParseResult {
 trait ParseResultFunc[R <: ParseResult] {
     def terminal(input: Inputs.Input): R
     def bind(symbol: Symbols.Symbol, body: R): R
-    def join(body: R, constraint: R): R
+    def join(symbol: Symbols.Join, body: R, constraint: R): R
 
     // sequence는 Sequence에서만 쓰임
     def sequence(): R
