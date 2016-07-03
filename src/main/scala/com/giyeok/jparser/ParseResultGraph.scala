@@ -3,16 +3,11 @@ package com.giyeok.jparser
 import ParseResultGraph._
 
 case class ParseResultGraph(length: Int, root: Node, nodes: Set[Node], edges: Set[Edge]) extends ParseResult {
-    def shift(distance: Int): ParseResultGraph = {
-        val shiftedNodes = nodes map { _.shift(distance) }
-        val shiftedEdges = edges map { _.shift(distance) }
-        ParseResultGraph(length, root.shift(distance), shiftedNodes, shiftedEdges)
-    }
 }
 
 object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
-    def terminal(input: Inputs.Input): ParseResultGraph =
-        ParseResultGraph(1, Term(0, input), Set(Term(0, input)), Set())
+    def terminal(position: Int, input: Inputs.Input): ParseResultGraph =
+        ParseResultGraph(1, Term(position, input), Set(Term(position, input)), Set())
     def bind(symbol: Symbols.Symbol, body: ParseResultGraph): ParseResultGraph = {
         val bindNode = Bind(0, body.length, symbol)
         if (body.nodes contains bindNode) {
@@ -33,29 +28,34 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
         }
     }
 
-    def sequence(): ParseResultGraph =
-        ParseResultGraph(0, Empty(0), Set(Empty(0)), Set())
+    def sequence(position: Int): ParseResultGraph =
+        ParseResultGraph(0, Empty(position), Set(Empty(position)), Set())
     def append(sequence: ParseResultGraph, child: ParseResultGraph): ParseResultGraph = {
-        val shiftedChild = child.shift(sequence.length)
-        ParseResultGraph(sequence.length + child.length, sequence.root, sequence.nodes ++ shiftedChild.nodes, sequence.edges ++ shiftedChild.edges + AppendEdge(sequence.root, shiftedChild.root, true))
+        ParseResultGraph(sequence.length + child.length, sequence.root, sequence.nodes ++ child.nodes, sequence.edges ++ child.edges + AppendEdge(sequence.root, child.root, true))
     }
     def appendWhitespace(sequence: ParseResultGraph, child: ParseResultGraph): ParseResultGraph = {
-        val shiftedChild = child.shift(sequence.length)
-        ParseResultGraph(sequence.length + child.length, sequence.root, sequence.nodes ++ shiftedChild.nodes, sequence.edges ++ shiftedChild.edges + AppendEdge(sequence.root, shiftedChild.root, false))
+        ParseResultGraph(sequence.length + child.length, sequence.root, sequence.nodes ++ child.nodes, sequence.edges ++ child.edges + AppendEdge(sequence.root, child.root, false))
     }
 
     def merge(base: ParseResultGraph, merging: ParseResultGraph): ParseResultGraph = {
         val length = base.length ensuring (base.length == merging.length)
+        if (base.root != merging.root) {
+            println(base.root)
+            println(merging.root)
+        }
         val root = base.root ensuring (base.root == merging.root)
         ParseResultGraph(length, root, base.nodes ++ merging.nodes, base.edges ++ merging.edges)
     }
 
     def termFunc(): ParseResultGraph =
         ParseResultGraph(1, TermFunc(0), Set(TermFunc(0)), Set())
-    def substTermFunc(r: ParseResultGraph, input: Inputs.Input): ParseResultGraph = {
+    def substTermFunc(r: ParseResultGraph, position: Int, input: Inputs.Input): ParseResultGraph = {
         def substNode(node: Node): Node = node match {
-            case TermFunc(position) => Term(position, input)
-            case d => d
+            case TermFunc(p) => Term(p + position, input)
+            case Term(p, input) => Term(p + position, input)
+            case Join(p, length, symbol) => Join(p + position, length, symbol)
+            case Bind(p, length, symbol) => Bind(p + position, length, symbol)
+            case Empty(p) => Empty(p + position)
         }
         def substEdge(edge: Edge): Edge = edge match {
             case BindEdge(start, end) => BindEdge(substNode(start), substNode(end))
@@ -70,41 +70,26 @@ object ParseResultGraph {
     sealed trait Node {
         val position: Int
         val length: Int
-        def shift(distance: Int): Node
 
         val range = (position, position + length)
     }
 
     case class TermFunc(position: Int) extends Node {
         val length = 1
-        def shift(distance: Int) = TermFunc(position + distance)
     }
     case class Term(position: Int, input: Inputs.Input) extends Node {
         val length = 1
-        def shift(distance: Int) = Term(position + distance, input)
     }
-    case class Join(position: Int, length: Int, symbol: Symbols.Join) extends Node {
-        def shift(distance: Int) = Join(position + distance, length, symbol)
-    }
-    case class Bind(position: Int, length: Int, symbol: Symbols.Symbol) extends Node {
-        def shift(distance: Int) = Bind(position + distance, length, symbol)
-    }
+    case class Join(position: Int, length: Int, symbol: Symbols.Join) extends Node
+    case class Bind(position: Int, length: Int, symbol: Symbols.Symbol) extends Node
     case class Empty(position: Int) extends Node {
         val length = 0
-        def shift(distance: Int) = Empty(position + distance)
     }
 
-    sealed trait Edge {
-        def shift(distance: Int): Edge
-    }
-    case class BindEdge(start: Node, end: Node) extends Edge {
-        def shift(distance: Int): Edge = BindEdge(start.shift(distance), end.shift(distance))
-    }
+    sealed trait Edge
+    case class BindEdge(start: Node, end: Node) extends Edge
     case class AppendEdge(start: Node, end: Node, content: Boolean) extends Edge {
         val whitespace = !content
-        def shift(distance: Int): Edge = AppendEdge(start.shift(distance), end.shift(distance), content)
     }
-    case class JoinEdge(start: Node, end: Node, join: Node) extends Edge {
-        def shift(distance: Int): Edge = JoinEdge(start.shift(distance), end.shift(distance), join.shift(distance))
-    }
+    case class JoinEdge(start: Node, end: Node, join: Node) extends Edge
 }

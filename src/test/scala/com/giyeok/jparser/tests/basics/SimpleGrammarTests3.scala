@@ -217,7 +217,7 @@ object AsteriskNullable extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]()
+    val correctSamples = Set[String]("")
     val incorrectSamples = Set[String]()
 }
 

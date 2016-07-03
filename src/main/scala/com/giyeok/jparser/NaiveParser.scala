@@ -14,7 +14,7 @@ class NaiveParser[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFun
 
             // 1. No expansion
             val termFinishingTasks = graph.nodes collect {
-                case node @ TermNode(term, _) if term accept input => FinishingTask(nextGen, node, TermResult(resultFunc.terminal(input)), Condition.True)
+                case node @ TermNode(term, _) if term accept input => FinishingTask(nextGen, node, TermResult(resultFunc.terminal(gen, input)), Condition.True)
             }
 
             if (termFinishingTasks.isEmpty) {

@@ -13,7 +13,7 @@ import com.giyeok.jparser.ParseResultDerivationsSet
 
 class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends FlatSpec {
     def log(s: String): Unit = {
-        // println(s)
+        println(s)
     }
 
     private def testCorrect(tests: GrammarTestCases)(source: Inputs.ConcreteSource) = {

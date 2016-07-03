@@ -95,7 +95,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 (updatedGraph, updatedTermNodes)
             }
             val termFinishingTasks: Set[Task] = termNodes collect {
-                case termNode: TermNode if termNode.symbol accept input => FinishingTask(nextGen, termNode, TermResult(resultFunc.terminal(input)), Condition.True)
+                case termNode: TermNode if termNode.symbol accept input => FinishingTask(nextGen, termNode, TermResult(resultFunc.terminal(gen, input)), Condition.True)
             }
             (newGraph, termFinishingTasks)
         }
@@ -136,7 +136,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                             newNodes(end),
                             newNodes(join))
                 }
-                val newProgresses = dgraph.progresses.map(_.shiftGen(gen), _.shiftGen(gen), resultFunc.substTermFunc(_, input))
+                val newProgresses = dgraph.progresses.map(_.shiftGen(gen), _.shiftGen(gen), resultFunc.substTermFunc(_, gen, input))
                 val newNodesSet = newNodes.values.toSet[Node]
                 val expandedGraph = graphCC.withNodesEdgesProgresses(newNodesSet, newEdges, newProgresses).asInstanceOf[Graph]
 
@@ -146,17 +146,17 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 // - dgraph.baseResults 각각에 대해 FinishingTask 만들어주고
                 val finishingTasks = dgraph.baseResults map { kv =>
                     val (condition, resultAndSymbol) = kv
-                    FinishingTask(nextGen, baseNode, resultAndSymbol mapResult { resultFunc.substTermFunc(_, input) }, condition.shiftGen(gen))
+                    FinishingTask(nextGen, baseNode, resultAndSymbol mapResult { resultFunc.substTermFunc(_, gen, input) }, condition.shiftGen(gen))
                 }
                 // - dgraph.baseProgresses 각각에 대해 SequenceProgressTask 만들어주고
                 val progressTasks = dgraph.baseProgresses map { kv =>
                     val (condition, childAndSymbol) = kv
-                    SequenceProgressTask(nextGen, baseNode.asInstanceOf[SequenceNode], childAndSymbol mapResult { resultFunc.substTermFunc(_, input) }, condition.shiftGen(gen))
+                    SequenceProgressTask(nextGen, baseNode.asInstanceOf[SequenceNode], childAndSymbol mapResult { resultFunc.substTermFunc(_, gen, input) }, condition.shiftGen(gen))
                 }
                 val newTasks: Set[Task] = (deriveTasks ++ finishingTasks ++ progressTasks)
 
                 // dgraph.results는 revertTrigger 처리할 때 필요하므로 substTermFunc/merge해서 전달해주고
-                val preliftResults = dgraph.results.map(_.shiftGen(gen), _.shiftGen(gen), resultFunc.substTermFunc(_, input))
+                val preliftResults = dgraph.results.map(_.shiftGen(gen), _.shiftGen(gen), resultFunc.substTermFunc(_, gen, input))
 
                 (expandedGraph, tasksCC ++ newTasks, resultsCC.merge(preliftResults, resultFunc))
             }

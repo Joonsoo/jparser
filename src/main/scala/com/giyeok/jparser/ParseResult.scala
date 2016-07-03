@@ -5,12 +5,12 @@ trait ParseResult {
 }
 
 trait ParseResultFunc[R <: ParseResult] {
-    def terminal(input: Inputs.Input): R
+    def terminal(position: Int, input: Inputs.Input): R
     def bind(symbol: Symbols.Symbol, body: R): R
     def join(symbol: Symbols.Join, body: R, constraint: R): R
 
     // sequence는 Sequence에서만 쓰임
-    def sequence(): R
+    def sequence(position: Int): R
     def append(sequence: R, child: R): R
     def appendWhitespace(sequence: R, whitespace: R): R
 
@@ -20,7 +20,7 @@ trait ParseResultFunc[R <: ParseResult] {
         else Some(results.tail.foldLeft(results.head)(merge(_, _)))
 
     def termFunc(): R
-    def substTermFunc(r: R, input: Inputs.Input): R
+    def substTermFunc(r: R, position: Int, input: Inputs.Input): R
 }
 
 sealed trait ParseResultWithType[R <: ParseResult] {

@@ -7,15 +7,14 @@ case class ParseForest(trees: Set[ParseResultTree.Node]) extends ParseResult
 object ParseForestFunc extends ParseResultFunc[ParseForest] {
     import ParseResultTree._
 
-    def empty() = sequence()
-    def terminal(input: Inputs.Input) = ParseForest(Set(TerminalNode(input)))
+    def terminal(position: Int, input: Inputs.Input) = ParseForest(Set(TerminalNode(input)))
     def bind(symbol: Symbol, body: ParseForest) =
         ParseForest(body.trees map { b => BindedNode(symbol, b) })
     def join(symbol: Symbols.Join, body: ParseForest, constraint: ParseForest) = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
         ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
     }
-    def sequence() = ParseForest(Set(SequenceNode(List(), List())))
+    def sequence(position: Int) = ParseForest(Set(SequenceNode(List(), List())))
     def append(sequence: ParseForest, child: ParseForest) = {
         assert(sequence.trees forall { _.isInstanceOf[SequenceNode] })
         // sequence의 tree 각각에 child 각각을 추가한다
@@ -31,7 +30,7 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
         ParseForest(base.trees ++ merging.trees)
 
     def termFunc() = ParseForest(Set(TermFuncNode))
-    def substTermFunc(r: ParseForest, input: Inputs.Input) = ParseForest(r.trees map { _.substTerm(input) })
+    def substTermFunc(r: ParseForest, position: Int, input: Inputs.Input) = ParseForest(r.trees map { _.substTerm(input) })
 }
 
 object ParseResultTree {
