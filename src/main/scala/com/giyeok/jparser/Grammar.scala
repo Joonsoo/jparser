@@ -101,10 +101,8 @@ object Grammar {
                         case Sequence(seq, ws) => (seq ++ ws).foldRight(cc + symbol) { traverse(_, _) }
                         case OneOf(syms) => (syms).foldRight(cc + symbol) { traverse(_, _) }
                         case Except(sym, except) => traverse(sym, traverse(except, cc + symbol))
-                        case Repeat(sym, lower) =>
-                            val baseSeq = Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
-                            val repeatSeq = Sequence(Seq(symbol, sym), Set())
-                            traverse(repeatSeq, traverse(baseSeq, cc + symbol))
+                        case repeat: Repeat =>
+                            traverse(repeat.repeatSeq, traverse(repeat.baseSeq, cc + symbol))
                         case LookaheadIs(lookahead) => traverse(lookahead, cc + symbol)
                         case LookaheadExcept(except) => traverse(except, cc + symbol)
                         case Backup(sym, backup) => traverse(sym, traverse(backup, cc + symbol))

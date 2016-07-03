@@ -44,6 +44,8 @@ import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultGraphFunc
+import com.giyeok.jparser.SavingParser
+import com.giyeok.jparser.ParseResultTrueFunc
 
 class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGraph], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
     type Parser = NewParser[ParseResultGraph]
@@ -378,6 +380,8 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
 
     private var dotGraphGen = Option.empty[DotGraphGenerator[ParseForest]]
 
+    lazy val savingParser = new SavingParser(grammar, ParseResultTrueFunc, new DerivationSliceFunc(grammar, ParseResultTrueFunc))
+
     def keyListener = new KeyListener() {
         def keyPressed(x: KeyEvent): Unit = {
             x.keyCode match {
@@ -388,6 +392,22 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                 case SWT.HOME => updateLocation(firstLocation)
                 case SWT.END =>
                     if (lastValidLocation <= currentLocation && lastLocation != currentLocation) updateLocation(lastLocation) else updateLocation(lastValidLocation)
+
+                case 'S' | 's' =>
+                    currentLocation match {
+                        case ParsingContextPointer(gen) =>
+                            println("Saving Parser")
+                            object ReconstructedGraphViewer extends BasicGenerators
+                            savingParser.parse(source) match {
+                                case Left(parseResult: savingParser.SavingParsingCtx) =>
+                                    new ParseResultGraphViewer(parseResult.reconstructResult, ReconstructedGraphViewer.figureGenerator, ReconstructedGraphViewer.figureAppearances, ReconstructedGraphViewer.parseResultFigureGenerator).start()
+                                case Right(error) =>
+                                    println(error)
+                            }
+
+                        case _ =>
+                            println("Invalid location")
+                    }
 
                 case 'D' | 'd' =>
                 /*

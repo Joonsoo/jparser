@@ -16,9 +16,20 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         // println(s)
     }
 
-    private def testCorrect(tests: GrammarTestCases)(source: Inputs.ConcreteSource) = {
+    private def textReconstructParser(tests: GrammarTestCases, source: Inputs.ConcreteSource, result: ParseResultGraph) = {
+        //        val parser = tests.reconstructParser
+        //        parser.parse(source) match {
+        //            case Left(ctx) =>
+        //                assert(ctx.asInstanceOf[parser.SavingParsingCtx].reconstructResult == result)
+        //            case Right(error) => fail(error.msg)
+        //        }
+    }
+
+    def parserOf(tests: GrammarTestCases) = tests.newParser
+
+    private def testCorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = tests.parser.parse(source)
+        val result = parserOf(tests).parse(source)
         it should s"${tests.grammar.name} properly parsed on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) =>
@@ -33,14 +44,17 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                     //                    assert(trees.size == 1)
                     //                    trees foreach { checkParse(_, tests.grammar) }
                     checkParse(ctx.result.get, tests.grammar)
+
+                    log(s"testing ReconstructParser ${tests.grammar.name} on ${source.toCleanString}")
+                    textReconstructParser(tests, source, ctx.result.get)
                 case Right(error) => fail(error.msg)
             }
         }
     }
 
-    private def testIncorrect(tests: GrammarTestCases)(source: Inputs.ConcreteSource) = {
+    private def testIncorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = tests.parser.parse(source)
+        val result = parserOf(tests).parse(source)
         it should s"${tests.grammar.name} failed to parse on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) => assert(ctx.result.isEmpty)
@@ -49,9 +63,9 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         }
     }
 
-    private def testAmbiguous(tests: GrammarTestCases)(source: Inputs.ConcreteSource) = {
+    private def testAmbiguous(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = tests.parser.parse(source)
+        val result = parserOf(tests).parse(source)
         it should s"${tests.grammar.name} is ambiguous on '${source.toCleanString}'" in {
             result match {
                 case Left(ctx) =>
@@ -60,6 +74,9 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                     //                    assert(trees.size > 1)
                     //                    trees foreach { checkParse(_, tests.grammar) }
                     checkParse(ctx.result.get, tests.grammar)
+
+                    log(s"testing ReconstructParser ${tests.grammar.name} on ${source.toCleanString}")
+                    textReconstructParser(tests, source, ctx.result.get)
                 case Right(_) => assert(false)
             }
         }
@@ -136,8 +153,8 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
     }
 
     testsSuite foreach { test =>
-        test.correctSampleInputs foreach { testCorrect(test) }
-        test.incorrectSampleInputs foreach { testIncorrect(test) }
-        if (test.isInstanceOf[AmbiguousSamples]) test.asInstanceOf[AmbiguousSamples].ambiguousSampleInputs foreach { testAmbiguous(test) }
+        test.correctSampleInputs foreach { testCorrect(test, _) }
+        test.incorrectSampleInputs foreach { testIncorrect(test, _) }
+        if (test.isInstanceOf[AmbiguousSamples]) test.asInstanceOf[AmbiguousSamples].ambiguousSampleInputs foreach { testAmbiguous(test, _) }
     }
 }

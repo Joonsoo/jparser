@@ -37,7 +37,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                         FinishingTask(gen, node, SequenceResult(resultFunc.sequence(gen, seqSymbol)), Condition.True)
                     case n: NontermNode => DeriveTask(gen, n)
                 }
-                TaskResult(graph.withNodes(newNodes).updateProgresses(newProgresses).asInstanceOf[Graph], tasks ++ newTasks)
+                TaskResult(graph.withNodes(newNodes).replaceProgresses(newProgresses).asInstanceOf[Graph], tasks ++ newTasks)
             }
             def addEdges(edges: Set[Edge]): TaskResult = TaskResult(graph.withEdges(edges).asInstanceOf[Graph], tasks)
             def addTasks(newTasks: Seq[Task]): TaskResult = TaskResult(graph, tasks ++ newTasks)
@@ -311,7 +311,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                     }
                 }
 
-                (cc.updateProgressesOf(appendedNode, mergedProgresses).asInstanceOf[Graph], if (needDerive) Seq(DeriveTask(nextGen, appendedNode)) else Seq())
+                (cc.updateResultsOf(node, appendedProgresses).updateProgressesOf(appendedNode, mergedProgresses).asInstanceOf[Graph], if (needDerive) Seq(DeriveTask(nextGen, appendedNode)) else Seq())
             } else {
                 // append한 노드가 아직 cc에 없는 경우
                 // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다
@@ -322,7 +322,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                         SimpleEdge(start, appendedNode, edgeCondition)
                 }
                 assert(cc.incomingJoinEdgesTo(node).isEmpty)
-                (cc.withNodeEdgesProgresses(appendedNode, newEdges, Results(appendedNode -> appendedProgresses)).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
+                (cc.withNodes(Set(appendedNode)).withEdges(newEdges).updateResultsOf(node, appendedProgresses).updateProgressesOf(appendedNode, appendedProgresses).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))
             }
         }
     }

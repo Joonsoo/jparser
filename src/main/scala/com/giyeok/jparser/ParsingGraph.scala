@@ -267,7 +267,8 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Condition,
     def of(node: N): Option[Map[Condition, R]] = resultsMap get node
     def of(node: N, condition: Condition): Option[R] = (resultsMap get node) flatMap { m => m get condition }
     def entries: Iterable[(N, Condition, R)] = resultsMap flatMap { kv => kv._2 map { p => (kv._1, p._1, p._2) } }
-    def nodesInConditions: Set[Node] = (resultsMap flatMap { _._2 flatMap { _._1.nodes } }).toSet
+    def allConditions: Set[Condition] = (resultsMap flatMap { _._2 map { _._1 } }).toSet
+    def nodesInConditions: Set[Node] = allConditions flatMap { _.nodes }
 
     // - results와 progresses의 업데이트는 같은 원리로 동작하는데,
     //   - 해당하는 Node, Condition에 대한 R이 없을 경우 새로 추가해주고
@@ -288,6 +289,14 @@ class Results[N <: Node, R <: ParseResult](val resultsMap: Map[N, Map[Condition,
     }
 
     def filterKeys(keys: Set[Node]): Results[N, R] = new Results(resultsMap filterKeys keys)
+    def filter(func: ((N, Condition)) => Boolean): Results[N, R] = new Results((resultsMap flatMap { kv =>
+        val (node, map) = kv
+        val filtered = map filter { kv =>
+            val (cond, r) = kv
+            func(node, cond)
+        }
+        if (filtered.isEmpty) None else Some(node -> filtered)
+    }).toMap)
 
     def merge(other: Results[N, R], resultFunc: ParseResultFunc[R]): Results[N, R] = {
         other.entries.foldLeft(this) { (cc, entry) =>
@@ -356,32 +365,31 @@ trait ParsingGraph[R <: ParseResult] {
 
     // Modification
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): ParsingGraph[R]
-    def updateResultOf(node: Node, condition: Condition, result: R): ParsingGraph[R] = {
-        create(nodes, edges, results.update(node, condition, result), progresses)
-    }
-    def updateProgressesOf(node: SequenceNode, nodeProgresses: Map[Condition, R]): ParsingGraph[R] = {
-        create(nodes, edges, results, progresses.update(node, nodeProgresses))
-    }
-    def withNodeEdgesProgresses(newNode: SequenceNode, newEdges: Set[Edge], newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
-        create(nodes + newNode, edges ++ newEdges, results, progresses.update(newProgresses))
-    }
     def withNodes(newNodes: Set[Node]): ParsingGraph[R] = {
         create(nodes ++ newNodes, edges, results, progresses)
     }
     def withEdges(newEdges: Set[Edge]): ParsingGraph[R] = {
         create(nodes, edges ++ newEdges, results, progresses)
     }
-    def withNodesEdgesProgresses(newNodes: Set[Node], newEdges: Set[Edge], newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
-        assert(newNodes forall { n => !(n.isInstanceOf[DGraph.BaseNode]) })
-        create(nodes ++ newNodes, edges ++ newEdges, results, progresses.update(newProgresses))
-    }
     def withNoResults: ParsingGraph[R] = {
         create(nodes, edges, Results(), progresses)
     }
-    def updateResults(newResults: Results[Node, R]): ParsingGraph[R] = {
-        create(nodes, edges, newResults, progresses)
+    def updateResultOf(node: Node, condition: Condition, result: R): ParsingGraph[R] = {
+        create(nodes, edges, results.update(node, condition, result), progresses)
+    }
+    def updateResultsOf(node: Node, newResults: Map[Condition, R]): ParsingGraph[R] = {
+        create(nodes, edges, results.update(node, newResults), progresses)
+    }
+    def updateProgressesOf(node: SequenceNode, nodeProgresses: Map[Condition, R]): ParsingGraph[R] = {
+        create(nodes, edges, results, progresses.update(node, nodeProgresses))
     }
     def updateProgresses(newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
+        create(nodes, edges, results, progresses.update(newProgresses))
+    }
+    def replaceResults(newResults: Results[Node, R]): ParsingGraph[R] = {
+        create(nodes, edges, newResults, progresses)
+    }
+    def replaceProgresses(newProgresses: Results[SequenceNode, R]): ParsingGraph[R] = {
         create(nodes, edges, results, newProgresses)
     }
 

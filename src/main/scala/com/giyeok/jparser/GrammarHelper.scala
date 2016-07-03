@@ -24,9 +24,9 @@ object GrammarHelper {
     def unicode(categories: String*): Terminals.Unicode = unicode(categories toSet)
     def unicode(categories: Set[String]) = Terminals.Unicode(UnicodeUtil.categoryNamesToCodes(categories))
     // def virtual(name: String) = VirtualInputElem(name)
-    def seq(seq: Seq[Symbol], whitespace: Set[Symbol]) = Sequence(seq, whitespace)
-    def seq(seq: Symbol*) = Sequence(seq, Set())
-    def seq(whitespace: Set[Symbol], seq: Symbol*) = Sequence(seq, whitespace)
+    def seq(seq: Seq[Symbol], whitespace: Set[Symbol]) = Sequence(seq map { proxyIfNeeded _ }, whitespace map { proxyIfNeeded _ })
+    def seq(seq: Symbol*) = Sequence(seq.toSeq map { proxyIfNeeded _ }, Set())
+    def seq(whitespace: Set[Symbol], seq: Symbol*) = Sequence(seq.toSeq map { proxyIfNeeded _ }, whitespace map { proxyIfNeeded _ })
     def ws(set: Symbol*): Set[Symbol] = Set[Symbol](set: _*)
     def oneof(items: Symbol*) = OneOf(items toSet)
     def oneof(items: Set[Symbol]) = OneOf(items)
@@ -54,9 +54,9 @@ object GrammarHelper {
     }
     implicit class GrammarElementRepeatable(sym: Symbol) {
         def repeat(lower: Int, upper: Int): OneOf = OneOf(((lower to upper) map { count =>
-            Sequence((0 until count).toSeq map { _ => sym }, Set())
+            Sequence(((0 until count).toSeq map { _ => sym }) map { proxyIfNeeded _ }, Set())
         }).toSet)
-        def repeat(lower: Int): Repeat = Repeat(sym, lower)
+        def repeat(lower: Int): Repeat = Repeat(proxyIfNeeded(sym), lower)
 
         // optional
         def opt = repeat(0, 1)
@@ -70,7 +70,7 @@ object GrammarHelper {
         def plus = repeat(1)
     }
     implicit class GrammarElementBackupable(sym: Symbol) {
-        def backup(backup: Symbol): Backup = new Backup(sym, backup)
+        def backup(backup: Symbol): Backup = new Backup(proxyIfNeeded(sym), proxyIfNeeded(backup))
     }
     implicit class GrammarElementJoinable(sym: Symbol) {
         def join(joinWith: Symbol): Join = new Join(proxyIfNeeded(sym), proxyIfNeeded(joinWith))

@@ -16,6 +16,10 @@ case class CtxGraph[R <: ParseResult](
     def create(nodes: Set[Node], edges: Set[Edge], results: Results[Node, R], progresses: Results[SequenceNode, R]): CtxGraph[R] = {
         CtxGraph(nodes, edges, results, progresses)
     }
+
+    def allConditions: Set[Condition] = {
+        (edges collect { case SimpleEdge(_, _, cond) => cond }) ++ results.allConditions ++ progresses.allConditions
+    }
 }
 
 class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseResultFunc[R], derivationFunc: DerivationSliceFunc[R]) extends LiftTasks[R, CtxGraph[R]] {
@@ -90,7 +94,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 val newProgresses = dgraph.progresses map (_.shiftGen(gen), _.shiftGen(gen), result => result)
 
                 val newNodesSet = newNodes.values.toSet[Node]
-                val updatedGraph = result._1.withNodesEdgesProgresses(newNodesSet, newEdges, newProgresses).asInstanceOf[Graph]
+                val updatedGraph = result._1.withNodes(newNodesSet).withEdges(newEdges).updateProgresses(newProgresses).asInstanceOf[Graph]
                 val updatedTermNodes = result._2 ++ (newNodesSet collect { case n: TermNode => n })
                 (updatedGraph, updatedTermNodes)
             }
@@ -138,7 +142,7 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                 }
                 val newProgresses = dgraph.progresses.map(_.shiftGen(gen), _.shiftGen(gen), resultFunc.substTermFunc(_, gen, input))
                 val newNodesSet = newNodes.values.toSet[Node]
-                val expandedGraph = graphCC.withNodesEdgesProgresses(newNodesSet, newEdges, newProgresses).asInstanceOf[Graph]
+                val expandedGraph = graphCC.withNodes(newNodesSet).withEdges(newEdges).updateProgresses(newProgresses).asInstanceOf[Graph]
 
                 // 이제 확장된 부분에서 필요한 task를 만들어줌
                 // - newDerivables 각각에 대해 DeriveTask 만들어주고
