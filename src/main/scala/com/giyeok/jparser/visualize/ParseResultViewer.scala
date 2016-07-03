@@ -163,9 +163,12 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
         case BindEdge(start, end) =>
             new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, nodeMap(start), nodeMap(end))
         case AppendEdge(start, end, appendType) =>
-            val style = ZestStyles.CONNECTIONS_DIRECTED | (if (appendType == AppendType.Whitespace) ZestStyles.CONNECTIONS_DASH else 0)
+            val style = ZestStyles.CONNECTIONS_DIRECTED
             val conn = new GraphConnection(graph, style, nodeMap(start), nodeMap(end))
-            // if (appendType == AppendType.Content) { conn.setLineWidth(3) }
+            appendType match {
+                case AppendType.Prev | AppendType.Content => conn.setLineWidth(2)
+                case AppendType.Whitespace => conn.setLineWidth(1)
+            }
             conn.setLineColor(ColorConstants.green)
         case JoinEdge(start, end, join) =>
             new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, nodeMap(start), nodeMap(end))

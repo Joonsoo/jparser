@@ -127,14 +127,11 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
     }
 
     def merge(base: ParseResultGraph, merging: ParseResultGraph): ParseResultGraph = {
-        val position = base.position ensuring (base.position == merging.position)
-        val length = base.length ensuring (base.length == merging.length)
-        val root = base.root
-        // 보통은 base.root == merging.root 인데, 싸이클이 생기는 경우엔 아닐 수도 있음. 그럴 땐 base를 존중(사실 아무거나 써도 됨)
-        if (base.root != merging.root) {
-            assert(merging.nodes contains base.root)
-        }
-        ParseResultGraph(position, length, root, base.nodes ++ merging.nodes, base.edges ++ merging.edges)
+        assert(base.position == merging.position)
+        assert(base.length == merging.length)
+        // 보통은 base.root == merging.root 인데, 싸이클이 생기는 경우엔 아닐 수도 있음.
+        assert(merging.nodes contains base.root)
+        ParseResultGraph(base.position, base.length, base.root, base.nodes ++ merging.nodes, base.edges ++ merging.edges)
     }
 
     def termFunc(): ParseResultGraph =
