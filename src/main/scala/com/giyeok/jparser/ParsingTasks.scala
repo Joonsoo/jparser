@@ -162,7 +162,7 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 if (s.sym == resultSymbol) {
                     // except일 때는 updateResultOf할 때 조건에 nodeCreatedCondition도 들어가야 함
                     // Exclude는 cc.updateResultOf할 때 Condition.conjunct(condition, )하고 같이 들어가야 함
-                    Condition.conjunct(condition0, Condition.Exclude(nodeOf(s.except, node.beginGen), nextGen))
+                    Condition.conjunct(condition0, Condition.Exclude(nodeOf(s.except, node.beginGen)))
                 } else {
                     assert(s.except == resultSymbol)
                     Condition.False

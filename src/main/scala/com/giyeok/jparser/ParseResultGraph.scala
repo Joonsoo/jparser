@@ -130,7 +130,7 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
         assert(base.position == merging.position)
         assert(base.length == merging.length)
         // 보통은 base.root == merging.root 인데, 싸이클이 생기는 경우엔 아닐 수도 있음.
-        assert(merging.nodes contains base.root)
+        // assert(merging.nodes contains base.root)
         ParseResultGraph(base.position, base.length, base.root, base.nodes ++ merging.nodes, base.edges ++ merging.edges)
     }
 

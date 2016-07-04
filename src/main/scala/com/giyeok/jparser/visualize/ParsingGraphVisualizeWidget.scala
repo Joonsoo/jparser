@@ -342,7 +342,7 @@ trait ParsingGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
             case ParsingGraph.Condition.FalseUntilLifted(node, gen) => s"After(${nodeString(node)} $gen<)"
             case ParsingGraph.Condition.FalseIfAlive(node, gen) => s"Alive(${nodeString(node)} $gen<)"
             case ParsingGraph.Condition.TrueIfAlive(node, gen) => s"!Alive(${nodeString(node)} $gen<)"
-            case ParsingGraph.Condition.FalseIfLiftedAtExactGen(node, gen) => s"Exclude(${nodeString(node)} $gen=)"
+            case ParsingGraph.Condition.FalseIfLiftedAtExactGen(node) => s"Exclude(${nodeString(node)})"
         }
     }
 

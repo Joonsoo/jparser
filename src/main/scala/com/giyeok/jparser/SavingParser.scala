@@ -39,9 +39,8 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                 val revertedGraph = ParsingCtx.revert(nextGen, trimmedGraph, trimmedGraph.results, trimmedGraph.nodes)
                 val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", trimmedGraph, revertedGraph, trimmedGraph, trimmedGraph.results)
 
-                val nextGraph = revertedGraph
-                val conditionNextFate = (conditionFate ++ (nextGraph.allConditions map { k => (k -> k) }).toMap) map { kv => (kv._1 -> kv._2.evaluate(nextGen, trimmedGraph.results, trimmedGraph.nodes)) }
-                val nextContext = new SavingParsingCtx(nextGen, nextGraph, inputHistory :+ input, resultHistory :+ currResult, conditionNextFate)
+                val conditionNextFate = (conditionFate map { kv => (kv._1 -> kv._2.evaluate(nextGen, trimmedGraph.results, trimmedGraph.nodes)) }) ++ (revertedGraph.allConditions map { k => (k -> k) }).toMap
+                val nextContext = new SavingParsingCtx(nextGen, revertedGraph, inputHistory :+ input, resultHistory :+ currResult, conditionNextFate)
                 val transition = ParsingCtxTransition(
                     Some(expandTransition, liftTransition),
                     Some(firstTrimmingTransition, revertTransition))
@@ -82,12 +81,16 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
             }
 
             def reconstruct(node: Node, gen: Int): ParseResultGraph = {
+                def atomicNodeOf(symbol: AtomicSymbol, beginGen: Int): Node = symbol match {
+                    case term: Terminal => TermNode(term, beginGen)
+                    case nonterm: AtomicNonterm => AtomicNode(nonterm, beginGen)
+                }
                 node match {
                     case TermNode(symbol, beginGen) =>
                         assert(gen == beginGen + 1)
                         resultFunc.bind(symbol, resultFunc.terminal(beginGen, inputHistory(beginGen)))
                     case AtomicNode(symbol: Join, beginGen) =>
-                        ???
+                        resultFunc.bind(symbol, resultFunc.join(symbol, reconstruct(atomicNodeOf(symbol.sym, beginGen), gen), reconstruct(atomicNodeOf(symbol.join, beginGen), gen)))
                     case AtomicNode(symbol, beginGen) =>
                         // beginGen..gen을 커버하는 AtomicNode result 중에 symbol에서 derive될 수 있는 것들 추리기
                         // beginGen..gen을 커버하는 SequenceNode result 중에 symbol에서 derive될 수 있는 것들 추리기
@@ -104,10 +107,7 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                                 // sequence가 완전히 끝나는 경우
                                 // 맨 마지막엔 whitespace가 올 수 없음
                                 val lastChildSym = child.symbol.seq(child.pointer)
-                                val childNode = lastChildSym match {
-                                    case term: Terminal => TermNode(term, child.endGen)
-                                    case nonterm: AtomicNonterm => AtomicNode(nonterm, child.endGen)
-                                }
+                                val childNode = atomicNodeOf(lastChildSym, child.endGen)
                                 assert(actualHistory(gen) contains childNode)
                                 resultFunc.append(reconstruct(child, child.endGen), reconstruct(childNode, gen))
                         }

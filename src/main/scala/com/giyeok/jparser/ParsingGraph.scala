@@ -56,7 +56,7 @@ object ParsingGraph {
         def Until(node: Node, pendedUntilGen: Int): Condition = TrueUntilLifted(node, pendedUntilGen)
         def After(node: Node, pendedUntilGen: Int): Condition = FalseUntilLifted(node, pendedUntilGen)
         def Alive(node: Node, pendedUntilGen: Int): Condition = FalseIfAlive(node, pendedUntilGen)
-        def Exclude(node: Node, targetGen: Int): Condition = FalseIfLiftedAtExactGen(node, targetGen)
+        def Exclude(node: Node): Condition = FalseIfLiftedAtExactGen(node)
         def conjunct(conds: Condition*): Condition = {
             if (conds exists { _ == False }) False
             else {
@@ -219,12 +219,11 @@ object ParsingGraph {
             def neg: Condition = FalseIfAlive(node, pendedUntilGen)
         }
 
-        case class FalseIfLiftedAtExactGen(node: Node, targetGen: Int) extends Condition {
+        case class FalseIfLiftedAtExactGen(node: Node) extends Condition {
             def nodes = Set(node)
-            def shiftGen(shiftGen: Int) = FalseIfLiftedAtExactGen(node.shiftGen(shiftGen), targetGen + shiftGen)
+            def shiftGen(shiftGen: Int) = FalseIfLiftedAtExactGen(node.shiftGen(shiftGen))
 
             def evaluate[R <: ParseResult](gen: Int, results: Results[Node, R], aliveNodes: Set[Node]): Condition = {
-                assert(targetGen == gen)
                 results.of(node) match {
                     case Some(resultsMap) =>
                         val resultConditions = resultsMap.keys
