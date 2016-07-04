@@ -17,15 +17,15 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
     }
 
     private def textReconstructParser(tests: GrammarTestCases, source: Inputs.ConcreteSource, result: ParseResultGraph) = {
-        //        val parser = tests.reconstructParser
-        //        parser.parse(source) match {
-        //            case Left(ctx) =>
-        //                assert(ctx.asInstanceOf[parser.SavingParsingCtx].reconstructResult == result)
-        //            case Right(error) => fail(error.msg)
-        //        }
+        val parser = tests.reconstructParser
+        parser.parse(source) match {
+            case Left(ctx) =>
+                assert(ctx.asInstanceOf[parser.SavingParsingCtx].reconstructResult == result)
+            case Right(error) => fail(error.msg)
+        }
     }
 
-    def parserOf(tests: GrammarTestCases) = tests.newParser
+    def parserOf(tests: GrammarTestCases) = tests.naiveParser
 
     private def testCorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
