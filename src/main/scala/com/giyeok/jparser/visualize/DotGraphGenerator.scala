@@ -18,11 +18,11 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
                     case c => toReadable(c)
                 }
             case chars: Terminals.Chars =>
-                "[" + (chars.groups map { range =>
+                (chars.groups map { range =>
                     if (range._1 == range._2) s"${toReadable(range._1)}"
                     else if (range._1 + 1 == range._2) s"${toReadable(range._1)}-${toReadable(range._2)}"
                     else s"${toReadable(range._1)}-${toReadable(range._2)}"
-                } mkString "|") + "]"
+                } mkString "|")
             case Unicode(c) => s"<unicode ${(c.toSeq.sorted map { categoryCodeToName(_) }) mkString ", "}>"
             case t: Terminal => t.toDotLabelName
             case Start => "<start>"
@@ -74,7 +74,36 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
     private var _nodes = Seq[(ParsingGraph.Node, DotGraphNode)]()
     private val edges = scala.collection.mutable.Map[ParsingGraph.Edge, DotGraphEdge]()
 
-    def nodeNameOf(node: ParsingGraph.Node): String = s"node${nodeIdCache.of(node)}"
+    private var nodeNamesMap = Map[ParsingGraph.Node, String]()
+    def nodeNameOf(node: ParsingGraph.Node): String = {
+        nodeNamesMap get node match {
+            case Some(name) => name
+            case None =>
+                def isDigitAlpha(c: Char) = ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')
+                val name0: String = node match {
+                    case ParsingGraph.TermNode(ExactChar(c), gen) if 'a' <= c && c <= 'z' => s"${c}_${gen}"
+                    case ParsingGraph.AtomicNode(Nonterminal(name), gen) if name.toSeq forall { isDigitAlpha _ } => s"${name}_${gen}"
+                    case ParsingGraph.AtomicNode(Repeat(Nonterminal(name), lower), gen) if (name.toSeq forall { isDigitAlpha _ }) && (lower == 0 || lower == 1) =>
+                        val repeatName = lower match {
+                            case 0 => s"${name}_star"
+                            case 1 => s"${name}_plus"
+                            case lower => ???
+                        }
+                        s"${repeatName}_${gen}"
+                    case node => s"node${nodeIdCache.of(node)}"
+                }
+                val occupiedNodeNames = nodeNamesMap.values.toSet
+                val name = if (occupiedNodeNames contains name0) {
+                    var i = 1
+                    while (occupiedNodeNames contains (name0 + i)) {
+                        i += 1
+                    }
+                    name0 + i
+                } else name0
+                nodeNamesMap += (node -> name)
+                name
+        }
+    }
 
     def labelOf(node: ParsingGraph.Node): String = {
         node match {

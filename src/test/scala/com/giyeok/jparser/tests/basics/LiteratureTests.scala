@@ -332,6 +332,56 @@ object MyPaper6_4 extends Grammar with GrammarTestCases with StringSamples with 
     val ambiguousSamples = Set[String]()
 }
 
+object MyPaper6_5 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "MyPaper Grammar 6_5"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("Stmt").plus),
+        "Stmt" -> ListSet(
+            n("LetStmt"),
+            n("ExprStmt")),
+        "LetStmt" -> ListSet(
+            seq(n("Let"), c(' '), n("Id"), c(' '), n("Expr"), c(';'))),
+        "ExprStmt" -> ListSet(
+            seq(n("Expr"), c(';'), lookahead_is(n("LetStmt")))),
+        "Let" -> ListSet(
+            n("Let0").join(n("Name"))),
+        "Let0" -> ListSet(
+            i("let")),
+        "Name" -> ListSet(
+            longest(n("[a-z]").plus)),
+        "Id" -> ListSet(
+            n("Name").except(n("Let"))),
+        "Token" -> ListSet(
+            n("Id"),
+            c('+')),
+        "Expr" -> ListSet(
+            n("Token").plus),
+        "[a-z]" -> ListSet(
+            c('l'),
+            chars('a' to 'k'),
+            chars('m' to 'z')))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "let a b+c;",
+        "l+a+b+c;let a b;",
+        "a+b+c+d;let x y;",
+        "a+b+letx+c+d;let z y;",
+        "let a b+c+d+e+f+g;",
+        "abc+def;let xyz zyx;",
+        "ab+cd;let wx yz;")
+    val incorrectSamples = Set[String](
+        "ab+cd",
+        "let let a;",
+        "a b let c d;",
+        "l a b c;",
+        "a b c d;",
+        "a b letx c d;")
+    val ambiguousSamples = Set[String]()
+}
+
 object MyPaper7_1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
     val name = "MyPaper Grammar 7_1"
     val rules: RuleMap = ListMap(
@@ -443,6 +493,244 @@ object MyPaper8_3 extends Grammar with GrammarTestCases with StringSamples with 
     val ambiguousSamples = Set[String]()
 }
 
+object MyPaper9_1 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 9_1"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(c('a'), longest(n("A"))),
+            seq(c('a'), c('a'), longest(n("A")))),
+        "A" -> ListSet(
+            i("aaaaa").plus))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "aaaaaa",
+        "aaaaaaa",
+        "aaaaaaaaaaa",
+        "aaaaaaaaaaaa")
+    val incorrectSamples = Set[String](
+        "",
+        "a",
+        "aa",
+        "aaa",
+        "aaaa",
+        "aaaaa",
+        "aaaaaaaa")
+}
+
+object MyPaper9_2 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 9_2"
+    val rules: RuleMap = ListMap(
+        "K" -> ListSet(
+            n("S"),
+            seq(c('a'), c('a'), c('a'), n("S"))),
+        "S" -> ListSet(
+            seq(c('a'), longest(n("A"))),
+            seq(c('a'), c('a'), longest(n("A")))),
+        "A" -> ListSet(
+            i("aaaaa").plus))
+    val startSymbol = n("K")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "aaaaaa",
+        "aaaaaaa",
+        "aaaaaaaaaaa",
+        "aaaaaaaaaaaa")
+    val incorrectSamples = Set[String](
+        "",
+        "a",
+        "aa",
+        "aaa",
+        "aaaa",
+        "aaaaa",
+        "aaaaaaaa")
+}
+
+object MyPaper9_3 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 9_3"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("A"), longest(n("A")))),
+        "A" -> ListSet(
+            c('a').plus))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+}
+
+object MyPaper9_4 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 9_4"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("A"), longest(n("B")))),
+        "A" -> ListSet(
+            c('a').plus),
+        "B" -> ListSet(
+            c('b').plus))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String]()
+}
+
+object MyPaper9_5 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 9_5"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("T+")),
+        "T+" -> ListSet(
+            seq(n("T+"), n("T")),
+            n("T")),
+        "T" -> ListSet(
+            longest(c('a').plus),
+            longest(c('b').plus),
+            longest(c('c').plus)))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]("aaabbc")
+    val incorrectSamples = Set[String]()
+}
+
+object MyPaper9_6 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 9_6"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("A"), n("B"))),
+        "A" -> ListSet(
+            i("aa"),
+            i("aaaa")),
+        "B" -> ListSet(
+            n("C").plus),
+        "C" -> ListSet(
+            i("aaaaa")))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "aaaaaaa",
+        "aaaaaaaaa")
+    val incorrectSamples = Set[String]()
+}
+
+object MyPaper9_7 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 9_7"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("A"), longest(n("B")))),
+        "A" -> ListSet(
+            i("aa"),
+            i("aaaa")),
+        "B" -> ListSet(
+            n("C").plus),
+        "C" -> ListSet(
+            i("aaaaa")))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "aaaaaaa",
+        "aaaaaaaaa")
+    val incorrectSamples = Set[String]()
+}
+
+object MyPaper10 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 10"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(longest(longest(n("A")).plus))),
+        "A" -> ListSet(
+            c('a').plus,
+            c('b').plus))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "aaaaaaa",
+        "aaaaaaaaa")
+    val incorrectSamples = Set[String]()
+}
+
+object MyPaper10_1 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 10_1"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("A"), n("Gamma"))),
+        "A" -> ListSet(
+            n("X"),
+            n("Y")),
+        "X" -> ListSet(
+            longest(seq(i("ab"), i("cd").star))),
+        "Y" -> ListSet(
+            i("ab")),
+        "Gamma" -> ListSet(
+            i("cdefg"),
+            i("efghi")))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "abcdefg",
+        "abcdefghi")
+    val incorrectSamples = Set[String]()
+}
+
+object MyPaper10_2 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 10_2"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("A"), n("Gamma"))),
+        "A" -> ListSet(
+            n("X"),
+            n("Y")),
+        "X" -> ListSet(
+            longest(seq(c('a'), c('b').star))),
+        "Y" -> ListSet(
+            i("ab")),
+        "Gamma" -> ListSet(
+            i("bcd"),
+            i("cde")))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "abcd",
+        "abcde")
+    val incorrectSamples = Set[String]()
+}
+
+object MyPaper10_3 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 10_3"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            longest(seq(c('a'), longest(c('a').plus)))))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "aaaaaa")
+    val incorrectSamples = Set[String]()
+}
+
+object MyPaper10_4 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 10_4"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            longest(c('a').plus),
+            longest(seq(longest(c('a').plus), c('a')))))
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String]()
+    val incorrectSamples = Set[String](
+        "aaaaaa")
+}
+
 object PaperTests {
     val tests: Set[GrammarTestCases] = Set(
         Earley1970AE,
@@ -457,11 +745,24 @@ object PaperTests {
         MyPaper6_2,
         MyPaper6_3,
         MyPaper6_4,
+        MyPaper6_5, // paper example
         MyPaper7_1,
         MyPaper7_2,
         MyPaper8_1,
         MyPaper8_2,
-        MyPaper8_3)
+        MyPaper8_3,
+        MyPaper9_1,
+        MyPaper9_2,
+        MyPaper9_3,
+        MyPaper9_4,
+        MyPaper9_5,
+        MyPaper9_6,
+        MyPaper9_7,
+        MyPaper10,
+        MyPaper10_1,
+        MyPaper10_2,
+        MyPaper10_3,
+        MyPaper10_4)
 }
 
 class PaperTestSuite extends BasicParseTest(PaperTests.tests)

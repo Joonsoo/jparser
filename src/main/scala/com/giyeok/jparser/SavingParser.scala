@@ -39,7 +39,8 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                 val revertedGraph = ParsingCtx.revert(nextGen, trimmedGraph, trimmedGraph.results, trimmedGraph.nodes)
                 val revertTransition = RevertTransition(s"Gen $gen > (4) Revert", trimmedGraph, revertedGraph, trimmedGraph, trimmedGraph.results)
 
-                val conditionNextFate = (conditionFate map { kv => (kv._1 -> kv._2.evaluate(nextGen, trimmedGraph.results, trimmedGraph.nodes)) }) ++ (revertedGraph.allConditions map { k => (k -> k) }).toMap
+                val conditionNextFate0 = (conditionFate map { kv => (kv._1 -> kv._2.evaluate(nextGen, trimmedGraph.results, trimmedGraph.nodes)) }) ++ (revertedGraph.allConditions map { k => (k -> k) }).toMap
+                val conditionNextFate = conditionNextFate0 filter { _._2 != Condition.False }
                 val nextContext = new SavingParsingCtx(nextGen, revertedGraph, inputHistory :+ input, resultHistory :+ currResult, conditionNextFate)
                 val transition = ParsingCtxTransition(
                     Some(expandTransition, liftTransition),
@@ -55,7 +56,10 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
 
             val actualHistory = (resultHistory :+ graph.results) map { resultMap =>
                 val eligibleEntries = (resultMap filter { nc =>
-                    conditionFate(nc._2).eligible
+                    conditionFate get (nc._2) match {
+                        case Some(fate) => fate.eligible
+                        case None => false
+                    }
                 }).entries
                 (eligibleEntries map { _._1 }).toSet
             }
@@ -98,27 +102,22 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                         // beginGen..gen을 커버하는 SequenceNode result 중에 symbol에서 derive될 수 있는 것들 추리기
                         val merging = actualHistory(gen) collect {
                             case child: TermNode if (beginGen == child.beginGen) && (derive(symbol) contains child.symbol) =>
-                                reconstruct(child, gen)
+                                resultFunc.bind(symbol, reconstruct(child, gen))
                             case child: AtomicNode if (beginGen == child.beginGen) && (derive(symbol) contains child.symbol) =>
-                                reconstruct(child, gen)
+                                resultFunc.bind(symbol, reconstruct(child, gen))
                             case child: SequenceNode if (derive(symbol) contains child.symbol) && (child.beginGen == beginGen) && (child.symbol.seq.length == 0) =>
-                                resultFunc.sequence(child.beginGen, child.symbol)
+                                resultFunc.bind(symbol, resultFunc.sequence(child.beginGen, child.symbol))
                             case child: SequenceNode if (derive(symbol) contains child.symbol) && (child.beginGen == beginGen) && (child.pointer + 1 == child.symbol.seq.length) =>
                                 // sequence가 완전히 끝나는 경우
                                 // 맨 마지막엔 whitespace가 올 수 없음
                                 val lastChildSym = child.symbol.seq(child.pointer)
                                 val childNode = atomicNodeOf(lastChildSym, child.endGen)
                                 assert(actualHistory(gen) contains childNode)
-                                resultFunc.append(reconstruct(child, child.endGen), reconstruct(childNode, gen))
+                                resultFunc.bind(symbol, resultFunc.append(reconstruct(child, child.endGen), reconstruct(childNode, gen)))
                         }
                         assert(!merging.isEmpty)
-                        val body = resultFunc.merge(merging).get
-                        val binded = resultFunc.bind(symbol, body)
-                        if (body == binded) {
-                            // cycle이 생긴 경우
-                            ???
-                        }
-                        binded
+                        // merge를 먼저 하고 bind를 하면 merge할 때 root가 바뀌어서 안되는 경우가 있을 수 있음
+                        resultFunc.merge(merging).get
 
                     case SequenceNode(symbol, 0, beginGen, endGen) =>
                         resultFunc.sequence(beginGen, symbol) ensuring (gen == endGen && beginGen == endGen)

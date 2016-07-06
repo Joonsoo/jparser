@@ -378,7 +378,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
         }
     }
 
-    private var dotGraphGen = Option.empty[DotGraphGenerator[ParseForest]]
+    private var dotGraphGen = Option.empty[DotGraphGenerator[ParseResultGraph]]
 
     lazy val savingParser = new SavingParser(grammar, ParseResultTrueFunc, new DerivationSliceFunc(grammar, ParseResultTrueFunc))
 
@@ -410,7 +410,6 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                     }
 
                 case 'D' | 'd' =>
-                /*
                     if (dotGraphGen.isEmpty) {
                         dotGraphGen = Some(new DotGraphGenerator(nodeIdCache))
                     }
@@ -434,7 +433,6 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                         case _ => // nothing to do
                     }
                     dotGraphGen.get.printDotGraph()
-                    */
 
                 case 'F' | 'f' =>
                     dotGraphGen = None
