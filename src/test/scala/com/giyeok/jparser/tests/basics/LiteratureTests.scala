@@ -391,11 +391,9 @@ object MyPaper6_6 extends Grammar with GrammarTestCases with StringSamples with 
             n("LetStmt"),
             n("ExprStmt")),
         "LetStmt" -> ListSet(
-            seq(n("Let"), c(' '), n("Id"), c(' '), n("Expr"), c(';'))),
+            seq(n("Let0"), c(' '), n("Id"), c(' '), n("Expr"), c(';'))),
         "ExprStmt" -> ListSet(
             seq(n("Expr"), c(';'), lookahead_is(n("LetStmt")))),
-        "Let" -> ListSet(
-            n("Let0").join(n("Name"))),
         "Let0" -> ListSet(
             i("let")),
         "Name" -> ListSet(

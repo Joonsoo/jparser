@@ -83,18 +83,23 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                     Set(sym, except)
             }
 
-            def reconstruct(node: Node, gen: Int): ParseResultGraph = {
+            def reconstruct(node: Node, gen: Int, symbols: Set[Symbol]): ParseResultGraph = {
                 def atomicNodeOf(symbol: AtomicSymbol, beginGen: Int): Node = symbol match {
                     case term: Terminal => TermNode(term, beginGen)
                     case nonterm: AtomicNonterm => AtomicNode(nonterm, beginGen)
                 }
+                def reconstruct0(rnode: Node, rgen: Int): ParseResultGraph =
+                    if (node.beginGen == rnode.beginGen && gen == rgen) reconstruct(rnode, rgen, symbols + node.symbol) else reconstruct(rnode, rgen, Set())
                 node match {
                     case TermNode(symbol, beginGen) =>
                         assert(gen == beginGen + 1)
                         resultFunc.bind(symbol, resultFunc.terminal(beginGen, inputHistory(beginGen)))
 
+                    case AtomicNode(symbol, beginGen) if symbols contains symbol =>
+                        ???
+
                     case AtomicNode(symbol: Join, beginGen) =>
-                        resultFunc.bind(symbol, resultFunc.join(symbol, reconstruct(atomicNodeOf(symbol.sym, beginGen), gen), reconstruct(atomicNodeOf(symbol.join, beginGen), gen)))
+                        resultFunc.bind(symbol, resultFunc.join(symbol, reconstruct(atomicNodeOf(symbol.sym, beginGen), gen, symbols + symbol), reconstruct(atomicNodeOf(symbol.join, beginGen), gen, symbols + symbol)))
                     case AtomicNode(symbol: Lookahead, beginGen) =>
                         resultFunc.bind(symbol, resultFunc.sequence(beginGen, Sequence(Seq(), Set())))
                     case AtomicNode(symbol, beginGen) =>
@@ -102,9 +107,9 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                         // beginGen..gen을 커버하는 SequenceNode result 중에 symbol에서 derive될 수 있는 것들 추리기
                         val merging = actualHistory(gen) collect {
                             case child: TermNode if (beginGen == child.beginGen) && (derive(symbol) contains child.symbol) =>
-                                resultFunc.bind(symbol, reconstruct(child, gen))
+                                resultFunc.bind(symbol, reconstruct(child, gen, symbols + symbol))
                             case child: AtomicNode if (beginGen == child.beginGen) && (derive(symbol) contains child.symbol) =>
-                                resultFunc.bind(symbol, reconstruct(child, gen))
+                                resultFunc.bind(symbol, reconstruct(child, gen, symbols + symbol))
                             case child: SequenceNode if (derive(symbol) contains child.symbol) && (child.beginGen == beginGen) && (child.symbol.seq.length == 0) =>
                                 resultFunc.bind(symbol, resultFunc.sequence(child.beginGen, child.symbol))
                             case child: SequenceNode if (derive(symbol) contains child.symbol) && (child.beginGen == beginGen) && (child.pointer + 1 == child.symbol.seq.length) =>
@@ -113,7 +118,7 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                                 val lastChildSym = child.symbol.seq(child.pointer)
                                 val childNode = atomicNodeOf(lastChildSym, child.endGen)
                                 assert(actualHistory(gen) contains childNode)
-                                resultFunc.bind(symbol, resultFunc.append(reconstruct(child, child.endGen), reconstruct(childNode, gen)))
+                                resultFunc.bind(symbol, resultFunc.append(reconstruct0(child, child.endGen), reconstruct0(childNode, gen)))
                         }
                         assert(!merging.isEmpty)
                         // merge를 먼저 하고 bind를 하면 merge할 때 root가 바뀌어서 안되는 경우가 있을 수 있음
@@ -133,13 +138,13 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                                 // actualHistory(childGen)에 SequenceNode랑 symbol, pointer - 1, ?beginGen, 
                                 actualHistory(gen) collect {
                                     case prevSeq: SequenceNode if prevSeq.symbol == symbol && prevSeq.pointer == pointer - 1 && prevSeq.beginGen == beginGen && prevSeq.endGen == child.beginGen =>
-                                        resultFunc.append(reconstruct(prevSeq, child.beginGen), reconstruct(child, gen))
+                                        resultFunc.append(reconstruct0(prevSeq, child.beginGen), reconstruct0(child, gen))
                                 }
                             case child: TermNode if child.symbol == lastChildSym =>
                                 // actualHistory(childGen)에 SequenceNode랑 symbol, pointer - 1, ?beginGen, 
                                 actualHistory(gen) collect {
                                     case prevSeq: SequenceNode if prevSeq.symbol == symbol && prevSeq.pointer == pointer - 1 && prevSeq.beginGen == beginGen && prevSeq.endGen == child.beginGen =>
-                                        resultFunc.append(reconstruct(prevSeq, child.beginGen), reconstruct(child, gen))
+                                        resultFunc.append(reconstruct0(prevSeq, child.beginGen), reconstruct0(child, gen))
                                 }
                             case _ => Seq()
                         }
@@ -152,13 +157,13 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                                         // actualHistory(childGen)에 SequenceNode랑 symbol, pointer - 1, ?beginGen, 
                                         actualHistory(gen) collect {
                                             case prevSeq: SequenceNode if prevSeq.symbol == symbol && prevSeq.pointer == pointer && prevSeq.beginGen == beginGen && prevSeq.endGen == child.beginGen =>
-                                                resultFunc.appendWhitespace(reconstruct(prevSeq, child.beginGen), reconstruct(child, gen))
+                                                resultFunc.appendWhitespace(reconstruct0(prevSeq, child.beginGen), reconstruct0(child, gen))
                                         }
                                     case child: TermNode if whitespaceSyms contains child.symbol =>
                                         // actualHistory(childGen)에 SequenceNode랑 symbol, pointer - 1, ?beginGen, 
                                         actualHistory(gen) collect {
                                             case prevSeq: SequenceNode if prevSeq.symbol == symbol && prevSeq.pointer == pointer && prevSeq.beginGen == beginGen && prevSeq.endGen == child.beginGen =>
-                                                resultFunc.appendWhitespace(reconstruct(prevSeq, child.beginGen), reconstruct(child, gen))
+                                                resultFunc.appendWhitespace(reconstruct0(prevSeq, child.beginGen), reconstruct0(child, gen))
                                         }
                                     case _ => Seq()
                                 }
@@ -170,7 +175,7 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                         resultFunc.merge(merging).get
                 }
             }
-            reconstruct(startNode, gen)
+            reconstruct(startNode, gen, Set())
         }
     }
 
