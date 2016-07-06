@@ -55,6 +55,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
     sourceView.setLayoutData({
         val formData = new FormData()
         formData.top = new FormAttachment(0, 0)
+        formData.bottom = new FormAttachment(0, 30)
         formData.left = new FormAttachment(0, 0)
         formData.right = new FormAttachment(100, 0)
         formData
@@ -147,7 +148,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
     var currentLocation: Pointer = firstLocation
 
     def updateLocation(newLocation: Pointer): Unit = {
-        val sourceViewHeight = 20
+        val sourceViewHeight = 40
         if (isValidLocation(newLocation)) {
             currentLocation = newLocation
 
