@@ -23,6 +23,13 @@ import org.eclipse.swt.widgets.MessageBox
 import com.giyeok.jparser.visualize.DerivationGraphVisualizer
 import com.giyeok.jparser.Inputs.ConcreteInput
 
+object AllViewer extends Viewer {
+    val allTests = Set(
+        com.giyeok.jparser.tests.basics.Visualization.allTests,
+        com.giyeok.jparser.tests.gramgram.Visualization.allTests,
+        com.giyeok.jparser.tests.javascript.Visualization.allTests).flatten
+}
+
 trait Viewer {
     val allTests: Set[GrammarTestCases]
 

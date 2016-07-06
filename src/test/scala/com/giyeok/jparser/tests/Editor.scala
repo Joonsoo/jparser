@@ -97,6 +97,7 @@ trait Editor {
         })
         testText.setBackground(ColorConstants.lightGray)
         testText.setFont(mono)
+        testText.setText("ab+cd;let wx yz;")
 
         testTextLabel.setLayoutData({
             val formData = new FormData()

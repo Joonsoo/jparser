@@ -116,9 +116,7 @@ object GrammarGrammar extends Grammar {
                                                     case BindNode(Nonterminal("LookaheadExName"), BindNode(_: Longest, seq: SequenceNode)) =>
                                                         lookahead_except(mapSymbol(seq.children(2)))
                                                     case BindNode(Nonterminal("IntersectionName"), BindNode(_: Longest, seq: SequenceNode)) =>
-                                                        val j = join(mapSymbol(seq.children(0)), mapSymbol(seq.children(2)))
-                                                        println(j)
-                                                        j
+                                                        join(mapSymbol(seq.children(0)), mapSymbol(seq.children(2)))
                                                     case BindNode(Nonterminal("ExclusionName"), BindNode(_: Longest, seq: SequenceNode)) =>
                                                         mapSymbol(seq.children(0)).except(mapSymbol(seq.children(2)))
                                                     case BindNode(Nonterminal("Terminal"), body) =>

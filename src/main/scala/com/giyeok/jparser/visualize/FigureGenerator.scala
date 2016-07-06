@@ -18,7 +18,6 @@ import com.giyeok.jparser.Symbols.Terminals
 import java.lang.Character.UnicodeBlock
 import org.eclipse.draw2d.Border
 import org.eclipse.draw2d.AbstractBorder
-import org.eclipse.mylar.zest.core.internal.viewers.figures.SubSupFigure
 
 object FigureGenerator {
     trait Appearance[Figure] {
@@ -153,20 +152,22 @@ object FigureGenerator {
             def subFig(child: Figure): Figure = subFig(0.75, child)
             def supFig(child: Figure): Figure = supFig(0.75, child)
             def subFig(ratio: Double, child: Figure): Figure = {
-                val fig = new SubSupFigure()
-                fig.setLayoutManager(toolbarLayoutWith(true, Spacing.None))
-                fig.add(child)
-                fig.setScale(ratio)
-                fig.setStickToTop(false)
-                fig
+                //                val fig = new SubSupFigure()
+                //                fig.setLayoutManager(toolbarLayoutWith(true, Spacing.None))
+                //                fig.add(child)
+                //                fig.setScale(ratio)
+                //                fig.setStickToTop(false)
+                //                fig
+                child
             }
             def supFig(ratio: Double, child: Figure): Figure = {
-                val fig = new SubSupFigure()
-                fig.setLayoutManager(toolbarLayoutWith(true, Spacing.None))
-                fig.add(child)
-                fig.setScale(ratio)
-                fig.setStickToTop(true)
-                fig
+                //                val fig = new SubSupFigure()
+                //                fig.setLayoutManager(toolbarLayoutWith(true, Spacing.None))
+                //                fig.add(child)
+                //                fig.setScale(ratio)
+                //                fig.setStickToTop(true)
+                //                fig
+                child
             }
         }
     }
