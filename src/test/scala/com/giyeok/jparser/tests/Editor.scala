@@ -48,27 +48,65 @@ trait Editor {
         val testText = new org.eclipse.swt.widgets.Text(shell, SWT.MULTI)
         val testButton = new org.eclipse.swt.widgets.Button(shell, SWT.NONE)
 
+        val grammarTextLabel = new org.eclipse.swt.widgets.Label(shell, SWT.NONE)
+        val testTextLabel = new org.eclipse.swt.widgets.Label(shell, SWT.NONE)
+
         grammarText.setLayoutData({
             val formData = new FormData()
-            formData.top = new FormAttachment(0, 0)
+            formData.top = new FormAttachment(0, 20)
             formData.bottom = new FormAttachment(100, 0)
             formData.left = new FormAttachment(0, 0)
             formData.right = new FormAttachment(50, 0)
             formData
         })
-        grammarText.setBackground(ColorConstants.buttonLightest)
+        grammarText.setBackground(ColorConstants.button)
         grammarText.setFont(mono)
+        grammarText.setText("""S = `Stmt+
+                              #Stmt = LetStmt
+                              #     | ExprStmt
+                              #LetStmt = Let ' ' Id ' ' Expr ';'
+                              #Let = Let0&Name
+                              #Let0 = 'l' 'e' 't'
+                              #Name = L(`[a-z]+)
+                              #Id = Name-Let
+                              #ExprStmt = Expr ';' la(LetStmt)
+                              #Token = '+' | Id
+                              #Expr = `Token+
+                              #`Stmt+ = `Stmt+ Stmt | Stmt
+                              #`Token+ = `Token+ Token | Token
+                              #`[a-z]+ = `[a-z]+ `[a-z] | `[a-z]
+                              #`[a-z] = [a-z]""".stripMargin('#') + "\n")
+
+        grammarTextLabel.setLayoutData({
+            val formData = new FormData()
+            formData.top = new FormAttachment(0, 0)
+            formData.bottom = new FormAttachment(0, 20)
+            formData.left = new FormAttachment(0, 0)
+            formData.right = new FormAttachment(50, 0)
+            formData
+        })
+        grammarTextLabel.setText("Grammar Definition")
 
         testText.setLayoutData({
             val formData = new FormData()
-            formData.top = new FormAttachment(0, 0)
+            formData.top = new FormAttachment(0, 20)
             formData.bottom = new FormAttachment(70, 0)
             formData.left = new FormAttachment(50, 0)
             formData.right = new FormAttachment(100, 0)
             formData
         })
-        testText.setBackground(ColorConstants.gray)
+        testText.setBackground(ColorConstants.lightGray)
         testText.setFont(mono)
+
+        testTextLabel.setLayoutData({
+            val formData = new FormData()
+            formData.top = new FormAttachment(0, 0)
+            formData.bottom = new FormAttachment(0, 20)
+            formData.left = new FormAttachment(50, 0)
+            formData.right = new FormAttachment(100, 0)
+            formData
+        })
+        testTextLabel.setText("Test Text")
 
         testButton.setLayoutData({
             val formData = new FormData()
