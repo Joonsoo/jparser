@@ -115,6 +115,9 @@ trait Viewer {
                     }
                     testCases.correctSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
                     testCases.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
+                    if (testCases.isInstanceOf[AmbiguousSamples]) {
+                        testCases.asInstanceOf[AmbiguousSamples].ambiguousSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"A: '${i.toCleanString}'") }
+                    }
                 }
             }
         })

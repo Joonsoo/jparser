@@ -137,7 +137,8 @@ object GrammarGrammar extends Grammar {
                                                         terminal
                                                 }
                                             }
-                                            Symbols.Sequence(childrenOf(body, Nonterminal("Symbol")) map { s => proxyIfNeeded(mapSymbol(s)) }, Set())
+                                            val children = childrenOf(body, Nonterminal("Symbol")) map { s => proxyIfNeeded(mapSymbol(s)) }
+                                            if (children.length == 1) children.head else Symbols.Sequence(children, Set())
                                     }
                                     (name, productions)
                             }

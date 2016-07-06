@@ -59,7 +59,6 @@ trait Editor {
             formData.right = new FormAttachment(50, 0)
             formData
         })
-        grammarText.setBackground(ColorConstants.button)
         grammarText.setFont(mono)
         grammarText.setText("""S = `Stmt+
                               #Stmt = LetStmt
