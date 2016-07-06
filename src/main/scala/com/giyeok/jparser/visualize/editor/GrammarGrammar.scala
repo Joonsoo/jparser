@@ -71,7 +71,7 @@ object GrammarGrammar extends Grammar {
         "TerminalSet" -> ListSet(
             seq(c('{'), n("TerminalAnyChar").plus, c('}'))),
         "TerminalAnyChar" -> ListSet(
-            anychar.except(c('-'))))
+            anychar.except(c('}'))))
     val startSymbol = n("Grammar")
 
     import ParseResultTree._
