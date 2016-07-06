@@ -28,6 +28,10 @@ object AllViewer extends Viewer {
         com.giyeok.jparser.tests.basics.Visualization.allTests,
         com.giyeok.jparser.tests.gramgram.Visualization.allTests,
         com.giyeok.jparser.tests.javascript.Visualization.allTests).flatten
+
+    def main(args: Array[String]): Unit = {
+        start()
+    }
 }
 
 trait Viewer {
@@ -73,42 +77,45 @@ trait Viewer {
         var shownTexts: Seq[Inputs.ConcreteSource] = Seq()
         grammarList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
-                val testCases = sortedTestCases(grammarList.getSelectionIndex())
-                val grammar = testCases.grammar
-                def generateHtml(): xml.Elem =
-                    new GrammarTextFigureGenerator[xml.Elem](grammar, new FigureGenerator.Appearances[xml.Elem] {
-                        val default = FigureGenerator.html.AppearanceByClass("default")
-                        val nonterminal = FigureGenerator.html.AppearanceByClass("nonterminal")
-                        val terminal = FigureGenerator.html.AppearanceByClass("terminal")
-                    }, FigureGenerator.html.Generator).grammarFigure
-                grammar.usedSymbols foreach { s => println(s"used: $s") }
-                val (missingSymbols, wrongLookaheads, unusedSymbols) = (grammar.missingSymbols, grammar.wrongLookaheads, grammar.unusedSymbols)
-                val textFig = new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, FigureGenerator.draw2d.Generator).grammarFigure
-                if (missingSymbols.isEmpty && wrongLookaheads.isEmpty && unusedSymbols.isEmpty) {
-                    grammarFig.setContents(textFig)
-                } else {
-                    val messages = Seq(
-                        (if (!missingSymbols.isEmpty) Some(s"Missing: ${missingSymbols map { _.toShortString } mkString ", "}") else None),
-                        (if (!wrongLookaheads.isEmpty) Some(s"Wrong: ${wrongLookaheads map { _.toShortString } mkString ", "}") else None),
-                        (if (!unusedSymbols.isEmpty) Some(s"Unused: ${unusedSymbols map { _.toShortString } mkString ", "}") else None))
-                    val fig = new Figure
-                    fig.setLayoutManager(new ToolbarLayout(false))
-                    val label = new Label
-                    label.setText(messages.flatten mkString "\n")
-                    label.setForegroundColor(ColorConstants.red)
-                    fig.add(label)
-                    fig.add(textFig)
-                    grammarFig.setContents(fig)
-                }
-                textList.removeAll()
+                val selectedIndex = grammarList.getSelectionIndex()
+                if (0 <= selectedIndex && selectedIndex < sortedTestCases.length) {
+                    val testCases = sortedTestCases(grammarList.getSelectionIndex())
+                    val grammar = testCases.grammar
+                    def generateHtml(): xml.Elem =
+                        new GrammarTextFigureGenerator[xml.Elem](grammar, new FigureGenerator.Appearances[xml.Elem] {
+                            val default = FigureGenerator.html.AppearanceByClass("default")
+                            val nonterminal = FigureGenerator.html.AppearanceByClass("nonterminal")
+                            val terminal = FigureGenerator.html.AppearanceByClass("terminal")
+                        }, FigureGenerator.html.Generator).grammarFigure
+                    grammar.usedSymbols foreach { s => println(s"used: $s") }
+                    val (missingSymbols, wrongLookaheads, unusedSymbols) = (grammar.missingSymbols, grammar.wrongLookaheads, grammar.unusedSymbols)
+                    val textFig = new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, FigureGenerator.draw2d.Generator).grammarFigure
+                    if (missingSymbols.isEmpty && wrongLookaheads.isEmpty && unusedSymbols.isEmpty) {
+                        grammarFig.setContents(textFig)
+                    } else {
+                        val messages = Seq(
+                            (if (!missingSymbols.isEmpty) Some(s"Missing: ${missingSymbols map { _.toShortString } mkString ", "}") else None),
+                            (if (!wrongLookaheads.isEmpty) Some(s"Wrong: ${wrongLookaheads map { _.toShortString } mkString ", "}") else None),
+                            (if (!unusedSymbols.isEmpty) Some(s"Unused: ${unusedSymbols map { _.toShortString } mkString ", "}") else None))
+                        val fig = new Figure
+                        fig.setLayoutManager(new ToolbarLayout(false))
+                        val label = new Label
+                        label.setText(messages.flatten mkString "\n")
+                        label.setForegroundColor(ColorConstants.red)
+                        fig.add(label)
+                        fig.add(textFig)
+                        grammarFig.setContents(fig)
+                    }
+                    textList.removeAll()
 
-                shownTexts = Seq()
-                def addText(input: Inputs.ConcreteSource, text: String): Unit = {
-                    shownTexts = shownTexts :+ input
-                    textList.add(text)
+                    shownTexts = Seq()
+                    def addText(input: Inputs.ConcreteSource, text: String): Unit = {
+                        shownTexts = shownTexts :+ input
+                        textList.add(text)
+                    }
+                    testCases.correctSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
+                    testCases.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
                 }
-                testCases.correctSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
-                testCases.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
             }
         })
 
