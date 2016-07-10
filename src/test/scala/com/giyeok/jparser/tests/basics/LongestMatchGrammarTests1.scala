@@ -349,6 +349,7 @@ object LongestMatchGrammar5 extends Grammar with GrammarTestCases with StringSam
     val grammar = this
     val correctSamples = Set[String](
         "if(true)if(false){}else{}",
+        "if(true)if(true)if(true)if(true)if(true)if(true)if(true){}else{}",
         "if(true)if(false){}else{}else{}")
     val incorrectSamples = Set[String]()
 }

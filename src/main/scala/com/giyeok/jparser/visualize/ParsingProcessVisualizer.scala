@@ -268,7 +268,9 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
                             case Left(context) =>
-                                f.add(textFig(s"v=${context.graph.nodes.size} e=${context.graph.edges.size} |R|=${context.graph.results.resultsMap.size} |P|=${context.graph.progresses.resultsMap.size}", resources.smallFont))
+                                val maxItemsPerNodeR = (context.graph.results.resultsMap.toSeq map { _._2.size }).max
+                                val maxItemsPerNodeP = (context.graph.progresses.resultsMap.toSeq map { _._2.size }).max
+                                f.add(textFig(s"v=${context.graph.nodes.size} e=${context.graph.edges.size} |R|=${context.graph.results.resultsMap.size},${maxItemsPerNodeR} |P|=${context.graph.progresses.resultsMap.size},${maxItemsPerNodeP}", resources.smallFont))
                                 context.result match {
                                     case Some(r) =>
                                         val (forest, cycleFound) = r.asParseForest
