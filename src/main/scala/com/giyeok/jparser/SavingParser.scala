@@ -77,8 +77,6 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                     Set(sym)
                 case EagerLongest(sym) =>
                     Set(sym)
-                case Backup(sym, backup) =>
-                    Set(sym, backup)
                 case Except(sym, except) =>
                     Set(sym, except)
             }

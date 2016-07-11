@@ -119,9 +119,6 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
             case BindNode(Proxy(sym), body @ BindNode(bodySym, _)) =>
                 assert(sym == bodySym)
                 checkParse(body, grammar)
-            case BindNode(Backup(sym, backup), body @ BindNode(bodySym, _)) =>
-                assert((sym == bodySym) || (backup == bodySym))
-                checkParse(body, grammar)
             case BindNode(Longest(sym), body @ BindNode(bodySym, _)) =>
                 assert(sym == bodySym)
                 checkParse(body, grammar)

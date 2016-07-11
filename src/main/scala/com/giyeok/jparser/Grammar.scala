@@ -37,7 +37,6 @@ object Grammar {
                         case r: Repeat => traverse(r.sym, cc)
                         case LookaheadIs(lookahead) => traverse(lookahead, cc)
                         case LookaheadExcept(except) => traverse(except, cc)
-                        case Backup(sym, backup) => traverse(sym, traverse(backup, cc))
                         case Join(sym, join) => traverse(sym, traverse(join, cc))
                         case Proxy(sym) => traverse(sym, cc)
                         case Longest(sym) => traverse(sym, cc)
@@ -76,7 +75,6 @@ object Grammar {
                                 case Some(Sequence(_, _)) => traverse(except, Some(symbol), cc + symbol)
                                 case _ => traverse(except, Some(symbol), cc)
                             }
-                        case Backup(sym, backup) => traverse(sym, Some(symbol), traverse(backup, Some(symbol), cc))
                         case Join(sym, join) => traverse(sym, Some(symbol), traverse(join, Some(symbol), cc))
                         case Proxy(sym) => traverse(sym, Some(symbol), cc)
                         case Longest(sym) => traverse(sym, Some(symbol), cc)
@@ -105,7 +103,6 @@ object Grammar {
                             traverse(repeat.repeatSeq, traverse(repeat.baseSeq, cc + symbol))
                         case LookaheadIs(lookahead) => traverse(lookahead, cc + symbol)
                         case LookaheadExcept(except) => traverse(except, cc + symbol)
-                        case Backup(sym, backup) => traverse(sym, traverse(backup, cc + symbol))
                         case Join(sym, join) => traverse(sym, traverse(join, cc + symbol))
                         case Proxy(sym) => traverse(sym, cc + symbol)
                         case Longest(sym) => traverse(sym, cc + symbol)

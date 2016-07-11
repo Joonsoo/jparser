@@ -12,8 +12,14 @@ import com.giyeok.jparser.tests.GrammarTestCases
 object BackupGrammar1 extends Grammar with GrammarTestCases with StringSamples {
     val wsChars = chars(" ")
     val name = "BackupGrammar1"
+
+    val lineend = {
+        val semicolon = seq(wsChars.star, c(';'))
+        val alternative = wsChars.plus
+        oneof(semicolon, seq(lookahead_except(semicolon), alternative))
+    }
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(seq(c('a').plus), seq(wsChars.star, c(';')).backup(wsChars.plus)).star))
+        "S" -> ListSet(seq(seq(c('a').plus), lineend).star))
     val startSymbol = n("S")
 
     val grammar = this
@@ -29,9 +35,13 @@ object BackupGrammar2 extends Grammar with GrammarTestCases with StringSamples {
 
     def expr(s: Symbol*) = seq(s.toList, Set[Symbol](n("WS")))
 
-    val lineend = c(';').backup(oneof(
-        seq((n("WS").except(n("LT"))).star, n("LT")),
-        seq(n("WS").star, lookahead_is(c('}')))))
+    val lineend = {
+        val semicolon = c(';')
+        val alternative = oneof(
+            seq((n("WS").except(n("LT"))).star, n("LT")),
+            seq(n("WS").star, lookahead_is(c('}'))))
+        oneof(semicolon, seq(lookahead_except(semicolon), alternative))
+    }
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
             seq(Seq[Symbol](n("Stmt"), n("S")), Set[Symbol](n("WS"))),

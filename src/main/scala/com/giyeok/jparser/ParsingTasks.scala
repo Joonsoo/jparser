@@ -50,15 +50,15 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                 }
             }
 
-            def deriveAtomic(baseNode: AtomicNode, destNodeConds: Set[(Node, Condition)]): TaskResult = {
-                val newEdges: Set[Edge] = destNodeConds map { nc => SimpleEdge(baseNode, nc._1, nc._2) }
+            def deriveAtomic(baseNode: AtomicNode, destNodes: Set[Node]): TaskResult = {
+                val newEdges: Set[Edge] = destNodes map { SimpleEdge(baseNode, _) }
                 // destNodes중 finishable인 것들에 대한 FinishTask 추가
-                val finishableTasks = destNodeConds.toSeq flatMap { nc =>
-                    finishable(nc._1) map { cr =>
-                        FinishingTask(gen, baseNode, BindedResult(cr._2, nc._1.symbol), Condition.conjunct(nc._2, cr._1))
+                val finishableTasks = destNodes.toSeq flatMap { node =>
+                    finishable(node) map { cr =>
+                        FinishingTask(gen, baseNode, BindedResult(cr._2, node.symbol), cr._1)
                     }
                 }
-                this.addNodes(destNodeConds map { _._1 }).addEdges(newEdges).addTasks(finishableTasks)
+                this.addNodes(destNodes).addEdges(newEdges).addTasks(finishableTasks)
             }
             def deriveJoin(baseNode: NontermNode, dest: Node, join: Node): TaskResult = {
                 val newEdges: Set[Edge] = Set(JoinEdge(baseNode, dest, join))
@@ -73,7 +73,7 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                 this.addNodes(Set(dest, join)).addEdges(newEdges).addTasks(finishableTasks)
             }
             def deriveSequence(baseNode: SequenceNode, destNodes: Set[Node]): TaskResult = {
-                val newEdges: Set[Edge] = destNodes map { n => SimpleEdge(baseNode, n, Condition.True) }
+                val newEdges: Set[Edge] = destNodes map { n => SimpleEdge(baseNode, n) }
                 // destNodes중 finishable인 것들에 대한 FinishTask 추가
                 val finishableTasks = destNodes.toSeq flatMap { destNode =>
                     finishable(destNode) map { cr =>
@@ -91,17 +91,17 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
             case baseNode @ AtomicNode(symbol, _) =>
                 (symbol match {
                     case Start =>
-                        init.deriveAtomic(baseNode, Set((nodeOf(grammar.startSymbol, gen), Condition.True)))
+                        init.deriveAtomic(baseNode, Set(nodeOf(grammar.startSymbol, gen)))
                     case Nonterminal(nonterminalName) =>
-                        init.deriveAtomic(baseNode, grammar.rules(nonterminalName) map { s => (nodeOf(s, gen), Condition.True) })
+                        init.deriveAtomic(baseNode, grammar.rules(nonterminalName) map { nodeOf(_, gen) })
                     case OneOf(syms) =>
-                        init.deriveAtomic(baseNode, syms map { s => (nodeOf(s, gen), Condition.True) })
+                        init.deriveAtomic(baseNode, syms map { nodeOf(_, gen) })
                     case Proxy(sym) =>
-                        init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True)))
+                        init.deriveAtomic(baseNode, Set(nodeOf(sym, gen)))
                     case Repeat(sym, lower) =>
                         val baseSeq = if (lower == 1) sym else Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
                         val repeatSeq = Sequence(Seq(symbol, sym), Set())
-                        init.deriveAtomic(baseNode, Set((nodeOf(baseSeq, gen), Condition.True), (nodeOf(repeatSeq, gen), Condition.True)))
+                        init.deriveAtomic(baseNode, Set(nodeOf(baseSeq, gen), nodeOf(repeatSeq, gen)))
                     case Join(sym, join) =>
                         init.deriveJoin(baseNode, nodeOf(sym, gen), nodeOf(join, gen))
                     case LookaheadIs(lookahead) =>
@@ -111,17 +111,11 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                         init.addNodes(Set(nodeOf(except, gen)))
                             .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence(gen, Sequence(Seq(), Set()))), Condition.Until(nodeOf(except, gen), gen))))
                     case Longest(sym) =>
-                        init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True)))
+                        init.deriveAtomic(baseNode, Set(nodeOf(sym, gen)))
                     case EagerLongest(sym) =>
-                        init.deriveAtomic(baseNode, Set((nodeOf(sym, gen), Condition.True)))
-                    case Backup(sym, backup) =>
-                        init.deriveAtomic(baseNode, Set(
-                            (nodeOf(sym, gen), Condition.True),
-                            (nodeOf(backup, gen), Condition.Until(nodeOf(sym, gen), gen))))
+                        init.deriveAtomic(baseNode, Set(nodeOf(sym, gen)))
                     case Except(sym, except) =>
-                        init.deriveAtomic(baseNode, Set(
-                            (nodeOf(sym, gen), Condition.True),
-                            (nodeOf(except, gen), Condition.True)))
+                        init.deriveAtomic(baseNode, Set(nodeOf(sym, gen), nodeOf(except, gen)))
                 }).pair
             case baseNode @ SequenceNode(Sequence(seq, whitespace), pointer, beginGen, endGen) =>
                 assert(pointer < seq.size)
@@ -212,10 +206,10 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
 
                 assert(incomingSimpleEdges forall { _.end == node })
                 val simpleEdgeTasks: Set[Task] = incomingSimpleEdges collect {
-                    case SimpleEdge(incoming: AtomicNode, _, edgeRevertTriggers) =>
-                        FinishingTask(nextGen, incoming, bindedResult, Condition.conjunct(edgeRevertTriggers, afterCondition))
-                    case SimpleEdge(incoming: SequenceNode, _, edgeRevertTriggers) =>
-                        SequenceProgressTask(nextGen, incoming, bindedResult, Condition.conjunct(edgeRevertTriggers, afterCondition))
+                    case SimpleEdge(incoming: AtomicNode, _) =>
+                        FinishingTask(nextGen, incoming, bindedResult, afterCondition)
+                    case SimpleEdge(incoming: SequenceNode, _) =>
+                        SequenceProgressTask(nextGen, incoming, bindedResult, afterCondition)
                 }
 
                 val joinEdgeTasks: Set[Task] = incomingJoinEdges flatMap {
@@ -316,10 +310,10 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
                 // append한 노드가 아직 cc에 없는 경우
                 // node로 들어오는 모든 엣지(모두 SimpleEdge여야 함)의 start -> appendedNode로 가는 엣지를 추가한다
                 val newEdges: Set[Edge] = cc.incomingSimpleEdgesTo(node) map {
-                    case SimpleEdge(start, end, edgeCondition) =>
+                    case SimpleEdge(start, end) =>
                         assert(end == node)
                         // 이미 progress에 반영되었기 때문에 여기서 task의 condition은 안 줘도 될듯
-                        SimpleEdge(start, appendedNode, edgeCondition)
+                        SimpleEdge(start, appendedNode)
                 }
                 assert(cc.incomingJoinEdgesTo(node).isEmpty)
                 (cc.withNodes(Set(appendedNode)).withEdges(newEdges).updateResultsOf(node, appendedProgresses).updateProgressesOf(appendedNode, appendedProgresses).asInstanceOf[Graph], Seq(DeriveTask(nextGen, appendedNode)))

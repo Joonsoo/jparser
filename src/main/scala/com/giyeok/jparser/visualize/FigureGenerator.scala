@@ -2,7 +2,6 @@ package com.giyeok.jparser.visualize
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.Symbols.Backup
 import com.giyeok.jparser.Symbols.Join
 import com.giyeok.jparser.Symbols.CharsGrouping
 import com.giyeok.jparser.Symbols.Except

@@ -131,7 +131,13 @@ object VarDecGrammar2 extends Grammar0 with GrammarTestCases with StringSamples 
 
 object VarDecGrammar3 extends Grammar0 with GrammarTestCases with StringSamples {
     val name = "JS VarDec with Semicolon Backup Test 1"
-    private val lineend = i(";").backup(seq(longest(oneof(n("WhiteSpace"), n("Comment")).star), n("LineTerminator")))
+    val lineend = {
+        val semicolon = i(";")
+        val alternative = oneof(
+            seq((n("WhiteSpace").except(n("LineTerminator"))).star, n("LineTerminator")),
+            seq(n("WhiteSpace").star, lookahead_is(i("}"))))
+        oneof(semicolon, seq(lookahead_except(semicolon), alternative))
+    }
 
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(

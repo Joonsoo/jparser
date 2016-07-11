@@ -222,12 +222,8 @@ trait ParsingGraphVisualizeWidget extends KernelFigureGenerator[Figure] {
             case Some(conns) => conns
             case None =>
                 val conns = edge match {
-                    case ParsingGraph.SimpleEdge(start, end, condition) =>
-                        val conn = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end)), start, end)
-                        if (condition != ParsingGraph.Condition.True) {
-                            conn.setText(aliveConditionString(condition))
-                        }
-                        Seq(conn)
+                    case ParsingGraph.SimpleEdge(start, end) =>
+                        Seq(setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end)), start, end))
                     case ParsingGraph.JoinEdge(start, end, join) =>
                         val conn = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end)), start, end)
                         val connJoin = setCurveTo(new GraphConnection(graphView, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(join)), start, end)

@@ -39,7 +39,6 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
             case LookaheadIs(lookahead) => s"la(${lookahead.toDotLabelName})"
             case LookaheadExcept(except) => s"lx(${except.toDotLabelName})"
             case Proxy(sym) => s"P(${sym.toDotLabelName})"
-            case Backup(sym, backup) => s"${sym.toDotLabelName}>${backup.toDotLabelName}"
             case Join(sym, join) => s"${sym.toDotLabelName}&${join.toDotLabelName}"
             case Longest(sym) => s"L(${sym.toDotLabelName})"
             case EagerLongest(sym) => s"EL(${sym.toDotLabelName})"
@@ -152,7 +151,7 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
                     case _ => false
                 }
             } foreach {
-                case edge @ ParsingGraph.SimpleEdge(start, end, cond) =>
+                case edge @ ParsingGraph.SimpleEdge(start, end) =>
                     edges(edge) = new DotGraphEdge()
                     if (!(visited contains end)) queue +:= end
                     visited += end
@@ -220,7 +219,7 @@ class DotGraphGenerator[R <: ParseResult](nodeIdCache: NodeIdCache) {
         println()
         edges foreach { kv =>
             kv._1 match {
-                case edge @ ParsingGraph.SimpleEdge(start, end, cond) =>
+                case edge @ ParsingGraph.SimpleEdge(start, end) =>
                     if (start.symbol != Start) {
                         println(s"    ${nodeNameOf(start)} -> ${nodeNameOf(end)}[${kv._2.attrString}];")
                     }

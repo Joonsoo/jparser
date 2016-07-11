@@ -69,9 +69,6 @@ object GrammarHelper {
         // more than once
         def plus = repeat(1)
     }
-    implicit class GrammarElementBackupable(sym: Symbol) {
-        def backup(backup: Symbol): Backup = new Backup(proxyIfNeeded(sym), proxyIfNeeded(backup))
-    }
     implicit class GrammarElementJoinable(sym: Symbol) {
         def join(joinWith: Symbol): Join = new Join(proxyIfNeeded(sym), proxyIfNeeded(joinWith))
     }

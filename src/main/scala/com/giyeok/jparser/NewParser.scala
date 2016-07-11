@@ -18,7 +18,7 @@ case class CtxGraph[R <: ParseResult](
     }
 
     def allConditions: Set[Condition] = {
-        (edges collect { case SimpleEdge(_, _, cond) => cond }) ++ results.allConditions ++ progresses.allConditions
+        results.allConditions ++ progresses.allConditions
     }
 }
 
@@ -77,16 +77,10 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                     node -> newNode
                 }).toMap
                 val newEdges: Set[Edge] = dgraph.edges map {
-                    case SimpleEdge(start, end, condition) =>
-                        SimpleEdge(
-                            newNodes(start).asInstanceOf[NontermNode],
-                            newNodes(end),
-                            condition.shiftGen(gen))
+                    case SimpleEdge(start, end) =>
+                        SimpleEdge(newNodes(start).asInstanceOf[NontermNode], newNodes(end))
                     case JoinEdge(start, end, join) =>
-                        JoinEdge(
-                            newNodes(start).asInstanceOf[NontermNode],
-                            newNodes(end),
-                            newNodes(join))
+                        JoinEdge(newNodes(start).asInstanceOf[NontermNode], newNodes(end), newNodes(join))
                 }
                 // dgraph.results.of(dgraph.baseNode)와 dgraph.progresses.of(dgraph.baseNode)는 항상 비어 있으므로 여기서 신경쓰지 않아도 됨
                 // - 이 내용들은 dgraph.baseResults와 dgraph.baseProgresses로 들어는데 이 부분은 이전 세대의 lift에서 이미 처리되었을 것임
@@ -129,11 +123,8 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
                     node -> newNode
                 }).toMap
                 val newEdges: Set[Edge] = dgraph.edges map {
-                    case SimpleEdge(start, end, condition) =>
-                        SimpleEdge(
-                            newNodes(start).asInstanceOf[NontermNode],
-                            newNodes(end),
-                            condition.shiftGen(gen))
+                    case SimpleEdge(start, end) =>
+                        SimpleEdge(newNodes(start).asInstanceOf[NontermNode], newNodes(end))
                     case JoinEdge(start, end, join) =>
                         JoinEdge(
                             newNodes(start).asInstanceOf[NontermNode],
@@ -254,14 +245,9 @@ class NewParser[R <: ParseResult](val grammar: Grammar, val resultFunc: ParseRes
             }
 
             // validNodes에 속하지 않는 노드와 연관이 있는 엣지를 제거한다
-            val nextEdges: Set[Edge] = graph.edges flatMap {
-                case SimpleEdge(start, end, condition) =>
-                    if ((validNodes contains start) && (validNodes contains end)) {
-                        val evaluatedCondition = condition.evaluate(nextGen, preliftResults, preliftNodes)
-                        if (evaluatedCondition == Condition.False) None else Some(SimpleEdge(start, end, evaluatedCondition))
-                    } else None
-                case edge @ JoinEdge(start, end, join) =>
-                    if ((validNodes contains start) && (validNodes contains end) && (validNodes contains join)) Some(edge) else None
+            val nextEdges: Set[Edge] = graph.edges filter {
+                case SimpleEdge(start, end) => (validNodes contains start) && (validNodes contains end)
+                case edge @ JoinEdge(start, end, join) => (validNodes contains start) && (validNodes contains end) && (validNodes contains join)
             }
 
             graph.create(validNodes, nextEdges, nextResults, nextProgresses)

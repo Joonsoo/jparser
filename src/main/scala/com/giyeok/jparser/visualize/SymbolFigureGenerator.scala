@@ -87,8 +87,6 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
                 g.horizontalFig(Spacing.Small, Seq(g.textFig("(", ap.default), g.textFig("lookahead_except", ap.default), symbolFig(except), g.textFig(")", ap.default)))
             case Proxy(sym) =>
                 g.horizontalFig(Spacing.Small, Seq(g.textFig("P(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
-            case Backup(sym, backup) =>
-                g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("if failed", ap.default), symbolFig(backup)))
             case Join(sym, join) =>
                 g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("&", ap.default), symbolFig(join)))
             case Longest(sym) =>

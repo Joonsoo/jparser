@@ -194,10 +194,6 @@ object Symbols {
             case sym => Proxy(sym)
         }
     }
-    case class Backup(sym: AtomicSymbol, backup: AtomicSymbol) extends AtomicNonterm {
-        def this(sym: Symbol, backup: Symbol) = this(Proxy.of(sym), Proxy.of(backup))
-        override val hashCode = (classOf[Backup], sym, backup).hashCode
-    }
     case class Join(sym: AtomicSymbol, join: AtomicSymbol) extends AtomicNonterm {
         assert(sym != join)
         override val hashCode = (classOf[Join], sym, join).hashCode
@@ -250,7 +246,6 @@ object Symbols {
             case LookaheadIs(lookahead) => s"la_is ${lookahead.toShortString}"
             case LookaheadExcept(except) => s"la_except ${except.toShortString}"
             case Proxy(sym) => s"P(${sym.toShortString})"
-            case Backup(sym, backup) => s"${sym.toShortString} backedupby ${backup.toShortString}"
             case Join(sym, join) => s"${sym.toShortString} joinedwith ${join.toShortString}"
             case Longest(sym) => s"L(${sym.toShortString})"
             case EagerLongest(sym) => s"EL(${sym.toShortString})"
