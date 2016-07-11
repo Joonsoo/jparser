@@ -5,7 +5,7 @@ version := "0.1"
 scalaVersion := "2.11.8"
 
 
-resolvers += "swt-repo" at "https://swt-repo.googlecode.com/svn/repo/"
+resolvers += "swt-repo" at "http://maven-eclipse.github.io/maven"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 
@@ -27,6 +27,7 @@ libraryDependencies += {
   "org.eclipse.swt" % artifact % "4.4"
 }
 
+/*
 libraryDependencies ++= Seq(
   "org.eclipse.draw2d" % "org.eclipse.draw2d" % "3.10.1.201508170204" from "http://download.eclipse.org/tools/gef/updates/releases/3.10.1_gef-maintenance_1205/plugins/org.eclipse.draw2d_3.10.1.201508170204.jar",
   "org.eclipse.draw2d" % "org.eclipse.draw2d.source" % "3.10.1.201508170204" from "http://download.eclipse.org/tools/gef/updates/releases/3.10.1_gef-maintenance_1205/plugins/org.eclipse.draw2d.source_3.10.1.201508170204.jar",
@@ -34,6 +35,13 @@ libraryDependencies ++= Seq(
   "org.eclipse.zest" % "org.eclipse.zest.layouts" % "1.1.200.201508170204" from "http://download.eclipse.org/tools/gef/updates/releases/3.10.1_gef-maintenance_1205/plugins/org.eclipse.zest.layouts_1.1.200.201508170204.jar",
   "org.eclipse.zest" % "org.eclipse.zest.layouts.source" % "1.1.200.201508170204" from "http://download.eclipse.org/tools/gef/updates/releases/3.10.1_gef-maintenance_1205/plugins/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"
 )
+*/
+
+unmanagedJars in Compile += file("lib/org.eclipse.draw2d_3.10.1.201508170204.jar")
+unmanagedJars in Compile += file("lib/org.eclipse.draw2d.source_3.10.1.201508170204.jar")
+unmanagedJars in Compile += file("lib/org.eclipse.zest.core_1.5.201.201508170204.jar")
+unmanagedJars in Compile += file("lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar")
+unmanagedJars in Compile += file("lib/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar")
 
 libraryDependencies += "swt" % "jface" % "3.0.1"
 
