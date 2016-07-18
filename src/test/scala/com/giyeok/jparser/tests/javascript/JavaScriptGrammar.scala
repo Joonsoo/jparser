@@ -9,12 +9,12 @@ import scala.collection.immutable.ListSet
 import com.giyeok.jparser.DerivationFunc
 
 object JavaScriptGrammar extends Grammar {
-    private val whitespace = ListSet[Symbol](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
-    private val oneline = Set[Symbol](n("WhiteSpace"), n("Comment"))
+    private val whitespace = oneof(n("WhiteSpace"), n("LineTerminator"), n("Comment")).star
+    private val oneline = oneof(n("WhiteSpace"), n("Comment")).star
 
-    def expr(s: Symbol*) = seq(s toList, whitespace)
+    def expr(s: Symbol*) = seqWS(whitespace, s: _*)
     def lex(s: Symbol*) = seq(s: _*)
-    def line(s: Symbol*) = seq(oneline, s: _*)
+    def line(s: Symbol*) = seqWS(oneline, s: _*)
     val lineend = {
         val semicolon = i(";")
         val alternative = oneof(
@@ -30,7 +30,7 @@ object JavaScriptGrammar extends Grammar {
     val name = "JavaScript"
     val startSymbol = n("Start")
     val rules: RuleMap = ListMap(
-        "_Token" -> (whitespace ++ ListSet(n("IdentifierName"), n("Punctuator"), n("NumericLiteral"), n("StringLiteral"))),
+        "_Token" -> (ListSet(whitespace, n("IdentifierName"), n("Punctuator"), n("NumericLiteral"), n("StringLiteral"))),
         "_Raw" -> ListSet(n("RegularExpressionLiteral")),
 
         "Start" -> ListSet(n("Program")),

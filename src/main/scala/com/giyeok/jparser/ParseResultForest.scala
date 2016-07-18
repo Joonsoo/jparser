@@ -14,16 +14,11 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
         // body와 join의 tree 각각에 대한 조합을 추가한다
         ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
     }
-    def sequence(position: Int, symbol: Symbols.Sequence) = ParseForest(Set(SequenceNode(symbol, List(), List())))
+    def sequence(position: Int, symbol: Symbols.Sequence) = ParseForest(Set(SequenceNode(symbol, List())))
     def append(sequence: ParseForest, child: ParseForest) = {
         assert(sequence.trees forall { _.isInstanceOf[SequenceNode] })
         // sequence의 tree 각각에 child 각각을 추가한다
         ParseForest(sequence.trees flatMap { s => child.trees map { c => s.asInstanceOf[SequenceNode].append(c) } })
-    }
-    def appendWhitespace(sequence: ParseForest, whitespace: ParseForest) = {
-        assert(sequence.trees forall { _.isInstanceOf[SequenceNode] })
-        // sequence의 tree 각각에 whitespace 각각을 추가한다
-        ParseForest(sequence.trees flatMap { s => whitespace.trees map { c => s.asInstanceOf[SequenceNode].appendWhitespace(c) } })
     }
 
     def merge(base: ParseForest, merging: ParseForest) =
@@ -56,33 +51,17 @@ object ParseResultTree {
         def substTerm(input: Input) = JoinNode(body.substTerm(input), join.substTerm(input))
         override lazy val hashCode = (classOf[JoinNode], body, join).hashCode
     }
-    case class SequenceNode(symbol: Symbols.Sequence, _childrenWS: List[Node], _childrenIdx: List[Int]) extends Node {
-        // childrenIdx: index of childrenWS
-        // _childrenIdx: reverse of chidlrenIdx
-
-        val childrenSize = _childrenIdx.length
-
-        lazy val childrenIdx = _childrenIdx.reverse
-        lazy val childrenWS = _childrenWS.reverse
-        lazy val wsIdx = (0 until childrenWS.length).toSet -- childrenIdx
-        lazy val children: List[Node] = {
-            def pick(_childrenIdx: List[Int], _childrenWS: List[Node], current: Int, cc: List[Node]): List[Node] =
-                if (_childrenIdx.isEmpty) cc else {
-                    val dropped = _childrenWS drop (current - _childrenIdx.head)
-                    pick(_childrenIdx.tail, dropped.tail, _childrenIdx.head - 1, dropped.head +: cc)
-                }
-            pick(_childrenIdx, _childrenWS, _childrenWS.length - 1, List())
-        }
+    case class SequenceNode(symbol: Symbols.Sequence, _children: List[Node]) extends Node {
+        // _children: reverse of all children
 
         def append(child: Node): SequenceNode = {
-            SequenceNode(symbol, child +: _childrenWS, (_childrenWS.length) +: _childrenIdx)
+            SequenceNode(symbol, child +: _children)
         }
-        def appendWhitespace(wsChild: Node): SequenceNode = {
-            SequenceNode(symbol, wsChild +: _childrenWS, _childrenIdx)
-        }
+        lazy val childrenAll = _children.reverse
+        lazy val children = symbol.contentIdx filter { _ < childrenAll.length } map { childrenAll(_) }
 
-        def substTerm(input: Input): SequenceNode = SequenceNode(symbol, _childrenWS map { _.substTerm(input) }, _childrenIdx)
-        override lazy val hashCode = (classOf[SequenceNode], _childrenWS, _childrenIdx).hashCode
+        def substTerm(input: Input): SequenceNode = SequenceNode(symbol, _children map { _.substTerm(input) })
+        override lazy val hashCode = (classOf[SequenceNode], _children).hashCode
     }
 
     object HorizontalTreeStringSeqUtil {

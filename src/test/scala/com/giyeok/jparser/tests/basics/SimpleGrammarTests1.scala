@@ -87,7 +87,7 @@ object SimpleGrammar1_3_3 extends Grammar with GrammarTestCases with StringSampl
 object SimpleGrammar1_4 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
     val name = "Simple Grammar 1_4"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(Seq[Symbol](i("ab"), i("qt").opt, i("cd")), Set[Symbol](chars(" \t\n")))))
+        "S" -> ListSet(seqWS(chars(" \t\n").star, i("ab"), i("qt").opt, i("cd"))))
     val startSymbol = n("S")
 
     val grammar = this

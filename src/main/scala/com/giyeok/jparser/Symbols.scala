@@ -163,8 +163,11 @@ object Symbols {
     case class Nonterminal(name: String) extends AtomicNonterm {
         override val hashCode = (classOf[Nonterminal], name).hashCode
     }
-    case class Sequence(seq: Seq[AtomicSymbol], whitespace: Set[AtomicSymbol]) extends NonAtomicNonterm {
-        override val hashCode = (classOf[Sequence], seq, whitespace).hashCode
+    case class Sequence(seq: Seq[AtomicSymbol], contentIdx: Seq[Int]) extends NonAtomicNonterm {
+        override val hashCode = (classOf[Sequence], seq, contentIdx).hashCode
+    }
+    object Sequence {
+        def apply(seq: Seq[AtomicSymbol]): Sequence = Sequence(seq, (0 until seq.length).toSeq)
     }
     case class OneOf(syms: Set[Symbol]) extends AtomicNonterm {
         override val hashCode = (classOf[OneOf], syms).hashCode
@@ -172,8 +175,8 @@ object Symbols {
     case class Repeat(sym: AtomicSymbol, lower: Int) extends AtomicNonterm {
         override val hashCode = (classOf[Repeat], sym, lower).hashCode
 
-        val baseSeq = if (lower == 1) sym else Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
-        val repeatSeq = Sequence(Seq(this, sym), Set())
+        val baseSeq = if (lower == 1) sym else Sequence(((0 until lower) map { _ => sym }).toSeq)
+        val repeatSeq = Sequence(Seq(this, sym))
     }
     case class Except(sym: Symbol, except: AtomicSymbol) extends AtomicNonterm {
         override val hashCode = (classOf[Except], sym, except).hashCode

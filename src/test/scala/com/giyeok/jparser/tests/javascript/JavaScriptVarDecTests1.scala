@@ -12,7 +12,7 @@ import com.giyeok.jparser.Symbols.Symbol
 import com.giyeok.jparser.tests.GrammarTestCases
 
 trait Grammar0 extends Grammar {
-    def expr(s: Symbol*): Symbol = seq(s.toSeq, ListSet[Symbol](n("WhiteSpace"), n("LineTerminator"), n("Comment")))
+    def expr(s: Symbol*): Symbol = seqWS(oneof(n("WhiteSpace"), n("LineTerminator"), n("Comment")).star, s: _*)
     def token(s: Symbol): Symbol = s.join(n("Token"))
 }
 

@@ -329,7 +329,7 @@ object LongestMatchGrammar4 extends Grammar with GrammarTestCases with StringSam
 }
 
 object LongestMatchGrammar5 extends Grammar with GrammarTestCases with StringSamples {
-    def expr(syms: Symbol*) = seq(syms.toSeq, Set[Symbol](n("WS")))
+    def expr(syms: Symbol*) = seqWS(n("WS").star, syms: _*)
     val name = "LongestMatchGrammar5 (dangling else solution)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -355,7 +355,7 @@ object LongestMatchGrammar5 extends Grammar with GrammarTestCases with StringSam
 }
 
 object LongestMatchGrammar5_1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
-    def expr(syms: Symbol*) = seq(syms.toSeq, Set[Symbol](n("WS")))
+    def expr(syms: Symbol*) = seqWS(n("WS").star, syms: _*)
     val name = "LongestMatchGrammar5-1 (ambiguous, dangling else)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(

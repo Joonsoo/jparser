@@ -49,7 +49,7 @@ object RecursiveGrammar1_2 extends Grammar with GrammarTestCases with StringSamp
 
 object RecursiveGrammar2 extends Grammar with GrammarTestCases with StringSamples {
     val name = "Recursive Grammar 2"
-    def expr(s: Symbol*) = seq(s.toSeq, Set[Symbol](chars(" \t\n")))
+    def expr(s: Symbol*) = seqWS(chars(" \t\n").star, s: _*)
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
             n("And"),
@@ -69,7 +69,7 @@ object RecursiveGrammar2 extends Grammar with GrammarTestCases with StringSample
 
 object RecursiveGrammar3 extends Grammar with GrammarTestCases with StringSamples {
     val name = "Recursive Grammar 3"
-    def expr(s: Symbol*) = seq(s.toSeq, Set[Symbol](chars(" \t\n")))
+    def expr(s: Symbol*) = seqWS(chars(" \t\n").star, s: _*)
     val rules: RuleMap = ListMap(
         "S" -> ListSet(n("Prior1")),
         "Prior1" -> ListSet(

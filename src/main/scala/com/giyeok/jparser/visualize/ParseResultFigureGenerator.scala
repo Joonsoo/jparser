@@ -75,16 +75,10 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                         case _ => false
                     }
                     val seq: Seq[Fig] =
-                        s.childrenWS.zipWithIndex flatMap { c =>
+                        s.children.zipWithIndex flatMap { c =>
                             val (childNode, idx) = c
-                            if (s.wsIdx contains idx) {
-                                // if it is whitespace child
-                                if (renderConf.renderWS) {
-                                    Some(ap.wsBorder.applyToFigure(parseNodeFig(childNode)))
-                                } else {
-                                    None
-                                }
-                            } else {
+                            if (s.symbol.contentIdx contains idx) {
+                                // if it is content child
                                 if (isLookaheadNode(childNode)) {
                                     if (renderConf.renderLookaheadExcept) {
                                         Some(ap.wsBorder.applyToFigure(parseNodeFig(childNode)))
@@ -93,6 +87,13 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                                     }
                                 } else {
                                     Some(ap.symbolBorder.applyToFigure(parseNodeFig(childNode)))
+                                }
+                            } else {
+                                // if it is whitespace child
+                                if (renderConf.renderWS) {
+                                    Some(ap.wsBorder.applyToFigure(parseNodeFig(childNode)))
+                                } else {
+                                    None
                                 }
                             }
                         }
@@ -163,7 +164,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                 case node @ Sequence(position, length, symbol, pointer) =>
                     assert(r.outgoingOf(node) forall { _.isInstanceOf[AppendEdge] })
                     val outgoingEdges = r.outgoingOf(node) map { _.asInstanceOf[AppendEdge] }
-                    val prevSeqs = outgoingEdges filter { _.edgeType == AppendType.Prev }
+                    val prevSeqs = outgoingEdges filter { _.isBase }
                     vfig(Spacing.Small,
                         Seq(g.textFig(s"${node.range}", ap.default)))
                 case node @ Bind(_, _, symbol) =>

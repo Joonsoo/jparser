@@ -12,7 +12,6 @@ trait ParseResultFunc[R <: ParseResult] {
     // sequence는 Sequence에서만 쓰임
     def sequence(position: Int, symbol: Symbols.Sequence): R
     def append(sequence: R, child: R): R
-    def appendWhitespace(sequence: R, whitespace: R): R
 
     def merge(base: R, merging: R): R
     def merge(results: Iterable[R]): Option[R] =
@@ -50,7 +49,6 @@ object ParseResultTrueFunc extends ParseResultFunc[AlwaysTrue.type] {
     // sequence는 Sequence에서만 쓰임
     def sequence(position: Int, symbol: Symbols.Sequence) = AlwaysTrue
     def append(sequence: AlwaysTrue.type, child: AlwaysTrue.type) = AlwaysTrue
-    def appendWhitespace(sequence: AlwaysTrue.type, whitespace: AlwaysTrue.type) = AlwaysTrue
 
     def merge(base: AlwaysTrue.type, merging: AlwaysTrue.type) = AlwaysTrue
 

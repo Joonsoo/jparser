@@ -33,7 +33,7 @@ object BackupGrammar2 extends Grammar with GrammarTestCases with StringSamples {
     val wsChars = chars(" ")
     val name = "BackupGrammar2 (automatic semicolon insertion)"
 
-    def expr(s: Symbol*) = seq(s.toList, Set[Symbol](n("WS")))
+    def expr(s: Symbol*) = seqWS(n("WS").star, s: _*)
 
     val lineend = {
         val semicolon = c(';')
@@ -44,7 +44,7 @@ object BackupGrammar2 extends Grammar with GrammarTestCases with StringSamples {
     }
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
-            seq(Seq[Symbol](n("Stmt"), n("S")), Set[Symbol](n("WS"))),
+            seqWS(n("WS").star, n("Stmt"), n("S")),
             empty),
         "Stmt" -> ListSet(
             seq(longest(n("Expr")), lineend),

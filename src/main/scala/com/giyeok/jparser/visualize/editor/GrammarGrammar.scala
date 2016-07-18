@@ -13,7 +13,7 @@ import com.giyeok.jparser.Symbols
 
 object GrammarGrammar extends Grammar {
     val whitespace = chars(" \t\n\r").star
-    val inlineWS: Set[Symbol] = Set(chars(" \t"))
+    val inlineWS = chars(" \t").star
     val name = "Grammar Notation"
     val rules: RuleMap = ListMap(
         "Grammar" -> ListSet(
@@ -21,13 +21,13 @@ object GrammarGrammar extends Grammar {
                 n("Rules"),
                 whitespace)),
         "Rules" -> ListSet(
-            seq(Set[Symbol](chars(" \t\n\r")), n("Rules"), n("NontermDef")),
+            seqWS(Set[Symbol](chars(" \t\n\r")), n("Rules"), n("NontermDef")),
             n("NontermDef")),
         "NontermDef" -> ListSet(
-            seq(inlineWS, n("NontermName"), c('='), n("Productions"))),
+            seqWS(inlineWS, n("NontermName"), c('='), n("Productions"))),
         "Productions" -> ListSet(
             n("Production"),
-            seq(n("Productions"), whitespace, c('|'), chars(" \t").star, n("Production"))),
+            seq(n("Productions"), whitespace, c('|'), inlineWS, n("Production"))),
         "Production" -> ListSet(
             n("Empty"),
             n("Symbols")),
@@ -35,7 +35,7 @@ object GrammarGrammar extends Grammar {
             i("<empty>")),
         "Symbols" -> ListSet(
             n("Symbol"),
-            seq(inlineWS, n("Symbols"), n("Symbol"))),
+            seqWS(inlineWS, n("Symbols"), n("Symbol"))),
         "Symbol" -> ListSet(
             n("NontermName"),
             n("LongestName"),
@@ -49,15 +49,15 @@ object GrammarGrammar extends Grammar {
                 oneof(chars('a' to 'z', 'A' to 'Z', '0' to '9')).plus,
                 seq(c('`'), oneof(chars('a' to 'z', 'A' to 'Z', '0' to '9'), chars("+*[]-")).plus)))),
         "LongestName" -> ListSet(
-            longest(seq(inlineWS, c('L'), c('('), n("Symbol"), c(')')))),
+            longest(seqWS(inlineWS, c('L'), c('('), n("Symbol"), c(')')))),
         "LookaheadName" -> ListSet(
-            longest(seq(inlineWS, i("la"), c('('), n("Symbol"), c(')')))),
+            longest(seqWS(inlineWS, i("la"), c('('), n("Symbol"), c(')')))),
         "LookaheadExName" -> ListSet(
-            longest(seq(inlineWS, i("lx"), c('('), n("Symbol"), c(')')))),
+            longest(seqWS(inlineWS, i("lx"), c('('), n("Symbol"), c(')')))),
         "IntersectionName" -> ListSet(
-            longest(seq(inlineWS, n("Symbol"), c('&'), n("Symbol")))),
+            longest(seqWS(inlineWS, n("Symbol"), c('&'), n("Symbol")))),
         "ExclusionName" -> ListSet(
-            longest(seq(inlineWS, n("Symbol"), c('-'), n("Symbol")))),
+            longest(seqWS(inlineWS, n("Symbol"), c('-'), n("Symbol")))),
         "Terminal" -> ListSet(
             n("TerminalExactChar"),
             n("TerminalRanges"),
@@ -94,6 +94,7 @@ object GrammarGrammar extends Grammar {
     class NewGrammar(val name: String, val rules: ListMap[String, ListSet[Symbols.Symbol]], val startSymbol: Symbols.Nonterminal) extends Grammar
 
     def translate(tree: ParseResultTree.Node): Option[Grammar] = {
+        println(tree.toHorizontalHierarchyString())
         tree match {
             case BindNode(Start, BindNode(Nonterminal("Grammar"), seq: SequenceNode)) =>
                 seq.children(1) match {
@@ -138,7 +139,7 @@ object GrammarGrammar extends Grammar {
                                                 }
                                             }
                                             val children = childrenOf(body, Nonterminal("Symbol")) map { s => proxyIfNeeded(mapSymbol(s)) }
-                                            if (children.length == 1) children.head else Symbols.Sequence(children, Set())
+                                            if (children.length == 1) children.head else Symbols.Sequence(children)
                                     }
                                     (name, productions)
                             }

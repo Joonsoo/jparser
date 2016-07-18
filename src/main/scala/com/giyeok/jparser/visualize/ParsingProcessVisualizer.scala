@@ -268,8 +268,9 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
                             case Left(context) =>
-                                val maxItemsPerNodeR = (context.graph.results.resultsMap.toSeq map { _._2.size }).max
-                                val maxItemsPerNodeP = (context.graph.progresses.resultsMap.toSeq map { _._2.size }).max
+                                def maxOrNone(s: Seq[Int]): String = if (s.isEmpty) "None" else (s.max.toString)
+                                val maxItemsPerNodeR = maxOrNone(context.graph.results.resultsMap.toSeq map { _._2.size })
+                                val maxItemsPerNodeP = maxOrNone(context.graph.progresses.resultsMap.toSeq map { _._2.size })
                                 f.add(textFig(s"v=${context.graph.nodes.size} e=${context.graph.edges.size} |R|=${context.graph.results.resultsMap.size},${maxItemsPerNodeR} |P|=${context.graph.progresses.resultsMap.size},${maxItemsPerNodeP}", resources.smallFont))
                                 context.result match {
                                     case Some(r) =>

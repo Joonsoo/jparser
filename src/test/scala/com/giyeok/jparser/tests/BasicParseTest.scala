@@ -126,9 +126,9 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                 assert(sym == bodySym)
                 checkParse(body, grammar)
             case BindNode(_: LookaheadIs | _: LookaheadExcept, body) =>
-                assert(body == SequenceNode(Sequence(List(), Set()), List(), List()))
+                assert(body == SequenceNode(Sequence(Seq()), List()))
             case node: SequenceNode =>
-                node.childrenWS foreach { checkParse(_, grammar) }
+                node.childrenAll foreach { checkParse(_, grammar) }
             case JoinNode(body, join) =>
                 checkParse(body, grammar)
                 checkParse(join, grammar)

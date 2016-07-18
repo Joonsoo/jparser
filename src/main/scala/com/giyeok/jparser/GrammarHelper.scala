@@ -11,9 +11,9 @@ object GrammarHelper {
     private def charSymbol(set: Set[Char]): Terminal =
         if (set.size == 1) ExactChar(set.iterator.next) else Chars(set)
 
-    def empty = Sequence(Seq(), Set())
+    def empty = Sequence(Seq())
     def n(name: String) = Nonterminal(name)
-    def i(string: String) = Sequence(string.toCharArray() map { c => ExactChar(c) }, Set())
+    def i(string: String) = Sequence(string.toCharArray() map { c => ExactChar(c) })
     def anychar = AnyChar
     def c(char: Char) = ExactChar(char)
     def c(chars: Char*) = charSymbol(chars.toSet)
@@ -24,9 +24,22 @@ object GrammarHelper {
     def unicode(categories: String*): Terminals.Unicode = unicode(categories toSet)
     def unicode(categories: Set[String]) = Terminals.Unicode(UnicodeUtil.categoryNamesToCodes(categories))
     // def virtual(name: String) = VirtualInputElem(name)
-    def seq(seq: Seq[Symbol], whitespace: Set[Symbol]) = Sequence(seq map { proxyIfNeeded _ }, whitespace map { proxyIfNeeded _ })
-    def seq(seq: Symbol*) = Sequence(seq.toSeq map { proxyIfNeeded _ }, Set())
-    def seq(whitespace: Set[Symbol], seq: Symbol*) = Sequence(seq.toSeq map { proxyIfNeeded _ }, whitespace map { proxyIfNeeded _ })
+    def seq(seq: Symbol*) = Sequence(seq.toSeq map { proxyIfNeeded _ })
+    // def seq(seq: Seq[Symbol], whitespace: Set[Symbol]) = Sequence(seq map { proxyIfNeeded _ }, whitespace map { proxyIfNeeded _ })
+    // def seq(whitespace: Set[Symbol], seq: Symbol*) = Sequence(seq.toSeq map { proxyIfNeeded _ }, whitespace map { proxyIfNeeded _ })
+    def seqWS(between: Symbol, seq: Symbol*): Sequence = {
+        if (seq.isEmpty) Sequence(Seq())
+        val atomicBetween = proxyIfNeeded(between)
+        def insert(seq: Seq[Symbol], cc: (Seq[AtomicSymbol], Seq[Int])): (Seq[AtomicSymbol], Seq[Int]) =
+            (seq.head, seq.tail) match {
+                case (head, Seq()) => (cc._1 :+ proxyIfNeeded(head), cc._2 :+ (cc._1.length))
+                case (head, tail) =>
+                    insert(tail, (cc._1 :+ proxyIfNeeded(head) :+ atomicBetween, cc._2 :+ (cc._1.length)))
+            }
+        val (insertedSeq, contentIds) = insert(seq, (Seq(), Seq()))
+        Sequence(insertedSeq, contentIds)
+    }
+    def seqWS(between: Set[Symbol], seq: Symbol*): Sequence = seqWS(oneof(between), seq: _*)
     def ws(set: Symbol*): Set[Symbol] = Set[Symbol](set: _*)
     def oneof(items: Symbol*) = OneOf(items toSet)
     def oneof(items: Set[Symbol]) = OneOf(items)
@@ -54,7 +67,7 @@ object GrammarHelper {
     }
     implicit class GrammarElementRepeatable(sym: Symbol) {
         def repeat(lower: Int, upper: Int): OneOf = OneOf(((lower to upper) map { count =>
-            Sequence(((0 until count).toSeq map { _ => sym }) map { proxyIfNeeded _ }, Set())
+            Sequence(((0 until count).toSeq map { _ => sym }) map { proxyIfNeeded _ })
         }).toSet)
         def repeat(lower: Int): Repeat = Repeat(proxyIfNeeded(sym), lower)
 

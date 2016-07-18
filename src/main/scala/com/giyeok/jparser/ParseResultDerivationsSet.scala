@@ -22,9 +22,6 @@ object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivati
     def append(sequence: ParseResultDerivationsSet, child: ParseResultDerivationsSet): ParseResultDerivationsSet = {
         ParseResultDerivationsSet(sequence.length + child.length, (sequence.derivations ++ child.derivations) + LastChild(sequence.length, child.length, true))
     }
-    def appendWhitespace(sequence: ParseResultDerivationsSet, whitespace: ParseResultDerivationsSet): ParseResultDerivationsSet = {
-        ParseResultDerivationsSet(sequence.length + whitespace.length, (sequence.derivations ++ whitespace.derivations) + LastChild(sequence.length, whitespace.length, true))
-    }
 
     def merge(base: ParseResultDerivationsSet, merging: ParseResultDerivationsSet): ParseResultDerivationsSet = {
         val length = base.length ensuring (base.length == merging.length)

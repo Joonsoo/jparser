@@ -8,12 +8,12 @@ import scala.collection.immutable.ListSet
 
 object ScalaGrammar extends Grammar {
 
-    private val delimiter = Set[Symbol](n("WhiteSpace"), n("LineTerminator"), n("Comment"))
-    private val oneline = Set[Symbol](n("WhiteSpace"), n("Comment"))
+    private val delimiter = oneof(n("WhiteSpace"), n("LineTerminator"), n("Comment")).star
+    private val oneline = oneof(n("WhiteSpace"), n("Comment")).star
 
-    def expr(s: Symbol*) = seq(delimiter, s: _*)
+    def expr(s: Symbol*) = seqWS(delimiter, s: _*)
     def lex(s: Symbol*) = seq(s: _*)
-    def line(s: Symbol*) = seq(oneline, s: _*)
+    def line(s: Symbol*) = seqWS(oneline, s: _*)
 
     override val name = "Scala"
     // http://www.scala-lang.org/docu/files/ScalaReference.pdf

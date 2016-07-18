@@ -11,7 +11,7 @@ import com.giyeok.jparser.tests.GrammarTestCases
 
 object JoinGrammar1 extends Grammar with GrammarTestCases with StringSamples {
     def token(sym: Symbol): Symbol = sym.join(n("Token"))
-    def expr(syms: Symbol*): Symbol = seq(syms.toSeq, Set[Symbol](token(n("Whitespace"))))
+    def expr(syms: Symbol*): Symbol = seqWS(token(n("Whitespace")).opt, syms: _*)
 
     val name = "JoinGrammar1"
 

@@ -81,33 +81,34 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                     Set(sym, except)
             }
 
-            def reconstruct(node: Node, gen: Int, symbols: Set[Symbol]): ParseResultGraph = {
+            def reconstruct(node: Node, gen: Int, traces: Set[Symbol]): ParseResultGraph = {
                 def atomicNodeOf(symbol: AtomicSymbol, beginGen: Int): Node = symbol match {
                     case term: Terminal => TermNode(term, beginGen)
                     case nonterm: AtomicNonterm => AtomicNode(nonterm, beginGen)
                 }
                 def reconstruct0(rnode: Node, rgen: Int): ParseResultGraph =
-                    if (node.beginGen == rnode.beginGen && gen == rgen) reconstruct(rnode, rgen, symbols + node.symbol) else reconstruct(rnode, rgen, Set())
+                    if (node.beginGen == rnode.beginGen && gen == rgen) reconstruct(rnode, rgen, traces + node.symbol) else reconstruct(rnode, rgen, Set())
                 node match {
                     case TermNode(symbol, beginGen) =>
                         assert(gen == beginGen + 1)
                         resultFunc.bind(symbol, resultFunc.terminal(beginGen, inputHistory(beginGen)))
 
-                    case AtomicNode(symbol, beginGen) if symbols contains symbol =>
-                        ???
+                    case AtomicNode(symbol, beginGen) if traces contains symbol =>
+                        // 임시로 처리
+                        resultFunc.bind(symbol, resultFunc.sequence(0, Sequence(Seq())))
 
                     case AtomicNode(symbol: Join, beginGen) =>
-                        resultFunc.bind(symbol, resultFunc.join(symbol, reconstruct(atomicNodeOf(symbol.sym, beginGen), gen, symbols + symbol), reconstruct(atomicNodeOf(symbol.join, beginGen), gen, symbols + symbol)))
+                        resultFunc.bind(symbol, resultFunc.join(symbol, reconstruct(atomicNodeOf(symbol.sym, beginGen), gen, traces + symbol), reconstruct(atomicNodeOf(symbol.join, beginGen), gen, traces + symbol)))
                     case AtomicNode(symbol: Lookahead, beginGen) =>
-                        resultFunc.bind(symbol, resultFunc.sequence(beginGen, Sequence(Seq(), Set())))
+                        resultFunc.bind(symbol, resultFunc.sequence(beginGen, Sequence(Seq())))
                     case AtomicNode(symbol, beginGen) =>
                         // beginGen..gen을 커버하는 AtomicNode result 중에 symbol에서 derive될 수 있는 것들 추리기
                         // beginGen..gen을 커버하는 SequenceNode result 중에 symbol에서 derive될 수 있는 것들 추리기
                         val merging = actualHistory(gen) collect {
                             case child: TermNode if (beginGen == child.beginGen) && (derive(symbol) contains child.symbol) =>
-                                resultFunc.bind(symbol, reconstruct(child, gen, symbols + symbol))
+                                resultFunc.bind(symbol, reconstruct(child, gen, traces + symbol))
                             case child: AtomicNode if (beginGen == child.beginGen) && (derive(symbol) contains child.symbol) =>
-                                resultFunc.bind(symbol, reconstruct(child, gen, symbols + symbol))
+                                resultFunc.bind(symbol, reconstruct(child, gen, traces + symbol))
                             case child: SequenceNode if (derive(symbol) contains child.symbol) && (child.beginGen == beginGen) && (child.symbol.seq.length == 0) =>
                                 resultFunc.bind(symbol, resultFunc.sequence(child.beginGen, child.symbol))
                             case child: SequenceNode if (derive(symbol) contains child.symbol) && (child.beginGen == beginGen) && (child.pointer + 1 == child.symbol.seq.length) =>
@@ -131,7 +132,7 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                         val lastChildSym = symbol.seq(pointer - 1)
                         // actualHistory(gen) 에 lastChildSym이 끝난 것들이 있으면, 각각에 대해서 이 sequencenode의 child로 들어갈 수 있는지 확인(pointer가 하나 작은 sequence node가 child candidate node의 beginGen에서 끝났으면)
                         // whitespace도 비슷하게 처리
-                        val mergingContent = actualHistory(gen) flatMap {
+                        val merging = actualHistory(gen) flatMap {
                             case child: AtomicNode if child.symbol == lastChildSym =>
                                 // actualHistory(childGen)에 SequenceNode랑 symbol, pointer - 1, ?beginGen, 
                                 actualHistory(gen) collect {
@@ -147,28 +148,6 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                             case _ => Seq()
                         }
 
-                        val mergingWhitespace = {
-                            val whitespaceSyms = symbol.whitespace
-                            if (whitespaceSyms.isEmpty) Seq() else {
-                                actualHistory(gen) flatMap {
-                                    case child: AtomicNode if whitespaceSyms contains child.symbol =>
-                                        // actualHistory(childGen)에 SequenceNode랑 symbol, pointer - 1, ?beginGen, 
-                                        actualHistory(gen) collect {
-                                            case prevSeq: SequenceNode if prevSeq.symbol == symbol && prevSeq.pointer == pointer && prevSeq.beginGen == beginGen && prevSeq.endGen == child.beginGen =>
-                                                resultFunc.appendWhitespace(reconstruct0(prevSeq, child.beginGen), reconstruct0(child, gen))
-                                        }
-                                    case child: TermNode if whitespaceSyms contains child.symbol =>
-                                        // actualHistory(childGen)에 SequenceNode랑 symbol, pointer - 1, ?beginGen, 
-                                        actualHistory(gen) collect {
-                                            case prevSeq: SequenceNode if prevSeq.symbol == symbol && prevSeq.pointer == pointer && prevSeq.beginGen == beginGen && prevSeq.endGen == child.beginGen =>
-                                                resultFunc.appendWhitespace(reconstruct0(prevSeq, child.beginGen), reconstruct0(child, gen))
-                                        }
-                                    case _ => Seq()
-                                }
-                            }
-                        }
-
-                        val merging = mergingContent ++ mergingWhitespace
                         assert(!merging.isEmpty)
                         resultFunc.merge(merging).get
                 }

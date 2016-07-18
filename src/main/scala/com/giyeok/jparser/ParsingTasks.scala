@@ -98,18 +98,16 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                         init.deriveAtomic(baseNode, syms map { nodeOf(_, gen) })
                     case Proxy(sym) =>
                         init.deriveAtomic(baseNode, Set(nodeOf(sym, gen)))
-                    case Repeat(sym, lower) =>
-                        val baseSeq = if (lower == 1) sym else Sequence(((0 until lower) map { _ => sym }).toSeq, Set())
-                        val repeatSeq = Sequence(Seq(symbol, sym), Set())
-                        init.deriveAtomic(baseNode, Set(nodeOf(baseSeq, gen), nodeOf(repeatSeq, gen)))
+                    case repeat: Repeat =>
+                        init.deriveAtomic(baseNode, Set(nodeOf(repeat.baseSeq, gen), nodeOf(repeat.repeatSeq, gen)))
                     case Join(sym, join) =>
                         init.deriveJoin(baseNode, nodeOf(sym, gen), nodeOf(join, gen))
                     case LookaheadIs(lookahead) =>
                         init.addNodes(Set(nodeOf(lookahead, gen)))
-                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence(gen, Sequence(Seq(), Set()))), Condition.After(nodeOf(lookahead, gen), gen))))
+                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence(gen, Sequence(Seq()))), Condition.After(nodeOf(lookahead, gen), gen))))
                     case LookaheadExcept(except) =>
                         init.addNodes(Set(nodeOf(except, gen)))
-                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence(gen, Sequence(Seq(), Set()))), Condition.Until(nodeOf(except, gen), gen))))
+                            .addTasks(Seq(FinishingTask(gen, baseNode, SequenceResult(resultFunc.sequence(gen, Sequence(Seq()))), Condition.Until(nodeOf(except, gen), gen))))
                     case Longest(sym) =>
                         init.deriveAtomic(baseNode, Set(nodeOf(sym, gen)))
                     case EagerLongest(sym) =>
@@ -117,15 +115,9 @@ trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTas
                     case Except(sym, except) =>
                         init.deriveAtomic(baseNode, Set(nodeOf(sym, gen), nodeOf(except, gen)))
                 }).pair
-            case baseNode @ SequenceNode(Sequence(seq, whitespace), pointer, beginGen, endGen) =>
+            case baseNode @ SequenceNode(Sequence(seq, _), pointer, beginGen, endGen) =>
                 assert(pointer < seq.size)
-                val destNodes =
-                    if (pointer > 0 && pointer < seq.size) {
-                        // whitespace only between symbols
-                        (whitespace + seq(pointer)) map { nodeOf(_, gen) }
-                    } else {
-                        Set(nodeOf(seq(pointer), gen))
-                    }
+                val destNodes = Set(nodeOf(seq(pointer), gen))
                 init.deriveSequence(baseNode, destNodes).pair
         }
     }
@@ -261,8 +253,8 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
         assert(cc.progresses.of(node).isDefined)
         val baseProgresses = cc.progresses.of(node).get
 
-        val isContent = node.symbol.seq(node.pointer) == childSymbol
-        if (isContent && (node.pointer + 1 >= node.symbol.seq.length)) {
+        assert(node.symbol.seq(node.pointer) == childSymbol)
+        if (node.pointer + 1 >= node.symbol.seq.length) {
             // append되면 finish할 수 있는 상태
             // - FinishingTask만 만들어 주면 될듯
             val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> (resultFunc.append(kv._2, child)) }
@@ -270,18 +262,9 @@ trait LiftTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks
             (cc, finishingTasks.toSeq)
         } else {
             // append되어도 finish할 수는 없는 상태
-            val (appendedNode, appendedProgresses: Map[Condition, R]) = if (isContent) {
-                // whitespace가 아닌 실제 내용인 경우
-                assert(node.pointer + 1 < node.symbol.seq.length)
-                val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
-                val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> resultFunc.append(kv._2, child) }
-                (appendedNode, appendedProgresses)
-            } else {
-                // whitespace인 경우
-                val appendedNode = SequenceNode(node.symbol, node.pointer, node.beginGen, nextGen)
-                val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> resultFunc.appendWhitespace(kv._2, child) }
-                (appendedNode, appendedProgresses)
-            }
+            assert(node.pointer + 1 < node.symbol.seq.length)
+            val appendedNode = SequenceNode(node.symbol, node.pointer + 1, node.beginGen, nextGen)
+            val appendedProgresses = baseProgresses map { kv => Condition.conjunct(kv._1, condition) -> resultFunc.append(kv._2, child) }
 
             if (cc.nodes contains appendedNode) {
                 // appendedNode가 이미 그래프에 있는 경우
