@@ -32,12 +32,26 @@ object ParsingContext {
 
     case class Results[N <: Node](nodeConditions: Map[N, Set[EligCondition.Condition]]) {
         def of(node: N) = nodeConditions get node
-        def update(node: N, condition: EligCondition.Condition): Results[N] = {
+        def contains(node: N, condition: EligCondition.Condition): Boolean =
+            nodeConditions get node match {
+                case Some(conditions) => conditions contains condition
+                case None => false
+            }
+        def contains(node: N, conditions: Set[EligCondition.Condition]): Boolean =
+            nodeConditions get node match {
+                case Some(existingConditions) => conditions subsetOf existingConditions
+                case None => false
+            }
+        def update(node: N, condition: EligCondition.Condition): Results[N] =
             nodeConditions get node match {
                 case Some(conditions) => Results(nodeConditions + (node -> (conditions + condition)))
                 case None => Results(nodeConditions + (node -> Set(condition)))
             }
-        }
+        def update(node: N, conditions: Set[EligCondition.Condition]): Results[N] =
+            nodeConditions get node match {
+                case Some(existingConditions) => Results(nodeConditions + (node -> (existingConditions ++ conditions)))
+                case None => Results(nodeConditions + (node -> conditions))
+            }
     }
 
     case class Context(graph: Graph, progresses: Results[SequenceNode], finishes: Results[Node]) {
@@ -51,6 +65,10 @@ object ParsingContext {
         def updateProgresses(progressesUpdateFunc: Results[SequenceNode] => Results[SequenceNode]): Context = {
             val newProgresses = progressesUpdateFunc(progresses)
             Context(graph, newProgresses, finishes)
+        }
+        def updateFinishes(finishesUpdateFunc: Results[Node] => Results[Node]): Context = {
+            val newFinishes = finishesUpdateFunc(finishes)
+            Context(graph, progresses, newFinishes)
         }
     }
 }
@@ -154,6 +172,14 @@ object EligCondition {
             }
         val eligible = false
         def neg = Until(node, activeGen)
+    }
+    case class Alive(node: Node, activeGen: Int) extends Condition {
+        def nodes = Set(node)
+        def shiftGen(gen: Int) = Alive(node.shiftGen(gen), activeGen + gen)
+        def evaluate(gen: Int, results: Results[Node], survived: Set[Node]) =
+            if (gen < activeGen) this else { if (survived contains node) False else True }
+        def eligible = true
+        def neg = ???
     }
     case class Exclude(node: Node) extends Condition {
         def nodes = ???
