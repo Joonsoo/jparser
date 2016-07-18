@@ -9,9 +9,6 @@ object ParsingContext {
 
         def shiftGen(gen: Int): Node
     }
-    case class TermNode(symbolId: Int, beginGen: Int) extends Node {
-        def shiftGen(gen: Int) = TermNode(symbolId, beginGen + gen)
-    }
     case class SymbolNode(symbolId: Int, beginGen: Int) extends Node {
         def shiftGen(gen: Int) = SymbolNode(symbolId, beginGen + gen)
     }
@@ -43,7 +40,19 @@ object ParsingContext {
         }
     }
 
-    case class Context(graph: Graph, progresses: Results[SequenceNode], finishes: Results[Node])
+    case class Context(graph: Graph, progresses: Results[SequenceNode], finishes: Results[Node]) {
+        def updateGraph(newGraph: Graph): Context = {
+            Context(newGraph, progresses, finishes)
+        }
+        def updateGraph(graphUpdateFunc: Graph => Graph): Context = {
+            val newGraph = graphUpdateFunc(graph)
+            Context(newGraph, progresses, finishes)
+        }
+        def updateProgresses(progressesUpdateFunc: Results[SequenceNode] => Results[SequenceNode]): Context = {
+            val newProgresses = progressesUpdateFunc(progresses)
+            Context(graph, newProgresses, finishes)
+        }
+    }
 }
 
 object EligCondition {
