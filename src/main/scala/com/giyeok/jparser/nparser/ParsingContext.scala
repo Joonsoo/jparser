@@ -33,7 +33,9 @@ object ParsingContext {
         }
         def removeNode(node: Node) = {
             val involvedEdges = edgesByStart(node) ++ edgesByDest(node)
-            Graph(nodes - node, edges -- involvedEdges, edgesByStart - node, edgesByDest - node)
+            val edgesByStart1 = edgesByStart mapValues { _ -- involvedEdges }
+            val edgesByDest1 = edgesByDest mapValues { _ -- involvedEdges }
+            Graph(nodes - node, edges -- involvedEdges, edgesByStart1 - node, edgesByDest1 - node)
         }
     }
     object Graph {

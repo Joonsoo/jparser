@@ -142,6 +142,7 @@ trait ParsingTasks {
 
     def progressTask(nextGen: Int, task: ProgressTask, cc: Context): (Context, Seq[Task]) = {
         val ProgressTask(node @ SequenceNode(symbolId, pointer, beginGen, _), condition) = task
+        // assert(cc.graph.nodes contains node)
 
         val Sequence(_, sequence) = grammar.nsequences(symbolId)
         assert(pointer < sequence.length)

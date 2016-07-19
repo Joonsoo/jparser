@@ -53,7 +53,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         val nparser = tests.nparserNaive
         nparser.parse(source) match {
             case Left(ctx) =>
-                val parseTree = new ParseTreeConstructor(ParseResultGraphFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nparser.startNode, ctx.gen)
+                val parseTree: Option[ParseResultGraph] = new ParseTreeConstructor(ParseResultGraphFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nparser.startNode, ctx.gen)
             //assert(parseTree == result)
             case Right(error) => fail(error.msg)
         }
