@@ -28,6 +28,13 @@ object ParsingContext {
             case JoinEdge(start, end, join) =>
                 Graph(nodes, edges + edge, edgesByStart + (start -> (edgesByStart(start) + edge)), edgesByDest + (end -> (edgesByDest(end) + edge)) + (join -> (edgesByDest(join) + edge)))
         }
+        def removeNode(node: Node) = {
+            val involvedEdges = edgesByStart(node) ++ edgesByDest(node)
+            Graph(nodes - node, edges -- involvedEdges, edgesByStart - node, edgesByDest - node)
+        }
+    }
+    object Graph {
+        def apply(nodes: Set[Node], edges: Set[Edge]): Graph = ???
     }
 
     case class Results[N <: Node](nodeConditions: Map[N, Set[EligCondition.Condition]]) {
@@ -42,6 +49,8 @@ object ParsingContext {
                 case Some(existingConditions) => conditions subsetOf existingConditions
                 case None => false
             }
+        def conditions = nodeConditions flatMap { _._2 }
+        def involvedNodes = conditions flatMap { _.nodes }
         def update(node: N, condition: EligCondition.Condition): Results[N] =
             nodeConditions get node match {
                 case Some(conditions) => Results(nodeConditions + (node -> (conditions + condition)))
@@ -52,6 +61,15 @@ object ParsingContext {
                 case Some(existingConditions) => Results(nodeConditions + (node -> (existingConditions ++ conditions)))
                 case None => Results(nodeConditions + (node -> conditions))
             }
+        def mapCondition(func: EligCondition.Condition => EligCondition.Condition): Results[N] =
+            Results(nodeConditions mapValues { _ map { c => func(c) } })
+        def trimFalse: (Results[N], Set[N]) = {
+            val falseNodes = (nodeConditions filter { _._2 == Set(EligCondition.False) }).keySet
+            (Results(nodeConditions -- falseNodes), falseNodes)
+        }
+    }
+    object Results {
+        def apply[N <: Node](): Results[N] = Results(Map())
     }
 
     case class Context(graph: Graph, progresses: Results[SequenceNode], finishes: Results[Node]) {
@@ -70,6 +88,11 @@ object ParsingContext {
             val newFinishes = finishesUpdateFunc(finishes)
             Context(graph, progresses, newFinishes)
         }
+        def emptyFinishes = Context(graph, progresses, Results())
+        def trimProgresses: Context = {
+            val (trimmedProgresses, falseNodes) = progresses.trimFalse
+            Context(falseNodes.foldLeft(graph) { _.removeNode(_) }, trimmedProgresses, finishes)
+        }
     }
 }
 
@@ -79,7 +102,7 @@ object EligCondition {
     sealed trait Condition {
         def nodes: Set[Node]
         def shiftGen(gen: Int): Condition
-        def evaluate(gen: Int, results: Results[Node], survived: Set[Node]): Condition
+        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]): Condition
         def eligible: Boolean
         def neg: Condition
     }
@@ -104,14 +127,14 @@ object EligCondition {
     object True extends Condition {
         val nodes = Set[Node]()
         def shiftGen(gen: Int) = this
-        def evaluate(gen: Int, results: Results[Node], survived: Set[Node]) = this
+        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) = this
         def eligible = true
         def neg = False
     }
     object False extends Condition {
         val nodes = Set[Node]()
         def shiftGen(gen: Int) = this
-        def evaluate(gen: Int, results: Results[Node], survived: Set[Node]) = this
+        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) = this
         def eligible = false
         def neg = True
     }
@@ -120,9 +143,9 @@ object EligCondition {
 
         def nodes = conditions flatMap { _.nodes }
         def shiftGen(gen: Int) = And(conditions map { _.shiftGen(gen) })
-        def evaluate(gen: Int, results: Results[Node], survived: Set[Node]) =
+        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
             conditions.foldLeft[Condition](True) { (cc, condition) =>
-                conjunct(condition.evaluate(gen, results, survived), cc)
+                conjunct(condition.evaluate(gen, finishes, survived), cc)
             }
         def eligible = conditions forall { _.eligible }
         def neg = disjunct((conditions map { _.neg }).toSeq: _*)
@@ -132,9 +155,9 @@ object EligCondition {
 
         def nodes = conditions flatMap { _.nodes }
         def shiftGen(gen: Int) = Or(conditions map { _.shiftGen(gen) })
-        def evaluate(gen: Int, results: Results[Node], survived: Set[Node]) =
+        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
             conditions.foldLeft[Condition](False) { (cc, condition) =>
-                disjunct(condition.evaluate(gen, results, survived), cc)
+                disjunct(condition.evaluate(gen, finishes, survived), cc)
             }
         def eligible = conditions exists { _.eligible }
         def neg = conjunct((conditions map { _.neg }).toSeq: _*)
@@ -142,13 +165,13 @@ object EligCondition {
     case class Until(node: Node, activeGen: Int) extends Condition {
         def nodes = Set(node)
         def shiftGen(gen: Int) = Until(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, results: Results[Node], survived: Set[Node]) =
+        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
             if (gen <= activeGen) {
                 this
             } else {
-                results.of(node) match {
+                finishes.of(node) match {
                     case Some(conditions) =>
-                        disjunct(conditions.toSeq: _*).evaluate(gen, results, survived)
+                        disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived)
                     case None =>
                         if (survived contains node) this else True
                 }
@@ -159,13 +182,13 @@ object EligCondition {
     case class After(node: Node, activeGen: Int) extends Condition {
         def nodes = Set(node)
         def shiftGen(gen: Int) = After(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, results: Results[Node], survived: Set[Node]) =
+        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
             if (gen <= activeGen) {
                 this
             } else {
-                results.of(node) match {
+                finishes.of(node) match {
                     case Some(conditions) =>
-                        disjunct(conditions.toSeq: _*).evaluate(gen, results, survived)
+                        disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived)
                     case None =>
                         if (survived contains node) this else False
                 }
@@ -176,7 +199,7 @@ object EligCondition {
     case class Alive(node: Node, activeGen: Int) extends Condition {
         def nodes = Set(node)
         def shiftGen(gen: Int) = Alive(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, results: Results[Node], survived: Set[Node]) =
+        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
             if (gen < activeGen) this else { if (survived contains node) False else True }
         def eligible = true
         def neg = ???
@@ -184,10 +207,10 @@ object EligCondition {
     case class Exclude(node: Node) extends Condition {
         def nodes = ???
         def shiftGen(gen: Int) = Exclude(node.shiftGen(gen))
-        def evaluate(gen: Int, results: Results[Node], survived: Set[Node]) =
-            results.of(node) match {
+        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
+            finishes.of(node) match {
                 case Some(conditions) =>
-                    val evaluated = disjunct(conditions.toSeq: _*).evaluate(gen, results, survived)
+                    val evaluated = disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived)
                     // evaluated 안에는 Exclude가 없어야 한다
                     assert({
                         def check(condition: Condition): Boolean =

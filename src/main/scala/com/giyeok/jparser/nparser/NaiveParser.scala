@@ -1,0 +1,61 @@
+package com.giyeok.jparser.nparser
+
+import com.giyeok.jparser.nparser.ParsingContext._
+import com.giyeok.jparser.nparser.EligCondition._
+import com.giyeok.jparser.Inputs.Input
+import com.giyeok.jparser.ParsingErrors.ParsingError
+import com.giyeok.jparser.ParsingErrors.UnexpectedInput
+
+class NaiveParser(val grammar: NGrammar) extends ParsingTasks {
+    case class WrappedContext(gen: Int, ctx: Context, _inputs: List[Input], _history: List[Results[Node]], conditionFate: Map[Condition, Condition]) {
+        // TODO PreprocessedParser에서는 0단계로 expand가 붙음
+        // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
+
+        def proceedDetail(input: Input): Either[WrappedContext, ParsingError] = {
+            val nextGen = gen + 1
+            val termFinishes = finishableTermNodes(ctx, nextGen, input).toSeq map { FinishTask(_, True, None) }
+            if (termFinishes.isEmpty) {
+                Right(UnexpectedInput(input))
+            } else {
+                val lastFinishes = ctx.finishes
+                // 1. Lift
+                val liftedCtx: Context = rec(nextGen, termFinishes, ctx.emptyFinishes)
+                // 2. Trimming
+                val trimStarts = Set(startNode) ++ liftedCtx.finishes.involvedNodes ++ liftedCtx.progresses.involvedNodes
+                val newTermNodes = termNodes(liftedCtx, nextGen)
+                val trimmedCtx: Context = trim(liftedCtx, trimStarts, newTermNodes)
+                // 3. Revert
+                val revertedCtx: Context = revert(nextGen, trimmedCtx, trimmedCtx.finishes, trimmedCtx.graph.nodes)
+                // 4. Condition Fate
+                val conditionFateNext = {
+                    val evaluated = conditionFate mapValues { _.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes) }
+                    val newConditions = (revertedCtx.finishes.conditions map { c => (c -> c) }).toMap
+                    (evaluated ++ newConditions) filter { _._2 != False }
+                }
+                Left(WrappedContext(nextGen, revertedCtx, input +: _inputs, lastFinishes +: _history, conditionFateNext))
+            }
+        }
+    }
+
+    def process(nextGen: Int, task: Task, cc: Context): (Context, Seq[Task]) =
+        task match {
+            case task: DeriveTask => deriveTask(nextGen, task, cc)
+            case task: ProgressTask => progressTask(nextGen, task, cc)
+            case task: FinishTask => finishTask(nextGen, task, cc)
+        }
+
+    def rec(nextGen: Int, tasks: Seq[Task], cc: Context): Context =
+        tasks match {
+            case task +: rest =>
+                val (ncc, newTasks) = process(nextGen, task, cc)
+                rec(nextGen, tasks ++ newTasks, ncc)
+            case List() => cc
+        }
+
+    val startNode = SymbolNode(grammar.startSymbol, 0)
+
+    val initialContext = {
+        val ctx = rec(0, Seq(DeriveTask(startNode)), Context(Graph(Set(startNode), Set()), Results[SequenceNode](), Results[Node]()))
+        WrappedContext(0, ctx, List(), List(), Map())
+    }
+}

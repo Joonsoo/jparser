@@ -3,6 +3,7 @@ package com.giyeok.jparser.nparser
 import ParsingContext._
 import EligCondition._
 import NGrammar._
+import com.giyeok.jparser.Inputs
 
 trait ParsingTasks {
     val grammar: NGrammar
@@ -169,5 +170,27 @@ trait ParsingTasks {
                     .updateFinishes(_.update(node, updatedConditions)), Seq(DeriveTask(updatedNode)))
             }
         }
+    }
+
+    def finishableTermNodes(context: Context, nextGen: Int, input: Inputs.Input): Set[Node] = {
+        def acceptable(symbolId: Int): Boolean = grammar.nsymbols(symbolId) match {
+            case Terminal(terminal) => terminal accept input
+            case _ => false
+        }
+        context.graph.nodes collect {
+            case node @ SymbolNode(symbolId, `nextGen`) if acceptable(symbolId) => node
+        }
+    }
+    def termNodes(context: Context, nextGen: Int): Set[Node] = {
+        context.graph.nodes collect {
+            case node @ SymbolNode(symbolId, `nextGen`) if grammar.nsymbols(symbolId).isInstanceOf[Terminal] => node
+        }
+    }
+    def trim(context: Context, starts: Set[Node], ends: Set[Node]): Context = {
+        // TODO
+        context
+    }
+    def revert(nextGen: Int, context: Context, finishes: Results[Node], survived: Set[Node]): Context = {
+        context.updateFinishes(_.mapCondition(_.evaluate(nextGen, finishes, survived))).updateProgresses(_.mapCondition(_.evaluate(nextGen, finishes, survived))).trimProgresses
     }
 }
