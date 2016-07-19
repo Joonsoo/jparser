@@ -34,7 +34,10 @@ trait ParsingTasks {
                     case _: SequenceNode => None
                 }
                 cc.finishes.of(destNode).getOrElse(Set()) map { condition =>
-                    FinishTask(startNode, condition, destSymbolIdOpt)
+                    startNode match {
+                        case startNode: SymbolNode => FinishTask(startNode, condition, destSymbolIdOpt)
+                        case startNode: SequenceNode => ProgressTask(startNode, condition)
+                    }
                 }
             }
 
@@ -50,11 +53,9 @@ trait ParsingTasks {
             case SymbolNode(symbolId, _) =>
                 grammar.nsymbols(symbolId) match {
                     case _: Terminal => (cc, Seq()) // nothing to do
-                    case Start(produces) => derive(produces)
-                    case Nonterminal(_, produces) => derive(produces)
-                    case OneOf(_, produces) => derive(produces)
-                    case Proxy(_, produce) => derive(Set(produce))
-                    case Repeat(_, produces) => derive(produces)
+
+                    case derivable: NSimpleDerivable => derive(derivable.produces)
+
                     case Join(_, body, join) =>
                         val bodyNode = nodeOf(body)
                         val joinNode = nodeOf(join)
@@ -69,20 +70,18 @@ trait ParsingTasks {
                             case _ => Seq()
                         }
                         (cc.updateGraph(_.addNode(bodyNode).addNode(joinNode).addEdge(JoinEdge(startNode, bodyNode, joinNode))), immediateFinishTasks ++ newDeriveTasks)
-                    case Except(_, body, except) => derive(Set(body, except))
-                    case Longest(_, body) => derive(Set(body))
-                    case EagerLongest(_, body) => derive(Set(body))
+
                     case lookahead: NLookaheadSymbol =>
                         val lookaheadNode = nodeOf(lookahead.lookahead)
                         val newDeriveTask = if (!(cc.graph.nodes contains lookaheadNode)) { Seq(DeriveTask(lookaheadNode)) } else Seq()
-                        val emptyFinishTask = {
+                        val finishTask = {
                             val condition: Condition = lookahead match {
                                 case _: LookaheadIs => After(lookaheadNode, nextGen)
                                 case _: LookaheadExcept => Until(lookaheadNode, nextGen)
                             }
                             FinishTask(startNode, condition, None)
                         }
-                        (cc.updateGraph(_.addNode(lookaheadNode)), emptyFinishTask +: newDeriveTask)
+                        (cc.updateGraph(_.addNode(lookaheadNode)), finishTask +: newDeriveTask)
                 }
             case SequenceNode(symbolId, pointer, _, _) =>
                 grammar.nsequences(symbolId) match {
@@ -122,7 +121,8 @@ trait ParsingTasks {
                 case Some(_: EagerLongest) => conjunct(resultCondition, Alive(node, nextGen))
                 case _ => resultCondition
             }
-            val chainTasks: Seq[Task] = cc.graph.edgesByDest(node).toSeq flatMap {
+            val incomingEdges = cc.graph.edgesByDest(node)
+            val chainTasks: Seq[Task] = incomingEdges.toSeq flatMap {
                 case SimpleEdge(incoming: SymbolNode, _) =>
                     Some(FinishTask(incoming, chainCondition, Some(node.symbolId)))
                 case SimpleEdge(incoming: SequenceNode, _) =>

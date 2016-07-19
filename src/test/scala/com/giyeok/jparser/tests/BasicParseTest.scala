@@ -10,17 +10,51 @@ import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.ParseResultTree
 import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultDerivationsSet
+import com.giyeok.jparser.nparser.ParseTreeConstructor
+import com.giyeok.jparser.ParseResultGraphFunc
+import com.giyeok.jparser.nparser.NGrammar
 
 class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends FlatSpec {
     def log(s: String): Unit = {
         // println(s)
     }
 
-    private def textReconstructParser(tests: GrammarTestCases, source: Inputs.ConcreteSource, result: ParseResultGraph) = {
+    private def testNGrammar(ngrammar: NGrammar) = {
+        import NGrammar._
+        val allSymbolIds = ngrammar.nsymbols.keySet ++ ngrammar.nsequences.keySet
+        assert((ngrammar.nsymbols.keySet intersect ngrammar.nsequences.keySet).isEmpty)
+        ngrammar.nsymbols.values foreach {
+            case Terminal(_) =>
+            case d: NSimpleDerivable =>
+                assert(d.produces subsetOf allSymbolIds)
+            case l: NLookaheadSymbol =>
+                assert(ngrammar.nsymbols.keySet contains l.lookahead)
+            case Join(_, body, join) =>
+                assert(ngrammar.nsymbols.keySet contains body)
+                assert(ngrammar.nsymbols.keySet contains join)
+        }
+        ngrammar.nsequences.values foreach {
+            case Sequence(_, sequence) =>
+                assert(sequence forall { ngrammar.nsymbols.keySet contains _ })
+                assert(sequence forall { id => !(ngrammar.nsequences.keySet contains id) })
+        }
+    }
+
+    private def testReconstructParser(tests: GrammarTestCases, source: Inputs.ConcreteSource, result: ParseResultGraph) = {
         val parser = tests.reconstructParser
         parser.parse(source) match {
             case Left(ctx) =>
                 assert(ctx.asInstanceOf[parser.SavingParsingCtx].reconstructResult == result)
+            case Right(error) => fail(error.msg)
+        }
+    }
+    private def testNparserNaive(tests: GrammarTestCases, source: Inputs.ConcreteSource, result: ParseResultGraph) = {
+        val ngrammar = tests.ngrammar
+        val nparser = tests.nparserNaive
+        nparser.parse(source) match {
+            case Left(ctx) =>
+                val parseTree = new ParseTreeConstructor(ParseResultGraphFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nparser.startNode, ctx.gen)
+            //assert(parseTree == result)
             case Right(error) => fail(error.msg)
         }
     }
@@ -46,7 +80,9 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                     checkParse(ctx.result.get, tests.grammar)
 
                     log(s"testing ReconstructParser ${tests.grammar.name} on ${source.toCleanString}")
-                    textReconstructParser(tests, source, ctx.result.get)
+                    testReconstructParser(tests, source, ctx.result.get)
+                    log(s"testing NumberedNaiveParser ${tests.grammar.name} on ${source.toCleanString}")
+                    testNparserNaive(tests, source, ctx.result.get)
                 case Right(error) => fail(error.msg)
             }
         }
@@ -76,7 +112,9 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                     checkParse(ctx.result.get, tests.grammar)
 
                     log(s"testing ReconstructParser ${tests.grammar.name} on ${source.toCleanString}")
-                    textReconstructParser(tests, source, ctx.result.get)
+                    testReconstructParser(tests, source, ctx.result.get)
+                    log(s"testing NumberedNaiveParser ${tests.grammar.name} on ${source.toCleanString}")
+                    testNparserNaive(tests, source, ctx.result.get)
                 case Right(_) => assert(false)
             }
         }
@@ -150,6 +188,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
     }
 
     testsSuite foreach { test =>
+        testNGrammar(test.ngrammar)
         test.correctSampleInputs foreach { testCorrect(test, _) }
         test.incorrectSampleInputs foreach { testIncorrect(test, _) }
         if (test.isInstanceOf[AmbiguousSamples]) test.asInstanceOf[AmbiguousSamples].ambiguousSampleInputs foreach { testAmbiguous(test, _) }

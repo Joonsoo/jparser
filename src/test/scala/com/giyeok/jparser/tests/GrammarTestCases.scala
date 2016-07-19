@@ -11,7 +11,8 @@ import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.SavingParser
 import com.giyeok.jparser.ParseResultTrueFunc
-import com.giyeok.jparser.ParseResultTrueFunc
+import com.giyeok.jparser.nparser
+import com.giyeok.jparser.nparser.NGrammar
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.ConcreteSource]
@@ -50,6 +51,11 @@ trait GrammarTestCases extends Samples {
     lazy val reconstructParser: SavingParser = {
         val dgraph = new DerivationSliceFunc(grammar, ParseResultTrueFunc)
         new SavingParser(grammar, ParseResultTrueFunc, dgraph)
+    }
+
+    lazy val ngrammar = NGrammar.fromGrammar(grammar)
+    lazy val nparserNaive: nparser.NaiveParser = {
+        new nparser.NaiveParser(ngrammar)
     }
 }
 

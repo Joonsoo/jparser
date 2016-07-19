@@ -5,15 +5,19 @@ import com.giyeok.jparser.nparser.EligCondition._
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.ParsingErrors.UnexpectedInput
+import com.giyeok.jparser.Inputs
 
 class NaiveParser(val grammar: NGrammar) extends ParsingTasks {
     case class WrappedContext(gen: Int, ctx: Context, _inputs: List[Input], _history: List[Results[Node]], conditionFate: Map[Condition, Condition]) {
         // TODO PreprocessedParser에서는 0단계로 expand가 붙음
         // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
 
-        def proceedDetail(input: Input): Either[WrappedContext, ParsingError] = {
+        def inputs = _inputs.reverse
+        def history = (ctx.finishes +: _history).reverse
+
+        def proceed(input: Input): Either[WrappedContext, ParsingError] = {
             val nextGen = gen + 1
-            val termFinishes = finishableTermNodes(ctx, nextGen, input).toSeq map { FinishTask(_, True, None) }
+            val termFinishes = finishableTermNodes(ctx, gen, input).toList map { FinishTask(_, True, None) }
             if (termFinishes.isEmpty) {
                 Right(UnexpectedInput(input))
             } else {
@@ -44,18 +48,29 @@ class NaiveParser(val grammar: NGrammar) extends ParsingTasks {
             case task: FinishTask => finishTask(nextGen, task, cc)
         }
 
-    def rec(nextGen: Int, tasks: Seq[Task], cc: Context): Context =
+    def rec(nextGen: Int, tasks: List[Task], cc: Context): Context =
         tasks match {
             case task +: rest =>
                 val (ncc, newTasks) = process(nextGen, task, cc)
-                rec(nextGen, tasks ++ newTasks, ncc)
+                rec(nextGen, newTasks ++: rest, ncc)
             case List() => cc
         }
 
     val startNode = SymbolNode(grammar.startSymbol, 0)
 
     val initialContext = {
-        val ctx = rec(0, Seq(DeriveTask(startNode)), Context(Graph(Set(startNode), Set()), Results[SequenceNode](), Results[Node]()))
-        WrappedContext(0, ctx, List(), List(), Map())
+        val ctx = rec(0, List(DeriveTask(startNode)), Context(Graph(Set(startNode), Set()), Results[SequenceNode](), Results[Node]()))
+        WrappedContext(0, ctx, List(), List(), Map(True -> True))
     }
+
+    def parse(source: Inputs.Source): Either[WrappedContext, ParsingError] =
+        source.foldLeft[Either[WrappedContext, ParsingError]](Left(initialContext)) {
+            (ctx, input) =>
+                ctx match {
+                    case Left(ctx) => ctx.proceed(input)
+                    case error @ Right(_) => error
+                }
+        }
+    def parse(source: String): Either[WrappedContext, ParsingError] =
+        parse(Inputs.fromString(source))
 }

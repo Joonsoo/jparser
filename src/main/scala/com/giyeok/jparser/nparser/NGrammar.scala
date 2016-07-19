@@ -18,15 +18,18 @@ object NGrammar {
     sealed trait NAtomicSymbol extends NSymbol
 
     case class Terminal(symbol: Symbols.Terminal) extends NAtomicSymbol
-    case class Start(produces: Set[Int]) extends NAtomicSymbol { val symbol = Symbols.Start }
-    case class Nonterminal(symbol: Symbols.Nonterminal, produces: Set[Int]) extends NAtomicSymbol
-    case class OneOf(symbol: Symbols.OneOf, produces: Set[Int]) extends NAtomicSymbol
-    case class Proxy(symbol: Symbols.Proxy, produce: Int) extends NAtomicSymbol
-    case class Repeat(symbol: Symbols.Repeat, produces: Set[Int]) extends NAtomicSymbol
+
+    sealed trait NSimpleDerivable extends NAtomicSymbol { val produces: Set[Int] }
+    case class Start(produces: Set[Int]) extends NSimpleDerivable { val symbol = Symbols.Start }
+    case class Nonterminal(symbol: Symbols.Nonterminal, produces: Set[Int]) extends NSimpleDerivable
+    case class OneOf(symbol: Symbols.OneOf, produces: Set[Int]) extends NSimpleDerivable
+    case class Proxy(symbol: Symbols.Proxy, produce: Int) extends NSimpleDerivable { val produces = Set(produce) }
+    case class Repeat(symbol: Symbols.Repeat, produces: Set[Int]) extends NSimpleDerivable
+    case class Except(symbol: Symbols.Except, body: Int, except: Int) extends NSimpleDerivable { val produces = Set(body, except) }
+    case class Longest(symbol: Symbols.Longest, body: Int) extends NSimpleDerivable { val produces = Set(body) }
+    case class EagerLongest(symbol: Symbols.EagerLongest, body: Int) extends NSimpleDerivable { val produces = Set(body) }
+
     case class Join(symbol: Symbols.Join, body: Int, join: Int) extends NAtomicSymbol
-    case class Except(symbol: Symbols.Except, body: Int, except: Int) extends NAtomicSymbol
-    case class Longest(symbol: Symbols.Longest, body: Int) extends NAtomicSymbol
-    case class EagerLongest(symbol: Symbols.EagerLongest, body: Int) extends NAtomicSymbol
 
     sealed trait NLookaheadSymbol extends NAtomicSymbol {
         val symbol: Symbols.Lookahead
@@ -47,32 +50,37 @@ object NGrammar {
 
         def numberOf(symbol: Symbols.Symbol): Int =
             symbolsMap get symbol match {
-                case Some(nsymbol) => nsymbol
+                case Some(nsymbolId) => nsymbolId
                 case None =>
                     newId += 1
-                    symbolsMap(symbol) = newId
+                    val myId = newId
+                    symbolsMap(symbol) = myId
                     symbol match {
                         case symbol: Symbols.AtomicSymbol =>
-                            nsymbols(newId) = symbol match {
-                                case Symbols.Start => Start(Set(numberOf(grammar.startSymbol)))
+                            nsymbols(myId) = symbol match {
                                 case symbol: Symbols.Terminal => Terminal(symbol)
+
+                                case Symbols.Start => Start(Set(numberOf(grammar.startSymbol)))
                                 case symbol: Symbols.Nonterminal => Nonterminal(symbol, grammar.rules(symbol.name) map { numberOf _ })
                                 case symbol: Symbols.OneOf => OneOf(symbol, symbol.syms map { numberOf _ })
                                 case symbol: Symbols.Proxy => Proxy(symbol, numberOf(symbol.sym))
                                 case symbol: Symbols.Repeat => Repeat(symbol, Set(numberOf(symbol.baseSeq), numberOf(symbol.repeatSeq)))
-                                case symbol: Symbols.Join => Join(symbol, numberOf(symbol.sym), numberOf(symbol.join))
                                 case symbol: Symbols.Except => Except(symbol, numberOf(symbol.sym), numberOf(symbol.except))
                                 case symbol: Symbols.Longest => Longest(symbol, numberOf(symbol.sym))
                                 case symbol: Symbols.EagerLongest => EagerLongest(symbol, numberOf(symbol.sym))
+
+                                case symbol: Symbols.Join => Join(symbol, numberOf(symbol.sym), numberOf(symbol.join))
+
                                 case symbol: Symbols.LookaheadIs => LookaheadIs(symbol, numberOf(symbol.lookahead))
                                 case symbol: Symbols.LookaheadExcept => LookaheadExcept(symbol, numberOf(symbol.except))
                             }
                         case symbol: Symbols.Sequence =>
-                            nsequences(newId) = Sequence(symbol, symbol.seq map { numberOf _ })
+                            nsequences(myId) = Sequence(symbol, symbol.seq map { numberOf _ })
+                            assert(symbol.seq forall { symbolsMap contains _ })
                     }
-                    newId
+                    myId
             }
-        val startSymbolId = numberOf(grammar.startSymbol)
+        val startSymbolId = numberOf(Symbols.Start)
         NGrammar(nsymbols.toMap, nsequences.toMap, startSymbolId)
     }
 }

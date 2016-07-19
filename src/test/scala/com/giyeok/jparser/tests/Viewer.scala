@@ -22,6 +22,10 @@ import com.giyeok.jparser.visualize.ParsingProcessVisualizer
 import org.eclipse.swt.widgets.MessageBox
 import com.giyeok.jparser.visualize.DerivationGraphVisualizer
 import com.giyeok.jparser.Inputs.ConcreteInput
+import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.nparser
+import com.giyeok.jparser.nparser.ParseTreeConstructor
+import com.giyeok.jparser.ParseResultGraphFunc
 
 object AllViewer extends Viewer {
     val allTests = Set(
@@ -123,23 +127,24 @@ trait Viewer {
         })
 
         object ParserTypes extends Enumeration {
-            val Naive, New = Value
+            val Naive, New, NumberedNaive = Value
         }
 
-        var selectedParserType: ParserTypes.Value = ParserTypes.New
+        var selectedParserType: ParserTypes.Value = ParserTypes.NumberedNaive
         def setParserType(newParserType: ParserTypes.Value): Unit = {
             selectedParserType = newParserType
             selectedParserType match {
                 case ParserTypes.Naive => parserTypeButton.setText("Naive Parser")
                 case ParserTypes.New => parserTypeButton.setText("New Parser")
+                case ParserTypes.NumberedNaive => parserTypeButton.setText("Numbered Naive Parser")
             }
         }
-        setParserType(ParserTypes.Naive)
+        setParserType(ParserTypes.NumberedNaive)
         def nextParserType(): Unit = {
             selectedParserType match {
                 case ParserTypes.Naive => setParserType(ParserTypes.New)
-                case ParserTypes.New => setParserType(ParserTypes.Naive)
-
+                case ParserTypes.New => setParserType(ParserTypes.NumberedNaive)
+                case ParserTypes.NumberedNaive => setParserType(ParserTypes.Naive)
             }
         }
         def startParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
@@ -148,6 +153,21 @@ trait Viewer {
                     ParsingProcessVisualizer.startNaiveParser(grammar, source, display, shell)
                 case ParserTypes.New =>
                     ParsingProcessVisualizer.startNewParser(grammar, source, display, shell)
+                case ParserTypes.NumberedNaive =>
+                    println("Running")
+                    val ngrammar = NGrammar.fromGrammar(grammar)
+                    val parser = new nparser.NaiveParser(ngrammar)
+                    parser.parse(source) match {
+                        case Left(ctx) =>
+                            val parseTree = new ParseTreeConstructor(ParseResultGraphFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(parser.startNode, ctx.gen)
+                            parseTree foreach {
+                                _.asParseForest._1.trees foreach { tree =>
+                                    println(tree.toHorizontalHierarchyString)
+                                }
+                            }
+                        case Right(error) =>
+                            println(error)
+                    }
             }
         }
 

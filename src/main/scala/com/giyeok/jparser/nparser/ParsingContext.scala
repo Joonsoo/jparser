@@ -21,12 +21,15 @@ object ParsingContext {
     case class JoinEdge(start: Node, end: Node, join: Node) extends Edge
 
     case class Graph(nodes: Set[Node], edges: Set[Edge], edgesByStart: Map[Node, Set[Edge]], edgesByDest: Map[Node, Set[Edge]]) {
-        def addNode(node: Node) = Graph(nodes + node, edges, edgesByStart + (node -> Set()), edgesByDest + (node -> Set()))
+        def addNode(node: Node) =
+            if (nodes contains node) this else Graph(nodes + node, edges, edgesByStart + (node -> Set()), edgesByDest + (node -> Set()))
         def addEdge(edge: Edge) = edge match {
             case SimpleEdge(start, end) =>
-                Graph(nodes, edges + edge, edgesByStart + (start -> (edgesByStart(start) + edge)), edgesByDest + (end -> (edgesByDest(end) + edge)))
+                val edgesByStart1 = edgesByStart.updated(start, edgesByStart(start) + edge)
+                val edgesByDest1 = edgesByDest.updated(end, (edgesByDest(end) + edge))
+                Graph(nodes, edges + edge, edgesByStart1, edgesByDest1)
             case JoinEdge(start, end, join) =>
-                Graph(nodes, edges + edge, edgesByStart + (start -> (edgesByStart(start) + edge)), edgesByDest + (end -> (edgesByDest(end) + edge)) + (join -> (edgesByDest(join) + edge)))
+                Graph(nodes, edges + edge, edgesByStart.updated(start, edgesByStart(start) + edge), edgesByDest.updated(end, edgesByDest(end) + edge).updated(join, edgesByDest(join) + edge))
         }
         def removeNode(node: Node) = {
             val involvedEdges = edgesByStart(node) ++ edgesByDest(node)
@@ -34,7 +37,20 @@ object ParsingContext {
         }
     }
     object Graph {
-        def apply(nodes: Set[Node], edges: Set[Edge]): Graph = ???
+        def apply(nodes: Set[Node], edges: Set[Edge]): Graph = {
+            var edgesByStart: Map[Node, Set[Edge]] = (nodes map { n => (n -> Set[Edge]()) }).toMap
+            var edgesByDest: Map[Node, Set[Edge]] = (nodes map { n => (n -> Set[Edge]()) }).toMap
+            edges foreach {
+                case edge @ SimpleEdge(start, end) =>
+                    edgesByStart += start -> (edgesByStart(start) + edge)
+                    edgesByDest += end -> (edgesByDest(end) + edge)
+                case edge @ JoinEdge(start, end, join) =>
+                    edgesByStart += start -> (edgesByStart(start) + edge)
+                    edgesByDest += end -> (edgesByDest(end) + edge)
+                    edgesByDest += join -> (edgesByDest(join) + edge)
+            }
+            Graph(nodes, edges, edgesByStart.toMap, edgesByDest.toMap)
+        }
     }
 
     case class Results[N <: Node](nodeConditions: Map[N, Set[EligCondition.Condition]]) {
@@ -205,7 +221,7 @@ object EligCondition {
         def neg = ???
     }
     case class Exclude(node: Node) extends Condition {
-        def nodes = ???
+        def nodes = Set(node)
         def shiftGen(gen: Int) = Exclude(node.shiftGen(gen))
         def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
             finishes.of(node) match {
