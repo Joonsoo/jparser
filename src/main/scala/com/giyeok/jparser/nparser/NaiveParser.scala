@@ -70,7 +70,7 @@ class NaiveParser(val grammar: NGrammar) extends ParsingTasks {
     val initialContext = {
         val ctx0 = rec(0, List(DeriveTask(startNode)), Context(Graph(Set(startNode), Set()), Results[SequenceNode](), Results[Node]()))
         val ctx = revert(0, ctx0, ctx0.finishes, ctx0.graph.nodes)
-        WrappedContext(0, ctx, List(), List(), Map(True -> True))
+        WrappedContext(0, ctx, List(), List(), (ctx.finishes.conditions map { c => (c -> c) }).toMap)
     }
 
     def parse(source: Inputs.Source): Either[WrappedContext, ParsingError] =

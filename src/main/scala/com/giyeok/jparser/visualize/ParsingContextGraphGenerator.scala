@@ -25,11 +25,13 @@ class NodeFigureGenerators[Fig](
     def nodeFig(grammar: NGrammar, node: Node): Fig = node match {
         case SymbolNode(symbolId, beginGen) =>
             fig.horizontalFig(Spacing.Big, Seq(
+                fig.textFig(s"$symbolId", appear.small),
                 symbolFigure(grammar, symbolId),
                 fig.textFig(s"$beginGen", appear.default)))
-        case SequenceNode(symbolId, pointer, beginGen, endGen) =>
+        case SequenceNode(sequenceId, pointer, beginGen, endGen) =>
             fig.horizontalFig(Spacing.Big, Seq(
-                sequenceFigure(grammar, symbolId, pointer),
+                fig.textFig(s"$sequenceId", appear.small),
+                sequenceFigure(grammar, sequenceId, pointer),
                 fig.textFig(s"$beginGen-$endGen", appear.default)))
     }
 

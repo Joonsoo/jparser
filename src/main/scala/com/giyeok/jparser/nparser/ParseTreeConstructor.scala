@@ -12,12 +12,7 @@ import com.giyeok.jparser.nparser.NGrammar._
 class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Results[Node]], conditionFate: Map[Condition, Condition]) {
     val finishes = {
         def eligible(conditions: Set[Condition]): Boolean = {
-            conditions exists { condition =>
-                conditionFate get condition match {
-                    case Some(fate) => fate.eligible
-                    case None => false
-                }
-            }
+            conditions exists { conditionFate.getOrElse(_, EligCondition.False).eligible }
         }
         (history map {
             _.nodeConditions.toSet[(Node, Set[Condition])] collect {
@@ -32,12 +27,10 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     }
 
     private def reconstruct(node: Node, gen: Int, traces: Set[Int]): R = {
-        def reconstruct0(child: Node, childGen: Int): R =
-            if (node.beginGen == child.beginGen && gen == childGen) {
-                reconstruct(child, childGen, traces + node.symbolId)
-            } else {
-                reconstruct(child, childGen, Set())
-            }
+        def reconstruct0(child: Node, childGen: Int): R = {
+            val newTraces = if ((node.beginGen, gen) == (child.beginGen, childGen)) (traces + node.symbolId) else Set[Int]()
+            reconstruct(child, childGen, newTraces)
+        }
 
         node match {
             case SymbolNode(symbolId, _) if traces contains symbolId =>
@@ -80,9 +73,9 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 resultFunc.sequence(beginGen, grammar.nsequences(sequenceId).symbol)
             case SequenceNode(sequenceId, pointer, beginGen, endGen) =>
                 assert(gen == endGen)
-                val lastChildSymId = grammar.nsequences(sequenceId).sequence(pointer - 1)
+                val childSymId = grammar.nsequences(sequenceId).sequence(pointer - 1)
                 val merging = finishes(gen) flatMap {
-                    case child: SymbolNode if child.symbolId == lastChildSymId =>
+                    case child: SymbolNode if child.symbolId == childSymId =>
                         val prevSeq = SequenceNode(sequenceId, pointer - 1, beginGen, child.beginGen)
                         if (finishes(gen) contains prevSeq) {
                             Some(resultFunc.append(reconstruct0(prevSeq, child.beginGen), reconstruct0(child, gen)))

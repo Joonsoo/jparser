@@ -67,6 +67,7 @@ object ParsingContext {
                 case Some(existingConditions) => conditions subsetOf existingConditions
                 case None => false
             }
+        def nodes = nodeConditions.keySet
         def conditions = nodeConditions flatMap { _._2 }
         def involvedNodes = conditions flatMap { _.nodes }
         def update(node: N, condition: EligCondition.Condition): Results[N] =

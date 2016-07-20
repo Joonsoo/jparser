@@ -111,26 +111,30 @@ trait AbstractZestGraphWidget extends Control {
 trait Highlightable extends AbstractZestGraphWidget {
     val blinkInterval = 100
     val blinkCycle = 10
-    val highlightedNodes = scala.collection.mutable.Map[Node, Int]()
+    val highlightedNodes = scala.collection.mutable.Map[Node, (Long, Int)]()
+
+    var _uniqueId = 0L
+    def uniqueId = { _uniqueId += 1; _uniqueId }
 
     def highlightNode(node: Node): Unit = {
         val display = getDisplay()
         if (!(highlightedNodes contains node) && (visibleNodes contains node)) {
             nodesMap(node).highlight()
-            highlightedNodes(node) = 0
+            val highlightId = uniqueId
+            highlightedNodes(node) = (highlightId, 0)
             display.timerExec(100, new Runnable() {
                 def run(): Unit = {
                     highlightedNodes get node match {
-                        case Some(count) =>
+                        case Some((`highlightId`, count)) =>
                             val shownNode = nodesMap(node)
                             if (count < blinkCycle) {
                                 shownNode.setVisible(count % 2 == 0)
-                                highlightedNodes(node) = count + 1
+                                highlightedNodes(node) = (highlightId, count + 1)
                                 display.timerExec(blinkInterval, this)
                             } else {
                                 shownNode.setVisible(true)
                             }
-                        case None => // nothing to do
+                        case _ => // nothing to do
                     }
                 }
             })
@@ -174,20 +178,20 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
 
     context.finishes.nodeConditions foreach { kv =>
         val (node, conditions) = kv
-        if (nodesMap contains node) {
-            nodesMap(node).setBackgroundColor(ColorConstants.yellow)
-
-            val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
-            tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.textFig("Finishes", fig.appear.default) :+ fig.fig.verticalFig(Spacing.Medium, conditionsFig)
+        if (!(nodesMap contains node)) {
+            addNode(grammar, node)
         }
+
+        nodesMap(node).setBackgroundColor(ColorConstants.yellow)
+
+        val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
+        tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.verticalFig(Spacing.Medium, fig.fig.textFig("Finishes", fig.appear.default) +: conditionsFig)
     }
     context.progresses.nodeConditions foreach { kv =>
         val (node, conditions) = kv
 
-        if (nodesMap contains node) {
-            val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
-            tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.textFig("Progresses", fig.appear.default) :+ fig.fig.verticalFig(Spacing.Medium, conditionsFig)
-        }
+        val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
+        tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.verticalFig(Spacing.Medium, fig.fig.textFig("Progresses", fig.appear.default) +: conditionsFig)
     }
     tooltips foreach { kv =>
         val (node, figs) = kv
@@ -204,6 +208,62 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
 
 class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: NaiveParser#WrappedContext)
         extends ZestGraphWidget(parent, style, fig, grammar, context.ctx) {
+
+    val inputMaxInterval = 500
+    case class InputAccumulator(textSoFar: String, lastTime: Long) {
+        def accumulate(char: Char, thisTime: Long) =
+            if (thisTime - lastTime < inputMaxInterval) InputAccumulator(textSoFar + char, thisTime) else InputAccumulator("" + char, thisTime)
+        def textAsInt: Option[Int] = try { Some(textSoFar.toInt) } catch { case _: Throwable => None }
+        def textAsInts: Seq[Int] = {
+            var seq = List[Int]()
+            var buffer = ""
+            val text = textSoFar + " "
+            for (i <- 0 until text.length()) {
+                val c = text.charAt(i)
+                if ('0' <= c && c <= '9') {
+                    buffer += c
+                } else {
+                    if (buffer != "") {
+                        seq = buffer.toInt +: seq
+                    }
+                    buffer = ""
+                }
+            }
+            seq.reverse
+        }
+    }
+
+    var inputAccumulator = InputAccumulator("", 0)
+
+    addKeyListener(new KeyListener() {
+        def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
+            e.keyCode match {
+                case 'R' | 'r' =>
+                    applyLayout(true)
+                case 'F' | 'f' =>
+                    context.conditionFate foreach { kv =>
+                        println(s"${kv._1} -> ${kv._2}")
+                    }
+                case c if ('0' <= c && c <= '9') || (c == ' ' || c == ',' || c == '.') =>
+                    unhighlightAllNodes()
+                    inputAccumulator = inputAccumulator.accumulate(c.toChar, System.currentTimeMillis())
+                    inputAccumulator.textAsInts match {
+                        case Seq(symbolId) =>
+                            nodesMap.keySet filter { node => node.symbolId == symbolId } foreach { highlightNode(_) }
+                        case Seq(symbolId, beginGen) =>
+                            nodesMap.keySet filter { node => node.symbolId == symbolId && node.beginGen == beginGen } foreach { highlightNode(_) }
+                        case Seq(symbolId, pointer, beginGen, endGen) =>
+                            highlightNode(SequenceNode(symbolId, pointer, beginGen, endGen))
+                        case _ => // nothing to do
+                    }
+                case SWT.ESC =>
+                    inputAccumulator = InputAccumulator("", 0)
+                case _ =>
+            }
+        }
+        def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
+    })
+
     addMouseListener(new MouseListener() {
         def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
         def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
