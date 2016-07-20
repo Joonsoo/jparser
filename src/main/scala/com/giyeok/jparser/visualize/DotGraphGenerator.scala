@@ -1,6 +1,6 @@
 package com.giyeok.jparser.visualize
 
-import com.giyeok.jparser.ParsingGraph
+import com.giyeok.jparser.deprecated.ParsingGraph
 import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.ParseResult
 

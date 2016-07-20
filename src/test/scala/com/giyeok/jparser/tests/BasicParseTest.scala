@@ -3,9 +3,9 @@ package com.giyeok.jparser.tests
 import com.giyeok.jparser.Inputs
 import org.scalatest.FlatSpec
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.NewParser
+import com.giyeok.jparser.deprecated.NewParser
 import com.giyeok.jparser.ParseForestFunc
-import com.giyeok.jparser.DerivationSliceFunc
+import com.giyeok.jparser.deprecated.DerivationSliceFunc
 import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.ParseResultTree
 import com.giyeok.jparser.ParseResultGraph

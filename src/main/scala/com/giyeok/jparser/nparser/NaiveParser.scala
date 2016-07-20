@@ -15,7 +15,7 @@ class NaiveParser(val grammar: NGrammar) extends ParsingTasks {
         def inputs = _inputs.reverse
         def history = (ctx.finishes +: _history).reverse
 
-        def proceed(input: Input): Either[WrappedContext, ParsingError] = {
+        def proceedDetail(input: Input): Either[(ProceedDetail, WrappedContext), ParsingError] = {
             val nextGen = gen + 1
             val termFinishes = finishableTermNodes(ctx, gen, input).toList map { FinishTask(_, True, None) }
             if (termFinishes.isEmpty) {
@@ -36,10 +36,19 @@ class NaiveParser(val grammar: NGrammar) extends ParsingTasks {
                     val newConditions = (revertedCtx.finishes.conditions map { c => (c -> c) }).toMap
                     (evaluated ++ newConditions) filter { _._2 != False }
                 }
-                Left(WrappedContext(nextGen, revertedCtx, input +: _inputs, lastFinishes +: _history, conditionFateNext))
+                val nextCtx = WrappedContext(nextGen, revertedCtx, input +: _inputs, lastFinishes +: _history, conditionFateNext)
+                Left((ProceedDetail(liftedCtx, trimmedCtx, revertedCtx), nextCtx))
             }
         }
+
+        def proceed(input: Input): Either[WrappedContext, ParsingError] =
+            proceedDetail(input) match {
+                case Left((detail, nextCtx)) => Left(nextCtx)
+                case Right(error) => Right(error)
+            }
     }
+
+    case class ProceedDetail(liftedCtx: Context, trimmedCtx: Context, revertedCtx: Context)
 
     def process(nextGen: Int, task: Task, cc: Context): (Context, Seq[Task]) =
         task match {

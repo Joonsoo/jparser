@@ -127,47 +127,38 @@ trait Viewer {
         })
 
         object ParserTypes extends Enumeration {
-            val Naive, New, NumberedNaive = Value
+            val Naive, Preprocessed, PreprocessedCompacted, GrowingCompacted, MostOptimized = Value
+            val order = Seq(Naive, Preprocessed, PreprocessedCompacted, GrowingCompacted, MostOptimized)
         }
 
-        var selectedParserType: ParserTypes.Value = ParserTypes.NumberedNaive
+        var selectedParserType: ParserTypes.Value = ParserTypes.Naive
         def setParserType(newParserType: ParserTypes.Value): Unit = {
             selectedParserType = newParserType
             selectedParserType match {
-                case ParserTypes.Naive => parserTypeButton.setText("Naive Parser")
-                case ParserTypes.New => parserTypeButton.setText("New Parser")
-                case ParserTypes.NumberedNaive => parserTypeButton.setText("Numbered Naive Parser")
+                case ParserTypes.Naive => parserTypeButton.setText("Naive")
+                case ParserTypes.Preprocessed => parserTypeButton.setText("Preprocessed")
+                case ParserTypes.PreprocessedCompacted => parserTypeButton.setText("Preprocessed Compacted")
+                case ParserTypes.GrowingCompacted => parserTypeButton.setText("Growing Compacted")
+                case ParserTypes.MostOptimized => parserTypeButton.setText("Preprocessed Compacted + Growing Compacted")
             }
         }
-        setParserType(ParserTypes.NumberedNaive)
+        setParserType(ParserTypes.Naive)
         def nextParserType(): Unit = {
-            selectedParserType match {
-                case ParserTypes.Naive => setParserType(ParserTypes.New)
-                case ParserTypes.New => setParserType(ParserTypes.NumberedNaive)
-                case ParserTypes.NumberedNaive => setParserType(ParserTypes.Naive)
+            val idx = ParserTypes.order.indexOf(selectedParserType)
+            if (idx + 1 < ParserTypes.order.length) {
+                ParserTypes.order(idx + 1)
+            } else {
+                ParserTypes.order(0)
             }
         }
         def startParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
             selectedParserType match {
                 case ParserTypes.Naive =>
-                    ParsingProcessVisualizer.startNaiveParser(grammar, source, display, shell)
-                case ParserTypes.New =>
-                    ParsingProcessVisualizer.startNewParser(grammar, source, display, shell)
-                case ParserTypes.NumberedNaive =>
-                    println("Running")
-                    val ngrammar = NGrammar.fromGrammar(grammar)
-                    val parser = new nparser.NaiveParser(ngrammar)
-                    parser.parse(source) match {
-                        case Left(ctx) =>
-                            val parseTree = new ParseTreeConstructor(ParseResultGraphFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(parser.startNode, ctx.gen)
-                            parseTree foreach {
-                                _.asParseForest._1.trees foreach { tree =>
-                                    println(tree.toHorizontalHierarchyString)
-                                }
-                            }
-                        case Right(error) =>
-                            println(error)
-                    }
+                    ParsingProcessVisualizer.start(grammar, source, display, shell)
+                case ParserTypes.Preprocessed => // TODO
+                case ParserTypes.PreprocessedCompacted => // TODO
+                case ParserTypes.GrowingCompacted => // TODO
+                case ParserTypes.MostOptimized => // TODO
             }
         }
 

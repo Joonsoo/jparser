@@ -42,9 +42,11 @@ import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser
+import com.giyeok.jparser.nparser.NaiveParser
+import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.ParsingErrors.ParsingError
 
-class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGraph], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
-    type Parser = NewParser[ParseResultGraph]
+class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -61,9 +63,9 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
     val layout = new StackLayout
 
     // 하단 그래프 뷰
-    val graphView = new Composite(shell, SWT.NONE)
-    graphView.setLayout(layout)
-    graphView.setLayoutData({
+    val contentView = new Composite(shell, SWT.NONE)
+    contentView.setLayout(layout)
+    contentView.setLayoutData({
         val formData = new FormData()
         formData.top = new FormAttachment(sourceView)
         formData.bottom = new FormAttachment(100, 0)
@@ -93,7 +95,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
         def <=(other: Pointer) = other != this
     }
     case class ParsingContextPointer(gen: Int) extends Pointer {
-        def previous = if (gen == 0) ParsingContextInitializingPointer else ParsingContextTransitionPointer(gen - 1, 4)
+        def previous = if (gen == 0) ParsingContextInitializingPointer else ParsingContextTransitionPointer(gen - 1, 3)
         def next = ParsingContextTransitionPointer(gen, 1)
         def previousBase = ParsingContextPointer(gen - 1)
         def nextBase = ParsingContextPointer(gen + 1)
@@ -110,13 +112,12 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
         }
     }
     case class ParsingContextTransitionPointer(gen: Int, stage: Int) extends Pointer {
-        // stage 1: expand
-        // stage 2: lift
-        // stage 3: 트리밍
-        // stage 4: revert
-        assert(1 <= stage && stage <= 4)
+        // stage 1: lift
+        // stage 2: 트리밍
+        // stage 3: revert
+        assert(1 <= stage && stage <= 3)
         def previous = if (stage == 1) ParsingContextPointer(gen) else ParsingContextTransitionPointer(gen, stage - 1)
-        def next = if (stage == 4) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
+        def next = if (stage == 3) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
         def previousBase = if (stage == 1) ParsingContextPointer(gen - 1) else ParsingContextPointer(gen)
         def nextBase = ParsingContextPointer(gen + 1)
 
@@ -264,19 +265,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
                             case Left(context) =>
-                                def maxOrNone(s: Seq[Int]): String = if (s.isEmpty) "None" else (s.max.toString)
-                                val maxItemsPerNodeR = maxOrNone(context.graph.results.resultsMap.toSeq map { _._2.size })
-                                val maxItemsPerNodeP = maxOrNone(context.graph.progresses.resultsMap.toSeq map { _._2.size })
-                                f.add(textFig(s"v=${context.graph.nodes.size} e=${context.graph.edges.size} |R|=${context.graph.results.resultsMap.size},${maxItemsPerNodeR} |P|=${context.graph.progresses.resultsMap.size},${maxItemsPerNodeP}", resources.smallFont))
-                                context.result match {
-                                    case Some(r) =>
-                                        val (forest, cycleFound) = r.asParseForest
-                                        f.add(textFig(s" r=${r.nodes.size}/${r.edges.size}->${forest.trees.size}", resources.smallFont))
-                                        if (cycleFound) {
-                                            f.add(textFig(" cyclic", resources.smallFont))
-                                        }
-                                    case _ =>
-                                }
+                            // TODO
                             case Right(_) => // nothing to do
                         }
                     case _ =>
@@ -284,28 +273,28 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                 f
             })
 
-            shell.setText(s"${grammar.name}: ${currentLocation.stringRepr}")
+            shell.setText(s"$title: ${currentLocation.stringRepr}")
             val currentControl = controlAt(currentLocation)
             layout.topControl = currentControl
-            graphView.layout()
+            contentView.layout()
             shell.layout()
             currentControl.setFocus()
         }
     }
 
-    val contextCache = scala.collection.mutable.Map[Int, Either[Parser#ParsingCtx, ParsingError]]()
-    val transitionCache = scala.collection.mutable.Map[Int, Either[Parser#ParsingCtxTransition, ParsingError]]()
-    def contextAt(gen: Int): Either[Parser#ParsingCtx, ParsingError] =
+    val contextCache = scala.collection.mutable.Map[Int, Either[NaiveParser#WrappedContext, ParsingError]]()
+    val transitionCache = scala.collection.mutable.Map[Int, Either[NaiveParser#ProceedDetail, ParsingError]]()
+    def contextAt(gen: Int): Either[NaiveParser#WrappedContext, ParsingError] =
         contextCache get gen match {
             case Some(cached) => cached
             case None =>
-                val context: Either[Parser#ParsingCtx, ParsingError] = if (gen == 0) Left(parser.initialContext) else {
+                val context: Either[NaiveParser#WrappedContext, ParsingError] = if (gen == 0) Left(parser.initialContext) else {
                     contextAt(gen - 1) match {
-                        case Left(prevContext) =>
-                            val detail = prevContext.proceedDetail(source(gen - 1))
-                            transitionCache(gen - 1) = Left(detail._1.asInstanceOf[Parser#ParsingCtxTransition])
-                            detail._2 match {
-                                case Left(nextCtx) => Left(nextCtx)
+                        case Left(prevCtx) =>
+                            prevCtx.proceedDetail(source(gen - 1)) match {
+                                case Left((detail, nextCtx)) =>
+                                    transitionCache(gen - 1) = Left(detail)
+                                    Left(nextCtx)
                                 case Right(error) => Right(error)
                             }
                         case Right(error) =>
@@ -316,7 +305,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                 contextCache(gen) = context
                 context
         }
-    def transitionAt(gen: Int): Either[Parser#ParsingCtxTransition, ParsingError] =
+    def transitionAt(gen: Int): Either[NaiveParser#ProceedDetail, ParsingError] =
         transitionCache get gen match {
             case Some(cached) => cached
             case None =>
@@ -325,14 +314,30 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
         }
 
     def errorControl(message: String): Control = {
-        val control = new Composite(graphView, SWT.NONE)
+        val control = new Composite(contentView, SWT.NONE)
         control.setLayout(new FillLayout)
         new Label(control, SWT.NONE).setText(message)
         control
     }
 
-    val nodeIdCache = new NodeIdCache()
+    val graphGenerator = {
+        val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
 
+        val figureAppearances = new FigureGenerator.Appearances[Figure] {
+            val default = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 10, SWT.NONE), ColorConstants.black)
+            val nonterminal = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.BOLD), ColorConstants.blue)
+            val terminal = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.red)
+
+            override val small = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 8, SWT.NONE), ColorConstants.gray)
+            override val kernelDot = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.green)
+            override val symbolBorder = FigureGenerator.draw2d.BorderAppearance(new LineBorder(ColorConstants.lightGray))
+        }
+
+        val symbolFigureGenerator = new SymbolFigureGenerator(figureGenerator, figureAppearances)
+
+        new ParsingContextGraphGenerator(
+            new NodeFigureGenerators(figureGenerator, figureAppearances, symbolFigureGenerator))
+    }
     val controlCache = scala.collection.mutable.Map[Pointer, Control]()
 
     def controlAt(pointer: Pointer): Control = {
@@ -344,7 +349,11 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                         errorControl("TODO")
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
-                            case Left(ctx) => new ParsingContextGraphVisualizeWidget(graphView, SWT.NONE, grammar, nodeIdCache, ctx)
+                            case Left(wctx) =>
+                                val graphView = new ZestGraphWidgetGenerator(contentView, SWT.NONE)
+                                graphGenerator.addContext(graphView, parser.grammar, wctx.ctx)
+                                graphView.applyLayout(false)
+                                graphView
                             case Right(error) => errorControl(error.msg)
                         }
                     case ParsingContextTransitionPointer(gen, stage) =>
@@ -355,34 +364,17 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                             }
                         transitionAt(gen) match {
                             case Left(transition) =>
-                                stage match {
-                                    case 1 =>
-                                        controlOpt(transition.firstStage, "No Expansion") { t => new ExpandTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._1) }
-                                    case 2 =>
-                                        controlOpt(transition.firstStage, "No Expansion") { t => new LiftTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._2) }
-                                    case 3 =>
-                                        controlOpt(transition.secondStage, "No Lift") { t => new TrimmingTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._1) }
-                                    case 4 =>
-                                        controlOpt(transition.secondStage, "No Lift") { t => new RevertTransitionVisualize(graphView, SWT.NONE, grammar, nodeIdCache, t._2) }
-                                }
+                                errorControl("TODO")
                             case Right(error) => errorControl(error.msg)
                         }
                 }
-                def finalizeView(v: Control): Control = {
-                    // 나중에 이벤트 리스너들 넣기
-                    v.addKeyListener(keyListener)
-                    v
-                }
-                controlCache(pointer) = finalizeView(control)
+                control.addKeyListener(keyListener)
+                controlCache(pointer) = control
                 control
         }
     }
 
-    private var dotGraphGen = Option.empty[DotGraphGenerator[ParseResultGraph]]
-
-    lazy val savingParser = new SavingParser(grammar, ParseResultTrueFunc, new DerivationSliceFunc(grammar, ParseResultTrueFunc))
-    lazy val ngrammar = nparser.NGrammar.fromGrammar(grammar)
-    lazy val nParser = new nparser.NaiveParser(ngrammar)
+    //    private var dotGraphGen = Option.empty[DotGraphGenerator[ParseResultGraph]]
 
     def keyListener = new KeyListener() {
         def keyPressed(x: KeyEvent): Unit = {
@@ -395,6 +387,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                 case SWT.END =>
                     if (lastValidLocation <= currentLocation && lastLocation != currentLocation) updateLocation(lastLocation) else updateLocation(lastValidLocation)
 
+                /*
                 case 'S' | 's' =>
                     currentLocation match {
                         case ParsingContextPointer(gen) =>
@@ -415,7 +408,9 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                         case _ =>
                             println("Invalid location")
                     }
+                    */
 
+                /*
                 case 'D' | 'd' =>
                     if (dotGraphGen.isEmpty) {
                         dotGraphGen = Some(new DotGraphGenerator(nodeIdCache))
@@ -444,6 +439,7 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                 case 'F' | 'f' =>
                     dotGraphGen = None
                     println("DOT graph generator cleared")
+                    */
 
                 case code =>
                     println(s"keyPressed: $code")
@@ -467,32 +463,12 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
 }
 
 object ParsingProcessVisualizer {
-    def startNewParser(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
-        val parser = new NewParser(grammar, ParseResultGraphFunc, new DerivationSliceFunc(grammar, ParseResultGraphFunc))
-        start(grammar, parser, source, display, shell)
+    def start(title: String, parser: NaiveParser, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+        new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources).start()
     }
-    def startNaiveParser(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
-        val parser = new NaiveParser(grammar, ParseResultGraphFunc, new DerivationSliceFunc(grammar, ParseResultGraphFunc))
-        start(grammar, parser, source, display, shell)
+    def start(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+        val ngrammar = NGrammar.fromGrammar(grammar)
+        val parser = new NaiveParser(ngrammar)
+        start(grammar.name, parser, source, display, shell)
     }
-    def start(grammar: Grammar, parser: NewParser[ParseResultGraph], source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
-        val resources = BasicVisualizeResources
-        new ParsingProcessVisualizer(grammar, parser, source, display, shell, resources).start()
-    }
-
-    def start(grammar: Grammar, source: Seq[ConcreteInput]): Unit = {
-        val display = Display.getDefault()
-        val shell = new Shell(display)
-
-        val parser = new NewParser(grammar, ParseResultGraphFunc, new DerivationSliceFunc(grammar, ParseResultGraphFunc))
-        start(grammar, parser, source, display, shell)
-
-        while (!shell.isDisposed()) {
-            if (!display.readAndDispatch()) {
-                display.sleep()
-            }
-        }
-        display.dispose()
-    }
-
 }

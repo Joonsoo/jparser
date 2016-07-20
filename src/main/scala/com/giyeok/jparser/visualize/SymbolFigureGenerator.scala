@@ -6,7 +6,7 @@ import com.giyeok.jparser.Symbols._
 import java.lang.Character.UnicodeBlock
 import FigureGenerator.Spacing
 
-class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGenerator.Appearances[Fig]) {
+class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: FigureGenerator.Appearances[Fig]) {
     def symbolFig(symbol: Symbol): Fig = {
         def join(list: List[Fig], joining: => Fig): List[Fig] = list match {
             case head +: List() => List(head)
@@ -31,23 +31,23 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
             (exactCharacterRepr(start), exactCharacterRepr(end))
 
         symbol match {
-            case Terminals.ExactChar(c) => g.textFig(exactCharacterRepr(c), ap.terminal)
+            case Terminals.ExactChar(c) => fig.textFig(exactCharacterRepr(c), ap.terminal)
             case chars: Terminals.Chars =>
-                g.horizontalFig(Spacing.None, join(chars.groups map {
-                    case (f, t) if f == t => g.textFig(exactCharacterRepr(f), ap.terminal)
+                fig.horizontalFig(Spacing.None, join(chars.groups map {
+                    case (f, t) if f == t => fig.textFig(exactCharacterRepr(f), ap.terminal)
                     case (f, t) =>
                         val (rangeStart: String, rangeEnd: String) = rangeCharactersRepr(f, t)
-                        g.horizontalFig(Spacing.None, Seq(g.textFig(rangeStart, ap.terminal), g.textFig("-", ap.default), g.textFig(rangeEnd, ap.terminal)))
-                }, g.textFig("|", ap.default)))
-            case t: Terminal => g.textFig(t.toShortString, ap.terminal)
-            case Start => g.textFig("Start", ap.default)
-            case Nonterminal(name) => g.textFig(name, ap.nonterminal)
+                        fig.horizontalFig(Spacing.None, Seq(fig.textFig(rangeStart, ap.terminal), fig.textFig("-", ap.default), fig.textFig(rangeEnd, ap.terminal)))
+                }, fig.textFig("|", ap.default)))
+            case t: Terminal => fig.textFig(t.toShortString, ap.terminal)
+            case Start => fig.textFig("Start", ap.default)
+            case Nonterminal(name) => fig.textFig(name, ap.nonterminal)
             case Sequence(seq, ws) =>
                 if (seq.isEmpty) {
-                    g.textFig("ε", ap.nonterminal)
+                    fig.textFig("ε", ap.nonterminal)
                 } else {
                     def adjExChars(list: List[Terminals.ExactChar]): Fig =
-                        g.horizontalFig(Spacing.None, list map { symbolFig(_) })
+                        fig.horizontalFig(Spacing.None, list map { symbolFig(_) })
                     val grouped = seq.foldRight((List[Fig](), List[Terminals.ExactChar]())) {
                         ((i, m) =>
                             i match {
@@ -56,13 +56,13 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
                                 case symbol => (symbolFig(symbol) +: adjExChars(m._2) +: m._1, List())
                             })
                     }
-                    g.horizontalFig(Spacing.Medium, if (grouped._2.isEmpty) grouped._1 else adjExChars(grouped._2) +: grouped._1)
+                    fig.horizontalFig(Spacing.Medium, if (grouped._2.isEmpty) grouped._1 else adjExChars(grouped._2) +: grouped._1)
                 }
             case OneOf(syms) =>
-                g.horizontalFig(Spacing.None, join((syms map { sym =>
-                    if (needParentheses(sym)) g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
+                fig.horizontalFig(Spacing.None, join((syms map { sym =>
+                    if (needParentheses(sym)) fig.horizontalFig(Spacing.None, Seq(fig.textFig("(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
                     else symbolFig(sym)
-                }).toList, g.textFig("|", ap.default)))
+                }).toList, fig.textFig("|", ap.default)))
             case Repeat(sym, lower) =>
                 val rep: String = lower match {
                     case 0 => "*"
@@ -70,29 +70,29 @@ class SymbolFigureGenerator[Fig](g: FigureGenerator.Generator[Fig], ap: FigureGe
                     case n => s"$n+"
                 }
                 if (needParentheses(sym))
-                    g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(sym), g.textFig(")" + rep, ap.default)))
-                else g.horizontalFig(Spacing.None, Seq(symbolFig(sym), g.textFig(rep, ap.default)))
+                    fig.horizontalFig(Spacing.None, Seq(fig.textFig("(", ap.default), symbolFig(sym), fig.textFig(")" + rep, ap.default)))
+                else fig.horizontalFig(Spacing.None, Seq(symbolFig(sym), fig.textFig(rep, ap.default)))
             case Except(sym, except) =>
                 val symFig =
                     if (!needParentheses(sym)) symbolFig(sym)
-                    else g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
+                    else fig.horizontalFig(Spacing.None, Seq(fig.textFig("(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
                 val exceptFig =
                     if (!needParentheses(except)) symbolFig(except)
-                    else g.horizontalFig(Spacing.None, Seq(g.textFig("(", ap.default), symbolFig(except), g.textFig(")", ap.default)))
+                    else fig.horizontalFig(Spacing.None, Seq(fig.textFig("(", ap.default), symbolFig(except), fig.textFig(")", ap.default)))
 
-                g.horizontalFig(Spacing.Medium, Seq(symFig, g.textFig("except", ap.default), exceptFig))
+                fig.horizontalFig(Spacing.Medium, Seq(symFig, fig.textFig("except", ap.default), exceptFig))
             case LookaheadIs(lookahead) =>
-                g.horizontalFig(Spacing.Small, Seq(g.textFig("(", ap.default), g.textFig("lookahead_is", ap.default), symbolFig(lookahead), g.textFig(")", ap.default)))
+                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("(", ap.default), fig.textFig("lookahead_is", ap.default), symbolFig(lookahead), fig.textFig(")", ap.default)))
             case LookaheadExcept(except) =>
-                g.horizontalFig(Spacing.Small, Seq(g.textFig("(", ap.default), g.textFig("lookahead_except", ap.default), symbolFig(except), g.textFig(")", ap.default)))
+                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("(", ap.default), fig.textFig("lookahead_except", ap.default), symbolFig(except), fig.textFig(")", ap.default)))
             case Proxy(sym) =>
-                g.horizontalFig(Spacing.Small, Seq(g.textFig("P(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
+                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("P(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
             case Join(sym, join) =>
-                g.verticalFig(Spacing.Small, Seq(symbolFig(sym), g.textFig("&", ap.default), symbolFig(join)))
+                fig.verticalFig(Spacing.Small, Seq(symbolFig(sym), fig.textFig("&", ap.default), symbolFig(join)))
             case Longest(sym) =>
-                g.horizontalFig(Spacing.Small, Seq(g.textFig("L(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
+                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("L(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
             case EagerLongest(sym) =>
-                g.horizontalFig(Spacing.Small, Seq(g.textFig("EL(", ap.default), symbolFig(sym), g.textFig(")", ap.default)))
+                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("EL(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
         }
     }
 }

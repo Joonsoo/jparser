@@ -46,6 +46,11 @@ import org.eclipse.swt.layout.FormLayout
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
 import com.giyeok.jparser.Symbols.Start
+import com.giyeok.jparser.deprecated.ParsingGraph
+import com.giyeok.jparser.deprecated.NewParser
+import com.giyeok.jparser.deprecated.DGraph
+import com.giyeok.jparser.deprecated.ParsingGraph.AtomicNode
+import com.giyeok.jparser.deprecated.Results
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator

@@ -2,15 +2,15 @@ package com.giyeok.jparser.tests
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.NewParser
-import com.giyeok.jparser.DerivationSliceFunc
+import com.giyeok.jparser.deprecated.NewParser
+import com.giyeok.jparser.deprecated.DerivationSliceFunc
 import com.giyeok.jparser.ParseForestFunc
-import com.giyeok.jparser.NaiveParser
+import com.giyeok.jparser.deprecated.NaiveParser
 import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.SavingParser
-import com.giyeok.jparser.ParseResultTrueFunc
+import com.giyeok.jparser.deprecated.SavingParser
+import com.giyeok.jparser.deprecated.ParseResultTrueFunc
 import com.giyeok.jparser.nparser
 import com.giyeok.jparser.nparser.NGrammar
 

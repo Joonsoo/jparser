@@ -25,9 +25,9 @@ import com.giyeok.jparser.Inputs.ConcreteInput
 import org.eclipse.swt.layout.FormLayout
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
-import com.giyeok.jparser.NewParser
+import com.giyeok.jparser.deprecated.NewParser
 import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.DerivationSliceFunc
+import com.giyeok.jparser.deprecated.DerivationSliceFunc
 import com.giyeok.jparser.visualize.editor.GrammarGrammar
 import com.giyeok.jparser.ParseForestFunc
 import org.eclipse.swt.events.SelectionListener
@@ -133,7 +133,7 @@ trait Editor {
                                         GrammarGrammar.translate(tree) match {
                                             case Some(grammar) =>
                                                 // TODO new parser로도 열 수 있게
-                                                ParsingProcessVisualizer.startNaiveParser(grammar, source, display, new Shell(display))
+                                                ParsingProcessVisualizer.start(grammar, source, display, new Shell(display))
                                             case None =>
                                                 MessageDialog.openError(shell, "Error!", "Empty grammar!")
                                         }
