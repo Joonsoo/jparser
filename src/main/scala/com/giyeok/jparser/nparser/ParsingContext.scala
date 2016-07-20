@@ -185,7 +185,7 @@ object EligCondition {
             } else {
                 finishes.of(node) match {
                     case Some(conditions) =>
-                        disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived)
+                        disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived).neg
                     case None =>
                         if (survived contains node) this else True
                 }
