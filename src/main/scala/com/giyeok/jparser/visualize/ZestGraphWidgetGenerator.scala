@@ -20,6 +20,11 @@ import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.MouseListener
 import org.eclipse.swt.widgets.Control
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
+import com.giyeok.jparser.nparser.ParseTreeConstructor
+import com.giyeok.jparser.ParseResultGraphFunc
+import org.eclipse.swt.widgets.Shell
+import org.eclipse.draw2d.FigureCanvas
+import com.giyeok.jparser.nparser.NaiveParser
 
 trait AbstractZestGraphWidget extends Control {
     val graphViewer: GraphViewer
@@ -141,7 +146,21 @@ trait Highlightable extends AbstractZestGraphWidget {
     }
 }
 
-class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context) extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable {
+trait Interactable extends AbstractZestGraphWidget {
+    def nodesAt(ex: Int, ey: Int): Seq[Any] = {
+        import scala.collection.JavaConversions._
+
+        val (x, y) = (ex + graphCtrl.getHorizontalBar().getSelection(), ey + graphCtrl.getVerticalBar().getSelection())
+
+        graphCtrl.getNodes.toSeq collect {
+            case n: CGraphNode if n != null && n.getNodeFigure() != null && n.getNodeFigure().containsPoint(x, y) && n.getData() != null =>
+                println(n)
+                n.getData
+        }
+    }
+}
+
+class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context) extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with Interactable {
     val graphViewer = new GraphViewer(this, style)
     val graphCtrl = graphViewer.getGraphControl()
 
@@ -155,16 +174,20 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
 
     context.finishes.nodeConditions foreach { kv =>
         val (node, conditions) = kv
-        nodesMap(node).setBackgroundColor(ColorConstants.yellow)
+        if (nodesMap contains node) {
+            nodesMap(node).setBackgroundColor(ColorConstants.yellow)
 
-        val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
-        tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.textFig("Finishes", fig.appear.default) :+ fig.fig.verticalFig(Spacing.Medium, conditionsFig)
+            val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
+            tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.textFig("Finishes", fig.appear.default) :+ fig.fig.verticalFig(Spacing.Medium, conditionsFig)
+        }
     }
     context.progresses.nodeConditions foreach { kv =>
         val (node, conditions) = kv
 
-        val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
-        tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.textFig("Progresses", fig.appear.default) :+ fig.fig.verticalFig(Spacing.Medium, conditionsFig)
+        if (nodesMap contains node) {
+            val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
+            tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.textFig("Progresses", fig.appear.default) :+ fig.fig.verticalFig(Spacing.Medium, conditionsFig)
+        }
     }
     tooltips foreach { kv =>
         val (node, figs) = kv
@@ -177,4 +200,27 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
 
     override def addKeyListener(keyListener: KeyListener): Unit = graphCtrl.addKeyListener(keyListener)
     override def addMouseListener(mouseListener: MouseListener): Unit = graphCtrl.addMouseListener(mouseListener)
+}
+
+class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: NaiveParser#WrappedContext)
+        extends ZestGraphWidget(parent, style, fig, grammar, context.ctx) {
+    addMouseListener(new MouseListener() {
+        def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+        def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+        def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
+            nodesAt(e.x, e.y) foreach {
+                case node: SequenceNode =>
+                // TODO show preprocessed derivation graph
+                case node: SymbolNode =>
+                    val parseResultGraphOpt = new ParseTreeConstructor(ParseResultGraphFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)
+                    parseResultGraphOpt match {
+                        case Some(parseResultGraph) =>
+                            new ParseResultGraphViewer(parseResultGraph, fig.fig, fig.appear, fig.symbol).start()
+                        case None =>
+                    }
+                case data =>
+                    println(data)
+            }
+        }
+    })
 }

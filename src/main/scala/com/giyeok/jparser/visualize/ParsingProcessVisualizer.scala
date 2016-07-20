@@ -349,7 +349,7 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
                             case Left(wctx) =>
-                                new ZestGraphWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx.ctx)
+                                new ZestParsingContextWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx)
                             case Right(error) => errorControl(error.msg)
                         }
                     case ParsingContextTransitionPointer(gen, stage) =>

@@ -113,7 +113,7 @@ class ParseResultDerivationsSetViewer(r: ParseResultDerivationsSet, figureGenera
     }
 }
 
-class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGenerator.Generator[Figure], val figureAppearances: FigureGenerator.Appearances[Figure], parseResultFigureGenerator: ParseResultFigureGenerator[Figure])
+class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGenerator.Generator[Figure], val figureAppearances: FigureGenerator.Appearances[Figure], val symbolFigureGenerator: SymbolFigureGenerator[Figure])
         extends KernelFigureGenerator[Figure] {
     import ParseResultGraph._
     import com.giyeok.jparser.visualize.FigureGenerator.Spacing
@@ -126,7 +126,6 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
         }
     })
 
-    val symbolFigureGenerator = parseResultFigureGenerator.symbolFigureGenerator
     val (g, ap, sfg) = (figureGenerator, figureAppearances, symbolFigureGenerator)
     val graphViewer = new GraphViewer(shell, SWT.NONE)
     val graph = graphViewer.getGraphControl()

@@ -501,7 +501,7 @@ abstract class GraphControl(parent: Composite, style: Int, graph: ParsingGraph[P
         def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
             nodesAt(e.x, e.y) foreach {
                 case r: ParseResultGraph =>
-                    new ParseResultGraphViewer(r, figureGenerator, figureAppearances, parseResultFigureGenerator).start()
+                    new ParseResultGraphViewer(r, figureGenerator, figureAppearances, parseResultFigureGenerator.symbolFigureGenerator).start()
                 case node: ParsingGraph.NontermNode =>
                     if ((e.stateMask & SWT.SHIFT) != 0) {
                         DerivationGraphVisualizer.start(grammar, getDisplay(), new Shell(getDisplay()), DerivationGraphVisualizer.kernelOf(node))
