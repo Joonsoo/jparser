@@ -91,26 +91,22 @@ object ParsingContext {
     }
 
     case class Context(graph: Graph, progresses: Results[SequenceNode], finishes: Results[Node]) {
-        def updateGraph(newGraph: Graph): Context = {
+        def updateGraph(newGraph: Graph): Context =
             Context(newGraph, progresses, finishes)
-        }
-        def updateGraph(graphUpdateFunc: Graph => Graph): Context = {
-            val newGraph = graphUpdateFunc(graph)
-            Context(newGraph, progresses, finishes)
-        }
-        def updateProgresses(progressesUpdateFunc: Results[SequenceNode] => Results[SequenceNode]): Context = {
-            val newProgresses = progressesUpdateFunc(progresses)
+        def updateGraph(graphUpdateFunc: Graph => Graph): Context =
+            Context(graphUpdateFunc(graph), progresses, finishes)
+
+        def updateProgresses(newProgresses: Results[SequenceNode]): Context =
             Context(graph, newProgresses, finishes)
-        }
-        def updateFinishes(finishesUpdateFunc: Results[Node] => Results[Node]): Context = {
-            val newFinishes = finishesUpdateFunc(finishes)
+        def updateProgresses(progressesUpdateFunc: Results[SequenceNode] => Results[SequenceNode]): Context =
+            updateProgresses(progressesUpdateFunc(progresses))
+
+        def updateFinishes(newFinishes: Results[Node]): Context =
             Context(graph, progresses, newFinishes)
-        }
+        def updateFinishes(finishesUpdateFunc: Results[Node] => Results[Node]): Context =
+            updateFinishes(finishesUpdateFunc(finishes))
+
         def emptyFinishes = Context(graph, progresses, Results())
-        def trimProgresses: Context = {
-            val (trimmedProgresses, falseNodes) = progresses.trimFalse
-            Context(falseNodes.foldLeft(graph) { _.removeNode(_) }, trimmedProgresses, finishes)
-        }
     }
 }
 
@@ -218,7 +214,7 @@ object EligCondition {
         def nodes = Set(node)
         def shiftGen(gen: Int) = Alive(node.shiftGen(gen), activeGen + gen)
         def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
-            if (gen < activeGen) this else { if (survived contains node) False else True }
+            if (gen <= activeGen) this else { if (survived contains node) False else True }
         def eligible = true
         def neg = ???
     }

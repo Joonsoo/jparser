@@ -152,23 +152,21 @@ trait ParsingTasks {
             (cc, Seq(FinishTask(node, condition, None)))
         } else {
             val updatedNode = SequenceNode(symbolId, pointer + 1, beginGen, nextGen)
+            val updatedConditions = cc.progresses.of(node).get map { conjunct(_, condition) }
+            val newProgresses = cc.progresses.update(updatedNode, updatedConditions)
+            val newFinishes = cc.finishes.update(node, updatedConditions)
             if (cc.graph.nodes contains updatedNode) {
-                val updatedConditions = cc.progresses.of(node).get map { conjunct(_, condition) }
                 if (cc.progresses contains (updatedNode, updatedConditions)) {
                     (cc, Seq())
                 } else {
-                    (cc.updateProgresses(_.update(updatedNode, updatedConditions))
-                        .updateFinishes(_.update(node, updatedConditions)), Seq(DeriveTask(updatedNode)))
+                    (cc.updateProgresses(newProgresses).updateFinishes(newFinishes), Seq(DeriveTask(updatedNode)))
                 }
             } else {
                 val incomingEdges = cc.graph.edgesByDest(node) map { _.asInstanceOf[SimpleEdge] }
                 val newGraph = incomingEdges.foldLeft(cc.graph.addNode(updatedNode)) { (graph, edge) =>
                     graph.addEdge(SimpleEdge(edge.start, updatedNode))
                 }
-                val updatedConditions = cc.progresses.of(node).get map { conjunct(_, condition) }
-                (cc.updateGraph(newGraph)
-                    .updateProgresses(_.update(updatedNode, updatedConditions))
-                    .updateFinishes(_.update(node, updatedConditions)), Seq(DeriveTask(updatedNode)))
+                (cc.updateGraph(newGraph).updateProgresses(newProgresses).updateFinishes(newFinishes), Seq(DeriveTask(updatedNode)))
             }
         }
     }
@@ -192,6 +190,8 @@ trait ParsingTasks {
         context
     }
     def revert(nextGen: Int, context: Context, finishes: Results[Node], survived: Set[Node]): Context = {
-        context.updateFinishes(_.mapCondition(_.evaluate(nextGen, finishes, survived))).updateProgresses(_.mapCondition(_.evaluate(nextGen, finishes, survived))).trimProgresses
+        val newFinishes = context.finishes.mapCondition(_.evaluate(nextGen, finishes, survived)).trimFalse._1
+        val (newProgresses, falseNodes) = context.progresses.mapCondition(_.evaluate(nextGen, finishes, survived)).trimFalse
+        context.updateFinishes(newFinishes).updateProgresses(newProgresses).updateGraph(graph => falseNodes.foldLeft(graph) { _.removeNode(_) })
     }
 }

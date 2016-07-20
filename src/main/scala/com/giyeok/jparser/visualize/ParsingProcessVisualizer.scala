@@ -320,7 +320,7 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
         control
     }
 
-    val graphGenerator = {
+    val nodeFigGenerator = {
         val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
 
         val figureAppearances = new FigureGenerator.Appearances[Figure] {
@@ -335,8 +335,7 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
 
         val symbolFigureGenerator = new SymbolFigureGenerator(figureGenerator, figureAppearances)
 
-        new ParsingContextGraphGenerator(
-            new NodeFigureGenerators(figureGenerator, figureAppearances, symbolFigureGenerator))
+        new NodeFigureGenerators(figureGenerator, figureAppearances, symbolFigureGenerator)
     }
     val controlCache = scala.collection.mutable.Map[Pointer, Control]()
 
@@ -350,10 +349,7 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
                             case Left(wctx) =>
-                                val graphView = new ZestGraphWidgetGenerator(contentView, SWT.NONE)
-                                graphGenerator.addContext(graphView, parser.grammar, wctx.ctx)
-                                graphView.applyLayout(false)
-                                graphView
+                                new ZestGraphWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx.ctx)
                             case Right(error) => errorControl(error.msg)
                         }
                     case ParsingContextTransitionPointer(gen, stage) =>

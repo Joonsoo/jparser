@@ -21,35 +21,51 @@ class NodeFigureGenerators[Fig](
         val futureFig = fig.horizontalFig(Spacing.Medium, (future map { symbolFigure(grammar, _) }))
         fig.horizontalFig(Spacing.Small, Seq(pastFig, dot, futureFig))
     }
-}
 
-trait GraphGenerator[Fig] {
-    def addNode(node: Node, nodeFigFunc: () => Fig): Unit
-    def addEdge(edge: Edge): Unit
-}
-
-class ParsingContextGraphGenerator[Fig](fig: NodeFigureGenerators[Fig]) {
     def nodeFig(grammar: NGrammar, node: Node): Fig = node match {
         case SymbolNode(symbolId, beginGen) =>
-            fig.fig.horizontalFig(Spacing.Big, Seq(
-                fig.symbolFigure(grammar, symbolId),
-                fig.fig.textFig(s"$beginGen", fig.appear.default)))
+            fig.horizontalFig(Spacing.Big, Seq(
+                symbolFigure(grammar, symbolId),
+                fig.textFig(s"$beginGen", appear.default)))
         case SequenceNode(symbolId, pointer, beginGen, endGen) =>
-            fig.fig.horizontalFig(Spacing.Big, Seq(
-                fig.sequenceFigure(grammar, symbolId, pointer),
-                fig.fig.textFig(s"$beginGen-$endGen", fig.appear.default)))
+            fig.horizontalFig(Spacing.Big, Seq(
+                sequenceFigure(grammar, symbolId, pointer),
+                fig.textFig(s"$beginGen-$endGen", appear.default)))
     }
 
-    def addContext(graph: GraphGenerator[Fig], grammar: NGrammar, context: Context): Unit = {
-        context.graph.nodes foreach { node =>
-            graph.addNode(node, () => nodeFig(grammar, node))
+    def conditionFig(grammar: NGrammar, condition: Condition): Fig = {
+        val d = appear.default
+        condition match {
+            case True => fig.textFig("true", d)
+            case False => fig.textFig("false", d)
+            case And(conds) =>
+                val condsFig = conds.toSeq map { conditionFig(grammar, _) }
+                val joinedCondsFig = condsFig.tail.foldLeft(Seq(condsFig.head)) { _ :+ fig.textFig("&", d) :+ _ }
+                fig.horizontalFig(Spacing.Small, condsFig)
+            case Or(conds) =>
+                val condsFig = conds.toSeq map { conditionFig(grammar, _) }
+                val joinedCondsFig = condsFig.tail.foldLeft(Seq(condsFig.head)) { _ :+ fig.textFig("|", d) :+ _ }
+                fig.horizontalFig(Spacing.Small, condsFig)
+            case Until(node, activeGen) =>
+                fig.horizontalFig(Spacing.Small, Seq(
+                    fig.textFig("Until(", d),
+                    nodeFig(grammar, node),
+                    fig.textFig(s", $activeGen)", d)))
+            case After(node, activeGen) =>
+                fig.horizontalFig(Spacing.Small, Seq(
+                    fig.textFig("After(", d),
+                    nodeFig(grammar, node),
+                    fig.textFig(s", $activeGen)", d)))
+            case Alive(node, activeGen) =>
+                fig.horizontalFig(Spacing.Small, Seq(
+                    fig.textFig("Alive(", d),
+                    nodeFig(grammar, node),
+                    fig.textFig(s", $activeGen)", d)))
+            case Exclude(node) =>
+                fig.horizontalFig(Spacing.Small, Seq(
+                    fig.textFig("Exclude(", d),
+                    nodeFig(grammar, node),
+                    fig.textFig(")", d)))
         }
-        context.graph.edges foreach { edge =>
-            graph.addEdge(edge)
-        }
-    }
-
-    def addContextTransition(graph: GraphGenerator[Fig], grammar: NGrammar, baseContext: Context, changedContext: Context): Unit = {
-        ???
     }
 }

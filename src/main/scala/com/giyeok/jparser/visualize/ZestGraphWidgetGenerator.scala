@@ -14,34 +14,35 @@ import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
 import org.eclipse.zest.core.widgets.GraphConnection
 import com.giyeok.jparser.nparser.ParsingContext._
+import com.giyeok.jparser.nparser.EligCondition._
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.MouseListener
+import org.eclipse.swt.widgets.Control
+import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
-class ZestGraphWidgetGenerator(parent: Composite, style: Int) extends Composite(parent, style) with GraphGenerator[Figure] {
-    val graphViewer = new GraphViewer(this, style)
-    val graphCtrl = graphViewer.getGraphControl()
-
-    setLayout(new FillLayout())
+trait AbstractZestGraphWidget extends Control {
+    val graphViewer: GraphViewer
+    val graphCtrl: Graph
+    val fig: NodeFigureGenerators[Figure]
 
     val nodesMap = scala.collection.mutable.Map[Node, CGraphNode]()
     val edgesMap = scala.collection.mutable.Map[Edge, Seq[GraphConnection]]()
     var visibleNodes = Set[Node]()
     var visibleEdges = Set[Edge]()
 
-    val blinkInterval = 100
-    val blinkCycle = 10
-    val highlightedNodes = scala.collection.mutable.Map[Node, Int]()
-
-    def addNode(node: Node, nodeFigFunc: () => Figure): Unit = {
+    def addNode(grammar: NGrammar, node: Node): Unit = {
         if (!(nodesMap contains node)) {
-            val nodeFig = nodeFigFunc()
+            val nodeFig = fig.nodeFig(grammar, node)
             nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
             nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
             nodeFig.setOpaque(true)
             nodeFig.setSize(nodeFig.getPreferredSize())
 
-            nodesMap(node) = new CGraphNode(graphCtrl, SWT.NONE, nodeFig)
+            val gnode = new CGraphNode(graphCtrl, SWT.NONE, nodeFig)
+            gnode.setData(node)
+
+            nodesMap(node) = gnode
             visibleNodes += node
         }
     }
@@ -68,6 +69,15 @@ class ZestGraphWidgetGenerator(parent: Composite, style: Int) extends Composite(
         }
     }
 
+    def addContext(grammar: NGrammar, context: Context): Unit = {
+        context.graph.nodes foreach { node =>
+            addNode(grammar, node)
+        }
+        context.graph.edges foreach { edge =>
+            addEdge(edge)
+        }
+    }
+
     def applyLayout(animation: Boolean): Unit = {
         if (animation) {
             graphViewer.setNodeStyle(ZestStyles.NONE)
@@ -78,9 +88,6 @@ class ZestGraphWidgetGenerator(parent: Composite, style: Int) extends Composite(
         val layoutAlgorithm = new TreeLayoutAlgorithm(LayoutStyles.NO_LAYOUT_NODE_RESIZING | LayoutStyles.ENFORCE_BOUNDS)
         graphCtrl.setLayoutAlgorithm(layoutAlgorithm, true)
     }
-
-    override def addKeyListener(keyListener: KeyListener): Unit = graphCtrl.addKeyListener(keyListener)
-    override def addMouseListener(mouseListener: MouseListener): Unit = graphCtrl.addMouseListener(mouseListener)
 
     def setVisibleSubgraph(nodes: Set[Node], edges: Set[Edge]): Unit = {
         visibleNodes = nodes
@@ -94,6 +101,12 @@ class ZestGraphWidgetGenerator(parent: Composite, style: Int) extends Composite(
             kv._2 foreach { _.setVisible(visible) }
         }
     }
+}
+
+trait Highlightable extends AbstractZestGraphWidget {
+    val blinkInterval = 100
+    val blinkCycle = 10
+    val highlightedNodes = scala.collection.mutable.Map[Node, Int]()
 
     def highlightNode(node: Node): Unit = {
         val display = getDisplay()
@@ -126,4 +139,42 @@ class ZestGraphWidgetGenerator(parent: Composite, style: Int) extends Composite(
         }
         highlightedNodes.clear()
     }
+}
+
+class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context) extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable {
+    val graphViewer = new GraphViewer(this, style)
+    val graphCtrl = graphViewer.getGraphControl()
+
+    setLayout(new FillLayout())
+
+    addContext(grammar, context)
+    applyLayout(false)
+
+    // finishable node highlight
+    val tooltips = scala.collection.mutable.Map[Node, Seq[Figure]]()
+
+    context.finishes.nodeConditions foreach { kv =>
+        val (node, conditions) = kv
+        nodesMap(node).setBackgroundColor(ColorConstants.yellow)
+
+        val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
+        tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.textFig("Finishes", fig.appear.default) :+ fig.fig.verticalFig(Spacing.Medium, conditionsFig)
+    }
+    context.progresses.nodeConditions foreach { kv =>
+        val (node, conditions) = kv
+
+        val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
+        tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.textFig("Progresses", fig.appear.default) :+ fig.fig.verticalFig(Spacing.Medium, conditionsFig)
+    }
+    tooltips foreach { kv =>
+        val (node, figs) = kv
+        val tooltipFig = fig.fig.verticalFig(Spacing.Big, figs)
+        tooltipFig.setOpaque(true)
+        tooltipFig.setBackgroundColor(ColorConstants.white)
+        nodesMap(node).getFigure().setToolTip(tooltipFig)
+    }
+    // TODO finishable node 더블클릭시 result 보여주기
+
+    override def addKeyListener(keyListener: KeyListener): Unit = graphCtrl.addKeyListener(keyListener)
+    override def addMouseListener(mouseListener: MouseListener): Unit = graphCtrl.addMouseListener(mouseListener)
 }
