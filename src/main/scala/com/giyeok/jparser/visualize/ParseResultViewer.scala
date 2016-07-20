@@ -159,6 +159,7 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
         nodeMap(node) = cgn
         cgn
     }
+    nodeMap(r.root).setBackgroundColor(ColorConstants.yellow)
     r.edges foreach {
         case BindEdge(start, end) =>
             new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, nodeMap(start), nodeMap(end))

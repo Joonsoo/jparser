@@ -1,13 +1,17 @@
-package com.giyeok.jparser
+package com.giyeok.jparser.deprecated
 
 import com.giyeok.jparser.Inputs.ConcreteInput
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.ParsingGraph.TermNode
-import com.giyeok.jparser.ParsingGraph.AtomicNode
-import com.giyeok.jparser.ParsingGraph.SequenceNode
-import com.giyeok.jparser.ParsingGraph.Condition
+import com.giyeok.jparser.deprecated.ParsingGraph.TermNode
+import com.giyeok.jparser.deprecated.ParsingGraph.AtomicNode
+import com.giyeok.jparser.deprecated.ParsingGraph.SequenceNode
+import com.giyeok.jparser.deprecated.ParsingGraph.Condition
 import com.giyeok.jparser.ParsingErrors.UnexpectedInput
-import com.giyeok.jparser.ParsingGraph.Node
+import com.giyeok.jparser.deprecated.ParsingGraph.Node
+import com.giyeok.jparser.ParseResultFunc
+import com.giyeok.jparser.ParseResultGraph
+import com.giyeok.jparser.ParseResultGraphFunc
+import com.giyeok.jparser.Grammar
 
 class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type], derivationFunc: DerivationSliceFunc[AlwaysTrue.type]) extends NewParser(grammar, resultFunc, derivationFunc) with DeriveTasks[AlwaysTrue.type, CtxGraph[AlwaysTrue.type]] {
     class SavingParsingCtx(gen: Int, graph: Graph, inputHistory: Seq[ConcreteInput], resultHistory: Seq[Results[Node, AlwaysTrue.type]], conditionFate: Map[Condition, Condition]) extends ParsingCtx(gen, graph, Set()) {
@@ -64,7 +68,7 @@ class SavingParser(grammar: Grammar, resultFunc: ParseResultFunc[AlwaysTrue.type
                 (eligibleEntries map { _._1 }).toSet
             }
 
-            import Symbols._
+            import com.giyeok.jparser.Symbols._
             def derive(symbol: AtomicNonterm): Set[Symbol] = symbol match {
                 case Start => Set(grammar.startSymbol)
                 case Nonterminal(nonterminalName) => grammar.rules(nonterminalName)

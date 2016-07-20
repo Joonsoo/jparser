@@ -1,4 +1,4 @@
-package com.giyeok.jparser
+package com.giyeok.jparser.deprecated
 
 import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.Inputs.ConcreteInput
@@ -6,7 +6,12 @@ import com.giyeok.jparser.ParsingErrors._
 import com.giyeok.jparser.Inputs.Input
 import ParsingGraph._
 import com.giyeok.jparser.Inputs.TermGroupDesc
-import com.giyeok.jparser.DGraph.BaseNode
+import com.giyeok.jparser.deprecated.DGraph.BaseNode
+import com.giyeok.jparser.ParseResult
+import com.giyeok.jparser.ParseResultFunc
+import com.giyeok.jparser.ParseResultFunc
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.Inputs
 
 case class CtxGraph[R <: ParseResult](
         nodes: Set[Node],

@@ -1,6 +1,5 @@
 package com.giyeok.jparser.visualize
 
-import com.giyeok.jparser.NewParser
 import org.eclipse.swt.widgets.Control
 import org.eclipse.swt.widgets.Composite
 import org.eclipse.zest.core.widgets.Graph
@@ -19,7 +18,6 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.zest.core.widgets.ZestStyles
 import com.giyeok.jparser.Grammar
 import org.eclipse.swt.widgets.Shell
-import com.giyeok.jparser.DGraph
 import org.eclipse.swt.widgets.Display
 import com.giyeok.jparser.Symbols.Nonterm
 import com.giyeok.jparser.Symbols.AtomicSymbol
@@ -31,19 +29,13 @@ import org.eclipse.swt.events.KeyAdapter
 import org.eclipse.swt.events.KeyEvent
 import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.Symbols.Symbol
-import com.giyeok.jparser.NewParser
 import com.giyeok.jparser.ParseResult
-import com.giyeok.jparser.CtxGraph
-import com.giyeok.jparser.ParsingGraph
 import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.DerivationFunc
-import com.giyeok.jparser.ParsingGraph.AtomicNode
 import com.giyeok.jparser.ParseResultTree
 import com.giyeok.jparser.Symbols.Sequence
 import com.giyeok.jparser.Symbols.AtomicNonterm
 import org.eclipse.draw2d.ToolbarLayout
-import com.giyeok.jparser.Results
 import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.events.MouseListener
 import org.eclipse.zest.core.viewers.GraphViewer
@@ -54,7 +46,6 @@ import org.eclipse.swt.layout.FormLayout
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
 import com.giyeok.jparser.Symbols.Start
-import com.giyeok.jparser.ParsingGraph.TermNode
 
 trait BasicGenerators {
     val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator

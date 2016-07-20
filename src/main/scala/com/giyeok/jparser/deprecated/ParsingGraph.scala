@@ -1,8 +1,10 @@
-package com.giyeok.jparser
+package com.giyeok.jparser.deprecated
 
 import com.giyeok.jparser.Symbols._
 import ParsingGraph._
-import Inputs._
+import com.giyeok.jparser.Inputs._
+import com.giyeok.jparser.ParseResult
+import com.giyeok.jparser.ParseResultFunc
 
 // DerivationGraph와 ParsingContextGraph는 모두 ParsingGraph를 상속받고 같은 노드/엣지 자료구조를 사용함
 // 단, DerivationGraph에 나오는 gen은(AtomicNode.beginGen, SequenceNode.beginGen/endGen, result의 gen) 모두0이므로, 실제 ParsingContextGraph에 추가될 때 shiftGen해서 사용한다

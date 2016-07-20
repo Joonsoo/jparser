@@ -1,15 +1,18 @@
-package com.giyeok.jparser
+package com.giyeok.jparser.deprecated
 
-import Symbols._
+import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.Inputs.AbstractInput
 import com.giyeok.jparser.Inputs.ConcreteInput
-import Symbols.Terminals._
-import Inputs._
+import com.giyeok.jparser.Symbols.Terminals._
+import com.giyeok.jparser.Inputs._
 import ParsingGraph._
-import com.giyeok.jparser.DGraph.BaseNode
-import com.giyeok.jparser.DGraph.BaseAtomicNode
-import com.giyeok.jparser.DGraph.BaseSequenceNode
+import com.giyeok.jparser.deprecated.DGraph.BaseNode
+import com.giyeok.jparser.deprecated.DGraph.BaseAtomicNode
+import com.giyeok.jparser.deprecated.DGraph.BaseSequenceNode
+import com.giyeok.jparser.ParseResult
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.ParseResultFunc
 
 object DGraph {
     sealed trait BaseNode

@@ -20,7 +20,6 @@ import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.widgets.Control
-import com.giyeok.jparser.NewParser
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.ToolbarLayout
 import org.eclipse.draw2d.AbstractLayout
@@ -36,16 +35,13 @@ import org.eclipse.draw2d.LineBorder
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
 import org.eclipse.swt.layout.FormLayout
-import com.giyeok.jparser.DerivationSliceFunc
-import com.giyeok.jparser.NaiveParser
 import com.giyeok.jparser.ParseResultDerivationsSet
 import com.giyeok.jparser.ParseResultDerivationsSetFunc
 import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.SavingParser
-import com.giyeok.jparser.ParseResultTrueFunc
+import com.giyeok.jparser.nparser
 
 class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGraph], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
     type Parser = NewParser[ParseResultGraph]
@@ -385,6 +381,8 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
     private var dotGraphGen = Option.empty[DotGraphGenerator[ParseResultGraph]]
 
     lazy val savingParser = new SavingParser(grammar, ParseResultTrueFunc, new DerivationSliceFunc(grammar, ParseResultTrueFunc))
+    lazy val ngrammar = nparser.NGrammar.fromGrammar(grammar)
+    lazy val nParser = new nparser.NaiveParser(ngrammar)
 
     def keyListener = new KeyListener() {
         def keyPressed(x: KeyEvent): Unit = {
@@ -400,11 +398,16 @@ class ParsingProcessVisualizer(grammar: Grammar, parser: NewParser[ParseResultGr
                 case 'S' | 's' =>
                     currentLocation match {
                         case ParsingContextPointer(gen) =>
-                            println("Saving Parser")
+                            println("Numbered Naive Parser")
                             object ReconstructedGraphViewer extends BasicGenerators
-                            savingParser.parse(source) match {
-                                case Left(parseResult: savingParser.SavingParsingCtx) =>
-                                    new ParseResultGraphViewer(parseResult.reconstructResult, ReconstructedGraphViewer.figureGenerator, ReconstructedGraphViewer.figureAppearances, ReconstructedGraphViewer.parseResultFigureGenerator).start()
+                            nParser.parse(source) match {
+                                case Left(ctx) =>
+                                    new nparser.ParseTreeConstructor(ParseResultGraphFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nParser.startNode, ctx.gen) match {
+                                        case Some(parseResult) =>
+                                            new ParseResultGraphViewer(parseResult, ReconstructedGraphViewer.figureGenerator, ReconstructedGraphViewer.figureAppearances, ReconstructedGraphViewer.parseResultFigureGenerator).start()
+                                        case None =>
+                                            println("No Result")
+                                    }
                                 case Right(error) =>
                                     println(error)
                             }

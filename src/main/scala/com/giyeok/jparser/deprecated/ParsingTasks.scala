@@ -1,7 +1,11 @@
-package com.giyeok.jparser
+package com.giyeok.jparser.deprecated
 
 import ParsingGraph._
-import Symbols._
+import com.giyeok.jparser.Symbols._
+import com.giyeok.jparser.ParseResult
+import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.ParseResultFunc
 
 trait ParsingTasks[R <: ParseResult, Graph <: ParsingGraph[R]] {
     val resultFunc: ParseResultFunc[R]
@@ -17,6 +21,23 @@ trait ParsingTasks[R <: ParseResult, Graph <: ParsingGraph[R]] {
         case s: AtomicNonterm => AtomicNode(s, gen)
         case s: Sequence => SequenceNode(s, 0, gen, gen)
     }
+}
+
+sealed trait ParseResultWithType[R <: ParseResult] {
+    val result: R
+    def mapResult(func: R => R): ParseResultWithType[R]
+}
+case class TermResult[R <: ParseResult](result: R) extends ParseResultWithType[R] {
+    def mapResult(func: R => R): TermResult[R] = TermResult(func(result))
+}
+case class SequenceResult[R <: ParseResult](result: R) extends ParseResultWithType[R] {
+    def mapResult(func: R => R): SequenceResult[R] = SequenceResult(func(result))
+}
+case class JoinResult[R <: ParseResult](result: R) extends ParseResultWithType[R] {
+    def mapResult(func: R => R): JoinResult[R] = JoinResult(func(result))
+}
+case class BindedResult[R <: ParseResult](result: R, symbol: Symbols.Symbol) extends ParseResultWithType[R] {
+    def mapResult(func: R => R): BindedResult[R] = BindedResult(func(result), symbol)
 }
 
 trait DeriveTasks[R <: ParseResult, Graph <: ParsingGraph[R]] extends ParsingTasks[R, Graph] {

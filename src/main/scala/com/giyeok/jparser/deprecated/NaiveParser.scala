@@ -1,11 +1,14 @@
-package com.giyeok.jparser
+package com.giyeok.jparser.deprecated
 
 import com.giyeok.jparser.Inputs.ConcreteInput
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.ParsingGraph.TermNode
-import com.giyeok.jparser.ParsingGraph.Condition
+import com.giyeok.jparser.deprecated.ParsingGraph.TermNode
+import com.giyeok.jparser.deprecated.ParsingGraph.Condition
 import com.giyeok.jparser.ParsingErrors.UnexpectedInput
-import com.giyeok.jparser.ParsingGraph.Node
+import com.giyeok.jparser.deprecated.ParsingGraph.Node
+import com.giyeok.jparser.ParseResult
+import com.giyeok.jparser.ParseResultFunc
+import com.giyeok.jparser.Grammar
 
 class NaiveParser[R <: ParseResult](grammar: Grammar, resultFunc: ParseResultFunc[R], derivationFunc: DerivationSliceFunc[R]) extends NewParser(grammar, resultFunc, derivationFunc) with DeriveTasks[R, CtxGraph[R]] {
     class NaiveParsingCtx(gen: Int, graph: Graph) extends ParsingCtx(gen, graph, Set()) {
