@@ -185,6 +185,11 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
         override def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {
                 case 'r' | 'R' => applyLayout(true)
+                case 't' | 'T' | 'f' | 'F' =>
+                    val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](figureGenerator, figureAppearances)
+                    r.asParseForest._1.trees foreach { tree =>
+                        new ParseResultTreeViewer(tree, figureGenerator, figureAppearances, parseResultFigureGenerator).start()
+                    }
                 case _ =>
             }
         }

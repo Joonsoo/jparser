@@ -14,8 +14,7 @@ import org.eclipse.swt.widgets.Shell
 import org.eclipse.draw2d.ToolbarLayout
 import org.eclipse.draw2d.Label
 import org.eclipse.jface.resource.JFaceResources
-import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
-import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
+import com.giyeok.jparser.visualize.GrammarDefinitionFigureGenerator
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer
@@ -85,14 +84,14 @@ trait Viewer {
                     val testCases = sortedTestCases(grammarList.getSelectionIndex())
                     val grammar = testCases.grammar
                     def generateHtml(): xml.Elem =
-                        new GrammarTextFigureGenerator[xml.Elem](grammar, new FigureGenerator.Appearances[xml.Elem] {
+                        new GrammarDefinitionFigureGenerator[xml.Elem](grammar, new FigureGenerator.Appearances[xml.Elem] {
                             val default = FigureGenerator.html.AppearanceByClass("default")
                             val nonterminal = FigureGenerator.html.AppearanceByClass("nonterminal")
                             val terminal = FigureGenerator.html.AppearanceByClass("terminal")
-                        }, FigureGenerator.html.Generator).grammarFigure
+                        }, FigureGenerator.html.Generator).grammarDefinitionFigure
                     grammar.usedSymbols foreach { s => println(s"used: $s") }
                     val (missingSymbols, wrongLookaheads, unusedSymbols) = (grammar.missingSymbols, grammar.wrongLookaheads, grammar.unusedSymbols)
-                    val textFig = new GrammarTextFigureGenerator[Figure](grammar, grammarFigAppearances, FigureGenerator.draw2d.Generator).grammarFigure
+                    val textFig = new GrammarDefinitionFigureGenerator[Figure](grammar, grammarFigAppearances, FigureGenerator.draw2d.Generator).grammarDefinitionFigure
                     if (missingSymbols.isEmpty && wrongLookaheads.isEmpty && unusedSymbols.isEmpty) {
                         grammarFig.setContents(textFig)
                     } else {

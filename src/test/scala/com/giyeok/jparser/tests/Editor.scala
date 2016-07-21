@@ -20,7 +20,6 @@ import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer
 import org.eclipse.swt.widgets.MessageBox
-import com.giyeok.jparser.visualize.DerivationGraphVisualizer
 import com.giyeok.jparser.Inputs.ConcreteInput
 import org.eclipse.swt.layout.FormLayout
 import org.eclipse.swt.layout.FormData

@@ -17,8 +17,8 @@ import com.giyeok.jparser.Symbols.Terminals
 import java.lang.Character.UnicodeBlock
 import FigureGenerator.Spacing
 
-class GrammarTextFigureGenerator[Fig](grammar: Grammar, ap: FigureGenerator.Appearances[Fig], fg: FigureGenerator.Generator[Fig]) {
-    def grammarFigure: Fig =
+class GrammarDefinitionFigureGenerator[Fig](grammar: Grammar, ap: FigureGenerator.Appearances[Fig], fg: FigureGenerator.Generator[Fig]) {
+    def grammarDefinitionFigure: Fig =
         fg.verticalFig(Spacing.Big, grammar.rules.toSeq map { d => ruleFigure((d._1, d._2.toSeq)) })
 
     val symgolFigureGenerator = new SymbolFigureGenerator[Fig](fg, ap)

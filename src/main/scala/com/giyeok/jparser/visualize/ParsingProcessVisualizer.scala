@@ -46,7 +46,7 @@ import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.ParsingErrors.ParsingError
 
-class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources) {
+class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure]) {
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -320,23 +320,7 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
         control
     }
 
-    val nodeFigGenerator = {
-        val figureGenerator: FigureGenerator.Generator[Figure] = FigureGenerator.draw2d.Generator
-
-        val figureAppearances = new FigureGenerator.Appearances[Figure] {
-            val default = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 10, SWT.NONE), ColorConstants.black)
-            val nonterminal = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.BOLD), ColorConstants.blue)
-            val terminal = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.red)
-
-            override val small = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 8, SWT.NONE), ColorConstants.gray)
-            override val kernelDot = FigureGenerator.draw2d.FontAppearance(new Font(null, "Monospace", 12, SWT.NONE), ColorConstants.green)
-            override val symbolBorder = FigureGenerator.draw2d.BorderAppearance(new LineBorder(ColorConstants.lightGray))
-        }
-
-        val symbolFigureGenerator = new SymbolFigureGenerator(figureGenerator, figureAppearances)
-
-        new NodeFigureGenerators(figureGenerator, figureAppearances, symbolFigureGenerator)
-    }
+    val nodeFigGenerator = resources.nodeFigureGenerators
     val controlCache = scala.collection.mutable.Map[Pointer, Control]()
 
     def controlAt(pointer: Pointer): Control = {
