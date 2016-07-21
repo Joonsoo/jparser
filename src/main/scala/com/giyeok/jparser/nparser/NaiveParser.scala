@@ -25,7 +25,7 @@ class NaiveParser(val grammar: NGrammar) extends ParsingTasks {
                 // 1. Lift
                 val liftedCtx: Context = rec(nextGen, termFinishes, ctx.emptyFinishes)
                 // 2. Trimming
-                val trimStarts = Set(startNode) ++ liftedCtx.finishes.involvedNodes ++ liftedCtx.progresses.involvedNodes
+                val trimStarts = (Set(startNode) ++ (liftedCtx.finishes.conditionNodes) ++ (liftedCtx.progresses.conditionNodes)) intersect liftedCtx.graph.nodes
                 val newTermNodes = termNodes(liftedCtx, nextGen)
                 val trimmedCtx: Context = trim(liftedCtx, trimStarts, newTermNodes)
                 // 3. Revert

@@ -63,6 +63,11 @@ class NodeFigureGenerators[Fig](
                     fig.textFig("Alive(", d),
                     nodeFig(grammar, node),
                     fig.textFig(s", $activeGen)", d)))
+            case Dead(node, activeGen) =>
+                fig.horizontalFig(Spacing.Small, Seq(
+                    fig.textFig("Dead(", d),
+                    nodeFig(grammar, node),
+                    fig.textFig(s", $activeGen)", d)))
             case Exclude(node) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("Exclude(", d),

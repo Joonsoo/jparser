@@ -75,23 +75,23 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                         case _ => false
                     }
                     val seq: Seq[Fig] =
-                        s.children.zipWithIndex flatMap { c =>
-                            val (childNode, idx) = c
+                        s.childrenAll.zipWithIndex flatMap { c =>
+                            val (child, idx) = c
                             if (s.symbol.contentIdx contains idx) {
                                 // if it is content child
-                                if (isLookaheadNode(childNode)) {
+                                if (isLookaheadNode(child)) {
                                     if (renderConf.renderLookaheadExcept) {
-                                        Some(ap.wsBorder.applyToFigure(parseNodeFig(childNode)))
+                                        Some(ap.wsBorder.applyToFigure(parseNodeFig(child)))
                                     } else {
                                         None
                                     }
                                 } else {
-                                    Some(ap.symbolBorder.applyToFigure(parseNodeFig(childNode)))
+                                    Some(ap.symbolBorder.applyToFigure(parseNodeFig(child)))
                                 }
                             } else {
                                 // if it is whitespace child
                                 if (renderConf.renderWS) {
-                                    Some(ap.wsBorder.applyToFigure(parseNodeFig(childNode)))
+                                    Some(ap.wsBorder.applyToFigure(parseNodeFig(child)))
                                 } else {
                                     None
                                 }

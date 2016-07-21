@@ -14,8 +14,7 @@ import org.eclipse.swt.widgets.Shell
 import org.eclipse.draw2d.ToolbarLayout
 import org.eclipse.draw2d.Label
 import org.eclipse.jface.resource.JFaceResources
-import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
-import com.giyeok.jparser.visualize.GrammarTextFigureGenerator
+import com.giyeok.jparser.visualize.GrammarDefinitionFigureGenerator
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer

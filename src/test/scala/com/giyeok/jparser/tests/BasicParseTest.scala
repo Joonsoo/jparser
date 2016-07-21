@@ -40,20 +40,19 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         }
     }
 
-    private def testReconstructParser(tests: GrammarTestCases, source: Inputs.ConcreteSource, result: ParseResultGraph) = {
-        val parser = tests.reconstructParser
-        parser.parse(source) match {
-            case Left(ctx) =>
-                assert(ctx.asInstanceOf[parser.SavingParsingCtx].reconstructResult == result)
-            case Right(error) => fail(error.msg)
-        }
-    }
+    //    private def testReconstructParser(tests: GrammarTestCases, source: Inputs.ConcreteSource, result: ParseResultGraph) = {
+    //        val parser = tests.reconstructParser
+    //        parser.parse(source) match {
+    //            case Left(ctx) =>
+    //                assert(ctx.asInstanceOf[parser.SavingParsingCtx].reconstructResult == result)
+    //            case Right(error) => fail(error.msg)
+    //        }
+    //    }
     private def testNparserNaive(tests: GrammarTestCases, source: Inputs.ConcreteSource, result: ParseResultGraph) = {
-        val ngrammar = tests.ngrammar
         val nparser = tests.nparserNaive
         nparser.parse(source) match {
             case Left(ctx) =>
-                val parseTree: Option[ParseResultGraph] = new ParseTreeConstructor(ParseResultGraphFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nparser.startNode, ctx.gen)
+                val parseTree: Option[ParseResultGraph] = new ParseTreeConstructor(ParseResultGraphFunc)(nparser.grammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nparser.startNode, ctx.gen)
             //assert(parseTree == result)
             case Right(error) => fail(error.msg)
         }
@@ -79,8 +78,8 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                     //                    trees foreach { checkParse(_, tests.grammar) }
                     checkParse(ctx.result.get, tests.grammar)
 
-                    log(s"testing ReconstructParser ${tests.grammar.name} on ${source.toCleanString}")
-                    testReconstructParser(tests, source, ctx.result.get)
+                    //                    log(s"testing ReconstructParser ${tests.grammar.name} on ${source.toCleanString}")
+                    //                    testReconstructParser(tests, source, ctx.result.get)
                     log(s"testing NumberedNaiveParser ${tests.grammar.name} on ${source.toCleanString}")
                     testNparserNaive(tests, source, ctx.result.get)
                 case Right(error) => fail(error.msg)
@@ -111,8 +110,8 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                     //                    trees foreach { checkParse(_, tests.grammar) }
                     checkParse(ctx.result.get, tests.grammar)
 
-                    log(s"testing ReconstructParser ${tests.grammar.name} on ${source.toCleanString}")
-                    testReconstructParser(tests, source, ctx.result.get)
+                    //                    log(s"testing ReconstructParser ${tests.grammar.name} on ${source.toCleanString}")
+                    //                    testReconstructParser(tests, source, ctx.result.get)
                     log(s"testing NumberedNaiveParser ${tests.grammar.name} on ${source.toCleanString}")
                     testNparserNaive(tests, source, ctx.result.get)
                 case Right(_) => assert(false)

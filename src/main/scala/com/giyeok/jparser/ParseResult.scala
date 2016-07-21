@@ -13,6 +13,9 @@ trait ParseResultFunc[R <: ParseResult] {
     def sequence(position: Int, symbol: Symbols.Sequence): R
     def append(sequence: R, child: R): R
 
+    // TODO cyclicBind
+    // def cyclicBind(symbol: Symbols.Symbol): R
+
     def merge(base: R, merging: R): R
     def merge(results: Iterable[R]): Option[R] =
         if (results.isEmpty) None

@@ -187,8 +187,40 @@ trait ParsingTasks {
         }
     }
     def trim(context: Context, starts: Set[Node], ends: Set[Node]): Context = {
-        // TODO
-        context
+        val graph = context.graph
+        assert((starts subsetOf graph.nodes) && (ends subsetOf graph.nodes))
+        val reachableFromStart = {
+            def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
+                queue match {
+                    case node +: rest =>
+                        val reachables = graph.edgesByStart(node) flatMap {
+                            case SimpleEdge(_, end) => Set(end)
+                            case JoinEdge(_, end, join) => Set(end, join)
+                        }
+                        val newReachables = reachables -- cc
+                        visit(newReachables.toSeq ++: rest, cc ++ newReachables)
+                    case List() => cc
+                }
+            visit(starts.toList, starts)
+        }
+        val reachableToEnds = {
+            def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
+                queue match {
+                    case node +: rest =>
+                        val reachables = graph.edgesByDest(node) collect {
+                            case SimpleEdge(start, _) => start
+                            case JoinEdge(start, end, join) if (cc contains end) && (cc contains join) => start
+                        }
+                        val newReachables = reachables -- cc
+                        visit(newReachables.toSeq ++: rest, cc ++ newReachables)
+                    case List() => cc
+                }
+            visit(ends.toList, ends)
+        }
+        val removing = (graph.nodes -- (reachableFromStart intersect reachableToEnds))
+        val newGraph = removing.foldLeft(graph) { _.removeNode(_) }
+        val newProgresses = (removing collect { case seq: SequenceNode => seq }).foldLeft(context.progresses) { _.removeNode(_) }
+        Context(newGraph, newProgresses, context.finishes)
     }
     def revert(nextGen: Int, context: Context, finishes: Results[Node], survived: Set[Node]): Context = {
         val newFinishes = context.finishes.mapCondition(_.evaluate(nextGen, finishes, survived)).trimFalse._1
