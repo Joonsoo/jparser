@@ -247,7 +247,9 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
                 case c if ('0' <= c && c <= '9') || (c == ' ' || c == ',' || c == '.') =>
                     unhighlightAllNodes()
                     inputAccumulator = inputAccumulator.accumulate(c.toChar, System.currentTimeMillis())
-                    inputAccumulator.textAsInts match {
+                    val textAsInts = inputAccumulator.textAsInts
+                    println(textAsInts)
+                    textAsInts match {
                         case Seq(symbolId) =>
                             nodesMap.keySet filter { node => node.symbolId == symbolId } foreach { highlightNode(_) }
                         case Seq(symbolId, beginGen) =>

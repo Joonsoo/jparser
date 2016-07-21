@@ -149,7 +149,8 @@ trait ParsingTasks {
 
         if (pointer + 1 == sequence.length) {
             // append되면 finish할 수 있는 상태
-            (cc, Seq(FinishTask(node, condition, None)))
+            val updatedConditions = cc.progresses.of(node).get map { conjunct(_, condition) }
+            (cc, updatedConditions.toSeq map { FinishTask(node, _, None) })
         } else {
             val updatedNode = SequenceNode(symbolId, pointer + 1, beginGen, nextGen)
             val updatedConditions = cc.progresses.of(node).get map { conjunct(_, condition) }

@@ -360,7 +360,12 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
                             }
                         transitionAt(gen) match {
                             case Left(transition) =>
-                                errorControl("TODO")
+                                stage match {
+                                    case 1 =>
+                                        new ZestGraphWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.liftedCtx)
+                                    case _ =>
+                                        errorControl("TODO")
+                                }
                             case Right(error) => errorControl(error.msg)
                         }
                 }
