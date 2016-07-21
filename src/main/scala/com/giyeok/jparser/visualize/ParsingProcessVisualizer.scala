@@ -361,10 +361,9 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
                         transitionAt(gen) match {
                             case Left(transition) =>
                                 stage match {
-                                    case 1 =>
-                                        new ZestGraphWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.liftedCtx)
-                                    case _ =>
-                                        errorControl("TODO")
+                                    case 1 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.baseCtx, transition.liftedCtx)
+                                    case 2 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.liftedCtx, transition.trimmedCtx)
+                                    case 3 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.trimmedCtx, transition.revertedCtx)
                                 }
                             case Right(error) => errorControl(error.msg)
                         }
@@ -375,7 +374,7 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
         }
     }
 
-    //    private var dotGraphGen = Option.empty[DotGraphGenerator[ParseResultGraph]]
+    private var dotGraphGen = Option.empty[DotGraphGenerator]
 
     def keyListener = new KeyListener() {
         def keyPressed(x: KeyEvent): Unit = {
@@ -388,48 +387,23 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
                 case SWT.END =>
                     if (lastValidLocation <= currentLocation && lastLocation != currentLocation) updateLocation(lastLocation) else updateLocation(lastValidLocation)
 
-                /*
-                case 'S' | 's' =>
-                    currentLocation match {
-                        case ParsingContextPointer(gen) =>
-                            println("Numbered Naive Parser")
-                            object ReconstructedGraphViewer extends BasicGenerators
-                            nParser.parse(source) match {
-                                case Left(ctx) =>
-                                    new nparser.ParseTreeConstructor(ParseResultGraphFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nParser.startNode, ctx.gen) match {
-                                        case Some(parseResult) =>
-                                            new ParseResultGraphViewer(parseResult, ReconstructedGraphViewer.figureGenerator, ReconstructedGraphViewer.figureAppearances, ReconstructedGraphViewer.parseResultFigureGenerator).start()
-                                        case None =>
-                                            println("No Result")
-                                    }
-                                case Right(error) =>
-                                    println(error)
-                            }
-
-                        case _ =>
-                            println("Invalid location")
-                    }
-                    */
-
-                /*
                 case 'D' | 'd' =>
                     if (dotGraphGen.isEmpty) {
-                        dotGraphGen = Some(new DotGraphGenerator(nodeIdCache))
+                        dotGraphGen = Some(new DotGraphGenerator(parser.grammar))
                     }
                     currentLocation match {
                         case ParsingContextPointer(gen) =>
                             contextAt(gen) match {
-                                case Left(ctx) => dotGraphGen.get.addGraph(ctx.graph)
+                                case Left(wctx) => dotGraphGen.get.addGraph(wctx.ctx.graph)
                                 case Right(_) => // nothing to do
                             }
                         case ParsingContextTransitionPointer(gen, stage) =>
                             transitionAt(gen) match {
                                 case Left(transition) =>
                                     stage match {
-                                        case 1 => dotGraphGen.get.addTransition(transition.firstStage.get._1.baseGraph, transition.firstStage.get._1.nextGraph)
-                                        case 2 => dotGraphGen.get.addTransition(transition.firstStage.get._2.baseGraph, transition.firstStage.get._2.nextGraph)
-                                        case 3 => dotGraphGen.get.addTransition(transition.secondStage.get._1.baseGraph, transition.secondStage.get._1.nextGraph)
-                                        case 4 => dotGraphGen.get.addTransition(transition.secondStage.get._2.baseGraph, transition.secondStage.get._2.nextGraph)
+                                        case 1 => dotGraphGen.get.addTransition(transition.baseCtx.graph, transition.liftedCtx.graph)
+                                        case 2 => dotGraphGen.get.addTransition(transition.liftedCtx.graph, transition.trimmedCtx.graph)
+                                        case 3 => dotGraphGen.get.addTransition(transition.trimmedCtx.graph, transition.revertedCtx.graph)
                                     }
                                 case Right(_) => // nothing to do
                             }
@@ -440,7 +414,6 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
                 case 'F' | 'f' =>
                     dotGraphGen = None
                     println("DOT graph generator cleared")
-                    */
 
                 case code =>
                     println(s"keyPressed: $code")

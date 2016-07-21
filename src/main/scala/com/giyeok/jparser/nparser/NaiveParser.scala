@@ -37,7 +37,7 @@ class NaiveParser(val grammar: NGrammar) extends ParsingTasks {
                     (evaluated ++ newConditions) filter { _._2 != False }
                 }
                 val nextCtx = WrappedContext(nextGen, revertedCtx, input +: _inputs, lastFinishes +: _history, conditionFateNext)
-                Left((ProceedDetail(liftedCtx, trimmedCtx, revertedCtx), nextCtx))
+                Left((ProceedDetail(ctx, liftedCtx, trimmedCtx, revertedCtx), nextCtx))
             }
         }
 
@@ -48,7 +48,7 @@ class NaiveParser(val grammar: NGrammar) extends ParsingTasks {
             }
     }
 
-    case class ProceedDetail(liftedCtx: Context, trimmedCtx: Context, revertedCtx: Context)
+    case class ProceedDetail(baseCtx: Context, liftedCtx: Context, trimmedCtx: Context, revertedCtx: Context)
 
     def process(nextGen: Int, task: Task, cc: Context): (Context, Seq[Task]) =
         task match {

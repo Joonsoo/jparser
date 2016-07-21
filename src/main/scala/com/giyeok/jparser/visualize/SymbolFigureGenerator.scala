@@ -95,4 +95,12 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
                 fig.horizontalFig(Spacing.Small, Seq(fig.textFig("EL(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
         }
     }
+
+    def sequenceFig(sequence: Sequence, pointer: Int): Fig = {
+        def dot = fig.textFig("\u2022", ap.kernelDot)
+        val (p, f) = sequence.seq.splitAt(pointer)
+        val f0 = fig.horizontalFig(Spacing.Medium, p map { symbolFig _ })
+        val f1 = fig.horizontalFig(Spacing.Medium, f map { symbolFig _ })
+        fig.horizontalFig(Spacing.Small, Seq(f0, dot, f1))
+    }
 }

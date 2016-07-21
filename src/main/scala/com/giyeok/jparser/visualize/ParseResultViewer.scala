@@ -113,8 +113,7 @@ class ParseResultDerivationsSetViewer(r: ParseResultDerivationsSet, figureGenera
     }
 }
 
-class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGenerator.Generator[Figure], val figureAppearances: FigureGenerator.Appearances[Figure], val symbolFigureGenerator: SymbolFigureGenerator[Figure])
-        extends KernelFigureGenerator[Figure] {
+class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGenerator.Generator[Figure], val figureAppearances: FigureGenerator.Appearances[Figure], val symbolFigureGenerator: SymbolFigureGenerator[Figure]) {
     import ParseResultGraph._
     import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
@@ -139,7 +138,7 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
             case node: Sequence =>
                 g.horizontalFig(Spacing.None, Seq(
                     g.textFig(s"[${node.range}]", ap.default),
-                    sequenceFigure(node.symbol, node.pointer)))
+                    sfg.sequenceFig(node.symbol, node.pointer)))
             case node @ Bind(_, _, symbol) =>
                 g.verticalFig(Spacing.None, Seq(
                     g.textFig(s"${node.range}", ap.default),

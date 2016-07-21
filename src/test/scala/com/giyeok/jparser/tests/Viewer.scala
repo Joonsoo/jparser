@@ -20,7 +20,6 @@ import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer
 import org.eclipse.swt.widgets.MessageBox
-import com.giyeok.jparser.visualize.DerivationGraphVisualizer
 import com.giyeok.jparser.Inputs.ConcreteInput
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser
@@ -192,7 +191,7 @@ trait Viewer {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedTestCases(grammarList.getSelectionIndex()).grammar
                     val source = Inputs.fromString(testText.getText())
-                    DerivationGraphVisualizer.start(grammar, display, new Shell(display))
+                    // TODO
                 }
             }
         })

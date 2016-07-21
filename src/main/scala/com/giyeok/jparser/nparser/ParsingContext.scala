@@ -16,7 +16,7 @@ object ParsingContext {
         def shiftGen(gen: Int) = SequenceNode(symbolId, pointer, beginGen + gen, endGen + gen)
     }
 
-    sealed trait Edge
+    sealed trait Edge { val start: Node; val end: Node }
     case class SimpleEdge(start: Node, end: Node) extends Edge
     case class JoinEdge(start: Node, end: Node, join: Node) extends Edge
 
@@ -84,7 +84,7 @@ object ParsingContext {
             Results(nodeConditions mapValues { _ map { c => func(c) } })
         def trimFalse: (Results[N], Set[N]) = {
             val filteredNodeConditions = nodeConditions mapValues { _ filter { _ != EligCondition.False } }
-            val falseNodes = (filteredNodeConditions filter { _._2 == Set(EligCondition.False) }).keySet
+            val falseNodes = (filteredNodeConditions filter { _._2.isEmpty }).keySet
             (Results(filteredNodeConditions -- falseNodes), falseNodes)
         }
     }

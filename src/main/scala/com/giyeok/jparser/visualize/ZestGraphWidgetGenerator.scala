@@ -170,12 +170,16 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
 
     setLayout(new FillLayout())
 
-    addContext(grammar, context)
-    applyLayout(false)
+    def initialize(): Unit = {
+        addContext(grammar, context)
+        applyLayout(false)
+    }
+    initialize()
 
     // finishable node highlight
     val tooltips = scala.collection.mutable.Map[Node, Seq[Figure]]()
 
+    // finish, progress 조건 툴팁으로 표시
     context.finishes.nodeConditions foreach { kv =>
         val (node, conditions) = kv
         if (!(nodesMap contains node)) {
@@ -200,16 +204,12 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
         tooltipFig.setBackgroundColor(ColorConstants.white)
         nodesMap(node).getFigure().setToolTip(tooltipFig)
     }
-    // TODO finishable node 더블클릭시 result 보여주기
 
+    // Interactions
     override def addKeyListener(keyListener: KeyListener): Unit = graphCtrl.addKeyListener(keyListener)
     override def addMouseListener(mouseListener: MouseListener): Unit = graphCtrl.addMouseListener(mouseListener)
-}
 
-class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: NaiveParser#WrappedContext)
-        extends ZestGraphWidget(parent, style, fig, grammar, context.ctx) {
-
-    val inputMaxInterval = 500
+    val inputMaxInterval = 2000
     case class InputAccumulator(textSoFar: String, lastTime: Long) {
         def accumulate(char: Char, thisTime: Long) =
             if (thisTime - lastTime < inputMaxInterval) InputAccumulator(textSoFar + char, thisTime) else InputAccumulator("" + char, thisTime)
@@ -232,7 +232,6 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
             seq.reverse
         }
     }
-
     var inputAccumulator = InputAccumulator("", 0)
 
     addKeyListener(new KeyListener() {
@@ -240,10 +239,6 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
             e.keyCode match {
                 case 'R' | 'r' =>
                     applyLayout(true)
-                case 'F' | 'f' =>
-                    context.conditionFate foreach { kv =>
-                        println(s"${kv._1} -> ${kv._2}")
-                    }
                 case c if ('0' <= c && c <= '9') || (c == ' ' || c == ',' || c == '.') =>
                     unhighlightAllNodes()
                     inputAccumulator = inputAccumulator.accumulate(c.toChar, System.currentTimeMillis())
@@ -260,6 +255,46 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
                     }
                 case SWT.ESC =>
                     inputAccumulator = InputAccumulator("", 0)
+                case _ =>
+            }
+        }
+        def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
+    })
+}
+
+class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: Context, trans: Context) extends ZestGraphWidget(parent, style, fig, grammar, trans) {
+    override def initialize(): Unit = {
+        addContext(grammar, base)
+        addContext(grammar, trans)
+        (base.graph.nodes -- trans.graph.nodes) foreach { removedNode =>
+            val shownNode = nodesMap(removedNode)
+            shownNode.getFigure().setBorder(new LineBorder(ColorConstants.lightGray))
+        }
+        (base.graph.edges -- trans.graph.edges) foreach { removedEdge =>
+            edgesMap(removedEdge) foreach { _.setLineStyle(SWT.LINE_DASH) }
+        }
+        (trans.graph.nodes -- base.graph.nodes) foreach { newNode =>
+            val shownNode = nodesMap(newNode)
+            shownNode.getFigure().setBorder(new LineBorder(3))
+            val preferredSize = shownNode.getFigure().getPreferredSize()
+            shownNode.setSize(preferredSize.width, preferredSize.height)
+        }
+        (trans.graph.edges -- base.graph.edges) foreach { newEdge =>
+            edgesMap(newEdge) foreach { _.setLineWidth(3) }
+        }
+        applyLayout(false)
+    }
+}
+
+class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: NaiveParser#WrappedContext)
+        extends ZestGraphWidget(parent, style, fig, grammar, context.ctx) {
+    addKeyListener(new KeyListener() {
+        def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
+            e.keyCode match {
+                case 'F' | 'f' =>
+                    context.conditionFate foreach { kv =>
+                        println(s"${kv._1} -> ${kv._2}")
+                    }
                 case _ =>
             }
         }
