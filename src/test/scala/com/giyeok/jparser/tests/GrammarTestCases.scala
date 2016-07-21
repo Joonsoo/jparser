@@ -2,15 +2,10 @@ package com.giyeok.jparser.tests
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.deprecated.NewParser
-import com.giyeok.jparser.deprecated.DerivationSliceFunc
 import com.giyeok.jparser.ParseForestFunc
-import com.giyeok.jparser.deprecated.NaiveParser
 import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.deprecated.SavingParser
-import com.giyeok.jparser.deprecated.ParseResultTrueFunc
 import com.giyeok.jparser.nparser
 import com.giyeok.jparser.nparser.NGrammar
 
@@ -38,34 +33,8 @@ trait GrammarTestCases extends Samples {
     type R = ParseResultGraph
     val resultFunc = ParseResultGraphFunc
 
-    lazy val naiveParser: NewParser[R] = {
-        val dgraph = new DerivationSliceFunc(grammar, resultFunc)
-        new NaiveParser(grammar, resultFunc, dgraph)
-    }
-
-    lazy val newParser: NewParser[R] = {
-        val dgraph = new DerivationSliceFunc(grammar, resultFunc)
-        new NewParser(grammar, resultFunc, dgraph)
-    }
-
-    lazy val reconstructParser: SavingParser = {
-        val dgraph = new DerivationSliceFunc(grammar, ParseResultTrueFunc)
-        new SavingParser(grammar, ParseResultTrueFunc, dgraph)
-    }
-
     lazy val ngrammar = NGrammar.fromGrammar(grammar)
     lazy val nparserNaive: nparser.NaiveParser = {
         new nparser.NaiveParser(ngrammar)
-    }
-}
-
-trait PreprocessedParser extends GrammarTestCases {
-    override lazy val newParser = {
-        val dfunc = new DerivationSliceFunc(grammar, ParseResultGraphFunc)
-        val startTime = System.currentTimeMillis()
-        println("Preprocess begins")
-        dfunc.preprocess
-        println(s"Preprocess done in ${System.currentTimeMillis() - startTime} ms")
-        new NewParser(grammar, ParseResultGraphFunc, dfunc)
     }
 }

@@ -4,7 +4,6 @@ object ParsingErrors {
     import Inputs._
 
     abstract class ParsingError {
-        val next: Input
         val msg: String
     }
     object ParsingError {
@@ -20,5 +19,9 @@ object ParsingErrors {
             case Virtual(name, location) => s"Unexpected virtual input $name at $location"
             case AbstractInput(chars) => throw new AssertionError("Wrong Abstract Input")
         }
+    }
+
+    case object UnexpectedError extends ParsingError {
+        val msg = "Unexpected Error??"
     }
 }

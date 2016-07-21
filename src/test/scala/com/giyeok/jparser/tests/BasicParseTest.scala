@@ -3,9 +3,7 @@ package com.giyeok.jparser.tests
 import com.giyeok.jparser.Inputs
 import org.scalatest.FlatSpec
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.deprecated.NewParser
 import com.giyeok.jparser.ParseForestFunc
-import com.giyeok.jparser.deprecated.DerivationSliceFunc
 import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.ParseResultTree
 import com.giyeok.jparser.ParseResultGraph
@@ -13,10 +11,12 @@ import com.giyeok.jparser.ParseResultDerivationsSet
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.ParsingErrors.ParsingError
+import com.giyeok.jparser.ParsingErrors
 
 class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends FlatSpec {
     def log(s: String): Unit = {
-        // println(s)
+        println(s)
     }
 
     private def testNGrammar(ngrammar: NGrammar) = {
@@ -48,40 +48,25 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
     //            case Right(error) => fail(error.msg)
     //        }
     //    }
-    private def testNparserNaive(tests: GrammarTestCases, source: Inputs.ConcreteSource, result: ParseResultGraph) = {
+    def parseNumberedParserNaive(tests: GrammarTestCases, source: Inputs.ConcreteSource): Either[ParseResultGraph, ParsingError] = {
         val nparser = tests.nparserNaive
         nparser.parse(source) match {
             case Left(ctx) =>
-                val parseTree: Option[ParseResultGraph] = new ParseTreeConstructor(ParseResultGraphFunc)(nparser.grammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nparser.startNode, ctx.gen)
-            //assert(parseTree == result)
-            case Right(error) => fail(error.msg)
+                val resultOpt = new ParseTreeConstructor(ParseResultGraphFunc)(nparser.grammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nparser.startNode, ctx.gen)
+                resultOpt match {
+                    case Some(result) => Left(result)
+                    case None => Right(ParsingErrors.UnexpectedError)
+                }
+            case Right(error) => Right(error)
         }
     }
 
-    def parserOf(tests: GrammarTestCases) = tests.naiveParser
-
     private def testCorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = parserOf(tests).parse(source)
+        val result = parseNumberedParserNaive(tests, source)
         it should s"${tests.grammar.name} properly parsed on '${source.toCleanString}'" in {
             result match {
-                case Left(ctx) =>
-                    assert(ctx.result.isDefined)
-                    //                    val trees = ctx.result.get.trees
-                    //                    if (trees.size != 1) {
-                    //                        trees.zipWithIndex foreach { result =>
-                    //                            log(s"=== ${result._2} ===")
-                    //                            log(result._1.toHorizontalHierarchyString)
-                    //                        }
-                    //                    }
-                    //                    assert(trees.size == 1)
-                    //                    trees foreach { checkParse(_, tests.grammar) }
-                    checkParse(ctx.result.get, tests.grammar)
-
-                    //                    log(s"testing ReconstructParser ${tests.grammar.name} on ${source.toCleanString}")
-                    //                    testReconstructParser(tests, source, ctx.result.get)
-                    log(s"testing NumberedNaiveParser ${tests.grammar.name} on ${source.toCleanString}")
-                    testNparserNaive(tests, source, ctx.result.get)
+                case Left(result) => checkParse(result, tests.grammar)
                 case Right(error) => fail(error.msg)
             }
         }
@@ -89,32 +74,22 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
 
     private def testIncorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = parserOf(tests).parse(source)
+        val result = parseNumberedParserNaive(tests, source)
         it should s"${tests.grammar.name} failed to parse on '${source.toCleanString}'" in {
             result match {
-                case Left(ctx) => assert(ctx.result.isEmpty)
-                case Right(_) => assert(true)
+                case Left(result) => fail("??")
+                case Right(error) => assert(true)
             }
         }
     }
 
     private def testAmbiguous(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = parserOf(tests).parse(source)
+        val result = parseNumberedParserNaive(tests, source)
         it should s"${tests.grammar.name} is ambiguous on '${source.toCleanString}'" in {
             result match {
-                case Left(ctx) =>
-                    assert(ctx.result.isDefined)
-                    //                    val trees = ctx.result.get.trees
-                    //                    assert(trees.size > 1)
-                    //                    trees foreach { checkParse(_, tests.grammar) }
-                    checkParse(ctx.result.get, tests.grammar)
-
-                    //                    log(s"testing ReconstructParser ${tests.grammar.name} on ${source.toCleanString}")
-                    //                    testReconstructParser(tests, source, ctx.result.get)
-                    log(s"testing NumberedNaiveParser ${tests.grammar.name} on ${source.toCleanString}")
-                    testNparserNaive(tests, source, ctx.result.get)
-                case Right(_) => assert(false)
+                case Left(result) => checkParse(result, tests.grammar)
+                case Right(error) => fail(error.msg)
             }
         }
     }
