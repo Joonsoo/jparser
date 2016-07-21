@@ -218,13 +218,13 @@ trait ParsingTasks {
             visit(ends.toList, ends)
         }
         val removing = (graph.nodes -- (reachableFromStart intersect reachableToEnds))
-        val newGraph = removing.foldLeft(graph) { _.removeNode(_) }
+        val newGraph = graph.removeNodes(removing)
         val newProgresses = (removing collect { case seq: SequenceNode => seq }).foldLeft(context.progresses) { _.removeNode(_) }
         Context(newGraph, newProgresses, context.finishes)
     }
     def revert(nextGen: Int, context: Context, finishes: Results[Node], survived: Set[Node]): Context = {
         val newFinishes = context.finishes.mapCondition(_.evaluate(nextGen, finishes, survived)).trimFalse._1
         val (newProgresses, falseNodes) = context.progresses.mapCondition(_.evaluate(nextGen, finishes, survived)).trimFalse
-        context.updateFinishes(newFinishes).updateProgresses(newProgresses).updateGraph(graph => falseNodes.foldLeft(graph) { _.removeNode(_) })
+        context.updateFinishes(newFinishes).updateProgresses(newProgresses).updateGraph(_.removeNodes(falseNodes.asInstanceOf[Set[Node]]))
     }
 }

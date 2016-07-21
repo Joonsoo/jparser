@@ -16,7 +16,7 @@ import com.giyeok.jparser.ParsingErrors
 
 class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends FlatSpec {
     def log(s: String): Unit = {
-        println(s)
+        // println(s)
     }
 
     private def testNGrammar(ngrammar: NGrammar) = {

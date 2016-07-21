@@ -34,11 +34,11 @@ object ParsingContext {
             case JoinEdge(start, end, join) =>
                 Graph(nodes, edges + edge, edgesByStart.updated(start, edgesByStart(start) + edge), edgesByDest.updated(end, edgesByDest(end) + edge).updated(join, edgesByDest(join) + edge))
         }
-        def removeNode(node: Node) = {
-            val involvedEdges = edgesByStart(node) ++ edgesByDest(node)
-            val edgesByStart1 = edgesByStart mapValues { _ -- involvedEdges }
-            val edgesByDest1 = edgesByDest mapValues { _ -- involvedEdges }
-            Graph(nodes - node, edges -- involvedEdges, edgesByStart1 - node, edgesByDest1 - node)
+        def removeNodes(removing: Set[Node]) = {
+            val involvedEdges = removing flatMap { n => edgesByStart(n) ++ edgesByDest(n) }
+            val edgesByStart1 = (edgesByStart -- removing) mapValues { _ -- involvedEdges }
+            val edgesByDest1 = (edgesByDest -- removing) mapValues { _ -- involvedEdges }
+            Graph(nodes -- removing, edges -- involvedEdges, edgesByStart1, edgesByDest1)
         }
     }
     object Graph {
