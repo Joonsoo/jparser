@@ -161,10 +161,12 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
     r.edges foreach {
         case BindEdge(start, end) =>
             new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, nodeMap(start), nodeMap(end))
-        case AppendEdge(start, end, appendType) =>
+        case AppendEdge(start, end, isBase) =>
             val style = ZestStyles.CONNECTIONS_DIRECTED
             val conn = new GraphConnection(graph, style, nodeMap(start), nodeMap(end))
-            conn.setLineColor(ColorConstants.green)
+            if (isBase) {
+                conn.setLineColor(ColorConstants.green)
+            }
         case JoinEdge(start, end, join) =>
             new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, nodeMap(start), nodeMap(end))
             new GraphConnection(graph, ZestStyles.CONNECTIONS_DIRECTED, nodeMap(start), nodeMap(join))
