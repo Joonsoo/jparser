@@ -172,6 +172,21 @@ trait ParsingTasks {
         }
     }
 
+    def process(nextGen: Int, task: Task, cc: Context): (Context, Seq[Task]) =
+        task match {
+            case task: DeriveTask => deriveTask(nextGen, task, cc)
+            case task: ProgressTask => progressTask(nextGen, task, cc)
+            case task: FinishTask => finishTask(nextGen, task, cc)
+        }
+
+    def rec(nextGen: Int, tasks: List[Task], cc: Context): Context =
+        tasks match {
+            case task +: rest =>
+                val (ncc, newTasks) = process(nextGen, task, cc)
+                rec(nextGen, newTasks ++: rest, ncc)
+            case List() => cc
+        }
+
     def finishableTermNodes(context: Context, nextGen: Int, input: Inputs.Input): Set[Node] = {
         def acceptable(symbolId: Int): Boolean = grammar.nsymbols(symbolId) match {
             case Terminal(terminal) => terminal accept input
