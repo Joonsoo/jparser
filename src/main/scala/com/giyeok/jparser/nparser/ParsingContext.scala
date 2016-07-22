@@ -36,10 +36,32 @@ object ParsingContext {
                 Graph(nodes, edges + edge, edgesByStart.updated(start, edgesByStart(start) + edge), edgesByDest.updated(end, edgesByDest(end) + edge).updated(join, edgesByDest(join) + edge))
         }
         def removeNodes(removing: Set[Node]) = {
-            val involvedEdges = removing flatMap { n => edgesByStart(n) ++ edgesByDest(n) }
-            val edgesByStart1 = (edgesByStart -- removing) mapValues { _ -- involvedEdges }
-            val edgesByDest1 = (edgesByDest -- removing) mapValues { _ -- involvedEdges }
-            Graph(nodes -- removing, edges -- involvedEdges, edgesByStart1, edgesByDest1)
+            removing.foldLeft(this) { _ removeNode _ }
+        }
+        def removeNode(removing: Node) = {
+            val edges1 = edges -- edgesByStart(removing) -- edgesByDest(removing)
+            val (edgesByStart1, edgesByDest1) = {
+                var (edgesByStart1, edgesByDest1) = (edgesByStart, edgesByDest)
+                edgesByStart(removing) foreach {
+                    case edge @ SimpleEdge(_, end) =>
+                        edgesByDest1 = edgesByDest1.updated(end, edgesByDest1(end) - edge)
+                    case edge @ JoinEdge(_, end, join) =>
+                        edgesByDest1 = edgesByDest1.updated(end, edgesByDest1(end) - edge)
+                        edgesByDest1 = edgesByDest1.updated(join, edgesByDest1(join) - edge)
+                }
+                edgesByDest(removing) foreach {
+                    case edge @ SimpleEdge(start, _) =>
+                        edgesByStart1 = edgesByStart1.updated(start, edgesByStart1(start) - edge)
+                    case edge @ JoinEdge(start, `removing`, other) =>
+                        edgesByStart1 = edgesByStart1.updated(start, edgesByStart1(start) - edge)
+                        edgesByDest1 = edgesByDest1.updated(other, edgesByDest1(other) - edge)
+                    case edge @ JoinEdge(start, other, `removing`) =>
+                        edgesByStart1 = edgesByStart1.updated(start, edgesByStart1(start) - edge)
+                        edgesByDest1 = edgesByDest1.updated(other, edgesByDest1(other) - edge)
+                }
+                (edgesByStart1, edgesByDest1)
+            }
+            Graph(nodes - removing, edges1, edgesByStart1 - removing, edgesByDest1 - removing)
         }
         def shiftGen(gen: Int): Graph = {
             def shiftGen(edge: Edge, gen: Int): Edge = edge match {
