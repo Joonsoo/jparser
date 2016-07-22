@@ -39,29 +39,29 @@ object ParsingContext {
             removing.foldLeft(this) { _ removeNode _ }
         }
         def removeNode(removing: Node) = {
-            val edges1 = edges -- edgesByStart(removing) -- edgesByDest(removing)
-            val (edgesByStart1, edgesByDest1) = {
-                var (edgesByStart1, edgesByDest1) = (edgesByStart, edgesByDest)
-                edgesByStart(removing) foreach {
-                    case edge @ SimpleEdge(_, end) =>
-                        edgesByDest1 = edgesByDest1.updated(end, edgesByDest1(end) - edge)
-                    case edge @ JoinEdge(_, end, join) =>
-                        edgesByDest1 = edgesByDest1.updated(end, edgesByDest1(end) - edge)
-                        edgesByDest1 = edgesByDest1.updated(join, edgesByDest1(join) - edge)
+            val removedEdges = edges -- edgesByStart(removing) -- edgesByDest(removing)
+            val (removedEdgesByStart, removedEdgesByDest) = {
+                val edgesByDest0 = edgesByStart(removing).foldLeft(edgesByDest) { (ccDest, edge) =>
+                    edge match {
+                        case SimpleEdge(_, end) =>
+                            ccDest + (end -> (ccDest(end) - edge))
+                        case JoinEdge(_, end, join) =>
+                            ccDest + (end -> (ccDest(end) - edge)) + (join -> (ccDest(join) - edge))
+                    }
                 }
-                edgesByDest(removing) foreach {
-                    case edge @ SimpleEdge(start, _) =>
-                        edgesByStart1 = edgesByStart1.updated(start, edgesByStart1(start) - edge)
-                    case edge @ JoinEdge(start, `removing`, other) =>
-                        edgesByStart1 = edgesByStart1.updated(start, edgesByStart1(start) - edge)
-                        edgesByDest1 = edgesByDest1.updated(other, edgesByDest1(other) - edge)
-                    case edge @ JoinEdge(start, other, `removing`) =>
-                        edgesByStart1 = edgesByStart1.updated(start, edgesByStart1(start) - edge)
-                        edgesByDest1 = edgesByDest1.updated(other, edgesByDest1(other) - edge)
+                edgesByDest(removing).foldLeft((edgesByStart, edgesByDest0)) { (cc, edge) =>
+                    val (ccStart, ccDest) = cc
+                    edge match {
+                        case edge @ SimpleEdge(start, _) =>
+                            (ccStart + (start -> (ccStart(start) - edge)), ccDest)
+                        case edge @ JoinEdge(start, `removing`, other) =>
+                            (ccStart + (start -> (ccStart(start) - edge)), ccDest + (other -> (ccDest(other) - edge)))
+                        case edge @ JoinEdge(start, other, _) =>
+                            (ccStart + (start -> (ccStart(start) - edge)), ccDest + (other -> (ccDest(other) - edge)))
+                    }
                 }
-                (edgesByStart1, edgesByDest1)
             }
-            Graph(nodes - removing, edges1, edgesByStart1 - removing, edgesByDest1 - removing)
+            Graph(nodes - removing, removedEdges, removedEdgesByStart - removing, removedEdgesByDest - removing)
         }
         def shiftGen(gen: Int): Graph = {
             def shiftGen(edge: Edge, gen: Int): Edge = edge match {
