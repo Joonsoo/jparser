@@ -72,6 +72,22 @@ object ParsingContext {
                 edgesByStart map { kv => (kv._1.shiftGen(gen)) -> (kv._2 map { shiftGen(_, gen) }) },
                 edgesByDest map { kv => (kv._1.shiftGen(gen)) -> (kv._2 map { shiftGen(_, gen) }) })
         }
+        def replaceNode(original: Node, replaced: Node): Graph = {
+            // TODO removeNode하는거랑 비슷하게 하면 될듯
+            val replacedEdges: Set[Edge] = ???
+            val (replacedEdgesByStart, replacedEdgesByDest) = {
+                (???, ???)
+            }
+            Graph(nodes - original + replaced, replacedEdges, replacedEdgesByStart, replacedEdgesByDest)
+        }
+        def merge(other: Graph): Graph = {
+            def mergeEdgesMap(map: Map[Node, Set[Edge]], merging: Map[Node, Set[Edge]]): Map[Node, Set[Edge]] =
+                merging.foldLeft(map) { (cc, i) =>
+                    val (node, edges) = i
+                    if (!(cc contains node)) cc + (node -> edges) else cc + (node -> (cc(node) ++ edges))
+                }
+            Graph(nodes ++ other.nodes, edges ++ other.edges, mergeEdgesMap(edgesByStart, other.edgesByStart), mergeEdgesMap(edgesByDest, other.edgesByDest))
+        }
     }
     object Graph {
         def apply(nodes: Set[Node], edges: Set[Edge]): Graph = {
@@ -125,6 +141,15 @@ object ParsingContext {
         def removeNode(node: N): Results[N] = Results(nodeConditions - node)
         def shiftGen(gen: Int): Results[N] =
             Results(nodeConditions map { kv => (kv._1.shiftGen(gen).asInstanceOf[N]) -> (kv._2 map { _.shiftGen(gen) }) })
+        def replaceNode(original: Node, replaced: Node): Results[N] = {
+            // TODO 여기서는 Condition의 node중에는 original이 없을듯?
+            assert(!(conditionNodes.toSet contains original))
+            ???
+        }
+        def merge(other: Results[N]): Results[N] = {
+            // TODO 충돌이 생기는 경우는 어떻게 하지?
+            ???
+        }
     }
     object Results {
         def apply[N <: Node](): Results[N] = Results(Map())
@@ -149,6 +174,12 @@ object ParsingContext {
         def emptyFinishes = Context(graph, progresses, Results())
 
         def shiftGen(gen: Int) = Context(graph.shiftGen(gen), progresses.shiftGen(gen), finishes.shiftGen(gen))
+        def replaceNode(original: Node, replaced: Node): Context =
+            Context(graph.replaceNode(original, replaced), progresses.replaceNode(original, replaced), finishes.replaceNode(original, replaced))
+        def merge(otherCtx: Context): Context = {
+            val Context(otherGraph, otherProgresses, otherFinishes) = otherCtx
+            Context(graph.merge(otherGraph), progresses.merge(otherProgresses), finishes.merge(otherFinishes))
+        }
     }
 }
 

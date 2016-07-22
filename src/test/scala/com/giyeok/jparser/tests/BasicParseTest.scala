@@ -40,15 +40,8 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         }
     }
 
-    //    private def testReconstructParser(tests: GrammarTestCases, source: Inputs.ConcreteSource, result: ParseResultGraph) = {
-    //        val parser = tests.reconstructParser
-    //        parser.parse(source) match {
-    //            case Left(ctx) =>
-    //                assert(ctx.asInstanceOf[parser.SavingParsingCtx].reconstructResult == result)
-    //            case Right(error) => fail(error.msg)
-    //        }
-    //    }
-    def parseNumberedParserNaive(tests: GrammarTestCases, source: Inputs.ConcreteSource): Either[ParseResultGraph, ParsingError] = {
+    def parse(tests: GrammarTestCases, source: Inputs.ConcreteSource): Either[ParseResultGraph, ParsingError] = {
+        // 여기서 nparser에 테스트하고싶은 파서 종류를 지정하면 됨
         val nparser = tests.nparserNaive
         nparser.parse(source) match {
             case Left(ctx) =>
@@ -63,7 +56,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
 
     private def testCorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = parseNumberedParserNaive(tests, source)
+        val result = parse(tests, source)
         it should s"${tests.grammar.name} properly parsed on '${source.toCleanString}'" in {
             result match {
                 case Left(result) => checkParse(result, tests.grammar)
@@ -74,7 +67,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
 
     private def testIncorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = parseNumberedParserNaive(tests, source)
+        val result = parse(tests, source)
         it should s"${tests.grammar.name} failed to parse on '${source.toCleanString}'" in {
             result match {
                 case Left(result) => fail("??")
@@ -85,7 +78,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
 
     private def testAmbiguous(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = parseNumberedParserNaive(tests, source)
+        val result = parse(tests, source)
         it should s"${tests.grammar.name} is ambiguous on '${source.toCleanString}'" in {
             result match {
                 case Left(result) => checkParse(result, tests.grammar)

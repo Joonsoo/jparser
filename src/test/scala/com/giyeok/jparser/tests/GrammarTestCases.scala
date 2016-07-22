@@ -34,7 +34,7 @@ trait GrammarTestCases extends Samples {
     val resultFunc = ParseResultGraphFunc
 
     lazy val ngrammar = NGrammar.fromGrammar(grammar)
-    lazy val nparserNaive: nparser.NaiveParser = {
-        new nparser.NaiveParser(ngrammar)
-    }
+    lazy val nparserNaive = new nparser.NaiveParser(ngrammar)
+    lazy val nparserPreprocessed = new nparser.PreprocessedParser(ngrammar)
+    lazy val nparserPreprocessedPrefinished = new nparser.PreprocessedPrefinishedParser(ngrammar)
 }
