@@ -42,11 +42,14 @@ import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser
+import com.giyeok.jparser.nparser.Parser
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.ParsingErrors.ParsingError
+import com.giyeok.jparser.nparser.Parser.WrappedContext
+import com.giyeok.jparser.nparser.Parser.ProceedDetail
 
-class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure]) {
+class ParsingProcessVisualizer(title: String, parser: Parser, source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure]) {
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -282,16 +285,16 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
         }
     }
 
-    val contextCache = scala.collection.mutable.Map[Int, Either[NaiveParser#WrappedContext, ParsingError]]()
-    val transitionCache = scala.collection.mutable.Map[Int, Either[NaiveParser#ProceedDetail, ParsingError]]()
-    def contextAt(gen: Int): Either[NaiveParser#WrappedContext, ParsingError] =
+    val contextCache = scala.collection.mutable.Map[Int, Either[WrappedContext, ParsingError]]()
+    val transitionCache = scala.collection.mutable.Map[Int, Either[ProceedDetail, ParsingError]]()
+    def contextAt(gen: Int): Either[WrappedContext, ParsingError] =
         contextCache get gen match {
             case Some(cached) => cached
             case None =>
-                val context: Either[NaiveParser#WrappedContext, ParsingError] = if (gen == 0) Left(parser.initialContext) else {
+                val context: Either[WrappedContext, ParsingError] = if (gen == 0) Left(parser.initialContext) else {
                     contextAt(gen - 1) match {
                         case Left(prevCtx) =>
-                            prevCtx.proceedDetail(source(gen - 1)) match {
+                            parser.proceedDetail(prevCtx, source(gen - 1)) match {
                                 case Left((detail, nextCtx)) =>
                                     transitionCache(gen - 1) = Left(detail)
                                     Left(nextCtx)
@@ -305,7 +308,7 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
                 contextCache(gen) = context
                 context
         }
-    def transitionAt(gen: Int): Either[NaiveParser#ProceedDetail, ParsingError] =
+    def transitionAt(gen: Int): Either[ProceedDetail, ParsingError] =
         transitionCache get gen match {
             case Some(cached) => cached
             case None =>
@@ -421,7 +424,7 @@ class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[C
 }
 
 object ParsingProcessVisualizer {
-    def start(title: String, parser: NaiveParser, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+    def start(title: String, parser: Parser, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
         new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources).start()
     }
     def start(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {

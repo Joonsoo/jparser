@@ -1,6 +1,7 @@
 package com.giyeok.jparser.nparser
 
 import NGrammar._
+import com.giyeok.jparser.Inputs.Input
 
 object ParsingContext {
     sealed trait Node {

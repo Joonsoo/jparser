@@ -1,8 +1,8 @@
 package com.giyeok.jparser
 
-object ParsingErrors {
-    import Inputs._
+import com.giyeok.jparser.Inputs._
 
+object ParsingErrors {
     abstract class ParsingError {
         val msg: String
     }

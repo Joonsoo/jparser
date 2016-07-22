@@ -25,6 +25,7 @@ import com.giyeok.jparser.ParseResultGraphFunc
 import org.eclipse.swt.widgets.Shell
 import org.eclipse.draw2d.FigureCanvas
 import com.giyeok.jparser.nparser.NaiveParser
+import com.giyeok.jparser.nparser.Parser.WrappedContext
 
 trait AbstractZestGraphWidget extends Control {
     val graphViewer: GraphViewer
@@ -286,7 +287,7 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
     }
 }
 
-class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: NaiveParser#WrappedContext)
+class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: WrappedContext)
         extends ZestGraphWidget(parent, style, fig, grammar, context.ctx) {
     addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
