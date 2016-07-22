@@ -12,7 +12,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveWrappedContext] wit
     // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
 
     val initialContext = {
-        val ctx0 = rec(0, List(DeriveTask(startNode)), Context(Graph(Set(startNode), Set()), Results[SequenceNode](), Results[Node]()))
+        val ctx0 = rec(0, List(DeriveTask(startNode)), Context(Graph(Set(startNode), Set()), Results(), Results()))
         val ctx = revert(0, ctx0, ctx0.finishes, ctx0.graph.nodes)
         new NaiveWrappedContext(0, ctx, List(), List(), (ctx.finishes.conditions map { c => (c -> c) }).toMap)
     }

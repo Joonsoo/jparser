@@ -41,6 +41,15 @@ object ParsingContext {
             val edgesByDest1 = (edgesByDest -- removing) mapValues { _ -- involvedEdges }
             Graph(nodes -- removing, edges -- involvedEdges, edgesByStart1, edgesByDest1)
         }
+        def shiftGen(gen: Int): Graph = {
+            def shiftGen(edge: Edge, gen: Int): Edge = edge match {
+                case SimpleEdge(start, end) => SimpleEdge(start.shiftGen(gen), end.shiftGen(gen))
+                case JoinEdge(start, end, join) => JoinEdge(start.shiftGen(gen), end.shiftGen(gen), join.shiftGen(gen))
+            }
+            Graph(nodes map { _.shiftGen(gen) }, edges map { shiftGen(_, gen) },
+                edgesByStart map { kv => (kv._1.shiftGen(gen)) -> (kv._2 map { shiftGen(_, gen) }) },
+                edgesByDest map { kv => (kv._1.shiftGen(gen)) -> (kv._2 map { shiftGen(_, gen) }) })
+        }
     }
     object Graph {
         def apply(nodes: Set[Node], edges: Set[Edge]): Graph = {
@@ -92,6 +101,8 @@ object ParsingContext {
             (Results(filteredNodeConditions -- falseNodes), falseNodes)
         }
         def removeNode(node: N): Results[N] = Results(nodeConditions - node)
+        def shiftGen(gen: Int): Results[N] =
+            Results(nodeConditions map { kv => (kv._1.shiftGen(gen).asInstanceOf[N]) -> (kv._2 map { _.shiftGen(gen) }) })
     }
     object Results {
         def apply[N <: Node](): Results[N] = Results(Map())
@@ -114,6 +125,8 @@ object ParsingContext {
             updateFinishes(finishesUpdateFunc(finishes))
 
         def emptyFinishes = Context(graph, progresses, Results())
+
+        def shiftGen(gen: Int) = Context(graph.shiftGen(gen), progresses.shiftGen(gen), finishes.shiftGen(gen))
     }
 }
 
