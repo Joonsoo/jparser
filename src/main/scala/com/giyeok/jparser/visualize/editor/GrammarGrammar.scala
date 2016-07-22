@@ -94,7 +94,6 @@ object GrammarGrammar extends Grammar {
     class NewGrammar(val name: String, val rules: ListMap[String, ListSet[Symbols.Symbol]], val startSymbol: Symbols.Nonterminal) extends Grammar
 
     def translate(tree: ParseResultTree.Node): Option[Grammar] = {
-        println(tree.toHorizontalHierarchyString())
         tree match {
             case BindNode(Start, BindNode(Nonterminal("Grammar"), seq: SequenceNode)) =>
                 seq.children(1) match {

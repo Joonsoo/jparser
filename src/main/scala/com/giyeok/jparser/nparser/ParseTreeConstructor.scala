@@ -22,6 +22,9 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     }
     // TODO finishes의 node set을 symbolId 기준으로 정렬해 놓으면 더 빠르게 할 수 있을듯
 
+    def reconstruct(): Option[R] = {
+        reconstruct(SymbolNode(grammar.startSymbol, 0), input.length)
+    }
     def reconstruct(node: Node, gen: Int): Option[R] = {
         if (finishes(gen) contains node) Some(reconstruct(node, gen, Set())) else None
     }

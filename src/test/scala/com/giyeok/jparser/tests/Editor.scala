@@ -23,17 +23,18 @@ import com.giyeok.jparser.Inputs.ConcreteInput
 import org.eclipse.swt.layout.FormLayout
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
-import com.giyeok.jparser.deprecated.NewParser
 import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.deprecated.DerivationSliceFunc
 import com.giyeok.jparser.visualize.editor.GrammarGrammar
 import com.giyeok.jparser.ParseForestFunc
 import org.eclipse.swt.events.SelectionListener
 import org.eclipse.jface.dialogs.MessageDialog
 import com.giyeok.jparser.ParsingErrors.UnexpectedInput
+import com.giyeok.jparser.nparser.NaiveParser
+import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.nparser.ParseTreeConstructor
 
 trait Editor {
-    val parser = new NewParser(GrammarGrammar, ParseForestFunc, new DerivationSliceFunc(GrammarGrammar, ParseForestFunc))
+    val parser = new NaiveParser(NGrammar.fromGrammar(GrammarGrammar))
 
     def start(): Unit = {
         val display = Display.getDefault()
@@ -122,8 +123,8 @@ trait Editor {
                     case SWT.Selection =>
                         val grammarDef = grammarText.getText()
                         parser.parse(grammarDef) match {
-                            case Left(parseResult) =>
-                                parseResult.result match {
+                            case Left(wctx) =>
+                                new ParseTreeConstructor(ParseForestFunc)(parser.grammar)(wctx.inputs, wctx.history, wctx.conditionFate).reconstruct() match {
                                     case Some(forest) =>
                                         assert(forest.trees.size == 1)
                                         val tree = forest.trees.head
