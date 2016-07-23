@@ -74,12 +74,26 @@ object ParsingContext {
         }
         def replaceNode(original: Node, replaced: Node): Graph = {
             def replace(node: Node) = if (node == original) replaced else node
-            def replaceEdge(edge: Edge): Edge = edge match {
-                case SimpleEdge(start, end) => SimpleEdge(replace(start), replace(end))
-                case JoinEdge(start, end, join) => JoinEdge(replace(start), replace(end), replace(join))
+            val replacedNodes = nodes - original + replaced
+            var replacedEdges = edges
+            var replacedEdgesByStart = edgesByStart - original + (replaced -> Set[Edge]())
+            var replacedEdgesByDest = edgesByDest - original + (replaced -> Set[Edge]())
+            (edgesByStart(original) ++ edgesByDest(original)) foreach {
+                case edge @ SimpleEdge(start, end) =>
+                    val (rstart, rend) = (replace(start), replace(end))
+                    val replacedEdge = SimpleEdge(rstart, rend)
+                    replacedEdges = replacedEdges - edge + replacedEdge
+                    replacedEdgesByStart += (rstart -> (replacedEdgesByStart(rstart) - edge + replacedEdge))
+                    replacedEdgesByDest += (rend -> (replacedEdgesByDest(rend) - edge + replacedEdge))
+                case edge @ JoinEdge(start, end, join) =>
+                    val (rstart, rend, rjoin) = (replace(start), replace(end), replace(join))
+                    val replacedEdge = JoinEdge(rstart, rend, rjoin)
+                    replacedEdges = replacedEdges - edge + replacedEdge
+                    replacedEdgesByStart += (rstart -> (replacedEdgesByStart(rstart) - edge + replacedEdge))
+                    replacedEdgesByDest += (rend -> (replacedEdgesByDest(rend) - edge + replacedEdge))
+                    replacedEdgesByDest += (rjoin -> (replacedEdgesByDest(rjoin) - edge + replacedEdge))
             }
-            // TODO 성능 개선
-            Graph(nodes - original + replaced, edges map { replaceEdge _ }, edgesByStart map { kv => replace(kv._1) -> (kv._2 map { replaceEdge _ }) }, edgesByDest map { kv => replace(kv._1) -> (kv._2 map { replaceEdge _ }) })
+            Graph(replacedNodes, replacedEdges, replacedEdgesByStart, replacedEdgesByDest)
         }
         def merge(other: Graph): Graph = {
             def mergeEdgesMap(map: Map[Node, Set[Edge]], merging: Map[Node, Set[Edge]]): Map[Node, Set[Edge]] =
@@ -144,7 +158,7 @@ object ParsingContext {
         def shiftGen(gen: Int): Results[N] =
             Results(nodeConditions map { kv => (kv._1.shiftGen(gen).asInstanceOf[N]) -> (kv._2 map { _.shiftGen(gen) }) })
         def replaceNode(original: N, replaced: N): Results[N] = {
-            // TODO 여기서는 Condition의 node중에는 original이 없는지 확인 - 없어야 될 것 같은데
+            // replaceNode는 preprocessed parser에서만 사용하는데, 그렇게 사용하는 경우 Condition의 node중에는 original이 없어야 함
             // assert(!(conditionNodes.toSet contains original))
             val replacedNodeConditions = nodeConditions get original match {
                 case Some(conditions) => (nodeConditions - original) + (replaced -> conditions)
