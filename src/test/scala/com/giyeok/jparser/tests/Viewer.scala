@@ -32,6 +32,7 @@ import com.giyeok.jparser.visualize.ZestParsingContextWidget
 import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
 import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
 import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
+import com.giyeok.jparser.nparser.SlicedDerivationPreprocessor
 
 object AllViewer extends Viewer {
     val allTests = Set(
@@ -204,7 +205,7 @@ trait Viewer {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedTestCases(grammarList.getSelectionIndex()).grammar
                     val ngrammar = NGrammar.fromGrammar(grammar)
-                    new PreprocessedDerivationViewer(grammar, ngrammar, new DerivationPreprocessor(ngrammar), BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
+                    new PreprocessedDerivationViewer(grammar, ngrammar, new SlicedDerivationPreprocessor(ngrammar), BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
                 }
             }
         })

@@ -78,28 +78,32 @@ class DerivationPreprocessor(val grammar: NGrammar) extends ParsingTasks {
         }
     }
 
+    def symbolTermNodesOf(symbolId: Int): Set[SymbolNode] = {
+        symbolTermNodes get symbolId match {
+            case Some(termNodes) => termNodes
+            case None =>
+                val termNodes: Set[SymbolNode] = symbolDerivationOf(symbolId).context.graph.nodes collect {
+                    case node @ SymbolNode(symbolId, _) if grammar.nsymbols(symbolId).isInstanceOf[NGrammar.Terminal] => node
+                }
+                symbolTermNodes(symbolId) = termNodes
+                termNodes
+        }
+    }
+    def sequenceTermNodesOf(sequenceId: Int, pointer: Int): Set[SymbolNode] = {
+        sequenceTermNodes get (sequenceId, pointer) match {
+            case Some(termNodes) => termNodes
+            case None =>
+                val termNodes: Set[SymbolNode] = sequenceDerivationOf(sequenceId, pointer).context.graph.nodes collect {
+                    case node @ SymbolNode(symbolId, beginGen) if grammar.nsymbols(symbolId).isInstanceOf[NGrammar.Terminal] => node
+                }
+                sequenceTermNodes((sequenceId, pointer)) = termNodes
+                termNodes
+        }
+    }
     def termNodesOf(node: Node): Set[SymbolNode] = {
         node match {
-            case node @ SymbolNode(symbolId, beginGen) =>
-                symbolTermNodes get symbolId match {
-                    case Some(termNodes) => termNodes
-                    case None =>
-                        val termNodes: Set[SymbolNode] = symbolDerivationOf(symbolId).context.graph.nodes collect {
-                            case node @ SymbolNode(symbolId, beginGen) if grammar.nsymbols(symbolId).isInstanceOf[NGrammar.Terminal] => node
-                        }
-                        symbolTermNodes(symbolId) = termNodes
-                        termNodes
-                }
-            case node @ SequenceNode(sequenceId, pointer, _, endGen) =>
-                sequenceTermNodes get (sequenceId, pointer) match {
-                    case Some(termNodes) => termNodes
-                    case None =>
-                        val termNodes: Set[SymbolNode] = sequenceDerivationOf(sequenceId, pointer).context.graph.nodes collect {
-                            case node @ SymbolNode(symbolId, beginGen) if grammar.nsymbols(symbolId).isInstanceOf[NGrammar.Terminal] => node
-                        }
-                        sequenceTermNodes((sequenceId, pointer)) = termNodes
-                        termNodes
-                }
+            case node @ SymbolNode(symbolId, _) => symbolTermNodesOf(symbolId)
+            case node @ SequenceNode(sequenceId, pointer, _, _) => sequenceTermNodesOf(sequenceId, pointer)
         }
     }
 }
@@ -196,6 +200,10 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
 }
 
 class SlicedDerivationPreprocessor(grammar: NGrammar) extends DerivationPreprocessor(grammar) {
+    // TODO slice가 TermGroupDesc->Preprocessed가 아니고 Preprocessed + finish 혹은 progress task를 만들기 위한 정보가 되어야 할듯
+    private val symbolSliced = scala.collection.mutable.Map[Int, Map[TermGroupDesc, Preprocessed]]()
+    private val sequenceSliced = scala.collection.mutable.Map[(Int, Int), Map[TermGroupDesc, Preprocessed]]()
+
     def termGroupsOf(terminals: Set[Terminal]): Set[TermGroupDesc] = {
         val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
         val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
@@ -223,8 +231,37 @@ class SlicedDerivationPreprocessor(grammar: NGrammar) extends DerivationPreproce
 
         (charTermGroups ++ virtTermGroups) filterNot { _.isEmpty }
     }
-    def derivationOf(node: Node, input: Input): Option[Preprocessed] = {
-        ???
+
+    def slice(derivation: Preprocessed, termNodes: Set[SymbolNode]): Map[TermGroupDesc, Preprocessed] = {
+        val terminals = termNodes map { node => grammar.nsymbols(node.symbolId).asInstanceOf[NGrammar.Terminal].symbol }
+        val termGroups = termGroupsOf(terminals)
+        (termGroups map { termGroup => (termGroup -> derivation) }).toMap
+    }
+    def symbolSliceOf(symbolId: Int): Map[TermGroupDesc, Preprocessed] = {
+        symbolSliced get symbolId match {
+            case Some(slicedMap) => slicedMap
+            case None =>
+                val slicedMap = slice(symbolDerivationOf(symbolId), symbolTermNodesOf(symbolId))
+                symbolSliced(symbolId) = slicedMap
+                slicedMap
+        }
+    }
+    def sequenceSliceOf(sequenceId: Int, pointer: Int): Map[TermGroupDesc, Preprocessed] = {
+        sequenceSliced get (sequenceId, pointer) match {
+            case Some(slicedMap) => slicedMap
+            case None =>
+                val slicedMap = slice(sequenceDerivationOf(sequenceId, pointer), sequenceTermNodesOf(sequenceId, pointer))
+                sequenceSliced((sequenceId, pointer)) = slicedMap
+                slicedMap
+        }
+    }
+    def sliceOf(node: Node, input: Input): Option[Preprocessed] = {
+        val slicedMap = node match {
+            case SymbolNode(symbolId, _) => symbolSliceOf(symbolId)
+            case SequenceNode(sequenceId, pointer, _, _) => sequenceSliceOf(sequenceId, pointer)
+        }
+        assert((slicedMap filter { _._1 contains input }).size <= 1)
+        slicedMap find { _._1 contains input } map { _._2 }
     }
 }
 

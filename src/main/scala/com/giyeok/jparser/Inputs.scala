@@ -15,16 +15,17 @@ object Inputs {
         def toShortString: String
         def isEmpty: Boolean
 
-        def contains(input: ConcreteInput): Boolean
+        def contains(input: Input): Boolean
     }
     sealed trait CharacterTermGroupDesc extends TermGroupDesc {
         def +(other: CharacterTermGroupDesc): CharacterTermGroupDesc
         def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc
 
-        def contains(input: ConcreteInput): Boolean = input match {
+        def contains(input: Input): Boolean = input match {
             case Character(char, _) => contains(char)
             case Virtual(_, _) => false
+            case _ => ???
         }
         def contains(char: Char): Boolean
     }
@@ -123,9 +124,10 @@ object Inputs {
         def toShortString: String = virtualNames.toSeq.sorted mkString ","
         def isEmpty = virtualNames.isEmpty
 
-        def contains(input: ConcreteInput) = input match {
+        def contains(input: Input) = input match {
             case Character(_, _) => false
             case Virtual(name, _) => virtualNames contains name
+            case _ => ???
         }
     }
 

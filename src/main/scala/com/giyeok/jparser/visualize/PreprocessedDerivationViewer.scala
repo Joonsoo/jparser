@@ -25,8 +25,12 @@ import com.giyeok.jparser.nparser.ParsingContext.Node
 import com.giyeok.jparser.nparser.ParsingContext.SymbolNode
 import com.giyeok.jparser.nparser.ParsingContext.SequenceNode
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
+import org.eclipse.swt.widgets.List
+import com.giyeok.jparser.Inputs.TermGroupDesc
+import com.giyeok.jparser.nparser.SlicedDerivationPreprocessor
+import org.eclipse.swt.events.SelectionListener
 
-class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivationPreprocessor: DerivationPreprocessor, nodeFig: NodeFigureGenerators[Figure], display: Display, shell: Shell) extends Composite(shell, SWT.NONE) {
+class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivationPreprocessor: SlicedDerivationPreprocessor, nodeFig: NodeFigureGenerators[Figure], display: Display, shell: Shell) extends Composite(shell, SWT.NONE) {
 
     setLayout(new FillLayout())
 
@@ -70,7 +74,7 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivat
             val (symbolId, symbol) = kv
             symbol match {
                 case symbol: NAtomicSymbol =>
-                    fig.add(addListener(boxing(nodeFig.symbol.symbolFig(symbol.symbol)), symbolId, 0))
+                    fig.add(addListener(boxing(nodeFig.symbol.symbolFig(symbol.symbol)), symbolId, -1))
                 case symbol: Sequence =>
                     if (symbol.sequence.isEmpty) {
                         fig.add(addListener(boxing(nodeFig.symbol.sequenceFig(symbol.symbol, 0)), symbolId, 0))
@@ -85,33 +89,70 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivat
     }
     kernelsList.setContents(kernelsListFig)
 
+    val termGroupsList = new List(leftPanel.lowerPanel, SWT.NONE)
+
     val graphView = new Composite(splitPanel.rightPanel, SWT.NONE)
     val graphStackLayout = new StackLayout()
     graphView.setLayout(graphStackLayout)
 
-    val graphControlsMap = scala.collection.mutable.Map[(Int, Int), PreprocessedDerivationGraphWidget]()
-    def graphControlOf(symbolId: Int, pointer: Int): PreprocessedDerivationGraphWidget = {
-        graphControlsMap get (symbolId, pointer) match {
+    val graphsMap = scala.collection.mutable.Map[(Int, Int), (Preprocessed, Map[TermGroupDesc, Preprocessed])]()
+    val graphControlsMap = scala.collection.mutable.Map[(Int, Int, Option[TermGroupDesc]), PreprocessedDerivationGraphWidget]()
+    def graphControlOf(symbolId: Int, pointer: Int, termGroup: Option[TermGroupDesc]): PreprocessedDerivationGraphWidget = {
+        graphControlsMap get (symbolId, pointer, termGroup) match {
             case Some(control) => control
             case None =>
-                val control =
-                    if (ngrammar.nsymbols contains symbolId) new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, derivationPreprocessor.symbolDerivationOf(symbolId))
-                    else new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, derivationPreprocessor.sequenceDerivationOf(symbolId, pointer))
-                graphControlsMap((symbolId, pointer)) = control
+                val preprocessed = termGroup match {
+                    case Some(termGroup) => graphsMap((symbolId, pointer))._2(termGroup)
+                    case None => graphsMap((symbolId, pointer))._1
+                }
+                val control = new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, preprocessed)
+                graphControlsMap((symbolId, pointer, termGroup)) = control
                 control
         }
     }
 
     var shownKernel = (-1, -1)
-    def showKernel(symbolId: Int, pointer: Int): Unit = {
-        kernelFigsMap get shownKernel foreach { _.setBackgroundColor(ColorConstants.white) }
+    var shownTermGroupList = Seq[Option[TermGroupDesc]]()
+    var shownTermGroup = Option.empty[TermGroupDesc]
 
-        shownKernel = (symbolId, pointer)
+    def updateHighlight(newKernel: (Int, Int)): Unit = {
+        kernelFigsMap get shownKernel foreach { _.setBackgroundColor(ColorConstants.white) }
+        shownKernel = newKernel
         kernelFigsMap(shownKernel).setBackgroundColor(ColorConstants.lightGray)
-        graphStackLayout.topControl = graphControlOf(symbolId, pointer)
+    }
+    def updateTermGroups(newTermGroups: Seq[TermGroupDesc]): Unit = {
+        shownTermGroup = None
+        termGroupsList.removeAll()
+        shownTermGroupList = None +: (newTermGroups map { Some(_) })
+        termGroupsList.add("All")
+        newTermGroups foreach { termGroup => termGroupsList.add(termGroup.toShortString) }
+        termGroupsList.select(0)
+    }
+    def showKernel(symbolId: Int, pointer: Int): Unit = {
+        updateHighlight(symbolId, pointer)
+        val (derivation, slice) = if (pointer < 0) {
+            (derivationPreprocessor.symbolDerivationOf(symbolId), derivationPreprocessor.symbolSliceOf(symbolId))
+        } else {
+            (derivationPreprocessor.sequenceDerivationOf(symbolId, pointer), derivationPreprocessor.sequenceSliceOf(symbolId, pointer))
+        }
+        graphsMap((symbolId, pointer)) = (derivation, slice)
+        updateTermGroups(slice.keys.toSeq)
+        updateGraphView(graphControlOf(symbolId, pointer, None))
+    }
+    def updateGraphView(widget: PreprocessedDerivationGraphWidget): Unit = {
+        graphStackLayout.topControl = widget
         graphView.layout()
     }
-    showKernel(ngrammar.startSymbol, 0)
+    termGroupsList.addSelectionListener(new SelectionListener() {
+        def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {}
+        def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
+            val idx = termGroupsList.getSelectionIndex()
+            if (idx >= 0 && idx < shownTermGroupList.length) {
+                updateGraphView(graphControlOf(shownKernel._1, shownKernel._2, shownTermGroupList(idx)))
+            }
+        }
+    })
+    showKernel(ngrammar.startSymbol, -1)
 
     def start(): Unit = {
         shell.setText("Derivation Graph")
