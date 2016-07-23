@@ -29,9 +29,9 @@ import org.eclipse.swt.widgets.List
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.nparser.SlicedDerivationPreprocessor
 import org.eclipse.swt.events.SelectionListener
+import org.eclipse.swt.widgets.Control
 
 class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivationPreprocessor: SlicedDerivationPreprocessor, nodeFig: NodeFigureGenerators[Figure], display: Display, shell: Shell) extends Composite(shell, SWT.NONE) {
-
     setLayout(new FillLayout())
 
     val splitPanel = new VerticalResizableSplittedComposite(this, SWT.NONE, 20)
@@ -96,16 +96,18 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivat
     graphView.setLayout(graphStackLayout)
 
     val graphsMap = scala.collection.mutable.Map[(Int, Int), (Preprocessed, Map[TermGroupDesc, Preprocessed])]()
-    val graphControlsMap = scala.collection.mutable.Map[(Int, Int, Option[TermGroupDesc]), PreprocessedDerivationGraphWidget]()
-    def graphControlOf(symbolId: Int, pointer: Int, termGroup: Option[TermGroupDesc]): PreprocessedDerivationGraphWidget = {
+    val graphControlsMap = scala.collection.mutable.Map[(Int, Int, Option[TermGroupDesc]), Control]()
+    def graphControlOf(symbolId: Int, pointer: Int, termGroup: Option[TermGroupDesc]): Control = {
         graphControlsMap get (symbolId, pointer, termGroup) match {
             case Some(control) => control
             case None =>
-                val preprocessed = termGroup match {
-                    case Some(termGroup) => graphsMap((symbolId, pointer))._2(termGroup)
-                    case None => graphsMap((symbolId, pointer))._1
+                val (derivation, sliceMap) = graphsMap((symbolId, pointer))
+                val control = termGroup match {
+                    case Some(termGroup) =>
+                        new PreprocessedSlicedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, derivation, sliceMap(termGroup))
+                    case None =>
+                        new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, derivation)
                 }
-                val control = new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, preprocessed)
                 graphControlsMap((symbolId, pointer, termGroup)) = control
                 control
         }
@@ -139,7 +141,7 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivat
         updateTermGroups(slice.keys.toSeq)
         updateGraphView(graphControlOf(symbolId, pointer, None))
     }
-    def updateGraphView(widget: PreprocessedDerivationGraphWidget): Unit = {
+    def updateGraphView(widget: Control): Unit = {
         graphStackLayout.topControl = widget
         graphView.layout()
     }
@@ -181,13 +183,19 @@ object PreprocessedDerivationGraphWidget {
 }
 
 class PreprocessedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, preprocessed: Preprocessed)
-        extends ZestGraphWidget(parent, style, PreprocessedDerivationGraphWidget.baseNodeFigGen(fig), grammar, preprocessed.context) {
+        extends ZestGraphWidget(parent, style, PreprocessedDerivationGraphWidget.baseNodeFigGen(fig), grammar, preprocessed.context) with TipNodes {
     override def initialize(): Unit = {
         super.initialize()
-        val shownBaseNode = nodesMap(preprocessed.baseNode)
-        shownBaseNode.getFigure().setBorder(new LineBorder(ColorConstants.orange, 3))
-        val size = shownBaseNode.getFigure().getPreferredSize
-        shownBaseNode.setSize(size.width, size.height)
+        setTipNodeBorder(preprocessed.baseNode)
+    }
+}
+
+class PreprocessedSlicedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, preprocessed: Preprocessed, sliced: Preprocessed)
+        extends ZestGraphTransitionWidget(parent, style, PreprocessedDerivationGraphWidget.baseNodeFigGen(fig), grammar, preprocessed.context, sliced.context) with TipNodes {
+    assert(preprocessed.baseNode == sliced.baseNode)
+    override def initialize(): Unit = {
+        super.initialize()
+        setTipNodeBorder(preprocessed.baseNode)
     }
 }
 

@@ -197,6 +197,15 @@ trait ParsingTasks {
             case node @ SymbolNode(symbolId, `nextGen`) if acceptable(symbolId) => node
         }
     }
+    def finishableTermNodes(context: Context, nextGen: Int, input: Inputs.TermGroupDesc): Set[Node] = {
+        def acceptable(symbolId: Int): Boolean = grammar.nsymbols(symbolId) match {
+            case Terminal(terminal) => terminal accept input
+            case _ => false
+        }
+        context.graph.nodes collect {
+            case node @ SymbolNode(symbolId, `nextGen`) if acceptable(symbolId) => node
+        }
+    }
     def termNodes(context: Context, nextGen: Int): Set[Node] = {
         context.graph.nodes collect {
             case node @ SymbolNode(symbolId, `nextGen`) if grammar.nsymbols(symbolId).isInstanceOf[Terminal] => node

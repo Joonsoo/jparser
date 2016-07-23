@@ -232,10 +232,18 @@ class SlicedDerivationPreprocessor(grammar: NGrammar) extends DerivationPreproce
         (charTermGroups ++ virtTermGroups) filterNot { _.isEmpty }
     }
 
-    def slice(derivation: Preprocessed, termNodes: Set[SymbolNode]): Map[TermGroupDesc, Preprocessed] = {
+    private def slice(derivation: Preprocessed, termNodes: Set[SymbolNode]): Map[TermGroupDesc, Preprocessed] = {
         val terminals = termNodes map { node => grammar.nsymbols(node.symbolId).asInstanceOf[NGrammar.Terminal].symbol }
         val termGroups = termGroupsOf(terminals)
-        (termGroups map { termGroup => (termGroup -> derivation) }).toMap
+        (termGroups map { termGroup =>
+            val finishables = finishableTermNodes(derivation.context, 0, termGroup)
+            val finishTasks = finishables.toList map { FinishTask(_, True, None) }
+            val cc = Preprocessed(derivation.baseNode, derivation.context.emptyFinishes, Seq(), Seq())
+            val sliced = recNoBase(derivation.baseNode, 1, finishTasks, cc)
+            // TODO trim
+            // TODO baseNode에 대한 derive도 모아야됨 (recNoBase면 안됨)
+            (termGroup -> sliced)
+        }).toMap
     }
     def symbolSliceOf(symbolId: Int): Map[TermGroupDesc, Preprocessed] = {
         symbolSliced get symbolId match {

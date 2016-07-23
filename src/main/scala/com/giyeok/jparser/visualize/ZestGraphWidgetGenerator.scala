@@ -326,18 +326,24 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
     })
 }
 
+trait TipNodes extends AbstractZestGraphWidget {
+    def setTipNodeBorder(node: Node): Unit = {
+        val shownNode = nodesMap(node)
+        shownNode.getFigure().setBorder(new LineBorder(ColorConstants.orange, 3))
+        val size = shownNode.getFigure().getPreferredSize()
+        shownNode.setSize(size.width, size.height)
+    }
+}
+
 class ZestDeriveTipParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: DeriveTipsWrappedContext)
-        extends ZestParsingContextWidget(parent, style, fig, grammar, context) {
+        extends ZestParsingContextWidget(parent, style, fig, grammar, context) with TipNodes {
     override def initialize(): Unit = {
         super.initialize()
         context.deriveTips foreach { deriveTip =>
             if (!(nodesMap contains deriveTip)) {
                 println(s"Error! $deriveTip @ ${context.gen}")
             } else {
-                val shownDeriveTip = nodesMap(deriveTip)
-                shownDeriveTip.getFigure().setBorder(new LineBorder(ColorConstants.orange, 3))
-                val size = shownDeriveTip.getFigure().getPreferredSize()
-                shownDeriveTip.setSize(size.width, size.height)
+                setTipNodeBorder(deriveTip)
             }
         }
     }
