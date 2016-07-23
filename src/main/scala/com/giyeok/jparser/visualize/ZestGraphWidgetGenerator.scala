@@ -331,10 +331,14 @@ class ZestDeriveTipParsingContextWidget(parent: Composite, style: Int, fig: Node
     override def initialize(): Unit = {
         super.initialize()
         context.deriveTips foreach { deriveTip =>
-            val shownDeriveTip = nodesMap(deriveTip)
-            shownDeriveTip.getFigure().setBorder(new LineBorder(ColorConstants.orange, 3))
-            val size = shownDeriveTip.getFigure().getPreferredSize()
-            shownDeriveTip.setSize(size.width, size.height)
+            if (!(nodesMap contains deriveTip)) {
+                println(s"Error! $deriveTip @ ${context.gen}")
+            } else {
+                val shownDeriveTip = nodesMap(deriveTip)
+                shownDeriveTip.getFigure().setBorder(new LineBorder(ColorConstants.orange, 3))
+                val size = shownDeriveTip.getFigure().getPreferredSize()
+                shownDeriveTip.setSize(size.width, size.height)
+            }
         }
     }
 }

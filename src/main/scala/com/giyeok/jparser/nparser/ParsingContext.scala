@@ -22,9 +22,9 @@ object ParsingContext {
     case class JoinEdge(start: Node, end: Node, join: Node) extends Edge
 
     case class Graph(nodes: Set[Node], edges: Set[Edge], edgesByStart: Map[Node, Set[Edge]], edgesByDest: Map[Node, Set[Edge]]) {
-        assert(edgesByStart.keySet == nodes && edgesByDest.keySet == nodes)
-        assert((edgesByStart flatMap { _._2 }).toSet subsetOf edges)
-        assert((edgesByDest flatMap { _._2 }).toSet subsetOf edges)
+        // assert(edgesByStart.keySet == nodes && edgesByDest.keySet == nodes)
+        // assert((edgesByStart flatMap { _._2 }).toSet subsetOf edges)
+        // assert((edgesByDest flatMap { _._2 }).toSet subsetOf edges)
         def addNode(node: Node) =
             if (nodes contains node) this else Graph(nodes + node, edges, edgesByStart + (node -> Set()), edgesByDest + (node -> Set()))
         def addEdge(edge: Edge) = edge match {
@@ -145,7 +145,7 @@ object ParsingContext {
             Results(nodeConditions map { kv => (kv._1.shiftGen(gen).asInstanceOf[N]) -> (kv._2 map { _.shiftGen(gen) }) })
         def replaceNode(original: N, replaced: N): Results[N] = {
             // TODO 여기서는 Condition의 node중에는 original이 없는지 확인 - 없어야 될 것 같은데
-            assert(!(conditionNodes.toSet contains original))
+            // assert(!(conditionNodes.toSet contains original))
             val replacedNodeConditions = nodeConditions get original match {
                 case Some(conditions) => (nodeConditions - original) + (replaced -> conditions)
                 case None => nodeConditions
@@ -161,7 +161,8 @@ object ParsingContext {
         }
     }
     object Results {
-        def apply[N <: Node](): Results[N] = Results(Map())
+        def apply[N <: Node](): Results[N] = Results(Map[N, Set[EligCondition.Condition]]())
+        def apply[N <: Node](items: (N, Set[EligCondition.Condition])*): Results[N] = Results(items.toMap)
     }
 
     case class Context(graph: Graph, progresses: Results[SequenceNode], finishes: Results[Node]) {
@@ -186,7 +187,9 @@ object ParsingContext {
 
         def merge(otherCtx: Context): Context = {
             val Context(otherGraph, otherProgresses, otherFinishes) = otherCtx
-            Context(graph.merge(otherGraph), progresses.merge(otherProgresses), finishes.merge(otherFinishes))
+            val (mergedGraph, mergedProgresses, mergedFinishes) = (graph.merge(otherGraph), progresses.merge(otherProgresses), finishes.merge(otherFinishes))
+            // assert(mergedProgresses.nodes == (mergedGraph.nodes collect { case n: SequenceNode => n }))
+            Context(mergedGraph, mergedProgresses, mergedFinishes)
         }
     }
 }
@@ -234,7 +237,7 @@ object EligCondition {
         def neg = True
     }
     case class And(conditions: Set[Condition]) extends Condition {
-        assert(conditions forall { c => c != True && c != False })
+        // assert(conditions forall { c => c != True && c != False })
 
         def nodes = conditions flatMap { _.nodes }
         def shiftGen(gen: Int) = And(conditions map { _.shiftGen(gen) })
@@ -246,7 +249,7 @@ object EligCondition {
         def neg = disjunct((conditions map { _.neg }).toSeq: _*)
     }
     case class Or(conditions: Set[Condition]) extends Condition {
-        assert(conditions forall { c => c != True && c != False })
+        // assert(conditions forall { c => c != True && c != False })
 
         def nodes = conditions flatMap { _.nodes }
         def shiftGen(gen: Int) = Or(conditions map { _.shiftGen(gen) })
@@ -315,16 +318,16 @@ object EligCondition {
                 case Some(conditions) =>
                     val evaluated = disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived)
                     // evaluated 안에는 Exclude가 없어야 한다
-                    assert({
-                        def check(condition: Condition): Boolean =
-                            condition match {
-                                case _: Exclude => false
-                                case And(conds) => conds forall check
-                                case Or(conds) => conds forall check
-                                case _ => true
-                            }
-                        check(evaluated)
-                    })
+                    // assert({
+                    //     def check(condition: Condition): Boolean =
+                    //         condition match {
+                    //             case _: Exclude => false
+                    //             case And(conds) => conds forall check
+                    //             case Or(conds) => conds forall check
+                    //             case _ => true
+                    //         }
+                    //     check(evaluated)
+                    // })
                     evaluated.neg
                 case None => True
             }
