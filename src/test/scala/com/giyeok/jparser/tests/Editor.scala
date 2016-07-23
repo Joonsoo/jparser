@@ -32,6 +32,8 @@ import com.giyeok.jparser.ParsingErrors.UnexpectedInput
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParseTreeConstructor
+import com.giyeok.jparser.visualize.ZestParsingContextWidget
+import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
 
 trait Editor {
     val parser = new NaiveParser(NGrammar.fromGrammar(GrammarGrammar))
@@ -131,8 +133,10 @@ trait Editor {
                                         val source = Inputs.fromString(testText.getText())
                                         GrammarGrammar.translate(tree) match {
                                             case Some(grammar) =>
-                                                // TODO new parser로도 열 수 있게
-                                                ParsingProcessVisualizer.start(grammar, source, display, new Shell(display))
+                                                val ngrammar = NGrammar.fromGrammar(grammar)
+                                                // TODO 다른 파서로도 열 수 있게
+                                                val parser = new NaiveParser(ngrammar)
+                                                ParsingProcessVisualizer.start[NaiveWrappedContext](grammar.name, parser, source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
                                             case None =>
                                                 MessageDialog.openError(shell, "Error!", "Empty grammar!")
                                         }

@@ -49,7 +49,7 @@ import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.nparser.Parser.WrappedContext
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
 
-class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure]) {
+class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control) {
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -336,8 +336,7 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
                         errorControl("TODO")
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
-                            case Left(wctx) =>
-                                new ZestParsingContextWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx)
+                            case Left(wctx) => parsingContextWidgetFunc(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx)
                             case Right(error) => errorControl(error.msg)
                         }
                     case ParsingContextTransitionPointer(gen, stage) =>
@@ -427,12 +426,7 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
 }
 
 object ParsingProcessVisualizer {
-    def start(title: String, parser: Parser[_ <: WrappedContext], source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
-        new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources).start()
-    }
-    def start(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
-        val ngrammar = NGrammar.fromGrammar(grammar)
-        val parser = new NaiveParser(ngrammar)
-        start(grammar.name, parser, source, display, shell)
+    def start[C <: WrappedContext](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control): Unit = {
+        new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources, parsingContextWidgetFunc).start()
     }
 }

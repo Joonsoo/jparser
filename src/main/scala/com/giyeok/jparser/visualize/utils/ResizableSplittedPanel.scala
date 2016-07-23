@@ -17,6 +17,7 @@ import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Event
 import org.eclipse.swt.widgets.Control
 import org.eclipse.swt.widgets.Composite
+import org.eclipse.draw2d.ColorConstants
 
 class HorizontalResizableSplittedComposite(parent: Composite, style: Int, initialPercent: Int = 50) extends Composite(parent, style) {
     private var upper = new Composite(this, SWT.NONE)
@@ -25,6 +26,7 @@ class HorizontalResizableSplittedComposite(parent: Composite, style: Int, initia
 
     upper.setLayout(new FillLayout())
     lower.setLayout(new FillLayout())
+    sash.setBackground(ColorConstants.lightGray)
 
     val form = new FormLayout()
 
@@ -78,6 +80,7 @@ class VerticalResizableSplittedComposite(parent: Composite, style: Int, initialP
 
     left.setLayout(new FillLayout())
     right.setLayout(new FillLayout())
+    sash.setBackground(ColorConstants.lightGray)
 
     val form = new FormLayout()
 

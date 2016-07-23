@@ -26,6 +26,7 @@ import org.eclipse.swt.widgets.Shell
 import org.eclipse.draw2d.FigureCanvas
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.Parser.WrappedContext
+import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
 
 trait AbstractZestGraphWidget extends Control {
     val graphViewer: GraphViewer
@@ -165,7 +166,8 @@ trait Interactable extends AbstractZestGraphWidget {
     }
 }
 
-class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context) extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with Interactable {
+class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context)
+        extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with Interactable {
     val graphViewer = new GraphViewer(this, style)
     val graphCtrl = graphViewer.getGraphControl()
 
@@ -263,7 +265,8 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
     })
 }
 
-class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: Context, trans: Context) extends ZestGraphWidget(parent, style, fig, grammar, trans) {
+class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: Context, trans: Context)
+        extends ZestGraphWidget(parent, style, fig, grammar, trans) {
     override def initialize(): Unit = {
         addContext(grammar, base)
         addContext(grammar, trans)
@@ -321,4 +324,17 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
             }
         }
     })
+}
+
+class ZestDeriveTipParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: DeriveTipsWrappedContext)
+        extends ZestParsingContextWidget(parent, style, fig, grammar, context) {
+    override def initialize(): Unit = {
+        super.initialize()
+        context.deriveTips foreach { deriveTip =>
+            val shownDeriveTip = nodesMap(deriveTip)
+            shownDeriveTip.getFigure().setBorder(new LineBorder(ColorConstants.orange, 3))
+            val size = shownDeriveTip.getFigure().getPreferredSize()
+            shownDeriveTip.setSize(size.width, size.height)
+        }
+    }
 }

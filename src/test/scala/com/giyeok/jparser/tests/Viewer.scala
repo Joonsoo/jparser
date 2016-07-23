@@ -24,6 +24,14 @@ import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.ParseResultGraphFunc
+import com.giyeok.jparser.visualize.PreprocessedDerivationViewer
+import com.giyeok.jparser.visualize.BasicVisualizeResources
+import com.giyeok.jparser.nparser.DerivationPreprocessor
+import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
+import com.giyeok.jparser.visualize.ZestParsingContextWidget
+import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
+import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
+import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
 
 object AllViewer extends Viewer {
     val allTests = Set(
@@ -125,8 +133,8 @@ trait Viewer {
         })
 
         object ParserTypes extends Enumeration {
-            val Naive, Preprocessed, PreprocessedCompacted, GrowingCompacted, MostOptimized = Value
-            val order = Seq(Naive, Preprocessed, PreprocessedCompacted, GrowingCompacted, MostOptimized)
+            val Naive, Preprocessed, PreprocessedSliced, PreprocessedCompacted, PreprocessedSlicedCompacted, GrowingCompacted, MostOptimized = Value
+            val order = Seq(Naive, Preprocessed, PreprocessedSliced, PreprocessedCompacted, PreprocessedSlicedCompacted, GrowingCompacted, MostOptimized)
         }
 
         var selectedParserType: ParserTypes.Value = ParserTypes.Naive
@@ -135,13 +143,15 @@ trait Viewer {
             selectedParserType match {
                 case ParserTypes.Naive => parserTypeButton.setText("Naive")
                 case ParserTypes.Preprocessed => parserTypeButton.setText("Preprocessed")
-                case ParserTypes.PreprocessedCompacted => parserTypeButton.setText("Preprocessed Compacted")
-                case ParserTypes.GrowingCompacted => parserTypeButton.setText("Growing Compacted")
-                case ParserTypes.MostOptimized => parserTypeButton.setText("Preprocessed Compacted + Growing Compacted")
+                case ParserTypes.PreprocessedSliced => parserTypeButton.setText("(TODO) Preprocessed Sliced")
+                case ParserTypes.PreprocessedCompacted => parserTypeButton.setText("(TODO) Preprocessed Compacted")
+                case ParserTypes.PreprocessedSlicedCompacted => parserTypeButton.setText("(TODO) Preprocessed Sliced Compacted")
+                case ParserTypes.GrowingCompacted => parserTypeButton.setText("(TODO) Growing")
+                case ParserTypes.MostOptimized => parserTypeButton.setText("(TODO) Most Optimized\nPreprocessed Sliced Compacted + Growing")
             }
         }
         setParserType(ParserTypes.Naive)
-        def nextParserType(): Unit = {
+        def nextParserType(): ParserTypes.Value = {
             val idx = ParserTypes.order.indexOf(selectedParserType)
             if (idx + 1 < ParserTypes.order.length) {
                 ParserTypes.order(idx + 1)
@@ -150,11 +160,15 @@ trait Viewer {
             }
         }
         def startParserVisualizer(grammar: Grammar, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+            val ngrammar = NGrammar.fromGrammar(grammar)
             selectedParserType match {
                 case ParserTypes.Naive =>
-                    ParsingProcessVisualizer.start(grammar, source, display, shell)
-                case ParserTypes.Preprocessed => // TODO
+                    ParsingProcessVisualizer.start[NaiveWrappedContext](grammar.name, new nparser.NaiveParser(ngrammar), source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
+                case ParserTypes.Preprocessed =>
+                    ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, new nparser.PreprocessedParser(ngrammar), source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                case ParserTypes.PreprocessedSliced => // TODO
                 case ParserTypes.PreprocessedCompacted => // TODO
+                case ParserTypes.PreprocessedSlicedCompacted => // TODO
                 case ParserTypes.GrowingCompacted => // TODO
                 case ParserTypes.MostOptimized => // TODO
             }
@@ -162,7 +176,7 @@ trait Viewer {
 
         parserTypeButton.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
-                nextParserType()
+                setParserType(nextParserType())
             }
         })
 
@@ -189,8 +203,8 @@ trait Viewer {
             def handleEvent(e: Event): Unit = {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedTestCases(grammarList.getSelectionIndex()).grammar
-                    val source = Inputs.fromString(testText.getText())
-                    // TODO
+                    val ngrammar = NGrammar.fromGrammar(grammar)
+                    new PreprocessedDerivationViewer(grammar, ngrammar, new DerivationPreprocessor(ngrammar), BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
                 }
             }
         })
