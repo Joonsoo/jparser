@@ -46,6 +46,7 @@ object Parser {
         }
     }
     class DeriveTipsWrappedContext(gen: Int, ctx: Context, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Results[Node]], conditionFate: Map[Condition, Condition]) extends WrappedContext(gen, ctx, _inputs, _history, conditionFate) {
+        // assert(deriveTips subsetOf ctx.graph.nodes)
         def proceed(nextGen: Int, nextCtx: Context, deriveTips: Set[Node], newInput: Input, newConditionFate: Map[Condition, Condition]) = {
             new DeriveTipsWrappedContext(nextGen, nextCtx, deriveTips: Set[Node], newInput +: _inputs, ctx.finishes +: _history, newConditionFate)
         }

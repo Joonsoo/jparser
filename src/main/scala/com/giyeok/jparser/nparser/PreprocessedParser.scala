@@ -1,6 +1,5 @@
 package com.giyeok.jparser.nparser
 
-import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.ParsingErrors.UnexpectedInput
 import com.giyeok.jparser.nparser.Parser.WrappedContext
@@ -9,8 +8,13 @@ import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.nparser.EligCondition._
 import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
 import com.giyeok.jparser.Symbols.Terminal
-import DerivationPreprocessor.Preprocessed
+import com.giyeok.jparser.Symbols.Terminals.CharacterTerminal
+import com.giyeok.jparser.Symbols.Terminals.VirtualTerminal
+import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.Inputs.TermGroupDesc
+import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
+import com.giyeok.jparser.Inputs.VirtualTermGroupDesc
+import DerivationPreprocessor.Preprocessed
 
 object DerivationPreprocessor {
     case class Preprocessed(baseNode: Node, context: Context, baseFinishes: Seq[(Condition, Option[Int])], baseProgresses: Seq[Condition]) {
@@ -109,18 +113,39 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
     val initialContext: DeriveTipsWrappedContext = {
         // derivationOf(startNode).baseFinishes 처리
         val preprocessed = derivation.derivationOf(startNode)
+        assert(preprocessed.context.progresses.isEmpty)
+
+        // preprocessed에 있는 finishes에서 baseNode만 startNode로 치환 - 어차피 gen은 0이므로 shiftGen은 따로 하지 않아도 된다
+        val initialFinishes = preprocessed.context.finishes.replaceNode(preprocessed.baseNode, startNode)
+
         // baseFinishTasks는 finishes에 항목만 추가하고 끝남
         val baseFinishTasks = preprocessed.baseFinishes.toList map { cs => FinishTask(startNode, cs._1, cs._2) }
-        val ctx = rec(0, baseFinishTasks, Context(Graph(Set(startNode), Set()), Results(), Results()))
+
+        val ctx = rec(0, baseFinishTasks, Context(Graph(Set(startNode), Set()), Results(), initialFinishes))
         new DeriveTipsWrappedContext(0, ctx, Set(startNode), List(), List(), Map())
     }
 
-    def expand(ctx: Context, nodeAndDerivation: Set[(Node, Preprocessed)]): Context = {
-        nodeAndDerivation.foldLeft(ctx) { (cc, kv) =>
+    def expand(ctx: Context, deriveTips: Map[Node, Preprocessed], expandingDeriveTips: Set[Node]): Context = {
+        /*
+        val (expanding, finishesOnly) = (expandingDeriveTips, deriveTips.keySet -- expandingDeriveTips)
+        // TODO ctx에 deriveTips의 finishes 추가하고
+        // TODO expandingDeriveTips에 있는 노드들에 대해서 그래프와 progresses 확장
+        val result = nodeAndDerivation.foldLeft(ctx) { (cc, kv) =>
             val (deriveTip, preprocessed) = kv
             // derivation에서 baseNode를 deriveTip으로 replace해서 ctx에 추가
-            cc.merge(preprocessed.context.replaceNode(preprocessed.baseNode, deriveTip))
+
+            def replaceNode(context: Context, original: Node, replaced: Node): Context =
+                original match {
+                    case original: SequenceNode =>
+                        Context(context.graph.replaceNode(original, replaced), context.progresses.replaceNode(original, replaced.asInstanceOf[SequenceNode]), context.finishes.replaceNode(original, replaced))
+                    case _ =>
+                        Context(context.graph.replaceNode(original, replaced), context.progresses, context.finishes.replaceNode(original, replaced))
+                }
+
+            cc.merge(replaceNode(preprocessed.context, preprocessed.baseNode, deriveTip))
         }
+        */
+        ???
     }
 
     def recNoDerive(nextGen: Int, tasks: List[Task], context: Context, deriveTips: Set[Node]): (Context, Set[Node]) =
@@ -129,7 +154,7 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
                 // context에 deriveTip의 finish task 추가
                 val preprocessed = derivation.derivationOf(deriveTip)
                 assert(preprocessed.baseFinishes.isEmpty)
-                val immediateFinishes = preprocessed.baseProgresses map { ProgressTask(deriveTip, _) }
+                val immediateFinishes = preprocessed.baseProgresses map { condition => ProgressTask(deriveTip, condition.shiftGen(nextGen)) }
                 recNoDerive(nextGen, immediateFinishes ++: rest, context, deriveTips + deriveTip)
             case task +: rest =>
                 val (newContext, newTasks) = process(nextGen, task, context)
@@ -138,9 +163,9 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
         }
 
     def proceedDetail(wctx: DeriveTipsWrappedContext, input: Input): Either[(ProceedDetail, DeriveTipsWrappedContext), ParsingError] = {
-        val (ctx, gen, nextGen) = (wctx.ctx, wctx.gen, wctx.nextGen)
+        val (ctx, gen, nextGen, deriveTips) = (wctx.ctx, wctx.gen, wctx.nextGen, wctx.deriveTips)
         // finishable term node를 포함한 deriveTip -> term node set
-        val expandingDeriveTips: Set[(Node, Set[SymbolNode])] = wctx.deriveTips flatMap { tip =>
+        val expandingDeriveTips: Set[(Node, Set[SymbolNode])] = deriveTips flatMap { tip =>
             val termNodes = derivation.finishableTermNodesOf(tip, input)
             if (termNodes.isEmpty) None else Some(tip -> (termNodes map { _.shiftGen(gen) }))
         }
@@ -148,10 +173,12 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
             Right(UnexpectedInput(input))
         } else {
             // 1. Expand
-            val expandedCtx = expand(ctx, expandingDeriveTips map { kv => (kv._1, derivation.derivationOf(kv._1).shiftGen(gen)) })
+            // expandingDeriveTips에 있는 것들은 그래프에 expand
+            // 있든 없든 finishes는 항상 expand
+            val expandedCtx = expand(ctx, (deriveTips map { node => (node, derivation.derivationOf(node).shiftGen(gen)) }).toMap, expandingDeriveTips map { _._1 })
             // 2. Lift
             val termFinishes = (expandingDeriveTips flatMap { _._2 }).toList map { FinishTask(_, True, None) }
-            val (liftedCtx, newDeriveTips) = recNoDerive(nextGen, termFinishes, ctx.emptyFinishes, Set())
+            val (liftedCtx, newDeriveTips) = recNoDerive(nextGen, termFinishes, expandedCtx.emptyFinishes, Set())
             // 3. Trimming
             // TODO trimStarts에서 (liftedCtx.finishes.conditionNodes) 랑 (liftedCtx.progresses.conditionNodes) 로 충분한지 확인
             val trimStarts = (Set(startNode) ++ (liftedCtx.finishes.conditionNodes) ++ (liftedCtx.progresses.conditionNodes)) intersect liftedCtx.graph.nodes
@@ -171,12 +198,34 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
 }
 
 class SlicedDerivationPreprocessor(grammar: NGrammar) extends DerivationPreprocessor(grammar) {
+    def termGroupsOf(terminals: Set[Terminal]): Set[TermGroupDesc] = {
+        val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
+        val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
 
-    def termGroupsOf(node: Node): Set[TermGroupDesc] = {
-        termNodesOf(node)
-        ???
+        def sliceTermGroups(termGroups: Set[CharacterTermGroupDesc]): Set[CharacterTermGroupDesc] = {
+            val charIntersects: Set[CharacterTermGroupDesc] = termGroups flatMap { term1 =>
+                termGroups collect {
+                    case term2 if term1 != term2 => term1 intersect term2
+                } filterNot { _.isEmpty }
+            }
+            val essentials = (termGroups map { g => charIntersects.foldLeft(g) { _ - _ } }) filterNot { _.isEmpty }
+            val intersections = if (charIntersects.isEmpty) Set() else sliceTermGroups(charIntersects)
+            essentials ++ intersections
+        }
+        val charTermGroups = sliceTermGroups(charTerms)
+
+        val virtIntersects: Set[VirtualTermGroupDesc] = virtTerms flatMap { term1 =>
+            virtTerms collect {
+                case term2 if term1 != term2 => term1 intersect term2
+            } filterNot { _.isEmpty }
+        }
+        val virtTermGroups = (virtTerms map { term =>
+            virtIntersects.foldLeft(term) { _ - _ }
+        }) ++ virtIntersects
+
+        (charTermGroups ++ virtTermGroups) filterNot { _.isEmpty }
     }
-    def derivationOf(node: Node, input: Input): Context = {
+    def derivationOf(node: Node, input: Input): Option[Preprocessed] = {
         ???
     }
 }
