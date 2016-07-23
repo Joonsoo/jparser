@@ -4,6 +4,7 @@ import ParsingContext._
 import EligCondition._
 import NGrammar._
 import com.giyeok.jparser.Inputs
+import scala.annotation.tailrec
 
 trait ParsingTasks {
     val grammar: NGrammar
@@ -179,7 +180,7 @@ trait ParsingTasks {
             case task: FinishTask => finishTask(nextGen, task, cc)
         }
 
-    def rec(nextGen: Int, tasks: List[Task], cc: Context): Context =
+    @tailrec final def rec(nextGen: Int, tasks: List[Task], cc: Context): Context =
         tasks match {
             case task +: rest =>
                 val (ncc, newTasks) = process(nextGen, task, cc)

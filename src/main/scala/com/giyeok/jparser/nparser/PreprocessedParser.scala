@@ -15,6 +15,7 @@ import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.Inputs.VirtualTermGroupDesc
 import DerivationPreprocessor.Preprocessed
+import scala.annotation.tailrec
 
 object DerivationPreprocessor {
     case class Preprocessed(baseNode: Node, context: Context, baseFinishes: Seq[(Condition, Option[Int])], baseProgresses: Seq[Condition]) {
@@ -35,7 +36,7 @@ class DerivationPreprocessor(val grammar: NGrammar) extends ParsingTasks {
     private val symbolTermNodes = scala.collection.mutable.Map[Int, Set[SymbolNode]]()
     private val sequenceTermNodes = scala.collection.mutable.Map[(Int, Int), Set[SymbolNode]]()
 
-    def recNoBase(baseNode: Node, nextGen: Int, tasks: List[Task], cc: Preprocessed): Preprocessed =
+    @tailrec final def recNoBase(baseNode: Node, nextGen: Int, tasks: List[Task], cc: Preprocessed): Preprocessed =
         tasks match {
             case FinishTask(`baseNode`, condition, lastSymbol) +: rest =>
                 recNoBase(baseNode, nextGen, rest, cc.addBaseFinish(condition, lastSymbol))
@@ -139,7 +140,7 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
         }
     }
 
-    def recNoDerive(nextGen: Int, tasks: List[Task], context: Context, deriveTips: Set[Node]): (Context, Set[Node]) =
+    @tailrec final def recNoDerive(nextGen: Int, tasks: List[Task], context: Context, deriveTips: Set[Node]): (Context, Set[Node]) =
         tasks match {
             case DeriveTask(deriveTip: SequenceNode) +: rest =>
                 // context에 deriveTip의 finish task 추가
