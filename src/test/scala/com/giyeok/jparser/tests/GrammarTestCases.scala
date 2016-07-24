@@ -8,6 +8,8 @@ import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser
 import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.nparser.OnDemandDerivationPreprocessor
+import com.giyeok.jparser.nparser.OnDemandSlicedDerivationPreprocessor
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.ConcreteSource]
@@ -35,6 +37,6 @@ trait GrammarTestCases extends Samples {
 
     lazy val ngrammar = NGrammar.fromGrammar(grammar)
     lazy val nparserNaive = new nparser.NaiveParser(ngrammar)
-    lazy val nparserPreprocessed = new nparser.PreprocessedParser(ngrammar)
-    lazy val nparserPreprocessedPrefinished = new nparser.PreprocessedPrefinishedParser(ngrammar)
+    lazy val nparserPreprocessed = new nparser.PreprocessedParser(ngrammar, new OnDemandDerivationPreprocessor(ngrammar))
+    lazy val nparserPreprocessedPrefinished = new nparser.PreprocessedPrefinishedParser(ngrammar, new OnDemandSlicedDerivationPreprocessor(ngrammar))
 }

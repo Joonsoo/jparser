@@ -275,7 +275,11 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
             shownNode.getFigure().setBorder(new LineBorder(ColorConstants.lightGray))
         }
         (base.graph.edges -- trans.graph.edges) foreach { removedEdge =>
-            edgesMap(removedEdge) foreach { _.setLineStyle(SWT.LINE_DASH) }
+            edgesMap(removedEdge) foreach { connection =>
+                connection.setLineWidth(2)
+                connection.setLineColor(ColorConstants.lightGray)
+                connection.setLineStyle(SWT.LINE_DASH)
+            }
         }
         (trans.graph.nodes -- base.graph.nodes) foreach { newNode =>
             val shownNode = nodesMap(newNode)

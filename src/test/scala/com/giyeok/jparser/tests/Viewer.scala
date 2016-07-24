@@ -20,19 +20,21 @@ import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer
 import org.eclipse.swt.widgets.MessageBox
 import com.giyeok.jparser.Inputs.ConcreteInput
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser
-import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.visualize.PreprocessedDerivationViewer
 import com.giyeok.jparser.visualize.BasicVisualizeResources
 import com.giyeok.jparser.nparser.DerivationPreprocessor
-import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
 import com.giyeok.jparser.visualize.ZestParsingContextWidget
+import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
+import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
 import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
-import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
 import com.giyeok.jparser.nparser.SlicedDerivationPreprocessor
+import com.giyeok.jparser.nparser.OnDemandSlicedDerivationPreprocessor
+import com.giyeok.jparser.nparser.OnDemandDerivationPreprocessor
+import com.giyeok.jparser.nparser.NaiveParser
+import com.giyeok.jparser.nparser.PreprocessedParser
+import com.giyeok.jparser.nparser.ParseTreeConstructor
 
 object AllViewer extends Viewer {
     val allTests = Set(
@@ -164,9 +166,9 @@ trait Viewer {
             val ngrammar = NGrammar.fromGrammar(grammar)
             selectedParserType match {
                 case ParserTypes.Naive =>
-                    ParsingProcessVisualizer.start[NaiveWrappedContext](grammar.name, new nparser.NaiveParser(ngrammar), source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
+                    ParsingProcessVisualizer.start[NaiveWrappedContext](grammar.name, new NaiveParser(ngrammar), source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.Preprocessed =>
-                    ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, new nparser.PreprocessedParser(ngrammar), source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                    ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, new PreprocessedParser(ngrammar, new OnDemandDerivationPreprocessor(ngrammar)), source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.PreprocessedSliced => // TODO
                 case ParserTypes.PreprocessedCompacted => // TODO
                 case ParserTypes.PreprocessedSlicedCompacted => // TODO
@@ -205,7 +207,7 @@ trait Viewer {
                 if (grammarList.getSelectionIndex >= 0) {
                     val grammar = sortedTestCases(grammarList.getSelectionIndex()).grammar
                     val ngrammar = NGrammar.fromGrammar(grammar)
-                    new PreprocessedDerivationViewer(grammar, ngrammar, new SlicedDerivationPreprocessor(ngrammar), BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
+                    new PreprocessedDerivationViewer(grammar, ngrammar, new OnDemandSlicedDerivationPreprocessor(ngrammar), BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
                 }
             }
         })

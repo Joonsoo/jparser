@@ -95,7 +95,7 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivat
     val graphStackLayout = new StackLayout()
     graphView.setLayout(graphStackLayout)
 
-    val graphsMap = scala.collection.mutable.Map[(Int, Int), (Preprocessed, Map[TermGroupDesc, Preprocessed])]()
+    val graphsMap = scala.collection.mutable.Map[(Int, Int), (Preprocessed, Map[TermGroupDesc, (Preprocessed, Set[SequenceNode])])]()
     val graphControlsMap = scala.collection.mutable.Map[(Int, Int, Option[TermGroupDesc]), Control]()
     def graphControlOf(symbolId: Int, pointer: Int, termGroup: Option[TermGroupDesc]): Control = {
         graphControlsMap get (symbolId, pointer, termGroup) match {
@@ -190,9 +190,9 @@ class PreprocessedDerivationGraphWidget(parent: Composite, style: Int, fig: Node
     }
 }
 
-class PreprocessedSlicedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, preprocessed: Preprocessed, sliced: Preprocessed)
-        extends ZestGraphTransitionWidget(parent, style, PreprocessedDerivationGraphWidget.baseNodeFigGen(fig), grammar, preprocessed.context, sliced.context) with TipNodes {
-    assert(preprocessed.baseNode == sliced.baseNode)
+class PreprocessedSlicedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, preprocessed: Preprocessed, sliced: (Preprocessed, Set[SequenceNode]))
+        extends ZestGraphTransitionWidget(parent, style, PreprocessedDerivationGraphWidget.baseNodeFigGen(fig), grammar, preprocessed.context, sliced._1.context) with TipNodes {
+    assert(preprocessed.baseNode == sliced._1.baseNode)
     override def initialize(): Unit = {
         super.initialize()
         setTipNodeBorder(preprocessed.baseNode)
