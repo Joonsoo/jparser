@@ -91,7 +91,7 @@ trait SlicedDerivationPreprocessor extends DerivationPreprocessor {
             case SymbolNode(symbolId, _) => symbolSliceOf(symbolId)
             case SequenceNode(sequenceId, pointer, _, _) => sequenceSliceOf(sequenceId, pointer)
         }
-        assert((slicedMap filter { _._1 contains input }).size <= 1)
+        // assert((slicedMap filter { _._1 contains input }).size <= 1)
         slicedMap find { _._1 contains input } map { _._2 }
     }
 }
@@ -208,7 +208,7 @@ class SlicedPreprocessedParser(grammar: NGrammar, override val derivation: Slice
                         (preprocessed.baseFinishes.toList map { cs => FinishTask(tip, cs._1.shiftGen(gen), cs._2) }) ++
                             (preprocessed.baseProgresses.toList map { c => ProgressTask(tip.asInstanceOf[SequenceNode], c.shiftGen(gen)) }) ++
                             (newDeriveTips.toList map { DeriveTask(_) })
-                    if (preprocessed.context.graph.nodes.isEmpty) (newTasks ++: tasks, expanding) else (newTasks ++: tasks, expanding + (tip -> preprocessed))
+                    (newTasks ++: tasks, expanding + (tip -> preprocessed))
                 case None => cc
             }
         }

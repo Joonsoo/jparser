@@ -73,27 +73,29 @@ object ParsingContext {
                 edgesByDest map { kv => (kv._1.shiftGen(gen)) -> (kv._2 map { shiftGen(_, gen) }) })
         }
         def replaceNode(original: Node, replaced: Node): Graph = {
-            def replace(node: Node) = if (node == original) replaced else node
-            val replacedNodes = nodes - original + replaced
-            var replacedEdges = edges
-            var replacedEdgesByStart = edgesByStart - original + (replaced -> Set[Edge]())
-            var replacedEdgesByDest = edgesByDest - original + (replaced -> Set[Edge]())
-            (edgesByStart(original) ++ edgesByDest(original)) foreach {
-                case edge @ SimpleEdge(start, end) =>
-                    val (rstart, rend) = (replace(start), replace(end))
-                    val replacedEdge = SimpleEdge(rstart, rend)
-                    replacedEdges = replacedEdges - edge + replacedEdge
-                    replacedEdgesByStart += (rstart -> (replacedEdgesByStart(rstart) - edge + replacedEdge))
-                    replacedEdgesByDest += (rend -> (replacedEdgesByDest(rend) - edge + replacedEdge))
-                case edge @ JoinEdge(start, end, join) =>
-                    val (rstart, rend, rjoin) = (replace(start), replace(end), replace(join))
-                    val replacedEdge = JoinEdge(rstart, rend, rjoin)
-                    replacedEdges = replacedEdges - edge + replacedEdge
-                    replacedEdgesByStart += (rstart -> (replacedEdgesByStart(rstart) - edge + replacedEdge))
-                    replacedEdgesByDest += (rend -> (replacedEdgesByDest(rend) - edge + replacedEdge))
-                    replacedEdgesByDest += (rjoin -> (replacedEdgesByDest(rjoin) - edge + replacedEdge))
+            if (!(nodes contains original)) this else {
+                def replace(node: Node) = if (node == original) replaced else node
+                val replacedNodes = nodes - original + replaced
+                var replacedEdges = edges
+                var replacedEdgesByStart = edgesByStart - original + (replaced -> Set[Edge]())
+                var replacedEdgesByDest = edgesByDest - original + (replaced -> Set[Edge]())
+                (edgesByStart(original) ++ edgesByDest(original)) foreach {
+                    case edge @ SimpleEdge(start, end) =>
+                        val (rstart, rend) = (replace(start), replace(end))
+                        val replacedEdge = SimpleEdge(rstart, rend)
+                        replacedEdges = replacedEdges - edge + replacedEdge
+                        replacedEdgesByStart += (rstart -> (replacedEdgesByStart(rstart) - edge + replacedEdge))
+                        replacedEdgesByDest += (rend -> (replacedEdgesByDest(rend) - edge + replacedEdge))
+                    case edge @ JoinEdge(start, end, join) =>
+                        val (rstart, rend, rjoin) = (replace(start), replace(end), replace(join))
+                        val replacedEdge = JoinEdge(rstart, rend, rjoin)
+                        replacedEdges = replacedEdges - edge + replacedEdge
+                        replacedEdgesByStart += (rstart -> (replacedEdgesByStart(rstart) - edge + replacedEdge))
+                        replacedEdgesByDest += (rend -> (replacedEdgesByDest(rend) - edge + replacedEdge))
+                        replacedEdgesByDest += (rjoin -> (replacedEdgesByDest(rjoin) - edge + replacedEdge))
+                }
+                Graph(replacedNodes, replacedEdges, replacedEdgesByStart, replacedEdgesByDest)
             }
-            Graph(replacedNodes, replacedEdges, replacedEdgesByStart, replacedEdgesByDest)
         }
         def merge(other: Graph): Graph = {
             def mergeEdgesMap(map: Map[Node, Set[Edge]], merging: Map[Node, Set[Edge]]): Map[Node, Set[Edge]] =

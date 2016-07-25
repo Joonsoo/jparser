@@ -108,8 +108,8 @@ class OnDemandSlicedDerivationPreprocessor(grammar: NGrammar) extends OnDemandDe
             val finishTasks = finishables.toList map { FinishTask(_, True, None) }
             val cc = Preprocessed(derivation.baseNode, derivation.context.emptyFinishes, Seq(), Seq())
             val (newPreprocessed, newDeriveTips) = recNoBaseNoDerive(derivation.baseNode, 1, finishTasks, cc, Set())
-            // TODO trim start node 다시 정리
-            val trimmedContext = trim(newPreprocessed.context, Set(derivation.baseNode), newDeriveTips.asInstanceOf[Set[Node]])
+            val trimStarts = (Set(derivation.baseNode)) ++ (derivation.context.finishes.conditionNodes) ++ (derivation.context.progresses.conditionNodes)
+            val trimmedContext = trim(newPreprocessed.context, trimStarts, newDeriveTips.asInstanceOf[Set[Node]])
             val sequenceNodes = trimmedContext.graph.nodes collect { case n: SequenceNode => n }
             val sliced = (newPreprocessed.updateContext(trimmedContext), newDeriveTips intersect sequenceNodes)
             (termGroup -> sliced)
