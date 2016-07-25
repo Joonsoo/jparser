@@ -27,6 +27,7 @@ import org.eclipse.draw2d.FigureCanvas
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.Parser.WrappedContext
 import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
+import org.eclipse.draw2d.CompoundBorder
 
 trait AbstractZestGraphWidget extends Control {
     val graphViewer: GraphViewer
@@ -166,7 +167,7 @@ trait Interactable extends AbstractZestGraphWidget {
     }
 }
 
-class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context)
+class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, context: Context)
         extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with Interactable {
     val graphViewer = new GraphViewer(this, style)
     val graphCtrl = graphViewer.getGraphControl()
@@ -176,36 +177,40 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
     def initialize(): Unit = {
         addContext(grammar, context)
         applyLayout(false)
+        initializeTooltips(getTooltips())
     }
     initialize()
 
-    // finishable node highlight
-    val tooltips = scala.collection.mutable.Map[Node, Seq[Figure]]()
+    def getTooltips(): Map[Node, Seq[Figure]] = {
+        var tooltips = Map[Node, Seq[Figure]]()
+        // finish, progress 조건 툴팁으로 표시
+        context.finishes.nodeConditions foreach { kv =>
+            val (node, conditions) = kv
+            if (!(nodesMap contains node)) {
+                addNode(grammar, node)
+            }
 
-    // finish, progress 조건 툴팁으로 표시
-    context.finishes.nodeConditions foreach { kv =>
-        val (node, conditions) = kv
-        if (!(nodesMap contains node)) {
-            addNode(grammar, node)
+            nodesMap(node).setBackgroundColor(ColorConstants.yellow)
+
+            val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
+            tooltips += node -> (tooltips.getOrElse(node, Seq()) :+ fig.fig.verticalFig(Spacing.Medium, fig.fig.textFig("Finishes", fig.appear.default) +: conditionsFig))
         }
+        context.progresses.nodeConditions foreach { kv =>
+            val (node, conditions) = kv
 
-        nodesMap(node).setBackgroundColor(ColorConstants.yellow)
-
-        val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
-        tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.verticalFig(Spacing.Medium, fig.fig.textFig("Finishes", fig.appear.default) +: conditionsFig)
+            val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
+            tooltips += node -> (tooltips.getOrElse(node, Seq()) :+ fig.fig.verticalFig(Spacing.Medium, fig.fig.textFig("Progresses", fig.appear.default) +: conditionsFig))
+        }
+        tooltips
     }
-    context.progresses.nodeConditions foreach { kv =>
-        val (node, conditions) = kv
-
-        val conditionsFig = conditions.toSeq map { fig.conditionFig(grammar, _) }
-        tooltips(node) = tooltips.getOrElse(node, Seq()) :+ fig.fig.verticalFig(Spacing.Medium, fig.fig.textFig("Progresses", fig.appear.default) +: conditionsFig)
-    }
-    tooltips foreach { kv =>
-        val (node, figs) = kv
-        val tooltipFig = fig.fig.verticalFig(Spacing.Big, figs)
-        tooltipFig.setOpaque(true)
-        tooltipFig.setBackgroundColor(ColorConstants.white)
-        nodesMap(node).getFigure().setToolTip(tooltipFig)
+    protected def initializeTooltips(tooltips: Map[Node, Seq[Figure]]): Unit = {
+        tooltips foreach { kv =>
+            val (node, figs) = kv
+            val tooltipFig = fig.fig.verticalFig(Spacing.Big, figs)
+            tooltipFig.setOpaque(true)
+            tooltipFig.setBackgroundColor(ColorConstants.white)
+            nodesMap(node).getFigure().setToolTip(tooltipFig)
+        }
     }
 
     // Interactions
@@ -291,6 +296,7 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
             edgesMap(newEdge) foreach { _.setLineWidth(3) }
         }
         applyLayout(false)
+        initializeTooltips(getTooltips())
     }
 }
 
@@ -333,7 +339,7 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
 trait TipNodes extends AbstractZestGraphWidget {
     def setTipNodeBorder(node: Node): Unit = {
         val shownNode = nodesMap(node)
-        shownNode.getFigure().setBorder(new LineBorder(ColorConstants.orange, 3))
+        shownNode.getFigure().setBorder(new CompoundBorder(shownNode.getFigure().getBorder(), new LineBorder(ColorConstants.orange, 3)))
         val size = shownNode.getFigure().getPreferredSize()
         shownNode.setSize(size.width, size.height)
     }

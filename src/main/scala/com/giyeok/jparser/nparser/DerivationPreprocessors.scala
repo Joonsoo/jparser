@@ -75,7 +75,7 @@ class OnDemandDerivationPreprocessor(val grammar: NGrammar) extends DerivationPr
 }
 
 class OnDemandSlicedDerivationPreprocessor(grammar: NGrammar) extends OnDemandDerivationPreprocessor(grammar) with SlicedDerivationPreprocessor {
-    // TODO slice가 TermGroupDesc->Preprocessed가 아니고 Preprocessed + finish 혹은 progress task를 만들기 위한 정보가 되어야 할듯
+    // slice는 TermGroupDesc -> Preprocessed + new derive tips, finish나 progress는 baseNode에 대해서만 수행한다
     private val symbolSliced = scala.collection.mutable.Map[Int, Map[TermGroupDesc, (Preprocessed, Set[SequenceNode])]]()
     private val sequenceSliced = scala.collection.mutable.Map[(Int, Int), Map[TermGroupDesc, (Preprocessed, Set[SequenceNode])]]()
 
@@ -86,14 +86,14 @@ class OnDemandSlicedDerivationPreprocessor(grammar: NGrammar) extends OnDemandDe
                 val preprocessed = derivationOf(deriveTip)
                 assert(preprocessed.baseFinishes.isEmpty)
                 val immediateProgresses = preprocessed.baseProgresses map { condition => ProgressTask(deriveTip, condition.shiftGen(nextGen)) }
-                // recNoBaseNoDerive(nextGen, immediateProgresses ++: rest, context.updateFinishes(_.merge(preprocessed.context.finishes.shiftGen(nextGen))), deriveTips + deriveTip)
-                ???
+                val ncc = cc.updateContext(cc.context.updateFinishes(_.merge(preprocessed.context.finishes.shiftGen(nextGen))))
+                recNoBaseNoDerive(baseNode, nextGen, immediateProgresses ++: rest, ncc, deriveTips + deriveTip)
             case FinishTask(`baseNode`, condition, lastSymbol) +: rest =>
                 recNoBaseNoDerive(baseNode, nextGen, rest, cc.addBaseFinish(condition, lastSymbol), deriveTips)
             case ProgressTask(`baseNode`, condition) +: rest =>
                 recNoBaseNoDerive(baseNode, nextGen, rest, cc.addBaseProgress(condition), deriveTips)
             case task +: rest =>
-                // assert(!task.isInstanceOf[DeriveTask])
+                assert(!task.isInstanceOf[DeriveTask])
                 val (newContext, newTasks) = process(nextGen, task, cc.context)
                 recNoBaseNoDerive(baseNode, nextGen, newTasks ++: rest, cc.updateContext(newContext), deriveTips)
             case List() =>
@@ -107,12 +107,13 @@ class OnDemandSlicedDerivationPreprocessor(grammar: NGrammar) extends OnDemandDe
             val finishables = finishableTermNodes(derivation.context, 0, termGroup)
             val finishTasks = finishables.toList map { FinishTask(_, True, None) }
             val cc = Preprocessed(derivation.baseNode, derivation.context.emptyFinishes, Seq(), Seq())
-            val sliced = recNoBaseNoDerive(derivation.baseNode, 1, finishTasks, cc, Set())
-            // TODO trim
-            // TODO baseNode에 대한 derive도 모아야됨 (recNoBase면 안됨)
+            val (newPreprocessed, newDeriveTips) = recNoBaseNoDerive(derivation.baseNode, 1, finishTasks, cc, Set())
+            // TODO trim start node 다시 정리
+            val trimmedContext = trim(newPreprocessed.context, Set(derivation.baseNode), newDeriveTips.asInstanceOf[Set[Node]])
+            val sequenceNodes = trimmedContext.graph.nodes collect { case n: SequenceNode => n }
+            val sliced = (newPreprocessed.updateContext(trimmedContext), newDeriveTips intersect sequenceNodes)
             (termGroup -> sliced)
         }).toMap
-        ???
     }
     def symbolSliceOf(symbolId: Int): Map[TermGroupDesc, (Preprocessed, Set[SequenceNode])] = {
         symbolSliced get symbolId match {

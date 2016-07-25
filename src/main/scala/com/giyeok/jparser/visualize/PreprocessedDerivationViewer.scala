@@ -182,20 +182,58 @@ object PreprocessedDerivationGraphWidget {
     def baseNodeFigGen(fig: NodeFigureGenerators[Figure]) = new BaseNodeFigureGenerators(fig.fig, fig.appear, fig.symbol)
 }
 
+trait PreprocessedBaseResultsTooltips extends ZestGraphWidget {
+    def getTooltips(tooltips: Map[Node, Seq[Figure]], preprocessed: Preprocessed): Map[Node, Seq[Figure]] = {
+        val baseNode = preprocessed.baseNode
+        var _tooltips = tooltips
+        if (!preprocessed.baseFinishes.isEmpty) {
+            nodesMap(baseNode).setBackgroundColor(ColorConstants.yellow)
+            val newFigs: Seq[Figure] = Seq(fig.fig.textFig("Base Finish", fig.appear.default)) ++ (
+                preprocessed.baseFinishes map { finish =>
+                    fig.fig.horizontalFig(Spacing.Small, Seq(
+                        fig.conditionFig(grammar, finish._1),
+                        finish._2 match {
+                            case Some(symbolId) =>
+                                fig.fig.horizontalFig(Spacing.None, Seq(
+                                    fig.fig.textFig("Some(", fig.appear.default),
+                                    fig.symbol.symbolFig(grammar.symbolOf(symbolId).symbol),
+                                    fig.fig.textFig(")", fig.appear.default)))
+                            case None => fig.fig.textFig("None", fig.appear.default)
+                        }))
+                })
+            _tooltips += (baseNode -> (_tooltips.getOrElse(baseNode, Seq()) ++ newFigs))
+        }
+        if (!preprocessed.baseProgresses.isEmpty) {
+            nodesMap(baseNode).setBackgroundColor(ColorConstants.yellow)
+            val newFigs: Seq[Figure] = Seq(fig.fig.textFig("Base Progresses", fig.appear.default)) ++ (
+                preprocessed.baseProgresses map { finish =>
+                    fig.fig.horizontalFig(Spacing.Small, Seq(
+                        fig.conditionFig(grammar, finish)))
+                })
+            _tooltips += (baseNode -> (_tooltips.getOrElse(baseNode, Seq()) ++ newFigs))
+        }
+        _tooltips
+    }
+}
+
 class PreprocessedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, preprocessed: Preprocessed)
-        extends ZestGraphWidget(parent, style, PreprocessedDerivationGraphWidget.baseNodeFigGen(fig), grammar, preprocessed.context) with TipNodes {
+        extends ZestGraphWidget(parent, style, PreprocessedDerivationGraphWidget.baseNodeFigGen(fig), grammar, preprocessed.context) with TipNodes with PreprocessedBaseResultsTooltips {
     override def initialize(): Unit = {
         super.initialize()
         setTipNodeBorder(preprocessed.baseNode)
     }
+
+    override def getTooltips(): Map[Node, Seq[Figure]] = getTooltips(super.getTooltips(), preprocessed)
 }
 
 class PreprocessedSlicedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, preprocessed: Preprocessed, sliced: (Preprocessed, Set[SequenceNode]))
-        extends ZestGraphTransitionWidget(parent, style, PreprocessedDerivationGraphWidget.baseNodeFigGen(fig), grammar, preprocessed.context, sliced._1.context) with TipNodes {
+        extends ZestGraphTransitionWidget(parent, style, PreprocessedDerivationGraphWidget.baseNodeFigGen(fig), grammar, preprocessed.context, sliced._1.context) with TipNodes with PreprocessedBaseResultsTooltips {
     assert(preprocessed.baseNode == sliced._1.baseNode)
     override def initialize(): Unit = {
         super.initialize()
         setTipNodeBorder(preprocessed.baseNode)
+        sliced._2 foreach { setTipNodeBorder(_) }
     }
-}
 
+    override def getTooltips(): Map[Node, Seq[Figure]] = getTooltips(super.getTooltips(), sliced._1)
+}
