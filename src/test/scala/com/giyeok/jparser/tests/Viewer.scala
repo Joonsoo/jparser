@@ -35,6 +35,7 @@ import com.giyeok.jparser.nparser.OnDemandDerivationPreprocessor
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.PreprocessedParser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
+import com.giyeok.jparser.nparser.SlicedPreprocessedParser
 
 object AllViewer extends Viewer {
     val allTests = Set(
@@ -169,7 +170,8 @@ trait Viewer {
                     ParsingProcessVisualizer.start[NaiveWrappedContext](grammar.name, new NaiveParser(ngrammar), source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.Preprocessed =>
                     ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, new PreprocessedParser(ngrammar, new OnDemandDerivationPreprocessor(ngrammar)), source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
-                case ParserTypes.PreprocessedSliced => // TODO
+                case ParserTypes.PreprocessedSliced =>
+                    ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, new SlicedPreprocessedParser(ngrammar, new OnDemandSlicedDerivationPreprocessor(ngrammar)), source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.PreprocessedCompacted => // TODO
                 case ParserTypes.PreprocessedSlicedCompacted => // TODO
                 case ParserTypes.GrowingCompacted => // TODO

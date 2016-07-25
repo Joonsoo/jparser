@@ -56,9 +56,8 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
 
     private def testCorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = parse(tests, source)
         it should s"${tests.grammar.name} properly parsed on '${source.toCleanString}'" in {
-            result match {
+            parse(tests, source) match {
                 case Left(result) => checkParse(result, tests.grammar)
                 case Right(error) => fail(error.msg)
             }
@@ -67,9 +66,8 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
 
     private def testIncorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = parse(tests, source)
         it should s"${tests.grammar.name} failed to parse on '${source.toCleanString}'" in {
-            result match {
+            parse(tests, source) match {
                 case Left(result) => fail("??")
                 case Right(error) => assert(true)
             }
@@ -78,9 +76,8 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
 
     private def testAmbiguous(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
-        val result = parse(tests, source)
         it should s"${tests.grammar.name} is ambiguous on '${source.toCleanString}'" in {
-            result match {
+            parse(tests, source) match {
                 case Left(result) => checkParse(result, tests.grammar)
                 case Right(error) => fail(error.msg)
             }

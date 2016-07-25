@@ -97,7 +97,7 @@ trait SlicedDerivationPreprocessor extends DerivationPreprocessor {
 }
 
 class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPreprocessor) extends Parser[DeriveTipsWrappedContext] with ParsingTasks {
-    assert(grammar == derivation.grammar)
+    // assert(grammar == derivation.grammar)
 
     val initialContext: DeriveTipsWrappedContext = {
         // derivationOf(startNode).baseFinishes 처리
@@ -125,12 +125,11 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
                     case _ =>
                         Context(context.graph.replaceNode(original, replaced), context.progresses, context.finishes.replaceNode(original, replaced))
                 }
-
             cc.merge(replaceNode(preprocessed.context, preprocessed.baseNode, deriveTip))
         }
     }
 
-    @tailrec private def recNoDerive(nextGen: Int, tasks: List[Task], context: Context, deriveTips: Set[Node]): (Context, Set[Node]) =
+    @tailrec final def recNoDerive(nextGen: Int, tasks: List[Task], context: Context, deriveTips: Set[SequenceNode]): (Context, Set[SequenceNode]) =
         tasks match {
             case DeriveTask(deriveTip: SequenceNode) +: rest =>
                 // context에 deriveTip의 finish task 추가
@@ -166,7 +165,8 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
             // 있든 없든 finishes는 항상 expand
             val expandedCtx = expand(ctx, expandingDeriveTips)
             // 2. Lift
-            val (liftedCtx, newDeriveTips) = recNoDerive(nextGen, termFinishes, expandedCtx.emptyFinishes, Set())
+            val (liftedCtx, newDeriveTips0) = recNoDerive(nextGen, termFinishes, expandedCtx.emptyFinishes, Set())
+            val newDeriveTips = newDeriveTips0.asInstanceOf[Set[Node]]
             // 3. Trimming
             // TODO trimStarts에서 (liftedCtx.finishes.conditionNodes) 랑 (liftedCtx.progresses.conditionNodes) 로 충분한지 확인
             val trimStarts = (Set(startNode) ++ (liftedCtx.finishes.conditionNodes) ++ (liftedCtx.progresses.conditionNodes)) intersect liftedCtx.graph.nodes
@@ -193,13 +193,50 @@ trait DerivationCompactable {
     }
 }
 
-class PreprocessedPrefinishedParser(grammar: NGrammar, derivation: SlicedDerivationPreprocessor) extends PreprocessedParser(grammar, derivation) {
-    // def this(grammar: NGrammar) = this(grammar, new SlicedDerivationPreprocessor(grammar))
-
-    assert(grammar == derivation.grammar)
+class SlicedPreprocessedParser(grammar: NGrammar, override val derivation: SlicedDerivationPreprocessor) extends PreprocessedParser(grammar, derivation) {
+    // assert(grammar == derivation.grammar)
 
     override def proceedDetail(wctx: DeriveTipsWrappedContext, input: Input): Either[(ProceedDetail, DeriveTipsWrappedContext), ParsingError] = {
-        // TODO PreprocessedParser 하고 거의 똑같이 하되, expand가 달라지고, terminal node에 대해서가 아니라 deriveTip들에 대한 finish나 progress task를 실행한다
-        ???
+        val (ctx, gen, nextGen, deriveTips) = (wctx.ctx, wctx.gen, wctx.nextGen, wctx.deriveTips)
+        // finishable term node를 포함한 deriveTip -> term node set
+        val (initialFinishes, expandingDeriveTips) = deriveTips.foldLeft((List[Task](), Map[Node, Preprocessed]())) { (cc, tip) =>
+            derivation.sliceOf(tip, input) match {
+                case Some((preprocessed0, newDeriveTips0)) =>
+                    val (tasks, expanding) = cc
+                    val (preprocessed, newDeriveTips) = (preprocessed0.shiftGen(gen), newDeriveTips0 map { _.shiftGen(gen) })
+                    val newTasks: List[Task] =
+                        (preprocessed.baseFinishes.toList map { cs => FinishTask(tip, cs._1.shiftGen(gen), cs._2) }) ++
+                            (preprocessed.baseProgresses.toList map { c => ProgressTask(tip.asInstanceOf[SequenceNode], c.shiftGen(gen)) }) ++
+                            (newDeriveTips.toList map { DeriveTask(_) })
+                    if (preprocessed.context.graph.nodes.isEmpty) (newTasks ++: tasks, expanding) else (newTasks ++: tasks, expanding + (tip -> preprocessed))
+                case None => cc
+            }
+        }
+        if (initialFinishes.isEmpty) {
+            Right(UnexpectedInput(input))
+        } else {
+            // 1. Expand
+            // expandingDeriveTips에 있는 것들은 그래프에 expand
+            // 있든 없든 finishes는 항상 expand
+            val expandedCtx = expand(ctx.emptyFinishes, expandingDeriveTips)
+            // 2. Lift
+            val (liftedCtx, newDeriveTips0) = recNoDerive(nextGen, initialFinishes, expandedCtx, Set())
+            val newDeriveTips = newDeriveTips0.asInstanceOf[Set[Node]]
+            // 3. Trimming
+            // TODO trimStarts에서 (liftedCtx.finishes.conditionNodes) 랑 (liftedCtx.progresses.conditionNodes) 로 충분한지 확인
+            val trimStarts = (Set(startNode) ++ (liftedCtx.finishes.conditionNodes) ++ (liftedCtx.progresses.conditionNodes)) intersect liftedCtx.graph.nodes
+            val trimmedCtx: Context = trim(liftedCtx, trimStarts, newDeriveTips)
+            // 4. Revert
+            val revertedCtx: Context = revert(nextGen, trimmedCtx, trimmedCtx.finishes, trimmedCtx.graph.nodes)
+            // 5. Condition Fate
+            val conditionFateNext = {
+                val evaluated = wctx.conditionFate mapValues { _.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes) }
+                val newConditions = (revertedCtx.finishes.conditions map { c => (c -> c) }).toMap
+                (evaluated ++ newConditions) filter { _._2 != False }
+            }
+            val nextDeriveTips = newDeriveTips intersect revertedCtx.graph.nodes // deriveTip 중에 trimStarts에서 도달 불가능하거나 exclude로 제거되는 노드가 있을 수 있음
+            val nextCtx = wctx.proceed(nextGen, revertedCtx, nextDeriveTips, input, conditionFateNext)
+            Left((ProceedDetail(ctx, expandedCtx, liftedCtx, trimmedCtx, revertedCtx), nextCtx))
+        }
     }
 }

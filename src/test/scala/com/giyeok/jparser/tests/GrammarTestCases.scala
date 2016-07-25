@@ -38,5 +38,5 @@ trait GrammarTestCases extends Samples {
     lazy val ngrammar = NGrammar.fromGrammar(grammar)
     lazy val nparserNaive = new nparser.NaiveParser(ngrammar)
     lazy val nparserPreprocessed = new nparser.PreprocessedParser(ngrammar, new OnDemandDerivationPreprocessor(ngrammar))
-    lazy val nparserPreprocessedPrefinished = new nparser.PreprocessedPrefinishedParser(ngrammar, new OnDemandSlicedDerivationPreprocessor(ngrammar))
+    lazy val nparserSlicedPreprocessed = new nparser.SlicedPreprocessedParser(ngrammar, new OnDemandSlicedDerivationPreprocessor(ngrammar))
 }

@@ -87,6 +87,13 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                         }
                     case _ => None
                 }
+                if (merging.isEmpty) {
+                    println(node)
+                    println(grammar.nsequences(sequenceId).symbol)
+                    println(grammar.nsymbols(childSymId).symbol)
+                    println(merging)
+                    println("??")
+                }
                 assert(!merging.isEmpty)
                 resultFunc.merge(merging).get
         }
