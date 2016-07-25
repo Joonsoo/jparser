@@ -28,6 +28,7 @@ import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.Parser.WrappedContext
 import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
 import org.eclipse.draw2d.CompoundBorder
+import org.eclipse.swt.graphics.Color
 
 trait AbstractZestGraphWidget extends Control {
     val graphViewer: GraphViewer
@@ -55,6 +56,7 @@ trait AbstractZestGraphWidget extends Control {
         }
     }
 
+    val edgeColor = ColorConstants.gray
     def addEdge(edge: Edge): Unit = {
         if (!(edgesMap contains edge)) {
             edge match {
@@ -62,6 +64,7 @@ trait AbstractZestGraphWidget extends Control {
                     assert(nodesMap contains start)
                     assert(nodesMap contains end)
                     val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
+                    conn.setLineColor(edgeColor)
                     edgesMap(edge) = Seq(conn)
                 case JoinEdge(start, end, join) =>
                     assert(nodesMap contains start)
@@ -71,6 +74,8 @@ trait AbstractZestGraphWidget extends Control {
                     val connJoin = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(join))
                     conn.setText("main")
                     connJoin.setText("join")
+                    conn.setLineColor(edgeColor)
+                    connJoin.setLineColor(edgeColor)
                     edgesMap(edge) = Seq(conn, connJoin)
             }
             visibleEdges += edge
@@ -282,7 +287,6 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
         (base.graph.edges -- trans.graph.edges) foreach { removedEdge =>
             edgesMap(removedEdge) foreach { connection =>
                 connection.setLineWidth(2)
-                connection.setLineColor(ColorConstants.lightGray)
                 connection.setLineStyle(SWT.LINE_DASH)
             }
         }
@@ -298,6 +302,46 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
         applyLayout(false)
         initializeTooltips(getTooltips())
     }
+
+    private def setVisible(context: Context, visible: Boolean): Unit = {
+        (context.graph.nodes ++ context.finishes.nodes) foreach { node =>
+            (nodesMap get node) foreach { shownNode =>
+                shownNode.setVisible(visible)
+            }
+        }
+        context.graph.edges foreach { edge =>
+            (edgesMap get edge) foreach {
+                _ foreach { connection =>
+                    if (visible) {
+                        connection.changeLineColor(edgeColor)
+                    } else {
+                        connection.changeLineColor(ColorConstants.white)
+                    }
+                }
+            }
+        }
+    }
+
+    addKeyListener(new KeyListener() {
+        def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
+            e.keyCode match {
+                case 'Q' | 'q' =>
+                    // Show base graph only
+                    setVisible(trans, false)
+                    setVisible(base, true)
+                case 'W' | 'w' =>
+                    // Show trans graph only
+                    setVisible(base, false)
+                    setVisible(trans, true)
+                case 'E' | 'e' =>
+                    // Show both graphs
+                    setVisible(base, true)
+                    setVisible(trans, true)
+                case _ =>
+            }
+        }
+        def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
+    })
 }
 
 class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: WrappedContext)
@@ -305,7 +349,7 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
     addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {
-                case 'F' | 'f' =>
+                case 'T' | 't' =>
                     context.conditionFate foreach { kv =>
                         println(s"${kv._1} -> ${kv._2}")
                     }
