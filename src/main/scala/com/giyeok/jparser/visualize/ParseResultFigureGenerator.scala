@@ -41,8 +41,6 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
         def parseNodeFig(n: Node): Fig = n match {
             case TerminalNode(input) =>
                 g.textFig(input.toShortString, ap.input)
-            case TermFuncNode =>
-                g.textFig("λt", ap.input)
             case BindNode(sym: Repeat, body) =>
                 def childrenOf(node: Node, sym: Symbol): Seq[Node] = node match {
                     case BindNode(s, body) if s == sym => Seq(node)
@@ -157,8 +155,6 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
         import ParseResultGraph._
         def figureOf(node: Node, visited: Set[Node]): Fig =
             node match {
-                case node: TermFunc =>
-                    g.textFig(s"${node.range}λt", ap.input) ensuring (r.outgoingOf(node).isEmpty)
                 case node @ Term(_, input) =>
                     g.textFig(s"T${node.range}${input.toShortString}", ap.input) ensuring (r.outgoingOf(node).isEmpty)
                 case node @ Sequence(position, length, symbol, pointer) =>

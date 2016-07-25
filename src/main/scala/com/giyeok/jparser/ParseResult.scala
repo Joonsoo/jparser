@@ -20,8 +20,4 @@ trait ParseResultFunc[R <: ParseResult] {
     def merge(results: Iterable[R]): Option[R] =
         if (results.isEmpty) None
         else Some(results.tail.foldLeft(results.head)(merge(_, _)))
-
-    def termFunc(): R
-    def substTermFunc(r: R, position: Int, input: Inputs.Input): R
-    def shift(r: R, position: Int): R
 }

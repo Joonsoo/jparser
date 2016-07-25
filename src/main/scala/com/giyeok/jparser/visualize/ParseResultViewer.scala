@@ -131,8 +131,6 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
     val nodeMap = scala.collection.mutable.Map[Node, CGraphNode]()
     r.nodes foreach { node =>
         val figure = node match {
-            case node: TermFunc =>
-                g.textFig(s"${node.range}λt", ap.input)
             case node @ Term(_, input) =>
                 g.textFig(s"T${node.range}${input.toShortString}", ap.input)
             case node: Sequence =>

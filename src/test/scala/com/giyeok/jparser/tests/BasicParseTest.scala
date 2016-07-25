@@ -87,7 +87,6 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
     private def checkParse(parseTree: ParseResultTree.Node, grammar: Grammar): Unit = {
         import ParseResultTree._
         parseTree match {
-            case TermFuncNode => ??? // should not happen
             case BindNode(term: Terminal, TerminalNode(input)) =>
                 assert(term.accept(input))
             case BindNode(Start, body @ BindNode(bodySym, _)) =>

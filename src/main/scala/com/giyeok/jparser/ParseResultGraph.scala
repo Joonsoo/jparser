@@ -25,8 +25,6 @@ case class ParseResultGraph(position: Int, length: Int, root: Node, nodes: Set[N
                 ParseForestFunc.sequence(-1, Symbols.Sequence(Seq()))
             } else {
                 node match {
-                    case TermFunc(position) =>
-                        ParseForestFunc.termFunc()
                     case Term(position, input) =>
                         ParseForestFunc.terminal(position, input)
                     case Sequence(position, length, symbol, pointer) =>
@@ -115,41 +113,6 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
         // assert(merging.nodes contains base.root)
         ParseResultGraph(base.position, base.length, base.root, base.nodes ++ merging.nodes, base.edges ++ merging.edges)
     }
-
-    def termFunc(): ParseResultGraph =
-        ParseResultGraph(0, 1, TermFunc(0), Set(TermFunc(0)), Set())
-    def substTermFunc(r: ParseResultGraph, position: Int, input: Inputs.Input): ParseResultGraph = {
-        def substNode(node: Node): Node = node match {
-            case TermFunc(p) => Term(p + position, input)
-            case Term(p, input) => Term(p + position, input)
-            case Sequence(p, length, symbol, pointer) =>
-                Sequence(p + position, length, symbol, pointer)
-            case Bind(p, length, symbol) => Bind(p + position, length, symbol)
-            case Join(p, length, symbol) => Join(p + position, length, symbol)
-        }
-        def substEdge(edge: Edge): Edge = edge match {
-            case BindEdge(start, end) => BindEdge(substNode(start), substNode(end))
-            case AppendEdge(start, end, content) => AppendEdge(substNode(start), substNode(end), content)
-            case JoinEdge(start, end, join) => JoinEdge(substNode(start), substNode(end), substNode(join))
-        }
-        ParseResultGraph(r.position + position, r.length, substNode(r.root), r.nodes map { substNode(_) }, r.edges map { substEdge(_) })
-    }
-    def shift(r: ParseResultGraph, position: Int): ParseResultGraph = {
-        def shiftNode(node: Node): Node = node match {
-            case TermFunc(p) => TermFunc(p + position)
-            case Term(p, input) => Term(p + position, input)
-            case Sequence(p, length, symbol, pointer) =>
-                Sequence(p + position, length, symbol, pointer)
-            case Bind(p, length, symbol) => Bind(p + position, length, symbol)
-            case Join(p, length, symbol) => Join(p + position, length, symbol)
-        }
-        def substEdge(edge: Edge): Edge = edge match {
-            case BindEdge(start, end) => BindEdge(shiftNode(start), shiftNode(end))
-            case AppendEdge(start, end, content) => AppendEdge(shiftNode(start), shiftNode(end), content)
-            case JoinEdge(start, end, join) => JoinEdge(shiftNode(start), shiftNode(end), shiftNode(join))
-        }
-        ParseResultGraph(r.position + position, r.length, shiftNode(r.root), r.nodes map { shiftNode(_) }, r.edges map { substEdge(_) })
-    }
 }
 
 object ParseResultGraph {
@@ -160,9 +123,6 @@ object ParseResultGraph {
         def range = (position, position + length)
     }
 
-    case class TermFunc(position: Int) extends Node {
-        val length = 1
-    }
     case class Term(position: Int, input: Inputs.Input) extends Node {
         val length = 1
     }

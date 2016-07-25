@@ -27,17 +27,6 @@ object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivati
         val length = base.length ensuring (base.length == merging.length)
         ParseResultDerivationsSet(length, base.derivations ++ merging.derivations)
     }
-
-    def termFunc(): ParseResultDerivationsSet = {
-        ParseResultDerivationsSet(1, Set(TermFunc(0)))
-    }
-    def substTermFunc(r: ParseResultDerivationsSet, position: Int, input: Inputs.Input): ParseResultDerivationsSet = {
-        ParseResultDerivationsSet(r.length, r.derivations map {
-            case TermFunc(position) => Term(position, input)
-            case d => d
-        })
-    }
-    def shift(r: ParseResultDerivationsSet, position: Int) = r
 }
 
 object ParseResultDerivations {

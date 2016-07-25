@@ -23,10 +23,6 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
 
     def merge(base: ParseForest, merging: ParseForest) =
         ParseForest(base.trees ++ merging.trees)
-
-    def termFunc() = ParseForest(Set(TermFuncNode))
-    def substTermFunc(r: ParseForest, position: Int, input: Inputs.Input) = ParseForest(r.trees map { _.substTerm(input) })
-    def shift(r: ParseForest, position: Int) = r
 }
 
 object ParseResultTree {
@@ -36,9 +32,6 @@ object ParseResultTree {
         def substTerm(input: Input): Node
     }
 
-    case object TermFuncNode extends Node {
-        def substTerm(input: Input) = TerminalNode(input)
-    }
     case class TerminalNode(input: Input) extends Node {
         def substTerm(input: Input) = this
         override lazy val hashCode = (classOf[TerminalNode], input).hashCode
@@ -79,7 +72,6 @@ object ParseResultTree {
     }
     implicit class ShortString(node: Node) {
         def toShortString: String = node match {
-            case TermFuncNode => s"TermFunc"
             case n: TerminalNode => s"Term(${n.input.toShortString})"
             case n: BindNode => s"${n.symbol.toShortString}(${n.body.toShortString})"
             case n: JoinNode => s"${n.body.toShortString}(&${n.join.toShortString})"
@@ -90,8 +82,6 @@ object ParseResultTree {
     implicit class TreePrint(node: Node) {
         def printTree(): Unit = println(toTreeString("", "  "))
         def toTreeString(indent: String, indentUnit: String): String = node match {
-            case TermFuncNode =>
-                indent + "- termFunc\n"
             case n: TerminalNode =>
                 indent + s"- ${n.input}\n"
             case n: BindNode =>
@@ -128,8 +118,6 @@ object ParseResultTree {
                     result ensuring (result._2.forall(_.length == result._1))
                 }
             val result: (Int, Seq[String]) = node match {
-                case TermFuncNode =>
-                    (2, Seq("λt"))
                 case n: TerminalNode =>
                     val str = n.input.toShortString
                     (str.length, Seq(str))
@@ -157,7 +145,6 @@ object ParseResultTree {
             toHorizontalHierarchyStringSeq._2 mkString "\n"
 
         def toOperationsString(): String = node match {
-            case TermFuncNode => "λt"
             case n: TerminalNode => s"term(${n.input.toShortString})"
             case n: BindNode => s"bind(${n.symbol.toShortString}, ${n.body.toOperationsString()})"
             case n: JoinNode => s"join(${n.body.toOperationsString()}, ${n.join.toOperationsString()})"
