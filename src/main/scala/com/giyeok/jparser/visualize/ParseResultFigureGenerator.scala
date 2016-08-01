@@ -125,14 +125,12 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                 reducedTo))
         }
         vfig(Spacing.Medium, r.derivations.toSeq.sortBy { _.range } map {
-            case d @ TermFunc(position) =>
-                reduction(d.range, g.textFig("λt", ap.input))
-            case d @ Term(position, input) =>
+            case d @ Term(left, input) =>
                 reduction(d.range, g.textFig(input.toShortString, ap.input))
-            case d @ Bind(position, length, symbol) =>
+            case d @ Bind(left, right, symbol) =>
                 reduction(d.range, symbolFigureGenerator.symbolFig(symbol))
-            case d @ LastChild(position, length, content) =>
-                reduction(d.range, g.textFig(if (content) "child" else "whitespace", ap.input))
+            case d @ LastChild(left, right) =>
+                reduction(d.range, g.textFig("child", ap.input))
         })
     }
 
@@ -185,6 +183,6 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                         }) :+ symbolFigureGenerator.symbolFig(symbol))
             }
         // figureOf(r.root, Set())
-        parseForestResultFigure(symbolBorder, vfig, hfig, renderConf)(r.asParseForest._1)
+        parseForestResultFigure(symbolBorder, vfig, hfig, renderConf)(r.asParseForest)
     }
 }

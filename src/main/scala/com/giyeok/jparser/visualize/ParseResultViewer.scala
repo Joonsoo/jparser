@@ -67,7 +67,9 @@ class ParseResultTreeViewer(node: ParseResultTree.Node, figureGenerator: FigureG
     }
 }
 
-class ParseResultDerivationsSetViewer(r: ParseResultDerivationsSet, figureGenerator: FigureGenerator.Generator[Figure], figureAppearances: FigureGenerator.Appearances[Figure], parseResultFigureGenerator: ParseResultFigureGenerator[Figure]) {
+class ParseResultDerivationsSetViewer(r: ParseResultDerivationsSet, figureGenerator: FigureGenerator.Generator[Figure], figureAppearances: FigureGenerator.Appearances[Figure]) {
+    val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](figureGenerator, figureAppearances)
+
     val shell = new Shell(Display.getDefault())
     shell.setLayout(new FillLayout())
     val figCanvas = new FigureCanvas(shell)
@@ -187,7 +189,7 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
                 case 'r' | 'R' => applyLayout(true)
                 case 't' | 'T' | 'f' | 'F' =>
                     val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](figureGenerator, figureAppearances)
-                    r.asParseForest._1.trees foreach { tree =>
+                    r.asParseForest.trees foreach { tree =>
                         new ParseResultTreeViewer(tree, figureGenerator, figureAppearances, parseResultFigureGenerator).start()
                     }
                 case _ =>

@@ -4,17 +4,19 @@ import Symbols._
 
 case class ParseForest(trees: Set[ParseResultTree.Node]) extends ParseResult
 
-object ParseForestFunc extends ParseResultFunc[ParseForest] {
+object ParseForestFunc extends ParseResultFunc0[ParseForest] {
     import ParseResultTree._
 
-    def terminal(position: Int, input: Inputs.Input) = ParseForest(Set(TerminalNode(input)))
-    def bind(symbol: Symbol, body: ParseForest) =
+    def terminal(left: Int, input: Inputs.Input) = ParseForest(Set(TerminalNode(input)))
+    def bind(left: Int, right: Int, symbol: Symbol, body: ParseForest) =
         ParseForest(body.trees map { b => BindNode(symbol, b) })
-    def join(symbol: Symbols.Join, body: ParseForest, constraint: ParseForest) = {
+    def cyclicBind(left: Int, right: Int, symbol: Symbol) =
+        ???
+    def join(left: Int, right: Int, symbol: Symbols.Join, body: ParseForest, constraint: ParseForest) = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
         ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
     }
-    def sequence(position: Int, symbol: Symbols.Sequence) = ParseForest(Set(SequenceNode(symbol, List())))
+    def sequence(left: Int, right: Int, symbol: Symbols.Sequence) = ParseForest(Set(SequenceNode(symbol, List())))
     def append(sequence: ParseForest, child: ParseForest) = {
         assert(sequence.trees forall { _.isInstanceOf[SequenceNode] })
         // sequence의 tree 각각에 child 각각을 추가한다
@@ -28,22 +30,11 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
 object ParseResultTree {
     import Inputs._
 
-    sealed trait Node {
-        def substTerm(input: Input): Node
-    }
+    sealed trait Node
 
-    case class TerminalNode(input: Input) extends Node {
-        def substTerm(input: Input) = this
-        override lazy val hashCode = (classOf[TerminalNode], input).hashCode
-    }
-    case class BindNode(symbol: Symbol, body: Node) extends Node {
-        def substTerm(input: Input) = BindNode(symbol, body.substTerm(input))
-        override lazy val hashCode = (classOf[BindNode], symbol, body).hashCode
-    }
-    case class JoinNode(body: Node, join: Node) extends Node {
-        def substTerm(input: Input) = JoinNode(body.substTerm(input), join.substTerm(input))
-        override lazy val hashCode = (classOf[JoinNode], body, join).hashCode
-    }
+    case class TerminalNode(input: Input) extends Node
+    case class BindNode(symbol: Symbol, body: Node) extends Node
+    case class JoinNode(body: Node, join: Node) extends Node
     case class SequenceNode(symbol: Symbols.Sequence, _children: List[Node]) extends Node {
         // _children: reverse of all children
 
@@ -52,9 +43,6 @@ object ParseResultTree {
         }
         lazy val childrenAll = _children.reverse
         lazy val children = symbol.contentIdx filter { _ < childrenAll.length } map { childrenAll(_) }
-
-        def substTerm(input: Input): SequenceNode = SequenceNode(symbol, _children map { _.substTerm(input) })
-        override lazy val hashCode = (classOf[SequenceNode], _children).hashCode
     }
 
     object HorizontalTreeStringSeqUtil {

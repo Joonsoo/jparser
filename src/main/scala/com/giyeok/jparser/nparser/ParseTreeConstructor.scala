@@ -3,13 +3,13 @@ package com.giyeok.jparser.nparser
 import com.giyeok.jparser.nparser.EligCondition.Condition
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.ParseResult
-import com.giyeok.jparser.ParseResultFunc
+import com.giyeok.jparser.ParseResultFunc0
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.Symbols.Symbol
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.nparser.NGrammar._
 
-class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Results[Node]], conditionFate: Map[Condition, Condition]) {
+class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc0[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Results[Node]], conditionFate: Map[Condition, Condition]) {
     val finishes = {
         def eligible(conditions: Set[Condition]): Boolean = {
             conditions exists { conditionFate.getOrElse(_, EligCondition.False).eligible }
@@ -36,27 +36,26 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
         }
 
         node match {
-            case SymbolNode(symbolId, _) if traces contains symbolId =>
-                // cycle이 발생한 경우
-                ???
+            case SymbolNode(symbolId, beginGen) if traces contains symbolId =>
+                resultFunc.cyclicBind(beginGen, gen, grammar.nsymbols(symbolId).symbol)
             case SymbolNode(symbolId, beginGen) =>
                 grammar.nsymbols(symbolId) match {
                     case Terminal(terminalSymbol) =>
-                        resultFunc.bind(terminalSymbol, resultFunc.terminal(beginGen, input(beginGen)))
+                        resultFunc.bind(beginGen, gen, terminalSymbol, resultFunc.terminal(beginGen, input(beginGen)))
                     case symbol: NSimpleDerivable =>
                         val merging = finishes(gen) flatMap {
                             case child: SymbolNode if (symbol.produces contains child.symbolId) && (beginGen == child.beginGen) =>
-                                Some(resultFunc.bind(symbol.symbol, reconstruct0(child, gen)))
+                                Some(resultFunc.bind(beginGen, gen, symbol.symbol, reconstruct0(child, gen)))
                             case child: SequenceNode if (symbol.produces contains child.symbolId) && (beginGen == child.beginGen) =>
                                 val sequenceSymbol = grammar.nsequences(child.symbolId)
                                 if (sequenceSymbol.sequence.isEmpty) {
                                     // child node가 empty sequence인 경우
-                                    Some(resultFunc.bind(symbol.symbol, resultFunc.sequence(child.beginGen, sequenceSymbol.symbol)))
+                                    Some(resultFunc.bind(beginGen, gen, symbol.symbol, resultFunc.sequence(child.beginGen, gen, sequenceSymbol.symbol)))
                                 } else if (child.pointer + 1 == sequenceSymbol.sequence.length) {
                                     // empty가 아닌 경우
                                     val prevSeq = reconstruct0(child, child.endGen)
                                     val append = reconstruct0(SymbolNode(sequenceSymbol.sequence.last, child.endGen), gen)
-                                    Some(resultFunc.bind(symbol.symbol, resultFunc.append(prevSeq, append)))
+                                    Some(resultFunc.bind(beginGen, gen, symbol.symbol, resultFunc.append(prevSeq, append)))
                                 } else {
                                     None
                                 }
@@ -65,15 +64,15 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                         assert(!merging.isEmpty)
                         resultFunc.merge(merging).get
                     case Join(symbol, body, join) =>
-                        resultFunc.bind(symbol,
-                            resultFunc.join(symbol,
+                        resultFunc.bind(beginGen, gen, symbol,
+                            resultFunc.join(beginGen, gen, symbol,
                                 reconstruct0(SymbolNode(body, beginGen), gen),
                                 reconstruct0(SymbolNode(join, beginGen), gen)))
                     case symbol: NLookaheadSymbol =>
-                        resultFunc.bind(symbol.symbol, resultFunc.sequence(beginGen, Symbols.Sequence(Seq())))
+                        resultFunc.bind(beginGen, gen, symbol.symbol, resultFunc.sequence(beginGen, gen, Symbols.Sequence(Seq())))
                 }
             case SequenceNode(sequenceId, 0, beginGen, endGen) =>
-                resultFunc.sequence(beginGen, grammar.nsequences(sequenceId).symbol)
+                resultFunc.sequence(beginGen, gen, grammar.nsequences(sequenceId).symbol)
             case SequenceNode(sequenceId, pointer, beginGen, endGen) =>
                 assert(gen == endGen)
                 val childSymId = grammar.nsequences(sequenceId).sequence(pointer - 1)

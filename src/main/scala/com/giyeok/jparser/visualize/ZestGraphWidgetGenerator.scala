@@ -29,6 +29,7 @@ import com.giyeok.jparser.nparser.Parser.WrappedContext
 import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
 import org.eclipse.draw2d.CompoundBorder
 import org.eclipse.swt.graphics.Color
+import com.giyeok.jparser.ParseResultDerivationsSetFunc
 
 trait AbstractZestGraphWidget extends Control {
     val graphViewer: GraphViewer
@@ -367,11 +368,20 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
                 case node: SequenceNode =>
                 // TODO show preprocessed derivation graph
                 case node: SymbolNode =>
-                    val parseResultGraphOpt = new ParseTreeConstructor(ParseResultGraphFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)
-                    parseResultGraphOpt match {
-                        case Some(parseResultGraph) =>
-                            new ParseResultGraphViewer(parseResultGraph, fig.fig, fig.appear, fig.symbol).start()
-                        case None =>
+                    if ((e.stateMask & SWT.SHIFT) != 0) {
+                        val parseResultOpt = new ParseTreeConstructor(ParseResultDerivationsSetFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)
+                        parseResultOpt match {
+                            case Some(parseResult) =>
+                                new ParseResultDerivationsSetViewer(parseResult, fig.fig, fig.appear).start()
+                            case None =>
+                        }
+                    } else {
+                        val parseResultOpt = new ParseTreeConstructor(ParseResultGraphFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)
+                        parseResultOpt match {
+                            case Some(parseResult) =>
+                                new ParseResultGraphViewer(parseResult, fig.fig, fig.appear, fig.symbol).start()
+                            case None =>
+                        }
                     }
                 case data =>
                     println(data)

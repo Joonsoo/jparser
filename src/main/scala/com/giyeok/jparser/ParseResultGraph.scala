@@ -2,8 +2,8 @@ package com.giyeok.jparser
 
 import ParseResultGraph._
 
-case class ParseResultGraph(position: Int, length: Int, root: Node, nodes: Set[Node], edges: Set[Edge]) extends ParseResult {
-    assert(position == root.position && length == root.length)
+case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node], edges: Set[Edge]) extends ParseResult {
+    assert(left == root.left && right == root.right)
     assert(nodes contains root)
     assert(edges forall {
         case BindEdge(start, end) =>
@@ -17,118 +17,119 @@ case class ParseResultGraph(position: Int, length: Int, root: Node, nodes: Set[N
     lazy val outgoingEdges = edges groupBy { _.start }
     def outgoingOf(node: Node): Set[Edge] = outgoingEdges.getOrElse(node, Set())
 
-    def asParseForest: (ParseForest, Boolean) = {
-        var cycleFound = false
-        def reconstruct(node: Node, visited: Set[Node]): ParseForest = {
+    def asParseForest: ParseForest = transform(ParseForestFunc)
+
+    def transform[R <: ParseResult](resultFunc: ParseResultFunc0[R]): R = {
+        def reconstruct(node: Node, visited: Set[Node]): R = {
             if (visited contains node) {
-                cycleFound = true
-                ParseForestFunc.sequence(-1, Symbols.Sequence(Seq()))
+                resultFunc.cyclicBind(node.left, node.right, node.asInstanceOf[NonTerm].symbol)
             } else {
                 node match {
-                    case Term(position, input) =>
-                        ParseForestFunc.terminal(position, input)
-                    case Sequence(position, length, symbol, pointer) =>
+                    case Term(left, input) =>
+                        resultFunc.terminal(left, input)
+                    case Sequence(left, right, symbol, pointer) =>
                         if (pointer == 0) {
-                            ParseForestFunc.sequence(position, symbol)
+                            resultFunc.sequence(left, right, symbol)
                         } else {
                             val outgoings = outgoingOf(node)
-                            val bodies: Set[ParseForest] = outgoings collect {
+                            val bodies: Set[R] = outgoings collect {
                                 case AppendEdge(_, end, true) =>
-                                    val contents = ParseForestFunc.merge(outgoings collect {
-                                        case AppendEdge(_, child, false) if child.position == end.position + end.length =>
+                                    val contents = resultFunc.merge(outgoings collect {
+                                        case AppendEdge(_, child, false) if child.left == end.right =>
                                             reconstruct(child, visited + node)
                                     })
                                     val prev = reconstruct(end, visited + node)
-                                    ParseForestFunc.append(prev, contents.get)
+                                    resultFunc.append(prev, contents.get)
                             }
-                            ParseForestFunc.merge(bodies).get
+                            resultFunc.merge(bodies).get
                         }
-                    case Bind(position, length, symbol) =>
-                        val bodies: Set[ParseForest] = outgoingOf(node) map {
+                    case Bind(left, right, symbol) =>
+                        val bodies: Set[R] = outgoingOf(node) map {
                             case BindEdge(_, end) =>
                                 reconstruct(end, visited + node)
                             case _ => assert(false); ???
                         }
-                        ParseForestFunc.bind(symbol, ParseForestFunc.merge(bodies).get)
-                    case Join(position, length, symbol) =>
-                        val bodies: Set[ParseForest] = outgoingOf(node) map {
+                        resultFunc.bind(left, right, symbol, resultFunc.merge(bodies).get)
+                    case Join(left, right, symbol) =>
+                        val bodies: Set[R] = outgoingOf(node) map {
                             case JoinEdge(_, end, join) =>
-                                ParseForestFunc.join(symbol, reconstruct(end, visited + node), reconstruct(join, visited + node))
+                                resultFunc.join(left, right, symbol, reconstruct(end, visited + node), reconstruct(join, visited + node))
                             case _ => assert(false); ???
                         }
-                        ParseForestFunc.merge(bodies).get
+                        resultFunc.merge(bodies).get
                 }
             }
         }
-        val forest = reconstruct(root, Set())
-        (forest, cycleFound)
+        reconstruct(root, Set())
     }
 }
 
-object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
-    def terminal(position: Int, input: Inputs.Input): ParseResultGraph =
-        ParseResultGraph(position, 1, Term(position, input), Set(Term(position, input)), Set())
-    def bind(symbol: Symbols.Symbol, body: ParseResultGraph): ParseResultGraph = {
-        val bindNode = Bind(body.position, body.length, symbol)
+object ParseResultGraphFunc extends ParseResultFunc0[ParseResultGraph] {
+    def terminal(left: Int, input: Inputs.Input): ParseResultGraph =
+        ParseResultGraph(left, left + 1, Term(left, input), Set(Term(left, input)), Set())
+    def bind(left: Int, right: Int, symbol: Symbols.Symbol, body: ParseResultGraph): ParseResultGraph = {
+        val bindNode = Bind(left, right, symbol) ensuring (left == body.left && right == body.right)
         if (body.nodes contains bindNode) {
-            ParseResultGraph(body.position, body.length, body.root, body.nodes, body.edges + BindEdge(bindNode, body.root))
+            ParseResultGraph(left, right, body.root, body.nodes, body.edges + BindEdge(bindNode, body.root))
         } else {
-            ParseResultGraph(body.position, body.length, bindNode, body.nodes + bindNode, body.edges + BindEdge(bindNode, body.root))
+            ParseResultGraph(left, right, bindNode, body.nodes + bindNode, body.edges + BindEdge(bindNode, body.root))
         }
     }
-    def join(symbol: Symbols.Join, body: ParseResultGraph, join: ParseResultGraph): ParseResultGraph = {
-        val position = body.position ensuring (body.position == join.position)
-        val length = body.length ensuring (body.length == join.length)
-        val joinNode = Join(position, length, symbol)
+    def cyclicBind(left: Int, right: Int, symbol: Symbols.Symbol): ParseResultGraph = {
+        val bindNode = Bind(left, right, symbol)
+        ParseResultGraph(left, right, bindNode, Set(bindNode), Set())
+    }
+    def join(left: Int, right: Int, symbol: Symbols.Join, body: ParseResultGraph, join: ParseResultGraph): ParseResultGraph = {
+        assert(left == body.left && left == join.left)
+        assert(right == body.right && right == join.right)
+        val joinNode = Join(left, right, symbol)
         val nodes = body.nodes ++ join.nodes
         if (nodes contains joinNode) {
             // 이런 경우가 생길 수 있나?
-            ParseResultGraph(position, length, body.root, nodes, body.edges ++ join.edges + JoinEdge(joinNode, body.root, join.root))
+            ParseResultGraph(left, right, body.root, nodes, body.edges ++ join.edges + JoinEdge(joinNode, body.root, join.root))
         } else {
-            ParseResultGraph(position, length, joinNode, nodes + joinNode, body.edges ++ join.edges + JoinEdge(joinNode, body.root, join.root))
+            ParseResultGraph(left, right, joinNode, nodes + joinNode, body.edges ++ join.edges + JoinEdge(joinNode, body.root, join.root))
         }
     }
 
-    def sequence(position: Int, symbol: Symbols.Sequence): ParseResultGraph = {
-        val emptyNode = Sequence(position, 0, symbol, 0)
-        ParseResultGraph(position, 0, emptyNode, Set(emptyNode), Set())
+    def sequence(left: Int, right: Int, symbol: Symbols.Sequence): ParseResultGraph = {
+        val emptyNode = Sequence(left, right, symbol, 0)
+        ParseResultGraph(left, right, emptyNode, Set(emptyNode), Set())
     }
     def append(sequence: ParseResultGraph, child: ParseResultGraph): ParseResultGraph = {
         assert(sequence.root.isInstanceOf[Sequence])
-        if (child.root.position != sequence.root.position + sequence.root.length) {
-            println(sequence)
-            println(child)
-        }
-        assert(child.root.position == sequence.root.position + sequence.root.length)
+        assert(sequence.right == child.left)
         val sequenceRoot = sequence.root.asInstanceOf[Sequence]
-        val appendedSequence = Sequence(sequence.position, sequence.length + child.length, sequenceRoot.symbol, sequenceRoot.pointer + 1)
-        ParseResultGraph(sequence.position, sequence.length + child.length, appendedSequence, (sequence.nodes ++ child.nodes) + appendedSequence,
+        val appendedSequence = Sequence(sequence.left, child.right, sequenceRoot.symbol, sequenceRoot.pointer + 1)
+        ParseResultGraph(sequence.left, child.right, appendedSequence, (sequence.nodes ++ child.nodes) + appendedSequence,
             (sequence.edges ++ child.edges) + AppendEdge(appendedSequence, sequence.root, true) + AppendEdge(appendedSequence, child.root, false))
     }
 
     def merge(base: ParseResultGraph, merging: ParseResultGraph): ParseResultGraph = {
-        assert(base.position == merging.position)
-        assert(base.length == merging.length)
+        assert(base.left == merging.left && base.right == merging.right)
         // 보통은 base.root == merging.root 인데, 싸이클이 생기는 경우엔 아닐 수도 있음.
         // assert(merging.nodes contains base.root)
-        ParseResultGraph(base.position, base.length, base.root, base.nodes ++ merging.nodes, base.edges ++ merging.edges)
+        ParseResultGraph(base.left, base.right, base.root, base.nodes ++ merging.nodes, base.edges ++ merging.edges)
     }
 }
 
 object ParseResultGraph {
     sealed trait Node {
-        val position: Int
-        val length: Int
+        val left: Int
+        val right: Int
 
-        def range = (position, position + length)
+        def range = (left, right)
+    }
+    sealed trait NonTerm extends Node {
+        val symbol: Symbols.Symbol
     }
 
-    case class Term(position: Int, input: Inputs.Input) extends Node {
-        val length = 1
+    case class Term(left: Int, input: Inputs.Input) extends Node {
+        val right = left + 1
     }
-    case class Sequence(position: Int, length: Int, symbol: Symbols.Sequence, pointer: Int) extends Node
-    case class Bind(position: Int, length: Int, symbol: Symbols.Symbol) extends Node
-    case class Join(position: Int, length: Int, symbol: Symbols.Join) extends Node
+    case class Sequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int) extends NonTerm
+    case class Bind(left: Int, right: Int, symbol: Symbols.Symbol) extends NonTerm
+    case class Join(left: Int, right: Int, symbol: Symbols.Join) extends NonTerm
 
     sealed trait Edge {
         val start: Node

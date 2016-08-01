@@ -2,49 +2,44 @@ package com.giyeok.jparser
 
 import ParseResultDerivations._
 
-case class ParseResultDerivationsSet(length: Int, derivations: Set[Derivation]) extends ParseResult {
-    def +(derivation: Derivation): ParseResultDerivationsSet =
-        ParseResultDerivationsSet(length, derivations + derivation)
-}
+case class ParseResultDerivationsSet(left: Int, right: Int, derivations: Set[Derivation]) extends ParseResult
 
-object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivationsSet] {
-    def terminal(position: Int, input: Inputs.Input): ParseResultDerivationsSet =
-        ParseResultDerivationsSet(1, Set(Term(position, input)))
-    def bind(symbol: Symbols.Symbol, body: ParseResultDerivationsSet): ParseResultDerivationsSet =
-        body + (Bind(0, body.length, symbol))
-    def join(symbol: Symbols.Join, body: ParseResultDerivationsSet, join: ParseResultDerivationsSet): ParseResultDerivationsSet = {
-        val length = body.length ensuring (body.length == join.length)
-        ParseResultDerivationsSet(length, body.derivations ++ join.derivations)
-    }
+object ParseResultDerivationsSetFunc extends ParseResultFunc0[ParseResultDerivationsSet] {
+    def terminal(left: Int, input: Inputs.Input): ParseResultDerivationsSet =
+        ParseResultDerivationsSet(left, left + 1, Set(Term(left, input)))
+    def bind(left: Int, right: Int, symbol: Symbols.Symbol, body: ParseResultDerivationsSet): ParseResultDerivationsSet =
+        ParseResultDerivationsSet(left, right, body.derivations + Bind(left, right, symbol)) ensuring (body.left == left && body.right == right)
+    def cyclicBind(left: Int, right: Int, symbol: Symbols.Symbol): ParseResultDerivationsSet =
+        ParseResultDerivationsSet(left, right, Set(Bind(left, right, symbol)))
+    def join(left: Int, right: Int, symbol: Symbols.Join, body: ParseResultDerivationsSet, join: ParseResultDerivationsSet): ParseResultDerivationsSet =
+        ParseResultDerivationsSet(left, right, body.derivations ++ join.derivations) ensuring (body.left == left && body.right == right && join.left == left && join.right == right)
 
-    def sequence(position: Int, symbol: Symbols.Sequence): ParseResultDerivationsSet =
-        ParseResultDerivationsSet(0, Set())
+    def sequence(left: Int, right: Int, symbol: Symbols.Sequence): ParseResultDerivationsSet =
+        ParseResultDerivationsSet(left, right, Set())
     def append(sequence: ParseResultDerivationsSet, child: ParseResultDerivationsSet): ParseResultDerivationsSet = {
-        ParseResultDerivationsSet(sequence.length + child.length, (sequence.derivations ++ child.derivations) + LastChild(sequence.length, child.length, true))
+        if (sequence.right != child.left) {
+            println(sequence.left, sequence.right)
+            println(child.left, child.right)
+        }
+        ParseResultDerivationsSet(sequence.left, child.right, (sequence.derivations ++ child.derivations) + LastChild(sequence.right, child.right)) ensuring (sequence.right == child.left)
     }
 
     def merge(base: ParseResultDerivationsSet, merging: ParseResultDerivationsSet): ParseResultDerivationsSet = {
-        val length = base.length ensuring (base.length == merging.length)
-        ParseResultDerivationsSet(length, base.derivations ++ merging.derivations)
+        ParseResultDerivationsSet(base.left, base.right, base.derivations ++ merging.derivations) ensuring (base.left == merging.left && base.right == merging.right)
     }
 }
 
 object ParseResultDerivations {
     sealed trait Derivation {
-        val position: Int
-        val length: Int
+        val left: Int
+        val right: Int
 
-        val range = (position, position + length)
+        val range = (left, right)
     }
 
-    case class TermFunc(position: Int) extends Derivation {
-        val length = 1
+    case class Term(left: Int, input: Inputs.Input) extends Derivation {
+        val right = left + 1
     }
-    case class Term(position: Int, input: Inputs.Input) extends Derivation {
-        val length = 1
-    }
-    case class Bind(position: Int, length: Int, symbol: Symbols.Symbol) extends Derivation
-    case class LastChild(position: Int, length: Int, content: Boolean) extends Derivation {
-        val whitespace = !content
-    }
+    case class Bind(left: Int, right: Int, symbol: Symbols.Symbol) extends Derivation
+    case class LastChild(left: Int, right: Int) extends Derivation
 }
