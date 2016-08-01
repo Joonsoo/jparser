@@ -159,7 +159,7 @@ trait ParsingTasks {
             val newFinishes = cc.finishes.update(node, updatedConditions)
             if (cc.graph.nodes contains updatedNode) {
                 if (cc.progresses contains (updatedNode, updatedConditions)) {
-                    (cc, Seq())
+                    (cc.updateFinishes(newFinishes), Seq())
                 } else {
                     (cc.updateProgresses(newProgresses).updateFinishes(newFinishes), Seq(DeriveTask(updatedNode)))
                 }

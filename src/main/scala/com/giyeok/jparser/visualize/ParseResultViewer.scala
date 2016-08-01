@@ -20,7 +20,9 @@ import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
 import org.eclipse.zest.core.viewers.GraphViewer
 
-class ParseResultTreeViewer(node: ParseResultTree.Node, figureGenerator: FigureGenerator.Generator[Figure], figureAppearances: FigureGenerator.Appearances[Figure], parseResultFigureGenerator: ParseResultFigureGenerator[Figure]) {
+class ParseResultTreeViewer(node: ParseResultTree.Node, figureGenerator: FigureGenerator.Generator[Figure], figureAppearances: FigureGenerator.Appearances[Figure]) {
+    val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](figureGenerator, figureAppearances)
+
     val shell = new Shell(Display.getDefault())
     shell.setLayout(new FillLayout())
     val figCanvas = new FigureCanvas(shell)
@@ -190,7 +192,7 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
                 case 't' | 'T' | 'f' | 'F' =>
                     val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](figureGenerator, figureAppearances)
                     r.asParseForest.trees foreach { tree =>
-                        new ParseResultTreeViewer(tree, figureGenerator, figureAppearances, parseResultFigureGenerator).start()
+                        new ParseResultTreeViewer(tree, figureGenerator, figureAppearances).start()
                     }
                 case _ =>
             }

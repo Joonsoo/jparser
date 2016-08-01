@@ -43,10 +43,12 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                     case Terminal(terminalSymbol) =>
                         resultFunc.bind(beginGen, gen, terminalSymbol, resultFunc.terminal(beginGen, input(beginGen)))
                     case symbol: NSimpleDerivable =>
-                        val merging = finishes(gen) flatMap {
-                            case child: SymbolNode if (symbol.produces contains child.symbolId) && (beginGen == child.beginGen) =>
+                        val merging = finishes(gen) filter { child =>
+                            (symbol.produces contains child.symbolId) && (beginGen == child.beginGen)
+                        } flatMap {
+                            case child: SymbolNode =>
                                 Some(resultFunc.bind(beginGen, gen, symbol.symbol, reconstruct0(child, gen)))
-                            case child: SequenceNode if (symbol.produces contains child.symbolId) && (beginGen == child.beginGen) =>
+                            case child: SequenceNode =>
                                 val sequenceSymbol = grammar.nsequences(child.symbolId)
                                 if (sequenceSymbol.sequence.isEmpty) {
                                     // child node가 empty sequence인 경우
@@ -59,7 +61,6 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                                 } else {
                                     None
                                 }
-                            case _ => None
                         }
                         assert(!merging.isEmpty)
                         resultFunc.merge(merging).get

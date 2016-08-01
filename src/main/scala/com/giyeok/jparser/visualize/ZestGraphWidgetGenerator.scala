@@ -30,6 +30,7 @@ import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
 import org.eclipse.draw2d.CompoundBorder
 import org.eclipse.swt.graphics.Color
 import com.giyeok.jparser.ParseResultDerivationsSetFunc
+import com.giyeok.jparser.ParseForestFunc
 
 trait AbstractZestGraphWidget extends Control {
     val graphViewer: GraphViewer
@@ -365,15 +366,24 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
         def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
         def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
             nodesAt(e.x, e.y) foreach {
-                case node: SequenceNode =>
-                // TODO show preprocessed derivation graph
-                case node: SymbolNode =>
+                case node: Node =>
                     if ((e.stateMask & SWT.SHIFT) != 0) {
-                        val parseResultOpt = new ParseTreeConstructor(ParseResultDerivationsSetFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)
-                        parseResultOpt match {
-                            case Some(parseResult) =>
-                                new ParseResultDerivationsSetViewer(parseResult, fig.fig, fig.appear).start()
-                            case None =>
+                        if ((e.stateMask & SWT.CTRL) != 0) {
+                            val parseResultOpt = new ParseTreeConstructor(ParseResultDerivationsSetFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)
+                            parseResultOpt match {
+                                case Some(parseResult) =>
+                                    new ParseResultDerivationsSetViewer(parseResult, fig.fig, fig.appear).start()
+                                case None =>
+                            }
+                        } else {
+                            val parseResultOpt = new ParseTreeConstructor(ParseForestFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)
+                            parseResultOpt match {
+                                case Some(parseResult) =>
+                                    parseResult.trees foreach { tree =>
+                                        new ParseResultTreeViewer(tree, fig.fig, fig.appear).start()
+                                    }
+                                case None =>
+                            }
                         }
                     } else {
                         val parseResultOpt = new ParseTreeConstructor(ParseResultGraphFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)

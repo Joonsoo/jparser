@@ -88,7 +88,7 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                                 val repeatName = lower match {
                                     case 0 => s"${name}_star"
                                     case 1 => s"${name}_plus"
-                                    case lower => ???
+                                    case lower => s"${name}_repeated_more_than_${lower}"
                                 }
                                 s"${repeatName}_${gen}"
                             case other =>
