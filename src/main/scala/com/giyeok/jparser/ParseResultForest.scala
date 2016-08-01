@@ -4,7 +4,7 @@ import Symbols._
 
 case class ParseForest(trees: Set[ParseResultTree.Node]) extends ParseResult
 
-object ParseForestFunc extends ParseResultFunc0[ParseForest] {
+object ParseForestFunc extends ParseResultFunc[ParseForest] {
     import ParseResultTree._
 
     def terminal(left: Int, input: Inputs.Input) = ParseForest(Set(TerminalNode(input)))

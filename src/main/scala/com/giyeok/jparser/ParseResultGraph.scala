@@ -19,7 +19,7 @@ case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node],
 
     def asParseForest: ParseForest = transform(ParseForestFunc)
 
-    def transform[R <: ParseResult](resultFunc: ParseResultFunc0[R]): R = {
+    def transform[R <: ParseResult](resultFunc: ParseResultFunc[R]): R = {
         def reconstruct(node: Node, visited: Set[Node]): R = {
             if (visited contains node) {
                 resultFunc.cyclicBind(node.left, node.right, node.asInstanceOf[NonTerm].symbol)
@@ -64,7 +64,7 @@ case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node],
     }
 }
 
-object ParseResultGraphFunc extends ParseResultFunc0[ParseResultGraph] {
+object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
     def terminal(left: Int, input: Inputs.Input): ParseResultGraph =
         ParseResultGraph(left, left + 1, Term(left, input), Set(Term(left, input)), Set())
     def bind(left: Int, right: Int, symbol: Symbols.Symbol, body: ParseResultGraph): ParseResultGraph = {

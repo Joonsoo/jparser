@@ -4,7 +4,7 @@ import ParseResultDerivations._
 
 case class ParseResultDerivationsSet(left: Int, right: Int, derivations: Set[Derivation]) extends ParseResult
 
-object ParseResultDerivationsSetFunc extends ParseResultFunc0[ParseResultDerivationsSet] {
+object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivationsSet] {
     def terminal(left: Int, input: Inputs.Input): ParseResultDerivationsSet =
         ParseResultDerivationsSet(left, left + 1, Set(Term(left, input)))
     def bind(left: Int, right: Int, symbol: Symbols.Symbol, body: ParseResultDerivationsSet): ParseResultDerivationsSet =

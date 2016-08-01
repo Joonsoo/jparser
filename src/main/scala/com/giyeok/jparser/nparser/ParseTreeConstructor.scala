@@ -3,13 +3,13 @@ package com.giyeok.jparser.nparser
 import com.giyeok.jparser.nparser.EligCondition.Condition
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.ParseResult
-import com.giyeok.jparser.ParseResultFunc0
+import com.giyeok.jparser.ParseResultFunc
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.Symbols.Symbol
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.nparser.NGrammar._
 
-class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc0[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Results[Node]], conditionFate: Map[Condition, Condition]) {
+class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Results[Node]], conditionFate: Map[Condition, Condition]) {
     val finishes = {
         def eligible(conditions: Set[Condition]): Boolean = {
             conditions exists { conditionFate.getOrElse(_, EligCondition.False).eligible }
