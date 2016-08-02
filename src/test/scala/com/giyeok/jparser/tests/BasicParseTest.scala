@@ -13,6 +13,7 @@ import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.ParsingErrors
+import com.giyeok.jparser.ParseForest
 
 class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends FlatSpec {
     def log(s: String): Unit = {
@@ -40,12 +41,15 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         }
     }
 
-    def parse(tests: GrammarTestCases, source: Inputs.ConcreteSource): Either[ParseResultGraph, ParsingError] = {
+    type R = ParseResultGraph
+    val resultFunc = ParseResultGraphFunc
+
+    def parse(tests: GrammarTestCases, source: Inputs.ConcreteSource): Either[R, ParsingError] = {
         // 여기서 nparser에 테스트하고싶은 파서 종류를 지정하면 됨
         val nparser = tests.nparserSlicedPreprocessed
         nparser.parse(source) match {
             case Left(ctx) =>
-                val resultOpt = new ParseTreeConstructor(ParseResultGraphFunc)(nparser.grammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nparser.startNode, ctx.gen)
+                val resultOpt = new ParseTreeConstructor(resultFunc)(nparser.grammar)(ctx.inputs, ctx.history, ctx.conditionFate).reconstruct(nparser.startNode, ctx.gen)
                 resultOpt match {
                     case Some(result) => Left(result)
                     case None => Right(ParsingErrors.UnexpectedError)
@@ -54,34 +58,44 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         }
     }
 
-    private def testCorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
+    private def testCorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource, iterations: Int) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
         it should s"${tests.grammar.name} properly parsed on '${source.toCleanString}'" in {
-            parse(tests, source) match {
-                case Left(result) => checkParse(result, tests.grammar)
-                case Right(error) => fail(error.msg)
+            (0 until iterations) foreach { _ =>
+                parse(tests, source) match {
+                    case Left(result) => checkParse(result, tests.grammar)
+                    case Right(error) => fail(error.msg)
+                }
             }
         }
     }
 
-    private def testIncorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
+    private def testIncorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource, iterations: Int) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
         it should s"${tests.grammar.name} failed to parse on '${source.toCleanString}'" in {
-            parse(tests, source) match {
-                case Left(result) => fail("??")
-                case Right(error) => assert(true)
+            (0 until iterations) foreach { _ =>
+                parse(tests, source) match {
+                    case Left(result) => fail("??")
+                    case Right(error) => assert(true)
+                }
             }
         }
     }
 
-    private def testAmbiguous(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
+    private def testAmbiguous(tests: GrammarTestCases, source: Inputs.ConcreteSource, iterations: Int) = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
         it should s"${tests.grammar.name} is ambiguous on '${source.toCleanString}'" in {
-            parse(tests, source) match {
-                case Left(result) => checkParse(result, tests.grammar)
-                case Right(error) => fail(error.msg)
+            (0 until iterations) foreach { _ =>
+                parse(tests, source) match {
+                    case Left(result) => checkParse(result, tests.grammar)
+                    case Right(error) => fail(error.msg)
+                }
             }
         }
+    }
+
+    private def checkParse(result: ParseForest, grammar: Grammar): Unit = {
+        result.trees foreach { checkParse(_, grammar) }
     }
 
     private def checkParse(parseTree: ParseResultTree.Node, grammar: Grammar): Unit = {
@@ -152,8 +166,9 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
 
     testsSuite foreach { test =>
         testNGrammar(test.ngrammar)
-        test.correctSampleInputs foreach { testCorrect(test, _) }
-        test.incorrectSampleInputs foreach { testIncorrect(test, _) }
-        if (test.isInstanceOf[AmbiguousSamples]) test.asInstanceOf[AmbiguousSamples].ambiguousSampleInputs foreach { testAmbiguous(test, _) }
+        val iterations = 10
+        test.correctSampleInputs foreach { testCorrect(test, _, iterations) }
+        test.incorrectSampleInputs foreach { testIncorrect(test, _, iterations) }
+        if (test.isInstanceOf[AmbiguousSamples]) test.asInstanceOf[AmbiguousSamples].ambiguousSampleInputs foreach { testAmbiguous(test, _, iterations) }
     }
 }
