@@ -30,8 +30,15 @@ import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.nparser.SlicedDerivationPreprocessor
 import org.eclipse.swt.events.SelectionListener
 import org.eclipse.swt.widgets.Control
+import org.eclipse.swt.widgets.Button
+import org.eclipse.swt.layout.FormLayout
+import org.eclipse.swt.layout.FormData
+import org.eclipse.swt.layout.FormAttachment
+import com.giyeok.jparser.nparser.OnDemandDerivationPreprocessor
 
-class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivationPreprocessor: SlicedDerivationPreprocessor, nodeFig: NodeFigureGenerators[Figure], display: Display, shell: Shell) extends Composite(shell, SWT.NONE) {
+class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
+                                   derivationPreprocessor: SlicedDerivationPreprocessor, compactionDerivationPreprocessor: SlicedDerivationPreprocessor,
+                                   nodeFig: NodeFigureGenerators[Figure], display: Display, shell: Shell) extends Composite(shell, SWT.NONE) {
     setLayout(new FillLayout())
 
     val splitPanel = new VerticalResizableSplittedComposite(this, SWT.NONE, 20)
@@ -61,7 +68,7 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivat
         def addListener(figure: Figure, symbolId: Int, pointer: Int): Figure = {
             figure.addMouseListener(new MouseListener() {
                 def mousePressed(e: org.eclipse.draw2d.MouseEvent): Unit = {
-                    showKernel(symbolId, pointer)
+                    setShownKernel(symbolId, pointer)
                 }
                 def mouseReleased(e: org.eclipse.draw2d.MouseEvent): Unit = {}
                 def mouseDoubleClicked(e: org.eclipse.draw2d.MouseEvent): Unit = {}
@@ -89,26 +96,39 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivat
     }
     kernelsList.setContents(kernelsListFig)
 
+    val compactionToggle = new Button(leftPanel.lowerPanel, SWT.CHECK)
     val termGroupsList = new List(leftPanel.lowerPanel, SWT.NONE)
+
+    leftPanel.lowerPanel.setLayout(new FormLayout())
+    compactionToggle.setText("Compaction")
+    termGroupsList.setLayoutData({
+        val formData = new FormData()
+        formData.top = new FormAttachment(compactionToggle)
+        formData.bottom = new FormAttachment(100, 0)
+        formData.left = new FormAttachment(0, 0)
+        formData.right = new FormAttachment(100, 0)
+        formData
+    })
 
     val graphView = new Composite(splitPanel.rightPanel, SWT.NONE)
     val graphStackLayout = new StackLayout()
     graphView.setLayout(graphStackLayout)
 
-    val graphsMap = scala.collection.mutable.Map[(Int, Int), (Preprocessed, Map[TermGroupDesc, (Preprocessed, Set[SequenceNode])])]()
-    val graphControlsMap = scala.collection.mutable.Map[(Int, Int, Option[TermGroupDesc]), Control]()
-    def graphControlOf(symbolId: Int, pointer: Int, termGroup: Option[TermGroupDesc]): Control = {
-        graphControlsMap get (symbolId, pointer, termGroup) match {
+    val graphsMap = scala.collection.mutable.Map[(Int, Int, Boolean), (Preprocessed, Map[TermGroupDesc, (Preprocessed, Set[SequenceNode])])]()
+
+    val graphControlsMap = scala.collection.mutable.Map[(Int, Int, Option[TermGroupDesc], Boolean), Control]()
+    def graphControlOf(symbolId: Int, pointer: Int, termGroup: Option[TermGroupDesc], compaction: Boolean): Control = {
+        graphControlsMap get (symbolId, pointer, termGroup, compaction) match {
             case Some(control) => control
             case None =>
-                val (derivation, sliceMap) = graphsMap((symbolId, pointer))
+                val (derivation, sliceMap) = graphsMap((symbolId, pointer, compaction))
                 val control = termGroup match {
                     case Some(termGroup) =>
                         new PreprocessedSlicedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, derivation, sliceMap(termGroup))
                     case None =>
                         new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, derivation)
                 }
-                graphControlsMap((symbolId, pointer, termGroup)) = control
+                graphControlsMap((symbolId, pointer, termGroup, compaction)) = control
                 control
         }
     }
@@ -116,45 +136,64 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar, derivat
     var shownKernel = (-1, -1)
     var shownTermGroupList = Seq[Option[TermGroupDesc]]()
     var shownTermGroup = Option.empty[TermGroupDesc]
+    def shownCompaction = compactionToggle.getSelection()
 
-    def updateHighlight(newKernel: (Int, Int)): Unit = {
+    def setShownKernel(symbolId: Int, pointer: Int): Unit = {
         kernelFigsMap get shownKernel foreach { _.setBackgroundColor(ColorConstants.white) }
-        shownKernel = newKernel
+        shownKernel = (symbolId, pointer)
         kernelFigsMap(shownKernel).setBackgroundColor(ColorConstants.lightGray)
-    }
-    def updateTermGroups(newTermGroups: Seq[TermGroupDesc]): Unit = {
+
+        val (derivation, slice) = graphsMap get (symbolId, pointer, false) match {
+            case Some((derivation, slice)) => (derivation, slice)
+            case None =>
+                val (derivation, slice) = if (pointer < 0) {
+                    (derivationPreprocessor.symbolDerivationOf(symbolId), derivationPreprocessor.symbolSliceOf(symbolId))
+                } else {
+                    (derivationPreprocessor.sequenceDerivationOf(symbolId, pointer), derivationPreprocessor.sequenceSliceOf(symbolId, pointer))
+                }
+                graphsMap((symbolId, pointer, false)) = (derivation, slice)
+                val (derivationCompact, sliceCompact) = if (pointer < 0) {
+                    (compactionDerivationPreprocessor.symbolDerivationOf(symbolId), compactionDerivationPreprocessor.symbolSliceOf(symbolId))
+                } else {
+                    (compactionDerivationPreprocessor.sequenceDerivationOf(symbolId, pointer), compactionDerivationPreprocessor.sequenceSliceOf(symbolId, pointer))
+                }
+                graphsMap((symbolId, pointer, true)) = (derivation, slice)
+                (derivation, slice)
+        }
+
+        val newTermGroups = slice.keys.toSeq
         shownTermGroup = None
         termGroupsList.removeAll()
         shownTermGroupList = None +: (newTermGroups map { Some(_) })
         termGroupsList.add("All")
         newTermGroups foreach { termGroup => termGroupsList.add(termGroup.toShortString) }
         termGroupsList.select(0)
+
+        updateGraphView()
     }
-    def showKernel(symbolId: Int, pointer: Int): Unit = {
-        updateHighlight(symbolId, pointer)
-        val (derivation, slice) = if (pointer < 0) {
-            (derivationPreprocessor.symbolDerivationOf(symbolId), derivationPreprocessor.symbolSliceOf(symbolId))
-        } else {
-            (derivationPreprocessor.sequenceDerivationOf(symbolId, pointer), derivationPreprocessor.sequenceSliceOf(symbolId, pointer))
+
+    def updateGraphView(): Unit = {
+        val idx = termGroupsList.getSelectionIndex()
+        if (idx >= 0 && idx < shownTermGroupList.length) {
+            graphStackLayout.topControl = graphControlOf(shownKernel._1, shownKernel._2, shownTermGroupList(idx), shownCompaction)
+            graphView.layout()
         }
-        graphsMap((symbolId, pointer)) = (derivation, slice)
-        updateTermGroups(slice.keys.toSeq)
-        updateGraphView(graphControlOf(symbolId, pointer, None))
     }
-    def updateGraphView(widget: Control): Unit = {
-        graphStackLayout.topControl = widget
-        graphView.layout()
-    }
+
+    compactionToggle.addSelectionListener(new SelectionListener() {
+        def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {}
+        def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
+            updateGraphView()
+        }
+    })
     termGroupsList.addSelectionListener(new SelectionListener() {
         def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {}
         def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
-            val idx = termGroupsList.getSelectionIndex()
-            if (idx >= 0 && idx < shownTermGroupList.length) {
-                updateGraphView(graphControlOf(shownKernel._1, shownKernel._2, shownTermGroupList(idx)))
-            }
+            updateGraphView()
         }
     })
-    showKernel(ngrammar.startSymbol, -1)
+    setShownKernel(ngrammar.startSymbol, -1)
+    updateGraphView()
 
     def start(): Unit = {
         shell.setText("Derivation Graph")

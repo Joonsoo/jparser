@@ -7,13 +7,60 @@ import com.giyeok.jparser.nparser.EligCondition.True
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.Inputs.Input
 import scala.annotation.tailrec
+import com.giyeok.jparser.nparser.NGrammar._
 
-class OnDemandDerivationPreprocessor(val grammar: NGrammar) extends DerivationPreprocessor with ParsingTasks {
+class OnDemandDerivationPreprocessor(val grammar: NGrammar, val compaction: Boolean) extends DerivationPreprocessor with ParsingTasks {
     private val symbolDerivations = scala.collection.mutable.Map[Int, Preprocessed]()
     private val sequenceDerivations = scala.collection.mutable.Map[(Int, Int), Preprocessed]()
 
     private val symbolTermNodes = scala.collection.mutable.Map[Int, Set[SymbolNode]]()
     private val sequenceTermNodes = scala.collection.mutable.Map[(Int, Int), Set[SymbolNode]]()
+
+    private val followingSymbolsMap = scala.collection.mutable.Map[Int, Set[Int]]()
+    def followingSymbols: Map[Int, Set[Int]] = followingSymbolsMap.toMap
+
+    def compaction(preprocessed: Preprocessed): Preprocessed = {
+        def isCompactionable(node: Node): Boolean =
+            node match {
+                case node if node == preprocessed.baseNode => false
+                case SymbolNode(symbolId, _) =>
+                    grammar.nsymbols(symbolId) match {
+                        case _: Start | _: Nonterminal | _: OneOf | _: Proxy | _: Repeat => true
+                        case _ => false
+                    }
+                case SequenceNode(sequenceId, pointer, _, _) =>
+                    (grammar.nsequences(sequenceId).sequence.length == 1) && (pointer == 0)
+            }
+        def allPathsFrom(node: Node, path: Set[Node]): Map[Node, Set[Node]] = {
+            val outgoingEdges = preprocessed.context.graph.edgesByStart(node) map { _.asInstanceOf[SimpleEdge] }
+            val (mergeable, nonmergeable) = (outgoingEdges map { _.end }) partition { isCompactionable(_) }
+            val paths = (mergeable -- path).toSeq map { n => allPathsFrom(n, path + n) }
+            paths.foldLeft((nonmergeable map { _ -> path }).toMap) { (cc, map) =>
+                map.foldLeft(cc) { (cc, e) =>
+                    val (dest, paths) = e
+                    cc + (dest -> (cc.getOrElse(dest, Set[Node]()) ++ paths))
+                }
+            }
+        }
+
+        // preprocessed.baseNode 부터 시작해서 
+        Seq(preprocessed.baseNode) foreach { compactionStart =>
+            val allPaths = allPathsFrom(compactionStart, Set()) filterNot { _._2.isEmpty }
+            assert(allPaths.values forall { _ forall { isCompactionable _ } })
+            // compactionStart -> allPaths의 _1(즉 dest)로 가는 엣지들을 추가하고
+            // (compactionStart + allPaths의 _2(paths) 노드) 외에 (allPaths의 _2(paths))로 들어오는 엣지가 있으면 그 노드 -> compactionStart 엣지 추가하고
+            // allPaths의 각 entry에 대해 _1(dest)가 finish되면 entry의 _2(paths)도 finish된 것으로 처리하게 하고
+            // (allPaths의 _2(paths)) 노드는 모두 제거
+            allPaths foreach { kv =>
+                val (dest, paths) = kv
+                println(s"($compactionStart - $dest) -> ${paths.toSeq sortBy { _.symbolId }}")
+            }
+            println(s"nodes: ${allPaths.values.flatten.toSet.size} -> ${allPaths.values.toSet.size}")
+            // TODO
+        }
+        preprocessed
+    }
+    def compactionIfNeeded(preprocessed: Preprocessed) = if (compaction) compaction(preprocessed) else preprocessed
 
     @tailrec private def recNoBase(baseNode: Node, nextGen: Int, tasks: List[Task], cc: Preprocessed): Preprocessed =
         tasks match {
@@ -33,7 +80,7 @@ class OnDemandDerivationPreprocessor(val grammar: NGrammar) extends DerivationPr
             case None =>
                 val baseNode = SymbolNode(symbolId, -1)
                 val initialPreprocessed = Preprocessed(baseNode, Context(Graph(Set(baseNode), Set()), Results(), Results()), Seq(), Seq())
-                val preprocessed = recNoBase(baseNode, 0, List(DeriveTask(baseNode)), initialPreprocessed)
+                val preprocessed = compactionIfNeeded(recNoBase(baseNode, 0, List(DeriveTask(baseNode)), initialPreprocessed))
                 symbolDerivations(symbolId) = preprocessed
                 preprocessed
         }
@@ -44,7 +91,7 @@ class OnDemandDerivationPreprocessor(val grammar: NGrammar) extends DerivationPr
             case None =>
                 val baseNode = SequenceNode(sequenceId, pointer, -1, -1)
                 val initialPreprocessed = Preprocessed(baseNode, Context(Graph(Set(baseNode), Set()), Results(baseNode -> Set[Condition]()), Results()), Seq(), Seq())
-                val preprocessed = recNoBase(baseNode, 0, List(DeriveTask(baseNode)), initialPreprocessed)
+                val preprocessed = compactionIfNeeded(recNoBase(baseNode, 0, List(DeriveTask(baseNode)), initialPreprocessed))
                 sequenceDerivations((sequenceId, pointer)) = preprocessed
                 preprocessed
         }
@@ -74,7 +121,7 @@ class OnDemandDerivationPreprocessor(val grammar: NGrammar) extends DerivationPr
     }
 }
 
-class OnDemandSlicedDerivationPreprocessor(grammar: NGrammar) extends OnDemandDerivationPreprocessor(grammar) with SlicedDerivationPreprocessor {
+class OnDemandSlicedDerivationPreprocessor(grammar: NGrammar, override val compaction: Boolean) extends OnDemandDerivationPreprocessor(grammar, false) with SlicedDerivationPreprocessor {
     // slice는 TermGroupDesc -> Preprocessed + new derive tips, finish나 progress는 baseNode에 대해서만 수행한다
     private val symbolSliced = scala.collection.mutable.Map[Int, Map[TermGroupDesc, (Preprocessed, Set[SequenceNode])]]()
     private val sequenceSliced = scala.collection.mutable.Map[(Int, Int), Map[TermGroupDesc, (Preprocessed, Set[SequenceNode])]]()
@@ -111,7 +158,7 @@ class OnDemandSlicedDerivationPreprocessor(grammar: NGrammar) extends OnDemandDe
             val trimStarts = (Set(derivation.baseNode)) ++ (derivation.context.finishes.conditionNodes) ++ (derivation.context.progresses.conditionNodes)
             val trimmedContext = trim(newPreprocessed.context, trimStarts, newDeriveTips.asInstanceOf[Set[Node]])
             val sequenceNodes = trimmedContext.graph.nodes collect { case n: SequenceNode => n }
-            val sliced = (newPreprocessed.updateContext(trimmedContext), newDeriveTips intersect sequenceNodes)
+            val sliced = (compactionIfNeeded(newPreprocessed.updateContext(trimmedContext)), newDeriveTips intersect sequenceNodes)
             (termGroup -> sliced)
         }).toMap
     }

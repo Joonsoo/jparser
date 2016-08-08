@@ -101,7 +101,7 @@ trait Viewer {
                             val nonterminal = FigureGenerator.html.AppearanceByClass("nonterminal")
                             val terminal = FigureGenerator.html.AppearanceByClass("terminal")
                         }, FigureGenerator.html.Generator).grammarDefinitionFigure
-                    grammar.usedSymbols foreach { s => println(s"used: $s") }
+                    // grammar.usedSymbols foreach { s => println(s"used: $s") }
                     val (missingSymbols, wrongLookaheads, unusedSymbols) = (grammar.missingSymbols, grammar.wrongLookaheads, grammar.unusedSymbols)
                     val textFig = new GrammarDefinitionFigureGenerator[Figure](grammar, grammarFigAppearances, FigureGenerator.draw2d.Generator).grammarDefinitionFigure
                     if (missingSymbols.isEmpty && wrongLookaheads.isEmpty && unusedSymbols.isEmpty) {
@@ -208,7 +208,7 @@ trait Viewer {
             def handleEvent(e: Event): Unit = {
                 if (grammarList.getSelectionIndex >= 0) {
                     val gt = sortedTestCases(grammarList.getSelectionIndex())
-                    new PreprocessedDerivationViewer(gt.grammar, gt.ngrammar, gt.nparserSlicedPreprocessed.derivation, BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
+                    new PreprocessedDerivationViewer(gt.grammar, gt.ngrammar, gt.slicedDerivationPreprocessor, gt.compactSlicedDerivationPreprocessor, BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
                 }
             }
         })

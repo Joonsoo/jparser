@@ -19,6 +19,7 @@ import scala.annotation.tailrec
 
 object DerivationPreprocessor {
     case class Preprocessed(baseNode: Node, context: Context, baseFinishes: Seq[(Condition, Option[Int])], baseProgresses: Seq[Condition]) {
+        // assert(context.graph.nodes contains baseNode)
         def updateContext(newContext: Context) = Preprocessed(baseNode, newContext, baseFinishes, baseProgresses)
         def addBaseFinish(condition: Condition, lastSymbol: Option[Int]) = Preprocessed(baseNode, context, (condition, lastSymbol) +: baseFinishes, baseProgresses)
         def addBaseProgress(condition: Condition) = Preprocessed(baseNode, context, baseFinishes, condition +: baseProgresses)
@@ -31,6 +32,10 @@ object DerivationPreprocessor {
 
 trait DerivationPreprocessor {
     val grammar: NGrammar
+
+    // followingSymbols의 entry A->B 는 A가 finish되면 B의 모든 symbol도 finish된 것으로 간주해야 함을 의미
+    // OnDemand로 계산하는 경우 때문에 val이 아닌 def로 선언
+    def followingSymbols: Map[Int, Set[Int]]
 
     def symbolDerivationOf(symbolId: Int): Preprocessed
     def sequenceDerivationOf(sequenceId: Int, pointer: Int): Preprocessed
