@@ -216,7 +216,7 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
             val tooltipFig = fig.fig.verticalFig(Spacing.Big, figs)
             tooltipFig.setOpaque(true)
             tooltipFig.setBackgroundColor(ColorConstants.white)
-            nodesMap(node).getFigure().setToolTip(tooltipFig)
+            if (nodesMap contains node) nodesMap(node).getFigure().setToolTip(tooltipFig)
         }
     }
 

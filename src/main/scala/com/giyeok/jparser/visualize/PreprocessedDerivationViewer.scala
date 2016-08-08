@@ -143,8 +143,8 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
         shownKernel = (symbolId, pointer)
         kernelFigsMap(shownKernel).setBackgroundColor(ColorConstants.lightGray)
 
-        val (derivation, slice) = graphsMap get (symbolId, pointer, false) match {
-            case Some((derivation, slice)) => (derivation, slice)
+        val slice = graphsMap get (symbolId, pointer, false) match {
+            case Some((derivation, slice)) => slice
             case None =>
                 val (derivation, slice) = if (pointer < 0) {
                     (derivationPreprocessor.symbolDerivationOf(symbolId), derivationPreprocessor.symbolSliceOf(symbolId))
@@ -152,13 +152,12 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
                     (derivationPreprocessor.sequenceDerivationOf(symbolId, pointer), derivationPreprocessor.sequenceSliceOf(symbolId, pointer))
                 }
                 graphsMap((symbolId, pointer, false)) = (derivation, slice)
-                val (derivationCompact, sliceCompact) = if (pointer < 0) {
+                graphsMap((symbolId, pointer, true)) = if (pointer < 0) {
                     (compactionDerivationPreprocessor.symbolDerivationOf(symbolId), compactionDerivationPreprocessor.symbolSliceOf(symbolId))
                 } else {
                     (compactionDerivationPreprocessor.sequenceDerivationOf(symbolId, pointer), compactionDerivationPreprocessor.sequenceSliceOf(symbolId, pointer))
                 }
-                graphsMap((symbolId, pointer, true)) = (derivation, slice)
-                (derivation, slice)
+                slice
         }
 
         val newTermGroups = slice.keys.toSeq

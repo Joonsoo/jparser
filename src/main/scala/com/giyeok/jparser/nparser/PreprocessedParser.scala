@@ -35,6 +35,7 @@ trait DerivationPreprocessor {
 
     // followingSymbols의 entry A->B 는 A가 finish되면 B의 모든 symbol도 finish된 것으로 간주해야 함을 의미
     // OnDemand로 계산하는 경우 때문에 val이 아닌 def로 선언
+    // TODO 사실 문법에서 바로 나오는것이니 val로 수정하고 그래프 모양과 관계 없이 이 trait에서 바로 계산할것
     def followingSymbols: Map[Int, Set[Int]]
 
     def symbolDerivationOf(symbolId: Int): Preprocessed

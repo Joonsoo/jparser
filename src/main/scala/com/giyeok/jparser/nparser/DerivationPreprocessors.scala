@@ -43,8 +43,9 @@ class OnDemandDerivationPreprocessor(val grammar: NGrammar, val compaction: Bool
             }
         }
 
-        // preprocessed.baseNode 부터 시작해서 
-        Seq(preprocessed.baseNode) foreach { compactionStart =>
+        // preprocessed.baseNode 부터 시작해서
+        if (preprocessed.context.graph.nodes contains preprocessed.baseNode) {
+            val compactionStart = preprocessed.baseNode
             val allPaths = allPathsFrom(compactionStart, Set()) filterNot { _._2.isEmpty }
             assert(allPaths.values forall { _ forall { isCompactionable _ } })
             // compactionStart -> allPaths의 _1(즉 dest)로 가는 엣지들을 추가하고
@@ -55,10 +56,18 @@ class OnDemandDerivationPreprocessor(val grammar: NGrammar, val compaction: Bool
                 val (dest, paths) = kv
                 println(s"($compactionStart - $dest) -> ${paths.toSeq sortBy { _.symbolId }}")
             }
-            println(s"nodes: ${allPaths.values.flatten.toSet.size} -> ${allPaths.values.toSet.size}")
-            // TODO
+            println(s"Savings: ${allPaths.values.flatten.toSet.size} - ${allPaths.values.flatten.toSet}")
+
+            val newGraph = allPaths.foldLeft(preprocessed.context.graph.removeNodes(allPaths.values.flatten.toSet)) { (cc, kv) =>
+                // TODO kv._2의 노드로 들어오는 엣지 중 allPaths.values.flatten.toSet이나 compactionStart가 아닌 곳에서 시작되는 엣지가 있으면, 그 엣지의 시작점->compactionStart 의 엣지를 추가하고
+                // dest를 새로운 compactionStart로 해서 다시 진행한다. (이미 compaction된 노드로 도달 가능한 경우에는 어떻게 할 지 고민 필요)
+                val (dest, paths) = kv
+                cc.addEdge(SimpleEdge(compactionStart, dest))
+            }
+            preprocessed.updateContext(preprocessed.context.updateGraph(newGraph))
+        } else {
+            preprocessed
         }
-        preprocessed
     }
     def compactionIfNeeded(preprocessed: Preprocessed) = if (compaction) compaction(preprocessed) else preprocessed
 
