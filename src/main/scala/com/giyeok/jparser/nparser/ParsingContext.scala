@@ -149,6 +149,7 @@ object ParsingContext {
         def nodes = nodeConditions.keySet
         def conditions = nodeConditions flatMap { _._2 }
         def conditionNodes = conditions flatMap { _.nodes }
+        def entries = nodeConditions.toSeq flatMap { kv => kv._2 map { (kv._1, _) } }
         def update(node: N, condition: EligCondition.Condition): Results[N] =
             nodeConditions get node match {
                 case Some(conditions) => Results(nodeConditions + (node -> (conditions + condition)))

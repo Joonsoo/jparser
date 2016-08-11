@@ -172,8 +172,10 @@ trait Viewer {
                     ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.PreprocessedSliced =>
                     ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserSlicedPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
-                case ParserTypes.PreprocessedCompacted => // TODO
-                case ParserTypes.PreprocessedSlicedCompacted => // TODO
+                case ParserTypes.PreprocessedCompacted =>
+                    ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserCompactPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                case ParserTypes.PreprocessedSlicedCompacted =>
+                    ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserCompactSlicedPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.GrowingCompacted => // TODO
                 case ParserTypes.MostOptimized => // TODO
             }
