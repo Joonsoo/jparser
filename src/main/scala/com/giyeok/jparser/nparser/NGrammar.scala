@@ -87,21 +87,46 @@ object NGrammar {
 }
 
 class CompactNGrammar(nsymbols: Map[Int, NGrammar.NAtomicSymbol], nsequences: Map[Int, NGrammar.Sequence], startSymbol: Int) extends NGrammar(nsymbols, nsequences, startSymbol) {
-    def isCompactable(id: Int): Boolean = {
-        nsymbols get id match {
+    def isCompactable(symbolId: Int): Boolean = {
+        nsymbols get symbolId match {
             case Some(nsymbol) =>
                 nsymbol match {
                     case _: Start | _: Nonterminal | _: OneOf | _: Proxy | _: Repeat => true
                     case _ => false
                 }
             case None =>
-                nsequences(id).sequence.length == 1
+                nsequences(symbolId).sequence.length == 1
         }
     }
 
-    // (key, value)는 key가 finish되면 value의 심볼들도 모두 finish됨을 의미한다
-    lazy val compactionMap: Map[Int, Set[Int]] = ???
-    lazy val reverseCompactionMap: Map[Int, Set[Int]] = ???
+    // correspondingSymbols의 (key, value)는 key가 finish되면 value의 심볼들도 모두 (같은 조건으로) finish됨을 의미한다
+    val correspondingSymbols: Map[Int, Set[Int]] = {
+        var cc = Map[Int, Set[Int]]()
+        def traverse(symbolId: Int, path: Set[Int]): Unit = {
+            cc += (symbolId -> (cc.getOrElse(symbolId, Set()) ++ path))
+            if (isCompactable(symbolId)) {
+                nsymbols get symbolId match {
+                    case Some(nsymbol: NSimpleDerivable) =>
+                        (nsymbol.produces -- path) foreach { traverse(_, path + symbolId) }
+                    case Some(_) => // nothing to do
+                    case None =>
+                        val sequence = nsequences(symbolId)
+                        assert(sequence.sequence.length == 1)
+                        traverse(sequence.sequence.head, path + symbolId)
+                }
+            }
+        }
+        nsymbols.keys foreach { traverse(_, Set()) }
+        cc
+    }
+    // reverseCorrespondingSymbols의 (key, value)는 value 중 하나가 finish되었으면 key도 (같은 조건으로) finish됨 의미한다
+    val reverseCorrespondingSymbols: Map[Int, Set[Int]] = {
+        correspondingSymbols.foldLeft(Map[Int, Set[Int]]()) { (cc, entry) =>
+            entry._2.foldLeft(cc) { (cc, correspond) =>
+                cc + (correspond -> (cc.getOrElse(correspond, Set[Int]()) + entry._1))
+            }
+        }
+    }
 }
 
 object CompactNGrammar {

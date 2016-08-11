@@ -35,9 +35,11 @@ import org.eclipse.swt.layout.FormLayout
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
 import com.giyeok.jparser.nparser.OnDemandDerivationPreprocessor
+import org.eclipse.swt.events.KeyListener
+import com.giyeok.jparser.nparser.CompactDerivationPreprocessor
 
 class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
-                                   derivationPreprocessor: SlicedDerivationPreprocessor, compactionDerivationPreprocessor: SlicedDerivationPreprocessor,
+                                   derivationPreprocessor: SlicedDerivationPreprocessor, compactionDerivationPreprocessor: SlicedDerivationPreprocessor with CompactDerivationPreprocessor,
                                    nodeFig: NodeFigureGenerators[Figure], display: Display, shell: Shell) extends Composite(shell, SWT.NONE) {
     setLayout(new FillLayout())
 
@@ -128,6 +130,20 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
                     case None =>
                         new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, derivation)
                 }
+                control.addKeyListener(new KeyListener() {
+                    def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
+                        e.keyCode match {
+                            case 'g' | 'G' =>
+                                val compactGrammar = compactionDerivationPreprocessor.grammar
+                                println("correspondingSymbols")
+                                compactGrammar.correspondingSymbols.toSeq sortBy { _._1 } foreach { kv => println(s"${kv._1} -> ${kv._2.toSeq.sorted mkString ","}") }
+                                println("reverseCorrespondingSymbols")
+                                compactGrammar.reverseCorrespondingSymbols.toSeq sortBy { _._1 } foreach { kv => println(s"${kv._1} -> ${kv._2.toSeq.sorted mkString ","}") }
+                            case _ => // nothing to do
+                        }
+                    }
+                    def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
+                })
                 graphControlsMap((symbolId, pointer, termGroup, compaction)) = control
                 control
         }
