@@ -254,6 +254,9 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
             e.keyCode match {
                 case 'R' | 'r' =>
                     applyLayout(true)
+                case 'S' | 's' =>
+                    // Stat
+                    println(s"Nodes: ${context.graph.nodes.size} Edges: ${context.graph.edges.size}")
                 case c if ('0' <= c && c <= '9') || (c == ' ' || c == ',' || c == '.') =>
                     unhighlightAllNodes()
                     inputAccumulator = inputAccumulator.accumulate(c.toChar, System.currentTimeMillis())

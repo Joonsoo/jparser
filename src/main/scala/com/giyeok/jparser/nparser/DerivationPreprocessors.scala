@@ -20,51 +20,60 @@ class OnDemandDerivationPreprocessor(val grammar: NGrammar, val compaction: Bool
     def followingSymbols: Map[Int, Set[Int]] = followingSymbolsMap.toMap
 
     def compaction(preprocessed: Preprocessed): Preprocessed = {
-        def isCompactionable(node: Node): Boolean =
-            node match {
-                case node if node == preprocessed.baseNode => false
+        if (preprocessed.context.graph.nodes contains preprocessed.baseNode) {
+            val initialBarriers: Set[Node] = Set(preprocessed.baseNode) ++ (preprocessed.context.graph.nodes flatMap {
+                case node @ SymbolNode(symbolId, _) =>
+                    grammar.nsymbols(symbolId) match {
+                        case _: Start | _: Nonterminal | _: OneOf | _: Proxy | _: Repeat => None
+                        case _ => Some(node)
+                    }
+                case node @ SequenceNode(sequenceId, pointer, _, _) =>
+                    if ((grammar.nsequences(sequenceId).sequence.length == 1) && (pointer == 0)) None else Some(node)
+            })
+            val initialStartNodes = initialBarriers filter {
                 case SymbolNode(symbolId, _) =>
                     grammar.nsymbols(symbolId) match {
-                        case _: Start | _: Nonterminal | _: OneOf | _: Proxy | _: Repeat => true
-                        case _ => false
+                        case _: Except | _: Join => false
+                        case _ => true
                     }
-                case SequenceNode(sequenceId, pointer, _, _) =>
-                    (grammar.nsequences(sequenceId).sequence.length == 1) && (pointer == 0)
+                case _ => true
             }
-        def allPathsFrom(node: Node, path: Set[Node]): Map[Node, Set[Node]] = {
-            val outgoingEdges = preprocessed.context.graph.edgesByStart(node) map { _.asInstanceOf[SimpleEdge] }
-            val (mergeable, nonmergeable) = (outgoingEdges map { _.end }) partition { isCompactionable(_) }
-            val paths = (mergeable -- path).toSeq map { n => allPathsFrom(n, path + n) }
-            paths.foldLeft((nonmergeable map { _ -> path }).toMap) { (cc, map) =>
-                map.foldLeft(cc) { (cc, e) =>
-                    val (dest, paths) = e
-                    cc + (dest -> (cc.getOrElse(dest, Set[Node]()) ++ paths))
+
+            def reachables(graph: Graph, barriers: Set[Node], queue: List[Node], cc: (Set[Node], Set[Node])): (Set[Node], Set[Node]) =
+                queue match {
+                    case node +: rest =>
+                        val outgoingNodes = graph.edgesByStart(node) map { _.asInstanceOf[SimpleEdge].end }
+                        val outgoingBarriers = outgoingNodes intersect barriers
+                        val outgoingReachables = outgoingNodes -- barriers
+                        val newReachables = outgoingReachables -- cc._2
+                        reachables(graph, barriers, rest ++ newReachables, (cc._1 ++ outgoingBarriers, cc._2 ++ newReachables))
+                    case List() => cc
+                }
+
+            def compaction(startNodes: List[Node], barriers: Set[Node], cc: Preprocessed): Preprocessed = {
+                startNodes match {
+                    case startNode +: rest =>
+                        val graph = cc.context.graph
+                        val (reachableBarriers, reachableNodes) = reachables(graph, barriers, List(startNode), (Set(), Set()))
+                        // reachableNodes에 reachableNodes 이외의 노드에서 오는 incoming edges가 있는 노드들을 incomingNodes라고 하고
+                        // incomingNodes가 비어있지 않으면 barriers와 startNodes로 추가해서 다시 진행
+                        val allReachables = reachableNodes + startNode
+                        // TODO reachableBarriers에서 들어오는 엣지는 어떻게 할지 고민
+                        val incomingEdges = reachableNodes flatMap { graph.edgesByDest(_) } filterNot { allReachables contains _.start }
+                        if (incomingEdges.isEmpty) {
+                            // reachableNodes 없애고
+                            val newGraph0 = graph.removeNodes(reachableNodes)
+                            // startNode -> reachableBarrier로 가는 엣지 추가
+                            val newGraph = reachableBarriers.foldLeft(newGraph0) { (g, b) => g.addEdge(SimpleEdge(startNode, b)) }
+                            compaction(rest, barriers, cc.updateContext(cc.context.updateGraph(newGraph)))
+                        } else {
+                            val incomingNodes = incomingEdges map { _.end }
+                            compaction(startNodes ++ incomingNodes, barriers ++ incomingNodes, cc)
+                        }
+                    case List() => cc
                 }
             }
-        }
-
-        // preprocessed.baseNode 부터 시작해서
-        if (preprocessed.context.graph.nodes contains preprocessed.baseNode) {
-            val compactionStart = preprocessed.baseNode
-            val allPaths = allPathsFrom(compactionStart, Set()) filterNot { _._2.isEmpty }
-            assert(allPaths.values forall { _ forall { isCompactionable _ } })
-            // compactionStart -> allPaths의 _1(즉 dest)로 가는 엣지들을 추가하고
-            // (compactionStart + allPaths의 _2(paths) 노드) 외에 (allPaths의 _2(paths))로 들어오는 엣지가 있으면 그 노드 -> compactionStart 엣지 추가하고
-            // allPaths의 각 entry에 대해 _1(dest)가 finish되면 entry의 _2(paths)도 finish된 것으로 처리하게 하고
-            // (allPaths의 _2(paths)) 노드는 모두 제거
-            allPaths foreach { kv =>
-                val (dest, paths) = kv
-                println(s"($compactionStart - $dest) -> ${paths.toSeq sortBy { _.symbolId }}")
-            }
-            println(s"Savings: ${allPaths.values.flatten.toSet.size} - ${allPaths.values.flatten.toSet}")
-
-            val newGraph = allPaths.foldLeft(preprocessed.context.graph.removeNodes(allPaths.values.flatten.toSet)) { (cc, kv) =>
-                // TODO kv._2의 노드로 들어오는 엣지 중 allPaths.values.flatten.toSet이나 compactionStart가 아닌 곳에서 시작되는 엣지가 있으면, 그 엣지의 시작점->compactionStart 의 엣지를 추가하고
-                // dest를 새로운 compactionStart로 해서 다시 진행한다. (이미 compaction된 노드로 도달 가능한 경우에는 어떻게 할 지 고민 필요)
-                val (dest, paths) = kv
-                cc.addEdge(SimpleEdge(compactionStart, dest))
-            }
-            preprocessed.updateContext(preprocessed.context.updateGraph(newGraph))
+            compaction(initialStartNodes.toList, initialBarriers, preprocessed)
         } else {
             preprocessed
         }

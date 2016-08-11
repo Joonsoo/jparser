@@ -63,6 +63,15 @@ object ParsingContext {
             }
             Graph(nodes - removing, removedEdges, removedEdgesByStart - removing, removedEdgesByDest - removing)
         }
+        def removeEdge(edge: Edge): Graph =
+            edge match {
+                case edge @ SimpleEdge(start, end) =>
+                    Graph(nodes, edges - edge, edgesByStart + (start -> (edgesByStart(start) - edge)), edgesByDest + (end -> (edgesByDest(end) - edge)))
+                case edge @ JoinEdge(start, end, join) =>
+                    Graph(nodes, edges - edge, edgesByStart + (start -> (edgesByStart(start) - edge)), edgesByDest + (end -> (edgesByDest(end) - edge)) + (join -> (edgesByDest(join) - edge)))
+            }
+        def removeEdges(edges: Set[Edge]): Graph =
+            edges.foldLeft(this) { _ removeEdge _ }
         def shiftGen(gen: Int): Graph = {
             def shiftGen(edge: Edge, gen: Int): Edge = edge match {
                 case SimpleEdge(start, end) => SimpleEdge(start.shiftGen(gen), end.shiftGen(gen))
@@ -74,6 +83,7 @@ object ParsingContext {
         }
         def replaceNode(original: Node, replaced: Node): Graph = {
             if (!(nodes contains original)) this else {
+                // assert(!(nodes contains replaced))
                 def replace(node: Node) = if (node == original) replaced else node
                 val replacedNodes = nodes - original + replaced
                 var replacedEdges = edges
