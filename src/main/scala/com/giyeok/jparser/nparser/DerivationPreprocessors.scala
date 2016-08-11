@@ -25,10 +25,13 @@ class OnDemandDerivationPreprocessor(val grammar: NGrammar, val compaction: Bool
                 case node @ SymbolNode(symbolId, _) =>
                     grammar.nsymbols(symbolId) match {
                         case _: Start | _: Nonterminal | _: OneOf | _: Proxy | _: Repeat => None
+                        case _: Except => Set(node) ++ (preprocessed.context.graph.edgesByStart(node) map { _.asInstanceOf[SimpleEdge].end })
+                        case _: Join => Set(node) ++ (preprocessed.context.graph.edgesByStart(node) map { _.asInstanceOf[JoinEdge] } flatMap { n => Set(n.end, n.join) })
                         case _ => Some(node)
                     }
                 case node @ SequenceNode(sequenceId, pointer, _, _) =>
-                    if ((grammar.nsequences(sequenceId).sequence.length == 1) && (pointer == 0)) None else Some(node)
+                    if (grammar.nsequences(sequenceId).sequence.length != 1) Some(node)
+                    else None ensuring (pointer == 0)
             })
             val initialStartNodes = initialBarriers filter {
                 case SymbolNode(symbolId, _) =>
@@ -50,10 +53,23 @@ class OnDemandDerivationPreprocessor(val grammar: NGrammar, val compaction: Bool
                     case List() => cc
                 }
 
+            def reachablePaths(graph: Graph, barriers: Set[Node], node: Node, path: Set[Node]): Map[Node, Set[Node]] = {
+                val outgoingNodes = (graph.edgesByStart(node) map { _.asInstanceOf[SimpleEdge].end })
+                val (outgoingBarriers, outgoingReachables) = (outgoingNodes intersect barriers, outgoingNodes -- barriers)
+                val outgoingPaths = (outgoingReachables -- path) map { outgoing => reachablePaths(graph, barriers, outgoing, path + outgoing) }
+                outgoingPaths.foldLeft((outgoingBarriers map { _ -> path }).toMap) { (paths, merging) =>
+                    merging.foldLeft(paths) { (paths, kv) =>
+                        val (dest, path) = kv
+                        paths + (dest -> (paths.getOrElse(dest, Set()) ++ path))
+                    }
+                }
+            }
+
             def compaction(startNodes: List[Node], barriers: Set[Node], cc: Preprocessed): Preprocessed = {
                 startNodes match {
                     case startNode +: rest =>
                         val graph = cc.context.graph
+                        assert(barriers contains startNode)
                         val (reachableBarriers, reachableNodes) = reachables(graph, barriers, List(startNode), (Set(), Set()))
                         // reachableNodes에 reachableNodes 이외의 노드에서 오는 incoming edges가 있는 노드들을 incomingNodes라고 하고
                         // incomingNodes가 비어있지 않으면 barriers와 startNodes로 추가해서 다시 진행
