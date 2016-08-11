@@ -10,6 +10,9 @@ import com.giyeok.jparser.nparser
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.OnDemandDerivationPreprocessor
 import com.giyeok.jparser.nparser.OnDemandSlicedDerivationPreprocessor
+import com.giyeok.jparser.nparser.OnDemandCompactDerivationPreprocessor
+import com.giyeok.jparser.nparser.OnDemandCompactSlicedDerivationPreprocessor
+import com.giyeok.jparser.nparser.CompactNGrammar
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.ConcreteSource]
@@ -36,11 +39,12 @@ trait GrammarTestCases extends Samples {
     val resultFunc = ParseResultGraphFunc
 
     lazy val ngrammar = NGrammar.fromGrammar(grammar)
+    lazy val compactGrammar = CompactNGrammar.fromNGrammar(ngrammar)
 
-    lazy val derivationPreprocessor = new OnDemandDerivationPreprocessor(ngrammar, false)
-    lazy val slicedDerivationPreprocessor = new OnDemandSlicedDerivationPreprocessor(ngrammar, false)
-    lazy val compactDerivationPreprocessor = new OnDemandDerivationPreprocessor(ngrammar, true)
-    lazy val compactSlicedDerivationPreprocessor = new OnDemandSlicedDerivationPreprocessor(ngrammar, true)
+    lazy val derivationPreprocessor = new OnDemandDerivationPreprocessor(ngrammar)
+    lazy val slicedDerivationPreprocessor = new OnDemandSlicedDerivationPreprocessor(ngrammar)
+    lazy val compactDerivationPreprocessor = new OnDemandCompactDerivationPreprocessor(compactGrammar)
+    lazy val compactSlicedDerivationPreprocessor = new OnDemandCompactSlicedDerivationPreprocessor(compactGrammar)
 
     lazy val nparserNaive = new nparser.NaiveParser(ngrammar)
     lazy val nparserPreprocessed = new nparser.PreprocessedParser(ngrammar, derivationPreprocessor)

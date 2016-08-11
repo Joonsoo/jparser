@@ -33,11 +33,6 @@ object DerivationPreprocessor {
 trait DerivationPreprocessor {
     val grammar: NGrammar
 
-    // followingSymbols의 entry A->B 는 A가 finish되면 B의 모든 symbol도 finish된 것으로 간주해야 함을 의미
-    // OnDemand로 계산하는 경우 때문에 val이 아닌 def로 선언
-    // TODO 사실 문법에서 바로 나오는것이니 val로 수정하고 그래프 모양과 관계 없이 이 trait에서 바로 계산할것
-    def followingSymbols: Map[Int, Set[Int]]
-
     def symbolDerivationOf(symbolId: Int): Preprocessed
     def sequenceDerivationOf(sequenceId: Int, pointer: Int): Preprocessed
 
@@ -189,13 +184,6 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
             val nextCtx = wctx.proceed(nextGen, revertedCtx, nextDeriveTips, input, conditionFateNext)
             Left((ProceedDetail(ctx, expandedCtx, liftedCtx, trimmedCtx, revertedCtx), nextCtx))
         }
-    }
-}
-
-trait DerivationCompactable {
-    // TODO symbol node의 id로 음수를 넣어서 음수는 압축된 여러 symbol node
-    def compact(context: Context, baseNode: Node): Context = {
-        ???
     }
 }
 

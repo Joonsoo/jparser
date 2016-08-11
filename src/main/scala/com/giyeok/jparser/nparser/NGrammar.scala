@@ -2,9 +2,10 @@ package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.nparser.NGrammar._
 
 // Numbered Grammar
-case class NGrammar(nsymbols: Map[Int, NGrammar.NAtomicSymbol], nsequences: Map[Int, NGrammar.Sequence], startSymbol: Int) {
+class NGrammar(val nsymbols: Map[Int, NGrammar.NAtomicSymbol], val nsequences: Map[Int, NGrammar.Sequence], val startSymbol: Int) {
     def symbolOf(id: Int): NGrammar.NSymbol = {
         nsymbols get id match {
             case Some(nsymbol) => nsymbol
@@ -81,6 +82,28 @@ object NGrammar {
                     myId
             }
         val startSymbolId = numberOf(Symbols.Start)
-        NGrammar(nsymbols.toMap, nsequences.toMap, startSymbolId)
+        new NGrammar(nsymbols.toMap, nsequences.toMap, startSymbolId)
     }
+}
+
+class CompactNGrammar(nsymbols: Map[Int, NGrammar.NAtomicSymbol], nsequences: Map[Int, NGrammar.Sequence], startSymbol: Int) extends NGrammar(nsymbols, nsequences, startSymbol) {
+    def isCompactable(id: Int): Boolean = {
+        nsymbols get id match {
+            case Some(nsymbol) =>
+                nsymbol match {
+                    case _: Start | _: Nonterminal | _: OneOf | _: Proxy | _: Repeat => true
+                    case _ => false
+                }
+            case None =>
+                nsequences(id).sequence.length == 1
+        }
+    }
+
+    // (key, value)는 key가 finish되면 value의 심볼들도 모두 finish됨을 의미한다
+    lazy val compactionMap: Map[Int, Set[Int]] = ???
+    lazy val reverseCompactionMap: Map[Int, Set[Int]] = ???
+}
+
+object CompactNGrammar {
+    def fromNGrammar(ngrammar: NGrammar): CompactNGrammar = new CompactNGrammar(ngrammar.nsymbols, ngrammar.nsequences, ngrammar.startSymbol)
 }
