@@ -17,3 +17,7 @@ project/plugins/project/
 samples
 .cache
 /bin/
+.cache-main
+.cache-tests
+.settings/
+.gitignore
