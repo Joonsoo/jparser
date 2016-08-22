@@ -4,6 +4,7 @@ trait TextModel {
     def modify(location: Int, length: Int, inserted: String): TextModel
 
     val text: String
+    val length: Int
     // diff의 결과는 반드시 location이 작은 것부터
     def diff(textModel: TextModel): Seq[TextModel.TextChange]
 
@@ -11,21 +12,21 @@ trait TextModel {
 }
 
 case class WholeText(text: String) extends TextModel {
-    def modify(location: Int, length: Int, inserted: String): TextModel = DiffText(this, TextModel.TextChange(location, length, inserted), 1)
+    val length = text.length()
+    def modify(location: Int, length: Int, inserted: String): TextModel = DiffText(this, TextModel.TextChange(location, length, inserted), this.length - length + inserted.length(), 1)
 
     def diff(textModel: TextModel): Seq[TextModel.TextChange] = ???
 }
 
-case class DiffText(base: TextModel, change: TextModel.TextChange, changes: Int) extends TextModel {
+case class DiffText(base: TextModel, change: TextModel.TextChange, length: Int, changes: Int) extends TextModel {
     def modify(location: Int, length: Int, inserted: String): TextModel = {
         // TODO 이 이벤트를 change에 합칠 수 있으면 changes를 늘리지 말고 합쳐서 반환
-        DiffText(this, TextModel.TextChange(location, length, inserted), changes + 1)
+        DiffText(this, TextModel.TextChange(location, length, inserted), this.length - length + inserted.length(), changes + 1)
     }
 
     lazy val text: String = {
         val baseText = base.text
         val result = baseText.substring(0, change.location) + change.inserted + baseText.substring(change.location + change.length)
-        println(s"Text: $result")
         result
     }
     def diff(textModel: TextModel): Seq[TextModel.TextChange] = ???

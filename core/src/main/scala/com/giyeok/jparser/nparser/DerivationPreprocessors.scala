@@ -232,5 +232,5 @@ class OnDemandCompactSlicedDerivationPreprocessor(override val grammar: CompactN
         compact(super._sequenceDerivationOf(sequenceId, pointer))
 
     override def slice(derivation: Preprocessed, termNodes: Set[SymbolNode]): Map[TermGroupDesc, (Preprocessed, Set[SequenceNode])] =
-        super.slice(derivation, termNodes) mapValues { v => (compact(v._1), v._2) }
+        super.slice(derivation, termNodes) map { kv => (kv._1 -> (compact(kv._2._1), kv._2._2)) }
 }

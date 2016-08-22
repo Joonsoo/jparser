@@ -52,6 +52,17 @@ import com.giyeok.jparser.nparser.ParsingContext
 import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
 import com.giyeok.jparser.nparser.ParsingContext.SymbolNode
 import com.giyeok.jparser.nparser.ParsingContext.SequenceNode
+import java.util.concurrent.LinkedBlockingDeque
+import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
+import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.nparser.EligCondition.Condition
+import com.giyeok.jparser.nparser.EligCondition
+import com.giyeok.jparser.nparser.ParsingContext.Node
+import org.eclipse.swt.events.DisposeListener
+import com.giyeok.jparser.nparser.CompactParseTreeConstructor
+import com.giyeok.jparser.visualize.ParseResultFigureGenerator
+import org.eclipse.draw2d.Figure
 
 object ParserStudio {
 
@@ -175,39 +186,199 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
     proceedButton.setText("Proceed View")
 
     grammarText.control.addProcessListener(new ProcessListener[TextModel, ParseResult, ParseProcessor]() {
-        def contentModified(value: TextModel): Unit = {}
-        def processStarted(value: TextModel): Unit = {
-            /*
-            grammarText.showTextNotification(value match {
-                case DiffText(_, change, _) => change.toString
-                case _ => ""
-            })
-            */
-        }
-        def processCanceled(value: TextModel): Unit = {}
-        def processDone(value: TextModel, result: ParseResult, processor: ParseProcessor, time: Int): Unit = {
-            Display.getDefault().syncExec(new Runnable() {
+        def contentModified(value: TextModel): Unit = {
+            Display.getDefault().asyncExec(new Runnable() {
                 def run(): Unit = {
+                    grammarText.showTextNotification("* Modified")
+                }
+            })
+        }
+        def processStarted(value: TextModel): Unit = {}
+        def processCanceled(value: TextModel): Unit = {}
+
+        val grammar = grammarDefParser.grammar
+        val nontermNameId = (grammar.nsymbols find { _._2.symbol == Symbols.Nonterminal("NontermName") }).get._1
+        val nontermNameIds = Set(nontermNameId) ++ grammar.reverseCorrespondingSymbols(nontermNameId)
+        val termExactId = (grammar.nsymbols find { _._2.symbol == Symbols.Nonterminal("TerminalExactChar") }).get._1
+        val termRangesId = (grammar.nsymbols find { _._2.symbol == Symbols.Nonterminal("TerminalRanges") }).get._1
+        val termSetId = (grammar.nsymbols find { _._2.symbol == Symbols.Nonterminal("TerminalSet") }).get._1
+        val termIds = Set(termExactId, termRangesId, termSetId) ++ grammar.reverseCorrespondingSymbols(termExactId) ++
+            grammar.reverseCorrespondingSymbols(termRangesId) ++ grammar.reverseCorrespondingSymbols(termSetId)
+
+        def expectedTerminalFrom(parser: PreprocessedParser, ctx: DeriveTipsWrappedContext): Set[Symbols.Terminal] = {
+            val terms = ctx.deriveTips flatMap { node =>
+                parser.derivation.termNodesOf(node) map { _.symbolId }
+            }
+            terms map { parser.grammar.nsymbols(_).symbol.asInstanceOf[Symbols.Terminal] }
+        }
+
+        def processDone(value: TextModel, result: ParseResult, processor: ParseProcessor, time: Int): Unit = {
+            Display.getDefault().asyncExec(new Runnable() {
+                def run(): Unit = {
+                    val parser = processor.parser
                     result match {
                         case ParseComplete(result, ctx) =>
-                            grammarText.showTextNotification(s"Parsed in $time ms, ${result.trees.size} tree(s)")
-                        case UnexpectedInput(error) =>
-                            grammarText.showTextNotification(error.msg)
-                        case IncompleteInput(ctx) =>
-                            /*
-                    val grammar = processor.parser.grammar
-                    val s = ctx.deriveTips map {
-                        case SymbolNode(symbolId, beginGen) =>
-                            s"${grammar.nsymbols(symbolId).symbol.toShortString} from $beginGen"
-                        case SequenceNode(sequenceId, pointer, beginGen, _) =>
-                            s"${grammar.nsequences(sequenceId).symbol.toShortString} from $beginGen"
+                            val basicNotiText = s"${value.length}, Parsed in $time ms"
+                            GrammarGrammar.translate(result.trees.head) match {
+                                case Some(grammar) =>
+                                    val missingSymbols = grammar.missingSymbols
+                                    if (missingSymbols.isEmpty) {
+                                        grammarText.showTextNotification(basicNotiText + ", no missing symbols")
+                                        testText.control.setProcessor(new ParseProcessor(NGrammar.fromGrammar(grammar)))
+                                    } else {
+                                        grammarText.showTextNotification(basicNotiText + ", missing symbols: " + (missingSymbols map { _.toShortString }))
+                                    }
+                                case None =>
+                                    grammarText.showTextNotification(basicNotiText + ", invalid grammar")
+                            }
+                        case IncompleteInput(msg, ctx) =>
+                            grammarText.showTextNotification(s"$msg, expected: ${expectedTerminalFrom(parser, ctx) map { _.toShortString }}")
+                        case UnexpectedInput(error, ctx) =>
+                            grammarText.showTextNotification(s"${error.msg}, expected: ${expectedTerminalFrom(parser, ctx) map { _.toShortString }}")
+                            val styleRange = new StyleRange()
+                            styleRange.start = ctx.gen
+                            styleRange.length = 1
+                            styleRange.fontStyle = SWT.BOLD
+                            styleRange.background = ColorConstants.red
+                            grammarText.control.text.setStyleRange(styleRange)
                     }
-                    grammarText.showTextNotification(s mkString ",")
-                    */
-                            grammarText.showTextNotification("Incomplete input")
+                    // TODO 이렇게 하면 안될듯..
+                    // - NontermName, Terminal 로 하지 말고 NontermDef, Production로 해야 정확히 될듯
+                    val finishes = {
+                        def eligible(conditions: Set[Condition]): Boolean = {
+                            conditions exists { result.context.conditionFate.getOrElse(_, EligCondition.False).eligible }
+                        }
+                        (result.context.history map {
+                            _.nodeConditions.toSet[(Node, Set[Condition])] collect {
+                                case (node, conditions) if eligible(conditions) => node
+                            }
+                        }).toVector
+                    }
+                    def isFinished(node: Node, symbolIds: Set[Int]): Boolean = {
+                        node match {
+                            case SymbolNode(symbolId, _) => symbolIds contains symbolId
+                            case SequenceNode(sequenceId, pointer, _, _) =>
+                                (symbolIds contains sequenceId) && (pointer + 1 == grammar.nsequences(sequenceId).sequence.length)
+                        }
+                    }
+                    finishes.zipWithIndex foreach { finIdx =>
+                        finIdx._1 collect {
+                            case node if isFinished(node, nontermNameIds) =>
+                                val endGen = finIdx._2
+                                val styleRange = new StyleRange()
+                                styleRange.start = node.beginGen
+                                styleRange.length = endGen - node.beginGen
+                                styleRange.fontStyle = SWT.BOLD
+                                styleRange.underline = true
+                                styleRange.underlineColor = ColorConstants.lightBlue
+                                styleRange.foreground = ColorConstants.blue
+                                grammarText.control.text.setStyleRange(styleRange)
+                            case node if isFinished(node, termIds) =>
+                                val endGen = finIdx._2
+                                val styleRange = new StyleRange()
+                                styleRange.start = node.beginGen
+                                styleRange.length = endGen - node.beginGen
+                                styleRange.fontStyle = SWT.BOLD
+                                styleRange.foreground = ColorConstants.red
+                                grammarText.control.text.setStyleRange(styleRange)
+                        }
                     }
                 }
             })
+        }
+    })
+    testText.control.addProcessListener(new ProcessListener[TextModel, ParseResult, ParseProcessor]() {
+        def contentModified(value: TextModel): Unit = {
+            Display.getDefault().asyncExec(new Runnable() {
+                def run(): Unit = {
+                    grammarText.showTextNotification("* Modified")
+                }
+            })
+        }
+        def processStarted(value: TextModel): Unit = {}
+        def processCanceled(value: TextModel): Unit = {}
+
+        def expectedTerminalFrom(parser: PreprocessedParser, ctx: DeriveTipsWrappedContext): Set[Symbols.Terminal] = {
+            val terms = ctx.deriveTips flatMap { node =>
+                parser.derivation.termNodesOf(node) map { _.symbolId }
+            }
+            terms map { parser.grammar.nsymbols(_).symbol.asInstanceOf[Symbols.Terminal] }
+        }
+
+        def processDone(value: TextModel, result: ParseResult, processor: ParseProcessor, time: Int): Unit = {
+            Display.getDefault().asyncExec(new Runnable() {
+                def run(): Unit = {
+                    val parser = processor.parser
+                    result match {
+                        case ParseComplete(result, ctx) =>
+                            val styleRange = new StyleRange()
+                            styleRange.start = 0
+                            styleRange.length = value.length
+                            styleRange.fontStyle = SWT.NONE
+                            styleRange.background = ColorConstants.white
+                            testText.control.text.setStyleRange(styleRange)
+                            testText.showTextNotification(s"${value.length}, Parsed in $time ms (${result.trees.size} trees)")
+                            parseTreeView.control.setParseForest(result)
+                        case IncompleteInput(msg, ctx) =>
+                            testText.showTextNotification(s"$msg, expected: ${expectedTerminalFrom(parser, ctx) map { _.toShortString }}")
+                        case UnexpectedInput(error, ctx) =>
+                            testText.showTextNotification(s"${error.msg}, expected: ${expectedTerminalFrom(parser, ctx) map { _.toShortString }}")
+                            val styleRanges = if (ctx.gen + 1 < value.length) {
+                                val styleRanges = new Array[StyleRange](3)
+                                val styleRange0 = new StyleRange()
+                                styleRange0.start = 0
+                                styleRange0.length = ctx.gen
+                                styleRange0.fontStyle = SWT.NONE
+                                styleRange0.background = ColorConstants.white
+                                styleRanges(0) = styleRange0
+                                val styleRange1 = new StyleRange()
+                                styleRange1.start = ctx.gen
+                                styleRange1.length = 1
+                                styleRange1.fontStyle = SWT.BOLD
+                                styleRange1.background = ColorConstants.red
+                                styleRanges(1) = styleRange1
+                                val styleRange2 = new StyleRange()
+                                styleRange2.start = ctx.gen + 1
+                                styleRange2.length = value.length - ctx.gen - 1
+                                styleRange2.fontStyle = SWT.NONE
+                                styleRange2.background = ColorConstants.white
+                                styleRanges(2) = styleRange2
+                                styleRanges
+                            } else {
+                                val styleRanges = new Array[StyleRange](2)
+                                val styleRange0 = new StyleRange()
+                                styleRange0.start = 0
+                                styleRange0.length = ctx.gen
+                                styleRange0.fontStyle = SWT.NONE
+                                styleRange0.background = ColorConstants.white
+                                styleRanges(0) = styleRange0
+                                val styleRange1 = new StyleRange()
+                                styleRange1.start = ctx.gen
+                                styleRange1.length = 1
+                                styleRange1.fontStyle = SWT.BOLD
+                                styleRange1.background = ColorConstants.red
+                                styleRanges(1) = styleRange1
+                                styleRanges
+                            }
+                            testText.control.text.setStyleRanges(styleRanges)
+                    }
+                }
+            })
+        }
+    })
+    proceedButton.addSelectionListener(new SelectionListener() {
+        def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {}
+
+        def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
+            println(grammarText.control.value.text)
+            println(testText.control.value.text)
+        }
+    })
+
+    addDisposeListener(new DisposeListener() {
+        def widgetDisposed(e: org.eclipse.swt.events.DisposeEvent): Unit = {
+            grammarText.control.stopWorkers()
+            testText.control.stopWorkers()
         }
     })
 }
@@ -335,8 +506,16 @@ class ParseTreeViewer(parent: Composite, style: Int) extends Composite(parent, s
 
     val figureCanvas = new FigureCanvas(this, SWT.NONE)
 
-    val figure = new org.eclipse.draw2d.Label("Parse Tree TODO")
+    val figure = new org.eclipse.draw2d.Label("Parse Tree")
     figureCanvas.setContents(figure)
+
+    val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](BasicVisualizeResources.nodeFigureGenerators.fig, BasicVisualizeResources.nodeFigureGenerators.appear)
+
+    def setParseForest(parseForest: ParseForest): Unit = {
+        // TODO figure 모양 개선(세로형으로)
+        // TODO parse tree 안에 마우스 갖다대면 testText에 표시해주기
+        figureCanvas.setContents(parseResultFigureGenerator.parseResultFigure(parseForest))
+    }
 }
 
 trait ProcessListener[T, R, P] {
@@ -376,48 +555,97 @@ trait ProcessableStorage[T, R, P <: (T => R)] {
         requestProcess()
     }
 
+    private val threadQueue = new LinkedBlockingDeque[(T, Long)]()
+
+    private var _running: Boolean = true
+    private def running = this.synchronized { _running }
+
+    class WorkerThread extends Runnable {
+        def run(): Unit = {
+            while (running) {
+                val (value, version) = threadQueue.take()
+                if (version >= 0) {
+                    val start = ProcessableStorage.this.synchronized { (version == _dataVersion) }
+                    if (start) {
+                        val startTime: Long = System.currentTimeMillis()
+                        val tempResult = _processor(_value)
+                        val endTime: Long = System.currentTimeMillis()
+                        ProcessableStorage.this.synchronized {
+                            if (version == _dataVersion) {
+                                _result = Some(tempResult)
+                                processListeners foreach { _.processDone(_value, _result.get, processor, (endTime - startTime).toInt) }
+                            } else {
+                                processListeners foreach { _.processCanceled(_value) }
+                            }
+                        }
+                    } else {
+                        processListeners foreach { _.processCanceled(_value) }
+                    }
+                }
+            }
+        }
+    }
+    val workerCount = 1
+    (0 until workerCount) foreach { _ => new Thread(new WorkerThread()).start() }
+
+    def stopWorkers(): Unit = this.synchronized {
+        println("Stopping Workers")
+        _running = false
+        // Waking threads up
+        (0 until workerCount) foreach { _ => threadQueue.add((_value, -1)) }
+    }
+
     private def requestProcess(): Unit = this.synchronized {
         _result = None
+        // - processListener들에게 파싱 시작 이벤트 전달
+        processListeners foreach { _.processStarted(_value) }
         // 별도 스레드에 처리를 요청하고 처리가 완료되었을 때 _dataVersion과 요청한 version을 비교해서 _result를 셋팅하고 parseListener들을 호출
         // TODO 별도 스레드에서 처리
-        val startTime: Long = System.currentTimeMillis()
-        _result = Some(_processor(_value))
-        val endTime: Long = System.currentTimeMillis()
-        processListeners foreach { _.processDone(_value, _result.get, processor, (endTime - startTime).toInt) }
+        threadQueue.add((_value, _dataVersion))
     }
 
     def modified(newValue: T): Unit = this.synchronized {
-        // TODO
-        // - 필요하면 100~200 ms 기다려서 debounce 처리해주고,
-        // - parser로 보내서 파싱을 시작하고
         this._value = newValue
+        this._dataVersion += 1
+        processListeners foreach { _.contentModified(newValue) }
         requestProcess()
-        // - processListener들에게 파싱 시작 이벤트 전달
-        processListeners foreach { _.processStarted(newValue) }
     }
+
+    requestProcess()
 }
 
-sealed trait ParseResult
-case class UnexpectedInput(error: ParsingError) extends ParseResult
-case class IncompleteInput(context: DeriveTipsWrappedContext) extends ParseResult
+sealed trait ParseResult { val context: DeriveTipsWrappedContext }
+case class UnexpectedInput(error: ParsingError, context: DeriveTipsWrappedContext) extends ParseResult
+case class IncompleteInput(message: String, context: DeriveTipsWrappedContext) extends ParseResult
 case class ParseComplete(result: ParseForest, context: DeriveTipsWrappedContext) extends ParseResult
 
-class ParseProcessor(val parser: PreprocessedParser) extends (TextModel => ParseResult) {
-    // def this(grammar: CompactNGrammar) = this(new SlicedPreprocessedParser(grammar, new OnDemandCompactSlicedDerivationPreprocessor(grammar)))
+class ParseProcessor(val grammar: CompactNGrammar, val parser: PreprocessedParser) extends (TextModel => ParseResult) {
+    // def this(grammar: CompactNGrammar) = this(grammar, new SlicedPreprocessedParser(grammar, new OnDemandCompactSlicedDerivationPreprocessor(grammar)))
     // def this(grammar: NGrammar) = this(CompactNGrammar.fromNGrammar(grammar))
-    def this(grammar: NGrammar) = this(new SlicedPreprocessedParser(grammar, new OnDemandSlicedDerivationPreprocessor(grammar)))
+    def this(grammar: NGrammar) = this(CompactNGrammar.fromNGrammar(grammar), new SlicedPreprocessedParser(grammar, new OnDemandSlicedDerivationPreprocessor(grammar)))
     def this(grammar: Grammar) = this(NGrammar.fromGrammar(grammar))
 
     def apply(text: TextModel): ParseResult = {
         // TODO 가능하면 변경된 부분만 파싱하도록 수정
-        parser.parse(text.text) match {
+        val wholeText = text.text
+        val startTime = System.currentTimeMillis()
+        val (lastCtx, result) = Inputs.fromString(wholeText).foldLeft[(DeriveTipsWrappedContext, Either[DeriveTipsWrappedContext, ParsingError])]((parser.initialContext, Left(parser.initialContext))) {
+            (ctx, input) =>
+                ctx match {
+                    case (_, Left(ctx)) => (ctx, parser.proceed(ctx, input))
+                    case (lastCtx, error @ Right(_)) => (lastCtx, error)
+                }
+        }
+        val endTime = System.currentTimeMillis()
+        println(endTime - startTime)
+        result match {
             case Left(ctx) =>
-                val reconstructor = new ParseTreeConstructor(ParseForestFunc)(parser.grammar)(ctx.inputs, ctx.history, ctx.conditionFate)
+                val reconstructor = new ParseTreeConstructor(ParseForestFunc)(grammar)(ctx.inputs, ctx.history, ctx.conditionFate)
                 reconstructor.reconstruct() match {
                     case Some(parseTree) => ParseComplete(parseTree, ctx)
-                    case None => IncompleteInput(ctx)
+                    case None => IncompleteInput("Incomplete input", ctx)
                 }
-            case Right(error) => UnexpectedInput(error)
+            case Right(error) => UnexpectedInput(error, lastCtx)
         }
     }
 }

@@ -176,7 +176,7 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
             val revertedCtx: Context = revert(nextGen, trimmedCtx, trimmedCtx.finishes, trimmedCtx.graph.nodes)
             // 5. Condition Fate
             val conditionFateNext = {
-                val evaluated = wctx.conditionFate mapValues { _.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes) }
+                val evaluated = wctx.conditionFate map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes) }
                 val newConditions = (revertedCtx.finishes.conditions map { c => (c -> c) }).toMap
                 (evaluated ++ newConditions) filter { _._2 != False }
             }
@@ -224,7 +224,7 @@ class SlicedPreprocessedParser(grammar: NGrammar, override val derivation: Slice
             val revertedCtx: Context = revert(nextGen, trimmedCtx, trimmedCtx.finishes, trimmedCtx.graph.nodes)
             // 5. Condition Fate
             val conditionFateNext = {
-                val evaluated = wctx.conditionFate mapValues { _.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes) }
+                val evaluated = wctx.conditionFate map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes) }
                 val newConditions = (revertedCtx.finishes.conditions map { c => (c -> c) }).toMap
                 (evaluated ++ newConditions) filter { _._2 != False }
             }
