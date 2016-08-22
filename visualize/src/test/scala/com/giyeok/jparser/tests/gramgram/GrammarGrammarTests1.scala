@@ -2,7 +2,7 @@ package com.giyeok.jparser.tests.gramgram
 
 import com.giyeok.jparser.tests.GrammarTestCases
 import com.giyeok.jparser.tests.BasicParseTest
-import com.giyeok.jparser.visualize.studio.GrammarGrammar
+import com.giyeok.jparser.gramgram.GrammarGrammar
 import com.giyeok.jparser.tests.StringSamples
 
 object GrammarGrammarTests1 extends GrammarTestCases with StringSamples {

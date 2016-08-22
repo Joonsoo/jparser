@@ -27,3 +27,4 @@ javaOptions in run := {
 }
 
 EclipseKeys.relativizeLibs := false
+EclipseKeys.withSource := true

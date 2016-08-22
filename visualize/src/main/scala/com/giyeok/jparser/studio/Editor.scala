@@ -1,4 +1,4 @@
-package com.giyeok.jparser.visualize.studio
+package com.giyeok.jparser.studio
 
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.swt.SWT
@@ -12,7 +12,6 @@ import com.giyeok.jparser.visualize.ParsingProcessVisualizer
 import org.eclipse.swt.layout.FormLayout
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormAttachment
-import com.giyeok.jparser.visualize.studio.GrammarGrammar
 import com.giyeok.jparser.ParseForestFunc
 import org.eclipse.jface.dialogs.MessageDialog
 import com.giyeok.jparser.ParsingErrors.UnexpectedInput
@@ -21,6 +20,7 @@ import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.visualize.ZestParsingContextWidget
 import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
+import com.giyeok.jparser.gramgram.GrammarGrammar
 
 trait Editor {
     val parser = new NaiveParser(NGrammar.fromGrammar(GrammarGrammar))
