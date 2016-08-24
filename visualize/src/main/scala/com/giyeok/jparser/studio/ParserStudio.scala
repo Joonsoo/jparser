@@ -72,6 +72,7 @@ import com.giyeok.jparser.nparser.OnDemandSlicedDerivationPreprocessor
 import com.giyeok.jparser.nparser.OnDemandCompactDerivationPreprocessor
 import com.giyeok.jparser.nparser.OnDemandCompactSlicedDerivationPreprocessor
 import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
+import com.giyeok.jparser.visualize.PreprocessedDerivationViewer
 
 object ParserStudio {
 
@@ -400,6 +401,21 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
                                 ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandCompactSlicedDerivationPreprocessor(CompactNGrammar.fromNGrammar(ngrammar))), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                         }
                     }
+                case _ => // TODO 어떻게 하지?
+            }
+        }
+    })
+    definitionViewButton.addSelectionListener(new SelectionListener() {
+        def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {}
+
+        def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
+            grammarText.control.result match {
+                case Some(ParseComplete(Some(grammar), _)) =>
+                    val display = Display.getDefault()
+                    val shell = new Shell(display)
+                    val title = "Proceed View"
+                    val ngrammar = NGrammar.fromGrammar(grammar)
+                    new PreprocessedDerivationViewer(grammar, ngrammar, new OnDemandSlicedDerivationPreprocessor(ngrammar), new OnDemandCompactSlicedDerivationPreprocessor(CompactNGrammar.fromNGrammar(ngrammar)), BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start()
                 case _ => // TODO 어떻게 하지?
             }
         }
