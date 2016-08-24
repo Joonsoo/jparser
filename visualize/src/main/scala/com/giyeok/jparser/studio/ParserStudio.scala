@@ -246,7 +246,7 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
                     // - NontermName, Terminal 로 하지 말고 NontermDef, Production로 해야 정확히 될듯
                     val finishes = {
                         def eligible(conditions: Set[Condition]): Boolean = {
-                            conditions exists { result.context.conditionFate.getOrElse(_, EligCondition.False).eligible }
+                            conditions exists { result.context.conditionFate.of(_).eligible }
                         }
                         (result.context.history map {
                             _.nodeConditions.toSet[(Node, Set[Condition])] collect {

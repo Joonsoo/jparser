@@ -8,11 +8,12 @@ import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.Symbols.Symbol
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.nparser.NGrammar._
+import com.giyeok.jparser.nparser.Parser.ConditionFate
 
-class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Results[Node]], conditionFate: Map[Condition, Condition]) {
+class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Results[Node]], conditionFate: ConditionFate) {
     val finishes = {
         def eligible(conditions: Set[Condition]): Boolean = {
-            conditions exists { conditionFate.getOrElse(_, EligCondition.False).eligible }
+            conditions exists { conditionFate.of(_).eligible }
         }
         (history map {
             _.nodeConditions.toSet[(Node, Set[Condition])] collect {
@@ -100,7 +101,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     }
 }
 
-class CompactParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: CompactNGrammar)(input: Seq[Input], history: Seq[Results[Node]], conditionFate: Map[Condition, Condition])
+class CompactParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: CompactNGrammar)(input: Seq[Input], history: Seq[Results[Node]], conditionFate: ConditionFate)
         extends ParseTreeConstructor(resultFunc)(grammar)(input, history, conditionFate) {
     override protected def reconstruct(node: Node, gen: Int, traces: Set[Int]): R = {
         resultFunc.sequence(0, 0, grammar.nsequences.values.head.symbol)

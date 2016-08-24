@@ -35,20 +35,61 @@ trait Parser[T <: WrappedContext] {
 }
 
 object Parser {
-    abstract class WrappedContext(val gen: Int, val ctx: Context, _inputs: List[Input], _history: List[Results[Node]], val conditionFate: Map[Condition, Condition]) {
+    class ConditionFate(val trueFixed: Set[Condition], val falseFixed: Set[Condition], val unfixed: Map[Condition, Condition]) {
+        def of(condition: Condition): Condition = {
+            if (trueFixed contains condition) True
+            else if (falseFixed contains condition) False
+            else unfixed(condition)
+        }
+
+        def update(newConditionFate: Map[Condition, Condition]): ConditionFate = {
+            var trueConditions = trueFixed
+            var falseConditions = falseFixed
+            var unfixedConditions = Map[Condition, Condition]()
+
+            newConditionFate foreach { kv =>
+                kv._2 match {
+                    case True => trueConditions += kv._1
+                    case False => falseConditions += kv._1
+                    case _ => unfixedConditions += kv
+                }
+            }
+            new ConditionFate(trueConditions, falseConditions, unfixedConditions)
+        }
+    }
+    object ConditionFate {
+        def apply(conditionFate: Map[Condition, Condition]): ConditionFate = {
+            var trueConditions = Set[Condition]()
+            var falseConditions = Set[Condition]()
+            var unfixedConditions = Map[Condition, Condition]()
+
+            conditionFate foreach { kv =>
+                kv._2 match {
+                    case True => trueConditions += kv._1
+                    case False => falseConditions += kv._1
+                    case _ => unfixedConditions += kv
+                }
+            }
+            new ConditionFate(trueConditions, falseConditions, unfixedConditions)
+        }
+    }
+
+    abstract class WrappedContext(val gen: Int, val ctx: Context, _inputs: List[Input], _history: List[Results[Node]], val conditionFate: ConditionFate) {
         def nextGen = gen + 1
         def inputs = _inputs.reverse
         def history = (ctx.finishes +: _history).reverse
     }
-    class NaiveWrappedContext(gen: Int, ctx: Context, _inputs: List[Input], _history: List[Results[Node]], conditionFate: Map[Condition, Condition]) extends WrappedContext(gen, ctx, _inputs, _history, conditionFate) {
+
+    class NaiveWrappedContext(gen: Int, ctx: Context, _inputs: List[Input], _history: List[Results[Node]], conditionFate: ConditionFate) extends WrappedContext(gen, ctx, _inputs, _history, conditionFate) {
         def proceed(nextGen: Int, nextCtx: Context, newInput: Input, newConditionFate: Map[Condition, Condition]) = {
-            new NaiveWrappedContext(nextGen, nextCtx, newInput +: _inputs, ctx.finishes +: _history, newConditionFate)
+            new NaiveWrappedContext(nextGen, nextCtx, newInput +: _inputs, ctx.finishes +: _history, conditionFate update newConditionFate)
         }
     }
-    class DeriveTipsWrappedContext(gen: Int, ctx: Context, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Results[Node]], conditionFate: Map[Condition, Condition]) extends WrappedContext(gen, ctx, _inputs, _history, conditionFate) {
+
+    class DeriveTipsWrappedContext(gen: Int, ctx: Context, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Results[Node]], conditionFate: ConditionFate) extends WrappedContext(gen, ctx, _inputs, _history, conditionFate) {
         // assert(deriveTips subsetOf ctx.graph.nodes)
         def proceed(nextGen: Int, nextCtx: Context, deriveTips: Set[Node], newInput: Input, newConditionFate: Map[Condition, Condition]) = {
-            new DeriveTipsWrappedContext(nextGen, nextCtx, deriveTips: Set[Node], newInput +: _inputs, ctx.finishes +: _history, newConditionFate)
+            new DeriveTipsWrappedContext(nextGen, nextCtx, deriveTips: Set[Node], newInput +: _inputs, ctx.finishes +: _history, conditionFate update newConditionFate)
         }
     }
 

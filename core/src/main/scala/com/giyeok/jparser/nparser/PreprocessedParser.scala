@@ -16,6 +16,7 @@ import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.Inputs.VirtualTermGroupDesc
 import DerivationPreprocessor.Preprocessed
 import scala.annotation.tailrec
+import com.giyeok.jparser.nparser.Parser.ConditionFate
 
 object DerivationPreprocessor {
     case class Preprocessed(baseNode: Node, context: Context, baseFinishes: Seq[(Condition, Option[Int])], baseProgresses: Seq[Condition]) {
@@ -113,7 +114,7 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
 
         val ctx = rec(0, baseFinishTasks, Context(Graph(Set(startNode), Set()), Results(), initialFinishes))
         val finalCtx = revert(0, ctx, ctx.finishes, ctx.graph.nodes)
-        new DeriveTipsWrappedContext(0, finalCtx, Set(startNode), List(), List(), (finalCtx.finishes.conditions map { c => (c -> c) }).toMap)
+        new DeriveTipsWrappedContext(0, finalCtx, Set(startNode), List(), List(), ConditionFate((finalCtx.finishes.conditions map { c => (c -> c) }).toMap))
     }
 
     def expand(ctx: Context, expanding: Map[Node, Preprocessed]): Context = {
@@ -176,9 +177,9 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
             val revertedCtx: Context = revert(nextGen, trimmedCtx, trimmedCtx.finishes, trimmedCtx.graph.nodes)
             // 5. Condition Fate
             val conditionFateNext = {
-                val evaluated = wctx.conditionFate map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes) }
+                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes) }
                 val newConditions = (revertedCtx.finishes.conditions map { c => (c -> c) }).toMap
-                (evaluated ++ newConditions) filter { _._2 != False }
+                (evaluated ++ newConditions) // filter { _._2 != False }
             }
             val nextDeriveTips = newDeriveTips intersect revertedCtx.graph.nodes // deriveTip 중에 trimStarts에서 도달 불가능하거나 exclude로 제거되는 노드가 있을 수 있음
             val nextCtx = wctx.proceed(nextGen, revertedCtx, nextDeriveTips, input, conditionFateNext)
@@ -224,9 +225,9 @@ class SlicedPreprocessedParser(grammar: NGrammar, override val derivation: Slice
             val revertedCtx: Context = revert(nextGen, trimmedCtx, trimmedCtx.finishes, trimmedCtx.graph.nodes)
             // 5. Condition Fate
             val conditionFateNext = {
-                val evaluated = wctx.conditionFate map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes) }
+                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes) }
                 val newConditions = (revertedCtx.finishes.conditions map { c => (c -> c) }).toMap
-                (evaluated ++ newConditions) filter { _._2 != False }
+                (evaluated ++ newConditions) // filter { _._2 != False }
             }
             val nextDeriveTips = newDeriveTips intersect revertedCtx.graph.nodes // deriveTip 중에 trimStarts에서 도달 불가능하거나 exclude로 제거되는 노드가 있을 수 있음
             val nextCtx = wctx.proceed(nextGen, revertedCtx, nextDeriveTips, input, conditionFateNext)
