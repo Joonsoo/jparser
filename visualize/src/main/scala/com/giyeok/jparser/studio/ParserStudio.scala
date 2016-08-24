@@ -331,6 +331,7 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
                             parseTreeView.control.setParseForest(result)
                         case IncompleteInput(msg, ctx) =>
                             testText.showTextNotification(s"$msg, expected: ${expectedTerminalFrom(parser, ctx) map { _.toShortString }}")
+                            parseTreeView.control.invalidateParseForest()
                         case UnexpectedInput(error, ctx) =>
                             testText.showTextNotification(s"${error.msg}, expected: ${expectedTerminalFrom(parser, ctx) map { _.toShortString }}")
                             val styleRanges = if (ctx.gen + 1 < value.length) {
@@ -371,6 +372,7 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
                                 styleRanges
                             }
                             testText.control.text.setStyleRanges(styleRanges)
+                            parseTreeView.control.invalidateParseForest()
                     }
                 }
             })
@@ -561,6 +563,10 @@ class ParseTreeViewer(parent: Composite, style: Int) extends Composite(parent, s
         // TODO figure 모양 개선(세로형으로)
         // TODO parse tree 안에 마우스 갖다대면 testText에 표시해주기
         figureCanvas.setContents(parseResultFigureGenerator.parseResultFigure(parseForest))
+        figureCanvas.setBackground(ColorConstants.white)
+    }
+    def invalidateParseForest(): Unit = {
+        figureCanvas.setBackground(ColorConstants.lightGray)
     }
 }
 
@@ -666,6 +672,7 @@ case class IncompleteInput[R](message: String, context: DeriveTipsWrappedContext
 case class ParseComplete[R](result: R, context: DeriveTipsWrappedContext) extends ParseResult[R]
 
 class ParseProcessor[R](val grammar: CompactNGrammar, val parser: PreprocessedParser, postProcessor: ParseForest => R) extends (TextModel => ParseResult[R]) {
+    // TODO Compact 지원하는 ParseTreeConstructor 구현한 뒤 Compact 사용하도록 수정
     // def this(grammar: CompactNGrammar) = this(grammar, new SlicedPreprocessedParser(grammar, new OnDemandCompactSlicedDerivationPreprocessor(grammar)))
     // def this(grammar: NGrammar) = this(CompactNGrammar.fromNGrammar(grammar))
     def this(grammar: NGrammar, postProcessor: ParseForest => R) = this(CompactNGrammar.fromNGrammar(grammar), new SlicedPreprocessedParser(grammar, new OnDemandSlicedDerivationPreprocessor(grammar)), postProcessor)

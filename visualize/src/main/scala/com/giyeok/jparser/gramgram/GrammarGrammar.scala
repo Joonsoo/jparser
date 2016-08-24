@@ -20,7 +20,7 @@ object GrammarGrammar extends Grammar {
                 n("Rules"),
                 whitespace)),
         "Rules" -> ListSet(
-            seqWS(Set[Symbol](chars(" \t\n\r")), n("Rules"), n("NontermDef")),
+            seqWS(whitespace, n("Rules"), n("NontermDef")),
             n("NontermDef")),
         "NontermDef" -> ListSet(
             seqWS(inlineWS, n("NontermName"), c('='), n("Productions"))),
