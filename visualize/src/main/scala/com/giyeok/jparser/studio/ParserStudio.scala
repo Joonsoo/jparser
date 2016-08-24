@@ -63,6 +63,15 @@ import org.eclipse.swt.events.DisposeListener
 import com.giyeok.jparser.nparser.CompactParseTreeConstructor
 import com.giyeok.jparser.visualize.ParseResultFigureGenerator
 import org.eclipse.draw2d.Figure
+import com.giyeok.jparser.visualize.ParsingProcessVisualizer
+import com.giyeok.jparser.nparser.NaiveParser
+import com.giyeok.jparser.visualize.ZestParsingContextWidget
+import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
+import com.giyeok.jparser.nparser.OnDemandDerivationPreprocessor
+import com.giyeok.jparser.nparser.OnDemandSlicedDerivationPreprocessor
+import com.giyeok.jparser.nparser.OnDemandCompactDerivationPreprocessor
+import com.giyeok.jparser.nparser.OnDemandCompactSlicedDerivationPreprocessor
+import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
 
 object ParserStudio {
 
@@ -104,13 +113,13 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
 
     val rootPanel = new VerticalResizableSplittedComposite(this, SWT.NONE, 40)
 
-    val grammarDefParser = new ParseProcessor(NGrammar.fromGrammar(GrammarGrammar))
+    val grammarDefParser = new ParseProcessor[Option[Grammar]](NGrammar.fromGrammar(GrammarGrammar), (x: ParseForest) => GrammarGrammar.translate(x.trees.head))
 
-    val emptyGrammarParser = new ParseProcessor(NGrammar.fromGrammar(new Grammar() {
+    val emptyGrammarParser = new ParseProcessor[ParseForest](NGrammar.fromGrammar(new Grammar() {
         val name: String = ""
         val rules: RuleMap = ListMap("S" -> ListSet(Sequence(Seq())))
         val startSymbol: Nonterminal = Nonterminal("S")
-    }))
+    }), (x: ParseForest) => x)
 
     // Grammar Panel
     val grammarPanel = rootPanel.leftPanel
@@ -185,7 +194,7 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
     val proceedButton = new Button(parseProceedPanel, SWT.NONE)
     proceedButton.setText("Proceed View")
 
-    grammarText.control.addProcessListener(new ProcessListener[TextModel, ParseResult, ParseProcessor]() {
+    grammarText.control.addProcessListener(new ProcessListener[TextModel, ParseResult[Option[Grammar]], ParseProcessor[Option[Grammar]]]() {
         def contentModified(value: TextModel): Unit = {
             Display.getDefault().asyncExec(new Runnable() {
                 def run(): Unit = {
@@ -212,19 +221,19 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
             terms map { parser.grammar.nsymbols(_).symbol.asInstanceOf[Symbols.Terminal] }
         }
 
-        def processDone(value: TextModel, result: ParseResult, processor: ParseProcessor, time: Int): Unit = {
+        def processDone(value: TextModel, result: ParseResult[Option[Grammar]], processor: ParseProcessor[Option[Grammar]], time: Int): Unit = {
             Display.getDefault().asyncExec(new Runnable() {
                 def run(): Unit = {
                     val parser = processor.parser
                     result match {
                         case ParseComplete(result, ctx) =>
                             val basicNotiText = s"${value.length}, Parsed in $time ms"
-                            GrammarGrammar.translate(result.trees.head) match {
+                            result match {
                                 case Some(grammar) =>
                                     val missingSymbols = grammar.missingSymbols
                                     if (missingSymbols.isEmpty) {
                                         grammarText.showTextNotification(basicNotiText + ", no missing symbols")
-                                        testText.control.setProcessor(new ParseProcessor(NGrammar.fromGrammar(grammar)))
+                                        testText.control.setProcessor(new ParseProcessor[ParseForest](NGrammar.fromGrammar(grammar), (x: ParseForest) => x))
                                     } else {
                                         grammarText.showTextNotification(basicNotiText + ", missing symbols: " + (missingSymbols map { _.toShortString }))
                                     }
@@ -287,11 +296,11 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
             })
         }
     })
-    testText.control.addProcessListener(new ProcessListener[TextModel, ParseResult, ParseProcessor]() {
+    testText.control.addProcessListener(new ProcessListener[TextModel, ParseResult[ParseForest], ParseProcessor[ParseForest]]() {
         def contentModified(value: TextModel): Unit = {
             Display.getDefault().asyncExec(new Runnable() {
                 def run(): Unit = {
-                    grammarText.showTextNotification("* Modified")
+                    testText.showTextNotification("* Modified")
                 }
             })
         }
@@ -305,7 +314,7 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
             terms map { parser.grammar.nsymbols(_).symbol.asInstanceOf[Symbols.Terminal] }
         }
 
-        def processDone(value: TextModel, result: ParseResult, processor: ParseProcessor, time: Int): Unit = {
+        def processDone(value: TextModel, result: ParseResult[ParseForest], processor: ParseProcessor[ParseForest], time: Int): Unit = {
             Display.getDefault().asyncExec(new Runnable() {
                 def run(): Unit = {
                     val parser = processor.parser
@@ -370,8 +379,29 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
         def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {}
 
         def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
-            println(grammarText.control.value.text)
-            println(testText.control.value.text)
+            grammarText.control.result match {
+                case Some(ParseComplete(Some(grammar), _)) =>
+                    val display = Display.getDefault()
+                    val shell = new Shell(display)
+                    val title = "Proceed View"
+                    val ngrammar = NGrammar.fromGrammar(grammar)
+                    val source = Inputs.fromString(testText.control.value.text)
+                    if (!proceedParserSelector.preprocessed) {
+                        ParsingProcessVisualizer.start[NaiveWrappedContext](title, new NaiveParser(ngrammar), source, display, shell, new ZestParsingContextWidget(_, _, _, _, _))
+                    } else {
+                        (proceedParserSelector.slice, proceedParserSelector.compact) match {
+                            case (false, false) =>
+                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandDerivationPreprocessor(ngrammar)), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                            case (true, false) =>
+                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandSlicedDerivationPreprocessor(ngrammar)), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                            case (false, true) =>
+                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandCompactDerivationPreprocessor(CompactNGrammar.fromNGrammar(ngrammar))), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                            case (true, true) =>
+                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandCompactSlicedDerivationPreprocessor(CompactNGrammar.fromNGrammar(ngrammar))), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                        }
+                    }
+                case _ => // TODO 어떻게 하지?
+            }
         }
     })
 
@@ -431,10 +461,10 @@ class NotificationPanel[T <: Control](parent: Composite, style: Int)(childFunc: 
     }
 }
 
-class SourceText(parent: Composite, style: Int, val initialProcessor: ParseProcessor, val initialValue: TextModel)
+class SourceText[R](parent: Composite, style: Int, val initialProcessor: ParseProcessor[R], val initialValue: TextModel)
         extends Composite(parent, style)
-        with ParseableTextStorage {
-    def this(parent: Composite, style: Int, initialProcessor: ParseProcessor) = this(parent, style, initialProcessor, WholeText(""))
+        with ParseableTextStorage[R] {
+    def this(parent: Composite, style: Int, initialProcessor: ParseProcessor[R]) = this(parent, style, initialProcessor, WholeText(""))
     setLayout(new FillLayout())
 
     val text = new StyledText(this, SWT.V_SCROLL | SWT.H_SCROLL)
@@ -614,18 +644,18 @@ trait ProcessableStorage[T, R, P <: (T => R)] {
     requestProcess()
 }
 
-sealed trait ParseResult { val context: DeriveTipsWrappedContext }
-case class UnexpectedInput(error: ParsingError, context: DeriveTipsWrappedContext) extends ParseResult
-case class IncompleteInput(message: String, context: DeriveTipsWrappedContext) extends ParseResult
-case class ParseComplete(result: ParseForest, context: DeriveTipsWrappedContext) extends ParseResult
+sealed trait ParseResult[R] { val context: DeriveTipsWrappedContext }
+case class UnexpectedInput[R](error: ParsingError, context: DeriveTipsWrappedContext) extends ParseResult[R]
+case class IncompleteInput[R](message: String, context: DeriveTipsWrappedContext) extends ParseResult[R]
+case class ParseComplete[R](result: R, context: DeriveTipsWrappedContext) extends ParseResult[R]
 
-class ParseProcessor(val grammar: CompactNGrammar, val parser: PreprocessedParser) extends (TextModel => ParseResult) {
+class ParseProcessor[R](val grammar: CompactNGrammar, val parser: PreprocessedParser, postProcessor: ParseForest => R) extends (TextModel => ParseResult[R]) {
     // def this(grammar: CompactNGrammar) = this(grammar, new SlicedPreprocessedParser(grammar, new OnDemandCompactSlicedDerivationPreprocessor(grammar)))
     // def this(grammar: NGrammar) = this(CompactNGrammar.fromNGrammar(grammar))
-    def this(grammar: NGrammar) = this(CompactNGrammar.fromNGrammar(grammar), new SlicedPreprocessedParser(grammar, new OnDemandSlicedDerivationPreprocessor(grammar)))
-    def this(grammar: Grammar) = this(NGrammar.fromGrammar(grammar))
+    def this(grammar: NGrammar, postProcessor: ParseForest => R) = this(CompactNGrammar.fromNGrammar(grammar), new SlicedPreprocessedParser(grammar, new OnDemandSlicedDerivationPreprocessor(grammar)), postProcessor)
+    def this(grammar: Grammar, postProcessor: ParseForest => R) = this(NGrammar.fromGrammar(grammar), postProcessor)
 
-    def apply(text: TextModel): ParseResult = {
+    def apply(text: TextModel): ParseResult[R] = {
         // TODO 가능하면 변경된 부분만 파싱하도록 수정
         val wholeText = text.text
         val startTime = System.currentTimeMillis()
@@ -642,7 +672,7 @@ class ParseProcessor(val grammar: CompactNGrammar, val parser: PreprocessedParse
             case Left(ctx) =>
                 val reconstructor = new ParseTreeConstructor(ParseForestFunc)(grammar)(ctx.inputs, ctx.history, ctx.conditionFate)
                 reconstructor.reconstruct() match {
-                    case Some(parseTree) => ParseComplete(parseTree, ctx)
+                    case Some(parseTree) => ParseComplete(postProcessor(parseTree), ctx)
                     case None => IncompleteInput("Incomplete input", ctx)
                 }
             case Right(error) => UnexpectedInput(error, lastCtx)
@@ -650,4 +680,4 @@ class ParseProcessor(val grammar: CompactNGrammar, val parser: PreprocessedParse
     }
 }
 
-trait ParseableTextStorage extends ProcessableStorage[TextModel, ParseResult, ParseProcessor]
+trait ParseableTextStorage[R] extends ProcessableStorage[TextModel, ParseResult[R], ParseProcessor[R]]

@@ -131,4 +131,5 @@ class CompactNGrammar(nsymbols: Map[Int, NGrammar.NAtomicSymbol], nsequences: Ma
 
 object CompactNGrammar {
     def fromNGrammar(ngrammar: NGrammar): CompactNGrammar = new CompactNGrammar(ngrammar.nsymbols, ngrammar.nsequences, ngrammar.startSymbol)
+    def fromGrammar(grammar: Grammar): CompactNGrammar = fromNGrammar(NGrammar.fromGrammar(grammar))
 }
