@@ -7,7 +7,8 @@ import com.giyeok.jparser.tests.StringSamples
 
 object GrammarGrammarTests1 extends GrammarTestCases with StringSamples {
     val grammar = GrammarGrammar
-    val correctSamples = Set("""S = `Stmt+
+
+    private val paperGrammar = """S = `Stmt+
                                #Stmt = LetStmt
                                #     | ExprStmt
                                #LetStmt = Let ' ' Id ' ' Expr ';'
@@ -21,7 +22,9 @@ object GrammarGrammarTests1 extends GrammarTestCases with StringSamples {
                                #`Stmt+ = `Stmt+ Stmt | Stmt
                                #`Token+ = `Token+ Token | Token
                                #`[a-z]+ = `[a-z]+ `[a-z] | `[a-z]
-                               #`[a-z] = [a-z]""".stripMargin('#'))
+                               #`[a-z] = [a-z]
+                               #""".stripMargin('#')
+    val correctSamples = Set(paperGrammar, paperGrammar * 10)
     val incorrectSamples = Set[String]()
 }
 

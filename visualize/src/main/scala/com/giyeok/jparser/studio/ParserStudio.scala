@@ -32,7 +32,6 @@ import org.eclipse.swt.widgets.Canvas
 import org.eclipse.swt.events.PaintListener
 import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.nparser.PreprocessedParser
-import com.giyeok.jparser.ParseResult
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.gramgram.GrammarGrammar
@@ -396,11 +395,11 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
                             case (false, false) =>
                                 ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandDerivationPreprocessor(ngrammar)), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                             case (true, false) =>
-                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandSlicedDerivationPreprocessor(ngrammar)), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new SlicedPreprocessedParser(ngrammar, new OnDemandSlicedDerivationPreprocessor(ngrammar)), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                             case (false, true) =>
                                 ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandCompactDerivationPreprocessor(CompactNGrammar.fromNGrammar(ngrammar))), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                             case (true, true) =>
-                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandCompactSlicedDerivationPreprocessor(CompactNGrammar.fromNGrammar(ngrammar))), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new SlicedPreprocessedParser(ngrammar, new OnDemandCompactSlicedDerivationPreprocessor(CompactNGrammar.fromNGrammar(ngrammar))), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                         }
                     }
                 case _ => // TODO 어떻게 하지?

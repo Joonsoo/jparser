@@ -234,7 +234,7 @@ object EligCondition {
     def conjunct(conditions: Condition*) =
         if (conditions exists { _ == False }) False
         else {
-            val conds1 = conditions.toSet filterNot { _ == True }
+            val conds1 = conditions.toSet filter { _ != True }
             if (conds1.isEmpty) True
             else if (conds1.size == 1) conds1.head
             else And(conds1)
@@ -242,7 +242,7 @@ object EligCondition {
     def disjunct(conditions: Condition*): Condition = {
         if (conditions exists { _ == True }) True
         else {
-            val conds1 = conditions.toSet filterNot { _ == False }
+            val conds1 = conditions.toSet filter { _ != False }
             if (conds1.isEmpty) False
             else if (conds1.size == 1) conds1.head
             else Or(conds1)

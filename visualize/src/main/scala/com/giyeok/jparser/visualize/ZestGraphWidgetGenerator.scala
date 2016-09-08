@@ -355,7 +355,7 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {
                 case 'T' | 't' =>
-                    context.conditionFate foreach { kv =>
+                    context.conditionFate.unfixed foreach { kv =>
                         println(s"${kv._1} -> ${kv._2}")
                     }
                 case _ =>
