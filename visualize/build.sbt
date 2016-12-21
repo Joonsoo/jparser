@@ -1,10 +1,11 @@
 resolvers += "swt-repo" at "http://maven-eclipse.github.io/maven"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
+libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 
 libraryDependencies += "junit" % "junit" % "4.12" % "test"
 
-libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.3"
+libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.6"
 
 libraryDependencies += {
   val os = (sys.props("os.name"), sys.props("os.arch")) match {
