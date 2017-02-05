@@ -26,6 +26,3 @@ libraryDependencies += "swt" % "jface" % "3.0.1"
 javaOptions in run := {
   if (sys.props("os.name") == "Mac OS X") Seq("-XstartOnFirstThread", "-d64") else Seq()
 }
-
-EclipseKeys.relativizeLibs := false
-EclipseKeys.withSource := true
