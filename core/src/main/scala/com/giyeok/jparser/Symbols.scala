@@ -1,20 +1,18 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.utils.UnicodeUtil
-
 object Symbols {
     sealed trait Symbol {
         val id = Symbol.getId(this)
     }
     object Symbol {
-        private var cache: Map[Symbol, Int] = Map()
+        private var symbolsMap: Map[Symbol, Int] = Map()
         private var counter = 0
         def getId(sp: Symbol): Int = {
-            cache get sp match {
+            symbolsMap get sp match {
                 case Some(i) => i
                 case None =>
                     counter += 1
-                    cache += ((sp, counter))
+                    symbolsMap += ((sp, counter))
                     counter
             }
         }
@@ -25,7 +23,7 @@ object Symbols {
     // NonAtomicSymbol은 sequence 밖에 없음
     sealed trait NonAtomicSymbol extends Symbol
 
-    sealed trait Terminal extends AtomicSymbol {
+    sealed trait Terminal extends Symbol with AtomicSymbol {
         def accept(input: Inputs.Input): Boolean
         def accept(termGroup: Inputs.TermGroupDesc): Boolean = accept(Inputs.AbstractInput(termGroup))
     }
@@ -51,7 +49,7 @@ object Symbols {
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
                     termGroup match {
-                        case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if (baseUnicodeCategories.isEmpty && excludingChars.isEmpty && (additionalChars == Set(char))) =>
+                        case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if baseUnicodeCategories.isEmpty && excludingChars.isEmpty && (additionalChars == Set(char)) =>
                             true
                         case group: CharacterTermGroupDesc =>
                             assert({
@@ -71,7 +69,7 @@ object Symbols {
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
                     termGroup match {
-                        case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if (baseUnicodeCategories.isEmpty && excludingChars.isEmpty && (additionalChars subsetOf chars)) =>
+                        case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if baseUnicodeCategories.isEmpty && excludingChars.isEmpty && (additionalChars subsetOf chars) =>
                             // 사실 subsetOf일 필요도 없고 additionalChars contains chars.head 로만 해도 상관 없음
                             true
                         case group: CharacterTermGroupDesc =>
@@ -127,7 +125,7 @@ object Symbols {
                     assert(!termGroup.isEmpty)
                     termGroup match {
                         case VirtualsGroup(virtualNames) if virtualNames subsetOf names => true
-                        case VirtualsGroup(virtualNames) if !(virtualNames intersect names).isEmpty =>
+                        case VirtualsGroup(virtualNames) if (virtualNames intersect names).nonEmpty =>
                             throw new AssertionError("Invalid AbstractInput")
                         case _ => false
                     }
@@ -226,7 +224,8 @@ object Symbols {
 
     implicit class ShortStringSymbols(sym: Symbol) {
         // TODO improve short string
-        import com.giyeok.jparser.utils.UnicodeUtil.{ toReadable, categoryCodeToName }
+        import com.giyeok.jparser.utils.UnicodeUtil.categoryCodeToName
+        import com.giyeok.jparser.utils.UnicodeUtil.toReadable
 
         def toShortString: String = sym match {
             case Any => "<any>"

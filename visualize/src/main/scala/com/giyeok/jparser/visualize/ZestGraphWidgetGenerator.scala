@@ -1,36 +1,30 @@
 package com.giyeok.jparser.visualize
 
-import org.eclipse.swt.widgets.Composite
+import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.ParseResultDerivationsSetFunc
+import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser.NGrammar
-import org.eclipse.draw2d.Figure
-import com.giyeok.jparser.ParseResultGraph
-import org.eclipse.zest.core.widgets.CGraphNode
-import org.eclipse.draw2d.LineBorder
-import org.eclipse.draw2d.ColorConstants
-import org.eclipse.swt.SWT
-import org.eclipse.zest.core.viewers.GraphViewer
-import org.eclipse.zest.core.widgets.Graph
-import org.eclipse.zest.core.widgets.ZestStyles
-import org.eclipse.zest.layouts.LayoutStyles
-import org.eclipse.zest.core.widgets.GraphConnection
+import com.giyeok.jparser.nparser.ParseTreeConstructor
+import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
+import com.giyeok.jparser.nparser.Parser.WrappedContext
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.EligCondition._
-import org.eclipse.swt.layout.FillLayout
+import com.giyeok.jparser.visualize.FigureGenerator.Spacing
+import org.eclipse.draw2d.ColorConstants
+import org.eclipse.draw2d.CompoundBorder
+import org.eclipse.draw2d.Figure
+import org.eclipse.draw2d.LineBorder
+import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.MouseListener
+import org.eclipse.swt.layout.FillLayout
+import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.Control
-import com.giyeok.jparser.visualize.FigureGenerator.Spacing
-import com.giyeok.jparser.nparser.ParseTreeConstructor
-import com.giyeok.jparser.ParseResultGraphFunc
-import org.eclipse.swt.widgets.Shell
-import org.eclipse.draw2d.FigureCanvas
-import com.giyeok.jparser.nparser.NaiveParser
-import com.giyeok.jparser.nparser.Parser.WrappedContext
-import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
-import org.eclipse.draw2d.CompoundBorder
-import org.eclipse.swt.graphics.Color
-import com.giyeok.jparser.ParseResultDerivationsSetFunc
-import com.giyeok.jparser.ParseForestFunc
+import org.eclipse.zest.core.viewers.GraphViewer
+import org.eclipse.zest.core.widgets.CGraphNode
+import org.eclipse.zest.core.widgets.Graph
+import org.eclipse.zest.core.widgets.GraphConnection
+import org.eclipse.zest.core.widgets.ZestStyles
+import org.eclipse.zest.layouts.LayoutStyles
 
 trait AbstractZestGraphWidget extends Control {
     val graphViewer: GraphViewer
@@ -127,7 +121,7 @@ trait Highlightable extends AbstractZestGraphWidget {
     def uniqueId = { _uniqueId += 1; _uniqueId }
 
     def highlightNode(node: Node): Unit = {
-        val display = getDisplay()
+        val display = getDisplay
         if (!(highlightedNodes contains node) && (visibleNodes contains node)) {
             nodesMap(node).highlight()
             val highlightId = uniqueId
@@ -162,12 +156,12 @@ trait Highlightable extends AbstractZestGraphWidget {
 
 trait Interactable extends AbstractZestGraphWidget {
     def nodesAt(ex: Int, ey: Int): Seq[Any] = {
-        import scala.collection.JavaConversions._
+        import scala.collection.JavaConverters._
 
-        val (x, y) = (ex + graphCtrl.getHorizontalBar().getSelection(), ey + graphCtrl.getVerticalBar().getSelection())
+        val (x, y) = (ex + graphCtrl.getHorizontalBar.getSelection, ey + graphCtrl.getVerticalBar.getSelection)
 
-        graphCtrl.getNodes.toSeq collect {
-            case n: CGraphNode if n != null && n.getNodeFigure() != null && n.getNodeFigure().containsPoint(x, y) && n.getData() != null =>
+        graphCtrl.getNodes.asScala collect {
+            case n: CGraphNode if n != null && n.getNodeFigure != null && n.getNodeFigure.containsPoint(x, y) && n.getData() != null =>
                 println(n)
                 n.getData
         }
@@ -177,7 +171,7 @@ trait Interactable extends AbstractZestGraphWidget {
 class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, context: Context)
         extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with Interactable {
     val graphViewer = new GraphViewer(this, style)
-    val graphCtrl = graphViewer.getGraphControl()
+    val graphCtrl = graphViewer.getGraphControl
 
     setLayout(new FillLayout())
 
@@ -216,7 +210,7 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
             val tooltipFig = fig.fig.verticalFig(Spacing.Big, figs)
             tooltipFig.setOpaque(true)
             tooltipFig.setBackgroundColor(ColorConstants.white)
-            if (nodesMap contains node) nodesMap(node).getFigure().setToolTip(tooltipFig)
+            if (nodesMap contains node) nodesMap(node).getFigure.setToolTip(tooltipFig)
         }
     }
 
@@ -287,7 +281,7 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
         addContext(grammar, trans)
         (base.graph.nodes -- trans.graph.nodes) foreach { removedNode =>
             val shownNode = nodesMap(removedNode)
-            shownNode.getFigure().setBorder(new LineBorder(ColorConstants.lightGray))
+            shownNode.getFigure.setBorder(new LineBorder(ColorConstants.lightGray))
         }
         (base.graph.edges -- trans.graph.edges) foreach { removedEdge =>
             edgesMap(removedEdge) foreach { connection =>
@@ -297,8 +291,8 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
         }
         (trans.graph.nodes -- base.graph.nodes) foreach { newNode =>
             val shownNode = nodesMap(newNode)
-            shownNode.getFigure().setBorder(new LineBorder(3))
-            val preferredSize = shownNode.getFigure().getPreferredSize()
+            shownNode.getFigure.setBorder(new LineBorder(3))
+            val preferredSize = shownNode.getFigure.getPreferredSize()
             shownNode.setSize(preferredSize.width, preferredSize.height)
         }
         (trans.graph.edges -- base.graph.edges) foreach { newEdge =>
@@ -406,8 +400,8 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
 trait TipNodes extends AbstractZestGraphWidget {
     def setTipNodeBorder(node: Node): Unit = {
         val shownNode = nodesMap(node)
-        shownNode.getFigure().setBorder(new CompoundBorder(shownNode.getFigure().getBorder(), new LineBorder(ColorConstants.orange, 3)))
-        val size = shownNode.getFigure().getPreferredSize()
+        shownNode.getFigure.setBorder(new CompoundBorder(shownNode.getFigure.getBorder, new LineBorder(ColorConstants.orange, 3)))
+        val size = shownNode.getFigure.getPreferredSize()
         shownNode.setSize(size.width, size.height)
     }
 }
