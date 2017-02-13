@@ -67,7 +67,7 @@ object GrammarHelper {
     }
     implicit class GrammarElementRepeatable(sym: Symbol) {
         def repeat(lower: Int, upper: Int): OneOf = OneOf(((lower to upper) map { count =>
-            Sequence(((0 until count) map { _ => sym }) map proxyIfNeeded)
+            if (count == 1) sym else Sequence(((0 until count) map { _ => sym }) map proxyIfNeeded)
         }).toSet)
         def repeat(lower: Int): Repeat = Repeat(proxyIfNeeded(sym), lower)
 
