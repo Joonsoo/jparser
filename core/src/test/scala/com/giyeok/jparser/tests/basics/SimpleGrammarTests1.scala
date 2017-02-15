@@ -1,16 +1,13 @@
 package com.giyeok.jparser.tests.basics
 
+import scala.collection.immutable.ListMap
+import scala.collection.immutable.ListSet
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.GrammarHelper._
-import scala.collection.immutable.ListMap
-import com.giyeok.jparser.Inputs._
-import com.giyeok.jparser.Symbols.Symbol
-import scala.collection.immutable.ListSet
 import com.giyeok.jparser.tests.AmbiguousSamples
 import com.giyeok.jparser.tests.BasicParseTest
-import com.giyeok.jparser.tests.Samples
-import com.giyeok.jparser.tests.StringSamples
 import com.giyeok.jparser.tests.GrammarTestCases
+import com.giyeok.jparser.tests.StringSamples
 
 object SimpleGrammar1 extends Grammar with GrammarTestCases with StringSamples {
     val name = "Simple Grammar 1"

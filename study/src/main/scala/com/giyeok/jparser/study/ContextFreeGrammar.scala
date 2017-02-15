@@ -17,6 +17,7 @@ sbt "project study" test:console
 import com.giyeok.jparser.tests.basics._
 import com.giyeok.jparser.study._
 def p(c:com.giyeok.jparser.Grammar, repeatWithLeftRecursion: Boolean = true):Unit = { val g = ContextFreeGrammar.convertFrom(c, repeatWithLeftRecursion); g.printPretty(); g.printMapping() }
+p(Fig6_6)
 */
 
 trait ContextFreeGrammar {
