@@ -233,9 +233,9 @@ object Symbols {
             case ExactChar(c) => toReadable(c)
             case chars: Terminals.Chars =>
                 "(" + (chars.groups map { range =>
-                    if (range._1 == range._2) s"'${toReadable(range._1)}'"
-                    else if (range._1 + 1 == range._2) s"'${toReadable(range._1)}'-'${toReadable(range._2)}'"
-                    else s"'${toReadable(range._1)}'-'${toReadable(range._2)}'"
+                    if (range._1 == range._2) s"${toReadable(range._1)}"
+                    else if (range._1 + 1 == range._2) s"${toReadable(range._1)}-${toReadable(range._2)}"
+                    else s"${toReadable(range._1)}-${toReadable(range._2)}"
                 } mkString "|") + ")"
             case Unicode(c) => s"<unicode ${(c.toSeq.sorted map { categoryCodeToName(_) }) mkString ", "}>"
             case t: Terminal => t.toShortString
