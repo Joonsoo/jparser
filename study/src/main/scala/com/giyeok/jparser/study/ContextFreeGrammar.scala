@@ -16,7 +16,7 @@ object CfgSymbols {
 sbt "project study" test:console
 import com.giyeok.jparser.tests.basics._
 import com.giyeok.jparser.study._
-def p(c:com.giyeok.jparser.Grammar):Unit = { val g = ContextFreeGrammar.convertFrom(c); g.printPretty(); g.printMapping() }
+def p(c:com.giyeok.jparser.Grammar, repeatWithLeftRecursion: Boolean = true):Unit = { val g = ContextFreeGrammar.convertFrom(c, repeatWithLeftRecursion); g.printPretty(); g.printMapping() }
 */
 
 trait ContextFreeGrammar {
@@ -58,7 +58,7 @@ case class ConvertedContextFreeGrammar(name: String, rules: ContextFreeGrammar#R
 object ContextFreeGrammar {
     case class NotAContextFreeGrammar(symbol: Symbols.Symbol) extends Exception
 
-    def convertFrom(grammar: Grammar): ConvertedContextFreeGrammar = {
+    def convertFrom(grammar: Grammar, repeatWithLeftRecursion: Boolean = false): ConvertedContextFreeGrammar = {
         import Symbols.{Symbol => Symbol}
         import CfgSymbols.{Symbol => CfgSymbol}
 
@@ -114,6 +114,17 @@ object ContextFreeGrammar {
             }
         }
 
+        def grouping(numbers: List[Int], rangeOpt: Option[(Int, Int)], cc: List[(Int, Int)]): List[(Int, Int)] = {
+            (numbers, rangeOpt) match {
+                case (head +: tail, Some(range)) =>
+                    if (head == range._2 + 1) grouping(tail, Some(range._1, head), cc)
+                    else grouping(tail, Some(head, head), range +: cc)
+                case (head +: tail, None) => grouping(tail, Some(head, head), cc)
+                case (List(), Some(range)) => range +: cc
+                case (List(), None) => cc
+            }
+        }
+
         def convert(list: List[(String, Symbol)], cc: ConvertCC, startNonterminal: String, repeatWithLeftRecursion: Boolean): ConvertedContextFreeGrammar = {
             list match {
                 case (lhs, rhs) +: tail =>
@@ -142,7 +153,23 @@ object ContextFreeGrammar {
                             case Symbols.Sequence(seq, contentIdx) => ifLong("[" + (seq map { readableNameOf(_)._1 } mkString "_") + "]", "Seq")
                             case terminal: Symbols.Terminal => (terminal.toShortString, false)
                             case Symbols.Nonterminal(name) => (name, false)
-                            case Symbols.OneOf(syms) => ifLong("OneOf_" + (syms map { readableNameOf(_)._1 } mkString "_"), "OneOf")
+                            case Symbols.OneOf(syms) =>
+                                val first = {
+                                    syms.toSeq match {
+                                        case Seq(Symbols.Sequence(Seq(), Seq()), sym) => readableNameOf(sym)._1 + "?"
+                                        case Seq(sym, Symbols.Sequence(Seq(), Seq())) => readableNameOf(sym)._1 + "?"
+                                        case seq if (seq forall { _.isInstanceOf[Symbols.Sequence] }) &&
+                                            ((seq flatMap { _.asInstanceOf[Symbols.Sequence].seq.toSet }).toSet.size == 1) =>
+                                            // finite repeat
+                                            val repeatingSymbol = (seq flatMap { _.asInstanceOf[Symbols.Sequence].seq.toSet }).head
+                                            val repeatingCounts = (seq map { _.asInstanceOf[Symbols.Sequence].seq.size }).sorted
+                                            val repeatingCountsGrouped = grouping(repeatingCounts.toList, None, List()).reverse
+                                            val repeatingCountsString = repeatingCountsGrouped map { g => s"${g._1}-${g._2}" } mkString ","
+                                            s"${readableNameOf(repeatingSymbol)._1}$repeatingCountsString"
+                                        case _ => "OneOf_" + (syms map { readableNameOf(_)._1 } mkString "_")
+                                    }
+                                }
+                                ifLong(first, "OneOf")
                             case Symbols.Proxy(sym) => ifLong("ProxyOf_" + readableNameOf(sym)._1, "Proxy")
                             case Symbols.Repeat(sym, lower) =>
                                 val first = lower match {
@@ -173,8 +200,13 @@ object ContextFreeGrammar {
                                 // rhs로 OneOf 넌터미널을 리턴한다
                                 val (ncc0, newName, cfgSymbol) = cc.addNewNontermMapping(readableNameOf(symbol), symbol)
                                 val ncc = syms.foldLeft(ncc0) { (ncc, symbol) =>
-                                    val (nextCC, cfgSymbol) = mappingOf(symbol, ncc)
-                                    nextCC.addRule(newName, Seq(cfgSymbol))
+                                    symbol match {
+                                        case Symbols.Sequence(Seq(), Seq()) =>
+                                            ncc.addRule(newName, Seq())
+                                        case _ =>
+                                            val (nextCC, cfgSymbol) = mappingOf(symbol, ncc)
+                                            nextCC.addRule(newName, Seq(cfgSymbol))
+                                    }
                                 }
                                 (ncc, cfgSymbol)
                             case proxy @ Symbols.Proxy(sym) =>
@@ -227,7 +259,7 @@ object ContextFreeGrammar {
         // rhs에 등장하는 모든 nonterminal은 lhs에도 등장해야 한다
         val lhsNames = grammar.rules.keySet
         // Symbols.Start는 무시해도 될 듯
-        convert(flattenRules, ConvertCC(Map(), ListSet(), lhsNames), grammar.startSymbol.name, repeatWithLeftRecursion = true)
+        convert(flattenRules, ConvertCC(Map(), ListSet(), lhsNames), grammar.startSymbol.name, repeatWithLeftRecursion)
     }
 
     implicit class ContextFreeGrammarChecker(grammar: ContextFreeGrammar) {
