@@ -1020,8 +1020,8 @@ object Fig6_6 extends Grammar with GrammarTestCases with StringSamples with Ambi
     val name = "Parsing Techniques Grammar in Figure 6.6"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
-            seq(n("A"), n("B")),
-            seq(n("D"), n("C"))
+            seq(n("D"), n("C")),
+            seq(n("A"), n("B"))
         ),
         "A" -> ListSet(
             c('a'),
