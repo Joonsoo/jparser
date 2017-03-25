@@ -23,7 +23,6 @@ trait DirectionalParser {
 }
 
 object DirectionalTopDownParsing {
-    // Interactive(rule selected by user)
     class DirectionalTopDownParser extends DirectionalParser {
         def nextAction(context: PredictionStackContext): NextAction = {
             if (context.stacks.isEmpty) {
@@ -118,10 +117,6 @@ object DirectionalTopDownParsing {
             AnalysisAndPrediction(List(), List(PredictionStackNonterminal(Nonterminal(grammar.startNonterminal))))
         )
         new PredictionStackContext(grammar, List(), input, stackConfiguration)
-    }
-
-    def interactive(grammar: ContextFreeGrammar, input: List[Inputs.Input]): (PredictionStackContext, DirectionalParser) = {
-        (initialContextOf(grammar, input), new DirectionalTopDownParser)
     }
 
     // Breadth-first

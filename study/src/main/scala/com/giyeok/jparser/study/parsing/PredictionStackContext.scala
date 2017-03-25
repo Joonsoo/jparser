@@ -51,7 +51,7 @@ case class PredictionStackTerminal(terminal: Terminal) extends PredictionStackIt
     def isTerminal = true
 }
 object PredictionStackItem {
-    def apply(symbol: Symbol): PredictionStackItem =
+    def apply(symbol: CfgSymbol): PredictionStackItem =
         symbol match {
             case nonterminal: Nonterminal => PredictionStackNonterminal(nonterminal)
             case terminal: Terminal => PredictionStackTerminal(terminal)
@@ -59,7 +59,7 @@ object PredictionStackItem {
 }
 
 sealed trait AnalysisItem
-case class AnalysisNonterminal(nonterminal: Nonterminal, ruleIdx: Int, rhs: List[Symbol]) extends AnalysisItem
+case class AnalysisNonterminal(nonterminal: Nonterminal, ruleIdx: Int, rhs: List[CfgSymbol]) extends AnalysisItem
 case class AnalysisTerminal(terminal: Terminal) extends AnalysisItem
 
 sealed trait NextAction

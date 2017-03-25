@@ -4,12 +4,19 @@ import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.study.CfgSymbols.CfgSymbol
 
 object CfgSymbols {
-    sealed trait Symbol
+    sealed trait CfgSymbol {
+        def toShortString: String
+    }
 
-    case class Terminal(terminal: Symbols.Terminal) extends Symbol
-    case class Nonterminal(name: String) extends Symbol
+    case class Terminal(terminal: Symbols.Terminal) extends CfgSymbol {
+        def toShortString: String = terminal.toShortString
+    }
+    case class Nonterminal(name: String) extends CfgSymbol {
+        def toShortString: String = name
+    }
 }
 
 /*
@@ -25,14 +32,14 @@ parser.iterate(ctx, 10)
 */
 
 trait ContextFreeGrammar {
-    type RuleMap = ListMap[String, Seq[Seq[CfgSymbols.Symbol]]]
+    type RuleMap = ListMap[String, Seq[Seq[CfgSymbol]]]
 
     val name: String
     val rules: RuleMap
     val startNonterminal: String
 
     def printPretty(): Unit = {
-        def ruleString(rule: Seq[CfgSymbols.Symbol]): String =
+        def ruleString(rule: Seq[CfgSymbol]): String =
             if (rule.isEmpty) "<empty>" else
                 (rule map {
                     case CfgSymbols.Terminal(term) => s"'${term.toShortString}'"
@@ -51,7 +58,7 @@ trait ContextFreeGrammar {
     }
 }
 
-case class ConvertedContextFreeGrammar(name: String, rules: ContextFreeGrammar#RuleMap, startNonterminal: String)(val mappings: Map[Symbols.Symbol, CfgSymbols.Symbol]) extends ContextFreeGrammar {
+case class ConvertedContextFreeGrammar(name: String, rules: ContextFreeGrammar#RuleMap, startNonterminal: String)(val mappings: Map[Symbols.Symbol, CfgSymbol]) extends ContextFreeGrammar {
     def printMapping(): Unit = {
         println("** Mappings")
         mappings foreach { kv =>
@@ -113,7 +120,7 @@ object ContextFreeGrammar {
     case class NotAContextFreeGrammar(symbol: Symbols.Symbol) extends Exception
 
     def convertFrom(grammar: Grammar, repeatWithLeftRecursion: Boolean = false): ConvertedContextFreeGrammar = {
-        import CfgSymbols.{Symbol => CfgSymbol}
+        import CfgSymbols.{CfgSymbol => CfgSymbol}
         import Symbols.Symbol
 
         case class ConvertCC(mappings: Map[Symbol, CfgSymbol], rules: ListSet[(String, Seq[CfgSymbol])], usedNames: Set[String]) {
