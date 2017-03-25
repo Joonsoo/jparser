@@ -7,8 +7,8 @@ object Inputs {
 
     sealed trait Input
     sealed trait ConcreteInput extends Input
-    case class Character(char: Char, location: Location) extends ConcreteInput
-    case class Virtual(name: String, location: Location) extends ConcreteInput
+    case class Character(char: Char) extends ConcreteInput
+    case class Virtual(name: String) extends ConcreteInput
     case class AbstractInput(termGroup: TermGroupDesc) extends Input
 
     sealed trait TermGroupDesc {
@@ -23,8 +23,8 @@ object Inputs {
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc
 
         def contains(input: Input): Boolean = input match {
-            case Character(char, _) => contains(char)
-            case Virtual(_, _) => false
+            case Character(char) => contains(char)
+            case Virtual(_) => false
             case _ => ???
         }
         def contains(char: Char): Boolean
@@ -125,8 +125,8 @@ object Inputs {
         def isEmpty = virtualNames.isEmpty
 
         def contains(input: Input) = input match {
-            case Character(_, _) => false
-            case Virtual(name, _) => virtualNames contains name
+            case Character(_) => false
+            case Virtual(name) => virtualNames contains name
             case _ => ???
         }
     }
@@ -151,26 +151,26 @@ object Inputs {
 
     implicit class InputToShortString(input: Input) {
         def toShortString: String = input match {
-            case Character(char, _) =>
+            case Character(char) =>
                 char match {
                     case '\n' => "\\n"
                     case '\t' => "\\t"
                     case '\\' => "\\\\"
                     case _ => s"$char"
                 }
-            case Virtual(name, _) => s"<$name>"
+            case Virtual(name) => s"<$name>"
             case AbstractInput(chars) => s"{${chars.toShortString}}"
         }
 
         def toCleanString: String = input match {
-            case Character(char, _) =>
+            case Character(char) =>
                 char match {
                     case '\n' => "\\n"
                     case '\r' => "\\r"
                     case '\t' => "\\t"
                     case c => c.toString
                 }
-            case Virtual(name, _) => s"{$name}"
+            case Virtual(name) => s"{$name}"
             case AbstractInput(chars) => s"{${chars.toShortString}}"
         }
     }
@@ -179,5 +179,5 @@ object Inputs {
     }
 
     def fromString(source: String): Seq[ConcreteInput] =
-        source.toCharArray.zipWithIndex map { ci => Character(ci._1, ci._2) }
+        source.toCharArray map Character
 }

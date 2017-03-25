@@ -22,7 +22,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveWrappedContext] wit
         val (ctx, gen, nextGen) = (wctx.ctx, wctx.gen, wctx.nextGen)
         val termFinishes = finishableTermNodes(wctx.ctx, wctx.gen, input).toList map { FinishTask(_, True, None) }
         if (termFinishes.isEmpty) {
-            Right(UnexpectedInput(input))
+            Right(UnexpectedInput(input, nextGen))
         } else {
             // No Expansion
             // 2. Lift

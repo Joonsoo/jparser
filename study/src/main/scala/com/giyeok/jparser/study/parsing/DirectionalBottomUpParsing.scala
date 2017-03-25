@@ -92,7 +92,7 @@ object DirectionalBottomUpParsing {
 
     case class Context(p: Int, history: History, itemset: Itemset)
 
-    trait EarleyParser {
+    trait AbstractEarleyParser {
         val grammar: ContextFreeGrammar
 
         def scanner(p: Int, itemset: Itemset, input: Input): Set[Item] = {
@@ -139,7 +139,7 @@ object DirectionalBottomUpParsing {
         }
     }
 
-    class EarleyParserNoEmptyRules(val grammar: ContextFreeGrammar) extends EarleyParser {
+    class EarleyParserNoEmptyRules(val grammar: ContextFreeGrammar) extends AbstractEarleyParser {
         def proceed(context: Context, input: Input): Option[Context] = {
             val nextp = context.p + 1
             val scanned = scanner(nextp, context.itemset, input)
@@ -150,6 +150,20 @@ object DirectionalBottomUpParsing {
                 val itemset = Itemset(nextp, completed ++ predicted)
                 Some(Context(nextp, context.history :+ itemset, itemset))
             }
+        }
+    }
+
+    class EarleyParserEmptyRules(val grammar: ContextFreeGrammar) extends AbstractEarleyParser {
+        def proceed(context: Context, input: Input): Option[Context] = {
+            ???
+        }
+    }
+
+    val eof = Inputs.Virtual("#EOF#")
+
+    class EarleyParserReductionLookahead(val grammar: ContextFreeGrammar) extends AbstractEarleyParser {
+        def proceed(context: Context, input: Input): Option[Context] = {
+            ???
         }
     }
 }

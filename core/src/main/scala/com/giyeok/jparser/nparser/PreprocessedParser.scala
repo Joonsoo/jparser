@@ -160,7 +160,7 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
                 expanding + (tip -> derivation.derivationOf(tip).shiftGen(gen)))
         }
         if (termFinishes.isEmpty) {
-            Right(UnexpectedInput(input))
+            Right(UnexpectedInput(input, nextGen))
         } else {
             // 1. Expand
             // expandingDeriveTips에 있는 것들은 그래프에 expand
@@ -208,7 +208,7 @@ class SlicedPreprocessedParser(grammar: NGrammar, override val derivation: Slice
             }
         }
         if (initialFinishes.isEmpty) {
-            Right(UnexpectedInput(input))
+            Right(UnexpectedInput(input, nextGen))
         } else {
             // 1. Expand
             // expandingDeriveTips에 있는 것들은 그래프에 expand

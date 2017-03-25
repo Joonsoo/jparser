@@ -13,10 +13,10 @@ object ParsingErrors {
         }
     }
 
-    case class UnexpectedInput(next: Input) extends ParsingError {
+    case class UnexpectedInput(next: Input, location: Int) extends ParsingError {
         val msg = next match {
-            case Character(char, location) => s"Unexpected input '$char' at $location"
-            case Virtual(name, location) => s"Unexpected virtual input $name at $location"
+            case Character(char) => s"Unexpected input '$char' at $location"
+            case Virtual(name) => s"Unexpected virtual input $name at $location"
             case AbstractInput(chars) => throw new AssertionError("Wrong Abstract Input")
         }
     }

@@ -37,7 +37,7 @@ object Symbols {
         }
         case object AnyChar extends CharacterTerminal {
             def accept(input: Input) = input match {
-                case Character(_, _) => true
+                case Character(_) => true
                 case AbstractInput(_: CharacterTermGroupDesc) => true
                 case _ => false
             }
@@ -45,7 +45,7 @@ object Symbols {
         case class ExactChar(char: Char) extends CharacterTerminal {
             override val hashCode = char.hashCode
             def accept(input: Input) = input match {
-                case Character(c, _) if char == c => true
+                case Character(c) if char == c => true
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
                     termGroup match {
@@ -65,7 +65,7 @@ object Symbols {
         case class Chars(chars: Set[Char]) extends CharacterTerminal {
             override val hashCode = chars.hashCode
             def accept(input: Input) = input match {
-                case Character(c, _) if chars contains c => true
+                case Character(c) if chars contains c => true
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
                     termGroup match {
@@ -87,7 +87,7 @@ object Symbols {
             override val hashCode = categories.hashCode
             def accept(input: Input) =
                 input match {
-                    case Character(c, _) if categories contains c.getType => true
+                    case Character(c) if categories contains c.getType => true
                     case AbstractInput(termGroup) =>
                         assert(!termGroup.isEmpty)
                         termGroup match {
@@ -106,7 +106,7 @@ object Symbols {
         }
         case class ExactVirtual(name: String) extends VirtualTerminal {
             def accept(input: Input) = input match {
-                case Virtual(n, _) if n == name => true
+                case Virtual(n) if n == name => true
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
                     termGroup match {
@@ -120,7 +120,7 @@ object Symbols {
         case class Virtuals(names: Set[String]) extends VirtualTerminal {
             override val hashCode = names.hashCode
             def accept(input: Input) = input match {
-                case Virtual(n, _) if names contains n => true
+                case Virtual(n) if names contains n => true
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
                     termGroup match {

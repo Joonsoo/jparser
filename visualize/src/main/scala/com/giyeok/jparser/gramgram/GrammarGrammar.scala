@@ -16,25 +16,34 @@ object GrammarGrammar extends Grammar {
     val name = "Grammar Notation"
     val rules: RuleMap = ListMap(
         "Grammar" -> ListSet(
-            seq(whitespace,
+            seq(
+                whitespace,
                 n("Rules"),
-                whitespace)),
+                whitespace
+            )
+        ),
         "Rules" -> ListSet(
             seqWS(whitespace, n("Rules"), n("NontermDef")),
-            n("NontermDef")),
+            n("NontermDef")
+        ),
         "NontermDef" -> ListSet(
-            seqWS(inlineWS, n("NontermName"), c('='), n("Productions"))),
+            seqWS(inlineWS, n("NontermName"), c('='), n("Productions"))
+        ),
         "Productions" -> ListSet(
             n("Production"),
-            seq(n("Productions"), whitespace, c('|'), inlineWS, n("Production"))),
+            seq(n("Productions"), whitespace, c('|'), inlineWS, n("Production"))
+        ),
         "Production" -> ListSet(
             n("Empty"),
-            n("Symbols")),
+            n("Symbols")
+        ),
         "Empty" -> ListSet(
-            i("<empty>")),
+            i("<empty>")
+        ),
         "Symbols" -> ListSet(
             n("Symbol"),
-            seqWS(inlineWS, n("Symbols"), n("Symbol"))),
+            seqWS(inlineWS, n("Symbols"), n("Symbol"))
+        ),
         "Symbol" -> ListSet(
             n("NontermName"),
             n("LongestName"),
@@ -42,35 +51,50 @@ object GrammarGrammar extends Grammar {
             n("LookaheadExName"),
             n("IntersectionName"),
             n("ExclusionName"),
-            n("Terminal")),
+            n("Terminal")
+        ),
         "NontermName" -> ListSet(
             longest(oneof(
                 oneof(chars('a' to 'z', 'A' to 'Z', '0' to '9')).plus,
-                seq(c('`'), oneof(chars('a' to 'z', 'A' to 'Z', '0' to '9'), chars("+*[]-")).plus)))),
+                seq(c('`'), oneof(chars('a' to 'z', 'A' to 'Z', '0' to '9'), chars("+*[]-")).plus)
+            ))
+        ),
         "LongestName" -> ListSet(
-            longest(seqWS(inlineWS, c('L'), c('('), n("Symbol"), c(')')))),
+            longest(seqWS(inlineWS, c('L'), c('('), n("Symbol"), c(')')))
+        ),
         "LookaheadName" -> ListSet(
-            longest(seqWS(inlineWS, i("la"), c('('), n("Symbol"), c(')')))),
+            longest(seqWS(inlineWS, i("la"), c('('), n("Symbol"), c(')')))
+        ),
         "LookaheadExName" -> ListSet(
-            longest(seqWS(inlineWS, i("lx"), c('('), n("Symbol"), c(')')))),
+            longest(seqWS(inlineWS, i("lx"), c('('), n("Symbol"), c(')')))
+        ),
         "IntersectionName" -> ListSet(
-            longest(seqWS(inlineWS, n("Symbol"), c('&'), n("Symbol")))),
+            longest(seqWS(inlineWS, n("Symbol"), c('&'), n("Symbol")))
+        ),
         "ExclusionName" -> ListSet(
-            longest(seqWS(inlineWS, n("Symbol"), c('-'), n("Symbol")))),
+            longest(seqWS(inlineWS, n("Symbol"), c('-'), n("Symbol")))
+        ),
         "Terminal" -> ListSet(
             n("TerminalExactChar"),
             n("TerminalRanges"),
-            n("TerminalSet")),
+            n("TerminalSet")
+        ),
         "TerminalExactChar" -> ListSet(
-            seq(c('\''), anychar, c('\''))),
+            seq(c('\''), anychar, c('\''))
+        ),
         "TerminalRanges" -> ListSet(
-            seq(c('['), n("TerminalRange").plus, c(']'))),
+            seq(c('['), n("TerminalRange").plus, c(']'))
+        ),
         "TerminalRange" -> ListSet(
-            seq(anychar, c('-'), anychar)),
+            seq(anychar, c('-'), anychar)
+        ),
         "TerminalSet" -> ListSet(
-            seq(c('{'), n("TerminalAnyChar").plus, c('}'))),
+            seq(c('{'), n("TerminalAnyChar").plus, c('}'))
+        ),
         "TerminalAnyChar" -> ListSet(
-            anychar.except(c('}'))))
+            anychar.except(c('}'))
+        )
+    )
     val startSymbol = n("Grammar")
 
     def childrenOf(node: Node, sym: Symbol): Seq[Node] = node match {
@@ -83,7 +107,7 @@ object GrammarGrammar extends Grammar {
         case BindNode(s, body) => textOf(body)
         case s: SequenceNode => (s.children map { textOf(_) }).mkString
         case JoinNode(body, join) => textOf(body)
-        case TerminalNode(Inputs.Character(c, _)) => s"$c"
+        case TerminalNode(Inputs.Character(c)) => s"$c"
         case _ => ???
     }
 
@@ -120,8 +144,8 @@ object GrammarGrammar extends Grammar {
                                         case BindNode(Nonterminal("TerminalRanges"), seq: SequenceNode) =>
                                             val chars: Set[Char] = (childrenOf(seq.children(1), Nonterminal("TerminalRange")) flatMap {
                                                 case BindNode(Nonterminal("TerminalRange"), seq: SequenceNode) =>
-                                                    val BindNode(AnyChar, TerminalNode(Inputs.Character(c1, _))) = seq.children(0)
-                                                    val BindNode(AnyChar, TerminalNode(Inputs.Character(c2, _))) = seq.children(2)
+                                                    val BindNode(AnyChar, TerminalNode(Inputs.Character(c1))) = seq.children(0)
+                                                    val BindNode(AnyChar, TerminalNode(Inputs.Character(c2))) = seq.children(2)
                                                     (c1 to c2).toSet
                                                 case _ => ???
                                             }).toSet
