@@ -1,5 +1,6 @@
 package com.giyeok.jparser.study.parsing
 
+import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.study.CfgSymbols.CfgSymbol
 import com.giyeok.jparser.study.CfgSymbols.Nonterminal
@@ -71,20 +72,29 @@ object DirectionalBottomUpParsing {
         def apply(i: Int): Itemset = history(i)
         def :+(next: Itemset) = History(history :+ next)
 
-        def horizontalLines(): Seq[String] = {
+        def horizontalLines(inputs: Seq[Inputs.Input]): Seq[String] = {
             val itemLines = history map { _.lines() }
             val height = (itemLines map { _.length }).max
-            itemLines.foldLeft((0 until height) map { _ => "" }) { (cc, i) =>
+            itemLines.zip((inputs map { Some(_) }) :+ None).foldLeft((0 until height) map { _ => "" }) { (cc, ii) =>
+                val (i, inputOpt) = ii
                 assert(cc.length == height)
-                val box = i ++ ((0 until (height - i.length)) map { _ => " " * i.head.length })
-                cc zip box map { x => x._1 + "  " + x._2 }
+                val box0: Seq[String] = i ++ ((0 until (height - i.length)) map { _ => " " * i.head.length })
+                val box: Seq[String] = inputOpt match {
+                    case Some(input) =>
+                        val inputStr = s" ${input.toShortString} "
+                        Seq(box0.head + inputStr) ++ (box0.tail map { _ + (" " * inputStr.length) })
+                    case None => box0
+                }
+                cc zip box map { x => x._1 + x._2 }
             }
         }
     }
 
     case class Context(p: Int, history: History, itemset: Itemset)
 
-    class EarleyParser(grammar: ContextFreeGrammar) {
+    trait EarleyParser {
+        val grammar: ContextFreeGrammar
+
         def scanner(p: Int, itemset: Itemset, input: Input): Set[Item] = {
             val accepting = itemset.active filter { item =>
                 item.following match {
@@ -127,7 +137,9 @@ object DirectionalBottomUpParsing {
             val itemset = Itemset(0, repeatUntilStablized(predictor(0, _), starter, Set()))
             Context(0, History(Seq(itemset)), itemset)
         }
+    }
 
+    class EarleyParserNoEmptyRules(val grammar: ContextFreeGrammar) extends EarleyParser {
         def proceed(context: Context, input: Input): Option[Context] = {
             val nextp = context.p + 1
             val scanned = scanner(nextp, context.itemset, input)

@@ -1093,6 +1093,35 @@ object Fig7_8 extends Grammar with GrammarTestCases with StringSamples {
     val incorrectSamples = Set[String]()
 }
 
+object Fig7_17 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "Parsing Techniques Grammar in Figure 7.17"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            n("E")
+        ),
+        "E" -> ListSet(
+            seq(n("E"), n("Q"), n("F")),
+            n("F")
+        ),
+        "F" -> ListSet(
+            c('a')
+        ),
+        "Q" -> ListSet(
+            c('*'),
+            c('/'),
+            seq()
+        )
+    )
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "aa",
+        "a*a"
+    )
+    val incorrectSamples = Set[String]()
+}
+
 object Fig7_19 extends Grammar with GrammarTestCases with StringSamples {
     val name = "Parsing Techniques Grammar in Figure 7.19"
     val rules: RuleMap = ListMap(
