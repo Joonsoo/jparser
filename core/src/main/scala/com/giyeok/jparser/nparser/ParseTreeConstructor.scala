@@ -1,6 +1,6 @@
 package com.giyeok.jparser.nparser
 
-import com.giyeok.jparser.nparser.EligCondition.Condition
+import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.ParseResult
 import com.giyeok.jparser.ParseResultFunc
@@ -12,11 +12,11 @@ import com.giyeok.jparser.nparser.Parser.ConditionFate
 
 class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Results[Node]], conditionFate: ConditionFate) {
     val finishes = {
-        def eligible(conditions: Set[Condition]): Boolean = {
-            conditions exists { conditionFate.of(_).eligible }
+        def eligible(conditions: Set[AcceptCondition]): Boolean = {
+            conditions exists { conditionFate.of(_).acceptable }
         }
         (history map {
-            _.nodeConditions.toSet[(Node, Set[Condition])] collect {
+            _.nodeConditions.toSet[(Node, Set[AcceptCondition])] collect {
                 case (node, conditions) if eligible(conditions) => node
             }
         }).toVector

@@ -2,7 +2,7 @@ package com.giyeok.jparser.visualize
 
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.EligCondition._
+import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
 class NodeFigureGenerators[Fig](
@@ -35,7 +35,7 @@ class NodeFigureGenerators[Fig](
                 fig.textFig(s"$beginGen-$endGen", appear.default)))
     }
 
-    def conditionFig(grammar: NGrammar, condition: Condition): Fig = {
+    def conditionFig(grammar: NGrammar, condition: AcceptCondition): Fig = {
         val d = appear.default
         condition match {
             case True => fig.textFig("true", d)
@@ -68,7 +68,7 @@ class NodeFigureGenerators[Fig](
                     fig.textFig("Dead(", d),
                     nodeFig(grammar, node),
                     fig.textFig(s", $activeGen)", d)))
-            case Exclude(node) =>
+            case Unless(node) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("Exclude(", d),
                     nodeFig(grammar, node),

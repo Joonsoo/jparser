@@ -5,7 +5,7 @@ import com.giyeok.jparser.ParsingErrors.UnexpectedInput
 import com.giyeok.jparser.nparser.Parser.WrappedContext
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.EligCondition._
+import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
 import com.giyeok.jparser.Symbols.Terminal
 import com.giyeok.jparser.Symbols.Terminals.CharacterTerminal
@@ -19,11 +19,11 @@ import scala.annotation.tailrec
 import com.giyeok.jparser.nparser.Parser.ConditionFate
 
 object DerivationPreprocessor {
-    case class Preprocessed(baseNode: Node, context: Context, baseFinishes: Seq[(Condition, Option[Int])], baseProgresses: Seq[Condition]) {
+    case class Preprocessed(baseNode: Node, context: Context, baseFinishes: Seq[(AcceptCondition, Option[Int])], baseProgresses: Seq[AcceptCondition]) {
         // assert(context.graph.nodes contains baseNode)
         def updateContext(newContext: Context) = Preprocessed(baseNode, newContext, baseFinishes, baseProgresses)
-        def addBaseFinish(condition: Condition, lastSymbol: Option[Int]) = Preprocessed(baseNode, context, (condition, lastSymbol) +: baseFinishes, baseProgresses)
-        def addBaseProgress(condition: Condition) = Preprocessed(baseNode, context, baseFinishes, condition +: baseProgresses)
+        def addBaseFinish(condition: AcceptCondition, lastSymbol: Option[Int]) = Preprocessed(baseNode, context, (condition, lastSymbol) +: baseFinishes, baseProgresses)
+        def addBaseProgress(condition: AcceptCondition) = Preprocessed(baseNode, context, baseFinishes, condition +: baseProgresses)
 
         def shiftGen(gen: Int): Preprocessed = {
             Preprocessed(baseNode.shiftGen(gen), context.shiftGen(gen), baseFinishes, baseProgresses)

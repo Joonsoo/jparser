@@ -129,18 +129,18 @@ object ParsingContext {
                     edgesByDest += end -> (edgesByDest(end) + edge)
                     edgesByDest += join -> (edgesByDest(join) + edge)
             }
-            Graph(nodes, edges, edgesByStart.toMap, edgesByDest.toMap)
+            Graph(nodes, edges, edgesByStart, edgesByDest)
         }
     }
 
-    case class Results[N <: Node](nodeConditions: Map[N, Set[EligCondition.Condition]]) {
+    case class Results[N <: Node](nodeConditions: Map[N, Set[AcceptCondition.AcceptCondition]]) {
         def of(node: N) = nodeConditions get node
-        def contains(node: N, condition: EligCondition.Condition): Boolean =
+        def contains(node: N, condition: AcceptCondition.AcceptCondition): Boolean =
             nodeConditions get node match {
                 case Some(conditions) => conditions contains condition
                 case None => false
             }
-        def contains(node: N, conditions: Set[EligCondition.Condition]): Boolean =
+        def contains(node: N, conditions: Set[AcceptCondition.AcceptCondition]): Boolean =
             nodeConditions get node match {
                 case Some(existingConditions) => conditions subsetOf existingConditions
                 case None => false
@@ -150,20 +150,20 @@ object ParsingContext {
         def conditions = nodeConditions flatMap { _._2 }
         def conditionNodes = conditions flatMap { _.nodes }
         def entries = nodeConditions.toSeq flatMap { kv => kv._2 map { (kv._1, _) } }
-        def update(node: N, condition: EligCondition.Condition): Results[N] =
+        def update(node: N, condition: AcceptCondition.AcceptCondition): Results[N] =
             nodeConditions get node match {
                 case Some(conditions) => Results(nodeConditions + (node -> (conditions + condition)))
                 case None => Results(nodeConditions + (node -> Set(condition)))
             }
-        def update(node: N, conditions: Set[EligCondition.Condition]): Results[N] =
+        def update(node: N, conditions: Set[AcceptCondition.AcceptCondition]): Results[N] =
             nodeConditions get node match {
                 case Some(existingConditions) => Results(nodeConditions + (node -> (existingConditions ++ conditions)))
                 case None => Results(nodeConditions + (node -> conditions))
             }
-        def mapCondition(func: EligCondition.Condition => EligCondition.Condition): Results[N] =
+        def mapCondition(func: AcceptCondition.AcceptCondition => AcceptCondition.AcceptCondition): Results[N] =
             Results(nodeConditions mapValues { _ map { c => func(c) } })
         def trimFalse: (Results[N], Set[N]) = {
-            val filteredNodeConditions = nodeConditions mapValues { _ filter { _ != EligCondition.False } }
+            val filteredNodeConditions = nodeConditions mapValues { _ filter { _ != AcceptCondition.False } }
             val falseNodes = (filteredNodeConditions filter { _._2.isEmpty }).keySet
             (Results(filteredNodeConditions -- falseNodes), falseNodes)
         }
@@ -188,8 +188,8 @@ object ParsingContext {
         }
     }
     object Results {
-        def apply[N <: Node](): Results[N] = Results(Map[N, Set[EligCondition.Condition]]())
-        def apply[N <: Node](items: (N, Set[EligCondition.Condition])*): Results[N] = Results(items.toMap)
+        def apply[N <: Node](): Results[N] = Results(Map[N, Set[AcceptCondition.AcceptCondition]]())
+        def apply[N <: Node](items: (N, Set[AcceptCondition.AcceptCondition])*): Results[N] = Results(items.toMap)
     }
 
     case class Context(graph: Graph, progresses: Results[SequenceNode], finishes: Results[Node]) {
@@ -218,147 +218,5 @@ object ParsingContext {
             // assert(mergedProgresses.nodes == (mergedGraph.nodes collect { case n: SequenceNode => n }))
             Context(mergedGraph, mergedProgresses, mergedFinishes)
         }
-    }
-}
-
-object EligCondition {
-    import ParsingContext._
-
-    sealed trait Condition {
-        def nodes: Set[Node]
-        def shiftGen(gen: Int): Condition
-        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]): Condition
-        def eligible: Boolean
-        def neg: Condition
-    }
-    def conjunct(conditions: Condition*) =
-        if (conditions exists { _ == False }) False
-        else {
-            val conds1 = conditions.toSet filter { _ != True }
-            if (conds1.isEmpty) True
-            else if (conds1.size == 1) conds1.head
-            else And(conds1)
-        }
-    def disjunct(conditions: Condition*): Condition = {
-        if (conditions exists { _ == True }) True
-        else {
-            val conds1 = conditions.toSet filter { _ != False }
-            if (conds1.isEmpty) False
-            else if (conds1.size == 1) conds1.head
-            else Or(conds1)
-        }
-    }
-
-    case object True extends Condition {
-        val nodes = Set[Node]()
-        def shiftGen(gen: Int) = this
-        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) = this
-        def eligible = true
-        def neg = False
-    }
-    case object False extends Condition {
-        val nodes = Set[Node]()
-        def shiftGen(gen: Int) = this
-        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) = this
-        def eligible = false
-        def neg = True
-    }
-    case class And(conditions: Set[Condition]) extends Condition {
-        // assert(conditions forall { c => c != True && c != False })
-
-        def nodes = conditions flatMap { _.nodes }
-        def shiftGen(gen: Int) = And(conditions map { _.shiftGen(gen) })
-        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
-            conditions.foldLeft[Condition](True) { (cc, condition) =>
-                conjunct(condition.evaluate(gen, finishes, survived), cc)
-            }
-        def eligible = conditions forall { _.eligible }
-        def neg = disjunct((conditions map { _.neg }).toSeq: _*)
-    }
-    case class Or(conditions: Set[Condition]) extends Condition {
-        // assert(conditions forall { c => c != True && c != False })
-
-        def nodes = conditions flatMap { _.nodes }
-        def shiftGen(gen: Int) = Or(conditions map { _.shiftGen(gen) })
-        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
-            conditions.foldLeft[Condition](False) { (cc, condition) =>
-                disjunct(condition.evaluate(gen, finishes, survived), cc)
-            }
-        def eligible = conditions exists { _.eligible }
-        def neg = conjunct((conditions map { _.neg }).toSeq: _*)
-    }
-    case class Until(node: Node, activeGen: Int) extends Condition {
-        def nodes = Set(node)
-        def shiftGen(gen: Int) = Until(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
-            if (gen <= activeGen) {
-                this
-            } else {
-                finishes.of(node) match {
-                    case Some(conditions) =>
-                        disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived).neg
-                    case None =>
-                        if (survived contains node) this else True
-                }
-            }
-        def eligible = true
-        def neg = After(node, activeGen)
-    }
-    case class After(node: Node, activeGen: Int) extends Condition {
-        def nodes = Set(node)
-        def shiftGen(gen: Int) = After(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
-            if (gen <= activeGen) {
-                this
-            } else {
-                finishes.of(node) match {
-                    case Some(conditions) =>
-                        disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived)
-                    case None =>
-                        if (survived contains node) this else False
-                }
-            }
-        val eligible = false
-        def neg = Until(node, activeGen)
-    }
-    case class Alive(node: Node, activeGen: Int) extends Condition {
-        def nodes = Set(node)
-        def shiftGen(gen: Int) = Alive(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
-            if (gen <= activeGen) this else { if (survived contains node) False else True }
-        def eligible = true
-        def neg = Dead(node, activeGen)
-    }
-    case class Dead(node: Node, activeGen: Int) extends Condition {
-        def nodes = Set(node)
-        def shiftGen(gen: Int) = Dead(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
-            if (gen <= activeGen) this else { if (survived contains node) True else False }
-        def eligible = false
-        def neg = Alive(node, activeGen)
-    }
-    case class Exclude(node: Node) extends Condition {
-        def nodes = Set(node)
-        def shiftGen(gen: Int) = Exclude(node.shiftGen(gen))
-        def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]) =
-            finishes.of(node) match {
-                case Some(conditions) =>
-                    val evaluated = disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived)
-                    // evaluated 안에는 Exclude가 없어야 한다
-                    // assert({
-                    //     def check(condition: Condition): Boolean =
-                    //         condition match {
-                    //             case _: Exclude => false
-                    //             case And(conds) => conds forall check
-                    //             case Or(conds) => conds forall check
-                    //             case _ => true
-                    //         }
-                    //     check(evaluated)
-                    // })
-                    evaluated.neg
-                case None => True
-            }
-        def eligible = ???
-        def neg = ???
     }
 }

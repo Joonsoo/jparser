@@ -2,7 +2,7 @@ package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.EligCondition._
+import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.Inputs
 import Parser._
@@ -35,17 +35,17 @@ trait Parser[T <: WrappedContext] {
 }
 
 object Parser {
-    class ConditionFate(val trueFixed: Set[Condition], val falseFixed: Set[Condition], val unfixed: Map[Condition, Condition]) {
-        def of(condition: Condition): Condition = {
+    class ConditionFate(val trueFixed: Set[AcceptCondition], val falseFixed: Set[AcceptCondition], val unfixed: Map[AcceptCondition, AcceptCondition]) {
+        def of(condition: AcceptCondition): AcceptCondition = {
             if (trueFixed contains condition) True
             else if (falseFixed contains condition) False
             else unfixed(condition)
         }
 
-        def update(newConditionFate: Map[Condition, Condition]): ConditionFate = {
+        def update(newConditionFate: Map[AcceptCondition, AcceptCondition]): ConditionFate = {
             var trueConditions = trueFixed
             var falseConditions = falseFixed
-            var unfixedConditions = Map[Condition, Condition]()
+            var unfixedConditions = Map[AcceptCondition, AcceptCondition]()
 
             newConditionFate foreach { kv =>
                 kv._2 match {
@@ -58,10 +58,10 @@ object Parser {
         }
     }
     object ConditionFate {
-        def apply(conditionFate: Map[Condition, Condition]): ConditionFate = {
-            var trueConditions = Set[Condition]()
-            var falseConditions = Set[Condition]()
-            var unfixedConditions = Map[Condition, Condition]()
+        def apply(conditionFate: Map[AcceptCondition, AcceptCondition]): ConditionFate = {
+            var trueConditions = Set[AcceptCondition]()
+            var falseConditions = Set[AcceptCondition]()
+            var unfixedConditions = Map[AcceptCondition, AcceptCondition]()
 
             conditionFate foreach { kv =>
                 kv._2 match {
@@ -81,14 +81,14 @@ object Parser {
     }
 
     class NaiveWrappedContext(gen: Int, ctx: Context, _inputs: List[Input], _history: List[Results[Node]], conditionFate: ConditionFate) extends WrappedContext(gen, ctx, _inputs, _history, conditionFate) {
-        def proceed(nextGen: Int, nextCtx: Context, newInput: Input, newConditionFate: Map[Condition, Condition]) = {
+        def proceed(nextGen: Int, nextCtx: Context, newInput: Input, newConditionFate: Map[AcceptCondition, AcceptCondition]) = {
             new NaiveWrappedContext(nextGen, nextCtx, newInput +: _inputs, ctx.finishes +: _history, conditionFate update newConditionFate)
         }
     }
 
     class DeriveTipsWrappedContext(gen: Int, ctx: Context, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Results[Node]], conditionFate: ConditionFate) extends WrappedContext(gen, ctx, _inputs, _history, conditionFate) {
         // assert(deriveTips subsetOf ctx.graph.nodes)
-        def proceed(nextGen: Int, nextCtx: Context, deriveTips: Set[Node], newInput: Input, newConditionFate: Map[Condition, Condition]) = {
+        def proceed(nextGen: Int, nextCtx: Context, deriveTips: Set[Node], newInput: Input, newConditionFate: Map[AcceptCondition, AcceptCondition]) = {
             new DeriveTipsWrappedContext(nextGen, nextCtx, deriveTips: Set[Node], newInput +: _inputs, ctx.finishes +: _history, conditionFate update newConditionFate)
         }
     }

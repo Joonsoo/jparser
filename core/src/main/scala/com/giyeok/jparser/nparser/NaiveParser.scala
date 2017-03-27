@@ -1,7 +1,7 @@
 package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.EligCondition._
+import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.nparser.Parser._
 import com.giyeok.jparser.ParsingErrors._

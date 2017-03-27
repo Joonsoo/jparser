@@ -1,7 +1,7 @@
 package com.giyeok.jparser.nparser
 
 import ParsingContext._
-import EligCondition._
+import AcceptCondition._
 import NGrammar._
 import com.giyeok.jparser.Inputs
 import scala.annotation.tailrec
@@ -11,8 +11,8 @@ trait ParsingTasks {
 
     sealed trait Task
     case class DeriveTask(node: Node) extends Task
-    case class FinishTask(node: Node, condition: Condition, lastSymbol: Option[Int]) extends Task
-    case class ProgressTask(node: SequenceNode, condition: Condition) extends Task
+    case class FinishTask(node: Node, condition: AcceptCondition, lastSymbol: Option[Int]) extends Task
+    case class ProgressTask(node: SequenceNode, condition: AcceptCondition) extends Task
 
     def deriveTask(nextGen: Int, task: DeriveTask, cc: Context): (Context, Seq[Task]) = {
         val DeriveTask(startNode) = task
@@ -24,12 +24,12 @@ trait ParsingTasks {
             }
         def derive(symbolIds: Set[Int]): (Context, Seq[Task]) = {
             // (symbolIds에 해당하는 노드) + (startNode에서 symbolIds의 노드로 가는 엣지) 추가
-            val destNodes = symbolIds map { nodeOf _ }
+            val destNodes = symbolIds map nodeOf
             val newNodes = destNodes -- cc.graph.nodes
             // 새로 추가된 노드에 대한 DeriveTask 추가
-            val newDeriveTasks = newNodes.toSeq map { DeriveTask(_) }
+            val newDeriveTasks: Set[DeriveTask] = newNodes map DeriveTask
             // destNodes 중 cc.finishes에 있으면 finish 추가
-            val immediateFinishTasks = destNodes.toSeq flatMap { destNode =>
+            val immediateFinishTasks: Seq[Task] = destNodes.toSeq flatMap { destNode =>
                 val destSymbolIdOpt = destNode match {
                     case SymbolNode(symbolId, _) => Some(symbolId)
                     case _: SequenceNode => None
@@ -48,7 +48,7 @@ trait ParsingTasks {
             val newCC = (newNodes collect { case n: SequenceNode => n }).foldLeft(cc.updateGraph(newGraph)) { (context, newSeqNode) =>
                 context.updateProgresses(_.update(newSeqNode, True))
             }
-            (newCC, newDeriveTasks ++ immediateFinishTasks)
+            (newCC, newDeriveTasks.toSeq ++ immediateFinishTasks)
         }
         startNode match {
             case SymbolNode(symbolId, _) =>
@@ -60,7 +60,7 @@ trait ParsingTasks {
                     case Join(_, body, join) =>
                         val bodyNode = nodeOf(body)
                         val joinNode = nodeOf(join)
-                        val newDeriveTasks = (Set(bodyNode, joinNode) -- cc.graph.nodes).toSeq map { DeriveTask(_) }
+                        val newDeriveTasks = (Set(bodyNode, joinNode) -- cc.graph.nodes).toSeq map DeriveTask
                         val immediateFinishTasks = (cc.finishes.of(bodyNode), cc.finishes.of(joinNode)) match {
                             case (Some(bodyConditions), Some(joinConditions)) =>
                                 bodyConditions.toSeq flatMap { b =>
@@ -76,7 +76,7 @@ trait ParsingTasks {
                         val lookaheadNode = nodeOf(lookahead.lookahead)
                         val newDeriveTask = if (!(cc.graph.nodes contains lookaheadNode)) { Seq(DeriveTask(lookaheadNode)) } else Seq()
                         val finishTask = {
-                            val condition: Condition = lookahead match {
+                            val condition: AcceptCondition = lookahead match {
                                 case _: LookaheadIs => After(lookaheadNode, nextGen)
                                 case _: LookaheadExcept => Until(lookaheadNode, nextGen)
                             }
@@ -107,7 +107,7 @@ trait ParsingTasks {
             case Some(Except(_, body, except)) =>
                 val lastSymbolId = lastSymbol.get
                 if (lastSymbolId == body) {
-                    conjunct(condition, Exclude(SymbolNode(except, node.beginGen)))
+                    conjunct(condition, Unless(SymbolNode(except, node.beginGen)))
                 } else {
                     assert(lastSymbolId == except)
                     False

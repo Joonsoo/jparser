@@ -55,8 +55,8 @@ import java.util.concurrent.LinkedBlockingDeque
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.nparser.EligCondition.Condition
-import com.giyeok.jparser.nparser.EligCondition
+import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
+import com.giyeok.jparser.nparser.AcceptCondition
 import com.giyeok.jparser.nparser.ParsingContext.Node
 import org.eclipse.swt.events.DisposeListener
 import com.giyeok.jparser.nparser.CompactParseTreeConstructor
@@ -254,11 +254,11 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
                     // TODO 이렇게 하면 안될듯..
                     // - NontermName, Terminal 로 하지 말고 NontermDef, Production로 해야 정확히 될듯
                     val finishes = {
-                        def eligible(conditions: Set[Condition]): Boolean = {
-                            conditions exists { result.context.conditionFate.of(_).eligible }
+                        def eligible(conditions: Set[AcceptCondition]): Boolean = {
+                            conditions exists { result.context.conditionFate.of(_).acceptable }
                         }
                         (result.context.history map {
-                            _.nodeConditions.toSet[(Node, Set[Condition])] collect {
+                            _.nodeConditions.toSet[(Node, Set[AcceptCondition])] collect {
                                 case (node, conditions) if eligible(conditions) => node
                             }
                         }).toVector

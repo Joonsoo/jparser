@@ -2,8 +2,8 @@ package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.nparser.DerivationPreprocessor.Preprocessed
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.EligCondition.Condition
-import com.giyeok.jparser.nparser.EligCondition.True
+import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
+import com.giyeok.jparser.nparser.AcceptCondition.True
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.Inputs.Input
 import scala.annotation.tailrec
@@ -120,7 +120,7 @@ class OnDemandDerivationPreprocessor(val grammar: NGrammar) extends DerivationPr
 
     def _sequenceDerivationOf(sequenceId: Int, pointer: Int): Preprocessed = {
         val baseNode = SequenceNode(sequenceId, pointer, -1, -1)
-        val initialPreprocessed = Preprocessed(baseNode, Context(Graph(Set(baseNode), Set()), Results(baseNode -> Set[Condition]()), Results()), Seq(), Seq())
+        val initialPreprocessed = Preprocessed(baseNode, Context(Graph(Set(baseNode), Set()), Results(baseNode -> Set[AcceptCondition]()), Results()), Seq(), Seq())
         recNoBase(baseNode, 0, List(DeriveTask(baseNode)), initialPreprocessed)
     }
     def sequenceDerivationOf(sequenceId: Int, pointer: Int): Preprocessed = {
