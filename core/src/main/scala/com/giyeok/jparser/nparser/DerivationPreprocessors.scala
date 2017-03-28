@@ -3,7 +3,7 @@ package com.giyeok.jparser.nparser
 import com.giyeok.jparser.nparser.DerivationPreprocessor.Preprocessed
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.nparser.AcceptCondition.True
+import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.Inputs.Input
 import scala.annotation.tailrec
@@ -188,7 +188,7 @@ class OnDemandSlicedDerivationPreprocessor(grammar: NGrammar) extends OnDemandDe
         val termGroups = termGroupsOf(terminals)
         (termGroups map { termGroup =>
             val finishables = finishableTermNodes(derivation.context, 0, termGroup)
-            val finishTasks = finishables.toList map { FinishTask(_, True, None) }
+            val finishTasks = finishables.toList map { FinishTask(_, Always, None) }
             val cc = Preprocessed(derivation.baseNode, derivation.context.emptyFinishes, Seq(), Seq())
             val (newPreprocessed, newDeriveTips) = recNoBaseNoDerive(derivation.baseNode, 1, finishTasks, cc, Set())
             val trimStarts = (Set(derivation.baseNode)) ++ (derivation.context.finishes.conditionNodes) ++ (derivation.context.progresses.conditionNodes)

@@ -37,8 +37,8 @@ trait Parser[T <: WrappedContext] {
 object Parser {
     class ConditionFate(val trueFixed: Set[AcceptCondition], val falseFixed: Set[AcceptCondition], val unfixed: Map[AcceptCondition, AcceptCondition]) {
         def of(condition: AcceptCondition): AcceptCondition = {
-            if (trueFixed contains condition) True
-            else if (falseFixed contains condition) False
+            if (trueFixed contains condition) Always
+            else if (falseFixed contains condition) Never
             else unfixed(condition)
         }
 
@@ -49,8 +49,8 @@ object Parser {
 
             newConditionFate foreach { kv =>
                 kv._2 match {
-                    case True => trueConditions += kv._1
-                    case False => falseConditions += kv._1
+                    case Always => trueConditions += kv._1
+                    case Never => falseConditions += kv._1
                     case _ => unfixedConditions += kv
                 }
             }
@@ -65,8 +65,8 @@ object Parser {
 
             conditionFate foreach { kv =>
                 kv._2 match {
-                    case True => trueConditions += kv._1
-                    case False => falseConditions += kv._1
+                    case Always => trueConditions += kv._1
+                    case Never => falseConditions += kv._1
                     case _ => unfixedConditions += kv
                 }
             }

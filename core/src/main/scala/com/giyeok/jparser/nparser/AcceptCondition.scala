@@ -11,36 +11,36 @@ object AcceptCondition {
         def neg: AcceptCondition
     }
     def conjunct(conditions: AcceptCondition*): AcceptCondition =
-        if (conditions contains False) False
+        if (conditions contains Never) Never
         else {
-            val conds1 = conditions.toSet filter { _ != True }
-            if (conds1.isEmpty) True
+            val conds1 = conditions.toSet filter { _ != Always }
+            if (conds1.isEmpty) Always
             else if (conds1.size == 1) conds1.head
             else And(conds1)
         }
     def disjunct(conditions: AcceptCondition*): AcceptCondition = {
-        if (conditions contains True) True
+        if (conditions contains Always) Always
         else {
-            val conds1 = conditions.toSet filter { _ != False }
-            if (conds1.isEmpty) False
+            val conds1 = conditions.toSet filter { _ != Never }
+            if (conds1.isEmpty) Never
             else if (conds1.size == 1) conds1.head
             else Or(conds1)
         }
     }
 
-    case object True extends AcceptCondition {
+    case object Always extends AcceptCondition {
         val nodes: Set[Node] = Set[Node]()
         def shiftGen(gen: Int): AcceptCondition = this
         def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]): AcceptCondition = this
         def acceptable = true
-        def neg = False
+        def neg = Never
     }
-    case object False extends AcceptCondition {
+    case object Never extends AcceptCondition {
         val nodes: Set[Node] = Set[Node]()
         def shiftGen(gen: Int): AcceptCondition = this
         def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]): AcceptCondition = this
         def acceptable = false
-        def neg = True
+        def neg = Always
     }
     case class And(conditions: Set[AcceptCondition]) extends AcceptCondition {
         // assert(conditions forall { c => c != True && c != False })
@@ -49,7 +49,7 @@ object AcceptCondition {
         def shiftGen(gen: Int): AcceptCondition =
             And(conditions map { _.shiftGen(gen) })
         def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]): AcceptCondition =
-            conditions.foldLeft[AcceptCondition](True) { (cc, condition) =>
+            conditions.foldLeft[AcceptCondition](Always) { (cc, condition) =>
                 conjunct(condition.evaluate(gen, finishes, survived), cc)
             }
         def acceptable: Boolean = conditions forall { _.acceptable }
@@ -61,7 +61,7 @@ object AcceptCondition {
         def nodes: Set[Node] = conditions flatMap { _.nodes }
         def shiftGen(gen: Int): AcceptCondition = Or(conditions map { _.shiftGen(gen) })
         def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]): AcceptCondition =
-            conditions.foldLeft[AcceptCondition](False) { (cc, condition) =>
+            conditions.foldLeft[AcceptCondition](Never) { (cc, condition) =>
                 disjunct(condition.evaluate(gen, finishes, survived), cc)
             }
         def acceptable: Boolean = conditions exists { _.acceptable }
@@ -79,7 +79,7 @@ object AcceptCondition {
                     case Some(conditions) =>
                         disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived).neg
                     case None =>
-                        if (survived contains node) this else True
+                        if (survived contains node) this else Always
                 }
             }
         def acceptable: Boolean = true
@@ -97,7 +97,7 @@ object AcceptCondition {
                     case Some(conditions) =>
                         disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived)
                     case None =>
-                        if (survived contains node) this else False
+                        if (survived contains node) this else Never
                 }
             }
         val acceptable: Boolean = false
@@ -108,7 +108,7 @@ object AcceptCondition {
         def shiftGen(gen: Int): AcceptCondition =
             Alive(node.shiftGen(gen), activeGen + gen)
         def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]): AcceptCondition =
-            if (gen <= activeGen) this else { if (survived contains node) False else True }
+            if (gen <= activeGen) this else { if (survived contains node) Never else Always }
         def acceptable: Boolean = true
         def neg: AcceptCondition = Dead(node, activeGen)
     }
@@ -117,7 +117,7 @@ object AcceptCondition {
         def shiftGen(gen: Int): AcceptCondition =
             Dead(node.shiftGen(gen), activeGen + gen)
         def evaluate(gen: Int, finishes: Results[Node], survived: Set[Node]): AcceptCondition =
-            if (gen <= activeGen) this else { if (survived contains node) True else False }
+            if (gen <= activeGen) this else { if (survived contains node) Always else Never }
         def acceptable: Boolean = false
         def neg: AcceptCondition = Alive(node, activeGen)
     }
@@ -141,7 +141,7 @@ object AcceptCondition {
                     //     check(evaluated)
                     // })
                     evaluated.neg
-                case None => True
+                case None => Always
             }
         def acceptable: Boolean = ???
         def neg: AcceptCondition = ???

@@ -46,7 +46,7 @@ trait ParsingTasks {
                 graph.addNode(node).addEdge(SimpleEdge(startNode, node))
             }
             val newCC = (newNodes collect { case n: SequenceNode => n }).foldLeft(cc.updateGraph(newGraph)) { (context, newSeqNode) =>
-                context.updateProgresses(_.update(newSeqNode, True))
+                context.updateProgresses(_.update(newSeqNode, Always))
             }
             (newCC, newDeriveTasks.toSeq ++ immediateFinishTasks)
         }
@@ -89,7 +89,7 @@ trait ParsingTasks {
                     case Sequence(_, Seq()) =>
                         assert(pointer == 0)
                         // 빈 sequence node는 즉각 finish task 만들기
-                        (cc, Seq(FinishTask(startNode, True, None)))
+                        (cc, Seq(FinishTask(startNode, Always, None)))
                     case Sequence(_, sequence) =>
                         assert(pointer < sequence.length)
                         // sequence(pointer)로 symbol node 만들기
@@ -110,11 +110,11 @@ trait ParsingTasks {
                     conjunct(condition, Unless(SymbolNode(except, node.beginGen)))
                 } else {
                     assert(lastSymbolId == except)
-                    False
+                    Never
                 }
             case _ => condition
         }
-        if ((cc.finishes contains (node, resultCondition)) || (resultCondition == False)) {
+        if ((cc.finishes contains (node, resultCondition)) || (resultCondition == Never)) {
             (cc, Seq())
         } else {
             val chainCondition = nodeSymbolOpt match {

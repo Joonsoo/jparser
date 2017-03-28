@@ -20,7 +20,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveWrappedContext] wit
 
     def proceedDetail(wctx: NaiveWrappedContext, input: Input): Either[(ProceedDetail, NaiveWrappedContext), ParsingError] = {
         val (ctx, gen, nextGen) = (wctx.ctx, wctx.gen, wctx.nextGen)
-        val termFinishes = finishableTermNodes(wctx.ctx, wctx.gen, input).toList map { FinishTask(_, True, None) }
+        val termFinishes = finishableTermNodes(wctx.ctx, wctx.gen, input).toList map { FinishTask(_, Always, None) }
         if (termFinishes.isEmpty) {
             Right(UnexpectedInput(input, nextGen))
         } else {

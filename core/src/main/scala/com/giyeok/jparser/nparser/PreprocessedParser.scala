@@ -156,7 +156,7 @@ class PreprocessedParser(val grammar: NGrammar, val derivation: DerivationPrepro
                 grammar.nsymbols(node.symbolId).asInstanceOf[NGrammar.Terminal].symbol accept input
             }
             if (termNodes.isEmpty) cc
-            else ((termNodes map { node => FinishTask(node.shiftGen(gen), True, None) }) ++: tasks,
+            else ((termNodes map { node => FinishTask(node.shiftGen(gen), Always, None) }) ++: tasks,
                 expanding + (tip -> derivation.derivationOf(tip).shiftGen(gen)))
         }
         if (termFinishes.isEmpty) {

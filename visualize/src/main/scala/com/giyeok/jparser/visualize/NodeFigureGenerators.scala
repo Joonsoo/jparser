@@ -38,8 +38,8 @@ class NodeFigureGenerators[Fig](
     def conditionFig(grammar: NGrammar, condition: AcceptCondition): Fig = {
         val d = appear.default
         condition match {
-            case True => fig.textFig("true", d)
-            case False => fig.textFig("false", d)
+            case Always => fig.textFig("true", d)
+            case Never => fig.textFig("false", d)
             case And(conds) =>
                 val condsFig = conds.toSeq map { conditionFig(grammar, _) }
                 val joinedCondsFig = condsFig.tail.foldLeft(Seq(condsFig.head)) { _ :+ fig.textFig("&", d) :+ _ }

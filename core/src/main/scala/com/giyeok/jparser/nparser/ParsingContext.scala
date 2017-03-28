@@ -163,7 +163,7 @@ object ParsingContext {
         def mapCondition(func: AcceptCondition.AcceptCondition => AcceptCondition.AcceptCondition): Results[N] =
             Results(nodeConditions mapValues { _ map { c => func(c) } })
         def trimFalse: (Results[N], Set[N]) = {
-            val filteredNodeConditions = nodeConditions mapValues { _ filter { _ != AcceptCondition.False } }
+            val filteredNodeConditions = nodeConditions mapValues { _ filter { _ != AcceptCondition.Never } }
             val falseNodes = (filteredNodeConditions filter { _._2.isEmpty }).keySet
             (Results(filteredNodeConditions -- falseNodes), falseNodes)
         }
