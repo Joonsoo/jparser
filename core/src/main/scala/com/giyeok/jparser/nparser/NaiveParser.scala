@@ -13,34 +13,34 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveWrappedContext] wit
     // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
 
     val initialContext = {
-        val ctx0 = rec(0, List(DeriveTask(startNode)), Context(Graph(Set(startNode), Set()), Results(), Results()))
-        val ctx = revert(0, ctx0, ctx0.finishes, ctx0.graph.nodes)
-        new NaiveWrappedContext(0, ctx, List(), List(), ConditionFate((ctx.finishes.conditions map { c => (c -> c) }).toMap))
+        val graph0 = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
+        val ctx = updateAcceptableCondition(0, graph0)
+        new NaiveWrappedContext(0, ctx, List(), List(), ConditionFate((ctx.finishedNodes map { _.condition } map { c => c -> c }).toMap))
     }
 
     def proceedDetail(wctx: NaiveWrappedContext, input: Input): Either[(ProceedDetail, NaiveWrappedContext), ParsingError] = {
-        val (ctx, gen, nextGen) = (wctx.ctx, wctx.gen, wctx.nextGen)
-        val termFinishes = finishableTermNodes(wctx.ctx, wctx.gen, input).toList map { FinishTask(_, Always, None) }
+        val (graph, gen, nextGen) = (wctx.graph, wctx.gen, wctx.nextGen)
+        val termFinishes = finishableTermNodes(graph, gen, input).toList map { FinishTask }
         if (termFinishes.isEmpty) {
             Right(UnexpectedInput(input, nextGen))
         } else {
             // No Expansion
             // 2. Lift
-            val liftedCtx: Context = rec(nextGen, termFinishes, ctx.emptyFinishes)
+            val liftedGraph: Graph = rec(nextGen, termFinishes, graph)
             // 3. Trimming
-            val trimStarts = (Set(startNode) ++ (liftedCtx.finishes.conditionNodes) ++ (liftedCtx.progresses.conditionNodes)) intersect liftedCtx.graph.nodes
-            val newTermNodes = termNodes(liftedCtx, nextGen)
-            val trimmedCtx: Context = trim(liftedCtx, trimStarts, newTermNodes)
+            val trimStarts: Set[Node] = ??? // (Set(startNode) ++ (liftedGraph.finishedNodes.conditionNodes) ++ (liftedGraph.progresses.conditionNodes)) intersect liftedGraph.graph.nodes
+            val newTermNodes: Set[Node] = termNodes(liftedGraph, nextGen)
+            val trimmedGraph: Graph = trim(liftedGraph, trimStarts, newTermNodes)
             // 4. Revert
-            val revertedCtx: Context = revert(nextGen, trimmedCtx, trimmedCtx.finishes, trimmedCtx.graph.nodes)
+            val revertedGraph: Graph = updateAcceptableCondition(nextGen, trimmedGraph)
             // 5. Condition Fate
             val conditionFateNext = {
-                val evaluated = wctx.conditionFate.unfixed map { kv => (kv._1 -> kv._2.evaluate(nextGen, trimmedCtx.finishes, trimmedCtx.graph.nodes)) }
-                val newConditions = (revertedCtx.finishes.conditions map { c => (c -> c) }).toMap
-                (evaluated ++ newConditions) // filter { _._2 != False }
+                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedGraph) }
+                val newConditions = (revertedGraph.finishedNodes map { _.condition } map { c => (c -> c) }).toMap
+                evaluated ++ newConditions // filter { _._2 != False }
             }
-            val nextCtx = wctx.proceed(nextGen, revertedCtx, input, conditionFateNext)
-            Left((ProceedDetail(ctx, ctx, liftedCtx, trimmedCtx, revertedCtx), nextCtx))
+            val nextGraph = wctx.proceed(nextGen, revertedGraph, input, conditionFateNext)
+            Left((ProceedDetail(graph, graph, liftedGraph, trimmedGraph, revertedGraph), nextGraph))
         }
     }
 }

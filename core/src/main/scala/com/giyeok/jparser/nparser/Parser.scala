@@ -10,7 +10,7 @@ import Parser._
 trait Parser[T <: WrappedContext] {
     val grammar: NGrammar
 
-    val startNode = SymbolNode(grammar.startSymbol, 0)
+    val startNode = Node(Kernel(grammar.startSymbol, 0, 0, 0)(grammar.nsymbols(grammar.startSymbol)), Always)
 
     val initialContext: T
 
@@ -74,24 +74,24 @@ object Parser {
         }
     }
 
-    abstract class WrappedContext(val gen: Int, val ctx: Context, _inputs: List[Input], _history: List[Results[Node]], val conditionFate: ConditionFate) {
+    abstract class WrappedContext(val gen: Int, val graph: Graph, _inputs: List[Input], _history: List[Set[Node]], val conditionFate: ConditionFate) {
         def nextGen = gen + 1
         def inputs = _inputs.reverse
-        def history = (ctx.finishes +: _history).reverse
+        def history = (graph.finishedNodes +: _history).reverse
     }
 
-    class NaiveWrappedContext(gen: Int, ctx: Context, _inputs: List[Input], _history: List[Results[Node]], conditionFate: ConditionFate) extends WrappedContext(gen, ctx, _inputs, _history, conditionFate) {
-        def proceed(nextGen: Int, nextCtx: Context, newInput: Input, newConditionFate: Map[AcceptCondition, AcceptCondition]) = {
-            new NaiveWrappedContext(nextGen, nextCtx, newInput +: _inputs, ctx.finishes +: _history, conditionFate update newConditionFate)
+    class NaiveWrappedContext(gen: Int, graph: Graph, _inputs: List[Input], _history: List[Set[Node]], conditionFate: ConditionFate) extends WrappedContext(gen, graph, _inputs, _history, conditionFate) {
+        def proceed(nextGen: Int, nextGraph: Graph, newInput: Input, newConditionFate: Map[AcceptCondition, AcceptCondition]) = {
+            new NaiveWrappedContext(nextGen, nextGraph, newInput +: _inputs, graph.finishedNodes +: _history, conditionFate update newConditionFate)
         }
     }
 
-    class DeriveTipsWrappedContext(gen: Int, ctx: Context, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Results[Node]], conditionFate: ConditionFate) extends WrappedContext(gen, ctx, _inputs, _history, conditionFate) {
+    class DeriveTipsWrappedContext(gen: Int, graph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Set[Node]], conditionFate: ConditionFate) extends WrappedContext(gen, graph, _inputs, _history, conditionFate) {
         // assert(deriveTips subsetOf ctx.graph.nodes)
-        def proceed(nextGen: Int, nextCtx: Context, deriveTips: Set[Node], newInput: Input, newConditionFate: Map[AcceptCondition, AcceptCondition]) = {
-            new DeriveTipsWrappedContext(nextGen, nextCtx, deriveTips: Set[Node], newInput +: _inputs, ctx.finishes +: _history, conditionFate update newConditionFate)
+        def proceed(nextGen: Int, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, newConditionFate: Map[AcceptCondition, AcceptCondition]) = {
+            new DeriveTipsWrappedContext(nextGen, nextGraph, deriveTips: Set[Node], newInput +: _inputs, graph.finishedNodes +: _history, conditionFate update newConditionFate)
         }
     }
 
-    case class ProceedDetail(baseCtx: Context, expandedCtx: Context, liftedCtx: Context, trimmedCtx: Context, revertedCtx: Context)
+    case class ProceedDetail(baseGraph: Graph, expandedGraph: Graph, liftedGraph: Graph, trimmedGraph: Graph, revertedGraph: Graph)
 }

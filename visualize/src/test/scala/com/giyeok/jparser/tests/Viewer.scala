@@ -1,9 +1,18 @@
 package com.giyeok.jparser.tests
 
-import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.Inputs.ConcreteInput
+import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
+import com.giyeok.jparser.visualize.FigureGenerator
+import com.giyeok.jparser.visualize.GrammarDefinitionFigureGenerator
+import com.giyeok.jparser.visualize.ParsingProcessVisualizer
+import com.giyeok.jparser.visualize.ZestParsingContextWidget
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.FigureCanvas
+import org.eclipse.draw2d.Label
+import org.eclipse.draw2d.ToolbarLayout
+import org.eclipse.jface.resource.JFaceResources
 import org.eclipse.swt.SWT
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.FillLayout
@@ -11,37 +20,13 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Event
 import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Shell
-import org.eclipse.draw2d.ToolbarLayout
-import org.eclipse.draw2d.Label
-import org.eclipse.jface.resource.JFaceResources
-import com.giyeok.jparser.visualize.GrammarDefinitionFigureGenerator
-import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.visualize.FigureGenerator
-import com.giyeok.jparser.visualize.ParsingProcessVisualizer
-import org.eclipse.swt.widgets.MessageBox
-import com.giyeok.jparser.Inputs.ConcreteInput
-import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.visualize.PreprocessedDerivationViewer
-import com.giyeok.jparser.visualize.BasicVisualizeResources
-import com.giyeok.jparser.nparser.DerivationPreprocessor
-import com.giyeok.jparser.visualize.ZestParsingContextWidget
-import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
-import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
-import com.giyeok.jparser.nparser.SlicedDerivationPreprocessor
-import com.giyeok.jparser.nparser.OnDemandSlicedDerivationPreprocessor
-import com.giyeok.jparser.nparser.OnDemandDerivationPreprocessor
-import com.giyeok.jparser.nparser.NaiveParser
-import com.giyeok.jparser.nparser.PreprocessedParser
-import com.giyeok.jparser.nparser.ParseTreeConstructor
-import com.giyeok.jparser.nparser.SlicedPreprocessedParser
 
 object AllViewer extends Viewer {
     val allTests = Set(
         com.giyeok.jparser.tests.basics.Visualization.allTests,
         com.giyeok.jparser.tests.gramgram.Visualization.allTests,
-        com.giyeok.jparser.tests.javascript.Visualization.allTests).flatten
+        com.giyeok.jparser.tests.javascript.Visualization.allTests
+    ).flatten
 
     def main(args: Array[String]): Unit = {
         start()
@@ -110,7 +95,8 @@ trait Viewer {
                         val messages = Seq(
                             (if (!missingSymbols.isEmpty) Some(s"Missing: ${missingSymbols map { _.toShortString } mkString ", "}") else None),
                             (if (!wrongLookaheads.isEmpty) Some(s"Wrong: ${wrongLookaheads map { _.toShortString } mkString ", "}") else None),
-                            (if (!unusedSymbols.isEmpty) Some(s"Unused: ${unusedSymbols map { _.toShortString } mkString ", "}") else None))
+                            (if (!unusedSymbols.isEmpty) Some(s"Unused: ${unusedSymbols map { _.toShortString } mkString ", "}") else None)
+                        )
                         val fig = new Figure
                         fig.setLayoutManager(new ToolbarLayout(false))
                         val label = new Label
@@ -169,13 +155,13 @@ trait Viewer {
                 case ParserTypes.Naive =>
                     ParsingProcessVisualizer.start[NaiveWrappedContext](grammar.name, gt.nparserNaive, source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.Preprocessed =>
-                    ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                    ??? // ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.PreprocessedSliced =>
-                    ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserSlicedPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                    ??? // ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserSlicedPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.PreprocessedCompacted =>
-                    ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserCompactPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                    ??? // ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserCompactPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.PreprocessedSlicedCompacted =>
-                    ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserCompactSlicedPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                    ??? //ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserCompactSlicedPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
             }
         }
 
@@ -187,8 +173,8 @@ trait Viewer {
 
         textList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
-                val gt = sortedTestCases(grammarList.getSelectionIndex())
-                val source = shownTexts(textList.getSelectionIndex())
+                val gt = sortedTestCases(grammarList.getSelectionIndex)
+                val source = shownTexts(textList.getSelectionIndex)
 
                 startParserVisualizer(gt, source.toSeq, display, new Shell(display))
             }
@@ -197,7 +183,7 @@ trait Viewer {
         proceedView.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 if (grammarList.getSelectionIndex >= 0) {
-                    val gt = sortedTestCases(grammarList.getSelectionIndex())
+                    val gt = sortedTestCases(grammarList.getSelectionIndex)
                     val source = Inputs.fromString(testText.getText())
                     startParserVisualizer(gt, source.toSeq, display, new Shell(display))
                 }
@@ -207,8 +193,8 @@ trait Viewer {
         derivationView.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
                 if (grammarList.getSelectionIndex >= 0) {
-                    val gt = sortedTestCases(grammarList.getSelectionIndex())
-                    new PreprocessedDerivationViewer(gt.grammar, gt.ngrammar, gt.slicedDerivationPreprocessor, gt.compactSlicedDerivationPreprocessor, BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
+                    val gt = sortedTestCases(grammarList.getSelectionIndex)
+                    ??? // new PreprocessedDerivationViewer(gt.grammar, gt.ngrammar, gt.slicedDerivationPreprocessor, gt.compactSlicedDerivationPreprocessor, BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
                 }
             }
         })

@@ -348,10 +348,10 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
                         transitionAt(gen) match {
                             case Left(transition) =>
                                 stage match {
-                                    case 1 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.baseCtx, transition.expandedCtx)
-                                    case 2 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.expandedCtx, transition.liftedCtx)
-                                    case 3 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.liftedCtx, transition.trimmedCtx)
-                                    case 4 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.trimmedCtx, transition.revertedCtx)
+                                    case 1 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.baseGraph, transition.expandedGraph)
+                                    case 2 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.expandedGraph, transition.liftedGraph)
+                                    case 3 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.liftedGraph, transition.trimmedGraph)
+                                    case 4 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.trimmedGraph, transition.revertedGraph)
                                 }
                             case Right(error) => errorControl(error.msg)
                         }
@@ -382,17 +382,17 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
                     currentLocation match {
                         case ParsingContextPointer(gen) =>
                             contextAt(gen) match {
-                                case Left(wctx) => dotGraphGen.get.addGraph(wctx.ctx.graph)
+                                case Left(wctx) => dotGraphGen.get.addGraph(wctx.graph)
                                 case Right(_) => // nothing to do
                             }
                         case ParsingContextTransitionPointer(gen, stage) =>
                             transitionAt(gen) match {
                                 case Left(transition) =>
                                     stage match {
-                                        case 1 => dotGraphGen.get.addTransition(transition.baseCtx.graph, transition.expandedCtx.graph)
-                                        case 2 => dotGraphGen.get.addTransition(transition.expandedCtx.graph, transition.liftedCtx.graph)
-                                        case 3 => dotGraphGen.get.addTransition(transition.liftedCtx.graph, transition.trimmedCtx.graph)
-                                        case 4 => dotGraphGen.get.addTransition(transition.trimmedCtx.graph, transition.revertedCtx.graph)
+                                        case 1 => dotGraphGen.get.addTransition(transition.baseGraph, transition.expandedGraph)
+                                        case 2 => dotGraphGen.get.addTransition(transition.expandedGraph, transition.liftedGraph)
+                                        case 3 => dotGraphGen.get.addTransition(transition.liftedGraph, transition.trimmedGraph)
+                                        case 4 => dotGraphGen.get.addTransition(transition.trimmedGraph, transition.revertedGraph)
                                     }
                                 case Right(_) => // nothing to do
                             }
