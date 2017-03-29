@@ -10,7 +10,7 @@ object ParsingContext {
         def shiftGen(gen: Int): Kernel = Kernel(symbolId, pointer, beginGen + gen, endGen + gen)(symbol)
         def isFinished: Boolean = symbol match {
             case _: NAtomicSymbol => pointer == 1 ensuring (pointer == 0 || pointer == 1)
-            case Sequence(_, seq) => pointer == seq.length ensuring (0 <= pointer && pointer < seq.length)
+            case Sequence(_, seq) => pointer == seq.length ensuring (0 <= pointer && pointer <= seq.length)
         }
         def proceed(newEndGen: Int) = Kernel(symbolId, pointer + 1, beginGen, newEndGen)(symbol) ensuring !this.isFinished
     }

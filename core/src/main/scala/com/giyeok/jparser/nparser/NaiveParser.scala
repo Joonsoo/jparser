@@ -20,7 +20,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveWrappedContext] wit
 
     def proceedDetail(wctx: NaiveWrappedContext, input: Input): Either[(ProceedDetail, NaiveWrappedContext), ParsingError] = {
         val (graph, gen, nextGen) = (wctx.graph, wctx.gen, wctx.nextGen)
-        val termFinishes = finishableTermNodes(graph, gen, input).toList map { FinishTask }
+        val termFinishes = finishableTermNodes(graph, gen, input).toList map { ProgressTask(_, Always) }
         if (termFinishes.isEmpty) {
             Right(UnexpectedInput(input, nextGen))
         } else {
@@ -28,7 +28,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveWrappedContext] wit
             // 2. Lift
             val liftedGraph: Graph = rec(nextGen, termFinishes, graph)
             // 3. Trimming
-            val trimStarts: Set[Node] = ??? // (Set(startNode) ++ (liftedGraph.finishedNodes.conditionNodes) ++ (liftedGraph.progresses.conditionNodes)) intersect liftedGraph.graph.nodes
+            val trimStarts: Set[Node] = Set(startNode) // (Set(startNode) ++ (liftedGraph.finishedNodes.conditionNodes) ++ (liftedGraph.progresses.conditionNodes)) intersect liftedGraph.graph.nodes
             val newTermNodes: Set[Node] = termNodes(liftedGraph, nextGen)
             val trimmedGraph: Graph = trim(liftedGraph, trimStarts, newTermNodes)
             // 4. Revert

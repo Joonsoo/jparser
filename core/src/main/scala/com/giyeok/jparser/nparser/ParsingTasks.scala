@@ -22,19 +22,18 @@ trait ParsingTasks {
 
         def derive(symbolIds: Set[Int]): (Graph, Seq[Task]) = {
             // (symbolIds에 해당하는 노드) + (startNode에서 symbolIds의 노드로 가는 엣지) 추가
-            val destNodes = symbolIds map nodeOf
-            val newNodes = destNodes -- cc.nodes
-            // 새로 추가된 노드에 대한 DeriveTask 추가
-            val newDeriveTasks: Set[DeriveTask] = newNodes map DeriveTask
-            // destNodes 중 cc.finishes에 있으면 finish 추가
-            val immediateFinishTasks: Seq[Task] = destNodes.toSeq collect {
-                case destNode if destNode.kernel.isFinished => FinishTask(destNode)
-            }
+            val destNodes: Set[Node] = symbolIds map nodeOf
+            val newNodes: Set[Node] = destNodes -- cc.nodes
 
             val newGraph = destNodes.foldLeft(cc) { (graph, node) =>
                 graph.addNode(node).addEdge(SimpleEdge(startNode, node))
             }
-            (newGraph, newDeriveTasks.toSeq ++ immediateFinishTasks)
+            // empty여서 isFinished인 것은 바로 FinishTask, 아니면 DeriveTask
+            val newTasks: Seq[Task] = newNodes.toSeq map {
+                case node if node.kernel.isFinished => FinishTask(node)
+                case node => DeriveTask(node)
+            }
+            (newGraph, newTasks)
         }
 
         startNode.kernel.symbol match {
@@ -66,6 +65,10 @@ trait ParsingTasks {
                         (updateNode(cc.addNode(lookaheadNode), lookaheadNode, finishedLookaheadNode), FinishTask(finishedLookaheadNode) +: newDeriveTask)
                 }
             case Sequence(_, seq) =>
+                if (seq.isEmpty) {
+                    println(startNode)
+                    println()
+                }
                 assert(seq.nonEmpty) // empty인 sequence는 derive시점에 모두 처리되어야 함
                 assert(startNode.kernel.pointer < seq.length) // node의 pointer는 sequence의 length보다 작아야 함
                 derive(Set(seq(startNode.kernel.pointer)))
@@ -135,6 +138,7 @@ trait ParsingTasks {
                 case SimpleEdge(start, _) => SimpleEdge(start, newNode)
                 case JoinEdge(start, `node`, join) => JoinEdge(start, newNode, join)
                 case JoinEdge(start, end, `node`) => JoinEdge(start, end, newNode)
+                case _ => ??? // should not happen
             }
             graph.addEdge(newEdge)
         }
@@ -156,25 +160,32 @@ trait ParsingTasks {
         }
 
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.Input): Set[Node] = {
-        def acceptable(symbolId: Int): Boolean = grammar.nsymbols(symbolId) match {
-            case Terminal(terminal) => terminal accept input
-            case _ => false
-        }
+        def acceptable(symbolId: Int): Boolean =
+            grammar.nsymbols get symbolId match {
+                case Some(Terminal(terminal)) => terminal accept input
+                case _ => false
+            }
         graph.nodes collect {
             case node @ Node(Kernel(symbolId, 0, `nextGen`, `nextGen`), _) if acceptable(symbolId) => node
         }
     }
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.TermGroupDesc): Set[Node] = {
-        def acceptable(symbolId: Int): Boolean = grammar.nsymbols(symbolId) match {
-            case Terminal(terminal) => terminal accept input
-            case _ => false
-        }
+        def acceptable(symbolId: Int): Boolean =
+            grammar.nsymbols get symbolId match {
+                case Some(Terminal(terminal)) => terminal accept input
+                case _ => false
+            }
         graph.nodes collect {
             case node @ Node(Kernel(symbolId, 0, `nextGen`, `nextGen`), _) if acceptable(symbolId) => node
         }
     }
     def termNodes(graph: Graph, nextGen: Int): Set[Node] = {
-        graph.nodes filter { node => grammar.nsymbols(node.kernel.symbolId).isInstanceOf[Terminal] }
+        graph.nodes filter { node =>
+            grammar.nsymbols get node.kernel.symbolId match {
+                case Some(Terminal(_)) => true
+                case _ => false
+            }
+        }
     }
     def trim(graph: Graph, starts: Set[Node], ends: Set[Node]): Graph = {
         // TODO finish된 노드는 기본적으로 제거하기
@@ -211,8 +222,8 @@ trait ParsingTasks {
         graph.removeNodes(removing)
     }
     def updateAcceptableCondition(nextGen: Int, graph: Graph): Graph = {
-        ???
         // TODO graph에서 각 node별로 acceptable condition을 업데이트한다
+        graph
         //        val newFinishes = context.finishes.mapCondition(_.evaluate(nextGen, finishes, survived)).trimFalse._1
         //        val (newProgresses, falseNodes) = context.progresses.mapCondition(_.evaluate(nextGen, finishes, survived)).trimFalse
         //        context.updateFinishes(newFinishes).updateProgresses(newProgresses).updateGraph(_.removeNodes(falseNodes.asInstanceOf[Set[Node]]))
