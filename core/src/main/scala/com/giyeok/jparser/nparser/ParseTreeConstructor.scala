@@ -22,6 +22,15 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
         ??? // reconstruct(SymbolKernel(grammar.startSymbol, 0), input.length)
     }
     def reconstruct(node: Node, gen: Int): Option[R] = {
+        println(input)
+        history.zipWithIndex foreach { hIdx =>
+            val (h, idx) = hIdx
+            println(s"===== $idx")
+            h foreach { n =>
+                println(n.kernel.symbol.symbol.toShortString, n.kernel.pointer, n.kernel.beginGen, n.kernel.endGen)
+            }
+        }
+        println("???")
         ??? // if (finishes(gen) contains node) Some(reconstruct(node, gen, Set())) else None
     }
 

@@ -77,19 +77,19 @@ object Parser {
     abstract class WrappedContext(val gen: Int, val graph: Graph, _inputs: List[Input], _history: List[Set[Node]], val conditionFate: ConditionFate) {
         def nextGen = gen + 1
         def inputs = _inputs.reverse
-        def history = (graph.finishedNodes +: _history).reverse
+        def history = (graph.nodes +: _history).reverse
     }
 
     class NaiveWrappedContext(gen: Int, graph: Graph, _inputs: List[Input], _history: List[Set[Node]], conditionFate: ConditionFate) extends WrappedContext(gen, graph, _inputs, _history, conditionFate) {
         def proceed(nextGen: Int, nextGraph: Graph, newInput: Input, newConditionFate: Map[AcceptCondition, AcceptCondition]) = {
-            new NaiveWrappedContext(nextGen, nextGraph, newInput +: _inputs, graph.finishedNodes +: _history, conditionFate update newConditionFate)
+            new NaiveWrappedContext(nextGen, nextGraph, newInput +: _inputs, graph.nodes +: _history, conditionFate update newConditionFate)
         }
     }
 
     class DeriveTipsWrappedContext(gen: Int, graph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Set[Node]], conditionFate: ConditionFate) extends WrappedContext(gen, graph, _inputs, _history, conditionFate) {
         // assert(deriveTips subsetOf ctx.graph.nodes)
         def proceed(nextGen: Int, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, newConditionFate: Map[AcceptCondition, AcceptCondition]) = {
-            new DeriveTipsWrappedContext(nextGen, nextGraph, deriveTips: Set[Node], newInput +: _inputs, graph.finishedNodes +: _history, conditionFate update newConditionFate)
+            new DeriveTipsWrappedContext(nextGen, nextGraph, deriveTips: Set[Node], newInput +: _inputs, graph.nodes +: _history, conditionFate update newConditionFate)
         }
     }
 

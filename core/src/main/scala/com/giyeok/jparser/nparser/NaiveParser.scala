@@ -28,6 +28,8 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveWrappedContext] wit
             // 2. Lift
             val liftedGraph: Graph = rec(nextGen, termFinishes, graph)
             // 3. Trimming
+            // TODO trimming은 accept condition evaluateion과 history를 위한 노드 기록 등의 모든 과정이 끝나고 다음 단계로 넘어가기 직전에 해야함
+            // TODO 사용이 완료된 터미널 노드 지우기 추가
             val trimStarts: Set[Node] = Set(startNode) // (Set(startNode) ++ (liftedGraph.finishedNodes.conditionNodes) ++ (liftedGraph.progresses.conditionNodes)) intersect liftedGraph.graph.nodes
             val newTermNodes: Set[Node] = termNodes(liftedGraph, nextGen)
             val trimmedGraph: Graph = trim(liftedGraph, trimStarts, newTermNodes)
