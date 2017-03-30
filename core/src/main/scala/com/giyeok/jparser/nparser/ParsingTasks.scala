@@ -9,6 +9,8 @@ import scala.annotation.tailrec
 trait ParsingTasks {
     val grammar: NGrammar
 
+    case class Cont(graph: Graph, updatedNodes: Map[Node, Set[Node]])
+
     sealed trait Task
     case class DeriveTask(node: Node) extends Task
     case class FinishTask(node: Node) extends Task
@@ -23,6 +25,7 @@ trait ParsingTasks {
         def derive(symbolIds: Set[Int]): (Graph, Seq[Task]) = {
             // (symbolIds에 해당하는 노드) + (startNode에서 symbolIds의 노드로 가는 엣지) 추가
             val destNodes: Set[Node] = symbolIds map nodeOf
+            val existedNodes: Set[Node] = destNodes intersect cc.nodes
             val newNodes: Set[Node] = destNodes -- cc.nodes
 
             val newGraph = destNodes.foldLeft(cc) { (graph, node) =>
@@ -33,6 +36,7 @@ trait ParsingTasks {
                 case node if node.kernel.isFinished => FinishTask(node)
                 case node => DeriveTask(node)
             }
+            // TODO existedNodes 들에 대해서는 cc.updatedNodes보고 추가 처리
             (newGraph, newTasks)
         }
 
@@ -49,6 +53,7 @@ trait ParsingTasks {
                         val joinNode = nodeOf(join)
                         val bodyNodeTask = if (bodyNode.kernel.isFinished) FinishTask(bodyNode) else DeriveTask(bodyNode)
                         val joinNodeTask = if (joinNode.kernel.isFinished) FinishTask(joinNode) else DeriveTask(joinNode)
+                        // TODO cc.updatedNodes보고 추가 처리
                         (cc.addNode(bodyNode).addNode(joinNode).addEdge(JoinEdge(startNode, bodyNode, joinNode)), Seq(bodyNodeTask, joinNodeTask))
 
                     case lookaheadSymbol: NLookaheadSymbol =>
@@ -60,6 +65,8 @@ trait ParsingTasks {
                             case _: LookaheadIs => After(lookaheadNode, nextGen)
                             case _: LookaheadExcept => Until(lookaheadNode, nextGen)
                         }
+                        ProgressTask(lookaheadNode, condition)
+                        // TODO finishedLookaheadNode 추가하는 부분은 이제 progress task로 하면 되는 거 아닌가?
                         val finishedLookaheadNode = Node(lookaheadNode.kernel.proceed(nextGen), condition)
                         assert(finishedLookaheadNode.kernel.isFinished)
                         (updateNode(cc.addNode(lookaheadNode), lookaheadNode, finishedLookaheadNode), FinishTask(finishedLookaheadNode) +: newDeriveTask)
@@ -75,7 +82,7 @@ trait ParsingTasks {
         }
     }
 
-    def finishTask(nextGen: Int, task: FinishTask, graph: Graph): (Graph, Seq[Task]) = {
+    def finishTask(nextGen: Int, task: FinishTask, cc: Graph): (Graph, Seq[Task]) = {
         val FinishTask(node) = task
 
         assert(node.kernel.isFinished)
@@ -87,7 +94,7 @@ trait ParsingTasks {
             case Some(_: EagerLongest) => conjunct(node.condition, Alive(node, nextGen))
             case _ => node.condition
         }
-        val incomingEdges = graph.edgesByDest(node)
+        val incomingEdges = cc.edgesByDest(node)
         val chainTasks: Seq[Task] = incomingEdges.toSeq flatMap {
             case SimpleEdge(incoming, _) =>
                 incoming.kernel.symbol match {
@@ -99,16 +106,16 @@ trait ParsingTasks {
             case JoinEdge(start, other, `node`) if other.kernel.isFinished =>
                 Some(ProgressTask(start, conjunct(chainCondition, other.condition)))
         }
-        (graph, chainTasks)
+        (cc, chainTasks)
     }
 
-    def progressTask(nextGen: Int, task: ProgressTask, graph: Graph): (Graph, Seq[Task]) = {
+    def progressTask(nextGen: Int, task: ProgressTask, cc: Graph): (Graph, Seq[Task]) = {
         val ProgressTask(node, condition) = task
         // assert(cc.graph.nodes contains node)
 
         val updatedCondition = conjunct(node.condition, condition)
         val updatedNode = Node(node.kernel.proceed(nextGen), updatedCondition)
-        if (graph.nodes contains updatedNode) {
+        if (cc.nodes contains updatedNode) {
             // 할 일 없을듯?
             //                if (cc.progresses contains (updatedNode, updatedConditions)) {
             //                    (cc.updateFinishes(newFinishes), Seq())
@@ -117,7 +124,8 @@ trait ParsingTasks {
             //                }
             ???
         } else {
-            val newGraph = updateNode(graph, node, updatedNode)
+            // TODO cc에 updatedNodes에 node -> updatedNode 추가
+            val newGraph = updateNode(cc, node, updatedNode)
             val newTasks = if (updatedNode.kernel.isFinished) {
                 // TODO finish task 만들기
                 //            val updatedConditions = cc.progresses.of(node).get map { conjunct(_, condition) }
@@ -181,10 +189,11 @@ trait ParsingTasks {
     }
     def termNodes(graph: Graph, nextGen: Int): Set[Node] = {
         graph.nodes filter { node =>
-            grammar.nsymbols get node.kernel.symbolId match {
+            val isTerminalSymbol = grammar.nsymbols get node.kernel.symbolId match {
                 case Some(Terminal(_)) => true
                 case _ => false
             }
+            (node.kernel.beginGen == nextGen) && isTerminalSymbol
         }
     }
     def trim(graph: Graph, starts: Set[Node], ends: Set[Node]): Graph = {

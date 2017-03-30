@@ -13,6 +13,8 @@ object ParsingContext {
             case Sequence(_, seq) => pointer == seq.length ensuring (0 <= pointer && pointer <= seq.length)
         }
         def proceed(newEndGen: Int) = Kernel(symbolId, pointer + 1, beginGen, newEndGen)(symbol) ensuring !this.isFinished
+
+        override def toString: String = s"Kernel(${symbol.symbol.toShortString}, $pointer, $beginGen..$endGen)"
     }
     case class Node(kernel: Kernel, condition: AcceptCondition) {
         def shiftGen(gen: Int) = Node(kernel.shiftGen(gen), condition.shiftGen(gen))
