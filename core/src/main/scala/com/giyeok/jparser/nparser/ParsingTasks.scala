@@ -11,7 +11,7 @@ trait ParsingTasks {
 
     case class Cont(graph: Graph, updatedNodes: Map[Node, Set[Node]])
 
-    sealed trait Task
+    sealed trait Task { val node: Node }
     case class DeriveTask(node: Node) extends Task
     case class FinishTask(node: Node) extends Task
     case class ProgressTask(node: Node, condition: AcceptCondition) extends Task
@@ -177,16 +177,22 @@ trait ParsingTasks {
             case task: FinishTask => finishTask(nextGen, task, cc)
         }
 
-    @tailrec final def rec(nextGen: Int, tasks: List[Task], cc: Cont): Cont =
+    @tailrec final def rec(nextGen: Int, tasks: List[Task], cc: Cont, stopNodes: Set[Node]): Cont =
         tasks match {
             case task +: rest =>
-                val (ncc, newTasks) = process(nextGen, task, cc)
-                rec(nextGen, newTasks ++: rest, ncc)
+                if (stopNodes contains task.node) {
+                    // stopNode에 대해서는 아무 작업도 하지 않음
+                    rec(nextGen, rest, cc, stopNodes)
+                } else {
+                    val (ncc, newTasks) = process(nextGen, task, cc)
+                    rec(nextGen, newTasks ++: rest, ncc, stopNodes)
+                }
             case List() => cc
         }
 
-    def rec(nextGen: Int, tasks: List[Task], graph: Graph): Cont =
-        rec(nextGen, tasks, Cont(graph, Map()))
+    // acceptable하지 않은 조건을 가진 기존의 노드에 대해서는 task를 진행하지 않는다
+    def rec(nextGen: Int, tasks: List[Task], graph: Graph, stopNodes: Set[Node]): Cont =
+        rec(nextGen, tasks, Cont(graph, Map()), stopNodes)
 
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.Input): Set[Node] = {
         def acceptable(symbolId: Int): Boolean =

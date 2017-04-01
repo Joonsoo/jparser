@@ -1,13 +1,13 @@
 package com.giyeok.jparser.visualize
 
+import scala.collection.mutable
 import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.ParseResultDerivationsSetFunc
 import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParseTreeConstructor
-import com.giyeok.jparser.nparser.Parser.DeriveTipsContext
 import com.giyeok.jparser.nparser.Parser.Context
+import com.giyeok.jparser.nparser.Parser.DeriveTipsContext
 import com.giyeok.jparser.nparser.ParsingContext
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
@@ -18,6 +18,7 @@ import org.eclipse.draw2d.LineBorder
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.MouseListener
+import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.Control
@@ -33,23 +34,17 @@ trait AbstractZestGraphWidget extends Control {
     val graphCtrl: Graph
     val fig: NodeFigureGenerators[Figure]
 
-    val nodesMap = scala.collection.mutable.Map[Node, CGraphNode]()
-    val edgesMap = scala.collection.mutable.Map[Edge, Seq[GraphConnection]]()
-    var visibleNodes = Set[Node]()
-    var visibleEdges = Set[Edge]()
+    val nodesMap: mutable.Map[Node, CGraphNode] = scala.collection.mutable.Map[Node, CGraphNode]()
+    val edgesMap: mutable.Map[Edge, Seq[GraphConnection]] = scala.collection.mutable.Map[Edge, Seq[GraphConnection]]()
+    var visibleNodes: Set[Node] = Set[Node]()
+    var visibleEdges: Set[Edge] = Set[Edge]()
 
-    def addNode(grammar: NGrammar, node: Node, isAcceptable: Boolean): Unit = {
+    def addNode(grammar: NGrammar, node: Node): Unit = {
         if (!(nodesMap contains node)) {
             val nodeFig = fig.nodeFig(grammar, node)
             nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
             nodeFig.setOpaque(true)
-
-            if (isAcceptable) {
-                nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
-            } else {
-                nodeFig.setBorder(new LineBorder(ColorConstants.darkGray, 1, SWT.LINE_DASH))
-            }
-
+            nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
             nodeFig.setSize(nodeFig.getPreferredSize())
 
             val gnode = new CGraphNode(graphCtrl, SWT.NONE, nodeFig)
@@ -60,7 +55,7 @@ trait AbstractZestGraphWidget extends Control {
         }
     }
 
-    val edgeColor = ColorConstants.gray
+    val edgeColor: Color = ColorConstants.gray
     def addEdge(edge: Edge): Unit = {
         if (!(edgesMap contains edge)) {
             edge match {
@@ -86,9 +81,9 @@ trait AbstractZestGraphWidget extends Control {
         }
     }
 
-    def addGraph(grammar: NGrammar, graph: ParsingContext.Graph, acceptableConds: Set[AcceptCondition]): Unit = {
+    def addGraph(grammar: NGrammar, graph: ParsingContext.Graph): Unit = {
         graph.nodes foreach { node =>
-            addNode(grammar, node, acceptableConds contains node.condition)
+            addNode(grammar, node)
         }
         graph.edges foreach { edge =>
             addEdge(edge)
@@ -126,7 +121,7 @@ trait Highlightable extends AbstractZestGraphWidget {
     val highlightedNodes = scala.collection.mutable.Map[Node, (Long, Int)]()
 
     var _uniqueId = 0L
-    def uniqueId = { _uniqueId += 1; _uniqueId }
+    def uniqueId: Long = { _uniqueId += 1; _uniqueId }
 
     def highlightNode(node: Node): Unit = {
         val display = getDisplay
@@ -176,21 +171,21 @@ trait Interactable extends AbstractZestGraphWidget {
     }
 }
 
-class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, graph: ParsingContext.Graph, acceptableConds: Set[AcceptCondition])
+class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, graph: ParsingContext.Graph)
         extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with Interactable {
     val graphViewer = new GraphViewer(this, style)
-    val graphCtrl = graphViewer.getGraphControl
+    val graphCtrl: Graph = graphViewer.getGraphControl
 
     setLayout(new FillLayout())
 
     def initialize(): Unit = {
-        addGraph(grammar, graph, acceptableConds)
+        addGraph(grammar, graph)
         applyLayout(false)
-        initializeTooltips(getTooltips())
+        initializeTooltips(getTooltips)
     }
     initialize()
 
-    def getTooltips(): Map[Node, Seq[Figure]] = {
+    def getTooltips: Map[Node, Seq[Figure]] = {
         var tooltips = Map[Node, Seq[Figure]]()
         //        // finish, progress 조건 툴팁으로 표시
         //        context.finishes.nodeConditions foreach { kv =>
@@ -228,7 +223,7 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
 
     val inputMaxInterval = 2000
     case class InputAccumulator(textSoFar: String, lastTime: Long) {
-        def accumulate(char: Char, thisTime: Long) =
+        def accumulate(char: Char, thisTime: Long): InputAccumulator =
             if (thisTime - lastTime < inputMaxInterval) InputAccumulator(textSoFar + char, thisTime) else InputAccumulator("" + char, thisTime)
         def textAsInt: Option[Int] = try { Some(textSoFar.toInt) } catch { case _: Throwable => None }
         def textAsInts: Seq[Int] = {
@@ -285,11 +280,11 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
     })
 }
 
-class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: ParsingContext.Graph, trans: ParsingContext.Graph, acceptableConds: Set[AcceptCondition])
-        extends ZestGraphWidget(parent, style, fig, grammar, trans, acceptableConds) {
+class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: ParsingContext.Graph, trans: ParsingContext.Graph)
+        extends ZestGraphWidget(parent, style, fig, grammar, trans) {
     override def initialize(): Unit = {
-        addGraph(grammar, base, acceptableConds)
-        addGraph(grammar, trans, acceptableConds)
+        addGraph(grammar, base)
+        addGraph(grammar, trans)
         // 없어지는 노드, 엣지는 회색 점선
         (base.nodes -- trans.nodes) foreach { removedNode =>
             val shownNode = nodesMap(removedNode)
@@ -314,7 +309,7 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
         }
         // 공통 노드, 엣지는 기본 모양
         applyLayout(false)
-        initializeTooltips(getTooltips())
+        initializeTooltips(getTooltips)
     }
 
     private def setVisible(graph: ParsingContext.Graph, visible: Boolean): Unit = {
@@ -341,16 +336,16 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
             e.keyCode match {
                 case 'Q' | 'q' =>
                     // Show base graph only
-                    setVisible(trans, false)
-                    setVisible(base, true)
+                    setVisible(trans, visible = false)
+                    setVisible(base, visible = true)
                 case 'W' | 'w' =>
                     // Show trans graph only
-                    setVisible(base, false)
-                    setVisible(trans, true)
+                    setVisible(base, visible = false)
+                    setVisible(trans, visible = true)
                 case 'E' | 'e' =>
                     // Show both graphs
-                    setVisible(base, true)
-                    setVisible(trans, true)
+                    setVisible(base, visible = true)
+                    setVisible(trans, visible = true)
                 case _ =>
             }
         }
@@ -359,7 +354,7 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
 }
 
 class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context)
-        extends ZestGraphWidget(parent, style, fig, grammar, context.graph, context.acceptableConds) {
+        extends ZestGraphWidget(parent, style, fig, grammar, context.graph) {
     addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {

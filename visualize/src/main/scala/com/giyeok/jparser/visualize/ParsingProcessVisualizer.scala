@@ -1,53 +1,35 @@
 package com.giyeok.jparser.visualize
 
-import org.eclipse.swt.graphics.Font
-import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs.ConcreteInput
-import org.eclipse.swt.widgets.Shell
-import org.eclipse.swt.widgets.Display
-import org.eclipse.swt.SWT
-import org.eclipse.swt.graphics.Color
-import org.eclipse.draw2d.AbstractBorder
-import org.eclipse.draw2d.IFigure
-import org.eclipse.draw2d.geometry.Insets
-import org.eclipse.draw2d.Graphics
-import org.eclipse.draw2d.geometry.Insets
-import org.eclipse.draw2d.ColorConstants
-import org.eclipse.draw2d.FigureCanvas
-import org.eclipse.swt.custom.StackLayout
-import org.eclipse.jface.resource.JFaceResources
-import org.eclipse.swt.widgets.Composite
-import org.eclipse.swt.events.KeyListener
-import org.eclipse.swt.events.KeyEvent
-import org.eclipse.swt.widgets.Control
-import org.eclipse.draw2d.Figure
-import org.eclipse.draw2d.ToolbarLayout
-import org.eclipse.draw2d.AbstractLayout
-import org.eclipse.draw2d.geometry.Dimension
-import org.eclipse.draw2d.geometry.Rectangle
-import org.eclipse.draw2d.geometry.PrecisionRectangle
-import org.eclipse.draw2d
-import org.eclipse.swt.widgets.Label
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import org.eclipse.swt.layout.FillLayout
-import javax.swing.plaf.basic.CenterLayout
-import org.eclipse.draw2d.LineBorder
-import org.eclipse.swt.layout.FormData
-import org.eclipse.swt.layout.FormAttachment
-import org.eclipse.swt.layout.FormLayout
-import com.giyeok.jparser.ParseResultDerivationsSet
-import com.giyeok.jparser.ParseResultDerivationsSetFunc
-import com.giyeok.jparser.ParseForest
-import com.giyeok.jparser.ParseForest
-import com.giyeok.jparser.ParseResultGraph
-import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.nparser
-import com.giyeok.jparser.nparser.Parser
-import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.ParsingErrors.ParsingError
+import com.giyeok.jparser.nparser.Parser
 import com.giyeok.jparser.nparser.Parser.Context
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
+import org.eclipse.draw2d
+import org.eclipse.draw2d.AbstractLayout
+import org.eclipse.draw2d.ColorConstants
+import org.eclipse.draw2d.Figure
+import org.eclipse.draw2d.FigureCanvas
+import org.eclipse.draw2d.IFigure
+import org.eclipse.draw2d.ToolbarLayout
+import org.eclipse.draw2d.geometry.Dimension
+import org.eclipse.draw2d.geometry.PrecisionRectangle
+import org.eclipse.draw2d.geometry.Rectangle
+import org.eclipse.swt.SWT
+import org.eclipse.swt.custom.StackLayout
+import org.eclipse.swt.events.KeyEvent
+import org.eclipse.swt.events.KeyListener
+import org.eclipse.swt.graphics.Font
+import org.eclipse.swt.layout.FillLayout
+import org.eclipse.swt.layout.FormAttachment
+import org.eclipse.swt.layout.FormData
+import org.eclipse.swt.layout.FormLayout
+import org.eclipse.swt.widgets.Composite
+import org.eclipse.swt.widgets.Control
+import org.eclipse.swt.widgets.Display
+import org.eclipse.swt.widgets.Label
+import org.eclipse.swt.widgets.Shell
 
 class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control) {
 
@@ -88,27 +70,29 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
         def <=(other: Pointer): Boolean
     }
     case object ParsingContextInitializingPointer extends Pointer {
-        def previous = this
+        def previous = ParsingContextInitializingPointer
         def next = ParsingContextPointer(0)
-        def previousBase = this
+        def previousBase = ParsingContextInitializingPointer
         def nextBase = ParsingContextPointer(0)
 
         def stringRepr: String = ">" + (source map { _.toCleanString }).mkString
 
-        def <=(other: Pointer) = other != this
+        def <=(other: Pointer): Boolean = other != this
     }
     case class ParsingContextPointer(gen: Int) extends Pointer {
-        def previous = if (gen == 0) ParsingContextInitializingPointer else ParsingContextTransitionPointer(gen - 1, 4)
+        def previous: Pointer =
+            if (gen == 0) ParsingContextInitializingPointer
+            else ParsingContextTransitionPointer(gen - 1, 4)
         def next = ParsingContextTransitionPointer(gen, 1)
         def previousBase = ParsingContextPointer(gen - 1)
         def nextBase = ParsingContextPointer(gen + 1)
 
-        def stringRepr = {
+        def stringRepr: String = {
             val (before, after) = source map { _.toCleanString } splitAt gen
-            (before.mkString + ("*") + after.mkString)
+            before.mkString + "*" + after.mkString
         }
 
-        def <=(other: Pointer) = other match {
+        def <=(other: Pointer): Boolean = other match {
             case ParsingContextInitializingPointer => false
             case ParsingContextPointer(otherGen) => gen <= otherGen
             case ParsingContextTransitionPointer(otherGen, _) => gen <= otherGen
@@ -117,17 +101,23 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
     val stagesCount = 5
     case class ParsingContextTransitionPointer(gen: Int, stage: Int) extends Pointer {
         assert(1 <= stage && stage <= stagesCount)
-        def previous = if (stage == 1) ParsingContextPointer(gen) else ParsingContextTransitionPointer(gen, stage - 1)
-        def next = if (stage == stagesCount) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
-        def previousBase = if (stage == 1) ParsingContextPointer(gen - 1) else ParsingContextPointer(gen)
+        def previous: Pointer =
+            if (stage == 1) ParsingContextPointer(gen)
+            else ParsingContextTransitionPointer(gen, stage - 1)
+        def next: Pointer =
+            if (stage == stagesCount) ParsingContextPointer(gen + 1)
+            else ParsingContextTransitionPointer(gen, stage + 1)
+        def previousBase: Pointer =
+            if (stage == 1) ParsingContextPointer(gen - 1)
+            else ParsingContextPointer(gen)
         def nextBase = ParsingContextPointer(gen + 1)
 
-        def stringRepr = {
+        def stringRepr: String = {
             val (before, after) = source map { _.toCleanString } splitAt (gen + 1)
-            (before.mkString + (">" * stage) + after.mkString)
+            before.mkString + (">" * stage) + after.mkString
         }
 
-        def <=(other: Pointer) = other match {
+        def <=(other: Pointer): Boolean = other match {
             case ParsingContextInitializingPointer => false
             case ParsingContextPointer(otherGen) => gen <= otherGen
             case ParsingContextTransitionPointer(otherGen, otherStage) => gen < otherGen || (gen == otherGen && stage <= otherStage)
@@ -137,11 +127,11 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
     def isValidLocation(pointer: Pointer): Boolean = pointer match {
         case ParsingContextInitializingPointer => true
         case ParsingContextPointer(gen) => 0 <= gen && gen <= source.length
-        case ParsingContextTransitionPointer(gen, stage) => 0 <= gen && gen < source.length
+        case ParsingContextTransitionPointer(gen, _) => 0 <= gen && gen < source.length
     }
 
     val firstLocation = ParsingContextPointer(0)
-    lazy val lastValidLocation = ParsingContextPointer(((0 to source.length).toSeq.reverse.find { contextAt(_).isLeft }).get)
+    lazy val lastValidLocation = ParsingContextPointer(((source.length to 0 by -1) find { contextAt(_).isLeft }).get)
     val lastLocation = ParsingContextPointer(source.length)
     var currentLocation: Pointer = firstLocation
 
@@ -160,11 +150,11 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                     }
 
                     def layout(container: IFigure): Unit = {
-                        val children = container.getChildren().asInstanceOf[java.util.List[IFigure]]
+                        val children = container.getChildren.asInstanceOf[java.util.List[IFigure]]
                         val i = children.iterator()
-                        val containerBound: Rectangle = container.getBounds()
+                        val containerBound: Rectangle = container.getBounds
                         val containerSize = container.getPreferredSize()
-                        while (i.hasNext()) {
+                        while (i.hasNext) {
                             val c = i.next()
                             val childSize = c.getPreferredSize()
                             val (x, y) = calculate(containerBound.width, containerBound.height, childSize.width, childSize.height)
@@ -283,8 +273,8 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
         }
     }
 
-    val contextCache = scala.collection.mutable.Map[Int, Either[C, ParsingError]]()
-    val transitionCache = scala.collection.mutable.Map[Int, Either[(Context, ProceedDetail, Context), ParsingError]]()
+    private val contextCache = scala.collection.mutable.Map[Int, Either[C, ParsingError]]()
+    private val transitionCache = scala.collection.mutable.Map[Int, Either[(Context, ProceedDetail, Context), ParsingError]]()
     def contextAt(gen: Int): Either[C, ParsingError] =
         contextCache get gen match {
             case Some(cached) => cached
@@ -321,8 +311,8 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
         control
     }
 
-    val nodeFigGenerator = resources.nodeFigureGenerators
-    val controlCache = scala.collection.mutable.Map[Pointer, Control]()
+    private val nodeFigGenerator = resources.nodeFigureGenerators
+    private val controlCache = scala.collection.mutable.Map[Pointer, Control]()
 
     def controlAt(pointer: Pointer): Control = {
         controlCache get pointer match {
@@ -343,9 +333,9 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                                 case Some(tuple) => func(tuple)
                             }
                         transitionAt(gen) match {
-                            case Left((prevCtx, transition, nextCtx)) =>
+                            case Left((_, transition, _)) =>
                                 val (prevGraph, nextGraph) = (transition.seqs(stage - 1), transition.seqs(stage))
-                                new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph, prevCtx.acceptableConds)
+                                new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph)
                             case Right(error) => errorControl(error.msg)
                         }
                 }
@@ -381,12 +371,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                         case ParsingContextTransitionPointer(gen, stage) =>
                             transitionAt(gen) match {
                                 case Left((_, transition, _)) =>
-                                    stage match {
-                                        case 1 => dotGraphGen.get.addTransition(transition.baseGraph, transition.expandedGraph)
-                                        case 2 => dotGraphGen.get.addTransition(transition.expandedGraph, transition.liftedGraph)
-                                        case 3 => dotGraphGen.get.addTransition(transition.liftedGraph, transition.acceptConditionUpdatedGraph)
-                                        case 4 => dotGraphGen.get.addTransition(transition.acceptConditionUpdatedGraph, transition.trimmedGraph)
-                                    }
+                                    dotGraphGen.get.addTransition(transition.seqs(stage - 1), transition.seqs(stage))
                                 case Right(_) => // nothing to do
                             }
                         case _ => // nothing to do

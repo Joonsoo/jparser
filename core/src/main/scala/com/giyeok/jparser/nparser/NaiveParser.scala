@@ -13,10 +13,9 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
     // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
 
     val initialContext: NaiveContext = {
-        val cc = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
+        val cc = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()), Set[Node]())
         val conditionsEvaluations = evaluateAcceptConditions(0, cc.graph.nodes map { _.condition }, cc.graph, cc.updatedNodes)
-        val acceptableConds = conditionsEvaluations.keySet filter { _.acceptable(0, cc.graph, cc.updatedNodes) }
-        new NaiveContext(0, cc.graph, acceptableConds, List(), List(), ConditionFate(conditionsEvaluations))
+        new NaiveContext(0, cc.graph, List(), List(), ConditionFate(conditionsEvaluations))
     }
 
     def proceedDetail(ctx: NaiveContext, input: Input): Either[(ProceedDetail, NaiveContext), ParsingError] = {
@@ -26,47 +25,52 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             Right(UnexpectedInput(input, nextGen))
         } else {
             // No Expansion
-            // 2. Lift
-            val Cont(liftedGraph, updatedNodes) = rec(nextGen, termFinishes, graph)
 
-            // 3. Evaluate accept conditions
+            // 2. 1차 lift
+            val Cont(liftedGraph0, updatedNodes0) = rec(nextGen, termFinishes, graph, Set[Node]())
+
+            // 3. stopNodes를 계산해서 2차 lift
+            val stopNodes: Set[Node] = liftedGraph0.nodes filter { node =>
+                !node.condition.acceptable(nextGen, liftedGraph0, updatedNodes0)
+            }
+            val Cont(liftedGraph, updatedNodes) = rec(nextGen, termFinishes, graph, stopNodes)
+
+            // 4. Evaluate accept conditions
             val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] =
                 evaluateAcceptConditions(nextGen, liftedGraph.nodes map { _.condition }, liftedGraph, updatedNodes)
-            val acceptableConditions = liftedGraph.nodes map { _.condition } filter { condition =>
-                condition.acceptable(gen, liftedGraph, updatedNodes)
-            }
 
-            // 4. Accept condition 처리
-            // 4a. Condition Fate
+            // 5. Accept condition 처리
+            // 5a. ConditionFate update
             val nextConditionFate: ConditionFate = {
                 //                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedGraph) }
                 //                val newConditions = (revertedGraph.finishedNodes map { _.condition } map { c => (c -> c) }).toMap
                 //                evaluated ++ newConditions // filter { _._2 != False }
                 ctx.conditionFate.update(conditionsEvaluations)
             }
-            // 4b. Update accept conditions
+            // 5b. Update accept conditions in graph
             val acceptConditionUpdatedGraph = liftedGraph mapNode { node =>
                 Node(node.kernel, conditionsEvaluations(node.condition))
             }
 
-            // 5. Trimming
-            // 5a. 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
+            // 6. Trimming
+            // 6a. 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
             val trimmed1 = acceptConditionUpdatedGraph filterNode { node =>
                 (node.condition != Never) && (node.kernel.symbol match {
                     case Terminal(_) => node.kernel.beginGen == nextGen
                     case _ => true
                 })
             }
-            // 5b. startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
+            // 6b. startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
             val trimStarts: Set[Node] = Set(startNode) ++ (trimmed1.nodes flatMap { _.condition.nodes } intersect trimmed1.nodes)
             val newTermNodes: Set[Node] = termNodes(trimmed1, nextGen)
             val trimmedGraph: Graph = trim(trimmed1, trimStarts, newTermNodes)
 
-            // TODO acceptConditionUpdatedGraph와 trimmedGraph를 둘 다 받아야 함
-            // - parse tree reconstruction에는 acceptConditionUpdatedGraph 사용
-            // - 다음 generation 시작할 때는 trimmedGraph 사용
-            val nextContext = ctx.proceed(nextGen, trimmedGraph, acceptableConditions, input, nextConditionFate)
-            Left((ProceedDetail(graph, graph, liftedGraph, acceptConditionUpdatedGraph, trimmed1, trimmedGraph), nextContext))
+            // TODO trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
+            // - acceptConditionUpdatedGraph와 trimmedGraph를 둘 다 받아서 해결 가능
+            //   - parse tree reconstruction에는 acceptConditionUpdatedGraph 사용
+            //   - 다음 generation 시작할 때는 trimmedGraph 사용
+            val nextContext = ctx.proceed(nextGen, trimmedGraph, input, nextConditionFate)
+            Left((ProceedDetail(graph, graph, liftedGraph0, liftedGraph, acceptConditionUpdatedGraph, trimmed1, trimmedGraph), nextContext))
         }
     }
 }
