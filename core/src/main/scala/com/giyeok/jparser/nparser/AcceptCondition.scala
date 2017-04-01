@@ -6,8 +6,8 @@ object AcceptCondition {
     sealed trait AcceptCondition {
         def nodes: Set[Node]
         def shiftGen(gen: Int): AcceptCondition
-        def evaluate(gen: Int, graph: Graph): AcceptCondition
-        def acceptable: Boolean
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean
         def neg: AcceptCondition
     }
     def conjunct(conditions: AcceptCondition*): AcceptCondition =
@@ -31,15 +31,15 @@ object AcceptCondition {
     case object Always extends AcceptCondition {
         val nodes: Set[Node] = Set[Node]()
         def shiftGen(gen: Int): AcceptCondition = this
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = this
-        def acceptable = true
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = this
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]) = true
         def neg = Never
     }
     case object Never extends AcceptCondition {
         val nodes: Set[Node] = Set[Node]()
         def shiftGen(gen: Int): AcceptCondition = this
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = this
-        def acceptable = false
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = this
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]) = false
         def neg = Always
     }
     case class And(conditions: Set[AcceptCondition]) extends AcceptCondition {
@@ -48,11 +48,11 @@ object AcceptCondition {
         def nodes: Set[Node] = conditions flatMap { _.nodes }
         def shiftGen(gen: Int): AcceptCondition =
             And(conditions map { _.shiftGen(gen) })
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = ???
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = ???
         //            conditions.foldLeft[AcceptCondition](Always) { (cc, condition) =>
         //                conjunct(condition.evaluate(gen, finishes, survived), cc)
         //            }
-        def acceptable: Boolean = conditions forall { _.acceptable }
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = conditions forall { _.acceptable(graph, updatedNodes) }
         def neg: AcceptCondition = disjunct((conditions map { _.neg }).toSeq: _*)
     }
     case class Or(conditions: Set[AcceptCondition]) extends AcceptCondition {
@@ -60,18 +60,18 @@ object AcceptCondition {
 
         def nodes: Set[Node] = conditions flatMap { _.nodes }
         def shiftGen(gen: Int): AcceptCondition = Or(conditions map { _.shiftGen(gen) })
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = ???
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = ???
         //            conditions.foldLeft[AcceptCondition](Never) { (cc, condition) =>
         //                disjunct(condition.evaluate(gen, finishes, survived), cc)
         //            }
-        def acceptable: Boolean = conditions exists { _.acceptable }
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = conditions exists { _.acceptable(graph, updatedNodes) }
         def neg: AcceptCondition = conjunct((conditions map { _.neg }).toSeq: _*)
     }
     case class Until(node: Node, activeGen: Int) extends AcceptCondition {
         def nodes: Set[Node] = Set(node)
         def shiftGen(gen: Int): AcceptCondition =
             Until(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = ???
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = ???
         //        if (gen <= activeGen) {
         //            this
         //        } else {
@@ -82,14 +82,14 @@ object AcceptCondition {
         //                    if (survived contains node) this else Always
         //            }
         //        }
-        def acceptable: Boolean = true
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = true
         def neg: AcceptCondition = After(node, activeGen)
     }
     case class After(node: Node, activeGen: Int) extends AcceptCondition {
         def nodes: Set[Node] = Set(node)
         def shiftGen(gen: Int): AcceptCondition =
             After(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = ???
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = ???
         //            if (gen <= activeGen) {
         //                this
         //            } else {
@@ -100,50 +100,55 @@ object AcceptCondition {
         //                        if (survived contains node) this else Never
         //                }
         //            }
-        val acceptable: Boolean = false
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = false
         def neg: AcceptCondition = Until(node, activeGen)
     }
     case class Alive(node: Node, activeGen: Int) extends AcceptCondition {
         def nodes: Set[Node] = Set(node)
         def shiftGen(gen: Int): AcceptCondition =
             Alive(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = ???
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = ???
         //            if (gen <= activeGen) this else { if (survived contains node) Never else Always }
-        def acceptable: Boolean = true
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = true
         def neg: AcceptCondition = Dead(node, activeGen)
     }
     case class Dead(node: Node, activeGen: Int) extends AcceptCondition {
         def nodes: Set[Node] = Set(node)
         def shiftGen(gen: Int): AcceptCondition =
             Dead(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = ???
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = ???
         //            if (gen <= activeGen) this else { if (survived contains node) Always else Never }
-        def acceptable: Boolean = false
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = false
         def neg: AcceptCondition = Alive(node, activeGen)
     }
     case class Unless(node: Node) extends AcceptCondition {
         def nodes: Set[Node] = Set(node)
         def shiftGen(gen: Int): AcceptCondition =
             Unless(node.shiftGen(gen))
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = ???
-        //            finishes.of(node) match {
-        //                case Some(conditions) =>
-        //                    val evaluated = disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived)
-        //                    // evaluated 안에는 Exclude가 없어야 한다
-        //                    // assert({
-        //                    //     def check(condition: Condition): Boolean =
-        //                    //         condition match {
-        //                    //             case _: Exclude => false
-        //                    //             case And(conds) => conds forall check
-        //                    //             case Or(conds) => conds forall check
-        //                    //             case _ => true
-        //                    //         }
-        //                    //     check(evaluated)
-        //                    // })
-        //                    evaluated.neg
-        //                case None => Always
-        //            }
-        def acceptable: Boolean = ???
-        def neg: AcceptCondition = ???
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = {
+            if (!(graph.nodes contains node)) {
+                // trimming돼서 노드가 없어졌으면
+                Always
+            } else {
+                // 그 외의 경우엔 그대로
+                this
+            }
+        }
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
+            !(updatedNodes contains node)
+        def neg: AcceptCondition =
+            OnlyIf(node)
+    }
+    case class OnlyIf(node: Node) extends AcceptCondition {
+        def nodes: Set[Node] = Set(node)
+        def shiftGen(gen: Int): AcceptCondition =
+            OnlyIf(node.shiftGen(gen))
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = {
+            ???
+        }
+        def acceptable(graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
+            updatedNodes contains node
+        def neg: AcceptCondition =
+            Unless(node)
     }
 }

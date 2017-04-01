@@ -19,8 +19,14 @@ trait ParsingTasks {
     def deriveTask(nextGen: Int, task: DeriveTask, cc: Cont): (Cont, Seq[Task]) = {
         val DeriveTask(startNode) = task
 
-        def nodeOf(symbolId: Int): Node =
-            Node(Kernel(symbolId, 0, nextGen, nextGen)(grammar.symbolOf(symbolId)), Always)
+        def nodeOf(symbolId: Int): Node = {
+            val symbol = grammar.symbolOf(symbolId)
+            val condition = symbol match {
+                case Except(_, body, except) => Unless(nodeOf(except))
+                case _ => Always
+            }
+            Node(Kernel(symbolId, 0, nextGen, nextGen)(symbol), condition)
+        }
 
         def derive(symbolIds: Set[Int]): (Cont, Seq[Task]) = {
             // (symbolIds에 해당하는 노드) + (startNode에서 symbolIds의 노드로 가는 엣지) 추가
@@ -44,7 +50,7 @@ trait ParsingTasks {
                     case destNode +: rest =>
                         cc.updatedNodes get destNode match {
                             case Some(updatedNodes) =>
-                                println(s"updatedNodes: $startNode, $destNode -> $updatedNodes")
+                                // println(s"updatedNodes: $startNode, $destNode -> $updatedNodes")
                                 assert((updatedNodes map { _.kernel }).size == 1)
                                 assert((updatedNodes map { _.kernel }).head.symbolId == destNode.kernel.symbolId)
                                 val updatedGraph = updatedNodes.foldLeft(graph) { (graph, updatedNode) =>
@@ -96,10 +102,6 @@ trait ParsingTasks {
                         (Cont(newGraph, cc.updatedNodes), ProgressTask(lookaheadNode, condition) +: newDeriveTask)
                 }
             case Sequence(_, seq) =>
-                if (seq.isEmpty) {
-                    println(startNode)
-                    println()
-                }
                 assert(seq.nonEmpty) // empty인 sequence는 derive시점에 모두 처리되어야 함
                 assert(startNode.kernel.pointer < seq.length) // node의 pointer는 sequence의 length보다 작아야 함
                 derive(Set(seq(startNode.kernel.pointer)))
@@ -140,7 +142,6 @@ trait ParsingTasks {
         val updatedCondition = conjunct(node.condition, condition)
         val updatedNode = Node(node.kernel.proceed(nextGen), updatedCondition)
         if (!(cc.graph.nodes contains updatedNode)) {
-            // TODO cc에 updatedNodes에 node -> updatedNode 추가
             // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
             val incomingEdges = cc.graph.edgesByDest(node)
             val newGraph = incomingEdges.foldLeft(cc.graph.addNode(updatedNode)) { (graph, edge) =>
@@ -153,25 +154,18 @@ trait ParsingTasks {
                 graph.addEdge(newEdge)
             }
 
+            // cc에 updatedNodes에 node -> updatedNode 추가
             val newUpdatedNodes = cc.updatedNodes + (node -> (cc.updatedNodes.getOrElse(node, Set()) + updatedNode))
-            println(newUpdatedNodes)
 
             val newTasks = if (updatedNode.kernel.isFinished) {
-                // TODO finish task 만들기
-                //            val updatedConditions = cc.progresses.of(node).get map { conjunct(_, condition) }
-                //            (cc, updatedConditions.toSeq map { FinishTask(node, _, None) })
                 Seq(FinishTask(updatedNode))
             } else {
                 Seq(DeriveTask(updatedNode))
             }
             (Cont(newGraph, newUpdatedNodes), newTasks)
         } else {
-            // 할 일 없을듯?
-            //                if (cc.progresses contains (updatedNode, updatedConditions)) {
-            //                    (cc.updateFinishes(newFinishes), Seq())
-            //                } else {
-            //                    (cc.updateProgresses(newProgresses).updateFinishes(newFinishes), Seq(DeriveTask(updatedNode)))
-            //                }
+            // 할 일 없음
+            // 그런데 이런 상황 자체가 나오면 안되는건 아닐까?
             (cc, Seq())
         }
     }
@@ -191,8 +185,8 @@ trait ParsingTasks {
             case List() => cc
         }
 
-    def rec(nextGen: Int, tasks: List[Task], graph: Graph): Graph =
-        rec(nextGen, tasks, Cont(graph, Map())).graph
+    def rec(nextGen: Int, tasks: List[Task], graph: Graph): Cont =
+        rec(nextGen, tasks, Cont(graph, Map()))
 
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.Input): Set[Node] = {
         def acceptable(symbolId: Int): Boolean =
@@ -256,12 +250,5 @@ trait ParsingTasks {
         }
         val removing = graph.nodes -- (reachableFromStart intersect reachableToEnds)
         graph.removeNodes(removing)
-    }
-    def updateAcceptableCondition(nextGen: Int, graph: Graph): Graph = {
-        // TODO graph에서 각 node별로 acceptable condition을 업데이트한다
-        graph
-        //        val newFinishes = context.finishes.mapCondition(_.evaluate(nextGen, finishes, survived)).trimFalse._1
-        //        val (newProgresses, falseNodes) = context.progresses.mapCondition(_.evaluate(nextGen, finishes, survived)).trimFalse
-        //        context.updateFinishes(newFinishes).updateProgresses(newProgresses).updateGraph(_.removeNodes(falseNodes.asInstanceOf[Set[Node]]))
     }
 }

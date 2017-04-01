@@ -26,20 +26,21 @@ class NodeFigureGenerators[Fig](
 
     def nodeFig(grammar: NGrammar, node: Node): Fig = {
         val Node(Kernel(symbolId, pointer, beginGen, endGen), condition) = node
-        // TODO condition 그리기 추가
         node.kernel.symbol match {
             case _: NAtomicSymbol =>
                 val symbolFig = symbolFigure(grammar, symbolId)
                 fig.horizontalFig(Spacing.Big, Seq(
                     fig.textFig(s"$symbolId", appear.small),
                     fig.horizontalFig(Spacing.Small, if (pointer == 0) Seq(dot, symbolFig) else Seq(symbolFig, dot)),
-                    fig.textFig(s"$beginGen-$endGen", appear.default)
+                    fig.textFig(s"$beginGen-$endGen", appear.default),
+                    conditionFig(grammar, condition)
                 ))
             case _ =>
                 fig.horizontalFig(Spacing.Big, Seq(
                     fig.textFig(s"$symbolId", appear.small),
                     sequenceFigure(grammar, symbolId, pointer),
-                    fig.textFig(s"$beginGen-$endGen", appear.default)
+                    fig.textFig(s"$beginGen-$endGen", appear.default),
+                    conditionFig(grammar, condition)
                 ))
         }
     }

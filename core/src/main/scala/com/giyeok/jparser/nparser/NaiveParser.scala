@@ -1,50 +1,65 @@
 package com.giyeok.jparser.nparser
 
-import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.nparser.Parser._
 import com.giyeok.jparser.ParsingErrors._
-import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
+import com.giyeok.jparser.nparser.AcceptCondition._
+import com.giyeok.jparser.nparser.NGrammar.Terminal
 import com.giyeok.jparser.nparser.Parser.ConditionFate
+import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
+import com.giyeok.jparser.nparser.Parser._
+import com.giyeok.jparser.nparser.ParsingContext._
 
 class NaiveParser(val grammar: NGrammar) extends Parser[NaiveWrappedContext] with ParsingTasks {
     // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
 
     val initialContext: NaiveWrappedContext = {
         val cc0 = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
-        val ctx = updateAcceptableCondition(0, cc0)
-        new NaiveWrappedContext(0, ctx, List(), List(), ConditionFate(
-            (ctx.finishedNodes map { _.condition } map { c => c -> c }).toMap
-        ))
+        val acceptConditions = evaluateAcceptConditions(0, cc0.graph.nodes map { _.condition }, cc0.graph, cc0.updatedNodes)
+        new NaiveWrappedContext(0, cc0.graph, List(), List(), ConditionFate(acceptConditions))
     }
 
-    def proceedDetail(wctx: NaiveWrappedContext, input: Input): Either[(ProceedDetail, NaiveWrappedContext), ParsingError] = {
-        val (graph, gen, nextGen) = (wctx.graph, wctx.gen, wctx.nextGen)
+    def proceedDetail(ctx: NaiveWrappedContext, input: Input): Either[(ProceedDetail, NaiveWrappedContext), ParsingError] = {
+        val (graph, gen, nextGen) = (ctx.graph, ctx.gen, ctx.nextGen)
         val termFinishes = finishableTermNodes(graph, gen, input).toList map { ProgressTask(_, Always) }
         if (termFinishes.isEmpty) {
             Right(UnexpectedInput(input, nextGen))
         } else {
             // No Expansion
             // 2. Lift
-            val liftedGraph: Graph = rec(nextGen, termFinishes, graph)
-            // 3. Trimming
-            // TODO trimming은 accept condition evaluateion과 history를 위한 노드 기록 등의 모든 과정이 끝나고 다음 단계로 넘어가기 직전에 해야함
-            // TODO 사용이 완료된 터미널 노드 지우기 추가
-            val trimStarts: Set[Node] = Set(startNode) // (Set(startNode) ++ (liftedGraph.finishedNodes.conditionNodes) ++ (liftedGraph.progresses.conditionNodes)) intersect liftedGraph.graph.nodes
-            val newTermNodes: Set[Node] = termNodes(liftedGraph, nextGen)
-            val trimmedGraph: Graph = trim(liftedGraph, trimStarts, newTermNodes)
-            // 4. Revert
-            val revertedGraph: Graph = updateAcceptableCondition(nextGen, trimmedGraph)
-            // 5. Condition Fate
-            val conditionFateNext = {
-                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedGraph) }
-                val newConditions = (revertedGraph.finishedNodes map { _.condition } map { c => (c -> c) }).toMap
-                evaluated ++ newConditions // filter { _._2 != False }
+            val Cont(liftedGraph, updatedNodes) = rec(nextGen, termFinishes, graph)
+
+            // 3. Evaluate accept conditions
+            val acceptConditions: Map[AcceptCondition, AcceptCondition] =
+                evaluateAcceptConditions(nextGen, liftedGraph.nodes map { _.condition }, liftedGraph, updatedNodes)
+
+            // 4. Condition Fate
+            val conditionFateNext: ConditionFate = {
+                //                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedGraph) }
+                //                val newConditions = (revertedGraph.finishedNodes map { _.condition } map { c => (c -> c) }).toMap
+                //                evaluated ++ newConditions // filter { _._2 != False }
+                ???
             }
-            val nextGraph = wctx.proceed(nextGen, revertedGraph, input, conditionFateNext)
-            Left((ProceedDetail(graph, graph, liftedGraph, trimmedGraph, revertedGraph), nextGraph))
+
+            // 5. Update accept conditions
+            val acceptConditionUpdatedGraph = liftedGraph mapNode { node =>
+                Node(node.kernel, acceptConditions(node.condition))
+            }
+
+            // 6. Trimming
+            // 6a. 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
+            val trimmed1 = acceptConditionUpdatedGraph filterNode { node =>
+                node.condition == Never || (node.kernel.symbol match {
+                    case Terminal(_) => node.kernel.beginGen != nextGen
+                    case _ => true
+                })
+            }
+            // 6b. startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
+            val trimStarts: Set[Node] = Set(startNode) ++ (trimmed1.nodes flatMap { _.condition.nodes } intersect trimmed1.nodes)
+            val newTermNodes: Set[Node] = termNodes(trimmed1, nextGen)
+            val nextGraph: Graph = trim(trimmed1, trimStarts, newTermNodes)
+
+            val nextContext = ctx.proceed(nextGen, nextGraph, input, conditionFateNext)
+            Left((ProceedDetail(graph, graph, liftedGraph, acceptConditionUpdatedGraph, nextGraph), nextContext))
         }
     }
 }

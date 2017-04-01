@@ -350,8 +350,8 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
                                 stage match {
                                     case 1 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.baseGraph, transition.expandedGraph)
                                     case 2 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.expandedGraph, transition.liftedGraph)
-                                    case 3 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.liftedGraph, transition.trimmedGraph)
-                                    case 4 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.trimmedGraph, transition.revertedGraph)
+                                    case 3 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.liftedGraph, transition.acceptConditionUpdatedGraph)
+                                    case 4 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.acceptConditionUpdatedGraph, transition.trimmedGraph)
                                 }
                             case Right(error) => errorControl(error.msg)
                         }
@@ -391,8 +391,8 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
                                     stage match {
                                         case 1 => dotGraphGen.get.addTransition(transition.baseGraph, transition.expandedGraph)
                                         case 2 => dotGraphGen.get.addTransition(transition.expandedGraph, transition.liftedGraph)
-                                        case 3 => dotGraphGen.get.addTransition(transition.liftedGraph, transition.trimmedGraph)
-                                        case 4 => dotGraphGen.get.addTransition(transition.trimmedGraph, transition.revertedGraph)
+                                        case 3 => dotGraphGen.get.addTransition(transition.liftedGraph, transition.acceptConditionUpdatedGraph)
+                                        case 4 => dotGraphGen.get.addTransition(transition.acceptConditionUpdatedGraph, transition.trimmedGraph)
                                     }
                                 case Right(_) => // nothing to do
                             }

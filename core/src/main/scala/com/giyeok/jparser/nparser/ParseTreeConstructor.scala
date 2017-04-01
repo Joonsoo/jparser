@@ -13,7 +13,7 @@ import com.giyeok.jparser.nparser.Parser.ConditionFate
 class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Set[Node]], conditionFate: ConditionFate) {
     val finishes: Vector[Set[Kernel]] = {
         (history map {
-            _ collect { case node if conditionFate.of(node.condition).acceptable => node.kernel }
+            _ collect { case node if conditionFate.of(node.condition) => node.kernel }
         }).toVector
     }
     // TODO finishes의 node set을 symbolId 기준으로 정렬해 놓으면 더 빠르게 할 수 있을듯

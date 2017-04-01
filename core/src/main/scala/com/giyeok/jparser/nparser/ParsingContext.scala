@@ -111,6 +111,12 @@ object ParsingContext {
                 Graph(replacedNodes, replacedEdges, replacedEdgesByStart, replacedEdgesByDest)
             }
         }
+        def mapNode(nodeFunc: Node => Node): Graph = {
+            ???
+        }
+        def filterNode(nodePred: Node => Boolean): Graph = {
+            ???
+        }
         def merge(other: Graph): Graph = {
             def mergeEdgesMap(map: Map[Node, Set[Edge]], merging: Map[Node, Set[Edge]]): Map[Node, Set[Edge]] =
                 merging.foldLeft(map) { (cc, i) =>
