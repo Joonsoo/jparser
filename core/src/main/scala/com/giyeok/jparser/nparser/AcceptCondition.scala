@@ -124,12 +124,14 @@ object AcceptCondition {
         def neg: AcceptCondition = Alive(node, activeGen)
     }
 
-    case class Unless(node: Node) extends AcceptCondition {
+    case class Unless(node: Node, targetGen: Int) extends AcceptCondition {
         def nodes: Set[Node] = Set(node)
         def shiftGen(gen: Int): AcceptCondition =
-            Unless(node.shiftGen(gen))
+            Unless(node.shiftGen(gen), targetGen + gen)
         def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = {
-            if (!(graph.nodes contains node)) {
+            if (gen > targetGen) {
+                Always
+            } else if (!(graph.nodes contains node)) {
                 // (이전 세대에서) trimming돼서 노드가 없어졌으면
                 Always
             } else {
@@ -138,16 +140,18 @@ object AcceptCondition {
             }
         }
         def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
-            !(updatedNodes contains node)
+            (gen != targetGen) || (!(updatedNodes contains node))
         def neg: AcceptCondition =
-            OnlyIf(node)
+            OnlyIf(node, targetGen)
     }
-    case class OnlyIf(node: Node) extends AcceptCondition {
+    case class OnlyIf(node: Node, targetGen: Int) extends AcceptCondition {
         def nodes: Set[Node] = Set(node)
         def shiftGen(gen: Int): AcceptCondition =
-            OnlyIf(node.shiftGen(gen))
+            OnlyIf(node.shiftGen(gen), targetGen + gen)
         def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = {
-            if (!(graph.nodes contains node)) {
+            if (gen > targetGen) {
+                Never
+            } else if (!(graph.nodes contains node)) {
                 // (이전 세대에서) trimming돼서 노드가 없어졌으면
                 Never
             } else {
@@ -156,8 +160,8 @@ object AcceptCondition {
             }
         }
         def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
-            updatedNodes contains node
+            (gen == targetGen) && (updatedNodes contains node)
         def neg: AcceptCondition =
-            Unless(node)
+            Unless(node, targetGen)
     }
 }

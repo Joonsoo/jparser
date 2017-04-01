@@ -19,14 +19,8 @@ trait ParsingTasks {
     def deriveTask(nextGen: Int, task: DeriveTask, cc: Cont): (Cont, Seq[Task]) = {
         val DeriveTask(startNode) = task
 
-        def nodeOf(symbolId: Int): Node = {
-            val symbol = grammar.symbolOf(symbolId)
-            val condition = symbol match {
-                case Except(_, _, except) => Unless(nodeOf(except))
-                case _ => Always
-            }
-            Node(Kernel(symbolId, 0, nextGen, nextGen)(symbol), conjunct(condition))
-        }
+        def nodeOf(symbolId: Int): Node =
+            Node(Kernel(symbolId, 0, nextGen, nextGen)(grammar.symbolOf(symbolId)), Always)
 
         def derive(symbolIds: Set[Int]): (Cont, Seq[Task]) = {
             // (symbolIds에 해당하는 노드) + (startNode에서 symbolIds의 노드로 가는 엣지) 추가
@@ -118,6 +112,9 @@ trait ParsingTasks {
         val chainCondition = nodeSymbolOpt match {
             case Some(_: Longest) => conjunct(node.condition, Until(node, nextGen))
             case Some(_: EagerLongest) => conjunct(node.condition, Alive(node, nextGen))
+            case Some(Except(_, _, except)) =>
+                val exceptNode = Node(Kernel(except, 0, node.kernel.beginGen, node.kernel.beginGen)(grammar.symbolOf(except)), Always)
+                conjunct(node.condition, Unless(exceptNode, nextGen))
             case _ => node.condition
         }
         val incomingEdges = cc.graph.edgesByDest(node)

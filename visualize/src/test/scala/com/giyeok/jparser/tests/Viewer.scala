@@ -22,7 +22,7 @@ import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Shell
 
 object AllViewer extends Viewer {
-    val allTests = Set(
+    val allTests: Set[GrammarTestCases] = Set(
         com.giyeok.jparser.tests.basics.Visualization.allTests,
         com.giyeok.jparser.tests.gramgram.Visualization.allTests,
         com.giyeok.jparser.tests.javascript.Visualization.allTests
@@ -37,7 +37,7 @@ trait Viewer {
     val allTests: Set[GrammarTestCases]
 
     def start(): Unit = {
-        val display = Display.getDefault()
+        val display = Display.getDefault
         val shell = new Shell(display)
 
         shell.setLayout(new FillLayout)
@@ -76,9 +76,9 @@ trait Viewer {
         var shownTexts: Seq[Inputs.ConcreteSource] = Seq()
         grammarList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
-                val selectedIndex = grammarList.getSelectionIndex()
+                val selectedIndex = grammarList.getSelectionIndex
                 if (0 <= selectedIndex && selectedIndex < sortedTestCases.length) {
-                    val testCases = sortedTestCases(grammarList.getSelectionIndex())
+                    val testCases = sortedTestCases(grammarList.getSelectionIndex)
                     val grammar = testCases.grammar
                     def generateHtml(): xml.Elem =
                         new GrammarDefinitionFigureGenerator[xml.Elem](grammar, new FigureGenerator.Appearances[xml.Elem] {
@@ -93,9 +93,9 @@ trait Viewer {
                         grammarFig.setContents(textFig)
                     } else {
                         val messages = Seq(
-                            (if (!missingSymbols.isEmpty) Some(s"Missing: ${missingSymbols map { _.toShortString } mkString ", "}") else None),
-                            (if (!wrongLookaheads.isEmpty) Some(s"Wrong: ${wrongLookaheads map { _.toShortString } mkString ", "}") else None),
-                            (if (!unusedSymbols.isEmpty) Some(s"Unused: ${unusedSymbols map { _.toShortString } mkString ", "}") else None)
+                            if (missingSymbols.nonEmpty) Some(s"Missing: ${missingSymbols map { _.toShortString } mkString ", "}") else None,
+                            if (wrongLookaheads.nonEmpty) Some(s"Wrong: ${wrongLookaheads map { _.toShortString } mkString ", "}") else None,
+                            if (unusedSymbols.nonEmpty) Some(s"Unused: ${unusedSymbols map { _.toShortString } mkString ", "}") else None
                         )
                         val fig = new Figure
                         fig.setLayoutManager(new ToolbarLayout(false))
@@ -126,15 +126,15 @@ trait Viewer {
             val Naive, Preprocessed, PreprocessedSliced, PreprocessedCompacted, PreprocessedSlicedCompacted = Value
             val order = Seq(Naive, Preprocessed, PreprocessedSliced, PreprocessedCompacted, PreprocessedSlicedCompacted)
 
-            def nextOf(parserType: ParserTypes.Value) = {
+            def nextOf(parserType: ParserTypes.Value): ParserTypes.Value = {
                 val idx = ParserTypes.order.indexOf(parserType)
                 if (idx + 1 < ParserTypes.order.length) {
                     ParserTypes.order(idx + 1)
                 } else {
-                    ParserTypes.order(0)
+                    ParserTypes.order.head
                 }
             }
-            def nameOf(parserType: ParserTypes.Value) = parserType match {
+            def nameOf(parserType: ParserTypes.Value): String = parserType match {
                 case ParserTypes.Naive => "Naive"
                 case ParserTypes.Preprocessed => "Preprocessed"
                 case ParserTypes.PreprocessedSliced => "Preprocessed Sliced"
@@ -204,7 +204,7 @@ trait Viewer {
             def handleEvent(e: Event): Unit = {
                 (isMac, e.stateMask, e.keyCode) match {
                     case (true, SWT.COMMAND, 'w') | (false, SWT.CONTROL, 'w') =>
-                        display.getActiveShell().dispose()
+                        display.getActiveShell.dispose()
                     case _ =>
                 }
             }
@@ -213,13 +213,13 @@ trait Viewer {
         try {
             shell.open()
             try {
-                while (!shell.isDisposed()) {
+                while (!shell.isDisposed) {
                     if (!display.readAndDispatch()) {
                         display.sleep()
                     }
                 }
             } finally {
-                if (!shell.isDisposed()) {
+                if (!shell.isDisposed) {
                     shell.dispose()
                 }
             }

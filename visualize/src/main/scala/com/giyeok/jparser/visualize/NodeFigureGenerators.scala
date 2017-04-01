@@ -48,8 +48,8 @@ class NodeFigureGenerators[Fig](
     def conditionFig(grammar: NGrammar, condition: AcceptCondition): Fig = {
         val d = appear.default
         condition match {
-            case Always => fig.textFig("true", d)
-            case Never => fig.textFig("false", d)
+            case Always => fig.textFig("always", d)
+            case Never => fig.textFig("never", d)
             case And(conds) =>
                 val condsFig = conds.toSeq map { conditionFig(grammar, _) }
                 val joinedCondsFig = condsFig.tail.foldLeft(Seq(condsFig.head)) { _ :+ fig.textFig("&", d) :+ _ }
@@ -82,11 +82,17 @@ class NodeFigureGenerators[Fig](
                     nodeFig(grammar, node),
                     fig.textFig(s", $activeGen)", d)
                 ))
-            case Unless(node) =>
+            case Unless(node, targetGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
-                    fig.textFig("Exclude(", d),
+                    fig.textFig("Unless(", d),
                     nodeFig(grammar, node),
-                    fig.textFig(")", d)
+                    fig.textFig(s", $targetGen)", d)
+                ))
+            case OnlyIf(node, targetGen) =>
+                fig.horizontalFig(Spacing.Small, Seq(
+                    fig.textFig("OnlyIf(", d),
+                    nodeFig(grammar, node),
+                    fig.textFig(s", $targetGen)", d)
                 ))
         }
     }

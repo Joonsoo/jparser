@@ -70,7 +70,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             //   - parse tree reconstruction에는 acceptConditionUpdatedGraph 사용
             //   - 다음 generation 시작할 때는 trimmedGraph 사용
             val nextContext = ctx.proceed(nextGen, trimmedGraph, input, nextConditionFate)
-            Left((ProceedDetail(graph, graph, liftedGraph0, liftedGraph, acceptConditionUpdatedGraph, trimmed1, trimmedGraph), nextContext))
+            Left((ProceedDetail(graph, graph, liftedGraph0, stopNodes, liftedGraph, acceptConditionUpdatedGraph, trimmed1, trimmedGraph), nextContext))
         }
     }
 }

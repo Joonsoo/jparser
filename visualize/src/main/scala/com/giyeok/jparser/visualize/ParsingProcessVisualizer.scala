@@ -335,7 +335,13 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                         transitionAt(gen) match {
                             case Left((_, transition, _)) =>
                                 val (prevGraph, nextGraph) = (transition.seqs(stage - 1), transition.seqs(stage))
-                                new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph)
+                                val widget = new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph)
+                                if (stage >= 2) {
+                                    transition.stopNodes foreach { stopNode =>
+                                        widget.nodesMap get stopNode foreach { _.setBackgroundColor(ColorConstants.red) }
+                                    }
+                                }
+                                widget
                             case Right(error) => errorControl(error.msg)
                         }
                 }
