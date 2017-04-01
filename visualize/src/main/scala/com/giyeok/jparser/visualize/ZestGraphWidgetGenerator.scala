@@ -3,6 +3,7 @@ package com.giyeok.jparser.visualize
 import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.ParseResultDerivationsSetFunc
 import com.giyeok.jparser.ParseResultGraphFunc
+import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.nparser.Parser.DeriveTipsContext
@@ -85,9 +86,9 @@ trait AbstractZestGraphWidget extends Control {
         }
     }
 
-    def addGraph(grammar: NGrammar, graph: ParsingContext.Graph, acceptableNodes: Set[Node]): Unit = {
+    def addGraph(grammar: NGrammar, graph: ParsingContext.Graph, acceptableConds: Set[AcceptCondition]): Unit = {
         graph.nodes foreach { node =>
-            addNode(grammar, node, acceptableNodes contains node)
+            addNode(grammar, node, acceptableConds contains node.condition)
         }
         graph.edges foreach { edge =>
             addEdge(edge)
@@ -175,7 +176,7 @@ trait Interactable extends AbstractZestGraphWidget {
     }
 }
 
-class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, graph: ParsingContext.Graph, acceptableNodes: Set[Node])
+class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, graph: ParsingContext.Graph, acceptableConds: Set[AcceptCondition])
         extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with Interactable {
     val graphViewer = new GraphViewer(this, style)
     val graphCtrl = graphViewer.getGraphControl
@@ -183,7 +184,7 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
     setLayout(new FillLayout())
 
     def initialize(): Unit = {
-        addGraph(grammar, graph, acceptableNodes)
+        addGraph(grammar, graph, acceptableConds)
         applyLayout(false)
         initializeTooltips(getTooltips())
     }
@@ -284,21 +285,24 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
     })
 }
 
-class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: ParsingContext.Graph, trans: ParsingContext.Graph, acceptableNodes: Set[Node])
-        extends ZestGraphWidget(parent, style, fig, grammar, trans, acceptableNodes) {
+class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: ParsingContext.Graph, trans: ParsingContext.Graph, acceptableConds: Set[AcceptCondition])
+        extends ZestGraphWidget(parent, style, fig, grammar, trans, acceptableConds) {
     override def initialize(): Unit = {
-        addGraph(grammar, base, acceptableNodes)
-        addGraph(grammar, trans, acceptableNodes)
+        addGraph(grammar, base, acceptableConds)
+        addGraph(grammar, trans, acceptableConds)
+        // 없어지는 노드, 엣지는 회색 점선
         (base.nodes -- trans.nodes) foreach { removedNode =>
             val shownNode = nodesMap(removedNode)
-            shownNode.getFigure.setBorder(new LineBorder(ColorConstants.lightGray))
+            shownNode.getFigure.setBorder(new LineBorder(ColorConstants.lightGray, 1, SWT.LINE_DASH))
         }
         (base.edges -- trans.edges) foreach { removedEdge =>
             edgesMap(removedEdge) foreach { connection =>
-                connection.setLineWidth(2)
+                connection.setLineColor(ColorConstants.lightGray)
+                connection.setLineWidth(1)
                 connection.setLineStyle(SWT.LINE_DASH)
             }
         }
+        // 새 노드, 엣지는 굵은 선
         (trans.nodes -- base.nodes) foreach { newNode =>
             val shownNode = nodesMap(newNode)
             shownNode.getFigure.setBorder(new LineBorder(3))
@@ -308,6 +312,7 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
         (trans.edges -- base.edges) foreach { newEdge =>
             edgesMap(newEdge) foreach { _.setLineWidth(3) }
         }
+        // 공통 노드, 엣지는 기본 모양
         applyLayout(false)
         initializeTooltips(getTooltips())
     }
@@ -354,7 +359,7 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
 }
 
 class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context)
-        extends ZestGraphWidget(parent, style, fig, grammar, context.graph, context.acceptableNodes) {
+        extends ZestGraphWidget(parent, style, fig, grammar, context.graph, context.acceptableConds) {
     addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {

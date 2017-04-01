@@ -130,7 +130,7 @@ object AcceptCondition {
             Unless(node.shiftGen(gen))
         def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = {
             if (!(graph.nodes contains node)) {
-                // trimming돼서 노드가 없어졌으면
+                // (이전 세대에서) trimming돼서 노드가 없어졌으면
                 Always
             } else {
                 // 그 외의 경우엔 그대로
@@ -148,7 +148,7 @@ object AcceptCondition {
             OnlyIf(node.shiftGen(gen))
         def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = {
             if (!(graph.nodes contains node)) {
-                // trimming돼서 노드가 없어졌으면
+                // (이전 세대에서) trimming돼서 노드가 없어졌으면
                 Never
             } else {
                 // 그 외의 경우엔 그대로

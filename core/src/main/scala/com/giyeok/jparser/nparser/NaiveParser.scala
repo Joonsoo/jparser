@@ -14,8 +14,9 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
 
     val initialContext: NaiveContext = {
         val cc = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
-        val acceptConditions = evaluateAcceptConditions(0, cc.graph.nodes map { _.condition }, cc.graph, cc.updatedNodes)
-        new NaiveContext(0, cc.graph, cc.graph.nodes, List(), List(), ConditionFate(acceptConditions))
+        val conditionsEvaluations = evaluateAcceptConditions(0, cc.graph.nodes map { _.condition }, cc.graph, cc.updatedNodes)
+        val acceptableConds = conditionsEvaluations.keySet filter { _.acceptable(0, cc.graph, cc.updatedNodes) }
+        new NaiveContext(0, cc.graph, acceptableConds, List(), List(), ConditionFate(conditionsEvaluations))
     }
 
     def proceedDetail(ctx: NaiveContext, input: Input): Either[(ProceedDetail, NaiveContext), ParsingError] = {
@@ -59,10 +60,13 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             // 5b. startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
             val trimStarts: Set[Node] = Set(startNode) ++ (trimmed1.nodes flatMap { _.condition.nodes } intersect trimmed1.nodes)
             val newTermNodes: Set[Node] = termNodes(trimmed1, nextGen)
-            val nextGraph: Graph = trim(trimmed1, trimStarts, newTermNodes)
+            val trimmedGraph: Graph = trim(trimmed1, trimStarts, newTermNodes)
 
-            val nextContext = ctx.proceed(nextGen, nextGraph, nextGraph.nodes filter { node => acceptableConditions contains node.condition }, input, nextConditionFate)
-            Left((ProceedDetail(graph, graph, liftedGraph, acceptConditionUpdatedGraph, nextGraph), nextContext))
+            // TODO acceptConditionUpdatedGraph와 trimmedGraph를 둘 다 받아야 함
+            // - parse tree reconstruction에는 acceptConditionUpdatedGraph 사용
+            // - 다음 generation 시작할 때는 trimmedGraph 사용
+            val nextContext = ctx.proceed(nextGen, trimmedGraph, acceptableConditions, input, nextConditionFate)
+            Left((ProceedDetail(graph, graph, liftedGraph, acceptConditionUpdatedGraph, trimmed1, trimmedGraph), nextContext))
         }
     }
 }

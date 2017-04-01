@@ -22,10 +22,10 @@ trait ParsingTasks {
         def nodeOf(symbolId: Int): Node = {
             val symbol = grammar.symbolOf(symbolId)
             val condition = symbol match {
-                case Except(_, body, except) => Unless(nodeOf(except))
+                case Except(_, _, except) => Unless(nodeOf(except))
                 case _ => Always
             }
-            Node(Kernel(symbolId, 0, nextGen, nextGen)(symbol), condition)
+            Node(Kernel(symbolId, 0, nextGen, nextGen)(symbol), conjunct(condition))
         }
 
         def derive(symbolIds: Set[Int]): (Cont, Seq[Task]) = {
@@ -85,7 +85,7 @@ trait ParsingTasks {
                         val joinNode = nodeOf(join)
                         val bodyNodeTask = if (bodyNode.kernel.isFinished) FinishTask(bodyNode) else DeriveTask(bodyNode)
                         val joinNodeTask = if (joinNode.kernel.isFinished) FinishTask(joinNode) else DeriveTask(joinNode)
-                        // TODO cc.updatedNodes보고 추가 처리
+                        // TODO cc.updatedNodes 보고 추가 처리
                         val newGraph = cc.graph.addNode(bodyNode).addNode(joinNode).addEdge(JoinEdge(startNode, bodyNode, joinNode))
                         (Cont(newGraph, cc.updatedNodes), Seq(bodyNodeTask, joinNodeTask))
 

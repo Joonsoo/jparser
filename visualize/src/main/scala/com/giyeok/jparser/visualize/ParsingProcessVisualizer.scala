@@ -114,14 +114,11 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
             case ParsingContextTransitionPointer(otherGen, _) => gen <= otherGen
         }
     }
+    val stagesCount = 5
     case class ParsingContextTransitionPointer(gen: Int, stage: Int) extends Pointer {
-        // stage 1: expand
-        // stage 2: lift
-        // stage 3: 트리밍
-        // stage 4: revert
-        assert(1 <= stage && stage <= 4)
+        assert(1 <= stage && stage <= stagesCount)
         def previous = if (stage == 1) ParsingContextPointer(gen) else ParsingContextTransitionPointer(gen, stage - 1)
-        def next = if (stage == 4) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
+        def next = if (stage == stagesCount) ParsingContextPointer(gen + 1) else ParsingContextTransitionPointer(gen, stage + 1)
         def previousBase = if (stage == 1) ParsingContextPointer(gen - 1) else ParsingContextPointer(gen)
         def nextBase = ParsingContextPointer(gen + 1)
 
@@ -239,7 +236,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                     fig.addMouseListener(listener(pointer))
                     fig
                 }
-                val transitionBoxWidth = (Seq("1", "2", "3", "4") map { textFig(_, resources.smallFont).getPreferredSize.width }).max
+                val transitionBoxWidth = ((1 to stagesCount) map { _.toString } map { textFig(_, resources.smallFont).getPreferredSize.width }).max
                 def transitionPointerFig(gen: Int): Figure = {
                     val fig = emptyBoxFig(transitionBoxWidth, height)
                     fig.setLayoutManager(new CenterLayout(0, 0))
@@ -287,7 +284,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
     }
 
     val contextCache = scala.collection.mutable.Map[Int, Either[C, ParsingError]]()
-    val transitionCache = scala.collection.mutable.Map[Int, Either[(ProceedDetail, Context), ParsingError]]()
+    val transitionCache = scala.collection.mutable.Map[Int, Either[(Context, ProceedDetail, Context), ParsingError]]()
     def contextAt(gen: Int): Either[C, ParsingError] =
         contextCache get gen match {
             case Some(cached) => cached
@@ -297,7 +294,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                         case Left(prevCtx) =>
                             parser.proceedDetail(prevCtx, source(gen - 1)) match {
                                 case Left((detail, nextCtx)) =>
-                                    transitionCache(gen - 1) = Left((detail, nextCtx))
+                                    transitionCache(gen - 1) = Left((prevCtx, detail, nextCtx))
                                     Left(nextCtx)
                                 case Right(error) => Right(error)
                             }
@@ -309,7 +306,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                 contextCache(gen) = context
                 context
         }
-    def transitionAt(gen: Int): Either[(ProceedDetail, Context), ParsingError] =
+    def transitionAt(gen: Int): Either[(Context, ProceedDetail, Context), ParsingError] =
         transitionCache get gen match {
             case Some(cached) => cached
             case None =>
@@ -346,14 +343,9 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                                 case Some(tuple) => func(tuple)
                             }
                         transitionAt(gen) match {
-                            case Left((transition, nextCtx)) =>
-                                val (prevGraph, nextGraph) = stage match {
-                                    case 1 => (transition.baseGraph, transition.expandedGraph)
-                                    case 2 => (transition.expandedGraph, transition.liftedGraph)
-                                    case 3 => (transition.liftedGraph, transition.acceptConditionUpdatedGraph)
-                                    case 4 => (transition.acceptConditionUpdatedGraph, transition.trimmedGraph)
-                                }
-                                new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph, nextCtx.acceptableNodes)
+                            case Left((prevCtx, transition, nextCtx)) =>
+                                val (prevGraph, nextGraph) = (transition.seqs(stage - 1), transition.seqs(stage))
+                                new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph, prevCtx.acceptableConds)
                             case Right(error) => errorControl(error.msg)
                         }
                 }
@@ -388,7 +380,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                             }
                         case ParsingContextTransitionPointer(gen, stage) =>
                             transitionAt(gen) match {
-                                case Left((transition, _)) =>
+                                case Left((_, transition, _)) =>
                                     stage match {
                                         case 1 => dotGraphGen.get.addTransition(transition.baseGraph, transition.expandedGraph)
                                         case 2 => dotGraphGen.get.addTransition(transition.expandedGraph, transition.liftedGraph)

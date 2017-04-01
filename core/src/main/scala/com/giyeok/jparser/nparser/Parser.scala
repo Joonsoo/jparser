@@ -76,28 +76,30 @@ object Parser {
         }
     }
 
-    abstract class Context(val gen: Int, val graph: Graph, val acceptableNodes: Set[Node], _inputs: List[Input], _history: List[Set[Node]], val conditionFate: ConditionFate) {
+    abstract class Context(val gen: Int, val graph: Graph, val acceptableConds: Set[AcceptCondition], _inputs: List[Input], _history: List[Set[Node]], val conditionFate: ConditionFate) {
         def nextGen: Int = gen + 1
         def inputs: Seq[Input] = _inputs.reverse
         def history: Seq[Set[Node]] = (graph.nodes +: _history).reverse
     }
 
-    class NaiveContext(gen: Int, graph: Graph, acceptableNodes: Set[Node], _inputs: List[Input], _history: List[Set[Node]], conditionFate: ConditionFate)
-            extends Context(gen, graph, acceptableNodes, _inputs, _history, conditionFate) {
-        def proceed(nextGen: Int, nextGraph: Graph, acceptableNodes: Set[Node], newInput: Input, newConditionFate: ConditionFate): NaiveContext = {
-            new NaiveContext(nextGen, nextGraph, acceptableNodes, newInput +: _inputs, graph.nodes +: _history, newConditionFate)
+    class NaiveContext(gen: Int, graph: Graph, acceptableConds: Set[AcceptCondition], _inputs: List[Input], _history: List[Set[Node]], conditionFate: ConditionFate)
+            extends Context(gen, graph, acceptableConds, _inputs, _history, conditionFate) {
+        def proceed(nextGen: Int, nextGraph: Graph, acceptableConds: Set[AcceptCondition], newInput: Input, newConditionFate: ConditionFate): NaiveContext = {
+            new NaiveContext(nextGen, nextGraph, acceptableConds, newInput +: _inputs, graph.nodes +: _history, newConditionFate)
         }
     }
 
-    class DeriveTipsContext(gen: Int, graph: Graph, acceptableNodes: Set[Node], val deriveTips: Set[Node], _inputs: List[Input], _history: List[Set[Node]], conditionFate: ConditionFate)
-            extends Context(gen, graph, acceptableNodes, _inputs, _history, conditionFate) {
+    class DeriveTipsContext(gen: Int, graph: Graph, acceptableConds: Set[AcceptCondition], val deriveTips: Set[Node], _inputs: List[Input], _history: List[Set[Node]], conditionFate: ConditionFate)
+            extends Context(gen, graph, acceptableConds, _inputs, _history, conditionFate) {
         // assert(deriveTips subsetOf ctx.graph.nodes)
-        def proceed(nextGen: Int, nextGraph: Graph, acceptableNodes: Set[Node], deriveTips: Set[Node], newInput: Input, newConditionFate: ConditionFate): DeriveTipsContext = {
-            new DeriveTipsContext(nextGen, nextGraph, acceptableNodes, deriveTips: Set[Node], newInput +: _inputs, graph.nodes +: _history, newConditionFate)
+        def proceed(nextGen: Int, nextGraph: Graph, acceptableConds: Set[AcceptCondition], deriveTips: Set[Node], newInput: Input, newConditionFate: ConditionFate): DeriveTipsContext = {
+            new DeriveTipsContext(nextGen, nextGraph, acceptableConds, deriveTips: Set[Node], newInput +: _inputs, graph.nodes +: _history, newConditionFate)
         }
     }
 
-    case class ProceedDetail(baseGraph: Graph, expandedGraph: Graph, liftedGraph: Graph, acceptConditionUpdatedGraph: Graph, trimmedGraph: Graph)
+    case class ProceedDetail(baseGraph: Graph, expandedGraph: Graph, liftedGraph: Graph, acceptConditionUpdatedGraph: Graph, trimmed1: Graph, trimmedGraph: Graph) {
+        val seqs = Seq(baseGraph, expandedGraph, liftedGraph, acceptConditionUpdatedGraph, trimmed1, trimmedGraph)
+    }
 
     def evaluateAcceptConditions(nextGen: Int, conditions: Set[AcceptCondition], graph: Graph, updatedNodes: Map[Node, Set[Node]]): Map[AcceptCondition, AcceptCondition] = {
         (conditions map { condition =>
