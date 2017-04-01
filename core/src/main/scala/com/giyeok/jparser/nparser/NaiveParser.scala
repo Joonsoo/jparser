@@ -15,7 +15,9 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveWrappedContext] wit
     val initialContext: NaiveWrappedContext = {
         val cc0 = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
         val ctx = updateAcceptableCondition(0, cc0)
-        new NaiveWrappedContext(0, ctx, List(), List(), ConditionFate((ctx.finishedNodes map { _.condition } map { c => c -> c }).toMap))
+        new NaiveWrappedContext(0, ctx, List(), List(), ConditionFate(
+            (ctx.finishedNodes map { _.condition } map { c => c -> c }).toMap
+        ))
     }
 
     def proceedDetail(wctx: NaiveWrappedContext, input: Input): Either[(ProceedDetail, NaiveWrappedContext), ParsingError] = {

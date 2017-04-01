@@ -36,22 +36,25 @@ trait ParsingTasks {
             // existedNodes 들에 대해서는 cc.updatedNodes보고 추가 처리
             def addUpdatedNodes(queue: List[Node], graph: Graph, tasks: Seq[Task]): (Graph, Seq[Task]) =
                 queue match {
-                    case node +: rest =>
-                        cc.updatedNodes get node match {
+                    case destNode +: rest if destNode.kernel.isFinished =>
+                        assert(!(cc.updatedNodes contains destNode))
+                        val newTask = ProgressTask(startNode, destNode.condition)
+                        addUpdatedNodes(rest, graph, newTask +: tasks)
+
+                    case destNode +: rest =>
+                        cc.updatedNodes get destNode match {
                             case Some(updatedNodes) =>
+                                println(s"updatedNodes: $startNode, $destNode -> $updatedNodes")
                                 assert((updatedNodes map { _.kernel }).size == 1)
+                                assert((updatedNodes map { _.kernel }).head.symbolId == destNode.kernel.symbolId)
                                 val updatedGraph = updatedNodes.foldLeft(graph) { (graph, updatedNode) =>
                                     graph.addEdge(SimpleEdge(startNode, updatedNode))
                                 }
-                                val newTasks = if (updatedNodes.head.kernel.isFinished) {
-                                    updatedNodes map { updatedNode =>
-                                        ProgressTask(startNode, updatedNode.condition)
-                                    }
-                                } else Seq()
-                                addUpdatedNodes(rest, updatedGraph, tasks ++ newTasks)
-
-                            case None => addUpdatedNodes(rest, graph, tasks)
+                                addUpdatedNodes(updatedNodes.toList ++ rest, updatedGraph, tasks)
+                            case None =>
+                                addUpdatedNodes(rest, graph, tasks)
                         }
+
                     case List() => (graph, tasks)
                 }
 
@@ -136,15 +139,7 @@ trait ParsingTasks {
 
         val updatedCondition = conjunct(node.condition, condition)
         val updatedNode = Node(node.kernel.proceed(nextGen), updatedCondition)
-        if (cc.graph.nodes contains updatedNode) {
-            // 할 일 없을듯?
-            //                if (cc.progresses contains (updatedNode, updatedConditions)) {
-            //                    (cc.updateFinishes(newFinishes), Seq())
-            //                } else {
-            //                    (cc.updateProgresses(newProgresses).updateFinishes(newFinishes), Seq(DeriveTask(updatedNode)))
-            //                }
-            ???
-        } else {
+        if (!(cc.graph.nodes contains updatedNode)) {
             // TODO cc에 updatedNodes에 node -> updatedNode 추가
             // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
             val incomingEdges = cc.graph.edgesByDest(node)
@@ -159,6 +154,7 @@ trait ParsingTasks {
             }
 
             val newUpdatedNodes = cc.updatedNodes + (node -> (cc.updatedNodes.getOrElse(node, Set()) + updatedNode))
+            println(newUpdatedNodes)
 
             val newTasks = if (updatedNode.kernel.isFinished) {
                 // TODO finish task 만들기
@@ -169,6 +165,14 @@ trait ParsingTasks {
                 Seq(DeriveTask(updatedNode))
             }
             (Cont(newGraph, newUpdatedNodes), newTasks)
+        } else {
+            // 할 일 없을듯?
+            //                if (cc.progresses contains (updatedNode, updatedConditions)) {
+            //                    (cc.updateFinishes(newFinishes), Seq())
+            //                } else {
+            //                    (cc.updateProgresses(newProgresses).updateFinishes(newFinishes), Seq(DeriveTask(updatedNode)))
+            //                }
+            (cc, Seq())
         }
     }
 
