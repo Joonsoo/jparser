@@ -5,8 +5,8 @@ import com.giyeok.jparser.ParseResultDerivationsSetFunc
 import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParseTreeConstructor
-import com.giyeok.jparser.nparser.Parser.DeriveTipsWrappedContext
-import com.giyeok.jparser.nparser.Parser.WrappedContext
+import com.giyeok.jparser.nparser.Parser.DeriveTipsContext
+import com.giyeok.jparser.nparser.Parser.Context
 import com.giyeok.jparser.nparser.ParsingContext
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
@@ -37,12 +37,18 @@ trait AbstractZestGraphWidget extends Control {
     var visibleNodes = Set[Node]()
     var visibleEdges = Set[Edge]()
 
-    def addNode(grammar: NGrammar, node: Node): Unit = {
+    def addNode(grammar: NGrammar, node: Node, isAcceptable: Boolean): Unit = {
         if (!(nodesMap contains node)) {
             val nodeFig = fig.nodeFig(grammar, node)
-            nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
             nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
             nodeFig.setOpaque(true)
+
+            if (isAcceptable) {
+                nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
+            } else {
+                nodeFig.setBorder(new LineBorder(ColorConstants.darkGray, 1, SWT.LINE_DASH))
+            }
+
             nodeFig.setSize(nodeFig.getPreferredSize())
 
             val gnode = new CGraphNode(graphCtrl, SWT.NONE, nodeFig)
@@ -79,9 +85,9 @@ trait AbstractZestGraphWidget extends Control {
         }
     }
 
-    def addGraph(grammar: NGrammar, graph: ParsingContext.Graph): Unit = {
+    def addGraph(grammar: NGrammar, graph: ParsingContext.Graph, acceptableNodes: Set[Node]): Unit = {
         graph.nodes foreach { node =>
-            addNode(grammar, node)
+            addNode(grammar, node, acceptableNodes contains node)
         }
         graph.edges foreach { edge =>
             addEdge(edge)
@@ -169,7 +175,7 @@ trait Interactable extends AbstractZestGraphWidget {
     }
 }
 
-class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, graph: ParsingContext.Graph)
+class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, graph: ParsingContext.Graph, acceptableNodes: Set[Node])
         extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with Interactable {
     val graphViewer = new GraphViewer(this, style)
     val graphCtrl = graphViewer.getGraphControl
@@ -177,7 +183,7 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
     setLayout(new FillLayout())
 
     def initialize(): Unit = {
-        addGraph(grammar, graph)
+        addGraph(grammar, graph, acceptableNodes)
         applyLayout(false)
         initializeTooltips(getTooltips())
     }
@@ -278,11 +284,11 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
     })
 }
 
-class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: ParsingContext.Graph, trans: ParsingContext.Graph)
-        extends ZestGraphWidget(parent, style, fig, grammar, trans) {
+class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: ParsingContext.Graph, trans: ParsingContext.Graph, acceptableNodes: Set[Node])
+        extends ZestGraphWidget(parent, style, fig, grammar, trans, acceptableNodes) {
     override def initialize(): Unit = {
-        addGraph(grammar, base)
-        addGraph(grammar, trans)
+        addGraph(grammar, base, acceptableNodes)
+        addGraph(grammar, trans, acceptableNodes)
         (base.nodes -- trans.nodes) foreach { removedNode =>
             val shownNode = nodesMap(removedNode)
             shownNode.getFigure.setBorder(new LineBorder(ColorConstants.lightGray))
@@ -347,8 +353,8 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
     })
 }
 
-class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: WrappedContext)
-        extends ZestGraphWidget(parent, style, fig, grammar, context.graph) {
+class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context)
+        extends ZestGraphWidget(parent, style, fig, grammar, context.graph, context.acceptableNodes) {
     addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {
@@ -410,7 +416,7 @@ trait TipNodes extends AbstractZestGraphWidget {
     }
 }
 
-class ZestDeriveTipParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: DeriveTipsWrappedContext)
+class ZestDeriveTipParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: DeriveTipsContext)
         extends ZestParsingContextWidget(parent, style, fig, grammar, context) with TipNodes {
     override def initialize(): Unit = {
         super.initialize()

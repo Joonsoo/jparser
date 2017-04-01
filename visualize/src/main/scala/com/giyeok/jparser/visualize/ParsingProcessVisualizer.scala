@@ -46,10 +46,10 @@ import com.giyeok.jparser.nparser.Parser
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.nparser.Parser.WrappedContext
+import com.giyeok.jparser.nparser.Parser.Context
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
 
-class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control) {
+class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control) {
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -287,7 +287,7 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
     }
 
     val contextCache = scala.collection.mutable.Map[Int, Either[C, ParsingError]]()
-    val transitionCache = scala.collection.mutable.Map[Int, Either[ProceedDetail, ParsingError]]()
+    val transitionCache = scala.collection.mutable.Map[Int, Either[(ProceedDetail, Context), ParsingError]]()
     def contextAt(gen: Int): Either[C, ParsingError] =
         contextCache get gen match {
             case Some(cached) => cached
@@ -297,7 +297,7 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
                         case Left(prevCtx) =>
                             parser.proceedDetail(prevCtx, source(gen - 1)) match {
                                 case Left((detail, nextCtx)) =>
-                                    transitionCache(gen - 1) = Left(detail)
+                                    transitionCache(gen - 1) = Left((detail, nextCtx))
                                     Left(nextCtx)
                                 case Right(error) => Right(error)
                             }
@@ -309,7 +309,7 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
                 contextCache(gen) = context
                 context
         }
-    def transitionAt(gen: Int): Either[ProceedDetail, ParsingError] =
+    def transitionAt(gen: Int): Either[(ProceedDetail, Context), ParsingError] =
         transitionCache get gen match {
             case Some(cached) => cached
             case None =>
@@ -346,13 +346,14 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
                                 case Some(tuple) => func(tuple)
                             }
                         transitionAt(gen) match {
-                            case Left(transition) =>
-                                stage match {
-                                    case 1 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.baseGraph, transition.expandedGraph)
-                                    case 2 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.expandedGraph, transition.liftedGraph)
-                                    case 3 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.liftedGraph, transition.acceptConditionUpdatedGraph)
-                                    case 4 => new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, transition.acceptConditionUpdatedGraph, transition.trimmedGraph)
+                            case Left((transition, nextCtx)) =>
+                                val (prevGraph, nextGraph) = stage match {
+                                    case 1 => (transition.baseGraph, transition.expandedGraph)
+                                    case 2 => (transition.expandedGraph, transition.liftedGraph)
+                                    case 3 => (transition.liftedGraph, transition.acceptConditionUpdatedGraph)
+                                    case 4 => (transition.acceptConditionUpdatedGraph, transition.trimmedGraph)
                                 }
+                                new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph, nextCtx.acceptableNodes)
                             case Right(error) => errorControl(error.msg)
                         }
                 }
@@ -387,7 +388,7 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
                             }
                         case ParsingContextTransitionPointer(gen, stage) =>
                             transitionAt(gen) match {
-                                case Left(transition) =>
+                                case Left((transition, _)) =>
                                     stage match {
                                         case 1 => dotGraphGen.get.addTransition(transition.baseGraph, transition.expandedGraph)
                                         case 2 => dotGraphGen.get.addTransition(transition.expandedGraph, transition.liftedGraph)
@@ -426,7 +427,7 @@ class ParsingProcessVisualizer[C <: WrappedContext](title: String, parser: Parse
 }
 
 object ParsingProcessVisualizer {
-    def start[C <: WrappedContext](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control): Unit = {
+    def start[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control): Unit = {
         new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources, parsingContextWidgetFunc).start()
     }
 }

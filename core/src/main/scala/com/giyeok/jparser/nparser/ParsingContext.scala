@@ -112,10 +112,24 @@ object ParsingContext {
             }
         }
         def mapNode(nodeFunc: Node => Node): Graph = {
-            ???
+            val newNodesMap: Map[Node, Node] = (nodes map { node => node -> nodeFunc(node) }).toMap
+            val newNodes: Set[Node] = newNodesMap.values.toSet
+            val newEdges: Set[Edge] = edges map {
+                case SimpleEdge(start, end) =>
+                    SimpleEdge(newNodesMap(start), newNodesMap(end))
+                case JoinEdge(start, end, join) =>
+                    JoinEdge(newNodesMap(start), newNodesMap(end), newNodesMap(join))
+            }
+            Graph(newNodes, newEdges)
         }
         def filterNode(nodePred: Node => Boolean): Graph = {
-            ???
+            val nodesPredMap: Map[Node, Boolean] = (nodes map { node => node -> nodePred(node) }).toMap
+            val newNodes: Set[Node] = (nodesPredMap filter { _._2 }).keySet
+            val newEdges: Set[Edge] = edges filter {
+                case SimpleEdge(start, end) => nodesPredMap(start) && nodesPredMap(end)
+                case JoinEdge(start, end, join) => nodesPredMap(start) && nodesPredMap(end) && nodesPredMap(join)
+            }
+            Graph(newNodes, newEdges)
         }
         def merge(other: Graph): Graph = {
             def mergeEdgesMap(map: Map[Node, Set[Edge]], merging: Map[Node, Set[Edge]]): Map[Node, Set[Edge]] =

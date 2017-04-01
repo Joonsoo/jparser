@@ -2,7 +2,7 @@ package com.giyeok.jparser.tests
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.ConcreteInput
-import com.giyeok.jparser.nparser.Parser.NaiveWrappedContext
+import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.GrammarDefinitionFigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer
@@ -153,7 +153,7 @@ trait Viewer {
             val grammar = gt.grammar
             selectedParserType match {
                 case ParserTypes.Naive =>
-                    ParsingProcessVisualizer.start[NaiveWrappedContext](grammar.name, gt.nparserNaive, source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
+                    ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.nparserNaive, source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.Preprocessed =>
                     ??? // ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.PreprocessedSliced =>
