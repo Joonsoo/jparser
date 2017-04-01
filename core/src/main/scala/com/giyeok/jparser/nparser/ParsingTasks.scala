@@ -16,28 +16,51 @@ trait ParsingTasks {
     case class FinishTask(node: Node) extends Task
     case class ProgressTask(node: Node, condition: AcceptCondition) extends Task
 
-    def deriveTask(nextGen: Int, task: DeriveTask, cc: Graph): (Graph, Seq[Task]) = {
+    def deriveTask(nextGen: Int, task: DeriveTask, cc: Cont): (Cont, Seq[Task]) = {
         val DeriveTask(startNode) = task
 
         def nodeOf(symbolId: Int): Node =
             Node(Kernel(symbolId, 0, nextGen, nextGen)(grammar.symbolOf(symbolId)), Always)
 
-        def derive(symbolIds: Set[Int]): (Graph, Seq[Task]) = {
+        def derive(symbolIds: Set[Int]): (Cont, Seq[Task]) = {
             // (symbolIds에 해당하는 노드) + (startNode에서 symbolIds의 노드로 가는 엣지) 추가
             val destNodes: Set[Node] = symbolIds map nodeOf
-            val existedNodes: Set[Node] = destNodes intersect cc.nodes
-            val newNodes: Set[Node] = destNodes -- cc.nodes
 
-            val newGraph = destNodes.foldLeft(cc) { (graph, node) =>
-                graph.addNode(node).addEdge(SimpleEdge(startNode, node))
-            }
             // empty여서 isFinished인 것은 바로 FinishTask, 아니면 DeriveTask
-            val newTasks: Seq[Task] = newNodes.toSeq map {
+            val newNodes: Set[Node] = destNodes -- cc.graph.nodes
+            val newNodeTasks: Seq[Task] = newNodes.toSeq map {
                 case node if node.kernel.isFinished => FinishTask(node)
                 case node => DeriveTask(node)
             }
-            // TODO existedNodes 들에 대해서는 cc.updatedNodes보고 추가 처리
-            (newGraph, newTasks)
+
+            // existedNodes 들에 대해서는 cc.updatedNodes보고 추가 처리
+            def addUpdatedNodes(queue: List[Node], graph: Graph, tasks: Seq[Task]): (Graph, Seq[Task]) =
+                queue match {
+                    case node +: rest =>
+                        cc.updatedNodes get node match {
+                            case Some(updatedNodes) =>
+                                assert((updatedNodes map { _.kernel }).size == 1)
+                                val updatedGraph = updatedNodes.foldLeft(graph) { (graph, updatedNode) =>
+                                    graph.addEdge(SimpleEdge(startNode, updatedNode))
+                                }
+                                val newTasks = if (updatedNodes.head.kernel.isFinished) {
+                                    updatedNodes map { updatedNode =>
+                                        ProgressTask(startNode, updatedNode.condition)
+                                    }
+                                } else Seq()
+                                addUpdatedNodes(rest, updatedGraph, tasks ++ newTasks)
+
+                            case None => addUpdatedNodes(rest, graph, tasks)
+                        }
+                    case List() => (graph, tasks)
+                }
+
+            val (newGraph, newTasks) = destNodes.foldLeft((cc.graph, newNodeTasks)) { (cc, destNode) =>
+                val (graph, tasks) = cc
+                addUpdatedNodes(List(destNode), graph.addNode(destNode).addEdge(SimpleEdge(startNode, destNode)), tasks)
+            }
+
+            (Cont(newGraph, cc.updatedNodes), newTasks)
         }
 
         startNode.kernel.symbol match {
@@ -54,22 +77,20 @@ trait ParsingTasks {
                         val bodyNodeTask = if (bodyNode.kernel.isFinished) FinishTask(bodyNode) else DeriveTask(bodyNode)
                         val joinNodeTask = if (joinNode.kernel.isFinished) FinishTask(joinNode) else DeriveTask(joinNode)
                         // TODO cc.updatedNodes보고 추가 처리
-                        (cc.addNode(bodyNode).addNode(joinNode).addEdge(JoinEdge(startNode, bodyNode, joinNode)), Seq(bodyNodeTask, joinNodeTask))
+                        val newGraph = cc.graph.addNode(bodyNode).addNode(joinNode).addEdge(JoinEdge(startNode, bodyNode, joinNode))
+                        (Cont(newGraph, cc.updatedNodes), Seq(bodyNodeTask, joinNodeTask))
 
                     case lookaheadSymbol: NLookaheadSymbol =>
                         val lookaheadNode = nodeOf(lookaheadSymbol.lookahead)
                         // lookahead에 들어있는 내용은 emptyable일 수 없으므로 lookaheadNode는 isFinished이면 안됨
                         assert(!lookaheadNode.kernel.isFinished)
-                        val newDeriveTask = if (!(cc.nodes contains lookaheadNode)) { Seq(DeriveTask(lookaheadNode)) } else Seq()
+                        val newDeriveTask = if (!(cc.graph.nodes contains lookaheadNode)) { Seq(DeriveTask(lookaheadNode)) } else Seq()
                         val condition: AcceptCondition = lookaheadSymbol match {
                             case _: LookaheadIs => After(lookaheadNode, nextGen)
                             case _: LookaheadExcept => Until(lookaheadNode, nextGen)
                         }
-                        ProgressTask(lookaheadNode, condition)
-                        // TODO finishedLookaheadNode 추가하는 부분은 이제 progress task로 하면 되는 거 아닌가?
-                        val finishedLookaheadNode = Node(lookaheadNode.kernel.proceed(nextGen), condition)
-                        assert(finishedLookaheadNode.kernel.isFinished)
-                        (updateNode(cc.addNode(lookaheadNode), lookaheadNode, finishedLookaheadNode), FinishTask(finishedLookaheadNode) +: newDeriveTask)
+                        val newGraph = cc.graph.addNode(lookaheadNode)
+                        (Cont(newGraph, cc.updatedNodes), ProgressTask(lookaheadNode, condition) +: newDeriveTask)
                 }
             case Sequence(_, seq) =>
                 if (seq.isEmpty) {
@@ -82,7 +103,7 @@ trait ParsingTasks {
         }
     }
 
-    def finishTask(nextGen: Int, task: FinishTask, cc: Graph): (Graph, Seq[Task]) = {
+    def finishTask(nextGen: Int, task: FinishTask, cc: Cont): (Cont, Seq[Task]) = {
         val FinishTask(node) = task
 
         assert(node.kernel.isFinished)
@@ -94,7 +115,7 @@ trait ParsingTasks {
             case Some(_: EagerLongest) => conjunct(node.condition, Alive(node, nextGen))
             case _ => node.condition
         }
-        val incomingEdges = cc.edgesByDest(node)
+        val incomingEdges = cc.graph.edgesByDest(node)
         val chainTasks: Seq[Task] = incomingEdges.toSeq flatMap {
             case SimpleEdge(incoming, _) =>
                 incoming.kernel.symbol match {
@@ -109,13 +130,13 @@ trait ParsingTasks {
         (cc, chainTasks)
     }
 
-    def progressTask(nextGen: Int, task: ProgressTask, cc: Graph): (Graph, Seq[Task]) = {
+    def progressTask(nextGen: Int, task: ProgressTask, cc: Cont): (Cont, Seq[Task]) = {
         val ProgressTask(node, condition) = task
         // assert(cc.graph.nodes contains node)
 
         val updatedCondition = conjunct(node.condition, condition)
         val updatedNode = Node(node.kernel.proceed(nextGen), updatedCondition)
-        if (cc.nodes contains updatedNode) {
+        if (cc.graph.nodes contains updatedNode) {
             // 할 일 없을듯?
             //                if (cc.progresses contains (updatedNode, updatedConditions)) {
             //                    (cc.updateFinishes(newFinishes), Seq())
@@ -125,7 +146,20 @@ trait ParsingTasks {
             ???
         } else {
             // TODO cc에 updatedNodes에 node -> updatedNode 추가
-            val newGraph = updateNode(cc, node, updatedNode)
+            // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
+            val incomingEdges = cc.graph.edgesByDest(node)
+            val newGraph = incomingEdges.foldLeft(cc.graph.addNode(updatedNode)) { (graph, edge) =>
+                val newEdge = edge match {
+                    case SimpleEdge(start, _) => SimpleEdge(start, updatedNode)
+                    case JoinEdge(start, `node`, join) => JoinEdge(start, updatedNode, join)
+                    case JoinEdge(start, end, `node`) => JoinEdge(start, end, updatedNode)
+                    case _ => ??? // should not happen
+                }
+                graph.addEdge(newEdge)
+            }
+
+            val newUpdatedNodes = cc.updatedNodes + (node -> (cc.updatedNodes.getOrElse(node, Set()) + updatedNode))
+
             val newTasks = if (updatedNode.kernel.isFinished) {
                 // TODO finish task 만들기
                 //            val updatedConditions = cc.progresses.of(node).get map { conjunct(_, condition) }
@@ -134,38 +168,27 @@ trait ParsingTasks {
             } else {
                 Seq(DeriveTask(updatedNode))
             }
-            (newGraph, newTasks)
+            (Cont(newGraph, newUpdatedNodes), newTasks)
         }
     }
 
-    // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
-    def updateNode(graph: Graph, node: Node, newNode: Node): Graph = {
-        val incomingEdges = graph.edgesByDest(node)
-        incomingEdges.foldLeft(graph.addNode(newNode)) { (graph, edge) =>
-            val newEdge = edge match {
-                case SimpleEdge(start, _) => SimpleEdge(start, newNode)
-                case JoinEdge(start, `node`, join) => JoinEdge(start, newNode, join)
-                case JoinEdge(start, end, `node`) => JoinEdge(start, end, newNode)
-                case _ => ??? // should not happen
-            }
-            graph.addEdge(newEdge)
-        }
-    }
-
-    def process(nextGen: Int, task: Task, cc: Graph): (Graph, Seq[Task]) =
+    def process(nextGen: Int, task: Task, cc: Cont): (Cont, Seq[Task]) =
         task match {
             case task: DeriveTask => deriveTask(nextGen, task, cc)
             case task: ProgressTask => progressTask(nextGen, task, cc)
             case task: FinishTask => finishTask(nextGen, task, cc)
         }
 
-    @tailrec final def rec(nextGen: Int, tasks: List[Task], cc: Graph): Graph =
+    @tailrec final def rec(nextGen: Int, tasks: List[Task], cc: Cont): Cont =
         tasks match {
             case task +: rest =>
                 val (ncc, newTasks) = process(nextGen, task, cc)
                 rec(nextGen, newTasks ++: rest, ncc)
             case List() => cc
         }
+
+    def rec(nextGen: Int, tasks: List[Task], graph: Graph): Graph =
+        rec(nextGen, tasks, Cont(graph, Map())).graph
 
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.Input): Set[Node] = {
         def acceptable(symbolId: Int): Boolean =

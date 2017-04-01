@@ -12,9 +12,9 @@ import com.giyeok.jparser.nparser.Parser.ConditionFate
 class NaiveParser(val grammar: NGrammar) extends Parser[NaiveWrappedContext] with ParsingTasks {
     // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
 
-    val initialContext = {
-        val graph0 = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
-        val ctx = updateAcceptableCondition(0, graph0)
+    val initialContext: NaiveWrappedContext = {
+        val cc0 = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
+        val ctx = updateAcceptableCondition(0, cc0)
         new NaiveWrappedContext(0, ctx, List(), List(), ConditionFate((ctx.finishedNodes map { _.condition } map { c => c -> c }).toMap))
     }
 
