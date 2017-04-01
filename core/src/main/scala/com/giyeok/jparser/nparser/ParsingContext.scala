@@ -8,11 +8,13 @@ import com.giyeok.jparser.nparser.NGrammar.Sequence
 object ParsingContext {
     case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int)(val symbol: NSymbol) {
         def shiftGen(gen: Int): Kernel = Kernel(symbolId, pointer, beginGen + gen, endGen + gen)(symbol)
-        def isFinished: Boolean = symbol match {
-            case _: NAtomicSymbol => pointer == 1 ensuring (pointer == 0 || pointer == 1)
-            case Sequence(_, seq) => pointer == seq.length ensuring (0 <= pointer && pointer <= seq.length)
+
+        def lastPointer: Int = symbol match {
+            case _: NAtomicSymbol => 1
+            case Sequence(_, seq) => seq.length
         }
-        def proceed(newEndGen: Int) = Kernel(symbolId, pointer + 1, beginGen, newEndGen)(symbol) ensuring !this.isFinished
+        def isFinished: Boolean =
+            pointer == lastPointer ensuring (0 <= pointer && pointer <= lastPointer)
 
         override def toString: String = s"Kernel($symbolId, ${symbol.symbol.toShortString}, $pointer, $beginGen..$endGen)"
     }

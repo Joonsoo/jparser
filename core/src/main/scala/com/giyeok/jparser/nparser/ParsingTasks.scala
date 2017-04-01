@@ -136,7 +136,11 @@ trait ParsingTasks {
                 conjunct(node.condition, Unless(exceptNode, nextGen))
             case _ => node.condition
         }
-        val updatedNode = Node(node.kernel.proceed(nextGen), conjunct(node.condition, taskCondition, chainCondition))
+        val newKernel = {
+            val kernel = node.kernel
+            Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, nextGen)(kernel.symbol)
+        }
+        val updatedNode = Node(newKernel, conjunct(node.condition, taskCondition, chainCondition))
         if (!(cc.graph.nodes contains updatedNode)) {
             // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
             val incomingEdges = cc.graph.edgesByDest(node)

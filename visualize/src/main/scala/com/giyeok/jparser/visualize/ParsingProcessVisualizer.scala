@@ -98,7 +98,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
             case ParsingContextTransitionPointer(otherGen, _) => gen <= otherGen
         }
     }
-    val stagesCount = 5
+    val stagesCount = 7
     case class ParsingContextTransitionPointer(gen: Int, stage: Int) extends Pointer {
         assert(1 <= stage && stage <= stagesCount)
         def previous: Pointer =
