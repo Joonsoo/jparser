@@ -16,7 +16,13 @@ object AcceptCondition {
             val conds1 = conditions.toSet filter { _ != Always }
             if (conds1.isEmpty) Always
             else if (conds1.size == 1) conds1.head
-            else And(conds1)
+            else {
+                val conds2 = conds1 flatMap {
+                    case And(set) => set
+                    case item => Set(item)
+                }
+                And(conds2)
+            }
         }
     def disjunct(conditions: AcceptCondition*): AcceptCondition = {
         if (conditions contains Always) Always
@@ -24,7 +30,13 @@ object AcceptCondition {
             val conds1 = conditions.toSet filter { _ != Never }
             if (conds1.isEmpty) Never
             else if (conds1.size == 1) conds1.head
-            else Or(conds1)
+            else {
+                val conds2 = conds1 flatMap {
+                    case Or(set) => set
+                    case item => Set(item)
+                }
+                Or(conds2)
+            }
         }
     }
 
@@ -52,7 +64,8 @@ object AcceptCondition {
             conditions.foldLeft[AcceptCondition](Always) { (cc, condition) =>
                 conjunct(condition.evaluate(gen, graph, updatedNodes), cc)
             }
-        def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = conditions forall { _.acceptable(gen: Int, graph, updatedNodes) }
+        def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
+            conditions forall { _.acceptable(gen: Int, graph, updatedNodes) }
         def neg: AcceptCondition = disjunct((conditions map { _.neg }).toSeq: _*)
     }
     case class Or(conditions: Set[AcceptCondition]) extends AcceptCondition {
@@ -64,7 +77,8 @@ object AcceptCondition {
             conditions.foldLeft[AcceptCondition](Never) { (cc, condition) =>
                 disjunct(condition.evaluate(gen, graph, updatedNodes), cc)
             }
-        def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = conditions exists { _.acceptable(gen: Int, graph, updatedNodes) }
+        def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
+            conditions exists { _.acceptable(gen: Int, graph, updatedNodes) }
         def neg: AcceptCondition = conjunct((conditions map { _.neg }).toSeq: _*)
     }
 
@@ -72,36 +86,48 @@ object AcceptCondition {
         def nodes: Set[Node] = Set(node)
         def shiftGen(gen: Int): AcceptCondition =
             Until(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = ???
-        //        if (gen <= activeGen) {
-        //            this
-        //        } else {
-        //            finishes.of(node) match {
-        //                case Some(conditions) =>
-        //                    disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived).neg
-        //                case None =>
-        //                    if (survived contains node) this else Always
-        //            }
-        //        }
-        def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = true
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition =
+            if (gen <= activeGen) this else {
+                updatedNodes get node match {
+                    case Some(updated) =>
+                        disjunct((updated map { _.condition }).toSeq: _*).neg.evaluate(gen, graph, updatedNodes)
+                    case None =>
+                        if (graph.nodes contains node) this else Always
+                }
+            }
+        def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
+            if (gen <= activeGen) true else {
+                updatedNodes get node match {
+                    case Some(updated) =>
+                        disjunct((updated map { _.condition }).toSeq: _*).neg.acceptable(gen, graph, updatedNodes)
+                    case None => true
+                }
+            }
         def neg: AcceptCondition = After(node, activeGen)
     }
     case class After(node: Node, activeGen: Int) extends AcceptCondition {
         def nodes: Set[Node] = Set(node)
         def shiftGen(gen: Int): AcceptCondition =
             After(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = ???
-        //            if (gen <= activeGen) {
-        //                this
-        //            } else {
-        //                finishes.of(node) match {
-        //                    case Some(conditions) =>
-        //                        disjunct(conditions.toSeq: _*).evaluate(gen, finishes, survived)
-        //                    case None =>
-        //                        if (survived contains node) this else Never
-        //                }
-        //            }
-        def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = false
+        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition =
+            if (gen <= activeGen) this else {
+                updatedNodes get node match {
+                    case Some(updated) =>
+                        disjunct((updated map { _.condition }).toSeq: _*).neg.evaluate(gen, graph, updatedNodes)
+                    case None =>
+                        if (graph.nodes contains node) this else Never
+                }
+            }
+        def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
+            if (gen <= activeGen) false else {
+                updatedNodes get node match {
+                    case Some(updated) =>
+                        disjunct((updated map { _.condition }).toSeq: _*).neg.acceptable(gen, graph, updatedNodes)
+                    case None =>
+                        false
+                }
+            }
+
         def neg: AcceptCondition = Until(node, activeGen)
     }
 

@@ -29,16 +29,16 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             // 2. 1차 lift
             val Cont(liftedGraph0, updatedNodes0) = rec(nextGen, termFinishes, graph, Set[Node]())
 
-            // 3. stopNodes를 계산해서 2차 lift
-            val stopNodes: Set[Node] = liftedGraph0.nodes filter { node =>
-                !node.condition.acceptable(nextGen, liftedGraph0, updatedNodes0)
+            // 3. acceptable한 노드들만 필터
+            val acceptableOnlyGraph: Graph = liftedGraph0 filterNode { node =>
+                node.condition.acceptable(nextGen, liftedGraph0, updatedNodes0)
             }
-            val Cont(liftedGraph, updatedNodes) = rec(nextGen, termFinishes, graph, stopNodes)
 
             // 4. Evaluate accept conditions
             val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] =
-                evaluateAcceptConditions(nextGen, liftedGraph.nodes map { _.condition }, liftedGraph, updatedNodes)
+                evaluateAcceptConditions(nextGen, liftedGraph0.nodes map { _.condition }, liftedGraph0, updatedNodes0)
 
+            // 4. accept condition update
             // 5. Accept condition 처리
             // 5a. ConditionFate update
             val nextConditionFate: ConditionFate = {
@@ -48,9 +48,18 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
                 ctx.conditionFate.update(conditionsEvaluations)
             }
             // 5b. Update accept conditions in graph
-            val acceptConditionUpdatedGraph = liftedGraph mapNode { node =>
+            val acceptConditionUpdatedGraph = acceptableOnlyGraph mapNode { node =>
                 Node(node.kernel, conditionsEvaluations(node.condition))
             }
+
+            val Cont(liftedGraph, updatedNodes) = rec(nextGen, termFinishes, acceptConditionUpdatedGraph, Set[Node]())
+
+            println(s"gen $gen")
+            updatedNodes foreach { kv =>
+                println(s"${kv._1} -> ${kv._2}")
+            }
+
+            // TODO 4, 5 단계가 3단계보다 먼저 돼야하나?
 
             // 6. Trimming
             // 6a. 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
@@ -61,16 +70,14 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
                 })
             }
             // 6b. startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
-            val trimStarts: Set[Node] = Set(startNode) ++ (trimmed1.nodes flatMap { _.condition.nodes } intersect trimmed1.nodes)
-            val newTermNodes: Set[Node] = termNodes(trimmed1, nextGen)
-            val trimmedGraph: Graph = trim(trimmed1, trimStarts, newTermNodes)
+            val trimmedGraph: Graph = trim(trimmed1, startNode, termNodes(trimmed1, nextGen))
 
             // TODO trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
             // - acceptConditionUpdatedGraph와 trimmedGraph를 둘 다 받아서 해결 가능
             //   - parse tree reconstruction에는 acceptConditionUpdatedGraph 사용
             //   - 다음 generation 시작할 때는 trimmedGraph 사용
             val nextContext = ctx.proceed(nextGen, trimmedGraph, input, nextConditionFate)
-            Left((ProceedDetail(graph, graph, liftedGraph0, stopNodes, liftedGraph, acceptConditionUpdatedGraph, trimmed1, trimmedGraph), nextContext))
+            Left((ProceedDetail(graph, graph, liftedGraph0, acceptableOnlyGraph, acceptConditionUpdatedGraph, liftedGraph, trimmed1, trimmedGraph), nextContext))
         }
     }
 }

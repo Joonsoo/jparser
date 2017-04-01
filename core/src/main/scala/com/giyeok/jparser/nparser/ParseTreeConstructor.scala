@@ -31,10 +31,10 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
             }
         }
         println("???")
-        ??? // if (finishes(gen) contains node) Some(reconstruct(node, gen, Set())) else None
+        if (finishes(gen) contains node.kernel) Some(reconstruct(node.kernel, gen, Set())) else None
     }
 
-    protected def reconstruct(node: Node, gen: Int, traces: Set[Int]): R = {
+    protected def reconstruct(kernel: Kernel, gen: Int, traces: Set[Int]): R = {
         ???
         //        def reconstruct0(child: Node, childGen: Int): R = {
         //            val newTraces = if ((node.beginGen, gen) == (child.beginGen, childGen)) (traces + node.symbolId) else Set[Int]()
@@ -106,9 +106,9 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     }
 }
 
-class CompactParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: CompactNGrammar)(input: Seq[Input], history: Seq[Set[Node]], conditionFate: ConditionFate)
-        extends ParseTreeConstructor(resultFunc)(grammar)(input, history, conditionFate) {
-    override protected def reconstruct(node: Node, gen: Int, traces: Set[Int]): R = {
-        resultFunc.sequence(0, 0, grammar.nsequences.values.head.symbol)
-    }
-}
+//class CompactParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: CompactNGrammar)(input: Seq[Input], history: Seq[Set[Node]], conditionFate: ConditionFate)
+//        extends ParseTreeConstructor(resultFunc)(grammar)(input, history, conditionFate) {
+//    override protected def reconstruct(node: Node, gen: Int, traces: Set[Int]): R = {
+//        resultFunc.sequence(0, 0, grammar.nsequences.values.head.symbol)
+//    }
+//}

@@ -97,8 +97,8 @@ object Parser {
         }
     }
 
-    case class ProceedDetail(baseGraph: Graph, expandedGraph: Graph, lifted1: Graph, stopNodes: Set[Node], lifted2: Graph, acceptConditionUpdatedGraph: Graph, trimmed1: Graph, trimmedGraph: Graph) {
-        def seqs = Seq(baseGraph, expandedGraph, lifted1, lifted2, acceptConditionUpdatedGraph, trimmed1, trimmedGraph)
+    case class ProceedDetail(baseGraph: Graph, expandedGraph: Graph, lifted1: Graph, acceptableOnlyGraph: Graph, acceptConditionUpdatedGraph: Graph, lifted2: Graph, trimmed1: Graph, trimmedGraph: Graph) {
+        def seqs = Seq(baseGraph, expandedGraph, lifted1, acceptableOnlyGraph, acceptConditionUpdatedGraph, lifted2, trimmed1, trimmedGraph)
     }
 
     def evaluateAcceptConditions(nextGen: Int, conditions: Set[AcceptCondition], graph: Graph, updatedNodes: Map[Node, Set[Node]]): Map[AcceptCondition, AcceptCondition] = {

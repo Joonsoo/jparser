@@ -29,17 +29,21 @@ class NodeFigureGenerators[Fig](
         node.kernel.symbol match {
             case _: NAtomicSymbol =>
                 val symbolFig = symbolFigure(grammar, symbolId)
-                fig.horizontalFig(Spacing.Big, Seq(
-                    fig.textFig(s"$symbolId", appear.small),
-                    fig.horizontalFig(Spacing.Small, if (pointer == 0) Seq(dot, symbolFig) else Seq(symbolFig, dot)),
-                    fig.textFig(s"$beginGen-$endGen", appear.default),
+                fig.verticalFig(Spacing.Medium, Seq(
+                    fig.horizontalFig(Spacing.Big, Seq(
+                        fig.textFig(s"$symbolId", appear.small),
+                        fig.horizontalFig(Spacing.Small, if (pointer == 0) Seq(dot, symbolFig) else Seq(symbolFig, dot)),
+                        fig.textFig(s"$beginGen-$endGen", appear.default)
+                    )),
                     conditionFig(grammar, condition)
                 ))
             case _ =>
-                fig.horizontalFig(Spacing.Big, Seq(
-                    fig.textFig(s"$symbolId", appear.small),
-                    sequenceFigure(grammar, symbolId, pointer),
-                    fig.textFig(s"$beginGen-$endGen", appear.default),
+                fig.verticalFig(Spacing.Medium, Seq(
+                    fig.horizontalFig(Spacing.Big, Seq(
+                        fig.textFig(s"$symbolId", appear.small),
+                        sequenceFigure(grammar, symbolId, pointer),
+                        fig.textFig(s"$beginGen-$endGen", appear.default)
+                    )),
                     conditionFig(grammar, condition)
                 ))
         }

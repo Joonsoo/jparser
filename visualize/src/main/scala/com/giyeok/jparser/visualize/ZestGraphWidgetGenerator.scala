@@ -285,27 +285,34 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
     override def initialize(): Unit = {
         addGraph(grammar, base)
         addGraph(grammar, trans)
-        // 없어지는 노드, 엣지는 회색 점선
+        val thickLineWidth = 2
+        // 변경이 있는 부분은 굵은 선
+        // 없어지는 노드, 엣지는 주황색 점선
         (base.nodes -- trans.nodes) foreach { removedNode =>
             val shownNode = nodesMap(removedNode)
-            shownNode.getFigure.setBorder(new LineBorder(ColorConstants.lightGray, 1, SWT.LINE_DASH))
+            shownNode.getFigure.setBorder(new LineBorder(ColorConstants.orange, thickLineWidth, SWT.LINE_DASH))
+            val preferredSize = shownNode.getFigure.getPreferredSize()
+            shownNode.setSize(preferredSize.width, preferredSize.height)
         }
         (base.edges -- trans.edges) foreach { removedEdge =>
             edgesMap(removedEdge) foreach { connection =>
-                connection.setLineColor(ColorConstants.lightGray)
-                connection.setLineWidth(1)
+                connection.setLineColor(ColorConstants.orange)
+                connection.setLineWidth(thickLineWidth)
                 connection.setLineStyle(SWT.LINE_DASH)
             }
         }
-        // 새 노드, 엣지는 굵은 선
+        // 새 노드, 엣지는 굵은 파란 실선
         (trans.nodes -- base.nodes) foreach { newNode =>
             val shownNode = nodesMap(newNode)
-            shownNode.getFigure.setBorder(new LineBorder(3))
+            shownNode.getFigure.setBorder(new LineBorder(ColorConstants.blue, thickLineWidth))
             val preferredSize = shownNode.getFigure.getPreferredSize()
             shownNode.setSize(preferredSize.width, preferredSize.height)
         }
         (trans.edges -- base.edges) foreach { newEdge =>
-            edgesMap(newEdge) foreach { _.setLineWidth(3) }
+            edgesMap(newEdge) foreach { connection =>
+                connection.setLineColor(ColorConstants.blue)
+                connection.setLineWidth(thickLineWidth)
+            }
         }
         // 공통 노드, 엣지는 기본 모양
         applyLayout(false)

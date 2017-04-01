@@ -82,7 +82,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
     case class ParsingContextPointer(gen: Int) extends Pointer {
         def previous: Pointer =
             if (gen == 0) ParsingContextInitializingPointer
-            else ParsingContextTransitionPointer(gen - 1, 4)
+            else ParsingContextTransitionPointer(gen - 1, stagesCount)
         def next = ParsingContextTransitionPointer(gen, 1)
         def previousBase = ParsingContextPointer(gen - 1)
         def nextBase = ParsingContextPointer(gen + 1)
@@ -335,13 +335,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                         transitionAt(gen) match {
                             case Left((_, transition, _)) =>
                                 val (prevGraph, nextGraph) = (transition.seqs(stage - 1), transition.seqs(stage))
-                                val widget = new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph)
-                                if (stage >= 2) {
-                                    transition.stopNodes foreach { stopNode =>
-                                        widget.nodesMap get stopNode foreach { _.setBackgroundColor(ColorConstants.red) }
-                                    }
-                                }
-                                widget
+                                new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph)
                             case Right(error) => errorControl(error.msg)
                         }
                 }
