@@ -11,27 +11,12 @@ import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 
 class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Graph], conditionFate: ConditionAccumulate) {
-    sealed trait KernelEdge
+    sealed trait KernelEdge { val start: Kernel }
     case class SimpleKernelEdge(start: Kernel, end: Kernel) extends KernelEdge
     case class JoinKernelEdge(start: Kernel, end: Kernel, join: Kernel) extends KernelEdge
 
     case class KernelGraph(nodes: Set[Kernel], edges: Set[KernelEdge]) {
-        // TODO 여기선 edgesByDest 필요 없지 않을까?
-        val (edgesByStart, edgesByDest) = {
-            val baseEdgesMap = (nodes map { _ -> Set[KernelEdge]() }).toMap
-            edges.foldLeft(baseEdgesMap, baseEdgesMap) { (cc, edge) =>
-                val (byStart, byDest) = cc
-                edge match {
-                    case SimpleKernelEdge(start, end) =>
-                        (byStart + (start -> (byStart(start) + edge)),
-                            byDest + (end -> (byDest(end) + edge)))
-                    case JoinKernelEdge(start, end, join) =>
-                        (byStart + (start -> (byStart(start) + edge)),
-                            byDest + (end -> (byDest(end) + edge)) + (join -> (byDest(join) + edge)))
-                }
-                (byStart, byDest)
-            }
-        }
+        val edgesByStart: Map[Kernel, Set[KernelEdge]] = edges groupBy { _.start }
     }
 
     val finishes: Vector[KernelGraph] = {
@@ -51,17 +36,75 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
         reconstruct(Kernel(grammar.startSymbol, 0, 0, 0)(grammar.nsymbols(grammar.startSymbol)), input.length)
     }
     def reconstruct(kernel: Kernel, gen: Int): Option[R] = {
-        println(kernel, gen)
-        finishes.zipWithIndex foreach { finishesIdx =>
-            val (finish, idx) = finishesIdx
-            println(s"===== $idx =====")
-            finish.nodes.toSeq sortBy { _.symbolId } foreach { println }
-        }
-        ???
+        if (finishes(gen).nodes contains kernel) Some(reconstruct(kernel, gen, Set())) else None
     }
 
-    protected def reconstruct(kernel: Kernel, gen: Int, traces: Set[Int]): R = {
-        ???
+    private def reconstruct(kernel: Kernel, gen: Int, traces: Set[(Int, Int)]): R = {
+        println("reconstruct", kernel, gen, traces)
+        assert(finishes(gen).nodes contains kernel)
+        if (kernel.endGen != gen) {
+            println("???")
+        }
+        assert(kernel.endGen == gen)
+
+        def reconstruct0(child: Kernel, childGen: Int): R = {
+            val newTraces: Set[(Int, Int)] =
+                if ((kernel.beginGen, gen) != (child.beginGen, childGen)) Set()
+                else traces + ((kernel.symbolId, kernel.pointer))
+            reconstruct(child, childGen, newTraces)
+        }
+
+        kernel.symbol match {
+            case symbol if traces contains ((kernel.symbolId, kernel.pointer)) =>
+                println("cyclicBind?")
+                resultFunc.cyclicBind(kernel.beginGen, gen, symbol.symbol)
+
+            case Sequence(symbol, sequence) =>
+                if (kernel.pointer == 0) {
+                    assert(kernel.beginGen == kernel.endGen)
+                    resultFunc.sequence(kernel.beginGen, kernel.endGen, symbol)
+                } else {
+                    val (symbolId, prevPointer) = (kernel.symbolId, kernel.pointer - 1)
+                    val prevKernels = finishes(gen).nodes filter { kern =>
+                        (kern.symbolId == symbolId) && (kern.pointer == prevPointer) && (kern.beginGen == kernel.beginGen)
+                    }
+                    val trees = prevKernels flatMap { prevKernel =>
+                        val childKernel = Kernel(sequence(prevPointer), 1, prevKernel.endGen, gen)(grammar.nsymbols(sequence(prevPointer)))
+                        if (finishes(gen).nodes contains childKernel) {
+                            val precedingTree = reconstruct0(Kernel(kernel.symbolId, prevPointer, kernel.beginGen, prevKernel.endGen)(kernel.symbol), prevKernel.endGen)
+                            val childTree = reconstruct0(childKernel, gen)
+                            println(s"preceding: $precedingTree")
+                            println(s"child: $childTree")
+                            Some(resultFunc.append(precedingTree, childTree))
+                        } else None
+                    }
+                    resultFunc.merge(trees)
+                }
+
+            case Join(symbol, body, join) =>
+                assert(kernel.pointer == 1)
+                val bodyKernel = Kernel(body, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(body))
+                val joinKernel = Kernel(join, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(join))
+                val bodyTree = reconstruct0(bodyKernel, kernel.endGen)
+                val joinTree = reconstruct0(joinKernel, kernel.endGen)
+                resultFunc.join(kernel.beginGen, kernel.endGen, symbol, bodyTree, joinTree)
+
+            case Terminal(symbol) =>
+                resultFunc.bind(kernel.beginGen, kernel.endGen, symbol,
+                    resultFunc.terminal(kernel.beginGen, input(kernel.beginGen)))
+
+            case symbol: NAtomicSymbol =>
+                assert(kernel.pointer == 1)
+                val prevKernel = Kernel(kernel.symbolId, 0, kernel.beginGen, kernel.beginGen)(kernel.symbol)
+                assert(finishes(gen).edgesByStart(prevKernel) forall { _.isInstanceOf[SimpleKernelEdge] })
+                val bodyKernels = finishes(gen).edgesByStart(prevKernel) collect {
+                    case SimpleKernelEdge(_, end) if end.endGen == gen && end.isFinished => end
+                }
+                val bodyTrees = bodyKernels map { bodyKernel =>
+                    reconstruct0(bodyKernel, kernel.endGen)
+                }
+                resultFunc.bind(kernel.beginGen, kernel.endGen, symbol.symbol, resultFunc.merge(bodyTrees))
+        }
         //        def reconstruct0(child: Node, childGen: Int): R = {
         //            val newTraces = if ((node.beginGen, gen) == (child.beginGen, childGen)) (traces + node.symbolId) else Set[Int]()
         //            reconstruct(child, childGen, newTraces)

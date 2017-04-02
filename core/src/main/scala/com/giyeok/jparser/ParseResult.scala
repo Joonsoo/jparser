@@ -14,7 +14,6 @@ trait ParseResultFunc[R <: ParseResult] {
     def append(sequence: R, child: R): R
 
     def merge(base: R, merging: R): R
-    def merge(results: Iterable[R]): Option[R] =
-        if (results.isEmpty) None
-        else Some(results.tail.foldLeft(results.head)(merge(_, _)))
+    def merge(results: Iterable[R]): R =
+        results.tail.foldLeft(results.head)(merge) ensuring results.nonEmpty
 }

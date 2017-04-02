@@ -88,7 +88,7 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
             case Proxy(sym) =>
                 fig.horizontalFig(Spacing.Small, Seq(fig.textFig("P(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
             case Join(sym, join) =>
-                fig.verticalFig(Spacing.Small, Seq(symbolFig(sym), fig.textFig("&", ap.default), symbolFig(join)))
+                fig.horizontalFig(Spacing.Small, Seq(symbolFig(sym), fig.textFig("&", ap.default), symbolFig(join)))
             case Longest(sym) =>
                 fig.horizontalFig(Spacing.Small, Seq(fig.textFig("L(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
             case EagerLongest(sym) =>

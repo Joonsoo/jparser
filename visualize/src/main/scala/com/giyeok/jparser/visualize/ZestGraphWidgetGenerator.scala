@@ -1,6 +1,7 @@
 package com.giyeok.jparser.visualize
 
 import scala.collection.mutable
+import scala.util.Try
 import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.ParseResult
@@ -230,21 +231,8 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
             if (thisTime - lastTime < inputMaxInterval) InputAccumulator(textSoFar + char, thisTime) else InputAccumulator("" + char, thisTime)
         def textAsInt: Option[Int] = try { Some(textSoFar.toInt) } catch { case _: Throwable => None }
         def textAsInts: Seq[Int] = {
-            var seq = List[Int]()
-            var buffer = ""
-            val text = textSoFar + " "
-            for (i <- 0 until text.length()) {
-                val c = text.charAt(i)
-                if ('0' <= c && c <= '9') {
-                    buffer += c
-                } else {
-                    if (buffer != "") {
-                        seq = buffer.toInt +: seq
-                    }
-                    buffer = ""
-                }
-            }
-            seq.reverse
+            val tokens = textSoFar.split("\\D+") map { t => Try(t.toInt) }
+            if (tokens forall { _.isSuccess }) tokens map { _.get } else Seq()
         }
     }
     var inputAccumulator = InputAccumulator("", 0)

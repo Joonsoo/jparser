@@ -39,9 +39,9 @@ case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node],
                                             reconstruct(child, visited + node)
                                     })
                                     val prev = reconstruct(end, visited + node)
-                                    resultFunc.append(prev, contents.get)
+                                    resultFunc.append(prev, contents)
                             }
-                            resultFunc.merge(bodies).get
+                            resultFunc.merge(bodies)
                         }
                     case Bind(left, right, symbol) =>
                         val bodies: Set[R] = outgoingOf(node) map {
@@ -49,14 +49,14 @@ case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node],
                                 reconstruct(end, visited + node)
                             case _ => assert(false); ???
                         }
-                        resultFunc.bind(left, right, symbol, resultFunc.merge(bodies).get)
+                        resultFunc.bind(left, right, symbol, resultFunc.merge(bodies))
                     case Join(left, right, symbol) =>
                         val bodies: Set[R] = outgoingOf(node) map {
                             case JoinEdge(_, end, join) =>
                                 resultFunc.join(left, right, symbol, reconstruct(end, visited + node), reconstruct(join, visited + node))
                             case _ => assert(false); ???
                         }
-                        resultFunc.merge(bodies).get
+                        resultFunc.merge(bodies)
                 }
             }
         }
