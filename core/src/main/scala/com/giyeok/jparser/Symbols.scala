@@ -202,9 +202,6 @@ object Symbols {
     case class Longest(sym: Symbol) extends AtomicNonterm {
         override val hashCode = (classOf[Longest], sym).hashCode
     }
-    case class EagerLongest(sym: Symbol) extends AtomicNonterm {
-        override val hashCode = (classOf[EagerLongest], sym).hashCode
-    }
 
     implicit class CharsGrouping(sym: Terminals.Chars) {
         def groups: List[(Char, Char)] = {
@@ -250,7 +247,6 @@ object Symbols {
             case Proxy(sym) => s"P(${sym.toShortString})"
             case Join(sym, join) => s"${sym.toShortString} joinedwith ${join.toShortString}"
             case Longest(sym) => s"L(${sym.toShortString})"
-            case EagerLongest(sym) => s"EL(${sym.toShortString})"
         }
     }
 }

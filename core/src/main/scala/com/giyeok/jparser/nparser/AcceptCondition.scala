@@ -131,25 +131,6 @@ object AcceptCondition {
         def neg: AcceptCondition = Until(node, activeGen)
     }
 
-    case class Alive(node: Node, activeGen: Int) extends AcceptCondition {
-        def nodes: Set[Node] = Set(node)
-        def shiftGen(gen: Int): AcceptCondition =
-            Alive(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = ???
-        //            if (gen <= activeGen) this else { if (survived contains node) Never else Always }
-        def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = true
-        def neg: AcceptCondition = Dead(node, activeGen)
-    }
-    case class Dead(node: Node, activeGen: Int) extends AcceptCondition {
-        def nodes: Set[Node] = Set(node)
-        def shiftGen(gen: Int): AcceptCondition =
-            Dead(node.shiftGen(gen), activeGen + gen)
-        def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = ???
-        //            if (gen <= activeGen) this else { if (survived contains node) Always else Never }
-        def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean = false
-        def neg: AcceptCondition = Alive(node, activeGen)
-    }
-
     case class Unless(node: Node, targetGen: Int) extends AcceptCondition {
         def nodes: Set[Node] = Set(node)
         def shiftGen(gen: Int): AcceptCondition =

@@ -44,7 +44,6 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             case Proxy(sym) => s"P(${sym.toDotLabelName})"
             case Join(sym, join) => s"${sym.toDotLabelName}&${join.toDotLabelName}"
             case Longest(sym) => s"L(${sym.toDotLabelName})"
-            case EagerLongest(sym) => s"EL(${sym.toDotLabelName})"
         }
     }
 

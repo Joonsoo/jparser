@@ -28,7 +28,6 @@ object NGrammar {
     case class Repeat(symbol: Symbols.Repeat, produces: Set[Int]) extends NSimpleDerivable
     case class Except(symbol: Symbols.Except, body: Int, except: Int) extends NSimpleDerivable { val produces = Set(body, except) }
     case class Longest(symbol: Symbols.Longest, body: Int) extends NSimpleDerivable { val produces = Set(body) }
-    case class EagerLongest(symbol: Symbols.EagerLongest, body: Int) extends NSimpleDerivable { val produces = Set(body) }
 
     case class Join(symbol: Symbols.Join, body: Int, join: Int) extends NAtomicSymbol
 
@@ -68,7 +67,6 @@ object NGrammar {
                                 case symbol: Symbols.Repeat => Repeat(symbol, Set(numberOf(symbol.baseSeq), numberOf(symbol.repeatSeq)))
                                 case symbol: Symbols.Except => Except(symbol, numberOf(symbol.sym), numberOf(symbol.except))
                                 case symbol: Symbols.Longest => Longest(symbol, numberOf(symbol.sym))
-                                case symbol: Symbols.EagerLongest => EagerLongest(symbol, numberOf(symbol.sym))
 
                                 case symbol: Symbols.Join => Join(symbol, numberOf(symbol.sym), numberOf(symbol.join))
 

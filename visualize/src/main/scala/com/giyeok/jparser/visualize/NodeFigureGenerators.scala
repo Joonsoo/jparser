@@ -74,18 +74,6 @@ class NodeFigureGenerators[Fig](
                     nodeFig(grammar, node),
                     fig.textFig(s", $activeGen)", d)
                 ))
-            case Alive(node, activeGen) =>
-                fig.horizontalFig(Spacing.Small, Seq(
-                    fig.textFig("Alive(", d),
-                    nodeFig(grammar, node),
-                    fig.textFig(s", $activeGen)", d)
-                ))
-            case Dead(node, activeGen) =>
-                fig.horizontalFig(Spacing.Small, Seq(
-                    fig.textFig("Dead(", d),
-                    nodeFig(grammar, node),
-                    fig.textFig(s", $activeGen)", d)
-                ))
             case Unless(node, targetGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("Unless(", d),

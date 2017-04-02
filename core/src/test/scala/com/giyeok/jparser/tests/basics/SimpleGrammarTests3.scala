@@ -63,10 +63,10 @@ object SimpleGrammar7_1 extends Grammar with GrammarTestCases with StringSamples
             n("Exp2")
         ),
         "Id" -> ListSet(
-            elongest(chars('a' to 'z').plus)
+            longest(chars('a' to 'z').plus)
         ),
         "Num" -> ListSet(
-            elongest(chars('0' to '9').plus)
+            longest(chars('0' to '9').plus)
         )
     )
     val startSymbol = n("S")
@@ -104,10 +104,10 @@ object SimpleGrammar7_2 extends Grammar with GrammarTestCases with StringSamples
             n("Exp2")
         ),
         "Id" -> ListSet(
-            elongest(chars('a' to 'z').plus)
+            longest(chars('a' to 'z').plus)
         ),
         "Num" -> ListSet(
-            elongest(chars('0' to '9').plus)
+            longest(chars('0' to '9').plus)
         )
     )
     val startSymbol = n("S")

@@ -49,7 +49,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         val nparser = tests.nparserNaive
         nparser.parse(source) match {
             case Left(ctx) =>
-                val resultOpt = new ParseTreeConstructor(resultFunc)(nparser.grammar)(ctx.inputs, ctx.history, ctx.conditionAccumulate).reconstruct()
+                val resultOpt = new ParseTreeConstructor(resultFunc)(nparser.grammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
                 resultOpt match {
                     case Some(result) => Left(result)
                     case None => Right(ParsingErrors.UnexpectedError)
@@ -135,9 +135,6 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                 assert(sym == bodySym)
                 checkParse(body, grammar)
             case BindNode(Longest(sym), body @ BindNode(bodySym, _)) =>
-                assert(sym == bodySym)
-                checkParse(body, grammar)
-            case BindNode(EagerLongest(sym), body @ BindNode(bodySym, _)) =>
                 assert(sym == bodySym)
                 checkParse(body, grammar)
             case BindNode(_: LookaheadIs | _: LookaheadExcept, body) =>

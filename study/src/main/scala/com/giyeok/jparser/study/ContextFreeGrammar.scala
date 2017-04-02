@@ -239,7 +239,7 @@ object ContextFreeGrammar {
                                         .addRule(repeatSymbolName, Seq(symCfgSymbol, repeatCfgSymbol))
                                 }
                                 (ncc, repeatCfgSymbol)
-                            case _: Symbols.EagerLongest | _: Symbols.Except | _: Symbols.Join | _: Symbols.Longest | _: Symbols.Lookahead | Symbols.Start =>
+                            case _: Symbols.Except | _: Symbols.Join | _: Symbols.Longest | _: Symbols.Lookahead | Symbols.Start =>
                                 // exception 발생
                                 throw NotAContextFreeGrammar(symbol)
                         }

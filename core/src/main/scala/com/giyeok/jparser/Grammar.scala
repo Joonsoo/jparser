@@ -40,7 +40,6 @@ object Grammar {
                         case Join(sym, join) => traverse(sym, traverse(join, cc))
                         case Proxy(sym) => traverse(sym, cc)
                         case Longest(sym) => traverse(sym, cc)
-                        case EagerLongest(sym) => traverse(sym, cc)
                     }
                 }
             }
@@ -78,7 +77,6 @@ object Grammar {
                         case Join(sym, join) => traverse(sym, Some(symbol), traverse(join, Some(symbol), cc))
                         case Proxy(sym) => traverse(sym, Some(symbol), cc)
                         case Longest(sym) => traverse(sym, Some(symbol), cc)
-                        case EagerLongest(sym) => traverse(sym, Some(symbol), cc)
                     }
                 }
             }
@@ -106,7 +104,6 @@ object Grammar {
                         case Join(sym, join) => traverse(sym, traverse(join, cc + symbol))
                         case Proxy(sym) => traverse(sym, cc + symbol)
                         case Longest(sym) => traverse(sym, cc + symbol)
-                        case EagerLongest(sym) => traverse(sym, cc + symbol)
                     }
             }
             traverse(Start, Set())

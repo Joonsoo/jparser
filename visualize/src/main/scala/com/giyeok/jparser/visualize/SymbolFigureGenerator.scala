@@ -1,10 +1,7 @@
 package com.giyeok.jparser.visualize
 
-import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.Symbols._
-import java.lang.Character.UnicodeBlock
-import FigureGenerator.Spacing
+import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
 class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: FigureGenerator.Appearances[Fig]) {
     def symbolFig(symbol: Symbol): Fig = {
@@ -97,8 +94,6 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
                 fig.horizontalFig(Spacing.Small, Seq(symbolFig(sym), fig.textFig("&", ap.default), symbolFig(join)))
             case Longest(sym) =>
                 fig.horizontalFig(Spacing.Small, Seq(fig.textFig("L(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
-            case EagerLongest(sym) =>
-                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("EL(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
         }
     }
 

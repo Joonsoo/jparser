@@ -3,11 +3,11 @@ package com.giyeok.jparser.nparser
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.ParseResult
 import com.giyeok.jparser.ParseResultFunc
+import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.NGrammar._
-import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 import com.giyeok.jparser.nparser.ParsingContext._
 
-class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Graph], conditionFate: ConditionAccumulate) {
+class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Graph], conditionFinal: Map[AcceptCondition, Boolean]) {
     sealed trait KernelEdge { val start: Kernel }
     case class SimpleKernelEdge(start: Kernel, end: Kernel) extends KernelEdge
     case class JoinKernelEdge(start: Kernel, end: Kernel, join: Kernel) extends KernelEdge
@@ -18,7 +18,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
 
     val finishes: Vector[KernelGraph] = {
         (history map { graph =>
-            val filteredGraph = graph filterNode { node => conditionFate.of(node.condition) }
+            val filteredGraph = graph filterNode { node => conditionFinal(node.condition) }
             val kernelNodes: Set[Kernel] = filteredGraph.nodes map { _.kernel }
             val kernelEdges: Set[KernelEdge] = filteredGraph.edges map {
                 case SimpleEdge(start, end) => SimpleKernelEdge(start.kernel, end.kernel)

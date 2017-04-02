@@ -131,7 +131,6 @@ trait ParsingTasks {
         val nodeSymbolOpt = grammar.nsymbols get node.kernel.symbolId
         val chainCondition = nodeSymbolOpt match {
             case Some(_: Longest) => conjunct(node.condition, Until(node, nextGen))
-            case Some(_: EagerLongest) => conjunct(node.condition, Alive(node, nextGen))
             case Some(Except(_, _, except)) =>
                 val exceptNode = Node(Kernel(except, 0, node.kernel.beginGen, node.kernel.beginGen)(grammar.symbolOf(except)), Always)
                 conjunct(node.condition, Unless(exceptNode, nextGen))
