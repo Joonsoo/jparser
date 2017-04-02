@@ -118,6 +118,7 @@ trait ParsingTasks {
                 Some(ProgressTask(start, conjunct(node.condition, other.condition)))
             case JoinEdge(start, other, `node`) if other.kernel.isFinished =>
                 Some(ProgressTask(start, conjunct(node.condition, other.condition)))
+            case _: JoinEdge => None
         }
         (cc, chainTasks)
     }
@@ -177,22 +178,17 @@ trait ParsingTasks {
             case task: FinishTask => finishTask(nextGen, task, cc)
         }
 
-    @tailrec final def rec(nextGen: Int, tasks: List[Task], cc: Cont, stopNodes: Set[Node]): Cont =
+    @tailrec final def rec(nextGen: Int, tasks: List[Task], cc: Cont): Cont =
         tasks match {
             case task +: rest =>
-                if (stopNodes contains task.node) {
-                    // stopNode에 대해서는 아무 작업도 하지 않음
-                    rec(nextGen, rest, cc, stopNodes)
-                } else {
-                    val (ncc, newTasks) = process(nextGen, task, cc)
-                    rec(nextGen, newTasks ++: rest, ncc, stopNodes)
-                }
+                val (ncc, newTasks) = process(nextGen, task, cc)
+                rec(nextGen, newTasks ++: rest, ncc)
             case List() => cc
         }
 
     // acceptable하지 않은 조건을 가진 기존의 노드에 대해서는 task를 진행하지 않는다
-    def rec(nextGen: Int, tasks: List[Task], graph: Graph, stopNodes: Set[Node]): Cont =
-        rec(nextGen, tasks, Cont(graph, Map()), stopNodes)
+    def rec(nextGen: Int, tasks: List[Task], graph: Graph): Cont =
+        rec(nextGen, tasks, Cont(graph, Map()))
 
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.Input): Set[Node] = {
         def acceptable(symbolId: Int): Boolean =
@@ -224,36 +220,40 @@ trait ParsingTasks {
         }
     }
     def trim(graph: Graph, start: Node, ends: Set[Node]): Graph = {
-        assert((graph.nodes contains start) && (ends subsetOf graph.nodes))
-        val reachableFromStart = {
-            def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
-                queue match {
-                    case node +: rest =>
-                        val reachables = (graph.edgesByStart(node) flatMap {
-                            case SimpleEdge(_, end) => Set(end)
-                            case JoinEdge(_, end, join) => Set(end, join)
-                        }) ++ (node.condition.nodes intersect graph.nodes)
-                        val newReachables = reachables -- cc
-                        visit(newReachables.toSeq ++: rest, cc ++ newReachables)
-                    case List() => cc
-                }
-            visit(List(start), Set(start))
+        if (!(graph.nodes contains start)) {
+            Graph(Set(), Set())
+        } else {
+            assert(ends subsetOf graph.nodes)
+            val reachableFromStart = {
+                def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
+                    queue match {
+                        case node +: rest =>
+                            val reachables = (graph.edgesByStart(node) flatMap {
+                                case SimpleEdge(_, end) => Set(end)
+                                case JoinEdge(_, end, join) => Set(end, join)
+                            }) ++ (node.condition.nodes intersect graph.nodes)
+                            val newReachables = reachables -- cc
+                            visit(newReachables.toSeq ++: rest, cc ++ newReachables)
+                        case List() => cc
+                    }
+                visit(List(start), Set(start))
+            }
+            val reachableToEnds = {
+                def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
+                    queue match {
+                        case node +: rest =>
+                            val reachables = graph.edgesByDest(node) collect {
+                                case SimpleEdge(start, _) => start
+                                case JoinEdge(start, end, join) if (cc contains end) && (cc contains join) => start
+                            }
+                            val newReachables = reachables -- cc
+                            visit(newReachables.toSeq ++: rest, cc ++ newReachables)
+                        case List() => cc
+                    }
+                visit(ends.toList, ends)
+            }
+            val removing = graph.nodes -- (reachableFromStart intersect reachableToEnds)
+            graph.removeNodes(removing)
         }
-        val reachableToEnds = {
-            def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
-                queue match {
-                    case node +: rest =>
-                        val reachables = graph.edgesByDest(node) collect {
-                            case SimpleEdge(start, _) => start
-                            case JoinEdge(start, end, join) if (cc contains end) && (cc contains join) => start
-                        }
-                        val newReachables = reachables -- cc
-                        visit(newReachables.toSeq ++: rest, cc ++ newReachables)
-                    case List() => cc
-                }
-            visit(ends.toList, ends)
-        }
-        val removing = graph.nodes -- (reachableFromStart intersect reachableToEnds)
-        graph.removeNodes(removing)
     }
 }
