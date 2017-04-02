@@ -2,6 +2,7 @@ package com.giyeok.jparser
 
 import ParseResultDerivations._
 
+// TODO 수정 필요
 case class ParseResultDerivationsSet(left: Int, right: Int, derivations: Set[Derivation]) extends ParseResult
 
 object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivationsSet] {
@@ -14,7 +15,9 @@ object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivati
     def join(left: Int, right: Int, symbol: Symbols.Join, body: ParseResultDerivationsSet, join: ParseResultDerivationsSet): ParseResultDerivationsSet =
         ParseResultDerivationsSet(left, right, body.derivations ++ join.derivations) ensuring (body.left == left && body.right == right && join.left == left && join.right == right)
 
-    def sequence(left: Int, right: Int, symbol: Symbols.Sequence): ParseResultDerivationsSet =
+    def sequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int): ParseResultDerivationsSet =
+        ParseResultDerivationsSet(left, right, Set())
+    def cyclicSequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int): ParseResultDerivationsSet =
         ParseResultDerivationsSet(left, right, Set())
     def append(sequence: ParseResultDerivationsSet, child: ParseResultDerivationsSet): ParseResultDerivationsSet = {
         if (sequence.right != child.left) {

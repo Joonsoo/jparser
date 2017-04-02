@@ -10,7 +10,7 @@ trait ParseResultFunc[R <: ParseResult] {
     def join(left: Int, right: Int, symbol: Symbols.Join, body: R, join: R): R
     def cyclicBind(left: Int, right: Int, symbol: Symbols.Symbol): R
 
-    def sequence(left: Int, right: Int, symbol: Symbols.Sequence): R
+    def sequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int): R
     def append(sequence: R, child: R): R
 
     def merge(base: R, merging: R): R

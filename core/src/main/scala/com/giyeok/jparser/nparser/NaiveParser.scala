@@ -14,10 +14,39 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
 
     val initialContext: NaiveContext = {
         // TODO lift 제외하고 proceed할 때랑 동일하게 해야 하나?
-        val cc = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
-        val conditionsMap = (cc.graph.nodes map { n => n.condition -> n.condition }).toMap
-        val trimmedGraph = trimGraph(cc.graph, startNode, 0)
-        new NaiveContext(0, trimmedGraph, List(), List(cc.graph), ConditionAccumulate(conditionsMap))
+        val Cont(graph, updatedNodes) = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
+        val conditionsMap = (graph.nodes map { n => n.condition -> n.condition }).toMap
+
+        val initialConditionAccumulate = ConditionAccumulate(conditionsMap)
+
+        // 2. acceptable한 노드들만 필터
+        val acceptableOnlyGraph: Graph = graph filterNode { node =>
+            node.condition.acceptable(0, graph, updatedNodes)
+        }
+
+        // 3. Accept condition 처리
+        // 3a. Evaluate accept conditions
+        val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] = {
+            (graph.nodes map { _.condition } map { condition =>
+                condition -> condition.evaluate(0, graph, updatedNodes)
+            }).toMap
+        }
+        // 3b. ConditionAccumulate update
+        val nextConditionAccumulate: ConditionAccumulate = {
+            //                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedGraph) }
+            //                val newConditions = (revertedGraph.finishedNodes map { _.condition } map { c => (c -> c) }).toMap
+            //                evaluated ++ newConditions // filter { _._2 != False }
+            initialConditionAccumulate.update(conditionsEvaluations)
+        }
+        // 3c. Update accept conditions in graph
+        val acceptConditionUpdatedGraph = acceptableOnlyGraph mapNode { node =>
+            Node(node.kernel, conditionsEvaluations(node.condition))
+        }
+
+        // 4. Trimming
+        val trimmedGraph: Graph = trimGraph(acceptConditionUpdatedGraph, startNode, 0)
+
+        new NaiveContext(0, trimmedGraph, List(), List(graph), ConditionAccumulate(conditionsMap))
     }
 
     def proceedDetail(ctx: NaiveContext, input: Input): Either[(ProceedDetail, NaiveContext), ParsingError] = {

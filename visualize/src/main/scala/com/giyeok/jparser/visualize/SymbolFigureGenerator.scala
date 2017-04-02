@@ -49,20 +49,26 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
                     def adjExChars(list: List[Terminals.ExactChar]): Fig =
                         fig.horizontalFig(Spacing.None, list map { symbolFig(_) })
                     val grouped = seq.foldRight((List[Fig](), List[Terminals.ExactChar]())) {
-                        ((i, m) =>
+                        (i, m) =>
                             i match {
                                 case terminal: Terminals.ExactChar => (m._1, terminal +: m._2)
                                 case symbol if m._2.isEmpty => (symbolFig(symbol) +: m._1, List())
                                 case symbol => (symbolFig(symbol) +: adjExChars(m._2) +: m._1, List())
-                            })
+                            }
                     }
                     fig.horizontalFig(Spacing.Medium, if (grouped._2.isEmpty) grouped._1 else adjExChars(grouped._2) +: grouped._1)
                 }
             case OneOf(syms) =>
-                fig.horizontalFig(Spacing.None, join((syms map { sym =>
-                    if (needParentheses(sym)) fig.horizontalFig(Spacing.None, Seq(fig.textFig("(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
-                    else symbolFig(sym)
-                }).toList, fig.textFig("|", ap.default)))
+                if (syms.size == 2 && (syms contains Sequence(Seq(), Seq()))) {
+                    // A? 의 경우
+                    val opt = (syms - Sequence(Seq(), Seq())).head
+                    fig.horizontalFig(Spacing.None, Seq(symbolFig(opt), fig.textFig("?", ap.small)))
+                } else {
+                    fig.horizontalFig(Spacing.None, join((syms map { sym =>
+                        if (needParentheses(sym)) fig.horizontalFig(Spacing.None, Seq(fig.textFig("(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
+                        else symbolFig(sym)
+                    }).toList, fig.textFig("|", ap.default)))
+                }
             case Repeat(sym, lower) =>
                 val rep: String = lower match {
                     case 0 => "*"

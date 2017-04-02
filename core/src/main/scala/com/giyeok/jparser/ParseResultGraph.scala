@@ -28,8 +28,9 @@ case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node],
                     case Term(left, input) =>
                         resultFunc.terminal(left, input)
                     case Sequence(left, right, symbol, pointer) =>
+                        // TODO Sequence는 Sequence대로 만들고 append하도록 수정
                         if (pointer == 0) {
-                            resultFunc.sequence(left, right, symbol)
+                            resultFunc.sequence(left, right, symbol, pointer)
                         } else {
                             val outgoings = outgoingOf(node)
                             val bodies: Set[R] = outgoings collect {
@@ -92,8 +93,8 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
         }
     }
 
-    def sequence(left: Int, right: Int, symbol: Symbols.Sequence): ParseResultGraph = {
-        val emptyNode = Sequence(left, right, symbol, 0)
+    def sequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int): ParseResultGraph = {
+        val emptyNode = Sequence(left, right, symbol, pointer)
         ParseResultGraph(left, right, emptyNode, Set(emptyNode), Set())
     }
     def append(sequence: ParseResultGraph, child: ParseResultGraph): ParseResultGraph = {

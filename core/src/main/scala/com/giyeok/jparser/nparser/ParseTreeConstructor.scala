@@ -54,13 +54,13 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 resultFunc.cyclicBind(kernel.beginGen, gen, symbol.symbol)
 
             case symbol: Sequence if traces contains ((kernel.symbolId, kernel.pointer)) =>
-                // println("sequence cyclicBind?")
-                resultFunc.sequence(kernel.beginGen, gen, symbol.symbol) // TODO 임시 처리 - 고민해볼 것
+                // println(s"sequence cyclicBind - $kernel")
+                resultFunc.sequence(kernel.beginGen, gen, symbol.symbol, kernel.pointer)
 
             case Sequence(symbol, sequence) =>
                 if (kernel.pointer == 0) {
                     assert(kernel.beginGen == kernel.endGen)
-                    resultFunc.sequence(kernel.beginGen, kernel.endGen, symbol)
+                    resultFunc.sequence(kernel.beginGen, kernel.endGen, symbol, 0)
                 } else {
                     val (symbolId, prevPointer) = (kernel.symbolId, kernel.pointer - 1)
                     val prevKernels = finishes(gen).nodes filter { kern =>

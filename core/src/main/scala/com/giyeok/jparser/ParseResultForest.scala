@@ -7,17 +7,22 @@ case class ParseForest(trees: Set[ParseResultTree.Node]) extends ParseResult
 object ParseForestFunc extends ParseResultFunc[ParseForest] {
     import ParseResultTree._
 
-    def terminal(left: Int, input: Inputs.Input) = ParseForest(Set(TerminalNode(input)))
-    def bind(left: Int, right: Int, symbol: Symbol, body: ParseForest) =
+    def terminal(left: Int, input: Inputs.Input): ParseForest =
+        ParseForest(Set(TerminalNode(input)))
+    def bind(left: Int, right: Int, symbol: Symbol, body: ParseForest): ParseForest =
         ParseForest(body.trees map { b => BindNode(symbol, b) })
-    def cyclicBind(left: Int, right: Int, symbol: Symbol) =
+    def cyclicBind(left: Int, right: Int, symbol: Symbol): ParseForest =
         ???
-    def join(left: Int, right: Int, symbol: Symbols.Join, body: ParseForest, constraint: ParseForest) = {
+    def join(left: Int, right: Int, symbol: Symbols.Join, body: ParseForest, constraint: ParseForest): ParseForest = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
         ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
     }
-    def sequence(left: Int, right: Int, symbol: Symbols.Sequence) = ParseForest(Set(SequenceNode(symbol, List())))
-    def append(sequence: ParseForest, child: ParseForest) = {
+
+    def sequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int): ParseForest =
+        ParseForest(Set(SequenceNode(symbol, List()))) ensuring pointer == 0
+    def cyclicSequence(left: Int, right: Int, symbol: Sequence, pointer: Int): ParseForest =
+        ???
+    def append(sequence: ParseForest, child: ParseForest): ParseForest = {
         assert(sequence.trees forall { _.isInstanceOf[SequenceNode] })
         // sequence의 tree 각각에 child 각각을 추가한다
         ParseForest(sequence.trees flatMap { s => child.trees map { c => s.asInstanceOf[SequenceNode].append(c) } })
