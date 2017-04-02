@@ -93,7 +93,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             // trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
             //   - parse tree reconstruction할 때는 acceptConditionUpdatedGraph 그래프를 사용하고(liftedGraph를 써도 될듯?)
             //   - 다음 generation 시작할 때는 trimmedGraph 사용
-            val nextContext = ctx.proceed(nextGen, acceptConditionUpdatedGraph, trimmedGraph, input, updatedNodes, nextConditionAccumulate)
+            val nextContext = ctx.proceed(nextGen, resultGraph = acceptConditionUpdatedGraph, nextGraph = trimmedGraph, input, updatedNodes, nextConditionAccumulate)
             Left((ProceedDetail(
                 graph,
                 Transition("lifted", liftedGraph),

@@ -86,6 +86,7 @@ trait ParsingTasks {
                     case lookaheadSymbol: NLookaheadSymbol =>
                         val lookaheadNode = nodeOf(lookaheadSymbol.lookahead)
                         // lookahead에 들어있는 내용은 emptyable일 수 없으므로 lookaheadNode는 isFinished이면 안됨
+                        // TODO empty sequence 노드를 child로 만들고 이 조건 추가 코드는 progressTask로 옮기기
                         assert(!lookaheadNode.kernel.isFinished)
                         val newDeriveTask = if (!(cc.graph.nodes contains lookaheadNode)) { Seq(DeriveTask(lookaheadNode)) } else Seq()
                         val newGraph = cc.graph.addNode(lookaheadNode)

@@ -36,19 +36,12 @@ trait Parser[T <: Context] {
 
 object Parser {
     class ConditionAccumulate(val trueFixed: Set[AcceptCondition], val falseFixed: Set[AcceptCondition], val unfixed: Map[AcceptCondition, AcceptCondition]) {
-        def of(condition: AcceptCondition): Boolean = {
-            if (trueFixed contains condition) true
-            else if (falseFixed contains condition) false
-            else ??? // unfixed(condition)
-        }
-
         def update(evaluations: Map[AcceptCondition, AcceptCondition]): ConditionAccumulate = {
             val eventuallyTrue = (evaluations filter { _._2 == Always }).keySet ++ trueFixed
             val eventuallyFalse = (evaluations filter { _._2 == Never }).keySet ++ falseFixed
-            val stillNotFixed = evaluations -- eventuallyTrue -- eventuallyFalse
-            val newUnfixed = (unfixed -- eventuallyTrue -- eventuallyFalse) mapValues { cond =>
+            val newUnfixed = (unfixed ++ evaluations -- eventuallyTrue -- eventuallyFalse) mapValues { cond =>
                 // unfixed A -> cond 에서 cond가 변경되었으면 변경된 값으로 업데이트, 변경되지 않았으면 cond 그대로
-                stillNotFixed.getOrElse(cond, cond)
+                evaluations.getOrElse(cond, cond)
             }
             new ConditionAccumulate(eventuallyTrue, eventuallyFalse, newUnfixed)
         }

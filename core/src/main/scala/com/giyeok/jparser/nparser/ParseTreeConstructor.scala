@@ -13,7 +13,10 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     case class JoinKernelEdge(start: Kernel, end: Kernel, join: Kernel) extends KernelEdge
 
     case class KernelGraph(nodes: Set[Kernel], edges: Set[KernelEdge]) {
-        val edgesByStart: Map[Kernel, Set[KernelEdge]] = edges groupBy { _.start }
+        val edgesByStart: Map[Kernel, Set[KernelEdge]] = {
+            val edgesMap = edges groupBy { _.start }
+            ((nodes -- edgesMap.keySet) map { n => n -> Set[KernelEdge]() }).toMap ++ edgesMap
+        }
     }
 
     val finishes: Vector[KernelGraph] = {
