@@ -33,10 +33,11 @@ object NGrammar {
 
     sealed trait NLookaheadSymbol extends NAtomicSymbol {
         val symbol: Symbols.Lookahead
+        val emptySeqId: Int
         val lookahead: Int
     }
-    case class LookaheadIs(symbol: Symbols.LookaheadIs, lookahead: Int) extends NLookaheadSymbol
-    case class LookaheadExcept(symbol: Symbols.LookaheadExcept, lookahead: Int) extends NLookaheadSymbol
+    case class LookaheadIs(symbol: Symbols.LookaheadIs, emptySeqId: Int, lookahead: Int) extends NLookaheadSymbol
+    case class LookaheadExcept(symbol: Symbols.LookaheadExcept, emptySeqId: Int, lookahead: Int) extends NLookaheadSymbol
 
     // case class Compaction(symbols: Seq[Int]) extends NSymbol
 
@@ -61,8 +62,8 @@ object NGrammar {
                                 case symbol: Symbols.Terminal => Terminal(symbol)
 
                                 case Symbols.Start => Start(Set(numberOf(grammar.startSymbol)))
-                                case symbol: Symbols.Nonterminal => Nonterminal(symbol, grammar.rules(symbol.name) map { numberOf _ })
-                                case symbol: Symbols.OneOf => OneOf(symbol, symbol.syms map { numberOf _ })
+                                case symbol: Symbols.Nonterminal => Nonterminal(symbol, grammar.rules(symbol.name) map { numberOf })
+                                case symbol: Symbols.OneOf => OneOf(symbol, symbol.syms map { numberOf })
                                 case symbol: Symbols.Proxy => Proxy(symbol, numberOf(symbol.sym))
                                 case symbol: Symbols.Repeat => Repeat(symbol, Set(numberOf(symbol.baseSeq), numberOf(symbol.repeatSeq)))
                                 case symbol: Symbols.Except => Except(symbol, numberOf(symbol.sym), numberOf(symbol.except))
@@ -70,11 +71,11 @@ object NGrammar {
 
                                 case symbol: Symbols.Join => Join(symbol, numberOf(symbol.sym), numberOf(symbol.join))
 
-                                case symbol: Symbols.LookaheadIs => LookaheadIs(symbol, numberOf(symbol.lookahead))
-                                case symbol: Symbols.LookaheadExcept => LookaheadExcept(symbol, numberOf(symbol.except))
+                                case symbol: Symbols.LookaheadIs => LookaheadIs(symbol, numberOf(Symbols.Sequence(Seq())), numberOf(symbol.lookahead))
+                                case symbol: Symbols.LookaheadExcept => LookaheadExcept(symbol, numberOf(Symbols.Sequence(Seq())), numberOf(symbol.except))
                             }
                         case symbol: Symbols.Sequence =>
-                            nsequences(myId) = Sequence(symbol, symbol.seq map { numberOf _ })
+                            nsequences(myId) = Sequence(symbol, symbol.seq map { numberOf })
                             assert(symbol.seq forall { symbolsMap contains _ })
                     }
                     myId

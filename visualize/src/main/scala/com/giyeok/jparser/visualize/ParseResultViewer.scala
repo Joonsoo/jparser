@@ -138,20 +138,23 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
     r.nodes foreach { node =>
         val figure = node match {
             case node @ Term(_, input) =>
-                g.textFig(s"T${node.range}${input.toShortString}", ap.input)
+                g.horizontalFig(Spacing.None, Seq(
+                    g.textFig(node.range.toString, ap.small),
+                    g.textFig(input.toShortString, ap.input)
+                ))
             case node: Sequence =>
                 g.horizontalFig(Spacing.None, Seq(
-                    g.textFig(s"[${node.range}]", ap.default),
+                    g.textFig(node.range.toString, ap.small),
                     sfg.sequenceFig(node.symbol, node.pointer)
                 ))
             case node @ Bind(_, _, symbol) =>
                 g.verticalFig(Spacing.None, Seq(
-                    g.textFig(s"${node.range}", ap.default),
+                    g.textFig(node.range.toString, ap.small),
                     sfg.symbolFig(symbol)
                 ))
-            case Join(position, length, symbol) =>
+            case Join(_, _, symbol) =>
                 g.verticalFig(Spacing.None, Seq(
-                    g.textFig(s"${node.range}", ap.default),
+                    g.textFig(node.range.toString, ap.small),
                     sfg.symbolFig(symbol)
                 ))
         }
