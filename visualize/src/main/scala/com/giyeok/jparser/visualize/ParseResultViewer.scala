@@ -1,29 +1,27 @@
 package com.giyeok.jparser.visualize
 
-import org.eclipse.swt.widgets._
-import org.eclipse.swt.layout.FillLayout
-import org.eclipse.draw2d.FigureCanvas
-import org.eclipse.swt.events.KeyAdapter
-import org.eclipse.swt.SWT
-import org.eclipse.draw2d.Figure
-import com.giyeok.jparser.Symbols.Symbol
-import com.giyeok.jparser.ParseResultDerivationsSet
 import com.giyeok.jparser.ParseForest
+import com.giyeok.jparser.ParseResultDerivationsSet
 import com.giyeok.jparser.ParseResultGraph
-import org.eclipse.zest.core.widgets.Graph
-import org.eclipse.zest.core.widgets.CGraphNode
 import com.giyeok.jparser.ParseResultTree
-import org.eclipse.zest.core.widgets.GraphConnection
 import org.eclipse.draw2d.ColorConstants
+import org.eclipse.draw2d.Figure
+import org.eclipse.draw2d.FigureCanvas
 import org.eclipse.draw2d.LineBorder
+import org.eclipse.swt.SWT
+import org.eclipse.swt.events.KeyAdapter
+import org.eclipse.swt.layout.FillLayout
+import org.eclipse.swt.widgets._
+import org.eclipse.zest.core.viewers.GraphViewer
+import org.eclipse.zest.core.widgets.CGraphNode
+import org.eclipse.zest.core.widgets.GraphConnection
 import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
-import org.eclipse.zest.core.viewers.GraphViewer
 
 class ParseResultTreeViewer(node: ParseResultTree.Node, figureGenerator: FigureGenerator.Generator[Figure], figureAppearances: FigureGenerator.Appearances[Figure]) {
     val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](figureGenerator, figureAppearances)
 
-    val shell = new Shell(Display.getDefault())
+    val shell = new Shell(Display.getDefault)
     shell.setLayout(new FillLayout())
     val figCanvas = new FigureCanvas(shell)
     shell.addListener(SWT.Close, new Listener() {
@@ -42,7 +40,9 @@ class ParseResultTreeViewer(node: ParseResultTree.Node, figureGenerator: FigureG
         figCanvas.setContents(
             figureGenerator.verticalFig(FigureGenerator.Spacing.Big, Seq(
                 figureGenerator.textFig(s"${if (rs.horizontal) "Horizontal" else "Vertical"} renderJoin=${rs.renderJoin}, renderWS=${rs.renderWS}, renderLookaheadExcept=${rs.renderLookaheadExcept}", figureAppearances.default),
-                nodeFig)))
+                nodeFig
+            ))
+        )
     }
     resetContents()
 
@@ -72,7 +72,7 @@ class ParseResultTreeViewer(node: ParseResultTree.Node, figureGenerator: FigureG
 class ParseResultDerivationsSetViewer(r: ParseResultDerivationsSet, figureGenerator: FigureGenerator.Generator[Figure], figureAppearances: FigureGenerator.Appearances[Figure]) {
     val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](figureGenerator, figureAppearances)
 
-    val shell = new Shell(Display.getDefault())
+    val shell = new Shell(Display.getDefault)
     shell.setLayout(new FillLayout())
     val figCanvas = new FigureCanvas(shell)
     shell.addListener(SWT.Close, new Listener() {
@@ -90,7 +90,9 @@ class ParseResultDerivationsSetViewer(r: ParseResultDerivationsSet, figureGenera
         figCanvas.setContents(
             figureGenerator.verticalFig(FigureGenerator.Spacing.Big, Seq(
                 figureGenerator.textFig(s"${if (rs.horizontal) "Horizontal" else "Vertical"} renderJoin=${rs.renderJoin}, renderWS=${rs.renderWS}, renderLookaheadExcept=${rs.renderLookaheadExcept}", figureAppearances.default),
-                resultFig)))
+                resultFig
+            ))
+        )
     }
     resetContents()
 
@@ -121,7 +123,7 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
     import ParseResultGraph._
     import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
-    val shell = new Shell(Display.getDefault())
+    val shell = new Shell(Display.getDefault)
     shell.setLayout(new FillLayout())
     shell.addListener(SWT.Close, new Listener() {
         def handleEvent(e: Event): Unit = {
@@ -131,7 +133,7 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
 
     val (g, ap, sfg) = (figureGenerator, figureAppearances, symbolFigureGenerator)
     val graphViewer = new GraphViewer(shell, SWT.NONE)
-    val graph = graphViewer.getGraphControl()
+    val graph = graphViewer.getGraphControl
     val nodeMap = scala.collection.mutable.Map[Node, CGraphNode]()
     r.nodes foreach { node =>
         val figure = node match {
@@ -140,15 +142,18 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
             case node: Sequence =>
                 g.horizontalFig(Spacing.None, Seq(
                     g.textFig(s"[${node.range}]", ap.default),
-                    sfg.sequenceFig(node.symbol, node.pointer)))
+                    sfg.sequenceFig(node.symbol, node.pointer)
+                ))
             case node @ Bind(_, _, symbol) =>
                 g.verticalFig(Spacing.None, Seq(
                     g.textFig(s"${node.range}", ap.default),
-                    sfg.symbolFig(symbol)))
+                    sfg.symbolFig(symbol)
+                ))
             case Join(position, length, symbol) =>
                 g.verticalFig(Spacing.None, Seq(
                     g.textFig(s"${node.range}", ap.default),
-                    sfg.symbolFig(symbol)))
+                    sfg.symbolFig(symbol)
+                ))
         }
         figure.setBorder(new LineBorder(ColorConstants.darkGray))
         figure.setBackgroundColor(ColorConstants.buttonLightest)

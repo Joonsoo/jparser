@@ -285,20 +285,23 @@ trait ZestParseTreeConstructorView {
         }
     }
     def parseTreeOpener(stateMask: Int): (Int, Kernel) => Unit = {
-        if ((stateMask & SWT.SHIFT) != 0) {
-            if ((stateMask & SWT.CTRL) != 0) {
-                openParseTree(ParseResultDerivationsSetFunc) { derivationSet =>
-                    new ParseResultDerivationsSetViewer(derivationSet, fig.fig, fig.appear).start()
-                }
-            } else {
+        val shiftPressed = (stateMask & SWT.SHIFT) != 0
+        val ctrlPressed = (stateMask & SWT.CTRL) != 0
+        (shiftPressed, ctrlPressed) match {
+            case (true, _) =>
+                // Shift + 노드 클릭 -> Parse Forest
                 openParseTree[ParseForest](ParseForestFunc) { forest =>
                     forest.trees foreach { new ParseResultTreeViewer(_, fig.fig, fig.appear).start() }
                 }
-            }
-        } else {
-            openParseTree(ParseResultGraphFunc) { graph =>
-                new ParseResultGraphViewer(graph, fig.fig, fig.appear, fig.symbol).start()
-            }
+            case (false, true) =>
+                // Ctrl + 노드 클릭 -> Derivation Set
+                openParseTree(ParseResultDerivationsSetFunc) { derivationSet =>
+                    new ParseResultDerivationsSetViewer(derivationSet, fig.fig, fig.appear).start()
+                }
+            case (false, false) =>
+                openParseTree(ParseResultGraphFunc) { graph =>
+                    new ParseResultGraphViewer(graph, fig.fig, fig.appear, fig.symbol).start()
+                }
         }
     }
 }
