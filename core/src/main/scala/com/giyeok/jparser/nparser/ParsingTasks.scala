@@ -200,6 +200,7 @@ trait ParsingTasks {
             case node @ Node(Kernel(symbolId, 0, `nextGen`, `nextGen`), _) if acceptable(symbolId) => node
         }
     }
+
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.TermGroupDesc): Set[Node] = {
         def acceptable(symbolId: Int): Boolean =
             grammar.nsymbols get symbolId match {
@@ -210,6 +211,7 @@ trait ParsingTasks {
             case node @ Node(Kernel(symbolId, 0, `nextGen`, `nextGen`), _) if acceptable(symbolId) => node
         }
     }
+
     def termNodes(graph: Graph, nextGen: Int): Set[Node] = {
         graph.nodes filter { node =>
             val isTerminalSymbol = grammar.nsymbols get node.kernel.symbolId match {
@@ -219,7 +221,8 @@ trait ParsingTasks {
             (node.kernel.beginGen == nextGen) && isTerminalSymbol
         }
     }
-    def trim(graph: Graph, start: Node, ends: Set[Node]): Graph = {
+
+    def trimUnreachables(graph: Graph, start: Node, ends: Set[Node]): Graph = {
         if (!(graph.nodes contains start)) {
             Graph(Set(), Set())
         } else {
@@ -255,5 +258,18 @@ trait ParsingTasks {
             val removing = graph.nodes -- (reachableFromStart intersect reachableToEnds)
             graph.removeNodes(removing)
         }
+    }
+
+    def trimGraph(graph: Graph, startNode: Node, nextGen: Int): Graph = {
+        // 트리밍 - 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
+        val trimmed1 = graph filterNode { node =>
+            // TODO node.kernel.isFinished 인 노드도 지워도 될까?
+            (node.condition != Never) && (!node.kernel.isFinished) && (node.kernel.symbol match {
+                case Terminal(_) => node.kernel.beginGen == nextGen
+                case _ => true
+            })
+        }
+        // 2차 트리밍 - startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
+        trimUnreachables(trimmed1, startNode, termNodes(trimmed1, nextGen))
     }
 }

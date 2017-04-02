@@ -13,9 +13,11 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
     // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
 
     val initialContext: NaiveContext = {
+        // TODO lift 제외하고 proceed할 때랑 동일하게 해야 하나?
         val cc = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
         val conditionsMap = (cc.graph.nodes map { n => n.condition -> n.condition }).toMap
-        new NaiveContext(0, cc.graph, List(), List(cc.graph), ConditionAccumulate(conditionsMap))
+        val trimmedGraph = trimGraph(cc.graph, startNode, 0)
+        new NaiveContext(0, trimmedGraph, List(), List(cc.graph), ConditionAccumulate(conditionsMap))
     }
 
     def proceedDetail(ctx: NaiveContext, input: Input): Either[(ProceedDetail, NaiveContext), ParsingError] = {
@@ -24,8 +26,6 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
         if (termFinishes.isEmpty) {
             Right(UnexpectedInput(input, nextGen))
         } else {
-            // No Expansion
-
             // 1. 1차 lift
             val Cont(liftedGraph, updatedNodes) = rec(nextGen, termFinishes, graph)
 
@@ -59,16 +59,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             assert(acceptConditionUpdatedGraph == liftedGraph2 && updatedNodes2.isEmpty)
 
             // 4. Trimming
-            // 4a. 1차 트리밍 - 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
-            val trimmed1 = acceptConditionUpdatedGraph filterNode { node =>
-                // TODO node.kernel.isFinished 인 노드도 지워도 될까?
-                (node.condition != Never) && (node.kernel.symbol match {
-                    case Terminal(_) => node.kernel.beginGen == nextGen
-                    case _ => true
-                })
-            }
-            // 4b. 2차 트리밍 - startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
-            val trimmedGraph: Graph = trim(trimmed1, startNode, termNodes(trimmed1, nextGen))
+            val trimmedGraph: Graph = trimGraph(acceptConditionUpdatedGraph, startNode, nextGen)
 
             // trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
             //   - parse tree reconstruction할 때는 acceptConditionUpdatedGraph 그래프를 사용하고(liftedGraph를 써도 될듯?)
