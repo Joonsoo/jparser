@@ -15,9 +15,10 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     case class SimpleKernelEdge(start: Kernel, end: Kernel) extends KernelEdge
     case class JoinKernelEdge(start: Kernel, end: Kernel, join: Kernel) extends KernelEdge
 
-    case class KernelGraph(kernels: Set[Kernel], edges: Set[KernelEdge]) {
+    case class KernelGraph(nodes: Set[Kernel], edges: Set[KernelEdge]) {
+        // TODO 여기선 edgesByDest 필요 없지 않을까?
         val (edgesByStart, edgesByDest) = {
-            val baseEdgesMap = (kernels map { _ -> Set[KernelEdge]() }).toMap
+            val baseEdgesMap = (nodes map { _ -> Set[KernelEdge]() }).toMap
             edges.foldLeft(baseEdgesMap, baseEdgesMap) { (cc, edge) =>
                 val (byStart, byDest) = cc
                 edge match {
@@ -50,6 +51,12 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
         reconstruct(Kernel(grammar.startSymbol, 0, 0, 0)(grammar.nsymbols(grammar.startSymbol)), input.length)
     }
     def reconstruct(kernel: Kernel, gen: Int): Option[R] = {
+        println(kernel, gen)
+        finishes.zipWithIndex foreach { finishesIdx =>
+            val (finish, idx) = finishesIdx
+            println(s"===== $idx =====")
+            finish.nodes.toSeq sortBy { _.symbolId } foreach { println }
+        }
         ???
     }
 

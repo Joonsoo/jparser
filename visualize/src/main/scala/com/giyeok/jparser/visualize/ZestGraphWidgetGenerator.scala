@@ -1,8 +1,11 @@
 package com.giyeok.jparser.visualize
 
 import scala.collection.mutable
+import com.giyeok.jparser.ParseForest
 import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.ParseResult
 import com.giyeok.jparser.ParseResultDerivationsSetFunc
+import com.giyeok.jparser.ParseResultFunc
 import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParseTreeConstructor
@@ -280,21 +283,55 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
     })
 }
 
-class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: ParsingContext.Graph, trans: ParsingContext.Graph)
-        extends ZestGraphWidget(parent, style, fig, grammar, trans) {
+trait ZestParseTreeConstructorView {
+    val fig: NodeFigureGenerators[Figure]
+    val grammar: NGrammar
+    val context: Context
+
+    def openParseTree[R <: ParseResult](resultFunc: ParseResultFunc[R])(opener: R => Unit)(gen: Int, kernel: Kernel): Unit = {
+        val parseResultOpt = new ParseTreeConstructor(resultFunc)(grammar)(context.inputs, context.history, context.conditionAccumulate).reconstruct(kernel, context.gen)
+        parseResultOpt match {
+            case Some(parseResult) =>
+                opener(parseResult)
+            case None =>
+        }
+    }
+    def parseTreeOpener(stateMask: Int): (Int, Kernel) => Unit = {
+        if ((stateMask & SWT.SHIFT) != 0) {
+            if ((stateMask & SWT.CTRL) != 0) {
+                openParseTree(ParseResultDerivationsSetFunc) { derivationSet =>
+                    new ParseResultDerivationsSetViewer(derivationSet, fig.fig, fig.appear).start()
+                }
+            } else {
+                openParseTree[ParseForest](ParseForestFunc) { forest =>
+                    forest.trees foreach { new ParseResultTreeViewer(_, fig.fig, fig.appear).start() }
+                }
+            }
+        } else {
+            openParseTree(ParseResultGraphFunc) { graph =>
+                new ParseResultGraphViewer(graph, fig.fig, fig.appear, fig.symbol).start()
+            }
+        }
+    }
+}
+
+class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, baseGraph: ParsingContext.Graph, nextGraph: ParsingContext.Graph, val context: Context)
+        extends ZestGraphWidget(parent, style, fig, grammar, context.nextGraph)
+        with ZestParseTreeConstructorView {
+
     override def initialize(): Unit = {
-        addGraph(grammar, base)
-        addGraph(grammar, trans)
+        addGraph(grammar, baseGraph)
+        addGraph(grammar, nextGraph)
         val thickLineWidth = 2
         // 변경이 있는 부분은 굵은 선
         // 없어지는 노드, 엣지는 주황색 점선
-        (base.nodes -- trans.nodes) foreach { removedNode =>
+        (baseGraph.nodes -- nextGraph.nodes) foreach { removedNode =>
             val shownNode = nodesMap(removedNode)
             shownNode.getFigure.setBorder(new LineBorder(ColorConstants.orange, thickLineWidth, SWT.LINE_DASH))
             val preferredSize = shownNode.getFigure.getPreferredSize()
             shownNode.setSize(preferredSize.width, preferredSize.height)
         }
-        (base.edges -- trans.edges) foreach { removedEdge =>
+        (baseGraph.edges -- nextGraph.edges) foreach { removedEdge =>
             edgesMap(removedEdge) foreach { connection =>
                 connection.setLineColor(ColorConstants.orange)
                 connection.setLineWidth(thickLineWidth)
@@ -302,13 +339,13 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
             }
         }
         // 새 노드, 엣지는 굵은 파란 실선
-        (trans.nodes -- base.nodes) foreach { newNode =>
+        (nextGraph.nodes -- baseGraph.nodes) foreach { newNode =>
             val shownNode = nodesMap(newNode)
             shownNode.getFigure.setBorder(new LineBorder(ColorConstants.blue, thickLineWidth))
             val preferredSize = shownNode.getFigure.getPreferredSize()
             shownNode.setSize(preferredSize.width, preferredSize.height)
         }
-        (trans.edges -- base.edges) foreach { newEdge =>
+        (nextGraph.edges -- baseGraph.edges) foreach { newEdge =>
             edgesMap(newEdge) foreach { connection =>
                 connection.setLineColor(ColorConstants.blue)
                 connection.setLineWidth(thickLineWidth)
@@ -343,25 +380,39 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
             e.keyCode match {
                 case 'Q' | 'q' =>
                     // Show base graph only
-                    setVisible(trans, visible = false)
-                    setVisible(base, visible = true)
+                    setVisible(nextGraph, visible = false)
+                    setVisible(baseGraph, visible = true)
                 case 'W' | 'w' =>
                     // Show trans graph only
-                    setVisible(base, visible = false)
-                    setVisible(trans, visible = true)
+                    setVisible(baseGraph, visible = false)
+                    setVisible(nextGraph, visible = true)
                 case 'E' | 'e' =>
                     // Show both graphs
-                    setVisible(base, visible = true)
-                    setVisible(trans, visible = true)
+                    setVisible(baseGraph, visible = true)
+                    setVisible(nextGraph, visible = true)
                 case _ =>
             }
         }
         def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
     })
+
+    addMouseListener(new MouseListener() {
+        def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+        def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+        def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
+            nodesAt(e.x, e.y) foreach {
+                case node: Node =>
+                    parseTreeOpener(e.stateMask)(context.gen, node.kernel)
+                case data =>
+                    println(data)
+            }
+        }
+    })
 }
 
-class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context)
-        extends ZestGraphWidget(parent, style, fig, grammar, context.nextGraph) {
+class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, val context: Context)
+        extends ZestGraphWidget(parent, style, fig, grammar, context.nextGraph)
+        with ZestParseTreeConstructorView {
     addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {
@@ -381,32 +432,7 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
         def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
             nodesAt(e.x, e.y) foreach {
                 case node: Node =>
-                    if ((e.stateMask & SWT.SHIFT) != 0) {
-                        if ((e.stateMask & SWT.CTRL) != 0) {
-                            val parseResultOpt = new ParseTreeConstructor(ParseResultDerivationsSetFunc)(grammar)(context.inputs, context.history, context.conditionAccumulate).reconstruct(node.kernel, context.gen)
-                            parseResultOpt match {
-                                case Some(parseResult) =>
-                                    new ParseResultDerivationsSetViewer(parseResult, fig.fig, fig.appear).start()
-                                case None =>
-                            }
-                        } else {
-                            val parseResultOpt = new ParseTreeConstructor(ParseForestFunc)(grammar)(context.inputs, context.history, context.conditionAccumulate).reconstruct(node.kernel, context.gen)
-                            parseResultOpt match {
-                                case Some(parseResult) =>
-                                    parseResult.trees foreach { tree =>
-                                        new ParseResultTreeViewer(tree, fig.fig, fig.appear).start()
-                                    }
-                                case None =>
-                            }
-                        }
-                    } else {
-                        val parseResultOpt = new ParseTreeConstructor(ParseResultGraphFunc)(grammar)(context.inputs, context.history, context.conditionAccumulate).reconstruct(node.kernel, context.gen)
-                        parseResultOpt match {
-                            case Some(parseResult) =>
-                                new ParseResultGraphViewer(parseResult, fig.fig, fig.appear, fig.symbol).start()
-                            case None =>
-                        }
-                    }
+                    parseTreeOpener(e.stateMask)(context.gen, node.kernel)
                 case data =>
                     println(data)
             }

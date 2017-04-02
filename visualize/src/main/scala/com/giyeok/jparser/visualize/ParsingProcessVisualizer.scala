@@ -361,9 +361,9 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                                 case Some(tuple) => func(tuple)
                             }
                         transitionAt(gen) match {
-                            case Left((_, transition, _)) =>
+                            case Left((_, transition, nextCtx)) =>
                                 val (prevGraph, nextGraph) = (transition.graphAt(stage - 1), transition.graphAt(stage))
-                                (Some(transition.nameOf(stage)), new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph))
+                                (Some(transition.nameOf(stage)), new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph, nextCtx))
                             case Right(error) => (None, errorControl(error.msg))
                         }
                 }
