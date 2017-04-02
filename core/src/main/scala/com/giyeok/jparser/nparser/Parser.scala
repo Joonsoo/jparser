@@ -98,8 +98,12 @@ object Parser {
         }
     }
 
-    case class ProceedDetail(baseGraph: Graph, expandedGraph: Graph, lifted1: Graph, acceptableOnlyGraph: Graph, acceptConditionUpdatedGraph: Graph, trimmedGraph: Graph) {
-        def seqs = Seq(baseGraph, expandedGraph, lifted1, acceptableOnlyGraph, acceptConditionUpdatedGraph, trimmedGraph)
+    case class Transition(name: String, result: Graph)
+    case class ProceedDetail(baseGraph: Graph, transitions: Transition*) {
+        def graphAt(idx: Int): Graph =
+            if (idx == 0) baseGraph else transitions(idx - 1).result
+        def nameOf(idx: Int): String =
+            transitions(idx - 1).name
     }
 
     def evaluateAcceptConditions(nextGen: Int, conditions: Set[AcceptCondition], graph: Graph, updatedNodes: Map[Node, Set[Node]]): Map[AcceptCondition, AcceptCondition] = {

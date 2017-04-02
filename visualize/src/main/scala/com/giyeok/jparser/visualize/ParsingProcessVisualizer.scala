@@ -82,8 +82,17 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
     case class ParsingContextPointer(gen: Int) extends Pointer {
         def previous: Pointer =
             if (gen == 0) ParsingContextInitializingPointer
-            else ParsingContextTransitionPointer(gen - 1, stagesCount)
-        def next = ParsingContextTransitionPointer(gen, 1)
+            else {
+                transitionAt(gen - 1) match {
+                    case Left((_, proceedDetail, _)) => ParsingContextTransitionPointer(gen - 1, proceedDetail.transitions.length)
+                    case _ => previousBase
+                }
+            }
+        def next: Pointer =
+            transitionAt(gen) match {
+                case Left(_) => ParsingContextTransitionPointer(gen, 1)
+                case Right(_) => nextBase
+            }
         def previousBase = ParsingContextPointer(gen - 1)
         def nextBase = ParsingContextPointer(gen + 1)
 
@@ -98,15 +107,20 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
             case ParsingContextTransitionPointer(otherGen, _) => gen <= otherGen
         }
     }
-    val stagesCount = 5
     case class ParsingContextTransitionPointer(gen: Int, stage: Int) extends Pointer {
-        assert(1 <= stage && stage <= stagesCount)
+        // assert(1 <= stage && stage <= stagesCount)
         def previous: Pointer =
             if (stage == 1) ParsingContextPointer(gen)
             else ParsingContextTransitionPointer(gen, stage - 1)
         def next: Pointer =
-            if (stage == stagesCount) ParsingContextPointer(gen + 1)
-            else ParsingContextTransitionPointer(gen, stage + 1)
+            transitionAt(gen) match {
+                case Right(_) =>
+                    nextBase
+                case Left((_, proceedDetail, _)) if stage == proceedDetail.transitions.length =>
+                    ParsingContextPointer(gen + 1)
+                case _ =>
+                    ParsingContextTransitionPointer(gen, stage + 1)
+            }
         def previousBase: Pointer =
             if (stage == 1) ParsingContextPointer(gen - 1)
             else ParsingContextPointer(gen)
@@ -226,7 +240,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                     fig.addMouseListener(listener(pointer))
                     fig
                 }
-                val transitionBoxWidth = ((1 to stagesCount) map { _.toString } map { textFig(_, resources.smallFont).getPreferredSize.width }).max
+                val transitionBoxWidth = ((1 to 7) map { _.toString } map { textFig(_, resources.smallFont).getPreferredSize.width }).max
                 def transitionPointerFig(gen: Int): Figure = {
                     val fig = emptyBoxFig(transitionBoxWidth, height)
                     fig.setLayoutManager(new CenterLayout(0, 0))
@@ -264,8 +278,14 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                 f
             })
 
-            shell.setText(s"$title: ${currentLocation.stringRepr}")
-            val currentControl = controlAt(currentLocation)
+            val (nameOpt, currentControl) = controlAt(currentLocation)
+            val shellTitle = nameOpt match {
+                case Some(name) =>
+                    s"$title: ${currentLocation.stringRepr}, $name"
+                case None =>
+                    s"$title: ${currentLocation.stringRepr}"
+            }
+            shell.setText(shellTitle)
             layout.topControl = currentControl
             contentView.layout()
             shell.layout()
@@ -286,13 +306,16 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                                 case Left((detail, nextCtx)) =>
                                     transitionCache(gen - 1) = Left((prevCtx, detail, nextCtx))
                                     Left(nextCtx)
-                                case Right(error) => Right(error)
+                                case Right(error) =>
+                                    transitionCache(gen - 1) = Right(error)
+                                    Right(error)
                             }
                         case Right(error) =>
                             transitionCache(gen - 1) = Right(error)
                             Right(error)
                     }
                 }
+                assert((0 until gen) forall { g => transitionCache contains g })
                 contextCache(gen) = context
                 context
         }
@@ -312,21 +335,24 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
     }
 
     private val nodeFigGenerator = resources.nodeFigureGenerators
-    private val controlCache = scala.collection.mutable.Map[Pointer, Control]()
+    private val controlCache = scala.collection.mutable.Map[Pointer, (Option[String], Control)]()
 
-    def controlAt(pointer: Pointer): Control = {
+    def controlAt(pointer: Pointer): (Option[String], Control) = {
         controlCache get pointer match {
             case Some(cached) => cached
             case None =>
-                val control = pointer match {
+                val (name, control) = pointer match {
                     case ParsingContextInitializingPointer =>
-                        errorControl("TODO")
+                        (None, errorControl("TODO"))
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
-                            case Left(wctx) => parsingContextWidgetFunc(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx)
-                            case Right(error) => errorControl(error.msg)
+                            case Left(wctx) =>
+                                (None, parsingContextWidgetFunc(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx))
+                            case Right(error) =>
+                                (None, errorControl(error.msg))
                         }
                     case ParsingContextTransitionPointer(gen, stage) =>
+                        println(gen, stage)
                         def controlOpt[T](opt: Option[T], errorMsg: String)(func: T => Control): Control =
                             opt match {
                                 case None => errorControl(errorMsg)
@@ -334,14 +360,14 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                             }
                         transitionAt(gen) match {
                             case Left((_, transition, _)) =>
-                                val (prevGraph, nextGraph) = (transition.seqs(stage - 1), transition.seqs(stage))
-                                new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph)
-                            case Right(error) => errorControl(error.msg)
+                                val (prevGraph, nextGraph) = (transition.graphAt(stage - 1), transition.graphAt(stage))
+                                (Some(transition.nameOf(stage)), new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph))
+                            case Right(error) => (None, errorControl(error.msg))
                         }
                 }
                 control.addKeyListener(keyListener)
-                controlCache(pointer) = control
-                control
+                controlCache(pointer) = (name, control)
+                (name, control)
         }
     }
 
@@ -371,7 +397,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                         case ParsingContextTransitionPointer(gen, stage) =>
                             transitionAt(gen) match {
                                 case Left((_, transition, _)) =>
-                                    dotGraphGen.get.addTransition(transition.seqs(stage - 1), transition.seqs(stage))
+                                    dotGraphGen.get.addTransition(transition.graphAt(stage - 1), transition.graphAt(stage))
                                 case Right(_) => // nothing to do
                             }
                         case _ => // nothing to do

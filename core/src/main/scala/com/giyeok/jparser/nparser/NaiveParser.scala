@@ -77,11 +77,17 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             // 6b. 2차 트리밍 - startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
             val trimmedGraph: Graph = trim(trimmed1, startNode, termNodes(trimmed1, nextGen))
 
-            // TODO trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
+            // trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
             //   - parse tree reconstruction할 때는 acceptConditionUpdatedGraph 그래프를 사용하고
             //   - 다음 generation 시작할 때는 trimmedGraph 사용
             val nextContext = ctx.proceed(nextGen, acceptConditionUpdatedGraph, trimmedGraph, input, nextConditionFate)
-            Left((ProceedDetail(graph, graph, liftedGraph, acceptableOnlyGraph, acceptConditionUpdatedGraph, trimmedGraph), nextContext))
+            Left((ProceedDetail(
+                graph,
+                Transition("lift", liftedGraph),
+                Transition("acceptableOnly", acceptableOnlyGraph),
+                Transition("conditionUpdated", acceptConditionUpdatedGraph),
+                Transition("trimmed", trimmedGraph)
+            ), nextContext))
         }
     }
 }
