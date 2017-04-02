@@ -76,24 +76,25 @@ object Parser {
         }
     }
 
-    abstract class Context(val gen: Int, val graph: Graph, _inputs: List[Input], _history: List[Set[Node]], val conditionFate: ConditionFate) {
+    abstract class Context(val gen: Int, val nextGraph: Graph, _inputs: List[Input], _history: List[Graph], val conditionFate: ConditionFate) {
         def nextGen: Int = gen + 1
         def inputs: Seq[Input] = _inputs.reverse
-        def history: Seq[Set[Node]] = (graph.nodes +: _history).reverse
+        def history: Seq[Graph] = _history.reverse
+        def resultGraph: Graph = _history.head
     }
 
-    class NaiveContext(gen: Int, graph: Graph, _inputs: List[Input], _history: List[Set[Node]], conditionFate: ConditionFate)
-            extends Context(gen, graph, _inputs, _history, conditionFate) {
-        def proceed(nextGen: Int, nextGraph: Graph, newInput: Input, newConditionFate: ConditionFate): NaiveContext = {
-            new NaiveContext(nextGen, nextGraph, newInput +: _inputs, graph.nodes +: _history, newConditionFate)
+    class NaiveContext(gen: Int, nextGraph: Graph, _inputs: List[Input], _history: List[Graph], conditionFate: ConditionFate)
+            extends Context(gen, nextGraph, _inputs, _history, conditionFate) {
+        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, newInput: Input, newConditionFate: ConditionFate): NaiveContext = {
+            new NaiveContext(nextGen, nextGraph, newInput +: _inputs, resultGraph +: _history, newConditionFate)
         }
     }
 
-    class DeriveTipsContext(gen: Int, graph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Set[Node]], conditionFate: ConditionFate)
-            extends Context(gen, graph, _inputs, _history, conditionFate) {
+    class DeriveTipsContext(gen: Int, nextGraph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Graph], conditionFate: ConditionFate)
+            extends Context(gen, nextGraph, _inputs, _history, conditionFate) {
         // assert(deriveTips subsetOf ctx.graph.nodes)
-        def proceed(nextGen: Int, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, newConditionFate: ConditionFate): DeriveTipsContext = {
-            new DeriveTipsContext(nextGen, nextGraph, deriveTips: Set[Node], newInput +: _inputs, graph.nodes +: _history, newConditionFate)
+        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, newConditionFate: ConditionFate): DeriveTipsContext = {
+            new DeriveTipsContext(nextGen, nextGraph, deriveTips, newInput +: _inputs, resultGraph +: _history, newConditionFate)
         }
     }
 

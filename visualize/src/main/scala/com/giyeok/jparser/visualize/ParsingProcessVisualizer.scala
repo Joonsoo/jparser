@@ -365,7 +365,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                     currentLocation match {
                         case ParsingContextPointer(gen) =>
                             contextAt(gen) match {
-                                case Left(wctx) => dotGraphGen.get.addGraph(wctx.graph)
+                                case Left(ctx) => dotGraphGen.get.addGraph(ctx.nextGraph)
                                 case Right(_) => // nothing to do
                             }
                         case ParsingContextTransitionPointer(gen, stage) =>

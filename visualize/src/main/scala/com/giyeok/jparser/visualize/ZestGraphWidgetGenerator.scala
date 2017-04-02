@@ -361,7 +361,7 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
 }
 
 class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: Context)
-        extends ZestGraphWidget(parent, style, fig, grammar, context.graph) {
+        extends ZestGraphWidget(parent, style, fig, grammar, context.nextGraph) {
     addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {
@@ -383,14 +383,14 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
                 case node: Node =>
                     if ((e.stateMask & SWT.SHIFT) != 0) {
                         if ((e.stateMask & SWT.CTRL) != 0) {
-                            val parseResultOpt = new ParseTreeConstructor(ParseResultDerivationsSetFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)
+                            val parseResultOpt = new ParseTreeConstructor(ParseResultDerivationsSetFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node.kernel, context.gen)
                             parseResultOpt match {
                                 case Some(parseResult) =>
                                     new ParseResultDerivationsSetViewer(parseResult, fig.fig, fig.appear).start()
                                 case None =>
                             }
                         } else {
-                            val parseResultOpt = new ParseTreeConstructor(ParseForestFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)
+                            val parseResultOpt = new ParseTreeConstructor(ParseForestFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node.kernel, context.gen)
                             parseResultOpt match {
                                 case Some(parseResult) =>
                                     parseResult.trees foreach { tree =>
@@ -400,7 +400,7 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
                             }
                         }
                     } else {
-                        val parseResultOpt = new ParseTreeConstructor(ParseResultGraphFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node, context.gen)
+                        val parseResultOpt = new ParseTreeConstructor(ParseResultGraphFunc)(grammar)(context.inputs, context.history, context.conditionFate).reconstruct(node.kernel, context.gen)
                         parseResultOpt match {
                             case Some(parseResult) =>
                                 new ParseResultGraphViewer(parseResult, fig.fig, fig.appear, fig.symbol).start()

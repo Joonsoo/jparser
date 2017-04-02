@@ -15,11 +15,11 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
     val initialContext: NaiveContext = {
         val cc = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()), Set[Node]())
         val conditionsEvaluations = evaluateAcceptConditions(0, cc.graph.nodes map { _.condition }, cc.graph, cc.updatedNodes)
-        new NaiveContext(0, cc.graph, List(), List(), ConditionFate(conditionsEvaluations))
+        new NaiveContext(0, cc.graph, List(), List(cc.graph), ConditionFate(conditionsEvaluations))
     }
 
     def proceedDetail(ctx: NaiveContext, input: Input): Either[(ProceedDetail, NaiveContext), ParsingError] = {
-        val (graph, gen, nextGen) = (ctx.graph, ctx.gen, ctx.nextGen)
+        val (graph, gen, nextGen) = (ctx.nextGraph, ctx.gen, ctx.nextGen)
         val termFinishes = finishableTermNodes(graph, gen, input).toList map { ProgressTask(_, Always) }
         if (termFinishes.isEmpty) {
             Right(UnexpectedInput(input, nextGen))
@@ -59,11 +59,12 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
                 println(s"${kv._1} -> ${kv._2}")
             }
 
-            // TODO 4, 5 단계가 3단계보다 먼저 돼야하나?
+            // TODO 4, 5 단계가 3단계보다 먼저 되는 게 정말 맞나?
 
             // 6. Trimming
             // 6a. 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
             val trimmed1 = acceptConditionUpdatedGraph filterNode { node =>
+                // TODO node.kernel.isFinished 인 노드도 지워도 될까?
                 (node.condition != Never) && (node.kernel.symbol match {
                     case Terminal(_) => node.kernel.beginGen == nextGen
                     case _ => true
@@ -73,10 +74,9 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             val trimmedGraph: Graph = trim(trimmed1, startNode, termNodes(trimmed1, nextGen))
 
             // TODO trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
-            // - acceptConditionUpdatedGraph와 trimmedGraph를 둘 다 받아서 해결 가능
-            //   - parse tree reconstruction에는 acceptConditionUpdatedGraph 사용
+            //   - parse tree reconstruction할 때는 liftedGraph 그래프를 사용하고
             //   - 다음 generation 시작할 때는 trimmedGraph 사용
-            val nextContext = ctx.proceed(nextGen, trimmedGraph, input, nextConditionFate)
+            val nextContext = ctx.proceed(nextGen, liftedGraph, trimmedGraph, input, nextConditionFate)
             Left((ProceedDetail(graph, graph, liftedGraph0, acceptableOnlyGraph, acceptConditionUpdatedGraph, liftedGraph, trimmed1, trimmedGraph), nextContext))
         }
     }

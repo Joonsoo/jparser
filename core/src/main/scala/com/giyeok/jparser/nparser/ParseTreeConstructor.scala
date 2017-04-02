@@ -10,28 +10,47 @@ import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.nparser.Parser.ConditionFate
 
-class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Set[Node]], conditionFate: ConditionFate) {
-    val finishes: Vector[Set[Kernel]] = {
-        (history map {
-            _ collect { case node if conditionFate.of(node.condition) => node.kernel }
+class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Graph], conditionFate: ConditionFate) {
+    sealed trait KernelEdge
+    case class SimpleKernelEdge(start: Kernel, end: Kernel) extends KernelEdge
+    case class JoinKernelEdge(start: Kernel, end: Kernel, join: Kernel) extends KernelEdge
+
+    case class KernelGraph(kernels: Set[Kernel], edges: Set[KernelEdge]) {
+        val (edgesByStart, edgesByDest) = {
+            val baseEdgesMap = (kernels map { _ -> Set[KernelEdge]() }).toMap
+            edges.foldLeft(baseEdgesMap, baseEdgesMap) { (cc, edge) =>
+                val (byStart, byDest) = cc
+                edge match {
+                    case SimpleKernelEdge(start, end) =>
+                        (byStart + (start -> (byStart(start) + edge)),
+                            byDest + (end -> (byDest(end) + edge)))
+                    case JoinKernelEdge(start, end, join) =>
+                        (byStart + (start -> (byStart(start) + edge)),
+                            byDest + (end -> (byDest(end) + edge)) + (join -> (byDest(join) + edge)))
+                }
+                (byStart, byDest)
+            }
+        }
+    }
+
+    val finishes: Vector[KernelGraph] = {
+        (history map { graph =>
+            val filteredGraph = graph filterNode { node => conditionFate.of(node.condition) }
+            val kernelNodes: Set[Kernel] = filteredGraph.nodes map { _.kernel }
+            val kernelEdges: Set[KernelEdge] = filteredGraph.edges map {
+                case SimpleEdge(start, end) => SimpleKernelEdge(start.kernel, end.kernel)
+                case JoinEdge(start, end, join) => JoinKernelEdge(start.kernel, end.kernel, join.kernel)
+            }
+            KernelGraph(kernelNodes, kernelEdges)
         }).toVector
     }
     // TODO finishes의 node set을 symbolId 기준으로 정렬해 놓으면 더 빠르게 할 수 있을듯
 
     def reconstruct(): Option[R] = {
-        ??? // reconstruct(SymbolKernel(grammar.startSymbol, 0), input.length)
+        reconstruct(Kernel(grammar.startSymbol, 0, 0, 0)(grammar.nsymbols(grammar.startSymbol)), input.length)
     }
-    def reconstruct(node: Node, gen: Int): Option[R] = {
-        println(input)
-        history.zipWithIndex foreach { hIdx =>
-            val (h, idx) = hIdx
-            println(s"===== $idx")
-            h foreach { n =>
-                println(n.kernel.symbol.symbol.toShortString, n.kernel.pointer, n.kernel.beginGen, n.kernel.endGen)
-            }
-        }
-        println("???")
-        if (finishes(gen) contains node.kernel) Some(reconstruct(node.kernel, gen, Set())) else None
+    def reconstruct(kernel: Kernel, gen: Int): Option[R] = {
+        ???
     }
 
     protected def reconstruct(kernel: Kernel, gen: Int, traces: Set[Int]): R = {
