@@ -8,9 +8,9 @@ import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.Symbols.Symbol
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.nparser.NGrammar._
-import com.giyeok.jparser.nparser.Parser.ConditionFate
+import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 
-class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Graph], conditionFate: ConditionFate) {
+class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Graph], conditionFate: ConditionAccumulate) {
     sealed trait KernelEdge
     case class SimpleKernelEdge(start: Kernel, end: Kernel) extends KernelEdge
     case class JoinKernelEdge(start: Kernel, end: Kernel, join: Kernel) extends KernelEdge

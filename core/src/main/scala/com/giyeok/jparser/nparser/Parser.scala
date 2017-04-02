@@ -35,66 +35,60 @@ trait Parser[T <: Context] {
 }
 
 object Parser {
-    class ConditionFate(val trueFixed: Set[AcceptCondition], val falseFixed: Set[AcceptCondition], val unfixed: Map[AcceptCondition, AcceptCondition]) {
+    class ConditionAccumulate(val trueFixed: Set[AcceptCondition], val falseFixed: Set[AcceptCondition], val unfixed: Map[AcceptCondition, AcceptCondition]) {
         def of(condition: AcceptCondition): Boolean = {
             if (trueFixed contains condition) true
             else if (falseFixed contains condition) false
             else ??? // unfixed(condition)
         }
 
-        def update(evaluation: Map[AcceptCondition, AcceptCondition]): ConditionFate = {
-            var trueConditions = trueFixed
-            var falseConditions = falseFixed
-            var unfixedConditions = Map[AcceptCondition, AcceptCondition]()
-
-            evaluation foreach { kv =>
-                kv._2 match {
-                    case Always => trueConditions += kv._1
-                    case Never => falseConditions += kv._1
-                    case _ => unfixedConditions += kv
-                }
+        def update(evaluations: Map[AcceptCondition, AcceptCondition]): ConditionAccumulate = {
+            val eventuallyTrue = (evaluations filter { _._2 == Always }).keySet ++ trueFixed
+            val eventuallyFalse = (evaluations filter { _._2 == Never }).keySet ++ falseFixed
+            val stillNotFixed = evaluations -- eventuallyTrue -- eventuallyFalse
+            val newUnfixed = (unfixed -- eventuallyTrue -- eventuallyFalse) mapValues { cond =>
+                // unfixed A -> cond 에서 cond가 변경되었으면 변경된 값으로 업데이트, 변경되지 않았으면 cond 그대로
+                stillNotFixed.getOrElse(cond, cond)
             }
-            new ConditionFate(trueConditions, falseConditions, unfixedConditions)
+            new ConditionAccumulate(eventuallyTrue, eventuallyFalse, newUnfixed)
         }
-
-        // TODO unfixed에 대한 acceptable값 계산해서 저장 - 근데 이건 마지막에 한번만 하면 되는데
     }
-    object ConditionFate {
-        def apply(conditionFate: Map[AcceptCondition, AcceptCondition]): ConditionFate = {
+    object ConditionAccumulate {
+        def apply(conditionsEvaluations: Map[AcceptCondition, AcceptCondition]): ConditionAccumulate = {
             var trueConditions = Set[AcceptCondition]()
             var falseConditions = Set[AcceptCondition]()
             var unfixedConditions = Map[AcceptCondition, AcceptCondition]()
 
-            conditionFate foreach { kv =>
+            conditionsEvaluations foreach { kv =>
                 kv._2 match {
                     case Always => trueConditions += kv._1
                     case Never => falseConditions += kv._1
                     case _ => unfixedConditions += kv
                 }
             }
-            new ConditionFate(trueConditions, falseConditions, unfixedConditions)
+            new ConditionAccumulate(trueConditions, falseConditions, unfixedConditions)
         }
     }
 
-    abstract class Context(val gen: Int, val nextGraph: Graph, _inputs: List[Input], _history: List[Graph], val conditionFate: ConditionFate) {
+    abstract class Context(val gen: Int, val nextGraph: Graph, _inputs: List[Input], _history: List[Graph], val conditionAccumulate: ConditionAccumulate) {
         def nextGen: Int = gen + 1
         def inputs: Seq[Input] = _inputs.reverse
         def history: Seq[Graph] = _history.reverse
         def resultGraph: Graph = _history.head
     }
 
-    class NaiveContext(gen: Int, nextGraph: Graph, _inputs: List[Input], _history: List[Graph], conditionFate: ConditionFate)
-            extends Context(gen, nextGraph, _inputs, _history, conditionFate) {
-        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, newInput: Input, newConditionFate: ConditionFate): NaiveContext = {
-            new NaiveContext(nextGen, nextGraph, newInput +: _inputs, resultGraph +: _history, newConditionFate)
+    class NaiveContext(gen: Int, nextGraph: Graph, _inputs: List[Input], _history: List[Graph], conditionAccumulate: ConditionAccumulate)
+            extends Context(gen, nextGraph, _inputs, _history, conditionAccumulate) {
+        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, newInput: Input, newConditionAccumulate: ConditionAccumulate): NaiveContext = {
+            new NaiveContext(nextGen, nextGraph, newInput +: _inputs, resultGraph +: _history, newConditionAccumulate)
         }
     }
 
-    class DeriveTipsContext(gen: Int, nextGraph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Graph], conditionFate: ConditionFate)
-            extends Context(gen, nextGraph, _inputs, _history, conditionFate) {
+    class DeriveTipsContext(gen: Int, nextGraph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Graph], conditionAccumulate: ConditionAccumulate)
+            extends Context(gen, nextGraph, _inputs, _history, conditionAccumulate) {
         // assert(deriveTips subsetOf ctx.graph.nodes)
-        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, newConditionFate: ConditionFate): DeriveTipsContext = {
-            new DeriveTipsContext(nextGen, nextGraph, deriveTips, newInput +: _inputs, resultGraph +: _history, newConditionFate)
+        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, newConditionAccumulate: ConditionAccumulate): DeriveTipsContext = {
+            new DeriveTipsContext(nextGen, nextGraph, deriveTips, newInput +: _inputs, resultGraph +: _history, newConditionAccumulate)
         }
     }
 
@@ -104,11 +98,5 @@ object Parser {
             if (idx == 0) baseGraph else transitions(idx - 1).result
         def nameOf(idx: Int): String =
             transitions(idx - 1).name
-    }
-
-    def evaluateAcceptConditions(nextGen: Int, conditions: Set[AcceptCondition], graph: Graph, updatedNodes: Map[Node, Set[Node]]): Map[AcceptCondition, AcceptCondition] = {
-        (conditions map { condition =>
-            condition -> condition.evaluate(nextGen, graph, updatedNodes)
-        }).toMap
     }
 }

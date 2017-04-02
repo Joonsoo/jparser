@@ -1,5 +1,7 @@
 package com.giyeok.jparser.tests
 
+import scala.util.Success
+import scala.util.Try
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.ConcreteInput
 import com.giyeok.jparser.nparser.Parser.NaiveContext
@@ -173,10 +175,11 @@ trait Viewer {
 
         textList.addListener(SWT.Selection, new Listener() {
             def handleEvent(e: Event): Unit = {
-                val gt = sortedTestCases(grammarList.getSelectionIndex)
-                val source = shownTexts(textList.getSelectionIndex)
-
-                startParserVisualizer(gt, source.toSeq, display, new Shell(display))
+                (Try(sortedTestCases(grammarList.getSelectionIndex)), Try(shownTexts(textList.getSelectionIndex))) match {
+                    case (Success(grammarTests), Success(source)) =>
+                        startParserVisualizer(grammarTests, source.toSeq, display, new Shell(display))
+                    case _ => // ignore, nothing to do
+                }
             }
         })
 

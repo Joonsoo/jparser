@@ -89,10 +89,12 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                 }
             }
         def next: Pointer =
-            transitionAt(gen) match {
-                case Left(_) => ParsingContextTransitionPointer(gen, 1)
-                case Right(_) => nextBase
-            }
+            if (gen < source.length) {
+                transitionAt(gen) match {
+                    case Left(_) => ParsingContextTransitionPointer(gen, 1)
+                    case Right(_) => nextBase
+                }
+            } else this
         def previousBase = ParsingContextPointer(gen - 1)
         def nextBase = ParsingContextPointer(gen + 1)
 
