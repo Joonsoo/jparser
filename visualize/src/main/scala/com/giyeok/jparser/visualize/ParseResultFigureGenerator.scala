@@ -10,8 +10,8 @@ import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
 object ParseResultFigureGenerator {
-    case class RenderingConfiguration(renderJoin: Boolean, renderWS: Boolean, renderLookaheadExcept: Boolean)
-    val cleanestConfiguration = RenderingConfiguration(renderJoin = true, renderWS = true, renderLookaheadExcept = true)
+    case class RenderingConfiguration(renderJoin: Boolean, renderWS: Boolean, renderLookaheadExcept: Boolean, unrollRepeat: Boolean)
+    val cleanestConfiguration = RenderingConfiguration(renderJoin = true, renderWS = true, renderLookaheadExcept = true, unrollRepeat = true)
 }
 
 class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator[Fig], appearances: FigureGenerator.Appearances[Fig]) {
@@ -38,18 +38,20 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
         def parseNodeFig(n: Node): Fig = n match {
             case TerminalNode(input) =>
                 g.textFig(input.toShortString, ap.input)
-            case BindNode(sym: Repeat, body) =>
-                def childrenOf(node: Node, sym: Symbol): Seq[Node] = node match {
-                    case BindNode(s, body) if s == sym => Seq(node)
+            case BindNode(sym: Repeat, body) if renderConf.unrollRepeat =>
+                def childrenOf(node: Node, sym: Symbol): Seq[Fig] = node match {
+                    case BindNode(s, body) if s == sym => Seq(parseNodeFig(node))
                     case BindNode(s, body) => childrenOf(body, sym)
+                    case b: CyclicBindNode => Seq(parseNodeFig(b))
                     case s: SequenceNode => s.children flatMap { childrenOf(_, sym) }
+                    case s: CyclicSequenceNode => Seq(parseNodeFig(s))
                 }
                 val children = childrenOf(body, sym.sym)
                 vfig(Spacing.Small, Seq(
                     symbolBorder.applyToFigure(hfig(
                         Spacing.Small,
                         if (children.isEmpty) Seq(g.textFig("ε", ap.default))
-                        else children map { parseNodeFig }
+                        else children
                     )),
                     symbolFigureGenerator.symbolFig(sym)
                 ))
@@ -58,6 +60,13 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                     symbolBorder.applyToFigure(parseNodeFig(body)),
                     symbolFigureGenerator.symbolFig(sym)
                 ))
+            case CyclicBindNode(sym) =>
+                ap.symbolBorder.applyToFigure(
+                    vfig(Spacing.Small, Seq(
+                        g.textFig("cyclic", ap.small),
+                        symbolFigureGenerator.symbolFig(sym)
+                    ))
+                )
             case JoinNode(body, join) =>
                 var content = Seq(symbolBorder.applyToFigure(parseNodeFig(body)))
                 if (renderConf.renderJoin) {
@@ -96,8 +105,17 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                                 }
                             }
                         }
-                    hfig(Spacing.Medium, seq)
+                    ap.symbolBorder.applyToFigure(hfig(Spacing.Medium, seq))
                 }
+            case s: CyclicSequenceNode =>
+                // TODO s.children
+                val seq: Seq[Fig] = Seq(
+                    vfig(Spacing.Small, Seq(
+                        g.textFig(s"cyclicSeq@${s.pointer}", ap.small),
+                        symbolFigureGenerator.symbolFig(s.symbol)
+                    ))
+                ) ++ (s.childrenAll map { child => ap.symbolBorder.applyToFigure(parseNodeFig(child)) })
+                ap.symbolBorder.applyToFigure(hfig(Spacing.Medium, seq))
         }
         vfig(Spacing.Big, r.trees.toSeq map { parseNodeFig })
     }

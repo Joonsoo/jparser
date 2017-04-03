@@ -288,19 +288,20 @@ trait ZestParseTreeConstructorView {
         val shiftPressed = (stateMask & SWT.SHIFT) != 0
         val ctrlPressed = (stateMask & SWT.CTRL) != 0
         (shiftPressed, ctrlPressed) match {
-            case (true, _) =>
-                // Shift + 노드 클릭 -> Parse Forest
+            case (false, false) =>
+                // 그냥 클릭 -> Parse Forest
                 openParseTree[ParseForest](ParseForestFunc) { forest =>
-                    forest.trees foreach { new ParseResultTreeViewer(_, fig.fig, fig.appear).start() }
+                    new ParseResultTreeViewer(forest, fig.fig, fig.appear).start()
+                }
+            case (true, _) =>
+                // Shift + 노드 클릭 -> Parse Graph
+                openParseTree(ParseResultGraphFunc) { graph =>
+                    new ParseResultGraphViewer(graph, fig.fig, fig.appear, fig.symbol).start()
                 }
             case (false, true) =>
                 // Ctrl + 노드 클릭 -> Derivation Set
                 openParseTree(ParseResultDerivationsSetFunc) { derivationSet =>
                     new ParseResultDerivationsSetViewer(derivationSet, fig.fig, fig.appear).start()
-                }
-            case (false, false) =>
-                openParseTree(ParseResultGraphFunc) { graph =>
-                    new ParseResultGraphViewer(graph, fig.fig, fig.appear, fig.symbol).start()
                 }
         }
     }

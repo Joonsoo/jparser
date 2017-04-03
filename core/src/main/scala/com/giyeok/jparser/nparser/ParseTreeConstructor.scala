@@ -79,7 +79,8 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                             Some(resultFunc.append(precedingTree, childTree))
                         } else None
                     }
-                    resultFunc.merge(trees)
+                    val appendedSeq = resultFunc.merge(trees)
+                    if (kernel.pointer == sequence.length) resultFunc.bind(kernel.beginGen, gen, symbol, appendedSeq) else appendedSeq
                 }
 
             case Join(symbol, body, join) =>

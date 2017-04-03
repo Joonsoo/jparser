@@ -51,17 +51,18 @@ class NodeFigureGenerators[Fig](
 
     def conditionFig(grammar: NGrammar, condition: AcceptCondition): Fig = {
         val d = appear.default
+        def joinFigs(figs: Seq[Fig], joiner: => Fig): Seq[Fig] =
+            figs.tail.foldLeft(Seq(figs.head)) { (cc, i) => cc :+ joiner :+ i }
+
         condition match {
             case Always => fig.textFig("always", d)
             case Never => fig.textFig("never", d)
             case And(conds) =>
                 val condsFig = conds.toSeq map { conditionFig(grammar, _) }
-                val joinedCondsFig = condsFig.tail.foldLeft(Seq(condsFig.head)) { _ :+ fig.textFig("&", d) :+ _ }
-                fig.horizontalFig(Spacing.Small, condsFig)
+                fig.horizontalFig(Spacing.Small, fig.textFig("(", d) +: joinFigs(condsFig, fig.textFig("&", d)) :+ fig.textFig(")", d))
             case Or(conds) =>
                 val condsFig = conds.toSeq map { conditionFig(grammar, _) }
-                val joinedCondsFig = condsFig.tail.foldLeft(Seq(condsFig.head)) { _ :+ fig.textFig("|", d) :+ _ }
-                fig.horizontalFig(Spacing.Small, condsFig)
+                fig.horizontalFig(Spacing.Small, fig.textFig("(", d) +: joinFigs(condsFig, fig.textFig("|", d)) :+ fig.textFig(")", d))
             case Until(node, activeGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("Until(", d),

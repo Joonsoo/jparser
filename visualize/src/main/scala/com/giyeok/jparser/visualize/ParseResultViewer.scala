@@ -18,7 +18,7 @@ import org.eclipse.zest.core.widgets.GraphConnection
 import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.LayoutStyles
 
-class ParseResultTreeViewer(node: ParseResultTree.Node, figureGenerator: FigureGenerator.Generator[Figure], figureAppearances: FigureGenerator.Appearances[Figure]) {
+class ParseResultTreeViewer(forest: ParseForest, figureGenerator: FigureGenerator.Generator[Figure], figureAppearances: FigureGenerator.Appearances[Figure]) {
     val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](figureGenerator, figureAppearances)
 
     val shell = new Shell(Display.getDefault)
@@ -31,15 +31,15 @@ class ParseResultTreeViewer(node: ParseResultTree.Node, figureGenerator: FigureG
     })
     // shell.setText(node.toShortString)
 
-    class MutableRenderingStatus(var horizontal: Boolean, var renderJoin: Boolean, var renderWS: Boolean, var renderLookaheadExcept: Boolean)
-    val rs = new MutableRenderingStatus(true, true, true, true)
+    class MutableRenderingStatus(var horizontal: Boolean, var renderJoin: Boolean, var renderWS: Boolean, var renderLookaheadExcept: Boolean, var unrollRepeat: Boolean)
+    val rs = new MutableRenderingStatus(horizontal = true, renderJoin = true, renderWS = true, renderLookaheadExcept = true, unrollRepeat = true)
     def resetContents(): Unit = {
         val nodeFig =
-            if (rs.horizontal) parseResultFigureGenerator.parseResultFigure(ParseForest(Set(node)), ParseResultFigureGenerator.RenderingConfiguration(rs.renderJoin, rs.renderWS, rs.renderLookaheadExcept))
-            else parseResultFigureGenerator.parseResultVerticalFigure(ParseForest(Set(node)), ParseResultFigureGenerator.RenderingConfiguration(rs.renderJoin, rs.renderWS, rs.renderLookaheadExcept))
+            if (rs.horizontal) parseResultFigureGenerator.parseResultFigure(forest, ParseResultFigureGenerator.RenderingConfiguration(rs.renderJoin, rs.renderWS, rs.renderLookaheadExcept, rs.unrollRepeat))
+            else parseResultFigureGenerator.parseResultVerticalFigure(forest, ParseResultFigureGenerator.RenderingConfiguration(rs.renderJoin, rs.renderWS, rs.renderLookaheadExcept, rs.unrollRepeat))
         figCanvas.setContents(
             figureGenerator.verticalFig(FigureGenerator.Spacing.Big, Seq(
-                figureGenerator.textFig(s"${if (rs.horizontal) "Horizontal" else "Vertical"} renderJoin=${rs.renderJoin}, renderWS=${rs.renderWS}, renderLookaheadExcept=${rs.renderLookaheadExcept}", figureAppearances.default),
+                figureGenerator.textFig(s"${if (rs.horizontal) "Horizontal" else "Vertical"} renderJoin=${rs.renderJoin}, renderWS=${rs.renderWS}, renderLookaheadExcept=${rs.renderLookaheadExcept}, unrollRepeat=${rs.unrollRepeat}", figureAppearances.default),
                 nodeFig
             ))
         )
@@ -59,6 +59,9 @@ class ParseResultTreeViewer(node: ParseResultTree.Node, figureGenerator: FigureG
             }
             if (e.keyCode == '3'.toInt) {
                 rs.renderLookaheadExcept = !rs.renderLookaheadExcept
+            }
+            if (e.keyCode == '4'.toInt) {
+                rs.unrollRepeat = !rs.unrollRepeat
             }
             resetContents()
         }
@@ -85,7 +88,7 @@ class ParseResultDerivationsSetViewer(r: ParseResultDerivationsSet, figureGenera
     class MutableRenderingStatus(var horizontal: Boolean, var renderJoin: Boolean, var renderWS: Boolean, var renderLookaheadExcept: Boolean)
     val rs = new MutableRenderingStatus(true, true, true, true)
     def resetContents(): Unit = {
-        val renderConf = ParseResultFigureGenerator.RenderingConfiguration(rs.renderJoin, rs.renderWS, rs.renderLookaheadExcept)
+        val renderConf = ParseResultFigureGenerator.RenderingConfiguration(rs.renderJoin, rs.renderWS, rs.renderLookaheadExcept, true)
         val resultFig = if (rs.horizontal) parseResultFigureGenerator.parseResultFigure(r, renderConf) else parseResultFigureGenerator.parseResultVerticalFigure(r, renderConf)
         figCanvas.setContents(
             figureGenerator.verticalFig(FigureGenerator.Spacing.Big, Seq(
@@ -198,10 +201,8 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
             e.keyCode match {
                 case 'r' | 'R' => applyLayout(true)
                 case 't' | 'T' | 'f' | 'F' =>
-                    val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](figureGenerator, figureAppearances)
-                    r.asParseForest.trees foreach { tree =>
-                        new ParseResultTreeViewer(tree, figureGenerator, figureAppearances).start()
-                    }
+                    // val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](figureGenerator, figureAppearances)
+                    new ParseResultTreeViewer(r.asParseForest, figureGenerator, figureAppearances).start()
                 case _ =>
             }
         }
