@@ -20,7 +20,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
         val initialConditionAccumulate = ConditionAccumulate(conditionsMap)
 
         // 2. acceptable한 노드들만 필터
-        val acceptableOnlyGraph: Graph = graph filterNode { node =>
+        val resultGraph: Graph = graph filterNode { node =>
             node.condition.acceptable(0, graph, updatedNodes)
         }
 
@@ -39,14 +39,14 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             initialConditionAccumulate.update(conditionsEvaluations)
         }
         // 3c. Update accept conditions in graph
-        val acceptConditionUpdatedGraph = acceptableOnlyGraph mapNode { node =>
+        val acceptConditionUpdatedGraph = graph mapNode { node =>
             Node(node.kernel, conditionsEvaluations(node.condition))
-        }
+        } filterNode { _.condition != Never }
 
         // 4. Trimming
         val trimmedGraph: Graph = trimGraph(acceptConditionUpdatedGraph, startNode, 0)
 
-        new NaiveContext(0, trimmedGraph, List(), List(graph), updatedNodes, ConditionAccumulate(conditionsMap))
+        new NaiveContext(0, trimmedGraph, List(), List(resultGraph), updatedNodes, nextConditionAccumulate)
     }
 
     def proceedDetail(ctx: NaiveContext, input: Input): Either[(ProceedDetail, NaiveContext), ParsingError] = {
@@ -58,47 +58,39 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             // 1. 1차 lift
             val Cont(liftedGraph, updatedNodes) = rec(nextGen, termFinishes, graph)
 
-            // 2. acceptable한 노드들만 필터
-            val acceptableOnlyGraph: Graph = liftedGraph filterNode { node =>
-                node.condition.acceptable(nextGen, liftedGraph, updatedNodes)
-            }
-
-            // 3. Accept condition 처리
-            // 3a. Evaluate accept conditions
+            // 2. Accept condition 처리
+            // 2a. Evaluate accept conditions
             val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] = {
                 (liftedGraph.nodes map { _.condition } map { condition =>
                     condition -> condition.evaluate(nextGen, liftedGraph, updatedNodes)
                 }).toMap
             }
-            // 3b. ConditionAccumulate update
+            // 2b. ConditionAccumulate update
             val nextConditionAccumulate: ConditionAccumulate = {
                 //                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedGraph) }
                 //                val newConditions = (revertedGraph.finishedNodes map { _.condition } map { c => (c -> c) }).toMap
                 //                evaluated ++ newConditions // filter { _._2 != False }
                 ctx.conditionAccumulate.update(conditionsEvaluations)
             }
-            // 3c. Update accept conditions in graph
-            val acceptConditionUpdatedGraph = acceptableOnlyGraph mapNode { node =>
+            // 2c. Update accept conditions in graph
+            val acceptConditionUpdatedGraph = liftedGraph mapNode { node =>
                 Node(node.kernel, conditionsEvaluations(node.condition))
             }
+            // 2d. Remove never condition nodes
+            val conditionFilteredGraph = acceptConditionUpdatedGraph filterNode { _.condition != Never }
 
-            // (X) 2차 lift는 필요 없는듯
-            // TODO 2차 리프트가 필요한가 고민해보기
-            val Cont(liftedGraph2, updatedNodes2) = rec(nextGen, termFinishes, acceptConditionUpdatedGraph)
-            assert(acceptConditionUpdatedGraph == liftedGraph2 && updatedNodes2.isEmpty)
-
-            // 4. Trimming
-            val trimmedGraph: Graph = trimGraph(acceptConditionUpdatedGraph, startNode, nextGen)
+            // 3. Trimming
+            val trimmedGraph: Graph = trimGraph(conditionFilteredGraph, startNode, nextGen)
 
             // trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
             //   - parse tree reconstruction할 때는 acceptConditionUpdatedGraph 그래프를 사용하고(acceptableOnlyGraph를 써도 될듯?)
             //   - 다음 generation 시작할 때는 trimmedGraph 사용
-            val nextContext = ctx.proceed(nextGen, resultGraph = acceptableOnlyGraph, nextGraph = trimmedGraph, input, updatedNodes, nextConditionAccumulate)
+            val nextContext = ctx.proceed(nextGen, resultGraph = liftedGraph, nextGraph = trimmedGraph, input, updatedNodes, nextConditionAccumulate)
             Left((ProceedDetail(
                 graph,
                 Transition("lifted", liftedGraph),
-                Transition("acceptableOnly", acceptableOnlyGraph),
                 Transition("conditionsUpdated", acceptConditionUpdatedGraph),
+                Transition("conditionFiltered", conditionFilteredGraph),
                 Transition("trimmed", trimmedGraph)
             ), nextContext))
         }

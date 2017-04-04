@@ -65,7 +65,7 @@ object AcceptCondition {
                 conjunct(condition.evaluate(gen, graph, updatedNodes), cc)
             }
         def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
-            conditions forall { _.acceptable(gen: Int, graph, updatedNodes) }
+            conditions forall { _.acceptable(gen, graph, updatedNodes) }
         def neg: AcceptCondition = disjunct((conditions map { _.neg }).toSeq: _*)
     }
     case class Or(conditions: Set[AcceptCondition]) extends AcceptCondition {
@@ -78,7 +78,7 @@ object AcceptCondition {
                 disjunct(condition.evaluate(gen, graph, updatedNodes), cc)
             }
         def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
-            conditions exists { _.acceptable(gen: Int, graph, updatedNodes) }
+            conditions exists { _.acceptable(gen, graph, updatedNodes) }
         def neg: AcceptCondition = conjunct((conditions map { _.neg }).toSeq: _*)
     }
 
@@ -113,7 +113,7 @@ object AcceptCondition {
             if (gen <= activeGen) this else {
                 updatedNodes get node match {
                     case Some(updated) =>
-                        disjunct((updated map { _.condition }).toSeq: _*).neg.evaluate(gen, graph, updatedNodes)
+                        disjunct((updated map { _.condition }).toSeq: _*).evaluate(gen, graph, updatedNodes)
                     case None =>
                         if (graph.nodes contains node) this else Never
                 }
@@ -122,7 +122,7 @@ object AcceptCondition {
             if (gen <= activeGen) false else {
                 updatedNodes get node match {
                     case Some(updated) =>
-                        disjunct((updated map { _.condition }).toSeq: _*).neg.acceptable(gen, graph, updatedNodes)
+                        disjunct((updated map { _.condition }).toSeq: _*).acceptable(gen, graph, updatedNodes)
                     case None =>
                         false
                 }
@@ -138,6 +138,9 @@ object AcceptCondition {
         def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = {
             if (gen > targetGen) {
                 Always
+            } else if (updatedNodes contains node) {
+                // node가 finish되었으면
+                Never
             } else if (!(graph.nodes contains node)) {
                 // (이전 세대에서) trimming돼서 노드가 없어졌으면
                 Always
@@ -158,6 +161,8 @@ object AcceptCondition {
         def evaluate(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): AcceptCondition = {
             if (gen > targetGen) {
                 Never
+            } else if (updatedNodes contains node) {
+                Always
             } else if (!(graph.nodes contains node)) {
                 // (이전 세대에서) trimming돼서 노드가 없어졌으면
                 Never

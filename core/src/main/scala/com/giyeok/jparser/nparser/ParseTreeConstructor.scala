@@ -40,7 +40,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     }
 
     private def reconstruct(kernel: Kernel, gen: Int, traces: Set[(Int, Int)]): R = {
-        // println("reconstruct", kernel, gen, traces)
+        println("reconstruct", kernel, gen, traces)
         assert(finishes(gen).nodes contains kernel)
         assert(kernel.endGen == gen)
 
@@ -105,6 +105,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 val bodyTrees = bodyKernels map { bodyKernel =>
                     reconstruct0(bodyKernel, kernel.endGen)
                 }
+                assert(bodyTrees.nonEmpty)
                 resultFunc.bind(kernel.beginGen, kernel.endGen, symbol.symbol, resultFunc.merge(bodyTrees))
         }
     }
