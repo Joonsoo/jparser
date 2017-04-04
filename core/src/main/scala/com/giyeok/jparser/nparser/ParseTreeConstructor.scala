@@ -8,6 +8,7 @@ import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.nparser.ParsingContext._
 
 class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Graph], conditionFinal: Map[AcceptCondition, Boolean]) {
+    // conditionFinal foreach { kv => println(s"${kv._1} -> ${kv._2}") }
     sealed trait KernelEdge { val start: Kernel }
     case class SimpleKernelEdge(start: Kernel, end: Kernel) extends KernelEdge
     case class JoinKernelEdge(start: Kernel, end: Kernel, join: Kernel) extends KernelEdge
@@ -40,7 +41,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     }
 
     private def reconstruct(kernel: Kernel, gen: Int, traces: Set[(Int, Int)]): R = {
-        println("reconstruct", kernel, gen, traces)
+        // println("reconstruct", kernel, gen, traces)
         assert(finishes(gen).nodes contains kernel)
         assert(kernel.endGen == gen)
 

@@ -61,7 +61,8 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             // 2. Accept condition 처리
             // 2a. Evaluate accept conditions
             val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] = {
-                (liftedGraph.nodes map { _.condition } map { condition =>
+                val conditions = (liftedGraph.nodes map { _.condition }) ++ ctx.conditionAccumulate.unfixed.values.toSet
+                (conditions map { condition =>
                     condition -> condition.evaluate(nextGen, liftedGraph, updatedNodes)
                 }).toMap
             }

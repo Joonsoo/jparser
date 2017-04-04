@@ -6,6 +6,7 @@ import scala.collection.immutable.ListMap
 import com.giyeok.jparser.Inputs._
 import org.junit.Assert._
 import scala.collection.immutable.ListSet
+import com.giyeok.jparser.tests.AmbiguousSamples
 import com.giyeok.jparser.tests.BasicParseTest
 import com.giyeok.jparser.tests.Samples
 import com.giyeok.jparser.tests.StringSamples
@@ -170,6 +171,27 @@ object ExceptGrammar4_3 extends Grammar with GrammarTestCases with StringSamples
     val incorrectSamples = Set[String]()
 }
 
+object ExceptGrammar5_1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+    val name = "Except Grammar 5_1"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
+            seq(n("B1"), n("B2"))
+        ),
+        "B1" -> ListSet(
+            c('b').plus.except(i("bb"))
+        ),
+        "B2" -> ListSet(
+            c('b').plus
+        )
+    )
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set()
+    val incorrectSamples = Set()
+    val ambiguousSamples = Set("bbbb")
+}
+
 object GrammarWithExcept {
     val tests: Set[GrammarTestCases] = Set(
         ExceptGrammar1,
@@ -181,7 +203,8 @@ object GrammarWithExcept {
         ExceptGrammar3_1,
         ExceptGrammar4_1,
         ExceptGrammar4_2,
-        ExceptGrammar4_3
+        ExceptGrammar4_3,
+        ExceptGrammar5_1
     )
 }
 

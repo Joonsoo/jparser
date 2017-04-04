@@ -22,10 +22,14 @@ import org.eclipse.draw2d.LineBorder
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.MouseListener
+import org.eclipse.swt.events.SelectionEvent
+import org.eclipse.swt.events.SelectionListener
 import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.Control
+import org.eclipse.swt.widgets.Event
+import org.eclipse.swt.widgets.Listener
 import org.eclipse.zest.core.viewers.GraphViewer
 import org.eclipse.zest.core.widgets.CGraphNode
 import org.eclipse.zest.core.widgets.Graph
@@ -68,6 +72,7 @@ trait AbstractZestGraphWidget extends Control {
                     assert(nodesMap contains end)
                     val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
                     conn.setLineColor(edgeColor)
+                    conn.setData((Seq(start, end), Seq(conn)))
                     edgesMap(edge) = Seq(conn)
                 case JoinEdge(start, end, join) =>
                     assert(nodesMap contains start)
@@ -79,6 +84,7 @@ trait AbstractZestGraphWidget extends Control {
                     connJoin.setText("join")
                     conn.setLineColor(edgeColor)
                     connJoin.setLineColor(edgeColor)
+                    conn.setData((Seq(start, end, join), Seq(conn, connJoin)))
                     edgesMap(edge) = Seq(conn, connJoin)
             }
             visibleEdges += edge
@@ -161,6 +167,31 @@ trait Highlightable extends AbstractZestGraphWidget {
     }
 }
 
+trait EdgeHighlightable extends Highlightable {
+    def initializeEdgeHighlighter(): Unit = {
+        graphCtrl.addSelectionListener(new SelectionListener {
+            def widgetDefaultSelected(e: SelectionEvent): Unit = {}
+
+            def widgetSelected(e: SelectionEvent): Unit = {
+                e.item match {
+                    case null => // nothing to do
+                    case conn: GraphConnection =>
+                        conn.getData match {
+                            case null => // nothing to do
+                            case ((nodesSeq, connssSeq)) =>
+                                unhighlightAllNodes()
+                                nodesSeq.asInstanceOf[Seq[Node]] foreach { highlightNode }
+                                connssSeq.asInstanceOf[Seq[GraphConnection]] foreach { conn =>
+                                    conn.highlight()
+                                }
+                        }
+                    case _ => // nothing to do
+                }
+            }
+        })
+    }
+}
+
 trait Interactable extends AbstractZestGraphWidget {
     def nodesAt(ex: Int, ey: Int): Seq[Any] = {
         import scala.collection.JavaConverters._
@@ -176,7 +207,7 @@ trait Interactable extends AbstractZestGraphWidget {
 }
 
 class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, graph: ParsingContext.Graph)
-        extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with Interactable {
+        extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with EdgeHighlightable with Interactable {
     val graphViewer = new GraphViewer(this, style)
     val graphCtrl: Graph = graphViewer.getGraphControl
 
@@ -186,6 +217,7 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
         addGraph(grammar, graph)
         applyLayout(false)
         initializeTooltips(getTooltips)
+        initializeEdgeHighlighter()
     }
     initialize()
 
@@ -346,6 +378,7 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
         // 공통 노드, 엣지는 기본 모양
         applyLayout(false)
         initializeTooltips(getTooltips)
+        initializeEdgeHighlighter()
     }
 
     private def setVisible(graph: ParsingContext.Graph, visible: Boolean): Unit = {
