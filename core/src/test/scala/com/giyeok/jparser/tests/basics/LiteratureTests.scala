@@ -864,7 +864,7 @@ object MyPaper10 extends Grammar with GrammarTestCases with StringSamples {
     val name = "MyPaper Grammar 10"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
-            seq(longest(longest(n("A")).plus))
+            longest(longest(n("A")).plus)
         ),
         "A" -> ListSet(
             c('a').plus,

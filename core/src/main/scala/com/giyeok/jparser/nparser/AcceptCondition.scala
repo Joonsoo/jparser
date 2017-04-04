@@ -140,6 +140,7 @@ object AcceptCondition {
                 Always
             } else if (updatedNodes contains node) {
                 // node가 finish되었으면
+                // TODO updatedNodes(node)의 컨디션들의 neg.evaluate한 값이어야 함 - acceptable에도 반영해야 함
                 Never
             } else if (!(graph.nodes contains node)) {
                 // (이전 세대에서) trimming돼서 노드가 없어졌으면
@@ -162,6 +163,7 @@ object AcceptCondition {
             if (gen > targetGen) {
                 Never
             } else if (updatedNodes contains node) {
+                // TODO updatedNodes(node)의 컨디션들의 evaluate한 값이어야 함 - acceptable에도 반영해야 함
                 Always
             } else if (!(graph.nodes contains node)) {
                 // (이전 세대에서) trimming돼서 노드가 없어졌으면
