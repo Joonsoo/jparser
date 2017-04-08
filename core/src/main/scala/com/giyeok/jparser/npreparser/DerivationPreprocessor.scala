@@ -1,3 +1,88 @@
+package com.giyeok.jparser.npreparser
+
+import scala.annotation.tailrec
+import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
+import com.giyeok.jparser.Inputs.Input
+import com.giyeok.jparser.Inputs.TermGroupDesc
+import com.giyeok.jparser.Inputs.VirtualTermGroupDesc
+import com.giyeok.jparser.Symbols.Terminal
+import com.giyeok.jparser.Symbols.Terminals.CharacterTerminal
+import com.giyeok.jparser.Symbols.Terminals.VirtualTerminal
+import com.giyeok.jparser.nparser.AcceptCondition.Always
+import com.giyeok.jparser.nparser.ParsingContext.Graph
+import com.giyeok.jparser.nparser.ParsingContext.Kernel
+import com.giyeok.jparser.nparser.ParsingContext.Node
+import com.giyeok.jparser.nparser.ParsingTasks
+
+trait DerivationPreprocessor extends ParsingTasks {
+    def termGroupsOf(terminals: Set[Terminal]): Set[TermGroupDesc] = {
+        val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
+        val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
+
+        def sliceTermGroups(termGroups: Set[CharacterTermGroupDesc]): Set[CharacterTermGroupDesc] = {
+            val charIntersects: Set[CharacterTermGroupDesc] = termGroups flatMap { term1 =>
+                termGroups collect {
+                    case term2 if term1 != term2 => term1 intersect term2
+                } filterNot { _.isEmpty }
+            }
+            val essentials = (termGroups map { g => charIntersects.foldLeft(g) { _ - _ } }) filterNot { _.isEmpty }
+            val intersections = if (charIntersects.isEmpty) Set() else sliceTermGroups(charIntersects)
+            essentials ++ intersections
+        }
+        val charTermGroups = sliceTermGroups(charTerms)
+
+        val virtIntersects: Set[VirtualTermGroupDesc] = virtTerms flatMap { term1 =>
+            virtTerms collect {
+                case term2 if term1 != term2 => term1 intersect term2
+            } filterNot { _.isEmpty }
+        }
+        val virtTermGroups = (virtTerms map { term =>
+            virtIntersects.foldLeft(term) { _ - _ }
+        }) ++ virtIntersects
+
+        (charTermGroups ++ virtTermGroups) filterNot { _.isEmpty }
+    }
+
+    case class Preprocessed(base: Node, cc: Cont, tasks: List[Task]) {
+        def shiftGen(gen: Int): Preprocessed = ???
+    }
+
+    private var cache = Map[(Int, Int), (Preprocessed, Map[TermGroupDesc, Preprocessed])]()
+
+    @tailrec private def partialRec(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[Task]): (Cont, List[Task]) =
+        tasks match {
+            case task +: rest if task.node == root =>
+                partialRec(nextGen, root, rest, cc, task +: rootTasks)
+            case task +: rest =>
+                val (ncc, newTasks) = process(nextGen, task, cc)
+                partialRec(nextGen, root, newTasks ++: rest, ncc, rootTasks)
+            case List() => (cc, rootTasks)
+        }
+
+    def sliceOf(symbolId: Int, pointer: Int): (Preprocessed, Map[TermGroupDesc, Preprocessed]) = {
+        cache get ((symbolId, pointer)) match {
+            case Some(cached) => cached
+            case None =>
+                val baseNode = Node(Kernel(symbolId, pointer, 0, 0)(grammar.symbolOf(symbolId)), Always)
+                val (cc, rootTasks) = partialRec(0, baseNode, List(DeriveTask(baseNode)), Cont(Graph(Set(baseNode), Set()), Map()), List())
+                val base = Preprocessed(baseNode, cc, rootTasks)
+                val termGroups = termGroupsOf(termNodes(cc.graph, 0) map { _.kernel.symbol.asInstanceOf[Terminal] })
+                val slicedMap = (termGroups map { termGroup =>
+                    val sliced: Preprocessed = ???
+                    termGroup -> sliced
+                }).toMap
+                cache += (symbolId, pointer) -> (base, slicedMap)
+                (base, slicedMap)
+        }
+    }
+
+    def sliceOf(kernel: Kernel, input: Input): Option[Preprocessed] = {
+        // assert((slicedMap filter { _._1 contains input }).size <= 1)
+        val sliceMap = sliceOf(kernel.symbolId, kernel.pointer)._2
+        sliceMap find { _._1 contains input } map { _._2 } map { _.shiftGen(kernel.beginGen) }
+    }
+}
+
 //package com.giyeok.jparser.nparser
 //
 //import com.giyeok.jparser.nparser.DerivationPreprocessor.Preprocessed

@@ -53,26 +53,8 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             val Cont(liftedGraph, updatedNodes) = rec(nextGen, termFinishes, graph)
 
             // 2. Accept condition 처리
-            // 2a. Evaluate accept conditions
-            val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] = {
-                val conditions = (liftedGraph.nodes map { _.condition }) ++ ctx.conditionAccumulate.unfixed.values.toSet
-                (conditions map { condition =>
-                    condition -> condition.evaluate(nextGen, liftedGraph, updatedNodes)
-                }).toMap
-            }
-            // 2b. ConditionAccumulate update
-            val nextConditionAccumulate: ConditionAccumulate = {
-                //                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedGraph) }
-                //                val newConditions = (revertedGraph.finishedNodes map { _.condition } map { c => (c -> c) }).toMap
-                //                evaluated ++ newConditions // filter { _._2 != False }
-                ctx.conditionAccumulate.update(conditionsEvaluations)
-            }
-            // 2c. Update accept conditions in graph
-            val acceptConditionUpdatedGraph = liftedGraph mapNode { node =>
-                Node(node.kernel, conditionsEvaluations(node.condition))
-            }
-            // 2d. Remove never condition nodes
-            val conditionFilteredGraph = acceptConditionUpdatedGraph filterNode { _.condition != Never }
+            val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =
+                processAcceptCondition(nextGen, liftedGraph, updatedNodes, ctx.conditionAccumulate)
 
             // 3. Trimming
             val trimmedGraph: Graph = trimGraph(conditionFilteredGraph, startNode, nextGen)
@@ -80,13 +62,18 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             // trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
             //   - parse tree reconstruction할 때는 liftedGraph를 사용하고
             //   - 다음 generation 시작할 때는 trimmedGraph 사용
-            val nextContext = ctx.proceed(nextGen, resultGraph = liftedGraph, nextGraph = trimmedGraph, input, updatedNodes, nextConditionAccumulate)
+            val nextContext = ctx.proceed(
+                nextGen,
+                resultGraph = liftedGraph, nextGraph = trimmedGraph,
+                input, updatedNodes, nextConditionAccumulate
+            )
+
             Left((ProceedDetail(
                 graph,
-                Transition("lifted", liftedGraph),
-                Transition("conditionsUpdated", acceptConditionUpdatedGraph),
+                Transition("lifted(result)", liftedGraph),
+                Transition("conditionUpdated", conditionUpdatedGraph),
                 Transition("conditionFiltered", conditionFilteredGraph),
-                Transition("trimmed", trimmedGraph)
+                Transition("trimmed(next)", trimmedGraph)
             ), nextContext))
         }
     }

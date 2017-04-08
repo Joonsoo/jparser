@@ -88,14 +88,6 @@ object Parser {
         }
     }
 
-    class DeriveTipsContext(gen: Int, nextGraph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Graph], updatedNodes: Map[Node, Set[Node]], conditionAccumulate: ConditionAccumulate)
-            extends Context(gen, nextGraph, _inputs, _history, updatedNodes, conditionAccumulate) {
-        // assert(deriveTips subsetOf ctx.graph.nodes)
-        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, updatedNodes: Map[Node, Set[Node]], newConditionAccumulate: ConditionAccumulate): DeriveTipsContext = {
-            new DeriveTipsContext(nextGen, nextGraph, deriveTips, newInput +: _inputs, resultGraph +: _history, updatedNodes, newConditionAccumulate)
-        }
-    }
-
     case class Transition(name: String, result: Graph)
     case class ProceedDetail(baseGraph: Graph, transitions: Transition*) {
         def graphAt(idx: Int): Graph =

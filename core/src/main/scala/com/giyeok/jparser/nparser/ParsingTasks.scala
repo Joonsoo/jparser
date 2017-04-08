@@ -5,6 +5,7 @@ import AcceptCondition._
 import NGrammar._
 import com.giyeok.jparser.Inputs
 import scala.annotation.tailrec
+import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 
 trait ParsingTasks {
     val grammar: NGrammar
@@ -217,12 +218,34 @@ trait ParsingTasks {
 
     def termNodes(graph: Graph, nextGen: Int): Set[Node] = {
         graph.nodes filter { node =>
-            val isTerminalSymbol = grammar.nsymbols get node.kernel.symbolId match {
-                case Some(NTerminal(_)) => true
-                case _ => false
-            }
-            (node.kernel.beginGen == nextGen) && isTerminalSymbol
+            val isTerminal = node.kernel.symbol.isInstanceOf[NTerminal]
+            (node.kernel.beginGen == nextGen) && isTerminal
         }
+    }
+
+    def processAcceptCondition(nextGen: Int, liftedGraph: Graph, updatedNodes: Map[Node, Set[Node]], conditionAccumulate: ConditionAccumulate): (ConditionAccumulate, Graph, Graph) = {
+        // 2a. Evaluate accept conditions
+        val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] = {
+            val conditions = (liftedGraph.nodes map { _.condition }) ++ conditionAccumulate.unfixed.values.toSet
+            (conditions map { condition =>
+                condition -> condition.evaluate(nextGen, liftedGraph, updatedNodes)
+            }).toMap
+        }
+        // 2b. ConditionAccumulate update
+        val nextConditionAccumulate: ConditionAccumulate = {
+            //                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedGraph) }
+            //                val newConditions = (revertedGraph.finishedNodes map { _.condition } map { c => (c -> c) }).toMap
+            //                evaluated ++ newConditions // filter { _._2 != False }
+            conditionAccumulate.update(conditionsEvaluations)
+        }
+        // 2c. Update accept conditions in graph
+        val conditionUpdatedGraph = liftedGraph mapNode { node =>
+            Node(node.kernel, conditionsEvaluations(node.condition))
+        }
+        // 2d. Remove never condition nodes
+        val conditionFilteredGraph = conditionUpdatedGraph filterNode { _.condition != Never }
+
+        (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph)
     }
 
     def trimUnreachables(graph: Graph, start: Node, ends: Set[Node]): Graph = {

@@ -11,9 +11,9 @@ import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.nparser.Parser.Context
-import com.giyeok.jparser.nparser.Parser.DeriveTipsContext
 import com.giyeok.jparser.nparser.ParsingContext
 import com.giyeok.jparser.nparser.ParsingContext._
+import com.giyeok.jparser.npreparser.DeriveTipsContext
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.CompoundBorder
@@ -28,8 +28,6 @@ import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.Control
-import org.eclipse.swt.widgets.Event
-import org.eclipse.swt.widgets.Listener
 import org.eclipse.zest.core.viewers.GraphViewer
 import org.eclipse.zest.core.widgets.CGraphNode
 import org.eclipse.zest.core.widgets.Graph
