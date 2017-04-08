@@ -3,7 +3,6 @@ package com.giyeok.jparser.nparser
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.ParsingErrors._
 import com.giyeok.jparser.nparser.AcceptCondition._
-import com.giyeok.jparser.nparser.NGrammar.Terminal
 import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.nparser.Parser._
@@ -19,34 +18,29 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
 
         val initialConditionAccumulate = ConditionAccumulate(conditionsMap)
 
-        // 2. acceptable한 노드들만 필터
-        val resultGraph: Graph = graph filterNode { node =>
-            node.condition.acceptable(0, graph, updatedNodes)
-        }
-
-        // 3. Accept condition 처리
-        // 3a. Evaluate accept conditions
+        // 2. Accept condition 처리
+        // 2a. Evaluate accept conditions
         val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] = {
             (graph.nodes map { _.condition } map { condition =>
                 condition -> condition.evaluate(0, graph, updatedNodes)
             }).toMap
         }
-        // 3b. ConditionAccumulate update
+        // 2b. ConditionAccumulate update
         val nextConditionAccumulate: ConditionAccumulate = {
             //                val evaluated = wctx.conditionFate.unfixed map { kv => kv._1 -> kv._2.evaluate(nextGen, trimmedGraph) }
             //                val newConditions = (revertedGraph.finishedNodes map { _.condition } map { c => (c -> c) }).toMap
             //                evaluated ++ newConditions // filter { _._2 != False }
             initialConditionAccumulate.update(conditionsEvaluations)
         }
-        // 3c. Update accept conditions in graph
+        // 2c. Update accept conditions in graph
         val acceptConditionUpdatedGraph = graph mapNode { node =>
             Node(node.kernel, conditionsEvaluations(node.condition))
         } filterNode { _.condition != Never }
 
-        // 4. Trimming
+        // 3. Trimming
         val trimmedGraph: Graph = trimGraph(acceptConditionUpdatedGraph, startNode, 0)
 
-        new NaiveContext(0, trimmedGraph, List(), List(resultGraph), updatedNodes, nextConditionAccumulate)
+        new NaiveContext(0, trimmedGraph, List(), List(graph), updatedNodes, nextConditionAccumulate)
     }
 
     def proceedDetail(ctx: NaiveContext, input: Input): Either[(ProceedDetail, NaiveContext), ParsingError] = {
@@ -84,7 +78,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             val trimmedGraph: Graph = trimGraph(conditionFilteredGraph, startNode, nextGen)
 
             // trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
-            //   - parse tree reconstruction할 때는 acceptConditionUpdatedGraph 그래프를 사용하고(acceptableOnlyGraph를 써도 될듯?)
+            //   - parse tree reconstruction할 때는 liftedGraph를 사용하고
             //   - 다음 generation 시작할 때는 trimmedGraph 사용
             val nextContext = ctx.proceed(nextGen, resultGraph = liftedGraph, nextGraph = trimmedGraph, input, updatedNodes, nextConditionAccumulate)
             Left((ProceedDetail(

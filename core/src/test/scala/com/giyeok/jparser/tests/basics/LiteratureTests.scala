@@ -885,6 +885,27 @@ object MyPaper10_1 extends Grammar with GrammarTestCases with StringSamples {
     val name = "MyPaper Grammar 10_1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
+            seq(longest(longest(longest(n("A"))).plus))
+        ),
+        "A" -> ListSet(
+            c('a').plus,
+            c('b').plus
+        )
+    )
+    val startSymbol = n("S")
+
+    val grammar = this
+    val correctSamples = Set[String](
+        "aaaaaaa",
+        "aaaaaaaaa"
+    )
+    val incorrectSamples = Set[String]()
+}
+
+object MyPaper11_1 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 11_1"
+    val rules: RuleMap = ListMap(
+        "S" -> ListSet(
             seq(n("A"), n("Gamma"))
         ),
         "A" -> ListSet(
@@ -912,8 +933,8 @@ object MyPaper10_1 extends Grammar with GrammarTestCases with StringSamples {
     val incorrectSamples = Set[String]()
 }
 
-object MyPaper10_2 extends Grammar with GrammarTestCases with StringSamples {
-    val name = "MyPaper Grammar 10_2"
+object MyPaper11_2 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 11_2"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
             seq(n("A"), n("Gamma"))
@@ -944,8 +965,8 @@ object MyPaper10_2 extends Grammar with GrammarTestCases with StringSamples {
     )
 }
 
-object MyPaper10_3 extends Grammar with GrammarTestCases with StringSamples {
-    val name = "MyPaper Grammar 10_3"
+object MyPaper12_1 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 12_1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
             longest(seq(c('a'), longest(c('a').plus)))
@@ -960,8 +981,8 @@ object MyPaper10_3 extends Grammar with GrammarTestCases with StringSamples {
     val incorrectSamples = Set[String]()
 }
 
-object MyPaper10_4 extends Grammar with GrammarTestCases with StringSamples {
-    val name = "MyPaper Grammar 10_4"
+object MyPaper12_2 extends Grammar with GrammarTestCases with StringSamples {
+    val name = "MyPaper Grammar 12_2"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
             seq(longest(c('a').plus), c('a'))
@@ -1006,9 +1027,10 @@ object PaperTests {
         MyPaper9_7,
         MyPaper10,
         MyPaper10_1,
-        MyPaper10_2,
-        MyPaper10_3,
-        MyPaper10_4
+        MyPaper11_1,
+        MyPaper11_2,
+        MyPaper12_1,
+        MyPaper12_2
     )
 }
 
