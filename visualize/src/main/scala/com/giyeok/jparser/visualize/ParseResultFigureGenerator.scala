@@ -38,9 +38,10 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
         def parseNodeFig(n: Node): Fig = n match {
             case TerminalNode(input) =>
                 g.textFig(input.toShortString, ap.input)
-            case BindNode(sym: Repeat, body) if renderConf.unrollRepeat =>
+            case BindNode(nsym, body) if nsym.symbol.isInstanceOf[Repeat] && renderConf.unrollRepeat =>
+                val sym = nsym.symbol.asInstanceOf[Repeat]
                 def childrenOf(node: Node, sym: Symbol): Seq[Fig] = node match {
-                    case BindNode(s, body) if s == sym => Seq(parseNodeFig(node))
+                    case BindNode(s, body) if s.symbol == sym => Seq(parseNodeFig(node))
                     case BindNode(s, body) => childrenOf(body, sym)
                     case b: CyclicBindNode => Seq(parseNodeFig(b))
                     case s: SequenceNode => s.children flatMap { childrenOf(_, sym) }

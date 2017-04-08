@@ -13,10 +13,10 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     case class SimpleKernelEdge(start: Kernel, end: Kernel) extends KernelEdge
     case class JoinKernelEdge(start: Kernel, end: Kernel, join: Kernel) extends KernelEdge
 
-    case class KernelGraph(nodes: Set[Kernel], edges: Set[KernelEdge]) {
-        val edgesByStart: Map[Kernel, Set[KernelEdge]] = {
+    case class KernelGraph(nodes: Seq[Kernel], edges: Seq[KernelEdge]) {
+        val edgesByStart: Map[Kernel, Seq[KernelEdge]] = {
             val edgesMap = edges groupBy { _.start }
-            ((nodes -- edgesMap.keySet) map { n => n -> Set[KernelEdge]() }).toMap ++ edgesMap
+            ((nodes.toSet -- edgesMap.keySet) map { n => n -> Seq[KernelEdge]() }).toMap ++ edgesMap
         }
     }
 
@@ -28,10 +28,9 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 case SimpleEdge(start, end) => SimpleKernelEdge(start.kernel, end.kernel)
                 case JoinEdge(start, end, join) => JoinKernelEdge(start.kernel, end.kernel, join.kernel)
             }
-            KernelGraph(kernelNodes, kernelEdges)
+            KernelGraph(kernelNodes.toSeq, kernelEdges.toSeq)
         }).toVector
     }
-    println("finishes done")
     // TODO finishes의 node set을 symbolId 기준으로 정렬해 놓으면 더 빠르게 할 수 있을듯
 
     def reconstruct(): Option[R] = {

@@ -3,17 +3,17 @@ package com.giyeok.jparser
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar._
 
-case class ParseForest(trees: Set[ParseResultTree.Node]) extends ParseResult
+case class ParseForest(trees: Seq[ParseResultTree.Node]) extends ParseResult
 
 object ParseForestFunc extends ParseResultFunc[ParseForest] {
     import ParseResultTree._
 
     def terminal(left: Int, input: Inputs.Input): ParseForest =
-        ParseForest(Set(TerminalNode(input)))
+        ParseForest(Seq(TerminalNode(input)))
     def bind(left: Int, right: Int, symbol: NSymbol, body: ParseForest): ParseForest =
         ParseForest(body.trees map { b => BindNode(symbol, b) })
     def cyclicBind(left: Int, right: Int, symbol: NSymbol): ParseForest =
-        ParseForest(Set(CyclicBindNode(symbol)))
+        ParseForest(Seq(CyclicBindNode(symbol)))
     def join(left: Int, right: Int, symbol: Join, body: ParseForest, constraint: ParseForest): ParseForest = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
         ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
@@ -21,9 +21,9 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
 
     def sequence(left: Int, right: Int, symbol: Sequence, pointer: Int): ParseForest =
         if (pointer == 0) {
-            ParseForest(Set(SequenceNode(symbol, List())))
+            ParseForest(Seq(SequenceNode(symbol, List())))
         } else {
-            ParseForest(Set(CyclicSequenceNode(symbol, pointer, List())))
+            ParseForest(Seq(CyclicSequenceNode(symbol, pointer, List())))
         }
     def append(sequence: ParseForest, child: ParseForest): ParseForest = {
         assert(sequence.trees forall { n => n.isInstanceOf[SequenceNode] || n.isInstanceOf[CyclicSequenceNode] })
