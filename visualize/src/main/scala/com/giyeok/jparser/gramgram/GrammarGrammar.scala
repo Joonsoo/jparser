@@ -114,59 +114,58 @@ object GrammarGrammar extends Grammar {
     class NewGrammar(val name: String, val rules: ListMap[String, ListSet[Symbols.Symbol]], val startSymbol: Symbols.Nonterminal) extends Grammar
 
     def translate(tree: ParseResultTree.Node): Option[Grammar] = {
-        //        val BindNode(Start, BindNode(Nonterminal("Grammar"), seq: SequenceNode)) = tree
-        //        val BindNode(Nonterminal("Rules"), body) = seq.children(1)
-        //        val nontermDefs: Seq[(String, Seq[Symbols.Symbol])] = childrenOf(body, Nonterminal("NontermDef")) collect {
-        //            case BindNode(Nonterminal("NontermDef"), seq: SequenceNode) =>
-        //                val name = textOf(seq.children(0))
-        //                val productions: Seq[Symbol] = childrenOf(seq.children(2), Nonterminal("Production")) collect {
-        //                    case BindNode(Nonterminal("Production"), BindNode(Nonterminal("Empty"), _)) => empty
-        //                    case BindNode(Nonterminal("Production"), BindNode(Nonterminal("Symbols"), body)) =>
-        //                        def mapSymbol(node: Node): Symbols.Symbol = {
-        //                            val BindNode(Nonterminal("Symbol"), body) = node
-        //                            body match {
-        //                                case BindNode(Nonterminal("NontermName"), body) =>
-        //                                    Nonterminal(textOf(body))
-        //                                case BindNode(Nonterminal("LongestName"), BindNode(_: Longest, seq: SequenceNode)) =>
-        //                                    longest(mapSymbol(seq.children(2)))
-        //                                case BindNode(Nonterminal("LookaheadName"), BindNode(_: Longest, seq: SequenceNode)) =>
-        //                                    lookahead_is(mapSymbol(seq.children(2)))
-        //                                case BindNode(Nonterminal("LookaheadExName"), BindNode(_: Longest, seq: SequenceNode)) =>
-        //                                    lookahead_except(mapSymbol(seq.children(2)))
-        //                                case BindNode(Nonterminal("IntersectionName"), BindNode(_: Longest, seq: SequenceNode)) =>
-        //                                    join(mapSymbol(seq.children(0)), mapSymbol(seq.children(2)))
-        //                                case BindNode(Nonterminal("ExclusionName"), BindNode(_: Longest, seq: SequenceNode)) =>
-        //                                    mapSymbol(seq.children(0)).except(mapSymbol(seq.children(2)))
-        //                                case BindNode(Nonterminal("Terminal"), body) =>
-        //                                    val terminal: Terminal = body match {
-        //                                        case BindNode(Nonterminal("TerminalExactChar"), seq: SequenceNode) =>
-        //                                            chars(textOf(seq.children(1)))
-        //                                        case BindNode(Nonterminal("TerminalRanges"), seq: SequenceNode) =>
-        //                                            val chars: Set[Char] = (childrenOf(seq.children(1), Nonterminal("TerminalRange")) flatMap {
-        //                                                case BindNode(Nonterminal("TerminalRange"), seq: SequenceNode) =>
-        //                                                    val BindNode(AnyChar, TerminalNode(Inputs.Character(c1))) = seq.children(0)
-        //                                                    val BindNode(AnyChar, TerminalNode(Inputs.Character(c2))) = seq.children(2)
-        //                                                    (c1 to c2).toSet
-        //                                                case _ => ???
-        //                                            }).toSet
-        //                                            Chars(chars)
-        //                                        case BindNode(Nonterminal("TerminalSet"), seq: SequenceNode) =>
-        //                                            chars(textOf(seq.children(1)))
-        //                                        case _ => ???
-        //                                    }
-        //                                    terminal
-        //                                case _ => ???
-        //                            }
-        //                        }
-        //                        val children = childrenOf(body, Nonterminal("Symbol")) map { s => proxyIfNeeded(mapSymbol(s)) }
-        //                        if (children.length == 1) children.head else Symbols.Sequence(children)
-        //                }
-        //                (name, productions)
-        //        }
-        //        if (nontermDefs.isEmpty) None else {
-        //            val startSymbolName = nontermDefs.head._1
-        //            Some(new NewGrammar("New Grammar", ListMap((nontermDefs map { kv => (kv._1, ListSet(kv._2: _*)) }): _*), Nonterminal(startSymbolName)))
-        //        }
-        ???
+        val BindNode(Start, BindNode(Nonterminal("Grammar"), seq: SequenceNode)) = tree
+        val BindNode(Nonterminal("Rules"), body) = seq.children(1)
+        val nontermDefs: Seq[(String, Seq[Symbols.Symbol])] = childrenOf(body, Nonterminal("NontermDef")) collect {
+            case BindNode(Nonterminal("NontermDef"), seq: SequenceNode) =>
+                val name = textOf(seq.children(0))
+                val productions: Seq[Symbol] = childrenOf(seq.children(2), Nonterminal("Production")) collect {
+                    case BindNode(Nonterminal("Production"), BindNode(Nonterminal("Empty"), _)) => empty
+                    case BindNode(Nonterminal("Production"), BindNode(Nonterminal("Symbols"), body)) =>
+                        def mapSymbol(node: Node): Symbols.Symbol = {
+                            val BindNode(Nonterminal("Symbol"), body) = node
+                            body match {
+                                case BindNode(Nonterminal("NontermName"), body) =>
+                                    Nonterminal(textOf(body))
+                                case BindNode(Nonterminal("LongestName"), BindNode(_: Longest, seq: SequenceNode)) =>
+                                    longest(mapSymbol(seq.children(2)))
+                                case BindNode(Nonterminal("LookaheadName"), BindNode(_: Longest, seq: SequenceNode)) =>
+                                    lookahead_is(mapSymbol(seq.children(2)))
+                                case BindNode(Nonterminal("LookaheadExName"), BindNode(_: Longest, seq: SequenceNode)) =>
+                                    lookahead_except(mapSymbol(seq.children(2)))
+                                case BindNode(Nonterminal("IntersectionName"), BindNode(_: Longest, seq: SequenceNode)) =>
+                                    join(mapSymbol(seq.children(0)), mapSymbol(seq.children(2)))
+                                case BindNode(Nonterminal("ExclusionName"), BindNode(_: Longest, seq: SequenceNode)) =>
+                                    mapSymbol(seq.children(0)).except(mapSymbol(seq.children(2)))
+                                case BindNode(Nonterminal("Terminal"), body) =>
+                                    val terminal: Terminal = body match {
+                                        case BindNode(Nonterminal("TerminalExactChar"), seq: SequenceNode) =>
+                                            chars(textOf(seq.children(1)))
+                                        case BindNode(Nonterminal("TerminalRanges"), seq: SequenceNode) =>
+                                            val chars: Set[Char] = (childrenOf(seq.children(1), Nonterminal("TerminalRange")) flatMap {
+                                                case BindNode(Nonterminal("TerminalRange"), seq: SequenceNode) =>
+                                                    val BindNode(AnyChar, TerminalNode(Inputs.Character(c1))) = seq.children(0)
+                                                    val BindNode(AnyChar, TerminalNode(Inputs.Character(c2))) = seq.children(2)
+                                                    (c1 to c2).toSet
+                                                case _ => ???
+                                            }).toSet
+                                            Chars(chars)
+                                        case BindNode(Nonterminal("TerminalSet"), seq: SequenceNode) =>
+                                            chars(textOf(seq.children(1)))
+                                        case _ => ???
+                                    }
+                                    terminal
+                                case _ => ???
+                            }
+                        }
+                        val children = childrenOf(body, Nonterminal("Symbol")) map { s => proxyIfNeeded(mapSymbol(s)) }
+                        if (children.length == 1) children.head else Symbols.Sequence(children)
+                }
+                (name, productions)
+        }
+        if (nontermDefs.isEmpty) None else {
+            val startSymbolName = nontermDefs.head._1
+            Some(new NewGrammar("New Grammar", ListMap((nontermDefs map { kv => (kv._1, ListSet(kv._2: _*)) }): _*), Nonterminal(startSymbolName)))
+        }
     }
 }

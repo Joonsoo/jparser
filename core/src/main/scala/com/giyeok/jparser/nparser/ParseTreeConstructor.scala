@@ -55,13 +55,13 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
         kernel.symbol match {
             case symbol: NAtomicSymbol if traces contains ((kernel.symbolId, kernel.pointer)) =>
                 // println("cyclicBind?")
-                resultFunc.cyclicBind(kernel.beginGen, gen, symbol)
+                resultFunc.cyclicBind(kernel.beginGen, gen, symbol.symbol)
 
             case symbol: NSequence if traces contains ((kernel.symbolId, kernel.pointer)) =>
                 // println(s"sequence cyclicBind - $kernel")
-                resultFunc.sequence(kernel.beginGen, gen, symbol, kernel.pointer)
+                resultFunc.sequence(kernel.beginGen, gen, symbol.symbol, kernel.pointer)
 
-            case symbol @ NSequence(_, sequence) =>
+            case NSequence(symbol, sequence) =>
                 if (kernel.pointer == 0) {
                     assert(kernel.beginGen == kernel.endGen)
                     resultFunc.sequence(kernel.beginGen, kernel.endGen, symbol, 0)
@@ -84,7 +84,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                     if (kernel.pointer == sequence.length) resultFunc.bind(kernel.beginGen, gen, symbol, appendedSeq) else appendedSeq
                 }
 
-            case symbol @ NJoin(_, body, join) =>
+            case NJoin(symbol, body, join) =>
                 assert(kernel.pointer == 1)
                 val bodyKernel = Kernel(body, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(body))
                 val joinKernel = Kernel(join, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(join))
@@ -92,7 +92,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 val joinTree = reconstruct0(joinKernel, kernel.endGen)
                 resultFunc.join(kernel.beginGen, kernel.endGen, symbol, bodyTree, joinTree)
 
-            case symbol @ NTerminal(_) =>
+            case NTerminal(symbol) =>
                 resultFunc.bind(kernel.beginGen, kernel.endGen, symbol,
                     resultFunc.terminal(kernel.beginGen, input(kernel.beginGen)))
 
@@ -107,7 +107,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                     reconstruct0(bodyKernel, kernel.endGen)
                 }
                 assert(bodyTrees.nonEmpty)
-                resultFunc.bind(kernel.beginGen, kernel.endGen, symbol, resultFunc.merge(bodyTrees))
+                resultFunc.bind(kernel.beginGen, kernel.endGen, symbol.symbol, resultFunc.merge(bodyTrees))
         }
     }
 }

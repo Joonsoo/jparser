@@ -38,14 +38,14 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
         def parseNodeFig(n: Node): Fig = n match {
             case TerminalNode(input) =>
                 g.textFig(input.toShortString, ap.input)
-            case BindNode(nsym, body) if nsym.symbol.isInstanceOf[Repeat] && renderConf.unrollRepeat =>
-                val sym = nsym.symbol.asInstanceOf[Repeat]
+            case BindNode(sym: Repeat, body) if renderConf.unrollRepeat =>
                 def childrenOf(node: Node, sym: Symbol): Seq[Fig] = node match {
-                    case BindNode(s, body) if s.symbol == sym => Seq(parseNodeFig(node))
+                    case BindNode(`sym`, _) => Seq(parseNodeFig(node))
                     case BindNode(s, body) => childrenOf(body, sym)
                     case b: CyclicBindNode => Seq(parseNodeFig(b))
                     case s: SequenceNode => s.children flatMap { childrenOf(_, sym) }
                     case s: CyclicSequenceNode => Seq(parseNodeFig(s))
+                    case _ => ???
                 }
                 val children = childrenOf(body, sym.sym)
                 vfig(Spacing.Small, Seq(
@@ -59,13 +59,13 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
             case BindNode(sym, body) =>
                 vfig(Spacing.Small, Seq(
                     symbolBorder.applyToFigure(parseNodeFig(body)),
-                    symbolFigureGenerator.symbolFig(sym.symbol)
+                    symbolFigureGenerator.symbolFig(sym)
                 ))
             case CyclicBindNode(sym) =>
                 ap.symbolBorder.applyToFigure(
                     vfig(Spacing.Small, Seq(
                         g.textFig("cyclic", ap.small),
-                        symbolFigureGenerator.symbolFig(sym.symbol)
+                        symbolFigureGenerator.symbolFig(sym)
                     ))
                 )
             case JoinNode(body, join) =>
@@ -86,7 +86,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                     val seq: Seq[Fig] =
                         s.childrenAll.zipWithIndex flatMap { c =>
                             val (child, idx) = c
-                            if (s.symbol.symbol.contentIdx contains idx) {
+                            if (s.symbol.contentIdx contains idx) {
                                 // if it is content child
                                 if (isLookaheadNode(child)) {
                                     if (renderConf.renderLookaheadExcept) {
@@ -113,7 +113,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                 val seq: Seq[Fig] = Seq(
                     vfig(Spacing.Small, Seq(
                         g.textFig(s"cyclicSeq@${s.pointer}", ap.small),
-                        symbolFigureGenerator.symbolFig(s.symbol.symbol)
+                        symbolFigureGenerator.symbolFig(s.symbol)
                     ))
                 ) ++ (s.childrenAll map { child => ap.symbolBorder.applyToFigure(parseNodeFig(child)) })
                 ap.symbolBorder.applyToFigure(hfig(Spacing.Medium, seq))
@@ -149,7 +149,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
             case d @ Term(left, input) =>
                 reduction(d.range, g.textFig(input.toShortString, ap.input))
             case d @ Bind(left, right, symbol) =>
-                reduction(d.range, symbolFigureGenerator.symbolFig(symbol.symbol))
+                reduction(d.range, symbolFigureGenerator.symbolFig(symbol))
             case d @ LastChild(left, right) =>
                 reduction(d.range, g.textFig("child", ap.input))
         })
@@ -197,7 +197,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                         Spacing.Small,
                         children :+ hfig(
                             Spacing.None,
-                            Seq(g.textFig(s"${node.range}", ap.default), symbolFigureGenerator.symbolFig(symbol.symbol))
+                            Seq(g.textFig(s"${node.range}", ap.default), symbolFigureGenerator.symbolFig(symbol))
                         )
                     )
                 case Join(position, length, symbol) =>
@@ -207,7 +207,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                             case JoinEdge(_, end, join) =>
                                 hfig(Spacing.None, Seq(figureOf(end, visited + node), g.textFig("&", ap.default), figureOf(join, visited + node)))
                             case _ => ??? // JoinEdge 외에 다른 엣지가 오면 안됨
-                        }) :+ symbolFigureGenerator.symbolFig(symbol.symbol)
+                        }) :+ symbolFigureGenerator.symbolFig(symbol)
                     )
             }
         // figureOf(r.root, Set())

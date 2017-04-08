@@ -101,54 +101,52 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
     private def checkParse(parseTree: ParseResultTree.Node, grammar: Grammar): Unit = {
         import ParseResultTree._
         parseTree match {
-            case BindNode(nsymbol, body) =>
-                (nsymbol.symbol, body) match {
-                    case (term: Terminal, TerminalNode(input)) =>
-                        assert(term.accept(input))
-                    case (Start, body @ BindNode(bodySym, _)) =>
-                        assert(grammar.startSymbol == bodySym.symbol)
-                        checkParse(body, grammar)
-                    case (Nonterminal(name), body @ BindNode(bodySymbol, _)) =>
-                        assert(grammar.rules(name) contains bodySymbol.symbol)
-                        checkParse(body, grammar)
-                    case (sym: Join, body @ JoinNode(BindNode(bodySym, _), BindNode(joinSym, _))) =>
-                        assert(sym.sym == bodySym.symbol)
-                        assert(sym.join == joinSym.symbol)
-                        checkParse(body, grammar)
-                    case (Sequence(seq, ws), seqBody: SequenceNode) =>
-                        assert((seqBody.children map { _.asInstanceOf[BindNode].symbol }) == seq)
-                        checkParse(seqBody, grammar)
-                    case (OneOf(syms), body @ BindNode(bodySymbol, _)) =>
-                        assert(syms contains bodySymbol.symbol)
-                        checkParse(body, grammar)
-                    case (Repeat(sym, _), body @ BindNode(bodySymbol, _)) =>
-                        def childrenOf(node: Node, sym: Symbol): Seq[BindNode] = node match {
-                            case node @ BindNode(s, body) if s == sym => Seq(node)
-                            case BindNode(s, body) => childrenOf(body, sym)
-                            case s: SequenceNode => s.children flatMap { childrenOf(_, sym) }
-                        }
-                        val children = childrenOf(body, sym)
-                        assert(children forall { _.symbol == sym })
-                        checkParse(body, grammar)
-                    case (Except(sym, _), body @ BindNode(bodySym, _)) =>
-                        assert(sym == bodySym.symbol)
-                        checkParse(body, grammar)
-                    case (Proxy(sym), body @ BindNode(bodySym, _)) =>
-                        assert(sym == bodySym.symbol)
-                        checkParse(body, grammar)
-                    case (Longest(sym), body @ BindNode(bodySym, _)) =>
-                        assert(sym == bodySym.symbol)
-                        checkParse(body, grammar)
-                    case (_: LookaheadIs | _: LookaheadExcept, body: SequenceNode) =>
-                        assert(body.symbol.symbol == Sequence(Seq()))
-                        assert(body.childrenAll == List())
-                    case _ => assert(false)
+            case BindNode(term: Terminal, TerminalNode(input)) =>
+                assert(term.accept(input))
+            case BindNode(Start, body @ BindNode(bodySym, _)) =>
+                assert(grammar.startSymbol == bodySym)
+                checkParse(body, grammar)
+            case BindNode(Nonterminal(name), body @ BindNode(bodySymbol, _)) =>
+                assert(grammar.rules(name) contains bodySymbol)
+                checkParse(body, grammar)
+            case BindNode(sym: Join, body @ JoinNode(BindNode(bodySym, _), BindNode(joinSym, _))) =>
+                assert(sym.sym == bodySym)
+                assert(sym.join == joinSym)
+                checkParse(body, grammar)
+            case BindNode(Sequence(seq, ws), seqBody: SequenceNode) =>
+                assert((seqBody.children map { _.asInstanceOf[BindNode].symbol }) == seq)
+                checkParse(seqBody, grammar)
+            case BindNode(OneOf(syms), body @ BindNode(bodySymbol, _)) =>
+                assert(syms contains bodySymbol)
+                checkParse(body, grammar)
+            case BindNode(Repeat(sym, _), body @ BindNode(bodySymbol, _)) =>
+                def childrenOf(node: Node, sym: Symbol): Seq[BindNode] = node match {
+                    case node @ BindNode(s, body) if s == sym => Seq(node)
+                    case BindNode(s, body) => childrenOf(body, sym)
+                    case s: SequenceNode => s.children flatMap { childrenOf(_, sym) }
                 }
+                val children = childrenOf(body, sym)
+                assert(children forall { _.symbol == sym })
+                checkParse(body, grammar)
+            case BindNode(Except(sym, _), body @ BindNode(bodySym, _)) =>
+                assert(sym == bodySym)
+                checkParse(body, grammar)
+            case BindNode(Proxy(sym), body @ BindNode(bodySym, _)) =>
+                assert(sym == bodySym)
+                checkParse(body, grammar)
+            case BindNode(Longest(sym), body @ BindNode(bodySym, _)) =>
+                assert(sym == bodySym)
+                checkParse(body, grammar)
+            case BindNode(_: LookaheadIs | _: LookaheadExcept, body) =>
+                assert(body == SequenceNode(Sequence(Seq()), List()))
             case node: SequenceNode =>
                 node.childrenAll foreach { checkParse(_, grammar) }
             case JoinNode(body, join) =>
                 checkParse(body, grammar)
                 checkParse(join, grammar)
+            case BindNode(symbol, body) =>
+                println(symbol)
+                ???
             case _ =>
                 println(parseTree)
                 ???

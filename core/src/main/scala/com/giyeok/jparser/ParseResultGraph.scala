@@ -1,8 +1,6 @@
 package com.giyeok.jparser
 
 import ParseResultGraph._
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.NGrammar._
 
 case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node], edges: Set[Edge]) extends ParseResult {
     assert(left == root.left && right == root.right)
@@ -29,7 +27,7 @@ case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node],
                 node match {
                     case Term(left, input) =>
                         resultFunc.terminal(left, input)
-                    case ParseResultGraph.Sequence(left, right, symbol, pointer) =>
+                    case Sequence(left, right, symbol, pointer) =>
                         // TODO Sequence는 Sequence대로 만들고 append하도록 수정
                         if (pointer == 0) {
                             resultFunc.sequence(left, right, symbol, pointer)
@@ -53,7 +51,7 @@ case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node],
                             case _ => assert(false); ???
                         }
                         resultFunc.bind(left, right, symbol, resultFunc.merge(bodies))
-                    case ParseResultGraph.Join(left, right, symbol) =>
+                    case Join(left, right, symbol) =>
                         val bodies: Set[R] = outgoingOf(node) map {
                             case JoinEdge(_, end, join) =>
                                 resultFunc.join(left, right, symbol, reconstruct(end, visited + node), reconstruct(join, visited + node))
@@ -70,7 +68,7 @@ case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node],
 object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
     def terminal(left: Int, input: Inputs.Input): ParseResultGraph =
         ParseResultGraph(left, left + 1, Term(left, input), Set(Term(left, input)), Set())
-    def bind(left: Int, right: Int, symbol: NSymbol, body: ParseResultGraph): ParseResultGraph = {
+    def bind(left: Int, right: Int, symbol: Symbols.Symbol, body: ParseResultGraph): ParseResultGraph = {
         val bindNode = Bind(left, right, symbol) ensuring (left == body.left && right == body.right)
         if (body.nodes contains bindNode) {
             ParseResultGraph(left, right, body.root, body.nodes, body.edges + BindEdge(bindNode, body.root))
@@ -78,14 +76,14 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
             ParseResultGraph(left, right, bindNode, body.nodes + bindNode, body.edges + BindEdge(bindNode, body.root))
         }
     }
-    def cyclicBind(left: Int, right: Int, symbol: NSymbol): ParseResultGraph = {
+    def cyclicBind(left: Int, right: Int, symbol: Symbols.Symbol): ParseResultGraph = {
         val bindNode = Bind(left, right, symbol)
         ParseResultGraph(left, right, bindNode, Set(bindNode), Set())
     }
-    def join(left: Int, right: Int, symbol: NGrammar.NJoin, body: ParseResultGraph, join: ParseResultGraph): ParseResultGraph = {
+    def join(left: Int, right: Int, symbol: Symbols.Join, body: ParseResultGraph, join: ParseResultGraph): ParseResultGraph = {
         assert(left == body.left && left == join.left)
         assert(right == body.right && right == join.right)
-        val joinNode = ParseResultGraph.Join(left, right, symbol)
+        val joinNode = Join(left, right, symbol)
         val nodes = body.nodes ++ join.nodes
         if (nodes contains joinNode) {
             // 이런 경우가 생길 수 있나?
@@ -95,15 +93,15 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
         }
     }
 
-    def sequence(left: Int, right: Int, symbol: NGrammar.NSequence, pointer: Int): ParseResultGraph = {
-        val emptyNode = ParseResultGraph.Sequence(left, right, symbol, pointer)
+    def sequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int): ParseResultGraph = {
+        val emptyNode = Sequence(left, right, symbol, pointer)
         ParseResultGraph(left, right, emptyNode, Set(emptyNode), Set())
     }
     def append(sequence: ParseResultGraph, child: ParseResultGraph): ParseResultGraph = {
-        assert(sequence.root.isInstanceOf[ParseResultGraph.Sequence])
+        assert(sequence.root.isInstanceOf[Sequence])
         assert(sequence.right == child.left)
-        val sequenceRoot = sequence.root.asInstanceOf[ParseResultGraph.Sequence]
-        val appendedSequence = ParseResultGraph.Sequence(sequence.left, child.right, sequenceRoot.symbol, sequenceRoot.pointer + 1)
+        val sequenceRoot = sequence.root.asInstanceOf[Sequence]
+        val appendedSequence = Sequence(sequence.left, child.right, sequenceRoot.symbol, sequenceRoot.pointer + 1)
         ParseResultGraph(sequence.left, child.right, appendedSequence, (sequence.nodes ++ child.nodes) + appendedSequence,
             (sequence.edges ++ child.edges) + AppendEdge(appendedSequence, sequence.root, true) + AppendEdge(appendedSequence, child.root, false))
     }
@@ -124,15 +122,15 @@ object ParseResultGraph {
         def range = (left, right)
     }
     sealed trait NonTerm extends Node {
-        val symbol: NSymbol
+        val symbol: Symbols.Symbol
     }
 
     case class Term(left: Int, input: Inputs.Input) extends Node {
         val right = left + 1
     }
-    case class Sequence(left: Int, right: Int, symbol: NGrammar.NSequence, pointer: Int) extends NonTerm
-    case class Bind(left: Int, right: Int, symbol: NSymbol) extends NonTerm
-    case class Join(left: Int, right: Int, symbol: NGrammar.NJoin) extends NonTerm
+    case class Sequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int) extends NonTerm
+    case class Bind(left: Int, right: Int, symbol: Symbols.Symbol) extends NonTerm
+    case class Join(left: Int, right: Int, symbol: Symbols.Join) extends NonTerm
 
     sealed trait Edge {
         val start: Node
