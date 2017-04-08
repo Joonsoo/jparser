@@ -145,7 +145,9 @@ object AcceptCondition {
             } else if (updatedNodes contains node) {
                 // node가 finish되었으면
                 // TODO updatedNodes(node)의 컨디션들의 neg.evaluate한 값이어야 함 - acceptable에도 반영해야 함
-                Never
+                val updated = updatedNodes(node)
+                assert(updated forall { _.kernel.isFinished })
+                disjunct((updated map { _.condition }).toSeq: _*).neg.evaluate(gen, graph, updatedNodes)
             } else if (!(graph.nodes contains node)) {
                 // (이전 세대에서) trimming돼서 노드가 없어졌으면
                 Always
@@ -155,7 +157,17 @@ object AcceptCondition {
             }
         }
         def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
-            (gen != targetGen) || (!(updatedNodes contains node))
+            // (gen != targetGen) || (!(updatedNodes contains node))
+            if (gen != targetGen) true else {
+                // gen == targetGen
+                updatedNodes get node match {
+                    case Some(updated) =>
+                        assert(updated forall { _.kernel.isFinished })
+                        disjunct((updated map { _.condition }).toSeq: _*).neg.acceptable(gen, graph, updatedNodes)
+                    case None => true
+                }
+            }
+
         def neg: AcceptCondition =
             OnlyIf(node, targetGen)
     }
@@ -168,7 +180,9 @@ object AcceptCondition {
                 Never
             } else if (updatedNodes contains node) {
                 // TODO updatedNodes(node)의 컨디션들의 evaluate한 값이어야 함 - acceptable에도 반영해야 함
-                Always
+                val updated = updatedNodes(node)
+                assert(updated forall { _.kernel.isFinished })
+                disjunct((updated map { _.condition }).toSeq: _*).evaluate(gen, graph, updatedNodes)
             } else if (!(graph.nodes contains node)) {
                 // (이전 세대에서) trimming돼서 노드가 없어졌으면
                 Never
@@ -178,7 +192,16 @@ object AcceptCondition {
             }
         }
         def acceptable(gen: Int, graph: Graph, updatedNodes: Map[Node, Set[Node]]): Boolean =
-            (gen == targetGen) && (updatedNodes contains node)
+            // (gen == targetGen) && (updatedNodes contains node)
+            if (gen != targetGen) false else {
+                // gen == targetGen
+                updatedNodes get node match {
+                    case Some(updated) =>
+                        assert(updated forall { _.kernel.isFinished })
+                        disjunct((updated map { _.condition }).toSeq: _*).acceptable(gen, graph, updatedNodes)
+                    case None => false
+                }
+            }
         def neg: AcceptCondition =
             Unless(node, targetGen)
     }
