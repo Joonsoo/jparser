@@ -47,7 +47,7 @@ object GrammarHelper {
     def lookahead_is(lookaheads: Symbol*) = LookaheadIs(oneof(lookaheads.toSet))
     def lookahead_except(except: Symbol) = LookaheadExcept(proxyIfNeeded(except))
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
-    def longest(sym: Symbol) = Longest(sym)
+    def longest(sym: Symbol) = Longest(proxyIfNeeded(sym))
     def join(sym: Symbol, join: Symbol) = new Join(proxyIfNeeded(sym), proxyIfNeeded(join))
     def proxyIfNeeded(sym: Symbol): AtomicSymbol = sym match {
         case sym: Sequence => Proxy.of(sym)

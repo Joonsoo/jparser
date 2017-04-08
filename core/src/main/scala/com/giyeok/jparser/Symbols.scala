@@ -199,7 +199,7 @@ object Symbols {
         assert(sym != join)
         override val hashCode = (classOf[Join], sym, join).hashCode
     }
-    case class Longest(sym: Symbol) extends AtomicNonterm {
+    case class Longest(sym: AtomicSymbol) extends AtomicNonterm {
         override val hashCode = (classOf[Longest], sym).hashCode
     }
 

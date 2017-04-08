@@ -16,15 +16,15 @@ trait ParsingTasks {
     case class FinishTask(node: Node) extends Task
     case class ProgressTask(node: Node, condition: AcceptCondition) extends Task
 
+    private def nodeOf(symbolId: Int, beginGen: Int): Node =
+        Node(Kernel(symbolId, 0, beginGen, beginGen)(grammar.symbolOf(symbolId)), Always)
+
     def deriveTask(nextGen: Int, task: DeriveTask, cc: Cont): (Cont, Seq[Task]) = {
         val DeriveTask(startNode) = task
 
-        def nodeOf(symbolId: Int): Node =
-            Node(Kernel(symbolId, 0, nextGen, nextGen)(grammar.symbolOf(symbolId)), Always)
-
         def derive(symbolIds: Set[Int]): (Cont, Seq[Task]) = {
             // (symbolIds에 해당하는 노드) + (startNode에서 symbolIds의 노드로 가는 엣지) 추가
-            val destNodes: Set[Node] = symbolIds map nodeOf
+            val destNodes: Set[Node] = symbolIds map { nodeOf(_, nextGen) }
 
             // empty여서 isFinished인 것은 바로 FinishTask, 아니면 DeriveTask
             val newNodes: Set[Node] = destNodes -- cc.graph.nodes
@@ -75,8 +75,8 @@ trait ParsingTasks {
                         derive(simpleDerivable.produces)
 
                     case Join(_, body, join) =>
-                        val bodyNode = nodeOf(body)
-                        val joinNode = nodeOf(join)
+                        val bodyNode = nodeOf(body, nextGen)
+                        val joinNode = nodeOf(join, nextGen)
                         val bodyNodeTask = if (!(cc.graph.nodes contains bodyNode)) Some(if (bodyNode.kernel.isFinished) FinishTask(bodyNode) else DeriveTask(bodyNode)) else None
                         val joinNodeTask = if (!(cc.graph.nodes contains joinNode)) Some(if (joinNode.kernel.isFinished) FinishTask(joinNode) else DeriveTask(joinNode)) else None
                         // TODO cc.updatedNodes 보고 추가 처리
@@ -84,21 +84,14 @@ trait ParsingTasks {
                         (Cont(newGraph, cc.updatedNodes), Seq(bodyNodeTask, joinNodeTask).flatten)
 
                     case lookaheadSymbol: NLookaheadSymbol =>
-                        val emptySeqNode = nodeOf(lookaheadSymbol.emptySeqId)
-                        val lookaheadNode = nodeOf(lookaheadSymbol.lookahead)
+                        val lookaheadNode = nodeOf(lookaheadSymbol.lookahead, nextGen)
 
-                        // lookahead에 들어있는 내용은 emptyable일 수 없으므로 lookaheadNode는 isFinished이면 안됨
-                        assert(!lookaheadNode.kernel.isFinished)
+                        val (Cont(graph0, updatedNodes), tasks0) = derive(Set(lookaheadSymbol.emptySeqId))
 
-                        // TODO empty sequence 노드를 child로 만들고 이 조건 추가 코드는 progressTask로 옮기면 좋을까?
+                        val tasks = if (!(graph0.nodes contains lookaheadNode)) DeriveTask(lookaheadNode) +: tasks0 else tasks0
+                        val graph = graph0.addNode(lookaheadNode)
 
-                        val newDeriveTask = if (!(cc.graph.nodes contains lookaheadNode)) { Seq(DeriveTask(lookaheadNode)) } else Seq()
-                        val newGraph = cc.graph.addNode(lookaheadNode).addNode(emptySeqNode).addEdge(SimpleEdge(startNode, emptySeqNode))
-                        val condition = lookaheadSymbol match {
-                            case _: LookaheadIs => After(lookaheadNode, nextGen)
-                            case _: LookaheadExcept => Until(lookaheadNode, nextGen)
-                        }
-                        (Cont(newGraph, cc.updatedNodes), ProgressTask(startNode, condition) +: newDeriveTask)
+                        (Cont(graph, updatedNodes), tasks)
                 }
             case Sequence(_, seq) =>
                 assert(seq.nonEmpty) // empty인 sequence는 derive시점에 모두 처리되어야 함
@@ -135,10 +128,16 @@ trait ParsingTasks {
         // nodeSymbolOpt에서 opt를 사용하는 것은 finish는 SequenceNode에 대해서도 실행되기 때문
         val nodeSymbolOpt = grammar.nsymbols get node.kernel.symbolId
         val chainCondition = nodeSymbolOpt match {
-            case Some(_: Longest) => conjunct(node.condition, Until(node, nextGen))
+            case Some(Longest(_, longest)) =>
+                val longestNode = nodeOf(longest, node.kernel.beginGen)
+                conjunct(node.condition, Until(longestNode, nextGen))
             case Some(Except(_, _, except)) =>
-                val exceptNode = Node(Kernel(except, 0, node.kernel.beginGen, node.kernel.beginGen)(grammar.symbolOf(except)), Always)
+                val exceptNode = nodeOf(except, node.kernel.beginGen)
                 conjunct(node.condition, Unless(exceptNode, nextGen))
+            case Some(LookaheadIs(_, _, lookahaed)) =>
+                conjunct(node.condition, After(nodeOf(lookahaed, nextGen), nextGen))
+            case Some(LookaheadExcept(_, _, lookahaed)) =>
+                conjunct(node.condition, Until(nodeOf(lookahaed, nextGen), nextGen))
             case _ => node.condition
         }
         val newKernel = {

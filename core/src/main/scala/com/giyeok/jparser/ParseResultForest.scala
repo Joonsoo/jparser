@@ -33,6 +33,7 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
                 sequenceNode match {
                     case seq: SequenceNode => seq.append(c)
                     case seq: CyclicSequenceNode => seq.append(c)
+                    case _ => ??? // cannot happen
                 }
             }
         })

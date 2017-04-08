@@ -90,6 +90,7 @@ object AcceptCondition {
             if (gen <= activeGen) this else {
                 updatedNodes get node match {
                     case Some(updated) =>
+                        assert(updated forall { _.kernel.isFinished })
                         disjunct((updated map { _.condition }).toSeq: _*).neg.evaluate(gen, graph, updatedNodes)
                     case None =>
                         if (graph.nodes contains node) this else Always
@@ -99,6 +100,7 @@ object AcceptCondition {
             if (gen <= activeGen) true else {
                 updatedNodes get node match {
                     case Some(updated) =>
+                        assert(updated forall { _.kernel.isFinished })
                         disjunct((updated map { _.condition }).toSeq: _*).neg.acceptable(gen, graph, updatedNodes)
                     case None => true
                 }
@@ -113,6 +115,7 @@ object AcceptCondition {
             if (gen <= activeGen) this else {
                 updatedNodes get node match {
                     case Some(updated) =>
+                        assert(updated forall { _.kernel.isFinished })
                         disjunct((updated map { _.condition }).toSeq: _*).evaluate(gen, graph, updatedNodes)
                     case None =>
                         if (graph.nodes contains node) this else Never
@@ -122,6 +125,7 @@ object AcceptCondition {
             if (gen <= activeGen) false else {
                 updatedNodes get node match {
                     case Some(updated) =>
+                        assert(updated forall { _.kernel.isFinished })
                         disjunct((updated map { _.condition }).toSeq: _*).acceptable(gen, graph, updatedNodes)
                     case None =>
                         false

@@ -26,10 +26,10 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         assert((ngrammar.nsymbols.keySet intersect ngrammar.nsequences.keySet).isEmpty)
         ngrammar.nsymbols.values foreach {
             case Terminal(_) =>
-            case d: NSimpleDerivable =>
-                assert(d.produces subsetOf allSymbolIds)
             case l: NLookaheadSymbol =>
                 assert(ngrammar.nsymbols.keySet contains l.lookahead)
+            case d: NSimpleDerivable =>
+                assert(d.produces subsetOf allSymbolIds)
             case Join(_, body, join) =>
                 assert(ngrammar.nsymbols.keySet contains body)
                 assert(ngrammar.nsymbols.keySet contains join)
@@ -112,8 +112,8 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                         assert(grammar.rules(name) contains bodySymbol.symbol)
                         checkParse(body, grammar)
                     case (sym: Join, body @ JoinNode(BindNode(bodySym, _), BindNode(joinSym, _))) =>
-                        assert(sym.sym == bodySym)
-                        assert(sym.join == joinSym)
+                        assert(sym.sym == bodySym.symbol)
+                        assert(sym.join == joinSym.symbol)
                         checkParse(body, grammar)
                     case (Sequence(seq, ws), seqBody: SequenceNode) =>
                         assert((seqBody.children map { _.asInstanceOf[BindNode].symbol }) == seq)
@@ -131,13 +131,13 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                         assert(children forall { _.symbol == sym })
                         checkParse(body, grammar)
                     case (Except(sym, _), body @ BindNode(bodySym, _)) =>
-                        assert(sym == bodySym)
+                        assert(sym == bodySym.symbol)
                         checkParse(body, grammar)
                     case (Proxy(sym), body @ BindNode(bodySym, _)) =>
-                        assert(sym == bodySym)
+                        assert(sym == bodySym.symbol)
                         checkParse(body, grammar)
                     case (Longest(sym), body @ BindNode(bodySym, _)) =>
-                        assert(sym == bodySym)
+                        assert(sym == bodySym.symbol)
                         checkParse(body, grammar)
                     case (_: LookaheadIs | _: LookaheadExcept, body: SequenceNode) =>
                         assert(body.symbol.symbol == Sequence(Seq()))
