@@ -24,13 +24,14 @@ object GrammarGrammarTests1 extends GrammarTestCases with StringSamples {
                                #`[a-z]+ = `[a-z]+ `[a-z] | `[a-z]
                                #`[a-z] = [a-z]
                                #""".stripMargin('#')
-    val correctSamples = Set(paperGrammar, paperGrammar * 10)
+    val correctSamples = Set(paperGrammar)
     val incorrectSamples = Set[String]()
 }
 
 object GrammarGrammarTests {
     val tests: Set[GrammarTestCases] = Set(
-        GrammarGrammarTests1)
+        GrammarGrammarTests1
+    )
 }
 
 class GrammarGrammarTestSuite1 extends BasicParseTest(GrammarGrammarTests.tests)

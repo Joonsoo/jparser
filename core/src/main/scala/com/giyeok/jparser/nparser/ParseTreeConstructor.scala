@@ -31,6 +31,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
             KernelGraph(kernelNodes, kernelEdges)
         }).toVector
     }
+    println("finishes done")
     // TODO finishes의 node set을 symbolId 기준으로 정렬해 놓으면 더 빠르게 할 수 있을듯
 
     def reconstruct(): Option[R] = {
@@ -55,13 +56,13 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
         kernel.symbol match {
             case symbol: NAtomicSymbol if traces contains ((kernel.symbolId, kernel.pointer)) =>
                 // println("cyclicBind?")
-                resultFunc.cyclicBind(kernel.beginGen, gen, symbol.symbol)
+                resultFunc.cyclicBind(kernel.beginGen, gen, symbol)
 
             case symbol: Sequence if traces contains ((kernel.symbolId, kernel.pointer)) =>
                 // println(s"sequence cyclicBind - $kernel")
-                resultFunc.sequence(kernel.beginGen, gen, symbol.symbol, kernel.pointer)
+                resultFunc.sequence(kernel.beginGen, gen, symbol, kernel.pointer)
 
-            case Sequence(symbol, sequence) =>
+            case symbol @ Sequence(_, sequence) =>
                 if (kernel.pointer == 0) {
                     assert(kernel.beginGen == kernel.endGen)
                     resultFunc.sequence(kernel.beginGen, kernel.endGen, symbol, 0)
@@ -84,7 +85,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                     if (kernel.pointer == sequence.length) resultFunc.bind(kernel.beginGen, gen, symbol, appendedSeq) else appendedSeq
                 }
 
-            case Join(symbol, body, join) =>
+            case symbol @ Join(_, body, join) =>
                 assert(kernel.pointer == 1)
                 val bodyKernel = Kernel(body, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(body))
                 val joinKernel = Kernel(join, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(join))
@@ -92,7 +93,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 val joinTree = reconstruct0(joinKernel, kernel.endGen)
                 resultFunc.join(kernel.beginGen, kernel.endGen, symbol, bodyTree, joinTree)
 
-            case Terminal(symbol) =>
+            case symbol @ Terminal(_) =>
                 resultFunc.bind(kernel.beginGen, kernel.endGen, symbol,
                     resultFunc.terminal(kernel.beginGen, input(kernel.beginGen)))
 
@@ -107,7 +108,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                     reconstruct0(bodyKernel, kernel.endGen)
                 }
                 assert(bodyTrees.nonEmpty)
-                resultFunc.bind(kernel.beginGen, kernel.endGen, symbol.symbol, resultFunc.merge(bodyTrees))
+                resultFunc.bind(kernel.beginGen, kernel.endGen, symbol, resultFunc.merge(bodyTrees))
         }
     }
 }

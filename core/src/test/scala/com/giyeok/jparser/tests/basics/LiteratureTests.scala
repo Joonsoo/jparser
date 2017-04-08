@@ -875,8 +875,8 @@ object MyPaper10 extends Grammar with GrammarTestCases with StringSamples {
 
     val grammar = this
     val correctSamples = Set[String](
-        "aaaaaaa",
-        "aaaaaaaaa"
+        "aaaa",
+        "aaaaa"
     )
     val incorrectSamples = Set[String]()
 }

@@ -1,6 +1,7 @@
 package com.giyeok.jparser
 
-import Symbols._
+import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.nparser.NGrammar._
 
 case class ParseForest(trees: Set[ParseResultTree.Node]) extends ParseResult
 
@@ -9,16 +10,16 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
 
     def terminal(left: Int, input: Inputs.Input): ParseForest =
         ParseForest(Set(TerminalNode(input)))
-    def bind(left: Int, right: Int, symbol: Symbol, body: ParseForest): ParseForest =
+    def bind(left: Int, right: Int, symbol: NSymbol, body: ParseForest): ParseForest =
         ParseForest(body.trees map { b => BindNode(symbol, b) })
-    def cyclicBind(left: Int, right: Int, symbol: Symbol): ParseForest =
+    def cyclicBind(left: Int, right: Int, symbol: NSymbol): ParseForest =
         ParseForest(Set(CyclicBindNode(symbol)))
-    def join(left: Int, right: Int, symbol: Symbols.Join, body: ParseForest, constraint: ParseForest): ParseForest = {
+    def join(left: Int, right: Int, symbol: Join, body: ParseForest, constraint: ParseForest): ParseForest = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
         ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
     }
 
-    def sequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int): ParseForest =
+    def sequence(left: Int, right: Int, symbol: Sequence, pointer: Int): ParseForest =
         if (pointer == 0) {
             ParseForest(Set(SequenceNode(symbol, List())))
         } else {
@@ -47,24 +48,24 @@ object ParseResultTree {
     sealed trait Node
 
     case class TerminalNode(input: Input) extends Node
-    case class BindNode(symbol: Symbol, body: Node) extends Node
-    case class CyclicBindNode(symbol: Symbol) extends Node
+    case class BindNode(symbol: NSymbol, body: Node) extends Node
+    case class CyclicBindNode(symbol: NSymbol) extends Node
     case class JoinNode(body: Node, join: Node) extends Node
-    case class SequenceNode(symbol: Symbols.Sequence, _children: List[Node]) extends Node {
+    case class SequenceNode(symbol: Sequence, _children: List[Node]) extends Node {
         // _children: reverse of all children
 
         def append(child: Node): SequenceNode = {
             SequenceNode(symbol, child +: _children)
         }
         lazy val childrenAll = _children.reverse
-        lazy val children = symbol.contentIdx filter { _ < childrenAll.length } map { childrenAll(_) }
+        lazy val children = symbol.symbol.contentIdx filter { _ < childrenAll.length } map { childrenAll(_) }
     }
-    case class CyclicSequenceNode(symbol: Symbols.Sequence, pointer: Int, _children: List[Node]) extends Node {
+    case class CyclicSequenceNode(symbol: Sequence, pointer: Int, _children: List[Node]) extends Node {
         def append(child: Node): CyclicSequenceNode = {
             CyclicSequenceNode(symbol, pointer, child +: _children)
         }
         lazy val childrenAll = _children.reverse
-        lazy val children = symbol.contentIdx filter { _ < childrenAll.length } map { childrenAll(_) }
+        lazy val children = symbol.symbol.contentIdx filter { _ < childrenAll.length } map { childrenAll(_) }
     }
 
     object HorizontalTreeStringSeqUtil {
@@ -83,13 +84,13 @@ object ParseResultTree {
     implicit class ShortString(node: Node) {
         def toShortString: String = node match {
             case n: TerminalNode => s"Term(${n.input.toShortString})"
-            case n: BindNode => s"${n.symbol.toShortString}(${n.body.toShortString})"
-            case n: CyclicBindNode => s"cyclic(${n.symbol.toShortString})"
+            case n: BindNode => s"${n.symbol.symbol.toShortString}(${n.body.toShortString})"
+            case n: CyclicBindNode => s"cyclic(${n.symbol.symbol.toShortString})"
             case n: JoinNode => s"${n.body.toShortString}(&${n.join.toShortString})"
             case s: SequenceNode =>
                 if (s.children.isEmpty) "ε" else (s.children map { _.toShortString } mkString "/")
             case s: CyclicSequenceNode =>
-                s"cyclic(${s.symbol.toShortString},${s.pointer})"
+                s"cyclic(${s.symbol.symbol.toShortString},${s.pointer})"
         }
     }
     implicit class TreePrint(node: Node) {
@@ -140,10 +141,10 @@ object ParseResultTree {
                     (str.length, Seq(str))
                 case n: BindNode =>
                     val actual = n.body.toHorizontalHierarchyStringSeq
-                    val symbolic = n.symbol.toShortString
-                    appendBottom(actual, n.symbol.toShortString)
+                    val symbolic = n.symbol.symbol.toShortString
+                    appendBottom(actual, n.symbol.symbol.toShortString)
                 case n: CyclicBindNode =>
-                    val str = "cyclic " + n.symbol.toShortString
+                    val str = "cyclic " + n.symbol.symbol.toShortString
                     (str.length, Seq(str))
                 case n: JoinNode =>
                     val actual = n.body.toHorizontalHierarchyStringSeq
@@ -169,11 +170,11 @@ object ParseResultTree {
 
         def toOperationsString(): String = node match {
             case n: TerminalNode => s"term(${n.input.toShortString})"
-            case n: BindNode => s"bind(${n.symbol.toShortString}, ${n.body.toOperationsString()})"
-            case n: CyclicBindNode => s"cyclicBind(${n.symbol.toShortString})"
+            case n: BindNode => s"bind(${n.symbol.symbol.toShortString}, ${n.body.toOperationsString()})"
+            case n: CyclicBindNode => s"cyclicBind(${n.symbol.symbol.toShortString})"
             case n: JoinNode => s"join(${n.body.toOperationsString()}, ${n.join.toOperationsString()})"
             case s: SequenceNode => "seq()" + (s.children map { _.toOperationsString() } map { s => s".append($s)" } mkString "")
-            case s: CyclicSequenceNode => s"cyclicSeq(${s.symbol.toShortString}, ${s.pointer})"
+            case s: CyclicSequenceNode => s"cyclicSeq(${s.symbol.symbol.toShortString}, ${s.pointer})"
         }
     }
 }
