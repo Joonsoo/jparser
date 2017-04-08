@@ -25,17 +25,17 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         val allSymbolIds = ngrammar.nsymbols.keySet ++ ngrammar.nsequences.keySet
         assert((ngrammar.nsymbols.keySet intersect ngrammar.nsequences.keySet).isEmpty)
         ngrammar.nsymbols.values foreach {
-            case Terminal(_) =>
+            case NTerminal(_) =>
             case l: NLookaheadSymbol =>
                 assert(ngrammar.nsymbols.keySet contains l.lookahead)
             case d: NSimpleDerivable =>
                 assert(d.produces subsetOf allSymbolIds)
-            case Join(_, body, join) =>
+            case NJoin(_, body, join) =>
                 assert(ngrammar.nsymbols.keySet contains body)
                 assert(ngrammar.nsymbols.keySet contains join)
         }
         ngrammar.nsequences.values foreach {
-            case Sequence(_, sequence) =>
+            case NSequence(_, sequence) =>
                 assert(sequence forall { ngrammar.nsymbols.keySet contains _ })
                 assert(sequence forall { id => !(ngrammar.nsequences.keySet contains id) })
         }

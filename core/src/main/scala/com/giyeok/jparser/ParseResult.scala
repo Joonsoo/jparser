@@ -9,10 +9,10 @@ trait ParseResult {
 trait ParseResultFunc[R <: ParseResult] {
     def terminal(left: Int, input: Inputs.Input): R
     def bind(left: Int, right: Int, symbol: NSymbol, body: R): R
-    def join(left: Int, right: Int, symbol: Join, body: R, join: R): R
+    def join(left: Int, right: Int, symbol: NJoin, body: R, join: R): R
     def cyclicBind(left: Int, right: Int, symbol: NSymbol): R
 
-    def sequence(left: Int, right: Int, symbol: Sequence, pointer: Int): R
+    def sequence(left: Int, right: Int, symbol: NSequence, pointer: Int): R
     def append(sequence: R, child: R): R
 
     def merge(base: R, merging: R): R

@@ -69,12 +69,12 @@ trait ParsingTasks {
         startNode.kernel.symbol match {
             case symbol: NAtomicSymbol =>
                 symbol match {
-                    case _: Terminal => (cc, Seq()) // nothing to do
+                    case _: NTerminal => (cc, Seq()) // nothing to do
 
                     case simpleDerivable: NSimpleDerivable =>
                         derive(simpleDerivable.produces)
 
-                    case Join(_, body, join) =>
+                    case NJoin(_, body, join) =>
                         val bodyNode = nodeOf(body, nextGen)
                         val joinNode = nodeOf(join, nextGen)
                         val bodyNodeTask = if (!(cc.graph.nodes contains bodyNode)) Some(if (bodyNode.kernel.isFinished) FinishTask(bodyNode) else DeriveTask(bodyNode)) else None
@@ -93,7 +93,7 @@ trait ParsingTasks {
 
                         (Cont(graph, updatedNodes), tasks)
                 }
-            case Sequence(_, seq) =>
+            case NSequence(_, seq) =>
                 assert(seq.nonEmpty) // empty인 sequence는 derive시점에 모두 처리되어야 함
                 assert(startNode.kernel.pointer < seq.length) // node의 pointer는 sequence의 length보다 작아야 함
                 derive(Set(seq(startNode.kernel.pointer)))
@@ -109,7 +109,7 @@ trait ParsingTasks {
         val chainTasks: Seq[Task] = incomingEdges.toSeq flatMap {
             case SimpleEdge(incoming, _) =>
                 incoming.kernel.symbol match {
-                    case Except(_, _, except) if except == node.kernel.symbolId => None
+                    case NExcept(_, _, except) if except == node.kernel.symbolId => None
                     case _ => Some(ProgressTask(incoming, node.condition))
                 }
             case JoinEdge(start, `node`, other) if other.kernel.isFinished =>
@@ -128,15 +128,15 @@ trait ParsingTasks {
         // nodeSymbolOpt에서 opt를 사용하는 것은 finish는 SequenceNode에 대해서도 실행되기 때문
         val nodeSymbolOpt = grammar.nsymbols get node.kernel.symbolId
         val chainCondition = nodeSymbolOpt match {
-            case Some(Longest(_, longest)) =>
+            case Some(NLongest(_, longest)) =>
                 val longestNode = nodeOf(longest, node.kernel.beginGen)
                 conjunct(node.condition, Until(longestNode, nextGen))
-            case Some(Except(_, _, except)) =>
+            case Some(NExcept(_, _, except)) =>
                 val exceptNode = nodeOf(except, node.kernel.beginGen)
                 conjunct(node.condition, Unless(exceptNode, nextGen))
-            case Some(LookaheadIs(_, _, lookahaed)) =>
+            case Some(NLookaheadIs(_, _, lookahaed)) =>
                 conjunct(node.condition, After(nodeOf(lookahaed, nextGen), nextGen))
-            case Some(LookaheadExcept(_, _, lookahaed)) =>
+            case Some(NLookaheadExcept(_, _, lookahaed)) =>
                 conjunct(node.condition, Until(nodeOf(lookahaed, nextGen), nextGen))
             case _ => node.condition
         }
@@ -196,7 +196,7 @@ trait ParsingTasks {
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.Input): Set[Node] = {
         def acceptable(symbolId: Int): Boolean =
             grammar.nsymbols get symbolId match {
-                case Some(Terminal(terminal)) => terminal accept input
+                case Some(NTerminal(terminal)) => terminal accept input
                 case _ => false
             }
         graph.nodes collect {
@@ -207,7 +207,7 @@ trait ParsingTasks {
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.TermGroupDesc): Set[Node] = {
         def acceptable(symbolId: Int): Boolean =
             grammar.nsymbols get symbolId match {
-                case Some(Terminal(terminal)) => terminal accept input
+                case Some(NTerminal(terminal)) => terminal accept input
                 case _ => false
             }
         graph.nodes collect {
@@ -218,7 +218,7 @@ trait ParsingTasks {
     def termNodes(graph: Graph, nextGen: Int): Set[Node] = {
         graph.nodes filter { node =>
             val isTerminalSymbol = grammar.nsymbols get node.kernel.symbolId match {
-                case Some(Terminal(_)) => true
+                case Some(NTerminal(_)) => true
                 case _ => false
             }
             (node.kernel.beginGen == nextGen) && isTerminalSymbol
@@ -268,7 +268,7 @@ trait ParsingTasks {
         val trimmed1 = graph filterNode { node =>
             // TODO node.kernel.isFinished 인 노드도 지워도 될까?
             (node.condition != Never) && (!node.kernel.isFinished) && (node.kernel.symbol match {
-                case Terminal(_) => node.kernel.beginGen == nextGen
+                case NTerminal(_) => node.kernel.beginGen == nextGen
                 case _ => true
             })
         }

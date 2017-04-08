@@ -57,11 +57,11 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 // println("cyclicBind?")
                 resultFunc.cyclicBind(kernel.beginGen, gen, symbol)
 
-            case symbol: Sequence if traces contains ((kernel.symbolId, kernel.pointer)) =>
+            case symbol: NSequence if traces contains ((kernel.symbolId, kernel.pointer)) =>
                 // println(s"sequence cyclicBind - $kernel")
                 resultFunc.sequence(kernel.beginGen, gen, symbol, kernel.pointer)
 
-            case symbol @ Sequence(_, sequence) =>
+            case symbol @ NSequence(_, sequence) =>
                 if (kernel.pointer == 0) {
                     assert(kernel.beginGen == kernel.endGen)
                     resultFunc.sequence(kernel.beginGen, kernel.endGen, symbol, 0)
@@ -84,7 +84,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                     if (kernel.pointer == sequence.length) resultFunc.bind(kernel.beginGen, gen, symbol, appendedSeq) else appendedSeq
                 }
 
-            case symbol @ Join(_, body, join) =>
+            case symbol @ NJoin(_, body, join) =>
                 assert(kernel.pointer == 1)
                 val bodyKernel = Kernel(body, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(body))
                 val joinKernel = Kernel(join, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(join))
@@ -92,7 +92,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 val joinTree = reconstruct0(joinKernel, kernel.endGen)
                 resultFunc.join(kernel.beginGen, kernel.endGen, symbol, bodyTree, joinTree)
 
-            case symbol @ Terminal(_) =>
+            case symbol @ NTerminal(_) =>
                 resultFunc.bind(kernel.beginGen, kernel.endGen, symbol,
                     resultFunc.terminal(kernel.beginGen, input(kernel.beginGen)))
 

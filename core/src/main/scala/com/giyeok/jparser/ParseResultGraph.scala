@@ -82,7 +82,7 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
         val bindNode = Bind(left, right, symbol)
         ParseResultGraph(left, right, bindNode, Set(bindNode), Set())
     }
-    def join(left: Int, right: Int, symbol: NGrammar.Join, body: ParseResultGraph, join: ParseResultGraph): ParseResultGraph = {
+    def join(left: Int, right: Int, symbol: NGrammar.NJoin, body: ParseResultGraph, join: ParseResultGraph): ParseResultGraph = {
         assert(left == body.left && left == join.left)
         assert(right == body.right && right == join.right)
         val joinNode = ParseResultGraph.Join(left, right, symbol)
@@ -95,7 +95,7 @@ object ParseResultGraphFunc extends ParseResultFunc[ParseResultGraph] {
         }
     }
 
-    def sequence(left: Int, right: Int, symbol: NGrammar.Sequence, pointer: Int): ParseResultGraph = {
+    def sequence(left: Int, right: Int, symbol: NGrammar.NSequence, pointer: Int): ParseResultGraph = {
         val emptyNode = ParseResultGraph.Sequence(left, right, symbol, pointer)
         ParseResultGraph(left, right, emptyNode, Set(emptyNode), Set())
     }
@@ -130,9 +130,9 @@ object ParseResultGraph {
     case class Term(left: Int, input: Inputs.Input) extends Node {
         val right = left + 1
     }
-    case class Sequence(left: Int, right: Int, symbol: NGrammar.Sequence, pointer: Int) extends NonTerm
+    case class Sequence(left: Int, right: Int, symbol: NGrammar.NSequence, pointer: Int) extends NonTerm
     case class Bind(left: Int, right: Int, symbol: NSymbol) extends NonTerm
-    case class Join(left: Int, right: Int, symbol: NGrammar.Join) extends NonTerm
+    case class Join(left: Int, right: Int, symbol: NGrammar.NJoin) extends NonTerm
 
     sealed trait Edge {
         val start: Node

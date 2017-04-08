@@ -3,7 +3,7 @@ package com.giyeok.jparser.nparser
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
 import com.giyeok.jparser.nparser.NGrammar.NSymbol
-import com.giyeok.jparser.nparser.NGrammar.Sequence
+import com.giyeok.jparser.nparser.NGrammar.NSequence
 
 object ParsingContext {
     case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int)(val symbol: NSymbol) {
@@ -11,7 +11,7 @@ object ParsingContext {
 
         def lastPointer: Int = symbol match {
             case _: NAtomicSymbol => 1
-            case Sequence(_, seq) => seq.length
+            case NSequence(_, seq) => seq.length
         }
         def isFinished: Boolean =
             pointer == lastPointer ensuring (0 <= pointer && pointer <= lastPointer)

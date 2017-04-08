@@ -14,12 +14,12 @@ object ParseResultDerivationsSetFunc extends ParseResultFunc[ParseResultDerivati
         ParseResultDerivationsSet(left, right, body.derivations + Bind(left, right, symbol)) ensuring (body.left == left && body.right == right)
     def cyclicBind(left: Int, right: Int, symbol: NSymbol): ParseResultDerivationsSet =
         ParseResultDerivationsSet(left, right, Set(Bind(left, right, symbol)))
-    def join(left: Int, right: Int, symbol: NGrammar.Join, body: ParseResultDerivationsSet, join: ParseResultDerivationsSet): ParseResultDerivationsSet =
+    def join(left: Int, right: Int, symbol: NGrammar.NJoin, body: ParseResultDerivationsSet, join: ParseResultDerivationsSet): ParseResultDerivationsSet =
         ParseResultDerivationsSet(left, right, body.derivations ++ join.derivations) ensuring (body.left == left && body.right == right && join.left == left && join.right == right)
 
-    def sequence(left: Int, right: Int, symbol: Sequence, pointer: Int): ParseResultDerivationsSet =
+    def sequence(left: Int, right: Int, symbol: NSequence, pointer: Int): ParseResultDerivationsSet =
         ParseResultDerivationsSet(left, right, Set())
-    def cyclicSequence(left: Int, right: Int, symbol: Sequence, pointer: Int): ParseResultDerivationsSet =
+    def cyclicSequence(left: Int, right: Int, symbol: NSequence, pointer: Int): ParseResultDerivationsSet =
         ParseResultDerivationsSet(left, right, Set())
     def append(sequence: ParseResultDerivationsSet, child: ParseResultDerivationsSet): ParseResultDerivationsSet = {
         if (sequence.right != child.left) {

@@ -134,7 +134,7 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             case None =>
                 val dotnode = new DotGraphNode(nodeNameOf(node)).attr("label", labelOf(node))
                 node.kernel.symbol match {
-                    case _: NGrammar.Sequence =>
+                    case _: NGrammar.NSequence =>
                         dotnode.attr("shape", "rectangle")
                     case _ =>
                         dotnode.attr("shape", "rectangle").addStyle("rounded")
