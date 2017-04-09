@@ -46,7 +46,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
 
     def parse(tests: GrammarTestCases, source: Inputs.ConcreteSource): Either[R, ParsingError] = {
         // 여기서 nparser에 테스트하고싶은 파서 종류를 지정하면 됨
-        val nparser = tests.nparserNaive
+        val nparser = tests.naiveParser
         nparser.parse(source) match {
             case Left(ctx) =>
                 val resultOpt = new ParseTreeConstructor(resultFunc)(nparser.grammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()

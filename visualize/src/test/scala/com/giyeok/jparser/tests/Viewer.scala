@@ -5,9 +5,13 @@ import scala.util.Try
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.ConcreteInput
 import com.giyeok.jparser.nparser.Parser.NaiveContext
+import com.giyeok.jparser.npreparser.DeriveTipsContext
+import com.giyeok.jparser.visualize.BasicVisualizeResources
 import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.GrammarDefinitionFigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer
+import com.giyeok.jparser.visualize.PreprocessedDerivationViewer
+import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
 import com.giyeok.jparser.visualize.ZestParsingContextWidget
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Figure
@@ -125,8 +129,8 @@ trait Viewer {
         })
 
         object ParserTypes extends Enumeration {
-            val Naive, Preprocessed, PreprocessedSliced, PreprocessedCompacted, PreprocessedSlicedCompacted = Value
-            val order = Seq(Naive, Preprocessed, PreprocessedSliced, PreprocessedCompacted, PreprocessedSlicedCompacted)
+            val Naive, Preprocessed = Value
+            val order = Seq(Naive, Preprocessed)
 
             def nextOf(parserType: ParserTypes.Value): ParserTypes.Value = {
                 val idx = ParserTypes.order.indexOf(parserType)
@@ -139,13 +143,10 @@ trait Viewer {
             def nameOf(parserType: ParserTypes.Value): String = parserType match {
                 case ParserTypes.Naive => "Naive"
                 case ParserTypes.Preprocessed => "Preprocessed"
-                case ParserTypes.PreprocessedSliced => "Preprocessed Sliced"
-                case ParserTypes.PreprocessedCompacted => "Preprocessed Compacted"
-                case ParserTypes.PreprocessedSlicedCompacted => "Preprocessed Sliced Compacted"
             }
         }
 
-        var selectedParserType: ParserTypes.Value = ParserTypes.Naive
+        var selectedParserType: ParserTypes.Value = ParserTypes.Preprocessed
         def setParserType(newParserType: ParserTypes.Value): Unit = {
             selectedParserType = newParserType
             parserTypeButton.setText(ParserTypes.nameOf(selectedParserType))
@@ -155,15 +156,9 @@ trait Viewer {
             val grammar = gt.grammar
             selectedParserType match {
                 case ParserTypes.Naive =>
-                    ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.nparserNaive, source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
+                    ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.naiveParser, source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.Preprocessed =>
-                    ??? // ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
-                case ParserTypes.PreprocessedSliced =>
-                    ??? // ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserSlicedPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
-                case ParserTypes.PreprocessedCompacted =>
-                    ??? // ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserCompactPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
-                case ParserTypes.PreprocessedSlicedCompacted =>
-                    ??? //ParsingProcessVisualizer.start[DeriveTipsWrappedContext](grammar.name, gt.nparserCompactSlicedPreprocessed, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                    ParsingProcessVisualizer.start[DeriveTipsContext](grammar.name, gt.preprocessedParser, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
             }
         }
 
@@ -197,7 +192,8 @@ trait Viewer {
             def handleEvent(e: Event): Unit = {
                 if (grammarList.getSelectionIndex >= 0) {
                     val gt = sortedTestCases(grammarList.getSelectionIndex)
-                    ??? // new PreprocessedDerivationViewer(gt.grammar, gt.ngrammar, gt.slicedDerivationPreprocessor, gt.compactSlicedDerivationPreprocessor, BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
+                    new PreprocessedDerivationViewer(gt.grammar, gt.ngrammar,
+                        gt.preprocessedParser, BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
                 }
             }
         })

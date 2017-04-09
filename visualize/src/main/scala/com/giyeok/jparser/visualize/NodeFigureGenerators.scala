@@ -1,9 +1,8 @@
 package com.giyeok.jparser.visualize
 
+import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.AcceptCondition._
-import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
 class NodeFigureGenerators[Fig](
@@ -12,41 +11,22 @@ class NodeFigureGenerators[Fig](
         val symbol: SymbolFigureGenerator[Fig]
 ) {
 
-    def symbolFigure(grammar: NGrammar, symbolId: Int): Fig = {
-        symbol.symbolFig(grammar.nsymbols(symbolId).symbol)
-    }
+    def kernelFig(grammar: NGrammar, kernel: Kernel): Fig = {
+        val Kernel(symbolId, pointer, beginGen, endGen) = kernel
 
-    def dot = fig.textFig("\u2022", appear.kernelDot)
-    def sequenceFigure(grammar: NGrammar, sequenceId: Int, pointer: Int): Fig = {
-        val (past, future) = grammar.nsequences(sequenceId).sequence.splitAt(pointer)
-        val pastFig = fig.horizontalFig(Spacing.Medium, past map { symbolFigure(grammar, _) })
-        val futureFig = fig.horizontalFig(Spacing.Medium, future map { symbolFigure(grammar, _) })
-        fig.horizontalFig(Spacing.Small, Seq(pastFig, dot, futureFig))
+        fig.horizontalFig(Spacing.Big, Seq(
+            fig.textFig(s"$symbolId", appear.small),
+            symbol.symbolPointerFig(grammar, symbolId, pointer),
+            fig.textFig(s"$beginGen-$endGen", appear.default)
+        ))
     }
 
     def nodeFig(grammar: NGrammar, node: Node): Fig = {
-        val Node(Kernel(symbolId, pointer, beginGen, endGen), condition) = node
-        node.kernel.symbol match {
-            case _: NAtomicSymbol =>
-                val symbolFig = symbolFigure(grammar, symbolId)
-                fig.verticalFig(Spacing.Medium, Seq(
-                    fig.horizontalFig(Spacing.Big, Seq(
-                        fig.textFig(s"$symbolId", appear.small),
-                        fig.horizontalFig(Spacing.Small, if (pointer == 0) Seq(dot, symbolFig) else Seq(symbolFig, dot)),
-                        fig.textFig(s"$beginGen-$endGen", appear.default)
-                    )),
-                    conditionFig(grammar, condition)
-                ))
-            case _ =>
-                fig.verticalFig(Spacing.Medium, Seq(
-                    fig.horizontalFig(Spacing.Big, Seq(
-                        fig.textFig(s"$symbolId", appear.small),
-                        sequenceFigure(grammar, symbolId, pointer),
-                        fig.textFig(s"$beginGen-$endGen", appear.default)
-                    )),
-                    conditionFig(grammar, condition)
-                ))
-        }
+        val Node(kernel, condition) = node
+        fig.verticalFig(Spacing.Medium, Seq(
+            kernelFig(grammar, kernel),
+            conditionFig(grammar, condition)
+        ))
     }
 
     def conditionFig(grammar: NGrammar, condition: AcceptCondition): Fig = {

@@ -337,9 +337,8 @@ trait ZestParseTreeConstructorView {
     }
 }
 
-class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, baseGraph: ParsingContext.Graph, nextGraph: ParsingContext.Graph, val context: Context)
-        extends ZestGraphWidget(parent, style, fig, grammar, context.nextGraph)
-        with ZestParseTreeConstructorView {
+class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, baseGraph: ParsingContext.Graph, nextGraph: ParsingContext.Graph)
+        extends ZestGraphWidget(parent, style, fig, grammar, nextGraph) {
 
     override def initialize(): Unit = {
         addGraph(grammar, baseGraph)
@@ -417,19 +416,6 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
             }
         }
         def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
-    })
-
-    addMouseListener(new MouseListener() {
-        def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
-        def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
-        def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
-            nodesAt(e.x, e.y) foreach {
-                case node: Node =>
-                    parseTreeOpener(e.stateMask)(context.gen, node.kernel)
-                case data =>
-                    println(data)
-            }
-        }
     })
 }
 

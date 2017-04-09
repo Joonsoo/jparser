@@ -88,10 +88,12 @@ object Parser {
         }
     }
 
-    case class Transition(name: String, result: Graph)
+    case class Transition(name: String, result: Graph, isResult: Boolean = false, isNext: Boolean = false)
     case class ProceedDetail(baseGraph: Graph, transitions: Transition*) {
         def graphAt(idx: Int): Graph =
             if (idx == 0) baseGraph else transitions(idx - 1).result
+        def isResultAt(idx: Int): Boolean =
+            if (idx == 0) false else transitions(idx - 1).isResult
         def nameOf(idx: Int): String =
             transitions(idx - 1).name
     }

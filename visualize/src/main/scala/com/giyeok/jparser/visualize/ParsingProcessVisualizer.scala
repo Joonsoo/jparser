@@ -6,6 +6,7 @@ import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.Parser
 import com.giyeok.jparser.nparser.Parser.Context
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
+import com.giyeok.jparser.nparser.ParsingContext.Node
 import org.eclipse.draw2d
 import org.eclipse.draw2d.AbstractLayout
 import org.eclipse.draw2d.ColorConstants
@@ -20,6 +21,7 @@ import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.StackLayout
 import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.events.KeyListener
+import org.eclipse.swt.events.MouseListener
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.layout.FormAttachment
@@ -363,7 +365,28 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                         transitionAt(gen) match {
                             case Left((_, transition, nextCtx)) =>
                                 val (prevGraph, nextGraph) = (transition.graphAt(stage - 1), transition.graphAt(stage))
-                                (Some(transition.nameOf(stage)), new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph, nextCtx))
+                                val viewer = if (transition.isResultAt(stage)) {
+                                    new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph) with ZestParseTreeConstructorView {
+                                        val context: Context = nextCtx
+                                        addMouseListener(new MouseListener() {
+                                            def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+
+                                            def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+
+                                            def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
+                                                nodesAt(e.x, e.y) foreach {
+                                                    case node: Node =>
+                                                        parseTreeOpener(e.stateMask)(context.gen, node.kernel)
+                                                    case data =>
+                                                        println(data)
+                                                }
+                                            }
+                                        })
+                                    }
+                                } else {
+                                    new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph)
+                                }
+                                (Some(transition.nameOf(stage)), viewer)
                             case Right(error) => (None, errorControl(error.msg))
                         }
                 }

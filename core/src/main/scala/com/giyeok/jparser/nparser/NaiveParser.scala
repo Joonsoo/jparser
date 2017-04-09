@@ -70,10 +70,10 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
 
             Left((ProceedDetail(
                 graph,
-                Transition("lifted(result)", liftedGraph),
+                Transition("lifted(result)", liftedGraph, isResult = true),
                 Transition("conditionUpdated", conditionUpdatedGraph),
                 Transition("conditionFiltered", conditionFilteredGraph),
-                Transition("trimmed(next)", trimmedGraph)
+                Transition("trimmed(next)", trimmedGraph, isNext = true)
             ), nextContext))
         }
     }

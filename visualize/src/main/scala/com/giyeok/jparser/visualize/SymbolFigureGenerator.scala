@@ -1,6 +1,7 @@
 package com.giyeok.jparser.visualize
 
 import com.giyeok.jparser.Symbols._
+import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
 class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: FigureGenerator.Appearances[Fig]) {
@@ -97,11 +98,26 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
         }
     }
 
-    def sequenceFig(sequence: Sequence, pointer: Int): Fig = {
-        def dot = fig.textFig("\u2022", ap.kernelDot)
-        val (p, f) = sequence.seq.splitAt(pointer)
-        val f0 = fig.horizontalFig(Spacing.Medium, p map { symbolFig _ })
-        val f1 = fig.horizontalFig(Spacing.Medium, f map { symbolFig _ })
-        fig.horizontalFig(Spacing.Small, Seq(f0, dot, f1))
+    def symbolFig(grammar: NGrammar, symbolId: Int): Fig = {
+        symbolFig(grammar.symbolOf(symbolId).symbol)
+    }
+
+    private def dot = fig.textFig("\u2022", ap.kernelDot)
+
+    def symbolPointerFig(symbol: Symbol, pointer: Int): Fig = {
+        symbol match {
+            case _: AtomicSymbol =>
+                fig.horizontalFig(Spacing.Small, if (pointer == 0) Seq(dot, symbolFig(symbol)) else Seq(symbolFig(symbol), dot))
+
+            case Sequence(sequence, _) =>
+                val (p, f) = sequence.splitAt(pointer)
+                val f0 = fig.horizontalFig(Spacing.Medium, p map { symbolFig })
+                val f1 = fig.horizontalFig(Spacing.Medium, f map { symbolFig })
+                fig.horizontalFig(Spacing.Small, Seq(f0, dot, f1))
+        }
+    }
+
+    def symbolPointerFig(grammar: NGrammar, symbolId: Int, pointer: Int): Fig = {
+        symbolPointerFig(grammar.symbolOf(symbolId).symbol, pointer)
     }
 }

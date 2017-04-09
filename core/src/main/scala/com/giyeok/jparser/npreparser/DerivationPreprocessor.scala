@@ -9,6 +9,7 @@ import com.giyeok.jparser.Symbols.Terminal
 import com.giyeok.jparser.Symbols.Terminals.CharacterTerminal
 import com.giyeok.jparser.Symbols.Terminals.VirtualTerminal
 import com.giyeok.jparser.nparser.AcceptCondition.Always
+import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.ParsingContext.Graph
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
 import com.giyeok.jparser.nparser.ParsingContext.Node
@@ -43,20 +44,36 @@ trait DerivationPreprocessor extends ParsingTasks {
         (charTermGroups ++ virtTermGroups) filterNot { _.isEmpty }
     }
 
-    case class Preprocessed(base: Node, cc: Cont, tasks: List[Task]) {
-        def shiftGen(gen: Int): Preprocessed = ???
+    case class Preprocessed(base: Node, lifted: Cont, tasks: List[Task], nextGraph: Graph, nextDeriveTips: Seq[Node]) {
+        def shiftGen(gen: Int): Preprocessed = {
+            val base1 = base.shiftGen(gen)
+            val lifted1 = lifted.graph.shiftGen(gen)
+            val updated1 = lifted.updatedNodes map { kv =>
+                kv._1.shiftGen(gen) -> (kv._2 map { _.shiftGen(gen) })
+            }
+            val tasks1 = tasks map {
+                case DeriveTask(node) => DeriveTask(node.shiftGen(gen))
+                case ProgressTask(node, condition) => ProgressTask(node.shiftGen(gen), condition.shiftGen(gen))
+                case FinishTask(node) => FinishTask(node.shiftGen(gen))
+            }
+            val nextGraph1 = nextGraph.shiftGen(gen)
+            val nextDeriveTips1 = nextDeriveTips map { _.shiftGen(gen) }
+            Preprocessed(base1, Cont(lifted1, updated1), tasks1, nextGraph1, nextDeriveTips1)
+        }
     }
 
     private var cache = Map[(Int, Int), (Preprocessed, Map[TermGroupDesc, Preprocessed])]()
 
-    @tailrec private def partialRec(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[Task]): (Cont, List[Task]) =
+    @tailrec private def partialRec(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[Task], tipsTasks: List[DeriveTask]): (Cont, List[Task], List[DeriveTask]) =
         tasks match {
-            case task +: rest if task.node == root =>
-                partialRec(nextGen, root, rest, cc, task +: rootTasks)
+            case (task @ (ProgressTask(`root`, _) | FinishTask(`root`))) +: rest =>
+                partialRec(nextGen, root, rest, cc, task +: rootTasks, tipsTasks)
+            case (task @ DeriveTask(node)) +: rest if node != root && node.kernel.pointer > 0 =>
+                partialRec(nextGen, root, rest, cc, rootTasks, task +: tipsTasks)
             case task +: rest =>
                 val (ncc, newTasks) = process(nextGen, task, cc)
-                partialRec(nextGen, root, newTasks ++: rest, ncc, rootTasks)
-            case List() => (cc, rootTasks)
+                partialRec(nextGen, root, newTasks ++: rest, ncc, rootTasks, tipsTasks)
+            case List() => (cc, rootTasks, tipsTasks)
         }
 
     def sliceOf(symbolId: Int, pointer: Int): (Preprocessed, Map[TermGroupDesc, Preprocessed]) = {
@@ -64,11 +81,17 @@ trait DerivationPreprocessor extends ParsingTasks {
             case Some(cached) => cached
             case None =>
                 val baseNode = Node(Kernel(symbolId, pointer, 0, 0)(grammar.symbolOf(symbolId)), Always)
-                val (cc, rootTasks) = partialRec(0, baseNode, List(DeriveTask(baseNode)), Cont(Graph(Set(baseNode), Set()), Map()), List())
-                val base = Preprocessed(baseNode, cc, rootTasks)
-                val termGroups = termGroupsOf(termNodes(cc.graph, 0) map { _.kernel.symbol.asInstanceOf[Terminal] })
+                val (lifted, rootTasks, tipsTasks) = partialRec(0, baseNode, List(DeriveTask(baseNode)), Cont(Graph(Set(baseNode), Set()), Map()), List(), List())
+                val deriveTips = tipsTasks map { _.node }
+                val nextGraph = trimGraph(lifted.graph, baseNode, 0)
+                val base = Preprocessed(baseNode, lifted, rootTasks, nextGraph, deriveTips)
+                val termGroups = termGroupsOf(termNodes(lifted.graph, 0) map { _.kernel.symbol.asInstanceOf[NTerminal].symbol })
                 val slicedMap = (termGroups map { termGroup =>
-                    val sliced: Preprocessed = ???
+                    val termFinishes = finishableTermNodes(nextGraph, 0, termGroup).toList map { ProgressTask(_, Always) }
+                    val (partialLifted, liftedRootTasks, tipsTasks) = partialRec(1, baseNode, termFinishes, Cont(lifted.graph, Map()), List(), List())
+                    val nextDeriveTips = tipsTasks map { _.node }
+                    val nextNextGraph = trimUnreachables(partialLifted.graph, baseNode, nextDeriveTips.toSet)
+                    val sliced = Preprocessed(baseNode, partialLifted, liftedRootTasks, nextNextGraph, nextDeriveTips)
                     termGroup -> sliced
                 }).toMap
                 cache += (symbolId, pointer) -> (base, slicedMap)
@@ -76,10 +99,14 @@ trait DerivationPreprocessor extends ParsingTasks {
         }
     }
 
-    def sliceOf(kernel: Kernel, input: Input): Option[Preprocessed] = {
+    def sliceOf(node: Node, input: Input): Option[Preprocessed] = {
         // assert((slicedMap filter { _._1 contains input }).size <= 1)
+        val Node(kernel, condition) = node
         val sliceMap = sliceOf(kernel.symbolId, kernel.pointer)._2
-        sliceMap find { _._1 contains input } map { _._2 } map { _.shiftGen(kernel.beginGen) }
+        sliceMap find { _._1 contains input } map { _._2 } map { preprocessed =>
+            // TODO preprocessed + root의 progress task에 condition 적용
+            preprocessed.shiftGen(kernel.beginGen)
+        }
     }
 }
 

@@ -6,15 +6,17 @@ import com.giyeok.jparser.nparser.NGrammar.NSymbol
 import com.giyeok.jparser.nparser.NGrammar.NSequence
 
 object ParsingContext {
-    case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int)(val symbol: NSymbol) {
-        def shiftGen(gen: Int): Kernel = Kernel(symbolId, pointer, beginGen + gen, endGen + gen)(symbol)
-
-        def lastPointer: Int = symbol match {
+    object Kernel {
+        def lastPointerOf(symbol: NSymbol): Int = symbol match {
             case _: NAtomicSymbol => 1
             case NSequence(_, seq) => seq.length
         }
+    }
+    case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int)(val symbol: NSymbol) {
+        def shiftGen(gen: Int): Kernel = Kernel(symbolId, pointer, beginGen + gen, endGen + gen)(symbol)
+
         def isFinished: Boolean =
-            pointer == lastPointer ensuring (0 <= pointer && pointer <= lastPointer)
+            pointer == Kernel.lastPointerOf(symbol) ensuring (0 <= pointer && pointer <= Kernel.lastPointerOf(symbol))
 
         override def toString: String = s"Kernel($symbolId, ${symbol.symbol.toShortString}, $pointer, $beginGen..$endGen)"
     }
