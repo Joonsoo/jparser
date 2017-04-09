@@ -15,7 +15,7 @@ import com.giyeok.jparser.nparser.ParsingTasks
 
 class DeriveTipsContext(gen: Int, nextGraph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Graph], updatedNodes: Map[Node, Set[Node]], conditionAccumulate: ConditionAccumulate)
         extends Context(gen, nextGraph, _inputs, _history, updatedNodes, conditionAccumulate) {
-    assert(deriveTips subsetOf nextGraph.nodes)
+    // assert(deriveTips subsetOf nextGraph.nodes)
     def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, updatedNodes: Map[Node, Set[Node]], newConditionAccumulate: ConditionAccumulate): DeriveTipsContext = {
         new DeriveTipsContext(nextGen, nextGraph, deriveTips, newInput +: _inputs, resultGraph +: _history, updatedNodes, newConditionAccumulate)
     }
@@ -34,7 +34,7 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
 
     @tailrec private def recNoDerive(nextGen: Int, tasks: List[Task], cc: Cont, deriveTips: Set[Node]): (Cont, Set[Node]) =
         tasks match {
-            case DeriveTask(deriveTip) +: rest =>
+            case DeriveTask(deriveTip) +: rest if deriveTip.kernel.pointer > 0 =>
                 recNoDerive(nextGen, rest, cc, deriveTips + deriveTip)
             case task +: rest =>
                 val (ncc, newTasks) = process(nextGen, task, cc)
@@ -50,30 +50,36 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
             Right(UnexpectedInput(input, nextGen))
         } else {
             // 1. graph에 expanding의 그래프들 추가, updatedNodes 병합, task들 병합
-            val expandedGraph: Graph = expandings.foldLeft(graph) { (cc, preprocessed) =>
-                Graph((cc.nodes - preprocessed.base) ++ preprocessed.lifted.graph.nodes, cc.edges ++ preprocessed.lifted.graph.edges)
+            val expandedGraph: Graph = {
+                val (nodes, edges) = expandings.foldLeft((graph.nodes, graph.edges)) { (cc, preprocessed) =>
+                    val (nodes, edges) = cc
+                    (nodes ++ preprocessed.lifted.graph.nodes, edges ++ preprocessed.lifted.graph.edges)
+                }
+                Graph(nodes, edges)
             }
-            val expandedTasks: List[Task] = expandings.foldLeft(List[Task]()) { (cc, preprocessed) =>
-                cc ++ preprocessed.tasks
+            val expandedTasks: List[ProgressTask] = expandings.foldLeft(List[ProgressTask]()) { (cc, preprocessed) =>
+                cc ++ preprocessed.baseTasks
             }
             val expandedUpdatedNodes: Map[Node, Set[Node]] = expandings.foldLeft(Map[Node, Set[Node]]()) { (cc, preprocessed) =>
                 preprocessed.lifted.updatedNodes.foldLeft(cc) { (cc, kv) =>
                     cc + (kv._1 -> (cc.getOrElse(kv._1, Set()) ++ kv._2))
                 }
             }
+            val expandedDeriveTips = expandings flatMap { _.nextDeriveTips }
 
             // 2. lift - expand의 결과로 나온 graph, updatedNodes, task로 lift - result graph
-            val (Cont(liftedGraph, updatedNodes), deriveTips0) =
-                recNoDerive(nextGen, expandedTasks, Cont(expandedGraph, expandedUpdatedNodes), Set())
+            val (Cont(liftedGraph, updatedNodes), deriveTips) =
+                recNoDerive(nextGen, expandedTasks, Cont(expandedGraph, expandedUpdatedNodes), expandedDeriveTips)
+
+            println(s"nextGen=$nextGen ${deriveTips.size}")
+            deriveTips foreach { println }
 
             // 3. accept condition 처리
             val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =
                 processAcceptCondition(nextGen, liftedGraph, updatedNodes, ctx.conditionAccumulate)
 
             // 4. trimming
-            val trimmedGraph: Graph = trimGraph(conditionFilteredGraph, startNode, nextGen)
-
-            val deriveTips = deriveTips0 intersect trimmedGraph.nodes
+            val trimmedGraph: Graph = trimUnreachables(conditionFilteredGraph, startNode, deriveTips)
 
             val nextContext = ctx.proceed(
                 nextGen,

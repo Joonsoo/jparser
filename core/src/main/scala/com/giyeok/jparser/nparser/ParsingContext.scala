@@ -32,7 +32,6 @@ object ParsingContext {
         // assert(edgesByStart.keySet == nodes && edgesByDest.keySet == nodes)
         // assert((edgesByStart flatMap { _._2 }).toSet subsetOf edges)
         // assert((edgesByDest flatMap { _._2 }).toSet subsetOf edges)
-        def finishedNodes: Set[Node] = nodes filter { _.kernel.isFinished }
         def addNode(node: Node): Graph =
             if (nodes contains node) this else Graph(nodes + node, edges, edgesByStart + (node -> Set()), edgesByDest + (node -> Set()))
         def addEdge(edge: Edge): Graph = edge match {
@@ -48,73 +47,43 @@ object ParsingContext {
         }
         def removeNode(removing: Node): Graph = {
             val removedEdges = edges -- edgesByStart(removing) -- edgesByDest(removing)
-            val (removedEdgesByStart, removedEdgesByDest) = {
-                val edgesByDest0 = edgesByStart(removing).foldLeft(edgesByDest) { (ccDest, edge) =>
-                    edge match {
-                        case SimpleEdge(_, end) =>
-                            ccDest + (end -> (ccDest(end) - edge))
-                        case JoinEdge(_, end, join) =>
-                            ccDest + (end -> (ccDest(end) - edge)) + (join -> (ccDest(join) - edge))
-                    }
-                }
-                edgesByDest(removing).foldLeft((edgesByStart, edgesByDest0)) { (cc, edge) =>
-                    val (ccStart, ccDest) = cc
-                    edge match {
-                        case edge @ SimpleEdge(start, _) =>
-                            (ccStart + (start -> (ccStart(start) - edge)), ccDest)
-                        case edge @ JoinEdge(start, `removing`, other) =>
-                            (ccStart + (start -> (ccStart(start) - edge)), ccDest + (other -> (ccDest(other) - edge)))
-                        case edge @ JoinEdge(start, other, _) =>
-                            (ccStart + (start -> (ccStart(start) - edge)), ccDest + (other -> (ccDest(other) - edge)))
-                    }
-                }
-            }
-            Graph(nodes - removing, removedEdges, removedEdgesByStart - removing, removedEdgesByDest - removing)
+            //            val (removedEdgesByStart, removedEdgesByDest) = {
+            //                val edgesByDest0 = edgesByStart(removing).foldLeft(edgesByDest) { (ccDest, edge) =>
+            //                    edge match {
+            //                        case SimpleEdge(_, end) =>
+            //                            ccDest + (end -> (ccDest(end) - edge))
+            //                        case JoinEdge(_, end, join) =>
+            //                            ccDest + (end -> (ccDest(end) - edge)) + (join -> (ccDest(join) - edge))
+            //                    }
+            //                }
+            //                edgesByDest(removing).foldLeft((edgesByStart, edgesByDest0)) { (cc, edge) =>
+            //                    val (ccStart, ccDest) = cc
+            //                    edge match {
+            //                        case edge @ SimpleEdge(start, _) =>
+            //                            (ccStart + (start -> (ccStart(start) - edge)), ccDest)
+            //                        case edge @ JoinEdge(start, `removing`, other) =>
+            //                            (ccStart + (start -> (ccStart(start) - edge)), ccDest + (other -> (ccDest(other) - edge)))
+            //                        case edge @ JoinEdge(start, other, _) =>
+            //                            (ccStart + (start -> (ccStart(start) - edge)), ccDest + (other -> (ccDest(other) - edge)))
+            //                    }
+            //                }
+            //            }
+            Graph(nodes - removing, removedEdges)
         }
         def removeEdge(edge: Edge): Graph =
             edge match {
                 case edge @ SimpleEdge(start, end) =>
-                    Graph(nodes, edges - edge, edgesByStart + (start -> (edgesByStart(start) - edge)), edgesByDest + (end -> (edgesByDest(end) - edge)))
+                    Graph(nodes, edges - edge,
+                        edgesByStart + (start -> (edgesByStart(start) - edge)),
+                        edgesByDest + (end -> (edgesByDest(end) - edge)))
                 case edge @ JoinEdge(start, end, join) =>
-                    Graph(nodes, edges - edge, edgesByStart + (start -> (edgesByStart(start) - edge)), edgesByDest + (end -> (edgesByDest(end) - edge)) + (join -> (edgesByDest(join) - edge)))
+                    Graph(nodes, edges - edge,
+                        edgesByStart + (start -> (edgesByStart(start) - edge)),
+                        edgesByDest + (end -> (edgesByDest(end) - edge)) +
+                            (join -> (edgesByDest(join) - edge)))
             }
         def removeEdges(edges: Set[Edge]): Graph =
             edges.foldLeft(this) { _ removeEdge _ }
-        def shiftGen(gen: Int): Graph = {
-            def shiftGen(edge: Edge, gen: Int): Edge = edge match {
-                case SimpleEdge(start, end) => SimpleEdge(start.shiftGen(gen), end.shiftGen(gen))
-                case JoinEdge(start, end, join) => JoinEdge(start.shiftGen(gen), end.shiftGen(gen), join.shiftGen(gen))
-            }
-            Graph(nodes map { _.shiftGen(gen) }, edges map { shiftGen(_, gen) },
-                edgesByStart map { kv => (kv._1 shiftGen gen) -> (kv._2 map { shiftGen(_, gen) }) },
-                edgesByDest map { kv => (kv._1 shiftGen gen) -> (kv._2 map { shiftGen(_, gen) }) })
-        }
-        def replaceNode(original: Node, replaced: Node): Graph = {
-            if (!(nodes contains original)) this else {
-                // assert(!(nodes contains replaced))
-                def replace(node: Node) = if (node == original) replaced else node
-                val replacedNodes = nodes - original + replaced
-                var replacedEdges = edges
-                var replacedEdgesByStart = edgesByStart - original + (replaced -> Set[Edge]())
-                var replacedEdgesByDest = edgesByDest - original + (replaced -> Set[Edge]())
-                (edgesByStart(original) ++ edgesByDest(original)) foreach {
-                    case edge @ SimpleEdge(start, end) =>
-                        val (rstart, rend) = (replace(start), replace(end))
-                        val replacedEdge = SimpleEdge(rstart, rend)
-                        replacedEdges = replacedEdges - edge + replacedEdge
-                        replacedEdgesByStart += (rstart -> (replacedEdgesByStart(rstart) - edge + replacedEdge))
-                        replacedEdgesByDest += (rend -> (replacedEdgesByDest(rend) - edge + replacedEdge))
-                    case edge @ JoinEdge(start, end, join) =>
-                        val (rstart, rend, rjoin) = (replace(start), replace(end), replace(join))
-                        val replacedEdge = JoinEdge(rstart, rend, rjoin)
-                        replacedEdges = replacedEdges - edge + replacedEdge
-                        replacedEdgesByStart += (rstart -> (replacedEdgesByStart(rstart) - edge + replacedEdge))
-                        replacedEdgesByDest += (rend -> (replacedEdgesByDest(rend) - edge + replacedEdge))
-                        replacedEdgesByDest += (rjoin -> (replacedEdgesByDest(rjoin) - edge + replacedEdge))
-                }
-                Graph(replacedNodes, replacedEdges, replacedEdgesByStart, replacedEdgesByDest)
-            }
-        }
         def mapNode(nodeFunc: Node => Node): Graph = {
             val newNodesMap: Map[Node, Node] = (nodes map { node => node -> nodeFunc(node) }).toMap
             val newNodes: Set[Node] = newNodesMap.values.toSet
@@ -125,6 +94,15 @@ object ParsingContext {
                     JoinEdge(newNodesMap(start), newNodesMap(end), newNodesMap(join))
             }
             Graph(newNodes, newEdges)
+        }
+        def replaceNode(original: Node, replaced: Node): Graph = {
+            if (!(nodes contains original)) this else {
+                // assert(!(nodes contains replaced))
+                this mapNode {
+                    case `original` => replaced
+                    case other => other
+                }
+            }
         }
         def filterNode(nodePred: Node => Boolean): Graph = {
             val nodesPredMap: Map[Node, Boolean] = (nodes map { node => node -> nodePred(node) }).toMap

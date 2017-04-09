@@ -8,6 +8,7 @@ import com.giyeok.jparser.Inputs.VirtualTermGroupDesc
 import com.giyeok.jparser.Symbols.Terminal
 import com.giyeok.jparser.Symbols.Terminals.CharacterTerminal
 import com.giyeok.jparser.Symbols.Terminals.VirtualTerminal
+import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.ParsingContext.Graph
@@ -44,35 +45,57 @@ trait DerivationPreprocessor extends ParsingTasks {
         (charTermGroups ++ virtTermGroups) filterNot { _.isEmpty }
     }
 
-    case class Preprocessed(base: Node, lifted: Cont, tasks: List[Task], nextGraph: Graph, nextDeriveTips: Seq[Node]) {
-        def shiftGen(gen: Int): Preprocessed = {
-            val base1 = base.shiftGen(gen)
-            val lifted1 = lifted.graph.shiftGen(gen)
+    case class Preprocessed(base: Node, lifted: Cont, baseTasks: List[ProgressTask], nextGraph: Graph, nextDeriveTips: Set[Node]) {
+        def instantiate(beginGen: Int, endGen: Int, condition: AcceptCondition): Preprocessed = {
+            // base 노드가 실제로는 beginGen..endGen을 커버하고 Always가 아니라 condition 조건을 달고 있음 - symbolId, pointer는 동일
+            // preprocessed의 모든 그래프는 base로부터 derive된 것이므로 다른 노드들의 accept condition에는 영향이 없고 모두 endGen으로 shift하면 됨
+            // tasks
+            val base1 = Node(Kernel(base.kernel.symbolId, base.kernel.pointer, beginGen, endGen)(base.kernel.symbol), condition)
+            val nodeMapper = { (node: Node) =>
+                node match {
+                    case `base` => base1
+                    case other => other.shiftGen(endGen)
+                }
+            }
+            val lifted1 = lifted.graph mapNode nodeMapper
             val updated1 = lifted.updatedNodes map { kv =>
-                kv._1.shiftGen(gen) -> (kv._2 map { _.shiftGen(gen) })
+                nodeMapper(kv._1) -> (kv._2 map nodeMapper)
             }
-            val tasks1 = tasks map {
-                case DeriveTask(node) => DeriveTask(node.shiftGen(gen))
-                case ProgressTask(node, condition) => ProgressTask(node.shiftGen(gen), condition.shiftGen(gen))
-                case FinishTask(node) => FinishTask(node.shiftGen(gen))
+            val tasks1 = baseTasks map { progressTask =>
+                // TODO 다시 봐야함
+                ProgressTask(nodeMapper(progressTask.node), progressTask.condition.shiftGen(endGen))
             }
-            val nextGraph1 = nextGraph.shiftGen(gen)
-            val nextDeriveTips1 = nextDeriveTips map { _.shiftGen(gen) }
+            val nextGraph1 = nextGraph mapNode nodeMapper
+            val nextDeriveTips1 = nextDeriveTips map { _.shiftGen(endGen) }
             Preprocessed(base1, Cont(lifted1, updated1), tasks1, nextGraph1, nextDeriveTips1)
         }
     }
 
     private var cache = Map[(Int, Int), (Preprocessed, Map[TermGroupDesc, Preprocessed])]()
 
-    @tailrec private def partialRec(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[Task], tipsTasks: List[DeriveTask]): (Cont, List[Task], List[DeriveTask]) =
+    @tailrec private def rootBlockingRec(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[ProgressTask]): (Cont, List[ProgressTask]) =
         tasks match {
-            case (task @ (ProgressTask(`root`, _) | FinishTask(`root`))) +: rest =>
-                partialRec(nextGen, root, rest, cc, task +: rootTasks, tipsTasks)
-            case (task @ DeriveTask(node)) +: rest if node != root && node.kernel.pointer > 0 =>
-                partialRec(nextGen, root, rest, cc, rootTasks, task +: tipsTasks)
+            case (task @ ProgressTask(`root`, _)) +: rest =>
+                rootBlockingRec(nextGen, root, rest, cc, task +: rootTasks)
+            case (FinishTask(`root`)) +: _ =>
+                ??? // should not happen
             case task +: rest =>
                 val (ncc, newTasks) = process(nextGen, task, cc)
-                partialRec(nextGen, root, newTasks ++: rest, ncc, rootTasks, tipsTasks)
+                rootBlockingRec(nextGen, root, newTasks ++: rest, ncc, rootTasks)
+            case List() => (cc, rootTasks)
+        }
+
+    @tailrec private def deriveBlockingRec(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[ProgressTask], tipsTasks: List[DeriveTask]): (Cont, List[ProgressTask], List[DeriveTask]) =
+        tasks match {
+            case (task @ ProgressTask(`root`, _)) +: rest =>
+                deriveBlockingRec(nextGen, root, rest, cc, task +: rootTasks, tipsTasks)
+            case (FinishTask(`root`)) +: _ =>
+                ??? // should not happen
+            case (task @ DeriveTask(Node(kernel, _))) +: rest if kernel.pointer > 0 =>
+                deriveBlockingRec(nextGen, root, rest, cc, rootTasks, task +: tipsTasks)
+            case task +: rest =>
+                val (ncc, newTasks) = process(nextGen, task, cc)
+                deriveBlockingRec(nextGen, root, newTasks ++: rest, ncc, rootTasks, tipsTasks)
             case List() => (cc, rootTasks, tipsTasks)
         }
 
@@ -80,16 +103,17 @@ trait DerivationPreprocessor extends ParsingTasks {
         cache get ((symbolId, pointer)) match {
             case Some(cached) => cached
             case None =>
+                // TODO base preprocessed를 구할 때는 root에 대한 Progress/Finish task만 막으면 되고
+                // TODO slice할 때는 kernel.pointer > 0인 모든 DeriveTask도 막아야 되고
                 val baseNode = Node(Kernel(symbolId, pointer, 0, 0)(grammar.symbolOf(symbolId)), Always)
-                val (lifted, rootTasks, tipsTasks) = partialRec(0, baseNode, List(DeriveTask(baseNode)), Cont(Graph(Set(baseNode), Set()), Map()), List(), List())
-                val deriveTips = tipsTasks map { _.node }
+                val (lifted, rootTasks) = rootBlockingRec(0, baseNode, List(DeriveTask(baseNode)), Cont(Graph(Set(baseNode), Set()), Map()), List())
                 val nextGraph = trimGraph(lifted.graph, baseNode, 0)
-                val base = Preprocessed(baseNode, lifted, rootTasks, nextGraph, deriveTips)
+                val base = Preprocessed(baseNode, lifted, rootTasks, nextGraph, Set(baseNode))
                 val termGroups = termGroupsOf(termNodes(lifted.graph, 0) map { _.kernel.symbol.asInstanceOf[NTerminal].symbol })
                 val slicedMap = (termGroups map { termGroup =>
                     val termFinishes = finishableTermNodes(nextGraph, 0, termGroup).toList map { ProgressTask(_, Always) }
-                    val (partialLifted, liftedRootTasks, tipsTasks) = partialRec(1, baseNode, termFinishes, Cont(lifted.graph, Map()), List(), List())
-                    val nextDeriveTips = tipsTasks map { _.node }
+                    val (partialLifted, liftedRootTasks, tipsTasks) = deriveBlockingRec(1, baseNode, termFinishes, Cont(lifted.graph, Map()), List(), List())
+                    val nextDeriveTips = (tipsTasks map { _.node }).toSet
                     val nextNextGraph = trimUnreachables(partialLifted.graph, baseNode, nextDeriveTips.toSet)
                     val sliced = Preprocessed(baseNode, partialLifted, liftedRootTasks, nextNextGraph, nextDeriveTips)
                     termGroup -> sliced
@@ -100,249 +124,15 @@ trait DerivationPreprocessor extends ParsingTasks {
     }
 
     def sliceOf(node: Node, input: Input): Option[Preprocessed] = {
-        // assert((slicedMap filter { _._1 contains input }).size <= 1)
         val Node(kernel, condition) = node
         val sliceMap = sliceOf(kernel.symbolId, kernel.pointer)._2
+
+        assert((sliceMap count { _._1 contains input }) <= 1)
+
         sliceMap find { _._1 contains input } map { _._2 } map { preprocessed =>
-            // TODO preprocessed + root의 progress task에 condition 적용
-            preprocessed.shiftGen(kernel.beginGen)
+            assert(preprocessed.base.kernel.symbolId == node.kernel.symbolId)
+            assert(preprocessed.base.kernel.pointer == node.kernel.pointer)
+            preprocessed.instantiate(kernel.beginGen, kernel.endGen, condition)
         }
     }
 }
-
-//package com.giyeok.jparser.nparser
-//
-//import com.giyeok.jparser.nparser.DerivationPreprocessor.Preprocessed
-//import com.giyeok.jparser.nparser.ParsingContext._
-//import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-//import com.giyeok.jparser.nparser.AcceptCondition.Always
-//import com.giyeok.jparser.Inputs.TermGroupDesc
-//import com.giyeok.jparser.Inputs.Input
-//import scala.annotation.tailrec
-//import com.giyeok.jparser.nparser.NGrammar._
-//
-//trait CompactDerivationPreprocessor extends DerivationPreprocessor {
-//    val grammar: CompactNGrammar
-//
-//    def compact(preprocessed: Preprocessed): Preprocessed = {
-//        if (preprocessed.context.graph.nodes contains preprocessed.baseNode) {
-//            val initialBarriers: Set[Node] = Set(preprocessed.baseNode) ++ (preprocessed.context.graph.nodes flatMap { node =>
-//                grammar.nsymbols get node.symbolId match {
-//                    case Some(_: Except) => Set(node) ++ (preprocessed.context.graph.edgesByStart(node) map { _.asInstanceOf[SimpleEdge].end })
-//                    case Some(_: Join) => Set(node) ++ (preprocessed.context.graph.edgesByStart(node) map { _.asInstanceOf[JoinEdge] } flatMap { n => Set(n.end, n.join) })
-//                    case _ => if (grammar.isCompactable(node.symbolId)) None else Some(node)
-//                }
-//            })
-//            val initialStartNodes = initialBarriers filter {
-//                case SymbolKernel(symbolId, _) =>
-//                    grammar.nsymbols(symbolId) match {
-//                        case _: Except | _: Join => false
-//                        case _ => true
-//                    }
-//                case _ => true
-//            }
-//
-//            def reachables(graph: Graph, barriers: Set[Node], queue: List[Node], cc: (Set[Node], Set[Node])): (Set[Node], Set[Node]) =
-//                queue match {
-//                    case node +: rest =>
-//                        val outgoingNodes = graph.edgesByStart(node) map { _.asInstanceOf[SimpleEdge].end }
-//                        val outgoingBarriers = outgoingNodes intersect barriers
-//                        val outgoingReachables = outgoingNodes -- barriers
-//                        val newReachables = outgoingReachables -- cc._2
-//                        reachables(graph, barriers, rest ++ newReachables, (cc._1 ++ outgoingBarriers, cc._2 ++ newReachables))
-//                    case List() => cc
-//                }
-//
-//            def reachablePaths(graph: Graph, barriers: Set[Node], node: Node, path: Set[Node]): Map[Node, Set[Node]] = {
-//                val outgoingNodes = (graph.edgesByStart(node) map { _.asInstanceOf[SimpleEdge].end })
-//                val (outgoingBarriers, outgoingReachables) = (outgoingNodes intersect barriers, outgoingNodes -- barriers)
-//                val outgoingPaths = (outgoingReachables -- path) map { outgoing => reachablePaths(graph, barriers, outgoing, path + outgoing) }
-//                outgoingPaths.foldLeft((outgoingBarriers map { _ -> path }).toMap) { (paths, merging) =>
-//                    merging.foldLeft(paths) { (paths, kv) =>
-//                        val (dest, path) = kv
-//                        paths + (dest -> (paths.getOrElse(dest, Set()) ++ path))
-//                    }
-//                }
-//            }
-//
-//            def compaction(startNodes: List[Node], barriers: Set[Node], cc: Preprocessed): Preprocessed = {
-//                startNodes match {
-//                    case startNode +: rest =>
-//                        val graph = cc.context.graph
-//                        assert(barriers contains startNode)
-//                        val (reachableBarriers, reachableNodes) = reachables(graph, barriers, List(startNode), (Set(), Set()))
-//                        // reachableNodes에 reachableNodes 이외의 노드에서 오는 incoming edges가 있는 노드들을 incomingNodes라고 하고
-//                        // incomingNodes가 비어있지 않으면 barriers와 startNodes로 추가해서 다시 진행
-//                        val allReachables = reachableNodes + startNode
-//                        // TODO reachableBarriers에서 들어오는 엣지는 어떻게 할지 고민
-//                        val incomingEdges = reachableNodes flatMap { graph.edgesByDest(_) } filterNot { allReachables contains _.start }
-//                        if (incomingEdges.isEmpty) {
-//                            // reachableNodes 없애고
-//                            val newGraph0 = graph.removeNodes(reachableNodes)
-//                            // startNode -> reachableBarrier로 가는 엣지 추가
-//                            val newGraph = reachableBarriers.foldLeft(newGraph0) { (g, b) => g.addEdge(SimpleEdge(startNode, b)) }
-//                            compaction(rest, barriers, cc.updateContext(cc.context.updateGraph(newGraph)))
-//                        } else {
-//                            val incomingNodes = incomingEdges map { _.end }
-//                            compaction(startNodes ++ incomingNodes, barriers ++ incomingNodes, cc)
-//                        }
-//                    case List() => cc
-//                }
-//            }
-//            compaction(initialStartNodes.toList, initialBarriers, preprocessed)
-//        } else {
-//            preprocessed
-//        }
-//    }
-//}
-//
-//class OnDemandDerivationPreprocessor(val grammar: NGrammar) extends DerivationPreprocessor with ParsingTasks {
-//    private val symbolDerivations = scala.collection.mutable.Map[Int, Preprocessed]()
-//    private val sequenceDerivations = scala.collection.mutable.Map[(Int, Int), Preprocessed]()
-//
-//    private val symbolTermNodes = scala.collection.mutable.Map[Int, Set[SymbolKernel]]()
-//    private val sequenceTermNodes = scala.collection.mutable.Map[(Int, Int), Set[SymbolKernel]]()
-//
-//    @tailrec private def recNoBase(baseNode: Node, nextGen: Int, tasks: List[Task], cc: Preprocessed): Preprocessed =
-//        tasks match {
-//            case FinishTask(`baseNode`, condition, lastSymbol) +: rest =>
-//                recNoBase(baseNode, nextGen, rest, cc.addBaseFinish(condition, lastSymbol))
-//            case ProgressTask(`baseNode`, condition) +: rest =>
-//                recNoBase(baseNode, nextGen, rest, cc.addBaseProgress(condition))
-//            case task +: rest =>
-//                val (newContext, newTasks) = process(nextGen, task, cc.context)
-//                recNoBase(baseNode, nextGen, newTasks ++: rest, cc.updateContext(newContext))
-//            case List() => cc
-//        }
-//
-//    def _symbolDerivationOf(symbolId: Int): Preprocessed = {
-//        val baseNode = SymbolKernel(symbolId, -1)
-//        val initialPreprocessed = Preprocessed(baseNode, Context(Graph(Set(baseNode), Set()), Results(), Results()), Seq(), Seq())
-//        recNoBase(baseNode, 0, List(DeriveTask(baseNode)), initialPreprocessed)
-//    }
-//    def symbolDerivationOf(symbolId: Int): Preprocessed = {
-//        symbolDerivations get symbolId match {
-//            case Some(preprocessed) => preprocessed
-//            case None =>
-//                val preprocessed = _symbolDerivationOf(symbolId)
-//                symbolDerivations(symbolId) = preprocessed
-//                preprocessed
-//        }
-//    }
-//
-//    def _sequenceDerivationOf(sequenceId: Int, pointer: Int): Preprocessed = {
-//        val baseNode = SequenceKernel(sequenceId, pointer, -1, -1)
-//        val initialPreprocessed = Preprocessed(baseNode, Context(Graph(Set(baseNode), Set()), Results(baseNode -> Set[AcceptCondition]()), Results()), Seq(), Seq())
-//        recNoBase(baseNode, 0, List(DeriveTask(baseNode)), initialPreprocessed)
-//    }
-//    def sequenceDerivationOf(sequenceId: Int, pointer: Int): Preprocessed = {
-//        sequenceDerivations get (sequenceId, pointer) match {
-//            case Some(baseNodeAndDerivation) => baseNodeAndDerivation
-//            case None =>
-//                val preprocessed = _sequenceDerivationOf(sequenceId, pointer)
-//                sequenceDerivations((sequenceId, pointer)) = preprocessed
-//                preprocessed
-//        }
-//    }
-//
-//    def symbolTermNodesOf(symbolId: Int): Set[SymbolKernel] = {
-//        symbolTermNodes get symbolId match {
-//            case Some(termNodes) => termNodes
-//            case None =>
-//                val termNodes: Set[SymbolKernel] = symbolDerivationOf(symbolId).context.graph.nodes collect {
-//                    case node @ SymbolKernel(symbolId, _) if grammar.nsymbols(symbolId).isInstanceOf[NGrammar.Terminal] => node
-//                }
-//                symbolTermNodes(symbolId) = termNodes
-//                termNodes
-//        }
-//    }
-//    def sequenceTermNodesOf(sequenceId: Int, pointer: Int): Set[SymbolKernel] = {
-//        sequenceTermNodes get (sequenceId, pointer) match {
-//            case Some(termNodes) => termNodes
-//            case None =>
-//                val termNodes: Set[SymbolKernel] = sequenceDerivationOf(sequenceId, pointer).context.graph.nodes collect {
-//                    case node @ SymbolKernel(symbolId, beginGen) if grammar.nsymbols(symbolId).isInstanceOf[NGrammar.Terminal] => node
-//                }
-//                sequenceTermNodes((sequenceId, pointer)) = termNodes
-//                termNodes
-//        }
-//    }
-//}
-//
-//class OnDemandSlicedDerivationPreprocessor(grammar: NGrammar) extends OnDemandDerivationPreprocessor(grammar) with SlicedDerivationPreprocessor {
-//    // slice는 TermGroupDesc -> Preprocessed + new derive tips, finish나 progress는 baseNode에 대해서만 수행한다
-//    private val symbolSliced = scala.collection.mutable.Map[Int, Map[TermGroupDesc, (Preprocessed, Set[SequenceKernel])]]()
-//    private val sequenceSliced = scala.collection.mutable.Map[(Int, Int), Map[TermGroupDesc, (Preprocessed, Set[SequenceKernel])]]()
-//
-//    @tailrec private def recNoBaseNoDerive(baseNode: Node, nextGen: Int, tasks: List[Task], cc: Preprocessed, deriveTips: Set[SequenceKernel]): (Preprocessed, Set[SequenceKernel]) =
-//        tasks match {
-//            case DeriveTask(deriveTip: SequenceKernel) +: rest =>
-//                // context에 deriveTip의 finish task 추가
-//                val preprocessed = derivationOf(deriveTip)
-//                assert(preprocessed.baseFinishes.isEmpty)
-//                val immediateProgresses = preprocessed.baseProgresses map { condition => ProgressTask(deriveTip, condition.shiftGen(nextGen)) }
-//                val ncc = cc.updateContext(cc.context.updateFinishes(_.merge(preprocessed.context.finishes.shiftGen(nextGen))))
-//                recNoBaseNoDerive(baseNode, nextGen, immediateProgresses ++: rest, ncc, deriveTips + deriveTip)
-//            case FinishTask(`baseNode`, condition, lastSymbol) +: rest =>
-//                recNoBaseNoDerive(baseNode, nextGen, rest, cc.addBaseFinish(condition, lastSymbol), deriveTips)
-//            case ProgressTask(`baseNode`, condition) +: rest =>
-//                recNoBaseNoDerive(baseNode, nextGen, rest, cc.addBaseProgress(condition), deriveTips)
-//            case task +: rest =>
-//                assert(!task.isInstanceOf[DeriveTask])
-//                val (newContext, newTasks) = process(nextGen, task, cc.context)
-//                recNoBaseNoDerive(baseNode, nextGen, newTasks ++: rest, cc.updateContext(newContext), deriveTips)
-//            case List() =>
-//                (cc, deriveTips)
-//        }
-//
-//    def slice(derivation: Preprocessed, termNodes: Set[SymbolKernel]): Map[TermGroupDesc, (Preprocessed, Set[SequenceKernel])] = {
-//        val terminals = termNodes map { node => grammar.nsymbols(node.symbolId).asInstanceOf[NGrammar.Terminal].symbol }
-//        val termGroups = termGroupsOf(terminals)
-//        (termGroups map { termGroup =>
-//            val finishables = finishableTermNodes(derivation.context, 0, termGroup)
-//            val finishTasks = finishables.toList map { FinishTask(_, Always, None) }
-//            val cc = Preprocessed(derivation.baseNode, derivation.context.emptyFinishes, Seq(), Seq())
-//            val (newPreprocessed, newDeriveTips) = recNoBaseNoDerive(derivation.baseNode, 1, finishTasks, cc, Set())
-//            val trimStarts = (Set(derivation.baseNode)) ++ (derivation.context.finishes.conditionNodes) ++ (derivation.context.progresses.conditionNodes)
-//            val trimmedContext = trim(newPreprocessed.context, trimStarts, newDeriveTips.asInstanceOf[Set[Node]])
-//            val sequenceNodes = trimmedContext.graph.nodes collect { case n: SequenceKernel => n }
-//            val sliced = (newPreprocessed.updateContext(trimmedContext), newDeriveTips intersect sequenceNodes)
-//            (termGroup -> sliced)
-//        }).toMap
-//    }
-//    def symbolSliceOf(symbolId: Int): Map[TermGroupDesc, (Preprocessed, Set[SequenceKernel])] = {
-//        symbolSliced get symbolId match {
-//            case Some(slicedMap) => slicedMap
-//            case None =>
-//                val slicedMap = slice(symbolDerivationOf(symbolId), symbolTermNodesOf(symbolId))
-//                symbolSliced(symbolId) = slicedMap
-//                slicedMap
-//        }
-//    }
-//    def sequenceSliceOf(sequenceId: Int, pointer: Int): Map[TermGroupDesc, (Preprocessed, Set[SequenceKernel])] = {
-//        sequenceSliced get (sequenceId, pointer) match {
-//            case Some(slicedMap) => slicedMap
-//            case None =>
-//                val slicedMap = slice(sequenceDerivationOf(sequenceId, pointer), sequenceTermNodesOf(sequenceId, pointer))
-//                sequenceSliced((sequenceId, pointer)) = slicedMap
-//                slicedMap
-//        }
-//    }
-//}
-//
-//class OnDemandCompactDerivationPreprocessor(override val grammar: CompactNGrammar) extends OnDemandDerivationPreprocessor(grammar) with CompactDerivationPreprocessor {
-//    override def _symbolDerivationOf(symbolId: Int): Preprocessed =
-//        compact(super._symbolDerivationOf(symbolId))
-//    override def _sequenceDerivationOf(sequenceId: Int, pointer: Int): Preprocessed =
-//        compact(super._sequenceDerivationOf(sequenceId, pointer))
-//}
-//
-//class OnDemandCompactSlicedDerivationPreprocessor(override val grammar: CompactNGrammar) extends OnDemandSlicedDerivationPreprocessor(grammar) with CompactDerivationPreprocessor {
-//    override def _symbolDerivationOf(symbolId: Int): Preprocessed =
-//        compact(super._symbolDerivationOf(symbolId))
-//    override def _sequenceDerivationOf(sequenceId: Int, pointer: Int): Preprocessed =
-//        compact(super._sequenceDerivationOf(sequenceId, pointer))
-//
-//    override def slice(derivation: Preprocessed, termNodes: Set[SymbolKernel]): Map[TermGroupDesc, (Preprocessed, Set[SequenceKernel])] =
-//        super.slice(derivation, termNodes) map { kv => (kv._1 -> (compact(kv._2._1), kv._2._2)) }
-//}
