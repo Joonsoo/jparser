@@ -15,7 +15,6 @@ class NodeFigureGenerators[Fig](
         val Kernel(symbolId, pointer, beginGen, endGen) = kernel
 
         fig.horizontalFig(Spacing.Big, Seq(
-            fig.textFig(s"$symbolId", appear.small),
             symbol.symbolPointerFig(grammar, symbolId, pointer),
             fig.textFig(s"$beginGen-$endGen", appear.default)
         ))

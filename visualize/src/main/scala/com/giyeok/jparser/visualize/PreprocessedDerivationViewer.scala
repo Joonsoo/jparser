@@ -16,6 +16,8 @@ import org.eclipse.draw2d.MouseListener
 import org.eclipse.draw2d.ToolbarLayout
 import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.StackLayout
+import org.eclipse.swt.events.KeyEvent
+import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.SelectionListener
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.layout.FormAttachment
@@ -37,14 +39,14 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
     val leftPanel = new HorizontalResizableSplittedComposite(splitPanel.leftPanel, SWT.NONE, 70)
 
     val kernelsList = new FigureCanvas(leftPanel.upperPanel, SWT.NONE)
-    val (kernelsListFig, kernelFigsMap) = {
+    val (kernelsListFig, kernelFigsList) = {
         val fig = new Figure
         fig.setLayoutManager({
             val l = new ToolbarLayout(false)
             l.setSpacing(3)
             l
         })
-        var kernelFigsMap = ListMap[(Int, Int), Figure]()
+        var _kernelFigsList = scala.collection.immutable.List[((Int, Int), Figure)]()
 
         def boxing(symbol: Figure): Figure = {
             val box = new Figure
@@ -64,18 +66,18 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
                 def mouseReleased(e: org.eclipse.draw2d.MouseEvent): Unit = {}
                 def mouseDoubleClicked(e: org.eclipse.draw2d.MouseEvent): Unit = {}
             })
-            kernelFigsMap += ((symbolId, pointer) -> figure)
+            _kernelFigsList +:= ((symbolId, pointer) -> figure)
             figure
         }
 
         (ngrammar.nsymbols ++ ngrammar.nsequences).toSeq sortBy { _._1 } foreach { kv =>
             val (symbolId, symbol) = kv
             0 until Kernel.lastPointerOf(symbol) foreach { pointer =>
-                val figure = nodeFig.symbol.symbolPointerFig(symbol.symbol, pointer)
+                val figure = nodeFig.symbol.symbolPointerFig(ngrammar, symbolId, pointer)
                 fig.add(addListener(boxing(figure), symbolId, pointer))
             }
         }
-        (fig, kernelFigsMap)
+        (fig, _kernelFigsList.reverse)
     }
     kernelsList.setContents(kernelsListFig)
 
@@ -118,20 +120,23 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
 
     def setShownKernel(symbolId: Int, pointer: Int): Unit = {
         shownKernelOpt foreach { shownKernel =>
-            kernelFigsMap get shownKernel foreach {
-                _.setBackgroundColor(ColorConstants.white)
+            kernelFigsList find { _._1 == shownKernel } foreach {
+                _._2.setBackgroundColor(ColorConstants.white)
             }
         }
-        shownKernelOpt = Some(symbolId, pointer)
-        kernelFigsMap((symbolId, pointer)).setBackgroundColor(ColorConstants.lightGray)
+        shownKernelOpt = None
+        kernelFigsList find { _._1 == (symbolId, pointer) } foreach { kernelFig =>
+            shownKernelOpt = Some(kernelFig._1)
+            kernelFig._2.setBackgroundColor(ColorConstants.lightGray)
 
-        val newTermGroups = derivationPreprocessor.sliceOf(symbolId, pointer)._2.keys.toSeq
-        shownTermGroup = None
-        termGroupsList.removeAll()
-        shownTermGroupList = None +: (newTermGroups map { Some(_) })
-        termGroupsList.add("All")
-        newTermGroups foreach { termGroup => termGroupsList.add(termGroup.toShortString) }
-        termGroupsList.select(0)
+            val newTermGroups = derivationPreprocessor.sliceOf(symbolId, pointer)._2.keys.toSeq
+            shownTermGroup = None
+            termGroupsList.removeAll()
+            shownTermGroupList = None +: (newTermGroups map { Some(_) })
+            termGroupsList.add("All")
+            newTermGroups foreach { termGroup => termGroupsList.add(termGroup.toShortString) }
+            termGroupsList.select(0)
+        }
 
         updateGraphView()
     }
@@ -154,6 +159,56 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
     })
     setShownKernel(ngrammar.startSymbol, 0)
     updateGraphView()
+
+    private def keyListener = new KeyListener {
+        override def keyReleased(e: KeyEvent): Unit = {}
+        override def keyPressed(e: KeyEvent): Unit = {
+            e.keyCode match {
+                case SWT.ARROW_UP =>
+                    shownKernelOpt foreach { shownKernel =>
+                        kernelFigsList.zipWithIndex find { _._1._1 == shownKernel } foreach { p =>
+                            val newIdx = p._2 - 1
+                            if (newIdx >= 0) {
+                                val k = kernelFigsList(newIdx)._1
+                                setShownKernel(k._1, k._2)
+                            }
+                        }
+                    }
+                case SWT.ARROW_DOWN =>
+                    shownKernelOpt foreach { shownKernel =>
+                        kernelFigsList.zipWithIndex find { _._1._1 == shownKernel } foreach { p =>
+                            val newIdx = p._2 + 1
+                            if (newIdx < kernelFigsList.length) {
+                                val k = kernelFigsList(newIdx)._1
+                                setShownKernel(k._1, k._2)
+                            }
+                        }
+                    }
+                case 'z' | 'Z' =>
+                    val selection = termGroupsList.getSelectionIndex
+                    if (selection >= 0) {
+                        val newSelection = selection - 1
+                        if (newSelection >= 0) {
+                            termGroupsList.setSelection(newSelection)
+                            updateGraphView()
+                        }
+                    }
+                case 'x' | 'X' =>
+                    val selection = termGroupsList.getSelectionIndex
+                    if (selection >= 0) {
+                        val newSelection = selection + 1
+                        if (newSelection < termGroupsList.getItemCount) {
+                            termGroupsList.setSelection(newSelection)
+                            updateGraphView()
+                        }
+                    }
+                case _ => // nothing to do
+            }
+        }
+    }
+
+    shell.addKeyListener(keyListener)
+    kernelsList.addKeyListener(keyListener)
 
     def start(): Unit = {
         shell.setText("Derivation Graph")

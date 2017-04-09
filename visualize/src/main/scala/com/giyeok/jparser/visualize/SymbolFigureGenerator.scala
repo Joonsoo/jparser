@@ -2,6 +2,7 @@ package com.giyeok.jparser.visualize
 
 import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.nparser.NGrammar.NSymbol
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
 class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: FigureGenerator.Appearances[Fig]) {
@@ -118,6 +119,9 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
     }
 
     def symbolPointerFig(grammar: NGrammar, symbolId: Int, pointer: Int): Fig = {
-        symbolPointerFig(grammar.symbolOf(symbolId).symbol, pointer)
+        fig.horizontalFig(Spacing.Small, Seq(
+            fig.textFig(symbolId.toString, ap.small),
+            symbolPointerFig(grammar.symbolOf(symbolId).symbol, pointer)
+        ))
     }
 }
