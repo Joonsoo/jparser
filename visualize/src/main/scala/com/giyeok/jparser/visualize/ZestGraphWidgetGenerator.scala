@@ -64,27 +64,13 @@ trait AbstractZestGraphWidget extends Control {
     val edgeColor: Color = ColorConstants.gray
     def addEdge(edge: Edge): Unit = {
         if (!(edgesMap contains edge)) {
-            edge match {
-                case SimpleEdge(start, end) =>
-                    assert(nodesMap contains start)
-                    assert(nodesMap contains end)
-                    val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
-                    conn.setLineColor(edgeColor)
-                    conn.setData((Seq(start, end), Seq(conn)))
-                    edgesMap(edge) = Seq(conn)
-                case JoinEdge(start, end, join) =>
-                    assert(nodesMap contains start)
-                    assert(nodesMap contains end)
-                    assert(nodesMap contains join)
-                    val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
-                    val connJoin = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(join))
-                    conn.setText("main")
-                    connJoin.setText("join")
-                    conn.setLineColor(edgeColor)
-                    connJoin.setLineColor(edgeColor)
-                    conn.setData((Seq(start, end, join), Seq(conn, connJoin)))
-                    edgesMap(edge) = Seq(conn, connJoin)
-            }
+            val Edge(start, end) = edge
+            assert(nodesMap contains start)
+            assert(nodesMap contains end)
+            val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
+            conn.setLineColor(edgeColor)
+            conn.setData((Seq(start, end), Seq(conn)))
+            edgesMap(edge) = Seq(conn)
             visibleEdges += edge
         }
     }
@@ -312,6 +298,7 @@ trait ZestParseTreeConstructorView {
             case Some(parseResult) =>
                 opener(parseResult)
             case None =>
+                println("No parse tree - accept condition failed")
         }
     }
     def parseTreeOpener(stateMask: Int): (Int, Kernel) => Unit = {

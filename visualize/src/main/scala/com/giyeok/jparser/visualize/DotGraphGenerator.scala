@@ -151,18 +151,11 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             val node = queue.head
             queue = queue.tail
             addNode(node)
-            graph.edgesByStart(node).toSeq sortWith { (x, y) => x.end.kernel.symbolId < y.end.kernel.symbolId } foreach {
-                case edge @ SimpleEdge(start, end) =>
-                    edges(edge) = new DotGraphEdge()
-                    if (!(visited contains end)) queue +:= end
-                    visited += end
-                case edge @ JoinEdge(start, end, join) =>
-                    edges(edge) = new DotGraphEdge()
-                    if (!(visited contains end)) queue +:= end
-                    if (!(visited contains join)) queue +:= join
-                    queue :+ join
-                    visited += end
-                    visited += join
+            graph.edgesByStart(node).toSeq sortWith { (x, y) => x.end.kernel.symbolId < y.end.kernel.symbolId } foreach { edge =>
+                val Edge(start, end) = edge
+                edges(edge) = new DotGraphEdge()
+                if (!(visited contains end)) queue +:= end
+                visited += end
             }
             if (queue.nonEmpty) {
                 traverseNode()
@@ -219,15 +212,10 @@ class DotGraphGenerator(ngrammar: NGrammar) {
         println()
         edges foreach { kv =>
             kv._1 match {
-                case edge @ SimpleEdge(start, end) =>
+                case edge @ Edge(start, end) =>
                     if (start.kernel.symbolId != ngrammar.startSymbol) {
                         println(s"    ${nodeNameOf(start)} -> ${nodeNameOf(end)}[${kv._2.attrString}];")
                     }
-                case edge @ JoinEdge(start, end, join) =>
-                    println(s"    ${nodeNameOf(start)}proxy" + "[shape=\"point\", width=\"0.1\", height=\"0\"];")
-                    println(s"    ${nodeNameOf(start)} -> ${nodeNameOf(start)}proxy[dir=none,${kv._2.attrString}];")
-                    println(s"    ${nodeNameOf(start)}proxy -> ${nodeNameOf(end)}[${kv._2.attrString}];")
-                    println(s"    ${nodeNameOf(start)}proxy -> ${nodeNameOf(join)}[${kv._2.attrString}];")
             }
         }
         println("}")

@@ -24,9 +24,7 @@ object ParsingContext {
         def shiftGen(gen: Int) = Node(kernel.shiftGen(gen), condition.shiftGen(gen))
     }
 
-    sealed trait Edge { val start: Node; val end: Node }
-    case class SimpleEdge(start: Node, end: Node) extends Edge
-    case class JoinEdge(start: Node, end: Node, join: Node) extends Edge
+    case class Edge(start: Node, end: Node)
 
     case class Graph(nodes: Set[Node], edges: Set[Edge], edgesByStart: Map[Node, Set[Edge]], edgesByDest: Map[Node, Set[Edge]]) {
         // assert(edgesByStart.keySet == nodes && edgesByDest.keySet == nodes)
@@ -34,13 +32,10 @@ object ParsingContext {
         // assert((edgesByDest flatMap { _._2 }).toSet subsetOf edges)
         def addNode(node: Node): Graph =
             if (nodes contains node) this else Graph(nodes + node, edges, edgesByStart + (node -> Set()), edgesByDest + (node -> Set()))
-        def addEdge(edge: Edge): Graph = edge match {
-            case SimpleEdge(start, end) =>
-                val edgesByStart1 = edgesByStart.updated(start, edgesByStart(start) + edge)
-                val edgesByDest1 = edgesByDest.updated(end, edgesByDest(end) + edge)
-                Graph(nodes, edges + edge, edgesByStart1, edgesByDest1)
-            case JoinEdge(start, end, join) =>
-                Graph(nodes, edges + edge, edgesByStart.updated(start, edgesByStart(start) + edge), edgesByDest.updated(end, edgesByDest(end) + edge).updated(join, edgesByDest(join) + edge))
+        def addEdge(edge: Edge): Graph = {
+            val edgesByStart1 = edgesByStart.updated(edge.start, edgesByStart(edge.start) + edge)
+            val edgesByDest1 = edgesByDest.updated(edge.end, edgesByDest(edge.end) + edge)
+            Graph(nodes, edges + edge, edgesByStart1, edgesByDest1)
         }
         def removeNodes(removing: Set[Node]): Graph = {
             removing.foldLeft(this) { _ removeNode _ }
@@ -71,27 +66,16 @@ object ParsingContext {
             Graph(nodes - removing, removedEdges)
         }
         def removeEdge(edge: Edge): Graph =
-            edge match {
-                case edge @ SimpleEdge(start, end) =>
-                    Graph(nodes, edges - edge,
-                        edgesByStart + (start -> (edgesByStart(start) - edge)),
-                        edgesByDest + (end -> (edgesByDest(end) - edge)))
-                case edge @ JoinEdge(start, end, join) =>
-                    Graph(nodes, edges - edge,
-                        edgesByStart + (start -> (edgesByStart(start) - edge)),
-                        edgesByDest + (end -> (edgesByDest(end) - edge)) +
-                            (join -> (edgesByDest(join) - edge)))
-            }
+            Graph(nodes, edges - edge,
+                edgesByStart + (edge.start -> (edgesByStart(edge.start) - edge)),
+                edgesByDest + (edge.end -> (edgesByDest(edge.end) - edge)))
         def removeEdges(edges: Set[Edge]): Graph =
             edges.foldLeft(this) { _ removeEdge _ }
         def mapNode(nodeFunc: Node => Node): Graph = {
             val newNodesMap: Map[Node, Node] = (nodes map { node => node -> nodeFunc(node) }).toMap
             val newNodes: Set[Node] = newNodesMap.values.toSet
-            val newEdges: Set[Edge] = edges map {
-                case SimpleEdge(start, end) =>
-                    SimpleEdge(newNodesMap(start), newNodesMap(end))
-                case JoinEdge(start, end, join) =>
-                    JoinEdge(newNodesMap(start), newNodesMap(end), newNodesMap(join))
+            val newEdges: Set[Edge] = edges map { edge =>
+                Edge(newNodesMap(edge.start), newNodesMap(edge.end))
             }
             Graph(newNodes, newEdges)
         }
@@ -107,9 +91,8 @@ object ParsingContext {
         def filterNode(nodePred: Node => Boolean): Graph = {
             val nodesPredMap: Map[Node, Boolean] = (nodes map { node => node -> nodePred(node) }).toMap
             val newNodes: Set[Node] = (nodesPredMap filter { _._2 }).keySet
-            val newEdges: Set[Edge] = edges filter {
-                case SimpleEdge(start, end) => nodesPredMap(start) && nodesPredMap(end)
-                case JoinEdge(start, end, join) => nodesPredMap(start) && nodesPredMap(end) && nodesPredMap(join)
+            val newEdges: Set[Edge] = edges filter { edge =>
+                nodesPredMap(edge.start) && nodesPredMap(edge.end)
             }
             Graph(newNodes, newEdges)
         }
@@ -126,14 +109,9 @@ object ParsingContext {
         def apply(nodes: Set[Node], edges: Set[Edge]): Graph = {
             var edgesByStart: Map[Node, Set[Edge]] = (nodes map { n => n -> Set[Edge]() }).toMap
             var edgesByDest: Map[Node, Set[Edge]] = (nodes map { n => n -> Set[Edge]() }).toMap
-            edges foreach {
-                case edge @ SimpleEdge(start, end) =>
-                    edgesByStart += start -> (edgesByStart(start) + edge)
-                    edgesByDest += end -> (edgesByDest(end) + edge)
-                case edge @ JoinEdge(start, end, join) =>
-                    edgesByStart += start -> (edgesByStart(start) + edge)
-                    edgesByDest += end -> (edgesByDest(end) + edge)
-                    edgesByDest += join -> (edgesByDest(join) + edge)
+            edges foreach { edge =>
+                edgesByStart += edge.start -> (edgesByStart(edge.start) + edge)
+                edgesByDest += edge.end -> (edgesByDest(edge.end) + edge)
             }
             Graph(nodes, edges, edgesByStart, edgesByDest)
         }

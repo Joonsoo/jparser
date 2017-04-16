@@ -27,9 +27,8 @@ object NGrammar {
     case class NProxy(symbol: Symbols.Proxy, produce: Int) extends NSimpleDerivable { val produces = Set(produce) }
     case class NRepeat(symbol: Symbols.Repeat, produces: Set[Int]) extends NSimpleDerivable
     case class NExcept(symbol: Symbols.Except, body: Int, except: Int) extends NSimpleDerivable { val produces = Set(body, except) }
+    case class NJoin(symbol: Symbols.Join, body: Int, join: Int) extends NSimpleDerivable { val produces = Set(body, join) }
     case class NLongest(symbol: Symbols.Longest, body: Int) extends NSimpleDerivable { val produces = Set(body) }
-
-    case class NJoin(symbol: Symbols.Join, body: Int, join: Int) extends NAtomicSymbol
 
     sealed trait NLookaheadSymbol extends NAtomicSymbol {
         val symbol: Symbols.Lookahead

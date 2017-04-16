@@ -30,9 +30,6 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                 assert(ngrammar.nsymbols.keySet contains l.lookahead)
             case d: NSimpleDerivable =>
                 assert(d.produces subsetOf allSymbolIds)
-            case NJoin(_, body, join) =>
-                assert(ngrammar.nsymbols.keySet contains body)
-                assert(ngrammar.nsymbols.keySet contains join)
         }
         ngrammar.nsequences.values foreach {
             case NSequence(_, sequence) =>

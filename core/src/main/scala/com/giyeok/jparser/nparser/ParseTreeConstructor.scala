@@ -25,8 +25,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
             val filteredGraph = graph filterNode { node => conditionFinal(node.condition) }
             val kernelNodes: Set[Kernel] = filteredGraph.nodes map { _.kernel }
             val kernelEdges: Set[KernelEdge] = filteredGraph.edges map {
-                case SimpleEdge(start, end) => SimpleKernelEdge(start.kernel, end.kernel)
-                case JoinEdge(start, end, join) => JoinKernelEdge(start.kernel, end.kernel, join.kernel)
+                case Edge(start, end) => SimpleKernelEdge(start.kernel, end.kernel)
             }
             KernelGraph(kernelNodes.toSeq, kernelEdges.toSeq)
         }).toVector

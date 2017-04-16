@@ -49,7 +49,7 @@ trait ParsingTasks {
                                 assert((updatedNodes map { _.kernel }).size == 1)
                                 assert((updatedNodes map { _.kernel }).head.symbolId == destNode.kernel.symbolId)
                                 val updatedGraph = updatedNodes.foldLeft(graph) { (graph, updatedNode) =>
-                                    graph.addEdge(SimpleEdge(startNode, updatedNode))
+                                    graph.addEdge(Edge(startNode, updatedNode))
                                 }
                                 addUpdatedNodes(updatedNodes.toList ++ rest, updatedGraph, tasks)
                             case None =>
@@ -61,7 +61,7 @@ trait ParsingTasks {
 
             val (newGraph, newTasks) = destNodes.foldLeft((cc.graph, newNodeTasks)) { (cc, destNode) =>
                 val (graph, tasks) = cc
-                addUpdatedNodes(List(destNode), graph.addNode(destNode).addEdge(SimpleEdge(startNode, destNode)), tasks)
+                addUpdatedNodes(List(destNode), graph.addNode(destNode).addEdge(Edge(startNode, destNode)), tasks)
             }
 
             (Cont(newGraph, cc.updatedNodes), newTasks)
@@ -74,15 +74,6 @@ trait ParsingTasks {
 
                     case simpleDerivable: NSimpleDerivable =>
                         derive(simpleDerivable.produces)
-
-                    case NJoin(_, body, join) =>
-                        val bodyNode = nodeOf(body, nextGen)
-                        val joinNode = nodeOf(join, nextGen)
-                        val bodyNodeTask = if (!(cc.graph.nodes contains bodyNode)) Some(if (bodyNode.kernel.isFinished) FinishTask(bodyNode) else DeriveTask(bodyNode)) else None
-                        val joinNodeTask = if (!(cc.graph.nodes contains joinNode)) Some(if (joinNode.kernel.isFinished) FinishTask(joinNode) else DeriveTask(joinNode)) else None
-                        // TODO cc.updatedNodes 보고 추가 처리
-                        val newGraph = cc.graph.addNode(bodyNode).addNode(joinNode).addEdge(JoinEdge(startNode, bodyNode, joinNode))
-                        (Cont(newGraph, cc.updatedNodes), Seq(bodyNodeTask, joinNodeTask).flatten)
 
                     case lookaheadSymbol: NLookaheadSymbol =>
                         val lookaheadNode = nodeOf(lookaheadSymbol.lookahead, nextGen)
@@ -107,17 +98,13 @@ trait ParsingTasks {
         assert(node.kernel.isFinished)
 
         val incomingEdges = cc.graph.edgesByDest(node)
-        val chainTasks: Seq[Task] = incomingEdges.toSeq flatMap {
-            case SimpleEdge(incoming, _) =>
-                incoming.kernel.symbol match {
-                    case NExcept(_, _, except) if except == node.kernel.symbolId => None
-                    case _ => Some(ProgressTask(incoming, node.condition))
-                }
-            case JoinEdge(start, `node`, other) if other.kernel.isFinished =>
-                Some(ProgressTask(start, conjunct(node.condition, other.condition)))
-            case JoinEdge(start, other, `node`) if other.kernel.isFinished =>
-                Some(ProgressTask(start, conjunct(node.condition, other.condition)))
-            case _: JoinEdge => None
+        val chainTasks: Seq[Task] = incomingEdges.toSeq flatMap { edge =>
+            val Edge(incoming, _) = edge
+            incoming.kernel.symbol match {
+                case NExcept(_, _, except) if except == node.kernel.symbolId => None
+                case NJoin(_, _, join) if join == node.kernel.symbolId => None
+                case _ => Some(ProgressTask(incoming, node.condition))
+            }
         }
         (cc, chainTasks)
     }
@@ -135,6 +122,9 @@ trait ParsingTasks {
             case Some(NExcept(_, _, except)) =>
                 val exceptNode = nodeOf(except, node.kernel.beginGen)
                 conjunct(node.condition, Unless(exceptNode, nextGen))
+            case Some(NJoin(_, _, join)) =>
+                val joinNode = nodeOf(join, node.kernel.beginGen)
+                conjunct(node.condition, OnlyIf(joinNode, nextGen))
             case Some(NLookaheadIs(_, _, lookahaed)) =>
                 conjunct(node.condition, After(nodeOf(lookahaed, nextGen), nextGen))
             case Some(NLookaheadExcept(_, _, lookahaed)) =>
@@ -150,12 +140,7 @@ trait ParsingTasks {
             // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
             val incomingEdges = cc.graph.edgesByDest(node)
             val newGraph = incomingEdges.foldLeft(cc.graph.addNode(updatedNode)) { (graph, edge) =>
-                val newEdge = edge match {
-                    case SimpleEdge(start, _) => SimpleEdge(start, updatedNode)
-                    case JoinEdge(start, `node`, join) => JoinEdge(start, updatedNode, join)
-                    case JoinEdge(start, end, `node`) => JoinEdge(start, end, updatedNode)
-                    case _ => ??? // should not happen
-                }
+                val newEdge = Edge(edge.start, updatedNode)
                 graph.addEdge(newEdge)
             }
 
@@ -257,9 +242,8 @@ trait ParsingTasks {
                 def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
                     queue match {
                         case node +: rest =>
-                            val reachables = (graph.edgesByStart(node) flatMap {
-                                case SimpleEdge(_, end) => Set(end)
-                                case JoinEdge(_, end, join) => Set(end, join)
+                            val reachables = (graph.edgesByStart(node) map {
+                                _.end
                             }) ++ (node.condition.nodes intersect graph.nodes)
                             val newReachables = reachables -- cc
                             visit(newReachables.toSeq ++: rest, cc ++ newReachables)
@@ -271,10 +255,7 @@ trait ParsingTasks {
                 def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
                     queue match {
                         case node +: rest =>
-                            val reachables = graph.edgesByDest(node) collect {
-                                case SimpleEdge(start, _) => start
-                                case JoinEdge(start, end, join) if (cc contains end) && (cc contains join) => start
-                            }
+                            val reachables = graph.edgesByDest(node) map { _.start }
                             val newReachables = reachables -- cc
                             visit(newReachables.toSeq ++: rest, cc ++ newReachables)
                         case List() => cc
