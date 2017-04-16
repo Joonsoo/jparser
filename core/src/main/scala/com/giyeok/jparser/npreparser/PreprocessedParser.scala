@@ -79,7 +79,7 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
                 processAcceptCondition(nextGen, liftedGraph, updatedNodes, ctx.conditionAccumulate)
 
             // 4. trimming
-            val trimmedGraph: Graph = trimUnreachables(conditionFilteredGraph, startNode, deriveTips)
+            val trimmedGraph: Graph = trimUnreachables(conditionFilteredGraph, startNode, deriveTips intersect conditionFilteredGraph.nodes)
 
             val nextContext = ctx.proceed(
                 nextGen,
