@@ -40,7 +40,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     }
 
     private def reconstruct(kernel: Kernel, gen: Int, traces: Set[(Int, Int)]): R = {
-        println("reconstruct", kernel, gen, traces)
+        // println("reconstruct", kernel, gen, traces)
         assert(finishes(gen).nodes contains kernel)
         assert(kernel.endGen == gen)
 

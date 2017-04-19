@@ -44,10 +44,10 @@ object Parser {
                 // unfixed A -> cond 에서 cond가 변경되었으면 변경된 값으로 업데이트, 변경되지 않았으면 cond 그대로
                 evaluations.getOrElse(cond, cond)
             }
-            assert({
-                val covered = eventuallyTrue ++ eventuallyFalse ++ newUnfixed.keySet
-                evaluations.keySet subsetOf covered
-            })
+            //            assert({
+            //                val covered = eventuallyTrue ++ eventuallyFalse ++ newUnfixed.keySet
+            //                evaluations.keySet subsetOf covered
+            //            })
             new ConditionAccumulate(eventuallyTrue, eventuallyFalse, newUnfixed)
         }
     }

@@ -5,14 +5,7 @@ import ParseResultGraph._
 case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node], edges: Set[Edge]) extends ParseResult {
     assert(left == root.left && right == root.right)
     assert(nodes contains root)
-    assert(edges forall {
-        case BindEdge(start, end) =>
-            (nodes contains start) && (nodes contains end)
-        case AppendEdge(start, end, _) =>
-            (nodes contains start) && (nodes contains end)
-        case JoinEdge(start, end, join) =>
-            (nodes contains start) && (nodes contains end) && (nodes contains join)
-    })
+    assert(edges forall { edge => edge.nodes subsetOf nodes })
 
     lazy val outgoingEdges = edges groupBy { _.start }
     def outgoingOf(node: Node): Set[Edge] = outgoingEdges.getOrElse(node, Set())
@@ -119,7 +112,7 @@ object ParseResultGraph {
         val left: Int
         val right: Int
 
-        def range = (left, right)
+        def range: (Int, Int) = (left, right)
     }
     sealed trait NonTerm extends Node {
         val symbol: Symbols.Symbol
@@ -127,15 +120,33 @@ object ParseResultGraph {
 
     case class Term(left: Int, input: Inputs.Input) extends Node {
         val right = left + 1
+
+        override val hashCode: Int = (left, input).hashCode()
     }
-    case class Sequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int) extends NonTerm
-    case class Bind(left: Int, right: Int, symbol: Symbols.Symbol) extends NonTerm
-    case class Join(left: Int, right: Int, symbol: Symbols.Join) extends NonTerm
+    case class Sequence(left: Int, right: Int, symbol: Symbols.Sequence, pointer: Int) extends NonTerm {
+        override val hashCode: Int = (left, right, symbol, pointer).hashCode()
+    }
+    case class Bind(left: Int, right: Int, symbol: Symbols.Symbol) extends NonTerm {
+        override val hashCode: Int = (left, right, symbol).hashCode()
+    }
+    case class Join(left: Int, right: Int, symbol: Symbols.Join) extends NonTerm {
+        override val hashCode: Int = (left, right, symbol).hashCode()
+    }
 
     sealed trait Edge {
         val start: Node
+        def nodes: Set[Node]
     }
-    case class BindEdge(start: Node, end: Node) extends Edge
-    case class AppendEdge(start: Node, end: Node, isBase: Boolean) extends Edge
-    case class JoinEdge(start: Node, end: Node, join: Node) extends Edge
+    case class BindEdge(start: Node, end: Node) extends Edge {
+        def nodes = Set(start, end)
+        override val hashCode: Int = (start, end).hashCode()
+    }
+    case class AppendEdge(start: Node, end: Node, isBase: Boolean) extends Edge {
+        def nodes = Set(start, end)
+        override val hashCode: Int = (start, end, isBase).hashCode()
+    }
+    case class JoinEdge(start: Node, end: Node, join: Node) extends Edge {
+        def nodes = Set(start, end, join)
+        override val hashCode: Int = (start, end, join).hashCode()
+    }
 }

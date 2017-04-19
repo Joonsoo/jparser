@@ -97,7 +97,7 @@ trait ParsingTasks {
 
         assert(node.kernel.isFinished)
 
-        val incomingEdges = cc.graph.edgesByDest(node)
+        val incomingEdges = cc.graph.edgesByEnd(node)
         val chainTasks: Seq[Task] = incomingEdges.toSeq flatMap { edge =>
             val Edge(incoming, _) = edge
             incoming.kernel.symbol match {
@@ -138,7 +138,7 @@ trait ParsingTasks {
         val updatedNode = Node(newKernel, conjunct(node.condition, taskCondition, chainCondition))
         if (!(cc.graph.nodes contains updatedNode)) {
             // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
-            val incomingEdges = cc.graph.edgesByDest(node)
+            val incomingEdges = cc.graph.edgesByEnd(node)
             val newGraph = incomingEdges.foldLeft(cc.graph.addNode(updatedNode)) { (graph, edge) =>
                 val newEdge = Edge(edge.start, updatedNode)
                 graph.addEdge(newEdge)
@@ -255,7 +255,7 @@ trait ParsingTasks {
                 def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
                     queue match {
                         case node +: rest =>
-                            val reachables = graph.edgesByDest(node) map { _.start }
+                            val reachables = graph.edgesByEnd(node) map { _.start }
                             val newReachables = reachables -- cc
                             visit(newReachables.toSeq ++: rest, cc ++ newReachables)
                         case List() => cc
