@@ -17,8 +17,12 @@ trait ParsingTasks {
     case class FinishTask(node: Node) extends Task
     case class ProgressTask(node: Node, condition: AcceptCondition) extends Task
 
+    private def symbolOf(symbolId: Int): NSymbol =
+        grammar.symbolOf(symbolId)
+    private def atomicSymbolOf(symbolId: Int): NAtomicSymbol =
+        symbolOf(symbolId).asInstanceOf[NAtomicSymbol]
     private def nodeOf(symbolId: Int, beginGen: Int): Node =
-        Node(Kernel(symbolId, 0, beginGen, beginGen)(grammar.symbolOf(symbolId)), Always)
+        Node(Kernel(symbolId, 0, beginGen, beginGen)(symbolOf(symbolId)), Always)
 
     def deriveTask(nextGen: Int, task: DeriveTask, cc: Cont): (Cont, Seq[Task]) = {
         val DeriveTask(startNode) = task
@@ -117,18 +121,15 @@ trait ParsingTasks {
         val nodeSymbolOpt = grammar.nsymbols get node.kernel.symbolId
         val chainCondition = nodeSymbolOpt match {
             case Some(NLongest(_, longest)) =>
-                val longestNode = nodeOf(longest, node.kernel.beginGen)
-                conjunct(node.condition, Until(longestNode, nextGen))
+                conjunct(node.condition, Until(longest, node.kernel.beginGen, nextGen)(atomicSymbolOf(longest)))
             case Some(NExcept(_, _, except)) =>
-                val exceptNode = nodeOf(except, node.kernel.beginGen)
-                conjunct(node.condition, Unless(exceptNode, nextGen))
+                conjunct(node.condition, Unless(except, node.kernel.beginGen, nextGen)(atomicSymbolOf(except)))
             case Some(NJoin(_, _, join)) =>
-                val joinNode = nodeOf(join, node.kernel.beginGen)
-                conjunct(node.condition, OnlyIf(joinNode, nextGen))
-            case Some(NLookaheadIs(_, _, lookahaed)) =>
-                conjunct(node.condition, After(nodeOf(lookahaed, nextGen), nextGen))
+                conjunct(node.condition, OnlyIf(join, node.kernel.beginGen, nextGen)(atomicSymbolOf(join)))
+            case Some(NLookaheadIs(_, _, lookahead)) =>
+                conjunct(node.condition, After(lookahead, nextGen, nextGen)(atomicSymbolOf(lookahead)))
             case Some(NLookaheadExcept(_, _, lookahaed)) =>
-                conjunct(node.condition, Until(nodeOf(lookahaed, nextGen), nextGen))
+                conjunct(node.condition, Until(lookahaed, nextGen, nextGen)(atomicSymbolOf(lookahaed)))
             case _ => node.condition
         }
         val newKernel = {
@@ -208,12 +209,12 @@ trait ParsingTasks {
         }
     }
 
-    def processAcceptCondition(nextGen: Int, liftedGraph: Graph, updatedNodes: Map[Node, Set[Node]], conditionAccumulate: ConditionAccumulate): (ConditionAccumulate, Graph, Graph) = {
+    def processAcceptCondition(nextGen: Int, liftedGraph: Graph, conditionAccumulate: ConditionAccumulate): (ConditionAccumulate, Graph, Graph) = {
         // 2a. Evaluate accept conditions
         val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] = {
             val conditions = (liftedGraph.nodes map { _.condition }) ++ conditionAccumulate.unfixed.values.toSet
             (conditions map { condition =>
-                condition -> condition.evaluate(nextGen, liftedGraph, updatedNodes)
+                condition -> condition.evaluate(nextGen, liftedGraph)
             }).toMap
         }
         // 2b. ConditionAccumulate update

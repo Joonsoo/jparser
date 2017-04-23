@@ -68,7 +68,7 @@ object Parser {
         }
     }
 
-    abstract class Context(val gen: Int, val nextGraph: Graph, _inputs: List[Input], _history: List[Graph], updatedNodes: Map[Node, Set[Node]], val conditionAccumulate: ConditionAccumulate) {
+    abstract class Context(val gen: Int, val nextGraph: Graph, _inputs: List[Input], _history: List[Graph], val conditionAccumulate: ConditionAccumulate) {
         def nextGen: Int = gen + 1
         def inputs: Seq[Input] = _inputs.reverse
         def history: Seq[Graph] = _history.reverse
@@ -76,15 +76,15 @@ object Parser {
         def conditionFinal: Map[AcceptCondition, Boolean] = {
             val trueFixed = (conditionAccumulate.trueFixed map { c => c -> true }).toMap
             val falseFixed = (conditionAccumulate.falseFixed map { c => c -> false }).toMap
-            val notFixed = conditionAccumulate.unfixed map { kv => kv._1 -> kv._2.acceptable(gen, resultGraph, updatedNodes) }
+            val notFixed = conditionAccumulate.unfixed map { kv => kv._1 -> kv._2.acceptable(gen, resultGraph) }
             trueFixed ++ falseFixed ++ notFixed
         }
     }
 
-    class NaiveContext(gen: Int, nextGraph: Graph, _inputs: List[Input], _history: List[Graph], updatedNodes: Map[Node, Set[Node]], conditionAccumulate: ConditionAccumulate)
-            extends Context(gen, nextGraph, _inputs, _history, updatedNodes, conditionAccumulate) {
-        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, newInput: Input, updatedNodes: Map[Node, Set[Node]], newConditionAccumulate: ConditionAccumulate): NaiveContext = {
-            new NaiveContext(nextGen, nextGraph, newInput +: _inputs, resultGraph +: _history, updatedNodes, newConditionAccumulate)
+    class NaiveContext(gen: Int, nextGraph: Graph, _inputs: List[Input], _history: List[Graph], conditionAccumulate: ConditionAccumulate)
+            extends Context(gen, nextGraph, _inputs, _history, conditionAccumulate) {
+        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, newInput: Input, newConditionAccumulate: ConditionAccumulate): NaiveContext = {
+            new NaiveContext(nextGen, nextGraph, newInput +: _inputs, resultGraph +: _history, newConditionAccumulate)
         }
     }
 

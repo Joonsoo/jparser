@@ -13,7 +13,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
 
     val initialContext: NaiveContext = {
         // TODO lift 제외하고 proceed할 때랑 동일하게 해야 하나?
-        val Cont(graph, updatedNodes) = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
+        val Cont(graph, _) = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
         val conditionsMap = (graph.nodes map { n => n.condition -> n.condition }).toMap
 
         val initialConditionAccumulate = ConditionAccumulate(conditionsMap)
@@ -22,7 +22,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
         // 2a. Evaluate accept conditions
         val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] = {
             (graph.nodes map { _.condition } map { condition =>
-                condition -> condition.evaluate(0, graph, updatedNodes)
+                condition -> condition.evaluate(0, graph)
             }).toMap
         }
         // 2b. ConditionAccumulate update
@@ -40,7 +40,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
         // 3. Trimming
         val trimmedGraph: Graph = trimGraph(acceptConditionUpdatedGraph, startNode, 0)
 
-        new NaiveContext(0, trimmedGraph, List(), List(graph), updatedNodes, nextConditionAccumulate)
+        new NaiveContext(0, trimmedGraph, List(), List(graph), nextConditionAccumulate)
     }
 
     def proceedDetail(ctx: NaiveContext, input: Input): Either[(ProceedDetail, NaiveContext), ParsingError] = {
@@ -54,7 +54,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
 
             // 2. Accept condition 처리
             val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =
-                processAcceptCondition(nextGen, liftedGraph, updatedNodes, ctx.conditionAccumulate)
+                processAcceptCondition(nextGen, liftedGraph, ctx.conditionAccumulate)
 
             // 3. Trimming
             val trimmedGraph: Graph = trimGraph(conditionFilteredGraph, startNode, nextGen)
@@ -65,7 +65,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             val nextContext = ctx.proceed(
                 nextGen,
                 resultGraph = liftedGraph, nextGraph = trimmedGraph,
-                input, updatedNodes, nextConditionAccumulate
+                input, nextConditionAccumulate
             )
 
             Left((ProceedDetail(

@@ -42,29 +42,29 @@ class NodeFigureGenerators[Fig](
             case Or(conds) =>
                 val condsFig = conds.toSeq map { conditionFig(grammar, _) }
                 fig.horizontalFig(Spacing.Small, fig.textFig("(", d) +: joinFigs(condsFig, fig.textFig("|", d)) :+ fig.textFig(")", d))
-            case Until(node, activeGen) =>
+            case Until(sym, beginGen, activeGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("Until(", d),
-                    nodeFig(grammar, node),
-                    fig.textFig(s", $activeGen)", d)
+                    symbol.symbolFig(sym.symbol),
+                    fig.textFig(s", $beginGen..$activeGen)", d)
                 ))
-            case After(node, activeGen) =>
+            case After(sym, beginGen, activeGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("After(", d),
-                    nodeFig(grammar, node),
-                    fig.textFig(s", $activeGen)", d)
+                    symbol.symbolFig(sym.symbol),
+                    fig.textFig(s", $beginGen..$activeGen)", d)
                 ))
-            case Unless(node, targetGen) =>
+            case Unless(sym, beginGen, targetGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("Unless(", d),
-                    nodeFig(grammar, node),
-                    fig.textFig(s", $targetGen)", d)
+                    symbol.symbolFig(sym.symbol),
+                    fig.textFig(s", $beginGen..$targetGen)", d)
                 ))
-            case OnlyIf(node, targetGen) =>
+            case OnlyIf(sym, beginGen, targetGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("OnlyIf(", d),
-                    nodeFig(grammar, node),
-                    fig.textFig(s", $targetGen)", d)
+                    symbol.symbolFig(sym.symbol),
+                    fig.textFig(s", $beginGen..$targetGen)", d)
                 ))
         }
     }

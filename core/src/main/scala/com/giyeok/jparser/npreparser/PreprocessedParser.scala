@@ -13,11 +13,11 @@ import com.giyeok.jparser.nparser.Parser.Transition
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.nparser.ParsingTasks
 
-class DeriveTipsContext(gen: Int, nextGraph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Graph], updatedNodes: Map[Node, Set[Node]], conditionAccumulate: ConditionAccumulate)
-        extends Context(gen, nextGraph, _inputs, _history, updatedNodes, conditionAccumulate) {
+class DeriveTipsContext(gen: Int, nextGraph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Graph], conditionAccumulate: ConditionAccumulate)
+        extends Context(gen, nextGraph, _inputs, _history, conditionAccumulate) {
     // assert(deriveTips subsetOf nextGraph.nodes)
-    def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, updatedNodes: Map[Node, Set[Node]], newConditionAccumulate: ConditionAccumulate): DeriveTipsContext = {
-        new DeriveTipsContext(nextGen, nextGraph, deriveTips, newInput +: _inputs, resultGraph +: _history, updatedNodes, newConditionAccumulate)
+    def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, newConditionAccumulate: ConditionAccumulate): DeriveTipsContext = {
+        new DeriveTipsContext(nextGen, nextGraph, deriveTips, newInput +: _inputs, resultGraph +: _history, newConditionAccumulate)
     }
 }
 
@@ -29,7 +29,7 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
         assert(initial.lifted.graph.nodes contains startNode)
         val conditionAccumulate = ConditionAccumulate((initial.lifted.graph.nodes map { _.condition } map { x => x -> x }).toMap)
         val initialGraph = Graph(Set(startNode), Set())
-        new DeriveTipsContext(0, initialGraph, Set(startNode), List(), List(initial.lifted.graph), initial.lifted.updatedNodes, conditionAccumulate)
+        new DeriveTipsContext(0, initialGraph, Set(startNode), List(), List(initial.lifted.graph), conditionAccumulate)
     }
 
     @tailrec private def recNoDerive(nextGen: Int, tasks: List[Task], cc: Cont, deriveTips: Set[Node]): (Cont, Set[Node]) =
@@ -76,7 +76,7 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
 
             // 3. accept condition 처리
             val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =
-                processAcceptCondition(nextGen, liftedGraph, updatedNodes, ctx.conditionAccumulate)
+                processAcceptCondition(nextGen, liftedGraph, ctx.conditionAccumulate)
 
             // 4. trimming
             val trimmedGraph: Graph = trimUnreachables(conditionFilteredGraph, startNode, deriveTips intersect conditionFilteredGraph.nodes)
@@ -85,7 +85,7 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
                 nextGen,
                 resultGraph = liftedGraph, nextGraph = trimmedGraph,
                 deriveTips = deriveTips,
-                input, updatedNodes, nextConditionAccumulate
+                input, nextConditionAccumulate
             )
 
             Left((ProceedDetail(
