@@ -100,7 +100,10 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
     }
 
     def symbolFig(grammar: NGrammar, symbolId: Int): Fig = {
-        symbolFig(grammar.symbolOf(symbolId).symbol)
+        fig.horizontalFig(Spacing.Small, Seq(
+            fig.textFig(symbolId.toString, ap.small),
+            symbolFig(grammar.symbolOf(symbolId).symbol)
+        ))
     }
 
     private def dot = fig.textFig("\u2022", ap.kernelDot)

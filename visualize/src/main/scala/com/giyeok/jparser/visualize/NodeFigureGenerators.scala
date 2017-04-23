@@ -42,28 +42,28 @@ class NodeFigureGenerators[Fig](
             case Or(conds) =>
                 val condsFig = conds.toSeq map { conditionFig(grammar, _) }
                 fig.horizontalFig(Spacing.Small, fig.textFig("(", d) +: joinFigs(condsFig, fig.textFig("|", d)) :+ fig.textFig(")", d))
-            case Until(sym, beginGen, activeGen) =>
+            case Until(symbolId, beginGen, activeGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("Until(", d),
-                    symbol.symbolFig(sym.symbol),
+                    symbol.symbolFig(grammar, symbolId),
                     fig.textFig(s", $beginGen..$activeGen)", d)
                 ))
-            case After(sym, beginGen, activeGen) =>
+            case After(symbolId, beginGen, activeGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("After(", d),
-                    symbol.symbolFig(sym.symbol),
+                    symbol.symbolFig(grammar, symbolId),
                     fig.textFig(s", $beginGen..$activeGen)", d)
                 ))
-            case Unless(sym, beginGen, targetGen) =>
+            case Unless(symbolId, beginGen, targetGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("Unless(", d),
-                    symbol.symbolFig(sym.symbol),
+                    symbol.symbolFig(grammar, symbolId),
                     fig.textFig(s", $beginGen..$targetGen)", d)
                 ))
-            case OnlyIf(sym, beginGen, targetGen) =>
+            case OnlyIf(symbolId, beginGen, targetGen) =>
                 fig.horizontalFig(Spacing.Small, Seq(
                     fig.textFig("OnlyIf(", d),
-                    symbol.symbolFig(sym.symbol),
+                    symbol.symbolFig(grammar, symbolId),
                     fig.textFig(s", $beginGen..$targetGen)", d)
                 ))
         }

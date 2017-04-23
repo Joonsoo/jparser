@@ -102,6 +102,8 @@ object ParsingContext {
                 }
             Graph(nodes ++ other.nodes, edges ++ other.edges, mergeEdgesMap(edgesByStart, other.edgesByStart), mergeEdgesMap(edgesByEnd, other.edgesByEnd))
         }
+        def conditionsOf(kernel: Kernel): Set[AcceptCondition] =
+            nodes collect { case Node(`kernel`, condition) => condition }
     }
     object Graph {
         def apply(nodes: Set[Node], edges: Set[Edge]): Graph = {
