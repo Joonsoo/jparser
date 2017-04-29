@@ -30,7 +30,9 @@ object GrammarGrammarTests1 extends GrammarTestCases with StringSamples {
 
 object GrammarGrammarTests {
     val tests: Set[GrammarTestCases] = Set(
-        GrammarGrammarTests1)
+        GrammarGrammarTests1,
+        MetaGrammarTests
+    )
 }
 
 class GrammarGrammarTestSuite1 extends BasicParseTest(GrammarGrammarTests.tests)
