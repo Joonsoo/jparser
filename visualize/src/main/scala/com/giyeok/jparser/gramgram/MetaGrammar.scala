@@ -30,11 +30,15 @@ object MetaGrammar extends Grammar {
         ),
         "RHS" -> ListSet(
             n("Symbol"),
-            empty,
+            n("EmptySequence"),
             n("SymbolSeq") // Symbol이 한개일 때는 RHS로 하지 않음
         ),
-        "Sequence" -> ListSet(
+        "EmptySequence" -> ListSet(
             empty,
+            c("#ε".toSet)
+        ),
+        "Sequence" -> ListSet(
+            n("EmptySequence"),
             n("Symbol"),
             n("SymbolSeq")
         ),
@@ -61,7 +65,14 @@ object MetaGrammar extends Grammar {
         "Terminal" -> ListSet(
             c('.'), // anychar
             seq(c('\''), n("char"), c('\'')),
-            seq(c('{'), c('-').opt, oneof(n("char").except(c('-')), seq(n("char"), c('-'), n("char"))).plus, c('}'))
+            n("TerminalCharSet")
+        ),
+        "TerminalCharSet" -> ListSet(
+            seq(
+                c('{'),
+                oneof(n("charSetChar"), seq(n("charSetChar"), c('-'), n("charSetChar"))).plus,
+                c('}')
+            )
         ),
         "String" -> ListSet(
             seq(c('\"'), n("stringChar").star, c('\"'))
@@ -104,6 +115,11 @@ object MetaGrammar extends Grammar {
         "char" -> ListSet(
             anychar.except(c('\\')),
             seq(c('\\'), c("nrbt\"\'\\".toSet)),
+            seq(c('\\'), c('u'), c("0123456789abcdefABCDEF".toSet).repeat(4, 4))
+        ),
+        "charSetChar" -> ListSet(
+            anychar.except(c("\\}-".toSet)),
+            seq(c('\\'), c("-nrbt\"\'\\".toSet)),
             seq(c('\\'), c('u'), c("0123456789abcdefABCDEF".toSet).repeat(4, 4))
         ),
         "stringChar" -> ListSet(
