@@ -49,7 +49,7 @@ object GrammarHelper {
     def longest(sym: Symbol) = Longest(proxyIfNeeded(sym))
     def join(sym: Symbol, join: Symbol) = new Join(proxyIfNeeded(sym), proxyIfNeeded(join))
     def proxyIfNeeded(sym: Symbol): AtomicSymbol = sym match {
-        case sym: Sequence => Proxy.of(sym)
+        case sym: Sequence => Proxy(sym)
         case sym: AtomicSymbol => sym
     }
 

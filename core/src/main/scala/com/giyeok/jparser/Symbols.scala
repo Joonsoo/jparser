@@ -189,12 +189,6 @@ object Symbols {
     case class Proxy(sym: Symbol) extends AtomicNonterm {
         override val hashCode = (classOf[Proxy], sym).hashCode
     }
-    object Proxy {
-        def of(sym: Symbol): AtomicSymbol = sym match {
-            case sym: AtomicSymbol => sym
-            case sym => Proxy(sym)
-        }
-    }
     case class Join(sym: AtomicSymbol, join: AtomicSymbol) extends AtomicNonterm {
         assert(sym != join)
         override val hashCode = (classOf[Join], sym, join).hashCode
