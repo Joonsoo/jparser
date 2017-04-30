@@ -40,7 +40,6 @@ object GrammarHelper {
         Sequence(insertedSeq, contentIds)
     }
     def seqWS(between: Set[Symbol], seq: Symbol*): Sequence = seqWS(oneof(between), seq: _*)
-    def ws(set: Symbol*): Set[Symbol] = Set[Symbol](set: _*)
     def oneof(items: Symbol*) = OneOf(items.toSet)
     def oneof(items: Set[Symbol]) = OneOf(items)
     def lookahead_is(lookahead: Symbol) = LookaheadIs(proxyIfNeeded(lookahead))

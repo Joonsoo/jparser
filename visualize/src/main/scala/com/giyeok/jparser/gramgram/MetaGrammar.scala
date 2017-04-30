@@ -15,17 +15,17 @@ object MetaGrammar extends Grammar {
     val name = "Meta Grammar"
     val rules: RuleMap = ListMap(
         "Grammar" -> ListSet(
-            seq(n("ws").star, n("Rules"), n("ws").star)
+            Sequence(Seq(n("ws*"), n("Rules"), n("ws*")), Seq(1))
         ),
         "Rules" -> ListSet(
-            seq(n("Rules"), longest(n("ws").except(c('\n')).star), c('\n'), n("ws").star, n("Rule")),
+            Sequence(Seq(n("Rules"), longest(n("ws").except(c('\n')).star), c('\n'), n("ws*"), n("Rule")), Seq(0, 4)),
             n("Rule")
         ),
         "Rule" -> ListSet(
-            seq(n("Nonterminal"), n("ws").star, c('='), n("ws").star, n("RHSs"))
+            seqWS(n("ws*"), n("Nonterminal"), c('='), n("RHSs"))
         ),
         "RHSs" -> ListSet(
-            seq(n("RHSs"), n("ws").star, c('|'), n("ws").star, n("RHS")),
+            seqWS(n("ws*"), n("RHSs"), c('|'), n("RHS")),
             n("RHS")
         ),
         "RHS" -> ListSet(
@@ -40,8 +40,8 @@ object MetaGrammar extends Grammar {
         ),
         "SymbolSeq" -> ListSet(
             // Symbol 2개 이상
-            seq(n("SymbolSeq"), n("ws").plus, n("Symbol")),
-            seq(n("Symbol"), n("ws").plus, n("Symbol"))
+            seqWS(n("ws+"), n("SymbolSeq"), n("Symbol")),
+            seqWS(n("ws+"), n("Symbol"), n("Symbol"))
         ),
         "Symbol" -> ListSet(
             n("Terminal"),
@@ -56,9 +56,10 @@ object MetaGrammar extends Grammar {
             n("Lookahead"),
             n("LookaheadNot"),
             n("Longest"),
-            seq(c('('), n("ws").star, n("Either"), n("ws").star, c(')'))
+            seqWS(n("ws*"), c('('), n("Either"), c(')'))
         ),
         "Terminal" -> ListSet(
+            c('.'), // anychar
             seq(c('\''), n("char"), c('\'')),
             seq(c('{'), c('-').opt, oneof(n("char").except(c('-')), seq(n("char"), c('-'), n("char"))).plus, c('}'))
         ),
@@ -66,38 +67,39 @@ object MetaGrammar extends Grammar {
             seq(c('\"'), n("stringChar").star, c('\"'))
         ),
         "Nonterminal" -> ListSet(
-            c(('a' to 'z').toSet ++ ('A' to 'Z').toSet + '_').plus
+            c(('a' to 'z').toSet ++ ('A' to 'Z').toSet ++ ('0' to '9').toSet + '_').plus,
+            seq(c('`'), n("nontermNameChar").star, c('`'))
         ),
         "Repeat0" -> ListSet(
-            seq(n("Symbol"), c('*'))
+            seqWS(n("ws*"), n("Symbol"), c('*'))
         ),
         "Repeat1" -> ListSet(
-            seq(n("Symbol"), c('+'))
+            seqWS(n("ws*"), n("Symbol"), c('+'))
         ),
         "Optional" -> ListSet(
-            seq(n("Symbol"), c('?'))
+            seqWS(n("ws*"), n("Symbol"), c('?'))
         ),
         "Proxy" -> ListSet(
-            seq(c('['), n("ws").star, n("Sequence"), n("ws").star, c(']'))
+            seqWS(n("ws*"), c('['), n("Sequence"), c(']'))
         ),
         "Either" -> ListSet(
-            seq(n("Either"), n("ws").star, c('|'), n("ws").star, n("Symbol")),
+            seqWS(n("ws*"), n("Either"), c('|'), n("Symbol")),
             n("Symbol")
         ),
         "Intersection" -> ListSet(
-            seq(n("Symbol"), n("ws").star, c('&'), n("ws").star, n("Symbol"))
+            seqWS(n("ws*"), n("Symbol"), c('&'), n("Symbol"))
         ),
         "Exclusion" -> ListSet(
-            seq(n("Symbol"), n("ws").star, c('-'), n("ws").star, n("Symbol"))
+            seqWS(n("ws*"), n("Symbol"), c('-'), n("Symbol"))
         ),
         "Lookahead" -> ListSet(
-            seq(c('~'), n("ws").star, n("Symbol"))
+            seqWS(n("ws*"), c('~'), n("Symbol"))
         ),
         "LookaheadNot" -> ListSet(
-            seq(c('!'), n("ws").star, n("Symbol"))
+            seqWS(n("ws*"), c('!'), n("Symbol"))
         ),
         "Longest" -> ListSet(
-            seq(c('<'), n("ws").star, n("Symbol"), n("ws").star, c('>'))
+            seqWS(n("ws*"), c('<'), n("Symbol"), c('>'))
         ),
         "char" -> ListSet(
             anychar.except(c('\\')),
@@ -109,8 +111,19 @@ object MetaGrammar extends Grammar {
             seq(c('\\'), c("nrbt\"\'\\".toSet)),
             seq(c('\\'), c('u'), c("0123456789abcdefABCDEF".toSet).repeat(4, 4))
         ),
+        "nontermNameChar" -> ListSet(
+            anychar.except(c("\\`".toSet)),
+            seq(c('\\'), c("nrbt`".toSet)),
+            seq(c('\\'), c('u'), c("0123456789abcdefABCDEF".toSet).repeat(4, 4))
+        ),
         "ws" -> ListSet(
             chars(" \t\n\r")
+        ),
+        "ws*" -> ListSet(
+            longest(n("ws").star)
+        ),
+        "ws+" -> ListSet(
+            longest(n("ws").plus)
         )
     )
     val startSymbol: Nonterminal = n("Grammar")
