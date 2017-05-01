@@ -1,5 +1,6 @@
 package com.giyeok.jparser.tests.gramgram
 
+import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
@@ -11,46 +12,47 @@ import com.giyeok.jparser.tests.StringSamples
 object MetaGrammarTests extends GrammarTestCases with StringSamples {
     val grammar = MetaGrammar
 
-    val metaGrammar: String =
-        """Grammar = `ws*` Rules `ws*`
-          |Rules = Rules <(ws-'\n')*> '\n' `ws*` Rule
+    val metaGrammarText1: String =
+        """Grammar = ws* Rules ws*
+          |Rules = Rules <(ws-'\n')*> '\n' ws* Rule
           |    | Rule
-          |Rule = Nonterminal `ws*` '=' `ws*` RHSs
-          |RHSs = RHSs `ws*` '|' `ws*` Sequence
+          |Rule = Nonterminal ws* '=' ws* RHSs
+          |RHSs = RHSs ws* '|' ws* Sequence
           |    | Sequence
           |EmptySequence = ε
           |    | {#ε}
           |Sequence = EmptySequence
           |    | Symbol
           |    | SymbolSeq
-          |SymbolSeq = SymbolSeq `ws+` Symbol
-          |    | Symbol `ws+` Symbol
+          |SymbolSeq = SymbolSeq ws+ Symbol
+          |    | Symbol ws+ Symbol
           |Symbol = Exclusion-Symbol4
           |    | Symbol4
           |Exclusion = Symbol4
-          |    | Exclusion `ws*` '-' `ws*` Symbol4
+          |    | Exclusion ws* '-' ws* Symbol4
           |Symbol4 = Intersection-Symbol3
           |    | Symbol3
           |Intersection = Symbol3
-          |    | Intersection `ws*` '&' `ws*` Symbol3
+          |    | Intersection ws* '&' ws* Symbol3
           |Symbol3 = Repeat0
           |    | Repeat1
           |    | Optional
           |    | Symbol2
-          |Repeat0 = Symbol3 `ws*` '*'
-          |Repeat1 = Symbol3 `ws*` '+'
-          |Optional = Symbol3 `ws*` '?'
+          |Repeat0 = Symbol3 ws* '*'
+          |Repeat1 = Symbol3 ws* '+'
+          |Optional = Symbol3 ws* '?'
           |Symbol2 = FollowedBy
           |    | NotFollowedBy
           |    | Symbol1
-          |FollowedBy = '$' `ws*` Symbol2
-          |NotFollowedBy = '!' `ws*` Symbol2
+          |FollowedBy = '$' ws* Symbol2
+          |NotFollowedBy = '!' ws* Symbol2
           |Symbol1 = Terminal
           |    | String
           |    | Nonterminal
           |    | Proxy
           |    | Longest
-          |    | '(' `ws*` Either `ws*` ')'
+          |    | '(' ws* Symbol ws* ')'
+          |    | '(' ws* Either ws* ')'
           |Terminal = anychar
           |    | '\'' char '\''
           |    | TerminalCharSet
@@ -62,10 +64,10 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
           |    | QuoteNonterminalName
           |PlainNonterminalName = {0-9A-Z_a-z}+
           |QuoteNonterminalName = '`' nontermNameChar* '`'
-          |Proxy = '[' `ws*` Sequence `ws*` ']'
-          |Either = Either `ws*` '|' `ws*` Symbol
-          |    | Symbol
-          |Longest = '<' `ws*` Symbol `ws*` '>'
+          |Proxy = '[' ws* Sequence ws* ']'
+          |Either = Symbol ws* '|' ws* Symbol
+          |    | Either ws* '|' ws* Symbol
+          |Longest = '<' ws* Symbol ws* '>'
           |anychar = '.'
           |char = .-'\\'
           |    | '\\' {"'\\bnrt}
@@ -80,9 +82,45 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
           |    | '\\' {\\`bnrt}
           |    | unicodeChar
           |unicodeChar = '\\' 'u' {0-9A-Fa-f} {0-9A-Fa-f} {0-9A-Fa-f} {0-9A-Fa-f}
-          |ws = {\t\n\r }
-          |`ws*` = <ws*>
-          |`ws+` = <ws+>""".stripMargin('|')
+          |ws = {\t\n\r }""".stripMargin('|')
+    val metaGrammarText2: String =
+        """Grammar = ws* Rules ws*
+          |Rules = Rules <(ws-'\n')*> '\n' ws* Rule | Rule
+          |Rule = Nonterminal ws* '=' ws* RHSs
+          |RHSs = RHSs ws* '|' ws* Sequence | Sequence
+          |EmptySequence = ε | {#ε}
+          |Sequence = EmptySequence | Symbol | SymbolSeq
+          |SymbolSeq = SymbolSeq ws+ Symbol | Symbol ws+ Symbol
+          |Symbol = Exclusion-Symbol4 | Symbol4
+          |Exclusion = Symbol4 | Exclusion ws* '-' ws* Symbol4
+          |Symbol4 = Intersection-Symbol3 | Symbol3
+          |Intersection = Symbol3 | Intersection ws* '&' ws* Symbol3
+          |Symbol3 = Repeat0 | Repeat1 | Optional | Symbol2
+          |Repeat0 = Symbol3 ws* '*'
+          |Repeat1 = Symbol3 ws* '+'
+          |Optional = Symbol3 ws* '?'
+          |Symbol2 = FollowedBy | NotFollowedBy | Symbol1
+          |FollowedBy = '$' ws* Symbol2
+          |NotFollowedBy = '!' ws* Symbol2
+          |Symbol1 = Terminal | String | Nonterminal | Proxy | Longest
+          |    | '(' ws* Symbol ws* ')' | '(' ws* Either ws* ')'
+          |Terminal = anychar | '\'' char '\'' | TerminalCharSet
+          |TerminalCharSet = '{' TerminalCharRange+ '}'
+          |TerminalCharRange = charSetChar | charSetChar '-' charSetChar
+          |String = '"' stringChar* '"'
+          |Nonterminal = PlainNonterminalName | QuoteNonterminalName
+          |PlainNonterminalName = {0-9A-Z_a-z}+
+          |QuoteNonterminalName = '`' nontermNameChar* '`'
+          |Proxy = '[' ws* Sequence ws* ']'
+          |Either = Symbol ws* '|' ws* Symbol | Either ws* '|' ws* Symbol
+          |Longest = '<' ws* Symbol ws* '>'
+          |anychar = '.'
+          |char = .-'\\' | '\\' {"'\\bnrt} | unicodeChar
+          |charSetChar = .-{\-\\\}} | '\\' {"'\-\\bnrt\}} | unicodeChar
+          |stringChar = .-{"\\} | '\\' {"'\\bnrt} | unicodeChar
+          |nontermNameChar = .-{\\`} | '\\' {\\`bnrt} | unicodeChar
+          |unicodeChar = '\\' 'u' {0-9A-Fa-f} {0-9A-Fa-f} {0-9A-Fa-f} {0-9A-Fa-f}
+          |ws = {\t\n\r }""".stripMargin('|')
     val correctSamples = Set(
         "A=B-'\n'*",
         "S = 'a'? 'b'+ <'c'*>",
@@ -96,7 +134,8 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
           |  | "qwer"
           |ASDF = 'c'?
         """.stripMargin,
-        metaGrammar
+        metaGrammarText1,
+        metaGrammarText2
     )
     val incorrectSamples = Set[String]()
 
@@ -104,30 +143,54 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
         println("===== generated =====")
         println(MetaGrammar.reverse(MetaGrammar))
 
-        val translated = MetaGrammar.translate(metaGrammar).get
+        val metaGrammar1 = MetaGrammar.translate(metaGrammarText1).get
         println("===== translated =====")
-        println(MetaGrammar.reverse(translated))
+        println(MetaGrammar.reverse(metaGrammar1))
+        println("Meta=meta1", MetaGrammar.rules.toSet == metaGrammar1.rules.toSet)
 
-        println("========= parsing metaGrammar from metaGrammar ========")
-        val parser = new NaiveParser(NGrammar.fromGrammar(translated))
-        val translatedFromTranslated = parser.parse(metaGrammar) match {
-            case Left(ctx) =>
-                new ParseTreeConstructor(ParseForestFunc)(parser.grammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct() match {
-                    case Some(forest) if forest.trees.size == 1 =>
-                        println("successful")
-                        MetaGrammar.translate(forest.trees.head)
-                    case _ =>
-                        println("???")
-                        ???
-                }
-            case Right(error) =>
-                println(error)
-                ???
+        val metaGrammar2 = MetaGrammar.translate(metaGrammarText2).get
+        println("===== translated0 =====")
+        println(MetaGrammar.reverse(metaGrammar2))
+        println("Meta=meta2", MetaGrammar.rules.toSet == metaGrammar2.rules.toSet)
+
+        println("meta1=meta2", metaGrammar1.rules.toSet == metaGrammar2.rules.toSet)
+
+        println("========= parsing metaGrammar1 from metaGrammar1 ========")
+        val metaGrammarParser1 = new NaiveParser(NGrammar.fromGrammar(metaGrammar1))
+        val metaGrammarParser2 = new NaiveParser(NGrammar.fromGrammar(metaGrammar2))
+
+        def parse(parser: NaiveParser, text: String): Grammar = {
+            parser.parse(text) match {
+                case Left(ctx) =>
+                    new ParseTreeConstructor(ParseForestFunc)(parser.grammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct() match {
+                        case Some(forest) if forest.trees.size == 1 =>
+                            println("successful")
+                            MetaGrammar.translate(forest.trees.head)
+                        case forestOpt =>
+                            println(forestOpt)
+                            println("???")
+                            ???
+                    }
+                case Right(error) =>
+                    println(error)
+                    ???
+            }
         }
 
-        println("===== translated from translated =====")
-        println(MetaGrammar.reverse(translatedFromTranslated))
-        println(translated.rules == translatedFromTranslated.rules)
+        val meta1FromMeta1 = parse(metaGrammarParser1, metaGrammarText1)
+        val meta1FromMeta2 = parse(metaGrammarParser1, metaGrammarText2)
+        val meta2FromMeta1 = parse(metaGrammarParser2, metaGrammarText1)
+        val meta2FromMeta2 = parse(metaGrammarParser2, metaGrammarText2)
+
+        def test(name: String, grammar: Grammar, base: Grammar): Unit = {
+            println(s"===== $name =====")
+            // println(MetaGrammar.reverse(grammar))
+            println(base.rules == grammar.rules)
+        }
+        test("meta1FromMeta1", meta1FromMeta1, metaGrammar1)
+        test("meta1FromMeta2", meta1FromMeta2, metaGrammar1)
+        test("meta2FromMeta1", meta2FromMeta1, metaGrammar1)
+        test("meta2FromMeta2", meta2FromMeta2, metaGrammar1)
         // println(MetaGrammar.reverse(grammar.get) == metaGrammar1)
     }
 }

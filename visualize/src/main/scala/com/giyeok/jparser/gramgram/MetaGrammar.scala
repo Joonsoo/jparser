@@ -18,17 +18,17 @@ object MetaGrammar extends Grammar {
     val name = "Meta Grammar"
     val rules: RuleMap = ListMap(
         "Grammar" -> ListSet(
-            Sequence(Seq(n("ws*"), n("Rules"), n("ws*")), Seq(1))
+            Sequence(Seq(n("ws").star, n("Rules"), n("ws").star), Seq(1))
         ),
         "Rules" -> ListSet(
-            Sequence(Seq(n("Rules"), longest((n("ws").except(c('\n'))).star), c('\n'), n("ws*"), n("Rule")), Seq(0, 4)),
+            Sequence(Seq(n("Rules"), longest((n("ws").except(c('\n'))).star), c('\n'), n("ws").star, n("Rule")), Seq(0, 4)),
             n("Rule")
         ),
         "Rule" -> ListSet(
-            seqWS(n("ws*"), n("Nonterminal"), c('='), n("RHSs"))
+            seqWS(n("ws").star, n("Nonterminal"), c('='), n("RHSs"))
         ),
         "RHSs" -> ListSet(
-            seqWS(n("ws*"), n("RHSs"), c('|'), n("Sequence")),
+            seqWS(n("ws").star, n("RHSs"), c('|'), n("Sequence")),
             n("Sequence")
         ),
         "EmptySequence" -> ListSet(
@@ -42,8 +42,8 @@ object MetaGrammar extends Grammar {
         ),
         "SymbolSeq" -> ListSet(
             // Symbol 2개 이상
-            seqWS(n("ws+"), n("SymbolSeq"), n("Symbol")),
-            seqWS(n("ws+"), n("Symbol"), n("Symbol"))
+            seqWS(n("ws").plus, n("SymbolSeq"), n("Symbol")),
+            seqWS(n("ws").plus, n("Symbol"), n("Symbol"))
         ),
         "Symbol" -> ListSet(
             n("Exclusion").except(n("Symbol4")),
@@ -51,7 +51,7 @@ object MetaGrammar extends Grammar {
         ),
         "Exclusion" -> ListSet(
             n("Symbol4"),
-            seqWS(n("ws*"), n("Exclusion"), c('-'), n("Symbol4"))
+            seqWS(n("ws").star, n("Exclusion"), c('-'), n("Symbol4"))
         ),
         "Symbol4" -> ListSet(
             n("Intersection").except(n("Symbol3")),
@@ -59,7 +59,7 @@ object MetaGrammar extends Grammar {
         ),
         "Intersection" -> ListSet(
             n("Symbol3"),
-            seqWS(n("ws*"), n("Intersection"), c('&'), n("Symbol3"))
+            seqWS(n("ws").star, n("Intersection"), c('&'), n("Symbol3"))
         ),
         "Symbol3" -> ListSet(
             n("Repeat0"),
@@ -68,13 +68,13 @@ object MetaGrammar extends Grammar {
             n("Symbol2")
         ),
         "Repeat0" -> ListSet(
-            seqWS(n("ws*"), n("Symbol3"), c('*'))
+            seqWS(n("ws").star, n("Symbol3"), c('*'))
         ),
         "Repeat1" -> ListSet(
-            seqWS(n("ws*"), n("Symbol3"), c('+'))
+            seqWS(n("ws").star, n("Symbol3"), c('+'))
         ),
         "Optional" -> ListSet(
-            seqWS(n("ws*"), n("Symbol3"), c('?'))
+            seqWS(n("ws").star, n("Symbol3"), c('?'))
         ),
         "Symbol2" -> ListSet(
             n("FollowedBy"),
@@ -82,10 +82,10 @@ object MetaGrammar extends Grammar {
             n("Symbol1")
         ),
         "FollowedBy" -> ListSet(
-            seqWS(n("ws*"), c('$'), n("Symbol2"))
+            seqWS(n("ws").star, c('$'), n("Symbol2"))
         ),
         "NotFollowedBy" -> ListSet(
-            seqWS(n("ws*"), c('!'), n("Symbol2"))
+            seqWS(n("ws").star, c('!'), n("Symbol2"))
         ),
         "Symbol1" -> ListSet(
             n("Terminal"),
@@ -93,7 +93,8 @@ object MetaGrammar extends Grammar {
             n("Nonterminal"),
             n("Proxy"),
             n("Longest"),
-            seqWS(n("ws*"), c('('), n("Either"), c(')'))
+            seqWS(n("ws").star, c('('), n("Symbol"), c(')')),
+            seqWS(n("ws").star, c('('), n("Either"), c(')'))
         ),
         "Terminal" -> ListSet(
             n("anychar"),
@@ -121,14 +122,14 @@ object MetaGrammar extends Grammar {
             seq(c('`'), n("nontermNameChar").star, c('`'))
         ),
         "Proxy" -> ListSet(
-            seqWS(n("ws*"), c('['), n("Sequence"), c(']'))
+            seqWS(n("ws").star, c('['), n("Sequence"), c(']'))
         ),
         "Either" -> ListSet(
-            seqWS(n("ws*"), n("Either"), c('|'), n("Symbol")),
-            n("Symbol")
+            seqWS(n("ws").star, n("Symbol"), c('|'), n("Symbol")),
+            seqWS(n("ws").star, n("Either"), c('|'), n("Symbol"))
         ),
         "Longest" -> ListSet(
-            seqWS(n("ws*"), c('<'), n("Symbol"), c('>'))
+            seqWS(n("ws").star, c('<'), n("Symbol"), c('>'))
         ),
         "anychar" -> ListSet(
             c('.')
@@ -158,12 +159,6 @@ object MetaGrammar extends Grammar {
         ),
         "ws" -> ListSet(
             chars(" \t\n\r")
-        ),
-        "ws*" -> ListSet(
-            longest(n("ws").star)
-        ),
-        "ws+" -> ListSet(
-            longest(n("ws").plus)
         )
     )
     val startSymbol: Nonterminal = n("Grammar")
@@ -420,7 +415,6 @@ object MetaGrammar extends Grammar {
                 symbolStringOf(sym) + "&" + symbolStringOf(join)
             case Longest(sym) =>
                 "<" + symbolStringOf(sym) + ">"
-
         }
         def ruleStringOf(lhs: String, rhs: ListSet[Symbols.Symbol]): String = {
             nonterminalNameOf(lhs) + " = " + ((rhs map { symbolStringOf }) mkString "\n    | ")
