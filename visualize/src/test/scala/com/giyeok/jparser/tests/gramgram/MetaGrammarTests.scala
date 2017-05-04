@@ -207,8 +207,8 @@ object ExpressionGrammarTests extends GrammarTestCases with StringSamples {
         """expression = term | expression {+\-} term
           |term = factor | term {*/} factor
           |factor = number | variable | '(' expression ')'
-          |number = <('0' | [{+\-}? {1-9} {0-9}* [{eE} {+\-}? {0-9}+]?])>
-          |variable = <{a-zA-Z}+>""".stripMargin('|')
+          |number = '0' | [{+\-}? {1-9} {0-9}* [{eE} {+\-}? {0-9}+]?]
+          |variable = {a-zA-Z}+""".stripMargin('|')
 
     val grammar: Grammar = MetaGrammar.translate("Expression Grammar", expressionGrammarText).get
 
@@ -228,7 +228,7 @@ object LexicalGrammarTests extends GrammarTestCases with StringSamples {
           |keyword = name & ("if" | "for")
           |operator = '+' | '-' | '*' | '/'
           |identifier = name - keyword
-          |name = <[{a-zA-Z} {a-zA-Z0-9}*]>
+          |name = <[{A-Za-z} {0-9A-Za-z}*]>
           |number = <('0' | [{1-9} {0-9}* [{eE} {+\-}? {0-9}+]?])>
           |whitespace = { \t\n\r}+ | comment
           |comment = "//" (.-'\n')* '\n'""".stripMargin('|')
