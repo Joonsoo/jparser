@@ -127,7 +127,7 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
         "S = (abc|def)",
         "A = | B | C",
         "S = a&b&c&d&e-f-g-h&i&j",
-        "S = !!!~~~~'a'***???+++&'b'&'c'-'d'&'e'&'f'-{agsdf}",
+        "S = !!!$$$$'a'***???+++&'b'&'c'-'d'&'e'&'f'-{agsdf}",
         """S = "asdf"
           |  | A
           |A = ASDF
@@ -229,8 +229,9 @@ object LexicalGrammarTests extends GrammarTestCases with StringSamples {
           |operator = '+' | '-' | '*' | '/'
           |identifier = name - keyword
           |name = <[{a-zA-Z} {a-zA-Z0-9}*]>
-          |number = <('0' | [{+\-}? {1-9} {0-9}* [{eE} {+\-}? {0-9}+]?])>
-          |whitespace = { \t\n\r}+""".stripMargin('|')
+          |number = <('0' | [{1-9} {0-9}* [{eE} {+\-}? {0-9}+]?])>
+          |whitespace = { \t\n\r}+ | comment
+          |comment = "//" (.-'\n')* '\n'""".stripMargin('|')
 
     val grammar: Grammar = MetaGrammar.translate("Lexical Grammar", lexicalGrammarText).get
 
