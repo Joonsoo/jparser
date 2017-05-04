@@ -306,7 +306,7 @@ object MetaGrammar extends Grammar {
         }
     }
 
-    def translate(tree: ParseResultTree.Node): Grammar = {
+    def translate(name: String, tree: ParseResultTree.Node): Grammar = {
         val BindNode(Start, BindNode(Nonterminal("Grammar"), BindNode(_, rulesSeq: SequenceNode))) = tree
         val BindNode(Nonterminal("Rules"), rules) = rulesSeq.childrenAll(1)
         val nontermDefs: Seq[(String, Seq[Symbols.Symbol])] = childrenOf(rules, Nonterminal("Rule")) map {
@@ -322,17 +322,17 @@ object MetaGrammar extends Grammar {
 
         val startSymbol = Nonterminal(nontermDefs.head._1)
         val rulesMap = nontermDefs map { kv => kv._1 -> ListSet(kv._2: _*) }
-        new NewGrammar("Grammar", ListMap(rulesMap: _*), startSymbol)
+        new NewGrammar(name, ListMap(rulesMap: _*), startSymbol)
     }
 
-    def translate(source: String): Option[Grammar] = {
+    def translate(name: String, source: String): Option[Grammar] = {
         val parser = new NaiveParser(NGrammar.fromGrammar(this))
         parser.parse(source) match {
             case Left(ctx) =>
                 val tree = new ParseTreeConstructor(ParseForestFunc)(parser.grammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
                 tree match {
                     case Some(forest) if forest.trees.size == 1 =>
-                        Some(translate(forest.trees.head))
+                        Some(translate(name, forest.trees.head))
                     case _ => None
                 }
             case Right(error) =>

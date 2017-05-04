@@ -134,21 +134,26 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
           |  | "qwer"
           |ASDF = 'c'?
         """.stripMargin,
+        "S = []",
         metaGrammarText1,
-        metaGrammarText2
+        metaGrammarText2,
+        ExpressionGrammarTests.expressionGrammarText,
+        LexicalGrammarTests.lexicalGrammarText
     )
-    val incorrectSamples = Set[String]()
+    val incorrectSamples = Set(
+        "S = ()"
+    )
 
-    def main(args: Array[String]): Unit = {
+    def main(): Unit = {
         println("===== generated =====")
         println(MetaGrammar.reverse(MetaGrammar))
 
-        val metaGrammar1 = MetaGrammar.translate(metaGrammarText1).get
+        val metaGrammar1 = MetaGrammar.translate("Grammar", metaGrammarText1).get
         println("===== translated =====")
         println(MetaGrammar.reverse(metaGrammar1))
         println("Meta=meta1", MetaGrammar.rules.toSet == metaGrammar1.rules.toSet)
 
-        val metaGrammar2 = MetaGrammar.translate(metaGrammarText2).get
+        val metaGrammar2 = MetaGrammar.translate("Grammar", metaGrammarText2).get
         println("===== translated0 =====")
         println(MetaGrammar.reverse(metaGrammar2))
         println("Meta=meta2", MetaGrammar.rules.toSet == metaGrammar2.rules.toSet)
@@ -165,7 +170,7 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
                     new ParseTreeConstructor(ParseForestFunc)(parser.grammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct() match {
                         case Some(forest) if forest.trees.size == 1 =>
                             println("successful")
-                            MetaGrammar.translate(forest.trees.head)
+                            MetaGrammar.translate("Grammar", forest.trees.head)
                         case forestOpt =>
                             println(forestOpt)
                             println("???")
@@ -187,10 +192,53 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
             // println(MetaGrammar.reverse(grammar))
             println(base.rules == grammar.rules)
         }
+
         test("meta1FromMeta1", meta1FromMeta1, metaGrammar1)
         test("meta1FromMeta2", meta1FromMeta2, metaGrammar1)
         test("meta2FromMeta1", meta2FromMeta1, metaGrammar1)
         test("meta2FromMeta2", meta2FromMeta2, metaGrammar1)
         // println(MetaGrammar.reverse(grammar.get) == metaGrammar1)
     }
+
+}
+
+object ExpressionGrammarTests extends GrammarTestCases with StringSamples {
+    val expressionGrammarText: String =
+        """expression = term | expression {+\-} term
+          |term = factor | term {*/} factor
+          |factor = number | variable | '(' expression ')'
+          |number = <('0' | [{+\-}? {1-9} {0-9}* [{eE} {+\-}? {0-9}+]?])>
+          |variable = <{a-zA-Z}+>""".stripMargin('|')
+
+    val grammar: Grammar = MetaGrammar.translate("Expression Grammar", expressionGrammarText).get
+
+    override val correctSamples: Set[String] = Set(
+        "1e+1+1",
+        "e+e",
+        "1234e+1234++1234",
+        "1234e+1234++1234*abcdef-e"
+    )
+    override val incorrectSamples: Set[String] = Set()
+}
+
+object LexicalGrammarTests extends GrammarTestCases with StringSamples {
+    val lexicalGrammarText: String =
+        """S = token*
+          |token = <(keyword | operator | identifier | number | whitespace)>
+          |keyword = name & ("if" | "for")
+          |operator = '+' | '-' | '*' | '/'
+          |identifier = name - keyword
+          |name = <[{a-zA-Z} {a-zA-Z0-9}*]>
+          |number = <('0' | [{+\-}? {1-9} {0-9}* [{eE} {+\-}? {0-9}+]?])>
+          |whitespace = { \t\n\r}+""".stripMargin('|')
+
+    val grammar: Grammar = MetaGrammar.translate("Lexical Grammar", lexicalGrammarText).get
+
+    override val correctSamples: Set[String] = Set(
+        "1e+1+1",
+        "e+e",
+        "1234e+1234++1234",
+        "1234e+1234++1234*abcdef-e"
+    )
+    override val incorrectSamples: Set[String] = Set()
 }
