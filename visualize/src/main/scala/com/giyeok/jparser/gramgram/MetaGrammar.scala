@@ -325,19 +325,20 @@ object MetaGrammar extends Grammar {
         new NewGrammar(name, ListMap(rulesMap: _*), startSymbol)
     }
 
-    def translate(name: String, source: String): Option[Grammar] = {
+    def translate(name: String, source: String): Either[Grammar, String] = {
         val parser = new NaiveParser(NGrammar.fromGrammar(this))
         parser.parse(source) match {
             case Left(ctx) =>
                 val tree = new ParseTreeConstructor(ParseForestFunc)(parser.grammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
                 tree match {
                     case Some(forest) if forest.trees.size == 1 =>
-                        Some(translate(name, forest.trees.head))
-                    case _ => None
+                        Left(translate(name, forest.trees.head))
+                    case _ =>
+                        Right("??? ambiguous!")
                 }
             case Right(error) =>
                 println(error)
-                None
+                Right(error.msg)
         }
     }
 

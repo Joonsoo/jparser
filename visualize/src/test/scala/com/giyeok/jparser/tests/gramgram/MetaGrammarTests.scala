@@ -138,7 +138,8 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
         metaGrammarText1,
         metaGrammarText2,
         ExpressionGrammarTests.expressionGrammarText,
-        LexicalGrammarTests.lexicalGrammarText
+        LexicalGrammar0Tests.lexicalGrammar0Text,
+        LexicalGrammar1Tests.lexicalGrammar1Text
     )
     val incorrectSamples = Set(
         "S = ()"
@@ -148,12 +149,12 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
         println("===== generated =====")
         println(MetaGrammar.reverse(MetaGrammar))
 
-        val metaGrammar1 = MetaGrammar.translate("Grammar", metaGrammarText1).get
+        val metaGrammar1 = MetaGrammar.translate("Grammar", metaGrammarText1).left.get
         println("===== translated =====")
         println(MetaGrammar.reverse(metaGrammar1))
         println("Meta=meta1", MetaGrammar.rules.toSet == metaGrammar1.rules.toSet)
 
-        val metaGrammar2 = MetaGrammar.translate("Grammar", metaGrammarText2).get
+        val metaGrammar2 = MetaGrammar.translate("Grammar", metaGrammarText2).left.get
         println("===== translated0 =====")
         println(MetaGrammar.reverse(metaGrammar2))
         println("Meta=meta2", MetaGrammar.rules.toSet == metaGrammar2.rules.toSet)
@@ -208,9 +209,9 @@ object ExpressionGrammarTests extends GrammarTestCases with StringSamples {
           |term = factor | term {*/} factor
           |factor = number | variable | '(' expression ')'
           |number = '0' | [{+\-}? {1-9} {0-9}* [{eE} {+\-}? {0-9}+]?]
-          |variable = {a-zA-Z}+""".stripMargin('|')
+          |variable = {A-Za-z}+""".stripMargin('|')
 
-    val grammar: Grammar = MetaGrammar.translate("Expression Grammar", expressionGrammarText).get
+    val grammar: Grammar = MetaGrammar.translate("Expression Grammar", expressionGrammarText).left.get
 
     override val correctSamples: Set[String] = Set(
         "1e+1+1",
@@ -221,25 +222,63 @@ object ExpressionGrammarTests extends GrammarTestCases with StringSamples {
     override val incorrectSamples: Set[String] = Set()
 }
 
-object LexicalGrammarTests extends GrammarTestCases with StringSamples {
-    val lexicalGrammarText: String =
+object LexicalGrammar0Tests extends GrammarTestCases with StringSamples {
+    val lexicalGrammar0Text: String =
         """S = token*
           |token = <(keyword | operator | identifier | number | whitespace)>
-          |keyword = name & ("if" | "for")
-          |operator = '+' | '-' | '*' | '/'
+          |keyword = ("if" | "else" | "true" | "false") & name
+          |operator = <('+' | '-' | "++" | "--" | '=' | "+=" | "-=")>
           |identifier = name - keyword
           |name = <[{A-Za-z} {0-9A-Za-z}*]>
           |number = <('0' | [{1-9} {0-9}* [{eE} {+\-}? {0-9}+]?])>
-          |whitespace = { \t\n\r}+ | comment
-          |comment = "//" (.-'\n')* '\n'""".stripMargin('|')
+          |whitespace = { \t\n\r}+
+          |""".stripMargin('|')
 
-    val grammar: Grammar = MetaGrammar.translate("Lexical Grammar", lexicalGrammarText).get
+    val grammar: Grammar = MetaGrammar.translate("Lexical Grammar 0", lexicalGrammar0Text).left.get
+
+    override val correctSamples: Set[String] = Set(
+        "if true 1+2++3 else 4-5--6",
+        "ifx true 1+2+=3 else 4-5-=6",
+        "ifx truex 1+2+=3 elsex 4-5-=6"
+    )
+    override val incorrectSamples: Set[String] = Set()
+}
+
+object LexicalGrammar1Tests extends GrammarTestCases with StringSamples {
+    val lexicalGrammar1Text: String =
+        """S = token*
+          |token = <(keyword | operator | paren | identifier | number | whitespace)>
+          |keyword = ("if" | "else" | "true" | "false") & name
+          |operator = <('+' | '-' | '*' | '/' | "++" | "--" | '=' | "==" | "+=" | "-=" | "*=" | "/=" | '<' | '>' | "<=" | ">=")>
+          |paren = '(' | ')'
+          |identifier = name - keyword
+          |name = <[{A-Za-z} {0-9A-Za-z}*]>
+          |number = <('0' | [{1-9} {0-9}* [{eE} {+\-}? {0-9}+]?])>
+          |whitespace = <{ \t\n\r}+> | comment
+          |comment = "//" (.-'\n')* '\n'
+          |        | "/*" [<(.-'*')*> '*'+]+ '/'
+          |""".stripMargin('|')
+
+    val grammar: Grammar = MetaGrammar.translate("Lexical Grammar 1", lexicalGrammar1Text).left.get
 
     override val correctSamples: Set[String] = Set(
         "1e+1+1",
         "e+e",
         "1234e+1234++1234",
-        "1234e+1234++1234*abcdef-e"
+        "1234e+1234++1234*abcdef-e",
+        "1+2++3*4**5",
+        "if (x == 1+2) 1 else 2 + 4",
+        "a /= 123",
+        "/**/",
+        "/* abc */",
+        "/* abc * def */",
+        """// asdf
+          |asdf
+          |++
+          |1234
+          |**
+          |789""".stripMargin('|'),
+        "if (x /* x is not a blah blah //// **** * / */) y+=1;"
     )
     override val incorrectSamples: Set[String] = Set()
 }

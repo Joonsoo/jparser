@@ -33,7 +33,8 @@ object GrammarGrammarTests {
         GrammarGrammarTests1,
         MetaGrammarTests,
         ExpressionGrammarTests,
-        LexicalGrammarTests
+        LexicalGrammar0Tests,
+        LexicalGrammar1Tests
     )
 }
 
