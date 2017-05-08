@@ -4,7 +4,14 @@ import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
+import com.giyeok.jparser.nparser.AcceptCondition.After
 import com.giyeok.jparser.nparser.AcceptCondition.Always
+import com.giyeok.jparser.nparser.AcceptCondition.And
+import com.giyeok.jparser.nparser.AcceptCondition.OnlyIf
+import com.giyeok.jparser.nparser.AcceptCondition.Or
+import com.giyeok.jparser.nparser.AcceptCondition.Unless
+import com.giyeok.jparser.nparser.AcceptCondition.Until
 import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
 
 class DotGraphGenerator(ngrammar: NGrammar) {
@@ -18,20 +25,30 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             case ExactChar(c) =>
                 c match {
                     case ' ' => "_"
-                    case c => toReadable(c)
+                    case c => s"'${toReadable(c, Set(), "\\\\")}'"
                 }
             case chars: Terminals.Chars =>
-                chars.groups map { range =>
-                    if (range._1 == range._2) s"${toReadable(range._1)}"
-                    else if (range._1 + 1 == range._2) s"${toReadable(range._1)}-${toReadable(range._2)}"
-                    else s"${toReadable(range._1)}-${toReadable(range._2)}"
-                } mkString "|"
+                val toReadable2 = toReadable(_: Char, Set('-'), "\\\\")
+                val charsGroups = chars.groups map { range =>
+                    if (range._1 == range._2) s"${toReadable2(range._1)}"
+                    else if (range._1 + 1 == range._2) s"${toReadable2(range._1)}-${toReadable2(range._2)}"
+                    else s"${toReadable2(range._1)}-${toReadable2(range._2)}"
+                } mkString ""
+                s"{$charsGroups}"
             case Unicode(c) => s"<unicode ${(c.toSeq.sorted map { categoryCodeToName }) mkString ", "}>"
             case t: Terminal => t.toDotLabelName
             case Start => "<start>"
             case s: Nonterminal => s.name
-            case s: Sequence => s.seq map { _.toDotLabelName } mkString " "
-            case s: OneOf => s.syms map { _.toDotLabelName } mkString "|"
+            case s: Sequence =>
+                if (s.seq.isEmpty) "&epsilon;" else {
+                    s.seq map { _.toDotLabelName } mkString " "
+                }
+            case s: OneOf =>
+                if (s.syms.size == 2 && (s.syms contains Sequence(Seq(), Seq()))) {
+                    (s.syms - Sequence(Seq(), Seq())).head.toDotLabelName + "?"
+                } else {
+                    s.syms map { _.toDotLabelName } mkString "|"
+                }
             case Repeat(sym, lower) =>
                 lower match {
                     case 0 => s"${sym.toDotLabelName}*"
@@ -39,11 +56,11 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                     case lower => s"${sym.toDotLabelName}[$lower-]"
                 }
             case s: Except => s"${s.sym.toDotLabelName}-${s.except.toDotLabelName}"
-            case LookaheadIs(lookahead) => s"la(${lookahead.toDotLabelName})"
-            case LookaheadExcept(except) => s"lx(${except.toDotLabelName})"
-            case Proxy(sym) => s"P(${sym.toDotLabelName})"
+            case LookaheadIs(lookahead) => s"${'$'}(${lookahead.toDotLabelName})"
+            case LookaheadExcept(except) => s"!(${except.toDotLabelName})"
+            case Proxy(sym) => s"[${sym.toDotLabelName}]"
             case Join(sym, join) => s"${sym.toDotLabelName}&${join.toDotLabelName}"
-            case Longest(sym) => s"L(${sym.toDotLabelName})"
+            case Longest(sym) => s"<${sym.toDotLabelName}>"
         }
     }
 
@@ -124,7 +141,23 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                 val split = seq.splitAt(kernel.pointer)
                 (split._1 map { _.toDotLabelName } mkString " ") + "&bull;" + (split._2 map { _.toDotLabelName } mkString " ") + "," + s"${kernel.beginGen}&#x2025;${kernel.endGen}"
         }
-        kernelLabel // TODO condition 추가
+        def conditionLabel(condition: AcceptCondition): String =
+            condition match {
+                case Always => "&empty;"
+                case And(conds) =>
+                    conds map conditionLabel mkString "&and;"
+                case Or(conds) =>
+                    conds map conditionLabel mkString "&or;"
+                case Until(symbolId, beginGen, targetGen) =>
+                    s"Until(${ngrammar.symbolOf(symbolId).symbol.toDotLabelName} $beginGen $targetGen)"
+                case After(symbolId, beginGen, targetGen) =>
+                    s"After(${ngrammar.symbolOf(symbolId).symbol.toDotLabelName} $beginGen $targetGen)"
+                case Unless(symbolId, beginGen, targetGen) =>
+                    s"Unless(${ngrammar.symbolOf(symbolId).symbol.toDotLabelName} $beginGen $targetGen)"
+                case OnlyIf(symbolId, beginGen, targetGen) =>
+                    s"OnlyIf(${ngrammar.symbolOf(symbolId).symbol.toDotLabelName} $beginGen $targetGen)"
+            }
+        s"($kernelLabel),${conditionLabel(node.condition)}"
     }
 
     def getNode(node: Node): Option[DotGraphNode] = (_nodes find { _._1 == node } map { _._2 })

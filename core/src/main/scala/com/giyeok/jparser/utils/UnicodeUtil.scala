@@ -73,12 +73,14 @@ object UnicodeUtil {
     }
     def categoryCodesToNames(categories: Set[Int]): Set[String] = categories map { categoryCodeToName(_) }
 
-    def toReadable(char: Char): String = char match {
+    def toReadable(char: Char): String = toReadable(char, Set(), "\\")
+    def toReadable(char: Char, additionalEscaping: Set[Char], backslash: String): String = char match {
+        case c if additionalEscaping contains c => s"$backslash$c"
         case c if 33 <= c && c <= 126 => c.toString
-        case '\n' => "\\n"
-        case '\r' => "\\r"
-        case '\t' => "\\t"
-        case '\\' => "\\\\"
-        case c => f"\\u$c%04x"
+        case '\n' => s"${backslash}n"
+        case '\r' => s"${backslash}r"
+        case '\t' => s"${backslash}t"
+        case '\\' => s"$backslash$backslash"
+        case c => f"${backslash}u$c%04x"
     }
 }
