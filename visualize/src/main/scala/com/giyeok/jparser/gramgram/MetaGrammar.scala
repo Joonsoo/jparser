@@ -272,7 +272,7 @@ object MetaGrammar extends Grammar {
             case BindNode(Nonterminal("Symbol2"), symbol2Body) =>
                 symbolOf(symbol2Body)
             case BindNode(Nonterminal("FollowedBy"), BindNode(_: Sequence, followedByBody: SequenceNode)) =>
-                lookahead_except(symbolOf(followedByBody.childrenAll(2)))
+                lookahead_is(symbolOf(followedByBody.childrenAll(2)))
             case BindNode(Nonterminal("NotFollowedBy"), BindNode(_: Sequence, notFollowedByBody: SequenceNode)) =>
                 lookahead_except(symbolOf(notFollowedByBody.childrenAll(2)))
             case BindNode(Nonterminal("Symbol1"), symbol1Body) =>
