@@ -121,15 +121,15 @@ trait ParsingTasks {
         val nodeSymbolOpt = grammar.nsymbols get node.kernel.symbolId
         val chainCondition = nodeSymbolOpt match {
             case Some(NLongest(_, longest)) =>
-                conjunct(node.condition, Until(longest, node.kernel.beginGen, nextGen)(atomicSymbolOf(longest)))
+                conjunct(node.condition, NotExists(node.kernel.beginGen, nextGen + 1, longest)(atomicSymbolOf(longest)))
             case Some(NExcept(_, _, except)) =>
-                conjunct(node.condition, Unless(except, node.kernel.beginGen, nextGen)(atomicSymbolOf(except)))
+                conjunct(node.condition, Unless(node.kernel.beginGen, nextGen, except)(atomicSymbolOf(except)))
             case Some(NJoin(_, _, join)) =>
-                conjunct(node.condition, OnlyIf(join, node.kernel.beginGen, nextGen)(atomicSymbolOf(join)))
+                conjunct(node.condition, OnlyIf(node.kernel.beginGen, nextGen, join)(atomicSymbolOf(join)))
             case Some(NLookaheadIs(_, _, lookahead)) =>
-                conjunct(node.condition, After(lookahead, nextGen, nextGen)(atomicSymbolOf(lookahead)))
-            case Some(NLookaheadExcept(_, _, lookahaed)) =>
-                conjunct(node.condition, Until(lookahaed, nextGen, nextGen)(atomicSymbolOf(lookahaed)))
+                conjunct(node.condition, Exists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead)))
+            case Some(NLookaheadExcept(_, _, lookahead)) =>
+                conjunct(node.condition, NotExists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead)))
             case _ => node.condition
         }
         val newKernel = {

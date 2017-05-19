@@ -93,101 +93,49 @@ object AcceptCondition {
         def neg: AcceptCondition = conjunct((conditions map { _.neg }).toSeq: _*)
     }
 
-    case class Until(symbolId: Int, beginGen: Int, activeGen: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
+    case class NotExists(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
         def shiftGen(gen: Int): AcceptCondition =
-            Until(symbolId, beginGen + gen, activeGen + gen)(symbol)
-        def evaluate(gen: Int, graph: Graph): AcceptCondition =
-            if (gen <= activeGen) this else {
-                //                updatedNodes get node match {
-                //                    case Some(updated) =>
-                //                        assert(updated forall { _.kernel.isFinished })
-                //                        disjunct((updated map { _.condition }).toSeq: _*).neg.evaluate(gen, graph, updatedNodes)
-                //                    case None =>
-                //                        if (graph.nodes contains node) this else Always
-                //                }
-                val conditions = graph.conditionsOf(kernel1(gen))
-                if (conditions.isEmpty) {
-                    if (graph.nodes contains node0) this else Always
-                } else {
-                    disjunct(conditions.toSeq: _*).neg.evaluate(gen, graph)
-                }
-            }
-        def acceptable(gen: Int, graph: Graph): Boolean =
-            if (gen <= activeGen) true else {
-                //                updatedNodes get node match {
-                //                    case Some(updated) =>
-                //                        assert(updated forall { _.kernel.isFinished })
-                //                        disjunct((updated map { _.condition }).toSeq: _*).neg.acceptable(gen, graph, updatedNodes)
-                //                    case None => true
-                //                }
-                val conditions = graph.conditionsOf(kernel1(gen))
-                if (conditions.isEmpty) {
-                    true
-                } else {
-                    disjunct(conditions.toSeq: _*).neg.acceptable(gen, graph)
-                }
-            }
-        def neg: AcceptCondition = After(symbolId, beginGen, activeGen)(symbol)
-    }
-    case class After(symbolId: Int, beginGen: Int, activeGen: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
-        def shiftGen(gen: Int): AcceptCondition =
-            After(symbolId, beginGen + gen, activeGen + gen)(symbol)
-        def evaluate(gen: Int, graph: Graph): AcceptCondition =
-            if (gen <= activeGen) this else {
-                //                updatedNodes get node match {
-                //                    case Some(updated) =>
-                //                        assert(updated forall { _.kernel.isFinished })
-                //                        disjunct((updated map { _.condition }).toSeq: _*).evaluate(gen, graph, updatedNodes)
-                //                    case None =>
-                //                        if (graph.nodes contains node) this else Never
-                //                }
-                val conditions = graph.conditionsOf(kernel1(gen))
-                if (conditions.isEmpty) {
-                    if (graph.nodes contains node0) this else Never
-                } else {
-                    disjunct(conditions.toSeq: _*).evaluate(gen, graph)
-                }
-            }
-        def acceptable(gen: Int, graph: Graph): Boolean =
-            if (gen <= activeGen) false else {
-                //                updatedNodes get node match {
-                //                    case Some(updated) =>
-                //                        assert(updated forall { _.kernel.isFinished })
-                //                        disjunct((updated map { _.condition }).toSeq: _*).acceptable(gen, graph, updatedNodes)
-                //                    case None =>
-                //                        false
-                //                }
-                val conditions = graph.conditionsOf(kernel1(gen))
-                if (conditions.isEmpty) {
-                    false
-                } else {
-                    disjunct(conditions.toSeq: _*).acceptable(gen, graph)
-                }
-            }
-
-        def neg: AcceptCondition = Until(symbolId, beginGen, activeGen)(symbol)
-    }
-
-    case class Unless(symbolId: Int, beginGen: Int, targetGen: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
-        def shiftGen(gen: Int): AcceptCondition =
-            Unless(symbolId, beginGen + gen, targetGen + gen)(symbol)
+            NotExists(beginGen + gen, endGen + gen, symbolId)(symbol)
         def evaluate(gen: Int, graph: Graph): AcceptCondition = {
-            if (gen > targetGen) {
+            if (gen < endGen) this else {
+                val conditions0 = graph.conditionsOf(kernel1(gen)) map { _.neg.evaluate(gen, graph) }
+                val conditions = conditions0 ++ (if (graph.nodes contains node0) Set(this) else Set())
+                conjunct(conditions.toSeq: _*)
+            }
+        }
+        def acceptable(gen: Int, graph: Graph): Boolean = {
+            if (gen < endGen) true else {
+                graph.conditionsOf(kernel1(gen)) forall { _.acceptable(gen, graph) == false }
+            }
+        }
+        def neg: AcceptCondition = Exists(beginGen, endGen, symbolId)(symbol)
+    }
+    case class Exists(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
+        def shiftGen(gen: Int): AcceptCondition =
+            Exists(beginGen + gen, endGen + gen, symbolId)(symbol)
+        def evaluate(gen: Int, graph: Graph): AcceptCondition = {
+            if (gen < endGen) this else {
+                val conditions0 = graph.conditionsOf(kernel1(gen)) map { _.evaluate(gen, graph) }
+                val conditions = conditions0 ++ (if (graph.nodes contains node0) Set(this) else Set())
+                disjunct(conditions.toSeq: _*)
+            }
+        }
+        def acceptable(gen: Int, graph: Graph): Boolean = {
+            if (gen < endGen) false else {
+                graph.conditionsOf(kernel1(gen)) exists { _.acceptable(gen, graph) }
+            }
+        }
+        def neg: AcceptCondition = NotExists(beginGen, endGen, symbolId)(symbol)
+    }
+
+    case class Unless(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
+        def shiftGen(gen: Int): AcceptCondition =
+            Unless(beginGen + gen, endGen + gen, symbolId)(symbol)
+        def evaluate(gen: Int, graph: Graph): AcceptCondition = {
+            assert(gen >= endGen)
+            if (gen > endGen) {
                 Always
             } else {
-                //                if (updatedNodes contains node) {
-                //                    // node가 finish되었으면
-                //                    // TODO updatedNodes(node)의 컨디션들의 neg.evaluate한 값이어야 함 - acceptable에도 반영해야 함
-                //                    val updated = updatedNodes(node)
-                //                    assert(updated forall { _.kernel.isFinished })
-                //                    disjunct((updated map { _.condition }).toSeq: _*).neg.evaluate(gen, graph, updatedNodes)
-                //                } else if (!(graph.nodes contains node)) {
-                //                    // (이전 세대에서) trimming돼서 노드가 없어졌으면
-                //                    Always
-                //                } else {
-                //                    // 그 외의 경우엔 그대로
-                //                    this
-                //                }
                 val conditions = graph.conditionsOf(kernel1(gen))
                 if (conditions.isEmpty) {
                     if (graph.nodes contains node0) this else Always
@@ -196,46 +144,23 @@ object AcceptCondition {
                 }
             }
         }
-        def acceptable(gen: Int, graph: Graph): Boolean =
-            // (gen != targetGen) || (!(updatedNodes contains node))
-            if (gen != targetGen) true else {
-                // gen == targetGen
-                //                updatedNodes get node match {
-                //                    case Some(updated) =>
-                //                        assert(updated forall { _.kernel.isFinished })
-                //                        disjunct((updated map { _.condition }).toSeq: _*).neg.acceptable(gen, graph, updatedNodes)
-                //                    case None => true
-                //                }
-                val conditions = graph.conditionsOf(kernel1(gen))
-                if (conditions.isEmpty) {
-                    true
-                } else {
-                    disjunct(conditions.toSeq: _*).neg.acceptable(gen, graph)
-                }
+        def acceptable(gen: Int, graph: Graph): Boolean = {
+            assert(gen >= endGen)
+            if (gen != endGen) true else {
+                graph.conditionsOf(kernel1(gen)) forall { _.acceptable(gen, graph) == false }
             }
-
+        }
         def neg: AcceptCondition =
-            OnlyIf(symbolId, beginGen, targetGen)(symbol)
+            OnlyIf(beginGen, endGen, symbolId)(symbol)
     }
-    case class OnlyIf(symbolId: Int, beginGen: Int, targetGen: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
+    case class OnlyIf(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
         def shiftGen(gen: Int): AcceptCondition =
-            OnlyIf(symbolId, beginGen + gen, targetGen + gen)(symbol)
+            OnlyIf(beginGen + gen, endGen + gen, symbolId)(symbol)
         def evaluate(gen: Int, graph: Graph): AcceptCondition = {
-            if (gen > targetGen) {
+            assert(gen >= endGen)
+            if (gen > endGen) {
                 Never
             } else {
-                //                if (updatedNodes contains node) {
-                //                    // TODO updatedNodes(node)의 컨디션들의 evaluate한 값이어야 함 - acceptable에도 반영해야 함
-                //                    val updated = updatedNodes(node)
-                //                    assert(updated forall { _.kernel.isFinished })
-                //                    disjunct((updated map { _.condition }).toSeq: _*).evaluate(gen, graph, updatedNodes)
-                //                } else if (!(graph.nodes contains node)) {
-                //                    // (이전 세대에서) trimming돼서 노드가 없어졌으면
-                //                    Never
-                //                } else {
-                //                    // 그 외의 경우엔 그대로
-                //                    this
-                //                }
                 val conditions = graph.conditionsOf(kernel1(gen))
                 if (conditions.isEmpty) {
                     if (graph.nodes contains node0) this else Never
@@ -244,24 +169,13 @@ object AcceptCondition {
                 }
             }
         }
-        def acceptable(gen: Int, graph: Graph): Boolean =
-            // (gen == targetGen) && (updatedNodes contains node)
-            if (gen != targetGen) false else {
-                // gen == targetGen
-                //                updatedNodes get node match {
-                //                    case Some(updated) =>
-                //                        assert(updated forall { _.kernel.isFinished })
-                //                        disjunct((updated map { _.condition }).toSeq: _*).acceptable(gen, graph, updatedNodes)
-                //                    case None => false
-                //                }
-                val conditions = graph.conditionsOf(kernel1(gen))
-                if (conditions.isEmpty) {
-                    false
-                } else {
-                    disjunct(conditions.toSeq: _*).acceptable(gen, graph)
-                }
+        def acceptable(gen: Int, graph: Graph): Boolean = {
+            assert(gen >= endGen)
+            if (gen != endGen) false else {
+                graph.conditionsOf(kernel1(gen)) exists { _.acceptable(gen, graph) }
             }
+        }
         def neg: AcceptCondition =
-            Unless(symbolId, beginGen, targetGen)(symbol)
+            Unless(beginGen, endGen, symbolId)(symbol)
     }
 }

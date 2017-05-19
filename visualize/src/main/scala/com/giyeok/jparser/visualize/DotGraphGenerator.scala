@@ -1,22 +1,23 @@
 package com.giyeok.jparser.visualize
 
-import com.giyeok.jparser.Symbols._
-import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.nparser.AcceptCondition.After
 import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.AcceptCondition.And
+import com.giyeok.jparser.nparser.AcceptCondition.Exists
+import com.giyeok.jparser.nparser.AcceptCondition.NotExists
 import com.giyeok.jparser.nparser.AcceptCondition.OnlyIf
 import com.giyeok.jparser.nparser.AcceptCondition.Or
 import com.giyeok.jparser.nparser.AcceptCondition.Unless
-import com.giyeok.jparser.nparser.AcceptCondition.Until
+import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
+import com.giyeok.jparser.nparser.ParsingContext._
 
 class DotGraphGenerator(ngrammar: NGrammar) {
     implicit class DotGraphSymbols(sym: Symbol) {
-        import com.giyeok.jparser.utils.UnicodeUtil.{toReadable, categoryCodeToName}
+        import com.giyeok.jparser.utils.UnicodeUtil.categoryCodeToName
+        import com.giyeok.jparser.utils.UnicodeUtil.toReadable
 
         def toDotSymbolName: String = ???
         def toDotLabelName: String = sym match {
@@ -148,14 +149,14 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                     conds map conditionLabel mkString "&and;"
                 case Or(conds) =>
                     conds map conditionLabel mkString "&or;"
-                case Until(symbolId, beginGen, targetGen) =>
-                    s"Until(${ngrammar.symbolOf(symbolId).symbol.toDotLabelName} $beginGen $targetGen)"
-                case After(symbolId, beginGen, targetGen) =>
-                    s"After(${ngrammar.symbolOf(symbolId).symbol.toDotLabelName} $beginGen $targetGen)"
-                case Unless(symbolId, beginGen, targetGen) =>
-                    s"Unless(${ngrammar.symbolOf(symbolId).symbol.toDotLabelName} $beginGen $targetGen)"
-                case OnlyIf(symbolId, beginGen, targetGen) =>
-                    s"OnlyIf(${ngrammar.symbolOf(symbolId).symbol.toDotLabelName} $beginGen $targetGen)"
+                case Exists(beginGen, endGen, symbolId) =>
+                    s"Exists $beginGen $endGen ${ngrammar.symbolOf(symbolId).symbol.toDotLabelName}"
+                case NotExists(beginGen, endGen, symbolId) =>
+                    s"NotExists $beginGen $endGen ${ngrammar.symbolOf(symbolId).symbol.toDotLabelName}"
+                case Unless(beginGen, endGen, symbolId) =>
+                    s"Unless $beginGen $endGen ${ngrammar.symbolOf(symbolId).symbol.toDotLabelName}"
+                case OnlyIf(beginGen, endGen, symbolId) =>
+                    s"OnlyIf $beginGen $endGen ${ngrammar.symbolOf(symbolId).symbol.toDotLabelName}"
             }
         s"($kernelLabel),${conditionLabel(node.condition)}"
     }
