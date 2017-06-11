@@ -103,40 +103,40 @@ trait ParsingTasks {
 
         val incomingEdges = cc.graph.edgesByEnd(node)
         val chainTasks: Seq[Task] = incomingEdges.toSeq flatMap { edge =>
-            val Edge(incoming, _) = edge
-            incoming.kernel.symbol match {
+            val Edge(incomingNode, _) = edge
+            incomingNode.kernel.symbol match {
                 case NExcept(_, _, except) if except == node.kernel.symbolId => None
                 case NJoin(_, _, join) if join == node.kernel.symbolId => None
-                case _ => Some(ProgressTask(incoming, node.condition))
+                case _ => Some(ProgressTask(incomingNode, node.condition))
             }
         }
         (cc, chainTasks)
     }
 
     def progressTask(nextGen: Int, task: ProgressTask, cc: Cont): (Cont, Seq[Task]) = {
-        val ProgressTask(node, taskCondition) = task
+        val ProgressTask(node, incomingCondition) = task
         // assert(cc.graph.nodes contains node)
 
         // nodeSymbolOpt에서 opt를 사용하는 것은 finish는 SequenceNode에 대해서도 실행되기 때문
         val nodeSymbolOpt = grammar.nsymbols get node.kernel.symbolId
-        val chainCondition = nodeSymbolOpt match {
+        val newCondition = nodeSymbolOpt match {
             case Some(NLongest(_, longest)) =>
-                conjunct(node.condition, NotExists(node.kernel.beginGen, nextGen + 1, longest)(atomicSymbolOf(longest)))
+                NotExists(node.kernel.beginGen, nextGen + 1, longest)(atomicSymbolOf(longest))
             case Some(NExcept(_, _, except)) =>
-                conjunct(node.condition, Unless(node.kernel.beginGen, nextGen, except)(atomicSymbolOf(except)))
+                Unless(node.kernel.beginGen, nextGen, except)(atomicSymbolOf(except))
             case Some(NJoin(_, _, join)) =>
-                conjunct(node.condition, OnlyIf(node.kernel.beginGen, nextGen, join)(atomicSymbolOf(join)))
+                OnlyIf(node.kernel.beginGen, nextGen, join)(atomicSymbolOf(join))
             case Some(NLookaheadIs(_, _, lookahead)) =>
-                conjunct(node.condition, Exists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead)))
+                Exists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead))
             case Some(NLookaheadExcept(_, _, lookahead)) =>
-                conjunct(node.condition, NotExists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead)))
-            case _ => node.condition
+                NotExists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead))
+            case _ => Always
         }
         val newKernel = {
             val kernel = node.kernel
             Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, nextGen)(kernel.symbol)
         }
-        val updatedNode = Node(newKernel, conjunct(node.condition, taskCondition, chainCondition))
+        val updatedNode = Node(newKernel, conjunct(node.condition, incomingCondition, newCondition))
         if (!(cc.graph.nodes contains updatedNode)) {
             // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
             val incomingEdges = cc.graph.edgesByEnd(node)
