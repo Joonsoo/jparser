@@ -38,7 +38,12 @@ trait ParsingTasks {
                 case node => DeriveTask(node)
             }
 
-            // existedNodes 들에 대해서는 cc.updatedNodes보고 추가 처리
+            // TODO 이하 부분을 의미가 더 잘 전달되도록 리팩토링
+            // - updatedNodes에는 이미 그래프에 있는 노드로부터 시작하는 relation들만 있으니 newNodes는 이 과정을 안 거쳐도 됨
+            // - 하지만 newNodes로도 엣지는 추가해주어야 함
+            //   1. updatedNodes에 정의된 노드간의 relation에서 destNodes로부터 도달 가능한 노드들을 찾고(V'라고 하자)
+            //   2. V'에서 finished 노드들을 찾아서 ProgressTask(startNode, v'의 condition)을 만들고,
+            //   3. V'에서 finished 아닌 노드들을 찾아서 destNode -> v'로 가는 엣지들을 추가한다
             def addUpdatedNodes(queue: List[Node], graph: Graph, tasks: Seq[Task]): (Graph, Seq[Task]) =
                 queue match {
                     case destNode +: rest if destNode.kernel.isFinished =>
@@ -148,12 +153,12 @@ trait ParsingTasks {
             // cc에 updatedNodes에 node -> updatedNode 추가
             val newUpdatedNodes = cc.updatedNodes + (node -> (cc.updatedNodes.getOrElse(node, Set()) + updatedNode))
 
-            val newTasks = if (updatedNode.kernel.isFinished) {
-                Seq(FinishTask(updatedNode))
+            val newTask = if (updatedNode.kernel.isFinished) {
+                FinishTask(updatedNode)
             } else {
-                Seq(DeriveTask(updatedNode))
+                DeriveTask(updatedNode)
             }
-            (Cont(newGraph, newUpdatedNodes), newTasks)
+            (Cont(newGraph, newUpdatedNodes), Seq(newTask))
         } else {
             // 할 일 없음
             // 그런데 이런 상황 자체가 나오면 안되는건 아닐까?
