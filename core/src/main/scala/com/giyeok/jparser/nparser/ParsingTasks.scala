@@ -44,6 +44,7 @@ trait ParsingTasks {
             //   1. updatedNodes에 정의된 노드간의 relation에서 destNodes로부터 도달 가능한 노드들을 찾고(V'라고 하자)
             //   2. V'에서 finished 노드들을 찾아서 ProgressTask(startNode, v'의 condition)을 만들고,
             //   3. V'에서 finished 아닌 노드들을 찾아서 destNode -> v'로 가는 엣지들을 추가한다
+            // - edge가 추가되는 것 뿐 아니라 ProgressTask가 필요한 경우를 찾아내기 위해서라도 updatedNodes를 추적 해야하므로 엣지를 추가하지 않는 경우에도 이건 해야할듯
             def addUpdatedNodes(queue: List[Node], graph: Graph, tasks: Seq[Task]): (Graph, Seq[Task]) =
                 queue match {
                     case destNode +: rest if destNode.kernel.isFinished =>
@@ -85,6 +86,9 @@ trait ParsingTasks {
                         derive(simpleDerivable.produces)
 
                     case lookaheadSymbol: NLookaheadSymbol =>
+                        // TODO 의미가 더 잘 보이도록 리팩토링
+                        // lookaheadNode에 대해서는 derive 함수에서 하는 것과 거의 동일한 작업을 하지만 다만 엣지를 추가하지 않음
+                        // lookaheadNode에 대해서 updatedNodes propagation을 해야할까?
                         val lookaheadNode = nodeOf(lookaheadSymbol.lookahead, nextGen)
 
                         val (Cont(graph0, updatedNodes), tasks0) = derive(Set(lookaheadSymbol.emptySeqId))

@@ -249,14 +249,16 @@ object LexicalGrammar1Tests extends GrammarTestCases with StringSamples {
         """S = token*
           |token = <(keyword | operator | paren | identifier | number | whitespace)>
           |keyword = ("if" | "else" | "true" | "false") & name
-          |operator = <('+' | '-' | '*' | '/' | "++" | "--" | '=' | "==" | "+=" | "-=" | "*=" | "/=" | '<' | '>' | "<=" | ">=")>
+          |operator = <('+' | '-' | '*' | '/' | "++" | "--" | "**" | '=' | "==" | "+=" | "-=" | "*=" | "/=" | '<' | '>' | "<=" | ">=")> & opchars
+          |opchar = {+\-*/=<>}
+          |opchars = <opchar+>
           |paren = '(' | ')'
           |identifier = name - keyword
           |name = <[{A-Za-z} {0-9A-Za-z}*]>
           |number = <('0' | [{1-9} {0-9}* [{eE} {+\-}? {0-9}+]?])>
           |whitespace = <{ \t\n\r}+> | comment
-          |comment = "//" (.-'\n')* '\n'
-          |        | "/*" [<(.-'*')*> '*'+]+ '/'
+          |comment = "//" (.-'\n')* !'\n'
+          |        | "/*" [<(.-'*')*> <'*'+>]+ '/'
           |""".stripMargin('|')
 
     val grammar: Grammar = MetaGrammar.translate("Lexical Grammar 1", lexicalGrammar1Text).left.get
@@ -278,7 +280,7 @@ object LexicalGrammar1Tests extends GrammarTestCases with StringSamples {
           |1234
           |**
           |789""".stripMargin('|'),
-        "if (x /* x is not a blah blah //// **** * / */) y+=1;"
+        "if (x /* x is not a blah blah //// **** * / */) y+=1"
     )
     override val incorrectSamples: Set[String] = Set()
 }
