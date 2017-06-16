@@ -61,7 +61,7 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
                 cc ++ preprocessed.baseTasks
             }
             val expandedUpdatedNodes: Map[Node, Set[Node]] = expandings.foldLeft(Map[Node, Set[Node]]()) { (cc, preprocessed) =>
-                preprocessed.lifted.updatedNodes.foldLeft(cc) { (cc, kv) =>
+                preprocessed.lifted.updatedNodesMap.foldLeft(cc) { (cc, kv) =>
                     cc + (kv._1 -> (cc.getOrElse(kv._1, Set()) ++ kv._2))
                 }
             }

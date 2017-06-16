@@ -10,7 +10,7 @@ import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 trait ParsingTasks {
     val grammar: NGrammar
 
-    case class Cont(graph: Graph, updatedNodes: Map[Node, Set[Node]])
+    case class Cont(graph: Graph, updatedNodesMap: Map[Node, Set[Node]])
 
     sealed trait Task { val node: Node }
     case class DeriveTask(node: Node) extends Task
@@ -41,8 +41,8 @@ trait ParsingTasks {
 
         def nodeOf(symbolId: Int): Node = newNodeOf(symbolId, nextGen)
 
-        // cc.updatedNodes는 참조만 하고 변경하지 않는다
-        val updatedNodes = cc.updatedNodes
+        // cc.updatedNodesMap는 참조만 하고 변경하지 않는다
+        val updatedNodesMap = cc.updatedNodesMap
 
         def derive0(cc: GraphTasksCont, symbolId: Int): GraphTasksCont = {
             val newNode = nodeOf(symbolId)
@@ -51,7 +51,7 @@ trait ParsingTasks {
             def collectUpdated(queue: List[Node], cc: List[Node]): List[Node] = {
                 queue match {
                     case node +: rest =>
-                        updatedNodes get node match {
+                        updatedNodesMap get node match {
                             case Some(progressedNodes) =>
                                 assert((progressedNodes map { _.kernel }).size == 1)
                                 assert((progressedNodes map { _.kernel }).head.symbolId == symbolId)
@@ -94,7 +94,7 @@ trait ParsingTasks {
                 assert(startNode.kernel.pointer < seq.length) // node의 pointer는 sequence의 length보다 작아야 함
                 derive0(gtc0, seq(startNode.kernel.pointer))
         }
-        (Cont(newGraph, cc.updatedNodes), newTasks)
+        (Cont(newGraph, cc.updatedNodesMap), newTasks)
     }
 
     def finishTask(nextGen: Int, task: FinishTask, cc: Cont): (Cont, Seq[Task]) = {
@@ -144,9 +144,9 @@ trait ParsingTasks {
             }
 
             // cc에 updatedNodes에 node -> updatedNode 추가
-            val newUpdatedNodes = cc.updatedNodes + (node -> (cc.updatedNodes.getOrElse(node, Set()) + updatedNode))
+            val newUpdatedNodesMap = cc.updatedNodesMap + (node -> (cc.updatedNodesMap.getOrElse(node, Set()) + updatedNode))
 
-            (Cont(newGraph, newUpdatedNodes), newTasks)
+            (Cont(newGraph, newUpdatedNodesMap), newTasks)
         } else {
             // 할 일 없음
             // 그런데 이런 상황 자체가 나오면 안되는건 아닐까?

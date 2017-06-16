@@ -58,7 +58,7 @@ trait DerivationPreprocessor extends ParsingTasks {
                 }
             }
             val lifted1 = lifted.graph mapNode nodeMapper
-            val updated1 = lifted.updatedNodes map { kv =>
+            val updated1 = lifted.updatedNodesMap map { kv =>
                 nodeMapper(kv._1) -> (kv._2 map nodeMapper)
             }
             val tasks1 = baseTasks map { progressTask =>
