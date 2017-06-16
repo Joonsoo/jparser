@@ -418,7 +418,7 @@ object MyPaper6_4 extends Grammar with GrammarTestCases with StringSamples with 
 }
 
 object MyPaper6_5 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
-    val name = "MyPaper Grammar 6_5 (paper example)"
+    val name = "MyPaper Grammar 6_5"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
             n("Stmt").plus

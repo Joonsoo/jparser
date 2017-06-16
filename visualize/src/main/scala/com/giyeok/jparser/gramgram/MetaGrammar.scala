@@ -414,7 +414,7 @@ object MetaGrammar extends Grammar {
                 case Except(sym, except) =>
                     symbolStringOf(sym, 0) + "-" + symbolStringOf(except, 0)
                 case LookaheadIs(lookahead) =>
-                    "~" + symbolStringOf(lookahead, 0)
+                    "$" + symbolStringOf(lookahead, 0)
                 case LookaheadExcept(lookahead) =>
                     "!" + symbolStringOf(lookahead, 0)
                 case Proxy(proxy) =>
