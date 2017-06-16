@@ -3,6 +3,7 @@ package com.giyeok.jparser.studio
 import java.util.concurrent.LinkedBlockingDeque
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet
+import scala.util.Try
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ParseForest
@@ -13,6 +14,7 @@ import com.giyeok.jparser.Symbols.Nonterminal
 import com.giyeok.jparser.Symbols.Sequence
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.nparser.Parser.NaiveContext
@@ -44,6 +46,7 @@ import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.Control
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Label
+import org.eclipse.swt.widgets.MessageBox
 import org.eclipse.swt.widgets.Shell
 
 object ParserStudio {
@@ -67,8 +70,12 @@ object ParserStudio {
 
 case class GrammarExample(grammar: Grammar, correctTests: Seq[String], incorrectTests: Seq[String], ambiguousTest: Seq[String])
 
-class ParserStudio(parent: Composite, style: Int)(exampleGrammars: Seq[GrammarExample]) extends Composite(parent, style) {
+class ParserStudio(parent: Composite, style: Int)(_exampleGrammars: Seq[GrammarExample]) extends Composite(parent, style) {
     setLayout(new FillLayout)
+
+    private val exampleGrammars: Seq[(GrammarExample, String)] = _exampleGrammars sortBy { _.grammar.name } flatMap { g =>
+        Try(MetaGrammar.reverse(g.grammar)).toOption map { (g, _) }
+    }
 
     val tempTestGrammar: String =
         """S = expression?
@@ -133,7 +140,79 @@ class ParserStudio(parent: Composite, style: Int)(exampleGrammars: Seq[GrammarEx
             def widgetDefaultSelected(e: SelectionEvent): Unit = {}
 
             def widgetSelected(e: SelectionEvent): Unit = {
-                ???
+                val display = getDisplay
+                val shell = new Shell(display, SWT.APPLICATION_MODAL | SWT.SHEET)
+
+                shell.setLayout(new FillLayout())
+                shell.setText("Choose a grammar")
+                val panel = new VerticalResizableSplittedComposite(shell, SWT.NONE)
+                val grammarsList = new org.eclipse.swt.widgets.List(panel.leftPanel, SWT.V_SCROLL)
+                val grammarPreviewPanel = new Composite(panel.rightPanel, SWT.NONE)
+                grammarPreviewPanel.setLayout(new FormLayout)
+
+                val grammarPreview = new SourceText(grammarPreviewPanel, SWT.NONE, grammarDefParser)
+                grammarPreview.text.setEditable(false)
+                // val testsList = new org.eclipse.swt.widgets.List(panel.rightPanel, SWT.NONE)
+
+                val grammarSetBtn = new Button(grammarPreviewPanel, SWT.NONE)
+                grammarSetBtn.setText("Load")
+
+                grammarPreview.setLayoutData({
+                    val d = new FormData()
+                    d.top = new FormAttachment(0)
+                    d.bottom = new FormAttachment(grammarSetBtn)
+                    d.left = new FormAttachment(0)
+                    d.right = new FormAttachment(100)
+                    d
+                })
+                grammarSetBtn.setLayoutData({
+                    val d = new FormData()
+                    d.bottom = new FormAttachment(100)
+                    d.left = new FormAttachment(0)
+                    d.right = new FormAttachment(100)
+                    d
+                })
+
+                grammarsList.setFont(BasicVisualizeResources.fixedWidth12Font)
+
+                exampleGrammars foreach { exampleGrammar =>
+                    grammarsList.add(exampleGrammar._1.grammar.name)
+                }
+
+                grammarsList.addSelectionListener(new SelectionListener {
+                    def widgetDefaultSelected(e: SelectionEvent): Unit = {}
+                    def widgetSelected(e: SelectionEvent): Unit = {
+                        val idx = grammarsList.getSelectionIndex
+                        if (idx >= 0 && idx < exampleGrammars.length) {
+                            val grammarDefText = exampleGrammars(idx)._2
+                            grammarPreview.setText(grammarDefText)
+                        }
+                    }
+                })
+
+                grammarSetBtn.addSelectionListener(new SelectionListener {
+                    def widgetDefaultSelected(e: SelectionEvent): Unit = {}
+                    def widgetSelected(e: SelectionEvent): Unit = {
+                        val idx = grammarsList.getSelectionIndex
+                        if (idx >= 0 && idx < exampleGrammars.length) {
+                            val grammarDefText = exampleGrammars(idx)._2
+                            grammarText.control.setText(grammarDefText)
+                            shell.close()
+                        } else {
+                            val msg = new MessageBox(shell)
+                            msg.setMessage("Choose a grammar")
+                            msg.open()
+                        }
+                    }
+                })
+
+                shell.open()
+
+                while (!shell.isDisposed()) {
+                    if (!display.readAndDispatch()) {
+                        display.sleep()
+                    }
+                }
             }
         })
     }
@@ -197,15 +276,6 @@ class ParserStudio(parent: Composite, style: Int)(exampleGrammars: Seq[GrammarEx
         //        val termIds = Set(termExactId, termRangesId, termSetId) ++ grammar.reverseCorrespondingSymbols(termExactId) ++
         //            grammar.reverseCorrespondingSymbols(termRangesId) ++ grammar.reverseCorrespondingSymbols(termSetId)
 
-        def expectedTerminalFrom(parser: NaiveParser, ctx: NaiveContext): Set[Symbols.Terminal] = {
-            //            val terms = ctx.deriveTips flatMap { node =>
-            //                parser.derivation.termNodesOf(node) map { _.symbolId }
-            //            }
-            //            terms map { parser.grammar.nsymbols(_).symbol.asInstanceOf[Symbols.Terminal] }
-            // TODO
-            Set()
-        }
-
         def processDone(value: TextModel, result: ParseResult[Option[Grammar]], processor: ParseProcessor[Option[Grammar]], time: Int): Unit = {
             Display.getDefault().asyncExec(new Runnable() {
                 def run(): Unit = {
@@ -260,15 +330,6 @@ class ParserStudio(parent: Composite, style: Int)(exampleGrammars: Seq[GrammarEx
         }
         def processStarted(value: TextModel): Unit = {}
         def processCanceled(value: TextModel): Unit = {}
-
-        def expectedTerminalFrom(parser: NaiveParser, ctx: NaiveContext): Set[Symbols.Terminal] = {
-            // TODO
-            //            val terms = ctx.deriveTips flatMap { node =>
-            //                parser.derivation.termNodesOf(node) map { _.symbolId }
-            //            }
-            //            terms map { parser.grammar.nsymbols(_).symbol.asInstanceOf[Symbols.Terminal] }
-            Set()
-        }
 
         def processDone(value: TextModel, result: ParseResult[ParseForest], processor: ParseProcessor[ParseForest], time: Int): Unit = {
             Display.getDefault().asyncExec(new Runnable() {
@@ -383,6 +444,7 @@ class ParserStudio(parent: Composite, style: Int)(exampleGrammars: Seq[GrammarEx
         def widgetDisposed(e: org.eclipse.swt.events.DisposeEvent): Unit = {
             grammarText.control.stopWorkers()
             testText.control.stopWorkers()
+            System.exit(0)
         }
     })
 }
@@ -550,6 +612,15 @@ trait ProcessListener[T, R, P] {
     def processStarted(value: T): Unit
     def processCanceled(value: T): Unit
     def processDone(value: T, result: R, processor: P, time: Int): Unit
+
+    def expectedTerminalFrom(parser: NaiveParser, ctx: NaiveContext): Set[Symbols.Terminal] = {
+        ctx.nextGraph.nodes flatMap { node =>
+            node.kernel.symbol match {
+                case NTerminal(terminal) => Some(terminal)
+                case _ => None
+            }
+        }
+    }
 }
 
 trait ProcessableStorage[T, R, P <: (T => R)] {

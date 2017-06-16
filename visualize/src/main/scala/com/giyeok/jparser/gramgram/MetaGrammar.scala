@@ -11,6 +11,7 @@ import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 
@@ -391,8 +392,13 @@ object MetaGrammar extends Grammar {
                 case Sequence(Seq(), _) =>
                     "ε"
                 case Sequence(seq, _) =>
-                    // TODO string if possible
-                    seq map { symbolStringOf(_, 0) } mkString " "
+                    if (seq forall { _.isInstanceOf[Symbols.Terminals.ExactChar] }) {
+                        // string인 경우
+                        // TODO escape
+                        "\"" + (seq map { _.asInstanceOf[Symbols.Terminals.ExactChar].char }).mkString + "\""
+                    } else {
+                        seq map { symbolStringOf(_, 0) } mkString " "
+                    }
                 case OneOf(syms) =>
                     if (syms.size == 2 && (syms contains Sequence(Seq()))) {
                         symbolStringOf((syms - Sequence(Seq())).head, 0) + "?"
