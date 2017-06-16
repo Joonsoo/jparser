@@ -24,6 +24,18 @@ trait ParsingTasks {
     private def newNodeOf(symbolId: Int, beginGen: Int): Node =
         Node(Kernel(symbolId, 0, beginGen, beginGen)(symbolOf(symbolId)), Always)
 
+    private case class GraphTasksCont(graph: Graph, newTasks: List[Task])
+    private def addNode(cc: GraphTasksCont, newNode: Node): GraphTasksCont = {
+        if (!(cc.graph.nodes contains newNode)) {
+            // 새로운 노드이면 그래프에 추가하고 task도 추가
+            val newNodeTask: Task = if (newNode.kernel.isFinished) FinishTask(newNode) else DeriveTask(newNode)
+            GraphTasksCont(cc.graph.addNode(newNode), newNodeTask +: cc.newTasks)
+        } else {
+            // 이미 있는 노드이면 아무 일도 하지 않음
+            cc
+        }
+    }
+
     def deriveTask(nextGen: Int, task: DeriveTask, cc: Cont): (Cont, Seq[Task]) = {
         val DeriveTask(startNode) = task
 
@@ -32,17 +44,6 @@ trait ParsingTasks {
         // cc.updatedNodes는 참조만 하고 변경하지 않는다
         val updatedNodes = cc.updatedNodes
 
-        case class GraphTasksCont(graph: Graph, newTasks: List[Task])
-        def addNode(cc: GraphTasksCont, newNode: Node): GraphTasksCont = {
-            if (!(cc.graph.nodes contains newNode)) {
-                // 새로운 노드이면 그래프에 추가하고 task도 추가
-                val newNodeTask: Task = if (newNode.kernel.isFinished) FinishTask(newNode) else DeriveTask(newNode)
-                GraphTasksCont(cc.graph.addNode(newNode), newNodeTask +: cc.newTasks)
-            } else {
-                // 이미 있는 노드이면 아무 일도 하지 않음
-                cc
-            }
-        }
         def derive0(cc: GraphTasksCont, symbolId: Int): GraphTasksCont = {
             val newNode = nodeOf(symbolId)
             val ncc = addNode(cc, newNode)
@@ -114,17 +115,16 @@ trait ParsingTasks {
         // assert(cc.graph.nodes contains node)
 
         // nodeSymbolOpt에서 opt를 사용하는 것은 finish는 SequenceNode에 대해서도 실행되기 때문
-        val nodeSymbolOpt = grammar.nsymbols get node.kernel.symbolId
-        val newCondition = nodeSymbolOpt match {
-            case Some(NLongest(_, longest)) =>
+        val newCondition = node.kernel.symbol match {
+            case NLongest(_, longest) =>
                 NotExists(node.kernel.beginGen, nextGen + 1, longest)(atomicSymbolOf(longest))
-            case Some(NExcept(_, _, except)) =>
+            case NExcept(_, _, except) =>
                 Unless(node.kernel.beginGen, nextGen, except)(atomicSymbolOf(except))
-            case Some(NJoin(_, _, join)) =>
+            case NJoin(_, _, join) =>
                 OnlyIf(node.kernel.beginGen, nextGen, join)(atomicSymbolOf(join))
-            case Some(NLookaheadIs(_, _, lookahead)) =>
+            case NLookaheadIs(_, _, lookahead) =>
                 Exists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead))
-            case Some(NLookaheadExcept(_, _, lookahead)) =>
+            case NLookaheadExcept(_, _, lookahead) =>
                 NotExists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead))
             case _ => Always
         }
@@ -134,9 +134,11 @@ trait ParsingTasks {
         }
         val updatedNode = Node(newKernel, conjunct(node.condition, incomingCondition, newCondition))
         if (!(cc.graph.nodes contains updatedNode)) {
+            val GraphTasksCont(graph1, newTasks) = addNode(GraphTasksCont(cc.graph, List()), updatedNode)
+
             // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
             val incomingEdges = cc.graph.edgesByEnd(node)
-            val newGraph = incomingEdges.foldLeft(cc.graph.addNode(updatedNode)) { (graph, edge) =>
+            val newGraph = incomingEdges.foldLeft(graph1) { (graph, edge) =>
                 val newEdge = Edge(edge.start, updatedNode)
                 graph.addEdge(newEdge)
             }
@@ -144,12 +146,7 @@ trait ParsingTasks {
             // cc에 updatedNodes에 node -> updatedNode 추가
             val newUpdatedNodes = cc.updatedNodes + (node -> (cc.updatedNodes.getOrElse(node, Set()) + updatedNode))
 
-            val newTask = if (updatedNode.kernel.isFinished) {
-                FinishTask(updatedNode)
-            } else {
-                DeriveTask(updatedNode)
-            }
-            (Cont(newGraph, newUpdatedNodes), Seq(newTask))
+            (Cont(newGraph, newUpdatedNodes), newTasks)
         } else {
             // 할 일 없음
             // 그런데 이런 상황 자체가 나오면 안되는건 아닐까?
