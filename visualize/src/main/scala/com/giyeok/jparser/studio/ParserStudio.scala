@@ -69,7 +69,8 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
     setLayout(new FillLayout)
 
     val tempTestGrammar: String =
-        """expression = term | expression {+\-} term
+        """S = expression?
+          |expression = term | expression {+\-} term
           |term = factor | term {*/} factor
           |factor = number | variable | '(' expression ')'
           |number = '0' | [{+\-}? {1-9} {0-9}* [{eE} {+\-}? {0-9}+]?]
@@ -93,7 +94,7 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
     // Grammar Panel
     val grammarPanel = rootPanel.leftPanel
     grammarPanel.setLayout(new FormLayout)
-    val grammarText = new NotificationPanel(grammarPanel, SWT.NONE)(new SourceText(_, SWT.NONE, grammarDefParser))
+    val grammarText = new NotificationPanel(grammarPanel, SWT.NONE)(Some("Grammar"), new SourceText(_, SWT.NONE, grammarDefParser))
     val grammarControlPanel = new Composite(grammarPanel, SWT.NONE)
     val grammarInfoPanel = new Composite(grammarPanel, SWT.NONE)
     grammarText.setLayoutData({
@@ -134,14 +135,14 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
     generateButton.setText("Generate Parser")
 
     // Test Panel
-    val rightPanel = new HorizontalResizableSplittedComposite(rootPanel.rightPanel, SWT.NONE, 20)
-    val highlightingSymbols = new NotificationPanel(rightPanel.upperPanel, SWT.NONE)(new HighlightingSymbolsViewer(_, SWT.NONE))
-    val testPanel = new VerticalResizableSplittedComposite(rightPanel.lowerPanel, SWT.NONE)
+    // val rightPanel = new HorizontalResizableSplittedComposite(rootPanel.rightPanel, SWT.NONE, 20)
+    // val highlightingSymbols = new NotificationPanel(rightPanel.upperPanel, SWT.NONE)(new HighlightingSymbolsViewer(_, SWT.NONE))
+    val testPanel = new VerticalResizableSplittedComposite(rootPanel.rightPanel, SWT.NONE)
 
-    val testText = new NotificationPanel(testPanel.leftPanel, SWT.NONE)(new SourceText(_, SWT.NONE, emptyGrammarParser))
+    val testText = new NotificationPanel(testPanel.leftPanel, SWT.NONE)(Some("Test Text"), new SourceText(_, SWT.NONE, emptyGrammarParser))
     val testResultPanel = testPanel.rightPanel
     testResultPanel.setLayout(new FormLayout)
-    val parseTreeView = new NotificationPanel(testResultPanel, SWT.NONE)(new ParseTreeViewer(_, SWT.NONE))
+    val parseTreeView = new NotificationPanel(testResultPanel, SWT.NONE)(Some("Parse Tree"), new ParseTreeViewer(_, SWT.NONE))
     val parseProceedPanel = new Composite(testResultPanel, SWT.NONE)
     parseTreeView.setLayoutData({
         val d = new FormData()
@@ -373,28 +374,45 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
     })
 }
 
-class NotificationPanel[T <: Control](parent: Composite, style: Int)(childFunc: Composite => T) extends Composite(parent, style) {
+class NotificationPanel[T <: Control](parent: Composite, style: Int)(titleOpt: Option[String], childFunc: Composite => T) extends Composite(parent, style) {
     setLayout(new FormLayout())
 
-    val control = childFunc(this)
+    val titleLabelOpt: Option[Label] = titleOpt map { title =>
+        val label = new Label(this, SWT.CENTER)
+        label.setText(title)
+        label
+    }
+    val control: T = childFunc(this)
     val notificationPanel = new Label(this, SWT.NONE)
     control.setLayoutData({
         val d = new FormData()
-        d.top = new FormAttachment(0)
+        d.top = titleLabelOpt match {
+            case Some(titleLabel) => new FormAttachment(titleLabel)
+            case None => new FormAttachment(0)
+        }
         d.bottom = new FormAttachment(notificationPanel)
         d.left = new FormAttachment(0)
         d.right = new FormAttachment(100)
         d
     })
 
-    val notificationLayoutDataVisible = {
+    titleLabelOpt foreach { title =>
+        title.setLayoutData({
+            val d = new FormData()
+            d.top = new FormAttachment(0)
+            d.left = new FormAttachment(0)
+            d.right = new FormAttachment(100)
+            d
+        })
+    }
+    val notificationLayoutDataVisible: FormData = {
         val d = new FormData()
         d.bottom = new FormAttachment(100)
         d.left = new FormAttachment(0)
         d.right = new FormAttachment(100)
         d
     }
-    val notificationLayoutDataInvisible = {
+    val notificationLayoutDataInvisible: FormData = {
         val d = new FormData()
         d.top = new FormAttachment(100)
         d.bottom = new FormAttachment(100)

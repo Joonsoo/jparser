@@ -354,71 +354,74 @@ object MetaGrammar extends Grammar {
             }
         }
 
-        def symbolStringOf(symbol: Symbols.Symbol): String = symbol match {
-            case terminal: Symbols.Terminal =>
-                terminal match {
-                    case Any | AnyChar => "."
-                    case ExactChar(char) =>
-                        val s = char match {
-                            case '\n' => "\\n"
-                            case '\\' => "\\\\"
-                            case '\'' => "\\'"
-                            // TODO complete escape
-                            case _ => s"$char"
-                        }
-                        s"'$s'"
-                    case chars: Symbols.Terminals.Chars =>
-                        def escapeChar(char: Char): String =
-                            char match {
-                                case '-' => "\\-"
-                                case '}' => "\\}"
+        def symbolStringOf(symbol: Symbols.Symbol, outerPrecedence: Int): String = {
+            val string = symbol match {
+                case terminal: Symbols.Terminal =>
+                    terminal match {
+                        case Any | AnyChar => "."
+                        case ExactChar(char) =>
+                            val s = char match {
                                 case '\n' => "\\n"
-                                case '\t' => "\\t"
-                                case '\r' => "\\r"
                                 case '\\' => "\\\\"
+                                case '\'' => "\\'"
                                 // TODO complete escape
-                                case _ => "" + char
+                                case _ => s"$char"
                             }
-                        "{" + (chars.groups.sorted map { pair =>
-                            if (pair._1 == pair._2) s"${escapeChar(pair._1)}"
-                            else if (pair._1 + 1 == pair._2) s"${escapeChar(pair._1)}${escapeChar(pair._2)}"
-                            else s"${escapeChar(pair._1)}-${escapeChar(pair._2)}"
-                        } mkString "") + "}"
-                }
-            case Nonterminal(nontermName) =>
-                nonterminalNameOf(nontermName)
-            case Sequence(Seq(), _) =>
-                "ε"
-            case Sequence(seq, _) =>
-                // TODO string if possible
-                seq map { symbolStringOf } mkString " "
-            case OneOf(syms) =>
-                if (syms.size == 2 && (syms contains Sequence(Seq()))) {
-                    symbolStringOf((syms - Sequence(Seq())).head) + "?"
-                } else {
-                    "(" + (syms.toSeq map { symbolStringOf } mkString " | ") + ")"
-                }
-            case Repeat(sym, 0) =>
-                symbolStringOf(sym) + "*"
-            case Repeat(sym, 1) =>
-                symbolStringOf(sym) + "+"
-            case Repeat(sym, more) =>
-                "[" + ((symbolStringOf(sym) + " ") * more) + (symbolStringOf(sym) + "*") + "]"
-            case Except(sym, except) =>
-                symbolStringOf(sym) + "-" + symbolStringOf(except)
-            case LookaheadIs(lookahead) =>
-                "~" + symbolStringOf(lookahead)
-            case LookaheadExcept(lookahead) =>
-                "!" + symbolStringOf(lookahead)
-            case Proxy(proxy) =>
-                "[" + symbolStringOf(proxy) + "]"
-            case Join(sym, join) =>
-                symbolStringOf(sym) + "&" + symbolStringOf(join)
-            case Longest(sym) =>
-                "<" + symbolStringOf(sym) + ">"
+                            s"'$s'"
+                        case chars: Symbols.Terminals.Chars =>
+                            def escapeChar(char: Char): String =
+                                char match {
+                                    case '-' => "\\-"
+                                    case '}' => "\\}"
+                                    case '\n' => "\\n"
+                                    case '\t' => "\\t"
+                                    case '\r' => "\\r"
+                                    case '\\' => "\\\\"
+                                    // TODO complete escape
+                                    case _ => "" + char
+                                }
+                            "{" + (chars.groups.sorted map { pair =>
+                                if (pair._1 == pair._2) s"${escapeChar(pair._1)}"
+                                else if (pair._1 + 1 == pair._2) s"${escapeChar(pair._1)}${escapeChar(pair._2)}"
+                                else s"${escapeChar(pair._1)}-${escapeChar(pair._2)}"
+                            } mkString "") + "}"
+                    }
+                case Nonterminal(nontermName) =>
+                    nonterminalNameOf(nontermName)
+                case Sequence(Seq(), _) =>
+                    "ε"
+                case Sequence(seq, _) =>
+                    // TODO string if possible
+                    seq map { symbolStringOf(_, 0) } mkString " "
+                case OneOf(syms) =>
+                    if (syms.size == 2 && (syms contains Sequence(Seq()))) {
+                        symbolStringOf((syms - Sequence(Seq())).head, 0) + "?"
+                    } else {
+                        "(" + (syms.toSeq map { symbolStringOf(_, 0) } mkString " | ") + ")"
+                    }
+                case Repeat(sym, 0) =>
+                    symbolStringOf(sym, 0) + "*"
+                case Repeat(sym, 1) =>
+                    symbolStringOf(sym, 0) + "+"
+                case Repeat(sym, more) =>
+                    "[" + ((symbolStringOf(sym, 0) + " ") * more) + (symbolStringOf(sym, 0) + "*") + "]"
+                case Except(sym, except) =>
+                    symbolStringOf(sym, 0) + "-" + symbolStringOf(except, 0)
+                case LookaheadIs(lookahead) =>
+                    "~" + symbolStringOf(lookahead, 0)
+                case LookaheadExcept(lookahead) =>
+                    "!" + symbolStringOf(lookahead, 0)
+                case Proxy(proxy) =>
+                    "[" + symbolStringOf(proxy, 0) + "]"
+                case Join(sym, join) =>
+                    symbolStringOf(sym, 0) + "&" + symbolStringOf(join, 0)
+                case Longest(sym) =>
+                    "<" + symbolStringOf(sym, 0) + ">"
+            }
+            string
         }
         def ruleStringOf(lhs: String, rhs: ListSet[Symbols.Symbol]): String = {
-            nonterminalNameOf(lhs) + " = " + ((rhs map { symbolStringOf }) mkString "\n    | ")
+            nonterminalNameOf(lhs) + " = " + ((rhs map { symbol => symbolStringOf(symbol, 0) }) mkString "\n    | ")
         }
 
         val startRule = grammar.rules(grammar.startSymbol.name)
