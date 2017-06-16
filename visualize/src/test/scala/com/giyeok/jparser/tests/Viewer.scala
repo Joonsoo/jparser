@@ -27,12 +27,16 @@ import org.eclipse.swt.widgets.Event
 import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Shell
 
-object AllViewer extends Viewer {
-    val allTests: Set[GrammarTestCases] = Set(
+object AllTestGrammars {
+    val allTestGrammars: Set[GrammarTestCases] = Set(
         com.giyeok.jparser.tests.basics.Visualization.allTests,
         com.giyeok.jparser.tests.gramgram.Visualization.allTests,
         com.giyeok.jparser.tests.javascript.Visualization.allTests
     ).flatten
+}
+
+object AllViewer extends Viewer {
+    val allTests: Set[GrammarTestCases] = AllTestGrammars.allTestGrammars
 
     def main(args: Array[String]): Unit = {
         start()

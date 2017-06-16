@@ -32,6 +32,7 @@ import org.eclipse.swt.custom.ExtendedModifyListener
 import org.eclipse.swt.custom.StyleRange
 import org.eclipse.swt.custom.StyledText
 import org.eclipse.swt.events.DisposeListener
+import org.eclipse.swt.events.SelectionEvent
 import org.eclipse.swt.events.SelectionListener
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.layout.FormAttachment
@@ -94,7 +95,7 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
     // Grammar Panel
     val grammarPanel = rootPanel.leftPanel
     grammarPanel.setLayout(new FormLayout)
-    val grammarText = new NotificationPanel(grammarPanel, SWT.NONE)(Some("Grammar"), new SourceText(_, SWT.NONE, grammarDefParser))
+    val grammarText = new NotificationPanel(grammarPanel, SWT.NONE)(None, new SourceText(_, SWT.NONE, grammarDefParser))
     val grammarControlPanel = new Composite(grammarPanel, SWT.NONE)
     val grammarInfoPanel = new Composite(grammarPanel, SWT.NONE)
     grammarText.setLayoutData({
@@ -123,26 +124,32 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
 
     grammarControlPanel.setLayout(new FillLayout)
     val grammarOpenButton = new Button(grammarControlPanel, SWT.NONE)
-    grammarOpenButton.setText("Open")
+    grammarOpenButton.setText("Open Example Grammars")
+    grammarOpenButton.addSelectionListener(new SelectionListener {
+        def widgetDefaultSelected(e: SelectionEvent): Unit = {}
+        def widgetSelected(e: SelectionEvent): Unit = {
+            ???
+        }
+    })
 
     grammarInfoPanel.setLayout(new FillLayout)
     val definitionViewButton = new Button(grammarInfoPanel, SWT.NONE)
     definitionViewButton.setText("Derivation View")
-    val parserGeneratorPanel = new Composite(grammarInfoPanel, SWT.NONE)
-    parserGeneratorPanel.setLayout(new FillLayout(SWT.VERTICAL))
-    val generateParserSelector = new ParserSelector(parserGeneratorPanel, SWT.NONE)
-    val generateButton = new Button(parserGeneratorPanel, SWT.NONE)
-    generateButton.setText("Generate Parser")
+    //    val parserGeneratorPanel = new Composite(grammarInfoPanel, SWT.NONE)
+    //    parserGeneratorPanel.setLayout(new FillLayout(SWT.VERTICAL))
+    //    val generateParserSelector = new ParserSelector(parserGeneratorPanel, SWT.NONE)
+    // val generateButton = new Button(parserGeneratorPanel, SWT.NONE)
+    // generateButton.setText("Generate Parser")
 
     // Test Panel
     // val rightPanel = new HorizontalResizableSplittedComposite(rootPanel.rightPanel, SWT.NONE, 20)
     // val highlightingSymbols = new NotificationPanel(rightPanel.upperPanel, SWT.NONE)(new HighlightingSymbolsViewer(_, SWT.NONE))
-    val testPanel = new VerticalResizableSplittedComposite(rootPanel.rightPanel, SWT.NONE)
+    val testPanel = new HorizontalResizableSplittedComposite(rootPanel.rightPanel, SWT.NONE, 20)
 
-    val testText = new NotificationPanel(testPanel.leftPanel, SWT.NONE)(Some("Test Text"), new SourceText(_, SWT.NONE, emptyGrammarParser))
-    val testResultPanel = testPanel.rightPanel
+    val testText = new NotificationPanel(testPanel.upperPanel, SWT.NONE)(Some("Test Text"), new SourceText(_, SWT.NONE, emptyGrammarParser))
+    val testResultPanel = testPanel.lowerPanel
     testResultPanel.setLayout(new FormLayout)
-    val parseTreeView = new NotificationPanel(testResultPanel, SWT.NONE)(Some("Parse Tree"), new ParseTreeViewer(_, SWT.NONE))
+    val parseTreeView = new NotificationPanel(testResultPanel, SWT.NONE)(None, new ParseTreeViewer(_, SWT.NONE))
     val parseProceedPanel = new Composite(testResultPanel, SWT.NONE)
     parseTreeView.setLayoutData({
         val d = new FormData()
@@ -470,34 +477,36 @@ class SourceText[R](parent: Composite, style: Int, val initialProcessor: ParsePr
 class ParserSelector(parent: Composite, style: Int) extends Composite(parent, style) {
     setLayout(new RowLayout())
 
-    val preprocessedButton = new Button(this, SWT.CHECK)
-    val sliceButton = new Button(this, SWT.CHECK)
-    val compactButton = new Button(this, SWT.CHECK)
-
-    preprocessedButton.setText("Preprocessed")
-    sliceButton.setText("Slice")
-    compactButton.setText("Compact")
-
-    preprocessedButton.setSelection(false)
-    sliceButton.setSelection(false)
-    compactButton.setSelection(false)
-
-    def preprocessed: Boolean = preprocessedButton.getSelection()
-    def slice: Boolean = sliceButton.getSelection()
-    def compact: Boolean = compactButton.getSelection()
-
-    private def enableButtons(): Unit = {
-        sliceButton.setEnabled(preprocessed)
-        compactButton.setEnabled(preprocessed)
-    }
-
-    preprocessedButton.addSelectionListener(new SelectionListener() {
-        def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = ???
-        def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
-            enableButtons()
-        }
-    })
-    enableButtons()
+    // TODO 현재 미지원
+    //    val preprocessedButton = new Button(this, SWT.CHECK)
+    //    val sliceButton = new Button(this, SWT.CHECK)
+    //    val compactButton = new Button(this, SWT.CHECK)
+    //
+    //    preprocessedButton.setText("Preprocessed")
+    //    sliceButton.setText("Slice")
+    //    compactButton.setText("Compact")
+    //
+    //    preprocessedButton.setSelection(false)
+    //    sliceButton.setSelection(false)
+    //    compactButton.setSelection(false)
+    //
+    def preprocessed: Boolean = false
+    //    def preprocessed: Boolean = preprocessedButton.getSelection()
+    //    def slice: Boolean = sliceButton.getSelection()
+    //    def compact: Boolean = compactButton.getSelection()
+    //
+    //    private def enableButtons(): Unit = {
+    //        sliceButton.setEnabled(preprocessed)
+    //        compactButton.setEnabled(preprocessed)
+    //    }
+    //
+    //    preprocessedButton.addSelectionListener(new SelectionListener() {
+    //        def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = ???
+    //        def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
+    //            enableButtons()
+    //        }
+    //    })
+    //    enableButtons()
 }
 
 class HighlightingSymbolsViewer(parent: Composite, style: Int) extends Composite(parent, style) {
