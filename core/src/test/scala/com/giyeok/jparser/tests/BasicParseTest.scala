@@ -22,14 +22,22 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
 
     private def testNGrammar(ngrammar: NGrammar) = {
         import NGrammar._
-        val allSymbolIds = ngrammar.nsymbols.keySet ++ ngrammar.nsequences.keySet
         assert((ngrammar.nsymbols.keySet intersect ngrammar.nsequences.keySet).isEmpty)
+
+        val symbolIds = ngrammar.nsymbols.keySet
+        val allSymbolIds = symbolIds ++ ngrammar.nsequences.keySet
         ngrammar.nsymbols.values foreach {
-            case NTerminal(_) =>
-            case l: NLookaheadSymbol =>
-                assert(ngrammar.nsymbols.keySet contains l.lookahead)
-            case d: NSimpleDerivable =>
+            case NTerminal(_) => // do nothing
+            case d: NSimpleDerive =>
                 assert(d.produces subsetOf allSymbolIds)
+            case NExcept(_, body, except) =>
+                assert((symbolIds contains body) && (symbolIds contains except))
+            case NJoin(_, body, join) =>
+                assert((symbolIds contains body) && (symbolIds contains join))
+            case NLongest(_, body) =>
+                assert(symbolIds contains body)
+            case l: NLookaheadSymbol =>
+                assert(symbolIds contains l.lookahead)
         }
         ngrammar.nsequences.values foreach {
             case NSequence(_, sequence) =>

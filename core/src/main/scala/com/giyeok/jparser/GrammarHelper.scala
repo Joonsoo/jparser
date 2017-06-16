@@ -56,12 +56,9 @@ object GrammarHelper {
     // def lgst(t: Terminal) = seq(t, LookaheadExcept(t))
 
     implicit class GrammarElementExcludable(sym: Symbol) {
-        def except(e: Symbol) = e match {
-            case e: AtomicSymbol => Except(sym, e)
-            case e: Sequence => Except(sym, Proxy(e))
-        }
-        def butnot(e: Symbol) = except(e)
-        def butnot(e: Symbol*) = except(oneof(e.toSet))
+        def except(e: Symbol) = Except(proxyIfNeeded(sym), proxyIfNeeded(e))
+        def butnot(e: Symbol): Except = except(e)
+        def butnot(e: Symbol*): Except = except(oneof(e.toSet))
     }
     implicit class GrammarElementRepeatable(sym: Symbol) {
         def repeat(lower: Int, upper: Int): OneOf = OneOf(((lower to upper) map { count =>
@@ -70,18 +67,18 @@ object GrammarHelper {
         def repeat(lower: Int): Repeat = Repeat(proxyIfNeeded(sym), lower)
 
         // optional
-        def opt = repeat(0, 1)
-        def question = opt
+        def opt: OneOf = repeat(0, 1)
+        def question: OneOf = opt
 
         // more than zero
-        def asterisk = repeat(0)
-        def star = asterisk
+        def asterisk: Repeat = repeat(0)
+        def star: Repeat = asterisk
 
         // more than once
-        def plus = repeat(1)
+        def plus: Repeat = repeat(1)
     }
     implicit class GrammarElementJoinable(sym: Symbol) {
-        def join(joinWith: Symbol): Join = new Join(proxyIfNeeded(sym), proxyIfNeeded(joinWith))
+        def join(joinWith: Symbol): Join = Join(proxyIfNeeded(sym), proxyIfNeeded(joinWith))
     }
 
     implicit class GrammarMergeable(rules: Grammar#RuleMap) {

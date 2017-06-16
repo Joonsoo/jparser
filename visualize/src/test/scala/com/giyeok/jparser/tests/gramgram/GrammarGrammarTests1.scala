@@ -24,8 +24,8 @@ object GrammarGrammarTests1 extends GrammarTestCases with StringSamples {
                                #`[a-z]+ = `[a-z]+ `[a-z] | `[a-z]
                                #`[a-z] = [a-z]
                                #""".stripMargin('#')
-    val correctSamples = Set(paperGrammar, paperGrammar * 10)
-    val incorrectSamples = Set[String]()
+    val correctSamples: Set[String] = Set(paperGrammar, paperGrammar * 10)
+    val incorrectSamples: Set[String] = Set[String]()
 }
 
 object GrammarGrammarTests {

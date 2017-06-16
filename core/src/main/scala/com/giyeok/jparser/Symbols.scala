@@ -2,7 +2,7 @@ package com.giyeok.jparser
 
 object Symbols {
     sealed trait Symbol {
-        val id = Symbol.getId(this)
+        val id: Int = Symbol.getId(this)
     }
     object Symbol {
         private var symbolsMap: Map[Symbol, Int] = Map()
@@ -36,15 +36,15 @@ object Symbols {
             def accept(input: Input) = true
         }
         case object AnyChar extends CharacterTerminal {
-            def accept(input: Input) = input match {
+            def accept(input: Input): Boolean = input match {
                 case Character(_) => true
                 case AbstractInput(_: CharacterTermGroupDesc) => true
                 case _ => false
             }
         }
         case class ExactChar(char: Char) extends CharacterTerminal {
-            override val hashCode = char.hashCode
-            def accept(input: Input) = input match {
+            override val hashCode: Int = char.hashCode
+            def accept(input: Input): Boolean = input match {
                 case Character(c) if char == c => true
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
@@ -63,8 +63,8 @@ object Symbols {
             }
         }
         case class Chars(chars: Set[Char]) extends CharacterTerminal {
-            override val hashCode = chars.hashCode
-            def accept(input: Input) = input match {
+            override val hashCode: Int = chars.hashCode
+            def accept(input: Input): Boolean = input match {
                 case Character(c) if chars contains c => true
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
@@ -84,8 +84,8 @@ object Symbols {
             }
         }
         case class Unicode(categories: Set[Int]) extends CharacterTerminal {
-            override val hashCode = categories.hashCode
-            def accept(input: Input) =
+            override val hashCode: Int = categories.hashCode
+            def accept(input: Input): Boolean =
                 input match {
                     case Character(c) if categories contains c.getType => true
                     case AbstractInput(termGroup) =>
@@ -105,7 +105,7 @@ object Symbols {
                 }
         }
         case class ExactVirtual(name: String) extends VirtualTerminal {
-            def accept(input: Input) = input match {
+            def accept(input: Input): Boolean = input match {
                 case Virtual(n) if n == name => true
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
@@ -118,8 +118,8 @@ object Symbols {
             }
         }
         case class Virtuals(names: Set[String]) extends VirtualTerminal {
-            override val hashCode = names.hashCode
-            def accept(input: Input) = input match {
+            override val hashCode: Int = names.hashCode
+            def accept(input: Input): Boolean = input match {
                 case Virtual(n) if names contains n => true
                 case AbstractInput(termGroup) =>
                     assert(!termGroup.isEmpty)
@@ -159,48 +159,48 @@ object Symbols {
 
     case object Start extends AtomicNonterm
     case class Nonterminal(name: String) extends AtomicNonterm {
-        override val hashCode = (classOf[Nonterminal], name).hashCode
+        override val hashCode: Int = (classOf[Nonterminal], name).hashCode
     }
     case class Sequence(seq: Seq[AtomicSymbol], contentIdx: Seq[Int]) extends NonAtomicNonterm {
-        override val hashCode = (classOf[Sequence], seq, contentIdx).hashCode
+        override val hashCode: Int = (classOf[Sequence], seq, contentIdx).hashCode
     }
     object Sequence {
         def apply(seq: Seq[AtomicSymbol]): Sequence = Sequence(seq, seq.indices)
     }
     case class OneOf(syms: Set[Symbol]) extends AtomicNonterm {
-        override val hashCode = (classOf[OneOf], syms).hashCode
+        override val hashCode: Int = (classOf[OneOf], syms).hashCode
     }
     case class Repeat(sym: AtomicSymbol, lower: Int) extends AtomicNonterm {
-        override val hashCode = (classOf[Repeat], sym, lower).hashCode
+        override val hashCode: Int = (classOf[Repeat], sym, lower).hashCode
 
-        val baseSeq = if (lower == 1) sym else Sequence((0 until lower) map { _ => sym })
+        val baseSeq: Symbol = if (lower == 1) sym else Sequence((0 until lower) map { _ => sym })
         val repeatSeq = Sequence(Seq(this, sym))
     }
     case class Except(sym: Symbol, except: AtomicSymbol) extends AtomicNonterm {
-        override val hashCode = (classOf[Except], sym, except).hashCode
+        override val hashCode: Int = (classOf[Except], sym, except).hashCode
     }
     sealed trait Lookahead extends AtomicNonterm
     case class LookaheadIs(lookahead: AtomicSymbol) extends Lookahead {
-        override val hashCode = (classOf[LookaheadIs], lookahead).hashCode
+        override val hashCode: Int = (classOf[LookaheadIs], lookahead).hashCode
     }
     case class LookaheadExcept(except: AtomicSymbol) extends Lookahead {
-        override val hashCode = (classOf[LookaheadExcept], except).hashCode
+        override val hashCode: Int = (classOf[LookaheadExcept], except).hashCode
     }
     case class Proxy(sym: Symbol) extends AtomicNonterm {
-        override val hashCode = (classOf[Proxy], sym).hashCode
+        override val hashCode: Int = (classOf[Proxy], sym).hashCode
     }
     case class Join(sym: AtomicSymbol, join: AtomicSymbol) extends AtomicNonterm {
         assert(sym != join)
-        override val hashCode = (classOf[Join], sym, join).hashCode
+        override val hashCode: Int = (classOf[Join], sym, join).hashCode
     }
     case class Longest(sym: AtomicSymbol) extends AtomicNonterm {
-        override val hashCode = (classOf[Longest], sym).hashCode
+        override val hashCode: Int = (classOf[Longest], sym).hashCode
     }
 
     implicit class CharsGrouping(sym: Terminals.Chars) {
         def groups: List[(Char, Char)] = {
-            def grouping(chars: List[Char], range: Option[(Char, Char)], cc: List[(Char, Char)]): List[(Char, Char)] = {
-                (chars, range) match {
+            def grouping(chars: List[Char], rangeOpt: Option[(Char, Char)], cc: List[(Char, Char)]): List[(Char, Char)] = {
+                (chars, rangeOpt) match {
                     case (head +: tail, Some(range)) =>
                         if (head == range._2 + 1) grouping(tail, Some(range._1, head), cc)
                         else grouping(tail, Some(head, head), range +: cc)
@@ -228,7 +228,7 @@ object Symbols {
                     else if (range._1 + 1 == range._2) s"${toReadable(range._1)}-${toReadable(range._2)}"
                     else s"${toReadable(range._1)}-${toReadable(range._2)}"
                 } mkString "|") + ")"
-            case Unicode(c) => s"<unicode ${(c.toSeq.sorted map { categoryCodeToName(_) }) mkString ", "}>"
+            case Unicode(c) => s"<unicode ${(c.toSeq.sorted map { categoryCodeToName }) mkString ", "}>"
             case t: Terminal => t.toShortString
             case Start => "<start>"
             case s: Nonterminal => s.name

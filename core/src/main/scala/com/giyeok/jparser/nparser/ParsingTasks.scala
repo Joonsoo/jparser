@@ -21,12 +21,13 @@ trait ParsingTasks {
         grammar.symbolOf(symbolId)
     private def atomicSymbolOf(symbolId: Int): NAtomicSymbol =
         symbolOf(symbolId).asInstanceOf[NAtomicSymbol]
+    private def newNodeOf(symbolId: Int, beginGen: Int): Node =
+        Node(Kernel(symbolId, 0, beginGen, beginGen)(symbolOf(symbolId)), Always)
 
     def deriveTask(nextGen: Int, task: DeriveTask, cc: Cont): (Cont, Seq[Task]) = {
         val DeriveTask(startNode) = task
 
-        def nodeOf(symbolId: Int): Node =
-            Node(Kernel(symbolId, 0, nextGen, nextGen)(symbolOf(symbolId)), Always)
+        def nodeOf(symbolId: Int): Node = newNodeOf(symbolId, nextGen)
 
         // cc.updatedNodes는 참조만 하고 변경하지 않는다
         val updatedNodes = cc.updatedNodes
@@ -76,24 +77,15 @@ trait ParsingTasks {
                 symbol match {
                     case _: NTerminal =>
                         gtc0 // nothing to do
-
-                    case simpleDerivable: NSimpleDerivable =>
-                        simpleDerivable.produces.foldLeft(gtc0) { (contTask, produce) =>
-                            derive0(contTask, produce)
-                        }
-
+                    case simpleDerives: NSimpleDerive =>
+                        simpleDerives.produces.foldLeft(gtc0) { (cc, deriveSymbolId) => derive0(cc, deriveSymbolId) }
+                    case NExcept(_, body, except) =>
+                        addNode(derive0(gtc0, body), nodeOf(except))
+                    case NJoin(_, body, join) =>
+                        addNode(derive0(gtc0, body), nodeOf(join))
+                    case NLongest(_, body) =>
+                        derive0(gtc0, body)
                     case lookaheadSymbol: NLookaheadSymbol =>
-                        // TODO 의미가 더 잘 보이도록 리팩토링
-                        // lookaheadNode에 대해서는 derive 함수에서 하는 것과 거의 동일한 작업을 하지만 다만 엣지를 추가하지 않음
-                        // lookaheadNode에 대해서 updatedNodes propagation을 해야할까?
-                        //                        val lookaheadNode = nodeOf(lookaheadSymbol.lookahead, nextGen)
-                        //
-                        //                        val (Cont(graph0, updatedNodes), tasks0) = derive(Set(lookaheadSymbol.emptySeqId))
-                        //
-                        //                        val tasks = if (!(graph0.nodes contains lookaheadNode)) DeriveTask(lookaheadNode) +: tasks0 else tasks0
-                        //                        val graph = graph0.addNode(lookaheadNode)
-                        //
-                        //                        (Cont(graph, updatedNodes), tasks)
                         addNode(derive0(gtc0, lookaheadSymbol.emptySeqId), nodeOf(lookaheadSymbol.lookahead))
                 }
             case NSequence(_, seq) =>
@@ -251,10 +243,20 @@ trait ParsingTasks {
                 def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
                     queue match {
                         case node +: rest =>
-                            val reachables = (graph.edgesByStart(node) map {
-                                _.end
-                            }) ++ (node.condition.nodes intersect graph.nodes)
+                            val edgeReachables: Set[Node] = graph.edgesByStart(node) map { _.end }
+                            val conditionReachables: Set[Node] = {
+                                val potential = if (node.kernel.pointer != 0) Set() else
+                                    node.kernel.symbol match {
+                                        case NExcept(_, _, except) => Set(newNodeOf(except, node.kernel.beginGen))
+                                        case NJoin(_, _, join) => Set(newNodeOf(join, node.kernel.beginGen))
+                                        // lookahead는 항상 바로 progress되므로 conditionReachables에서 처리됨
+                                        case _ => Set()
+                                    }
+                                (node.condition.nodes ++ potential) intersect graph.nodes
+                            }
+                            val reachables: Set[Node] = edgeReachables ++ conditionReachables
                             val newReachables = reachables -- cc
+                            assert(newReachables subsetOf graph.nodes)
                             visit(newReachables.toSeq ++: rest, cc ++ newReachables)
                         case List() => cc
                     }

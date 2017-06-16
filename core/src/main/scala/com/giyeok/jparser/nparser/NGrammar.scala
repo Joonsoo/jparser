@@ -2,7 +2,6 @@ package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.nparser.NGrammar._
 
 // Numbered Grammar
 class NGrammar(val nsymbols: Map[Int, NGrammar.NAtomicSymbol], val nsequences: Map[Int, NGrammar.NSequence], val startSymbol: Int) {
@@ -20,15 +19,15 @@ object NGrammar {
 
     case class NTerminal(symbol: Symbols.Terminal) extends NAtomicSymbol
 
-    sealed trait NSimpleDerivable extends NAtomicSymbol { val produces: Set[Int] }
-    case class NStart(produces: Set[Int]) extends NSimpleDerivable { val symbol = Symbols.Start }
-    case class NNonterminal(symbol: Symbols.Nonterminal, produces: Set[Int]) extends NSimpleDerivable
-    case class NOneOf(symbol: Symbols.OneOf, produces: Set[Int]) extends NSimpleDerivable
-    case class NProxy(symbol: Symbols.Proxy, produce: Int) extends NSimpleDerivable { val produces = Set(produce) }
-    case class NRepeat(symbol: Symbols.Repeat, produces: Set[Int]) extends NSimpleDerivable
-    case class NExcept(symbol: Symbols.Except, body: Int, except: Int) extends NSimpleDerivable { val produces = Set(body, except) }
-    case class NJoin(symbol: Symbols.Join, body: Int, join: Int) extends NSimpleDerivable { val produces = Set(body, join) }
-    case class NLongest(symbol: Symbols.Longest, body: Int) extends NSimpleDerivable { val produces = Set(body) }
+    sealed trait NSimpleDerive { val produces: Set[Int] }
+    case class NStart(produces: Set[Int]) extends NAtomicSymbol with NSimpleDerive { val symbol = Symbols.Start }
+    case class NNonterminal(symbol: Symbols.Nonterminal, produces: Set[Int]) extends NAtomicSymbol with NSimpleDerive
+    case class NOneOf(symbol: Symbols.OneOf, produces: Set[Int]) extends NAtomicSymbol with NSimpleDerive
+    case class NProxy(symbol: Symbols.Proxy, produce: Int) extends NAtomicSymbol with NSimpleDerive { val produces = Set(produce) }
+    case class NRepeat(symbol: Symbols.Repeat, produces: Set[Int]) extends NAtomicSymbol with NSimpleDerive
+    case class NExcept(symbol: Symbols.Except, body: Int, except: Int) extends NAtomicSymbol
+    case class NJoin(symbol: Symbols.Join, body: Int, join: Int) extends NAtomicSymbol
+    case class NLongest(symbol: Symbols.Longest, body: Int) extends NAtomicSymbol
 
     sealed trait NLookaheadSymbol extends NAtomicSymbol {
         val symbol: Symbols.Lookahead
@@ -37,8 +36,6 @@ object NGrammar {
     }
     case class NLookaheadIs(symbol: Symbols.LookaheadIs, emptySeqId: Int, lookahead: Int) extends NLookaheadSymbol
     case class NLookaheadExcept(symbol: Symbols.LookaheadExcept, emptySeqId: Int, lookahead: Int) extends NLookaheadSymbol
-
-    // case class Compaction(symbols: Seq[Int]) extends NSymbol
 
     case class NSequence(symbol: Symbols.Sequence, sequence: Seq[Int]) extends NSymbol
 
