@@ -102,13 +102,9 @@ trait ParsingTasks {
         assert(node.kernel.isFinished)
 
         val incomingEdges = cc.graph.edgesByEnd(node)
-        val chainTasks: Seq[Task] = incomingEdges.toSeq flatMap { edge =>
+        val chainTasks: Seq[Task] = incomingEdges.toSeq map { edge =>
             val Edge(incomingNode, _) = edge
-            incomingNode.kernel.symbol match {
-                case NExcept(_, _, except) if except == node.kernel.symbolId => None
-                case NJoin(_, _, join) if join == node.kernel.symbolId => None
-                case _ => Some(ProgressTask(incomingNode, node.condition))
-            }
+            ProgressTask(incomingNode, node.condition)
         }
         (cc, chainTasks)
     }
