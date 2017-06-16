@@ -1,1 +1,1 @@
-sbt "project visualize" "set javaOptions += \"-XstartOnFirstThread\"" "set fork := true" "run-main com.giyeok.jparser.studio.ParserStudio"
+sbt "project visualize" "set javaOptions += \"-XstartOnFirstThread\"" "set fork := true" "test:run-main com.giyeok.jparser.tests.ParserStudioMain"

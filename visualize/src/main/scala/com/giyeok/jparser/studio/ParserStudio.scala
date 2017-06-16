@@ -47,12 +47,11 @@ import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.Shell
 
 object ParserStudio {
-
-    def main(args: Array[String]): Unit = {
+    def start(examples: Seq[GrammarExample]): Unit = {
         val display = new Display()
         val shell = new Shell(display)
 
-        new ParserStudio(shell, SWT.NONE)
+        new ParserStudio(shell, SWT.NONE)(examples)
 
         shell.setLayout(new FillLayout)
 
@@ -66,7 +65,9 @@ object ParserStudio {
     }
 }
 
-class ParserStudio(parent: Composite, style: Int) extends Composite(parent, style) {
+case class GrammarExample(grammar: Grammar, correctTests: Seq[String], incorrectTests: Seq[String], ambiguousTest: Seq[String])
+
+class ParserStudio(parent: Composite, style: Int)(exampleGrammars: Seq[GrammarExample]) extends Composite(parent, style) {
     setLayout(new FillLayout)
 
     val tempTestGrammar: String =
@@ -125,12 +126,17 @@ class ParserStudio(parent: Composite, style: Int) extends Composite(parent, styl
     grammarControlPanel.setLayout(new FillLayout)
     val grammarOpenButton = new Button(grammarControlPanel, SWT.NONE)
     grammarOpenButton.setText("Open Example Grammars")
-    grammarOpenButton.addSelectionListener(new SelectionListener {
-        def widgetDefaultSelected(e: SelectionEvent): Unit = {}
-        def widgetSelected(e: SelectionEvent): Unit = {
-            ???
-        }
-    })
+    if (exampleGrammars.isEmpty) {
+        grammarOpenButton.setEnabled(false)
+    } else {
+        grammarOpenButton.addSelectionListener(new SelectionListener {
+            def widgetDefaultSelected(e: SelectionEvent): Unit = {}
+
+            def widgetSelected(e: SelectionEvent): Unit = {
+                ???
+            }
+        })
+    }
 
     grammarInfoPanel.setLayout(new FillLayout)
     val definitionViewButton = new Button(grammarInfoPanel, SWT.NONE)
