@@ -21,88 +21,87 @@ trait ParsingTasks {
         grammar.symbolOf(symbolId)
     private def atomicSymbolOf(symbolId: Int): NAtomicSymbol =
         symbolOf(symbolId).asInstanceOf[NAtomicSymbol]
-    private def nodeOf(symbolId: Int, beginGen: Int): Node =
-        Node(Kernel(symbolId, 0, beginGen, beginGen)(symbolOf(symbolId)), Always)
 
     def deriveTask(nextGen: Int, task: DeriveTask, cc: Cont): (Cont, Seq[Task]) = {
         val DeriveTask(startNode) = task
 
-        def derive(symbolIds: Set[Int]): (Cont, Seq[Task]) = {
-            // (symbolIds에 해당하는 노드) + (startNode에서 symbolIds의 노드로 가는 엣지) 추가
-            val destNodes: Set[Node] = symbolIds map { nodeOf(_, nextGen) }
+        def nodeOf(symbolId: Int): Node =
+            Node(Kernel(symbolId, 0, nextGen, nextGen)(symbolOf(symbolId)), Always)
 
-            // empty여서 isFinished인 것은 바로 FinishTask, 아니면 DeriveTask
-            val newNodes: Set[Node] = destNodes -- cc.graph.nodes
-            val newNodeTasks: Seq[Task] = newNodes.toSeq map {
-                case node if node.kernel.isFinished => FinishTask(node)
-                case node => DeriveTask(node)
+        // cc.updatedNodes는 참조만 하고 변경하지 않는다
+        val updatedNodes = cc.updatedNodes
+
+        case class GraphTasksCont(graph: Graph, newTasks: List[Task])
+        def addNode(cc: GraphTasksCont, newNode: Node): GraphTasksCont = {
+            if (!(cc.graph.nodes contains newNode)) {
+                // 새로운 노드이면 그래프에 추가하고 task도 추가
+                val newNodeTask: Task = if (newNode.kernel.isFinished) FinishTask(newNode) else DeriveTask(newNode)
+                GraphTasksCont(cc.graph.addNode(newNode), newNodeTask +: cc.newTasks)
+            } else {
+                // 이미 있는 노드이면 아무 일도 하지 않음
+                cc
             }
+        }
+        def derive0(cc: GraphTasksCont, symbolId: Int): GraphTasksCont = {
+            val newNode = nodeOf(symbolId)
+            val ncc = addNode(cc, newNode)
 
-            // TODO 이하 부분을 의미가 더 잘 전달되도록 리팩토링
-            // - updatedNodes에는 이미 그래프에 있는 노드로부터 시작하는 relation들만 있으니 newNodes는 이 과정을 안 거쳐도 됨
-            // - 하지만 newNodes로도 엣지는 추가해주어야 함
-            //   1. updatedNodes에 정의된 노드간의 relation에서 destNodes로부터 도달 가능한 노드들을 찾고(V'라고 하자)
-            //   2. V'에서 finished 노드들을 찾아서 ProgressTask(startNode, v'의 condition)을 만들고,
-            //   3. V'에서 finished 아닌 노드들을 찾아서 destNode -> v'로 가는 엣지들을 추가한다
-            // - edge가 추가되는 것 뿐 아니라 ProgressTask가 필요한 경우를 찾아내기 위해서라도 updatedNodes를 추적 해야하므로 엣지를 추가하지 않는 경우에도 이건 해야할듯
-            def addUpdatedNodes(queue: List[Node], graph: Graph, tasks: Seq[Task]): (Graph, Seq[Task]) =
+            def collectUpdated(queue: List[Node], cc: List[Node]): List[Node] = {
                 queue match {
-                    case destNode +: rest if destNode.kernel.isFinished =>
-                        assert(!(cc.updatedNodes contains destNode))
-                        val newTask = ProgressTask(startNode, destNode.condition)
-                        addUpdatedNodes(rest, graph, newTask +: tasks)
-
-                    case destNode +: rest =>
-                        cc.updatedNodes get destNode match {
-                            case Some(updatedNodes) =>
-                                // println(s"updatedNodes: $startNode, $destNode -> $updatedNodes")
-                                assert((updatedNodes map { _.kernel }).size == 1)
-                                assert((updatedNodes map { _.kernel }).head.symbolId == destNode.kernel.symbolId)
-                                val updatedGraph = updatedNodes.foldLeft(graph) { (graph, updatedNode) =>
-                                    graph.addEdge(Edge(startNode, updatedNode))
-                                }
-                                addUpdatedNodes(updatedNodes.toList ++ rest, updatedGraph, tasks)
+                    case node +: rest =>
+                        updatedNodes get node match {
+                            case Some(progressedNodes) =>
+                                assert((progressedNodes map { _.kernel }).size == 1)
+                                assert((progressedNodes map { _.kernel }).head.symbolId == symbolId)
+                                collectUpdated(progressedNodes.toList ++: rest, node +: cc)
                             case None =>
-                                addUpdatedNodes(rest, graph, tasks)
+                                collectUpdated(rest, node +: cc)
                         }
-
-                    case List() => (graph, tasks)
+                    case List() => cc
                 }
-
-            val (newGraph, newTasks) = destNodes.foldLeft((cc.graph, newNodeTasks)) { (cc, destNode) =>
-                val (graph, tasks) = cc
-                addUpdatedNodes(List(destNode), graph.addNode(destNode).addEdge(Edge(startNode, destNode)), tasks)
             }
+            val allUpdatedNodes = collectUpdated(List(newNode), List())
+            val finishedNodes = allUpdatedNodes filter { _.kernel.isFinished }
+            val newTasks = finishedNodes map { finishedNode => ProgressTask(startNode, finishedNode.condition) }
 
-            (Cont(newGraph, cc.updatedNodes), newTasks)
+            val newGraph = allUpdatedNodes.foldLeft(ncc.graph) { (graph, updatedNode) =>
+                graph.addEdge(Edge(startNode, updatedNode))
+            }
+            GraphTasksCont(newGraph, newTasks ++: ncc.newTasks)
         }
 
-        startNode.kernel.symbol match {
+        val gtc0 = GraphTasksCont(cc.graph, List())
+        val GraphTasksCont(newGraph, newTasks) = startNode.kernel.symbol match {
             case symbol: NAtomicSymbol =>
                 symbol match {
-                    case _: NTerminal => (cc, Seq()) // nothing to do
+                    case _: NTerminal =>
+                        gtc0 // nothing to do
 
                     case simpleDerivable: NSimpleDerivable =>
-                        derive(simpleDerivable.produces)
+                        simpleDerivable.produces.foldLeft(gtc0) { (contTask, produce) =>
+                            derive0(contTask, produce)
+                        }
 
                     case lookaheadSymbol: NLookaheadSymbol =>
                         // TODO 의미가 더 잘 보이도록 리팩토링
                         // lookaheadNode에 대해서는 derive 함수에서 하는 것과 거의 동일한 작업을 하지만 다만 엣지를 추가하지 않음
                         // lookaheadNode에 대해서 updatedNodes propagation을 해야할까?
-                        val lookaheadNode = nodeOf(lookaheadSymbol.lookahead, nextGen)
-
-                        val (Cont(graph0, updatedNodes), tasks0) = derive(Set(lookaheadSymbol.emptySeqId))
-
-                        val tasks = if (!(graph0.nodes contains lookaheadNode)) DeriveTask(lookaheadNode) +: tasks0 else tasks0
-                        val graph = graph0.addNode(lookaheadNode)
-
-                        (Cont(graph, updatedNodes), tasks)
+                        //                        val lookaheadNode = nodeOf(lookaheadSymbol.lookahead, nextGen)
+                        //
+                        //                        val (Cont(graph0, updatedNodes), tasks0) = derive(Set(lookaheadSymbol.emptySeqId))
+                        //
+                        //                        val tasks = if (!(graph0.nodes contains lookaheadNode)) DeriveTask(lookaheadNode) +: tasks0 else tasks0
+                        //                        val graph = graph0.addNode(lookaheadNode)
+                        //
+                        //                        (Cont(graph, updatedNodes), tasks)
+                        addNode(derive0(gtc0, lookaheadSymbol.emptySeqId), nodeOf(lookaheadSymbol.lookahead))
                 }
             case NSequence(_, seq) =>
                 assert(seq.nonEmpty) // empty인 sequence는 derive시점에 모두 처리되어야 함
                 assert(startNode.kernel.pointer < seq.length) // node의 pointer는 sequence의 length보다 작아야 함
-                derive(Set(seq(startNode.kernel.pointer)))
+                derive0(gtc0, seq(startNode.kernel.pointer))
         }
+        (Cont(newGraph, cc.updatedNodes), newTasks)
     }
 
     def finishTask(nextGen: Int, task: FinishTask, cc: Cont): (Cont, Seq[Task]) = {
