@@ -45,8 +45,8 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                     s.seq map { _.toDotLabelName } mkString " "
                 }
             case s: OneOf =>
-                if (s.syms.size == 2 && (s.syms contains Sequence(Seq(), Seq()))) {
-                    (s.syms - Sequence(Seq(), Seq())).head.toDotLabelName + "?"
+                if (s.syms.size == 2 && (s.syms contains Proxy(Sequence(Seq(), Seq())))) {
+                    (s.syms - Proxy(Sequence(Seq(), Seq()))).head.toDotLabelName + "?"
                 } else {
                     s.syms map { _.toDotLabelName } mkString "|"
                 }

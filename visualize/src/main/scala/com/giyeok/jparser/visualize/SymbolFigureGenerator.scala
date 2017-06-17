@@ -58,9 +58,9 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
                     fig.horizontalFig(Spacing.Medium, if (grouped._2.isEmpty) grouped._1 else adjExChars(grouped._2) +: grouped._1)
                 }
             case OneOf(syms) =>
-                if (syms.size == 2 && (syms contains Sequence(Seq(), Seq()))) {
+                if (syms.size == 2 && (syms contains Proxy(Sequence(Seq(), Seq())))) {
                     // A? 의 경우
-                    val opt = (syms - Sequence(Seq(), Seq())).head
+                    val opt = (syms - Proxy(Sequence(Seq()))).head
                     fig.horizontalFig(Spacing.None, Seq(symbolFig(opt), fig.textFig("?", ap.small)))
                 } else {
                     fig.horizontalFig(Spacing.None, join((syms map { sym =>

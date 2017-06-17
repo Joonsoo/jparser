@@ -41,7 +41,7 @@ object GrammarHelper {
     }
     def seqWS(between: Set[Symbol], seq: Symbol*): Sequence = seqWS(oneof(between), seq: _*)
     def oneof(items: Symbol*) = OneOf((items map proxyIfNeeded).toSet)
-    def oneof(items: Set[Symbol]) = OneOf(items)
+    def oneof(items: Set[Symbol]) = OneOf(items map proxyIfNeeded)
     def lookahead_is(lookahead: Symbol) = LookaheadIs(proxyIfNeeded(lookahead))
     def lookahead_is(lookaheads: Symbol*) = LookaheadIs(oneof(lookaheads.toSet))
     def lookahead_except(except: Symbol) = LookaheadExcept(proxyIfNeeded(except))
@@ -64,9 +64,9 @@ object GrammarHelper {
     implicit class GrammarElementRepeatable(_sym: Symbol) {
         private val sym = proxyIfNeeded(_sym)
         def repeat(lower: Int, upper: Int): OneOf = OneOf(((lower to upper) map { count =>
-            if (count == 1) sym else Sequence(((0 until count) map { _ => sym }) map proxyIfNeeded)
+            if (count == 1) sym else Proxy(Sequence((0 until count) map { _ => sym }))
         }).toSet)
-        def repeat(lower: Int): Repeat = Repeat(proxyIfNeeded(sym), lower)
+        def repeat(lower: Int): Repeat = Repeat(sym, lower)
 
         // optional
         def opt: OneOf = repeat(0, 1)

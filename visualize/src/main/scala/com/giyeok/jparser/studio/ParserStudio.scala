@@ -251,10 +251,24 @@ class ParserStudio(parent: Composite, style: Int)(_exampleGrammars: Seq[GrammarE
         d.right = new FormAttachment(100)
         d
     })
-    parseProceedPanel.setLayout(new FillLayout(SWT.VERTICAL))
+    parseProceedPanel.setLayout(new FormLayout)
     val proceedParserSelector = new ParserSelector(parseProceedPanel, SWT.NONE)
     val proceedButton = new Button(parseProceedPanel, SWT.NONE)
     proceedButton.setText("Proceed View")
+    proceedButton.setLayoutData({
+        val d = new FormData()
+        d.bottom = new FormAttachment(100)
+        d.left = new FormAttachment(0)
+        d.right = new FormAttachment(100)
+        d
+    })
+    proceedParserSelector.setLayoutData({
+        val d = new FormData()
+        d.bottom = new FormAttachment(proceedButton)
+        d.left = new FormAttachment(0)
+        d.right = new FormAttachment(100)
+        d
+    })
 
     grammarText.control.addProcessListener(new ProcessListener[TextModel, ParseResult[Option[Grammar]], ParseProcessor[Option[Grammar]]]() {
         def contentModified(value: TextModel): Unit = {

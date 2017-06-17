@@ -116,7 +116,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                 assert((seqBody.children map { _.asInstanceOf[BindNode].symbol }) == seq)
                 checkParse(seqBody, grammar)
             case BindNode(OneOf(syms), body @ BindNode(bodySymbol, _)) =>
-                assert(syms contains bodySymbol)
+                assert(syms contains bodySymbol.asInstanceOf[AtomicSymbol])
                 checkParse(body, grammar)
             case BindNode(Repeat(sym, _), body @ BindNode(bodySymbol, _)) =>
                 def childrenOf(node: Node, sym: Symbol): Seq[BindNode] = node match {

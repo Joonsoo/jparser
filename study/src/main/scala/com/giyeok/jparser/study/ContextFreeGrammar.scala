@@ -90,8 +90,8 @@ object ContextFreeGrammar {
                 case Symbols.OneOf(syms) =>
                     val first = {
                         syms.toSeq match {
-                            case Seq(Symbols.Sequence(Seq(), Seq()), sym) => readableNameOf(sym)._1 + "?"
-                            case Seq(sym, Symbols.Sequence(Seq(), Seq())) => readableNameOf(sym)._1 + "?"
+                            case Seq(Symbols.Proxy(Symbols.Sequence(Seq(), Seq())), sym) => readableNameOf(sym)._1 + "?"
+                            case Seq(sym, Symbols.Proxy(Symbols.Sequence(Seq(), Seq()))) => readableNameOf(sym)._1 + "?"
                             case seq if (seq forall { _.isInstanceOf[Symbols.Sequence] }) &&
                                 ((seq flatMap { _.asInstanceOf[Symbols.Sequence].seq.toSet }).toSet.size == 1) =>
                                 // finite repeat
@@ -216,7 +216,7 @@ object ContextFreeGrammar {
                                 val (ncc0, newName, cfgSymbol) = cc.addNewNontermMapping(readableNameOf(symbol), symbol)
                                 val ncc = syms.foldLeft(ncc0) { (ncc, symbol) =>
                                     symbol match {
-                                        case Symbols.Sequence(Seq(), Seq()) =>
+                                        case Symbols.Proxy(Symbols.Sequence(Seq(), Seq())) =>
                                             ncc.addRule(newName, Seq())
                                         case _ =>
                                             val (nextCC, cfgSymbol) = mappingOf(symbol, ncc)

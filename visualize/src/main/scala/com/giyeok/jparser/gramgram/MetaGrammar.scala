@@ -356,9 +356,9 @@ object MetaGrammar extends Grammar {
         }
 
         def symbolStringOf(symbol: Symbols.Symbol, outerPrecedence: Int): String = {
-            val string = symbol match {
+            val (string: String, precedence: Int) = symbol match {
                 case terminal: Symbols.Terminal =>
-                    terminal match {
+                    val s = terminal match {
                         case Any | AnyChar => "."
                         case ExactChar(char) =>
                             val s = char match {
@@ -387,47 +387,48 @@ object MetaGrammar extends Grammar {
                                 else s"${escapeChar(pair._1)}-${escapeChar(pair._2)}"
                             } mkString "") + "}"
                     }
+                    (s, 0)
                 case Nonterminal(nontermName) =>
-                    nonterminalNameOf(nontermName)
+                    (nonterminalNameOf(nontermName), 0)
                 case Sequence(Seq(), _) =>
-                    "ε"
+                    ("ε", 0)
                 case Sequence(seq, _) =>
                     if (seq forall { _.isInstanceOf[Symbols.Terminals.ExactChar] }) {
                         // string인 경우
                         // TODO escape
-                        "\"" + (seq map { _.asInstanceOf[Symbols.Terminals.ExactChar].char }).mkString + "\""
+                        ("\"" + (seq map { _.asInstanceOf[Symbols.Terminals.ExactChar].char }).mkString + "\"", 0)
                     } else {
-                        seq map { symbolStringOf(_, 0) } mkString " "
+                        (seq map { symbolStringOf(_, 5) } mkString " ", 5)
                     }
                 case OneOf(syms) =>
-                    if (syms.size == 2 && (syms contains Sequence(Seq()))) {
-                        symbolStringOf((syms - Sequence(Seq())).head, 0) + "?"
+                    if (syms.size == 2 && (syms contains Proxy(Sequence(Seq())))) {
+                        (symbolStringOf((syms - Proxy(Sequence(Seq()))).head, 2) + "?", 2)
                     } else {
-                        "(" + (syms.toSeq map { symbolStringOf(_, 0) } mkString " | ") + ")"
+                        ("(" + (syms.toSeq map { symbolStringOf(_, 5) } mkString " | ") + ")", 0)
                     }
                 case Repeat(sym, 0) =>
-                    symbolStringOf(sym, 0) + "*"
+                    (symbolStringOf(sym, 2) + "*", 2)
                 case Repeat(sym, 1) =>
-                    symbolStringOf(sym, 0) + "+"
+                    (symbolStringOf(sym, 2) + "+", 2)
                 case Repeat(sym, more) =>
-                    "[" + ((symbolStringOf(sym, 0) + " ") * more) + (symbolStringOf(sym, 0) + "*") + "]"
+                    ("[" + ((symbolStringOf(sym, 5) + " ") * more) + (symbolStringOf(sym, 5) + "*") + "]", 0)
                 case Except(sym, except) =>
-                    symbolStringOf(sym, 0) + "-" + symbolStringOf(except, 0)
+                    (symbolStringOf(sym, 4) + "-" + symbolStringOf(except, 4), 4)
                 case LookaheadIs(lookahead) =>
-                    "$" + symbolStringOf(lookahead, 0)
+                    ("$" + symbolStringOf(lookahead, 0), 1)
                 case LookaheadExcept(lookahead) =>
-                    "!" + symbolStringOf(lookahead, 0)
+                    ("!" + symbolStringOf(lookahead, 0), 1)
                 case Proxy(proxy) =>
-                    "[" + symbolStringOf(proxy, 0) + "]"
+                    ("[" + symbolStringOf(proxy, 5) + "]", 0)
                 case Join(sym, join) =>
-                    symbolStringOf(sym, 0) + "&" + symbolStringOf(join, 0)
+                    (symbolStringOf(sym, 3) + "&" + symbolStringOf(join, 3), 3)
                 case Longest(sym) =>
-                    "<" + symbolStringOf(sym, 0) + ">"
+                    ("<" + symbolStringOf(sym, 5) + ">", 0)
             }
-            string
+            if (outerPrecedence < precedence) "(" + string + ")" else string
         }
         def ruleStringOf(lhs: String, rhs: ListSet[Symbols.Symbol]): String = {
-            nonterminalNameOf(lhs) + " = " + ((rhs map { symbol => symbolStringOf(symbol, 0) }) mkString "\n    | ")
+            nonterminalNameOf(lhs) + " = " + ((rhs map { symbol => symbolStringOf(symbol, 6) }) mkString "\n    | ")
         }
 
         val startRule = grammar.rules(grammar.startSymbol.name)
