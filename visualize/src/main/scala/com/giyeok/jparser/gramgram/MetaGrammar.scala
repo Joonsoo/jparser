@@ -1,17 +1,16 @@
 package com.giyeok.jparser.gramgram
 
-import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.GrammarHelper._
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet
-import com.giyeok.jparser.Symbols._
-import com.giyeok.jparser.ParseResultTree
-import com.giyeok.jparser.ParseResultTree._
+import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.GrammarHelper._
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.ParseResultTree
+import com.giyeok.jparser.ParseResultTree._
 import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 
@@ -22,7 +21,7 @@ object MetaGrammar extends Grammar {
             Sequence(Seq(n("ws").star, n("Rules"), n("ws").star), Seq(1))
         ),
         "Rules" -> ListSet(
-            Sequence(Seq(n("Rules"), longest((n("ws").except(c('\n'))).star), c('\n'), n("ws").star, n("Rule")), Seq(0, 4)),
+            Sequence(Seq(n("Rules"), longest(n("ws").except(c('\n')).star), c('\n'), n("ws").star, n("Rule")), Seq(0, 4)),
             n("Rule")
         ),
         "Rule" -> ListSet(
@@ -33,8 +32,8 @@ object MetaGrammar extends Grammar {
             n("Sequence")
         ),
         "EmptySequence" -> ListSet(
-            empty,
-            c("#ε".toSet)
+            c('#'),
+            c('ε')
         ),
         "Sequence" -> ListSet(
             n("EmptySequence"),

@@ -1,6 +1,7 @@
 package com.giyeok.jparser.tests.basics
 
 import com.giyeok.jparser.tests.GrammarTestCases
+import com.giyeok.jparser.tests.TrickyTestSuite1
 import com.giyeok.jparser.tests.Viewer
 
 object Visualization extends Viewer {
@@ -16,7 +17,9 @@ object Visualization extends Viewer {
         JoinGrammars.tests,
         LongestMatchGrammars.tests,
         ParsingTechniquesTests.tests,
-        PaperTests.tests).flatten
+        PaperTests.tests,
+        TrickyTestSuite1.tests
+    ).flatten
 
     def main(args: Array[String]): Unit = {
         start()

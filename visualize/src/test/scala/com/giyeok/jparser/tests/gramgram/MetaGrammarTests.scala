@@ -19,8 +19,7 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
           |Rule = Nonterminal ws* '=' ws* RHSs
           |RHSs = RHSs ws* '|' ws* Sequence
           |    | Sequence
-          |EmptySequence = ε
-          |    | {#ε}
+          |EmptySequence = '#' | 'ε'
           |Sequence = EmptySequence
           |    | Symbol
           |    | SymbolSeq
@@ -125,7 +124,7 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
         "A=B-'\n'*",
         "S = 'a'? 'b'+ <'c'*>",
         "S = (abc|def)",
-        "A = | B | C",
+        "A = ε | B | C",
         "S = a&b&c&d&e-f-g-h&i&j",
         "S = !!!$$$$'a'***???+++&'b'&'c'-'d'&'e'&'f'-{agsdf}",
         """S = "asdf"
@@ -134,7 +133,7 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
           |  | "qwer"
           |ASDF = 'c'?
         """.stripMargin,
-        "S = []",
+        "S = [ε]",
         metaGrammarText1,
         metaGrammarText2,
         ExpressionGrammarTests.expressionGrammarText,
