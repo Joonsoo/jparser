@@ -63,7 +63,7 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
                     val opt = (syms - Proxy(Sequence(Seq()))).head
                     fig.horizontalFig(Spacing.None, Seq(symbolFig(opt), fig.textFig("?", ap.small)))
                 } else {
-                    fig.horizontalFig(Spacing.None, join((syms map { sym =>
+                    fig.horizontalFig(Spacing.None, join((syms.toSeq sortBy { _.id } map { sym =>
                         if (needParentheses(sym)) fig.horizontalFig(Spacing.None, Seq(fig.textFig("(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
                         else symbolFig(sym)
                     }).toList, fig.textFig("|", ap.default)))
