@@ -32,12 +32,14 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
         symbol match {
             case Terminals.ExactChar(c) => fig.textFig(exactCharacterRepr(c), ap.terminal)
             case chars: Terminals.Chars =>
-                fig.horizontalFig(Spacing.None, join(chars.groups map {
+                fig.horizontalFig(Spacing.None, fig.textFig("{", ap.default) +: join(chars.groups map {
                     case (f, t) if f == t => fig.textFig(exactCharacterRepr(f), ap.terminal)
                     case (f, t) =>
                         val (rangeStart: String, rangeEnd: String) = rangeCharactersRepr(f, t)
-                        fig.horizontalFig(Spacing.None, Seq(fig.textFig(rangeStart, ap.terminal), fig.textFig("-", ap.default), fig.textFig(rangeEnd, ap.terminal)))
-                }, fig.textFig("|", ap.default)))
+                        fig.horizontalFig(Spacing.None, Seq(
+                            fig.textFig(rangeStart, ap.terminal), fig.textFig("-", ap.default), fig.textFig(rangeEnd, ap.terminal)
+                        ))
+                }, fig.textFig("|", ap.default)) :+ fig.textFig("}", ap.default))
             case t: Terminal => fig.textFig(t.toShortString, ap.terminal)
             case Start => fig.textFig("Start", ap.default)
             case Nonterminal(name) => fig.textFig(name, ap.nonterminal)
@@ -85,17 +87,17 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
                     if (!needParentheses(except)) symbolFig(except)
                     else fig.horizontalFig(Spacing.None, Seq(fig.textFig("(", ap.default), symbolFig(except), fig.textFig(")", ap.default)))
 
-                fig.horizontalFig(Spacing.Medium, Seq(symFig, fig.textFig("except", ap.default), exceptFig))
+                fig.horizontalFig(Spacing.Medium, Seq(symFig, fig.textFig("-", ap.default), exceptFig))
             case LookaheadIs(lookahead) =>
-                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("(", ap.default), fig.textFig("lookahead_is", ap.default), symbolFig(lookahead), fig.textFig(")", ap.default)))
+                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("(", ap.default), fig.textFig("$", ap.default), symbolFig(lookahead), fig.textFig(")", ap.default)))
             case LookaheadExcept(except) =>
-                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("(", ap.default), fig.textFig("lookahead_except", ap.default), symbolFig(except), fig.textFig(")", ap.default)))
+                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("(", ap.default), fig.textFig("!", ap.default), symbolFig(except), fig.textFig(")", ap.default)))
             case Proxy(sym) =>
-                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("P(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
+                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("[", ap.default), symbolFig(sym), fig.textFig("]", ap.default)))
             case Join(sym, join) =>
                 fig.horizontalFig(Spacing.Small, Seq(symbolFig(sym), fig.textFig("&", ap.default), symbolFig(join)))
             case Longest(sym) =>
-                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("L(", ap.default), symbolFig(sym), fig.textFig(")", ap.default)))
+                fig.horizontalFig(Spacing.Small, Seq(fig.textFig("<", ap.default), symbolFig(sym), fig.textFig(">", ap.default)))
         }
     }
 

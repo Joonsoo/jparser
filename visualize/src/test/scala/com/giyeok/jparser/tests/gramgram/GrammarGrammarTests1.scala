@@ -32,7 +32,8 @@ object GrammarGrammarTests {
     val tests: Set[GrammarTestCases] = Set(
         GrammarGrammarTests1,
         MetaGrammarTests,
-        ExpressionGrammarTests,
+        ExpressionGrammar1Tests,
+        ExpressionGrammar0Tests,
         LexicalGrammar0Tests,
         LexicalGrammar1Tests
     )

@@ -136,7 +136,8 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
         "S = [ε]",
         metaGrammarText1,
         metaGrammarText2,
-        ExpressionGrammarTests.expressionGrammarText,
+        ExpressionGrammar1Tests.expressionGrammarText,
+        ExpressionGrammar0Tests.expressionGrammar0Text,
         LexicalGrammar0Tests.lexicalGrammar0Text,
         LexicalGrammar1Tests.lexicalGrammar1Text
     )
@@ -202,7 +203,25 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
 
 }
 
-object ExpressionGrammarTests extends GrammarTestCases with StringSamples {
+object ExpressionGrammar0Tests extends GrammarTestCases with StringSamples {
+    val expressionGrammar0Text: String =
+        """expression = term | expression '+' term
+          |term = factor | term '*' factor
+          |factor = number | variable | '(' expression ')'
+          |number = '0' | [{1-9} {0-9}*]
+          |variable = {A-Za-z}+""".stripMargin('|')
+
+    val grammar: Grammar = MetaGrammar.translate("Expression Grammar 0", expressionGrammar0Text).left.get
+
+    override val correctSamples: Set[String] = Set(
+        "1+2",
+        "a+b",
+        "1234+1234*4321"
+    )
+    override val incorrectSamples: Set[String] = Set()
+}
+
+object ExpressionGrammar1Tests extends GrammarTestCases with StringSamples {
     val expressionGrammarText: String =
         """expression = term | expression {+\-} term
           |term = factor | term {*/} factor
@@ -210,7 +229,7 @@ object ExpressionGrammarTests extends GrammarTestCases with StringSamples {
           |number = '0' | [{+\-}? {1-9} {0-9}* [{eE} {+\-}? {0-9}+]?]
           |variable = {A-Za-z}+""".stripMargin('|')
 
-    val grammar: Grammar = MetaGrammar.translate("Expression Grammar", expressionGrammarText).left.get
+    val grammar: Grammar = MetaGrammar.translate("Expression Grammar 1", expressionGrammarText).left.get
 
     override val correctSamples: Set[String] = Set(
         "1e+1+1",

@@ -50,7 +50,7 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             Right(UnexpectedInput(input, nextGen))
         } else {
             // 1. 1차 lift
-            val Cont(liftedGraph, updatedNodes) = rec(nextGen, termFinishes, graph)
+            val liftedGraph = rec(nextGen, termFinishes, graph).graph
 
             // 2. Accept condition 처리
             val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =

@@ -420,7 +420,11 @@ class ParserStudio(parent: Composite, style: Int)(_exampleGrammars: Seq[GrammarE
                     val ngrammar = NGrammar.fromGrammar(grammar)
                     val source = Inputs.fromString(testText.control.value.text)
                     if (!proceedParserSelector.preprocessed) {
-                        ParsingProcessVisualizer.start[NaiveContext](title, new NaiveParser(ngrammar), source, display, shell, new ZestParsingContextWidget(_, _, _, _, _))
+                        ParsingProcessVisualizer.start[NaiveContext](
+                            title = title,
+                            parser = new NaiveParser(ngrammar),
+                            source, display, shell, new ZestParsingContextWidget(_, _, _, _, _)
+                        )
                     } else {
                         //                        (proceedParserSelector.slice, proceedParserSelector.compact) match {
                         //                            case (false, false) =>
@@ -558,6 +562,12 @@ class SourceText[R](parent: Composite, style: Int, val initialProcessor: ParsePr
 
 class ParserSelector(parent: Composite, style: Int) extends Composite(parent, style) {
     setLayout(new RowLayout())
+
+    val trimButton = new Button(this, SWT.CHECK)
+    trimButton.setText("Trim Graph")
+    trimButton.setSelection(true)
+
+    def trimGraph: Boolean = trimButton.getSelection
 
     // TODO 현재 미지원
     //    val preprocessedButton = new Button(this, SWT.CHECK)

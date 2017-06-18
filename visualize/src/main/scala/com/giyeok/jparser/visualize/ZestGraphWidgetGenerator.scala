@@ -293,7 +293,7 @@ trait ZestParseTreeConstructorView {
     val context: Context
 
     def openParseTree[R <: ParseResult](resultFunc: ParseResultFunc[R])(opener: R => Unit)(gen: Int, kernel: Kernel): Unit = {
-        val parseResultOpt = new ParseTreeConstructor(resultFunc)(grammar)(context.inputs, context.history, context.conditionFinal).reconstruct(kernel, context.gen)
+        val parseResultOpt = new ParseTreeConstructor(resultFunc)(grammar)(context.inputs, context.history, context.conditionFinal).reconstruct(kernel, kernel.endGen)
         parseResultOpt match {
             case Some(parseResult) =>
                 opener(parseResult)
