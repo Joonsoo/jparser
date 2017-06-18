@@ -109,7 +109,7 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                                     case 1 => s"${name}_plus"
                                     case lower => s"${name}_repeated_more_than_$lower"
                                 }
-                                s"${repeatName}_${node.kernel.beginGen}_${node.kernel.endGen}}"
+                                s"${repeatName}_${node.kernel.beginGen}_${node.kernel.endGen}"
                             case other =>
                                 s"node${other.id}_${node.kernel.beginGen}_${node.kernel.endGen}"
                         }
