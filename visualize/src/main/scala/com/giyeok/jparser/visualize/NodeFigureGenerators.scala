@@ -45,14 +45,14 @@ class NodeFigureGenerators[Fig](
             case NotExists(beginGen, endGen, symbolId) =>
                 fig.horizontalFig(Spacing.Big, Seq(
                     fig.textFig("NotExists", d),
-                    symbol.symbolFig(grammar, symbolId),
-                    fig.textFig(s"$beginGen $endGen", d)
+                    fig.textFig(s"$beginGen $endGen", d),
+                    symbol.symbolFig(grammar, symbolId)
                 ))
             case Exists(beginGen, endGen, symbolId) =>
                 fig.horizontalFig(Spacing.Big, Seq(
                     fig.textFig("Exists", d),
-                    symbol.symbolFig(grammar, symbolId),
-                    fig.textFig(s"$beginGen $endGen", d)
+                    fig.textFig(s"$beginGen $endGen", d),
+                    symbol.symbolFig(grammar, symbolId)
                 ))
             case Unless(beginGen, endGen, symbolId) =>
                 fig.horizontalFig(Spacing.Big, Seq(

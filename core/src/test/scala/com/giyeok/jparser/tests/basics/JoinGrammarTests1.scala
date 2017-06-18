@@ -118,36 +118,25 @@ object JoinGrammar3 extends Grammar with GrammarTestCases with StringSamples {
 }
 
 object JoinGrammar3_1 extends Grammar with GrammarTestCases with StringSamples {
-    val name = "JoinGrammar3_1 (a^n b^n c^n d^m)"
+    val name = "JoinGrammar3_1 (a^n b^n c^n)"
 
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
-            seq(n("L1").join(n("L2"))), n("D")
-        ),
-        "L1" -> ListSet(
-            seq(n("A"), n("P"))
-        ),
-        "A" -> ListSet(
-            seq(c('a'), n("A"), c('b')),
-            empty
+            n("P").join(n("Q"))
         ),
         "P" -> ListSet(
-            seq(c('c'), n("P")),
-            empty
+            seq(n("A"), c('c').star)
         ),
-        "L2" -> ListSet(
-            seq(n("Q"), n("C"))
+        "A" -> ListSet(
+            empty,
+            seq(c('a'), n("A"), c('b'))
         ),
         "Q" -> ListSet(
-            seq(c('a'), n("Q")),
-            empty
+            seq(c('a').star, n("C"))
         ),
         "C" -> ListSet(
-            seq(c('b'), n("C"), c('c')),
-            empty
-        ),
-        "D" -> ListSet(
-            c('d').star
+            empty,
+            seq(c('b'), n("C"), c('c'))
         )
     )
     val startSymbol = n("S")
@@ -165,7 +154,8 @@ object JoinGrammars {
     val tests: Set[GrammarTestCases] = Set(
         JoinGrammar1,
         JoinGrammar2,
-        JoinGrammar3
+        JoinGrammar3,
+        JoinGrammar3_1
     )
 }
 

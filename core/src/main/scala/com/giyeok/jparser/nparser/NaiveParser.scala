@@ -8,7 +8,7 @@ import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.nparser.Parser._
 import com.giyeok.jparser.nparser.ParsingContext._
 
-class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with ParsingTasks {
+class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parser[NaiveContext] with ParsingTasks {
     // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
 
     val initialContext: NaiveContext = {
@@ -56,25 +56,40 @@ class NaiveParser(val grammar: NGrammar) extends Parser[NaiveContext] with Parsi
             val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =
                 processAcceptCondition(nextGen, liftedGraph, ctx.conditionAccumulate)
 
-            // 3. Trimming
-            val trimmedGraph: Graph = trimGraph(conditionFilteredGraph, startNode, nextGen)
+            if (trim) {
+                // 3. Trimming
+                val trimmedGraph: Graph = trimGraph(conditionFilteredGraph, startNode, nextGen)
 
-            // trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
-            //   - parse tree reconstruction할 때는 liftedGraph를 사용하고
-            //   - 다음 generation 시작할 때는 trimmedGraph 사용
-            val nextContext = ctx.proceed(
-                nextGen,
-                resultGraph = liftedGraph, nextGraph = trimmedGraph,
-                input, nextConditionAccumulate
-            )
+                // trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
+                //   - parse tree reconstruction할 때는 liftedGraph를 사용하고
+                //   - 다음 generation 시작할 때는 trimmedGraph 사용
+                val nextContext = ctx.proceed(
+                    nextGen,
+                    resultGraph = liftedGraph, nextGraph = trimmedGraph,
+                    input, nextConditionAccumulate
+                )
 
-            Left((ProceedDetail(
-                graph,
-                Transition("lifted(result)", liftedGraph, isResult = true),
-                Transition("conditionUpdated", conditionUpdatedGraph),
-                Transition("conditionFiltered", conditionFilteredGraph),
-                Transition("trimmed(next)", trimmedGraph, isNext = true)
-            ), nextContext))
+                Left((ProceedDetail(
+                    graph,
+                    Transition("lifted(result)", liftedGraph, isResult = true),
+                    Transition("conditionUpdated", conditionUpdatedGraph),
+                    Transition("conditionFiltered", conditionFilteredGraph),
+                    Transition("trimmed(next)", trimmedGraph, isNext = true)
+                ), nextContext))
+            } else {
+                val nextContext = ctx.proceed(
+                    nextGen,
+                    resultGraph = liftedGraph, nextGraph = conditionFilteredGraph,
+                    input, nextConditionAccumulate
+                )
+
+                Left((ProceedDetail(
+                    graph,
+                    Transition("lifted(result)", liftedGraph, isResult = true),
+                    Transition("conditionUpdated", conditionUpdatedGraph),
+                    Transition("conditionFiltered", conditionFilteredGraph, isNext = true)
+                ), nextContext))
+            }
         }
     }
 }

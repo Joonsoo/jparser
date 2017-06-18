@@ -50,11 +50,11 @@ import org.eclipse.swt.widgets.MessageBox
 import org.eclipse.swt.widgets.Shell
 
 object ParserStudio {
-    def start(examples: Seq[GrammarExample]): Unit = {
+    def start(initialGrammar: String, initialTest: String, examples: Seq[GrammarExample]): Unit = {
         val display = new Display()
         val shell = new Shell(display)
 
-        new ParserStudio(shell, SWT.NONE)(examples)
+        new ParserStudio(shell, SWT.NONE)(initialGrammar, initialTest, examples)
 
         shell.setLayout(new FillLayout)
 
@@ -68,22 +68,15 @@ object ParserStudio {
     }
 }
 
-case class GrammarExample(grammar: Grammar, correctTests: Seq[String], incorrectTests: Seq[String], ambiguousTest: Seq[String])
+case class GrammarExample(name: String, grammar: Grammar, correctTests: Seq[String], incorrectTests: Seq[String], ambiguousTest: Seq[String])
 
-class ParserStudio(parent: Composite, style: Int)(_exampleGrammars: Seq[GrammarExample]) extends Composite(parent, style) {
+class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initialTest: String, _exampleGrammars: Seq[GrammarExample]) extends Composite(parent, style) {
     setLayout(new FillLayout)
 
-    private val exampleGrammars: Seq[(GrammarExample, String)] = _exampleGrammars sortBy { _.grammar.name } flatMap { g =>
-        Try(MetaGrammar.reverse(g.grammar)).toOption map { (g, _) }
-    }
-
-    val tempTestGrammar: String =
-        """S = expression?
-          |expression = term | expression {+\-} term
-          |term = factor | term {*/} factor
-          |factor = number | variable | '(' expression ')'
-          |number = '0' | [{+\-}? {1-9} {0-9}* [{eE} {+\-}? {0-9}+]?]
-          |variable = {A-Za-z}+""".stripMargin('|')
+    private val exampleGrammars: Seq[(GrammarExample, String)] =
+        _exampleGrammars flatMap { g =>
+            Try(MetaGrammar.reverse(g.grammar)).toOption map { (g, _) }
+        }
 
     val rootPanel = new VerticalResizableSplittedComposite(this, SWT.NONE, 40)
 
@@ -128,7 +121,7 @@ class ParserStudio(parent: Composite, style: Int)(_exampleGrammars: Seq[GrammarE
         d.right = new FormAttachment(100)
         d
     })
-    grammarText.control.setText(tempTestGrammar)
+    grammarText.control.setText(initialGrammar)
 
     grammarControlPanel.setLayout(new FillLayout)
     val grammarOpenButton = new Button(grammarControlPanel, SWT.NONE)
@@ -176,7 +169,7 @@ class ParserStudio(parent: Composite, style: Int)(_exampleGrammars: Seq[GrammarE
                 grammarsList.setFont(BasicVisualizeResources.fixedWidth12Font)
 
                 exampleGrammars foreach { exampleGrammar =>
-                    grammarsList.add(exampleGrammar._1.grammar.name)
+                    grammarsList.add(exampleGrammar._1.name)
                 }
 
                 grammarsList.addSelectionListener(new SelectionListener {
@@ -232,6 +225,7 @@ class ParserStudio(parent: Composite, style: Int)(_exampleGrammars: Seq[GrammarE
     val testPanel = new HorizontalResizableSplittedComposite(rootPanel.rightPanel, SWT.NONE, 20)
 
     val testText = new NotificationPanel(testPanel.upperPanel, SWT.NONE)(Some("Test Text"), new SourceText(_, SWT.NONE, emptyGrammarParser))
+    testText.control.setText(initialTest)
     val testResultPanel = testPanel.lowerPanel
     testResultPanel.setLayout(new FormLayout)
     val parseTreeView = new NotificationPanel(testResultPanel, SWT.NONE)(None, new ParseTreeViewer(_, SWT.NONE))
@@ -422,7 +416,7 @@ class ParserStudio(parent: Composite, style: Int)(_exampleGrammars: Seq[GrammarE
                     if (!proceedParserSelector.preprocessed) {
                         ParsingProcessVisualizer.start[NaiveContext](
                             title = title,
-                            parser = new NaiveParser(ngrammar),
+                            parser = new NaiveParser(ngrammar, trim = proceedParserSelector.trimGraph),
                             source, display, shell, new ZestParsingContextWidget(_, _, _, _, _)
                         )
                     } else {

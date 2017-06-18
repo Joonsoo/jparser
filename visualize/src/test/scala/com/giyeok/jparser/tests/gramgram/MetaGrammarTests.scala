@@ -208,7 +208,7 @@ object ExpressionGrammar0Tests extends GrammarTestCases with StringSamples {
         """expression = term | expression '+' term
           |term = factor | term '*' factor
           |factor = number | variable | '(' expression ')'
-          |number = '0' | [{1-9} {0-9}*]
+          |number = '0' | {1-9} {0-9}*
           |variable = {A-Za-z}+""".stripMargin('|')
 
     val grammar: Grammar = MetaGrammar.translate("Expression Grammar 0", expressionGrammar0Text).left.get
