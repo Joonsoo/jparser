@@ -124,6 +124,15 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
     grammarText.control.setText(initialGrammar)
 
     grammarControlPanel.setLayout(new FillLayout)
+    val grammarAddEpsilonButton = new Button(grammarControlPanel, SWT.NONE)
+    grammarAddEpsilonButton.setText("ε")
+    grammarAddEpsilonButton.addSelectionListener(new SelectionListener {
+        def widgetDefaultSelected(e: SelectionEvent): Unit = {}
+        def widgetSelected(e: SelectionEvent): Unit = {
+            grammarText.control.appendTextToCurrentCursor("ε")
+            grammarText.control.setFocus()
+        }
+    })
     val grammarOpenButton = new Button(grammarControlPanel, SWT.NONE)
     grammarOpenButton.setText("Open Example Grammars")
     if (exampleGrammars.isEmpty) {
@@ -538,6 +547,13 @@ class SourceText[R](parent: Composite, style: Int, val initialProcessor: ParsePr
     def setText(text: String): Unit = {
         this.text.setText(text)
         modified(TextModel(text))
+    }
+
+    def appendTextToCurrentCursor(appendingText: String): Unit = {
+        val allText = this.text.getText()
+        val offset = this.text.getCaretOffset
+        setText(allText.substring(0, offset) + appendingText + allText.substring(offset))
+        this.text.setCaretOffset(offset + 1)
     }
 
     text.addExtendedModifyListener(new ExtendedModifyListener() {
