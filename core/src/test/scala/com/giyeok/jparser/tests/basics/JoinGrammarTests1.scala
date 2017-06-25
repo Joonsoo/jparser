@@ -125,28 +125,34 @@ object JoinGrammar3_1 extends Grammar with GrammarTestCases with StringSamples {
             n("P").join(n("Q"))
         ),
         "P" -> ListSet(
-            seq(n("A"), c('c').star)
+            seq(n("A"), c('c').plus)
         ),
         "A" -> ListSet(
-            empty,
+            i("ab"),
             seq(c('a'), n("A"), c('b'))
         ),
         "Q" -> ListSet(
-            seq(c('a').star, n("C"))
+            seq(c('a').plus, n("B"))
         ),
-        "C" -> ListSet(
-            empty,
-            seq(c('b'), n("C"), c('c'))
+        "B" -> ListSet(
+            i("bc"),
+            seq(c('b'), n("B"), c('c'))
         )
     )
     val startSymbol = n("S")
 
     val grammar = this
     val correctSamples = Set[String](
-        "", "abc", "aabbcc", "aaabbbccc"
+        "abc", "aabbcc", "aaabbbccc"
     )
     val incorrectSamples = Set[String](
-        "aaabbb"
+        "aaabbb",
+        ("a" * 4) + ("b" * 3) + ("c" * 3),
+        ("a" * 3) + ("b" * 4) + ("c" * 3),
+        ("a" * 3) + ("b" * 3) + ("c" * 4),
+        ("a" * 2) + ("b" * 3) + ("c" * 3),
+        ("a" * 3) + ("b" * 2) + ("c" * 3),
+        ("a" * 3) + ("b" * 3) + ("c" * 2)
     )
 }
 

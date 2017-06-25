@@ -2,6 +2,7 @@ package com.giyeok.jparser.tests
 
 import com.giyeok.jparser.studio.GrammarExample
 import com.giyeok.jparser.studio.ParserStudio
+import com.giyeok.jparser.tests.basics.FollowedByGrammar3
 import com.giyeok.jparser.tests.basics.JoinGrammar3_1
 import com.giyeok.jparser.tests.gramgram.ExpressionGrammar0Tests
 import com.giyeok.jparser.tests.gramgram.LexicalGrammar0Tests
@@ -27,7 +28,8 @@ object ParserStudioMain {
             grammar("(Fig 1) CDG Grammar", MetaGrammarTests),
             grammar("(Fig 2) Expression Grammar", ExpressionGrammar0Tests),
             grammar("(Fig 3) Lexical Grammar", LexicalGrammar0Tests),
-            grammar("(Fig 5) a^n b^n c^n Grammar", JoinGrammar3_1)
+            grammar("(Fig 5) a^n b^n c^n Grammar", JoinGrammar3_1),
+            grammar("(Fig 6) a^n b^n c^n Grammar", FollowedByGrammar3)
         )
         ParserStudio.start(ExpressionGrammar0Tests.expressionGrammar0Text, ExpressionGrammar0Tests.correctSamples.head, specials ++ examples)
     }
