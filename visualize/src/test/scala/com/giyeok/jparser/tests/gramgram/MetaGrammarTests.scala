@@ -302,3 +302,22 @@ object LexicalGrammar1Tests extends GrammarTestCases with StringSamples {
     )
     override val incorrectSamples: Set[String] = Set()
 }
+
+object LexicalGrammar2Tests extends GrammarTestCases with StringSamples {
+    val lexicalGrammar2Text: String =
+        """S = token*
+          |token = keyword | operator | identifier
+          |keyword = ("if" | "else" | "true" | "false") & name
+          |operator = <op>
+          |op = '+' | '-' | "++" | "--" | '=' | "+=" | "-="
+          |identifier = name - keyword
+          |name = <[{A-Za-z} {0-9A-Za-z}*]>
+          |""".stripMargin('|')
+
+    val grammar: Grammar = MetaGrammar.translate("Lexical Grammar 2", lexicalGrammar2Text).left.get
+
+    override val correctSamples: Set[String] = Set(
+        "ifx"
+    )
+    override val incorrectSamples: Set[String] = Set()
+}
