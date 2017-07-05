@@ -74,9 +74,8 @@ trait ParsingTasks {
                 val finishedNodes = allUpdatedNodes filter { _.kernel.isFinished }
                 val newTasks = finishedNodes map { finishedNode => ProgressTask(startNode, finishedNode.condition) }
 
-                val newGraph = allUpdatedNodes.foldLeft(cc.graph) { (graph, updatedNode) =>
-                    graph.addEdge(Edge(startNode, updatedNode))
-                }
+                val newGraph = cc.graph.addEdge(Edge(startNode, newNode))
+
                 GraphTasksCont(newGraph, newTasks ++: cc.newTasks)
             }
         }
@@ -113,7 +112,8 @@ trait ParsingTasks {
         assert(node.kernel.isFinished)
         assert(node.kernel.endGen == nextGen)
 
-        val incomingEdges = cc.graph.edgesByEnd(node)
+        val node0 = Node(Kernel(node.kernel.symbolId, 0, node.kernel.beginGen, node.kernel.beginGen)(node.kernel.symbol), Always)
+        val incomingEdges = cc.graph.edgesByEnd(node0)
         val chainTasks: Seq[Task] = incomingEdges.toSeq map { edge =>
             val Edge(incomingNode, _) = edge
             ProgressTask(incomingNode, node.condition)
@@ -147,14 +147,7 @@ trait ParsingTasks {
         }
         val updatedNode = Node(newKernel, conjunct(node.condition, incomingCondition, newCondition))
         if (!(cc.graph.nodes contains updatedNode)) {
-            val GraphTasksCont(graph1, newTasks) = addNode(GraphTasksCont(cc.graph, List()), updatedNode)
-
-            // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
-            val incomingEdges = cc.graph.edgesByEnd(node)
-            val newGraph = incomingEdges.foldLeft(graph1) { (graph, edge) =>
-                val newEdge = Edge(edge.start, updatedNode)
-                graph.addEdge(newEdge)
-            }
+            val GraphTasksCont(newGraph, newTasks) = addNode(GraphTasksCont(cc.graph, List()), updatedNode)
 
             // cc에 updatedNodes에 node -> updatedNode 추가
             val newUpdatedNodesMap = cc.updatedNodesMap + (node -> (cc.updatedNodesMap.getOrElse(node, Set()) + updatedNode))
@@ -284,6 +277,23 @@ trait ParsingTasks {
         }
     }
 
+    def trimUnreachablesTo(graph: Graph, ends: Set[Node]): Graph = {
+        assert(ends subsetOf graph.nodes)
+        val reachableToEnds = {
+            def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
+                queue match {
+                    case node +: rest =>
+                        val reachables = graph.edgesByEnd(node) map { _.start }
+                        val newReachables = reachables -- cc
+                        visit(newReachables.toSeq ++: rest, cc ++ newReachables)
+                    case List() => cc
+                }
+            visit(ends.toList, ends)
+        }
+        val removing = graph.nodes -- reachableToEnds
+        graph.removeNodes(removing)
+    }
+
     def trimGraph(graph: Graph, startNode: Node, nextGen: Int): Graph = {
         // 트리밍 - 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
         val trimmed1 = graph filterNode { node =>
@@ -293,7 +303,8 @@ trait ParsingTasks {
                 case _ => true
             })
         }
-        // 2차 트리밍 - startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
-        trimUnreachables(trimmed1, startNode, termNodes(trimmed1, nextGen))
+        // 2차 트리밍 - 새로운 terminal node로 도달 불가능한 노드 지우기
+        trimUnreachablesTo(trimmed1, termNodes(trimmed1, nextGen))
+        // TODO startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드 지우기
     }
 }
