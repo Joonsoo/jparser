@@ -41,6 +41,10 @@ trait ParsingTasks {
     def deriveTask(nextGen: Int, task: DeriveTask, cc: Cont): (Cont, Seq[Task]) = {
         val DeriveTask(startNode) = task
 
+        assert(cc.graph.nodes contains startNode)
+        assert(!startNode.kernel.isFinished)
+        assert(startNode.kernel.endGen == nextGen)
+
         def nodeOf(symbolId: Int): Node = newNodeOf(symbolId, nextGen)
 
         // cc.updatedNodesMap는 참조만 하고 변경하지 않는다
@@ -48,31 +52,33 @@ trait ParsingTasks {
 
         def derive0(cc: GraphTasksCont, symbolId: Int): GraphTasksCont = {
             val newNode = nodeOf(symbolId)
-            val ncc = addNode(cc, newNode)
-
-            def collectUpdated(queue: List[Node], cc: List[Node]): List[Node] = {
-                queue match {
-                    case node +: rest =>
-                        updatedNodesMap get node match {
-                            case Some(progressedNodes) =>
-                                assert((progressedNodes map { _.kernel }).size == 1)
-                                assert((progressedNodes map { _.kernel }).head.symbolId == symbolId)
-                                collectUpdated(progressedNodes.toList ++: rest, node +: cc)
-                            case None =>
-                                collectUpdated(rest, node +: cc)
-                        }
-                    case List() => cc
+            if (!(cc.graph.nodes contains newNode)) {
+                val ncc = addNode(cc, newNode)
+                GraphTasksCont(ncc.graph.addEdge(Edge(startNode, newNode)), ncc.newTasks)
+            } else {
+                def collectUpdated(queue: List[Node], cc: List[Node]): List[Node] = {
+                    queue match {
+                        case node +: rest =>
+                            updatedNodesMap get node match {
+                                case Some(progressedNodes) =>
+                                    assert((progressedNodes map { _.kernel }).size == 1)
+                                    assert((progressedNodes map { _.kernel }).head.symbolId == symbolId)
+                                    collectUpdated(progressedNodes.toList ++: rest, node +: cc)
+                                case None =>
+                                    collectUpdated(rest, node +: cc)
+                            }
+                        case List() => cc
+                    }
                 }
-            }
-            val allUpdatedNodes = collectUpdated(List(newNode), List())
-            // if (!(cc.graph.nodes contains newNode)) { assert(allUpdatedNodes == List(newNode)) }
-            val finishedNodes = allUpdatedNodes filter { _.kernel.isFinished }
-            val newTasks = finishedNodes map { finishedNode => ProgressTask(startNode, finishedNode.condition) }
+                val allUpdatedNodes = collectUpdated(List(newNode), List())
+                val finishedNodes = allUpdatedNodes filter { _.kernel.isFinished }
+                val newTasks = finishedNodes map { finishedNode => ProgressTask(startNode, finishedNode.condition) }
 
-            val newGraph = allUpdatedNodes.foldLeft(ncc.graph) { (graph, updatedNode) =>
-                graph.addEdge(Edge(startNode, updatedNode))
+                val newGraph = allUpdatedNodes.foldLeft(cc.graph) { (graph, updatedNode) =>
+                    graph.addEdge(Edge(startNode, updatedNode))
+                }
+                GraphTasksCont(newGraph, newTasks ++: cc.newTasks)
             }
-            GraphTasksCont(newGraph, newTasks ++: ncc.newTasks)
         }
 
         val gtc0 = GraphTasksCont(cc.graph, List())
@@ -103,7 +109,9 @@ trait ParsingTasks {
     def finishTask(nextGen: Int, task: FinishTask, cc: Cont): (Cont, Seq[Task]) = {
         val FinishTask(node) = task
 
+        assert(cc.graph.nodes contains node)
         assert(node.kernel.isFinished)
+        assert(node.kernel.endGen == nextGen)
 
         val incomingEdges = cc.graph.edgesByEnd(node)
         val chainTasks: Seq[Task] = incomingEdges.toSeq map { edge =>
@@ -115,7 +123,8 @@ trait ParsingTasks {
 
     def progressTask(nextGen: Int, task: ProgressTask, cc: Cont): (Cont, Seq[Task]) = {
         val ProgressTask(node, incomingCondition) = task
-        // assert(cc.graph.nodes contains node)
+
+        assert(cc.graph.nodes contains node)
 
         // nodeSymbolOpt에서 opt를 사용하는 것은 finish는 SequenceNode에 대해서도 실행되기 때문
         val newCondition = node.kernel.symbol match {
