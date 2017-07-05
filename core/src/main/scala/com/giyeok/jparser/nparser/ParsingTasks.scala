@@ -124,6 +124,7 @@ trait ParsingTasks {
     def progressTask(nextGen: Int, task: ProgressTask, cc: Cont): (Cont, Seq[Task]) = {
         val ProgressTask(node, incomingCondition) = task
 
+        assert(!node.kernel.isFinished)
         assert(cc.graph.nodes contains node)
 
         // nodeSymbolOpt에서 opt를 사용하는 것은 finish는 SequenceNode에 대해서도 실행되기 때문
