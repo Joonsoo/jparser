@@ -10,7 +10,9 @@ import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 trait ParsingTasks {
     val grammar: NGrammar
 
-    case class Cont(graph: Graph, updatedNodesMap: Map[Node, Set[Node]])
+    case class Cont(graph: Graph, updatedNodesMap: Map[Node, Set[Node]]) {
+        // assert((updatedNodesMap flatMap { kv => kv._2 + kv._1 }).toSet subsetOf graph.nodes)
+    }
 
     sealed trait Task { val node: Node }
     case class DeriveTask(node: Node) extends Task
@@ -63,6 +65,7 @@ trait ParsingTasks {
                 }
             }
             val allUpdatedNodes = collectUpdated(List(newNode), List())
+            // if (!(cc.graph.nodes contains newNode)) { assert(allUpdatedNodes == List(newNode)) }
             val finishedNodes = allUpdatedNodes filter { _.kernel.isFinished }
             val newTasks = finishedNodes map { finishedNode => ProgressTask(startNode, finishedNode.condition) }
 

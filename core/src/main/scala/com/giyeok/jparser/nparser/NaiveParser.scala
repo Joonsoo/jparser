@@ -38,7 +38,9 @@ class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parse
         } filterNode { _.condition != Never }
 
         // 3. Trimming
-        val trimmedGraph: Graph = trimGraph(acceptConditionUpdatedGraph, startNode, 0)
+        val trimmedGraph: Graph =
+            if (trim) trimGraph(acceptConditionUpdatedGraph, startNode, 0)
+            else acceptConditionUpdatedGraph
 
         new NaiveContext(0, trimmedGraph, List(), List(graph), nextConditionAccumulate)
     }

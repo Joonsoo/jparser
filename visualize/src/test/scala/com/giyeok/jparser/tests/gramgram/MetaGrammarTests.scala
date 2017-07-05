@@ -307,9 +307,9 @@ object LexicalGrammar2Tests extends GrammarTestCases with StringSamples {
     val lexicalGrammar2Text: String =
         """S = token*
           |token = keyword | operator | identifier
-          |keyword = ("if" | "else" | "true" | "false") & name
+          |keyword = ("if" | "else") & name
           |operator = <op>
-          |op = '+' | '-' | "++" | "--" | '=' | "+=" | "-="
+          |op = '+' | "++"
           |identifier = name - keyword
           |name = <[{A-Za-z} {0-9A-Za-z}*]>
           |""".stripMargin('|')
