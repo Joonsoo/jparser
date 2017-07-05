@@ -6,6 +6,7 @@ import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.AcceptCondition.And
 import com.giyeok.jparser.nparser.AcceptCondition.Exists
+import com.giyeok.jparser.nparser.AcceptCondition.Never
 import com.giyeok.jparser.nparser.AcceptCondition.NotExists
 import com.giyeok.jparser.nparser.AcceptCondition.OnlyIf
 import com.giyeok.jparser.nparser.AcceptCondition.Or
@@ -157,6 +158,8 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                     s"Unless $beginGen $endGen ${ngrammar.symbolOf(symbolId).symbol.toDotLabelName}"
                 case OnlyIf(beginGen, endGen, symbolId) =>
                     s"OnlyIf $beginGen $endGen ${ngrammar.symbolOf(symbolId).symbol.toDotLabelName}"
+                case Never =>
+                    "never"
             }
         s"($kernelLabel),${conditionLabel(node.condition)}"
     }
@@ -186,8 +189,9 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             queue = queue.tail
             addNode(node)
             graph.edgesByStart(node).toSeq sortWith { (x, y) => x.end.kernel.symbolId < y.end.kernel.symbolId } foreach { edge =>
-                val Edge(start, end) = edge
+                val Edge(start, end, actual) = edge
                 edges(edge) = new DotGraphEdge()
+                // TODO actual 여부에 따라 표현 바꾸기
                 if (!(visited contains end)) queue +:= end
                 visited += end
             }
@@ -246,7 +250,8 @@ class DotGraphGenerator(ngrammar: NGrammar) {
         println()
         edges foreach { kv =>
             kv._1 match {
-                case edge @ Edge(start, end) =>
+                case edge @ Edge(start, end, actual) =>
+                    // TODO actual 여부에 따라 표현 바꾸기
                     if (start.kernel.symbolId != ngrammar.startSymbol) {
                         println(s"    ${nodeNameOf(start)} -> ${nodeNameOf(end)}[${kv._2.attrString}];")
                     }

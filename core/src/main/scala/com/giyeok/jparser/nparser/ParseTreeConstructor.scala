@@ -22,8 +22,8 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
         (history map { graph =>
             val filteredGraph = graph filterNode { node => conditionFinal(node.condition) }
             val kernelNodes: Set[Kernel] = filteredGraph.nodes map { _.kernel }
-            val kernelEdges0: Set[KernelEdge] = filteredGraph.edges map {
-                case Edge(start, end) => KernelEdge(start.kernel, end.kernel)
+            val kernelEdges0: Set[KernelEdge] = filteredGraph.edges collect {
+                case Edge(start, end, true) => KernelEdge(start.kernel, end.kernel)
             }
             // kernelEdges0에서 ((k, p, g_0, g_1), c) such that p > 0인 노드들 찾아서 ((k, 0, g_0, g_0), Always)의 incoming node들에서 edge 이어주기
             def augmentEdges(queue: List[Kernel], edges: Set[KernelEdge]): Set[KernelEdge] =
