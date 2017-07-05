@@ -54,7 +54,7 @@ trait ParsingTasks {
             val newNode = nodeOf(symbolId)
             if (!(cc.graph.nodes contains newNode)) {
                 val ncc = addNode(cc, newNode)
-                GraphTasksCont(ncc.graph.addEdge(Edge(startNode, newNode)), ncc.newTasks)
+                GraphTasksCont(ncc.graph.addEdge(Edge(startNode, newNode, actual = true)), ncc.newTasks)
             } else {
                 def collectUpdated(queue: List[Node], cc: List[Node]): List[Node] = {
                     queue match {
@@ -75,7 +75,8 @@ trait ParsingTasks {
                 val newTasks = finishedNodes map { finishedNode => ProgressTask(startNode, finishedNode.condition) }
 
                 val newGraph = allUpdatedNodes.foldLeft(cc.graph) { (graph, updatedNode) =>
-                    graph.addEdge(Edge(startNode, updatedNode))
+                    val actual = newNode == updatedNode
+                    graph.addEdge(Edge(startNode, updatedNode, actual = actual))
                 }
                 GraphTasksCont(newGraph, newTasks ++: cc.newTasks)
             }
@@ -113,10 +114,11 @@ trait ParsingTasks {
         assert(node.kernel.isFinished)
         assert(node.kernel.endGen == nextGen)
 
+        // 원래는 cc.graph.edgesByEnd(node.initial) 를 사용해야 하는데, trimming돼서 다 없어져버려서 그냥 둠
+        // 사실 trimming 없으면 언제나 cc.graph.edgesByEnd(node.initial) == cc.graph.edgesByEnd(node)
         val incomingEdges = cc.graph.edgesByEnd(node)
         val chainTasks: Seq[Task] = incomingEdges.toSeq map { edge =>
-            val Edge(incomingNode, _) = edge
-            ProgressTask(incomingNode, node.condition)
+            ProgressTask(edge.start, node.condition)
         }
         (cc, chainTasks)
     }
@@ -152,7 +154,7 @@ trait ParsingTasks {
             // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
             val incomingEdges = cc.graph.edgesByEnd(node)
             val newGraph = incomingEdges.foldLeft(graph1) { (graph, edge) =>
-                val newEdge = Edge(edge.start, updatedNode)
+                val newEdge = Edge(edge.start, updatedNode, actual = false)
                 graph.addEdge(newEdge)
             }
 

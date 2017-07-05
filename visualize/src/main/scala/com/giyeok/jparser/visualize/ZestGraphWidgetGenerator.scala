@@ -62,13 +62,14 @@ trait AbstractZestGraphWidget extends Control {
     }
 
     val edgeColor: Color = ColorConstants.gray
+    val nonActualEdgeColor: Color = ColorConstants.lightGray
     def addEdge(edge: Edge): Unit = {
         if (!(edgesMap contains edge)) {
-            val Edge(start, end) = edge
+            val Edge(start, end, actual) = edge
             assert(nodesMap contains start)
             assert(nodesMap contains end)
             val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
-            conn.setLineColor(edgeColor)
+            conn.setLineColor(if (actual) edgeColor else nonActualEdgeColor)
             conn.setData((Seq(start, end), Seq(conn)))
             edgesMap(edge) = Seq(conn)
             visibleEdges += edge

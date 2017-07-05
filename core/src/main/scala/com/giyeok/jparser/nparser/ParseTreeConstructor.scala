@@ -9,9 +9,7 @@ import com.giyeok.jparser.nparser.ParsingContext._
 
 class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Graph], conditionFinal: Map[AcceptCondition, Boolean]) {
     // conditionFinal foreach { kv => println(s"${kv._1} -> ${kv._2}") }
-    sealed trait KernelEdge { val start: Kernel }
-    case class SimpleKernelEdge(start: Kernel, end: Kernel) extends KernelEdge
-    case class JoinKernelEdge(start: Kernel, end: Kernel, join: Kernel) extends KernelEdge
+    case class KernelEdge(start: Kernel, end: Kernel)
 
     case class KernelGraph(nodes: Seq[Kernel], edges: Seq[KernelEdge]) {
         val edgesByStart: Map[Kernel, Seq[KernelEdge]] = {
@@ -24,9 +22,25 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
         (history map { graph =>
             val filteredGraph = graph filterNode { node => conditionFinal(node.condition) }
             val kernelNodes: Set[Kernel] = filteredGraph.nodes map { _.kernel }
-            val kernelEdges: Set[KernelEdge] = filteredGraph.edges map {
-                case Edge(start, end) => SimpleKernelEdge(start.kernel, end.kernel)
+            val kernelEdges0: Set[KernelEdge] = filteredGraph.edges map {
+                case Edge(start, end, _) => KernelEdge(start.kernel, end.kernel)
             }
+            // 원래는 initial node로 가는 edge만 있기 때문에 edge들을 추가해서 고려해주어야 하는데, 우선은 non-actual edge들도 전부 고려하게 했기 때문에 필요 없음
+            def augmentEdges(queue: List[Kernel], edges: Set[KernelEdge]): Set[KernelEdge] =
+                queue match {
+                    case head +: rest =>
+                        if (head.pointer == 0) {
+                            augmentEdges(rest, edges)
+                        } else {
+                            val initialKernel = Kernel(head.symbolId, 0, head.beginGen, head.beginGen)(head.symbol)
+                            val newEdges = edges filter { _.end == initialKernel } map { edge => KernelEdge(edge.start, head) }
+                            augmentEdges(rest, edges ++ newEdges)
+                        }
+                    case List() =>
+                        edges
+                }
+            // val kernelEdges = augmentEdges(kernelNodes.toList, kernelEdges0)
+            val kernelEdges = kernelEdges0
             KernelGraph(kernelNodes.toSeq, kernelEdges.toSeq)
         }).toVector
     }
@@ -98,9 +112,9 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
             case symbol: NAtomicSymbol =>
                 assert(kernel.pointer == 1)
                 val prevKernel = Kernel(kernel.symbolId, 0, kernel.beginGen, kernel.beginGen)(kernel.symbol)
-                assert(finishes(gen).edgesByStart(prevKernel) forall { _.isInstanceOf[SimpleKernelEdge] })
+                // assert(finishes(gen).edgesByStart(prevKernel) forall { _.isInstanceOf[SimpleKernelEdge] })
                 val bodyKernels = finishes(gen).edgesByStart(prevKernel) collect {
-                    case SimpleKernelEdge(_, end) if end.endGen == gen && end.isFinished => end
+                    case KernelEdge(_, end) if end.endGen == gen && end.isFinished => end
                 }
                 val bodyTrees = bodyKernels map { bodyKernel =>
                     reconstruct0(bodyKernel, kernel.endGen)

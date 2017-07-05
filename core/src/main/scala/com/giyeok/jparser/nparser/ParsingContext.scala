@@ -1,6 +1,7 @@
 package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
+import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
 import com.giyeok.jparser.nparser.NGrammar.NSymbol
 import com.giyeok.jparser.nparser.NGrammar.NSequence
@@ -14,6 +15,7 @@ object ParsingContext {
     }
     case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int)(val symbol: NSymbol) {
         def shiftGen(gen: Int): Kernel = Kernel(symbolId, pointer, beginGen + gen, endGen + gen)(symbol)
+        def initial: Kernel = if (pointer == 0) this else Kernel(symbolId, 0, beginGen, beginGen)(symbol)
 
         def isFinished: Boolean =
             pointer == Kernel.lastPointerOf(symbol) ensuring (0 <= pointer && pointer <= Kernel.lastPointerOf(symbol))
@@ -22,11 +24,12 @@ object ParsingContext {
     }
     case class Node(kernel: Kernel, condition: AcceptCondition) {
         def shiftGen(gen: Int) = Node(kernel.shiftGen(gen), condition.shiftGen(gen))
+        def initial: Node = if (kernel.pointer == 0) this else Node(kernel.initial, Always)
 
         override val hashCode: Int = (kernel, condition).hashCode()
     }
 
-    case class Edge(start: Node, end: Node) {
+    case class Edge(start: Node, end: Node, actual: Boolean) {
         override val hashCode: Int = (start, end).hashCode()
     }
 
@@ -61,7 +64,7 @@ object ParsingContext {
             val newNodesMap: Map[Node, Node] = (nodes map { node => node -> nodeFunc(node) }).toMap
             val newNodes: Set[Node] = newNodesMap.values.toSet
             val newEdgesMap: Map[Edge, Edge] = (edges map { edge =>
-                edge -> Edge(newNodesMap(edge.start), newNodesMap(edge.end))
+                edge -> Edge(newNodesMap(edge.start), newNodesMap(edge.end), edge.actual)
             }).toMap
             val newEdgesByStart = edgesByStart map { kv =>
                 newNodesMap(kv._1) -> (kv._2 map newEdgesMap)
