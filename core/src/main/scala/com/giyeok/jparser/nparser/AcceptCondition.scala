@@ -6,10 +6,10 @@ object AcceptCondition {
     import ParsingContext._
 
     sealed trait AcceptCondition {
-        def nodes: Set[Node]
+        def nodes: Set[State]
         def shiftGen(gen: Int): AcceptCondition
-        def evaluate(gen: Int, graph: Graph): AcceptCondition
-        def acceptable(gen: Int, graph: Graph): Boolean
+        def evaluate(gen: Int, graph: ParsingContext): AcceptCondition
+        def acceptable(gen: Int, graph: ParsingContext): Boolean
         def neg: AcceptCondition
     }
     sealed trait SymbolCondition extends AcceptCondition {
@@ -17,9 +17,9 @@ object AcceptCondition {
         val symbol: NAtomicSymbol
         val beginGen: Int
 
-        lazy val node0: Node = Node(Kernel(symbolId, 0, beginGen, beginGen)(symbol), Always)
+        lazy val node0: State = State(Kernel(symbolId, 0, beginGen, beginGen)(symbol), Always)
         def kernel1(endGen: Int): Kernel = Kernel(symbolId, 1, beginGen, endGen)(symbol)
-        lazy val nodes: Set[Node] = Set(node0)
+        lazy val nodes: Set[State] = Set(node0)
     }
     def conjunct(conditions: AcceptCondition*): AcceptCondition =
         if (conditions contains Never) Never
@@ -52,43 +52,43 @@ object AcceptCondition {
     }
 
     case object Always extends AcceptCondition {
-        val nodes: Set[Node] = Set[Node]()
+        val nodes: Set[State] = Set[State]()
         def shiftGen(gen: Int): AcceptCondition = this
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = this
-        def acceptable(gen: Int, graph: Graph) = true
+        def evaluate(gen: Int, graph: ParsingContext): AcceptCondition = this
+        def acceptable(gen: Int, graph: ParsingContext) = true
         def neg = Never
     }
     case object Never extends AcceptCondition {
-        val nodes: Set[Node] = Set[Node]()
+        val nodes: Set[State] = Set[State]()
         def shiftGen(gen: Int): AcceptCondition = this
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = this
-        def acceptable(gen: Int, graph: Graph) = false
+        def evaluate(gen: Int, graph: ParsingContext): AcceptCondition = this
+        def acceptable(gen: Int, graph: ParsingContext) = false
         def neg = Always
     }
     case class And(conditions: Set[AcceptCondition]) extends AcceptCondition {
         // assert(conditions forall { c => c != True && c != False })
 
-        def nodes: Set[Node] = conditions flatMap { _.nodes }
+        def nodes: Set[State] = conditions flatMap { _.nodes }
         def shiftGen(gen: Int): AcceptCondition =
             And(conditions map { _.shiftGen(gen) })
-        def evaluate(gen: Int, graph: Graph): AcceptCondition =
+        def evaluate(gen: Int, graph: ParsingContext): AcceptCondition =
             conditions.foldLeft[AcceptCondition](Always) { (cc, condition) =>
                 conjunct(condition.evaluate(gen, graph), cc)
             }
-        def acceptable(gen: Int, graph: Graph): Boolean =
+        def acceptable(gen: Int, graph: ParsingContext): Boolean =
             conditions forall { _.acceptable(gen, graph) }
         def neg: AcceptCondition = disjunct((conditions map { _.neg }).toSeq: _*)
     }
     case class Or(conditions: Set[AcceptCondition]) extends AcceptCondition {
         // assert(conditions forall { c => c != True && c != False })
 
-        def nodes: Set[Node] = conditions flatMap { _.nodes }
+        def nodes: Set[State] = conditions flatMap { _.nodes }
         def shiftGen(gen: Int): AcceptCondition = Or(conditions map { _.shiftGen(gen) })
-        def evaluate(gen: Int, graph: Graph): AcceptCondition =
+        def evaluate(gen: Int, graph: ParsingContext): AcceptCondition =
             conditions.foldLeft[AcceptCondition](Never) { (cc, condition) =>
                 disjunct(condition.evaluate(gen, graph), cc)
             }
-        def acceptable(gen: Int, graph: Graph): Boolean =
+        def acceptable(gen: Int, graph: ParsingContext): Boolean =
             conditions exists { _.acceptable(gen, graph) }
         def neg: AcceptCondition = conjunct((conditions map { _.neg }).toSeq: _*)
     }
@@ -96,14 +96,14 @@ object AcceptCondition {
     case class NotExists(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
         def shiftGen(gen: Int): AcceptCondition =
             NotExists(beginGen + gen, endGen + gen, symbolId)(symbol)
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = {
+        def evaluate(gen: Int, graph: ParsingContext): AcceptCondition = {
             if (gen < endGen) this else {
                 val conditions0 = graph.conditionsOf(kernel1(gen)) map { _.neg.evaluate(gen, graph) }
-                val conditions = conditions0 ++ (if (graph.nodes contains node0) Set(this) else Set())
+                val conditions = conditions0 ++ (if (graph.states contains node0) Set(this) else Set())
                 conjunct(conditions.toSeq: _*)
             }
         }
-        def acceptable(gen: Int, graph: Graph): Boolean = {
+        def acceptable(gen: Int, graph: ParsingContext): Boolean = {
             if (gen < endGen) true else {
                 graph.conditionsOf(kernel1(gen)) forall { _.acceptable(gen, graph) == false }
             }
@@ -113,14 +113,14 @@ object AcceptCondition {
     case class Exists(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
         def shiftGen(gen: Int): AcceptCondition =
             Exists(beginGen + gen, endGen + gen, symbolId)(symbol)
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = {
+        def evaluate(gen: Int, graph: ParsingContext): AcceptCondition = {
             if (gen < endGen) this else {
                 val conditions0 = graph.conditionsOf(kernel1(gen)) map { _.evaluate(gen, graph) }
-                val conditions = conditions0 ++ (if (graph.nodes contains node0) Set(this) else Set())
+                val conditions = conditions0 ++ (if (graph.states contains node0) Set(this) else Set())
                 disjunct(conditions.toSeq: _*)
             }
         }
-        def acceptable(gen: Int, graph: Graph): Boolean = {
+        def acceptable(gen: Int, graph: ParsingContext): Boolean = {
             if (gen < endGen) false else {
                 graph.conditionsOf(kernel1(gen)) exists { _.acceptable(gen, graph) }
             }
@@ -131,20 +131,20 @@ object AcceptCondition {
     case class Unless(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
         def shiftGen(gen: Int): AcceptCondition =
             Unless(beginGen + gen, endGen + gen, symbolId)(symbol)
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = {
+        def evaluate(gen: Int, graph: ParsingContext): AcceptCondition = {
             assert(gen >= endGen)
             if (gen > endGen) {
                 Always
             } else {
                 val conditions = graph.conditionsOf(kernel1(gen))
                 if (conditions.isEmpty) {
-                    if (graph.nodes contains node0) this else Always
+                    if (graph.states contains node0) this else Always
                 } else {
                     disjunct(conditions.toSeq: _*).neg.evaluate(gen, graph)
                 }
             }
         }
-        def acceptable(gen: Int, graph: Graph): Boolean = {
+        def acceptable(gen: Int, graph: ParsingContext): Boolean = {
             assert(gen >= endGen)
             if (gen != endGen) true else {
                 graph.conditionsOf(kernel1(gen)) forall { _.acceptable(gen, graph) == false }
@@ -156,20 +156,20 @@ object AcceptCondition {
     case class OnlyIf(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
         def shiftGen(gen: Int): AcceptCondition =
             OnlyIf(beginGen + gen, endGen + gen, symbolId)(symbol)
-        def evaluate(gen: Int, graph: Graph): AcceptCondition = {
+        def evaluate(gen: Int, graph: ParsingContext): AcceptCondition = {
             assert(gen >= endGen)
             if (gen > endGen) {
                 Never
             } else {
                 val conditions = graph.conditionsOf(kernel1(gen))
                 if (conditions.isEmpty) {
-                    if (graph.nodes contains node0) this else Never
+                    if (graph.states contains node0) this else Never
                 } else {
                     disjunct(conditions.toSeq: _*).evaluate(gen, graph)
                 }
             }
         }
-        def acceptable(gen: Int, graph: Graph): Boolean = {
+        def acceptable(gen: Int, graph: ParsingContext): Boolean = {
             assert(gen >= endGen)
             if (gen != endGen) false else {
                 graph.conditionsOf(kernel1(gen)) exists { _.acceptable(gen, graph) }

@@ -6,22 +6,21 @@ import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.nparser.Parser._
-import com.giyeok.jparser.nparser.ParsingContext._
 
 class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parser[NaiveContext] with ParsingTasks {
     // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
 
     val initialContext: NaiveContext = {
         // TODO lift 제외하고 proceed할 때랑 동일하게 해야 하나?
-        val Cont(graph, _) = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
-        val conditionsMap = (graph.nodes map { n => n.condition -> n.condition }).toMap
+        val Cont(graph, _) = rec(0, List(DeriveTask(startState)), ParsingContext(Set[State](startState), Set[Expectation]()))
+        val conditionsMap = (graph.states map { n => n.condition -> n.condition }).toMap
 
         val initialConditionAccumulate = ConditionAccumulate(conditionsMap)
 
         // 2. Accept condition 처리
         // 2a. Evaluate accept conditions
         val conditionsEvaluations: Map[AcceptCondition, AcceptCondition] = {
-            (graph.nodes map { _.condition } map { condition =>
+            (graph.states map { _.condition } map { condition =>
                 condition -> condition.evaluate(0, graph)
             }).toMap
         }
@@ -33,13 +32,13 @@ class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parse
             initialConditionAccumulate.update(conditionsEvaluations)
         }
         // 2c. Update accept conditions in graph
-        val acceptConditionUpdatedGraph = graph mapNode { node =>
-            Node(node.kernel, conditionsEvaluations(node.condition))
-        } filterNode { _.condition != Never }
+        val acceptConditionUpdatedGraph = graph mapStateCondition { node =>
+            State(node.kernel, conditionsEvaluations(node.condition))
+        } filterStates { _.condition != Never }
 
         // 3. Trimming
-        val trimmedGraph: Graph =
-            if (trim) trimGraph(acceptConditionUpdatedGraph, startNode, 0)
+        val trimmedGraph: ParsingContext =
+            if (trim) trimGraph(acceptConditionUpdatedGraph, startState, 0)
             else acceptConditionUpdatedGraph
 
         new NaiveContext(0, trimmedGraph, List(), List(graph), nextConditionAccumulate)
@@ -54,13 +53,13 @@ class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parse
             // 1. 1차 lift
             val liftedGraph = rec(nextGen, termFinishes, graph).graph
 
-            // 2. Accept condition 처리
-            val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =
-                processAcceptCondition(nextGen, liftedGraph, ctx.conditionAccumulate)
-
             if (trim) {
+                // 2. Accept condition 처리
+                val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =
+                    processAcceptCondition(nextGen, liftedGraph, ctx.conditionAccumulate)
+
                 // 3. Trimming
-                val trimmedGraph: Graph = trimGraph(conditionFilteredGraph, startNode, nextGen)
+                val trimmedGraph: ParsingContext = trimGraph(conditionFilteredGraph, startState, nextGen)
 
                 // trimmedGraph와 별개로 finish된 노드 정보를 전달해야 함
                 //   - parse tree reconstruction할 때는 liftedGraph를 사용하고
@@ -81,15 +80,13 @@ class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parse
             } else {
                 val nextContext = ctx.proceed(
                     nextGen,
-                    resultGraph = liftedGraph, nextGraph = conditionFilteredGraph,
-                    input, nextConditionAccumulate
+                    resultGraph = liftedGraph, nextGraph = liftedGraph,
+                    input, ctx.conditionAccumulate
                 )
 
                 Left((ProceedDetail(
                     graph,
-                    Transition("lifted(result)", liftedGraph, isResult = true),
-                    Transition("conditionUpdated", conditionUpdatedGraph),
-                    Transition("conditionFiltered", conditionFilteredGraph, isNext = true)
+                    Transition("lifted(result, next)", liftedGraph, isResult = true, isNext = true)
                 ), nextContext))
             }
         }

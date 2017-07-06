@@ -17,8 +17,7 @@ object Visualization extends Viewer {
         JoinGrammars.tests,
         LongestMatchGrammars.tests,
         ParsingTechniquesTests.tests,
-        PaperTests.tests,
-        TrickyTestSuite1.tests
+        PaperTests.tests
     ).flatten
 
     def main(args: Array[String]): Unit = {

@@ -1,11 +1,13 @@
 package com.giyeok.jparser.visualize
 
 import com.giyeok.jparser.nparser.AcceptCondition._
+import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.ParsingContext._
+import com.giyeok.jparser.nparser.State
+import com.giyeok.jparser.nparser.SymbolIdAndBeginGen
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 
-class NodeFigureGenerators[Fig](
+class StateFigureGenerators[Fig](
         val fig: FigureGenerator.Generator[Fig],
         val appear: FigureGenerator.Appearances[Fig],
         val symbol: SymbolFigureGenerator[Fig]
@@ -20,8 +22,8 @@ class NodeFigureGenerators[Fig](
         ))
     }
 
-    def nodeFig(grammar: NGrammar, node: Node): Fig = {
-        val Node(kernel, condition) = node
+    def stateFig(grammar: NGrammar, state: State): Fig = {
+        val State(kernel, condition) = state
         fig.verticalFig(Spacing.Medium, Seq(
             kernelFig(grammar, kernel),
             conditionFig(grammar, condition)
@@ -67,5 +69,13 @@ class NodeFigureGenerators[Fig](
                     symbol.symbolFig(grammar, symbolId)
                 ))
         }
+    }
+
+    def baseFig(grammar: NGrammar, base: SymbolIdAndBeginGen): Fig = {
+        fig.horizontalFig(Spacing.Small, Seq(
+            symbol.symbolFig(grammar, base.symbolId),
+            fig.textFig(", ", appear.small),
+            fig.textFig(s"${base.beginGen}", appear.default)
+        ))
     }
 }

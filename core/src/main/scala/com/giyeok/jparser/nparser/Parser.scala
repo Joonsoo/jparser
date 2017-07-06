@@ -10,7 +10,7 @@ import Parser._
 trait Parser[T <: Context] {
     val grammar: NGrammar
 
-    val startNode = Node(Kernel(grammar.startSymbol, 0, 0, 0)(grammar.nsymbols(grammar.startSymbol)), Always)
+    val startState = State(Kernel(grammar.startSymbol, 0, 0, 0)(grammar.nsymbols(grammar.startSymbol)), Always)
 
     val initialContext: T
 
@@ -68,11 +68,11 @@ object Parser {
         }
     }
 
-    abstract class Context(val gen: Int, val nextGraph: Graph, _inputs: List[Input], _history: List[Graph], val conditionAccumulate: ConditionAccumulate) {
+    abstract class Context(val gen: Int, val nextGraph: ParsingContext, _inputs: List[Input], _history: List[ParsingContext], val conditionAccumulate: ConditionAccumulate) {
         def nextGen: Int = gen + 1
         def inputs: Seq[Input] = _inputs.reverse
-        def history: Seq[Graph] = _history.reverse
-        def resultGraph: Graph = _history.head
+        def history: Seq[ParsingContext] = _history.reverse
+        def resultGraph: ParsingContext = _history.head
         def conditionFinal: Map[AcceptCondition, Boolean] = {
             val trueFixed = (conditionAccumulate.trueFixed map { c => c -> true }).toMap
             val falseFixed = (conditionAccumulate.falseFixed map { c => c -> false }).toMap
@@ -81,16 +81,16 @@ object Parser {
         }
     }
 
-    class NaiveContext(gen: Int, nextGraph: Graph, _inputs: List[Input], _history: List[Graph], conditionAccumulate: ConditionAccumulate)
+    class NaiveContext(gen: Int, nextGraph: ParsingContext, _inputs: List[Input], _history: List[ParsingContext], conditionAccumulate: ConditionAccumulate)
             extends Context(gen, nextGraph, _inputs, _history, conditionAccumulate) {
-        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, newInput: Input, newConditionAccumulate: ConditionAccumulate): NaiveContext = {
+        def proceed(nextGen: Int, resultGraph: ParsingContext, nextGraph: ParsingContext, newInput: Input, newConditionAccumulate: ConditionAccumulate): NaiveContext = {
             new NaiveContext(nextGen, nextGraph, newInput +: _inputs, resultGraph +: _history, newConditionAccumulate)
         }
     }
 
-    case class Transition(name: String, result: Graph, isResult: Boolean = false, isNext: Boolean = false)
-    case class ProceedDetail(baseGraph: Graph, transitions: Transition*) {
-        def graphAt(idx: Int): Graph =
+    case class Transition(name: String, result: ParsingContext, isResult: Boolean = false, isNext: Boolean = false)
+    case class ProceedDetail(baseGraph: ParsingContext, transitions: Transition*) {
+        def graphAt(idx: Int): ParsingContext =
             if (idx == 0) baseGraph else transitions(idx - 1).result
         def isResultAt(idx: Int): Boolean =
             if (idx == 0) false else transitions(idx - 1).isResult

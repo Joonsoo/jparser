@@ -6,7 +6,7 @@ import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.Parser
 import com.giyeok.jparser.nparser.Parser.Context
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
-import com.giyeok.jparser.nparser.ParsingContext.Node
+import com.giyeok.jparser.nparser.ParsingContext
 import org.eclipse.draw2d
 import org.eclipse.draw2d.AbstractLayout
 import org.eclipse.draw2d.ColorConstants
@@ -21,7 +21,6 @@ import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.StackLayout
 import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.events.KeyListener
-import org.eclipse.swt.events.MouseListener
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.layout.FormAttachment
@@ -33,7 +32,15 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.Shell
 
-class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control) {
+class ParsingProcessVisualizer[C <: Context](
+        title: String,
+        parser: Parser[C],
+        source: Seq[ConcreteInput],
+        display: Display,
+        shell: Shell,
+        resources: VisualizeResources[Figure],
+        parsingContextWidgetFunc: (Composite, Int, StateFigureGenerators[Figure], NGrammar, ParsingContext) => Control
+) {
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -345,13 +352,13 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
         controlCache get pointer match {
             case Some(cached) => cached
             case None =>
-                val (name, control) = pointer match {
+                val (name, control: Control) = pointer match {
                     case ParsingContextInitializingPointer =>
                         (None, errorControl("TODO"))
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
                             case Left(wctx) =>
-                                (None, parsingContextWidgetFunc(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx))
+                                (None, parsingContextWidgetFunc(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx.nextGraph))
                             case Right(error) =>
                                 (None, errorControl(error.msg))
                         }
@@ -364,27 +371,27 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                             }
                         transitionAt(gen) match {
                             case Left((_, transition, nextCtx)) =>
-                                val (prevGraph, nextGraph) = (transition.graphAt(stage - 1), transition.graphAt(stage))
+                                val (prevCtx, nextCtx) = (transition.graphAt(stage - 1), transition.graphAt(stage))
                                 val viewer = if (transition.isResultAt(stage)) {
-                                    new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph) with ZestParseTreeConstructorView {
-                                        val context: Context = nextCtx
-                                        addMouseListener(new MouseListener() {
-                                            def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
-
-                                            def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
-
-                                            def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
-                                                nodesAt(e.x, e.y) foreach {
-                                                    case node: Node =>
-                                                        parseTreeOpener(e.stateMask)(context.gen, node.kernel)
-                                                    case data =>
-                                                        println(data)
-                                                }
-                                            }
-                                        })
-                                    }
+                                    new ParsingContextTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevCtx, nextCtx) // with ZestParseTreeConstructorView {
+                                    //                                    val context: Context = nextCtx
+                                    //                                        addMouseListener(new MouseListener() {
+                                    //                                            def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+                                    //
+                                    //                                            def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+                                    //
+                                    //                                            def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
+                                    //                                                nodesAt(e.x, e.y) foreach {
+                                    //                                                    case node: State =>
+                                    //                                                        parseTreeOpener(e.stateMask)(context.gen, node.kernel)
+                                    //                                                    case data =>
+                                    //                                                        println(data)
+                                    //                                                }
+                                    //                                            }
+                                    //                                        })
+                                    //                                    }
                                 } else {
-                                    new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph)
+                                    new ParsingContextTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevCtx, nextCtx)
                                 }
                                 (Some(transition.nameOf(stage)), viewer)
                             case Right(error) => (None, errorControl(error.msg))
@@ -396,42 +403,47 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
         }
     }
 
-    private var dotGraphGen = Option.empty[DotGraphGenerator]
+    // private var dotGraphGen = Option.empty[DotGraphGenerator]
 
     def keyListener = new KeyListener() {
         def keyPressed(x: KeyEvent): Unit = {
             x.keyCode match {
-                case SWT.ARROW_LEFT => updateLocation(currentLocation.previous)
-                case SWT.ARROW_RIGHT => updateLocation(currentLocation.next)
-                case SWT.ARROW_UP => updateLocation(currentLocation.previousBase)
-                case SWT.ARROW_DOWN => updateLocation(currentLocation.nextBase)
-                case SWT.HOME => updateLocation(firstLocation)
+                case SWT.ARROW_LEFT =>
+                    updateLocation(currentLocation.previous)
+                case SWT.ARROW_RIGHT =>
+                    updateLocation(currentLocation.next)
+                case SWT.ARROW_UP =>
+                    updateLocation(currentLocation.previousBase)
+                case SWT.ARROW_DOWN =>
+                    updateLocation(currentLocation.nextBase)
+                case SWT.HOME =>
+                    updateLocation(firstLocation)
                 case SWT.END =>
                     if (lastValidLocation <= currentLocation && lastLocation != currentLocation) updateLocation(lastLocation) else updateLocation(lastValidLocation)
 
-                case 'D' | 'd' =>
-                    if (dotGraphGen.isEmpty) {
-                        dotGraphGen = Some(new DotGraphGenerator(parser.grammar))
-                    }
-                    currentLocation match {
-                        case ParsingContextPointer(gen) =>
-                            contextAt(gen) match {
-                                case Left(ctx) => dotGraphGen.get.addGraph(ctx.nextGraph)
-                                case Right(_) => // nothing to do
-                            }
-                        case ParsingContextTransitionPointer(gen, stage) =>
-                            transitionAt(gen) match {
-                                case Left((_, transition, _)) =>
-                                    dotGraphGen.get.addTransition(transition.graphAt(stage - 1), transition.graphAt(stage))
-                                case Right(_) => // nothing to do
-                            }
-                        case _ => // nothing to do
-                    }
-                    dotGraphGen.get.printDotGraph()
-
-                case 'F' | 'f' =>
-                    dotGraphGen = None
-                    println("DOT graph generator cleared")
+                //                case 'D' | 'd' =>
+                //                    if (dotGraphGen.isEmpty) {
+                //                        dotGraphGen = Some(new DotGraphGenerator(parser.grammar))
+                //                    }
+                //                    currentLocation match {
+                //                        case ParsingContextPointer(gen) =>
+                //                            contextAt(gen) match {
+                //                                case Left(ctx) => dotGraphGen.get.addGraph(ctx.nextGraph)
+                //                                case Right(_) => // nothing to do
+                //                            }
+                //                        case ParsingContextTransitionPointer(gen, stage) =>
+                //                            transitionAt(gen) match {
+                //                                case Left((_, transition, _)) =>
+                //                                    dotGraphGen.get.addTransition(transition.graphAt(stage - 1), transition.graphAt(stage))
+                //                                case Right(_) => // nothing to do
+                //                            }
+                //                        case _ => // nothing to do
+                //                    }
+                //                    dotGraphGen.get.printDotGraph()
+                //
+                //                case 'F' | 'f' =>
+                //                    dotGraphGen = None
+                //                    println("DOT graph generator cleared")
 
                 case code =>
                     println(s"keyPressed: $code")
@@ -455,7 +467,14 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
 }
 
 object ParsingProcessVisualizer {
-    def start[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control): Unit = {
+    def start[C <: Context](
+        title: String,
+        parser: Parser[C],
+        source: Seq[ConcreteInput],
+        display: Display,
+        shell: Shell,
+        parsingContextWidgetFunc: (Composite, Int, StateFigureGenerators[Figure], NGrammar, ParsingContext) => Control
+    ): Unit = {
         new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources, parsingContextWidgetFunc).start()
     }
 }

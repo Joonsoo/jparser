@@ -16,7 +16,7 @@ trait VisualizeResources[Fig] {
     val smallFont: Font
     val smallerFont: Font
 
-    val nodeFigureGenerators: NodeFigureGenerators[Fig]
+    val nodeFigureGenerators: StateFigureGenerators[Fig]
 }
 
 object BasicVisualizeResources extends VisualizeResources[Figure] {
@@ -68,6 +68,6 @@ object BasicVisualizeResources extends VisualizeResources[Figure] {
 
         val symbolFigureGenerator = new SymbolFigureGenerator(figureGenerator, figureAppearances)
 
-        new NodeFigureGenerators(figureGenerator, figureAppearances, symbolFigureGenerator)
+        new StateFigureGenerators(figureGenerator, figureAppearances, symbolFigureGenerator)
     }
 }

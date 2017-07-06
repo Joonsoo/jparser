@@ -18,12 +18,12 @@ import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.nparser.Parser.NaiveContext
-import com.giyeok.jparser.npreparser.PreprocessedParser
+import com.giyeok.jparser.nparser.ParsingContext
 import com.giyeok.jparser.visualize.BasicVisualizeResources
+import com.giyeok.jparser.visualize.ParsingContextWidget
 import com.giyeok.jparser.visualize.ParseResultFigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer
-import com.giyeok.jparser.visualize.PreprocessedDerivationViewer
-import com.giyeok.jparser.visualize.ZestParsingContextWidget
+import com.giyeok.jparser.visualize.StateFigureGenerators
 import com.giyeok.jparser.visualize.utils.HorizontalResizableSplittedComposite
 import com.giyeok.jparser.visualize.utils.VerticalResizableSplittedComposite
 import org.eclipse.draw2d.ColorConstants
@@ -424,9 +424,9 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
                     val source = Inputs.fromString(testText.control.value.text)
                     if (!proceedParserSelector.preprocessed) {
                         ParsingProcessVisualizer.start[NaiveContext](
-                            title = title,
-                            parser = new NaiveParser(ngrammar, trim = proceedParserSelector.trimGraph),
-                            source, display, shell, new ZestParsingContextWidget(_, _, _, _, _)
+                            title, new NaiveParser(ngrammar, trim = proceedParserSelector.trimGraph),
+                            source, display, shell,
+                            new ParsingContextWidget(_, _, _, _, _)
                         )
                     } else {
                         //                        (proceedParserSelector.slice, proceedParserSelector.compact) match {
@@ -444,22 +444,22 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
             }
         }
     })
-    definitionViewButton.addSelectionListener(new SelectionListener() {
-        def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {}
-
-        def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
-            grammarText.control.result match {
-                case Some(ParseComplete(Some(grammar), _)) =>
-                    val display = Display.getDefault()
-                    val shell = new Shell(display)
-                    val title = "Proceed View"
-                    val ngrammar = NGrammar.fromGrammar(grammar)
-                    new PreprocessedDerivationViewer(grammar, ngrammar, new PreprocessedParser(ngrammar),
-                        BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start()
-                case _ => // TODO 어떻게 하지?
-            }
-        }
-    })
+    //    definitionViewButton.addSelectionListener(new SelectionListener() {
+    //        def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {}
+    //
+    //        def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
+    //            grammarText.control.result match {
+    //                case Some(ParseComplete(Some(grammar), _)) =>
+    //                    val display = Display.getDefault()
+    //                    val shell = new Shell(display)
+    //                    val title = "Proceed View"
+    //                    val ngrammar = NGrammar.fromGrammar(grammar)
+    //                    new PreprocessedDerivationViewer(grammar, ngrammar, new PreprocessedParser(ngrammar),
+    //                        BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start()
+    //                case _ => // TODO 어떻게 하지?
+    //            }
+    //        }
+    //    })
 
     addDisposeListener(new DisposeListener() {
         def widgetDisposed(e: org.eclipse.swt.events.DisposeEvent): Unit = {
@@ -648,7 +648,7 @@ trait ProcessListener[T, R, P] {
     def processDone(value: T, result: R, processor: P, time: Int): Unit
 
     def expectedTerminalFrom(parser: NaiveParser, ctx: NaiveContext): Set[Symbols.Terminal] = {
-        ctx.nextGraph.nodes flatMap { node =>
+        ctx.nextGraph.states flatMap { node =>
             node.kernel.symbol match {
                 case NTerminal(terminal) => Some(terminal)
                 case _ => None

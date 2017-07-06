@@ -5,14 +5,10 @@ import scala.util.Try
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.ConcreteInput
 import com.giyeok.jparser.nparser.Parser.NaiveContext
-import com.giyeok.jparser.npreparser.DeriveTipsContext
-import com.giyeok.jparser.visualize.BasicVisualizeResources
+import com.giyeok.jparser.visualize.ParsingContextWidget
 import com.giyeok.jparser.visualize.FigureGenerator
 import com.giyeok.jparser.visualize.GrammarDefinitionFigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer
-import com.giyeok.jparser.visualize.PreprocessedDerivationViewer
-import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
-import com.giyeok.jparser.visualize.ZestParsingContextWidget
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.FigureCanvas
@@ -31,12 +27,13 @@ object AllTestGrammars {
     val allTestGrammars: Set[GrammarTestCases] = Set(
         com.giyeok.jparser.tests.basics.Visualization.allTests,
         com.giyeok.jparser.tests.gramgram.Visualization.allTests,
-        com.giyeok.jparser.tests.javascript.Visualization.allTests
+        com.giyeok.jparser.tests.javascript.Visualization.allTests,
+        TrickyTestSuite1.tests
     ).flatten
 }
 
 object AllViewer extends Viewer {
-    val allTests: Set[GrammarTestCases] = AllTestGrammars.allTestGrammars
+    val allTests: Set[GrammarTestCases] = com.giyeok.jparser.tests.basics.Visualization.allTests // AllTestGrammars.allTestGrammars
 
     def main(args: Array[String]): Unit = {
         start()
@@ -160,9 +157,9 @@ trait Viewer {
             val grammar = gt.grammar
             selectedParserType match {
                 case ParserTypes.Naive =>
-                    ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.naiveParser, source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
+                    ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.naiveParser, source, display, new Shell(display), new ParsingContextWidget(_, _, _, _, _))
                 case ParserTypes.Preprocessed =>
-                    ParsingProcessVisualizer.start[DeriveTipsContext](grammar.name, gt.preprocessedParser, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                // ParsingProcessVisualizer.start[DeriveTipsContext](grammar.name, gt.preprocessedParser, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
             }
         }
 
@@ -192,15 +189,15 @@ trait Viewer {
             }
         })
 
-        derivationView.addListener(SWT.Selection, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                if (grammarList.getSelectionIndex >= 0) {
-                    val gt = sortedTestCases(grammarList.getSelectionIndex)
-                    new PreprocessedDerivationViewer(gt.grammar, gt.ngrammar,
-                        gt.preprocessedParser, BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
-                }
-            }
-        })
+        //        derivationView.addListener(SWT.Selection, new Listener() {
+        //            def handleEvent(e: Event): Unit = {
+        //                if (grammarList.getSelectionIndex >= 0) {
+        //                    val gt = sortedTestCases(grammarList.getSelectionIndex)
+        //                    new PreprocessedDerivationViewer(gt.grammar, gt.ngrammar,
+        //                        gt.preprocessedParser, BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
+        //                }
+        //            }
+        //        })
 
         val isMac = System.getProperty("os.name").toLowerCase contains "mac"
         display.addFilter(SWT.KeyDown, new Listener() {

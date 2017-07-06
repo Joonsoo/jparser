@@ -6,7 +6,6 @@ import com.giyeok.jparser.ParseResultGraph
 import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NaiveParser
-import com.giyeok.jparser.npreparser.PreprocessedParser
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.ConcreteSource]
@@ -34,5 +33,5 @@ trait GrammarTestCases extends Samples {
 
     lazy val ngrammar: NGrammar = NGrammar.fromGrammar(grammar)
     lazy val naiveParser = new NaiveParser(ngrammar)
-    lazy val preprocessedParser = new PreprocessedParser(ngrammar)
+    // lazy val preprocessedParser = new PreprocessedParser(ngrammar)
 }

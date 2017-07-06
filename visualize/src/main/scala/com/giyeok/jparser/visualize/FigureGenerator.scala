@@ -1,22 +1,8 @@
 package com.giyeok.jparser.visualize
 
-import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.Symbols.Join
-import com.giyeok.jparser.Symbols.CharsGrouping
-import com.giyeok.jparser.Symbols.Except
-import com.giyeok.jparser.Symbols.LookaheadExcept
-import com.giyeok.jparser.Symbols.Nonterminal
-import com.giyeok.jparser.Symbols.OneOf
-import com.giyeok.jparser.Symbols.Repeat
-import com.giyeok.jparser.Symbols.Sequence
-import com.giyeok.jparser.Symbols.ShortStringSymbols
-import com.giyeok.jparser.Symbols.Symbol
-import com.giyeok.jparser.Symbols.Terminal
-import com.giyeok.jparser.Symbols.Terminals
-import java.lang.Character.UnicodeBlock
-import org.eclipse.draw2d.Border
 import org.eclipse.draw2d.AbstractBorder
+import org.eclipse.draw2d.Border
+import org.eclipse.draw2d.OrderedLayout
 
 object FigureGenerator {
     trait Appearance[Figure] {
@@ -60,8 +46,12 @@ object FigureGenerator {
     }
 
     object draw2d {
-        import org.eclipse.draw2d.{ ToolbarLayout, Figure, LayoutManager, Label }
-        import org.eclipse.swt.graphics.{ Color, Font }
+        import org.eclipse.draw2d.Figure
+        import org.eclipse.draw2d.Label
+        import org.eclipse.draw2d.LayoutManager
+        import org.eclipse.draw2d.ToolbarLayout
+        import org.eclipse.swt.graphics.Color
+        import org.eclipse.swt.graphics.Font
 
         case class FontAppearance(font: Font, color: Color) extends FigureGenerator.Appearance[Figure] {
             def applyToFigure(fig: Figure): Figure = {
@@ -98,9 +88,9 @@ object FigureGenerator {
             }
         }
         class PartialLineBorder(color: Color, width: Int, top: Boolean, left: Boolean, bottom: Boolean, right: Boolean) extends AbstractBorder {
-            import org.eclipse.draw2d.geometry.Insets
-            import org.eclipse.draw2d.IFigure
             import org.eclipse.draw2d.Graphics
+            import org.eclipse.draw2d.IFigure
+            import org.eclipse.draw2d.geometry.Insets
             import org.eclipse.draw2d.geometry.Rectangle
 
             private val tempRect = new Rectangle()
@@ -172,7 +162,7 @@ object FigureGenerator {
     }
 
     object html {
-        import scala.xml.{ MetaData, UnprefixedAttribute }
+        import scala.xml.UnprefixedAttribute
 
         case class AppearanceByClass(cls: String) extends FigureGenerator.Appearance[xml.Elem] {
             def applyToFigure(fig: xml.Elem): xml.Elem =
