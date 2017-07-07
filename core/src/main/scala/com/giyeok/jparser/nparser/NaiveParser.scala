@@ -54,11 +54,11 @@ class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parse
             // 1. 1차 lift
             val liftedGraph = rec(nextGen, termFinishes, graph).graph
 
-            // 2. Accept condition 처리
-            val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =
-                processAcceptCondition(nextGen, liftedGraph, ctx.conditionAccumulate)
-
             if (trim) {
+                // 2. Accept condition 처리
+                val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =
+                    processAcceptCondition(nextGen, liftedGraph, ctx.conditionAccumulate)
+
                 // 3. Trimming
                 val trimmedGraph: Graph = trimGraph(conditionFilteredGraph, startNode, nextGen)
 
@@ -81,15 +81,13 @@ class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parse
             } else {
                 val nextContext = ctx.proceed(
                     nextGen,
-                    resultGraph = liftedGraph, nextGraph = conditionFilteredGraph,
-                    input, nextConditionAccumulate
+                    resultGraph = liftedGraph, nextGraph = liftedGraph,
+                    input, ctx.conditionAccumulate
                 )
 
                 Left((ProceedDetail(
                     graph,
-                    Transition("lifted(result)", liftedGraph, isResult = true),
-                    Transition("conditionUpdated", conditionUpdatedGraph),
-                    Transition("conditionFiltered", conditionFilteredGraph, isNext = true)
+                    Transition("lifted(result)", liftedGraph, isResult = true, isNext = true)
                 ), nextContext))
             }
         }

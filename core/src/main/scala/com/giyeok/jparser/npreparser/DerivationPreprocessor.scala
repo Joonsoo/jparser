@@ -58,16 +58,17 @@ trait DerivationPreprocessor extends ParsingTasks {
                 }
             }
             val lifted1 = lifted.graph mapNode nodeMapper
-            val updated1 = lifted.updatedNodesMap map { kv =>
-                nodeMapper(kv._1) -> (kv._2 map nodeMapper)
-            }
-            val tasks1 = baseTasks map { progressTask =>
-                // TODO 다시 봐야함
-                ProgressTask(nodeMapper(progressTask.node), progressTask.condition.shiftGen(endGen))
-            }
-            val nextGraph1 = nextGraph mapNode nodeMapper
-            val nextDeriveTips1 = nextDeriveTips map { _.shiftGen(endGen) }
-            Preprocessed(base1, Cont(lifted1, updated1), tasks1, nextGraph1, nextDeriveTips1)
+            //            val updated1 = lifted.updatedNodesMap map { kv =>
+            //                nodeMapper(kv._1) -> (kv._2 map nodeMapper)
+            //            }
+            //            val tasks1 = baseTasks map { progressTask =>
+            //                // TODO 다시 봐야함
+            //                ProgressTask(nodeMapper(progressTask.node), progressTask.condition.shiftGen(endGen))
+            //            }
+            //            val nextGraph1 = nextGraph mapNode nodeMapper
+            //            val nextDeriveTips1 = nextDeriveTips map { _.shiftGen(endGen) }
+            //            Preprocessed(base1, Cont(lifted1, updated1), tasks1, nextGraph1, nextDeriveTips1)
+            ???
         }
     }
 

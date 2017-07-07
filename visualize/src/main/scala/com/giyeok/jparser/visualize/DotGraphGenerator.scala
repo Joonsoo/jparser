@@ -189,9 +189,8 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             queue = queue.tail
             addNode(node)
             graph.edgesByStart(node).toSeq sortWith { (x, y) => x.end.kernel.symbolId < y.end.kernel.symbolId } foreach { edge =>
-                val Edge(start, end, actual) = edge
+                val Edge(start, end, _) = edge
                 edges(edge) = new DotGraphEdge()
-                // TODO actual 표현
                 if (!(visited contains end)) queue +:= end
                 visited += end
             }
@@ -242,22 +241,43 @@ class DotGraphGenerator(ngrammar: NGrammar) {
     def printDotGraph(): Unit = {
         println("digraph G {")
         println("    node[fontname=\"monospace\", height=.1];")
-        _nodes foreach { kv =>
-            if (kv._1.kernel.symbolId != ngrammar.startSymbol) {
-                println(s"    ${nodeNameOf(kv._1)}[${kv._2.attrString}];")
+        val nodesMap: Map[Node, DotGraphNode] = _nodes.toMap
+        val edgesMap: Map[Edge, DotGraphEdge] = edges.toMap
+        val edgesByStartMap: Map[Node, Seq[(Edge, DotGraphEdge)]] = edgesMap.toSeq groupBy { _._1.start }
+        assert(edgesByStartMap.keySet subsetOf nodesMap.keySet)
+        def depthFirstTraverse(node: Node, visited: Set[Node]): Set[Node] = {
+            // startSymbol이면 출력은 할 필요 없음
+            def printLine(line: String): Unit = {
+                if (node.kernel.symbolId != ngrammar.startSymbol) {
+                    println(line)
+                }
             }
+
+            val dotNode = nodesMap(node)
+            printLine(s"    ${nodeNameOf(node)}[${dotNode.attrString}];")
+            val edges = edgesByStartMap.getOrElse(node, Seq())
+            var newVisited = visited + node
+            edges foreach { edgePair =>
+                // actual 표현
+                val (edge, dotEdge) = edgePair
+                if (!edge.actual) {
+                    dotEdge.addStyle("invis")
+                }
+                printLine(s"    ${nodeNameOf(edge.start)} -> ${nodeNameOf(edge.end)}[${dotEdge.attrString}];")
+
+                if (!(newVisited contains edge.end)) {
+                    newVisited = depthFirstTraverse(edge.end, newVisited)
+                }
+            }
+            newVisited
         }
-        println()
-        edges foreach { kv =>
-            kv._1 match {
-                case edge @ Edge(start, end, actual) =>
-                    // TODO actual 표현
-                    if (start.kernel.symbolId != ngrammar.startSymbol) {
-                        println(s"    ${nodeNameOf(start)} -> ${nodeNameOf(end)}[${kv._2.attrString}];")
-                    }
-            }
+        val startNode = Node(Kernel(ngrammar.startSymbol, 0, 0, 0)(ngrammar.nsymbols(ngrammar.startSymbol)), Always)
+        val toVisit = nodesMap.keySet
+        var visited = Set[Node]()
+        visited ++= depthFirstTraverse(startNode, Set(startNode))
+        while (toVisit != visited) {
+            visited = depthFirstTraverse((toVisit -- visited).head, visited)
         }
         println("}")
     }
-
 }

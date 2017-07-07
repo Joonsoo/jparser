@@ -114,7 +114,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 val prevKernel = Kernel(kernel.symbolId, 0, kernel.beginGen, kernel.beginGen)(kernel.symbol)
                 // assert(finishes(gen).edgesByStart(prevKernel) forall { _.isInstanceOf[SimpleKernelEdge] })
                 val bodyKernels = finishes(gen).edgesByStart(prevKernel) collect {
-                    case KernelEdge(_, end) if end.endGen == gen && end.isFinished => end
+                    case KernelEdge(_, end) if end.endGen == gen && end.isFinal => end
                 }
                 val bodyTrees = bodyKernels map { bodyKernel =>
                     reconstruct0(bodyKernel, kernel.endGen)

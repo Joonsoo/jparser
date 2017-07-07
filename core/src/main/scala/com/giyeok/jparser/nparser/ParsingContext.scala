@@ -16,15 +16,17 @@ object ParsingContext {
     case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int)(val symbol: NSymbol) {
         def shiftGen(gen: Int): Kernel = Kernel(symbolId, pointer, beginGen + gen, endGen + gen)(symbol)
         def initial: Kernel = if (pointer == 0) this else Kernel(symbolId, 0, beginGen, beginGen)(symbol)
+        def tuple: (Int, Int, Int, Int) = (symbolId, pointer, beginGen, endGen)
 
-        def isFinished: Boolean =
+        def isFinal: Boolean =
             pointer == Kernel.lastPointerOf(symbol) ensuring (0 <= pointer && pointer <= Kernel.lastPointerOf(symbol))
 
         override def toString: String = s"Kernel($symbolId ${symbol.symbol.toShortString}, $pointer, $beginGen..$endGen)"
     }
     case class Node(kernel: Kernel, condition: AcceptCondition) {
         def shiftGen(gen: Int) = Node(kernel.shiftGen(gen), condition.shiftGen(gen))
-        def initial: Node = if (kernel.pointer == 0) this else Node(kernel.initial, Always)
+        def isInitial = kernel.pointer == 0
+        def initial: Node = if (isInitial) this else Node(kernel.initial, Always)
 
         override val hashCode: Int = (kernel, condition).hashCode()
     }

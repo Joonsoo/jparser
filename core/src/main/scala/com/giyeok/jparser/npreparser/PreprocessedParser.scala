@@ -62,14 +62,14 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
             }
             val expandedUpdatedNodes: Map[Node, Set[Node]] = expandings.foldLeft(Map[Node, Set[Node]]()) { (cc, preprocessed) =>
                 preprocessed.lifted.updatedNodesMap.foldLeft(cc) { (cc, kv) =>
-                    cc + (kv._1 -> (cc.getOrElse(kv._1, Set()) ++ kv._2))
+                    ??? // cc + (kv._1 -> (cc.getOrElse(kv._1, Set()) ++ kv._2))
                 }
             }
             val expandedDeriveTips = expandings flatMap { _.nextDeriveTips }
 
             // 2. lift - expand의 결과로 나온 graph, updatedNodes, task로 lift - result graph
             val (Cont(liftedGraph, updatedNodes), deriveTips) =
-                recNoDerive(nextGen, expandedTasks, Cont(expandedGraph, expandedUpdatedNodes), expandedDeriveTips)
+                recNoDerive(nextGen, expandedTasks, Cont(expandedGraph, ??? /*expandedUpdatedNodes*/ ), expandedDeriveTips)
 
             println(s"nextGen=$nextGen ${deriveTips.size}")
             deriveTips foreach { println }
