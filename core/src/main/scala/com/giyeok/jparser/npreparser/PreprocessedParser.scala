@@ -25,11 +25,10 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
     // assert(grammar == derivation.grammar)
 
     val initialContext: DeriveTipsContext = {
-        val initial = sliceOf(grammar.startSymbol, 0)._1
-        assert(initial.lifted.graph.nodes contains startNode)
-        val conditionAccumulate = ConditionAccumulate((initial.lifted.graph.nodes map { _.condition } map { x => x -> x }).toMap)
+        val initial = sliceOf(grammar.startSymbol, 0)
+        val conditionAccumulate = ConditionAccumulate((initial.graph.nodes map { _.condition } map { x => x -> x }).toMap)
         val initialGraph = Graph(Set(startNode), Set())
-        new DeriveTipsContext(0, initialGraph, Set(startNode), List(), List(initial.lifted.graph), conditionAccumulate)
+        new DeriveTipsContext(0, initialGraph, Set(startNode), List(), List(initial.graph), conditionAccumulate)
     }
 
     @tailrec private def recNoDerive(nextGen: Int, tasks: List[Task], cc: Cont, deriveTips: Set[Node]): (Cont, Set[Node]) =
@@ -43,25 +42,28 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
         }
 
     def proceedDetail(ctx: DeriveTipsContext, input: Input): Either[(ProceedDetail, DeriveTipsContext), ParsingError] = {
-        val (graph, gen, nextGen, deriveTips) = (ctx.nextGraph, ctx.gen, ctx.nextGen, ctx.deriveTips)
+        val (graph, nextGen, deriveTips) = (ctx.nextGraph, ctx.nextGen, ctx.deriveTips)
         // finishable term node를 포함한 deriveTip -> term node set
         val expandings = deriveTips flatMap { sliceOf(_, input) }
         if (expandings.isEmpty) {
             Right(UnexpectedInput(input, nextGen))
         } else {
+            // TODO 각 derive tip의 ProgressPreprocessed에 대해서(우선 conform 먼저 하고)
+            // TODO - result graph를 만들 때는 preprocessed.graph를 사용하고
+            // TODO - next graph를 만들 때는 preprocessed.trimmedGraph를 사용한다
             // 1. graph에 expanding의 그래프들 추가, updatedNodes 병합, task들 병합
             val expandedGraph: Graph = {
                 val (nodes, edges) = expandings.foldLeft((graph.nodes, graph.edges)) { (cc, preprocessed) =>
                     val (nodes, edges) = cc
-                    (nodes ++ preprocessed.lifted.graph.nodes, edges ++ preprocessed.lifted.graph.edges)
+                    (nodes ++ preprocessed.graph.nodes, edges ++ preprocessed.graph.edges)
                 }
                 Graph(nodes, edges)
             }
             val expandedTasks: List[ProgressTask] = expandings.foldLeft(List[ProgressTask]()) { (cc, preprocessed) =>
-                cc ++ preprocessed.baseTasks
+                cc ++ preprocessed.baseNodeTasks
             }
             val expandedUpdatedNodes: Map[Node, Set[Node]] = expandings.foldLeft(Map[Node, Set[Node]]()) { (cc, preprocessed) =>
-                preprocessed.lifted.updatedNodesMap.foldLeft(cc) { (cc, kv) =>
+                preprocessed.updatedNodesMap.foldLeft(cc) { (cc, kv) =>
                     cc + (kv._1 -> (cc.getOrElse(kv._1, Set()) ++ kv._2))
                 }
             }

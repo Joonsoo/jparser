@@ -147,16 +147,16 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
 
     def main(): Unit = {
         println("===== generated =====")
-        println(MetaGrammar.reverse(MetaGrammar))
+        println(MetaGrammar.grammarToTextDefinition(MetaGrammar))
 
-        val metaGrammar1 = MetaGrammar.translate("Grammar", metaGrammarText1).left.get
+        val metaGrammar1 = MetaGrammar.parseTextDefinition("Grammar", metaGrammarText1).left.get
         println("===== translated =====")
-        println(MetaGrammar.reverse(metaGrammar1))
+        println(MetaGrammar.grammarToTextDefinition(metaGrammar1))
         println("Meta=meta1", MetaGrammar.rules.toSet == metaGrammar1.rules.toSet)
 
-        val metaGrammar2 = MetaGrammar.translate("Grammar", metaGrammarText2).left.get
+        val metaGrammar2 = MetaGrammar.parseTextDefinition("Grammar", metaGrammarText2).left.get
         println("===== translated0 =====")
-        println(MetaGrammar.reverse(metaGrammar2))
+        println(MetaGrammar.grammarToTextDefinition(metaGrammar2))
         println("Meta=meta2", MetaGrammar.rules.toSet == metaGrammar2.rules.toSet)
 
         println("meta1=meta2", metaGrammar1.rules.toSet == metaGrammar2.rules.toSet)
@@ -171,7 +171,7 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
                     new ParseTreeConstructor(ParseForestFunc)(parser.grammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct() match {
                         case Some(forest) if forest.trees.size == 1 =>
                             println("successful")
-                            MetaGrammar.translate("Grammar", forest.trees.head)
+                            MetaGrammar.parseTextDefinition("Grammar", forest.trees.head)
                         case forestOpt =>
                             println(forestOpt)
                             println("???")
@@ -211,7 +211,7 @@ object ExpressionGrammar0Tests extends GrammarTestCases with StringSamples {
           |number = '0' | {1-9} {0-9}*
           |variable = {A-Za-z}+""".stripMargin('|')
 
-    val grammar: Grammar = MetaGrammar.translate("Expression Grammar 0", expressionGrammar0Text).left.get
+    val grammar: Grammar = MetaGrammar.parseTextDefinition("Expression Grammar 0", expressionGrammar0Text).left.get
 
     override val correctSamples: Set[String] = Set(
         "1+2",
@@ -229,7 +229,7 @@ object ExpressionGrammar1Tests extends GrammarTestCases with StringSamples {
           |number = '0' | [{+\-}? {1-9} {0-9}* [{eE} {+\-}? {0-9}+]?]
           |variable = {A-Za-z}+""".stripMargin('|')
 
-    val grammar: Grammar = MetaGrammar.translate("Expression Grammar 1", expressionGrammarText).left.get
+    val grammar: Grammar = MetaGrammar.parseTextDefinition("Expression Grammar 1", expressionGrammarText).left.get
 
     override val correctSamples: Set[String] = Set(
         "1e+1+1",
@@ -252,7 +252,7 @@ object LexicalGrammar0Tests extends GrammarTestCases with StringSamples {
           |whitespace = { \t\n\r}+
           |""".stripMargin('|')
 
-    val grammar: Grammar = MetaGrammar.translate("Lexical Grammar 0", lexicalGrammar0Text).left.get
+    val grammar: Grammar = MetaGrammar.parseTextDefinition("Lexical Grammar 0", lexicalGrammar0Text).left.get
 
     override val correctSamples: Set[String] = Set(
         "if true 1+2++3 else 4-5--6",
@@ -279,7 +279,7 @@ object LexicalGrammar1Tests extends GrammarTestCases with StringSamples {
           |        | "/*" [<(.-'*')*> <'*'+>]+ '/'
           |""".stripMargin('|')
 
-    val grammar: Grammar = MetaGrammar.translate("Lexical Grammar 1", lexicalGrammar1Text).left.get
+    val grammar: Grammar = MetaGrammar.parseTextDefinition("Lexical Grammar 1", lexicalGrammar1Text).left.get
 
     override val correctSamples: Set[String] = Set(
         "1e+1+1",
@@ -314,7 +314,7 @@ object LexicalGrammar2Tests extends GrammarTestCases with StringSamples {
           |name = <[{A-Za-z} {0-9A-Za-z}*]>
           |""".stripMargin('|')
 
-    val grammar: Grammar = MetaGrammar.translate("Lexical Grammar 2", lexicalGrammar2Text).left.get
+    val grammar: Grammar = MetaGrammar.parseTextDefinition("Lexical Grammar 2", lexicalGrammar2Text).left.get
 
     override val correctSamples: Set[String] = Set(
         "ifx"

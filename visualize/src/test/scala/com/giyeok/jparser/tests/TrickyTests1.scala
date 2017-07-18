@@ -6,14 +6,14 @@ import com.giyeok.jparser.gramgram.MetaGrammar
 
 object TrickyTests1 extends GrammarTestCases with StringSamples {
     val grammar: Grammar =
-        MetaGrammar.translate("Tricky Grammar 1", """S = 'x' $$"abc" "abc"""").left.get
+        MetaGrammar.parseTextDefinition("Tricky Grammar 1", """S = 'x' $$"abc" "abc"""").left.get
     val correctSamples: Set[String] = Set("xabc")
     val incorrectSamples: Set[String] = Set()
 }
 
 object TrickyTests2 extends GrammarTestCases with StringSamples {
     val grammar: Grammar =
-        MetaGrammar.translate("Tricky Grammar 2", """S = 'x' $!"abc" "abc"""").left.get
+        MetaGrammar.parseTextDefinition("Tricky Grammar 2", """S = 'x' $!"abc" "abc"""").left.get
     val correctSamples: Set[String] = Set()
     val incorrectSamples: Set[String] = Set("xabc")
 }

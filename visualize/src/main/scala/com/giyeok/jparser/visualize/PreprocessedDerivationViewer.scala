@@ -1,10 +1,10 @@
 package com.giyeok.jparser.visualize
 
-import scala.collection.immutable.ListMap
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
+import com.giyeok.jparser.nparser.ParsingContext.Node
 import com.giyeok.jparser.npreparser.DerivationPreprocessor
 import com.giyeok.jparser.visualize.utils.HorizontalResizableSplittedComposite
 import com.giyeok.jparser.visualize.utils.VerticalResizableSplittedComposite
@@ -19,6 +19,7 @@ import org.eclipse.swt.custom.StackLayout
 import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.events.KeyListener
 import org.eclipse.swt.events.SelectionListener
+import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.layout.FormAttachment
 import org.eclipse.swt.layout.FormData
@@ -28,6 +29,9 @@ import org.eclipse.swt.widgets.Control
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.List
 import org.eclipse.swt.widgets.Shell
+import org.eclipse.zest.core.widgets.CGraphNode
+import org.eclipse.zest.core.widgets.GraphConnection
+import org.eclipse.zest.core.widgets.ZestStyles
 
 class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
         derivationPreprocessor: DerivationPreprocessor,
@@ -97,17 +101,17 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
     val graphStackLayout = new StackLayout()
     graphView.setLayout(graphStackLayout)
 
-    val graphControlsMap = scala.collection.mutable.Map[(Int, Int, Option[TermGroupDesc]), Control]()
+    private val graphControlsMap = scala.collection.mutable.Map[(Int, Int, Option[TermGroupDesc]), Control]()
     def graphControlOf(symbolId: Int, pointer: Int, termGroupOpt: Option[TermGroupDesc]): Control = {
         graphControlsMap get (symbolId, pointer, termGroupOpt) match {
             case Some(control) => control
             case None =>
-                val (base, slices) = derivationPreprocessor.sliceOf(symbolId, pointer)
+                val derivePreprocessed = derivationPreprocessor.sliceOf(symbolId, pointer)
                 val control = termGroupOpt match {
                     case Some(termGroup) =>
-                        new PreprocessedSlicedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, base, slices(termGroup))
+                        new PreprocessedSlicedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, derivePreprocessed, derivePreprocessed.slices(termGroup))
                     case None =>
-                        new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, base)
+                        new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, derivePreprocessed)
                 }
                 graphControlsMap((symbolId, pointer, termGroupOpt)) = control
                 control
@@ -129,7 +133,7 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
             shownKernelOpt = Some(kernelFig._1)
             kernelFig._2.setBackgroundColor(ColorConstants.lightGray)
 
-            val newTermGroups = derivationPreprocessor.sliceOf(symbolId, pointer)._2.keys.toSeq
+            val newTermGroups = derivationPreprocessor.sliceOf(symbolId, pointer).slices.keys.toSeq
             shownTermGroup = None
             termGroupsList.removeAll()
             shownTermGroupList = None +: (newTermGroups map { Some(_) })
@@ -217,20 +221,60 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
     }
 }
 
-class PreprocessedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, preprocessed: DerivationPreprocessor#Preprocessed)
-        extends ZestGraphWidget(parent, style, fig, grammar, preprocessed.lifted.graph) with TipNodes {
+class PreprocessedDerivationGraphWidget(
+        parent: Composite, style: Int,
+        fig: NodeFigureGenerators[Figure], grammar: NGrammar,
+        preprocessed: DerivationPreprocessor#DerivePreprocessed
+) extends ZestGraphWidget(parent, style, fig, grammar, preprocessed.graph) with TipNodes {
+    val progressConditionEdgeColor: Color = ColorConstants.yellow
+
     override def initialize(): Unit = {
         super.initialize()
-        setTipNodeBorder(preprocessed.base)
+        setTipNodeBorder(preprocessed.baseNode)
+
+        if (preprocessed.baseNodeTasks.nonEmpty) {
+            val baseNode = nodesMap(preprocessed.baseNode)
+            preprocessed.baseNodeTasks.foreach { progress =>
+                val conditionFig = fig.conditionFig(grammar, progress.condition)
+                conditionFig.setBackgroundColor(ColorConstants.buttonLightest)
+                conditionFig.setOpaque(true)
+                conditionFig.setBorder(new LineBorder(ColorConstants.darkGray))
+                conditionFig.setSize(conditionFig.getPreferredSize())
+                val conditionNode = new CGraphNode(graphCtrl, SWT.NONE, conditionFig)
+
+                val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_SOLID, baseNode, conditionNode)
+                conn.setLineColor(progressConditionEdgeColor)
+            }
+        }
     }
 }
 
-class PreprocessedSlicedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: DerivationPreprocessor#Preprocessed, sliced: DerivationPreprocessor#Preprocessed)
-        extends ZestGraphTransitionWidget(parent, style, fig, grammar, sliced.lifted.graph, sliced.nextGraph) with TipNodes {
+class PreprocessedSlicedDerivationGraphWidget(
+        parent: Composite, style: Int,
+        fig: NodeFigureGenerators[Figure], grammar: NGrammar,
+        base: DerivationPreprocessor#DerivePreprocessed, sliced: DerivationPreprocessor#ProgressPreprocessed
+) extends ZestGraphTransitionWidget(parent, style, fig, grammar, base.graph, sliced.trimmedGraph) with TipNodes {
+    val progressConditionEdgeColor: Color = ColorConstants.yellow
+
     // assert(preprocessed.baseNode == sliced._1.baseNode)
     override def initialize(): Unit = {
         super.initialize()
-        setTipNodeBorder(base.base)
+        setTipNodeBorder(base.baseNode)
         sliced.nextDeriveTips foreach { setTipNodeBorder }
+
+        if (sliced.baseNodeTasks.nonEmpty) {
+            val baseNode = nodesMap(sliced.baseNode)
+            sliced.baseNodeTasks.foreach { progress =>
+                val conditionFig = fig.conditionFig(grammar, progress.condition)
+                conditionFig.setBackgroundColor(ColorConstants.buttonLightest)
+                conditionFig.setOpaque(true)
+                conditionFig.setBorder(new LineBorder(ColorConstants.darkGray))
+                conditionFig.setSize(conditionFig.getPreferredSize())
+                val conditionNode = new CGraphNode(graphCtrl, SWT.NONE, conditionFig)
+
+                val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_SOLID, baseNode, conditionNode)
+                conn.setLineColor(progressConditionEdgeColor)
+            }
+        }
     }
 }

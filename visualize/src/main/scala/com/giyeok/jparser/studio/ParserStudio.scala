@@ -18,11 +18,13 @@ import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.nparser.Parser.NaiveContext
+import com.giyeok.jparser.npreparser.DeriveTipsContext
 import com.giyeok.jparser.npreparser.PreprocessedParser
 import com.giyeok.jparser.visualize.BasicVisualizeResources
 import com.giyeok.jparser.visualize.ParseResultFigureGenerator
 import com.giyeok.jparser.visualize.ParsingProcessVisualizer
 import com.giyeok.jparser.visualize.PreprocessedDerivationViewer
+import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
 import com.giyeok.jparser.visualize.ZestParsingContextWidget
 import com.giyeok.jparser.visualize.utils.HorizontalResizableSplittedComposite
 import com.giyeok.jparser.visualize.utils.VerticalResizableSplittedComposite
@@ -40,6 +42,8 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.layout.FormAttachment
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormLayout
+import org.eclipse.swt.layout.GridData
+import org.eclipse.swt.layout.GridLayout
 import org.eclipse.swt.layout.RowLayout
 import org.eclipse.swt.widgets.Button
 import org.eclipse.swt.widgets.Composite
@@ -48,6 +52,7 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.MessageBox
 import org.eclipse.swt.widgets.Shell
+import org.eclipse.swt.widgets.Text
 
 object ParserStudio {
     def start(initialGrammar: String, initialTest: String, examples: Seq[GrammarExample]): Unit = {
@@ -75,14 +80,14 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
 
     private val exampleGrammars: Seq[(GrammarExample, String)] =
         _exampleGrammars flatMap { g =>
-            Try(MetaGrammar.reverse(g.grammar)).toOption map { (g, _) }
+            Try(MetaGrammar.grammarToTextDefinition(g.grammar)).toOption map { (g, _) }
         }
 
     val rootPanel = new VerticalResizableSplittedComposite(this, SWT.NONE, 40)
 
     val grammarDefParser = new ParseProcessor[Option[Grammar]](
         NGrammar.fromGrammar(MetaGrammar),
-        (x: ParseForest) => Some(MetaGrammar.translate("Grammar", x.trees.head))
+        (x: ParseForest) => Some(MetaGrammar.parseTextDefinition("Grammar", x.trees.head))
     )
 
     val emptyGrammarParser = new ParseProcessor[ParseForest](
@@ -222,6 +227,8 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
     grammarInfoPanel.setLayout(new FillLayout)
     val definitionViewButton = new Button(grammarInfoPanel, SWT.NONE)
     definitionViewButton.setText("Derivation View")
+    val scalaDefinitionButton = new Button(grammarInfoPanel, SWT.NONE)
+    scalaDefinitionButton.setText("Scala Definition")
     //    val parserGeneratorPanel = new Composite(grammarInfoPanel, SWT.NONE)
     //    parserGeneratorPanel.setLayout(new FillLayout(SWT.VERTICAL))
     //    val generateParserSelector = new ParserSelector(parserGeneratorPanel, SWT.NONE)
@@ -426,19 +433,16 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
                         ParsingProcessVisualizer.start[NaiveContext](
                             title = title,
                             parser = new NaiveParser(ngrammar, trim = proceedParserSelector.trimGraph),
-                            source, display, shell, new ZestParsingContextWidget(_, _, _, _, _)
+                            source, display, shell,
+                            new ZestParsingContextWidget(_, _, _, _, _)
                         )
                     } else {
-                        //                        (proceedParserSelector.slice, proceedParserSelector.compact) match {
-                        //                            case (false, false) =>
-                        //                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandDerivationPreprocessor(ngrammar)), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
-                        //                            case (true, false) =>
-                        //                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new SlicedPreprocessedParser(ngrammar, new OnDemandSlicedDerivationPreprocessor(ngrammar)), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
-                        //                            case (false, true) =>
-                        //                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new PreprocessedParser(ngrammar, new OnDemandCompactDerivationPreprocessor(CompactNGrammar.fromNGrammar(ngrammar))), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
-                        //                            case (true, true) =>
-                        //                                ParsingProcessVisualizer.start[DeriveTipsWrappedContext](title, new SlicedPreprocessedParser(ngrammar, new OnDemandCompactSlicedDerivationPreprocessor(CompactNGrammar.fromNGrammar(ngrammar))), source, display, shell, new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
-                        //                        }
+                        ParsingProcessVisualizer.start[DeriveTipsContext](
+                            title = title,
+                            parser = new PreprocessedParser(ngrammar),
+                            source, display, shell,
+                            new ZestDeriveTipParsingContextWidget(_, _, _, _, _)
+                        )
                     }
                 case _ => // TODO 어떻게 하지?
             }
@@ -450,12 +454,32 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
         def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
             grammarText.control.result match {
                 case Some(ParseComplete(Some(grammar), _)) =>
-                    val display = Display.getDefault()
+                    val display = Display.getDefault
                     val shell = new Shell(display)
                     val title = "Proceed View"
                     val ngrammar = NGrammar.fromGrammar(grammar)
                     new PreprocessedDerivationViewer(grammar, ngrammar, new PreprocessedParser(ngrammar),
                         BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start()
+                case _ => // TODO 어떻게 하지?
+            }
+        }
+    })
+    scalaDefinitionButton.addSelectionListener(new SelectionListener {
+        override def widgetDefaultSelected(e: SelectionEvent): Unit = {}
+
+        override def widgetSelected(e: SelectionEvent): Unit = {
+            grammarText.control.result match {
+                case Some(ParseComplete(Some(grammar), _)) =>
+                    val display = Display.getDefault
+                    val shell = new Shell(display)
+                    val title = "Scala Definition View"
+                    shell.setText(title)
+                    shell.setLayout(new FillLayout)
+                    val textView = new Text(shell, SWT.V_SCROLL)
+                    textView.setEditable(false)
+                    textView.setText(MetaGrammar.grammarToScalaDefinition(grammar))
+                    textView.setFont(BasicVisualizeResources.fixedWidth12Font)
+                    shell.open()
                 case _ => // TODO 어떻게 하지?
             }
         }
@@ -579,36 +603,11 @@ class ParserSelector(parent: Composite, style: Int) extends Composite(parent, st
 
     def trimGraph: Boolean = trimButton.getSelection
 
-    // TODO 현재 미지원
-    //    val preprocessedButton = new Button(this, SWT.CHECK)
-    //    val sliceButton = new Button(this, SWT.CHECK)
-    //    val compactButton = new Button(this, SWT.CHECK)
-    //
-    //    preprocessedButton.setText("Preprocessed")
-    //    sliceButton.setText("Slice")
-    //    compactButton.setText("Compact")
-    //
-    //    preprocessedButton.setSelection(false)
-    //    sliceButton.setSelection(false)
-    //    compactButton.setSelection(false)
-    //
-    def preprocessed: Boolean = false
-    //    def preprocessed: Boolean = preprocessedButton.getSelection()
-    //    def slice: Boolean = sliceButton.getSelection()
-    //    def compact: Boolean = compactButton.getSelection()
-    //
-    //    private def enableButtons(): Unit = {
-    //        sliceButton.setEnabled(preprocessed)
-    //        compactButton.setEnabled(preprocessed)
-    //    }
-    //
-    //    preprocessedButton.addSelectionListener(new SelectionListener() {
-    //        def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = ???
-    //        def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
-    //            enableButtons()
-    //        }
-    //    })
-    //    enableButtons()
+    val preprocessedButton = new Button(this, SWT.CHECK)
+    preprocessedButton.setText("Preprocessed")
+    preprocessedButton.setSelection(false)
+
+    def preprocessed: Boolean = preprocessedButton.getSelection
 }
 
 class HighlightingSymbolsViewer(parent: Composite, style: Int) extends Composite(parent, style) {
