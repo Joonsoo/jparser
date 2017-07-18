@@ -1,0 +1,153 @@
+# LineComment/BlockComment example - (!. means eof)
+
+S = Token*
+Token = <(Name | Whitespace)>
+Name = {a-zA-Z}+
+Whitespace = Comment | LineEnd | Space
+LineEnd = {\n}
+Space = { \t\r}
+Comment = LineComment | BlockComment
+LineComment = "//" <(.-LineEnd)*> (LineEnd | !.)
+BlockComment = "/**/" | "/*" <[. !"*/"]*> . "*/"
+
+
+#ECMAScript pp. 813
+
+SourceCharacter = .
+InputElementDiv = 
+	WhiteSpace 
+	| LineTerminator 
+	| Comment 
+	| CommonToken 
+	| DivPunctuator 
+	| RightBracePunctuator
+InputElementRegExp = 
+	WhitSpace 
+	| LineTerminator 
+	| Comment 
+	| CommonToken 
+	| RightBracePunctuator 
+	| RegularExpressionLiteral
+
+InputElementRegExpOrTemplateTail =
+	WhiteSpace 
+	| LineTerminator 
+	| Comment 
+	| CommonToken 
+	| RegularExpressionLiteral 
+	| TemplateSubstitutionTail
+InputElementTemplateTail = 
+	WhiteSpace 
+	| LineTerminator
+	| Comment 
+	| CommonToken 
+	| DivPunctuator 
+	| TemplateSubstitutionTail
+WhiteSpace = 
+	'\t' 
+	| '<VT>' 
+	| '<FF>' 
+	| '<SP>' 
+	| '<NBSP>' 
+	| '<ZWNBSP>' 
+	| '<USP>'
+LineTerminator = 
+	'<LF>' 
+	| '<CR>' 
+	| '<LS>' 
+	| '<PS>'
+LineTerminatorSequence = 
+	'<LF>' 
+	| '<CR>' !'<LF>' 
+	| '<LS>' 
+	| '<PS>' 
+	| "<CR><LF>"
+Comment = 
+	MultiLineComment 
+	| SingleLineComment
+MultiLineComment = 
+	"/*" MultiLineCommentChars? "*/"
+MultiLineCommentChars = 
+	MultiLineNotAsteriskChar MultiLineCommentChars? 
+	| '*'' PostAsteriskCommentChars?
+PostAsteriskCommentChars =
+	MultiLineNotForwardSlashOrAsteriskChar MultiLineCommentCharsopt 
+	| '*'' PostAsteriskCommentChars?
+MultiLineNotAsteriskChar =
+	SourceCharacter-'*'
+MultiLineNotForwardSlashOrAsteriskChar =
+	SourceCharacter-{/*}
+SingleLineComment =
+	"//"" SingleLineCommentChars?
+SingleLineCommentChars =
+	SingleLineCommentChar SingleLineCommentChars?
+SingleLineCommentChar =
+	SourceCharacter-LineTerminator
+CommonToken = 
+	IdentifierName
+	| Punctuator 
+	| NumericLiteral 
+	| StringLiteral 
+	| Template
+IdentifierName = 
+	IdentifierStart
+	IdentifierName IdentifierPart
+IdentifierStart = 
+	UnicodeIDStart
+	| '$'
+	| '_'
+	| '\\' UnicodeEscapeSequence
+IdentifierPart =
+	UnicodeIDContinue
+	| '$'
+	| '_'
+	| '\' UnicodeEscapeSequence
+	| '<ZWNJ>'
+	| '<ZWJ>'
+UnicodeIDStart =
+	'any Unicode code point with the Unicode property &ldquo;ID_Start&rdquo;'
+UnicodeIDContinue =
+	'any Unicode code point with the Unicode property &ldquo;ID_Continue&rdquo;'
+ReservedWord =
+	Keyword
+	| FutureReservedWord
+	| NullLiteral
+	| BooleanLiteral
+Keyword =
+	"await"
+	| "break"
+	| "case" | "catch" | "class" | "const" | "continue" | "debugger" | "default" | "delete" | "do" | "else" | "export" | "extends"
+	| "finally" | "for" | "function"
+	| "if" | "import" | "in" | "instanceof"
+	| "new"
+	| "return"
+	| "super" | "switch"
+	| "this" | "throw" | "try" | "typeof"
+	| "var" | "void"
+	| "while" | "with"
+	| "yield"
+FutureReservedWord =
+	"enum"
+	| "implements" | "package" | "protected"
+	| "interface" | "private" | "public"
+Punctuator =
+	'{' | '(' | ')' | '[' | ']' |
+	'.' | "..." | ';' | ',' |
+	'<' | '>' | "<=" | ">=" |
+	"==" | "!=" | "===" | "!==" |
+	'+' | '‐' | '*' | '%' | "**" |
+	"++" | "‐‐" |
+	"<<" | ">>" | ">>>" |
+	'&' | '|' | '^' |
+	'!' | '~' |
+	"&&" | "||" |
+	'?' | ':' |
+	'=' | "+=" | "‐=" | "*=" | "%=" | "**=" | "<<=" | ">>=" | ">>>=" | "&=" | "|=" | "^=" | "=>"
+DivPunctuator =
+	'/' | "/="
+RightBracePunctuator =
+	'}'
+NullLiteral =
+	"null"
+BooleanLiteral =
+	"true" | "false"
