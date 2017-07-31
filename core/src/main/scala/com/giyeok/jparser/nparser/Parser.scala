@@ -7,7 +7,7 @@ import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.Inputs
 import Parser._
 
-trait Parser[T <: Context] {
+trait Parser[T <: ContextAccumulate] {
     val grammar: NGrammar
 
     val startNode = Node(Kernel(grammar.startSymbol, 0, 0, 0)(grammar.nsymbols(grammar.startSymbol)), Always)
@@ -68,7 +68,7 @@ object Parser {
         }
     }
 
-    abstract class Context(val gen: Int, val nextGraph: Graph, _inputs: List[Input], _history: List[Graph], val conditionAccumulate: ConditionAccumulate) {
+    abstract class ContextAccumulate(val gen: Int, val nextGraph: Graph, _inputs: List[Input], _history: List[Graph], val conditionAccumulate: ConditionAccumulate) {
         def nextGen: Int = gen + 1
         def inputs: Seq[Input] = _inputs.reverse
         def history: Seq[Graph] = _history.reverse
@@ -78,13 +78,6 @@ object Parser {
             val falseFixed = (conditionAccumulate.falseFixed map { c => c -> false }).toMap
             val notFixed = conditionAccumulate.unfixed map { kv => kv._1 -> kv._2.acceptable(gen, resultGraph) }
             trueFixed ++ falseFixed ++ notFixed
-        }
-    }
-
-    class NaiveContext(gen: Int, nextGraph: Graph, _inputs: List[Input], _history: List[Graph], conditionAccumulate: ConditionAccumulate)
-            extends Context(gen, nextGraph, _inputs, _history, conditionAccumulate) {
-        def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, newInput: Input, newConditionAccumulate: ConditionAccumulate): NaiveContext = {
-            new NaiveContext(nextGen, nextGraph, newInput +: _inputs, resultGraph +: _history, newConditionAccumulate)
         }
     }
 

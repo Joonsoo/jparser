@@ -4,7 +4,7 @@ import scala.util.Success
 import scala.util.Try
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.ConcreteInput
-import com.giyeok.jparser.nparser.Parser.NaiveContext
+import com.giyeok.jparser.nparser.NaiveContext
 import com.giyeok.jparser.npreparser.DeriveTipsContext
 import com.giyeok.jparser.visualize.BasicVisualizeResources
 import com.giyeok.jparser.visualize.FigureGenerator

@@ -106,7 +106,7 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
         graphControlsMap get (symbolId, pointer, termGroupOpt) match {
             case Some(control) => control
             case None =>
-                val derivePreprocessed = derivationPreprocessor.sliceOf(symbolId, pointer)
+                val derivePreprocessed = derivationPreprocessor.preprocessedOf(symbolId, pointer)
                 val control = termGroupOpt match {
                     case Some(termGroup) =>
                         new PreprocessedSlicedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, derivePreprocessed, derivePreprocessed.slices(termGroup))
@@ -133,7 +133,7 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
             shownKernelOpt = Some(kernelFig._1)
             kernelFig._2.setBackgroundColor(ColorConstants.lightGray)
 
-            val newTermGroups = derivationPreprocessor.sliceOf(symbolId, pointer).slices.keys.toSeq
+            val newTermGroups = derivationPreprocessor.preprocessedOf(symbolId, pointer).slices.keys.toSeq
             shownTermGroup = None
             termGroupsList.removeAll()
             shownTermGroupList = None +: (newTermGroups map { Some(_) })
@@ -253,7 +253,7 @@ class PreprocessedSlicedDerivationGraphWidget(
         parent: Composite, style: Int,
         fig: NodeFigureGenerators[Figure], grammar: NGrammar,
         base: DerivationPreprocessor#DerivePreprocessed, sliced: DerivationPreprocessor#ProgressPreprocessed
-) extends ZestGraphTransitionWidget(parent, style, fig, grammar, base.graph, sliced.trimmedGraph) with TipNodes {
+) extends ZestGraphTransitionWidget(parent, style, fig, grammar, base.graph, sliced.graph) with TipNodes {
     val progressConditionEdgeColor: Color = ColorConstants.yellow
 
     // assert(preprocessed.baseNode == sliced._1.baseNode)

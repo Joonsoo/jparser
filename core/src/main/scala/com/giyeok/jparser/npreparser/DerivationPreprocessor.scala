@@ -71,15 +71,16 @@ trait DerivationPreprocessor extends ParsingTasks {
             DerivePreprocessed(base1, graph1, updated1, tasks1)
         }
 
+        // TODO conform할 때 slices 재사용 - 지금은 엄청 미련하게 돼있네
         lazy val slices: Map[TermGroupDesc, ProgressPreprocessed] = {
             val terminalNodes = termNodes(graph, 0)
             val termGroups = termGroupsOf(terminalNodes map { _.kernel.symbol.asInstanceOf[NTerminal].symbol })
 
             (termGroups map { termGroup =>
                 val initialTasks = terminalNodes filter { _.kernel.symbol.asInstanceOf[NTerminal].symbol.accept(termGroup) } map { ProgressTask(_, Always) }
-                val (Cont(liftedGraph, updatedNodesMap), baseNodeProgresses, tipDerives) = deriveBlockingRec(1, baseNode, initialTasks.toList, Cont(graph, Map()), List(), List())
-                // TODO trim graph
-                termGroup -> ProgressPreprocessed(baseNode, liftedGraph, updatedNodesMap, (tipDerives map { _.node }).toSet, baseNodeProgresses)
+                val (Cont(liftedGraph, updatedNodesMap), baseNodeProgresses, nextDeriveTips) =
+                    recNoDerive(1, baseNode, initialTasks.toList, Cont(graph, Map()), List(), Set())
+                termGroup -> ProgressPreprocessed(baseNode, liftedGraph, updatedNodesMap, nextDeriveTips, baseNodeProgresses)
             }).toMap
         }
     }
@@ -90,6 +91,7 @@ trait DerivationPreprocessor extends ParsingTasks {
         assert(!(nextDeriveTips contains baseNode))
 
         val trimmedGraph: Graph = trimUnreachables(graph, baseNode, nextDeriveTips)
+        assert(nextDeriveTips subsetOf trimmedGraph.nodes)
 
         def conform(beginGen: Int, endGen: Int, condition: AcceptCondition): ProgressPreprocessed = {
             // base노드만 beginGen..endGen 및 condition을 갖고 그 외의 노드는 모두 endGen으로 shift한 것
@@ -115,40 +117,42 @@ trait DerivationPreprocessor extends ParsingTasks {
 
     private var cache = Map[(Int, Int), DerivePreprocessed]()
 
-    @tailrec private def rootBlockingRec(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[ProgressTask]): (Cont, List[ProgressTask]) =
+    private def recNoRoot(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[ProgressTask]): (Cont, List[ProgressTask]) =
         tasks match {
             case (task @ ProgressTask(`root`, _)) +: rest =>
-                rootBlockingRec(nextGen, root, rest, cc, task +: rootTasks)
+                recNoRoot(nextGen, root, rest, cc, task +: rootTasks)
             case (FinishTask(`root`)) +: _ =>
                 ??? // should not happen
             case task +: rest =>
                 val (ncc, newTasks) = process(nextGen, task, cc)
-                rootBlockingRec(nextGen, root, newTasks ++: rest, ncc, rootTasks)
+                recNoRoot(nextGen, root, newTasks ++: rest, ncc, rootTasks)
             case List() => (cc, rootTasks)
         }
 
-    @tailrec private def deriveBlockingRec(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[ProgressTask], tipsTasks: List[DeriveTask]): (Cont, List[ProgressTask], List[DeriveTask]) =
+    private def recNoDerive(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[ProgressTask], deriveTips: Set[Node]): (Cont, List[ProgressTask], Set[Node]) =
         tasks match {
             case (task @ ProgressTask(`root`, _)) +: rest =>
-                deriveBlockingRec(nextGen, root, rest, cc, task +: rootTasks, tipsTasks)
-            case (FinishTask(`root`)) +: _ =>
+                recNoDerive(nextGen, root, rest, cc, task +: rootTasks, deriveTips)
+            case FinishTask(`root`) +: _ =>
                 ??? // should not happen
-            case (task @ DeriveTask(Node(kernel, _))) +: rest if kernel.pointer > 0 =>
-                deriveBlockingRec(nextGen, root, rest, cc, rootTasks, task +: tipsTasks)
+            case DeriveTask(node @ Node(kernel, _)) +: rest if kernel.symbolId != grammar.startSymbol =>
+                assert(kernel.pointer > 0)
+                val newTasks = preprocessedOf(kernel.symbolId, kernel.pointer).conform(kernel.beginGen, kernel.endGen, node.condition).baseNodeTasks
+                recNoDerive(nextGen, root, newTasks ++: rest, cc, rootTasks, deriveTips + node)
             case task +: rest =>
                 val (ncc, newTasks) = process(nextGen, task, cc)
-                deriveBlockingRec(nextGen, root, newTasks ++: rest, ncc, rootTasks, tipsTasks)
-            case List() => (cc, rootTasks, tipsTasks)
+                recNoDerive(nextGen, root, newTasks ++: rest, ncc, rootTasks, deriveTips)
+            case List() => (cc, rootTasks, deriveTips)
         }
 
-    def sliceOf(symbolId: Int, pointer: Int): DerivePreprocessed = {
+    def preprocessedOf(symbolId: Int, pointer: Int): DerivePreprocessed = {
         cache get ((symbolId, pointer)) match {
             case Some(cached) => cached
             case None =>
                 // TODO base preprocessed를 구할 때는 root에 대한 Progress/Finish task만 막으면 되고
                 // TODO slice할 때는 kernel.pointer > 0인 모든 DeriveTask도 막아야 되고
                 val baseNode = Node(Kernel(symbolId, pointer, 0, 0)(grammar.symbolOf(symbolId)), Always)
-                val (Cont(liftedGraph, updatedNodesMap), baseNodeTasks) = rootBlockingRec(0, baseNode, List(DeriveTask(baseNode)), Cont(Graph(Set(baseNode), Set()), Map()), List())
+                val (Cont(liftedGraph, updatedNodesMap), baseNodeTasks) = recNoRoot(0, baseNode, List(DeriveTask(baseNode)), Cont(Graph(Set(baseNode), Set()), Map()), List())
 
                 val preprocessed = DerivePreprocessed(baseNode, liftedGraph, updatedNodesMap, baseNodeTasks)
                 cache += (symbolId, pointer) -> preprocessed
@@ -156,18 +160,17 @@ trait DerivationPreprocessor extends ParsingTasks {
         }
     }
 
-    def sliceOf(node: Node, input: Input): Option[ProgressPreprocessed] = {
-        val Node(kernel, condition) = node
-        val deriveProgress = sliceOf(kernel.symbolId, kernel.pointer)
+    def sliceOf(symbolId: Int, pointer: Int, input: Input): Option[ProgressPreprocessed] = {
+        val deriveProgress = preprocessedOf(symbolId, pointer)
 
         val slices = deriveProgress.slices filter { _._1 contains input }
         assert(slices.size <= 1)
 
         slices.headOption map { p =>
             val preprocessed = p._2
-            assert(preprocessed.baseNode.kernel.symbolId == node.kernel.symbolId)
-            assert(preprocessed.baseNode.kernel.pointer == node.kernel.pointer)
-            preprocessed.conform(kernel.beginGen, kernel.endGen, condition)
+            assert(preprocessed.baseNode.kernel.symbolId == symbolId)
+            assert(preprocessed.baseNode.kernel.pointer == pointer)
+            preprocessed
         }
     }
 }

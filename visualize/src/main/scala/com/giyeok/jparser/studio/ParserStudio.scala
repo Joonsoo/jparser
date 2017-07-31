@@ -15,9 +15,9 @@ import com.giyeok.jparser.Symbols.Sequence
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
+import com.giyeok.jparser.nparser.NaiveContext
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
-import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.npreparser.DeriveTipsContext
 import com.giyeok.jparser.npreparser.PreprocessedParser
 import com.giyeok.jparser.visualize.BasicVisualizeResources
@@ -42,8 +42,6 @@ import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.layout.FormAttachment
 import org.eclipse.swt.layout.FormData
 import org.eclipse.swt.layout.FormLayout
-import org.eclipse.swt.layout.GridData
-import org.eclipse.swt.layout.GridLayout
 import org.eclipse.swt.layout.RowLayout
 import org.eclipse.swt.widgets.Button
 import org.eclipse.swt.widgets.Composite
@@ -311,7 +309,7 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
                             styleRange.length = ctx.gen
                             styleRange.fontStyle = SWT.NONE
                             styleRange.background = ColorConstants.white
-                            grammarText.control.text.setStyleRange(styleRange)
+                            Try { grammarText.control.text.setStyleRange(styleRange) }
 
                             val basicNotiText = s"${value.length}, Parsed in $time ms"
                             result match {

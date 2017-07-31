@@ -4,7 +4,7 @@ import com.giyeok.jparser.Inputs.ConcreteInput
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.Parser
-import com.giyeok.jparser.nparser.Parser.Context
+import com.giyeok.jparser.nparser.Parser.ContextAccumulate
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
 import com.giyeok.jparser.nparser.ParsingContext.Node
 import org.eclipse.draw2d
@@ -33,7 +33,7 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.Shell
 
-class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control) {
+class ParsingProcessVisualizer[C <: ContextAccumulate](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control) {
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -298,7 +298,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
     }
 
     private val contextCache = scala.collection.mutable.Map[Int, Either[C, ParsingError]]()
-    private val transitionCache = scala.collection.mutable.Map[Int, Either[(Context, ProceedDetail, Context), ParsingError]]()
+    private val transitionCache = scala.collection.mutable.Map[Int, Either[(ContextAccumulate, ProceedDetail, ContextAccumulate), ParsingError]]()
     def contextAt(gen: Int): Either[C, ParsingError] =
         contextCache get gen match {
             case Some(cached) => cached
@@ -323,7 +323,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                 contextCache(gen) = context
                 context
         }
-    def transitionAt(gen: Int): Either[(Context, ProceedDetail, Context), ParsingError] =
+    def transitionAt(gen: Int): Either[(ContextAccumulate, ProceedDetail, ContextAccumulate), ParsingError] =
         transitionCache get gen match {
             case Some(cached) => cached
             case None =>
@@ -367,7 +367,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                                 val (prevGraph, nextGraph) = (transition.graphAt(stage - 1), transition.graphAt(stage))
                                 val viewer = if (transition.isResultAt(stage)) {
                                     new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph) with ZestParseTreeConstructorView {
-                                        val context: Context = nextCtx
+                                        val context: ContextAccumulate = nextCtx
                                         addMouseListener(new MouseListener() {
                                             def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
 
@@ -455,7 +455,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
 }
 
 object ParsingProcessVisualizer {
-    def start[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control): Unit = {
+    def start[C <: ContextAccumulate](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control): Unit = {
         new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources, parsingContextWidgetFunc).start()
     }
 }

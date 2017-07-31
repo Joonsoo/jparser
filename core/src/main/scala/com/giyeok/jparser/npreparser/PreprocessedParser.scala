@@ -7,14 +7,14 @@ import com.giyeok.jparser.ParsingErrors.UnexpectedInput
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.Parser
 import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
-import com.giyeok.jparser.nparser.Parser.Context
+import com.giyeok.jparser.nparser.Parser.ContextAccumulate
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
 import com.giyeok.jparser.nparser.Parser.Transition
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.nparser.ParsingTasks
 
 class DeriveTipsContext(gen: Int, nextGraph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Graph], conditionAccumulate: ConditionAccumulate)
-        extends Context(gen, nextGraph, _inputs, _history, conditionAccumulate) {
+        extends ContextAccumulate(gen, nextGraph, _inputs, _history, conditionAccumulate) {
     // assert(deriveTips subsetOf nextGraph.nodes)
     def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, deriveTips: Set[Node], newInput: Input, newConditionAccumulate: ConditionAccumulate): DeriveTipsContext = {
         new DeriveTipsContext(nextGen, nextGraph, deriveTips, newInput +: _inputs, resultGraph +: _history, newConditionAccumulate)
@@ -25,7 +25,7 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
     // assert(grammar == derivation.grammar)
 
     val initialContext: DeriveTipsContext = {
-        val initial = sliceOf(grammar.startSymbol, 0)
+        val initial = preprocessedOf(grammar.startSymbol, 0)
         val conditionAccumulate = ConditionAccumulate((initial.graph.nodes map { _.condition } map { x => x -> x }).toMap)
         val initialGraph = Graph(Set(startNode), Set())
         new DeriveTipsContext(0, initialGraph, Set(startNode), List(), List(initial.graph), conditionAccumulate)
@@ -33,8 +33,9 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
 
     @tailrec private def recNoDerive(nextGen: Int, tasks: List[Task], cc: Cont, deriveTips: Set[Node]): (Cont, Set[Node]) =
         tasks match {
-            case DeriveTask(deriveTip) +: rest if deriveTip.kernel.pointer > 0 =>
-                recNoDerive(nextGen, rest, cc, deriveTips + deriveTip)
+            case DeriveTask(deriveTip @ Node(Kernel(symbolId, pointer, beginGen, endGen), condition)) +: rest if pointer > 0 =>
+                val deriveTipTasks = preprocessedOf(symbolId, pointer).conform(beginGen, endGen, condition).baseNodeTasks
+                recNoDerive(nextGen, deriveTipTasks ++: rest, cc, deriveTips + deriveTip)
             case task +: rest =>
                 val (ncc, newTasks) = process(nextGen, task, cc)
                 recNoDerive(nextGen, newTasks ++: rest, ncc, deriveTips)
@@ -44,59 +45,59 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
     def proceedDetail(ctx: DeriveTipsContext, input: Input): Either[(ProceedDetail, DeriveTipsContext), ParsingError] = {
         val (graph, nextGen, deriveTips) = (ctx.nextGraph, ctx.nextGen, ctx.deriveTips)
         // finishable term node를 포함한 deriveTip -> term node set
-        val expandings = deriveTips flatMap { sliceOf(_, input) }
-        if (expandings.isEmpty) {
+        val expandings0: Seq[(Node, ProgressPreprocessed)] = deriveTips.toSeq flatMap { deriveTip =>
+            sliceOf(deriveTip.kernel.symbolId, deriveTip.kernel.pointer, input) map { deriveTip -> _ }
+        }
+        if (expandings0.isEmpty) {
             Right(UnexpectedInput(input, nextGen))
         } else {
-            // TODO 각 derive tip의 ProgressPreprocessed에 대해서(우선 conform 먼저 하고)
-            // TODO - result graph를 만들 때는 preprocessed.graph를 사용하고
-            // TODO - next graph를 만들 때는 preprocessed.trimmedGraph를 사용한다
-            // 1. graph에 expanding의 그래프들 추가, updatedNodes 병합, task들 병합
-            val expandedGraph: Graph = {
-                val (nodes, edges) = expandings.foldLeft((graph.nodes, graph.edges)) { (cc, preprocessed) =>
-                    val (nodes, edges) = cc
-                    (nodes ++ preprocessed.graph.nodes, edges ++ preprocessed.graph.edges)
-                }
-                Graph(nodes, edges)
-            }
-            val expandedTasks: List[ProgressTask] = expandings.foldLeft(List[ProgressTask]()) { (cc, preprocessed) =>
-                cc ++ preprocessed.baseNodeTasks
-            }
-            val expandedUpdatedNodes: Map[Node, Set[Node]] = expandings.foldLeft(Map[Node, Set[Node]]()) { (cc, preprocessed) =>
-                preprocessed.updatedNodesMap.foldLeft(cc) { (cc, kv) =>
-                    cc + (kv._1 -> (cc.getOrElse(kv._1, Set()) ++ kv._2))
-                }
-            }
-            val expandedDeriveTips = expandings flatMap { _.nextDeriveTips }
+            // 각 derive tip의 ProgressPreprocessed에 대해서(우선 conform 먼저 하고)
+            // - result graph를 만들 때는 preprocessed.graph를 사용하고
+            // - next graph를 만들 때는 preprocessed.trimmedGraph를 사용한다
 
-            // 2. lift - expand의 결과로 나온 graph, updatedNodes, task로 lift - result graph
-            val (Cont(liftedGraph, updatedNodes), deriveTips) =
-                recNoDerive(nextGen, expandedTasks, Cont(expandedGraph, expandedUpdatedNodes), expandedDeriveTips)
+            val expandings = expandings0 map { nodePreprocessed =>
+                val (node, preprocessed) = nodePreprocessed
+                node -> preprocessed.conform(node.kernel.beginGen, node.kernel.endGen, node.condition)
+            }
 
-            println(s"nextGen=$nextGen ${deriveTips.size}")
-            deriveTips foreach { println }
+            // expandedGraph0, nextDeriveTips0: graph에 expandings의 preprocessed.trimmedGraph를 병합하고 trimmedGraph에 속한 deriveTip들을 수집
+            val expandedGraph: Graph = expandings.foldLeft(graph) { (cc, nodePreprocessed) =>
+                cc.merge(nodePreprocessed._2.trimmedGraph)
+            }
+            val nextDeriveTips0: Set[Node] = (expandings flatMap { _._2.nextDeriveTips }).toSet
+            val initialTasks: Seq[ProgressTask] = expandings flatMap { _._2.baseNodeTasks }
+            val initialUpdatedNodesMap: Map[Node, Set[Node]] = (expandings flatMap { _._2.updatedNodesMap }).toMap
+            val x = (expandings flatMap { kv => kv._2.updatedNodesMap.toSeq map { kv._1 -> _ } }) groupBy { _._2._1 }
+            // expandings의 updatedNodesMap에서 key가 같으면 value가 같아야 한다
+            // TODO initialUpdatedNodesMap이 필요한가?
+            assert(x forall { kv => (kv._2 map { _._2._2 }).toSet.size == 1 })
 
-            // 3. accept condition 처리
+            // liftedGraph, nextDeriveTips: expandedGraph와 deriveTip에 대한 progress task 처리하고 새로운 deriveTip를 nextDeriveTips0에 추가
+            val (Cont(liftedGraph: Graph, _), nextDeriveTips1: Set[Node]) =
+                recNoDerive(nextGen, initialTasks.toList, Cont(expandedGraph, Map()), nextDeriveTips0)
+
+            // nextDeriveTips에서 accept condition update 및 filtering
             val (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph) =
                 processAcceptCondition(nextGen, liftedGraph, ctx.conditionAccumulate)
+            val nextDeriveTips: Set[Node] = nextDeriveTips1 intersect conditionFilteredGraph.nodes
+            val trimmedGraph: Graph = trimUnreachables(conditionFilteredGraph, startNode, nextDeriveTips)
 
-            // 4. trimming
-            val trimmedGraph: Graph = trimUnreachables(conditionFilteredGraph, startNode, deriveTips intersect conditionFilteredGraph.nodes)
+            // resultGraph: liftedGraph에 expandings의 preprocessed.graph를 병합
+            // TODO 사실 실제로 그래프를 병합할 필요는 없음. 나중에 수정
+            val resultGraph: Graph = expandings.foldLeft(liftedGraph) { (cc, nodePreprocessed) =>
+                cc.merge(nodePreprocessed._2.graph)
+            }
 
-            val nextContext = ctx.proceed(
-                nextGen,
-                resultGraph = liftedGraph, nextGraph = trimmedGraph,
-                deriveTips = deriveTips,
-                input, nextConditionAccumulate
-            )
+            val nextContext = ctx.proceed(nextGen, resultGraph, trimmedGraph, nextDeriveTips, input, nextConditionAccumulate)
 
             Left((ProceedDetail(
                 graph,
                 Transition("expanded", expandedGraph),
-                Transition("lifted(result)", liftedGraph, isResult = true),
+                Transition("lifted", liftedGraph),
                 Transition("conditionUpdated", conditionUpdatedGraph),
                 Transition("conditionFiltered", conditionFilteredGraph),
-                Transition("trimmed(next)", trimmedGraph, isNext = true)
+                Transition("trimmed (next)", trimmedGraph, isNext = true),
+                Transition("(result)", resultGraph, isResult = true)
             ), nextContext))
         }
     }

@@ -10,7 +10,7 @@ import com.giyeok.jparser.ParseResultFunc
 import com.giyeok.jparser.ParseResultGraphFunc
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParseTreeConstructor
-import com.giyeok.jparser.nparser.Parser.Context
+import com.giyeok.jparser.nparser.Parser.ContextAccumulate
 import com.giyeok.jparser.nparser.ParsingContext
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.npreparser.DerivationPreprocessor
@@ -292,7 +292,7 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
 trait ZestParseTreeConstructorView {
     val fig: NodeFigureGenerators[Figure]
     val grammar: NGrammar
-    val context: Context
+    val context: ContextAccumulate
 
     def openParseTree[R <: ParseResult](resultFunc: ParseResultFunc[R])(opener: R => Unit)(gen: Int, kernel: Kernel): Unit = {
         val parseResultOpt = new ParseTreeConstructor(resultFunc)(grammar)(context.inputs, context.history, context.conditionFinal).reconstruct(kernel, kernel.endGen)
@@ -408,7 +408,7 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
     })
 }
 
-class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, val context: Context)
+class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, val context: ContextAccumulate)
         extends ZestGraphWidget(parent, style, fig, grammar, context.nextGraph)
         with ZestParseTreeConstructorView {
     addKeyListener(new KeyListener() {

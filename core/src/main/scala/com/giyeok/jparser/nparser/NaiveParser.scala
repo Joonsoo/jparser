@@ -4,9 +4,15 @@ import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.ParsingErrors._
 import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
-import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.nparser.Parser._
 import com.giyeok.jparser.nparser.ParsingContext._
+
+class NaiveContext(gen: Int, nextGraph: Graph, _inputs: List[Input], _history: List[Graph], conditionAccumulate: ConditionAccumulate)
+        extends ContextAccumulate(gen, nextGraph, _inputs, _history, conditionAccumulate) {
+    def proceed(nextGen: Int, resultGraph: Graph, nextGraph: Graph, newInput: Input, newConditionAccumulate: ConditionAccumulate): NaiveContext = {
+        new NaiveContext(nextGen, nextGraph, newInput +: _inputs, resultGraph +: _history, newConditionAccumulate)
+    }
+}
 
 class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parser[NaiveContext] with ParsingTasks {
     // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
