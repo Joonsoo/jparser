@@ -3,7 +3,6 @@ resolvers += Resolver.url("sbt-plugin-snapshots", url("http://scalasbt.artifacto
 
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.1.8")
 
-addSbtPlugin("com.giyeok.oneswt" % "sbt-oneswt" % "0.0.1")
+resolvers += Resolver.bintrayIvyRepo("joonsoo", "sbt-plugins")
 
-lazy val oneswtPlugin = uri("https://github.com/Joonsoo/oneswt.git#master")
-lazy val root = project.in(file(".")).dependsOn(oneswtPlugin)
+addSbtPlugin("com.giyeok.oneswt" % "sbt-oneswt" % "0.0.3")
