@@ -1,6 +1,9 @@
 package com.giyeok.jparser.nparser
 
+import com.giyeok.jparser.Inputs.Input
+import com.giyeok.jparser.ParseResult
 import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
+import com.giyeok.jparser.nparser.Parser.Context
 
 object AcceptCondition {
     import ParsingContext._
@@ -177,5 +180,30 @@ object AcceptCondition {
         }
         def neg: AcceptCondition =
             Unless(beginGen, endGen, symbolId)(symbol)
+    }
+
+    class ParseResultGetterGetter[R <: ParseResult] {
+        def apply(input: Seq[Input], history: Seq[Graph], conditionFinal: Map[AcceptCondition, Boolean]): ParseResultGetter[R] = ???
+    }
+    class ParseResultGetter[R <: ParseResult] {
+        def apply(symbol: NAtomicSymbol, beginGen: Int, endGen: Int): R = ???
+    }
+    class CustomConditionFunc[R <: ParseResult] {
+        def apply(gen: Int, graph: Graph, parseResultGetter: ParseResultGetter[R]): Boolean = ???
+    }
+    case class Custom[C <: Context, R <: ParseResult](
+            acceptable: CustomConditionFunc[R],
+            isFinalResult: CustomConditionFunc[R],
+            negative: Boolean
+    ) extends AcceptCondition {
+        def nodes: Set[Node] = Set()
+        def shiftGen(gen: Int): Custom[C, R] = this
+        def evaluate(gen: Int, graph: Graph): AcceptCondition =
+            if (isFinalResult(gen, graph, ???)) {
+                if (acceptable(gen, graph, ???)) Always else Never
+            } else this
+        def acceptable(gen: Int, graph: Graph): Boolean =
+            acceptable(gen, graph, ???)
+        def neg: AcceptCondition = Custom(acceptable, isFinalResult, negative = !negative)
     }
 }

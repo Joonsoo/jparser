@@ -13,7 +13,8 @@ object GrammarHelper {
 
     def empty = Sequence(Seq())
     def n(name: String) = Nonterminal(name)
-    def i(string: String) = Sequence(string.toCharArray map { c => ExactChar(c) })
+    def i(string: String) =
+        if (string.length == 1) ExactChar(string.charAt(0)) else Sequence(string.toCharArray map { c => ExactChar(c) })
     def anychar = AnyChar
     def c(char: Char) = ExactChar(char)
     def c(chars: Char*) = charSymbol(chars.toSet)

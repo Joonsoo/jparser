@@ -35,7 +35,7 @@ object UnicodeUtil {
         case "Cn" => Character.UNASSIGNED
         case "Lu" => Character.UPPERCASE_LETTER
     }).toInt
-    def categoryNamesToCodes(categories: Set[String]) = categories map { categoryNameToCode _ }
+    def categoryNamesToCodes(categories: Set[String]): Set[Int] = categories map { categoryNameToCode }
 
     def categoryCodeToName(category: Int): String = category match {
         case Character.COMBINING_SPACING_MARK => "Mc"
@@ -71,7 +71,7 @@ object UnicodeUtil {
         case Character.UNASSIGNED => "Cn"
         case Character.UPPERCASE_LETTER => "Lu"
     }
-    def categoryCodesToNames(categories: Set[Int]): Set[String] = categories map { categoryCodeToName(_) }
+    def categoryCodesToNames(categories: Set[Int]): Set[String] = categories map { categoryCodeToName }
 
     def toReadable(char: Char): String = toReadable(char, Set(), "\\")
     def toReadable(char: Char, additionalEscaping: Set[Char], backslash: String): String = char match {
@@ -81,6 +81,6 @@ object UnicodeUtil {
         case '\r' => s"${backslash}r"
         case '\t' => s"${backslash}t"
         case '\\' => s"$backslash$backslash"
-        case c => f"${backslash}u$c%04x"
+        case c => f"${backslash}u${c.toInt}%04x"
     }
 }

@@ -13,6 +13,7 @@ import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
+import com.giyeok.jparser.utils.UnicodeUtil
 
 object MetaGrammar extends Grammar {
     val name = "Meta Grammar"
@@ -354,37 +355,39 @@ object MetaGrammar extends Grammar {
             }
         }
 
+        def charSequence(char: Char): String =
+            char match {
+                case '\n' => "\\n"
+                case '\t' => "\\t"
+                case '\r' => "\\r"
+                case '\\' => "\\\\"
+                case '\'' => "\\'"
+                case c =>
+                    if (c > 255) f"\\u${c.toInt}%04x" else s"$c"
+            }
+
         def symbolStringOf(symbol: Symbols.Symbol, outerPrecedence: Int): String = {
             val (string: String, precedence: Int) = symbol match {
                 case terminal: Symbols.Terminal =>
                     val s = terminal match {
                         case Any | AnyChar => "."
                         case ExactChar(char) =>
-                            val s = char match {
-                                case '\n' => "\\n"
-                                case '\\' => "\\\\"
-                                case '\'' => "\\'"
-                                // TODO complete escape
-                                case _ => s"$char"
-                            }
-                            s"'$s'"
+                            s"'${charSequence(char)}'"
                         case chars: Symbols.Terminals.Chars =>
                             def escapeChar(char: Char): String =
                                 char match {
                                     case '-' => "\\-"
                                     case '}' => "\\}"
-                                    case '\n' => "\\n"
-                                    case '\t' => "\\t"
-                                    case '\r' => "\\r"
-                                    case '\\' => "\\\\"
                                     // TODO complete escape
-                                    case _ => "" + char
+                                    case _ => charSequence(char)
                                 }
                             "{" + (chars.groups.sorted map { pair =>
                                 if (pair._1 == pair._2) s"${escapeChar(pair._1)}"
                                 else if (pair._1 + 1 == pair._2) s"${escapeChar(pair._1)}${escapeChar(pair._2)}"
                                 else s"${escapeChar(pair._1)}-${escapeChar(pair._2)}"
                             } mkString "") + "}"
+                        case Unicode(categories) =>
+                            "{{" + (UnicodeUtil.categoryCodesToNames(categories) mkString " ") + "}}"
                     }
                     (s, 0)
                 case Nonterminal(nontermName) =>
@@ -394,8 +397,11 @@ object MetaGrammar extends Grammar {
                 case Sequence(seq, _) =>
                     if (seq forall { _.isInstanceOf[Symbols.Terminals.ExactChar] }) {
                         // string인 경우
-                        // TODO escape
-                        ("\"" + (seq map { _.asInstanceOf[Symbols.Terminals.ExactChar].char }).mkString + "\"", 0)
+                        val chars = seq map { _.asInstanceOf[Symbols.Terminals.ExactChar].char } map {
+                            case '"' => "\\\""
+                            case c => charSequence(c)
+                        }
+                        ("\"" + chars.mkString + "\"", 0)
                     } else {
                         (seq map { symbolStringOf(_, 5) } mkString " ", 5)
                     }
@@ -423,6 +429,8 @@ object MetaGrammar extends Grammar {
                     (symbolStringOf(sym, 3) + "&" + symbolStringOf(join, 3), 3)
                 case Longest(sym) =>
                     ("<" + symbolStringOf(sym, 5) + ">", 0)
+                case els =>
+                    ???
             }
             if (outerPrecedence < precedence) "(" + string + ")" else string
         }
