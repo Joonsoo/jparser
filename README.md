@@ -61,7 +61,7 @@ The (hypothetical) upper bound of the time complexity of the algorithm seems to 
 
 J Parser provides a UI program to try CDGs and visualize the parsing process.
 In order to run the UI, you need [SBT 1.1.1](https://www.scala-sbt.org/).
-If you have SBT, run "startStudio.sh"(Linux/Mac) or "startStudio.bat"(Windows).
+If you have SBT, run `startStudio.sh`(Linux/Mac) or `startStudio.bat`(Windows).
 The script simply runs SBT, and it will download and install all requirements, including Scala.
 
 ## Implementation

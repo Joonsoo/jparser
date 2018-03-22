@@ -1,6 +1,6 @@
 organization in ThisBuild := "com.giyeok"
 version in ThisBuild := "0.1"
-scalaVersion in ThisBuild := "2.12.4"
+scalaVersion in ThisBuild := "2.12.5"
 crossPaths in ThisBuild := false
 
 lazy val testDeps = {
