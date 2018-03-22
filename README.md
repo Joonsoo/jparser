@@ -19,7 +19,7 @@ The name of nonterminal can be an arbitrary string of digits and English alphabe
 A pair of curly brackets represents a character class. `{*/}` is matched to `*` or `/`. You can specify a range in the curly brackets as `{1-9}`, that means any character from `1` to `9`. Since the hyphen represents a range, you should write `\` in front of `-` if you mean the hyphen character itself, as in `{+\-}`.
 
 
-CDG has 5 special 'conditional' nonterminals as follows:
+CDG has 5 special _conditional nonterminals_ as follows:
 	
 * `A&B` is intersection symbol. `A&B` matches to a string iff the string is matched to both `A` and `B`.
 * `A-B` is exclusion symbol. `A-B` matches to a string iff the string is matched to `A`, but not to `B`.
@@ -52,9 +52,9 @@ Here are some example strings of this grammar:
 
 ## About the parsing algorithm
 
-The parsing algorithm for CDG implemented in J Parser is a modified version of [Earley parsing](https://en.wikipedia.org/wiki/Earley_parser). CDG parsing uses graphs to represent the states of parsing and introduces 'accept condition' for conditional nonterminals.
+The parsing algorithm for CDG implemented in J Parser is a modified version of [Earley parsing](https://en.wikipedia.org/wiki/Earley_parser). CDG parsing uses graphs to represent the states of parsing and introduces _accept condition_ for conditional nonterminals.
 
-The (hypothetical) upper bound of the time complexity of the algorithm seems to be exponential to the length of the input string. However, I expect it to have reasonable and practical time complexity (e.g. linear) for the grammars of the most programming languages.
+The upper bound of the time complexity of the algorithm seems to be exponential to the length of the input string. However, I expect it to have reasonable and practical time complexity (e.g. linear) for the grammars of the most programming languages.
 
 
 ## How to run
