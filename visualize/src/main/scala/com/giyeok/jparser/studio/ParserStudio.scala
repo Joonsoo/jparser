@@ -1,6 +1,7 @@
 package com.giyeok.jparser.studio
 
 import java.util.concurrent.LinkedBlockingDeque
+
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet
 import scala.util.Try
@@ -13,17 +14,11 @@ import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.Symbols.Nonterminal
 import com.giyeok.jparser.Symbols.Sequence
 import com.giyeok.jparser.gramgram.MetaGrammar
-import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor, ParsingContext}
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
-import com.giyeok.jparser.nparser.NaiveParser
-import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.npreparser.PreprocessedParser
-import com.giyeok.jparser.visualize.BasicVisualizeResources
-import com.giyeok.jparser.visualize.ParseResultFigureGenerator
-import com.giyeok.jparser.visualize.ParsingProcessVisualizer
-import com.giyeok.jparser.visualize.PreprocessedDerivationViewer
-import com.giyeok.jparser.visualize.ZestParsingContextWidget
+import com.giyeok.jparser.visualize._
 import com.giyeok.jparser.visualize.utils.HorizontalResizableSplittedComposite
 import com.giyeok.jparser.visualize.utils.VerticalResizableSplittedComposite
 import org.eclipse.draw2d.ColorConstants
@@ -426,7 +421,9 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
                         ParsingProcessVisualizer.start[NaiveContext](
                             title = title,
                             parser = new NaiveParser(ngrammar, trim = proceedParserSelector.trimGraph),
-                            source, display, shell, new ZestParsingContextWidget(_, _, _, _, _)
+                            source, display, shell,
+                            (parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, graph: ParsingContext.Graph, context: NaiveContext) =>
+                                new ZestParsingContextWidget(parent, style, fig, grammar, graph, context)
                         )
                     } else {
                         //                        (proceedParserSelector.slice, proceedParserSelector.compact) match {

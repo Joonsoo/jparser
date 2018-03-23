@@ -119,4 +119,30 @@ object ParsingContext {
             Graph(nodes, edges, edgesByStart, edgesByEnd)
         }
     }
+
+    private def reachableProceedingNodesFrom(graph: ParsingContext.Graph, queue: List[Node], visited: Set[Node], cc: Set[Node]): Set[Node] =
+        queue match {
+            case head +: rest =>
+                val nextNodes = graph.edgesByStart.getOrElse(head, Set()) map { _.end }
+                val (proceedingNodes, skippingNodes) = nextNodes partition { node => node.kernel.beginGen != node.kernel.endGen }
+                reachableProceedingNodesFrom(graph, rest ++ (skippingNodes -- visited).toList, visited ++ nextNodes, cc ++ proceedingNodes)
+            case List() =>
+                cc
+        }
+
+    def reduced(graph: ParsingContext.Graph): ParsingContext.Graph = {
+        def rec(queue: List[Node], cc: ParsingContext.Graph): ParsingContext.Graph =
+            queue match {
+                case head +: rest =>
+                    val addingNodes = reachableProceedingNodesFrom(graph, List(head), Set(head), Set())
+                    val cc1 = addingNodes.foldLeft(cc) { (m, i) =>
+                        m.addNode(i).addEdge(Edge(head, i, actual = true))
+                    }
+                    rec(rest ++ (addingNodes -- cc.nodes).toList, cc1)
+                case List() => cc
+            }
+
+        val startingNodes = graph.nodes.filter(graph.edgesByEnd(_).isEmpty)
+        rec(startingNodes.toList, ParsingContext.Graph(startingNodes, Set()))
+    }
 }

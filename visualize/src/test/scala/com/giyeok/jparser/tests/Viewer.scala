@@ -4,15 +4,10 @@ import scala.util.Success
 import scala.util.Try
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.ConcreteInput
+import com.giyeok.jparser.nparser.{NGrammar, ParsingContext}
 import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.npreparser.DeriveTipsContext
-import com.giyeok.jparser.visualize.BasicVisualizeResources
-import com.giyeok.jparser.visualize.FigureGenerator
-import com.giyeok.jparser.visualize.GrammarDefinitionFigureGenerator
-import com.giyeok.jparser.visualize.ParsingProcessVisualizer
-import com.giyeok.jparser.visualize.PreprocessedDerivationViewer
-import com.giyeok.jparser.visualize.ZestDeriveTipParsingContextWidget
-import com.giyeok.jparser.visualize.ZestParsingContextWidget
+import com.giyeok.jparser.visualize._
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Figure
 import org.eclipse.draw2d.FigureCanvas
@@ -22,10 +17,7 @@ import org.eclipse.jface.resource.JFaceResources
 import org.eclipse.swt.SWT
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.FillLayout
-import org.eclipse.swt.widgets.Display
-import org.eclipse.swt.widgets.Event
-import org.eclipse.swt.widgets.Listener
-import org.eclipse.swt.widgets.Shell
+import org.eclipse.swt.widgets._
 
 object AllTestGrammars {
     val allTestGrammars: Set[GrammarTestCases] = Set(
@@ -160,9 +152,11 @@ trait Viewer {
             val grammar = gt.grammar
             selectedParserType match {
                 case ParserTypes.Naive =>
-                    ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.naiveParser, source, display, new Shell(display), new ZestParsingContextWidget(_, _, _, _, _))
+                    ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.naiveParser, source, display, new Shell(display),
+                        new ZestParsingContextWidget(_, _, _, _, _, _))
                 case ParserTypes.Preprocessed =>
-                    ParsingProcessVisualizer.start[DeriveTipsContext](grammar.name, gt.preprocessedParser, source, display, new Shell(display), new ZestDeriveTipParsingContextWidget(_, _, _, _, _))
+                    ParsingProcessVisualizer.start[DeriveTipsContext](grammar.name, gt.preprocessedParser, source, display, new Shell(display),
+                        new ZestDeriveTipParsingContextWidget(_, _, _, _, _, _))
             }
         }
 

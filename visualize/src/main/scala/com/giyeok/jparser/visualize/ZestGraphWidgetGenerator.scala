@@ -1,39 +1,23 @@
 package com.giyeok.jparser.visualize
 
-import scala.collection.mutable
-import scala.util.Try
-import com.giyeok.jparser.ParseForest
-import com.giyeok.jparser.ParseForestFunc
-import com.giyeok.jparser.ParseResult
-import com.giyeok.jparser.ParseResultDerivationsSetFunc
-import com.giyeok.jparser.ParseResultFunc
-import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.ParseTreeConstructor
+import com.giyeok.jparser._
 import com.giyeok.jparser.nparser.Parser.Context
-import com.giyeok.jparser.nparser.ParsingContext
+import com.giyeok.jparser.nparser.{NGrammar, ParseTreeConstructor, ParsingContext}
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.npreparser.DeriveTipsContext
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
-import org.eclipse.draw2d.ColorConstants
-import org.eclipse.draw2d.CompoundBorder
-import org.eclipse.draw2d.Figure
-import org.eclipse.draw2d.LineBorder
+import org.eclipse.draw2d.{ColorConstants, CompoundBorder, Figure, LineBorder}
 import org.eclipse.swt.SWT
-import org.eclipse.swt.events.KeyListener
-import org.eclipse.swt.events.MouseListener
-import org.eclipse.swt.events.SelectionEvent
-import org.eclipse.swt.events.SelectionListener
+import org.eclipse.swt.events.{KeyListener, MouseListener, SelectionEvent, SelectionListener}
 import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout.FillLayout
-import org.eclipse.swt.widgets.Composite
-import org.eclipse.swt.widgets.Control
+import org.eclipse.swt.widgets.{Composite, Control}
 import org.eclipse.zest.core.viewers.GraphViewer
-import org.eclipse.zest.core.widgets.CGraphNode
-import org.eclipse.zest.core.widgets.Graph
-import org.eclipse.zest.core.widgets.GraphConnection
-import org.eclipse.zest.core.widgets.ZestStyles
+import org.eclipse.zest.core.widgets.{CGraphNode, Graph, GraphConnection, ZestStyles}
 import org.eclipse.zest.layouts.LayoutStyles
+
+import scala.collection.mutable
+import scala.util.Try
 
 trait AbstractZestGraphWidget extends Control {
     val graphViewer: GraphViewer
@@ -407,9 +391,9 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
     })
 }
 
-class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, val context: Context)
-        extends ZestGraphWidget(parent, style, fig, grammar, context.nextGraph)
-        with ZestParseTreeConstructorView {
+class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, val graph: ParsingContext.Graph, val context: Context)
+    extends ZestGraphWidget(parent, SWT.NONE, fig, grammar, graph) with ZestParseTreeConstructorView {
+
     addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
             e.keyCode match {
@@ -446,8 +430,11 @@ trait TipNodes extends AbstractZestGraphWidget {
     }
 }
 
-class ZestDeriveTipParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: DeriveTipsContext)
-        extends ZestParsingContextWidget(parent, style, fig, grammar, context) with TipNodes {
+class ZestDeriveTipParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, graph: ParsingContext.Graph, val context: DeriveTipsContext)
+    extends ZestGraphWidget(parent, style, fig, grammar, graph)
+        with ZestParseTreeConstructorView
+        with TipNodes {
+
     override def initialize(): Unit = {
         super.initialize()
         context.deriveTips foreach { deriveTip =>

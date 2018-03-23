@@ -2,8 +2,7 @@ package com.giyeok.jparser.visualize
 
 import com.giyeok.jparser.Inputs.ConcreteInput
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.Parser
+import com.giyeok.jparser.nparser.{NGrammar, Parser, ParsingContext}
 import com.giyeok.jparser.nparser.Parser.Context
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
 import com.giyeok.jparser.nparser.ParsingContext.Node
@@ -33,7 +32,7 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.Shell
 
-class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control) {
+class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFactory: ParsingContextWidgetFactory[C]) {
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -152,6 +151,8 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
     lazy val lastValidLocation = ParsingContextPointer(((source.length to 0 by -1) find { contextAt(_).isLeft }).get)
     val lastLocation = ParsingContextPointer(source.length)
     var currentLocation: Pointer = firstLocation
+
+    var showReduced: Boolean = false
 
     def updateLocation(newLocation: Pointer): Unit = {
         val sourceViewHeight = 40
@@ -339,10 +340,10 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
     }
 
     private val nodeFigGenerator = resources.nodeFigureGenerators
-    private val controlCache = scala.collection.mutable.Map[Pointer, (Option[String], Control)]()
+    private val controlCache = scala.collection.mutable.Map[(Pointer, Boolean), (Option[String], Control)]()
 
     def controlAt(pointer: Pointer): (Option[String], Control) = {
-        controlCache get pointer match {
+        controlCache get(pointer, showReduced) match {
             case Some(cached) => cached
             case None =>
                 val (name, control) = pointer match {
@@ -351,7 +352,9 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
                             case Left(wctx) =>
-                                (None, parsingContextWidgetFunc(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx))
+                                val widget = if (showReduced) parsingContextWidgetFactory(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, ParsingContext.reduced(wctx.nextGraph), wctx)
+                                else parsingContextWidgetFactory(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, wctx)
+                                (None, widget)
                             case Right(error) =>
                                 (None, errorControl(error.msg))
                         }
@@ -391,7 +394,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                         }
                 }
                 control.addKeyListener(keyListener)
-                controlCache(pointer) = (name, control)
+                controlCache((pointer, showReduced)) = (name, control)
                 (name, control)
         }
     }
@@ -433,6 +436,10 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                     dotGraphGen = None
                     println("DOT graph generator cleared")
 
+                case 'Z' | 'z' =>
+                    showReduced = !showReduced
+                    updateLocation(currentLocation)
+
                 case code =>
                     println(s"keyPressed: $code")
             }
@@ -454,8 +461,15 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
     }
 }
 
+trait ParsingContextWidgetFactory[C <: Context] {
+    def apply(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, graph: ParsingContext.Graph, context: C): Control
+
+    def apply(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, context: C): Control =
+        apply(parent, style, fig, grammar, context.nextGraph, context)
+}
+
 object ParsingProcessVisualizer {
-    def start[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, parsingContextWidgetFunc: (Composite, Int, NodeFigureGenerators[Figure], NGrammar, C) => Control): Unit = {
-        new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources, parsingContextWidgetFunc).start()
+    def start[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, parsingContextWidgetFactory: ParsingContextWidgetFactory[C]): Unit = {
+        new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources, parsingContextWidgetFactory).start()
     }
 }
