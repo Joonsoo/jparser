@@ -7,6 +7,7 @@ import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.study.CfgSymbols.CfgSymbol
 
 object CfgSymbols {
+
     sealed trait CfgSymbol {
         def toShortString: String
     }
@@ -14,8 +15,42 @@ object CfgSymbols {
     case class Terminal(terminal: Symbols.Terminal) extends CfgSymbol {
         def toShortString: String = terminal.toShortString
     }
+
     case class Nonterminal(name: String) extends CfgSymbol {
         def toShortString: String = name
+    }
+
+    def permuteUnique(nums: Array[Int]): List[List[Int]] = {
+        val numbers: Map[Int, Int] = nums.foldLeft(Map[Int, Int]()) { (map, i) =>
+            map + (i -> (map.getOrElse(i, 0) + 1))
+        }
+
+        def append(list: List[Int], value: Int, count: Int): List[Int] =
+            if (count == 0) list else append(list :+ value, value, count - 1)
+
+        println(append(List(), 1, 1))
+
+        def permuteRecursive(numbers: Map[Int, Int], perm: List[Int], cc: List[List[Int]]): List[List[Int]] = {
+            println(numbers, perm)
+            if (numbers.isEmpty) perm +: cc
+            else {
+                numbers.toList flatMap { kv =>
+                    val (number, count) = kv
+                    if (perm.isEmpty || perm.last != number) {
+                        (1 to count).toList flatMap { trial =>
+                            val newNumbers = if (count - trial > 0) (numbers + (number -> (count - trial))) else (numbers - number)
+                            permuteRecursive(newNumbers, append(perm, number, trial), cc)
+                        }
+                    } else List()
+                }
+            }
+        }
+
+        permuteRecursive(numbers, List(), List())
+    }
+
+    def main(args: Array[String]): Unit = {
+        permuteUnique(Array(1, 1, 2))
     }
 }
 
@@ -68,6 +103,7 @@ case class ConvertedContextFreeGrammar(name: String, rules: ContextFreeGrammar#R
 }
 
 object ContextFreeGrammar {
+
     object ReadableNameOfSymbol {
         def grouping(numbers: List[Int], rangeOpt: Option[(Int, Int)], cc: List[(Int, Int)]): List[(Int, Int)] = {
             (numbers, rangeOpt) match {
@@ -83,8 +119,11 @@ object ContextFreeGrammar {
         def readableNameOf(symbol: Symbols.Symbol): (String, Boolean) = {
             def ifLong(first: String, second: => String): (String, Boolean) =
                 if (first.length <= 15) (first, false) else (second, true)
+
             symbol match {
-                case Symbols.Sequence(seq, contentIdx) => ifLong("[" + (seq map { readableNameOf(_)._1 } mkString "_") + "]", "Seq")
+                case Symbols.Sequence(seq, contentIdx) => ifLong("[" + (seq map {
+                    readableNameOf(_)._1
+                } mkString "_") + "]", "Seq")
                 case terminal: Symbols.Terminal => (terminal.toShortString, false)
                 case Symbols.Nonterminal(name) => (name, false)
                 case Symbols.OneOf(syms) =>
@@ -92,15 +131,25 @@ object ContextFreeGrammar {
                         syms.toSeq match {
                             case Seq(Symbols.Proxy(Symbols.Sequence(Seq(), Seq())), sym) => readableNameOf(sym)._1 + "?"
                             case Seq(sym, Symbols.Proxy(Symbols.Sequence(Seq(), Seq()))) => readableNameOf(sym)._1 + "?"
-                            case seq if (seq forall { _.isInstanceOf[Symbols.Sequence] }) &&
-                                ((seq flatMap { _.asInstanceOf[Symbols.Sequence].seq.toSet }).toSet.size == 1) =>
+                            case seq if (seq forall {
+                                _.isInstanceOf[Symbols.Sequence]
+                            }) &&
+                                ((seq flatMap {
+                                    _.asInstanceOf[Symbols.Sequence].seq.toSet
+                                }).toSet.size == 1) =>
                                 // finite repeat
-                                val repeatingSymbol = (seq flatMap { _.asInstanceOf[Symbols.Sequence].seq.toSet }).head
-                                val repeatingCounts = (seq map { _.asInstanceOf[Symbols.Sequence].seq.size }).sorted
+                                val repeatingSymbol = (seq flatMap {
+                                    _.asInstanceOf[Symbols.Sequence].seq.toSet
+                                }).head
+                                val repeatingCounts = (seq map {
+                                    _.asInstanceOf[Symbols.Sequence].seq.size
+                                }).sorted
                                 val repeatingCountsGrouped = grouping(repeatingCounts.toList, None, List()).reverse
                                 val repeatingCountsString = repeatingCountsGrouped map { g => s"${g._1}-${g._2}" } mkString ","
                                 s"${readableNameOf(repeatingSymbol)._1}$repeatingCountsString"
-                            case _ => "OneOf_" + (syms map { readableNameOf(_)._1 } mkString "_")
+                            case _ => "OneOf_" + (syms map {
+                                readableNameOf(_)._1
+                            } mkString "_")
                         }
                     }
                     ifLong(first, "OneOf")
@@ -124,7 +173,9 @@ object ContextFreeGrammar {
         import Symbols.Symbol
 
         case class ConvertCC(mappings: Map[Symbol, CfgSymbol], rules: ListSet[(String, Seq[CfgSymbol])], usedNames: Set[String]) {
-            assert(rules map { _._1 } subsetOf usedNames)
+            assert(rules map {
+                _._1
+            } subsetOf usedNames)
 
             def addMapping[T <: CfgSymbol](symbol: Symbol, newCfgSymbol: => T): (ConvertCC, T) =
                 mappings get symbol match {
@@ -142,7 +193,7 @@ object ContextFreeGrammar {
             def addNewNontermMapping(baseNameAndNewNameNumbered: (String, Boolean), symbol: Symbol): (ConvertCC, String, CfgSymbols.Nonterminal) = {
                 val (baseName, numbered) = baseNameAndNewNameNumbered
                 mappings get symbol match {
-                    case Some(cfgSymbol @ CfgSymbols.Nonterminal(nonterminalName)) =>
+                    case Some(cfgSymbol@CfgSymbols.Nonterminal(nonterminalName)) =>
                         (this, nonterminalName, cfgSymbol)
                     case Some(_) =>
                         throw new AssertionError("addNewNontermMapping gets a terminal symbol")
@@ -160,6 +211,7 @@ object ContextFreeGrammar {
                 def append(nextName: String): String =
                     if (usedNames contains nextName) append(nextName + "'")
                     else nextName
+
                 val name = append(baseName)
                 (name, ConvertCC(mappings, rules, usedNames + name))
             }
@@ -170,6 +222,7 @@ object ContextFreeGrammar {
                     if (usedNames contains nextName) append(number + 1)
                     else nextName
                 }
+
                 val name = append(0)
                 (name, ConvertCC(mappings, rules, usedNames + name))
             }
@@ -206,7 +259,7 @@ object ContextFreeGrammar {
                             case terminal: Symbols.Terminal =>
                                 // mapping에 (terminal -> CfgSymbols.Terminal(terminal)) 를 넣는다
                                 cc.addMapping(terminal, CfgSymbols.Terminal(terminal))
-                            case nonterminal @ Symbols.Nonterminal(name) =>
+                            case nonterminal@Symbols.Nonterminal(name) =>
                                 // mapping에 (nonterminal -> CfgSymbols.Nonterminal(name)) 를 넣는다
                                 cc.addMapping(nonterminal, CfgSymbols.Nonterminal(name))
                             case Symbols.OneOf(syms) =>
@@ -224,7 +277,7 @@ object ContextFreeGrammar {
                                     }
                                 }
                                 (ncc, cfgSymbol)
-                            case proxy @ Symbols.Proxy(sym) =>
+                            case proxy@Symbols.Proxy(sym) =>
                                 val (ncc0, proxyCfgSymbol) = mappingOf(sym, cc)
                                 val (ncc, newName, cfgSymbol) = ncc0.addNewNontermMapping(readableNameOf(symbol), symbol)
                                 (ncc.addRule(newName, Seq(proxyCfgSymbol)), cfgSymbol)
@@ -270,7 +323,11 @@ object ContextFreeGrammar {
                     ConvertedContextFreeGrammar(grammar.name, rulesMap, startNonterminal)(cc.mappings)
             }
         }
-        val flattenRules = grammar.rules.toList flatMap { rule => rule._2 map { rule._1 -> _ } }
+
+        val flattenRules = grammar.rules.toList flatMap { rule => rule._2 map {
+            rule._1 -> _
+        }
+        }
         // rhs에 등장하는 모든 nonterminal은 lhs에도 등장해야 한다
         val lhsNames = grammar.rules.keySet
         // Symbols.Start는 무시해도 될 듯
@@ -283,7 +340,10 @@ object ContextFreeGrammar {
         }
 
         def hasEmptyRightHandSide: Boolean = {
-            grammar.rules.values.flatten exists { _.isEmpty }
+            grammar.rules.values.flatten exists {
+                _.isEmpty
+            }
         }
     }
+
 }

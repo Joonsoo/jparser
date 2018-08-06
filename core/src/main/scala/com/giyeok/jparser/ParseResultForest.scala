@@ -78,7 +78,7 @@ object ParseResultTree {
             val mergedList = fittedList.tail.foldLeft(fittedList.head) { (memo, e) =>
                 (memo._1 + 1 + e._1, memo._2 zip e._2 map { t => t._1 + " " + t._2 })
             }
-            mergedList ensuring (mergedList._2.forall(_.length == mergedList._1))
+            mergedList ensuring (mergedList._2 forall { _.length == mergedList._1 })
         }
     }
     implicit class ShortString(node: Node) {
@@ -88,7 +88,7 @@ object ParseResultTree {
             case n: CyclicBindNode => s"cyclic(${n.symbol.toShortString})"
             case n: JoinNode => s"${n.body.toShortString}(&${n.join.toShortString})"
             case s: SequenceNode =>
-                if (s.children.isEmpty) "ε" else (s.children map { _.toShortString } mkString "/")
+                if (s.children.isEmpty) "ε" else s.children map { _.toShortString } mkString "/"
             case s: CyclicSequenceNode =>
                 s"cyclic(${s.symbol.toShortString},${s.pointer})"
         }
@@ -103,37 +103,38 @@ object ParseResultTree {
             case n: CyclicBindNode =>
                 indent + s"- cyclic ${n.symbol}\n"
             case n: JoinNode =>
-                (indent + s"- \n") + (n.body.toTreeString(indent + indentUnit, indentUnit)) + "\n" +
-                    (indent + s"& \n") + (n.join.toTreeString(indent + indentUnit, indentUnit))
+                (indent + s"- \n") + n.body.toTreeString(indent + indentUnit, indentUnit) + "\n" +
+                    (indent + s"& \n") + n.join.toTreeString(indent + indentUnit, indentUnit)
             case s: SequenceNode =>
                 (indent + "[\n") + (s.children map { _.toTreeString(indent + indentUnit, indentUnit) } mkString "\n") + (indent + "]")
             case s: CyclicSequenceNode =>
                 indent + s"- cyclicSequence(${s.symbol}, ${s.pointer})\n"
         }
 
-        def toHorizontalHierarchyStringSeq(): (Int, Seq[String]) = {
+        // 가로 길이, 각 줄
+        def toHorizontalHierarchyStringSeq: (Int, Seq[String]) = {
             def centerize(string: String, width: Int): String = {
                 if (string.length >= width) string
                 else {
                     val prec = (width - string.length) / 2
-                    ((" " * prec) + string + (" " * (width - string.length - prec)))
+                    s" $prec$string${" " * (width - string.length - prec)}"
                 }
             }
             def appendBottom(top: (Int, Seq[String]), bottom: String): (Int, Seq[String]) =
                 if (top._1 >= bottom.length + 2) {
                     val finlen = top._1
                     val result = (finlen, top._2 :+ ("[" + centerize(bottom, finlen - 2) + "]"))
-                    result ensuring (result._2.forall(_.length == result._1))
+                    result ensuring (result._2 forall { _.length == result._1 })
                 } else if (top._1 >= bottom.length) {
                     val finlen = top._1 + 2
                     val result = (finlen, (top._2 map { " " + _ + " " }) :+ ("[" + centerize(bottom, finlen - 2) + "]"))
-                    result ensuring (result._2.forall(_.length == result._1))
+                    result ensuring (result._2 forall { _.length == result._1 })
                 } else {
                     val finlen = bottom.length + 2
                     val prec = (finlen - top._1) / 2
                     val (p, f) = (" " * prec, " " * (finlen - top._1 - prec))
                     val result = (finlen, (top._2 map { p + _ + f }) :+ ("[" + bottom + "]"))
-                    result ensuring (result._2.forall(_.length == result._1))
+                    result ensuring (result._2 forall { _.length == result._1 })
                 }
             val result: (Int, Seq[String]) = node match {
                 case n: TerminalNode =>
@@ -162,18 +163,18 @@ object ParseResultTree {
                     val str = s"cyclicSequence ${s.symbol} ${s.pointer}"
                     (str.length, Seq(str))
             }
-            result ensuring (result._2.forall(_.length == result._1))
+            result ensuring (result._2 forall { _.length == result._1 })
         }
 
-        def toHorizontalHierarchyString(): String =
+        def toHorizontalHierarchyString: String =
             toHorizontalHierarchyStringSeq._2 mkString "\n"
 
-        def toOperationsString(): String = node match {
+        def toOperationsString: String = node match {
             case n: TerminalNode => s"term(${n.input.toShortString})"
-            case n: BindNode => s"bind(${n.symbol.toShortString}, ${n.body.toOperationsString()})"
+            case n: BindNode => s"bind(${n.symbol.toShortString}, ${n.body.toOperationsString})"
             case n: CyclicBindNode => s"cyclicBind(${n.symbol.toShortString})"
-            case n: JoinNode => s"join(${n.body.toOperationsString()}, ${n.join.toOperationsString()})"
-            case s: SequenceNode => "seq()" + (s.children map { _.toOperationsString() } map { s => s".append($s)" } mkString "")
+            case n: JoinNode => s"join(${n.body.toOperationsString}, ${n.join.toOperationsString})"
+            case s: SequenceNode => "seq()" + (s.children map { _.toOperationsString } map { s => s".append($s)" } mkString "")
             case s: CyclicSequenceNode => s"cyclicSeq(${s.symbol.toShortString}, ${s.pointer})"
         }
     }

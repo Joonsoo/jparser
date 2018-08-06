@@ -4,7 +4,7 @@ import java.util.concurrent.LinkedBlockingDeque
 
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet
-import scala.util.Try
+import scala.util.{Failure, Try}
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ParseForest
@@ -70,7 +70,11 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
 
     private val exampleGrammars: Seq[(GrammarExample, String)] =
         _exampleGrammars flatMap { g =>
-            Try(MetaGrammar.reverse(g.grammar)).toOption map { (g, _) }
+            val grammarInText = Try(MetaGrammar.reverse(g.grammar))
+            if (grammarInText.isFailure) {
+                println(s"${g.name}, ${grammarInText.asInstanceOf[Failure[_]].exception}")
+            }
+            grammarInText.toOption map { (g, _) }
         }
 
     val rootPanel = new VerticalResizableSplittedComposite(this, SWT.NONE, 40)

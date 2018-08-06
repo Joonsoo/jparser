@@ -18,6 +18,18 @@ lazy val core = (project in file("core")).
         libraryDependencies ++= testDeps
     )
 
+lazy val metagrammar = (project in file("metagrammar")).
+    settings(
+        name := "jparser-metagrammar"
+    ).
+    dependsOn(core % "test->test;compile->compile")
+
+lazy val examples = (project in file("examples")).
+    settings(
+        name := "jparser-examples"
+    ).
+    dependsOn(core % "test->test;compile->compile")
+
 lazy val visJavaOptions: Seq[String] = {
     if (sys.props("os.name") == "Mac OS X") Seq("-XstartOnFirstThread", "-d64") else Seq()
 }
@@ -33,7 +45,9 @@ lazy val visualize = (project in file("visualize")).
         libraryDependencies ++= testDeps,
         javaOptions := visJavaOptions
     ).
-    dependsOn(core % "test->test;compile->compile")
+    dependsOn(core % "test->test;compile->compile").
+    dependsOn(metagrammar % "test->test;compile->compile").
+    dependsOn(examples % "test->test;compile->compile")
 
 lazy val study = (project in file("study")).
     settings(
@@ -41,6 +55,8 @@ lazy val study = (project in file("study")).
         libraryDependencies ++= testDeps,
         javaOptions := visJavaOptions
     ).
-    dependsOn(core % "test->test;compile->compile")
+    dependsOn(core % "test->test;compile->compile").
+    dependsOn(metagrammar % "test->test;compile->compile").
+    dependsOn(examples % "test->test;compile->compile")
 
 fork in run := true
