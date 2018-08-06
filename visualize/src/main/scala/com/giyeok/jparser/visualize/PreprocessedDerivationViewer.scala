@@ -105,9 +105,9 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
                 val (base, slices) = derivationPreprocessor.sliceOf(symbolId, pointer)
                 val control = termGroupOpt match {
                     case Some(termGroup) =>
-                        new PreprocessedSlicedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, base, slices(termGroup))
+                        ??? // new PreprocessedSlicedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, base, slices(termGroup))
                     case None =>
-                        new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, base)
+                        ??? // new PreprocessedDerivationGraphWidget(graphView, SWT.NONE, nodeFig, ngrammar, base)
                 }
                 graphControlsMap((symbolId, pointer, termGroupOpt)) = control
                 control
@@ -217,20 +217,20 @@ class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
     }
 }
 
-class PreprocessedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, preprocessed: DerivationPreprocessor#Preprocessed)
-        extends ZestGraphWidget(parent, style, fig, grammar, preprocessed.lifted.graph) with TipNodes {
-    override def initialize(): Unit = {
-        super.initialize()
-        setTipNodeBorder(preprocessed.base)
-    }
-}
-
-class PreprocessedSlicedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: DerivationPreprocessor#Preprocessed, sliced: DerivationPreprocessor#Preprocessed)
-        extends ZestGraphTransitionWidget(parent, style, fig, grammar, sliced.lifted.graph, sliced.nextGraph) with TipNodes {
-    // assert(preprocessed.baseNode == sliced._1.baseNode)
-    override def initialize(): Unit = {
-        super.initialize()
-        setTipNodeBorder(base.base)
-        sliced.nextDeriveTips foreach { setTipNodeBorder }
-    }
-}
+//class PreprocessedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, preprocessed: DerivationPreprocessor#Preprocessed)
+//        extends ZestGraphWidget(parent, style, fig, grammar, preprocessed.lifted.graph) with TipNodes {
+//    override def initialize(): Unit = {
+//        super.initialize()
+//        setTipNodeBorder(preprocessed.base)
+//    }
+//}
+//
+//class PreprocessedSlicedDerivationGraphWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, base: DerivationPreprocessor#Preprocessed, sliced: DerivationPreprocessor#Preprocessed)
+//        extends ZestGraphTransitionWidget(parent, style, fig, grammar, sliced.lifted.graph, sliced.nextGraph) with TipNodes {
+//    // assert(preprocessed.baseNode == sliced._1.baseNode)
+//    override def initialize(): Unit = {
+//        super.initialize()
+//        setTipNodeBorder(base.base)
+//        sliced.nextDeriveTips foreach { setTipNodeBorder }
+//    }
+//}

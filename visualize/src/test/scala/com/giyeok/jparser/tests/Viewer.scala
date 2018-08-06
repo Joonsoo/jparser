@@ -155,8 +155,9 @@ trait Viewer {
                     ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.naiveParser, source, display, new Shell(display),
                         new ZestParsingContextWidget(_, _, _, _, _, _))
                 case ParserTypes.Preprocessed =>
-                    ParsingProcessVisualizer.start[DeriveTipsContext](grammar.name, gt.preprocessedParser, source, display, new Shell(display),
-                        new ZestDeriveTipParsingContextWidget(_, _, _, _, _, _))
+                    ???
+                    //ParsingProcessVisualizer.start[DeriveTipsContext](grammar.name, gt.preprocessedParser, source, display, new Shell(display),
+                    //    new ZestDeriveTipParsingContextWidget(_, _, _, _, _, _))
             }
         }
 

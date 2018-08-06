@@ -2,11 +2,11 @@ package com.giyeok.jparser.visualize
 
 import com.giyeok.jparser._
 import com.giyeok.jparser.nparser.Parser.Context
-import com.giyeok.jparser.nparser.{NGrammar, ParseTreeConstructor, ParsingContext}
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.npreparser.DeriveTipsContext
+import com.giyeok.jparser.nparser.{NGrammar, ParseTreeConstructor, ParsingContext}
+import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
-import org.eclipse.draw2d.{ColorConstants, CompoundBorder, Figure, LineBorder}
+import org.eclipse.draw2d.{ColorConstants, Figure, LineBorder}
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.{KeyListener, MouseListener, SelectionEvent, SelectionListener}
 import org.eclipse.swt.graphics.Color
@@ -19,24 +19,22 @@ import org.eclipse.zest.layouts.LayoutStyles
 import scala.collection.mutable
 import scala.util.Try
 
-trait AbstractZestGraphWidget extends Control {
+trait AbstractZestGraphWidget[N, E <: AbstractEdge[N], G <: AbstractGraph[N, E, G]] extends Control {
     val graphViewer: GraphViewer
     val graphCtrl: Graph
-    val fig: NodeFigureGenerators[Figure]
 
-    val nodesMap: mutable.Map[Node, CGraphNode] = scala.collection.mutable.Map[Node, CGraphNode]()
-    val edgesMap: mutable.Map[Edge, Seq[GraphConnection]] = scala.collection.mutable.Map[Edge, Seq[GraphConnection]]()
-    var visibleNodes: Set[Node] = Set[Node]()
-    var visibleEdges: Set[Edge] = Set[Edge]()
+    def createFigure(node: N): Figure
 
-    def addNode(grammar: NGrammar, node: Node): Unit = {
+    def createConnection(edge: E): GraphConnection
+
+    val nodesMap: mutable.Map[N, CGraphNode] = scala.collection.mutable.Map[N, CGraphNode]()
+    val edgesMap: mutable.Map[E, Seq[GraphConnection]] = scala.collection.mutable.Map[E, Seq[GraphConnection]]()
+    var visibleNodes: Set[N] = Set()
+    var visibleEdges: Set[E] = Set()
+
+    def addNode(node: N): Unit = {
         if (!(nodesMap contains node)) {
-            val nodeFig = fig.nodeFig(grammar, node)
-            nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
-            nodeFig.setOpaque(true)
-            nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
-            nodeFig.setSize(nodeFig.getPreferredSize())
-
+            val nodeFig = createFigure(node)
             val gnode = new CGraphNode(graphCtrl, SWT.NONE, nodeFig)
             gnode.setData(node)
 
@@ -47,22 +45,20 @@ trait AbstractZestGraphWidget extends Control {
 
     val edgeColor: Color = ColorConstants.gray
     val nonActualEdgeColor: Color = ColorConstants.lightGray
-    def addEdge(edge: Edge): Unit = {
+
+    def addEdge(edge: E): Unit = {
         if (!(edgesMap contains edge)) {
-            val Edge(start, end, actual) = edge
-            assert(nodesMap contains start)
-            assert(nodesMap contains end)
-            val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
-            conn.setLineColor(if (actual) edgeColor else nonActualEdgeColor)
-            conn.setData((Seq(start, end), Seq(conn)))
+            assert(nodesMap contains edge.start)
+            assert(nodesMap contains edge.end)
+            val conn = createConnection(edge)
             edgesMap(edge) = Seq(conn)
             visibleEdges += edge
         }
     }
 
-    def addGraph(grammar: NGrammar, graph: ParsingContext.Graph): Unit = {
+    def addGraph(graph: G): Unit = {
         graph.nodes foreach { node =>
-            addNode(grammar, node)
+            addNode(node)
         }
         graph.edges foreach { edge =>
             addEdge(edge)
@@ -80,7 +76,7 @@ trait AbstractZestGraphWidget extends Control {
         graphCtrl.setLayoutAlgorithm(layoutAlgorithm, true)
     }
 
-    def setVisibleSubgraph(nodes: Set[Node], edges: Set[Edge]): Unit = {
+    def setVisibleSubgraph(nodes: Set[N], edges: Set[E]): Unit = {
         visibleNodes = nodes
         visibleEdges = edges
 
@@ -89,20 +85,48 @@ trait AbstractZestGraphWidget extends Control {
         }
         edgesMap foreach { kv =>
             val visible = edges contains kv._1
-            kv._2 foreach { _.setVisible(visible) }
+            kv._2 foreach {
+                _.setVisible(visible)
+            }
         }
     }
 }
 
-trait Highlightable extends AbstractZestGraphWidget {
+trait AbstractZestParsingGraphWidget extends AbstractZestGraphWidget[Node, Edge, ParsingContext.Graph] {
+    val grammar: NGrammar
+    val fig: NodeFigureGenerators[Figure]
+
+    def createFigure(node: Node): Figure = {
+        val nodeFig = fig.nodeFig(grammar, node)
+        nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
+        nodeFig.setOpaque(true)
+        nodeFig.setBorder(new LineBorder(ColorConstants.darkGray))
+        nodeFig.setSize(nodeFig.getPreferredSize())
+        nodeFig
+    }
+
+    def createConnection(edge: Edge): GraphConnection = {
+        val Edge(start, end, actual) = edge
+        val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
+        conn.setLineColor(if (actual) edgeColor else nonActualEdgeColor)
+        conn.setData((Seq(start, end), Seq(conn)))
+        conn
+    }
+}
+
+trait Highlightable[N, E <: AbstractEdge[N], G <: AbstractGraph[N, E, G]] extends AbstractZestGraphWidget[N, E, G] {
     val blinkInterval = 100
     val blinkCycle = 10
-    val highlightedNodes = scala.collection.mutable.Map[Node, (Long, Int)]()
+    val highlightedNodes = scala.collection.mutable.Map[N, (Long, Int)]()
 
     var _uniqueId = 0L
-    def uniqueId: Long = { _uniqueId += 1; _uniqueId }
 
-    def highlightNode(node: Node): Unit = {
+    def uniqueId: Long = {
+        _uniqueId += 1;
+        _uniqueId
+    }
+
+    def highlightNode(node: N): Unit = {
         val display = getDisplay
         if (!(highlightedNodes contains node) && (visibleNodes contains node)) {
             nodesMap(node).highlight()
@@ -126,6 +150,7 @@ trait Highlightable extends AbstractZestGraphWidget {
             })
         }
     }
+
     def unhighlightAllNodes(): Unit = {
         highlightedNodes.keys foreach { node =>
             val shownNode = nodesMap(node)
@@ -136,7 +161,7 @@ trait Highlightable extends AbstractZestGraphWidget {
     }
 }
 
-trait EdgeHighlightable extends Highlightable {
+trait EdgeHighlightable[N, E <: AbstractEdge[N], G <: AbstractGraph[N, E, G]] extends Highlightable[N, E, G] {
     def initializeEdgeHighlighter(): Unit = {
         graphCtrl.addSelectionListener(new SelectionListener {
             def widgetDefaultSelected(e: SelectionEvent): Unit = {}
@@ -149,7 +174,9 @@ trait EdgeHighlightable extends Highlightable {
                             case null => // nothing to do
                             case ((nodesSeq, connssSeq)) =>
                                 unhighlightAllNodes()
-                                nodesSeq.asInstanceOf[Seq[Node]] foreach { highlightNode }
+                                nodesSeq.asInstanceOf[Seq[N]] foreach {
+                                    highlightNode
+                                }
                                 connssSeq.asInstanceOf[Seq[GraphConnection]] foreach { conn =>
                                     conn.highlight()
                                 }
@@ -161,7 +188,7 @@ trait EdgeHighlightable extends Highlightable {
     }
 }
 
-trait Interactable extends AbstractZestGraphWidget {
+trait Interactable[N, E <: AbstractEdge[N], G <: AbstractGraph[N, E, G]] extends AbstractZestGraphWidget[N, E, G] {
     def nodesAt(ex: Int, ey: Int): Seq[Any] = {
         import scala.collection.JavaConverters._
 
@@ -175,19 +202,23 @@ trait Interactable extends AbstractZestGraphWidget {
     }
 }
 
-class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, graph: ParsingContext.Graph)
-        extends Composite(parent, style) with AbstractZestGraphWidget with Highlightable with EdgeHighlightable with Interactable {
+class ZestParsingGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val grammar: NGrammar, graph: ParsingContext.Graph)
+    extends Composite(parent, style) with AbstractZestParsingGraphWidget
+        with Highlightable[Node, Edge, ParsingContext.Graph]
+        with EdgeHighlightable[Node, Edge, ParsingContext.Graph]
+        with Interactable[Node, Edge, ParsingContext.Graph] {
     val graphViewer = new GraphViewer(this, style)
     val graphCtrl: Graph = graphViewer.getGraphControl
 
     setLayout(new FillLayout())
 
     def initialize(): Unit = {
-        addGraph(grammar, graph)
+        addGraph(graph)
         applyLayout(false)
         initializeTooltips(getTooltips)
         initializeEdgeHighlighter()
     }
+
     initialize()
 
     def getTooltips: Map[Node, Seq[Figure]] = {
@@ -212,6 +243,7 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
         //        }
         tooltips
     }
+
     protected def initializeTooltips(tooltips: Map[Node, Seq[Figure]]): Unit = {
         tooltips foreach { kv =>
             val (node, figs) = kv
@@ -224,18 +256,31 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
 
     // Interactions
     override def addKeyListener(keyListener: KeyListener): Unit = graphCtrl.addKeyListener(keyListener)
+
     override def addMouseListener(mouseListener: MouseListener): Unit = graphCtrl.addMouseListener(mouseListener)
 
     val inputMaxInterval = 2000
+
     case class InputAccumulator(textSoFar: String, lastTime: Long) {
         def accumulate(char: Char, thisTime: Long): InputAccumulator =
             if (thisTime - lastTime < inputMaxInterval) InputAccumulator(textSoFar + char, thisTime) else InputAccumulator("" + char, thisTime)
-        def textAsInt: Option[Int] = try { Some(textSoFar.toInt) } catch { case _: Throwable => None }
+
+        def textAsInt: Option[Int] = try {
+            Some(textSoFar.toInt)
+        } catch {
+            case _: Throwable => None
+        }
+
         def textAsInts: Seq[Int] = {
             val tokens = textSoFar.split("\\D+") map { t => Try(t.toInt) }
-            if (tokens forall { _.isSuccess }) tokens map { _.get } else Seq()
+            if (tokens forall {
+                _.isSuccess
+            }) tokens map {
+                _.get
+            } else Seq()
         }
     }
+
     var inputAccumulator = InputAccumulator("", 0)
 
     addKeyListener(new KeyListener() {
@@ -253,14 +298,20 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
                     println(textAsInts)
                     textAsInts match {
                         case Seq(symbolId) =>
-                            nodesMap.keySet filter { node => node.kernel.symbolId == symbolId } foreach { highlightNode }
+                            nodesMap.keySet filter { node => node.kernel.symbolId == symbolId } foreach {
+                                highlightNode
+                            }
                         case Seq(symbolId, beginGen) =>
-                            nodesMap.keySet filter { node => node.kernel.symbolId == symbolId && node.kernel.beginGen == beginGen } foreach { highlightNode }
+                            nodesMap.keySet filter { node => node.kernel.symbolId == symbolId && node.kernel.beginGen == beginGen } foreach {
+                                highlightNode
+                            }
                         case Seq(symbolId, pointer, beginGen, endGen) =>
                             nodesMap.keySet find { node =>
                                 val k = node.kernel
                                 k.symbolId == symbolId && k.pointer == pointer && k.beginGen == beginGen && k.endGen == endGen
-                            } foreach { highlightNode }
+                            } foreach {
+                                highlightNode
+                            }
                         case _ => // nothing to do
                     }
                 case SWT.ESC =>
@@ -268,6 +319,7 @@ class ZestGraphWidget(parent: Composite, style: Int, val fig: NodeFigureGenerato
                 case _ =>
             }
         }
+
         def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
     })
 }
@@ -286,6 +338,7 @@ trait ZestParseTreeConstructorView {
                 println("No parse tree - accept condition failed")
         }
     }
+
     def parseTreeOpener(stateMask: Int): (Int, Kernel) => Unit = {
         val shiftPressed = (stateMask & SWT.SHIFT) != 0
         val ctrlPressed = (stateMask & SWT.CTRL) != 0
@@ -310,11 +363,11 @@ trait ZestParseTreeConstructorView {
 }
 
 class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, baseGraph: ParsingContext.Graph, nextGraph: ParsingContext.Graph)
-        extends ZestGraphWidget(parent, style, fig, grammar, nextGraph) {
+    extends ZestParsingGraphWidget(parent, style, fig, grammar, nextGraph) {
 
     override def initialize(): Unit = {
-        addGraph(grammar, baseGraph)
-        addGraph(grammar, nextGraph)
+        addGraph(baseGraph)
+        addGraph(nextGraph)
         val thickLineWidth = 2
         // 변경이 있는 부분은 굵은 선
         // 없어지는 노드, 엣지는 주황색 점선
@@ -387,12 +440,13 @@ class ZestGraphTransitionWidget(parent: Composite, style: Int, fig: NodeFigureGe
                 case _ =>
             }
         }
+
         def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
     })
 }
 
 class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, val graph: ParsingContext.Graph, val context: Context)
-    extends ZestGraphWidget(parent, SWT.NONE, fig, grammar, graph) with ZestParseTreeConstructorView {
+    extends ZestParsingGraphWidget(parent, SWT.NONE, fig, grammar, graph) with ZestParseTreeConstructorView {
 
     addKeyListener(new KeyListener() {
         def keyPressed(e: org.eclipse.swt.events.KeyEvent): Unit = {
@@ -404,12 +458,15 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
                 case _ =>
             }
         }
+
         def keyReleased(e: org.eclipse.swt.events.KeyEvent): Unit = {}
     })
 
     addMouseListener(new MouseListener() {
         def mouseDown(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+
         def mouseUp(e: org.eclipse.swt.events.MouseEvent): Unit = {}
+
         def mouseDoubleClick(e: org.eclipse.swt.events.MouseEvent): Unit = {
             nodesAt(e.x, e.y) foreach {
                 case node: Node =>
@@ -421,28 +478,28 @@ class ZestParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGen
     })
 }
 
-trait TipNodes extends AbstractZestGraphWidget {
-    def setTipNodeBorder(node: Node): Unit = {
-        val shownNode = nodesMap(node)
-        shownNode.getFigure.setBorder(new CompoundBorder(shownNode.getFigure.getBorder, new LineBorder(ColorConstants.orange, 3)))
-        val size = shownNode.getFigure.getPreferredSize()
-        shownNode.setSize(size.width, size.height)
-    }
-}
-
-class ZestDeriveTipParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, graph: ParsingContext.Graph, val context: DeriveTipsContext)
-    extends ZestGraphWidget(parent, style, fig, grammar, graph)
-        with ZestParseTreeConstructorView
-        with TipNodes {
-
-    override def initialize(): Unit = {
-        super.initialize()
-        context.deriveTips foreach { deriveTip =>
-            if (!(nodesMap contains deriveTip)) {
-                println(s"Error! $deriveTip @ ${context.gen}")
-            } else {
-                setTipNodeBorder(deriveTip)
-            }
-        }
-    }
-}
+//trait TipNodes extends AbstractZestGraphWidget {
+//    def setTipNodeBorder(node: Node): Unit = {
+//        val shownNode = nodesMap(node)
+//        shownNode.getFigure.setBorder(new CompoundBorder(shownNode.getFigure.getBorder, new LineBorder(ColorConstants.orange, 3)))
+//        val size = shownNode.getFigure.getPreferredSize()
+//        shownNode.setSize(size.width, size.height)
+//    }
+//}
+//
+//class ZestDeriveTipParsingContextWidget(parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, graph: ParsingContext.Graph, val context: DeriveTipsContext)
+//    extends ZestGraphWidget(parent, style, fig, grammar, graph)
+//        with ZestParseTreeConstructorView
+//        with TipNodes {
+//
+//    override def initialize(): Unit = {
+//        super.initialize()
+//        context.deriveTips foreach { deriveTip =>
+//            if (!(nodesMap contains deriveTip)) {
+//                println(s"Error! $deriveTip @ ${context.gen}")
+//            } else {
+//                setTipNodeBorder(deriveTip)
+//            }
+//        }
+//    }
+//}

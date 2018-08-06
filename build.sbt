@@ -57,6 +57,7 @@ lazy val study = (project in file("study")).
     ).
     dependsOn(core % "test->test;compile->compile").
     dependsOn(metagrammar % "test->test;compile->compile").
-    dependsOn(examples % "test->test;compile->compile")
+    dependsOn(examples % "test->test;compile->compile").
+    dependsOn(visualize % "test->test;compile->compile")
 
 fork in run := true
