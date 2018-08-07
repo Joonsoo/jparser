@@ -11,6 +11,9 @@ class NGrammar(val nsymbols: Map[Int, NGrammar.NAtomicSymbol], val nsequences: M
             case None => nsequences(id)
         }
     }
+
+    def findSymbol(symbol: Symbols.Symbol): Option[(Int, NGrammar.NSymbol)] =
+        (nsymbols ++ nsequences) find { _._2.symbol == symbol }
 }
 
 object NGrammar {

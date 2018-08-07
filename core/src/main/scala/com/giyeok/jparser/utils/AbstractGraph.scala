@@ -1,5 +1,7 @@
 package com.giyeok.jparser.utils
 
+import scala.collection.mutable
+
 trait AbstractEdge[N] {
     val start: N
     val end: N
@@ -7,7 +9,47 @@ trait AbstractEdge[N] {
 
 case class SimpleEdge[N](start: N, end: N) extends AbstractEdge[N]
 
-trait AbstractGraph[N, E <: AbstractEdge[N], Self <: AbstractGraph[N, E, _]] {
+class GraphBuilder[N, E <: AbstractEdge[N], +G <: AbstractGraph[N, E, G]](val createGraph: (Set[N], Set[E], Map[N, Set[E]], Map[N, Set[E]]) => G) {
+    private val nodes = mutable.Set[N]()
+    private val edges = mutable.Set[E]()
+    private val edgesByStart = mutable.Map[N, Set[E]]()
+    private val edgesByEnd = mutable.Map[N, Set[E]]()
+
+    def result() = createGraph(nodes.toSet, edges.toSet, edgesByStart.toMap, edgesByEnd.toMap)
+
+    def addNode(node: N): Unit = {
+        if (!(nodes contains node)) {
+            nodes.add(node)
+            edgesByStart += node -> Set()
+            edgesByEnd += node -> Set()
+        }
+    }
+
+    def addEdge(edge: E): Unit = {
+        if (!(edges contains edge)) {
+            if (!(nodes contains edge.start) || !(nodes contains edge.end)) {
+                throw new Exception("node is not added")
+            }
+            edges.add(edge)
+            edgesByStart(edge.start) = edgesByStart(edge.start) + edge
+            edgesByStart(edge.end) = edgesByStart(edge.end) + edge
+        }
+    }
+
+    def addEdgeAndNode(edge: E): Unit = {
+        addNode(edge.start)
+        addNode(edge.end)
+        addEdge(edge)
+    }
+
+    def hasNode(node: N): Boolean = nodes contains node
+
+    def hasEdge(edge: E): Boolean = edges contains edge
+}
+
+trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]] {
+    def newBuilder = new GraphBuilder[N, E, Self](createGraph)
+
     val nodes: Set[N]
     val edges: Set[E]
     val edgesByStart: Map[N, Set[E]]
@@ -69,7 +111,7 @@ trait AbstractGraph[N, E <: AbstractEdge[N], Self <: AbstractGraph[N, E, _]] {
         createGraph(newNodes, newEdges, newEdgesByStart, newEdgesByEnd)
     }
 
-    def merge(other: Self): Self = {
+    def merge[G <: AbstractGraph[N, E, G]](other: G): Self = {
         def mergeEdgesMap(map: Map[N, Set[E]], merging: Map[N, Set[E]]): Map[N, Set[E]] =
             merging.foldLeft(map) { (cc, i) =>
                 val (node, edges) = i

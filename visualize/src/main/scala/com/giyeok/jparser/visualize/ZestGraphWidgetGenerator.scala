@@ -189,6 +189,10 @@ trait EdgeHighlightable[N, E <: AbstractEdge[N], G <: AbstractGraph[N, E, G]] ex
 }
 
 trait Interactable[N, E <: AbstractEdge[N], G <: AbstractGraph[N, E, G]] extends AbstractZestGraphWidget[N, E, G] {
+    override def addKeyListener(keyListener: KeyListener): Unit = graphCtrl.addKeyListener(keyListener)
+
+    override def addMouseListener(mouseListener: MouseListener): Unit = graphCtrl.addMouseListener(mouseListener)
+
     def nodesAt(ex: Int, ey: Int): Seq[Any] = {
         import scala.collection.JavaConverters._
 
@@ -255,9 +259,6 @@ class ZestParsingGraphWidget(parent: Composite, style: Int, val fig: NodeFigureG
     }
 
     // Interactions
-    override def addKeyListener(keyListener: KeyListener): Unit = graphCtrl.addKeyListener(keyListener)
-
-    override def addMouseListener(mouseListener: MouseListener): Unit = graphCtrl.addMouseListener(mouseListener)
 
     val inputMaxInterval = 2000
 
