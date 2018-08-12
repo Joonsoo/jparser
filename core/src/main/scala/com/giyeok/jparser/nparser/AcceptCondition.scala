@@ -137,11 +137,11 @@ object AcceptCondition {
                 Always
             } else {
                 val conditions = graph.conditionsOf(kernel1(gen))
-                if (conditions.isEmpty) {
-                    if (graph.nodes contains node0) this else Always
-                } else {
-                    disjunct(conditions.toSeq: _*).neg.evaluate(gen, graph)
-                }
+//                if (conditions.isEmpty) {
+//                    if (graph.nodes contains node0) this else Always
+//                } else {
+                disjunct(conditions.toSeq: _*).neg.evaluate(gen, graph)
+//                }
             }
         }
         def acceptable(gen: Int, graph: Graph): Boolean = {
@@ -162,11 +162,11 @@ object AcceptCondition {
                 Never
             } else {
                 val conditions = graph.conditionsOf(kernel1(gen))
-                if (conditions.isEmpty) {
-                    if (graph.nodes contains node0) this else Never
-                } else {
-                    disjunct(conditions.toSeq: _*).evaluate(gen, graph)
-                }
+//                if (conditions.isEmpty) {
+//                    if (graph.nodes contains node0) this else Never
+//                } else {
+                disjunct(conditions.toSeq: _*).evaluate(gen, graph)
+//                }
             }
         }
         def acceptable(gen: Int, graph: Graph): Boolean = {
