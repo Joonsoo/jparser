@@ -32,7 +32,7 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
         symbol match {
             case Terminals.ExactChar(c) => fig.textFig(exactCharacterRepr(c), ap.terminal)
             case chars: Terminals.Chars =>
-                fig.horizontalFig(Spacing.None, fig.textFig("{", ap.default) +: join(chars.groups map {
+                fig.horizontalFig(Spacing.None, fig.textFig("{", ap.default) +: join(chars.chars.groups map {
                     case (f, t) if f == t => fig.textFig(exactCharacterRepr(f), ap.terminal)
                     case (f, t) =>
                         val (rangeStart: String, rangeEnd: String) = rangeCharactersRepr(f, t)

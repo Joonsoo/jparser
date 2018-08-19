@@ -1,9 +1,9 @@
 package com.giyeok.jparser.study.parsergen
 
-import com.giyeok.jparser.gramgram.MetaGrammar
+import com.giyeok.jparser.examples.ExpressionGrammars
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
-import com.giyeok.jparser.visualize.{AbstractZestGraphWidget, BasicVisualizeResources, Interactable, NodeFigureGenerators}
+import com.giyeok.jparser.visualize._
 import org.eclipse.draw2d.{ColorConstants, Figure, LineBorder}
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.{KeyEvent, KeyListener, MouseListener}
@@ -46,16 +46,7 @@ object ReachablesGraph {
     }
 
     def main(args: Array[String]): Unit = {
-        val testGrammarText: String =
-            """S = T*
-              |T = Kw | Id
-              |Kw = N & "if"
-              |Id = N - Kw
-              |N = <{a-z}+>
-            """.stripMargin('|')
-
-        val rawGrammar = MetaGrammar.translate("Test Grammar", testGrammarText).left.get
-        val grammar: NGrammar = NGrammar.fromGrammar(rawGrammar)
+        val grammar: NGrammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
 
         val analyzer = new GrammarAnalyzer(grammar)
         analyzer.deriveRelations.edgesByStart foreach { relation =>
@@ -158,6 +149,19 @@ object ReachablesGraph {
                         updateSubgraph()
                     case 'R' | 'r' =>
                         graphViewer.applyLayout(true)
+                    case 'D' | 'd' =>
+                        val nodes = (analyzer.deriveRelations.nodes map { node =>
+                            node -> DotGraphModel.Node(s"${node.symbolId}_${node.pointer}")(node.toReadableString(grammar, "&bull;"))
+                        }).toMap
+                        val startNode = nodes(AKernel(grammar.startSymbol, 0))
+                        val edges = analyzer.deriveRelations.edges.toSeq map { edge =>
+                            val dotEdge = DotGraphModel.Edge(nodes(edge.start), nodes(edge.end))
+                            if (analyzer.isZeroReachableAKernel(edge.end)) {
+                                dotEdge.addStyle("bold")
+                            }
+                            dotEdge
+                        }
+                        new DotGraphModel(nodes.values.toSet, edges).printDotGraph(startNode)
                     case _ => // do nothing
                 }
             }

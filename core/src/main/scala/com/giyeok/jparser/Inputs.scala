@@ -1,6 +1,7 @@
 package com.giyeok.jparser
 
 import com.giyeok.jparser.utils.UnicodeUtil
+import com.giyeok.jparser.Symbols.CharsGrouping
 
 object Inputs {
     type Location = Int
@@ -96,16 +97,16 @@ object Inputs {
 
         def toShortString: String = {
             var string = "CharsGroup("
-            if (!unicodeCategories.isEmpty) {
-                string += "{" + (unicodeCategories.toSeq.sorted map { UnicodeUtil.categoryCodeToName _ } mkString ",") + "}"
-                if (!excludingChars.isEmpty) {
-                    string += "-{" + (excludingChars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "") + "}"
+            if (unicodeCategories.nonEmpty) {
+                string += "{" + (unicodeCategories.toSeq.sorted map { UnicodeUtil.categoryCodeToName } mkString ",") + "}"
+                if (excludingChars.nonEmpty) {
+                    string += "-{" + (excludingChars.toSeq.sorted map { UnicodeUtil.toReadable } mkString "") + "}"
                 }
-                if (!chars.isEmpty) {
-                    string += "+{" + (chars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "") + "}"
+                if (chars.nonEmpty) {
+                    string += "+{" + chars.groupedString + "}"
                 }
             } else {
-                string += (chars.toSeq.sorted map { UnicodeUtil.toReadable _ } mkString "")
+                string += chars.groupedString
             }
             string += ")"
             string

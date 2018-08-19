@@ -28,7 +28,8 @@ lazy val examples = (project in file("examples")).
     settings(
         name := "jparser-examples"
     ).
-    dependsOn(core % "test->test;compile->compile")
+    dependsOn(core % "test->test;compile->compile").
+    dependsOn(metagrammar % "test->test;compile->compile")
 
 lazy val visJavaOptions: Seq[String] = {
     if (sys.props("os.name") == "Mac OS X") Seq("-XstartOnFirstThread", "-d64") else Seq()
@@ -59,5 +60,13 @@ lazy val study = (project in file("study")).
     dependsOn(metagrammar % "test->test;compile->compile").
     dependsOn(examples % "test->test;compile->compile").
     dependsOn(visualize % "test->test;compile->compile")
+
+lazy val parsergen = (project in file("parsergen")).
+    settings(
+        name := "jparser-parsergen",
+        libraryDependencies ++= testDeps
+    ).
+    dependsOn(core % "test->test;compile->compile").
+    dependsOn(examples % "test->test;compile->compile")
 
 fork in run := true

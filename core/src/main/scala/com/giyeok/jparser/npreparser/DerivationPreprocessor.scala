@@ -16,7 +16,7 @@ import com.giyeok.jparser.nparser.ParsingContext.Kernel
 import com.giyeok.jparser.nparser.ParsingContext.Node
 import com.giyeok.jparser.nparser.ParsingTasks
 
-trait DerivationPreprocessor extends ParsingTasks {
+object TermGrouper {
     def termGroupsOf(terminals: Set[Terminal]): Set[TermGroupDesc] = {
         val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
         val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
@@ -25,25 +25,43 @@ trait DerivationPreprocessor extends ParsingTasks {
             val charIntersects: Set[CharacterTermGroupDesc] = termGroups flatMap { term1 =>
                 termGroups collect {
                     case term2 if term1 != term2 => term1 intersect term2
-                } filterNot { _.isEmpty }
+                } filterNot {
+                    _.isEmpty
+                }
             }
-            val essentials = (termGroups map { g => charIntersects.foldLeft(g) { _ - _ } }) filterNot { _.isEmpty }
+            val essentials = (termGroups map { g =>
+                charIntersects.foldLeft(g) {
+                    _ - _
+                }
+            }) filterNot {
+                _.isEmpty
+            }
             val intersections = if (charIntersects.isEmpty) Set() else sliceTermGroups(charIntersects)
             essentials ++ intersections
         }
+
         val charTermGroups = sliceTermGroups(charTerms)
 
         val virtIntersects: Set[VirtualTermGroupDesc] = virtTerms flatMap { term1 =>
             virtTerms collect {
                 case term2 if term1 != term2 => term1 intersect term2
-            } filterNot { _.isEmpty }
+            } filterNot {
+                _.isEmpty
+            }
         }
         val virtTermGroups = (virtTerms map { term =>
-            virtIntersects.foldLeft(term) { _ - _ }
+            virtIntersects.foldLeft(term) {
+                _ - _
+            }
         }) ++ virtIntersects
 
-        (charTermGroups ++ virtTermGroups) filterNot { _.isEmpty }
+        (charTermGroups ++ virtTermGroups) filterNot {
+            _.isEmpty
+        }
     }
+}
+
+trait DerivationPreprocessor extends ParsingTasks {
 
     case class Preprocessed(base: Node, lifted: Cont, baseTasks: List[ProgressTask], nextGraph: Graph, nextDeriveTips: Set[Node]) {
         def instantiate(beginGen: Int, endGen: Int, condition: AcceptCondition): Preprocessed = {
@@ -76,7 +94,7 @@ trait DerivationPreprocessor extends ParsingTasks {
 
     @tailrec private def rootBlockingRec(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[ProgressTask]): (Cont, List[ProgressTask]) =
         tasks match {
-            case (task @ ProgressTask(`root`, _)) +: rest =>
+            case (task@ProgressTask(`root`, _)) +: rest =>
                 rootBlockingRec(nextGen, root, rest, cc, task +: rootTasks)
             case (FinishTask(`root`)) +: _ =>
                 ??? // should not happen
@@ -88,11 +106,11 @@ trait DerivationPreprocessor extends ParsingTasks {
 
     @tailrec private def deriveBlockingRec(nextGen: Int, root: Node, tasks: List[Task], cc: Cont, rootTasks: List[ProgressTask], tipsTasks: List[DeriveTask]): (Cont, List[ProgressTask], List[DeriveTask]) =
         tasks match {
-            case (task @ ProgressTask(`root`, _)) +: rest =>
+            case (task@ProgressTask(`root`, _)) +: rest =>
                 deriveBlockingRec(nextGen, root, rest, cc, task +: rootTasks, tipsTasks)
             case (FinishTask(`root`)) +: _ =>
                 ??? // should not happen
-            case (task @ DeriveTask(Node(kernel, _))) +: rest if kernel.pointer > 0 =>
+            case (task@DeriveTask(Node(kernel, _))) +: rest if kernel.pointer > 0 =>
                 deriveBlockingRec(nextGen, root, rest, cc, rootTasks, task +: tipsTasks)
             case task +: rest =>
                 val (ncc, newTasks) = process(nextGen, task, cc)
@@ -110,11 +128,17 @@ trait DerivationPreprocessor extends ParsingTasks {
                 val (lifted, rootTasks) = rootBlockingRec(0, baseNode, List(DeriveTask(baseNode)), Cont(Graph(Set(baseNode), Set()), Map()), List())
                 val nextGraph = trimGraph(lifted.graph, baseNode, 0)
                 val base = Preprocessed(baseNode, lifted, rootTasks, nextGraph, Set(baseNode))
-                val termGroups = termGroupsOf(termNodes(lifted.graph, 0) map { _.kernel.symbol.asInstanceOf[NTerminal].symbol })
+                val termGroups = TermGrouper.termGroupsOf(termNodes(lifted.graph, 0) map {
+                    _.kernel.symbol.asInstanceOf[NTerminal].symbol
+                })
                 val slicedMap = (termGroups map { termGroup =>
-                    val termFinishes = finishableTermNodes(nextGraph, 0, termGroup).toList map { ProgressTask(_, Always) }
+                    val termFinishes = finishableTermNodes(nextGraph, 0, termGroup).toList map {
+                        ProgressTask(_, Always)
+                    }
                     val (partialLifted, liftedRootTasks, tipsTasks) = deriveBlockingRec(1, baseNode, termFinishes, Cont(lifted.graph, Map()), List(), List())
-                    val nextDeriveTips = (tipsTasks map { _.node }).toSet
+                    val nextDeriveTips = (tipsTasks map {
+                        _.node
+                    }).toSet
                     val nextNextGraph = trimUnreachables(partialLifted.graph, baseNode, nextDeriveTips.toSet)
                     val sliced = Preprocessed(baseNode, partialLifted, liftedRootTasks, nextNextGraph, nextDeriveTips)
                     termGroup -> sliced
@@ -128,9 +152,15 @@ trait DerivationPreprocessor extends ParsingTasks {
         val Node(kernel, condition) = node
         val sliceMap = sliceOf(kernel.symbolId, kernel.pointer)._2
 
-        assert((sliceMap count { _._1 contains input }) <= 1)
+        assert((sliceMap count {
+            _._1 contains input
+        }) <= 1)
 
-        sliceMap find { _._1 contains input } map { _._2 } map { preprocessed =>
+        sliceMap find {
+            _._1 contains input
+        } map {
+            _._2
+        } map { preprocessed =>
             assert(preprocessed.base.kernel.symbolId == node.kernel.symbolId)
             assert(preprocessed.base.kernel.pointer == node.kernel.pointer)
             preprocessed.instantiate(kernel.beginGen, kernel.endGen, condition)

@@ -4,27 +4,25 @@ import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.nparser.{NGrammar, ParsingTasks}
+import com.giyeok.jparser.npreparser.TermGrouper
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph, GraphUtil}
-import com.giyeok.jparser.visualize.{AbstractZestGraphWidget, BasicVisualizeResources, Interactable, NodeFigureGenerators}
-import org.eclipse.draw2d.{ColorConstants, Figure, LineBorder}
+import com.giyeok.jparser.visualize.FigureGenerator.Spacing
+import com.giyeok.jparser.visualize._
+import org.eclipse.draw2d.{Figure, FigureCanvas, LineBorder}
 import org.eclipse.swt.SWT
-import org.eclipse.swt.events.{KeyEvent, KeyListener, MouseListener}
-import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout.FillLayout
-import org.eclipse.swt.widgets.{Composite, Display, Shell}
-import org.eclipse.zest.core.viewers.GraphViewer
-import org.eclipse.zest.core.widgets.{Graph, GraphConnection, ZestStyles}
+import org.eclipse.swt.widgets.{Display, Shell}
 
 // Abstract Kernel? Aggregated Kernel?
 case class AKernel(symbolId: Int, pointer: Int) {
-    def toReadableString(grammar: NGrammar): String = {
+    def toReadableString(grammar: NGrammar, pointerString: String = "*"): String = {
         val symbols = grammar.symbolOf(symbolId) match {
             case atomicSymbol: NAtomicSymbol => Seq(atomicSymbol.symbol.toShortString)
             case NGrammar.NSequence(_, sequence) => sequence map { elemId =>
                 grammar.symbolOf(elemId).symbol.toShortString
             }
         }
-        (symbols.take(pointer) mkString " ") + "*" + (symbols.drop(pointer) mkString " ")
+        (symbols.take(pointer) mkString " ") + pointerString + (symbols.drop(pointer) mkString " ")
     }
 }
 
@@ -169,10 +167,62 @@ class GrammarAnalyzer(val grammar: NGrammar) extends ParsingTasks {
     def zeroReachablePathsToTerminalsFrom(kernel: AKernel): Seq[Seq[AKernelEdge]] = {
         def recursion(last: AKernel, path: List[AKernelEdge], cc: Seq[Seq[AKernelEdge]]): Seq[Seq[AKernelEdge]] =
             if (grammar.symbolOf(last.symbolId).isInstanceOf[NTerminal]) path +: cc else
-                (deriveRelations.edgesByStart(last) filter { edge => isZeroReachableAKernel(edge.end) } filter path.contains).foldLeft(cc) { (m, edge) =>
+                (deriveRelations.edgesByStart(last) filter { edge => isZeroReachableAKernel(edge.end) } filterNot path.contains).foldLeft(cc) { (m, edge) =>
                     recursion(edge.end, path :+ edge, m)
                 }
 
         recursion(kernel, List(), Seq())
+    }
+}
+
+object AllPathsPrinter {
+    def main(args: Array[String]): Unit = {
+        val testGrammarText: String =
+            """S = 'a'+
+            """.stripMargin('|')
+
+        val rawGrammar = MetaGrammar.translate("Test Grammar", testGrammarText).left.get
+        val grammar: NGrammar = NGrammar.fromGrammar(rawGrammar)
+
+        val analyzer = new GrammarAnalyzer(grammar)
+
+        val display = new Display()
+        val shell = new Shell(display)
+
+        val g = FigureGenerator.draw2d.Generator
+        val nodeFig = BasicVisualizeResources.nodeFigureGenerators
+        val canvas = new FigureCanvas(shell, SWT.NONE)
+
+        val paths = analyzer.zeroReachablePathsToTerminalsFrom(analyzer.startKernel) sortBy { path => path.last.end.symbolId }
+        val reachableTerms = TermGrouper.termGroupsOf((paths map { path => path.last.end } map { reachableTerm => grammar.symbolOf(reachableTerm.symbolId) } map { term =>
+            term.symbol.asInstanceOf[Symbols.Terminal]
+        }).toSet)
+        reachableTerms foreach { termGroup =>
+            println(termGroup.toShortString)
+        }
+        val figure = g.verticalFig(Spacing.Big, paths map { path =>
+            def genFig(kernel: AKernel): Figure = {
+                nodeFig.symbol.symbolPointerFig(grammar, kernel.symbolId, kernel.pointer)
+            }
+
+            g.horizontalFig(Spacing.Small, List(genFig(path.head.start)) ++ (path map { edge =>
+                val endFig = genFig(edge.end)
+                if (grammar.nsequences.contains(edge.end.symbolId)) {
+                    val border = new LineBorder()
+                    endFig.setBorder(border)
+                }
+                g.horizontalFig(Spacing.None, Seq(g.textFig("->", nodeFig.appear.default), endFig))
+            }))
+        })
+        canvas.setContents(figure)
+
+        shell.setLayout(new FillLayout)
+        shell.open()
+        while (!shell.isDisposed) {
+            if (!display.readAndDispatch()) {
+                display.sleep()
+            }
+        }
+        display.dispose()
     }
 }

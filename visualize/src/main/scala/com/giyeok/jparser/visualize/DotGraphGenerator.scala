@@ -31,7 +31,7 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                 }
             case chars: Terminals.Chars =>
                 val toReadable2 = toReadable(_: Char, Set('-'), "\\\\")
-                val charsGroups = chars.groups map { range =>
+                val charsGroups = chars.chars.groups map { range =>
                     if (range._1 == range._2) s"${toReadable2(range._1)}"
                     else if (range._1 + 1 == range._2) s"${toReadable2(range._1)}-${toReadable2(range._2)}"
                     else s"${toReadable2(range._1)}-${toReadable2(range._2)}"
