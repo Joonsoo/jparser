@@ -151,13 +151,15 @@ object ReachablesGraph {
                         graphViewer.applyLayout(true)
                     case 'D' | 'd' =>
                         val nodes = (analyzer.deriveRelations.nodes map { node =>
-                            node -> DotGraphModel.Node(s"${node.symbolId}_${node.pointer}")(node.toReadableString(grammar, "&bull;"))
+                            node -> DotGraphModel.Node(s"n${node.symbolId}_${node.pointer}")(node.toReadableString(grammar, "&bull;"))
                         }).toMap
                         val startNode = nodes(AKernel(grammar.startSymbol, 0))
                         val edges = analyzer.deriveRelations.edges.toSeq map { edge =>
                             val dotEdge = DotGraphModel.Edge(nodes(edge.start), nodes(edge.end))
                             if (analyzer.isZeroReachableAKernel(edge.end)) {
                                 dotEdge.addStyle("bold")
+                            } else {
+                                dotEdge.addStyle("dotted")
                             }
                             dotEdge
                         }

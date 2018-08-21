@@ -20,12 +20,16 @@ object DotGraphModel {
             attr("style", newStyle)
         }
 
-        def attrString: String = {
-            _properties map { kv => kv._1 + "=\"" + kv._2 + "\"" } mkString ","
+        def attrStringWith(addProps: Map[String, String]): String = {
+            (_properties.toMap ++ addProps) map { kv => kv._1 + "=\"" + kv._2 + "\"" } mkString ","
         }
+
+        def attrString: String = attrStringWith(Map())
     }
 
-    case class Node(name: String)(val printName: String) extends Props[Node]
+    case class Node(name: String)(val printName: String) extends Props[Node] {
+        val escapedPrintName: String = printName // TODO?
+    }
 
     case class Edge(start: Node, end: Node) extends Props[Edge]
 
@@ -56,7 +60,7 @@ class DotGraphModel(val nodes: Set[Node], val edges: Seq[Edge]) {
                 println(line)
             }
 
-            printLine(s"    ${node.printName}[${node.attrString}];")
+            printLine(s"    ${node.name}[${node.attrStringWith(Map("label" -> node.escapedPrintName))}];")
             val edges = edgesByStartMap.getOrElse(node, Seq())
             var newVisited = visited + node
             edges foreach { edge =>
