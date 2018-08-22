@@ -45,6 +45,8 @@ public class ExpressionGrammarSimpleParser {
     //   = { ( E . ) }
     // 13: {(11, 1), (16, 1)}
     //   = { '0-9'* . '0-9', T . * F }
+    // 14: {(7, 1)}
+    //   = { '1-9' . '0-9'* }
 
     // nodeTypeId, input(last 노드의 타입에 맞춰서 받을 수 있는 input)
     //      : appending node? (input이 들어왔을 때 새로 추가될 node type)
@@ -54,7 +56,7 @@ public class ExpressionGrammarSimpleParser {
     // 1, '(': append 4
     // 2, '*': replace 6
     // 2, '+': replace 7
-    // 3, '0-9': append 5 + finish
+    // 3, '0-9': in-replace 14 + append 5 + finish
     // 3, '*': replace 6
     // 3, '+': replace 7
     // 4, '0': append 2
@@ -69,7 +71,7 @@ public class ExpressionGrammarSimpleParser {
     // 7, '(': append 4
     // 8, '0-9': append 5 + finish
     // 9, '*': replace 6
-    // 10, '0-9': append 5 + finish
+    // 10, '0-9': in-replace 14 + append 5 + finish
     // 10, '*': replace 6
     // 11, '+': replace 7
     // 12, ')': finish
@@ -80,35 +82,39 @@ public class ExpressionGrammarSimpleParser {
     //   -> 근데 이게 정말 위 표에서 "+ finish"인 노드들을 고르면 맞는걸까? 맞는 것 같은데..?
 
     // nodeTypeId, nodeTypeId -> nodeTypeId (엣지 타고 올라갈 때 새로 추가될 node type)
-    // 1 바로 밑에 붙을 수 있는 노드: 2, 3, 4, 6, 7
+    // 1 바로 밑에 붙을 수 있는 노드: 2, 3, 4, 6, 7, 14
     // 2 바로 밑에 붙을 수 있는 노드:  없음
     // 2에서 바뀔 수 있는 노드: 6, 7
     // 3 바로 밑에 붙을 수 있는 노드: 5
-    // 3에서 바뀔 수 있는 노드: 6, 7
-    // 4 바로 밑에 붙을 수 있는 노드: 2, 3, 4, 6, 7
+    // 3에서 바뀔 수 있는 노드: 6, 7, 14
+    // 4 바로 밑에 붙을 수 있는 노드: 2, 3, 4, 6, 7, 14
     // 5 바로 밑에 붙을 수 있는 노드: 없음
     // 6 바로 밑에 붙을 수 있는 노드: 4, 8
-    // 7 바로 밑에 붙을 수 있는 노드: 4, 9, 10, 5, 6
+    // 7 바로 밑에 붙을 수 있는 노드: 4, 9, 10, 5, 6, 14
     // 8 바로 밑에 붙을 수 있는 노드: 5
     // 9에서 바뀔 수 있는 노드: 6
-    // 10에서 바뀔 수 있는 노드: 5, 6
+    // 10에서 바뀔 수 있는 노드: 5, 6, 14
     // 따라서 가능한 모든 엣지 조합:
     // (그 중 target이 finishable인 엣지만 의미가 있음)
     // finishable하지 않은 엣지 조합: 1 -> 2, 1 -> 4, 4 -> 2, 4 -> 4, 6 -> 4, 7 -> 9, 7 -> 4
-    // 1 -> 3: 2
+    // -- 1 -> 3: 2
     // 1 -> 6: 2
     // 1 -> 7: 11
-    // 3 -> 5: 5
-    // 4 -> 3: (노드 3 안에서도 (16, 1), (18, 1)은 finishable이 아니라서 의미 없음) 2
+    // 1 -> 14: 3
+    // -- 3 -> 5: 5
+    // -- 4 -> 3: (노드 3 안에서도 (16, 1), (18, 1)은 finishable이 아니라서 의미 없음) 2
     // 4 -> 6: 2
     // 4 -> 7: 11
+    // 4 -> 14: ??
     // 6 -> 8: .
     // 7 -> 10: (노드 10 안에서도 (16, 1)은 finishable이 아니라서 의미 없음) .
     // 7 -> 6: 9
     // ? -> 4: 12
     // 7 -> 5: 13
+    // 7 -> 14: 9
     // 8 -> 5: 5
-    // 10 -> 5: 5
+    // -- 10 -> 5: 5
+    // 14 -> 5: 5
 
     static class Kernel {
         public final int symbolId, pointer;
@@ -219,6 +225,12 @@ public class ExpressionGrammarSimpleParser {
         this.lastFinishable = false;
     }
 
+    private void inreplace(int newNodeType) {
+        System.out.println("inreplace " + newNodeType + " at " + location);
+        last = new Node(newNodeType, last.parent);
+        // another operation must follow
+    }
+
     private void finish() {
         System.out.println("finish at " + location);
         // 마지막 노드가 finish되었다고 보고 한 단계 위로 lift
@@ -227,21 +239,18 @@ public class ExpressionGrammarSimpleParser {
         int prevNodeType = last.parent.nodeTypeId, lastNodeType = last.nodeTypeId;
 
         // lastFinishable은 기존의 last가 progress되었을 때 (점이 맨 끝에 위치하거나 점 뒤에 nullable들이 따라와서) parent를 progress할 수 있으면 true
-        if (prevNodeType == 1 && lastNodeType == 3) {
-            last = new Node(2, last.parent);
-            lastFinishable = true;
-        } else if (prevNodeType == 1 && lastNodeType == 6) {
+        if (prevNodeType == 1 && lastNodeType == 6) {
             last = new Node(2, last.parent);
             lastFinishable = true;
         } else if (prevNodeType == 1 && lastNodeType == 7) {
             last = new Node(11, last.parent);
             lastFinishable = true;
+        } else if (prevNodeType == 1 && lastNodeType == 14) {
+            last = new Node(3, last.parent);
+            lastFinishable = true;
         } else if (prevNodeType == 3 && lastNodeType == 5) {
             // 이런 경우엔 사실 ('1-9' . '0-9'*) 커널만 고려하면 된다. 왜냐면 그 외의 케이스는 replace로 처리되었기 때문
             last = new Node(5, last.parent);
-            lastFinishable = true;
-        } else if (prevNodeType == 4 && lastNodeType == 3) {
-            last = new Node(2, last.parent);
             lastFinishable = true;
         } else if (prevNodeType == 4 && lastNodeType == 6) {
             last = new Node(2, last.parent);
@@ -249,22 +258,34 @@ public class ExpressionGrammarSimpleParser {
         } else if (prevNodeType == 4 && lastNodeType == 7) {
             last = new Node(11, last.parent);
             lastFinishable = true;
+        } else if (prevNodeType == 4 && lastNodeType == 11) {
+            last = new Node(12, last.parent);
+            lastFinishable = true;
+        } else if (prevNodeType == 4 && lastNodeType == 12) {
+            last = new Node(12, last.parent);
+            lastFinishable = true;
+        } else if (prevNodeType == 4 && lastNodeType == 14) {
+            last = new Node(3, last.parent);
+            lastFinishable = true;
         } else if (prevNodeType == 6 && lastNodeType == 8) {
             last = last.parent;
-            lastFinishable = true;
+            finish();
         } else if (prevNodeType == 7 && lastNodeType == 5) {
             last = new Node(13, last.parent);
             lastFinishable = true;
         } else if (prevNodeType == 7 && lastNodeType == 6) {
             last = new Node(9, last.parent);
             lastFinishable = true;
-        } else if (prevNodeType == 7 && lastNodeType == 10) {
-            last = last.parent;
+        } else if (prevNodeType == 7 && lastNodeType == 14) {
+            last = new Node(9, last.parent);
             lastFinishable = true;
         } else if (prevNodeType == 8 && lastNodeType == 5) {
             last = new Node(5, last.parent);
             lastFinishable = true;
         } else if (prevNodeType == 10 && lastNodeType == 5) {
+            last = new Node(5, last.parent);
+            lastFinishable = true;
+        } else if (prevNodeType == 14 && lastNodeType == 5) {
             last = new Node(5, last.parent);
             lastFinishable = true;
         } else if (lastNodeType == 4) {
@@ -278,13 +299,17 @@ public class ExpressionGrammarSimpleParser {
     private boolean tryFinishable(char next) {
         System.out.println("Try finishable, lastFinishable=" + lastFinishable);
         if (lastFinishable) {
-            last = last.parent;
             // TODO
-            System.out.println(nodeString());
-            if (last.canHandle(next)) {
-                return proceed1(next);
+            last = last.parent;
+            while (lastFinishable) {
+                finish();
+                System.out.println(nodeString());
+                if (last.canHandle(next)) {
+                    return proceed1(next);
+                }
+                System.out.println(nodeString());
             }
-            return false;
+            return proceed1(next);
         } else {
             return false;
         }
@@ -316,7 +341,7 @@ public class ExpressionGrammarSimpleParser {
                 break;
             case 2:
                 if (next == '*') {
-                    replace(0b110);
+                    replace(6);
                     return true;
                 } else if (next == '+') {
                     replace(7);
@@ -325,6 +350,7 @@ public class ExpressionGrammarSimpleParser {
                 break;
             case 3:
                 if ('0' <= next && next <= '9') {
+                    inreplace(14);
                     append(5, true);
                     return true;
                 } else if (next == '*') {
@@ -391,6 +417,7 @@ public class ExpressionGrammarSimpleParser {
                 break;
             case 10:
                 if ('0' <= next && next <= '9') {
+                    inreplace(14);
                     append(5, true);
                     return true;
                 } else if (next == '*') {
@@ -450,7 +477,7 @@ public class ExpressionGrammarSimpleParser {
 
     public static void main(String[] args) {
         ExpressionGrammarSimpleParser parser = new ExpressionGrammarSimpleParser();
-        String example = "1234+(((5678*8765)))";
+        String example = "12345+(1423*4321*(223+0))";
 
         for (int i = 0; i < example.length(); i++) {
             char c = example.charAt(i);
@@ -458,7 +485,7 @@ public class ExpressionGrammarSimpleParser {
             System.out.println("Proceed " + c);
             if (!parser.proceed(c)) {
                 System.out.println("Failed to proceed");
-                break;
+                return;
             }
         }
         System.out.println(parser.nodeString());
