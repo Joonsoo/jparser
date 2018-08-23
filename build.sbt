@@ -67,6 +67,7 @@ lazy val parsergen = (project in file("parsergen")).
         libraryDependencies ++= testDeps
     ).
     dependsOn(core % "test->test;compile->compile").
+    dependsOn(study % "test->test;compile->compile").
     dependsOn(examples % "test->test;compile->compile")
 
 fork in run := true

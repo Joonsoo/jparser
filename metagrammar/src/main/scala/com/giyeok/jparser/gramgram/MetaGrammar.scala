@@ -13,6 +13,7 @@ import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
+import com.giyeok.jparser.Inputs.CharsGrouping
 
 object MetaGrammar extends Grammar {
     val name = "Meta Grammar"

@@ -1,6 +1,6 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.utils.UnicodeUtil.toReadable
+import com.giyeok.jparser.Inputs.CharsGrouping
 
 object Symbols {
 
@@ -236,34 +236,9 @@ object Symbols {
         override val hashCode: Int = (classOf[Longest], sym).hashCode
     }
 
-    implicit class CharsGrouping(chars: Set[Char]) {
-        def groups: List[(Char, Char)] = {
-            def grouping(chars: List[Char], rangeOpt: Option[(Char, Char)], cc: List[(Char, Char)]): List[(Char, Char)] = {
-                (chars, rangeOpt) match {
-                    case (head +: tail, Some(range)) =>
-                        if (head == range._2 + 1) grouping(tail, Some(range._1, head), cc)
-                        else grouping(tail, Some(head, head), range +: cc)
-                    case (head +: tail, None) => grouping(tail, Some(head, head), cc)
-                    case (List(), Some(range)) => range +: cc
-                    case (List(), None) => cc
-                }
-            }
-
-            grouping(chars.toList.sorted, None, List()).reverse
-        }
-
-        def groupedString: String =
-            groups.sorted map { range =>
-                if (range._1 == range._2) s"${toReadable(range._1)}"
-                else if (range._1 + 1 == range._2) s"${toReadable(range._1)}-${toReadable(range._2)}"
-                else s"${toReadable(range._1)}-${toReadable(range._2)}"
-            } mkString ""
-    }
-
     implicit class ShortStringSymbols(sym: Symbol) {
         // TODO improve short string
-        import com.giyeok.jparser.utils.UnicodeUtil.categoryCodeToName
-        import com.giyeok.jparser.utils.UnicodeUtil.toReadable
+        import com.giyeok.jparser.utils.UnicodeUtil.{categoryCodeToName, toReadable}
 
         def toShortString: String = sym match {
             case Any => "<any>"

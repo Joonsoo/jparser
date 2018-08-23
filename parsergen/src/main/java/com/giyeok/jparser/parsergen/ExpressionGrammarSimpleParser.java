@@ -116,34 +116,6 @@ public class ExpressionGrammarSimpleParser {
     // -- 10 -> 5: 5
     // 14 -> 5: 5
 
-    static class Kernel {
-        public final int symbolId, pointer;
-
-        Kernel(int symbolId, int pointer) {
-            this.symbolId = symbolId;
-            this.pointer = pointer;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Kernel kernel = (Kernel) o;
-            return symbolId == kernel.symbolId &&
-                    pointer == kernel.pointer;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(symbolId, pointer);
-        }
-
-        @Override
-        public String toString() {
-            return "Kernel{" + symbolId + "," + pointer + "}";
-        }
-    }
-
     static class Node {
         public final int nodeTypeId;
         public final Node parent;
@@ -238,7 +210,7 @@ public class ExpressionGrammarSimpleParser {
         //  -> 즉, finish성이면 true/progress성이면 false
         int prevNodeType = last.parent.nodeTypeId, lastNodeType = last.nodeTypeId;
 
-        // lastFinishable은 기존의 last가 progress되었을 때 (점이 맨 끝에 위치하거나 점 뒤에 nullable들이 따라와서) parent를 progress할 수 있으면 true
+        // lastFinishable은 기존의 last.parent(?)가 progress되었을 때 (점이 맨 끝에 위치하거나 점 뒤에 nullable들이 따라와서) parent를 progress할 수 있으면 true
         if (prevNodeType == 1 && lastNodeType == 6) {
             last = new Node(2, last.parent);
             lastFinishable = true;

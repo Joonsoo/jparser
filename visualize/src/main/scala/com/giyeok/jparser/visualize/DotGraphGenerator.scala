@@ -14,6 +14,7 @@ import com.giyeok.jparser.nparser.AcceptCondition.Unless
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
 import com.giyeok.jparser.nparser.ParsingContext._
+import com.giyeok.jparser.Inputs.CharsGrouping
 
 class DotGraphGenerator(ngrammar: NGrammar) {
     implicit class DotGraphSymbols(sym: Symbol) {
