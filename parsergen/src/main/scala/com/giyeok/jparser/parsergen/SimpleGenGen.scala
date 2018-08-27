@@ -7,7 +7,7 @@ import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NSequence, NTerminal}
 import com.giyeok.jparser.parsergen.SimpleGen.Action
 import com.giyeok.jparser.parsergen.SimpleGenGen.KAction
-import com.giyeok.jparser.study.parsergen.{AKernel, GrammarAnalyzer}
+import com.giyeok.jparser.study.parsergen.{AKernel, AKernelGraph, GrammarAnalyzer}
 
 object SimpleGenGen {
 
@@ -52,6 +52,8 @@ class SimpleGenGen(val grammar: NGrammar) {
     def influences(startKernels: Set[AKernel], endKernels: Set[AKernel]): (Set[AKernel], Set[AKernel], Boolean) = {
         val reachables = startKernels filter { startKernel => endKernels subsetOf analyzer.zeroReachablesFrom(startKernel).nodes }
 
+        val zeroReachables = reachables.foldLeft(AKernelGraph.empty) { (m, i) => m merge analyzer.zeroReachablesFrom(i) }
+
         def recursion(queue: List[AKernel], visited: Set[AKernel], ccAffected: Set[AKernel], ccAppended: Set[AKernel]): (Set[AKernel], Set[AKernel]) =
             queue match {
                 case head +: rest =>
@@ -81,11 +83,11 @@ class SimpleGenGen(val grammar: NGrammar) {
                                     }
                                 } else {
                                     // progress하면 끝나는 경우
-                                    val next = (analyzer.deriveRelations.edgesByEnd(head) map { e => e.start }) -- visited
+                                    val next = (zeroReachables.edgesByEnd(AKernel(head.symbolId, 0)) map { e => e.start }) -- visited
                                     recursion(rest ++ next, visited ++ next, ccAffected, ccAppended)
                                 }
                             case _: NAtomicSymbol =>
-                                val next = (analyzer.deriveRelations.edgesByEnd(head) map { e => e.start }) -- visited
+                                val next = (zeroReachables.edgesByEnd(head) map { e => e.start }) -- visited
                                 recursion(rest ++ next, visited ++ next, ccAffected, ccAppended)
                         }
                     }
@@ -213,5 +215,7 @@ object SimpleGenGenMain {
         val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
         val gengen = new SimpleGenGen(grammar)
         gengen.termActions(Set(AKernel(grammar.startSymbol, 0)))
+        gengen.termActions(Set(AKernel(16, 1), AKernel(11, 1)))
+        gengen.termActions(Set(AKernel(16, 2)))
     }
 }

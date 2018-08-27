@@ -32,7 +32,7 @@ class GraphBuilder[N, E <: AbstractEdge[N], +G <: AbstractGraph[N, E, G]](val cr
             }
             edges.add(edge)
             edgesByStart(edge.start) = edgesByStart(edge.start) + edge
-            edgesByStart(edge.end) = edgesByStart(edge.end) + edge
+            edgesByEnd(edge.end) = edgesByEnd(edge.end) + edge
         }
     }
 
@@ -113,12 +113,13 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
 
     def merge[G <: AbstractGraph[N, E, G]](other: G): Self = {
         def mergeEdgesMap(map: Map[N, Set[E]], merging: Map[N, Set[E]]): Map[N, Set[E]] =
-            merging.foldLeft(map) { (cc, i) =>
-                val (node, edges) = i
-                if (!(cc contains node)) cc + (node -> edges) else cc + (node -> (cc(node) ++ edges))
-            }
+            ((map.keySet ++ merging.keySet) map { f =>
+                f -> (map.getOrElse(f, Set()) ++ merging.getOrElse(f, Set()))
+            }).toMap
 
-        createGraph(nodes ++ other.nodes, edges ++ other.edges, mergeEdgesMap(edgesByStart, other.edgesByStart), mergeEdgesMap(edgesByEnd, other.edgesByEnd))
+        createGraph(nodes ++ other.nodes, edges ++ other.edges,
+            mergeEdgesMap(edgesByStart, other.edgesByStart),
+            mergeEdgesMap(edgesByEnd, other.edgesByEnd))
     }
 }
 
