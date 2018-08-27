@@ -45,7 +45,13 @@ class SimpleGenGen(val grammar: NGrammar) {
     // - endKernels가 모두 progress되면 따라서 progress될 startKernels의 subset
     //   - 그리고 걔들이 progress된 것들(+거기에 nullable 떄문에 progress된 것들 포함)
     // - subgraph에서 progress될 kernel들의 집합(startKernels exclusive, endKernels inclusive)
-    def influences(startKernels: Set[AKernel], endKernels: Set[AKernel]): (Set[AKernel], Set[AKernel]) = {
+
+    // 1. startKernels 중에서 endKernels에 속한 모든 kernel로 도달 가능한 것들 - reachableKernels
+    // 2. appendKernels
+    // 3. endKernels가 모두 progress되었을 때 feasibleKernels 이 progress되는지 여부 boolean
+    def influences(startKernels: Set[AKernel], endKernels: Set[AKernel]): (Set[AKernel], Set[AKernel], Boolean) = {
+        val reachables = startKernels filter { startKernel => endKernels subsetOf analyzer.zeroReachablesFrom(startKernel).nodes }
+
         def recursion(queue: List[AKernel], visited: Set[AKernel], ccAffected: Set[AKernel], ccAppended: Set[AKernel]): (Set[AKernel], Set[AKernel]) =
             queue match {
                 case head +: rest =>
@@ -65,10 +71,12 @@ class SimpleGenGen(val grammar: NGrammar) {
                                             assert(ccAppended contains progressed)
                                             recursion(rest, visited, ccAffected, ccAppended)
                                         } else {
+                                            // TODO progressed가 reachables에서 zero reachable할 때만. (모든 reachables로부터? 그중 하나로부터?)
                                             recursion(progressed +: rest, visited + progressed, ccAffected, ccAppended + progressed)
                                         }
                                     } else {
                                         // nullable이 아니면 ccAffected에만 추가하고 종료
+                                        // TODO progressed가 reachables에서 zero reachable할 때만. (모든 reachables로부터? 그중 하나로부터?)
                                         recursion(rest, visited + progressed, ccAffected, ccAppended + progressed)
                                     }
                                 } else {
@@ -85,7 +93,10 @@ class SimpleGenGen(val grammar: NGrammar) {
                     (ccAffected, ccAppended)
             }
 
-        recursion(endKernels.toList, endKernels, Set(), Set())
+        val (affected, appended0) = recursion(endKernels.toList, endKernels, Set(), Set())
+        val appended = appended0 // TODO startKernel들에서 zero reachable 해야함. 모든 start kernel에서? 그중 하나에서??
+        // appended와 reachables의 관계?
+        (reachables, appended, affected.nonEmpty)
     }
 
     // kernels로 이루어진 노드와 하위 노드들에서 받을 수 있는 term group -> 이 때 취할 액션
@@ -96,7 +107,7 @@ class SimpleGenGen(val grammar: NGrammar) {
                 grammar.symbolOf(termNode.symbolId).symbol.asInstanceOf[Terminal].accept(termGroup)
             }
 
-            val (affected, appended) = influences(startKernels, acceptNodes)
+            val (reachable, appended, finishing) = influences(startKernels, acceptNodes)
 
             // kernels에서 acceptNodes로 zero reachable한 것들만 추림
             //   -> 만약 추려서 모든 kernel이 acceptNodes로 zero reachable하지 않으면 in-replace 필요
@@ -106,20 +117,22 @@ class SimpleGenGen(val grammar: NGrammar) {
             //   -> implied node 없이 start kernel까지 오면 -> Finish/ReplaceFinish + 가능한 edge 추가
             // => 기존의 replace는 finish/ReplaceFinish + 가능한 edge 조합을 추가하고 implied edge 추가해서 해결
             // TODO 추가로 zero reachable인 것들을 계산해서 뭔가 해야할 듯 한데.. affected
-            val kaction: KAction = if (affected == startKernels) {
+            val kaction: KAction = if (reachable == startKernels) {
                 if (appended.isEmpty) {
                     // TODO affected의 pointer +1로 replace해야하나?
+                    // finishing = true여야 하나?
                     SimpleGenGen.Finish
                 } else {
-                    SimpleGenGen.Append(appended, pendingFinish = true)
+                    SimpleGenGen.Append(appended, pendingFinish = finishing)
                 }
             } else {
-                SimpleGenGen.InReplaceAndAppend(affected, appended, pendingFinish = affected.nonEmpty)
+                SimpleGenGen.InReplaceAndAppend(reachable, appended, pendingFinish = finishing)
             }
 
             println(s"$startKernels  $termGroup  $acceptNodes")
-            println(s"  -> $affected")
+            println(s"  -> $reachable")
             println(s"  -> $appended")
+            println(s"  -> $finishing")
             println(s"  -> $kaction")
             println()
 
