@@ -347,9 +347,21 @@ public class ExprGrammarSimpleParser {
         return true;
     }
 
+    public boolean eof() {
+        while (pendingFinish) {
+            last = last.parent;
+            if (last.nodeTypeId == 1) {
+                return pendingFinish;
+            }
+            finish();
+        }
+        return false;
+    }
+
     public static void main(String[] args) {
         ExprGrammarSimpleParser p = new ExprGrammarSimpleParser();
-        boolean result = p.proceed("123+456+234+567*987+654*321");
+        p.proceed("123+456+234+567*987+654*321+(0+123)");
+        boolean result = p.eof();
         // TODO p.finalizeParsing: pendingFinish여야하고, finish()를 계속 해서 1 노드만 남아있을 때까지 줄일 수 있어야 하고, 줄인 뒤에 pendingFinish여야 함
         System.out.println(result);
     }

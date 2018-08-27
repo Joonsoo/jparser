@@ -4,7 +4,7 @@ import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.nparser.{NGrammar, ParsingTasks}
-import com.giyeok.jparser.npreparser.TermGrouper
+import com.giyeok.jparser.parsergen.TermGrouper
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph, GraphUtil}
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 import com.giyeok.jparser.visualize._
@@ -78,6 +78,9 @@ class GrammarAnalyzer(val grammar: NGrammar) extends ParsingTasks {
                     AKernel(symbolId, index)
                 }).toSet
         }
+
+    def isNullable(symbolId: Int): Boolean =
+        nullableSymbols contains symbolId
 
     def isZeroReachableAKernel(end: AKernel): Boolean =
         grammar.symbolOf(end.symbolId) match {
@@ -172,6 +175,16 @@ class GrammarAnalyzer(val grammar: NGrammar) extends ParsingTasks {
                 }
 
         recursion(kernel, List(), Seq())
+    }
+
+    def zeroReachablePathsBetween(start: AKernel, end: Set[AKernel]): Seq[Seq[AKernelEdge]] = {
+        def recursion(last: AKernel, path: List[AKernelEdge], cc: Seq[Seq[AKernelEdge]]): Seq[Seq[AKernelEdge]] =
+            if (end contains last) path +: cc else
+                (deriveRelations.edgesByStart(last) filter { edge => isZeroReachableAKernel(edge.end) } filterNot path.contains).foldLeft(cc) { (m, edge) =>
+                    recursion(edge.end, path :+ edge, m)
+                }
+
+        recursion(start, List(), Seq())
     }
 }
 

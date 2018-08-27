@@ -2,6 +2,7 @@ package com.giyeok.jparser.parsergen
 
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGrouping, TermGroupDesc}
 import com.giyeok.jparser.examples.ExpressionGrammars
+import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.SimpleGen._
 import com.giyeok.jparser.study.parsergen.AKernel
@@ -10,13 +11,16 @@ object SimpleGen {
 
     sealed trait Action
 
+    @Deprecated
+    case class Replace(replaceNodeType: Int) extends Action
+
     case class Append(appendNodeType: Int, pendingFinish: Boolean = false) extends Action
 
-    case class Replace(appendNodeType: Int) extends Action
-
-    case class InReplaceAndAppend(inReplaceNodeType: Int, appendNodeType: Int, pendingFinish: Boolean) extends Action
+    case class ReplaceAndAppend(replaceNodeType: Int, appendNodeType: Int, pendingFinish: Boolean) extends Action
 
     case object Finish extends Action
+
+    case class ReplaceAndFinish(replaceNodeType: Int) extends Action
 
 }
 
@@ -26,16 +30,19 @@ class SimpleGen(val grammar: NGrammar,
                 val startNodeId: Int,
                 val termActions: Map[(Int, CharacterTermGroupDesc), Action],
                 // 엣지가 finish되면 새로 붙어야 하는 node
-                val impliedNodes: Map[(Int, Int), Option[(Int, Boolean)]]
-               ) {
+                val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]]) {
     def genJava(pkgName: String, className: String): String = {
         val impliedNodesIfStack = ((impliedNodes.toList.sortBy { p => p._1 } map { impliedNode =>
             val impliedEdge = impliedNode._1
             val firstLine = s"if (prevNodeType == ${impliedEdge._1} && lastNodeType == ${impliedEdge._2}) {\n"
             val lastLine = "}"
             val body = impliedNode._2 match {
-                case Some((implied, pendingFinish)) =>
+                case Some((newStart, implied, pendingFinish)) if newStart == impliedEdge._1 =>
                     s"""last = new Node($implied, last.parent);
+                       |pendingFinish = $pendingFinish;
+                     """.stripMargin
+                case Some((newStart, implied, pendingFinish)) =>
+                    s"""last = new Node($implied, new Node($newStart, last.parent.parent));
                        |pendingFinish = $pendingFinish;
                      """.stripMargin
                 case None =>
@@ -78,10 +85,11 @@ class SimpleGen(val grammar: NGrammar,
                 val (charsGroup, action) = termAction
                 val firstLine = s"if (${charGroupToCondition(charsGroup.asInstanceOf[CharsGroup], "next")}) {"
                 val body = action match {
-                    case Append(appendNodeType, pendingFinish) => s"append($appendNodeType, $pendingFinish);"
                     case Replace(replaceNodeType) => s"replace($replaceNodeType);"
-                    case InReplaceAndAppend(inReplaceNodeType, appendNodeType, pendingFinish) => s"inreplaceAppend($inReplaceNodeType, $appendNodeType, $pendingFinish);"
+                    case Append(appendNodeType, pendingFinish) => s"append($appendNodeType, $pendingFinish);"
+                    case ReplaceAndAppend(replaceNodeType, appendNodeType, pendingFinish) => s"replace($replaceNodeType); append($appendNodeType, $pendingFinish);"
                     case Finish => "finish();"
+                    case ReplaceAndFinish(replaceNodeType) => s"replace($replaceNodeType); finish();"
                 }
                 val lastLine = "return true;\n}"
                 firstLine + "\n" + body + "\n" + lastLine
@@ -137,11 +145,6 @@ class SimpleGen(val grammar: NGrammar,
            |  private void replace(int newNodeType) {
            |    last = new Node(newNodeType, last.parent);
            |    this.pendingFinish = false;
-           |  }
-           |
-           |  private void inreplaceAppend(int replaceNodeType, int appendNodeType, boolean pendingFinish) {
-           |    last = new Node(appendNodeType, new Node(replaceNodeType, last.parent));
-           |    this.pendingFinish = pendingFinish;
            |  }
            |
            |  private void finish() {
@@ -213,6 +216,17 @@ class SimpleGen(val grammar: NGrammar,
            |    }
            |    return true;
            |  }
+           |
+           |  public boolean eof() {
+           |    while (pendingFinish) {
+           |      last = last.parent;
+           |      if (last.nodeTypeId == 1) {
+           |        return pendingFinish;
+           |      }
+           |      finish();
+           |    }
+           |    return false;
+           |  }
            |}
         """.stripMargin
     }
@@ -225,7 +239,7 @@ object SimpleGenMain {
     def charsGroup(start: Char, end: Char): CharacterTermGroupDesc =
         CharsGroup(Set(), Set(), (start to end).toSet)
 
-    def main(args: Array[String]): Unit = {
+    def expr(args: Array[String]): Unit = {
         val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
         val nodes: Map[Int, Set[AKernel]] = Map(
             1 -> Set(AKernel(1, 0)),
@@ -247,7 +261,7 @@ object SimpleGenMain {
             (1, charsGroup('(')) -> Append(4),
             (2, charsGroup('*')) -> Replace(6),
             (2, charsGroup('+')) -> Replace(7),
-            (3, charsGroup('0', '9')) -> InReplaceAndAppend(8, 5, pendingFinish = true),
+            (3, charsGroup('0', '9')) -> ReplaceAndAppend(8, 5, pendingFinish = true),
             (3, charsGroup('*')) -> Replace(6),
             (3, charsGroup('+')) -> Replace(7),
             (4, charsGroup('0')) -> Append(2),
@@ -262,37 +276,56 @@ object SimpleGenMain {
             (7, charsGroup('(')) -> Append(4),
             (8, charsGroup('0', '9')) -> Append(5, pendingFinish = true),
             (9, charsGroup('*')) -> Replace(6),
-            (10, charsGroup('0', '9')) -> InReplaceAndAppend(8, 5, pendingFinish = true),
+            (10, charsGroup('0', '9')) -> ReplaceAndAppend(8, 5, pendingFinish = true),
             (10, charsGroup('*')) -> Replace(6),
             (11, charsGroup('+')) -> Replace(7),
             (12, charsGroup(')')) -> Finish,
             (13, charsGroup('*')) -> Replace(6),
-            (13, charsGroup('0', '9')) -> Finish
-        )
-        val impliedNodes: Map[(Int, Int), Option[(Int, Boolean)]] = Map(
-            (1, 6) -> Some(2, true),
-            (1, 7) -> Some(2, true),
-            (1, 8) -> Some(3, true),
-            (1, 12) -> Some(2, true),
-            (4, 6) -> Some(2, true),
-            (4, 7) -> Some(11, true),
+            (13, charsGroup('0', '9')) -> Finish)
+        val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]] = Map(
+            (1, 6) -> Some(1, 2, true),
+            (1, 7) -> Some(1, 2, true),
+            (1, 8) -> Some(1, 3, true),
+            (1, 12) -> Some(1, 2, true),
+            (4, 6) -> Some(4, 2, true),
+            (4, 7) -> Some(4, 11, true),
             (4, 11) -> None,
-            (4, 8) -> Some(3, true),
+            (4, 8) -> Some(4, 3, true),
             (6, 8) -> None,
             (7, 10) -> None,
-            (7, 12) -> Some(9, true),
-            (7, 6) -> Some(9, true),
-            (1, 4) -> Some(12, false),
-            (4, 4) -> Some(12, false),
-            (4, 12) -> Some(2, true),
-            (6, 4) -> Some(12, false),
+            (7, 12) -> Some(7, 9, true),
+            (7, 6) -> Some(7, 9, true),
+            (1, 4) -> Some(1, 12, false),
+            (4, 4) -> Some(4, 12, false),
+            (4, 12) -> Some(4, 2, true),
+            (6, 4) -> Some(6, 12, false),
             (6, 12) -> None,
-            (7, 4) -> Some(12, false),
-            (7, 5) -> Some(13, true),
-            (7, 8) -> Some(9, true),
-            (8, 5) -> Some(5, true),
-            (7, 9) -> Some(9, false)
-        )
+            (7, 4) -> Some(7, 12, false),
+            (7, 5) -> Some(7, 13, true),
+            (7, 8) -> Some(7, 9, true),
+            (8, 5) -> Some(8, 5, true),
+            (7, 9) -> Some(7, 9, false))
+        val rule = new SimpleGen(grammar, nodes, 1, termActions, impliedNodes)
+        println(rule.genJava("com.giyeok.jparser.parsergen.generated", "ExprGrammarSimpleParser"))
+    }
+
+    def main(args: Array[String]): Unit = {
+        val gram = MetaGrammar.translateForce("abcde",
+            """S = A 'a' B | C D E F
+              |A = 'x'
+              |C = 'x'
+              |B = 'b'
+              |E = 'e'
+              |F = 'f'
+              |D = 'a'+
+            """.stripMargin)
+        val grammar = NGrammar.fromGrammar(gram)
+        val nodes: Map[Int, Set[AKernel]] = Map(
+            1 -> Set(AKernel(1, 0)))
+        val termActions: Map[(Int, CharacterTermGroupDesc), Action] = Map(
+            (1, charsGroup('0')) -> Append(2, pendingFinish = true))
+        val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]] = Map(
+            (1, 6) -> Some(1, 2, true))
         val rule = new SimpleGen(grammar, nodes, 1, termActions, impliedNodes)
         println(rule.genJava("com.giyeok.jparser.parsergen.generated", "ExprGrammarSimpleParser"))
     }

@@ -1,65 +1,14 @@
 package com.giyeok.jparser.npreparser
 
-import scala.annotation.tailrec
-import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
-import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.Inputs.TermGroupDesc
-import com.giyeok.jparser.Inputs.VirtualTermGroupDesc
-import com.giyeok.jparser.Symbols.Terminal
-import com.giyeok.jparser.Symbols.Terminals.CharacterTerminal
-import com.giyeok.jparser.Symbols.Terminals.VirtualTerminal
-import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.nparser.AcceptCondition.Always
+import com.giyeok.jparser.Inputs.{Input, TermGroupDesc}
+import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
-import com.giyeok.jparser.nparser.ParsingContext.Graph
-import com.giyeok.jparser.nparser.ParsingContext.Kernel
-import com.giyeok.jparser.nparser.ParsingContext.Node
+import com.giyeok.jparser.nparser.ParsingContext.{Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.ParsingTasks
+import com.giyeok.jparser.parsergen.TermGrouper
 
-object TermGrouper {
-    def termGroupsOf(terminals: Set[Terminal]): Set[TermGroupDesc] = {
-        val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
-        val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
+import scala.annotation.tailrec
 
-        def sliceTermGroups(termGroups: Set[CharacterTermGroupDesc]): Set[CharacterTermGroupDesc] = {
-            val charIntersects: Set[CharacterTermGroupDesc] = termGroups flatMap { term1 =>
-                termGroups collect {
-                    case term2 if term1 != term2 => term1 intersect term2
-                } filterNot {
-                    _.isEmpty
-                }
-            }
-            val essentials = (termGroups map { g =>
-                charIntersects.foldLeft(g) {
-                    _ - _
-                }
-            }) filterNot {
-                _.isEmpty
-            }
-            val intersections = if (charIntersects.isEmpty) Set() else sliceTermGroups(charIntersects)
-            essentials ++ intersections
-        }
-
-        val charTermGroups = sliceTermGroups(charTerms)
-
-        val virtIntersects: Set[VirtualTermGroupDesc] = virtTerms flatMap { term1 =>
-            virtTerms collect {
-                case term2 if term1 != term2 => term1 intersect term2
-            } filterNot {
-                _.isEmpty
-            }
-        }
-        val virtTermGroups = (virtTerms map { term =>
-            virtIntersects.foldLeft(term) {
-                _ - _
-            }
-        }) ++ virtIntersects
-
-        (charTermGroups ++ virtTermGroups) filterNot {
-            _.isEmpty
-        }
-    }
-}
 
 trait DerivationPreprocessor extends ParsingTasks {
 
