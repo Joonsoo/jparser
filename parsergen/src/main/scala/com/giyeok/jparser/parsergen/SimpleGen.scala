@@ -31,7 +31,7 @@ class SimpleGen(val grammar: NGrammar,
                 val termActions: Map[(Int, CharacterTermGroupDesc), Action],
                 // 엣지가 finish되면 새로 붙어야 하는 node
                 val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]]) {
-    def genJava(pkgName: String, className: String): String = {
+    def genJava(pkgName: String, className: String, testStr: Option[String] = None): String = {
         val impliedNodesIfStack = ((impliedNodes.toList.sortBy { p => p._1 } map { impliedNode =>
             val impliedEdge = impliedNode._1
             val firstLine = s"if (prevNodeType == ${impliedEdge._1} && lastNodeType == ${impliedEdge._2}) {\n"
@@ -54,9 +54,18 @@ class SimpleGen(val grammar: NGrammar,
         }) :+
             s"""throw new RuntimeException("Unknown edge, " + prevNodeType + " -> " + lastNodeType + ", " + nodeDesc(prevNodeType) + " -> " + nodeDesc(lastNodeType));""") mkString " else "
 
-        def javaChar(c: Char) = c
+        def javaChar(c: Char) = c match {
+            case '\n' => "\\n"
+            case '\r' => "\\r"
+            case '\t' => "\\t"
+            case '\\' => "\\\\"
+            // TODO finish
+            case c => c.toString
+        }
 
-        def javaString(str: String) = str
+        def javaString(str: String) =
+            str.replaceAllLiterally("\\", "\\\\")
+                .replaceAllLiterally("\"", "\\\"")
 
         def charsToCondition(chars: Set[Char], varName: String): String =
             chars.groups map { group =>
@@ -80,7 +89,7 @@ class SimpleGen(val grammar: NGrammar,
 
         val proceed1Stack = nodeTermActions map { nodeActions =>
             val (nodeTypeId, actions) = nodeActions
-            val firstLine = s"case $nodeTypeId:"
+            val firstLine = s"case $nodeTypeId: // ${nodes(nodeTypeId) map { k => k.toReadableString(grammar) } mkString "|"}\n"
             val body = actions map { termAction =>
                 val (charsGroup, action) = termAction
                 val firstLine = s"if (${charGroupToCondition(charsGroup.asInstanceOf[CharsGroup], "next")}) {"
@@ -104,10 +113,24 @@ class SimpleGen(val grammar: NGrammar,
             s"case $nodeTypeId: return $condition;"
         } mkString "\n"
 
-        val nodeDescriptionStack = nodes map { node =>
-            val description = node._2 map { k => javaString(k.toReadableString(grammar, ".")) } mkString ","
+        val nodeDescriptionStack = nodes.toList.sortBy(_._1) map { node =>
+            val description = node._2 map { k => javaString(k.toReadableString(grammar, "\u2022")) } mkString "|"
             s"""case ${node._1}: return "{${javaString(description)}}";"""
         } mkString "\n"
+
+        val mainStack = testStr match {
+            case Some(value) =>
+                s"""public static void main(String[] args) {
+                   |  $className parser = new $className();
+                   |  if (parser.proceed("${javaString(value)}")) {
+                   |    boolean result = parser.eof();
+                   |    System.out.println(result);
+                   |  } else {
+                   |    System.out.println("Failed");
+                   |  }
+                   |}""".stripMargin
+            case None => ""
+        }
 
         s"""package $pkgName;
            |
@@ -227,6 +250,7 @@ class SimpleGen(val grammar: NGrammar,
            |    }
            |    return false;
            |  }
+           |  $mainStack
            |}
         """.stripMargin
     }

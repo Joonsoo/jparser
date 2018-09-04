@@ -121,6 +121,20 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
             mergeEdgesMap(edgesByStart, other.edgesByStart),
             mergeEdgesMap(edgesByEnd, other.edgesByEnd))
     }
+
+    def reachableBetween(start: N, end: N): Boolean = {
+        var visited: Set[N] = Set(start)
+
+        def recursion(current: N): Boolean =
+            if (current == end) true else {
+                visited += current
+                ((edgesByStart(start) map { e => e.end }) -- visited) exists { end =>
+                    recursion(end)
+                }
+            }
+
+        recursion(start)
+    }
 }
 
 object AbstractGraph {
