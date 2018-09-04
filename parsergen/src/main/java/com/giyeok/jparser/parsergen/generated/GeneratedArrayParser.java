@@ -16,7 +16,7 @@ public class GeneratedArrayParser {
         public final Node hold1, hold2;
 
         public Node2(int nodeTypeId, Node hold1, Node hold2) {
-            super(nodeTypeId, null);
+            super(nodeTypeId, hold1);
             this.nodeTypeId = nodeTypeId;
             this.hold1 = hold1;
             this.hold2 = hold2;
@@ -65,7 +65,7 @@ public class GeneratedArrayParser {
                 return (c == ' ');
             case 17:
                 return (c == ' ');
-            case 18:
+            case 19:
                 return (c == ',') || (c == ']');
         }
         throw new RuntimeException("Unknown nodeTypeId=" + nodeTypeId);
@@ -83,94 +83,105 @@ public class GeneratedArrayParser {
 
     private void finish() {
         System.out.println(nodeString() + " " + nodeDescString());
-        int prevNodeType = last.parent.nodeTypeId, lastNodeType = last.nodeTypeId;
+        int lastNodeType = last.nodeTypeId;
+        if (lastNodeType == 18) {
+            Node2 holder = (Node2) last;
+            last = new Node2(19, holder.hold1, holder.hold2);
+            pendingFinish = false;
+        } else {
+            int prevNodeType = last.parent.nodeTypeId;
 
-        if (prevNodeType == 1 && lastNodeType == 2) {
-            last = new Node(3, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 1 && lastNodeType == 3) {
-            last = new Node(4, last.parent);
-            pendingFinish = true;
-        } else if (prevNodeType == 1 && lastNodeType == 4) {
-            last = last.parent;
-            finish();
-        } else if (prevNodeType == 1 && lastNodeType == 5) {
-            last = new Node(10, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 1 && lastNodeType == 7) {
-            last = new Node(4, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 1 && lastNodeType == 10) {
-            last = new Node(4, last.parent);
-            pendingFinish = true;
-        } else if (prevNodeType == 1 && lastNodeType == 17) {
-            last = new Node(5, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 4 && lastNodeType == 9) {
-            last = last.parent;
-            finish();
-        } else if (prevNodeType == 5 && lastNodeType == 6) {
-            last = new Node(11, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 5 && lastNodeType == 11) {
-            last = new Node(12, last.parent);
-            pendingFinish = true;
-        } else if (prevNodeType == 5 && lastNodeType == 12) {
-            last = last.parent;
-            finish();
-        } else if (prevNodeType == 5 && lastNodeType == 13) {
-            last = new Node(15, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 5 && lastNodeType == 14) {
-            last = new Node(12, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 5 && lastNodeType == 15) {
-            last = new Node(12, last.parent);
-            pendingFinish = true;
-        } else if (prevNodeType == 5 && lastNodeType == 16) {
-            last = new Node(13, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 7 && lastNodeType == 8) {
-            last = last.parent;
-            finish();
-        } else if (prevNodeType == 8 && lastNodeType == 8) {
-            last = last.parent;
-            finish();
-        } else if (prevNodeType == 12 && lastNodeType == 6) {
-            last = new Node(11, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 12 && lastNodeType == 11) {
-            last = new Node(12, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 12 && lastNodeType == 12) {
-            last = last.parent;
-            finish();
-        } else if (prevNodeType == 12 && lastNodeType == 13) {
-            last = new Node(15, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 12 && lastNodeType == 14) {
-            last = new Node(12, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 12 && lastNodeType == 15) {
-            last = new Node(12, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 12 && lastNodeType == 16) {
-            last = new Node(13, last.parent);
-            pendingFinish = false;
-        } else if (prevNodeType == 13 && lastNodeType == 9) {
-            last = last.parent;
-            finish();
-        } else if (prevNodeType == 14 && lastNodeType == 8) {
-            last = last.parent;
-            finish();
-        } else if (prevNodeType == 16 && lastNodeType == 8) {
-            last = last.parent;
-            finish();
-        } else if (prevNodeType == 17 && lastNodeType == 8) {
-            last = last.parent;
-            finish();
-        } else
-            throw new RuntimeException("Unknown edge, " + prevNodeType + " -> " + lastNodeType + ", " + nodeDesc(prevNodeType) + " -> " + nodeDesc(lastNodeType));
+            if (prevNodeType == 1 && lastNodeType == 2) {
+                last = new Node(3, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 1 && lastNodeType == 3) {
+                last = new Node(4, last.parent);
+                pendingFinish = true;
+            } else if (prevNodeType == 1 && lastNodeType == 4) {
+                last = last.parent;
+                finish();
+            } else if (prevNodeType == 1 && lastNodeType == 5) {
+                last = new Node(10, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 1 && lastNodeType == 7) {
+                last = new Node(4, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 1 && lastNodeType == 10) {
+                last = new Node(4, last.parent);
+                pendingFinish = true;
+            } else if (prevNodeType == 1 && lastNodeType == 17) {
+                last = new Node(5, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 4 && lastNodeType == 9) {
+                last = last.parent;
+                finish();
+            } else if (prevNodeType == 5 && lastNodeType == 6) {
+                last = new Node(11, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 5 && lastNodeType == 11) {
+                last = new Node(12, last.parent);
+                pendingFinish = true;
+            } else if (prevNodeType == 5 && lastNodeType == 12) {
+                last = last.parent;
+                finish();
+            } else if (prevNodeType == 5 && lastNodeType == 13) {
+                last = new Node(15, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 5 && lastNodeType == 14) {
+                last = new Node(12, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 5 && lastNodeType == 15) {
+                last = new Node(12, last.parent);
+                pendingFinish = true;
+            } else if (prevNodeType == 5 && lastNodeType == 16) {
+                last = new Node(13, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 7 && lastNodeType == 8) {
+                last = last.parent;
+                finish();
+            } else if (prevNodeType == 8 && lastNodeType == 8) {
+                last = last.parent;
+                finish();
+            } else if (prevNodeType == 12 && lastNodeType == 6) {
+                last = new Node(11, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 12 && lastNodeType == 11) {
+                last = new Node(12, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 12 && lastNodeType == 12) {
+                last = last.parent;
+                finish();
+            } else if (prevNodeType == 12 && lastNodeType == 13) {
+                last = new Node(15, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 12 && lastNodeType == 14) {
+                last = new Node(12, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 12 && lastNodeType == 15) {
+                last = new Node(12, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 12 && lastNodeType == 16) {
+                last = new Node(13, last.parent);
+                pendingFinish = false;
+            } else if (prevNodeType == 13 && lastNodeType == 9) {
+                last = last.parent;
+                finish();
+            } else if (prevNodeType == 14 && lastNodeType == 8) {
+                last = last.parent;
+                finish();
+            } else if (prevNodeType == 16 && lastNodeType == 8) {
+                last = last.parent;
+                finish();
+            } else if (prevNodeType == 17 && lastNodeType == 8) {
+                last = last.parent;
+                finish();
+            } else if (prevNodeType == 18 && lastNodeType == 8) {
+                Node2 holder = (Node2) last.parent;
+                last = new Node2(19, holder.hold1, holder.hold2);
+                pendingFinish = false;
+            } else
+                throw new RuntimeException("Unknown edge, " + prevNodeType + " -> " + lastNodeType + ", " + nodeDesc(prevNodeType) + " -> " + nodeDesc(lastNodeType));
+        }
     }
 
     private boolean tryFinishable(char next) {
@@ -189,6 +200,7 @@ public class GeneratedArrayParser {
     }
 
     private boolean proceed1(char next) {
+        System.out.println(nodeString() + " " + nodeDescString());
         switch (last.nodeTypeId) {
             case 1: // *<start>
                 if ((next == '[')) {
@@ -241,7 +253,13 @@ public class GeneratedArrayParser {
                     // 새로운 노드 18: Node2, { elem*WS , WS elems|[ WS elems*WS ] } 로 replace + append(8, true)
                     //   ',' -> last=last.hold1; replace(13); finish();
                     //   ']' -> last=last.hold2; replace(4); finish();
-                    last = new Node2(18, last, last.parent);
+                    // TODO hold2=find nearest node 5
+                    // TODO temporary: (should save the nearest nodes in Node)
+                    Node nearest5 = last.parent;
+                    while (nearest5.nodeTypeId != 5) {
+                        nearest5 = nearest5.parent;
+                    }
+                    last = new Node2(18, last, nearest5);
                     append(8, true);
                     // replace(16);
                     // append(8, true);
@@ -252,7 +270,7 @@ public class GeneratedArrayParser {
                     return true;
                 }
                 break;
-            case 18:
+            case 19:
                 Node2 holder = (Node2) last;
                 if (next == ',') {
                     last = holder.hold1;
@@ -395,7 +413,9 @@ public class GeneratedArrayParser {
             case 17:
                 return "{[•WS elems WS ]}";
             case 18:
-                return "{elem*WS , WS elems|[ WS elems*WS ]}";
+                return "{elem•WS , WS elems|[ WS elems•WS ]}";
+            case 19:
+                return "{elem WS•, WS elems|[ WS elems WS•]}";
         }
         throw new RuntimeException("Unknown nodeTypeId=" + nodeTypeId);
     }
@@ -438,7 +458,7 @@ public class GeneratedArrayParser {
 
     public static void main(String[] args) {
         GeneratedArrayParser parser = new GeneratedArrayParser();
-        if (parser.proceed("[  a  ]")) {
+        if (parser.proceed("[a,a,a,a    ,   a   ]")) {
             boolean result = parser.eof();
             System.out.println(result);
         } else {
