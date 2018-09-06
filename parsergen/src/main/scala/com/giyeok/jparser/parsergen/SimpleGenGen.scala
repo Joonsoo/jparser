@@ -2,13 +2,11 @@ package com.giyeok.jparser.parsergen
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.Symbols.Terminal
-import com.giyeok.jparser.examples.JsonGrammar
-import com.giyeok.jparser.gramgram.MetaGrammar
+import com.giyeok.jparser.examples.SimpleGrammars
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NSequence, NTerminal}
 import com.giyeok.jparser.parsergen.SimpleGen.Action
 import com.giyeok.jparser.parsergen.SimpleGenGen.KAction
-import com.giyeok.jparser.study.parsergen.{AKernel, AKernelGraph, GrammarAnalyzer}
 
 object SimpleGenGen {
 
@@ -264,6 +262,9 @@ class SimpleGenGen(val grammar: NGrammar) {
                     }
                 }
 
+                // TODO SimpleArrayGrammar 기준으로:
+                // newPossibleEdges에 (1, 2) 엣지가 있긴 하지만 2는 사실 항상 다른 노드로 replace될 노드기 때문에
+                // 2가 alwaysReplaced인지 아닌지 알기 전까지는 (1, 2)에 대해서는 추가적인 처리를 하지 않아야 할 듯
                 newPossibleEdges ++= (impliedNodes.values.flatten map { t => t._1 -> t._2 }).toSet -- impliedNodes.keySet
                 while (newPossibleEdges.nonEmpty) {
                     newPossibleEdges foreach { newPossibleEdge =>
@@ -310,12 +311,7 @@ class SimpleGenGen(val grammar: NGrammar) {
 
 object SimpleGenGenMain {
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(MetaGrammar.translateForce("SimpleArrayGrammar",
-            """S = '[' WS elems WS ']'
-              |elems = elem | elem WS ',' WS elems
-              |elem = 'a'
-              |WS = # | ' ' WS
-            """.stripMargin))
+        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
         val gengen = new SimpleGenGen(grammar)
         val gen = gengen.generateGenerator()
         val generated = gen.genJava("com.giyeok.jparser.parsergen.generated", "GeneratedArrayParser", Some("[aa ]"))

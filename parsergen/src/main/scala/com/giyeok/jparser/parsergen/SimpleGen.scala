@@ -5,7 +5,6 @@ import com.giyeok.jparser.examples.ExpressionGrammars
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.SimpleGen._
-import com.giyeok.jparser.study.parsergen.AKernel
 
 object SimpleGen {
 

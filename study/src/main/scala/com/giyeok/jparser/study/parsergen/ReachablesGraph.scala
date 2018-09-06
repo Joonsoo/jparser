@@ -1,8 +1,9 @@
 package com.giyeok.jparser.study.parsergen
 
-import com.giyeok.jparser.examples.ExpressionGrammars
+import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
+import com.giyeok.jparser.parsergen.{AKernel, AKernelEdge, AKernelGraph, GrammarAnalyzer}
 import com.giyeok.jparser.visualize._
 import org.eclipse.draw2d.{ColorConstants, Figure, LineBorder}
 import org.eclipse.swt.SWT
@@ -13,7 +14,8 @@ import org.eclipse.swt.widgets.{Composite, Display, Shell}
 import org.eclipse.zest.core.viewers.GraphViewer
 import org.eclipse.zest.core.widgets.{Graph, GraphConnection, ZestStyles}
 
-object ReachablesGraph {
+class ReachablesGraph(analyzer: GrammarAnalyzer) {
+    private val grammar = analyzer.grammar
 
     class AKernelGraphViewer(parent: Composite, style: Int, val fig: NodeFigureGenerators[Figure], val analyzer: GrammarAnalyzer)
         extends Composite(parent, style)
@@ -21,8 +23,6 @@ object ReachablesGraph {
             with Interactable[AKernel, AKernelEdge, AKernelGraph] {
         val graphViewer = new GraphViewer(this, style)
         val graphCtrl: Graph = graphViewer.getGraphControl
-
-        val grammar = analyzer.grammar
 
         setLayout(new FillLayout())
 
@@ -45,10 +45,7 @@ object ReachablesGraph {
         }
     }
 
-    def main(args: Array[String]): Unit = {
-        val grammar: NGrammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
-
-        val analyzer = new GrammarAnalyzer(grammar)
+    def start(): Unit = {
         analyzer.deriveRelations.edgesByStart foreach { relation =>
             println(relation._1.toReadableString(grammar))
             relation._2 foreach { derivable =>
@@ -188,5 +185,12 @@ object ReachablesGraph {
             }
         }
         display.dispose()
+    }
+}
+
+object ReachablesGraph {
+    def main(args: Array[String]): Unit = {
+        val grammar: NGrammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
+        new ReachablesGraph(new GrammarAnalyzer(grammar))
     }
 }
