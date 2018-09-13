@@ -143,12 +143,12 @@ class SimpleGenGen(val grammar: NGrammar) {
                 }
             }
 
-            println(s"$startKernels  $termGroup  $acceptNodes")
-            println(s"  -> $reachable")
-            println(s"  -> $appended")
-            println(s"  -> $finishing")
-            println(s"  -> $kaction")
-            println()
+            //            println(s"$startKernels  $termGroup  $acceptNodes")
+            //            println(s"  -> $reachable")
+            //            println(s"  -> $appended")
+            //            println(s"  -> $finishing")
+            //            println(s"  -> $kaction")
+            //            println()
 
             termGroup -> kaction
         }).toMap
@@ -204,11 +204,20 @@ class SimpleGenGen(val grammar: NGrammar) {
             case Some(exist) => exist
             case None =>
                 val newId = nodesToKernels.size + 1
-                println(s"New node $newId -> $kernels")
+                // println(s"New node $newId -> $kernels")
                 newNodes +:= newId
                 nodesToKernels += newId -> kernels
                 kernelsToNodes += kernels -> newId
                 newId
+        }
+
+        private var allPossibleEdges = Map[(Int, Int), Option[Boolean]]()
+
+        def addEdge(start: Int, end: Int): Boolean = {
+            if (!(allPossibleEdges contains ((start, end)))) {
+                allPossibleEdges += ((start, end) -> None)
+                true
+            } else false
         }
 
         def generate(): SimpleGen = {
@@ -217,7 +226,6 @@ class SimpleGenGen(val grammar: NGrammar) {
             var termActions = Map[(Int, CharacterTermGroupDesc), Action]()
             var alwaysReplaced = Map[Int, Boolean]()
             var canBeReplaced = Map[Int, Set[Int]]()
-            var allPossibleEdges = Map[(Int, Int), Option[Boolean]]()
             var impliedNodes = Map[(Int, Int), Option[(Int, Int, Boolean)]]()
 
             while (newNodes.nonEmpty) {
@@ -235,12 +243,6 @@ class SimpleGenGen(val grammar: NGrammar) {
                 alwaysReplaced += nextNode -> thisNodeAlwaysReplaced
 
                 // return true if modified
-                def addEdge(start: Int, end: Int): Boolean = {
-                    if (!(allPossibleEdges contains ((start, end)))) {
-                        allPossibleEdges = allPossibleEdges + ((start, end) -> None)
-                        true
-                    } else false
-                }
 
                 canBeReplaced += nextNode -> Set()
                 thisTermActions.values foreach {
@@ -271,7 +273,12 @@ class SimpleGenGen(val grammar: NGrammar) {
                                 val isPossibleEdge = !(alwaysReplaced(start) || alwaysReplaced(end))
                                 allPossibleEdges += (start, end) -> Some(isPossibleEdge)
                                 if (isPossibleEdge) {
-                                    impliedNodes += (start, end) -> impliedNodes1(start, end)
+                                    val replEdge = impliedNodes1(start, end)
+                                    impliedNodes += (start, end) -> replEdge
+                                    replEdge foreach { repl =>
+                                        assert(modified)
+                                        addEdge(repl._1, repl._2)
+                                    }
                                 }
                             }
                             assert((canBeReplaced contains start) && (canBeReplaced contains end))
@@ -319,24 +326,25 @@ class SimpleGenGen(val grammar: NGrammar) {
                 }
                 */
             }
+            assert(allPossibleEdges.values.forall(_.isDefined))
+            assert(allPossibleEdges.filter(p => p._2.contains(true)).forall(p => impliedNodes contains p._1))
 
-            nodesToKernels.toList.sortBy(_._1) foreach { nk =>
-                println(s"${nk._1} ${
-                    nk._2 map {
-                        _.toReadableString(grammar)
-                    } mkString "|"
-                }")
-            }
-            println(impliedNodes.keySet.toList.sorted)
-            impliedNodes.toList.sortBy(_._1) foreach { p =>
-                println(s"${p._1} -> ${p._2}")
-            }
-            canBeReplaced.toList.sortBy(_._1) foreach { p =>
-                println(s"${p._1} -> ${p._2}")
-            }
+            //            nodesToKernels.toList.sortBy(_._1) foreach { nk =>
+            //                println(s"${nk._1} ${
+            //                    nk._2 map {
+            //                        _.toReadableString(grammar)
+            //                    } mkString "|"
+            //                }")
+            //            }
+            //            println(impliedNodes.keySet.toList.sorted)
+            //            impliedNodes.toList.sortBy(_._1) foreach { p =>
+            //                println(s"${p._1} -> ${p._2}")
+            //            }
+            //            canBeReplaced.toList.sortBy(_._1) foreach { p =>
+            //                println(s"${p._1} -> ${p._2}")
+            //            }
 
-            // TODO garbage가 있을 수 있음 - 해결 방법 찾아야 함
-            new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, impliedNodes)
+            new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, allPossibleEdges mapValues { o => o.get }, impliedNodes)
         }
     }
 
@@ -351,7 +359,7 @@ object SimpleGenGenMain {
         val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
         val gengen = new SimpleGenGen(grammar)
         val gen = gengen.generateGenerator()
-        val generated = gen.genJava("com.giyeok.jparser.parsergen.generated", "GeneratedArrayParser", Some("[aa ]"))
+        val generated = gen.genJava("com.giyeok.jparser.parsergen.generated", "GeneratedArrayParser", Some("[a ]"))
         println(generated)
     }
 }

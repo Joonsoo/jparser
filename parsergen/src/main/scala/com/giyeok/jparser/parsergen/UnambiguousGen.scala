@@ -58,6 +58,10 @@ object UnambiguousGen {
                 println(s"  ${acts._1.toShortString} -> ${acts._2}")
             }
         }
+        println("All edges (-> can it be finished?):")
+        gengen.simpleGen.allPossibleEdges.toSeq.sortBy(_._1) foreach { edge =>
+            println(s"  ${edge._1} -> ${edge._2}")
+        }
         println("Implied:")
         gengen.simpleGen.impliedNodes.toSeq.sortBy(_._1) foreach { kv =>
             println(s"  ${kv._1} -> ${kv._2}")

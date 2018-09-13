@@ -29,6 +29,7 @@ class SimpleGen(val grammar: NGrammar,
                 val startNodeId: Int,
                 val termActions: Map[(Int, CharacterTermGroupDesc), Action],
                 // 엣지가 finish되면 새로 붙어야 하는 node
+                val allPossibleEdges: Map[(Int, Int), Boolean],
                 val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]]) {
     def genJava(pkgName: String, className: String, testStr: Option[String] = None): String = {
         val impliedNodesIfStack = ((impliedNodes.toList.sortBy { p => p._1 } map { impliedNode =>
@@ -328,7 +329,7 @@ object SimpleGenMain {
             (7, 8) -> Some(7, 9, true),
             (8, 5) -> Some(8, 5, true),
             (7, 9) -> Some(7, 9, false))
-        val rule = new SimpleGen(grammar, nodes, 1, termActions, impliedNodes)
+        val rule = new SimpleGen(grammar, nodes, 1, termActions, Map(), impliedNodes)
         println(rule.genJava("com.giyeok.jparser.parsergen.generated", "ExprGrammarSimpleParser"))
     }
 
@@ -349,7 +350,7 @@ object SimpleGenMain {
             (1, charsGroup('0')) -> Append(2, pendingFinish = true))
         val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]] = Map(
             (1, 6) -> Some(1, 2, true))
-        val rule = new SimpleGen(grammar, nodes, 1, termActions, impliedNodes)
+        val rule = new SimpleGen(grammar, nodes, 1, termActions, Map(), impliedNodes)
         println(rule.genJava("com.giyeok.jparser.parsergen.generated", "ExprGrammarSimpleParser"))
     }
 }
