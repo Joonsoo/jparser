@@ -14,8 +14,6 @@ object SimpleGenGen {
 
     case class Append(appendKernels: Set[AKernel], pendingFinish: Boolean) extends KAction
 
-    case class Replace(replaceKernels: Set[AKernel]) extends KAction
-
     case class InReplaceAndAppend(inreplaceKernels: Set[AKernel], appendKernels: Set[AKernel], pendingFinish: Boolean) extends KAction
 
     case object Finish extends KAction
@@ -181,8 +179,6 @@ class SimpleGenGen(val grammar: NGrammar) {
                 val action = kv._2 match {
                     case SimpleGenGen.Append(appendKernels, pendingFinish) =>
                         SimpleGen.Append(nodeIdOf(appendKernels), pendingFinish)
-                    case SimpleGenGen.Replace(replaceKernels) =>
-                        SimpleGen.Replace(nodeIdOf(replaceKernels))
                     case SimpleGenGen.InReplaceAndAppend(inreplaceKernels, appendKernels, pendingFinish) =>
                         SimpleGen.ReplaceAndAppend(nodeIdOf(inreplaceKernels), nodeIdOf(appendKernels), pendingFinish)
                     case SimpleGenGen.Finish =>
@@ -219,8 +215,9 @@ class SimpleGenGen(val grammar: NGrammar) {
             val startNodeId = nodeIdOf(Set(AKernel(grammar.startSymbol, 0)))
 
             var termActions = Map[(Int, CharacterTermGroupDesc), Action]()
-            var alwaysReplaced = Set[Int]()
+            var alwaysReplaced = Map[Int, Boolean]()
             var canBeReplaced = Map[Int, Set[Int]]()
+            var allPossibleEdges = Map[(Int, Int), Option[Boolean]]()
             var impliedNodes = Map[(Int, Int), Option[(Int, Int, Boolean)]]()
 
             while (newNodes.nonEmpty) {
@@ -235,29 +232,65 @@ class SimpleGenGen(val grammar: NGrammar) {
                     case _: SimpleGen.Append | SimpleGen.Finish => false
                     case _ => true
                 }
-                if (thisNodeAlwaysReplaced) {
-                    alwaysReplaced += nextNode
+                alwaysReplaced += nextNode -> thisNodeAlwaysReplaced
+
+                // return true if modified
+                def addEdge(start: Int, end: Int): Boolean = {
+                    if (!(allPossibleEdges contains ((start, end)))) {
+                        allPossibleEdges = allPossibleEdges + ((start, end) -> None)
+                        true
+                    } else false
                 }
 
-                var newPossibleEdges = Set[(Int, Int)]()
+                canBeReplaced += nextNode -> Set()
                 thisTermActions.values foreach {
                     case SimpleGen.Append(appendNodeType, _) =>
-                        newPossibleEdges += nextNode -> appendNodeType
+                        addEdge(nextNode, appendNodeType)
                     case SimpleGen.Replace(replaceNodeType) =>
-                        canBeReplaced += nextNode -> (canBeReplaced.getOrElse(nextNode, Set()) + replaceNodeType)
+                        canBeReplaced += nextNode -> (canBeReplaced(nextNode) + replaceNodeType)
                     case SimpleGen.ReplaceAndAppend(replaceNodeType, appendNodeType, _) =>
-                        canBeReplaced += nextNode -> (canBeReplaced.getOrElse(nextNode, Set()) + replaceNodeType)
-                        newPossibleEdges += replaceNodeType -> appendNodeType
+                        canBeReplaced += nextNode -> (canBeReplaced(nextNode) + replaceNodeType)
+                        addEdge(replaceNodeType, appendNodeType)
                     case SimpleGen.Finish => // do nothing
                     case SimpleGen.ReplaceAndFinish(replaceNodeType) =>
-                        canBeReplaced += nextNode -> (canBeReplaced.getOrElse(nextNode, Set()) + replaceNodeType)
+                        canBeReplaced += nextNode -> (canBeReplaced(nextNode) + replaceNodeType)
                 }
+
+                // 방문했던 노드는 alwaysReplaced와 canBeReplaced에 값이 항상 들어감
+
+                // TODO 불필요하게 allPossibleEdges 전부 돌면서 possible.isEmpty 하지 말고 처리해야할 노드들 따로 관리하기
+                var modified = true
+                while (modified) {
+                    modified = false
+                    allPossibleEdges foreach { kv =>
+                        val ((start, end), possible) = kv
+                        // 아직 처리되지 않은 엣지인데, 각 노드는 방문한 뒤이면
+                        if ((alwaysReplaced contains start) && (alwaysReplaced contains end)) {
+                            if (possible.isEmpty) {
+                                modified = true
+                                val isPossibleEdge = !(alwaysReplaced(start) || alwaysReplaced(end))
+                                allPossibleEdges += (start, end) -> Some(isPossibleEdge)
+                                if (isPossibleEdge) {
+                                    impliedNodes += (start, end) -> impliedNodes1(start, end)
+                                }
+                            }
+                            assert((canBeReplaced contains start) && (canBeReplaced contains end))
+                            canBeReplaced(start) ++ (if (alwaysReplaced(start)) Set() else Set(start)) foreach { startRepl =>
+                                canBeReplaced(end) ++ (if (alwaysReplaced(end)) Set() else Set(end)) foreach { endRepl =>
+                                    modified ||= addEdge(startRepl, endRepl)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                /*
                 // TODO code refactoring
                 impliedNodes.keySet foreach { edge =>
                     canBeReplaced.getOrElse(edge._2, Set()) foreach { end =>
                         val newPossibleEdge = edge._1 -> end
                         if (!(impliedNodes contains newPossibleEdge)) {
-                            newPossibleEdges += newPossibleEdge
+                            possibleEdgesCandidate += newPossibleEdge
                         }
                     }
                 }
@@ -265,7 +298,10 @@ class SimpleGenGen(val grammar: NGrammar) {
                 // TODO SimpleArrayGrammar 기준으로:
                 // newPossibleEdges에 (1, 2) 엣지가 있긴 하지만 2는 사실 항상 다른 노드로 replace될 노드기 때문에
                 // 2가 alwaysReplaced인지 아닌지 알기 전까지는 (1, 2)에 대해서는 추가적인 처리를 하지 않아야 할 듯
-                newPossibleEdges ++= (impliedNodes.values.flatten map { t => t._1 -> t._2 }).toSet -- impliedNodes.keySet
+                possibleEdgesCandidate ++= (impliedNodes.values.flatten map { t => t._1 -> t._2 }).toSet -- impliedNodes.keySet
+                val (newEdges, stillCandidates) = possibleEdgesCandidate partition { edge =>
+                    edge._1
+                }
                 while (newPossibleEdges.nonEmpty) {
                     newPossibleEdges foreach { newPossibleEdge =>
                         impliedNodes += newPossibleEdge -> impliedNodes1(newPossibleEdge._1, newPossibleEdge._2)
@@ -281,6 +317,7 @@ class SimpleGenGen(val grammar: NGrammar) {
                         }
                     }
                 }
+                */
             }
 
             nodesToKernels.toList.sortBy(_._1) foreach { nk =>

@@ -10,4 +10,16 @@ object SimpleGrammars {
           |elem = 'a'
           |WS = # | ' ' WS
         """.stripMargin)
+
+    val earley1970ae: Grammar = MetaGrammar.translateForce("Earley 1970 AE",
+        """E = T | E '+' T
+          |T = P | T '*' P
+          |P = 'a'
+        """.stripMargin)
+
+    val knuth1965_24: Grammar = MetaGrammar.translateForce("Knuth 1965 Grammar 24",
+        """S = # | 'a' A 'b' S | 'b' B 'a' S
+          |A = # | 'a' A 'b' A
+          |B = # | 'b' B 'a' B
+        """.stripMargin)
 }

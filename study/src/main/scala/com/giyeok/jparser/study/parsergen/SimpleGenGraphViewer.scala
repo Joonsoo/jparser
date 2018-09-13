@@ -117,6 +117,6 @@ object SimpleGenGraphViewer {
     def main(args: Array[String]): Unit = {
         val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
 
-        new SimpleGenGraphViewer(new SimpleGenGen(grammar).generateGenerator()).start();
+        new SimpleGenGraphViewer(new SimpleGenGen(grammar).generateGenerator()).start()
     }
 }
