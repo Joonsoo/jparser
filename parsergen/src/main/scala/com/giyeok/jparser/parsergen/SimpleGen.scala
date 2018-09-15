@@ -1,17 +1,17 @@
 package com.giyeok.jparser.parsergen
 
+import java.io.{File, PrintWriter}
+
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGrouping, TermGroupDesc}
-import com.giyeok.jparser.examples.ExpressionGrammars
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.SimpleGen._
+import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
+import com.google.googlejavaformat.java.Formatter
 
 object SimpleGen {
 
     sealed trait Action
-
-    @Deprecated
-    case class Replace(replaceNodeType: Int) extends Action
 
     case class Append(appendNodeType: Int, pendingFinish: Boolean = false) extends Action
 
@@ -23,13 +23,69 @@ object SimpleGen {
 
 }
 
+object Topology {
+
+    sealed trait Edge extends AbstractEdge[Int]
+
+    case class AppendEdge(start: Int, end: Int)(val pendingFinish: Boolean) extends Edge
+
+    case class ReplaceEdge(start: Int, end: Int) extends Edge
+
+    class Graph(val nodes: Set[Int], val edges: Set[Edge], val edgesByStart: Map[Int, Set[Edge]], val edgesByEnd: Map[Int, Set[Edge]])
+        extends AbstractGraph[Int, Edge, Graph] {
+        override def createGraph(nodes: Set[Int], edges: Set[Edge], edgesByStart: Map[Int, Set[Edge]], edgesByEnd: Map[Int, Set[Edge]]): Graph =
+            new Graph(nodes, edges, edgesByStart, edgesByEnd)
+
+        def findAppendEdge(start: Int, end: Int): Option[AppendEdge] =
+            (edges find {
+                case Topology.AppendEdge(`start`, `end`) => true
+                case _ => false
+            }) map { e => e.asInstanceOf[AppendEdge] }
+
+        def addTermAction(baseNodeType: Int, action: SimpleGen.Action): Graph =
+            action match {
+                case SimpleGen.Append(appendNodeType, pendingFinish) =>
+                    addEdgeSafe(AppendEdge(baseNodeType, appendNodeType)(pendingFinish))
+                case SimpleGen.ReplaceAndAppend(replaceNodeType, appendNodeType, pendingFinish) =>
+                    addEdgeSafe(ReplaceEdge(baseNodeType, replaceNodeType))
+                        .addEdgeSafe(AppendEdge(replaceNodeType, appendNodeType)(pendingFinish))
+                case SimpleGen.Finish => this
+                case SimpleGen.ReplaceAndFinish(replaceNodeType) =>
+                    addEdgeSafe(ReplaceEdge(baseNodeType, replaceNodeType))
+            }
+
+        def addImpliedEdge(original: (Int, Int), implied: (Int, Int, Boolean)): Graph = {
+            // (originalStart -> originalEnd) append edge는 원래 있어야 함
+            assert(findAppendEdge(original._1, original._2).isDefined)
+            // (originalStart -> impliedStart) replace edge가 필요하면 넣고 둘이 같으면 무시
+            val g1 = if (original._1 != implied._1) {
+                addEdgeSafe(ReplaceEdge(original._1, implied._1))
+            } else this
+            // (impliedStart -> impliedEnd) append edge 추가, (impliedStart -> impliedEnd) append edge는 원래 없었어야 함
+            assert(findAppendEdge(implied._1, implied._2).isEmpty)
+            g1.addEdgeSafe(AppendEdge(implied._1, implied._2)(implied._3))
+        }
+
+        // TODO AppendEdge(x -> y)와 ReplaceEdge(y -> z)가 있으면 AppendEdge(x -> z)도 추가해주는 메소드 추가
+    }
+
+    class Builder {
+        private var _graph: Graph = new Graph(Set(), Set(), Map(), Map())
+
+        def graph(): Graph = _graph
+
+        // TODO addTermAction, addImpliedEdge imperative style로 _graph에 업데이트하고 변경분 반환하도록 구현
+    }
+
+}
+
 // grammar and nodes are debugging purpose
 class SimpleGen(val grammar: NGrammar,
                 val nodes: Map[Int, Set[AKernel]],
                 val startNodeId: Int,
                 val termActions: Map[(Int, CharacterTermGroupDesc), Action],
                 // 엣지가 finish되면 새로 붙어야 하는 node
-                val allPossibleEdges: Map[(Int, Int), Boolean],
+                val topologyGraph: Topology.Graph,
                 val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]]) {
     def genJava(pkgName: String, className: String, testStr: Option[String] = None): String = {
         val impliedNodesIfStack = ((impliedNodes.toList.sortBy { p => p._1 } map { impliedNode =>
@@ -94,7 +150,6 @@ class SimpleGen(val grammar: NGrammar,
                 val (charsGroup, action) = termAction
                 val firstLine = s"if (${charGroupToCondition(charsGroup.asInstanceOf[CharsGroup], "next")}) {"
                 val body = action match {
-                    case Replace(replaceNodeType) => s"replace($replaceNodeType);"
                     case Append(appendNodeType, pendingFinish) => s"append($appendNodeType, $pendingFinish);"
                     case ReplaceAndAppend(replaceNodeType, appendNodeType, pendingFinish) => s"replace($replaceNodeType); append($appendNodeType, $pendingFinish);"
                     case Finish => "finish();"
@@ -254,6 +309,15 @@ class SimpleGen(val grammar: NGrammar,
            |}
         """.stripMargin
     }
+
+    def genFormattedJava(pkgName: String, className: String, testStr: Option[String] = None): String =
+        new Formatter().formatSource(genJava(pkgName, className, testStr))
+
+    def writeFormattedJavaTo(path: String, pkgName: String, className: String, testStr: Option[String] = None): Unit = {
+        val writer = new PrintWriter(new File(path))
+        writer.write(genFormattedJava(pkgName, className, testStr))
+        writer.close()
+    }
 }
 
 object SimpleGenMain {
@@ -263,75 +327,75 @@ object SimpleGenMain {
     def charsGroup(start: Char, end: Char): CharacterTermGroupDesc =
         CharsGroup(Set(), Set(), (start to end).toSet)
 
-    def expr(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
-        val nodes: Map[Int, Set[AKernel]] = Map(
-            1 -> Set(AKernel(1, 0)),
-            2 -> Set(AKernel(16, 1), AKernel(18, 1)),
-            3 -> Set(AKernel(7, 1), AKernel(16, 1), AKernel(18, 1)),
-            4 -> Set(AKernel(13, 1)),
-            5 -> Set(AKernel(11, 1)),
-            6 -> Set(AKernel(16, 2)),
-            7 -> Set(AKernel(18, 2)),
-            8 -> Set(AKernel(7, 1)),
-            9 -> Set(AKernel(16, 1)),
-            10 -> Set(AKernel(7, 1), AKernel(16, 1)),
-            11 -> Set(AKernel(18, 1)),
-            12 -> Set(AKernel(13, 2)),
-            13 -> Set(AKernel(11, 1), AKernel(16, 1)))
-        val termActions: Map[(Int, CharacterTermGroupDesc), Action] = Map(
-            (1, charsGroup('0')) -> Append(2, pendingFinish = true),
-            (1, charsGroup('1', '9')) -> Append(3, pendingFinish = true),
-            (1, charsGroup('(')) -> Append(4),
-            (2, charsGroup('*')) -> Replace(6),
-            (2, charsGroup('+')) -> Replace(7),
-            (3, charsGroup('0', '9')) -> ReplaceAndAppend(8, 5, pendingFinish = true),
-            (3, charsGroup('*')) -> Replace(6),
-            (3, charsGroup('+')) -> Replace(7),
-            (4, charsGroup('0')) -> Append(2),
-            (4, charsGroup('1', '9')) -> Append(3),
-            (4, charsGroup('(')) -> Append(4),
-            (5, charsGroup('0', '9')) -> Finish,
-            (6, charsGroup('0')) -> Finish,
-            (6, charsGroup('1', '9')) -> Append(8, pendingFinish = true),
-            (6, charsGroup('(')) -> Append(4),
-            (7, charsGroup('0')) -> Append(9, pendingFinish = true),
-            (7, charsGroup('1', '9')) -> Append(10, pendingFinish = true),
-            (7, charsGroup('(')) -> Append(4),
-            (8, charsGroup('0', '9')) -> Append(5, pendingFinish = true),
-            (9, charsGroup('*')) -> Replace(6),
-            (10, charsGroup('0', '9')) -> ReplaceAndAppend(8, 5, pendingFinish = true),
-            (10, charsGroup('*')) -> Replace(6),
-            (11, charsGroup('+')) -> Replace(7),
-            (12, charsGroup(')')) -> Finish,
-            (13, charsGroup('*')) -> Replace(6),
-            (13, charsGroup('0', '9')) -> Finish)
-        val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]] = Map(
-            (1, 6) -> Some(1, 2, true),
-            (1, 7) -> Some(1, 2, true),
-            (1, 8) -> Some(1, 3, true),
-            (1, 12) -> Some(1, 2, true),
-            (4, 6) -> Some(4, 2, true),
-            (4, 7) -> Some(4, 11, true),
-            (4, 11) -> None,
-            (4, 8) -> Some(4, 3, true),
-            (6, 8) -> None,
-            (7, 10) -> None,
-            (7, 12) -> Some(7, 9, true),
-            (7, 6) -> Some(7, 9, true),
-            (1, 4) -> Some(1, 12, false),
-            (4, 4) -> Some(4, 12, false),
-            (4, 12) -> Some(4, 2, true),
-            (6, 4) -> Some(6, 12, false),
-            (6, 12) -> None,
-            (7, 4) -> Some(7, 12, false),
-            (7, 5) -> Some(7, 13, true),
-            (7, 8) -> Some(7, 9, true),
-            (8, 5) -> Some(8, 5, true),
-            (7, 9) -> Some(7, 9, false))
-        val rule = new SimpleGen(grammar, nodes, 1, termActions, Map(), impliedNodes)
-        println(rule.genJava("com.giyeok.jparser.parsergen.generated", "ExprGrammarSimpleParser"))
-    }
+    //    def expr(args: Array[String]): Unit = {
+    //        val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
+    //        val nodes: Map[Int, Set[AKernel]] = Map(
+    //            1 -> Set(AKernel(1, 0)),
+    //            2 -> Set(AKernel(16, 1), AKernel(18, 1)),
+    //            3 -> Set(AKernel(7, 1), AKernel(16, 1), AKernel(18, 1)),
+    //            4 -> Set(AKernel(13, 1)),
+    //            5 -> Set(AKernel(11, 1)),
+    //            6 -> Set(AKernel(16, 2)),
+    //            7 -> Set(AKernel(18, 2)),
+    //            8 -> Set(AKernel(7, 1)),
+    //            9 -> Set(AKernel(16, 1)),
+    //            10 -> Set(AKernel(7, 1), AKernel(16, 1)),
+    //            11 -> Set(AKernel(18, 1)),
+    //            12 -> Set(AKernel(13, 2)),
+    //            13 -> Set(AKernel(11, 1), AKernel(16, 1)))
+    //        val termActions: Map[(Int, CharacterTermGroupDesc), Action] = Map(
+    //            (1, charsGroup('0')) -> Append(2, pendingFinish = true),
+    //            (1, charsGroup('1', '9')) -> Append(3, pendingFinish = true),
+    //            (1, charsGroup('(')) -> Append(4),
+    //            (2, charsGroup('*')) -> Replace(6),
+    //            (2, charsGroup('+')) -> Replace(7),
+    //            (3, charsGroup('0', '9')) -> ReplaceAndAppend(8, 5, pendingFinish = true),
+    //            (3, charsGroup('*')) -> Replace(6),
+    //            (3, charsGroup('+')) -> Replace(7),
+    //            (4, charsGroup('0')) -> Append(2),
+    //            (4, charsGroup('1', '9')) -> Append(3),
+    //            (4, charsGroup('(')) -> Append(4),
+    //            (5, charsGroup('0', '9')) -> Finish,
+    //            (6, charsGroup('0')) -> Finish,
+    //            (6, charsGroup('1', '9')) -> Append(8, pendingFinish = true),
+    //            (6, charsGroup('(')) -> Append(4),
+    //            (7, charsGroup('0')) -> Append(9, pendingFinish = true),
+    //            (7, charsGroup('1', '9')) -> Append(10, pendingFinish = true),
+    //            (7, charsGroup('(')) -> Append(4),
+    //            (8, charsGroup('0', '9')) -> Append(5, pendingFinish = true),
+    //            (9, charsGroup('*')) -> Replace(6),
+    //            (10, charsGroup('0', '9')) -> ReplaceAndAppend(8, 5, pendingFinish = true),
+    //            (10, charsGroup('*')) -> Replace(6),
+    //            (11, charsGroup('+')) -> Replace(7),
+    //            (12, charsGroup(')')) -> Finish,
+    //            (13, charsGroup('*')) -> Replace(6),
+    //            (13, charsGroup('0', '9')) -> Finish)
+    //        val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]] = Map(
+    //            (1, 6) -> Some(1, 2, true),
+    //            (1, 7) -> Some(1, 2, true),
+    //            (1, 8) -> Some(1, 3, true),
+    //            (1, 12) -> Some(1, 2, true),
+    //            (4, 6) -> Some(4, 2, true),
+    //            (4, 7) -> Some(4, 11, true),
+    //            (4, 11) -> None,
+    //            (4, 8) -> Some(4, 3, true),
+    //            (6, 8) -> None,
+    //            (7, 10) -> None,
+    //            (7, 12) -> Some(7, 9, true),
+    //            (7, 6) -> Some(7, 9, true),
+    //            (1, 4) -> Some(1, 12, false),
+    //            (4, 4) -> Some(4, 12, false),
+    //            (4, 12) -> Some(4, 2, true),
+    //            (6, 4) -> Some(6, 12, false),
+    //            (6, 12) -> None,
+    //            (7, 4) -> Some(7, 12, false),
+    //            (7, 5) -> Some(7, 13, true),
+    //            (7, 8) -> Some(7, 9, true),
+    //            (8, 5) -> Some(8, 5, true),
+    //            (7, 9) -> Some(7, 9, false))
+    //        val rule = new SimpleGen(grammar, nodes, 1, termActions, Map(), impliedNodes)
+    //        println(rule.genJava("com.giyeok.jparser.parsergen.generated", "ExprGrammarSimpleParser"))
+    //    }
 
     def main(args: Array[String]): Unit = {
         val gram = MetaGrammar.translateForce("abcde",
@@ -350,7 +414,7 @@ object SimpleGenMain {
             (1, charsGroup('0')) -> Append(2, pendingFinish = true))
         val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]] = Map(
             (1, 6) -> Some(1, 2, true))
-        val rule = new SimpleGen(grammar, nodes, 1, termActions, Map(), impliedNodes)
+        val rule = new SimpleGen(grammar, nodes, 1, termActions, new Topology.Graph(Set(), Set(), Map(), Map()), impliedNodes)
         println(rule.genJava("com.giyeok.jparser.parsergen.generated", "ExprGrammarSimpleParser"))
     }
 }

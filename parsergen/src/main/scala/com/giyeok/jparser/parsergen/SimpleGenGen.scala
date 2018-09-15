@@ -2,7 +2,7 @@ package com.giyeok.jparser.parsergen
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.Symbols.Terminal
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.ExpressionGrammars
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NSequence, NTerminal}
 import com.giyeok.jparser.parsergen.SimpleGen.Action
@@ -227,6 +227,7 @@ class SimpleGenGen(val grammar: NGrammar) {
             var alwaysReplaced = Map[Int, Boolean]()
             var canBeReplaced = Map[Int, Set[Int]]()
             var impliedNodes = Map[(Int, Int), Option[(Int, Int, Boolean)]]()
+            var topologyGraph = new Topology.Graph(Set(), Set(), Map(), Map())
 
             while (newNodes.nonEmpty) {
                 val nextNode = newNodes.head
@@ -248,8 +249,6 @@ class SimpleGenGen(val grammar: NGrammar) {
                 thisTermActions.values foreach {
                     case SimpleGen.Append(appendNodeType, _) =>
                         addEdge(nextNode, appendNodeType)
-                    case SimpleGen.Replace(replaceNodeType) =>
-                        canBeReplaced += nextNode -> (canBeReplaced(nextNode) + replaceNodeType)
                     case SimpleGen.ReplaceAndAppend(replaceNodeType, appendNodeType, _) =>
                         canBeReplaced += nextNode -> (canBeReplaced(nextNode) + replaceNodeType)
                         addEdge(replaceNodeType, appendNodeType)
@@ -344,7 +343,7 @@ class SimpleGenGen(val grammar: NGrammar) {
             //                println(s"${p._1} -> ${p._2}")
             //            }
 
-            new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, allPossibleEdges mapValues { o => o.get }, impliedNodes)
+            new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, topologyGraph, impliedNodes)
         }
     }
 
@@ -356,10 +355,10 @@ class SimpleGenGen(val grammar: NGrammar) {
 
 object SimpleGenGenMain {
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
+        val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
         val gengen = new SimpleGenGen(grammar)
         val gen = gengen.generateGenerator()
-        val generated = gen.genJava("com.giyeok.jparser.parsergen.generated", "GeneratedArrayParser", Some("[a ]"))
-        println(generated)
+        gen.writeFormattedJavaTo("parsergen/src/main/java/com/giyeok/jparser/parsergen/generated/GeneratedExprSimpleGrammarParser.java",
+            "com.giyeok.jparser.parsergen.generated", "GeneratedExprSimpleGrammarParser", Some("123+456"))
     }
 }

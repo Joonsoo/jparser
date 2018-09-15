@@ -61,6 +61,10 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
         if (nodes contains node) this.asInstanceOf[Self]
         else createGraph(nodes + node, edges, edgesByStart + (node -> Set()), edgesByEnd + (node -> Set()))
 
+    // 만약 edge.start나 edge.end가 nodes에 없으면 추가해준다
+    def addEdgeSafe(edge: E): Self =
+        addNode(edge.start).addNode(edge.end).addEdge(edge)
+
     def addEdge(edge: E): Self = {
         val edgesByStart1 = edgesByStart.updated(edge.start, edgesByStart(edge.start) + edge)
         val edgesByDest1 = edgesByEnd.updated(edge.end, edgesByEnd(edge.end) + edge)

@@ -50,6 +50,15 @@ lazy val visualize = (project in file("visualize")).
     dependsOn(metagrammar % "test->test;compile->compile").
     dependsOn(examples % "test->test;compile->compile")
 
+lazy val parsergen = (project in file("parsergen")).
+    settings(
+        name := "jparser-parsergen",
+        libraryDependencies += "com.google.googlejavaformat" % "google-java-format" % "1.6",
+        libraryDependencies ++= testDeps
+    ).
+    dependsOn(core % "test->test;compile->compile").
+    dependsOn(examples % "test->test;compile->compile")
+
 lazy val study = (project in file("study")).
     settings(
         name := "jparser-study",
@@ -61,13 +70,5 @@ lazy val study = (project in file("study")).
     dependsOn(examples % "test->test;compile->compile").
     dependsOn(visualize % "test->test;compile->compile").
     dependsOn(parsergen % "test->test;compile->compile")
-
-lazy val parsergen = (project in file("parsergen")).
-    settings(
-        name := "jparser-parsergen",
-        libraryDependencies ++= testDeps
-    ).
-    dependsOn(core % "test->test;compile->compile").
-    dependsOn(examples % "test->test;compile->compile")
 
 fork in run := true

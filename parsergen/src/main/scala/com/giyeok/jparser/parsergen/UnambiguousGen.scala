@@ -14,8 +14,6 @@ class UnambiguousGen(val grammar: NGrammar) {
     def analyze(): Unit = {
         val directReplaceable: Set[(Int, Int)] = ((nodeActions.toSeq flatMap { kv =>
             kv._2.values collect {
-                case SimpleGen.Replace(replaceNodeType) =>
-                    kv._1 -> replaceNodeType
                 case SimpleGen.ReplaceAndAppend(replaceNodeType, _, _) =>
                     kv._1 -> replaceNodeType
                 case SimpleGen.ReplaceAndFinish(replaceNodeType) =>
@@ -52,16 +50,21 @@ object UnambiguousGen {
     def main(args: Array[String]): Unit = {
         val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
         val gengen = new UnambiguousGen(grammar)
+        gengen.simpleGen.nodes.toList.sortBy(_._1) foreach { nk =>
+            println(s"${nk._1} ${
+                nk._2 map {
+                    _.toReadableString(grammar)
+                } mkString "|"
+            }")
+        }
         gengen.nodeActions.toSeq.sortBy(_._1) foreach { kv =>
             println(s"Node ${kv._1}:")
             kv._2.toSeq.sortBy(_._1.toShortString) foreach { acts =>
                 println(s"  ${acts._1.toShortString} -> ${acts._2}")
             }
         }
-        println("All edges (-> can it be finished?):")
-        gengen.simpleGen.allPossibleEdges.toSeq.sortBy(_._1) foreach { edge =>
-            println(s"  ${edge._1} -> ${edge._2}")
-        }
+        println("Topology graph:")
+        println(gengen.simpleGen.topologyGraph)
         println("Implied:")
         gengen.simpleGen.impliedNodes.toSeq.sortBy(_._1) foreach { kv =>
             println(s"  ${kv._1} -> ${kv._2}")
