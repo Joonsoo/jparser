@@ -2,7 +2,7 @@ package com.giyeok.jparser.parsergen
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.Symbols.Terminal
-import com.giyeok.jparser.examples.ExpressionGrammars
+import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NSequence, NTerminal}
 import com.giyeok.jparser.parsergen.SimpleGen.Action
@@ -227,7 +227,7 @@ class SimpleGenGen(val grammar: NGrammar) {
             var alwaysReplaced = Map[Int, Boolean]()
             var canBeReplaced = Map[Int, Set[Int]]()
             var impliedNodes = Map[(Int, Int), Option[(Int, Int, Boolean)]]()
-            var topologyGraph = new Topology.Graph(Set(), Set(), Map(), Map())
+            var topologyGraphBuilder = new Topology.Builder()
 
             while (newNodes.nonEmpty) {
                 val nextNode = newNodes.head
@@ -343,7 +343,7 @@ class SimpleGenGen(val grammar: NGrammar) {
             //                println(s"${p._1} -> ${p._2}")
             //            }
 
-            new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, topologyGraph, impliedNodes)
+            new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, topologyGraphBuilder.graph(), impliedNodes)
         }
     }
 
@@ -355,10 +355,10 @@ class SimpleGenGen(val grammar: NGrammar) {
 
 object SimpleGenGenMain {
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
+        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
         val gengen = new SimpleGenGen(grammar)
         val gen = gengen.generateGenerator()
-        gen.writeFormattedJavaTo("parsergen/src/main/java/com/giyeok/jparser/parsergen/generated/GeneratedExprSimpleGrammarParser.java",
-            "com.giyeok.jparser.parsergen.generated", "GeneratedExprSimpleGrammarParser", Some("123+456"))
+        gen.writeFormattedJavaTo("parsergen/src/main/java/com/giyeok/jparser/parsergen/generated/GeneratedArrayGrammarParser0.java",
+            "com.giyeok.jparser.parsergen.generated", "GeneratedArrayGrammarParser0", Some("[ a ]"))
     }
 }

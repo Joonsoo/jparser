@@ -41,32 +41,6 @@ object Topology {
                 case Topology.AppendEdge(`start`, `end`) => true
                 case _ => false
             }) map { e => e.asInstanceOf[AppendEdge] }
-
-        def addTermAction(baseNodeType: Int, action: SimpleGen.Action): Graph =
-            action match {
-                case SimpleGen.Append(appendNodeType, pendingFinish) =>
-                    addEdgeSafe(AppendEdge(baseNodeType, appendNodeType)(pendingFinish))
-                case SimpleGen.ReplaceAndAppend(replaceNodeType, appendNodeType, pendingFinish) =>
-                    addEdgeSafe(ReplaceEdge(baseNodeType, replaceNodeType))
-                        .addEdgeSafe(AppendEdge(replaceNodeType, appendNodeType)(pendingFinish))
-                case SimpleGen.Finish => this
-                case SimpleGen.ReplaceAndFinish(replaceNodeType) =>
-                    addEdgeSafe(ReplaceEdge(baseNodeType, replaceNodeType))
-            }
-
-        def addImpliedEdge(original: (Int, Int), implied: (Int, Int, Boolean)): Graph = {
-            // (originalStart -> originalEnd) append edge는 원래 있어야 함
-            assert(findAppendEdge(original._1, original._2).isDefined)
-            // (originalStart -> impliedStart) replace edge가 필요하면 넣고 둘이 같으면 무시
-            val g1 = if (original._1 != implied._1) {
-                addEdgeSafe(ReplaceEdge(original._1, implied._1))
-            } else this
-            // (impliedStart -> impliedEnd) append edge 추가, (impliedStart -> impliedEnd) append edge는 원래 없었어야 함
-            assert(findAppendEdge(implied._1, implied._2).isEmpty)
-            g1.addEdgeSafe(AppendEdge(implied._1, implied._2)(implied._3))
-        }
-
-        // TODO AppendEdge(x -> y)와 ReplaceEdge(y -> z)가 있으면 AppendEdge(x -> z)도 추가해주는 메소드 추가
     }
 
     class Builder {
@@ -74,7 +48,39 @@ object Topology {
 
         def graph(): Graph = _graph
 
-        // TODO addTermAction, addImpliedEdge imperative style로 _graph에 업데이트하고 변경분 반환하도록 구현
+        // TODO AppendEdge(x -> y)와 ReplaceEdge(y -> z)가 있으면 AppendEdge(x -> z)도 추가하고 함께 반환
+        private def addEdges(edges: Edge*): List[Edge] = {
+            val newEdges = edges filterNot _graph.edges.contains
+
+            _graph = newEdges.foldLeft(_graph) { (g, e) => g.addEdgeSafe(e) }
+
+            newEdges.toList
+        }
+
+        def addTermAction(baseNodeType: Int, action: SimpleGen.Action): List[Edge] =
+            action match {
+                case SimpleGen.Append(appendNodeType, pendingFinish) =>
+                    addEdges(AppendEdge(baseNodeType, appendNodeType)(pendingFinish))
+                case SimpleGen.ReplaceAndAppend(replaceNodeType, appendNodeType, pendingFinish) =>
+                    addEdges(ReplaceEdge(baseNodeType, replaceNodeType),
+                        AppendEdge(replaceNodeType, appendNodeType)(pendingFinish))
+                case SimpleGen.Finish => List()
+                case SimpleGen.ReplaceAndFinish(replaceNodeType) =>
+                    addEdges(ReplaceEdge(baseNodeType, replaceNodeType))
+            }
+
+        def addImpliedEdge(original: (Int, Int), implied: (Int, Int, Boolean)): List[Edge] = {
+            // (originalStart -> originalEnd) append edge는 원래 있어야 함
+            assert(_graph.findAppendEdge(original._1, original._2).isDefined)
+            // (originalStart -> impliedStart) replace edge가 필요하면 넣고 둘이 같으면 무시
+            // (impliedStart -> impliedEnd) append edge 추가, (impliedStart -> impliedEnd) append edge는 원래 없었어야 함
+            assert(_graph.findAppendEdge(implied._1, implied._2).isEmpty)
+            if (original._1 != implied._1) {
+                addEdges(ReplaceEdge(original._1, implied._1), AppendEdge(implied._1, implied._2)(implied._3))
+            } else {
+                addEdges(AppendEdge(implied._1, implied._2)(implied._3))
+            }
+        }
     }
 
 }
