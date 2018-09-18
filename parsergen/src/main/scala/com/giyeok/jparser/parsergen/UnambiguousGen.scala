@@ -63,8 +63,6 @@ object UnambiguousGen {
                 println(s"  ${acts._1.toShortString} -> ${acts._2}")
             }
         }
-        println("Topology graph:")
-        println(gengen.simpleGen.topologyGraph)
         println("Implied:")
         gengen.simpleGen.impliedNodes.toSeq.sortBy(_._1) foreach { kv =>
             println(s"  ${kv._1} -> ${kv._2}")

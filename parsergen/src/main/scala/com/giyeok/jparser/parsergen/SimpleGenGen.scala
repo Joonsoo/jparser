@@ -227,7 +227,6 @@ class SimpleGenGen(val grammar: NGrammar) {
             var alwaysReplaced = Map[Int, Boolean]()
             var canBeReplaced = Map[Int, Set[Int]]()
             var impliedNodes = Map[(Int, Int), Option[(Int, Int, Boolean)]]()
-            var topologyGraphBuilder = new Topology.Builder()
 
             while (newNodes.nonEmpty) {
                 val nextNode = newNodes.head
@@ -343,7 +342,7 @@ class SimpleGenGen(val grammar: NGrammar) {
             //                println(s"${p._1} -> ${p._2}")
             //            }
 
-            new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, topologyGraphBuilder.graph(), impliedNodes)
+            new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, impliedNodes)
         }
     }
 

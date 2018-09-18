@@ -6,7 +6,6 @@ import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGroup
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.SimpleGen._
-import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 import com.google.googlejavaformat.java.Formatter
 
 object SimpleGen {
@@ -23,75 +22,12 @@ object SimpleGen {
 
 }
 
-object Topology {
-
-    sealed trait Edge extends AbstractEdge[Int]
-
-    case class AppendEdge(start: Int, end: Int)(val pendingFinish: Boolean) extends Edge
-
-    case class ReplaceEdge(start: Int, end: Int) extends Edge
-
-    class Graph(val nodes: Set[Int], val edges: Set[Edge], val edgesByStart: Map[Int, Set[Edge]], val edgesByEnd: Map[Int, Set[Edge]])
-        extends AbstractGraph[Int, Edge, Graph] {
-        override def createGraph(nodes: Set[Int], edges: Set[Edge], edgesByStart: Map[Int, Set[Edge]], edgesByEnd: Map[Int, Set[Edge]]): Graph =
-            new Graph(nodes, edges, edgesByStart, edgesByEnd)
-
-        def findAppendEdge(start: Int, end: Int): Option[AppendEdge] =
-            (edges find {
-                case Topology.AppendEdge(`start`, `end`) => true
-                case _ => false
-            }) map { e => e.asInstanceOf[AppendEdge] }
-    }
-
-    class Builder {
-        private var _graph: Graph = new Graph(Set(), Set(), Map(), Map())
-
-        def graph(): Graph = _graph
-
-        // TODO AppendEdge(x -> y)와 ReplaceEdge(y -> z)가 있으면 AppendEdge(x -> z)도 추가하고 함께 반환
-        private def addEdges(edges: Edge*): List[Edge] = {
-            val newEdges = edges filterNot _graph.edges.contains
-
-            _graph = newEdges.foldLeft(_graph) { (g, e) => g.addEdgeSafe(e) }
-
-            newEdges.toList
-        }
-
-        def addTermAction(baseNodeType: Int, action: SimpleGen.Action): List[Edge] =
-            action match {
-                case SimpleGen.Append(appendNodeType, pendingFinish) =>
-                    addEdges(AppendEdge(baseNodeType, appendNodeType)(pendingFinish))
-                case SimpleGen.ReplaceAndAppend(replaceNodeType, appendNodeType, pendingFinish) =>
-                    addEdges(ReplaceEdge(baseNodeType, replaceNodeType),
-                        AppendEdge(replaceNodeType, appendNodeType)(pendingFinish))
-                case SimpleGen.Finish => List()
-                case SimpleGen.ReplaceAndFinish(replaceNodeType) =>
-                    addEdges(ReplaceEdge(baseNodeType, replaceNodeType))
-            }
-
-        def addImpliedEdge(original: (Int, Int), implied: (Int, Int, Boolean)): List[Edge] = {
-            // (originalStart -> originalEnd) append edge는 원래 있어야 함
-            assert(_graph.findAppendEdge(original._1, original._2).isDefined)
-            // (originalStart -> impliedStart) replace edge가 필요하면 넣고 둘이 같으면 무시
-            // (impliedStart -> impliedEnd) append edge 추가, (impliedStart -> impliedEnd) append edge는 원래 없었어야 함
-            assert(_graph.findAppendEdge(implied._1, implied._2).isEmpty)
-            if (original._1 != implied._1) {
-                addEdges(ReplaceEdge(original._1, implied._1), AppendEdge(implied._1, implied._2)(implied._3))
-            } else {
-                addEdges(AppendEdge(implied._1, implied._2)(implied._3))
-            }
-        }
-    }
-
-}
-
 // grammar and nodes are debugging purpose
 class SimpleGen(val grammar: NGrammar,
                 val nodes: Map[Int, Set[AKernel]],
                 val startNodeId: Int,
                 val termActions: Map[(Int, CharacterTermGroupDesc), Action],
                 // 엣지가 finish되면 새로 붙어야 하는 node
-                val topologyGraph: Topology.Graph,
                 val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]]) {
     def genJava(pkgName: String, className: String, testStr: Option[String] = None): String = {
         val impliedNodesIfStack = ((impliedNodes.toList.sortBy { p => p._1 } map { impliedNode =>
@@ -420,7 +356,7 @@ object SimpleGenMain {
             (1, charsGroup('0')) -> Append(2, pendingFinish = true))
         val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]] = Map(
             (1, 6) -> Some(1, 2, true))
-        val rule = new SimpleGen(grammar, nodes, 1, termActions, new Topology.Graph(Set(), Set(), Map(), Map()), impliedNodes)
+        val rule = new SimpleGen(grammar, nodes, 1, termActions, impliedNodes)
         println(rule.genJava("com.giyeok.jparser.parsergen.generated", "ExprGrammarSimpleParser"))
     }
 }
