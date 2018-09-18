@@ -16,8 +16,6 @@ class UnambiguousGen(val grammar: NGrammar) {
             kv._2.values collect {
                 case SimpleGen.ReplaceAndAppend(replaceNodeType, _, _) =>
                     kv._1 -> replaceNodeType
-                case SimpleGen.ReplaceAndFinish(replaceNodeType) =>
-                    kv._1 -> replaceNodeType
             }
         }) ++ (simpleGen.impliedNodes.toSeq flatMap { kv =>
             kv._2 match {

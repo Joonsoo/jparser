@@ -2,10 +2,10 @@ package com.giyeok.jparser.parsergen
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.Symbols.Terminal
-import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
+import com.giyeok.jparser.examples.SimpleGrammars
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NSequence, NTerminal}
-import com.giyeok.jparser.parsergen.SimpleGen.Action
+import com.giyeok.jparser.parsergen.SimpleGen.{Action, ExistEdge, ExistGraph}
 import com.giyeok.jparser.parsergen.SimpleGenGen.KAction
 
 object SimpleGenGen {
@@ -197,6 +197,9 @@ class SimpleGenGen(val grammar: NGrammar) {
         private var kernelsToNodes = Map[Set[AKernel], Int]()
         private var nodesToKernels = Map[Int, Set[AKernel]]()
         private var newNodes = Seq[Int]()
+        private var existables = ExistGraph.empty
+        private var finishableEdges = Set[(Int, Int)]()
+        private var newFinishableEdges = Seq[(Int, Int)]()
 
         private def kernelsOf(nodeId: Int): Set[AKernel] = nodesToKernels(nodeId)
 
@@ -211,21 +214,51 @@ class SimpleGenGen(val grammar: NGrammar) {
                 newId
         }
 
-        private var allPossibleEdges = Map[(Int, Int), Option[Boolean]]()
+        private def addFinishableEdge(start: Int, end: Int): Unit = {
+            val edge = (start, end)
+            if (!(finishableEdges contains edge)) {
+                newFinishableEdges +:= edge
+                finishableEdges += edge
+            }
+        }
 
-        def addEdge(start: Int, end: Int): Boolean = {
-            if (!(allPossibleEdges contains ((start, end)))) {
-                allPossibleEdges += ((start, end) -> None)
-                true
-            } else false
+        private def updateEdgeInfoByTermActions(termActions: Seq[(Int, Action)]): Unit = {
+            termActions foreach { pair =>
+                val (node, action) = pair
+                action match {
+                    case SimpleGen.Append(appendNodeType, pendingFinish) =>
+                        // 이 append가 사용되면 node -> appendNode 가 그래프에 존재할 수 있음
+                        existables = existables.addEdgeSafe(ExistEdge(node, appendNodeType))
+                        if (pendingFinish) {
+                            // 이 pendingFinish에 의해 finish()되면,
+                            // append된 노드는 바로 제거되고, node와 incoming edge들은 finish됨
+                            existables.edgesByEnd(node) foreach { e => addFinishableEdge(e.start, node) }
+                        }
+                    case SimpleGen.ReplaceAndAppend(replaceNodeType, appendNodeType, pendingFinish) =>
+                        // 이 append가 사용되면 replaceNode -> appendNode 가 그래프에 존재할 수 있음
+                        existables = existables.addEdgeSafe(ExistEdge(replaceNodeType, appendNodeType))
+                        // (x -> node)인 모든 엣지에 대해 x -> replaceNode 가 그래프에 존재할 수 있음
+                        existables = existables.edgesByEnd(node).foldLeft(existables) { (g, e) =>
+                            g.addEdgeSafe(ExistEdge(e.start, replaceNodeType))
+                        }
+                        if (pendingFinish) {
+                            // pendingFinish이면 (x -> node)인 모든 엣지에 대해 x -> replaceNode가 finish될 수 있음
+                            existables.edgesByEnd(node) foreach { e =>
+                                addFinishableEdge(e.start, replaceNodeType)
+                            }
+                        }
+                    case SimpleGen.Finish =>
+                        existables.edgesByEnd(node) flatMap { e =>
+                            existables.edgesByEnd(e.start)
+                        } foreach { e => addFinishableEdge(e.start, e.end) }
+                }
+            }
         }
 
         def generate(): SimpleGen = {
             val startNodeId = nodeIdOf(Set(AKernel(grammar.startSymbol, 0)))
 
             var termActions = Map[(Int, CharacterTermGroupDesc), Action]()
-            var alwaysReplaced = Map[Int, Boolean]()
-            var canBeReplaced = Map[Int, Set[Int]]()
             var impliedNodes = Map[(Int, Int), Option[(Int, Int, Boolean)]]()
 
             while (newNodes.nonEmpty) {
@@ -234,98 +267,42 @@ class SimpleGenGen(val grammar: NGrammar) {
 
                 val thisTermActions = termActions1(nextNode)
                 termActions ++= (thisTermActions map { kv => (nextNode, kv._1) -> kv._2 })
-                // TODO possibleEdges 계산해서 impliedNodes 계산
 
-                val thisNodeAlwaysReplaced = thisTermActions.values forall {
-                    case _: SimpleGen.Append | SimpleGen.Finish => false
-                    case _ => true
-                }
-                alwaysReplaced += nextNode -> thisNodeAlwaysReplaced
+                updateEdgeInfoByTermActions(termActions.toSeq map { p => p._1._1 -> p._2 })
+                while (newFinishableEdges.nonEmpty) {
+                    // update implied edges
+                    val copiedFinishableEdges = newFinishableEdges
+                    newFinishableEdges = Seq()
+                    copiedFinishableEdges foreach { e =>
+                        val (start, end) = e
+                        val replEdge = impliedNodes1(start, end)
+                        impliedNodes += (start, end) -> replEdge
 
-                // return true if modified
-
-                canBeReplaced += nextNode -> Set()
-                thisTermActions.values foreach {
-                    case SimpleGen.Append(appendNodeType, _) =>
-                        addEdge(nextNode, appendNodeType)
-                    case SimpleGen.ReplaceAndAppend(replaceNodeType, appendNodeType, _) =>
-                        canBeReplaced += nextNode -> (canBeReplaced(nextNode) + replaceNodeType)
-                        addEdge(replaceNodeType, appendNodeType)
-                    case SimpleGen.Finish => // do nothing
-                    case SimpleGen.ReplaceAndFinish(replaceNodeType) =>
-                        canBeReplaced += nextNode -> (canBeReplaced(nextNode) + replaceNodeType)
-                }
-
-                // 방문했던 노드는 alwaysReplaced와 canBeReplaced에 값이 항상 들어감
-
-                // TODO 불필요하게 allPossibleEdges 전부 돌면서 possible.isEmpty 하지 말고 처리해야할 노드들 따로 관리하기
-                var modified = true
-                while (modified) {
-                    modified = false
-                    allPossibleEdges foreach { kv =>
-                        val ((start, end), possible) = kv
-                        // 아직 처리되지 않은 엣지인데, 각 노드는 방문한 뒤이면
-                        if ((alwaysReplaced contains start) && (alwaysReplaced contains end)) {
-                            if (possible.isEmpty) {
-                                modified = true
-                                val isPossibleEdge = !(alwaysReplaced(start) || alwaysReplaced(end))
-                                allPossibleEdges += (start, end) -> Some(isPossibleEdge)
-                                if (isPossibleEdge) {
-                                    val replEdge = impliedNodes1(start, end)
-                                    impliedNodes += (start, end) -> replEdge
-                                    replEdge foreach { repl =>
-                                        assert(modified)
-                                        addEdge(repl._1, repl._2)
+                        replEdge match {
+                            case Some((replStart, replEnd, pendingFinish)) =>
+                                // (start, end) -> (replStart, replEdge)로 변경되는 경우
+                                existables = existables.addEdgeSafe(ExistEdge(replStart, replEnd))
+                                if (replStart != start) {
+                                    existables = existables.edgesByEnd(start).foldLeft(existables) { (g, e) =>
+                                        g.addEdgeSafe(ExistEdge(e.start, replStart))
                                     }
                                 }
-                            }
-                            assert((canBeReplaced contains start) && (canBeReplaced contains end))
-                            canBeReplaced(start) ++ (if (alwaysReplaced(start)) Set() else Set(start)) foreach { startRepl =>
-                                canBeReplaced(end) ++ (if (alwaysReplaced(end)) Set() else Set(end)) foreach { endRepl =>
-                                    modified ||= addEdge(startRepl, endRepl)
+                                // pendingFinish = false이면 더이상 tryFinishable도 불가능하므로 finishable에 추가될 건 없음
+                                if (pendingFinish) {
+                                    // pendingFinish = true이면 start로의 incoming node -> replStart가 finish될 수 있음
+                                    existables.edgesByEnd(start) foreach { e =>
+                                        addFinishableEdge(e.start, replStart)
+                                    }
                                 }
-                            }
+                            case None =>
+                                // (x -> y) 엣지가 finish될 때는 y는 바로 지워지고 (z -> x)가 finish됨
+                                existables.edgesByEnd(start) foreach { e =>
+                                    addFinishableEdge(e.start, start)
+                                }
                         }
                     }
                 }
-
-                /*
-                // TODO code refactoring
-                impliedNodes.keySet foreach { edge =>
-                    canBeReplaced.getOrElse(edge._2, Set()) foreach { end =>
-                        val newPossibleEdge = edge._1 -> end
-                        if (!(impliedNodes contains newPossibleEdge)) {
-                            possibleEdgesCandidate += newPossibleEdge
-                        }
-                    }
-                }
-
-                // TODO SimpleArrayGrammar 기준으로:
-                // newPossibleEdges에 (1, 2) 엣지가 있긴 하지만 2는 사실 항상 다른 노드로 replace될 노드기 때문에
-                // 2가 alwaysReplaced인지 아닌지 알기 전까지는 (1, 2)에 대해서는 추가적인 처리를 하지 않아야 할 듯
-                possibleEdgesCandidate ++= (impliedNodes.values.flatten map { t => t._1 -> t._2 }).toSet -- impliedNodes.keySet
-                val (newEdges, stillCandidates) = possibleEdgesCandidate partition { edge =>
-                    edge._1
-                }
-                while (newPossibleEdges.nonEmpty) {
-                    newPossibleEdges foreach { newPossibleEdge =>
-                        impliedNodes += newPossibleEdge -> impliedNodes1(newPossibleEdge._1, newPossibleEdge._2)
-                    }
-                    newPossibleEdges = (impliedNodes.values.flatten map { t => t._1 -> t._2 }).toSet -- impliedNodes.keySet
-
-                    impliedNodes.keySet foreach { edge =>
-                        canBeReplaced.getOrElse(edge._2, Set()) foreach { end =>
-                            val newPossibleEdge = edge._1 -> end
-                            if (!(impliedNodes contains newPossibleEdge)) {
-                                newPossibleEdges += newPossibleEdge
-                            }
-                        }
-                    }
-                }
-                */
             }
-            assert(allPossibleEdges.values.forall(_.isDefined))
-            assert(allPossibleEdges.filter(p => p._2.contains(true)).forall(p => impliedNodes contains p._1))
 
             //            nodesToKernels.toList.sortBy(_._1) foreach { nk =>
             //                println(s"${nk._1} ${
@@ -342,7 +319,8 @@ class SimpleGenGen(val grammar: NGrammar) {
             //                println(s"${p._1} -> ${p._2}")
             //            }
 
-            new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, impliedNodes)
+            assert(impliedNodes.keySet == finishableEdges)
+            new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, existables, finishableEdges, impliedNodes)
         }
     }
 

@@ -6,6 +6,7 @@ import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGroup
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.SimpleGen._
+import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 import com.google.googlejavaformat.java.Formatter
 
 object SimpleGen {
@@ -18,7 +19,17 @@ object SimpleGen {
 
     case object Finish extends Action
 
-    case class ReplaceAndFinish(replaceNodeType: Int) extends Action
+    case class ExistEdge(start: Int, end: Int) extends AbstractEdge[Int]
+
+    class ExistGraph(val nodes: Set[Int], val edges: Set[ExistEdge], val edgesByStart: Map[Int, Set[ExistEdge]], val edgesByEnd: Map[Int, Set[ExistEdge]])
+        extends AbstractGraph[Int, ExistEdge, ExistGraph] {
+        override def createGraph(nodes: Set[Int], edges: Set[ExistEdge], edgesByStart: Map[Int, Set[ExistEdge]], edgesByEnd: Map[Int, Set[ExistEdge]]): ExistGraph =
+            new ExistGraph(nodes, edges, edgesByStart, edgesByEnd)
+    }
+
+    object ExistGraph {
+        val empty = new ExistGraph(Set(), Set(), Map(), Map())
+    }
 
 }
 
@@ -27,6 +38,8 @@ class SimpleGen(val grammar: NGrammar,
                 val nodes: Map[Int, Set[AKernel]],
                 val startNodeId: Int,
                 val termActions: Map[(Int, CharacterTermGroupDesc), Action],
+                val existables: ExistGraph,
+                val finishableEdges: Set[(Int, Int)],
                 // 엣지가 finish되면 새로 붙어야 하는 node
                 val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]]) {
     def genJava(pkgName: String, className: String, testStr: Option[String] = None): String = {
@@ -95,7 +108,6 @@ class SimpleGen(val grammar: NGrammar,
                     case Append(appendNodeType, pendingFinish) => s"append($appendNodeType, $pendingFinish);"
                     case ReplaceAndAppend(replaceNodeType, appendNodeType, pendingFinish) => s"replace($replaceNodeType); append($appendNodeType, $pendingFinish);"
                     case Finish => "finish();"
-                    case ReplaceAndFinish(replaceNodeType) => s"replace($replaceNodeType); finish();"
                 }
                 val lastLine = "return true;\n}"
                 firstLine + "\n" + body + "\n" + lastLine
@@ -356,7 +368,7 @@ object SimpleGenMain {
             (1, charsGroup('0')) -> Append(2, pendingFinish = true))
         val impliedNodes: Map[(Int, Int), Option[(Int, Int, Boolean)]] = Map(
             (1, 6) -> Some(1, 2, true))
-        val rule = new SimpleGen(grammar, nodes, 1, termActions, impliedNodes)
+        val rule = new SimpleGen(grammar, nodes, 1, termActions, ExistGraph.empty, Set(), impliedNodes)
         println(rule.genJava("com.giyeok.jparser.parsergen.generated", "ExprGrammarSimpleParser"))
     }
 }
