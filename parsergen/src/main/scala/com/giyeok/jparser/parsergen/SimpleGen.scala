@@ -19,6 +19,8 @@ object SimpleGen {
 
     case object Finish extends Action
 
+    // TODO ReplaceAndFinish 필요한지 검토. empty node를 없앨 수 있긴 할텐데..
+
     case class ExistEdge(start: Int, end: Int) extends AbstractEdge[Int]
 
     class ExistGraph(val nodes: Set[Int], val edges: Set[ExistEdge], val edgesByStart: Map[Int, Set[ExistEdge]], val edgesByEnd: Map[Int, Set[ExistEdge]])

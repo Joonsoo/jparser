@@ -2,7 +2,7 @@ package com.giyeok.jparser.parsergen
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.Symbols.Terminal
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NSequence, NTerminal}
 import com.giyeok.jparser.parsergen.SimpleGen.{Action, ExistEdge, ExistGraph}
@@ -200,6 +200,8 @@ class SimpleGenGen(val grammar: NGrammar) {
         private var existables = ExistGraph.empty
         private var finishableEdges = Set[(Int, Int)]()
         private var newFinishableEdges = Seq[(Int, Int)]()
+        private var incomingToFinishable = Map[Int, Set[Int]]()
+        private var replaceableTo = Map[Int, Set[Int]]()
 
         private def kernelsOf(nodeId: Int): Set[AKernel] = nodesToKernels(nodeId)
 
@@ -222,35 +224,59 @@ class SimpleGenGen(val grammar: NGrammar) {
             }
         }
 
+        private def addIncomingToFinishable(end: Int, repl: Int): Unit = {
+            incomingToFinishable += end -> (incomingToFinishable.getOrElse(end, Set()) + repl)
+            existables.edgesByEnd(end) foreach { e => addFinishableEdge(e.start, repl) }
+        }
+
+        private def addReplaceable(node: Int, repl: Int): Unit = {
+            replaceableTo += node -> (replaceableTo.getOrElse(node, Set()) + repl)
+            existables.edgesByEnd(node) foreach { e =>
+                addExistableEdge(e.start, repl)
+            }
+        }
+
+        private def addIncomingToFinishable(end: Int): Unit =
+            addIncomingToFinishable(end, end)
+
+        private def addExistableEdge(start: Int, end: Int): Unit = {
+            val edge = ExistEdge(start, end)
+            if (!(existables.edges contains edge)) {
+                existables = existables.addEdgeSafe(edge)
+                // incomingToFinishable(end)가 있으면 addFinishableEdge
+                incomingToFinishable get end foreach {
+                    _ foreach { repl => addFinishableEdge(start, repl) }
+                }
+                // replaceable(end)가 있으면 addExistableEdge
+                replaceableTo get end foreach {
+                    _ foreach { repl => addExistableEdge(start, repl) }
+                }
+            }
+        }
+
         private def updateEdgeInfoByTermActions(termActions: Seq[(Int, Action)]): Unit = {
             termActions foreach { pair =>
                 val (node, action) = pair
                 action match {
                     case SimpleGen.Append(appendNodeType, pendingFinish) =>
                         // 이 append가 사용되면 node -> appendNode 가 그래프에 존재할 수 있음
-                        existables = existables.addEdgeSafe(ExistEdge(node, appendNodeType))
+                        addExistableEdge(node, appendNodeType)
                         if (pendingFinish) {
                             // 이 pendingFinish에 의해 finish()되면,
                             // append된 노드는 바로 제거되고, node와 incoming edge들은 finish됨
-                            existables.edgesByEnd(node) foreach { e => addFinishableEdge(e.start, node) }
+                            addIncomingToFinishable(node)
                         }
                     case SimpleGen.ReplaceAndAppend(replaceNodeType, appendNodeType, pendingFinish) =>
                         // 이 append가 사용되면 replaceNode -> appendNode 가 그래프에 존재할 수 있음
-                        existables = existables.addEdgeSafe(ExistEdge(replaceNodeType, appendNodeType))
+                        addExistableEdge(replaceNodeType, appendNodeType)
                         // (x -> node)인 모든 엣지에 대해 x -> replaceNode 가 그래프에 존재할 수 있음
-                        existables = existables.edgesByEnd(node).foldLeft(existables) { (g, e) =>
-                            g.addEdgeSafe(ExistEdge(e.start, replaceNodeType))
-                        }
+                        addReplaceable(node, replaceNodeType)
                         if (pendingFinish) {
                             // pendingFinish이면 (x -> node)인 모든 엣지에 대해 x -> replaceNode가 finish될 수 있음
-                            existables.edgesByEnd(node) foreach { e =>
-                                addFinishableEdge(e.start, replaceNodeType)
-                            }
+                            addIncomingToFinishable(node, replaceNodeType)
                         }
                     case SimpleGen.Finish =>
-                        existables.edgesByEnd(node) flatMap { e =>
-                            existables.edgesByEnd(e.start)
-                        } foreach { e => addFinishableEdge(e.start, e.end) }
+                        addIncomingToFinishable(node)
                 }
             }
         }
@@ -268,7 +294,7 @@ class SimpleGenGen(val grammar: NGrammar) {
                 val thisTermActions = termActions1(nextNode)
                 termActions ++= (thisTermActions map { kv => (nextNode, kv._1) -> kv._2 })
 
-                updateEdgeInfoByTermActions(termActions.toSeq map { p => p._1._1 -> p._2 })
+                updateEdgeInfoByTermActions(thisTermActions.toSeq map { p => nextNode -> p._2 })
                 while (newFinishableEdges.nonEmpty) {
                     // update implied edges
                     val copiedFinishableEdges = newFinishableEdges
@@ -281,43 +307,22 @@ class SimpleGenGen(val grammar: NGrammar) {
                         replEdge match {
                             case Some((replStart, replEnd, pendingFinish)) =>
                                 // (start, end) -> (replStart, replEdge)로 변경되는 경우
-                                existables = existables.addEdgeSafe(ExistEdge(replStart, replEnd))
+                                addExistableEdge(replStart, replEnd)
                                 if (replStart != start) {
-                                    existables = existables.edgesByEnd(start).foldLeft(existables) { (g, e) =>
-                                        g.addEdgeSafe(ExistEdge(e.start, replStart))
-                                    }
+                                    existables.edgesByEnd(start) foreach { e => addExistableEdge(e.start, replStart) }
                                 }
                                 // pendingFinish = false이면 더이상 tryFinishable도 불가능하므로 finishable에 추가될 건 없음
                                 if (pendingFinish) {
                                     // pendingFinish = true이면 start로의 incoming node -> replStart가 finish될 수 있음
-                                    existables.edgesByEnd(start) foreach { e =>
-                                        addFinishableEdge(e.start, replStart)
-                                    }
+                                    addIncomingToFinishable(start, replStart)
                                 }
                             case None =>
                                 // (x -> y) 엣지가 finish될 때는 y는 바로 지워지고 (z -> x)가 finish됨
-                                existables.edgesByEnd(start) foreach { e =>
-                                    addFinishableEdge(e.start, start)
-                                }
+                                addIncomingToFinishable(start)
                         }
                     }
                 }
             }
-
-            //            nodesToKernels.toList.sortBy(_._1) foreach { nk =>
-            //                println(s"${nk._1} ${
-            //                    nk._2 map {
-            //                        _.toReadableString(grammar)
-            //                    } mkString "|"
-            //                }")
-            //            }
-            //            println(impliedNodes.keySet.toList.sorted)
-            //            impliedNodes.toList.sortBy(_._1) foreach { p =>
-            //                println(s"${p._1} -> ${p._2}")
-            //            }
-            //            canBeReplaced.toList.sortBy(_._1) foreach { p =>
-            //                println(s"${p._1} -> ${p._2}")
-            //            }
 
             assert(impliedNodes.keySet == finishableEdges)
             new SimpleGen(grammar, nodesToKernels, startNodeId, termActions, existables, finishableEdges, impliedNodes)
@@ -331,11 +336,23 @@ class SimpleGenGen(val grammar: NGrammar) {
 }
 
 object SimpleGenGenMain {
-    def main(args: Array[String]): Unit = {
+    def expressionSimple(): Unit = {
+        val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
+        val gengen = new SimpleGenGen(grammar)
+        val gen = gengen.generateGenerator()
+        gen.writeFormattedJavaTo("parsergen/src/main/java/com/giyeok/jparser/parsergen/generated/GeneratedExprSimpleGrammarParser.java",
+            "com.giyeok.jparser.parsergen.generated", "GeneratedExprSimpleGrammarParser", Some("123+(456*789)"))
+    }
+
+    def simpleArray(): Unit = {
         val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
         val gengen = new SimpleGenGen(grammar)
         val gen = gengen.generateGenerator()
         gen.writeFormattedJavaTo("parsergen/src/main/java/com/giyeok/jparser/parsergen/generated/GeneratedArrayGrammarParser0.java",
-            "com.giyeok.jparser.parsergen.generated", "GeneratedArrayGrammarParser0", Some("[ a ]"))
+            "com.giyeok.jparser.parsergen.generated", "GeneratedArrayGrammarParser0", Some("[ a,   a,  a,a ]"))
+    }
+
+    def main(args: Array[String]): Unit = {
+        simpleArray()
     }
 }
