@@ -19,6 +19,22 @@ object ExpressionGrammars {
           |number = '0' | {1-9} {0-9}*
           |variable = {A-Za-z}+""".stripMargin)
 
+
+    val withStringInterpolation0: GrammarWithExamples = GrammarWithExamples(MetaGrammar.translateForce(
+        "Expression Grammar with String Interpolation",
+        """expression = term | expression '+' term
+          |term = factor | term '*' factor
+          |factor = number | variable | '(' expression ')' | string
+          |number = '0' | {1-9} {0-9}*
+          |variable = {A-Za-z}+
+          |string = '"' stringElem* '"'
+          |stringElem = stringExpr | stringChar | stringEscape
+          |stringExpr = '$' '{' expression '}'
+          |stringChar = {a-zA-Z0-9 }
+          |stringEscape = '\\' {$\\n}""".stripMargin))
+        .example(""""${"${1+2}"}"""")
+        .example(""""${"${"1"+"2"}"}"""")
+
     val withStringInterpolation: GrammarWithExamples = GrammarWithExamples(MetaGrammar.translateForce(
         "Expression Grammar with String Interpolation",
         """expression = term | expression '+' term
@@ -26,8 +42,8 @@ object ExpressionGrammars {
           |factor = number | variable | '(' expression ')' | string
           |number = '0' | {1-9} {0-9}*
           |variable = {A-Za-z}+
-          |string = <['"' stringElem* '"']>
-          |stringElem = <(stringExpr | stringChar | stringEscape)>
+          |string = '"' stringElem* '"'
+          |stringElem = stringExpr | stringChar | stringEscape
           |stringExpr = '$' '{' expression '}'
           |stringChar = .-{"\\$}
           |stringEscape = '\\' .""".stripMargin))

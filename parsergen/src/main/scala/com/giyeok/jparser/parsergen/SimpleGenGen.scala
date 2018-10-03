@@ -1,5 +1,8 @@
 package com.giyeok.jparser.parsergen
 
+import java.io.File
+
+import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.Symbols.Terminal
 import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
@@ -172,8 +175,8 @@ class SimpleGenGen(val grammar: NGrammar) {
         }
     }
 
-    private class Generating {
-        private def termActions1(nodeId: Int): Map[CharacterTermGroupDesc, Action] = {
+    private[parsergen] class Generating {
+        def termActions1(nodeId: Int): Map[CharacterTermGroupDesc, Action] = {
             val ta = termActions(kernelsOf(nodeId))
             ta map { kv =>
                 val action = kv._2 match {
@@ -188,7 +191,7 @@ class SimpleGenGen(val grammar: NGrammar) {
             }
         }
 
-        private def impliedNodes1(startNodeId: Int, endNodeId: Int): Option[(Int, Int, Boolean)] = {
+        def impliedNodes1(startNodeId: Int, endNodeId: Int): Option[(Int, Int, Boolean)] = {
             impliedNodes(kernelsOf(startNodeId), kernelsOf(endNodeId)) map { implied =>
                 (nodeIdOf(implied._1), nodeIdOf(implied._2), implied._3)
             }
@@ -203,9 +206,9 @@ class SimpleGenGen(val grammar: NGrammar) {
         private var incomingToFinishable = Map[Int, Set[Int]]()
         private var replaceableTo = Map[Int, Set[Int]]()
 
-        private def kernelsOf(nodeId: Int): Set[AKernel] = nodesToKernels(nodeId)
+        def kernelsOf(nodeId: Int): Set[AKernel] = nodesToKernels(nodeId)
 
-        private def nodeIdOf(kernels: Set[AKernel]): Int = kernelsToNodes get kernels match {
+        def nodeIdOf(kernels: Set[AKernel]): Int = kernelsToNodes get kernels match {
             case Some(exist) => exist
             case None =>
                 val newId = nodesToKernels.size + 1
@@ -216,7 +219,7 @@ class SimpleGenGen(val grammar: NGrammar) {
                 newId
         }
 
-        private def addFinishableEdge(start: Int, end: Int): Unit = {
+        def addFinishableEdge(start: Int, end: Int): Unit = {
             val edge = (start, end)
             if (!(finishableEdges contains edge)) {
                 newFinishableEdges +:= edge
@@ -224,22 +227,22 @@ class SimpleGenGen(val grammar: NGrammar) {
             }
         }
 
-        private def addIncomingToFinishable(end: Int, repl: Int): Unit = {
+        def addIncomingToFinishable(end: Int, repl: Int): Unit = {
             incomingToFinishable += end -> (incomingToFinishable.getOrElse(end, Set()) + repl)
             existables.edgesByEnd(end) foreach { e => addFinishableEdge(e.start, repl) }
         }
 
-        private def addReplaceable(node: Int, repl: Int): Unit = {
+        def addReplaceable(node: Int, repl: Int): Unit = {
             replaceableTo += node -> (replaceableTo.getOrElse(node, Set()) + repl)
             existables.edgesByEnd(node) foreach { e =>
                 addExistableEdge(e.start, repl)
             }
         }
 
-        private def addIncomingToFinishable(end: Int): Unit =
+        def addIncomingToFinishable(end: Int): Unit =
             addIncomingToFinishable(end, end)
 
-        private def addExistableEdge(start: Int, end: Int): Unit = {
+        def addExistableEdge(start: Int, end: Int): Unit = {
             val edge = ExistEdge(start, end)
             if (!(existables.edges contains edge)) {
                 existables = existables.addEdgeSafe(edge)
@@ -254,7 +257,7 @@ class SimpleGenGen(val grammar: NGrammar) {
             }
         }
 
-        private def updateEdgeInfoByTermActions(termActions: Seq[(Int, Action)]): Unit = {
+        def addEdgesByTermActions(termActions: Seq[(Int, Action)]): Unit = {
             termActions foreach { pair =>
                 val (node, action) = pair
                 action match {
@@ -294,7 +297,7 @@ class SimpleGenGen(val grammar: NGrammar) {
                 val thisTermActions = termActions1(nextNode)
                 termActions ++= (thisTermActions map { kv => (nextNode, kv._1) -> kv._2 })
 
-                updateEdgeInfoByTermActions(thisTermActions.toSeq map { p => nextNode -> p._2 })
+                addEdgesByTermActions(thisTermActions.toSeq map { p => nextNode -> p._2 })
                 while (newFinishableEdges.nonEmpty) {
                     // update implied edges
                     val copiedFinishableEdges = newFinishableEdges
@@ -336,23 +339,44 @@ class SimpleGenGen(val grammar: NGrammar) {
 }
 
 object SimpleGenGenMain {
-    def expressionSimple(): Unit = {
-        val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
-        val gengen = new SimpleGenGen(grammar)
+    def generate(grammar: Grammar, baseDir: File, pkgName: String, className: String, example: Option[String]): File = {
+        val ngrammar = NGrammar.fromGrammar(grammar)
+        val path = new File(baseDir, (pkgName.split("\\.") :+ className + ".java").mkString(File.separator))
+        println(s"Writing parser to ${path.getAbsolutePath}")
+
+        val gengen = new SimpleGenGen(ngrammar)
         val gen = gengen.generateGenerator()
-        gen.writeFormattedJavaTo("parsergen/src/main/java/com/giyeok/jparser/parsergen/generated/GeneratedExprSimpleGrammarParser.java",
-            "com.giyeok.jparser.parsergen.generated", "GeneratedExprSimpleGrammarParser", Some("123+(456*789)"))
+
+        gen.writeFormattedJavaTo(path.getAbsolutePath, pkgName, className, example)
+        path
+    }
+
+    def expressionSimple(): Unit = {
+        generate(ExpressionGrammars.simple,
+            baseDir = new File("parsergen/src/main/java"),
+            pkgName = "com.giyeok.jparser.parsergen.generated",
+            className = "ExprSimpleParser",
+            example = Some("123+(456*789)"))
+    }
+
+    def expressionStringInterpolation0(): Unit = {
+        generate(ExpressionGrammars.withStringInterpolation0,
+            baseDir = new File("parsergen/src/main/java"),
+            pkgName = "com.giyeok.jparser.parsergen.generated",
+            className = "ExprStringInterpolation0Parser",
+            example = Some("123+\"asdf ${1+45} fdsa\"+(456*789)"))
     }
 
     def simpleArray(): Unit = {
-        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
-        val gengen = new SimpleGenGen(grammar)
-        val gen = gengen.generateGenerator()
-        gen.writeFormattedJavaTo("parsergen/src/main/java/com/giyeok/jparser/parsergen/generated/GeneratedArrayGrammarParser0.java",
-            "com.giyeok.jparser.parsergen.generated", "GeneratedArrayGrammarParser0", Some("[ a,   a,  a,a ]"))
+        generate(SimpleGrammars.arrayGrammar,
+            baseDir = new File("parsergen/src/main/java"),
+            pkgName = "com.giyeok.jparser.parsergen.generated",
+            className = "SimpleArrayGrammarParser",
+            example = Some("[ a,   a,  a,a ]"))
     }
 
     def main(args: Array[String]): Unit = {
-        simpleArray()
+        // TODO append(x)이거나 repl&append(_, x)이거나 implied에서 (_, _) -> (_, x, _) 인 경우에만 termAction이 필요한 듯?
+        expressionStringInterpolation0()
     }
 }

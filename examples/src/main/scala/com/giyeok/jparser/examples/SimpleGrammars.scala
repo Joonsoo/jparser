@@ -11,6 +11,13 @@ object SimpleGrammars {
           |WS = # | ' ' WS
         """.stripMargin)
 
+    val arrayOrObjectGrammar: Grammar = MetaGrammar.translateForce("SimpleArrayOrObjectGrammar",
+        """S = '[' WS elems WS ']' | '{' WS elems WS '}'
+          |elems = elem | elem WS ',' WS elems
+          |elem = 'a'
+          |WS = # | ' ' WS
+        """.stripMargin)
+
     val earley1970ae: Grammar = MetaGrammar.translateForce("Earley 1970 AE",
         """E = T | E '+' T
           |T = P | T '*' P

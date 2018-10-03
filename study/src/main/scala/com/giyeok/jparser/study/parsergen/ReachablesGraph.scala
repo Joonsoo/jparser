@@ -191,6 +191,6 @@ class ReachablesGraph(analyzer: GrammarAnalyzer) {
 object ReachablesGraph {
     def main(args: Array[String]): Unit = {
         val grammar: NGrammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
-        new ReachablesGraph(new GrammarAnalyzer(grammar))
+        new ReachablesGraph(new GrammarAnalyzer(grammar)).start()
     }
 }

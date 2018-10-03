@@ -7,20 +7,28 @@ object Inputs {
     type Location = Int
 
     sealed trait Input
+
     sealed trait ConcreteInput extends Input
+
     case class Character(char: Char) extends ConcreteInput
+
     case class Virtual(name: String) extends ConcreteInput
+
     case class AbstractInput(termGroup: TermGroupDesc) extends Input
 
     sealed trait TermGroupDesc {
         def toShortString: String
+
         def isEmpty: Boolean
 
         def contains(input: Input): Boolean
     }
+
     sealed trait CharacterTermGroupDesc extends TermGroupDesc {
         def +(other: CharacterTermGroupDesc): CharacterTermGroupDesc
+
         def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc
+
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc
 
         def contains(input: Input): Boolean = input match {
@@ -28,12 +36,20 @@ object Inputs {
             case Virtual(_) => false
             case _ => ???
         }
+
         def contains(char: Char): Boolean
     }
+
+    object CharacterTermGroupDesc {
+        val empty: CharacterTermGroupDesc = CharsGroup(Set(), Set(), Set())
+    }
+
     sealed trait VirtualTermGroupDesc extends TermGroupDesc {
         def -(other: VirtualTermGroupDesc): VirtualTermGroupDesc
+
         def intersect(other: VirtualTermGroupDesc): VirtualTermGroupDesc
     }
+
     case class AllCharsExcluding(excluding: CharsGroup) extends CharacterTermGroupDesc {
         def +(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
             case AllCharsExcluding(otherExcluding) =>
@@ -41,12 +57,14 @@ object Inputs {
             case other: CharsGroup =>
                 AllCharsExcluding((excluding - other).asInstanceOf[CharsGroup])
         }
+
         def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
             case other: AllCharsExcluding =>
                 other - excluding
             case other: CharsGroup =>
                 AllCharsExcluding((excluding + other).asInstanceOf[CharsGroup])
         }
+
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
             case other: AllCharsExcluding =>
                 AllCharsExcluding((excluding + other).asInstanceOf[CharsGroup])
@@ -57,6 +75,7 @@ object Inputs {
         def contains(char: Char) = !(excluding contains char)
 
         def toShortString: String = "AllCharsExcluding(" + (excluding.toShortString) + ")"
+
         def isEmpty = false
     }
 
@@ -70,26 +89,46 @@ object Inputs {
                 other + this
             case other: CharsGroup =>
                 val baseUnicodes = unicodeCategories ++ other.unicodeCategories
-                val excludings = (excludingChars filterNot { other contains _ }) ++ (other.excludingChars filterNot { this contains _ })
+                val excludings = (excludingChars filterNot {
+                    other contains _
+                }) ++ (other.excludingChars filterNot {
+                    this contains _
+                })
                 val chars = this.chars ++ other.chars
-                CharsGroup(baseUnicodes, excludings -- chars, chars filterNot { baseUnicodes contains _.getType })
+                CharsGroup(baseUnicodes, excludings -- chars, chars filterNot {
+                    baseUnicodes contains _.getType
+                })
         }
+
         def -(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
             case AllCharsExcluding(excluding) =>
                 this intersect excluding
             case other: CharsGroup =>
                 val baseUnicodes = unicodeCategories -- other.unicodeCategories
-                val excludings = (excludingChars ++ other.chars) filter { baseUnicodes contains _.getType }
-                val chars = (other.excludingChars filter { this contains _ }) ++ (this.chars filterNot { other contains _ })
+                val excludings = (excludingChars ++ other.chars) filter {
+                    baseUnicodes contains _.getType
+                }
+                val chars = (other.excludingChars filter {
+                    this contains _
+                }) ++ (this.chars filterNot {
+                    other contains _
+                })
                 CharsGroup(baseUnicodes, excludings, chars)
         }
+
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
             case other: AllCharsExcluding =>
                 other intersect this
             case other: CharsGroup =>
                 val baseUnicodes = unicodeCategories intersect other.unicodeCategories
-                val excludings = (excludingChars ++ other.excludingChars) filter { baseUnicodes contains _.getType }
-                val chars = (this.chars filter { other contains _ }) ++ (other.chars filter { this contains _ })
+                val excludings = (excludingChars ++ other.excludingChars) filter {
+                    baseUnicodes contains _.getType
+                }
+                val chars = (this.chars filter {
+                    other contains _
+                }) ++ (other.chars filter {
+                    this contains _
+                })
                 CharsGroup(baseUnicodes, excludings, chars)
         }
 
@@ -98,9 +137,13 @@ object Inputs {
         def toShortString: String = {
             var string = "CharsGroup("
             if (unicodeCategories.nonEmpty) {
-                string += "{" + (unicodeCategories.toSeq.sorted map { UnicodeUtil.categoryCodeToName } mkString ",") + "}"
+                string += "{" + (unicodeCategories.toSeq.sorted map {
+                    UnicodeUtil.categoryCodeToName
+                } mkString ",") + "}"
                 if (excludingChars.nonEmpty) {
-                    string += "-{" + (excludingChars.toSeq.sorted map { UnicodeUtil.toReadable } mkString "") + "}"
+                    string += "-{" + (excludingChars.toSeq.sorted map {
+                        UnicodeUtil.toReadable
+                    } mkString "") + "}"
                 }
                 if (chars.nonEmpty) {
                     string += "+{" + chars.groupedString + "}"
@@ -111,6 +154,7 @@ object Inputs {
             string += ")"
             string
         }
+
         def isEmpty = unicodeCategories.isEmpty && chars.isEmpty
     }
 
@@ -142,11 +186,13 @@ object Inputs {
         def -(other: VirtualTermGroupDesc): VirtualsGroup = other match {
             case VirtualsGroup(otherVirtualNames) => VirtualsGroup(virtualNames -- otherVirtualNames)
         }
+
         def intersect(other: VirtualTermGroupDesc): VirtualsGroup = other match {
             case VirtualsGroup(otherVirtualNames) => VirtualsGroup(virtualNames intersect otherVirtualNames)
         }
 
         def toShortString: String = virtualNames.toSeq.sorted mkString ","
+
         def isEmpty = virtualNames.isEmpty
 
         def contains(input: Input) = input match {
@@ -157,6 +203,7 @@ object Inputs {
     }
 
     object TermGroupDesc {
+
         import Symbols.Terminals._
 
         def descOf(term: CharacterTerminal): CharacterTermGroupDesc = term match {
@@ -165,6 +212,7 @@ object Inputs {
             case Chars(chars) => CharsGroup(Set(), Set(), chars)
             case Unicode(categories) => CharsGroup(categories, Set(), Set())
         }
+
         def descOf(term: VirtualTerminal): VirtualTermGroupDesc = term match {
             case ExactVirtual(name) => VirtualsGroup(Set(name))
             case Virtuals(names) => VirtualsGroup(names)
@@ -199,8 +247,11 @@ object Inputs {
             case AbstractInput(chars) => s"{${chars.toShortString}}"
         }
     }
+
     implicit class SourceToCleanString(source: Source) {
-        def toCleanString: String = (source map { _.toCleanString }).mkString
+        def toCleanString: String = (source map {
+            _.toCleanString
+        }).mkString
     }
 
     def fromString(source: String): Seq[ConcreteInput] =
