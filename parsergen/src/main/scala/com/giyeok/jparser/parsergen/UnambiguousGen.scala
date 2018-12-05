@@ -112,7 +112,7 @@ object UnambiguousGen {
     }
 
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(JsonGrammar.fromJsonOrg)
+        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
         val ugen = new UnambiguousGen(grammar)
         printUnambiguousGen(ugen)
         printAmbiguousTermActions(ugen, ugen.analyzeAmbiguousTermActions())
