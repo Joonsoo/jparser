@@ -1,7 +1,7 @@
 package com.giyeok.jparser.tests.basics
 
+import com.giyeok.jparser.examples2.TrickyTestSuite1
 import com.giyeok.jparser.tests.GrammarTestCases
-import com.giyeok.jparser.tests.TrickyTestSuite1
 import com.giyeok.jparser.tests.Viewer
 
 object Visualization extends Viewer {

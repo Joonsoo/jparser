@@ -1,10 +1,7 @@
 package com.giyeok.jparser.nparser
 
-import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.nparser.AcceptCondition.Always
-import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
-import com.giyeok.jparser.nparser.NGrammar.NSymbol
-import com.giyeok.jparser.nparser.NGrammar.NSequence
+import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
+import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NSequence, NSymbol}
 
 object ParsingContext {
     object Kernel {

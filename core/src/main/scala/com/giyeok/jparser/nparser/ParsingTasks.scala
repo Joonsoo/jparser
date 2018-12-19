@@ -1,11 +1,12 @@
 package com.giyeok.jparser.nparser
 
-import ParsingContext._
-import AcceptCondition._
-import NGrammar._
 import com.giyeok.jparser.Inputs
-import scala.annotation.tailrec
+import com.giyeok.jparser.nparser.AcceptCondition._
+import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
+import com.giyeok.jparser.nparser.ParsingContext._
+
+import scala.annotation.tailrec
 
 trait ParsingTasks {
     val grammar: NGrammar

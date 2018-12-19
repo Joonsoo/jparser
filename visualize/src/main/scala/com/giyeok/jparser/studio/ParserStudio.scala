@@ -5,15 +5,11 @@ import java.util.concurrent.LinkedBlockingDeque
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet
 import scala.util.Try
-import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.ParseForest
-import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser._
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.Symbols.Nonterminal
 import com.giyeok.jparser.Symbols.Sequence
-import com.giyeok.jparser.gramgram.MetaGrammar
+import com.giyeok.jparser.metagrammar.MetaGrammar
 import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor, ParsingContext}
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.Parser.NaiveContext
@@ -84,7 +80,7 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
         NGrammar.fromGrammar(new Grammar() {
             val name: String = ""
             val rules: RuleMap = ListMap("S" -> ListSet(Sequence(Seq())))
-            val startSymbol: Nonterminal = Nonterminal("S")
+            val start = "S"
         }), (x: ParseForest) => x
     )
 

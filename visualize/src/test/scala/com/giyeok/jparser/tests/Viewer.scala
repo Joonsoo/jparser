@@ -4,7 +4,7 @@ import scala.util.Success
 import scala.util.Try
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.ConcreteInput
-import com.giyeok.jparser.nparser.{NGrammar, ParsingContext}
+import com.giyeok.jparser.nparser.ParsingContext
 import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.npreparser.DeriveTipsContext
 import com.giyeok.jparser.visualize._
@@ -22,7 +22,7 @@ import org.eclipse.swt.widgets._
 object AllTestGrammars {
     val allTestGrammars: Set[GrammarTestCases] = Set(
         com.giyeok.jparser.tests.basics.Visualization.allTests,
-        com.giyeok.jparser.tests.gramgram.Visualization.allTests,
+        // com.giyeok.jparser.tests.gramgram.Visualization.allTests,
         com.giyeok.jparser.tests.javascript.Visualization.allTests
     ).flatten
 }

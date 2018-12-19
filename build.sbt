@@ -12,11 +12,44 @@ lazy val testDeps = {
     Seq(scalactic, scalatest, junit)
 }
 
+lazy val cdg = (project in file("cdg")).
+    settings(
+        name := "jparser-cdg",
+        libraryDependencies ++= testDeps
+    )
+
 lazy val core = (project in file("core")).
     settings(
         name := "jparser-core",
         libraryDependencies ++= testDeps
-    )
+    ).
+    dependsOn(cdg % "test->test;compile->compile")
+
+// Examples with no meta grammar
+lazy val examples1 = (project in file("examples1")).
+    settings(
+        name := "jparser-examples1",
+        libraryDependencies ++= testDeps
+    ).
+    dependsOn(cdg % "test->test;compile->compile").
+    dependsOn(core % "test->test;test->compile")
+
+lazy val metagrammar = (project in file("metagrammar")).
+    settings(
+        name := "jparser-metagrammar",
+        libraryDependencies ++= testDeps
+    ).
+    dependsOn(core % "test->test;compile->compile")
+
+// Examples defined using meta grammar
+lazy val examples2 = (project in file("examples2")).
+    settings(
+        name := "jparser-examples2",
+        libraryDependencies ++= testDeps
+    ).
+    dependsOn(core % "test->test;compile->compile").
+    dependsOn(examples1 % "test->test;compile->compile").
+    dependsOn(metagrammar % "test->test;compile->compile")
 
 lazy val visJavaOptions: Seq[String] = {
     if (sys.props("os.name") == "Mac OS X") Seq("-XstartOnFirstThread", "-d64") else Seq()
@@ -33,7 +66,10 @@ lazy val visualize = (project in file("visualize")).
         libraryDependencies ++= testDeps,
         javaOptions := visJavaOptions
     ).
-    dependsOn(core % "test->test;compile->compile")
+    dependsOn(core % "test->test;compile->compile").
+    dependsOn(metagrammar % "test->test;compile->compile").
+    dependsOn(examples1 % "test->test;compile->compile").
+    dependsOn(examples2 % "test->test;compile->compile")
 
 lazy val study = (project in file("study")).
     settings(
@@ -41,6 +77,9 @@ lazy val study = (project in file("study")).
         libraryDependencies ++= testDeps,
         javaOptions := visJavaOptions
     ).
-    dependsOn(core % "test->test;compile->compile")
+    dependsOn(core % "test->test;compile->compile").
+    dependsOn(metagrammar % "test->test;compile->compile").
+    dependsOn(examples1 % "test->test;compile->compile").
+    dependsOn(examples2 % "test->test;compile->compile")
 
 fork in run := true

@@ -1,8 +1,7 @@
 package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.ParseResult
-import com.giyeok.jparser.ParseResultFunc
+import com.giyeok.jparser.{ParseResult, ParseResultFunc}
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.nparser.ParsingContext._

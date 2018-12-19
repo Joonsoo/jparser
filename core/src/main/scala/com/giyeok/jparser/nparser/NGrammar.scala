@@ -1,7 +1,6 @@
 package com.giyeok.jparser.nparser
 
-import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.{Grammar, Symbols}
 
 // Numbered Grammar
 class NGrammar(val nsymbols: Map[Int, NGrammar.NAtomicSymbol], val nsequences: Map[Int, NGrammar.NSequence], val startSymbol: Int) {

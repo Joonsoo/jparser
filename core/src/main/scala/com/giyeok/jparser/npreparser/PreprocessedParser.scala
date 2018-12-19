@@ -4,14 +4,12 @@ import scala.annotation.tailrec
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.ParsingErrors.UnexpectedInput
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.Parser
+import com.giyeok.jparser.nparser.{NGrammar, Parser, ParsingTasks}
 import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 import com.giyeok.jparser.nparser.Parser.Context
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
 import com.giyeok.jparser.nparser.Parser.Transition
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.ParsingTasks
 
 class DeriveTipsContext(gen: Int, nextGraph: Graph, val deriveTips: Set[Node], _inputs: List[Input], _history: List[Graph], conditionAccumulate: ConditionAccumulate)
         extends Context(gen, nextGraph, _inputs, _history, conditionAccumulate) {
