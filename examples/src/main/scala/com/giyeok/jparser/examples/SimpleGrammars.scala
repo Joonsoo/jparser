@@ -29,4 +29,13 @@ object SimpleGrammars {
           |A = # | 'a' A 'b' A
           |B = # | 'b' B 'a' B
         """.stripMargin)
+
+    val lexer: Grammar = MetaGrammar.translateForce("SimpleLexerGrammar",
+        """S = T*
+          |T = Kw | Id | P
+          |Kw = "if"&W
+          |Id = W-Kw
+          |W = <{a-z}+>
+          |P = ' '
+        """.stripMargin)
 }

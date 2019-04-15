@@ -375,8 +375,16 @@ object SimpleGenGenMain {
             example = Some("[ a,   a,  a,a ]"))
     }
 
+    def simpleLexer(): Unit = {
+        generate(SimpleGrammars.lexer,
+            baseDir = new File("parsegen/src/main/java"),
+            pkgName = "com.giyeok.jparser.parsergen.generated",
+            className = "SimpleLexerParser",
+            example = Some("if ifx"))
+    }
+
     def main(args: Array[String]): Unit = {
         // TODO append(x)이거나 repl&append(_, x)이거나 implied에서 (_, _) -> (_, x, _) 인 경우에만 termAction이 필요한 듯?
-        expressionStringInterpolation0()
+        simpleArray()
     }
 }

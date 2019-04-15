@@ -1,35 +1,29 @@
 package com.giyeok.jparser.gramgram
 
-import scala.collection.immutable.ListMap
-import scala.collection.immutable.ListSet
-import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.GrammarHelper._
-import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.ParseForestFunc
-import com.giyeok.jparser.ParseResultTree
-import com.giyeok.jparser.ParseResultTree._
-import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.Symbols._
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.NaiveParser
-import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.Inputs.CharsGrouping
+import com.giyeok.jparser.ParseResultTree._
+import com.giyeok.jparser._
+import com.giyeok.jparser.Symbols._
+import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor}
+
+import scala.collection.immutable.{ListMap, ListSet}
 
 object MetaGrammar extends Grammar {
     val name = "Meta Grammar"
     val rules: RuleMap = ListMap(
         "Grammar" -> ListSet(
-            Sequence(Seq(n("ws").star, n("Rules"), n("ws").star), Seq(1))
+            Sequence(Seq(n("ws"), n("Rules"), n("ws")), Seq(1))
         ),
         "Rules" -> ListSet(
-            Sequence(Seq(n("Rules"), longest(n("ws").except(c('\n')).star), c('\n'), n("ws").star, n("Rule")), Seq(0, 4)),
+            Sequence(Seq(n("Rules"), longest(n("ws0").star), c('\n'), n("ws"), n("Rule")), Seq(0, 4)),
             n("Rule")
         ),
         "Rule" -> ListSet(
-            seqWS(n("ws").star, n("Nonterminal"), c('='), n("RHSs"))
+            seqWS(n("ws"), n("Nonterminal"), c('='), n("RHSs"))
         ),
         "RHSs" -> ListSet(
-            seqWS(n("ws").star, n("RHSs"), c('|'), n("Sequence")),
+            seqWS(n("ws"), n("RHSs"), c('|'), n("Sequence")),
             n("Sequence")
         ),
         "EmptySequence" -> ListSet(
@@ -43,8 +37,8 @@ object MetaGrammar extends Grammar {
         ),
         "SymbolSeq" -> ListSet(
             // Symbol 2개 이상
-            seqWS(n("ws").plus, n("SymbolSeq"), n("Symbol")),
-            seqWS(n("ws").plus, n("Symbol"), n("Symbol"))
+            seqWS(n("ws1").plus, n("SymbolSeq"), n("Symbol")),
+            seqWS(n("ws1").plus, n("Symbol"), n("Symbol"))
         ),
         "Symbol" -> ListSet(
             n("Exclusion").except(n("Symbol4")),
@@ -52,7 +46,7 @@ object MetaGrammar extends Grammar {
         ),
         "Exclusion" -> ListSet(
             n("Symbol4"),
-            seqWS(n("ws").star, n("Exclusion"), c('-'), n("Symbol4"))
+            seqWS(n("ws"), n("Exclusion"), c('-'), n("Symbol4"))
         ),
         "Symbol4" -> ListSet(
             n("Intersection").except(n("Symbol3")),
@@ -60,7 +54,7 @@ object MetaGrammar extends Grammar {
         ),
         "Intersection" -> ListSet(
             n("Symbol3"),
-            seqWS(n("ws").star, n("Intersection"), c('&'), n("Symbol3"))
+            seqWS(n("ws"), n("Intersection"), c('&'), n("Symbol3"))
         ),
         "Symbol3" -> ListSet(
             n("Repeat0"),
@@ -69,13 +63,13 @@ object MetaGrammar extends Grammar {
             n("Symbol2")
         ),
         "Repeat0" -> ListSet(
-            seqWS(n("ws").star, n("Symbol3"), c('*'))
+            seqWS(n("ws"), n("Symbol3"), c('*'))
         ),
         "Repeat1" -> ListSet(
-            seqWS(n("ws").star, n("Symbol3"), c('+'))
+            seqWS(n("ws"), n("Symbol3"), c('+'))
         ),
         "Optional" -> ListSet(
-            seqWS(n("ws").star, n("Symbol3"), c('?'))
+            seqWS(n("ws"), n("Symbol3"), c('?'))
         ),
         "Symbol2" -> ListSet(
             n("FollowedBy"),
@@ -83,10 +77,10 @@ object MetaGrammar extends Grammar {
             n("Symbol1")
         ),
         "FollowedBy" -> ListSet(
-            seqWS(n("ws").star, c('$'), n("Symbol2"))
+            seqWS(n("ws"), c('$'), n("Symbol2"))
         ),
         "NotFollowedBy" -> ListSet(
-            seqWS(n("ws").star, c('!'), n("Symbol2"))
+            seqWS(n("ws"), c('!'), n("Symbol2"))
         ),
         "Symbol1" -> ListSet(
             n("Terminal"),
@@ -94,8 +88,8 @@ object MetaGrammar extends Grammar {
             n("Nonterminal"),
             n("Proxy"),
             n("Longest"),
-            seqWS(n("ws").star, c('('), n("Symbol"), c(')')),
-            seqWS(n("ws").star, c('('), n("Either"), c(')'))
+            seqWS(n("ws"), c('('), n("Symbol"), c(')')),
+            seqWS(n("ws"), c('('), n("Either"), c(')'))
         ),
         "Terminal" -> ListSet(
             n("anychar"),
@@ -123,14 +117,14 @@ object MetaGrammar extends Grammar {
             seq(c('`'), n("nontermNameChar").star, c('`'))
         ),
         "Proxy" -> ListSet(
-            seqWS(n("ws").star, c('['), n("Sequence"), c(']'))
+            seqWS(n("ws"), c('['), n("Sequence"), c(']'))
         ),
         "Either" -> ListSet(
-            seqWS(n("ws").star, n("Symbol"), c('|'), n("Symbol")),
-            seqWS(n("ws").star, n("Either"), c('|'), n("Symbol"))
+            seqWS(n("ws"), n("Symbol"), c('|'), n("Symbol")),
+            seqWS(n("ws"), n("Either"), c('|'), n("Symbol"))
         ),
         "Longest" -> ListSet(
-            seqWS(n("ws").star, c('<'), n("Symbol"), c('>'))
+            seqWS(n("ws"), c('<'), n("Symbol"), c('>'))
         ),
         "anychar" -> ListSet(
             c('.')
@@ -158,8 +152,18 @@ object MetaGrammar extends Grammar {
         "unicodeChar" -> ListSet(
             seq(c('\\'), c('u'), c("0123456789abcdefABCDEF".toSet), c("0123456789abcdefABCDEF".toSet), c("0123456789abcdefABCDEF".toSet), c("0123456789abcdefABCDEF".toSet))
         ),
+        "ws0" -> ListSet(
+            c("\t\r ".toSet)
+        ),
+        "ws1" -> ListSet(
+            c("\t\n\r ".toSet)
+        ),
         "ws" -> ListSet(
-            chars(" \t\n\r")
+            oneof(chars(" \t\n\r"), n("LineComment")).star,
+        ),
+        "LineComment" -> ListSet(
+            // LineComment = "//" .* (!. | '\n')
+            seq(c('/'), c('/'), anychar.except(c('\n')).star, oneof(lookahead_except(anychar), c('\n')))
         )
     )
     val startSymbol: Nonterminal = n("Grammar")
@@ -169,12 +173,17 @@ object MetaGrammar extends Grammar {
     def childrenOf(node: Node, sym: Symbol): Seq[Node] = node match {
         case BindNode(s, body) if s == sym => Seq(node)
         case BindNode(s, body) => childrenOf(body, sym)
-        case s: SequenceNode => s.children flatMap { childrenOf(_, sym) }
+        case s: SequenceNode => s.children flatMap {
+            childrenOf(_, sym)
+        }
         case _ => Seq()
     }
+
     def textOf(node: Node): String = node match {
         case BindNode(s, body) => textOf(body)
-        case s: SequenceNode => (s.children map { textOf }).mkString
+        case s: SequenceNode => (s.children map {
+            textOf
+        }).mkString
         case JoinNode(body, join) => textOf(body)
         case TerminalNode(Inputs.Character(c)) => s"$c"
         case _ => ???
@@ -182,7 +191,7 @@ object MetaGrammar extends Grammar {
 
     def charOf(node: Node): Char = {
         node match {
-            case BindNode(_, unicodeChar @ BindNode(Nonterminal("unicodeChar"), _)) =>
+            case BindNode(_, unicodeChar@BindNode(Nonterminal("unicodeChar"), _)) =>
                 charOf(unicodeChar)
             case BindNode(Nonterminal("unicodeChar"), BindNode(_: Sequence, unicodeCharBody: SequenceNode)) =>
                 val code = Integer.parseInt(textOf(unicodeCharBody).substring(2).toLowerCase(), 16)
@@ -226,7 +235,9 @@ object MetaGrammar extends Grammar {
             case BindNode(Nonterminal("PlainNonterminalName"), nameBody) =>
                 textOf(nameBody)
             case BindNode(Nonterminal("QuoteNonterminalName"), BindNode(_: Sequence, nameBody: SequenceNode)) =>
-                (childrenOf(nameBody.childrenAll(1), Nonterminal("nontermNameChar")) map { charOf }).mkString
+                (childrenOf(nameBody.childrenAll(1), Nonterminal("nontermNameChar")) map {
+                    charOf
+                }).mkString
         }
     }
 
@@ -234,7 +245,7 @@ object MetaGrammar extends Grammar {
         node match {
             case BindNode(Nonterminal("Symbol"), symbolBody) =>
                 symbolBody match {
-                    case BindNode(_: Symbols.Except, exclusionBody @ BindNode(Nonterminal("Exclusion"), _)) =>
+                    case BindNode(_: Symbols.Except, exclusionBody@BindNode(Nonterminal("Exclusion"), _)) =>
                         // Exclusion
                         symbolOf(exclusionBody)
                     case BindNode(Nonterminal("Symbol4"), _) =>
@@ -249,7 +260,7 @@ object MetaGrammar extends Grammar {
                 }
             case BindNode(Nonterminal("Symbol4"), symbol4Body) =>
                 symbol4Body match {
-                    case BindNode(_: Symbols.Except, intersectionBody @ BindNode(Nonterminal("Intersection"), _)) =>
+                    case BindNode(_: Symbols.Except, intersectionBody@BindNode(Nonterminal("Intersection"), _)) =>
                         // Intersection
                         symbolOf(intersectionBody)
                     case BindNode(Nonterminal("Symbol3"), _) =>
@@ -284,7 +295,7 @@ object MetaGrammar extends Grammar {
                     case BindNode(Nonterminal("TerminalCharSet"), charSetNodes) =>
                         val charRangeNodes = childrenOf(charSetNodes, Nonterminal("TerminalCharRange"))
                         val charRanges: Set[Char] = (charRangeNodes map {
-                            case BindNode(Nonterminal("TerminalCharRange"), singleChar @ BindNode(Nonterminal("charSetChar"), _)) =>
+                            case BindNode(Nonterminal("TerminalCharRange"), singleChar@BindNode(Nonterminal("charSetChar"), _)) =>
                                 Set(charOf(singleChar))
                             case BindNode(Nonterminal("TerminalCharRange"), BindNode(_: Sequence, seq: SequenceNode)) =>
                                 (charOf(seq.childrenAll(0)) to charOf(seq.childrenAll(2))).toSet
@@ -294,16 +305,22 @@ object MetaGrammar extends Grammar {
                         Symbols.ExactChar(charOf(seq.childrenAll(1)))
                 }
             case BindNode(Nonterminal("String"), BindNode(_: Sequence, stringBody: SequenceNode)) =>
-                val chars = childrenOf(stringBody.childrenAll(1), Nonterminal("stringChar")) map { charOf }
-                Sequence(chars map { ExactChar })
-            case nonterminal @ BindNode(Nonterminal("Nonterminal"), _) =>
+                val chars = childrenOf(stringBody.childrenAll(1), Nonterminal("stringChar")) map {
+                    charOf
+                }
+                Sequence(chars map {
+                    ExactChar
+                })
+            case nonterminal@BindNode(Nonterminal("Nonterminal"), _) =>
                 Nonterminal(nonterminalNameOf(nonterminal))
             case BindNode(Nonterminal("Proxy"), BindNode(_: Sequence, proxyBody: SequenceNode)) =>
                 Proxy(sequenceOf(proxyBody.childrenAll(2)))
             case BindNode(Nonterminal("Longest"), BindNode(_: Sequence, longestBody: SequenceNode)) =>
                 longest(symbolOf(longestBody.childrenAll(2)))
             case BindNode(_: Sequence, parenEitherBody: SequenceNode) =>
-                oneof(childrenOf(parenEitherBody.childrenAll(2), Nonterminal("Symbol")) map { symbolOf }: _*)
+                oneof(childrenOf(parenEitherBody.childrenAll(2), Nonterminal("Symbol")) map {
+                    symbolOf
+                }: _*)
         }
     }
 
@@ -316,7 +333,9 @@ object MetaGrammar extends Grammar {
                 val rhsNodesSeq = childrenOf(seq.childrenAll(4), Nonterminal("Sequence"))
                 // println(nonterminalName)
                 // rhsNodesSeq foreach { rhs => println(s"  = ${textOf(rhs)}") }
-                val rhsSeq: Seq[Symbols.Symbol] = rhsNodesSeq map { sequenceOf }
+                val rhsSeq: Seq[Symbols.Symbol] = rhsNodesSeq map {
+                    sequenceOf
+                }
                 nonterminalName -> rhsSeq
         }
         assert(nontermDefs.nonEmpty)
@@ -384,6 +403,7 @@ object MetaGrammar extends Grammar {
                                     // TODO complete escape
                                     case _ => "" + char
                                 }
+
                             "{" + (chars.chars.groups.sorted map { pair =>
                                 if (pair._1 == pair._2) s"${escapeChar(pair._1)}"
                                 else if (pair._1 + 1 == pair._2) s"${escapeChar(pair._1)}${escapeChar(pair._2)}"
@@ -396,18 +416,26 @@ object MetaGrammar extends Grammar {
                 case Sequence(Seq(), _) =>
                     ("ε", 0)
                 case Sequence(seq, _) =>
-                    if (seq forall { _.isInstanceOf[Symbols.Terminals.ExactChar] }) {
+                    if (seq forall {
+                        _.isInstanceOf[Symbols.Terminals.ExactChar]
+                    }) {
                         // string인 경우
                         // TODO escape
-                        ("\"" + (seq map { _.asInstanceOf[Symbols.Terminals.ExactChar].char }).mkString + "\"", 0)
+                        ("\"" + (seq map {
+                            _.asInstanceOf[Symbols.Terminals.ExactChar].char
+                        }).mkString + "\"", 0)
                     } else {
-                        (seq map { symbolStringOf(_, 5) } mkString " ", 5)
+                        (seq map {
+                            symbolStringOf(_, 5)
+                        } mkString " ", 5)
                     }
                 case OneOf(syms) =>
                     if (syms.size == 2 && (syms contains Proxy(Sequence(Seq())))) {
                         (symbolStringOf((syms - Proxy(Sequence(Seq()))).head, 2) + "?", 2)
                     } else {
-                        ("(" + (syms.toSeq map { symbolStringOf(_, 5) } mkString " | ") + ")", 0)
+                        ("(" + (syms.toSeq map {
+                            symbolStringOf(_, 5)
+                        } mkString " | ") + ")", 0)
                     }
                 case Repeat(sym, 0) =>
                     (symbolStringOf(sym, 2) + "*", 2)
@@ -430,6 +458,7 @@ object MetaGrammar extends Grammar {
             }
             if (outerPrecedence < precedence) "(" + string + ")" else string
         }
+
         def ruleStringOf(lhs: String, rhs: ListSet[Symbols.Symbol]): String = {
             nonterminalNameOf(lhs) + " = " + ((rhs map { symbol => symbolStringOf(symbol, 6) }) mkString "\n    | ")
         }
