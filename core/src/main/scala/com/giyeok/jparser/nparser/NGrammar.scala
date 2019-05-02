@@ -1,5 +1,6 @@
 package com.giyeok.jparser.nparser
 
+import com.giyeok.jparser.nparser.NGrammar.NSequence
 import com.giyeok.jparser.{Grammar, Symbols}
 
 // Numbered Grammar
@@ -9,6 +10,11 @@ class NGrammar(val nsymbols: Map[Int, NGrammar.NAtomicSymbol], val nsequences: M
             case Some(nsymbol) => nsymbol
             case None => nsequences(id)
         }
+    }
+
+    def lastPointerOf(symbolId: Int): Int = symbolOf(symbolId) match {
+        case NSequence(_, seq) => seq.size
+        case _ => 1
     }
 
     def findSymbol(symbol: Symbols.Symbol): Option[(Int, NGrammar.NSymbol)] =

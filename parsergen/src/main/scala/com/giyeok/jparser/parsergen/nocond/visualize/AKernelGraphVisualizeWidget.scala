@@ -69,14 +69,14 @@ object AKernelGraphVisualizeWidget {
         val grammar = NGrammar.fromGrammar(SimpleGrammars.array0Grammar)
 
         val analyzer = new GrammarAnalyzer(grammar)
-        println(analyzer.acceptableTerms(AKernelSet(Set(AKernel(analyzer.grammar.startSymbol, 0)))))
+        println(analyzer.acceptableTerms(AKernelSet(Set(AKernel(grammar.startSymbol, 0)))))
         println(analyzer.acceptableTerms(AKernelSet(Set(AKernel(3, 1)))))
         println(analyzer.acceptableTerms(AKernelSet(Set(AKernel(3, 2)))))
         println(analyzer.acceptableTerms(AKernelSet(Set(AKernel(3, 3)))))
         val progressed = Set(AKernel(4, 0))
         val baseGraph = analyzer.deriveGraph.subgraphBetween(AKernel(1, 0), progressed)
-        grammar.nsymbols.toList.sortBy(_._1) foreach (s => println(s._1, s._2.symbol.toShortString))
-        grammar.nsequences.toList.sortBy(_._1) foreach (s => println(s._1, s._2.symbol.toShortString))
+        grammar.nsymbols.toList.sortBy(_._1) foreach (s => println(s"${s._1} -> ${s._2.symbol.toShortString}"))
+        grammar.nsequences.toList.sortBy(_._1) foreach (s => println(s"${s._1} -> ${s._2.symbol.toShortString}"))
         val simulation = new ParsingTaskSimulator(grammar).simulate(baseGraph, progressed.toList map ProgressTask)
         simulation.tasks.foreach(println)
         println("====")
@@ -84,6 +84,19 @@ object AKernelGraphVisualizeWidget {
         (simulation.progressTasks -- (progressed map ProgressTask)).foreach(println)
         simulation.nullableProgressTasks filter (task => grammar.symbolOf(task.node.symbolId).isInstanceOf[NSequence]) foreach println
         // deriveGraphToAKernelGraph(analyzer.deriveGraph)
+
+        println("====")
+        val startSet = AKernelSet(Set(AKernel(12, 1), AKernel(3, 1), AKernel(9, 1), AKernel(3, 2), AKernel(3, 3)))
+        val terms = analyzer.acceptableTerms(startSet)
+        terms foreach { termGroup =>
+            val graphChange = analyzer.termChanges(startSet, termGroup)
+            println(termGroup)
+            println(graphChange)
+            graphChange.following foreach { f =>
+                f.following.sortedItems foreach { i => println(i.toReadableString(grammar)) }
+            }
+        }
+
         start(grammar, Seq(deriveGraphToAKernelGraph(baseGraph), simulation.nextGraph))
     }
 }

@@ -37,11 +37,6 @@ case class ParsingTaskSimulationResult(tasks: Set[Task], nullableSymbolIds: Set[
 
 // nullable은 어떻게 처리해야되지??
 class ParsingTaskSimulator(val grammar: NGrammar) {
-    private def lastPointerOf(symbolId: Int) = grammar.symbolOf(symbolId) match {
-        case NSequence(_, seq) => seq.size
-        case _ => 1
-    }
-
     // deriveGraph는 simulate를 하러 오는 시점의 그래프이고, 리턴하는 그래프는 simulate한 뒤의 그래프이다
     // 같은 AKernel이 deriveGraph와 리턴한 그래프에 있어도 실제로는 endGen이 달라서 다른 노드.
     // DeriveTask에서는 grammar를 보고 추가할 노드 목록을 만들고, 새로 추가된 노드인지 확인하기 위해 cc.nextGraph를 사용
@@ -62,7 +57,7 @@ class ParsingTaskSimulator(val grammar: NGrammar) {
             // (derivedNodes intersect cc.nextGraph.nodes) 중 nullable인 것은 다시 NullableFinish해야함
             val repeatingNullableFinishes =
                 derivedNodes intersect cc.nextGraph.nodes map (_.symbolId) intersect cc.nullableSymbolIds map { symbolId =>
-                    NullableFinishTask(AKernel(symbolId, lastPointerOf(symbolId)))
+                    NullableFinishTask(AKernel(symbolId, grammar.lastPointerOf(symbolId)))
                 }
             assert(repeatingNullableFinishes subsetOf cc.nullableFinishTasks)
             val nextGraph0 = newDerivedNodes.foldLeft(cc.nextGraph) { (g, n) => g.addNode(n) }
@@ -78,16 +73,24 @@ class ParsingTaskSimulator(val grammar: NGrammar) {
 
         case FinishTask(node) +: rest =>
             // FinishTask에서는 새로 생긴 노드는 무시해야하므로 baseGraph 사용
-            val incomingNodes = baseGraph.edgesByEnd(AKernel(node.symbolId, 0)) map (_.start)
-            val newTasks = incomingNodes map ProgressTask
-            simulate(baseGraph, newTasks.toList ++ rest,
-                ParsingTaskSimulationResult(cc.tasks ++ newTasks, cc.nullableSymbolIds, cc.nextGraph))
+            if (baseGraph.nodes contains AKernel(node.symbolId, 0)) {
+                val incomingNodes = baseGraph.edgesByEnd(AKernel(node.symbolId, 0)) map (_.start)
+                val newTasks = incomingNodes map ProgressTask
+                simulate(baseGraph, newTasks.toList ++ rest,
+                    ParsingTaskSimulationResult(cc.tasks ++ newTasks, cc.nullableSymbolIds, cc.nextGraph))
+            } else {
+                simulate(baseGraph, rest, cc)
+            }
         case NullableFinishTask(node) +: rest =>
             // FinishTask와 동일하지만 baseGraph 대신 cc.nextGraph에서 찾고 ProgressTask 대신 NullableProgressTask 생성
-            val incomingNodes = cc.nextGraph.edgesByEnd(AKernel(node.symbolId, 0)) map (_.start)
-            val newTasks = incomingNodes map NullableProgressTask
-            simulate(baseGraph, newTasks.toList ++ rest,
-                ParsingTaskSimulationResult(cc.tasks ++ newTasks, cc.nullableSymbolIds + node.symbolId, cc.nextGraph))
+            if (cc.nextGraph.nodes contains AKernel(node.symbolId, 0)) {
+                val incomingNodes = cc.nextGraph.edgesByEnd(AKernel(node.symbolId, 0)) map (_.start)
+                val newTasks = incomingNodes map NullableProgressTask
+                simulate(baseGraph, newTasks.toList ++ rest,
+                    ParsingTaskSimulationResult(cc.tasks ++ newTasks, cc.nullableSymbolIds + node.symbolId, cc.nextGraph))
+            } else {
+                simulate(baseGraph, rest, cc)
+            }
 
         case ProgressTask(node) +: rest =>
             val newKernel = AKernel(node.symbolId, node.pointer + 1)

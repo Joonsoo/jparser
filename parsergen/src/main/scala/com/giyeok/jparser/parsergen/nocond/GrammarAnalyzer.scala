@@ -9,7 +9,7 @@ import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph, GraphUtil}
 import scala.collection.mutable
 
 // 현재 stack top이 replace로 바뀐 다음 following이 그 뒤에 붙음
-// pendingFinishReplace가 None이 아닌 경우 following을 붙이는 대신 stack top을 finish할 수도 있었다는 것을 의미하는데,
+// pendingFinishReplace.nonEmpty인 경우 following을 붙이는 대신 stack top을 finish할 수도 있었다는 것을 의미하는데,
 // 만약 following이 다음 term을 받지 못해서 following을 스택에서 제거하고 pendingFinish를 진행하는 경우 stack top을
 // pendingFinishReplace로 바꿔서 진행해야 함.
 case class Following(following: AKernelSet, pendingFinishReplace: AKernelSet)
@@ -73,42 +73,36 @@ class GrammarAnalyzer(val grammar: NGrammar) {
     }
 
     lazy val deriveGraph: DeriveGraph = {
-        def traverse(queue: List[AKernel], cc: DeriveGraph): DeriveGraph =
+        def traverse(queue: List[Int], cc: DeriveGraph): DeriveGraph =
             queue match {
                 case head +: rest =>
-                    grammar.symbolOf(head.symbolId) match {
+                    grammar.symbolOf(head) match {
                         case NTerminal(_) => traverse(rest, cc)
                         case NSequence(_, sequence) =>
-                            def addNullableElems(pointer: Int, cc: (List[AKernel], DeriveGraph)): (List[AKernel], DeriveGraph) =
-                                if (pointer >= sequence.size) cc else {
-                                    val (ccQueue, ccGraph) = cc
-                                    val nextElem = AKernel(sequence(pointer), 0)
-                                    val nextCC = if (ccGraph.nodes contains nextElem) {
-                                        (ccQueue, ccGraph.addEdge(DeriveEdge(head, nextElem)))
-                                    } else {
-                                        (nextElem +: ccQueue, ccGraph.addNode(nextElem).addEdge(DeriveEdge(head, nextElem)))
-                                    }
-                                    if (nullableSymbols contains sequence(pointer)) {
-                                        addNullableElems(pointer + 1, nextCC)
-                                    } else {
-                                        val restElems = ((pointer + 1) until sequence.size) map { restPointer => AKernel(head.symbolId, restPointer) }
-                                        (nextCC._1 ++ (restElems.toSet -- nextCC._2.nodes), restElems.foldLeft(nextCC._2) { (g, n) => g.addNode(n) })
-                                    }
+                            val next = sequence.indices.foldLeft((rest, cc)) { (m, i) =>
+                                val (ccQueue, ccGraph) = m
+                                val seqNode = AKernel(head, i)
+                                val elemNode = AKernel(sequence(i), 0)
+                                if (ccGraph.nodes contains elemNode) {
+                                    (ccQueue, ccGraph.addNode(seqNode).addEdge(DeriveEdge(seqNode, elemNode)))
+                                } else {
+                                    (sequence(i) +: ccQueue, ccGraph
+                                        .addNode(seqNode).addNode(elemNode).addEdge(DeriveEdge(seqNode, elemNode)))
                                 }
-
-                            val next = addNullableElems(head.pointer, (rest, cc))
+                            }
                             traverse(next._1, next._2)
                         case simpleDerive: NSimpleDerive =>
-                            val nextCC = simpleDerive.produces.foldLeft((rest, cc)) { (cc, produce) =>
+                            val headNode = AKernel(head, 0)
+                            val next = simpleDerive.produces.foldLeft((rest, cc.addNode(headNode))) { (cc, produce) =>
                                 val (ccQueue, ccGraph) = cc
                                 val newNode = AKernel(produce, 0)
                                 if (ccGraph.nodes contains newNode) {
-                                    (ccQueue, ccGraph.addEdge(DeriveEdge(head, newNode)))
+                                    (ccQueue, ccGraph.addEdge(DeriveEdge(headNode, newNode)))
                                 } else {
-                                    (newNode +: ccQueue, ccGraph.addNode(newNode).addEdge(DeriveEdge(head, newNode)))
+                                    (produce +: ccQueue, ccGraph.addNode(newNode).addEdge(DeriveEdge(headNode, newNode)))
                                 }
                             }
-                            traverse(nextCC._1, nextCC._2)
+                            traverse(next._1, next._2)
                         case NExcept(_, body, except) => ???
                         case NJoin(_, body, join) => ???
                         case NLongest(_, body) => ???
@@ -118,7 +112,7 @@ class GrammarAnalyzer(val grammar: NGrammar) {
             }
 
         val startKernel = AKernel(grammar.startSymbol, 0)
-        traverse(List(startKernel), DeriveGraph(Set(), Set(), Map(), Map()).addNode(startKernel))
+        traverse(List(startKernel.symbolId), DeriveGraph(Set(), Set(), Map(), Map()).addNode(startKernel))
     }
 
     def acceptableTerms(kernelSet: AKernelSet): Set[CharacterTermGroupDesc] = {
@@ -135,7 +129,9 @@ class GrammarAnalyzer(val grammar: NGrammar) {
     // - 사실 termChanges는 edgeChanges에서 nextKernelSet이 reachableTermSymbolsFrom(kernelSet) 중 term을 받을 수 있는
     // 커널셋을 nextKernelSet으로 주었을 때 나오는 결과의 다른 형태
     def termChanges(kernelSet: AKernelSet, term: CharacterTermGroupDesc): GraphChange = {
-        val termSymbols = kernelSet.items flatMap reachableTermSymbolIdsFrom
+        val termSymbols = kernelSet.items flatMap reachableTermSymbolIdsFrom filter { symbolId =>
+            grammar.symbolOf(symbolId).asInstanceOf[NTerminal].symbol.accept(term)
+        }
         val termKernelSets = termSymbols map { termSymbolId => AKernel(termSymbolId, 0) }
         edgeChanges(kernelSet, AKernelSet(termKernelSets))
     }
@@ -162,17 +158,24 @@ class GrammarAnalyzer(val grammar: NGrammar) {
         //   --> 이 때 replacePrev == following.pendingFinishReplace가 맞나?
 
         val validNextKernels = nextKernelSet.items intersect mergedSubgraph.nodes
-        val simulationResult = new ParsingTaskSimulator(grammar)
-            .simulate(mergedSubgraph, validNextKernels.toList map ProgressTask)
+        val initiatingProgressTasks = validNextKernels.toList map ProgressTask
+        val simulationResult = new ParsingTaskSimulator(grammar).simulate(mergedSubgraph, initiatingProgressTasks)
 
-        val (appending, pendingFinishReplace) =
-            simulationResult.progressTasks map (_.node) partition replacePrev.contains
+        // simulationResult.progressTasks에서 initiatingProgressTasks는 제외
+        val progressTasks = simulationResult.progressTasks -- initiatingProgressTasks
+        val (pendingFinishReplace, appending) = progressTasks map (_.node) partition replacePrev.contains
+        // appending에는 simulationResult.nullableProgressTasks 중 sequence progress 추가
+        val nullableSeqAppending = simulationResult.nullableProgressTasks map (_.node) filter { k =>
+            grammar.symbolOf(k.symbolId).isInstanceOf[NSequence]
+        }
 
         val following = if (appending.isEmpty) {
             assert(replacePrev == pendingFinishReplace)
+            // assert(nullableAppending.isEmpty)
             None
         } else {
-            Some(Following(AKernelSet(appending), AKernelSet(pendingFinishReplace)))
+            val appendings = (appending ++ nullableSeqAppending) map { k => AKernel(k.symbolId, k.pointer + 1) } filter { k => k.pointer < grammar.lastPointerOf(k.symbolId) }
+            Some(Following(AKernelSet(appendings), AKernelSet(pendingFinishReplace)))
         }
 
         GraphChange(AKernelSet(replacePrev), following)
