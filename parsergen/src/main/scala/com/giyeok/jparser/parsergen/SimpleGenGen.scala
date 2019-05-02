@@ -6,6 +6,7 @@ import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.Symbols.Terminal
 import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
+import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NSequence, NTerminal}
 import com.giyeok.jparser.parsergen.SimpleGen.{Action, ExistEdge, ExistGraph}
@@ -146,12 +147,12 @@ class SimpleGenGen(val grammar: NGrammar) {
                 }
             }
 
-            //            println(s"$startKernels  $termGroup  $acceptNodes")
-            //            println(s"  -> $reachable")
-            //            println(s"  -> $appended")
-            //            println(s"  -> $finishing")
-            //            println(s"  -> $kaction")
-            //            println()
+            println(s"$startKernels  $termGroup  $acceptNodes")
+            println(s"  reachable: $reachable")
+            println(s"  appended: $appended")
+            println(s"  finishing: $finishing")
+            println(s"  kaction: $kaction")
+            println()
 
             termGroup -> kaction
         }).toMap
@@ -212,7 +213,7 @@ class SimpleGenGen(val grammar: NGrammar) {
             case Some(exist) => exist
             case None =>
                 val newId = nodesToKernels.size + 1
-                // println(s"New node $newId -> $kernels")
+                println(s"New node $newId -> $kernels")
                 newNodes +:= newId
                 nodesToKernels += newId -> kernels
                 kernelsToNodes += kernels -> newId
@@ -351,40 +352,73 @@ object SimpleGenGenMain {
         path
     }
 
+    val baseDir = new File("parsergen/src/main/java")
+    val pkgName = "com.giyeok.jparser.parsergen.generated"
+
     def expressionSimple(): Unit = {
         generate(ExpressionGrammars.simple,
-            baseDir = new File("parsergen/src/main/java"),
-            pkgName = "com.giyeok.jparser.parsergen.generated",
+            baseDir = baseDir,
+            pkgName = pkgName,
             className = "ExprSimpleParser",
             example = Some("123+(456*789)"))
     }
 
+    def superSimple(): Unit = {
+        generate(MetaGrammar.translateForce(
+            "Super Simple",
+            """S='x' A 'y'|'x' B 'y'
+              |A="a"
+              |B="ab"
+            """.stripMargin),
+            baseDir = baseDir,
+            pkgName = pkgName,
+            className = "SuperSimpleParser",
+            example = Some("ab"))
+    }
+
     def expressionStringInterpolation0(): Unit = {
         generate(ExpressionGrammars.withStringInterpolation0,
-            baseDir = new File("parsergen/src/main/java"),
-            pkgName = "com.giyeok.jparser.parsergen.generated",
+            baseDir = baseDir,
+            pkgName = pkgName,
             className = "ExprStringInterpolation0Parser",
             example = Some("123+\"asdf ${1+45} fdsa\"+(456*789)"))
     }
 
     def simpleArray(): Unit = {
-        generate(SimpleGrammars.arrayGrammar,
-            baseDir = new File("parsergen/src/main/java"),
-            pkgName = "com.giyeok.jparser.parsergen.generated",
-            className = "SimpleArrayGrammarParser",
-            example = Some("[ a,   a,  a,a ]"))
+        generate(SimpleGrammars.array0Grammar,
+            baseDir = baseDir,
+            pkgName = pkgName,
+            className = "SimpleArray0GrammarParser",
+            example = Some("[a ]"))
     }
 
-    def simpleLexer(): Unit = {
-        generate(SimpleGrammars.lexer,
+    def simpleLexer1(): Unit = {
+        generate(SimpleGrammars.lexer1,
             baseDir = new File("parsegen/src/main/java"),
-            pkgName = "com.giyeok.jparser.parsergen.generated",
-            className = "SimpleLexerParser",
-            example = Some("if ifx"))
+            pkgName = pkgName,
+            className = "SimpleLexer1Parser",
+            example = Some("if xyz"))
+    }
+
+    def simpleLexer2(): Unit = {
+        // TODO lexer2와 lexer2_1의 차이는 term symbol들이 disjoint한가/아닌가의 차이 -> 자동화 기능 구현
+        generate(SimpleGrammars.lexer2_1,
+            baseDir = baseDir,
+            pkgName = pkgName,
+            className = "SimpleLexer2Parser",
+            example = Some("if xyz"))
+    }
+
+    def weird(): Unit = {
+        generate(SimpleGrammars.weird,
+            baseDir = baseDir,
+            pkgName = pkgName,
+            className = "Weird1Parser",
+            example = Some("axyzq"))
     }
 
     def main(args: Array[String]): Unit = {
         // TODO append(x)이거나 repl&append(_, x)이거나 implied에서 (_, _) -> (_, x, _) 인 경우에만 termAction이 필요한 듯?
-        simpleArray()
+        superSimple()
     }
 }

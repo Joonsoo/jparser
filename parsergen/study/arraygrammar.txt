@@ -1,0 +1,102 @@
+S = '[' WS elems WS ']'
+elems = elem | elem WS ',' WS elems
+elem = 'a'
+WS = # | ' ' WS
+
+
+# unused
+3 [ WS*elems WS ]|[ WS elems*WS ]|[ WS elems WS*]
+
+
+
+
+
+1 *<start>
+2 [*WS elems WS ]|[ WS*elems WS ]
+4 [ WS elems WS*]
+5 [ WS*elems WS ]
+6 elem*WS , WS elems|elem WS*, WS elems
+7 [ WS elems*WS ]
+8 \u0020*WS
+9 
+10 [ WS elems*WS ]|[ WS elems WS*]
+11 elem WS*, WS elems|elem WS ,*WS elems|elem WS , WS*elems
+12 elem WS , WS*elems
+13 elem WS*, WS elems
+14 elem WS ,*WS elems
+15 elem WS ,*WS elems|elem WS , WS*elems
+16 elem*WS , WS elems
+17 [*WS elems WS ]
+
+
+
+
+
+
+Node 1:
+  CharsGroup([) -> Append(2,false)
+Node 2:
+  CharsGroup(\u0020) -> ReplaceAndAppend(17,8,true)
+  CharsGroup(a) -> ReplaceAndAppend(5,6,true)
+  # always replaced to 5 or 17(implied **->2 edge not needed)
+Node 4:
+  CharsGroup(]) -> Finish
+Node 5:
+  CharsGroup(a) -> Append(6,true)
+Node 6:
+  CharsGroup(,) -> ReplaceAndAppend(13,9,true)
+  CharsGroup(\u0020) -> ReplaceAndAppend(16,8,true)
+  # always replaced to 13, 16(implied **->6 edge not needed)
+Node 7:
+  CharsGroup(\u0020) -> Append(8,true)
+Node 8:
+  CharsGroup(\u0020) -> Append(8,true)
+Node 10:
+  CharsGroup(\u0020) -> ReplaceAndAppend(7,8,true)
+  CharsGroup(]) -> ReplaceAndAppend(4,9,true)
+  # always replaced to 4, 7(implied **->10 edge not needed)
+Node 11:
+  CharsGroup(,) -> ReplaceAndAppend(13,9,true)
+  CharsGroup(\u0020) -> ReplaceAndAppend(14,8,true)
+  CharsGroup(a) -> ReplaceAndAppend(12,6,true)
+  # always replaced to 12, 13, 14(implied **->11 edge not needed)
+Node 12:
+  CharsGroup(a) -> Append(6,true)
+Node 13:
+  CharsGroup(,) -> Finish
+Node 14:
+  CharsGroup(\u0020) -> Append(8,true)
+Node 15:
+  CharsGroup(\u0020) -> ReplaceAndAppend(14,8,true)
+  CharsGroup(a) -> ReplaceAndAppend(12,6,true)
+Node 16:
+  CharsGroup(\u0020) -> Append(8,true)
+Node 17:
+  CharsGroup(\u0020) -> Append(8,true)
+
+
+
+
+
+Implied:
+  (1,4) -> None
+  (1,5) -> Some((1,10,false))
+  (1,7) -> Some((1,4,false))
+  (1,17) -> Some((1,5,false))
+  (4,9) -> None
+  (5,12) -> None
+  (5,13) -> Some((5,15,false))
+  (5,14) -> Some((5,12,false))
+  (5,15) -> Some((5,12,true))
+  (5,16) -> Some((5,13,false))
+  (7,8) -> None
+  (8,8) -> None
+  (12,12) -> None
+  (12,13) -> Some((12,15,false))
+  (12,14) -> Some((12,12,false))
+  (12,15) -> Some((12,12,false))
+  (12,16) -> Some((12,13,false))
+  (13,9) -> None
+  (14,8) -> None
+  (16,8) -> None
+  (17,8) -> None

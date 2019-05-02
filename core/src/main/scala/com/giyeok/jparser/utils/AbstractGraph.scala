@@ -15,7 +15,7 @@ class GraphBuilder[N, E <: AbstractEdge[N], +G <: AbstractGraph[N, E, G]](val cr
     private val edgesByStart = mutable.Map[N, Set[E]]()
     private val edgesByEnd = mutable.Map[N, Set[E]]()
 
-    def result() = createGraph(nodes.toSet, edges.toSet, edgesByStart.toMap, edgesByEnd.toMap)
+    def result(): G = createGraph(nodes.toSet, edges.toSet, edgesByStart.toMap, edgesByEnd.toMap)
 
     def addNode(node: N): Unit = {
         if (!(nodes contains node)) {

@@ -1,10 +1,10 @@
 package com.giyeok.jparser.parsergen
 
+import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar._
-import com.giyeok.jparser.nparser.{NGrammar, ParsingTasks}
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph, GraphUtil}
 
-// Abstract Kernel? Aggregated Kernel?
+// Abstract Kernel
 case class AKernel(symbolId: Int, pointer: Int) {
     def toReadableString(grammar: NGrammar, pointerString: String = "*"): String = {
         val symbols = grammar.symbolOf(symbolId) match {
@@ -32,7 +32,7 @@ object AKernelGraph {
     val empty = AKernelGraph(Set(), Set(), Map(), Map())
 }
 
-class GrammarAnalyzer(val grammar: NGrammar) extends ParsingTasks {
+class GrammarAnalyzer(val grammar: NGrammar) {
     lazy val nullableSymbols: Set[Int] = {
         val initialNullables: Set[Int] = (grammar.nsequences filter {
             _._2.sequence.isEmpty

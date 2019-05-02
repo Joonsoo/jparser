@@ -11,6 +11,12 @@ object SimpleGrammars {
           |WS = # | ' ' WS
         """.stripMargin)
 
+    val array0Grammar: Grammar = MetaGrammar.translateForce("SimpleArray0Grammar",
+        """S = '[' [WS E [WS ',' WS E]*]? WS ']'
+          |E = 'a'
+          |WS = ' '*
+        """.stripMargin)
+
     val arrayOrObjectGrammar: Grammar = MetaGrammar.translateForce("SimpleArrayOrObjectGrammar",
         """S = '[' WS elems WS ']' | '{' WS elems WS '}'
           |elems = elem | elem WS ',' WS elems
@@ -30,12 +36,40 @@ object SimpleGrammars {
           |B = # | 'b' B 'a' B
         """.stripMargin)
 
-    val lexer: Grammar = MetaGrammar.translateForce("SimpleLexerGrammar",
+    val lexer1: Grammar = MetaGrammar.translateForce("SimpleLexerGrammar1",
         """S = T*
           |T = Kw | Id | P
           |Kw = "if"&W
           |Id = W-Kw
           |W = <{a-z}+>
           |P = ' '
+        """.stripMargin)
+
+    val lexer2: Grammar = MetaGrammar.translateForce("SimpleLexerGrammar2",
+        """S = T*
+          |T = Kw | Id | P
+          |Kw = "xyz"&W
+          |Id = W-Kw
+          |W = <{a-z}+>
+          |P = ' '
+        """.stripMargin)
+
+    val lexer2_1: Grammar = MetaGrammar.translateForce("SimpleLexerGrammar2_1",
+        """S = T*
+          |T = Kw | Id | P
+          |Kw = "xyz"&W
+          |Id = W-Kw
+          |W = <({a-w} | 'x' | 'y' | 'z')+>
+          |P = ' '
+        """.stripMargin)
+
+    val weird: Grammar = MetaGrammar.translateForce("WeirdGrammar1",
+        """S = A B C | D E F
+          |A = 'a'
+          |D = 'a'
+          |B = 'x' 'y'
+          |E = 'x' 'y' 'z'
+          |C = 'z'
+          |F = 'q'
         """.stripMargin)
 }

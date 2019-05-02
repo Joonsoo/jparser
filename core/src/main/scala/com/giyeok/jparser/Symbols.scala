@@ -254,17 +254,21 @@ object Symbols {
             case t: Terminal => t.toShortString
             case Start => "<start>"
             case s: Nonterminal => s.name
-            case s: Sequence => "(" + (s.seq map {
+            case s: Sequence => "[" + (s.seq map {
                 _.toShortString
-            } mkString " ") + ")"
+            } mkString " ") + "]"
+            case s: OneOf if s.syms.size == 2 && s.syms.contains(Proxy(Sequence(Seq(), Seq()))) =>
+                s"${(s.syms - Proxy(Sequence(Seq(), Seq()))).head.toShortString}?"
             case s: OneOf => s.syms map {
                 _.toShortString
             } mkString "|"
+            case Repeat(sym, 0) => s"${sym.toShortString}*"
+            case Repeat(sym, 1) => s"${sym.toShortString}+"
             case Repeat(sym, lower) => s"${sym.toShortString}[$lower-]"
             case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
             case LookaheadIs(lookahead) => s"la_is ${lookahead.toShortString}"
             case LookaheadExcept(except) => s"la_except ${except.toShortString}"
-            case Proxy(sym) => s"P(${sym.toShortString})"
+            case Proxy(sym) => s"(${sym.toShortString})"
             case Join(sym, join) => s"${sym.toShortString} joinedwith ${join.toShortString}"
             case Longest(sym) => s"L(${sym.toShortString})"
         }

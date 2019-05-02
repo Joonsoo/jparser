@@ -57,7 +57,8 @@ lazy val parsergen = (project in file("parsergen")).
         libraryDependencies ++= testDeps
     ).
     dependsOn(core % "test->test;compile->compile").
-    dependsOn(examples % "test->test;compile->compile")
+    dependsOn(examples % "test->test;compile->compile").
+    dependsOn(visualize % "test->test;compile->compile")
 
 lazy val study = (project in file("study")).
     settings(
