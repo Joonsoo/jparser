@@ -86,8 +86,11 @@ class GrammarAnalyzer(val grammar: NGrammar) {
                                 if (ccGraph.nodes contains elemNode) {
                                     (ccQueue, ccGraph.addNode(seqNode).addEdge(DeriveEdge(seqNode, elemNode)))
                                 } else {
-                                    (sequence(i) +: ccQueue, ccGraph
-                                        .addNode(seqNode).addNode(elemNode).addEdge(DeriveEdge(seqNode, elemNode)))
+                                    (sequence(i) +: ccQueue,
+                                        ccGraph
+                                            .addNode(seqNode)
+                                            .addNode(elemNode)
+                                            .addEdge(DeriveEdge(seqNode, elemNode)))
                                 }
                             }
                             traverse(next._1, next._2)
@@ -132,7 +135,9 @@ class GrammarAnalyzer(val grammar: NGrammar) {
         val termSymbols = kernelSet.items flatMap reachableTermSymbolIdsFrom filter { symbolId =>
             grammar.symbolOf(symbolId).asInstanceOf[NTerminal].symbol.accept(term)
         }
-        val termKernelSets = termSymbols map { termSymbolId => AKernel(termSymbolId, 0) }
+        val termKernelSets = termSymbols map { termSymbolId =>
+            AKernel(termSymbolId, 0)
+        }
         edgeChanges(kernelSet, AKernelSet(termKernelSets))
     }
 
@@ -148,9 +153,13 @@ class GrammarAnalyzer(val grammar: NGrammar) {
         val subgraphs = (prevKernelSet.items map { prevKernel =>
             prevKernel -> deriveGraph.subgraphBetween(prevKernel, nextKernelSet.items)
         }).toMap
-        val replacePrev = (subgraphs filterNot { p => p._2.nodes.isEmpty }).keySet
+        val replacePrev = (subgraphs filterNot { p =>
+            p._2.nodes.isEmpty
+        }).keySet
 
-        val mergedSubgraph = subgraphs.values.foldLeft(DeriveGraph(Set(), Set(), Map(), Map())) { (m, i) => m.merge(i) }
+        val mergedSubgraph = subgraphs.values.foldLeft(DeriveGraph(Set(), Set(), Map(), Map())) { (m, i) =>
+            m.merge(i)
+        }
         // mergedSubgraph에서 nextKernelSet에 속한 커널들이 progress된다고 가정했을 때 발생할 progress operation들을 수집
         // 그중 replacePrev에 대한 progress인 것(실제로 progress된 이후, 즉 pointer+=1된 것들) -> following.following
         // 아닌 것들에 대한 progress(progress되기 전 상태로) -> following.pendingFinishReplace
@@ -159,22 +168,26 @@ class GrammarAnalyzer(val grammar: NGrammar) {
 
         val validNextKernels = nextKernelSet.items intersect mergedSubgraph.nodes
         val initiatingProgressTasks = validNextKernels.toList map ProgressTask
-        val simulationResult = new ParsingTaskSimulator(grammar).simulate(mergedSubgraph, initiatingProgressTasks)
+        val simulation = new ParsingTaskSimulator(grammar).simulate(mergedSubgraph, initiatingProgressTasks)
 
         // simulationResult.progressTasks에서 initiatingProgressTasks는 제외
-        val progressTasks = simulationResult.progressTasks -- initiatingProgressTasks
+        val progressTasks = (simulation.progressTasks -- initiatingProgressTasks) ++ simulation.nullableProgressTasks
         val (pendingFinishReplace, appending) = progressTasks map (_.node) partition replacePrev.contains
         // appending에는 simulationResult.nullableProgressTasks 중 sequence progress 추가
-        val nullableSeqAppending = simulationResult.nullableProgressTasks map (_.node) filter { k =>
+        val seqAppending = appending filter { k =>
             grammar.symbolOf(k.symbolId).isInstanceOf[NSequence]
         }
 
-        val following = if (appending.isEmpty) {
+        val following = if (seqAppending.isEmpty) {
             assert(replacePrev == pendingFinishReplace)
             // assert(nullableAppending.isEmpty)
             None
         } else {
-            val appendings = (appending ++ nullableSeqAppending) map { k => AKernel(k.symbolId, k.pointer + 1) } filter { k => k.pointer < grammar.lastPointerOf(k.symbolId) }
+            val appendings = seqAppending map { k =>
+                AKernel(k.symbolId, k.pointer + 1)
+            } filter { k =>
+                k.pointer < grammar.lastPointerOf(k.symbolId)
+            }
             Some(Following(AKernelSet(appendings), AKernelSet(pendingFinishReplace)))
         }
 

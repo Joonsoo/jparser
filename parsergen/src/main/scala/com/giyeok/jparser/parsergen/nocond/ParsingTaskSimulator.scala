@@ -82,9 +82,15 @@ class ParsingTaskSimulator(val grammar: NGrammar) {
                 simulate(baseGraph, rest, cc)
             }
         case NullableFinishTask(node) +: rest =>
-            // FinishTask와 동일하지만 baseGraph 대신 cc.nextGraph에서 찾고 ProgressTask 대신 NullableProgressTask 생성
-            if (cc.nextGraph.nodes contains AKernel(node.symbolId, 0)) {
-                val incomingNodes = cc.nextGraph.edgesByEnd(AKernel(node.symbolId, 0)) map (_.start)
+            // FinishTask와 동일하지만 baseGraph와 cc.nextGraph에서 찾고 ProgressTask 대신 NullableProgressTask 생성
+            val zeroKernel = AKernel(node.symbolId, 0)
+            val incomingNodesOpt = if (cc.nextGraph.nodes contains zeroKernel) {
+                Some(cc.nextGraph.edgesByEnd(zeroKernel))
+            } else if (baseGraph.nodes contains zeroKernel) {
+                Some(baseGraph.edgesByEnd(zeroKernel))
+            } else None
+            if (incomingNodesOpt.isDefined) {
+                val incomingNodes = incomingNodesOpt.get map (_.start)
                 val newTasks = incomingNodes map NullableProgressTask
                 simulate(baseGraph, newTasks.toList ++ rest,
                     ParsingTaskSimulationResult(cc.tasks ++ newTasks, cc.nullableSymbolIds + node.symbolId, cc.nextGraph))

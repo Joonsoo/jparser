@@ -1,8 +1,7 @@
 package com.giyeok.jparser.parsergen.nocond.visualize
 
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.ExpressionGrammars
 import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.NGrammar.NSequence
 import com.giyeok.jparser.parsergen.nocond._
 import com.giyeok.jparser.utils.AbstractGraph
 import com.giyeok.jparser.visualize.{AbstractZestGraphWidget, BasicVisualizeResources}
@@ -66,36 +65,18 @@ object AKernelGraphVisualizeWidget {
     }
 
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(SimpleGrammars.array0Grammar)
+        val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
+
+        (grammar.nsymbols ++ grammar.nsequences).toList.sortBy(_._1) foreach { s =>
+            println(s"${s._1} -> ${s._2.symbol.toShortString}")
+        }
+
+        val startKernel = AKernel(1, 0)
+        val endSet = Set(AKernel(8, 0))
 
         val analyzer = new GrammarAnalyzer(grammar)
-        println(analyzer.acceptableTerms(AKernelSet(Set(AKernel(grammar.startSymbol, 0)))))
-        println(analyzer.acceptableTerms(AKernelSet(Set(AKernel(3, 1)))))
-        println(analyzer.acceptableTerms(AKernelSet(Set(AKernel(3, 2)))))
-        println(analyzer.acceptableTerms(AKernelSet(Set(AKernel(3, 3)))))
-        val progressed = Set(AKernel(4, 0))
-        val baseGraph = analyzer.deriveGraph.subgraphBetween(AKernel(1, 0), progressed)
-        grammar.nsymbols.toList.sortBy(_._1) foreach (s => println(s"${s._1} -> ${s._2.symbol.toShortString}"))
-        grammar.nsequences.toList.sortBy(_._1) foreach (s => println(s"${s._1} -> ${s._2.symbol.toShortString}"))
-        val simulation = new ParsingTaskSimulator(grammar).simulate(baseGraph, progressed.toList map ProgressTask)
-        simulation.tasks.foreach(println)
-        println("====")
-        println(simulation.nullableSymbolIds)
-        (simulation.progressTasks -- (progressed map ProgressTask)).foreach(println)
-        simulation.nullableProgressTasks filter (task => grammar.symbolOf(task.node.symbolId).isInstanceOf[NSequence]) foreach println
-        // deriveGraphToAKernelGraph(analyzer.deriveGraph)
-
-        println("====")
-        val startSet = AKernelSet(Set(AKernel(12, 1), AKernel(3, 1), AKernel(9, 1), AKernel(3, 2), AKernel(3, 3)))
-        val terms = analyzer.acceptableTerms(startSet)
-        terms foreach { termGroup =>
-            val graphChange = analyzer.termChanges(startSet, termGroup)
-            println(termGroup)
-            println(graphChange)
-            graphChange.following foreach { f =>
-                f.following.sortedItems foreach { i => println(i.toReadableString(grammar)) }
-            }
-        }
+        val baseGraph = analyzer.deriveGraph.subgraphBetween(startKernel, endSet)
+        val simulation = new ParsingTaskSimulator(grammar).simulate(baseGraph, endSet.toList map ProgressTask)
 
         start(grammar, Seq(deriveGraphToAKernelGraph(baseGraph), simulation.nextGraph))
     }
