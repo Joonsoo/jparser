@@ -4,7 +4,7 @@ import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
 
 case class AKernel(symbolId: Int, pointer: Int) {
-    def toReadableString(grammar: NGrammar, pointerString: String = "*"): String = {
+    def toReadableString(grammar: NGrammar, pointerString: String = "\u2022"): String = {
         val symbols = grammar.symbolOf(symbolId) match {
             case atomicSymbol: NAtomicSymbol => Seq(atomicSymbol.symbol.toShortString)
             case NGrammar.NSequence(_, sequence) => sequence map { elemId =>
@@ -18,10 +18,10 @@ case class AKernel(symbolId: Int, pointer: Int) {
 case class AKernelSet(items: Set[AKernel]) {
     def sortedItems: List[AKernel] = items.toList.sortBy(k => (k.symbolId, k.pointer))
 
-    def toReadableString(grammar: NGrammar, pointerString: String = "*"): String =
+    def toReadableString(grammar: NGrammar, pointerString: String = "\u2022"): String =
         sortedItems map (_.toReadableString(grammar, pointerString)) mkString " | "
 
-    def toReadableStrings(grammar: NGrammar, pointerString: String = "*"): Seq[String] =
+    def toReadableStrings(grammar: NGrammar, pointerString: String = "\u2022"): Seq[String] =
         sortedItems map (_.toReadableString(grammar, pointerString))
 }
 

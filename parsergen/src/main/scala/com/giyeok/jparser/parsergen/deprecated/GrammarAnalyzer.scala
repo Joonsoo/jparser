@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen
+package com.giyeok.jparser.parsergen.deprecated
 
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar._

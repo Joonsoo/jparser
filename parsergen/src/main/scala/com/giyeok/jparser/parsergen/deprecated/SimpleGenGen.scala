@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen
+package com.giyeok.jparser.parsergen.deprecated
 
 import java.io.File
 
@@ -9,8 +9,9 @@ import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NSequence, NTerminal}
-import com.giyeok.jparser.parsergen.SimpleGen.{Action, ExistEdge, ExistGraph}
-import com.giyeok.jparser.parsergen.SimpleGenGen.KAction
+import com.giyeok.jparser.parsergen.TermGrouper
+import com.giyeok.jparser.parsergen.deprecated.SimpleGen.{Action, ExistEdge, ExistGraph}
+import com.giyeok.jparser.parsergen.deprecated.SimpleGenGen.KAction
 
 object SimpleGenGen {
 

@@ -2,7 +2,7 @@ package com.giyeok.jparser.study.parsergen
 
 import com.giyeok.jparser.examples.SimpleGrammars
 import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.parsergen._
+import com.giyeok.jparser.parsergen.deprecated.{AKernel, SimpleGen, SimpleGenGen}
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 import com.giyeok.jparser.visualize.{AbstractZestGraphWidget, BasicVisualizeResources, Interactable, NodeFigureGenerators}

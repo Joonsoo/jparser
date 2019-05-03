@@ -1,7 +1,7 @@
-package com.giyeok.jparser.parsergen
+package com.giyeok.jparser.parsergen.deprecated
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
-import com.giyeok.jparser.examples.{JsonGrammar, SimpleGrammars}
+import com.giyeok.jparser.examples.SimpleGrammars
 import com.giyeok.jparser.nparser.NGrammar
 
 class UnambiguousGen(val grammar: NGrammar) {

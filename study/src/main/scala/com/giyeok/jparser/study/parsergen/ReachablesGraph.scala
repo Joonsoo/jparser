@@ -1,9 +1,9 @@
 package com.giyeok.jparser.study.parsergen
 
-import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
+import com.giyeok.jparser.examples.SimpleGrammars
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
-import com.giyeok.jparser.parsergen.{AKernel, AKernelEdge, AKernelGraph, GrammarAnalyzer}
+import com.giyeok.jparser.parsergen.deprecated.{AKernel, AKernelEdge, AKernelGraph, GrammarAnalyzer}
 import com.giyeok.jparser.visualize._
 import org.eclipse.draw2d.{ColorConstants, Figure, LineBorder}
 import org.eclipse.swt.SWT

@@ -2,8 +2,8 @@ package com.giyeok.jparser.parsergen.nocond.visualize
 
 import com.giyeok.jparser.examples.ExpressionGrammars
 import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.nparser.NGrammar.NSequence
 import com.giyeok.jparser.parsergen.nocond._
-import com.giyeok.jparser.utils.AbstractGraph
 import com.giyeok.jparser.visualize.{AbstractZestGraphWidget, BasicVisualizeResources}
 import org.eclipse.draw2d.{ColorConstants, Figure, LineBorder}
 import org.eclipse.swt.SWT
@@ -42,10 +42,6 @@ class AKernelGraphVisualizeWidget(parent: Composite, style: Int, grammar: NGramm
 }
 
 object AKernelGraphVisualizeWidget {
-    def deriveGraphToAKernelGraph(deriveGraph: DeriveGraph): AKernelGraph =
-        AbstractGraph[AKernel, AKernelEdge, AKernelGraph](deriveGraph.nodes,
-            deriveGraph.edges map { e => AKernelEdge(e.start, e.end) }, AKernelGraph)
-
     def start(grammar: NGrammar, graphs: Seq[AKernelGraph]): Unit = {
         val display = new Display()
         val shell = new Shell(display)
@@ -72,12 +68,17 @@ object AKernelGraphVisualizeWidget {
         }
 
         val startKernel = AKernel(1, 0)
-        val endSet = Set(AKernel(8, 0))
+        val endSet = Set(AKernel(13, 2))
 
         val analyzer = new GrammarAnalyzer(grammar)
-        val baseGraph = analyzer.deriveGraph.subgraphBetween(startKernel, endSet)
-        val simulation = new ParsingTaskSimulator(grammar).simulate(baseGraph, endSet.toList map ProgressTask)
+        val baseGraph = analyzer.deriveGraphFrom(startKernel)
+        val simulation = new ParsingTaskSimulator(grammar).simulateProgress(baseGraph, endSet.toList map ProgressTask)
 
-        start(grammar, Seq(deriveGraphToAKernelGraph(baseGraph), simulation.nextGraph))
+        simulation.tasks.foreach(println)
+        simulation.progressTasks.filter(task => grammar.symbolOf(task.node.symbolId).isInstanceOf[NSequence]).foreach { t =>
+            println(t, t.node.toReadableString(grammar, "."))
+        }
+
+        start(grammar, Seq(baseGraph, simulation.nextGraph))
     }
 }

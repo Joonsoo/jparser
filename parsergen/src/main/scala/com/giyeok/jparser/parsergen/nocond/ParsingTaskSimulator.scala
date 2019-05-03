@@ -27,6 +27,10 @@ case class AKernelGraph(nodes: Set[AKernel], edges: Set[AKernelEdge], edgesBySta
         AKernelGraph(nodes, edges, edgesByStart, edgesByEnd)
 }
 
+object AKernelGraph {
+    val emptyGraph = AKernelGraph(Set(), Set(), Map(), Map())
+}
+
 case class ParsingTaskSimulationResult(tasks: Set[Task], nullableSymbolIds: Set[Int], nextGraph: AKernelGraph) {
     lazy val deriveTasks: Set[DeriveTask] = tasks collect { case task: DeriveTask => task }
     lazy val finishTasks: Set[FinishTask] = tasks collect { case task: FinishTask => task }
@@ -41,7 +45,7 @@ class ParsingTaskSimulator(val grammar: NGrammar) {
     // 같은 AKernel이 deriveGraph와 리턴한 그래프에 있어도 실제로는 endGen이 달라서 다른 노드.
     // DeriveTask에서는 grammar를 보고 추가할 노드 목록을 만들고, 새로 추가된 노드인지 확인하기 위해 cc.nextGraph를 사용
     // FinishTask에서는 incoming edge를 찾기 위해 기존 그래프인 deriveGraph를 사용
-    private def simulate(baseGraph: DeriveGraph, queue: List[Task], cc: ParsingTaskSimulationResult): ParsingTaskSimulationResult = queue match {
+    private def simulate(baseGraph: AKernelGraph, queue: List[Task], cc: ParsingTaskSimulationResult): ParsingTaskSimulationResult = queue match {
         case DeriveTask(node) +: rest =>
             // DeriveTask에서는 grammar를 사용
             val derivedNodes: Set[AKernel] = grammar.symbolOf(node.symbolId) match {
@@ -82,21 +86,19 @@ class ParsingTaskSimulator(val grammar: NGrammar) {
                 simulate(baseGraph, rest, cc)
             }
         case NullableFinishTask(node) +: rest =>
-            // FinishTask와 동일하지만 baseGraph와 cc.nextGraph에서 찾고 ProgressTask 대신 NullableProgressTask 생성
+            // FinishTask와 유사하지만 baseGraph 및 cc.nextGraph에서도 찾음
             val zeroKernel = AKernel(node.symbolId, 0)
-            val incomingNodesOpt = if (cc.nextGraph.nodes contains zeroKernel) {
-                Some(cc.nextGraph.edgesByEnd(zeroKernel))
-            } else if (baseGraph.nodes contains zeroKernel) {
-                Some(baseGraph.edgesByEnd(zeroKernel))
-            } else None
-            if (incomingNodesOpt.isDefined) {
-                val incomingNodes = incomingNodesOpt.get map (_.start)
+            if (cc.nextGraph.nodes contains zeroKernel) {
+                val incomingNodes = cc.nextGraph.edgesByEnd(zeroKernel) map (_.start)
                 val newTasks = incomingNodes map NullableProgressTask
                 simulate(baseGraph, newTasks.toList ++ rest,
                     ParsingTaskSimulationResult(cc.tasks ++ newTasks, cc.nullableSymbolIds + node.symbolId, cc.nextGraph))
-            } else {
-                simulate(baseGraph, rest, cc)
-            }
+            } else if (baseGraph.nodes contains zeroKernel) {
+                val incomingNodes = baseGraph.edgesByEnd(zeroKernel) map (_.start)
+                val newTasks = incomingNodes map ProgressTask
+                simulate(baseGraph, newTasks.toList ++ rest,
+                    ParsingTaskSimulationResult(cc.tasks ++ newTasks, cc.nullableSymbolIds + node.symbolId, cc.nextGraph))
+            } else simulate(baseGraph, rest, cc)
 
         case ProgressTask(node) +: rest =>
             val newKernel = AKernel(node.symbolId, node.pointer + 1)
@@ -119,8 +121,9 @@ class ParsingTaskSimulator(val grammar: NGrammar) {
     }
 
     // deriveGraph에서 tasks를 실행하면서 실행되는 task들과, 모든 task가 실행된 뒤의 graph를 반환한다
-    def simulate(baseGraph: DeriveGraph, tasks: List[Task]): ParsingTaskSimulationResult = {
-        val emptyGraph = AKernelGraph(Set(), Set(), Map(), Map())
-        simulate(baseGraph, tasks, ParsingTaskSimulationResult(tasks.toSet, Set(), emptyGraph))
-    }
+    def simulate(baseGraph: AKernelGraph, initNextGraph: AKernelGraph, tasks: List[Task]): ParsingTaskSimulationResult =
+        simulate(baseGraph, tasks, ParsingTaskSimulationResult(tasks.toSet, Set(), initNextGraph))
+
+    def simulateProgress(baseGraph: AKernelGraph, tasks: List[ProgressTask]): ParsingTaskSimulationResult =
+        simulate(baseGraph, AKernelGraph.emptyGraph, tasks)
 }
