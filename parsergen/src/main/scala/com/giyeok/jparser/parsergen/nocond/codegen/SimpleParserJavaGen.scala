@@ -124,7 +124,8 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
         val mainTestPart = testStrOpt map { testStr =>
             s"""
                |public static void main(String[] args) {
-               |    parseVerbose(${javaString(testStr)});
+               |    boolean succeed = parseVerbose(${javaString(testStr)});
+               |    log("Parsing " + (succeed? "succeeded":"failed"));
                |}""".stripMargin
         } getOrElse ""
 
@@ -185,8 +186,13 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |        throw new AssertionError("Unknown edge to finish: " + stackIds());
            |    }
            |
-           |    private void finish() {
-           |        while (finishStep());
+           |    private boolean finish() {
+           |        do {
+           |            if (stack.prev == null) {
+           |                return false;
+           |            }
+           |        } while (finishStep());
+           |        return true;
            |    }
            |
            |    private void dropLast() {
@@ -222,7 +228,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |    public boolean proceed(char c) {
            |        if (!canAccept(c)) {
            |            if (verbose) {
-           |                log("  - cannot access " + c + ", try pendingFinish");
+           |                log("  - cannot accept " + c + ", try pendingFinish");
            |            }
            |            if (pendingFinish == -1) {
            |                if (verbose) {
@@ -237,7 +243,9 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |            if (verbose) {
            |                printStack();
            |            }
-           |            finish();
+           |            if (!finish()) {
+           |                return false;
+           |            }
            |            return proceed(c);
            |        }
            |        switch (stack.nodeId) {
@@ -327,6 +335,6 @@ object SimpleParserJavaGen {
         new SimpleParserJavaGen(parser).generateJavaSourceToDir(
             new File("parsergen/src/main/java"),
             "com.giyeok.jparser.parsergen",
-            "ExprGrammarSimpleParser", Some("123+12"))
+            "ExprGrammarSimpleParser", Some("(123)+12"))
     }
 }

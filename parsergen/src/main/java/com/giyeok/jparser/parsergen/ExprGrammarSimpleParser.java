@@ -349,8 +349,13 @@ public class ExprGrammarSimpleParser {
     throw new AssertionError("Unknown edge to finish: " + stackIds());
   }
 
-  private void finish() {
-    while (finishStep()) ;
+  private boolean finish() {
+    do {
+      if (stack.prev == null) {
+        return false;
+      }
+    } while (finishStep());
+    return true;
   }
 
   private void dropLast() {
@@ -386,7 +391,7 @@ public class ExprGrammarSimpleParser {
   public boolean proceed(char c) {
     if (!canAccept(c)) {
       if (verbose) {
-        log("  - cannot access " + c + ", try pendingFinish");
+        log("  - cannot accept " + c + ", try pendingFinish");
       }
       if (pendingFinish == -1) {
         if (verbose) {
@@ -401,7 +406,9 @@ public class ExprGrammarSimpleParser {
       if (verbose) {
         printStack();
       }
-      finish();
+      if (!finish()) {
+        return false;
+      }
       return proceed(c);
     }
     switch (stack.nodeId) {
@@ -748,6 +755,7 @@ public class ExprGrammarSimpleParser {
   }
 
   public static void main(String[] args) {
-    parseVerbose("123+12");
+    boolean succeed = parseVerbose("(123)+12*332+(12*0)");
+    log("Parsing " + (succeed ? "succeeded" : "failed"));
   }
 }
