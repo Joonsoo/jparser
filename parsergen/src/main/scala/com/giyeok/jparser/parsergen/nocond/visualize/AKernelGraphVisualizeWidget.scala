@@ -1,6 +1,6 @@
 package com.giyeok.jparser.parsergen.nocond.visualize
 
-import com.giyeok.jparser.examples.ExpressionGrammars
+import com.giyeok.jparser.examples.SimpleGrammars
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.NSequence
 import com.giyeok.jparser.parsergen.nocond._
@@ -61,14 +61,14 @@ object AKernelGraphVisualizeWidget {
     }
 
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
+        val grammar = NGrammar.fromGrammar(SimpleGrammars.array0Grammar)
 
         (grammar.nsymbols ++ grammar.nsequences).toList.sortBy(_._1) foreach { s =>
             println(s"${s._1} -> ${s._2.symbol.toShortString}")
         }
 
         val startKernel = AKernel(1, 0)
-        val endSet = Set(AKernel(13, 2))
+        val endSet = Set(AKernel(4, 0))
 
         val analyzer = new GrammarAnalyzer(grammar)
         val baseGraph = analyzer.deriveGraphFrom(startKernel)
@@ -76,7 +76,7 @@ object AKernelGraphVisualizeWidget {
 
         simulation.tasks.foreach(println)
         simulation.progressTasks.filter(task => grammar.symbolOf(task.node.symbolId).isInstanceOf[NSequence]).foreach { t =>
-            println(t, t.node.toReadableString(grammar, "."))
+            println(t, t.node.toReadableString(grammar))
         }
 
         start(grammar, Seq(baseGraph, simulation.nextGraph))

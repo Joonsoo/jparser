@@ -1,7 +1,7 @@
 package com.giyeok.jparser.parsergen.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
-import com.giyeok.jparser.examples.ExpressionGrammars
+import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
 import com.giyeok.jparser.nparser.NGrammar
 
 // AKernelSet 하나가 한 노드가 되는 parser 생성.
@@ -59,10 +59,11 @@ class SimpleParserGen(val grammar: NGrammar) {
                         None
                     } else {
                         // Append w/ pendingFinish
+                        val pendingFinishReplaceId = nodeIdOf(pendingFinishReplace)
                         if (replace != pendingFinishReplace) {
                             addReplaceRel(replace, pendingFinishReplace)
                         }
-                        Some(nodeIdOf(pendingFinishReplace))
+                        Some(pendingFinishReplaceId)
                     }
                     SimpleParser.Append(replaceId, followingId, pfIdOpt)
             }
@@ -119,7 +120,7 @@ class SimpleParserGen(val grammar: NGrammar) {
 
 object SimpleParserGen {
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
+        val grammar = NGrammar.fromGrammar(SimpleGrammars.array0Grammar)
 
         (grammar.nsymbols ++ grammar.nsequences).toList.sortBy(_._1) foreach { s =>
             println(s"${s._1} -> ${s._2.symbol.toShortString}")

@@ -3,7 +3,7 @@ package com.giyeok.jparser.parsergen.nocond.codegen
 import java.io.{File, PrintWriter}
 
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGrouping, TermGroupDesc}
-import com.giyeok.jparser.examples.ExpressionGrammars
+import com.giyeok.jparser.examples.SimpleGrammars
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.nocond.{SimpleParser, SimpleParserGen}
 import com.google.googlejavaformat.java.Formatter
@@ -222,7 +222,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |    }
            |
            |    private void printStack() {
-           |        log(stackIds() + " " + stackDescription());
+           |        log("  " + stackIds() + " " + stackDescription());
            |    }
            |
            |    public boolean proceed(char c) {
@@ -259,6 +259,9 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |            log("  - proceeding eof");
            |        }
            |        if (pendingFinish == -1) {
+           |            if (stack.prev == null && stack.nodeId == ${parser.startNodeId}) {
+           |                return true;
+           |            }
            |            if (verbose) {
            |                log("  - pendingFinish unavailable, proceedEof failed");
            |            }
@@ -330,11 +333,12 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
 
 object SimpleParserJavaGen {
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(ExpressionGrammars.simple)
+        val originalGrammar = SimpleGrammars.array0Grammar
+        val grammar = NGrammar.fromGrammar(originalGrammar)
         val parser = new SimpleParserGen(grammar).generateParser()
         new SimpleParserJavaGen(parser).generateJavaSourceToDir(
             new File("parsergen/src/main/java"),
             "com.giyeok.jparser.parsergen",
-            "ExprGrammarSimpleParser", Some("(123)+12"))
+            "Array0GrammarParser", Some("xay"))
     }
 }
