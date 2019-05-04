@@ -32,7 +32,7 @@ object SimpleParser {
 // grammar, prevNodes는 디버깅을 위한 목적
 class SimpleParser(val grammar: NGrammar,
                    val nodes: Map[Int, AKernelSet],
-                   val nodeRelGraph: NodeRelGraph,
+                   val nodeRelInferer: NodeRelInferer,
                    val startNodeId: Int,
                    // TODO empty string을 accept하는 경우를 위해 pendingFinish 초기값 필요
                    val termActions: Map[(Int, CharacterTermGroupDesc), SimpleParser.TermAction],
@@ -48,7 +48,7 @@ class SimpleParser(val grammar: NGrammar,
         edgeActions.toList.sortBy(_._1).foreach { act =>
             println(s"fin ${act._1} -> ${act._2}")
         }
-        nodeRelGraph.adjacentNodes.adjByFoll.toList.sortBy(_._1).foreach { kv =>
+        nodeRelInferer.adjGraph.adjacencies.adjByFoll.toList.sortBy(_._1).foreach { kv =>
             println(s"${kv._1} follow {${kv._2.toList.sorted map (_.toString) mkString ", "}}")
         }
     }

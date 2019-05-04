@@ -16,27 +16,28 @@ class SimpleParserGen(val grammar: NGrammar) {
     private var idEdgeActions = Map[(Int, Int), SimpleParser.EdgeAction]()
 
     // key 앞에 올 수 있는 AKernelSet의 집합
-    private var nodeRels = NodeRelGraph.emptyGraph
+    private var nodeRelInferer = NodeRelInferer.emptyInferer
 
-    private var newNodes = Set[AKernelSet]()
-    private var newAdjs = Set[(AKernelSet, AKernelSet)]()
-
-    private def addNodeRel(nodeRel: NodeRelEdge): Unit = {
-        val (newNodeRels, addedAdjs) = nodeRels.newAdjacentsByNewRel(nodeRel)
-        nodeRels = newNodeRels
-        newAdjs ++= (addedAdjs map { p => nodesById(p._1) -> nodesById(p._2) })
+    private def updateNodeRelInferer(result: (NodeRelInferer, NodeRels)): Unit = {
+        val (newInferer, newRels) = result
+        nodeRelInferer = newInferer
+        newToppableNodes ++= (newRels.nodesOnTop map nodesById)
+        newFinishableEdges ++= (newRels.finishableEdges map { e => nodesById(e._1) -> nodesById(e._2) })
     }
 
-    private def addAppendRel(prev: Int, next: Int): Unit = addNodeRel(AppendRel(prev, next))
+    private def addTermAction(baseNodeId: Int, termAction: SimpleParser.TermAction): Unit =
+        updateNodeRelInferer(nodeRelInferer.addTermAction(baseNodeId, termAction))
 
-    private def addReplaceRel(prev: Int, next: Int): Unit = addNodeRel(ReplaceRel(prev, next))
+    private def addEdgeAction(prev: Int, last: Int, edgeAction: SimpleParser.EdgeAction): Unit =
+        updateNodeRelInferer(nodeRelInferer.addEdgeAction(prev, last, edgeAction))
+
+    private var newToppableNodes = Set[AKernelSet]()
+    private var newFinishableEdges = Set[(AKernelSet, AKernelSet)]()
 
     private def nodeIdOf(kernelSet: AKernelSet): Int = if (nodes contains kernelSet) nodes(kernelSet) else {
-        newNodes += kernelSet
         val newId = nodes.size
         nodes += kernelSet -> newId
         nodesById += newId -> kernelSet
-        nodeRels = nodeRels.addNode(newId)
         newId
     }
 
@@ -47,28 +48,24 @@ class SimpleParserGen(val grammar: NGrammar) {
             val change = analyzer.termChanges(start, term)
             val replace = change.replacePrev
             val replaceId = nodeIdOf(replace)
-            if (start != replace) addReplaceRel(startId, replaceId)
             val idTermAction: SimpleParser.TermAction = change.following match {
                 case None =>
                     // Finish
                     SimpleParser.Finish(replaceId)
                 case Some(Following(following, pendingFinishReplace)) =>
                     val followingId = nodeIdOf(following)
-                    addAppendRel(replaceId, followingId)
                     val pfIdOpt = if (pendingFinishReplace.items.isEmpty) {
                         // Append
                         None
                     } else {
                         // Append w/ pendingFinish
                         val pendingFinishReplaceId = nodeIdOf(pendingFinishReplace)
-                        if (replace != pendingFinishReplace) {
-                            addReplaceRel(replaceId, pendingFinishReplaceId)
-                        }
                         Some(pendingFinishReplaceId)
                     }
                     SimpleParser.Append(replaceId, followingId, pfIdOpt)
             }
             termActions += (start, term) -> change
+            addTermAction(startId, idTermAction)
             idTermActions += (startId, term) -> idTermAction
         }
     }
@@ -79,42 +76,41 @@ class SimpleParserGen(val grammar: NGrammar) {
         val change = analyzer.edgeChanges(start, next)
         val replace = change.replacePrev
         val replaceId = nodeIdOf(replace)
-        if (start != replace) addReplaceRel(startId, replaceId)
         val idEdgeAction = change.following match {
             case None => SimpleParser.DropLast(replaceId)
             case Some(Following(following, pendingFinishReplace)) =>
                 val followingId = nodeIdOf(following)
-                addAppendRel(replaceId, followingId)
                 val pfIdOpt = if (pendingFinishReplace.items.isEmpty) {
                     // ReplaceEdge
                     None
                 } else {
                     // ReplaceEdge w/ pendingFinish
                     val pendingFinishReplaceId = nodeIdOf(pendingFinishReplace)
-                    if (replace != pendingFinishReplace) {
-                        addReplaceRel(replaceId, pendingFinishReplaceId)
-                    }
                     Some(pendingFinishReplaceId)
                 }
                 SimpleParser.ReplaceEdge(replaceId, followingId, pfIdOpt)
         }
         edgeActions += edge -> change
+        val nextId = nodeIdOf(next)
+        addEdgeAction(startId, nextId, idEdgeAction)
         idEdgeActions += (startId, nodeIdOf(edge._2)) -> idEdgeAction
     }
 
     def generateParser(): SimpleParser = {
-        val startId = nodeIdOf(AKernelSet(Set(AKernel(grammar.startSymbol, 0))))
+        val start = AKernelSet(Set(AKernel(grammar.startSymbol, 0)))
+        val startId = nodeIdOf(start)
 
-        while (newNodes.nonEmpty || newAdjs.nonEmpty) {
-            val processingNodes = newNodes
-            val processingAdjs = newAdjs
+        newToppableNodes += start
+        while (newToppableNodes.nonEmpty || newFinishableEdges.nonEmpty) {
+            val processingNodes = newToppableNodes
+            val processingAdjs = newFinishableEdges
 
-            newNodes = Set()
-            newAdjs = Set()
+            newToppableNodes = Set()
+            newFinishableEdges = Set()
 
             processingNodes foreach calculateTermActions
             processingAdjs foreach calculateEdgeActions
         }
-        new SimpleParser(grammar, nodes map { p => p._2 -> p._1 }, nodeRels, startId, idTermActions, idEdgeActions)
+        new SimpleParser(grammar, nodes map { p => p._2 -> p._1 }, nodeRelInferer, startId, idTermActions, idEdgeActions)
     }
 }
