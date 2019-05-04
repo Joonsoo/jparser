@@ -53,13 +53,19 @@ class GrammarAnalyzer(val grammar: NGrammar) {
         traverse(initialNullables)
     }
 
-    private val deriveGraphMemo = Memoize[AKernel, AKernelGraph]()
+    private val deriveGraphMemo = Memoize[AKernel, AKernelGenGraph]()
     private val memoReachableTermSymbolIds = Memoize[AKernel, Set[Int]]()
 
-    def deriveGraphFrom(kernel: AKernel): AKernelGraph = deriveGraphMemo(kernel) {
-        val initGraph = AKernelGraph(Set(), Set(), Map(), Map()).addNode(kernel)
-        val simulation = new ParsingTaskSimulator(grammar).simulate(AKernelGraph.emptyGraph, initGraph, List(DeriveTask(kernel)))
-        simulation.nextGraph
+    def deriveGraphFrom(kernel: AKernel): AKernelGenGraph = deriveGraphMemo(kernel) {
+        val start = AKernelGen.from(kernel, 0, 0)
+        val initGraph = AKernelGenGraph(Set(), Set(), Map(), Map()).addNode(start)
+        val simulation = new ParsingTaskSimulator(grammar).simulate(initGraph, List(DeriveTask(start)), Set())
+
+        val nodesMap = (simulation.nextGraph.nodes map { k => k -> AKernelGen(k.symbolId, k.pointer, 0, 0) }).toMap
+        val edges = simulation.nextGraph.edges map { e => AKernelGenEdge(nodesMap(e.start), nodesMap(e.end)) }
+
+        val deriveGraph0 = nodesMap.values.foldLeft(AKernelGenGraph.emptyGraph) { (m, i) => m.addNode(i) }
+        edges.foldLeft(deriveGraph0) { (m, i) => m.addEdge(i) }
     }
 
     // NTerminal의 ID들을 return
@@ -100,32 +106,62 @@ class GrammarAnalyzer(val grammar: NGrammar) {
     //   도달해서 progress되어야 하는 커널들은 following.pendingFinishReplace으로 반환
     def edgeChanges(prevKernelSet: AKernelSet, nextKernelSet: AKernelSet): GraphChange = {
         // DeriveGraph에는 AKernel pointer=0으로 되어 있으므로
-        val nextKernelSet0 = nextKernelSet.items map (k => AKernel(k.symbolId, 0))
-        // replacePrev=prevKernelSet.items 중 nextKernelSet 중 하나로라도 도달 가능한 것.
+        val nextKernelSet0 = nextKernelSet.items map (k => AKernelGen(k.symbolId, 0, 0, 0))
+
         val deriveGraphs = (prevKernelSet.items map { prevKernel =>
             // 필요한건 deriveGraphFrom(prevKernel)에서 nextKernelSet로 도달 가능한 노드들만 추린 subgraph지만 굳이..?
             prevKernel -> deriveGraphFrom(prevKernel)
         }).toMap
-        val replacePrev = (deriveGraphs filterNot { p =>
-            (p._2.nodes intersect nextKernelSet0).isEmpty
+
+        // val replacePrev = (deriveGraphs filterNot { p => (p._2.nodes intersect nextKernelSet0).isEmpty }).keySet
+        val replacePrev = (deriveGraphs filter { p =>
+            val (startKernel, deriveGraph) = p
+
+            var visited = Set[AKernelGen]()
+
+            // progress된 노드들도 모두 이어져있다고 가정했을 때 parent->child가 reachable한지 여부 반환
+            // deriveGraph에선 어차피 created, updated가 둘다 항상 0이므로 간단히 reachability 조사
+            def canBeInfluencedBy(queue: List[AKernelGen]): Boolean = queue match {
+                case head +: rest =>
+                    if (nextKernelSet0 contains head) true else {
+                        val derived0 = (deriveGraph.edgesByStart(head) map (_.end)) flatMap { d =>
+                            (0 until grammar.lastPointerOf(d.symbolId) map { p => AKernelGen(d.symbolId, p, 0, 0) }).toSet
+                        }
+                        val derived = (derived0 intersect deriveGraph.nodes) -- visited
+                        if ((derived intersect nextKernelSet0).nonEmpty) true else {
+                            visited ++= derived
+                            canBeInfluencedBy(derived.toList ++ rest)
+                        }
+                    }
+                case List() => false
+            }
+
+            canBeInfluencedBy(List(AKernelGen.from(startKernel, 0, 0)))
         }).keySet
 
-        val mergedSubgraph = deriveGraphs.values.foldLeft(AKernelGraph.emptyGraph) { (m, i) =>
+        val baseGraph = deriveGraphs.values.foldLeft(AKernelGenGraph.emptyGraph) { (m, i) =>
             m.merge(i)
         }
+
         // mergedSubgraph에서 nextKernelSet에 속한 커널들이 progress된다고 가정했을 때 발생할 progress operation들을 수집
         // 그중 replacePrev에 대한 progress인 것(실제로 progress된 이후, 즉 pointer+=1된 것들) -> following.following
         // 아닌 것들에 대한 progress(progress되기 전 상태로) -> following.pendingFinishReplace
         // 만약 following.following.isEmpty이면 replacePrev == following.pendingFinishReplace일 것이고, following을 None으로 리턴
         //   --> 이 때 replacePrev == following.pendingFinishReplace가 맞나?
 
-        val validNextKernels = nextKernelSet.items filter (k => mergedSubgraph.nodes contains AKernel(k.symbolId, 0))
-        val initiatingProgressTasks = validNextKernels.toList map ProgressTask
-        val simulation = new ParsingTaskSimulator(grammar).simulateProgress(mergedSubgraph, initiatingProgressTasks)
+        val validNextKernelGens = nextKernelSet.items filter { k =>
+            baseGraph.nodes contains AKernelGen(k.symbolId, 0, 0, 0)
+        } map { k =>
+            AKernelGen(k.symbolId, k.pointer, 0, 0)
+        }
+        val initiatingProgressTasks = validNextKernelGens.toList map ProgressTask
+        val boundaryTasks: Set[Task] = replacePrev map { k => ProgressTask(AKernelGen.from(k, 0, 0)) }
+        val simulation = new ParsingTaskSimulator(grammar).simulate(baseGraph, initiatingProgressTasks, boundaryTasks)
 
+        // simulation.updateMap.get(replacePrev)
         // simulationResult.progressTasks에서 initiatingProgressTasks는 제외
-        val progressTasks = simulation.progressTasks
-        val (pendingFinishReplace, appending) = progressTasks map (_.node) partition replacePrev.contains
+        val progressTasks = simulation.progressTasks filter (_.node.created == 0)
+        val (pendingFinishReplace, appending) = progressTasks map (_.node.kernel) partition replacePrev.contains
         // appending에는 simulationResult.nullableProgressTasks 중 sequence progress 추가
         val seqAppending = appending filter { k =>
             grammar.symbolOf(k.symbolId).isInstanceOf[NSequence]
@@ -136,14 +172,15 @@ class GrammarAnalyzer(val grammar: NGrammar) {
         } filter { k =>
             k.pointer < grammar.lastPointerOf(k.symbolId)
         }
+
         val following = if (notFinishedSeqAppendings.isEmpty) {
-            assert(replacePrev == pendingFinishReplace)
-            // assert(nullableAppending.isEmpty)
+            // boundaryTasks때문에 prevKernelSet 사이에 derive 관계가 있는 경우 replacePrev != pendingFinishReplace일 수 있음
+            // assert(replacePrev == pendingFinishReplace)
+            assert(pendingFinishReplace subsetOf replacePrev)
             None
         } else {
             Some(Following(AKernelSet(notFinishedSeqAppendings), AKernelSet(pendingFinishReplace)))
         }
-
         GraphChange(AKernelSet(replacePrev), following)
     }
 }

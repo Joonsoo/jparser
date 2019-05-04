@@ -83,7 +83,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
                         "return false;")
             }
 
-            s"""if (prev == ${edge._1} && last == ${edge._2}) {
+            s"""if (prev == ${edge._1} && last == ${edge._2}) {  // $edge
                |    // $edgeAction
                |    ${actions mkString "\n"}
                |}""".stripMargin
@@ -93,26 +93,32 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
             val (nodeId, nodeTermActions) = kv
             val termCases = nodeTermActions.toList.sortBy(_._1) map { termCase =>
                 val condition = charGroupToCondition(termCase._1, "c")
+                val printStack = "if (verbose) printStack();"
                 val actions: List[String] = termCase._2 match {
                     case SimpleParser.Finish(replace) if replace == nodeId =>
                         // Finish
-                        List("finish();")
+                        List("finish();",
+                            printStack)
                     case SimpleParser.Finish(replace) =>
                         // ReplaceAndFinish
-                        List(s"replace($replace);", "finish();")
+                        List(s"replace($replace);",
+                            printStack,
+                            "finish();",
+                            printStack)
                     case SimpleParser.Append(replace, append, pendingFinish) if replace == nodeId =>
                         // Append
                         List(s"append($append);",
-                            s"pendingFinish = ${pendingFinish.getOrElse(-1)};")
+                            s"pendingFinish = ${pendingFinish.getOrElse(-1)};",
+                            printStack)
                     case SimpleParser.Append(replace, append, pendingFinish) =>
                         // ReplaceAndAppend
                         List(s"replace($replace);", s"append($append);",
-                            s"pendingFinish = ${pendingFinish.getOrElse(-1)};")
+                            s"pendingFinish = ${pendingFinish.getOrElse(-1)};",
+                            printStack)
                 }
-                val actionsWithLog = actions :+ "if (verbose) printStack();"
                 s"""if ($condition) {
                    |    // ${termCase._2}
-                   |    ${actionsWithLog mkString "\n"}
+                   |    ${actions mkString "\n"}
                    |    return true;
                    |}""".stripMargin
             }
@@ -187,11 +193,17 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |    }
            |
            |    private boolean finish() {
-           |        do {
+           |        if (stack.prev == null) {
+           |            return false;
+           |        }
+           |        while (finishStep()) {
+           |            if (verbose) {
+           |                printStack();
+           |            }
            |            if (stack.prev == null) {
            |                return false;
            |            }
-           |        } while (finishStep());
+           |        }
            |        return true;
            |    }
            |
@@ -335,10 +347,12 @@ object SimpleParserJavaGen {
     def main(args: Array[String]): Unit = {
         val originalGrammar = SimpleGrammars.array0Grammar
         val grammar = NGrammar.fromGrammar(originalGrammar)
+        grammar.describe()
         val parser = new SimpleParserGen(grammar).generateParser()
+        parser.describe()
         new SimpleParserJavaGen(parser).generateJavaSourceToDir(
             new File("parsergen/src/main/java"),
             "com.giyeok.jparser.parsergen",
-            "Array0GrammarParser", Some("xay"))
+            "Array0GrammarParser", Some("[a  ,  a,   a,a,a,a]"))
     }
 }

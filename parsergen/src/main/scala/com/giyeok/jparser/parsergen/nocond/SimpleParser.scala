@@ -36,4 +36,19 @@ class SimpleParser(val grammar: NGrammar,
                    val startNodeId: Int,
                    // TODO empty string을 accept하는 경우를 위해 pendingFinish 초기값 필요
                    val termActions: Map[(Int, CharacterTermGroupDesc), SimpleParser.TermAction],
-                   val edgeActions: Map[(Int, Int), SimpleParser.EdgeAction])
+                   val edgeActions: Map[(Int, Int), SimpleParser.EdgeAction]) {
+    def describe(): Unit = {
+        nodes.toList.sortBy(_._1).foreach { kv =>
+            println(s"${kv._1} -> ${kv._2.items} ${kv._2.items map (_.toReadableString(grammar)) mkString " | "}")
+        }
+        termActions.toList.sortBy(_._1._1).foreach { act =>
+            println(s"${act._1._1}, ${act._1._2.toShortString} -> ${act._2}")
+        }
+        edgeActions.toList.sortBy(_._1).foreach { act =>
+            println(s"fin ${act._1} -> ${act._2}")
+        }
+        nodeRelGraph.adjacents.toList.sorted.foreach { kv =>
+            println(s"${kv._1} -> ${kv._2}")
+        }
+    }
+}

@@ -19,6 +19,12 @@ class NGrammar(val nsymbols: Map[Int, NGrammar.NAtomicSymbol], val nsequences: M
 
     def findSymbol(symbol: Symbols.Symbol): Option[(Int, NGrammar.NSymbol)] =
         (nsymbols ++ nsequences) find { _._2.symbol == symbol }
+
+    def describe(): Unit = {
+        (nsymbols ++ nsequences).toList.sortBy(_._1) foreach { s =>
+            println(s"${s._1} -> ${s._2.symbol.toShortString}")
+        }
+    }
 }
 
 object NGrammar {

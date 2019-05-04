@@ -1,7 +1,7 @@
 package com.giyeok.jparser.parsergen.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
-import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
+import com.giyeok.jparser.examples.SimpleGrammars
 import com.giyeok.jparser.nparser.NGrammar
 
 // AKernelSet 하나가 한 노드가 되는 parser 생성.
@@ -121,30 +121,10 @@ class SimpleParserGen(val grammar: NGrammar) {
 object SimpleParserGen {
     def main(args: Array[String]): Unit = {
         val grammar = NGrammar.fromGrammar(SimpleGrammars.array0Grammar)
-
-        (grammar.nsymbols ++ grammar.nsequences).toList.sortBy(_._1) foreach { s =>
-            println(s"${s._1} -> ${s._2.symbol.toShortString}")
-        }
-
-        val analyzer = new GrammarAnalyzer(grammar)
-        val deriveGraph = analyzer.deriveGraphFrom(AKernel(1, 0))
-        val terms = analyzer.acceptableTerms(AKernelSet(Set(AKernel(1, 0))))
-        terms.foreach(t => println(t.toShortString))
-        println()
+        grammar.describe()
 
         val parser = new SimpleParserGen(grammar).generateParser()
-        parser.nodes.toList.sortBy(_._1).foreach { kv =>
-            println(s"${kv._1} -> ${kv._2.items} ${kv._2.items map (_.toReadableString(grammar)) mkString " | "}")
-        }
-        parser.termActions.toList.sortBy(_._1._1).foreach { act =>
-            println(s"${act._1._1}, ${act._1._2.toShortString} -> ${act._2}")
-        }
-        parser.edgeActions.toList.sortBy(_._1).foreach { act =>
-            println(s"fin ${act._1} -> ${act._2}")
-        }
-        parser.nodeRelGraph.adjacents.toList.sorted.foreach { kv =>
-            println(s"${kv._1} -> ${kv._2}")
-        }
+        parser.describe()
         println()
     }
 }
