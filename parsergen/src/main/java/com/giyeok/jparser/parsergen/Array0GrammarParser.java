@@ -22,6 +22,7 @@ public class Array0GrammarParser {
   }
 
   public boolean canAccept(char c) {
+    if (stack == null) return false;
     switch (stack.nodeId) {
       case 0:
         return (c == '[');
@@ -560,6 +561,7 @@ public class Array0GrammarParser {
         printStack();
       }
       if (stack.prev == null) {
+        stack = null;
         return false;
       }
     }
@@ -571,6 +573,9 @@ public class Array0GrammarParser {
   }
 
   public String stackIds() {
+    if (stack == null) {
+      return ".";
+    }
     return stackIds(stack);
   }
 
@@ -580,6 +585,9 @@ public class Array0GrammarParser {
   }
 
   public String stackDescription() {
+    if (stack == null) {
+      return ".";
+    }
     return stackDescription(stack);
   }
 
@@ -593,10 +601,20 @@ public class Array0GrammarParser {
   }
 
   private void printStack() {
-    log("  " + stackIds() + " " + stackDescription());
+    if (stack == null) {
+      log("  .");
+    } else {
+      log("  " + stackIds() + " " + stackDescription());
+    }
   }
 
   public boolean proceed(char c) {
+    if (stack == null) {
+      if (verbose) {
+        log("  - already finished");
+      }
+      return false;
+    }
     if (!canAccept(c)) {
       if (verbose) {
         log("  - cannot accept " + c + ", try pendingFinish");
@@ -1286,8 +1304,11 @@ public class Array0GrammarParser {
   }
 
   public boolean proceedEof() {
-    if (verbose) {
-      log("  - proceeding eof");
+    if (stack == null) {
+      if (verbose) {
+        log("  - already finished");
+        return true;
+      }
     }
     if (pendingFinish == -1) {
       if (stack.prev == null && stack.nodeId == 0) {
@@ -1339,11 +1360,12 @@ public class Array0GrammarParser {
         return false;
       }
     }
+    log("Proceed EOF");
     return parser.proceedEof();
   }
 
   public static void main(String[] args) {
-    boolean succeed = parseVerbose("[  a]");
+    boolean succeed = parseVerbose("[ a,a, a, a,  a]");
     log("Parsing " + (succeed ? "succeeded" : "failed"));
   }
 }

@@ -159,6 +159,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |    }
            |
            |    public boolean canAccept(char c) {
+           |        if (stack == null) return false;
            |        switch (stack.nodeId) {
            |            ${canAcceptCases mkString "\n"}
            |        }
@@ -201,6 +202,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |                printStack();
            |            }
            |            if (stack.prev == null) {
+           |                stack = null;
            |                return false;
            |            }
            |        }
@@ -212,6 +214,9 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |    }
            |
            |    public String stackIds() {
+           |        if (stack == null) {
+           |            return ".";
+           |        }
            |        return stackIds(stack);
            |    }
            |
@@ -221,6 +226,9 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |    }
            |
            |    public String stackDescription() {
+           |        if (stack == null) {
+           |            return ".";
+           |        }
            |        return stackDescription(stack);
            |    }
            |
@@ -234,10 +242,20 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |    }
            |
            |    private void printStack() {
-           |        log("  " + stackIds() + " " + stackDescription());
+           |        if (stack == null) {
+           |            log("  .");
+           |        } else {
+           |            log("  " + stackIds() + " " + stackDescription());
+           |        }
            |    }
            |
            |    public boolean proceed(char c) {
+           |        if (stack == null) {
+           |            if (verbose) {
+           |                log("  - already finished");
+           |            }
+           |            return false;
+           |        }
            |        if (!canAccept(c)) {
            |            if (verbose) {
            |                log("  - cannot accept " + c + ", try pendingFinish");
@@ -267,8 +285,11 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |    }
            |
            |    public boolean proceedEof() {
-           |        if (verbose) {
-           |            log("  - proceeding eof");
+           |        if (stack == null) {
+           |            if (verbose) {
+           |                log("  - already finished");
+           |                return true;
+           |            }
            |        }
            |        if (pendingFinish == -1) {
            |            if (stack.prev == null && stack.nodeId == ${parser.startNodeId}) {
@@ -320,6 +341,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |                return false;
            |            }
            |        }
+           |        log("Proceed EOF");
            |        return parser.proceedEof();
            |    }
            |    $mainTestPart
@@ -353,6 +375,6 @@ object SimpleParserJavaGen {
         new SimpleParserJavaGen(parser).generateJavaSourceToDir(
             new File("parsergen/src/main/java"),
             "com.giyeok.jparser.parsergen",
-            "Array0GrammarParser", Some("[a  ,  a,   a,a,a,a]"))
+            "Array0GrammarParser", Some("[ a,a, a, a,  a]"))
     }
 }

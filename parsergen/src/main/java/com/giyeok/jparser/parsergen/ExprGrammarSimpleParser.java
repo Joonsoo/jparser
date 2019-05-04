@@ -14,14 +14,17 @@ public class ExprGrammarSimpleParser {
   private boolean verbose;
   private Stack stack;
   private int pendingFinish;
+  private boolean finished;
 
   public ExprGrammarSimpleParser(boolean verbose) {
     this.verbose = verbose;
     this.stack = new Stack(0, null);
     this.pendingFinish = -1;
+    this.finished = false;
   }
 
   public boolean canAccept(char c) {
+    if (finished) return false;
     switch (stack.nodeId) {
       case 0:
         return (c == '(') || (c == '0') || ('1' <= c && c <= '9');
@@ -109,144 +112,144 @@ public class ExprGrammarSimpleParser {
     }
     int prev = stack.prev.nodeId;
     int last = stack.nodeId;
-    if (prev == 0 && last == 1) {
+    if (prev == 0 && last == 1) { // (0,1)
       // ReplaceEdge(0,8,None)
       replace(8);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 0 && last == 2) {
+    if (prev == 0 && last == 2) { // (0,2)
       // ReplaceEdge(0,9,None)
       replace(9);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 0 && last == 3) {
+    if (prev == 0 && last == 3) { // (0,3)
       // ReplaceEdge(0,10,Some(0))
       replace(10);
       pendingFinish = 0;
       return false;
     }
-    if (prev == 0 && last == 4) {
+    if (prev == 0 && last == 4) { // (0,4)
       // ReplaceEdge(0,13,None)
       replace(13);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 0 && last == 5) {
+    if (prev == 0 && last == 5) { // (0,5)
       // ReplaceEdge(0,12,None)
       replace(12);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 0 && last == 6) {
+    if (prev == 0 && last == 6) { // (0,6)
       // ReplaceEdge(0,2,Some(0))
       replace(2);
       pendingFinish = 0;
       return false;
     }
-    if (prev == 0 && last == 8) {
+    if (prev == 0 && last == 8) { // (0,8)
       // ReplaceEdge(0,2,Some(0))
       replace(2);
       pendingFinish = 0;
       return false;
     }
-    if (prev == 0 && last == 9) {
+    if (prev == 0 && last == 9) { // (0,9)
       // ReplaceEdge(0,2,Some(0))
       replace(2);
       pendingFinish = 0;
       return false;
     }
-    if (prev == 0 && last == 10) {
+    if (prev == 0 && last == 10) { // (0,10)
       // ReplaceEdge(0,10,Some(0))
       replace(10);
       pendingFinish = 0;
       return false;
     }
-    if (prev == 0 && last == 12) {
+    if (prev == 0 && last == 12) { // (0,12)
       // ReplaceEdge(0,2,Some(0))
       replace(2);
       pendingFinish = 0;
       return false;
     }
-    if (prev == 0 && last == 13) {
+    if (prev == 0 && last == 13) { // (0,13)
       // ReplaceEdge(0,4,Some(0))
       replace(4);
       pendingFinish = 0;
       return false;
     }
-    if (prev == 1 && last == 1) {
+    if (prev == 1 && last == 1) { // (1,1)
       // DropLast(1)
       dropLast();
       return true;
     }
-    if (prev == 1 && last == 2) {
+    if (prev == 1 && last == 2) { // (1,2)
       // ReplaceEdge(1,9,None)
       replace(9);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 1 && last == 3) {
+    if (prev == 1 && last == 3) { // (1,3)
       // ReplaceEdge(1,10,Some(1))
       replace(10);
       pendingFinish = 1;
       return false;
     }
-    if (prev == 1 && last == 4) {
+    if (prev == 1 && last == 4) { // (1,4)
       // ReplaceEdge(1,13,None)
       replace(13);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 1 && last == 5) {
+    if (prev == 1 && last == 5) { // (1,5)
       // ReplaceEdge(1,12,None)
       replace(12);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 1 && last == 6) {
+    if (prev == 1 && last == 6) { // (1,6)
       // ReplaceEdge(1,2,Some(1))
       replace(2);
       pendingFinish = 1;
       return false;
     }
-    if (prev == 1 && last == 9) {
+    if (prev == 1 && last == 9) { // (1,9)
       // ReplaceEdge(1,2,Some(1))
       replace(2);
       pendingFinish = 1;
       return false;
     }
-    if (prev == 1 && last == 10) {
+    if (prev == 1 && last == 10) { // (1,10)
       // ReplaceEdge(1,10,Some(1))
       replace(10);
       pendingFinish = 1;
       return false;
     }
-    if (prev == 1 && last == 12) {
+    if (prev == 1 && last == 12) { // (1,12)
       // ReplaceEdge(1,2,Some(1))
       replace(2);
       pendingFinish = 1;
       return false;
     }
-    if (prev == 1 && last == 13) {
+    if (prev == 1 && last == 13) { // (1,13)
       // ReplaceEdge(1,4,Some(1))
       replace(4);
       pendingFinish = 1;
       return false;
     }
-    if (prev == 6 && last == 7) {
+    if (prev == 6 && last == 7) { // (6,7)
       // ReplaceEdge(6,7,Some(6))
       replace(7);
       pendingFinish = 6;
       return false;
     }
-    if (prev == 9 && last == 1) {
+    if (prev == 9 && last == 1) { // (9,1)
       // ReplaceEdge(9,8,None)
       replace(8);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 9 && last == 5) {
+    if (prev == 9 && last == 5) { // (9,5)
       // ReplaceEdge(13,12,None)
       dropLast();
       replace(13);
@@ -254,25 +257,25 @@ public class ExprGrammarSimpleParser {
       pendingFinish = -1;
       return false;
     }
-    if (prev == 9 && last == 6) {
+    if (prev == 9 && last == 6) { // (9,6)
       // ReplaceEdge(9,5,Some(9))
       replace(5);
       pendingFinish = 9;
       return false;
     }
-    if (prev == 9 && last == 8) {
+    if (prev == 9 && last == 8) { // (9,8)
       // ReplaceEdge(9,5,Some(9))
       replace(5);
       pendingFinish = 9;
       return false;
     }
-    if (prev == 9 && last == 11) {
+    if (prev == 9 && last == 11) { // (9,11)
       // ReplaceEdge(9,14,Some(9))
       replace(14);
       pendingFinish = 9;
       return false;
     }
-    if (prev == 9 && last == 12) {
+    if (prev == 9 && last == 12) { // (9,12)
       // ReplaceEdge(13,5,Some(13))
       dropLast();
       replace(13);
@@ -280,7 +283,7 @@ public class ExprGrammarSimpleParser {
       pendingFinish = 13;
       return false;
     }
-    if (prev == 9 && last == 14) {
+    if (prev == 9 && last == 14) { // (9,14)
       // ReplaceEdge(13,14,Some(13))
       dropLast();
       replace(13);
@@ -288,59 +291,59 @@ public class ExprGrammarSimpleParser {
       pendingFinish = 13;
       return false;
     }
-    if (prev == 12 && last == 1) {
+    if (prev == 12 && last == 1) { // (12,1)
       // ReplaceEdge(12,8,None)
       replace(8);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 12 && last == 6) {
+    if (prev == 12 && last == 6) { // (12,6)
       // DropLast(12)
       dropLast();
       return true;
     }
-    if (prev == 12 && last == 8) {
+    if (prev == 12 && last == 8) { // (12,8)
       // DropLast(12)
       dropLast();
       return true;
     }
-    if (prev == 13 && last == 1) {
+    if (prev == 13 && last == 1) { // (13,1)
       // ReplaceEdge(13,8,None)
       replace(8);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 13 && last == 5) {
+    if (prev == 13 && last == 5) { // (13,5)
       // ReplaceEdge(13,12,None)
       replace(12);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 13 && last == 6) {
+    if (prev == 13 && last == 6) { // (13,6)
       // ReplaceEdge(13,5,Some(13))
       replace(5);
       pendingFinish = 13;
       return false;
     }
-    if (prev == 13 && last == 8) {
+    if (prev == 13 && last == 8) { // (13,8)
       // ReplaceEdge(13,5,Some(13))
       replace(5);
       pendingFinish = 13;
       return false;
     }
-    if (prev == 13 && last == 11) {
+    if (prev == 13 && last == 11) { // (13,11)
       // ReplaceEdge(13,14,Some(13))
       replace(14);
       pendingFinish = 13;
       return false;
     }
-    if (prev == 13 && last == 12) {
+    if (prev == 13 && last == 12) { // (13,12)
       // ReplaceEdge(13,5,Some(13))
       replace(5);
       pendingFinish = 13;
       return false;
     }
-    if (prev == 13 && last == 14) {
+    if (prev == 13 && last == 14) { // (13,14)
       // ReplaceEdge(13,14,Some(13))
       replace(14);
       pendingFinish = 13;
@@ -350,11 +353,18 @@ public class ExprGrammarSimpleParser {
   }
 
   private boolean finish() {
-    do {
+    if (stack.prev == null) {
+      return false;
+    }
+    while (finishStep()) {
+      if (verbose) {
+        printStack();
+      }
       if (stack.prev == null) {
+        finished = true;
         return false;
       }
-    } while (finishStep());
+    }
     return true;
   }
 
@@ -385,10 +395,16 @@ public class ExprGrammarSimpleParser {
   }
 
   private void printStack() {
-    log(stackIds() + " " + stackDescription());
+    log("  " + stackIds() + " " + stackDescription());
   }
 
   public boolean proceed(char c) {
+    if (finished) {
+      if (verbose) {
+        log("  - already finished");
+      }
+      return false;
+    }
     if (!canAccept(c)) {
       if (verbose) {
         log("  - cannot accept " + c + ", try pendingFinish");
@@ -462,6 +478,7 @@ public class ExprGrammarSimpleParser {
         if ((c == '*')) {
           // Finish(5)
           replace(5);
+          if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
@@ -469,6 +486,7 @@ public class ExprGrammarSimpleParser {
         if ((c == '+')) {
           // Finish(4)
           replace(4);
+          if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
@@ -478,6 +496,7 @@ public class ExprGrammarSimpleParser {
         if ((c == '*')) {
           // Finish(5)
           replace(5);
+          if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
@@ -485,6 +504,7 @@ public class ExprGrammarSimpleParser {
         if ((c == '+')) {
           // Finish(4)
           replace(4);
+          if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
@@ -574,6 +594,7 @@ public class ExprGrammarSimpleParser {
         if ((c == '*')) {
           // Finish(5)
           replace(5);
+          if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
@@ -581,6 +602,7 @@ public class ExprGrammarSimpleParser {
         if ((c == '+')) {
           // Finish(4)
           replace(4);
+          if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
@@ -606,6 +628,7 @@ public class ExprGrammarSimpleParser {
         if ((c == '*')) {
           // Finish(5)
           replace(5);
+          if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
@@ -676,6 +699,7 @@ public class ExprGrammarSimpleParser {
         if ((c == '*')) {
           // Finish(5)
           replace(5);
+          if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
@@ -683,6 +707,7 @@ public class ExprGrammarSimpleParser {
         if ((c == '0')) {
           // Finish(12)
           replace(12);
+          if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
@@ -701,10 +726,16 @@ public class ExprGrammarSimpleParser {
   }
 
   public boolean proceedEof() {
-    if (verbose) {
-      log("  - proceeding eof");
+    if (finished) {
+      if (verbose) {
+        log("  - already finished");
+        return true;
+      }
     }
     if (pendingFinish == -1) {
+      if (stack.prev == null && stack.nodeId == 0) {
+        return true;
+      }
       if (verbose) {
         log("  - pendingFinish unavailable, proceedEof failed");
       }
@@ -751,11 +782,12 @@ public class ExprGrammarSimpleParser {
         return false;
       }
     }
+    log("Proceed EOF");
     return parser.proceedEof();
   }
 
   public static void main(String[] args) {
-    boolean succeed = parseVerbose("(123)+12*332+(12*0)");
+    boolean succeed = parseVerbose("123+456");
     log("Parsing " + (succeed ? "succeeded" : "failed"));
   }
 }
