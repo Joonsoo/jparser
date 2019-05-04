@@ -2,8 +2,9 @@ package com.giyeok.jparser.parsergen.nocond.codegen
 
 import java.io.{File, PrintWriter}
 
+import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGrouping, TermGroupDesc}
-import com.giyeok.jparser.examples.JsonGrammar
+import com.giyeok.jparser.examples.{JsonGrammar, SimpleGrammars}
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.nocond.{SimpleParser, SimpleParserGen}
 import com.google.googlejavaformat.java.Formatter
@@ -365,17 +366,20 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
 }
 
 object SimpleParserJavaGen {
-    def main(args: Array[String]): Unit = {
-        val originalGrammar = JsonGrammar.fromJsonOrg
+    val baseDir = new File("parsergen/src/main/java")
+    val pkgName = "com.giyeok.jparser.parsergen"
 
-        val grammar = NGrammar.fromGrammar(originalGrammar)
-        grammar.describe()
-        val parser = new SimpleParserGen(grammar).generateParser()
+    def generate(grammar: Grammar, className: String, example: Option[String]): Unit = {
+        val ngrammar = NGrammar.fromGrammar(grammar)
+        ngrammar.describe()
+        val parser = new SimpleParserGen(ngrammar).generateParser()
         parser.describe()
 
-        new SimpleParserJavaGen(parser).generateJavaSourceToDir(
-            new File("parsergen/src/main/java"),
-            "com.giyeok.jparser.parsergen",
-            "JsonParser", Some("[1,2,3,4]"))
+        new SimpleParserJavaGen(parser).generateJavaSourceToDir(baseDir, pkgName, className, example)
+    }
+
+    def main(args: Array[String]): Unit = {
+        generate(SimpleGrammars.array0Grammar, "Array0GrammarParser", Some("[a,  a, a]"))
+        generate(JsonGrammar.fromJsonOrg, "JsonParser", Some("""{"abcd": ["hello", 123, {"xyz": 1}]}"""))
     }
 }

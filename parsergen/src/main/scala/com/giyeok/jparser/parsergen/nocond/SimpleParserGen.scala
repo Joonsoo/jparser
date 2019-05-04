@@ -1,7 +1,6 @@
 package com.giyeok.jparser.parsergen.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
-import com.giyeok.jparser.examples.{JsonGrammar, SimpleGrammars}
 import com.giyeok.jparser.nparser.NGrammar
 
 // AKernelSet 하나가 한 노드가 되는 parser 생성.
@@ -10,32 +9,34 @@ class SimpleParserGen(val grammar: NGrammar) {
     val analyzer = new GrammarAnalyzer(grammar)
 
     private var nodes = Map[AKernelSet, Int]()
+    private var nodesById = Map[Int, AKernelSet]()
     private var termActions = Map[(AKernelSet, CharacterTermGroupDesc), GraphChange]()
     private var idTermActions = Map[(Int, CharacterTermGroupDesc), SimpleParser.TermAction]()
     private var edgeActions = Map[(AKernelSet, AKernelSet), GraphChange]()
     private var idEdgeActions = Map[(Int, Int), SimpleParser.EdgeAction]()
 
     // key 앞에 올 수 있는 AKernelSet의 집합
-    private var nodeRels = NodeRelGraph.emptyGraph
+    private var nodeRels = IdNodeRelGraph.emptyGraph
 
     private var newNodes = Set[AKernelSet]()
     private var newAdjs = Set[(AKernelSet, AKernelSet)]()
 
-    private def addNodeRel(nodeRel: NodeRelEdge): Unit = {
+    private def addNodeRel(nodeRel: IdNodeRelEdge): Unit = {
         val (newNodeRels, addedAdjs) = nodeRels.newAdjacentsByNewRel(nodeRel)
         nodeRels = newNodeRels
-        newAdjs ++= addedAdjs
+        newAdjs ++= (addedAdjs map { p => nodesById(p._1) -> nodesById(p._2) })
     }
 
-    private def addAppendRel(prev: AKernelSet, next: AKernelSet): Unit = addNodeRel(AppendRel(prev, next))
+    private def addAppendRel(prev: Int, next: Int): Unit = addNodeRel(IdAppendRel(prev, next))
 
-    private def addReplaceRel(prev: AKernelSet, next: AKernelSet): Unit = addNodeRel(ReplaceRel(prev, next))
+    private def addReplaceRel(prev: Int, next: Int): Unit = addNodeRel(IdReplaceRel(prev, next))
 
     private def nodeIdOf(kernelSet: AKernelSet): Int = if (nodes contains kernelSet) nodes(kernelSet) else {
         newNodes += kernelSet
         val newId = nodes.size
         nodes += kernelSet -> newId
-        nodeRels = nodeRels.addNode(kernelSet)
+        nodesById += newId -> kernelSet
+        nodeRels = nodeRels.addNode(newId)
         newId
     }
 
@@ -46,14 +47,14 @@ class SimpleParserGen(val grammar: NGrammar) {
             val change = analyzer.termChanges(start, term)
             val replace = change.replacePrev
             val replaceId = nodeIdOf(replace)
-            if (start != replace) addReplaceRel(start, replace)
+            if (start != replace) addReplaceRel(startId, replaceId)
             val idTermAction: SimpleParser.TermAction = change.following match {
                 case None =>
                     // Finish
                     SimpleParser.Finish(replaceId)
                 case Some(Following(following, pendingFinishReplace)) =>
                     val followingId = nodeIdOf(following)
-                    addAppendRel(replace, following)
+                    addAppendRel(replaceId, followingId)
                     val pfIdOpt = if (pendingFinishReplace.items.isEmpty) {
                         // Append
                         None
@@ -61,7 +62,7 @@ class SimpleParserGen(val grammar: NGrammar) {
                         // Append w/ pendingFinish
                         val pendingFinishReplaceId = nodeIdOf(pendingFinishReplace)
                         if (replace != pendingFinishReplace) {
-                            addReplaceRel(replace, pendingFinishReplace)
+                            addReplaceRel(replaceId, pendingFinishReplaceId)
                         }
                         Some(pendingFinishReplaceId)
                     }
@@ -78,21 +79,22 @@ class SimpleParserGen(val grammar: NGrammar) {
         val change = analyzer.edgeChanges(start, next)
         val replace = change.replacePrev
         val replaceId = nodeIdOf(replace)
-        if (start != replace) addReplaceRel(start, replace)
+        if (start != replace) addReplaceRel(startId, replaceId)
         val idEdgeAction = change.following match {
             case None => SimpleParser.DropLast(replaceId)
             case Some(Following(following, pendingFinishReplace)) =>
                 val followingId = nodeIdOf(following)
-                addAppendRel(replace, following)
+                addAppendRel(replaceId, followingId)
                 val pfIdOpt = if (pendingFinishReplace.items.isEmpty) {
                     // ReplaceEdge
                     None
                 } else {
                     // ReplaceEdge w/ pendingFinish
+                    val pendingFinishReplaceId = nodeIdOf(pendingFinishReplace)
                     if (replace != pendingFinishReplace) {
-                        addReplaceRel(replace, pendingFinishReplace)
+                        addReplaceRel(replaceId, pendingFinishReplaceId)
                     }
-                    Some(nodeIdOf(pendingFinishReplace))
+                    Some(pendingFinishReplaceId)
                 }
                 SimpleParser.ReplaceEdge(replaceId, followingId, pfIdOpt)
         }
@@ -113,7 +115,6 @@ class SimpleParserGen(val grammar: NGrammar) {
             processingNodes foreach calculateTermActions
             processingAdjs foreach calculateEdgeActions
         }
-        val idNodeRels = nodeRels.toIdNodeRelGraph(nodeIdOf)
-        new SimpleParser(grammar, nodes map { p => p._2 -> p._1 }, idNodeRels, startId, idTermActions, idEdgeActions)
+        new SimpleParser(grammar, nodes map { p => p._2 -> p._1 }, nodeRels, startId, idTermActions, idEdgeActions)
     }
 }

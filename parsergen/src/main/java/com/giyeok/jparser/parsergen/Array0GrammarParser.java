@@ -1323,11 +1323,10 @@ public class Array0GrammarParser {
     if (stack.nodeId != pendingFinish) {
       replace(pendingFinish);
     }
+    if (verbose) printStack();
     while (stack.prev != null) {
       boolean finishNeeded = finishStep();
-      if (verbose) {
-        printStack();
-      }
+      if (verbose) printStack();
       if (!finishNeeded) {
         if (pendingFinish == -1) {
           return false;
@@ -1365,7 +1364,7 @@ public class Array0GrammarParser {
   }
 
   public static void main(String[] args) {
-    boolean succeed = parseVerbose("[ a,a, a, a,  a]");
+    boolean succeed = parseVerbose("[a,  a, a]");
     log("Parsing " + (succeed ? "succeeded" : "failed"));
   }
 }
