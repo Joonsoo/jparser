@@ -3,7 +3,7 @@ package com.giyeok.jparser.parsergen.nocond.codegen
 import java.io.{File, PrintWriter}
 
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGrouping, TermGroupDesc}
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.JsonGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.nocond.{SimpleParser, SimpleParserGen}
 import com.google.googlejavaformat.java.Formatter
@@ -304,11 +304,10 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |        if (stack.nodeId != pendingFinish) {
            |            replace(pendingFinish);
            |        }
+           |        if (verbose) printStack();
            |        while (stack.prev != null) {
            |            boolean finishNeeded = finishStep();
-           |            if (verbose) {
-           |                printStack();
-           |            }
+           |            if (verbose) printStack();
            |            if (!finishNeeded) {
            |                if (pendingFinish == -1) {
            |                    return false;
@@ -367,14 +366,16 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
 
 object SimpleParserJavaGen {
     def main(args: Array[String]): Unit = {
-        val originalGrammar = SimpleGrammars.array0Grammar
+        val originalGrammar = JsonGrammar.fromJsonOrg
+
         val grammar = NGrammar.fromGrammar(originalGrammar)
         grammar.describe()
         val parser = new SimpleParserGen(grammar).generateParser()
         parser.describe()
+
         new SimpleParserJavaGen(parser).generateJavaSourceToDir(
             new File("parsergen/src/main/java"),
             "com.giyeok.jparser.parsergen",
-            "Array0GrammarParser", Some("[ a,a, a, a,  a]"))
+            "JsonParser", Some("[1,2,3,4]"))
     }
 }

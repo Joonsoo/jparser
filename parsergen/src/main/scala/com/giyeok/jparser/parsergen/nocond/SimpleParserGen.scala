@@ -1,7 +1,7 @@
 package com.giyeok.jparser.parsergen.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.{JsonGrammar, SimpleGrammars}
 import com.giyeok.jparser.nparser.NGrammar
 
 // AKernelSet 하나가 한 노드가 되는 parser 생성.
@@ -115,16 +115,5 @@ class SimpleParserGen(val grammar: NGrammar) {
         }
         val idNodeRels = nodeRels.toIdNodeRelGraph(nodeIdOf)
         new SimpleParser(grammar, nodes map { p => p._2 -> p._1 }, idNodeRels, startId, idTermActions, idEdgeActions)
-    }
-}
-
-object SimpleParserGen {
-    def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(SimpleGrammars.array0Grammar)
-        grammar.describe()
-
-        val parser = new SimpleParserGen(grammar).generateParser()
-        parser.describe()
-        println()
     }
 }

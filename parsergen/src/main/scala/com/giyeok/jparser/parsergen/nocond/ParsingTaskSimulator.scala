@@ -109,7 +109,7 @@ class ParsingTaskSimulator(val grammar: NGrammar) {
             val initialNode = node.initial
             if (cc.nextGraph.nodes contains initialNode) {
                 val incomingNodes = cc.nextGraph.edgesByEnd(initialNode) map (_.start)
-                val newTasks = incomingNodes map ProgressTask
+                val newTasks = (incomingNodes map ProgressTask) -- cc.progressTasks
                 simulate(newTasks.toList ++ rest, boundaryTasks,
                     ParsingTaskSimulationResult(cc.tasks ++ newTasks, cc.updateMap, cc.nextGraph))
             } else {
