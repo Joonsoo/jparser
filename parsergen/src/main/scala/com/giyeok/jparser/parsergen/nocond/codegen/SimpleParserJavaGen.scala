@@ -72,6 +72,9 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
                     List("dropLast();",
                         s"replace($replace);",
                         "return true;")
+                case SimpleParser.ReplaceEdge(replacePrev, replaceLast, pendingFinish) if (replacePrev, replaceLast) == edge =>
+                    List(s"pendingFinish = ${pendingFinish.getOrElse(-1)};",
+                        "return false;")
                 case SimpleParser.ReplaceEdge(replacePrev, replaceLast, pendingFinish) if replacePrev == edge._1 =>
                     List(s"replace($replaceLast);",
                         s"pendingFinish = ${pendingFinish.getOrElse(-1)};",
@@ -379,7 +382,7 @@ object SimpleParserJavaGen {
     }
 
     def main(args: Array[String]): Unit = {
-        generate(SimpleGrammars.array0Grammar, "Array0GrammarParser", Some("[a,  a, a]"))
+        generate(SimpleGrammars.array0Grammar, "Array0GrammarParser", Some("[  a    ]"))
         generate(JsonGrammar.fromJsonOrg, "JsonParser", Some("""{"abcd": ["hello", 123, {"xyz": 1}]}"""))
     }
 }

@@ -101,73 +101,73 @@ public class Array0GrammarParser {
       case 0:
         return "{•<start>}";
       case 1:
-        return "{[•([WS E ([WS , WS E])*])? WS ] | [ ([WS E ([WS , WS E])*])?•WS ] | [ ([WS E ([WS , WS E])*])? WS•]}";
+        return "{'['•([WS E ([WS ',' WS E])*])? WS ']'|'[' ([WS E ([WS ',' WS E])*])?•WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS•']'}";
       case 2:
-        return "{[•([WS E ([WS , WS E])*])? WS ]}";
+        return "{'['•([WS E ([WS ',' WS E])*])? WS ']'}";
       case 3:
-        return "{WS E•([WS , WS E])*}";
+        return "{WS E•([WS ',' WS E])*}";
       case 4:
-        return "{[ ([WS E ([WS , WS E])*])? WS•]}";
+        return "{'[' ([WS E ([WS ',' WS E])*])? WS•']'}";
       case 5:
-        return "{[•([WS E ([WS , WS E])*])? WS ] | [ ([WS E ([WS , WS E])*])?•WS ]}";
+        return "{'['•([WS E ([WS ',' WS E])*])? WS ']'|'[' ([WS E ([WS ',' WS E])*])?•WS ']'}";
       case 6:
-        return "{WS•E ([WS , WS E])* | \\u0020*•\\u0020}";
+        return "{WS•E ([WS ',' WS E])*|'\\u0020'*•'\\u0020'}";
       case 7:
-        return "{[ ([WS E ([WS , WS E])*])?•WS ]}";
+        return "{'[' ([WS E ([WS ',' WS E])*])?•WS ']'}";
       case 8:
-        return "{[ ([WS E ([WS , WS E])*])?•WS ] | [ ([WS E ([WS , WS E])*])? WS•]}";
+        return "{'[' ([WS E ([WS ',' WS E])*])?•WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS•']'}";
       case 9:
         return "{}";
       case 10:
-        return "{\\u0020*•\\u0020}";
+        return "{'\\u0020'*•'\\u0020'}";
       case 11:
-        return "{WS•E ([WS , WS E])*}";
+        return "{WS•E ([WS ',' WS E])*}";
       case 12:
-        return "{WS ,•WS E | WS , WS•E}";
+        return "{WS ','•WS E|WS ',' WS•E}";
       case 13:
-        return "{\\u0020*•\\u0020 | WS•, WS E}";
+        return "{'\\u0020'*•'\\u0020'|WS•',' WS E}";
       case 14:
-        return "{[ ([WS E ([WS , WS E])*])? WS•] | WS•E ([WS , WS E])* | \\u0020*•\\u0020}";
+        return "{'[' ([WS E ([WS ',' WS E])*])? WS•']'|WS•E ([WS ',' WS E])*|'\\u0020'*•'\\u0020'}";
       case 15:
-        return "{WS•E ([WS , WS E])* | WS E•([WS , WS E])* | \\u0020*•\\u0020}";
+        return "{WS•E ([WS ',' WS E])*|WS E•([WS ',' WS E])*|'\\u0020'*•'\\u0020'}";
       case 16:
-        return "{WS E•([WS , WS E])* | \\u0020*•\\u0020}";
+        return "{WS E•([WS ',' WS E])*|'\\u0020'*•'\\u0020'}";
       case 17:
-        return "{WS , WS•E}";
+        return "{WS ',' WS•E}";
       case 18:
-        return "{WS ,•WS E}";
+        return "{WS ','•WS E}";
       case 19:
-        return "{WS•, WS E}";
+        return "{WS•',' WS E}";
       case 20:
-        return "{[ ([WS E ([WS , WS E])*])? WS•] | WS•E ([WS , WS E])* | WS E•([WS , WS E])* | \\u0020*•\\u0020}";
+        return "{'[' ([WS E ([WS ',' WS E])*])? WS•']'|WS•E ([WS ',' WS E])*|WS E•([WS ',' WS E])*|'\\u0020'*•'\\u0020'}";
       case 21:
-        return "{\\u0020*•\\u0020 | WS•, WS E | WS ,•WS E | WS , WS•E}";
+        return "{'\\u0020'*•'\\u0020'|WS•',' WS E|WS ','•WS E|WS ',' WS•E}";
       case 22:
-        return "{([WS , WS E])*•([WS , WS E]) | WS , WS•E}";
+        return "{([WS ',' WS E])*•([WS ',' WS E])|WS ',' WS•E}";
       case 23:
-        return "{\\u0020*•\\u0020 | WS ,•WS E}";
+        return "{'\\u0020'*•'\\u0020'|WS ','•WS E}";
       case 24:
-        return "{([WS , WS E])*•([WS , WS E])}";
+        return "{([WS ',' WS E])*•([WS ',' WS E])}";
       case 25:
-        return "{\\u0020*•\\u0020 | ([WS , WS E])*•([WS , WS E]) | WS•, WS E | WS ,•WS E | WS , WS•E}";
+        return "{'\\u0020'*•'\\u0020'|([WS ',' WS E])*•([WS ',' WS E])|WS•',' WS E|WS ','•WS E|WS ',' WS•E}";
       case 26:
-        return "{([WS , WS E])*•([WS , WS E]) | WS•, WS E}";
+        return "{([WS ',' WS E])*•([WS ',' WS E])|WS•',' WS E}";
       case 27:
-        return "{\\u0020*•\\u0020 | ([WS , WS E])*•([WS , WS E]) | WS ,•WS E}";
+        return "{'\\u0020'*•'\\u0020'|([WS ',' WS E])*•([WS ',' WS E])|WS ','•WS E}";
       case 28:
-        return "{\\u0020*•\\u0020 | WS•, WS E | WS , WS•E}";
+        return "{'\\u0020'*•'\\u0020'|WS•',' WS E|WS ',' WS•E}";
       case 29:
-        return "{([WS , WS E])*•([WS , WS E]) | WS ,•WS E | WS , WS•E}";
+        return "{([WS ',' WS E])*•([WS ',' WS E])|WS ','•WS E|WS ',' WS•E}";
       case 30:
-        return "{\\u0020*•\\u0020 | ([WS , WS E])*•([WS , WS E]) | WS•, WS E | WS , WS•E}";
+        return "{'\\u0020'*•'\\u0020'|([WS ',' WS E])*•([WS ',' WS E])|WS•',' WS E|WS ',' WS•E}";
       case 31:
-        return "{([WS , WS E])*•([WS , WS E]) | WS ,•WS E}";
+        return "{([WS ',' WS E])*•([WS ',' WS E])|WS ','•WS E}";
       case 32:
-        return "{\\u0020*•\\u0020 | ([WS , WS E])*•([WS , WS E])}";
+        return "{'\\u0020'*•'\\u0020'|([WS ',' WS E])*•([WS ',' WS E])}";
       case 33:
-        return "{\\u0020*•\\u0020 | ([WS , WS E])*•([WS , WS E]) | WS•, WS E}";
+        return "{'\\u0020'*•'\\u0020'|([WS ',' WS E])*•([WS ',' WS E])|WS•',' WS E}";
       case 34:
-        return "{\\u0020*•\\u0020 | WS•, WS E | WS ,•WS E}";
+        return "{'\\u0020'*•'\\u0020'|WS•',' WS E|WS ','•WS E}";
     }
     return null;
   }
@@ -272,7 +272,6 @@ public class Array0GrammarParser {
     }
     if (prev == 2 && last == 20) { // (2,20)
       // ReplaceEdge(2,20,Some(2))
-      replace(20);
       pendingFinish = 2;
       return false;
     }
@@ -338,13 +337,11 @@ public class Array0GrammarParser {
     }
     if (prev == 3 && last == 24) { // (3,24)
       // ReplaceEdge(3,24,Some(3))
-      replace(24);
       pendingFinish = 3;
       return false;
     }
     if (prev == 3 && last == 25) { // (3,25)
       // ReplaceEdge(3,25,Some(3))
-      replace(25);
       pendingFinish = 3;
       return false;
     }
@@ -430,7 +427,6 @@ public class Array0GrammarParser {
     }
     if (prev == 5 && last == 15) { // (5,15)
       // ReplaceEdge(5,15,Some(5))
-      replace(15);
       pendingFinish = 5;
       return false;
     }
@@ -442,13 +438,11 @@ public class Array0GrammarParser {
     }
     if (prev == 7 && last == 10) { // (7,10)
       // ReplaceEdge(7,10,Some(7))
-      replace(10);
       pendingFinish = 7;
       return false;
     }
     if (prev == 18 && last == 10) { // (18,10)
       // ReplaceEdge(18,10,Some(18))
-      replace(10);
       pendingFinish = 18;
       return false;
     }
@@ -495,7 +489,6 @@ public class Array0GrammarParser {
     }
     if (prev == 24 && last == 21) { // (24,21)
       // ReplaceEdge(24,21,Some(24))
-      replace(21);
       pendingFinish = 24;
       return false;
     }
@@ -545,7 +538,6 @@ public class Array0GrammarParser {
     }
     if (prev == 31 && last == 34) { // (31,34)
       // ReplaceEdge(31,34,Some(18))
-      replace(34);
       pendingFinish = 18;
       return false;
     }
@@ -1364,7 +1356,7 @@ public class Array0GrammarParser {
   }
 
   public static void main(String[] args) {
-    boolean succeed = parseVerbose("[a,  a, a]");
+    boolean succeed = parseVerbose("[  a    ]");
     log("Parsing " + (succeed ? "succeeded" : "failed"));
   }
 }

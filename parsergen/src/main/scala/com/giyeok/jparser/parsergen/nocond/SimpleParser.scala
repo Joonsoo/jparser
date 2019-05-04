@@ -39,7 +39,8 @@ class SimpleParser(val grammar: NGrammar,
                    val edgeActions: Map[(Int, Int), SimpleParser.EdgeAction]) {
     def describe(): Unit = {
         nodes.toList.sortBy(_._1).foreach { kv =>
-            println(s"${kv._1} -> ${kv._2.items} ${kv._2.items map (_.toReadableString(grammar)) mkString " | "}")
+            val kernelIds = kv._2.sortedItems map (k => s"(${k.symbolId}, ${k.pointer})") mkString " "
+            println(s"${kv._1} -> {$kernelIds} {${kv._2.toReadableString(grammar)}}")
         }
         termActions.toList.sortBy(_._1._1).foreach { act =>
             println(s"${act._1._1}, ${act._1._2.toShortString} -> ${act._2}")
@@ -47,8 +48,8 @@ class SimpleParser(val grammar: NGrammar,
         edgeActions.toList.sortBy(_._1).foreach { act =>
             println(s"fin ${act._1} -> ${act._2}")
         }
-        nodeRelGraph.adjacents.toList.sorted.foreach { kv =>
-            println(s"${kv._1} -> ${kv._2}")
+        nodeRelGraph.adjacentNodes.adjByFoll.toList.sortBy(_._1).foreach { kv =>
+            println(s"${kv._1} follow {${kv._2.toList.sorted map (_.toString) mkString ", "}}")
         }
     }
 }

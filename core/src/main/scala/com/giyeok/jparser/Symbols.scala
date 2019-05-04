@@ -243,7 +243,7 @@ object Symbols {
         def toShortString: String = sym match {
             case Any => "<any>"
             case AnyChar => "<any>"
-            case ExactChar(c) => toReadable(c)
+            case ExactChar(c) => s"'${toReadable(c)}'"
             case chars: Terminals.Chars =>
                 "{" + chars.chars.groupedString + "}"
             case Unicode(c) => s"<unicode ${
@@ -251,7 +251,6 @@ object Symbols {
                     categoryCodeToName
                 }) mkString ", "
             }>"
-            case t: Terminal => t.toShortString
             case Start => "<start>"
             case s: Nonterminal => s.name
             case s: Sequence => "[" + (s.seq map {
