@@ -16,20 +16,20 @@ class SimpleParserGen(val grammar: NGrammar) {
     private var idEdgeActions = Map[(Int, Int), SimpleParser.EdgeAction]()
 
     // key 앞에 올 수 있는 AKernelSet의 집합
-    private var nodeRels = IdNodeRelGraph.emptyGraph
+    private var nodeRels = NodeRelGraph.emptyGraph
 
     private var newNodes = Set[AKernelSet]()
     private var newAdjs = Set[(AKernelSet, AKernelSet)]()
 
-    private def addNodeRel(nodeRel: IdNodeRelEdge): Unit = {
+    private def addNodeRel(nodeRel: NodeRelEdge): Unit = {
         val (newNodeRels, addedAdjs) = nodeRels.newAdjacentsByNewRel(nodeRel)
         nodeRels = newNodeRels
         newAdjs ++= (addedAdjs map { p => nodesById(p._1) -> nodesById(p._2) })
     }
 
-    private def addAppendRel(prev: Int, next: Int): Unit = addNodeRel(IdAppendRel(prev, next))
+    private def addAppendRel(prev: Int, next: Int): Unit = addNodeRel(AppendRel(prev, next))
 
-    private def addReplaceRel(prev: Int, next: Int): Unit = addNodeRel(IdReplaceRel(prev, next))
+    private def addReplaceRel(prev: Int, next: Int): Unit = addNodeRel(ReplaceRel(prev, next))
 
     private def nodeIdOf(kernelSet: AKernelSet): Int = if (nodes contains kernelSet) nodes(kernelSet) else {
         newNodes += kernelSet

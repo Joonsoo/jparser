@@ -32,7 +32,7 @@ case class NodeRelGraph(nodes: Set[Int], edges: Set[NodeRelEdge], edgesByStart: 
         def traverse(queue: List[Int]): Unit = queue match {
             case head +: rest =>
                 val repls = edgesByStart(head) collect { case ReplaceRel(`head`, end) => end }
-                val prevs = builder.adjByFoll(head)
+                val prevs = builder.adjByFoll.getOrElse(head, Set())
                 // head adjacent next 이면 replaceable adjacent next도 추가
                 val replPrevs = repls flatMap { repl => prevs map { prev => (prev, repl) } }
                 val newAdjs = replPrevs -- builder.adjs
