@@ -65,14 +65,14 @@ class NodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.TermActi
         val topsFromAppends = termActions.values.toSeq flatMap { acts =>
             acts.toSeq flatMap { act =>
                 act match {
-                    case SimpleParser.Append(_, append, pendingFinish) => Set(append) ++ pendingFinish.toSet
+                    case SimpleParser.Append(_, append, _) => Set(append)
                     case _: SimpleParser.Finish => Set[Int]()
                 }
             }
         }
         val topsFromReplaceEdge = edgeActions.values.toSeq flatMap { act: SimpleParser.EdgeAction =>
             act match {
-                case SimpleParser.ReplaceEdge(_, replaceLast, pendingFinish) => Set(replaceLast) ++ pendingFinish.toSet
+                case SimpleParser.ReplaceEdge(_, replaceLast, _) => Set(replaceLast)
                 case _: SimpleParser.DropLast => Set[Int]()
             }
         }

@@ -123,13 +123,6 @@ public class JsonParser {
         return (c == '+') || (c == '-') || ('0' <= c && c <= '9');
       case 20:
         return (c == '+') || (c == '-') || ('0' <= c && c <= '9');
-      case 21:
-        return (c == ' ')
-            || ('0' <= c && c <= '9')
-            || ('A' <= c && c <= 'Z')
-            || ('a' <= c && c <= 'z')
-            || (c == '"')
-            || (c == '\\');
       case 22:
         return (c == '"')
             || (c == '/')
@@ -147,34 +140,8 @@ public class JsonParser {
             || ('A' <= c && c <= 'Z')
             || ('a' <= c && c <= 'z')
             || (c == '\\');
-      case 25:
-        return (c == '0') || ('1' <= c && c <= '9');
       case 26:
         return (c == '0') || ('1' <= c && c <= '9');
-      case 27:
-        return ('\t' <= c && c <= '\n')
-            || (c == '\r')
-            || (c == ' ')
-            || (c == '"')
-            || (c == '-')
-            || (c == '0')
-            || ('1' <= c && c <= '9')
-            || (c == '[')
-            || (c == ']')
-            || (c == 'f')
-            || (c == 'n')
-            || (c == 't')
-            || (c == '{');
-      case 28:
-        return (c == '"')
-            || (c == '-')
-            || (c == '0')
-            || ('1' <= c && c <= '9')
-            || (c == '[')
-            || (c == 'f')
-            || (c == 'n')
-            || (c == 't')
-            || (c == '{');
       case 29:
         return ('\t' <= c && c <= '\n')
             || (c == '\r')
@@ -195,50 +162,22 @@ public class JsonParser {
             || (c == 'e');
       case 34:
         return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == '"');
-      case 35:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == '"') || (c == '}');
-      case 36:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == '"');
+      case 39:
+        return ('0' <= c && c <= '9');
       case 40:
         return ('0' <= c && c <= '9');
-      case 41:
+      case 42:
         return ('0' <= c && c <= '9');
       case 43:
-        return ('0' <= c && c <= '9');
-      case 44:
-        return ('\t' <= c && c <= '\n')
-            || (c == '\r')
-            || (c == ' ')
-            || (c == ',')
-            || (c == '.')
-            || (c == '0')
-            || ('1' <= c && c <= '9')
-            || (c == 'E')
-            || (c == ']')
-            || (c == 'e');
-      case 45:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == ',') || (c == ']');
-      case 46:
-        return ('\t' <= c && c <= '\n')
-            || (c == '\r')
-            || (c == ' ')
-            || (c == ',')
-            || (c == '.')
-            || (c == 'E')
-            || (c == ']')
-            || (c == 'e');
-      case 47:
         return (c == '"');
-      case 48:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == ',');
-      case 49:
+      case 45:
         return (c == ',');
-      case 50:
+      case 46:
         return (c == '0')
             || ('1' <= c && c <= '9')
             || ('A' <= c && c <= 'F')
             || ('a' <= c && c <= 'f');
-      case 51:
+      case 47:
         return ('\t' <= c && c <= '\n')
             || (c == '\r')
             || (c == ' ')
@@ -248,7 +187,7 @@ public class JsonParser {
             || ('1' <= c && c <= '9')
             || (c == 'E')
             || (c == 'e');
-      case 52:
+      case 48:
         return (c == '"')
             || (c == '-')
             || (c == '0')
@@ -259,21 +198,21 @@ public class JsonParser {
             || (c == 'n')
             || (c == 't')
             || (c == '{');
-      case 53:
+      case 49:
         return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == ']');
-      case 54:
+      case 50:
         return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == ':');
-      case 55:
+      case 51:
         return (c == 'l');
-      case 56:
+      case 52:
         return (c == 'l');
-      case 57:
+      case 53:
         return (c == 'u');
-      case 58:
+      case 54:
         return (c == '.') || (c == '0') || ('1' <= c && c <= '9') || (c == 'E') || (c == 'e');
-      case 59:
+      case 55:
         return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == ',');
-      case 60:
+      case 56:
         return ('\t' <= c && c <= '\n')
             || (c == '\r')
             || (c == ' ')
@@ -282,21 +221,13 @@ public class JsonParser {
             || ('1' <= c && c <= '9')
             || (c == 'E')
             || (c == 'e');
-      case 61:
+      case 57:
         return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == '"') || (c == '}');
-      case 62:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == ':');
-      case 63:
+      case 59:
         return (c == ':');
-      case 64:
-        return (c == '0') || ('1' <= c && c <= '9');
-      case 65:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == ']');
-      case 66:
+      case 62:
         return (c == ']');
-      case 67:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == ',') || (c == ']');
-      case 68:
+      case 63:
         return ('\t' <= c && c <= '\n')
             || (c == '\r')
             || (c == ' ')
@@ -309,6 +240,22 @@ public class JsonParser {
             || (c == 'n')
             || (c == 't')
             || (c == '{');
+      case 65:
+        return (c == '"')
+            || (c == '-')
+            || (c == '0')
+            || ('1' <= c && c <= '9')
+            || (c == '[')
+            || (c == 'f')
+            || (c == 'n')
+            || (c == 't')
+            || (c == '{');
+      case 66:
+        return (c == 's');
+      case 67:
+        return (c == 'l');
+      case 68:
+        return (c == 'e');
       case 69:
         return ('\t' <= c && c <= '\n')
             || (c == '\r')
@@ -323,62 +270,20 @@ public class JsonParser {
             || (c == 't')
             || (c == '{');
       case 70:
-        return (c == '"')
-            || (c == '-')
-            || (c == '0')
-            || ('1' <= c && c <= '9')
-            || (c == '[')
-            || (c == 'f')
-            || (c == 'n')
-            || (c == 't')
-            || (c == '{');
-      case 71:
-        return ('\t' <= c && c <= '\n')
-            || (c == '\r')
-            || (c == ' ')
-            || (c == '"')
-            || (c == '-')
-            || (c == '0')
-            || ('1' <= c && c <= '9')
-            || (c == '[')
-            || (c == 'f')
-            || (c == 'n')
-            || (c == 't')
-            || (c == '{');
-      case 72:
-        return (c == 's');
-      case 73:
-        return (c == 'l');
-      case 74:
-        return (c == 'e');
-      case 75:
         return (c == '0')
             || ('1' <= c && c <= '9')
             || ('A' <= c && c <= 'F')
             || ('a' <= c && c <= 'f');
-      case 76:
+      case 71:
         return ('\t' <= c && c <= '\n')
             || (c == '\r')
             || (c == ' ')
             || (c == ',')
             || (c == 'E')
             || (c == 'e');
-      case 77:
+      case 72:
         return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == 'E') || (c == 'e');
-      case 78:
-        return ('\t' <= c && c <= '\n')
-            || (c == '\r')
-            || (c == ' ')
-            || (c == '"')
-            || (c == '-')
-            || (c == '0')
-            || ('1' <= c && c <= '9')
-            || (c == '[')
-            || (c == 'f')
-            || (c == 'n')
-            || (c == 't')
-            || (c == '{');
-      case 79:
+      case 74:
         return (c == '"')
             || (c == '-')
             || (c == '0')
@@ -388,35 +293,29 @@ public class JsonParser {
             || (c == 'n')
             || (c == 't')
             || (c == '{');
-      case 80:
+      case 75:
         return (c == 'e');
-      case 81:
+      case 76:
         return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == ',');
-      case 82:
+      case 77:
         return (c == '0')
             || ('1' <= c && c <= '9')
             || ('A' <= c && c <= 'F')
             || ('a' <= c && c <= 'f');
-      case 83:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == ',');
-      case 84:
+      case 79:
         return (c == ',');
-      case 85:
+      case 80:
         return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == '}');
-      case 86:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == '"');
-      case 87:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == '}');
-      case 88:
+      case 82:
         return (c == '}');
-      case 89:
+      case 83:
+        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == '"');
+      case 84:
         return (c == '0')
             || ('1' <= c && c <= '9')
             || ('A' <= c && c <= 'F')
             || ('a' <= c && c <= 'f');
-      case 90:
-        return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == '"');
-      case 91:
+      case 86:
         return ('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ') || (c == '"');
     }
     throw new AssertionError("Unknown nodeId: " + stack.nodeId);
@@ -501,112 +400,102 @@ public class JsonParser {
       case 37:
         return "{'{' ws•'}'}";
       case 38:
-        return "{}";
-      case 39:
         return "{'e'•sign {0-9}+}";
-      case 40:
+      case 39:
         return "{'e' sign•{0-9}+}";
-      case 41:
+      case 40:
         return "{{0-9}+•{0-9}}";
-      case 42:
+      case 41:
         return "{'E'•sign {0-9}+}";
-      case 43:
+      case 42:
         return "{'E' sign•{0-9}+}";
-      case 44:
-        return "{'[' ws elements•ws ']'|'[' ws elements ws•']'|element•ws ',' ws elements|element ws•',' ws elements|int•frac exp|int frac•exp|onenine•digits}";
-      case 45:
-        return "{'[' ws elements•ws ']'|'[' ws elements ws•']'|element•ws ',' ws elements|element ws•',' ws elements}";
-      case 46:
-        return "{'[' ws elements•ws ']'|'[' ws elements ws•']'|element•ws ',' ws elements|element ws•',' ws elements|int•frac exp|int frac•exp}";
-      case 47:
+      case 43:
         return "{ws•string ws ':' ws element}";
-      case 48:
+      case 44:
         return "{element•ws ',' ws elements}";
-      case 49:
+      case 45:
         return "{element ws•',' ws elements}";
-      case 50:
+      case 46:
         return "{'u'•hex hex hex hex}";
-      case 51:
+      case 47:
         return "{element•ws ',' ws elements|element ws•',' ws elements|int•frac exp|int frac•exp|'-' onenine•digits}";
-      case 52:
+      case 48:
         return "{'[' ws•']'|'[' ws•elements ws ']'}";
-      case 53:
+      case 49:
         return "{'[' ws elements•ws ']'|'[' ws elements ws•']'}";
-      case 54:
+      case 50:
         return "{ws string•ws ':' ws element|ws string ws•':' ws element}";
-      case 55:
+      case 51:
         return "{'n' 'u'•'l' 'l'}";
-      case 56:
+      case 52:
         return "{'f' 'a'•'l' 's' 'e'}";
-      case 57:
+      case 53:
         return "{'t' 'r'•'u' 'e'}";
-      case 58:
+      case 54:
         return "{int•frac exp|int frac•exp|'-' onenine•digits}";
-      case 59:
+      case 55:
         return "{element•ws ',' ws elements|element ws•',' ws elements}";
-      case 60:
+      case 56:
         return "{ws element•ws|int•frac exp|int frac•exp|'-' onenine•digits}";
-      case 61:
+      case 57:
         return "{'{' ws•'}'|'{' ws•members ws '}'}";
-      case 62:
+      case 58:
         return "{ws string•ws ':' ws element}";
-      case 63:
+      case 59:
         return "{ws string ws•':' ws element}";
-      case 64:
+      case 60:
         return "{'-' onenine•digits}";
-      case 65:
+      case 61:
         return "{'[' ws elements•ws ']'}";
-      case 66:
+      case 62:
         return "{'[' ws elements ws•']'}";
-      case 67:
-        return "{'[' ws elements•ws ']'|element•ws ',' ws elements}";
-      case 68:
+      case 63:
         return "{element ws ','•ws elements|element ws ',' ws•elements}";
-      case 69:
+      case 64:
         return "{element ws ','•ws elements}";
-      case 70:
+      case 65:
         return "{element ws ',' ws•elements}";
-      case 71:
-        return "{ws string ws ':'•ws element|ws string ws ':' ws•element}";
-      case 72:
+      case 66:
         return "{'f' 'a' 'l'•'s' 'e'}";
-      case 73:
+      case 67:
         return "{'n' 'u' 'l'•'l'}";
-      case 74:
+      case 68:
         return "{'t' 'r' 'u'•'e'}";
-      case 75:
+      case 69:
+        return "{ws string ws ':'•ws element|ws string ws ':' ws•element}";
+      case 70:
         return "{'u' hex•hex hex hex}";
-      case 76:
+      case 71:
         return "{element•ws ',' ws elements|element ws•',' ws elements|int frac•exp}";
-      case 77:
+      case 72:
         return "{ws element•ws|int frac•exp}";
-      case 78:
+      case 73:
         return "{ws string ws ':'•ws element}";
-      case 79:
+      case 74:
         return "{ws string ws ':' ws•element}";
-      case 80:
+      case 75:
         return "{'f' 'a' 'l' 's'•'e'}";
-      case 81:
+      case 76:
         return "{member•ws ',' ws members|member ws•',' ws members}";
-      case 82:
+      case 77:
         return "{'u' hex hex•hex hex}";
-      case 83:
+      case 78:
         return "{member•ws ',' ws members}";
-      case 84:
+      case 79:
         return "{member ws•',' ws members}";
-      case 85:
+      case 80:
         return "{'{' ws members•ws '}'|'{' ws members ws•'}'}";
-      case 86:
-        return "{member ws ','•ws members|member ws ',' ws•members}";
-      case 87:
+      case 81:
         return "{'{' ws members•ws '}'}";
-      case 88:
+      case 82:
         return "{'{' ws members ws•'}'}";
-      case 89:
+      case 83:
+        return "{member ws ','•ws members|member ws ',' ws•members}";
+      case 84:
         return "{'u' hex hex hex•hex}";
-      case 90:
+      case 85:
         return "{member ws ','•ws members}";
-      case 91:
+      case 86:
         return "{member ws ',' ws•members}";
     }
     return null;
@@ -629,26 +518,26 @@ public class JsonParser {
     int prev = stack.prev.nodeId;
     int last = stack.nodeId;
     if (prev == 0 && last == 5) { // (0,5)
-      // ReplaceEdge(0,57,None)
-      replace(57);
+      // ReplaceEdge(0,53,None)
+      replace(53);
       pendingFinish = -1;
       return false;
     }
     if (prev == 0 && last == 6) { // (0,6)
-      // ReplaceEdge(0,60,Some(0))
-      replace(60);
+      // ReplaceEdge(0,56,Some(0))
+      replace(56);
       pendingFinish = 0;
       return false;
     }
     if (prev == 0 && last == 7) { // (0,7)
-      // ReplaceEdge(0,55,None)
-      replace(55);
+      // ReplaceEdge(0,51,None)
+      replace(51);
       pendingFinish = -1;
       return false;
     }
     if (prev == 0 && last == 10) { // (0,10)
-      // ReplaceEdge(0,56,None)
-      replace(56);
+      // ReplaceEdge(0,52,None)
+      replace(52);
       pendingFinish = -1;
       return false;
     }
@@ -670,8 +559,8 @@ public class JsonParser {
       return true;
     }
     if (prev == 0 && last == 16) { // (0,16)
-      // ReplaceEdge(0,77,Some(0))
-      replace(77);
+      // ReplaceEdge(0,72,Some(0))
+      replace(72);
       pendingFinish = 0;
       return false;
     }
@@ -700,14 +589,14 @@ public class JsonParser {
       return false;
     }
     if (prev == 0 && last == 27) { // (0,27)
-      // ReplaceEdge(0,52,None)
-      replace(52);
+      // ReplaceEdge(0,48,None)
+      replace(48);
       pendingFinish = -1;
       return false;
     }
     if (prev == 0 && last == 28) { // (0,28)
-      // ReplaceEdge(0,53,None)
-      replace(53);
+      // ReplaceEdge(0,49,None)
+      replace(49);
       pendingFinish = -1;
       return false;
     }
@@ -724,14 +613,14 @@ public class JsonParser {
       return false;
     }
     if (prev == 0 && last == 35) { // (0,35)
-      // ReplaceEdge(0,61,None)
-      replace(61);
+      // ReplaceEdge(0,57,None)
+      replace(57);
       pendingFinish = -1;
       return false;
     }
     if (prev == 0 && last == 36) { // (0,36)
-      // ReplaceEdge(0,85,None)
-      replace(85);
+      // ReplaceEdge(0,80,None)
+      replace(80);
       pendingFinish = -1;
       return false;
     }
@@ -741,79 +630,73 @@ public class JsonParser {
       pendingFinish = 0;
       return false;
     }
-    if (prev == 0 && last == 38) { // (0,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 0 && last == 55) { // (0,55)
-      // ReplaceEdge(0,73,None)
-      replace(73);
+    if (prev == 0 && last == 51) { // (0,51)
+      // ReplaceEdge(0,67,None)
+      replace(67);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 0 && last == 56) { // (0,56)
-      // ReplaceEdge(0,72,None)
-      replace(72);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 0 && last == 57) { // (0,57)
-      // ReplaceEdge(0,74,None)
-      replace(74);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 0 && last == 64) { // (0,64)
-      // ReplaceEdge(0,8,Some(0))
-      replace(8);
-      pendingFinish = 0;
-      return false;
-    }
-    if (prev == 0 && last == 65) { // (0,65)
+    if (prev == 0 && last == 52) { // (0,52)
       // ReplaceEdge(0,66,None)
       replace(66);
       pendingFinish = -1;
       return false;
     }
+    if (prev == 0 && last == 53) { // (0,53)
+      // ReplaceEdge(0,68,None)
+      replace(68);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 0 && last == 60) { // (0,60)
+      // ReplaceEdge(0,8,Some(0))
+      replace(8);
+      pendingFinish = 0;
+      return false;
+    }
+    if (prev == 0 && last == 61) { // (0,61)
+      // ReplaceEdge(0,62,None)
+      replace(62);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 0 && last == 62) { // (0,62)
+      // ReplaceEdge(0,15,Some(0))
+      replace(15);
+      pendingFinish = 0;
+      return false;
+    }
     if (prev == 0 && last == 66) { // (0,66)
-      // ReplaceEdge(0,15,Some(0))
-      replace(15);
-      pendingFinish = 0;
-      return false;
-    }
-    if (prev == 0 && last == 72) { // (0,72)
-      // ReplaceEdge(0,80,None)
-      replace(80);
+      // ReplaceEdge(0,75,None)
+      replace(75);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 0 && last == 73) { // (0,73)
+    if (prev == 0 && last == 67) { // (0,67)
       // ReplaceEdge(0,15,Some(0))
       replace(15);
       pendingFinish = 0;
       return false;
     }
-    if (prev == 0 && last == 74) { // (0,74)
+    if (prev == 0 && last == 68) { // (0,68)
       // ReplaceEdge(0,15,Some(0))
       replace(15);
       pendingFinish = 0;
       return false;
     }
-    if (prev == 0 && last == 80) { // (0,80)
+    if (prev == 0 && last == 75) { // (0,75)
       // ReplaceEdge(0,15,Some(0))
       replace(15);
       pendingFinish = 0;
       return false;
     }
-    if (prev == 0 && last == 87) { // (0,87)
-      // ReplaceEdge(0,88,None)
-      replace(88);
+    if (prev == 0 && last == 81) { // (0,81)
+      // ReplaceEdge(0,82,None)
+      replace(82);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 0 && last == 88) { // (0,88)
+    if (prev == 0 && last == 82) { // (0,82)
       // ReplaceEdge(0,15,Some(0))
       replace(15);
       pendingFinish = 0;
@@ -825,26 +708,26 @@ public class JsonParser {
       return true;
     }
     if (prev == 12 && last == 5) { // (12,5)
-      // ReplaceEdge(12,57,None)
-      replace(57);
+      // ReplaceEdge(12,53,None)
+      replace(53);
       pendingFinish = -1;
       return false;
     }
     if (prev == 12 && last == 6) { // (12,6)
-      // ReplaceEdge(12,58,Some(12))
-      replace(58);
+      // ReplaceEdge(12,54,Some(12))
+      replace(54);
       pendingFinish = 12;
       return false;
     }
     if (prev == 12 && last == 7) { // (12,7)
-      // ReplaceEdge(12,55,None)
-      replace(55);
+      // ReplaceEdge(12,51,None)
+      replace(51);
       pendingFinish = -1;
       return false;
     }
     if (prev == 12 && last == 10) { // (12,10)
-      // ReplaceEdge(12,56,None)
-      replace(56);
+      // ReplaceEdge(12,52,None)
+      replace(52);
       pendingFinish = -1;
       return false;
     }
@@ -877,14 +760,14 @@ public class JsonParser {
       return false;
     }
     if (prev == 12 && last == 27) { // (12,27)
-      // ReplaceEdge(12,52,None)
-      replace(52);
+      // ReplaceEdge(12,48,None)
+      replace(48);
       pendingFinish = -1;
       return false;
     }
     if (prev == 12 && last == 28) { // (12,28)
-      // ReplaceEdge(12,53,None)
-      replace(53);
+      // ReplaceEdge(12,49,None)
+      replace(49);
       pendingFinish = -1;
       return false;
     }
@@ -900,14 +783,14 @@ public class JsonParser {
       return false;
     }
     if (prev == 12 && last == 35) { // (12,35)
-      // ReplaceEdge(12,61,None)
-      replace(61);
+      // ReplaceEdge(12,57,None)
+      replace(57);
       pendingFinish = -1;
       return false;
     }
     if (prev == 12 && last == 36) { // (12,36)
-      // ReplaceEdge(12,85,None)
-      replace(85);
+      // ReplaceEdge(12,80,None)
+      replace(80);
       pendingFinish = -1;
       return false;
     }
@@ -916,75 +799,69 @@ public class JsonParser {
       dropLast();
       return true;
     }
-    if (prev == 12 && last == 38) { // (12,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 12 && last == 55) { // (12,55)
-      // ReplaceEdge(12,73,None)
-      replace(73);
+    if (prev == 12 && last == 51) { // (12,51)
+      // ReplaceEdge(12,67,None)
+      replace(67);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 12 && last == 56) { // (12,56)
-      // ReplaceEdge(12,72,None)
-      replace(72);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 12 && last == 57) { // (12,57)
-      // ReplaceEdge(12,74,None)
-      replace(74);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 12 && last == 64) { // (12,64)
-      // ReplaceEdge(12,14,Some(12))
-      replace(14);
-      pendingFinish = 12;
-      return false;
-    }
-    if (prev == 12 && last == 65) { // (12,65)
+    if (prev == 12 && last == 52) { // (12,52)
       // ReplaceEdge(12,66,None)
       replace(66);
       pendingFinish = -1;
       return false;
     }
+    if (prev == 12 && last == 53) { // (12,53)
+      // ReplaceEdge(12,68,None)
+      replace(68);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 12 && last == 60) { // (12,60)
+      // ReplaceEdge(12,14,Some(12))
+      replace(14);
+      pendingFinish = 12;
+      return false;
+    }
+    if (prev == 12 && last == 61) { // (12,61)
+      // ReplaceEdge(12,62,None)
+      replace(62);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 12 && last == 62) { // (12,62)
+      // DropLast(12)
+      dropLast();
+      return true;
+    }
     if (prev == 12 && last == 66) { // (12,66)
-      // DropLast(12)
-      dropLast();
-      return true;
-    }
-    if (prev == 12 && last == 72) { // (12,72)
-      // ReplaceEdge(12,80,None)
-      replace(80);
+      // ReplaceEdge(12,75,None)
+      replace(75);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 12 && last == 73) { // (12,73)
+    if (prev == 12 && last == 67) { // (12,67)
       // DropLast(12)
       dropLast();
       return true;
     }
-    if (prev == 12 && last == 74) { // (12,74)
+    if (prev == 12 && last == 68) { // (12,68)
       // DropLast(12)
       dropLast();
       return true;
     }
-    if (prev == 12 && last == 80) { // (12,80)
+    if (prev == 12 && last == 75) { // (12,75)
       // DropLast(12)
       dropLast();
       return true;
     }
-    if (prev == 12 && last == 87) { // (12,87)
-      // ReplaceEdge(12,88,None)
-      replace(88);
+    if (prev == 12 && last == 81) { // (12,81)
+      // ReplaceEdge(12,82,None)
+      replace(82);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 12 && last == 88) { // (12,88)
+    if (prev == 12 && last == 82) { // (12,82)
       // DropLast(12)
       dropLast();
       return true;
@@ -999,29 +876,29 @@ public class JsonParser {
       dropLast();
       return true;
     }
-    if (prev == 17 && last == 41) { // (17,41)
-      // ReplaceEdge(17,41,Some(17))
+    if (prev == 17 && last == 40) { // (17,40)
+      // ReplaceEdge(17,40,Some(17))
       pendingFinish = 17;
       return false;
     }
-    if (prev == 18 && last == 39) { // (18,39)
-      // ReplaceEdge(18,40,None)
-      replace(40);
+    if (prev == 18 && last == 38) { // (18,38)
+      // ReplaceEdge(18,39,None)
+      replace(39);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 18 && last == 40) { // (18,40)
+    if (prev == 18 && last == 39) { // (18,39)
       // DropLast(18)
       dropLast();
       return true;
     }
-    if (prev == 18 && last == 42) { // (18,42)
-      // ReplaceEdge(18,43,None)
-      replace(43);
+    if (prev == 18 && last == 41) { // (18,41)
+      // ReplaceEdge(18,42,None)
+      replace(42);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 18 && last == 43) { // (18,43)
+    if (prev == 18 && last == 42) { // (18,42)
       // DropLast(18)
       dropLast();
       return true;
@@ -1037,25 +914,25 @@ public class JsonParser {
       dropLast();
       return true;
     }
-    if (prev == 22 && last == 50) { // (22,50)
-      // ReplaceEdge(22,75,None)
-      replace(75);
+    if (prev == 22 && last == 46) { // (22,46)
+      // ReplaceEdge(22,70,None)
+      replace(70);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 22 && last == 75) { // (22,75)
-      // ReplaceEdge(22,82,None)
-      replace(82);
+    if (prev == 22 && last == 70) { // (22,70)
+      // ReplaceEdge(22,77,None)
+      replace(77);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 22 && last == 82) { // (22,82)
-      // ReplaceEdge(22,89,None)
-      replace(89);
+    if (prev == 22 && last == 77) { // (22,77)
+      // ReplaceEdge(22,84,None)
+      replace(84);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 22 && last == 89) { // (22,89)
+    if (prev == 22 && last == 84) { // (22,84)
       // DropLast(22)
       dropLast();
       return true;
@@ -1087,38 +964,38 @@ public class JsonParser {
       return true;
     }
     if (prev == 28 && last == 5) { // (28,5)
-      // ReplaceEdge(28,57,None)
-      replace(57);
+      // ReplaceEdge(28,53,None)
+      replace(53);
       pendingFinish = -1;
       return false;
     }
     if (prev == 28 && last == 6) { // (28,6)
-      // ReplaceEdge(28,51,Some(28))
-      replace(51);
+      // ReplaceEdge(28,47,Some(28))
+      replace(47);
       pendingFinish = 28;
       return false;
     }
     if (prev == 28 && last == 7) { // (28,7)
-      // ReplaceEdge(28,55,None)
-      replace(55);
+      // ReplaceEdge(28,51,None)
+      replace(51);
       pendingFinish = -1;
       return false;
     }
     if (prev == 28 && last == 10) { // (28,10)
-      // ReplaceEdge(28,56,None)
-      replace(56);
+      // ReplaceEdge(28,52,None)
+      replace(52);
       pendingFinish = -1;
       return false;
     }
     if (prev == 28 && last == 16) { // (28,16)
-      // ReplaceEdge(28,76,Some(28))
-      replace(76);
+      // ReplaceEdge(28,71,Some(28))
+      replace(71);
       pendingFinish = 28;
       return false;
     }
     if (prev == 28 && last == 18) { // (28,18)
-      // ReplaceEdge(28,59,Some(28))
-      replace(59);
+      // ReplaceEdge(28,55,Some(28))
+      replace(55);
       pendingFinish = 28;
       return false;
     }
@@ -1129,8 +1006,8 @@ public class JsonParser {
       return false;
     }
     if (prev == 28 && last == 23) { // (28,23)
-      // ReplaceEdge(28,59,Some(28))
-      replace(59);
+      // ReplaceEdge(28,55,Some(28))
+      replace(55);
       pendingFinish = 28;
       return false;
     }
@@ -1141,8 +1018,8 @@ public class JsonParser {
       return false;
     }
     if (prev == 28 && last == 27) { // (28,27)
-      // ReplaceEdge(28,52,None)
-      replace(52);
+      // ReplaceEdge(28,48,None)
+      replace(48);
       pendingFinish = -1;
       return false;
     }
@@ -1152,8 +1029,8 @@ public class JsonParser {
       return true;
     }
     if (prev == 28 && last == 30) { // (28,30)
-      // ReplaceEdge(28,59,Some(28))
-      replace(59);
+      // ReplaceEdge(28,55,Some(28))
+      replace(55);
       pendingFinish = 28;
       return false;
     }
@@ -1164,155 +1041,123 @@ public class JsonParser {
       return false;
     }
     if (prev == 28 && last == 35) { // (28,35)
-      // ReplaceEdge(28,61,None)
-      replace(61);
+      // ReplaceEdge(28,57,None)
+      replace(57);
       pendingFinish = -1;
       return false;
     }
     if (prev == 28 && last == 36) { // (28,36)
-      // ReplaceEdge(28,85,None)
-      replace(85);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 28 && last == 37) { // (28,37)
-      // ReplaceEdge(28,59,Some(28))
-      replace(59);
-      pendingFinish = 28;
-      return false;
-    }
-    if (prev == 28 && last == 38) { // (28,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 28 && last == 48) { // (28,48)
-      // ReplaceEdge(28,49,None)
-      replace(49);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 28 && last == 49) { // (28,49)
-      // ReplaceEdge(28,68,None)
-      replace(68);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 28 && last == 55) { // (28,55)
-      // ReplaceEdge(28,73,None)
-      replace(73);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 28 && last == 56) { // (28,56)
-      // ReplaceEdge(28,72,None)
-      replace(72);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 28 && last == 57) { // (28,57)
-      // ReplaceEdge(28,74,None)
-      replace(74);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 28 && last == 64) { // (28,64)
-      // ReplaceEdge(28,31,Some(28))
-      replace(31);
-      pendingFinish = 28;
-      return false;
-    }
-    if (prev == 28 && last == 69) { // (28,69)
-      // ReplaceEdge(28,70,None)
-      replace(70);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 28 && last == 70) { // (28,70)
-      // DropLast(28)
-      dropLast();
-      return true;
-    }
-    if (prev == 28 && last == 72) { // (28,72)
       // ReplaceEdge(28,80,None)
       replace(80);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 28 && last == 73) { // (28,73)
-      // ReplaceEdge(28,59,Some(28))
-      replace(59);
+    if (prev == 28 && last == 37) { // (28,37)
+      // ReplaceEdge(28,55,Some(28))
+      replace(55);
       pendingFinish = 28;
       return false;
     }
-    if (prev == 28 && last == 74) { // (28,74)
-      // ReplaceEdge(28,59,Some(28))
-      replace(59);
-      pendingFinish = 28;
-      return false;
-    }
-    if (prev == 28 && last == 80) { // (28,80)
-      // ReplaceEdge(28,59,Some(28))
-      replace(59);
-      pendingFinish = 28;
-      return false;
-    }
-    if (prev == 28 && last == 87) { // (28,87)
-      // ReplaceEdge(28,88,None)
-      replace(88);
+    if (prev == 28 && last == 44) { // (28,44)
+      // ReplaceEdge(28,45,None)
+      replace(45);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 28 && last == 88) { // (28,88)
-      // ReplaceEdge(28,59,Some(28))
-      replace(59);
+    if (prev == 28 && last == 45) { // (28,45)
+      // ReplaceEdge(28,63,None)
+      replace(63);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 28 && last == 51) { // (28,51)
+      // ReplaceEdge(28,67,None)
+      replace(67);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 28 && last == 52) { // (28,52)
+      // ReplaceEdge(28,66,None)
+      replace(66);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 28 && last == 53) { // (28,53)
+      // ReplaceEdge(28,68,None)
+      replace(68);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 28 && last == 60) { // (28,60)
+      // ReplaceEdge(28,31,Some(28))
+      replace(31);
+      pendingFinish = 28;
+      return false;
+    }
+    if (prev == 28 && last == 64) { // (28,64)
+      // ReplaceEdge(28,65,None)
+      replace(65);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 28 && last == 65) { // (28,65)
+      // DropLast(28)
+      dropLast();
+      return true;
+    }
+    if (prev == 28 && last == 66) { // (28,66)
+      // ReplaceEdge(28,75,None)
+      replace(75);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 28 && last == 67) { // (28,67)
+      // ReplaceEdge(28,55,Some(28))
+      replace(55);
+      pendingFinish = 28;
+      return false;
+    }
+    if (prev == 28 && last == 68) { // (28,68)
+      // ReplaceEdge(28,55,Some(28))
+      replace(55);
+      pendingFinish = 28;
+      return false;
+    }
+    if (prev == 28 && last == 75) { // (28,75)
+      // ReplaceEdge(28,55,Some(28))
+      replace(55);
+      pendingFinish = 28;
+      return false;
+    }
+    if (prev == 28 && last == 81) { // (28,81)
+      // ReplaceEdge(28,82,None)
+      replace(82);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 28 && last == 82) { // (28,82)
+      // ReplaceEdge(28,55,Some(28))
+      replace(55);
       pendingFinish = 28;
       return false;
     }
     if (prev == 33 && last == 11) { // (33,11)
-      // ReplaceEdge(33,47,Some(35))
-      replace(47);
+      // ReplaceEdge(33,43,Some(35))
+      replace(43);
       pendingFinish = 35;
       return false;
     }
-    if (prev == 33 && last == 38) { // (33,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 33 && last == 47) { // (33,47)
-      // ReplaceEdge(36,54,None)
+    if (prev == 33 && last == 43) { // (33,43)
+      // ReplaceEdge(36,50,None)
       dropLast();
       replace(36);
-      append(54);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 35 && last == 11) { // (35,11)
-      // ReplaceEdge(35,47,Some(35))
-      replace(47);
-      pendingFinish = 35;
-      return false;
-    }
-    if (prev == 35 && last == 38) { // (35,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 35 && last == 47) { // (35,47)
-      // ReplaceEdge(38,54,None)
-      dropLast();
-      replace(38);
-      append(54);
+      append(50);
       pendingFinish = -1;
       return false;
     }
     if (prev == 36 && last == 11) { // (36,11)
-      // ReplaceEdge(36,47,None)
-      replace(47);
+      // ReplaceEdge(36,43,None)
+      replace(43);
       pendingFinish = -1;
       return false;
     }
@@ -1323,33 +1168,39 @@ public class JsonParser {
       return false;
     }
     if (prev == 36 && last == 23) { // (36,23)
-      // ReplaceEdge(36,54,None)
-      replace(54);
+      // ReplaceEdge(36,50,None)
+      replace(50);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 36 && last == 38) { // (36,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 36 && last == 47) { // (36,47)
-      // ReplaceEdge(36,54,None)
-      replace(54);
+    if (prev == 36 && last == 43) { // (36,43)
+      // ReplaceEdge(36,50,None)
+      replace(50);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 36 && last == 62) { // (36,62)
-      // ReplaceEdge(36,63,None)
-      replace(63);
+    if (prev == 36 && last == 58) { // (36,58)
+      // ReplaceEdge(36,59,None)
+      replace(59);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 36 && last == 63) { // (36,63)
-      // ReplaceEdge(36,71,None)
-      replace(71);
+    if (prev == 36 && last == 59) { // (36,59)
+      // ReplaceEdge(36,69,None)
+      replace(69);
       pendingFinish = -1;
+      return false;
+    }
+    if (prev == 36 && last == 73) { // (36,73)
+      // ReplaceEdge(36,74,None)
+      replace(74);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 36 && last == 74) { // (36,74)
+      // ReplaceEdge(36,76,Some(36))
+      replace(76);
+      pendingFinish = 36;
       return false;
     }
     if (prev == 36 && last == 78) { // (36,78)
@@ -1359,727 +1210,515 @@ public class JsonParser {
       return false;
     }
     if (prev == 36 && last == 79) { // (36,79)
-      // ReplaceEdge(36,81,Some(36))
-      replace(81);
-      pendingFinish = 36;
-      return false;
-    }
-    if (prev == 36 && last == 83) { // (36,83)
-      // ReplaceEdge(36,84,None)
-      replace(84);
+      // ReplaceEdge(36,83,None)
+      replace(83);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 36 && last == 84) { // (36,84)
+    if (prev == 36 && last == 85) { // (36,85)
       // ReplaceEdge(36,86,None)
       replace(86);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 36 && last == 90) { // (36,90)
-      // ReplaceEdge(36,91,None)
-      replace(91);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 36 && last == 91) { // (36,91)
+    if (prev == 36 && last == 86) { // (36,86)
       // DropLast(36)
       dropLast();
       return true;
     }
-    if (prev == 38 && last == 5) { // (38,5)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 6) { // (38,6)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 7) { // (38,7)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 10) { // (38,10)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 16) { // (38,16)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 18) { // (38,18)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 21) { // (38,21)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 23) { // (38,23)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 25) { // (38,25)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 27) { // (38,27)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 28) { // (38,28)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 30) { // (38,30)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 32) { // (38,32)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 35) { // (38,35)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 36) { // (38,36)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 37) { // (38,37)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 38) { // (38,38)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 48) { // (38,48)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 49) { // (38,49)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 62) { // (38,62)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 63) { // (38,63)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 66) { // (38,66)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 67) { // (38,67)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 69) { // (38,69)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 70) { // (38,70)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 78) { // (38,78)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 79) { // (38,79)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 90) { // (38,90)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 38 && last == 91) { // (38,91)
-      // DropLast(38)
-      dropLast();
-      return true;
-    }
-    if (prev == 40 && last == 41) { // (40,41)
-      // ReplaceEdge(40,41,Some(40))
-      pendingFinish = 40;
+    if (prev == 39 && last == 40) { // (39,40)
+      // ReplaceEdge(39,40,Some(39))
+      pendingFinish = 39;
       return false;
     }
-    if (prev == 43 && last == 41) { // (43,41)
-      // ReplaceEdge(43,41,Some(43))
-      pendingFinish = 43;
+    if (prev == 42 && last == 40) { // (42,40)
+      // ReplaceEdge(42,40,Some(42))
+      pendingFinish = 42;
       return false;
     }
-    if (prev == 47 && last == 21) { // (47,21)
-      // ReplaceEdge(47,23,None)
+    if (prev == 43 && last == 21) { // (43,21)
+      // ReplaceEdge(43,23,None)
       replace(23);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 47 && last == 23) { // (47,23)
-      // DropLast(47)
+    if (prev == 43 && last == 23) { // (43,23)
+      // DropLast(43)
       dropLast();
       return true;
     }
-    if (prev == 47 && last == 38) { // (47,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 48 && last == 11) { // (48,11)
-      // DropLast(48)
+    if (prev == 44 && last == 11) { // (44,11)
+      // DropLast(44)
       dropLast();
       return true;
     }
-    if (prev == 62 && last == 11) { // (62,11)
-      // DropLast(62)
+    if (prev == 58 && last == 11) { // (58,11)
+      // DropLast(58)
       dropLast();
       return true;
     }
-    if (prev == 64 && last == 26) { // (64,26)
+    if (prev == 60 && last == 26) { // (60,26)
+      // DropLast(60)
+      dropLast();
+      return true;
+    }
+    if (prev == 61 && last == 11) { // (61,11)
+      // DropLast(61)
+      dropLast();
+      return true;
+    }
+    if (prev == 64 && last == 11) { // (64,11)
       // DropLast(64)
       dropLast();
       return true;
     }
-    if (prev == 65 && last == 11) { // (65,11)
-      // DropLast(65)
-      dropLast();
-      return true;
-    }
-    if (prev == 67 && last == 11) { // (67,11)
-      // DropLast(67)
-      dropLast();
-      return true;
-    }
-    if (prev == 69 && last == 11) { // (69,11)
-      // DropLast(69)
-      dropLast();
-      return true;
-    }
-    if (prev == 70 && last == 5) { // (70,5)
-      // ReplaceEdge(70,57,None)
-      replace(57);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 70 && last == 6) { // (70,6)
-      // ReplaceEdge(70,51,Some(70))
-      replace(51);
-      pendingFinish = 70;
-      return false;
-    }
-    if (prev == 70 && last == 7) { // (70,7)
-      // ReplaceEdge(70,55,None)
-      replace(55);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 70 && last == 10) { // (70,10)
-      // ReplaceEdge(70,56,None)
-      replace(56);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 70 && last == 16) { // (70,16)
-      // ReplaceEdge(70,76,Some(70))
-      replace(76);
-      pendingFinish = 70;
-      return false;
-    }
-    if (prev == 70 && last == 18) { // (70,18)
-      // ReplaceEdge(70,59,Some(70))
-      replace(59);
-      pendingFinish = 70;
-      return false;
-    }
-    if (prev == 70 && last == 21) { // (70,21)
-      // ReplaceEdge(70,23,None)
-      replace(23);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 70 && last == 23) { // (70,23)
-      // ReplaceEdge(70,59,Some(70))
-      replace(59);
-      pendingFinish = 70;
-      return false;
-    }
-    if (prev == 70 && last == 25) { // (70,25)
-      // ReplaceEdge(70,31,Some(70))
-      replace(31);
-      pendingFinish = 70;
-      return false;
-    }
-    if (prev == 70 && last == 27) { // (70,27)
-      // ReplaceEdge(70,52,None)
-      replace(52);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 70 && last == 28) { // (70,28)
-      // ReplaceEdge(70,53,None)
+    if (prev == 65 && last == 5) { // (65,5)
+      // ReplaceEdge(65,53,None)
       replace(53);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 70 && last == 30) { // (70,30)
-      // ReplaceEdge(70,59,Some(70))
-      replace(59);
-      pendingFinish = 70;
+    if (prev == 65 && last == 6) { // (65,6)
+      // ReplaceEdge(65,47,Some(65))
+      replace(47);
+      pendingFinish = 65;
       return false;
     }
-    if (prev == 70 && last == 32) { // (70,32)
-      // ReplaceEdge(70,31,Some(70))
+    if (prev == 65 && last == 7) { // (65,7)
+      // ReplaceEdge(65,51,None)
+      replace(51);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 65 && last == 10) { // (65,10)
+      // ReplaceEdge(65,52,None)
+      replace(52);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 65 && last == 16) { // (65,16)
+      // ReplaceEdge(65,71,Some(65))
+      replace(71);
+      pendingFinish = 65;
+      return false;
+    }
+    if (prev == 65 && last == 18) { // (65,18)
+      // ReplaceEdge(65,55,Some(65))
+      replace(55);
+      pendingFinish = 65;
+      return false;
+    }
+    if (prev == 65 && last == 21) { // (65,21)
+      // ReplaceEdge(65,23,None)
+      replace(23);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 65 && last == 23) { // (65,23)
+      // ReplaceEdge(65,55,Some(65))
+      replace(55);
+      pendingFinish = 65;
+      return false;
+    }
+    if (prev == 65 && last == 25) { // (65,25)
+      // ReplaceEdge(65,31,Some(65))
       replace(31);
-      pendingFinish = 70;
+      pendingFinish = 65;
       return false;
     }
-    if (prev == 70 && last == 35) { // (70,35)
-      // ReplaceEdge(70,61,None)
-      replace(61);
+    if (prev == 65 && last == 27) { // (65,27)
+      // ReplaceEdge(65,48,None)
+      replace(48);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 70 && last == 36) { // (70,36)
-      // ReplaceEdge(70,85,None)
-      replace(85);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 70 && last == 37) { // (70,37)
-      // ReplaceEdge(70,59,Some(70))
-      replace(59);
-      pendingFinish = 70;
-      return false;
-    }
-    if (prev == 70 && last == 38) { // (70,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 70 && last == 48) { // (70,48)
-      // ReplaceEdge(70,49,None)
+    if (prev == 65 && last == 28) { // (65,28)
+      // ReplaceEdge(65,49,None)
       replace(49);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 70 && last == 49) { // (70,49)
-      // ReplaceEdge(70,68,None)
-      replace(68);
-      pendingFinish = -1;
+    if (prev == 65 && last == 30) { // (65,30)
+      // ReplaceEdge(65,55,Some(65))
+      replace(55);
+      pendingFinish = 65;
       return false;
     }
-    if (prev == 70 && last == 55) { // (70,55)
-      // ReplaceEdge(70,73,None)
-      replace(73);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 70 && last == 56) { // (70,56)
-      // ReplaceEdge(70,72,None)
-      replace(72);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 70 && last == 57) { // (70,57)
-      // ReplaceEdge(70,74,None)
-      replace(74);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 70 && last == 64) { // (70,64)
-      // ReplaceEdge(70,31,Some(70))
+    if (prev == 65 && last == 32) { // (65,32)
+      // ReplaceEdge(65,31,Some(65))
       replace(31);
-      pendingFinish = 70;
+      pendingFinish = 65;
       return false;
     }
-    if (prev == 70 && last == 65) { // (70,65)
-      // ReplaceEdge(70,66,None)
-      replace(66);
+    if (prev == 65 && last == 35) { // (65,35)
+      // ReplaceEdge(65,57,None)
+      replace(57);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 70 && last == 66) { // (70,66)
-      // ReplaceEdge(70,59,Some(70))
-      replace(59);
-      pendingFinish = 70;
-      return false;
-    }
-    if (prev == 70 && last == 69) { // (70,69)
-      // ReplaceEdge(70,70,None)
-      replace(70);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 70 && last == 70) { // (70,70)
-      // DropLast(70)
-      dropLast();
-      return true;
-    }
-    if (prev == 70 && last == 72) { // (70,72)
-      // ReplaceEdge(70,80,None)
+    if (prev == 65 && last == 36) { // (65,36)
+      // ReplaceEdge(65,80,None)
       replace(80);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 70 && last == 73) { // (70,73)
-      // ReplaceEdge(70,59,Some(70))
-      replace(59);
-      pendingFinish = 70;
+    if (prev == 65 && last == 37) { // (65,37)
+      // ReplaceEdge(65,55,Some(65))
+      replace(55);
+      pendingFinish = 65;
       return false;
     }
-    if (prev == 70 && last == 74) { // (70,74)
-      // ReplaceEdge(70,59,Some(70))
-      replace(59);
-      pendingFinish = 70;
-      return false;
-    }
-    if (prev == 70 && last == 80) { // (70,80)
-      // ReplaceEdge(70,59,Some(70))
-      replace(59);
-      pendingFinish = 70;
-      return false;
-    }
-    if (prev == 70 && last == 87) { // (70,87)
-      // ReplaceEdge(70,88,None)
-      replace(88);
+    if (prev == 65 && last == 44) { // (65,44)
+      // ReplaceEdge(65,45,None)
+      replace(45);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 70 && last == 88) { // (70,88)
-      // ReplaceEdge(70,59,Some(70))
-      replace(59);
-      pendingFinish = 70;
+    if (prev == 65 && last == 45) { // (65,45)
+      // ReplaceEdge(65,63,None)
+      replace(63);
+      pendingFinish = -1;
       return false;
+    }
+    if (prev == 65 && last == 51) { // (65,51)
+      // ReplaceEdge(65,67,None)
+      replace(67);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 65 && last == 52) { // (65,52)
+      // ReplaceEdge(65,66,None)
+      replace(66);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 65 && last == 53) { // (65,53)
+      // ReplaceEdge(65,68,None)
+      replace(68);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 65 && last == 60) { // (65,60)
+      // ReplaceEdge(65,31,Some(65))
+      replace(31);
+      pendingFinish = 65;
+      return false;
+    }
+    if (prev == 65 && last == 61) { // (65,61)
+      // ReplaceEdge(65,62,None)
+      replace(62);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 65 && last == 62) { // (65,62)
+      // ReplaceEdge(65,55,Some(65))
+      replace(55);
+      pendingFinish = 65;
+      return false;
+    }
+    if (prev == 65 && last == 64) { // (65,64)
+      // ReplaceEdge(65,65,None)
+      replace(65);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 65 && last == 65) { // (65,65)
+      // DropLast(65)
+      dropLast();
+      return true;
+    }
+    if (prev == 65 && last == 66) { // (65,66)
+      // ReplaceEdge(65,75,None)
+      replace(75);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 65 && last == 67) { // (65,67)
+      // ReplaceEdge(65,55,Some(65))
+      replace(55);
+      pendingFinish = 65;
+      return false;
+    }
+    if (prev == 65 && last == 68) { // (65,68)
+      // ReplaceEdge(65,55,Some(65))
+      replace(55);
+      pendingFinish = 65;
+      return false;
+    }
+    if (prev == 65 && last == 75) { // (65,75)
+      // ReplaceEdge(65,55,Some(65))
+      replace(55);
+      pendingFinish = 65;
+      return false;
+    }
+    if (prev == 65 && last == 81) { // (65,81)
+      // ReplaceEdge(65,82,None)
+      replace(82);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 65 && last == 82) { // (65,82)
+      // ReplaceEdge(65,55,Some(65))
+      replace(55);
+      pendingFinish = 65;
+      return false;
+    }
+    if (prev == 73 && last == 11) { // (73,11)
+      // DropLast(73)
+      dropLast();
+      return true;
+    }
+    if (prev == 74 && last == 5) { // (74,5)
+      // ReplaceEdge(74,53,None)
+      replace(53);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 6) { // (74,6)
+      // ReplaceEdge(74,54,Some(74))
+      replace(54);
+      pendingFinish = 74;
+      return false;
+    }
+    if (prev == 74 && last == 7) { // (74,7)
+      // ReplaceEdge(74,51,None)
+      replace(51);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 10) { // (74,10)
+      // ReplaceEdge(74,52,None)
+      replace(52);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 16) { // (74,16)
+      // ReplaceEdge(74,18,Some(74))
+      replace(18);
+      pendingFinish = 74;
+      return false;
+    }
+    if (prev == 74 && last == 18) { // (74,18)
+      // DropLast(74)
+      dropLast();
+      return true;
+    }
+    if (prev == 74 && last == 21) { // (74,21)
+      // ReplaceEdge(74,23,None)
+      replace(23);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 23) { // (74,23)
+      // DropLast(74)
+      dropLast();
+      return true;
+    }
+    if (prev == 74 && last == 25) { // (74,25)
+      // ReplaceEdge(74,14,Some(74))
+      replace(14);
+      pendingFinish = 74;
+      return false;
+    }
+    if (prev == 74 && last == 27) { // (74,27)
+      // ReplaceEdge(74,48,None)
+      replace(48);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 28) { // (74,28)
+      // ReplaceEdge(74,49,None)
+      replace(49);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 30) { // (74,30)
+      // DropLast(74)
+      dropLast();
+      return true;
+    }
+    if (prev == 74 && last == 32) { // (74,32)
+      // ReplaceEdge(74,14,Some(74))
+      replace(14);
+      pendingFinish = 74;
+      return false;
+    }
+    if (prev == 74 && last == 35) { // (74,35)
+      // ReplaceEdge(74,57,None)
+      replace(57);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 36) { // (74,36)
+      // ReplaceEdge(74,80,None)
+      replace(80);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 37) { // (74,37)
+      // DropLast(74)
+      dropLast();
+      return true;
+    }
+    if (prev == 74 && last == 51) { // (74,51)
+      // ReplaceEdge(74,67,None)
+      replace(67);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 52) { // (74,52)
+      // ReplaceEdge(74,66,None)
+      replace(66);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 53) { // (74,53)
+      // ReplaceEdge(74,68,None)
+      replace(68);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 60) { // (74,60)
+      // ReplaceEdge(74,14,Some(74))
+      replace(14);
+      pendingFinish = 74;
+      return false;
+    }
+    if (prev == 74 && last == 61) { // (74,61)
+      // ReplaceEdge(74,62,None)
+      replace(62);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 62) { // (74,62)
+      // DropLast(74)
+      dropLast();
+      return true;
+    }
+    if (prev == 74 && last == 66) { // (74,66)
+      // ReplaceEdge(74,75,None)
+      replace(75);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 67) { // (74,67)
+      // DropLast(74)
+      dropLast();
+      return true;
+    }
+    if (prev == 74 && last == 68) { // (74,68)
+      // DropLast(74)
+      dropLast();
+      return true;
+    }
+    if (prev == 74 && last == 75) { // (74,75)
+      // DropLast(74)
+      dropLast();
+      return true;
+    }
+    if (prev == 74 && last == 81) { // (74,81)
+      // ReplaceEdge(74,82,None)
+      replace(82);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 74 && last == 82) { // (74,82)
+      // DropLast(74)
+      dropLast();
+      return true;
     }
     if (prev == 78 && last == 11) { // (78,11)
       // DropLast(78)
       dropLast();
       return true;
     }
-    if (prev == 79 && last == 5) { // (79,5)
-      // ReplaceEdge(79,57,None)
-      replace(57);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 6) { // (79,6)
-      // ReplaceEdge(79,58,Some(79))
-      replace(58);
-      pendingFinish = 79;
-      return false;
-    }
-    if (prev == 79 && last == 7) { // (79,7)
-      // ReplaceEdge(79,55,None)
-      replace(55);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 10) { // (79,10)
-      // ReplaceEdge(79,56,None)
-      replace(56);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 16) { // (79,16)
-      // ReplaceEdge(79,18,Some(79))
-      replace(18);
-      pendingFinish = 79;
-      return false;
-    }
-    if (prev == 79 && last == 18) { // (79,18)
-      // DropLast(79)
-      dropLast();
-      return true;
-    }
-    if (prev == 79 && last == 21) { // (79,21)
-      // ReplaceEdge(79,23,None)
-      replace(23);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 23) { // (79,23)
-      // DropLast(79)
-      dropLast();
-      return true;
-    }
-    if (prev == 79 && last == 25) { // (79,25)
-      // ReplaceEdge(79,14,Some(79))
-      replace(14);
-      pendingFinish = 79;
-      return false;
-    }
-    if (prev == 79 && last == 27) { // (79,27)
-      // ReplaceEdge(79,52,None)
-      replace(52);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 28) { // (79,28)
-      // ReplaceEdge(79,53,None)
-      replace(53);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 30) { // (79,30)
-      // DropLast(79)
-      dropLast();
-      return true;
-    }
-    if (prev == 79 && last == 32) { // (79,32)
-      // ReplaceEdge(79,14,Some(79))
-      replace(14);
-      pendingFinish = 79;
-      return false;
-    }
-    if (prev == 79 && last == 35) { // (79,35)
-      // ReplaceEdge(79,61,None)
-      replace(61);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 36) { // (79,36)
-      // ReplaceEdge(79,85,None)
-      replace(85);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 37) { // (79,37)
-      // DropLast(79)
-      dropLast();
-      return true;
-    }
-    if (prev == 79 && last == 38) { // (79,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 79 && last == 55) { // (79,55)
-      // ReplaceEdge(79,73,None)
-      replace(73);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 56) { // (79,56)
-      // ReplaceEdge(79,72,None)
-      replace(72);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 57) { // (79,57)
-      // ReplaceEdge(79,74,None)
-      replace(74);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 64) { // (79,64)
-      // ReplaceEdge(79,14,Some(79))
-      replace(14);
-      pendingFinish = 79;
-      return false;
-    }
-    if (prev == 79 && last == 65) { // (79,65)
-      // ReplaceEdge(79,66,None)
-      replace(66);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 66) { // (79,66)
-      // DropLast(79)
-      dropLast();
-      return true;
-    }
-    if (prev == 79 && last == 72) { // (79,72)
-      // ReplaceEdge(79,80,None)
-      replace(80);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 73) { // (79,73)
-      // DropLast(79)
-      dropLast();
-      return true;
-    }
-    if (prev == 79 && last == 74) { // (79,74)
-      // DropLast(79)
-      dropLast();
-      return true;
-    }
-    if (prev == 79 && last == 80) { // (79,80)
-      // DropLast(79)
-      dropLast();
-      return true;
-    }
-    if (prev == 79 && last == 87) { // (79,87)
-      // ReplaceEdge(79,88,None)
-      replace(88);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 79 && last == 88) { // (79,88)
-      // DropLast(79)
+    if (prev == 81 && last == 11) { // (81,11)
+      // DropLast(81)
       dropLast();
       return true;
     }
     if (prev == 83 && last == 11) { // (83,11)
-      // DropLast(83)
+      // ReplaceEdge(83,43,Some(85))
+      replace(43);
+      pendingFinish = 85;
+      return false;
+    }
+    if (prev == 83 && last == 43) { // (83,43)
+      // ReplaceEdge(86,50,None)
       dropLast();
-      return true;
+      replace(86);
+      append(50);
+      pendingFinish = -1;
+      return false;
     }
     if (prev == 86 && last == 11) { // (86,11)
-      // ReplaceEdge(86,47,Some(90))
-      replace(47);
-      pendingFinish = 90;
-      return false;
-    }
-    if (prev == 86 && last == 38) { // (86,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 86 && last == 47) { // (86,47)
-      // ReplaceEdge(91,54,None)
-      dropLast();
-      replace(91);
-      append(54);
+      // ReplaceEdge(86,43,None)
+      replace(43);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 87 && last == 11) { // (87,11)
-      // DropLast(87)
-      dropLast();
-      return true;
-    }
-    if (prev == 90 && last == 11) { // (90,11)
-      // ReplaceEdge(90,47,Some(90))
-      replace(47);
-      pendingFinish = 90;
-      return false;
-    }
-    if (prev == 90 && last == 38) { // (90,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 90 && last == 47) { // (90,47)
-      // ReplaceEdge(38,54,None)
-      dropLast();
-      replace(38);
-      append(54);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 91 && last == 11) { // (91,11)
-      // ReplaceEdge(91,47,None)
-      replace(47);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 91 && last == 21) { // (91,21)
-      // ReplaceEdge(91,23,None)
+    if (prev == 86 && last == 21) { // (86,21)
+      // ReplaceEdge(86,23,None)
       replace(23);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 91 && last == 23) { // (91,23)
-      // ReplaceEdge(91,54,None)
-      replace(54);
+    if (prev == 86 && last == 23) { // (86,23)
+      // ReplaceEdge(86,50,None)
+      replace(50);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 91 && last == 38) { // (91,38)
-      // DropLast(38)
-      dropLast();
-      replace(38);
-      return true;
-    }
-    if (prev == 91 && last == 47) { // (91,47)
-      // ReplaceEdge(91,54,None)
-      replace(54);
+    if (prev == 86 && last == 43) { // (86,43)
+      // ReplaceEdge(86,50,None)
+      replace(50);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 91 && last == 62) { // (91,62)
-      // ReplaceEdge(91,63,None)
-      replace(63);
+    if (prev == 86 && last == 58) { // (86,58)
+      // ReplaceEdge(86,59,None)
+      replace(59);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 91 && last == 63) { // (91,63)
-      // ReplaceEdge(91,71,None)
-      replace(71);
+    if (prev == 86 && last == 59) { // (86,59)
+      // ReplaceEdge(86,69,None)
+      replace(69);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 91 && last == 78) { // (91,78)
-      // ReplaceEdge(91,79,None)
+    if (prev == 86 && last == 73) { // (86,73)
+      // ReplaceEdge(86,74,None)
+      replace(74);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 86 && last == 74) { // (86,74)
+      // ReplaceEdge(86,76,Some(86))
+      replace(76);
+      pendingFinish = 86;
+      return false;
+    }
+    if (prev == 86 && last == 78) { // (86,78)
+      // ReplaceEdge(86,79,None)
       replace(79);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 91 && last == 79) { // (91,79)
-      // ReplaceEdge(91,81,Some(91))
-      replace(81);
-      pendingFinish = 91;
-      return false;
-    }
-    if (prev == 91 && last == 83) { // (91,83)
-      // ReplaceEdge(91,84,None)
-      replace(84);
+    if (prev == 86 && last == 79) { // (86,79)
+      // ReplaceEdge(86,83,None)
+      replace(83);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 91 && last == 84) { // (91,84)
-      // ReplaceEdge(91,86,None)
+    if (prev == 86 && last == 85) { // (86,85)
+      // ReplaceEdge(86,86,None)
       replace(86);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 91 && last == 90) { // (91,90)
-      // ReplaceEdge(91,91,None)
-      replace(91);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 91 && last == 91) { // (91,91)
-      // DropLast(91)
+    if (prev == 86 && last == 86) { // (86,86)
+      // DropLast(86)
       dropLast();
       return true;
     }
@@ -2091,9 +1730,7 @@ public class JsonParser {
       return false;
     }
     while (finishStep()) {
-      if (verbose) {
-        printStack();
-      }
+      if (verbose) printStack();
       if (stack.prev == null) {
         stack = null;
         return false;
@@ -2144,28 +1781,20 @@ public class JsonParser {
 
   public boolean proceed(char c) {
     if (stack == null) {
-      if (verbose) {
-        log("  - already finished");
-      }
+      if (verbose) log("  - already finished");
       return false;
     }
     if (!canAccept(c)) {
-      if (verbose) {
-        log("  - cannot accept " + c + ", try pendingFinish");
-      }
+      if (verbose) log("  - cannot accept " + c + ", try pendingFinish");
       if (pendingFinish == -1) {
-        if (verbose) {
-          log("  - pendingFinish unavailable, proceed failed");
-        }
+        if (verbose) log("  - pendingFinish unavailable, proceed failed");
         return false;
       }
       dropLast();
       if (stack.nodeId != pendingFinish) {
         replace(pendingFinish);
       }
-      if (verbose) {
-        printStack();
-      }
+      if (verbose) printStack();
       if (!finish()) {
         return false;
       }
@@ -2748,8 +2377,8 @@ public class JsonParser {
         return false;
       case 17:
         if (('0' <= c && c <= '9')) {
-          // Append(17,41,Some(17))
-          append(41);
+          // Append(17,40,Some(17))
+          append(40);
           pendingFinish = 17;
           if (verbose) printStack();
           return true;
@@ -2773,68 +2402,6 @@ public class JsonParser {
         return false;
       case 19:
         if ((c == '+')) {
-          // Finish(39)
-          replace(39);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '-')) {
-          // Finish(39)
-          replace(39);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if (('0' <= c && c <= '9')) {
-          // Append(40,41,Some(40))
-          replace(40);
-          append(41);
-          pendingFinish = 40;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 20:
-        if ((c == '+')) {
-          // Finish(42)
-          replace(42);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '-')) {
-          // Finish(42)
-          replace(42);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if (('0' <= c && c <= '9')) {
-          // Append(43,41,Some(43))
-          replace(43);
-          append(41);
-          pendingFinish = 43;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 21:
-        if ((c == ' ')
-            || ('0' <= c && c <= '9')
-            || ('A' <= c && c <= 'Z')
-            || ('a' <= c && c <= 'z')) {
-          // Append(21,24,Some(21))
-          append(24);
-          pendingFinish = 21;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '"')) {
           // Finish(38)
           replace(38);
           if (verbose) printStack();
@@ -2842,10 +2409,45 @@ public class JsonParser {
           if (verbose) printStack();
           return true;
         }
-        if ((c == '\\')) {
-          // Append(21,22,None)
-          append(22);
-          pendingFinish = -1;
+        if ((c == '-')) {
+          // Finish(38)
+          replace(38);
+          if (verbose) printStack();
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        if (('0' <= c && c <= '9')) {
+          // Append(39,40,Some(39))
+          replace(39);
+          append(40);
+          pendingFinish = 39;
+          if (verbose) printStack();
+          return true;
+        }
+        return false;
+      case 20:
+        if ((c == '+')) {
+          // Finish(41)
+          replace(41);
+          if (verbose) printStack();
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == '-')) {
+          // Finish(41)
+          replace(41);
+          if (verbose) printStack();
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        if (('0' <= c && c <= '9')) {
+          // Append(42,40,Some(42))
+          replace(42);
+          append(40);
+          pendingFinish = 42;
           if (verbose) printStack();
           return true;
         }
@@ -2864,8 +2466,8 @@ public class JsonParser {
           return true;
         }
         if ((c == 'u')) {
-          // Append(22,50,None)
-          append(50);
+          // Append(22,46,None)
+          append(46);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
@@ -2898,22 +2500,6 @@ public class JsonParser {
           return true;
         }
         return false;
-      case 25:
-        if ((c == '0')) {
-          // Append(25,26,Some(25))
-          append(26);
-          pendingFinish = 25;
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Append(25,26,Some(25))
-          append(26);
-          pendingFinish = 25;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
       case 26:
         if ((c == '0')) {
           // Append(26,26,Some(26))
@@ -2930,172 +2516,18 @@ public class JsonParser {
           return true;
         }
         return false;
-      case 27:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(27,11,Some(27))
-          append(11);
-          pendingFinish = 27;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '"')) {
-          // Append(38,2,None)
-          replace(38);
-          append(2);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '-')) {
-          // Append(38,6,None)
-          replace(38);
-          append(6);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '0')) {
-          // Append(38,46,None)
-          replace(38);
-          append(46);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Append(38,44,None)
-          replace(38);
-          append(44);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '[')) {
-          // Append(38,3,None)
-          replace(38);
-          append(3);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ']')) {
-          // Append(38,45,None)
-          replace(38);
-          append(45);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'f')) {
-          // Append(38,10,None)
-          replace(38);
-          append(10);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'n')) {
-          // Append(38,7,None)
-          replace(38);
-          append(7);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 't')) {
-          // Append(38,5,None)
-          replace(38);
-          append(5);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '{')) {
-          // Append(38,9,None)
-          replace(38);
-          append(9);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 28:
-        if ((c == '"')) {
-          // Append(28,2,None)
-          append(2);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '-')) {
-          // Append(28,6,None)
-          append(6);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '0')) {
-          // Append(28,31,Some(28))
-          append(31);
-          pendingFinish = 28;
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Append(28,29,Some(28))
-          append(29);
-          pendingFinish = 28;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '[')) {
-          // Append(28,3,None)
-          append(3);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'f')) {
-          // Append(28,10,None)
-          append(10);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'n')) {
-          // Append(28,7,None)
-          append(7);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 't')) {
-          // Append(28,5,None)
-          append(5);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '{')) {
-          // Append(28,9,None)
-          append(9);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
       case 29:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(48,11,Some(48))
-          replace(48);
+          // Append(44,11,Some(44))
+          replace(44);
           append(11);
-          pendingFinish = 48;
+          pendingFinish = 44;
           if (verbose) printStack();
           return true;
         }
         if ((c == ',')) {
-          // Finish(49)
-          replace(49);
+          // Finish(45)
+          replace(45);
           if (verbose) printStack();
           finish();
           if (verbose) printStack();
@@ -3144,16 +2576,16 @@ public class JsonParser {
         return false;
       case 31:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(48,11,Some(48))
-          replace(48);
+          // Append(44,11,Some(44))
+          replace(44);
           append(11);
-          pendingFinish = 48;
+          pendingFinish = 44;
           if (verbose) printStack();
           return true;
         }
         if ((c == ',')) {
-          // Finish(49)
-          replace(49);
+          // Finish(45)
+          replace(45);
           if (verbose) printStack();
           finish();
           if (verbose) printStack();
@@ -3194,289 +2626,89 @@ public class JsonParser {
           return true;
         }
         if ((c == '"')) {
-          // Append(47,2,None)
-          replace(47);
+          // Append(43,2,None)
+          replace(43);
           append(2);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         return false;
-      case 35:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(35,34,Some(35))
-          append(34);
-          pendingFinish = 35;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '"')) {
-          // Append(38,2,None)
-          replace(38);
-          append(2);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '}')) {
-          // Finish(38)
-          replace(38);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 36:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(36,34,None)
-          append(34);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '"')) {
-          // Append(36,2,None)
-          append(2);
-          pendingFinish = -1;
+      case 39:
+        if (('0' <= c && c <= '9')) {
+          // Append(39,40,Some(39))
+          append(40);
+          pendingFinish = 39;
           if (verbose) printStack();
           return true;
         }
         return false;
       case 40:
         if (('0' <= c && c <= '9')) {
-          // Append(40,41,Some(40))
-          append(41);
-          pendingFinish = 40;
+          // Finish(40)
+          finish();
           if (verbose) printStack();
           return true;
         }
         return false;
-      case 41:
+      case 42:
         if (('0' <= c && c <= '9')) {
-          // Finish(41)
-          finish();
+          // Append(42,40,Some(42))
+          append(40);
+          pendingFinish = 42;
           if (verbose) printStack();
           return true;
         }
         return false;
       case 43:
-        if (('0' <= c && c <= '9')) {
-          // Append(43,41,Some(43))
-          append(41);
-          pendingFinish = 43;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 44:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(67,11,Some(67))
-          replace(67);
-          append(11);
-          pendingFinish = 67;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ',')) {
-          // Finish(49)
-          replace(49);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '.')) {
-          // Append(16,17,None)
-          replace(16);
-          append(17);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '0')) {
-          // Append(25,26,Some(25))
-          replace(25);
-          append(26);
-          pendingFinish = 25;
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Append(25,26,Some(25))
-          replace(25);
-          append(26);
-          pendingFinish = 25;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'E')) {
-          // Append(18,20,None)
-          replace(18);
-          append(20);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ']')) {
-          // Finish(66)
-          replace(66);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'e')) {
-          // Append(18,19,None)
-          replace(18);
-          append(19);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 45:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(67,11,Some(67))
-          replace(67);
-          append(11);
-          pendingFinish = 67;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ',')) {
-          // Finish(49)
-          replace(49);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ']')) {
-          // Finish(66)
-          replace(66);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 46:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(67,11,Some(67))
-          replace(67);
-          append(11);
-          pendingFinish = 67;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ',')) {
-          // Finish(49)
-          replace(49);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '.')) {
-          // Append(16,17,None)
-          replace(16);
-          append(17);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'E')) {
-          // Append(18,20,None)
-          replace(18);
-          append(20);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ']')) {
-          // Finish(66)
-          replace(66);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'e')) {
-          // Append(18,19,None)
-          replace(18);
-          append(19);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 47:
         if ((c == '"')) {
-          // Append(47,2,None)
+          // Append(43,2,None)
           append(2);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         return false;
-      case 48:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(48,11,Some(48))
-          append(11);
-          pendingFinish = 48;
-          if (verbose) printStack();
-          return true;
-        }
+      case 45:
         if ((c == ',')) {
-          // Append(38,68,None)
-          replace(38);
-          append(68);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 49:
-        if ((c == ',')) {
-          // Finish(49)
+          // Finish(45)
           finish();
           if (verbose) printStack();
           return true;
         }
         return false;
-      case 50:
+      case 46:
         if ((c == '0')) {
-          // Finish(50)
+          // Finish(46)
           finish();
           if (verbose) printStack();
           return true;
         }
         if (('1' <= c && c <= '9')) {
-          // Finish(50)
+          // Finish(46)
           finish();
           if (verbose) printStack();
           return true;
         }
         if (('A' <= c && c <= 'F') || ('a' <= c && c <= 'f')) {
-          // Finish(50)
+          // Finish(46)
           finish();
           if (verbose) printStack();
           return true;
         }
         return false;
-      case 51:
+      case 47:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(48,11,Some(48))
-          replace(48);
+          // Append(44,11,Some(44))
+          replace(44);
           append(11);
-          pendingFinish = 48;
+          pendingFinish = 44;
           if (verbose) printStack();
           return true;
         }
         if ((c == ',')) {
-          // Finish(49)
-          replace(49);
+          // Finish(45)
+          replace(45);
           if (verbose) printStack();
           finish();
           if (verbose) printStack();
@@ -3491,18 +2723,18 @@ public class JsonParser {
           return true;
         }
         if ((c == '0')) {
-          // Append(64,26,Some(64))
-          replace(64);
+          // Append(60,26,Some(60))
+          replace(60);
           append(26);
-          pendingFinish = 64;
+          pendingFinish = 60;
           if (verbose) printStack();
           return true;
         }
         if (('1' <= c && c <= '9')) {
-          // Append(64,26,Some(64))
-          replace(64);
+          // Append(60,26,Some(60))
+          replace(60);
           append(26);
-          pendingFinish = 64;
+          pendingFinish = 60;
           if (verbose) printStack();
           return true;
         }
@@ -3523,7 +2755,7 @@ public class JsonParser {
           return true;
         }
         return false;
-      case 52:
+      case 48:
         if ((c == '"')) {
           // Append(28,2,None)
           replace(28);
@@ -3605,67 +2837,67 @@ public class JsonParser {
           return true;
         }
         return false;
-      case 53:
+      case 49:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(65,11,Some(65))
-          replace(65);
+          // Append(61,11,Some(61))
+          replace(61);
           append(11);
-          pendingFinish = 65;
+          pendingFinish = 61;
           if (verbose) printStack();
           return true;
         }
         if ((c == ']')) {
-          // Finish(66)
-          replace(66);
+          // Finish(62)
+          replace(62);
           if (verbose) printStack();
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        return false;
+      case 50:
+        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
+          // Append(58,11,Some(58))
+          replace(58);
+          append(11);
+          pendingFinish = 58;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == ':')) {
+          // Finish(59)
+          replace(59);
+          if (verbose) printStack();
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        return false;
+      case 51:
+        if ((c == 'l')) {
+          // Finish(51)
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        return false;
+      case 52:
+        if ((c == 'l')) {
+          // Finish(52)
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        return false;
+      case 53:
+        if ((c == 'u')) {
+          // Finish(53)
           finish();
           if (verbose) printStack();
           return true;
         }
         return false;
       case 54:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(62,11,Some(62))
-          replace(62);
-          append(11);
-          pendingFinish = 62;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ':')) {
-          // Finish(63)
-          replace(63);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 55:
-        if ((c == 'l')) {
-          // Finish(55)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 56:
-        if ((c == 'l')) {
-          // Finish(56)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 57:
-        if ((c == 'u')) {
-          // Finish(57)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 58:
         if ((c == '.')) {
           // Append(16,17,None)
           replace(16);
@@ -3675,18 +2907,18 @@ public class JsonParser {
           return true;
         }
         if ((c == '0')) {
-          // Append(64,26,Some(64))
-          replace(64);
+          // Append(60,26,Some(60))
+          replace(60);
           append(26);
-          pendingFinish = 64;
+          pendingFinish = 60;
           if (verbose) printStack();
           return true;
         }
         if (('1' <= c && c <= '9')) {
-          // Append(64,26,Some(64))
-          replace(64);
+          // Append(60,26,Some(60))
+          replace(60);
           append(26);
-          pendingFinish = 64;
+          pendingFinish = 60;
           if (verbose) printStack();
           return true;
         }
@@ -3707,25 +2939,25 @@ public class JsonParser {
           return true;
         }
         return false;
-      case 59:
+      case 55:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(48,11,Some(48))
-          replace(48);
+          // Append(44,11,Some(44))
+          replace(44);
           append(11);
-          pendingFinish = 48;
+          pendingFinish = 44;
           if (verbose) printStack();
           return true;
         }
         if ((c == ',')) {
-          // Finish(49)
-          replace(49);
+          // Finish(45)
+          replace(45);
           if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
         }
         return false;
-      case 60:
+      case 56:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
           // Append(15,11,Some(15))
           replace(15);
@@ -3743,18 +2975,18 @@ public class JsonParser {
           return true;
         }
         if ((c == '0')) {
-          // Append(64,26,Some(64))
-          replace(64);
+          // Append(60,26,Some(60))
+          replace(60);
           append(26);
-          pendingFinish = 64;
+          pendingFinish = 60;
           if (verbose) printStack();
           return true;
         }
         if (('1' <= c && c <= '9')) {
-          // Append(64,26,Some(64))
-          replace(64);
+          // Append(60,26,Some(60))
+          replace(60);
           append(26);
-          pendingFinish = 64;
+          pendingFinish = 60;
           if (verbose) printStack();
           return true;
         }
@@ -3775,7 +3007,7 @@ public class JsonParser {
           return true;
         }
         return false;
-      case 61:
+      case 57:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
           // Append(36,34,None)
           replace(36);
@@ -3801,66 +3033,171 @@ public class JsonParser {
           return true;
         }
         return false;
-      case 62:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(62,11,Some(62))
-          append(11);
-          pendingFinish = 62;
+      case 59:
+        if ((c == ':')) {
+          // Finish(59)
+          finish();
           if (verbose) printStack();
           return true;
         }
-        if ((c == ':')) {
-          // Append(38,71,None)
-          replace(38);
-          append(71);
-          pendingFinish = -1;
+        return false;
+      case 62:
+        if ((c == ']')) {
+          // Finish(62)
+          finish();
           if (verbose) printStack();
           return true;
         }
         return false;
       case 63:
-        if ((c == ':')) {
-          // Finish(63)
-          finish();
+        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
+          // Append(64,11,Some(64))
+          replace(64);
+          append(11);
+          pendingFinish = 64;
           if (verbose) printStack();
           return true;
         }
-        return false;
-      case 64:
+        if ((c == '"')) {
+          // Append(65,2,None)
+          replace(65);
+          append(2);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == '-')) {
+          // Append(65,6,None)
+          replace(65);
+          append(6);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
         if ((c == '0')) {
-          // Append(64,26,Some(64))
-          append(26);
-          pendingFinish = 64;
+          // Append(65,31,Some(65))
+          replace(65);
+          append(31);
+          pendingFinish = 65;
           if (verbose) printStack();
           return true;
         }
         if (('1' <= c && c <= '9')) {
-          // Append(64,26,Some(64))
-          append(26);
-          pendingFinish = 64;
+          // Append(65,29,Some(65))
+          replace(65);
+          append(29);
+          pendingFinish = 65;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == '[')) {
+          // Append(65,3,None)
+          replace(65);
+          append(3);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == 'f')) {
+          // Append(65,10,None)
+          replace(65);
+          append(10);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == 'n')) {
+          // Append(65,7,None)
+          replace(65);
+          append(7);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == 't')) {
+          // Append(65,5,None)
+          replace(65);
+          append(5);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == '{')) {
+          // Append(65,9,None)
+          replace(65);
+          append(9);
+          pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         return false;
       case 65:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(65,11,Some(65))
-          append(11);
+        if ((c == '"')) {
+          // Append(65,2,None)
+          append(2);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == '-')) {
+          // Append(65,6,None)
+          append(6);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == '0')) {
+          // Append(65,31,Some(65))
+          append(31);
           pendingFinish = 65;
           if (verbose) printStack();
           return true;
         }
-        if ((c == ']')) {
-          // Finish(38)
-          replace(38);
+        if (('1' <= c && c <= '9')) {
+          // Append(65,29,Some(65))
+          append(29);
+          pendingFinish = 65;
           if (verbose) printStack();
-          finish();
+          return true;
+        }
+        if ((c == '[')) {
+          // Append(65,3,None)
+          append(3);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == 'f')) {
+          // Append(65,10,None)
+          append(10);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == 'n')) {
+          // Append(65,7,None)
+          append(7);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == 't')) {
+          // Append(65,5,None)
+          append(5);
+          pendingFinish = -1;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == '{')) {
+          // Append(65,9,None)
+          append(9);
+          pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         return false;
       case 66:
-        if ((c == ']')) {
+        if ((c == 's')) {
           // Finish(66)
           finish();
           if (verbose) printStack();
@@ -3868,187 +3205,97 @@ public class JsonParser {
         }
         return false;
       case 67:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(67,11,Some(67))
-          append(11);
-          pendingFinish = 67;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ',')) {
-          // Append(38,68,None)
-          replace(38);
-          append(68);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ']')) {
-          // Finish(38)
-          replace(38);
-          if (verbose) printStack();
+        if ((c == 'l')) {
+          // Finish(67)
           finish();
           if (verbose) printStack();
           return true;
         }
         return false;
       case 68:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(69,11,Some(69))
-          replace(69);
-          append(11);
-          pendingFinish = 69;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '"')) {
-          // Append(70,2,None)
-          replace(70);
-          append(2);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '-')) {
-          // Append(70,6,None)
-          replace(70);
-          append(6);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '0')) {
-          // Append(70,31,Some(70))
-          replace(70);
-          append(31);
-          pendingFinish = 70;
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Append(70,29,Some(70))
-          replace(70);
-          append(29);
-          pendingFinish = 70;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '[')) {
-          // Append(70,3,None)
-          replace(70);
-          append(3);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'f')) {
-          // Append(70,10,None)
-          replace(70);
-          append(10);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'n')) {
-          // Append(70,7,None)
-          replace(70);
-          append(7);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 't')) {
-          // Append(70,5,None)
-          replace(70);
-          append(5);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '{')) {
-          // Append(70,9,None)
-          replace(70);
-          append(9);
-          pendingFinish = -1;
+        if ((c == 'e')) {
+          // Finish(68)
+          finish();
           if (verbose) printStack();
           return true;
         }
         return false;
       case 69:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(69,11,Some(69))
+          // Append(73,11,Some(73))
+          replace(73);
           append(11);
-          pendingFinish = 69;
+          pendingFinish = 73;
           if (verbose) printStack();
           return true;
         }
         if ((c == '"')) {
-          // Append(38,2,None)
-          replace(38);
+          // Append(74,2,None)
+          replace(74);
           append(2);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == '-')) {
-          // Append(38,6,None)
-          replace(38);
+          // Append(74,6,None)
+          replace(74);
           append(6);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == '0')) {
-          // Append(38,31,None)
-          replace(38);
-          append(31);
-          pendingFinish = -1;
+          // Append(74,14,Some(74))
+          replace(74);
+          append(14);
+          pendingFinish = 74;
           if (verbose) printStack();
           return true;
         }
         if (('1' <= c && c <= '9')) {
-          // Append(38,29,None)
-          replace(38);
-          append(29);
-          pendingFinish = -1;
+          // Append(74,13,Some(74))
+          replace(74);
+          append(13);
+          pendingFinish = 74;
           if (verbose) printStack();
           return true;
         }
         if ((c == '[')) {
-          // Append(38,3,None)
-          replace(38);
+          // Append(74,3,None)
+          replace(74);
           append(3);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == 'f')) {
-          // Append(38,10,None)
-          replace(38);
+          // Append(74,10,None)
+          replace(74);
           append(10);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == 'n')) {
-          // Append(38,7,None)
-          replace(38);
+          // Append(74,7,None)
+          replace(74);
           append(7);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == 't')) {
-          // Append(38,5,None)
-          replace(38);
+          // Append(74,5,None)
+          replace(74);
           append(5);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == '{')) {
-          // Append(38,9,None)
-          replace(38);
+          // Append(74,9,None)
+          replace(74);
           append(9);
           pendingFinish = -1;
           if (verbose) printStack();
@@ -4056,208 +3303,37 @@ public class JsonParser {
         }
         return false;
       case 70:
-        if ((c == '"')) {
-          // Append(70,2,None)
-          append(2);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '-')) {
-          // Append(70,6,None)
-          append(6);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
         if ((c == '0')) {
-          // Append(70,31,Some(70))
-          append(31);
-          pendingFinish = 70;
+          // Finish(70)
+          finish();
           if (verbose) printStack();
           return true;
         }
         if (('1' <= c && c <= '9')) {
-          // Append(70,29,Some(70))
-          append(29);
-          pendingFinish = 70;
+          // Finish(70)
+          finish();
           if (verbose) printStack();
           return true;
         }
-        if ((c == '[')) {
-          // Append(70,3,None)
-          append(3);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'f')) {
-          // Append(70,10,None)
-          append(10);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'n')) {
-          // Append(70,7,None)
-          append(7);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 't')) {
-          // Append(70,5,None)
-          append(5);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '{')) {
-          // Append(70,9,None)
-          append(9);
-          pendingFinish = -1;
+        if (('A' <= c && c <= 'F') || ('a' <= c && c <= 'f')) {
+          // Finish(70)
+          finish();
           if (verbose) printStack();
           return true;
         }
         return false;
       case 71:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(78,11,Some(78))
-          replace(78);
+          // Append(44,11,Some(44))
+          replace(44);
           append(11);
-          pendingFinish = 78;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '"')) {
-          // Append(79,2,None)
-          replace(79);
-          append(2);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '-')) {
-          // Append(79,6,None)
-          replace(79);
-          append(6);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '0')) {
-          // Append(79,14,Some(79))
-          replace(79);
-          append(14);
-          pendingFinish = 79;
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Append(79,13,Some(79))
-          replace(79);
-          append(13);
-          pendingFinish = 79;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '[')) {
-          // Append(79,3,None)
-          replace(79);
-          append(3);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'f')) {
-          // Append(79,10,None)
-          replace(79);
-          append(10);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'n')) {
-          // Append(79,7,None)
-          replace(79);
-          append(7);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 't')) {
-          // Append(79,5,None)
-          replace(79);
-          append(5);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '{')) {
-          // Append(79,9,None)
-          replace(79);
-          append(9);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 72:
-        if ((c == 's')) {
-          // Finish(72)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 73:
-        if ((c == 'l')) {
-          // Finish(73)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 74:
-        if ((c == 'e')) {
-          // Finish(74)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 75:
-        if ((c == '0')) {
-          // Finish(75)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Finish(75)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if (('A' <= c && c <= 'F') || ('a' <= c && c <= 'f')) {
-          // Finish(75)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 76:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(48,11,Some(48))
-          replace(48);
-          append(11);
-          pendingFinish = 48;
+          pendingFinish = 44;
           if (verbose) printStack();
           return true;
         }
         if ((c == ',')) {
-          // Finish(49)
-          replace(49);
+          // Finish(45)
+          replace(45);
           if (verbose) printStack();
           finish();
           if (verbose) printStack();
@@ -4280,7 +3356,7 @@ public class JsonParser {
           return true;
         }
         return false;
-      case 77:
+      case 72:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
           // Append(15,11,Some(15))
           replace(15);
@@ -4306,172 +3382,137 @@ public class JsonParser {
           return true;
         }
         return false;
-      case 78:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(78,11,Some(78))
-          append(11);
-          pendingFinish = 78;
-          if (verbose) printStack();
-          return true;
-        }
+      case 74:
         if ((c == '"')) {
-          // Append(38,2,None)
-          replace(38);
+          // Append(74,2,None)
           append(2);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == '-')) {
-          // Append(38,6,None)
-          replace(38);
+          // Append(74,6,None)
           append(6);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == '0')) {
-          // Append(38,14,None)
-          replace(38);
+          // Append(74,14,Some(74))
           append(14);
-          pendingFinish = -1;
+          pendingFinish = 74;
           if (verbose) printStack();
           return true;
         }
         if (('1' <= c && c <= '9')) {
-          // Append(38,13,None)
-          replace(38);
+          // Append(74,13,Some(74))
           append(13);
-          pendingFinish = -1;
+          pendingFinish = 74;
           if (verbose) printStack();
           return true;
         }
         if ((c == '[')) {
-          // Append(38,3,None)
-          replace(38);
+          // Append(74,3,None)
           append(3);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == 'f')) {
-          // Append(38,10,None)
-          replace(38);
+          // Append(74,10,None)
           append(10);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == 'n')) {
-          // Append(38,7,None)
-          replace(38);
+          // Append(74,7,None)
           append(7);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == 't')) {
-          // Append(38,5,None)
-          replace(38);
+          // Append(74,5,None)
           append(5);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == '{')) {
-          // Append(38,9,None)
-          replace(38);
+          // Append(74,9,None)
           append(9);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         return false;
-      case 79:
-        if ((c == '"')) {
-          // Append(79,2,None)
-          append(2);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '-')) {
-          // Append(79,6,None)
-          append(6);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '0')) {
-          // Append(79,14,Some(79))
-          append(14);
-          pendingFinish = 79;
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Append(79,13,Some(79))
-          append(13);
-          pendingFinish = 79;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '[')) {
-          // Append(79,3,None)
-          append(3);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'f')) {
-          // Append(79,10,None)
-          append(10);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'n')) {
-          // Append(79,7,None)
-          append(7);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 't')) {
-          // Append(79,5,None)
-          append(5);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '{')) {
-          // Append(79,9,None)
-          append(9);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 80:
+      case 75:
         if ((c == 'e')) {
-          // Finish(80)
+          // Finish(75)
           finish();
           if (verbose) printStack();
           return true;
         }
         return false;
-      case 81:
+      case 76:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(83,11,Some(83))
-          replace(83);
+          // Append(78,11,Some(78))
+          replace(78);
           append(11);
-          pendingFinish = 83;
+          pendingFinish = 78;
           if (verbose) printStack();
           return true;
         }
         if ((c == ',')) {
-          // Finish(84)
-          replace(84);
+          // Finish(79)
+          replace(79);
+          if (verbose) printStack();
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        return false;
+      case 77:
+        if ((c == '0')) {
+          // Finish(77)
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        if (('1' <= c && c <= '9')) {
+          // Finish(77)
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        if (('A' <= c && c <= 'F') || ('a' <= c && c <= 'f')) {
+          // Finish(77)
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        return false;
+      case 79:
+        if ((c == ',')) {
+          // Finish(79)
+          finish();
+          if (verbose) printStack();
+          return true;
+        }
+        return false;
+      case 80:
+        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
+          // Append(81,11,Some(81))
+          replace(81);
+          append(11);
+          pendingFinish = 81;
+          if (verbose) printStack();
+          return true;
+        }
+        if ((c == '}')) {
+          // Finish(82)
+          replace(82);
           if (verbose) printStack();
           finish();
           if (verbose) printStack();
@@ -4479,19 +3520,7 @@ public class JsonParser {
         }
         return false;
       case 82:
-        if ((c == '0')) {
-          // Finish(82)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Finish(82)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if (('A' <= c && c <= 'F') || ('a' <= c && c <= 'f')) {
+        if ((c == '}')) {
           // Finish(82)
           finish();
           if (verbose) printStack();
@@ -4500,42 +3529,36 @@ public class JsonParser {
         return false;
       case 83:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(83,11,Some(83))
-          append(11);
-          pendingFinish = 83;
+          // Append(83,34,Some(85))
+          append(34);
+          pendingFinish = 85;
           if (verbose) printStack();
           return true;
         }
-        if ((c == ',')) {
-          // Append(38,86,None)
-          replace(38);
-          append(86);
+        if ((c == '"')) {
+          // Append(86,2,None)
+          replace(86);
+          append(2);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         return false;
       case 84:
-        if ((c == ',')) {
+        if ((c == '0')) {
           // Finish(84)
           finish();
           if (verbose) printStack();
           return true;
         }
-        return false;
-      case 85:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(87,11,Some(87))
-          replace(87);
-          append(11);
-          pendingFinish = 87;
+        if (('1' <= c && c <= '9')) {
+          // Finish(84)
+          finish();
           if (verbose) printStack();
           return true;
         }
-        if ((c == '}')) {
-          // Finish(88)
-          replace(88);
-          if (verbose) printStack();
+        if (('A' <= c && c <= 'F') || ('a' <= c && c <= 'f')) {
+          // Finish(84)
           finish();
           if (verbose) printStack();
           return true;
@@ -4543,93 +3566,14 @@ public class JsonParser {
         return false;
       case 86:
         if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(86,34,Some(90))
-          append(34);
-          pendingFinish = 90;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '"')) {
-          // Append(91,2,None)
-          replace(91);
-          append(2);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 87:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(87,11,Some(87))
-          append(11);
-          pendingFinish = 87;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '}')) {
-          // Finish(38)
-          replace(38);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 88:
-        if ((c == '}')) {
-          // Finish(88)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 89:
-        if ((c == '0')) {
-          // Finish(89)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Finish(89)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if (('A' <= c && c <= 'F') || ('a' <= c && c <= 'f')) {
-          // Finish(89)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 90:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(90,34,Some(90))
-          append(34);
-          pendingFinish = 90;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '"')) {
-          // Append(38,2,None)
-          replace(38);
-          append(2);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 91:
-        if (('\t' <= c && c <= '\n') || (c == '\r') || (c == ' ')) {
-          // Append(91,34,None)
+          // Append(86,34,None)
           append(34);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == '"')) {
-          // Append(91,2,None)
+          // Append(86,2,None)
           append(2);
           pendingFinish = -1;
           if (verbose) printStack();
@@ -4642,18 +3586,14 @@ public class JsonParser {
 
   public boolean proceedEof() {
     if (stack == null) {
-      if (verbose) {
-        log("  - already finished");
-        return true;
-      }
+      if (verbose) log("  - already finished");
+      return true;
     }
     if (pendingFinish == -1) {
       if (stack.prev == null && stack.nodeId == 0) {
         return true;
       }
-      if (verbose) {
-        log("  - pendingFinish unavailable, proceedEof failed");
-      }
+      if (verbose) log("  - pendingFinish unavailable, proceedEof failed");
       return false;
     }
     dropLast();
@@ -4670,9 +3610,7 @@ public class JsonParser {
         }
         dropLast();
         replace(pendingFinish);
-        if (verbose) {
-          printStack();
-        }
+        if (verbose) printStack();
       }
     }
     return true;
@@ -4701,7 +3639,10 @@ public class JsonParser {
   }
 
   public static void main(String[] args) {
-    boolean succeed = parseVerbose("{\"abcd\": [\"hello\", 123, {\"xyz\": 1}]}");
+    boolean succeed;
+
+    log("Test \"{\"abcd\": [\"hello\", 123, {\"xyz\": 1}]}\"");
+    succeed = parseVerbose("{\"abcd\": [\"hello\", 123, {\"xyz\": 1}]}");
     log("Parsing " + (succeed ? "succeeded" : "failed"));
   }
 }

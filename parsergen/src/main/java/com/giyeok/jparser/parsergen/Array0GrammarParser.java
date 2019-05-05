@@ -28,31 +28,23 @@ public class Array0GrammarParser {
         return (c == '[');
       case 1:
         return (c == ' ') || (c == ']') || (c == 'a');
-      case 2:
-        return (c == ' ') || (c == ']') || (c == 'a');
       case 3:
         return (c == ' ') || (c == ',');
       case 4:
         return (c == ']');
       case 6:
         return (c == ' ') || (c == 'a');
-      case 7:
-        return (c == ' ') || (c == ']');
       case 8:
         return (c == ' ') || (c == 'a');
       case 9:
         return (c == ' ') || (c == ',');
       case 11:
-        return (c == ' ') || (c == ']') || (c == 'a');
-      case 12:
         return (c == ' ');
-      case 14:
+      case 12:
         return (c == ' ') || (c == ']');
-      case 15:
+      case 13:
         return (c == 'a');
       case 16:
-        return (c == ' ') || (c == 'a');
-      case 18:
         return (c == ' ') || (c == ',');
     }
     throw new AssertionError("Unknown nodeId: " + stack.nodeId);
@@ -81,22 +73,18 @@ public class Array0GrammarParser {
       case 9:
         return "{'\\u0020'*•'\\u0020'|WS•',' WS E}";
       case 10:
-        return "{}";
-      case 11:
-        return "{'[' ([WS E ([WS ',' WS E])*])? WS•']'|WS•E ([WS ',' WS E])*|'\\u0020'*•'\\u0020'}";
-      case 12:
-        return "{'\\u0020'*•'\\u0020'}";
-      case 13:
         return "{WS•E ([WS ',' WS E])*}";
-      case 14:
+      case 11:
+        return "{'\\u0020'*•'\\u0020'}";
+      case 12:
         return "{'[' ([WS E ([WS ',' WS E])*])?•WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS•']'}";
-      case 15:
+      case 13:
         return "{WS ',' WS•E}";
-      case 16:
+      case 14:
         return "{WS ','•WS E}";
-      case 17:
+      case 15:
         return "{WS•',' WS E}";
-      case 18:
+      case 16:
         return "{([WS ',' WS E])*•([WS ',' WS E])}";
     }
     return null;
@@ -119,8 +107,8 @@ public class Array0GrammarParser {
     int prev = stack.prev.nodeId;
     int last = stack.nodeId;
     if (prev == 0 && last == 2) { // (0,2)
-      // ReplaceEdge(0,14,None)
-      replace(14);
+      // ReplaceEdge(0,12,None)
+      replace(12);
       pendingFinish = -1;
       return false;
     }
@@ -135,83 +123,41 @@ public class Array0GrammarParser {
       pendingFinish = -1;
       return false;
     }
-    if (prev == 0 && last == 10) { // (0,10)
-      // DropLast(10)
-      dropLast();
-      replace(10);
-      return true;
-    }
     if (prev == 2 && last == 3) { // (2,3)
       // DropLast(2)
       dropLast();
       return true;
     }
-    if (prev == 2 && last == 4) { // (2,4)
-      // DropLast(10)
-      dropLast();
-      replace(10);
-      return true;
-    }
-    if (prev == 2 && last == 10) { // (2,10)
-      // DropLast(10)
-      dropLast();
-      replace(10);
-      return true;
-    }
-    if (prev == 2 && last == 12) { // (2,12)
-      // ReplaceEdge(2,11,None)
-      replace(11);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 2 && last == 13) { // (2,13)
-      // ReplaceEdge(2,3,Some(2))
-      replace(3);
-      pendingFinish = 2;
-      return false;
-    }
-    if (prev == 3 && last == 10) { // (3,10)
-      // DropLast(10)
-      dropLast();
-      replace(10);
-      return true;
-    }
-    if (prev == 3 && last == 12) { // (3,12)
+    if (prev == 3 && last == 11) { // (3,11)
       // ReplaceEdge(3,9,None)
       replace(9);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 3 && last == 15) { // (3,15)
-      // ReplaceEdge(3,18,Some(3))
-      replace(18);
+    if (prev == 3 && last == 13) { // (3,13)
+      // ReplaceEdge(3,16,Some(3))
+      replace(16);
       pendingFinish = 3;
       return false;
     }
-    if (prev == 3 && last == 16) { // (3,16)
-      // ReplaceEdge(3,15,None)
-      replace(15);
+    if (prev == 3 && last == 14) { // (3,14)
+      // ReplaceEdge(3,13,None)
+      replace(13);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 3 && last == 17) { // (3,17)
+    if (prev == 3 && last == 15) { // (3,15)
       // ReplaceEdge(3,8,None)
       replace(8);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 3 && last == 18) { // (3,18)
-      // ReplaceEdge(3,18,Some(3))
+    if (prev == 3 && last == 16) { // (3,16)
+      // ReplaceEdge(3,16,Some(3))
       pendingFinish = 3;
       return false;
     }
-    if (prev == 5 && last == 12) { // (5,12)
-      // ReplaceEdge(5,6,Some(7))
-      replace(6);
-      pendingFinish = 7;
-      return false;
-    }
-    if (prev == 5 && last == 13) { // (5,13)
+    if (prev == 5 && last == 10) { // (5,10)
       // ReplaceEdge(2,3,Some(2))
       dropLast();
       replace(2);
@@ -219,41 +165,41 @@ public class Array0GrammarParser {
       pendingFinish = 2;
       return false;
     }
-    if (prev == 7 && last == 12) { // (7,12)
-      // ReplaceEdge(7,12,Some(7))
+    if (prev == 5 && last == 11) { // (5,11)
+      // ReplaceEdge(5,6,Some(7))
+      replace(6);
       pendingFinish = 7;
       return false;
     }
-    if (prev == 16 && last == 12) { // (16,12)
-      // ReplaceEdge(16,12,Some(16))
-      pendingFinish = 16;
+    if (prev == 7 && last == 11) { // (7,11)
+      // ReplaceEdge(7,11,Some(7))
+      pendingFinish = 7;
       return false;
     }
-    if (prev == 18 && last == 10) { // (18,10)
-      // DropLast(10)
-      dropLast();
-      replace(10);
-      return true;
+    if (prev == 14 && last == 11) { // (14,11)
+      // ReplaceEdge(14,11,Some(14))
+      pendingFinish = 14;
+      return false;
     }
-    if (prev == 18 && last == 12) { // (18,12)
-      // ReplaceEdge(18,9,None)
+    if (prev == 16 && last == 11) { // (16,11)
+      // ReplaceEdge(16,9,None)
       replace(9);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 18 && last == 15) { // (18,15)
-      // DropLast(18)
+    if (prev == 16 && last == 13) { // (16,13)
+      // DropLast(16)
       dropLast();
       return true;
     }
-    if (prev == 18 && last == 16) { // (18,16)
-      // ReplaceEdge(18,15,None)
-      replace(15);
+    if (prev == 16 && last == 14) { // (16,14)
+      // ReplaceEdge(16,13,None)
+      replace(13);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 18 && last == 17) { // (18,17)
-      // ReplaceEdge(18,8,None)
+    if (prev == 16 && last == 15) { // (16,15)
+      // ReplaceEdge(16,8,None)
       replace(8);
       pendingFinish = -1;
       return false;
@@ -266,9 +212,7 @@ public class Array0GrammarParser {
       return false;
     }
     while (finishStep()) {
-      if (verbose) {
-        printStack();
-      }
+      if (verbose) printStack();
       if (stack.prev == null) {
         stack = null;
         return false;
@@ -319,28 +263,20 @@ public class Array0GrammarParser {
 
   public boolean proceed(char c) {
     if (stack == null) {
-      if (verbose) {
-        log("  - already finished");
-      }
+      if (verbose) log("  - already finished");
       return false;
     }
     if (!canAccept(c)) {
-      if (verbose) {
-        log("  - cannot accept " + c + ", try pendingFinish");
-      }
+      if (verbose) log("  - cannot accept " + c + ", try pendingFinish");
       if (pendingFinish == -1) {
-        if (verbose) {
-          log("  - pendingFinish unavailable, proceed failed");
-        }
+        if (verbose) log("  - pendingFinish unavailable, proceed failed");
         return false;
       }
       dropLast();
       if (stack.nodeId != pendingFinish) {
         replace(pendingFinish);
       }
-      if (verbose) {
-        printStack();
-      }
+      if (verbose) printStack();
       if (!finish()) {
         return false;
       }
@@ -382,30 +318,6 @@ public class Array0GrammarParser {
           return true;
         }
         return false;
-      case 2:
-        if ((c == ' ')) {
-          // Append(2,11,None)
-          append(11);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ']')) {
-          // Finish(10)
-          replace(10);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'a')) {
-          // Append(2,3,Some(2))
-          append(3);
-          pendingFinish = 2;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
       case 3:
         if ((c == ' ')) {
           // Append(3,9,None)
@@ -432,31 +344,14 @@ public class Array0GrammarParser {
         return false;
       case 6:
         if ((c == ' ')) {
-          // Finish(12)
-          replace(12);
+          // Finish(11)
+          replace(11);
           if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
         }
         if ((c == 'a')) {
-          // Finish(13)
-          replace(13);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 7:
-        if ((c == ' ')) {
-          // Append(7,12,Some(7))
-          append(12);
-          pendingFinish = 7;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ']')) {
           // Finish(10)
           replace(10);
           if (verbose) printStack();
@@ -467,16 +362,16 @@ public class Array0GrammarParser {
         return false;
       case 8:
         if ((c == ' ')) {
-          // Append(16,12,Some(16))
-          replace(16);
-          append(12);
-          pendingFinish = 16;
+          // Append(14,11,Some(14))
+          replace(14);
+          append(11);
+          pendingFinish = 14;
           if (verbose) printStack();
           return true;
         }
         if ((c == 'a')) {
-          // Finish(15)
-          replace(15);
+          // Finish(13)
+          replace(13);
           if (verbose) printStack();
           finish();
           if (verbose) printStack();
@@ -485,16 +380,16 @@ public class Array0GrammarParser {
         return false;
       case 9:
         if ((c == ' ')) {
-          // Finish(12)
-          replace(12);
+          // Finish(11)
+          replace(11);
           if (verbose) printStack();
           finish();
           if (verbose) printStack();
           return true;
         }
         if ((c == ',')) {
-          // Finish(17)
-          replace(17);
+          // Finish(15)
+          replace(15);
           if (verbose) printStack();
           finish();
           if (verbose) printStack();
@@ -503,25 +398,7 @@ public class Array0GrammarParser {
         return false;
       case 11:
         if ((c == ' ')) {
-          // Finish(12)
-          replace(12);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == ']')) {
-          // Finish(4)
-          replace(4);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'a')) {
-          // Finish(13)
-          replace(13);
-          if (verbose) printStack();
+          // Finish(11)
           finish();
           if (verbose) printStack();
           return true;
@@ -529,17 +406,9 @@ public class Array0GrammarParser {
         return false;
       case 12:
         if ((c == ' ')) {
-          // Finish(12)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 14:
-        if ((c == ' ')) {
-          // Append(7,12,Some(7))
+          // Append(7,11,Some(7))
           replace(7);
-          append(12);
+          append(11);
           pendingFinish = 7;
           if (verbose) printStack();
           return true;
@@ -553,9 +422,9 @@ public class Array0GrammarParser {
           return true;
         }
         return false;
-      case 15:
+      case 13:
         if ((c == 'a')) {
-          // Finish(15)
+          // Finish(13)
           finish();
           if (verbose) printStack();
           return true;
@@ -563,31 +432,14 @@ public class Array0GrammarParser {
         return false;
       case 16:
         if ((c == ' ')) {
-          // Append(16,12,Some(16))
-          append(12);
-          pendingFinish = 16;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'a')) {
-          // Finish(10)
-          replace(10);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 18:
-        if ((c == ' ')) {
-          // Append(18,9,None)
+          // Append(16,9,None)
           append(9);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == ',')) {
-          // Append(18,8,None)
+          // Append(16,8,None)
           append(8);
           pendingFinish = -1;
           if (verbose) printStack();
@@ -600,18 +452,14 @@ public class Array0GrammarParser {
 
   public boolean proceedEof() {
     if (stack == null) {
-      if (verbose) {
-        log("  - already finished");
-        return true;
-      }
+      if (verbose) log("  - already finished");
+      return true;
     }
     if (pendingFinish == -1) {
       if (stack.prev == null && stack.nodeId == 0) {
         return true;
       }
-      if (verbose) {
-        log("  - pendingFinish unavailable, proceedEof failed");
-      }
+      if (verbose) log("  - pendingFinish unavailable, proceedEof failed");
       return false;
     }
     dropLast();
@@ -628,9 +476,7 @@ public class Array0GrammarParser {
         }
         dropLast();
         replace(pendingFinish);
-        if (verbose) {
-          printStack();
-        }
+        if (verbose) printStack();
       }
     }
     return true;
@@ -659,7 +505,22 @@ public class Array0GrammarParser {
   }
 
   public static void main(String[] args) {
-    boolean succeed = parseVerbose("[  a  ,  a,  a ,  a]");
+    boolean succeed;
+
+    log("Test \"[a,a,a]\"");
+    succeed = parseVerbose("[a,a,a]");
     log("Parsing " + (succeed ? "succeeded" : "failed"));
+
+    java.util.Scanner scanner = new java.util.Scanner(System.in);
+    String input;
+    while (true) {
+      System.out.print("> ");
+      input = scanner.nextLine();
+      if (input.isEmpty()) break;
+      System.out.println("Input: \"" + input + "\"");
+      succeed = parseVerbose(input);
+      log("Parsing " + (succeed ? "succeeded" : "failed"));
+    }
+    System.out.println("Bye~");
   }
 }

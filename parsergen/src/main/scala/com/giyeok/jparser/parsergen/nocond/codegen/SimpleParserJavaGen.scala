@@ -6,6 +6,7 @@ import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGrouping, TermGroupDesc}
 import com.giyeok.jparser.examples.{JsonGrammar, SimpleGrammars}
 import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.parsergen.nocond.codegen.SimpleParserJavaGen.{InputLoop, MainFunc, NoMainFunc, TestInputs}
 import com.giyeok.jparser.parsergen.nocond.{SimpleParser, SimpleParserGen}
 import com.google.googlejavaformat.java.Formatter
 
@@ -26,8 +27,11 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
         case c => c.toString
     }
 
+    private def escapeToJavaString(str: String) =
+        str.replaceAllLiterally("\\", "\\\\").replaceAllLiterally("\"", "\\\"")
+
     private def javaString(str: String) =
-        "\"" + str.replaceAllLiterally("\\", "\\\\").replaceAllLiterally("\"", "\\\"") + "\""
+        "\"" + escapeToJavaString(str) + "\""
 
     private def charsToCondition(chars: Set[Char], varName: String): String =
         chars.groups map { group =>
@@ -41,7 +45,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
     private def charGroupToCondition(termGroupDesc: CharacterTermGroupDesc, varName: String): String =
         charGroupToCondition(termGroupDesc.asInstanceOf[CharsGroup], varName)
 
-    def generateUnformattedJavaSource(pkgName: String, className: String, testStrOpt: Option[String]): String = {
+    def generateUnformattedJavaSource(pkgName: String, className: String, mainFunc: MainFunc): String = {
         // (nodeId, TermGroup) -> Action 의 형태를 (nodeId) -> (TermGroup -> Action) 으로 바꿈
         val termActions = (parser.termActions groupBy (_._1._1)
             mapValues (m => m map (p => p._1._2 -> p._2))).toList sortBy (_._1)
@@ -131,13 +135,47 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
                |    return false;""".stripMargin
         }
 
-        val mainTestPart = testStrOpt map { testStr =>
-            s"""
-               |public static void main(String[] args) {
-               |    boolean succeed = parseVerbose(${javaString(testStr)});
-               |    log("Parsing " + (succeed? "succeeded":"failed"));
-               |}""".stripMargin
-        } getOrElse ""
+        val mainPart = mainFunc match {
+            case NoMainFunc => ""
+            case InputLoop(tests) =>
+                val testCodes = tests map { t =>
+                    s"""log("Test \\"${escapeToJavaString(t)}\\"");
+                       |succeed = parseVerbose(${javaString(t)});
+                       |log("Parsing " + (succeed? "succeeded":"failed"));
+                       |""".stripMargin
+                }
+                s"""
+                   |public static void main(String[] args) {
+                   |    boolean succeed;
+                   |
+                   |    ${testCodes mkString "\n"}
+                   |    java.util.Scanner scanner = new java.util.Scanner(System.in);
+                   |    String input;
+                   |    while (true) {
+                   |        System.out.print("> ");
+                   |        input = scanner.nextLine();
+                   |        if (input.isEmpty()) break;
+                   |        System.out.println("Input: \\"" + input + "\\"");
+                   |        succeed = parseVerbose(input);
+                   |        log("Parsing " + (succeed ? "succeeded" : "failed"));
+                   |    }
+                   |    System.out.println("Bye~");
+                   |}
+                   |""".stripMargin
+            case TestInputs(tests) =>
+                val testCodes = tests map { t =>
+                    s"""log("Test \\"${escapeToJavaString(t)}\\"");
+                       |succeed = parseVerbose(${javaString(t)});
+                       |log("Parsing " + (succeed? "succeeded":"failed"));
+                       |""".stripMargin
+                }
+                s"""
+                   |public static void main(String[] args) {
+                   |    boolean succeed;
+                   |
+                   |    ${testCodes mkString "\n"}
+                   |}""".stripMargin
+        }
 
         s"""package $pkgName;
            |
@@ -202,9 +240,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |            return false;
            |        }
            |        while (finishStep()) {
-           |            if (verbose) {
-           |                printStack();
-           |            }
+           |            if (verbose) printStack();
            |            if (stack.prev == null) {
            |                stack = null;
            |                return false;
@@ -255,28 +291,20 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |
            |    public boolean proceed(char c) {
            |        if (stack == null) {
-           |            if (verbose) {
-           |                log("  - already finished");
-           |            }
+           |            if (verbose) log("  - already finished");
            |            return false;
            |        }
            |        if (!canAccept(c)) {
-           |            if (verbose) {
-           |                log("  - cannot accept " + c + ", try pendingFinish");
-           |            }
+           |            if (verbose) log("  - cannot accept " + c + ", try pendingFinish");
            |            if (pendingFinish == -1) {
-           |                if (verbose) {
-           |                    log("  - pendingFinish unavailable, proceed failed");
-           |                }
+           |                if (verbose) log("  - pendingFinish unavailable, proceed failed");
            |                return false;
            |            }
            |            dropLast();
            |            if (stack.nodeId != pendingFinish) {
            |                replace(pendingFinish);
            |            }
-           |            if (verbose) {
-           |                printStack();
-           |            }
+           |            if (verbose) printStack();
            |            if (!finish()) {
            |                return false;
            |            }
@@ -290,18 +318,14 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |
            |    public boolean proceedEof() {
            |        if (stack == null) {
-           |            if (verbose) {
-           |                log("  - already finished");
-           |                return true;
-           |            }
+           |            if (verbose) log("  - already finished");
+           |            return true;
            |        }
            |        if (pendingFinish == -1) {
            |            if (stack.prev == null && stack.nodeId == ${parser.startNodeId}) {
            |                return true;
            |            }
-           |            if (verbose) {
-           |                log("  - pendingFinish unavailable, proceedEof failed");
-           |            }
+           |            if (verbose) log("  - pendingFinish unavailable, proceedEof failed");
            |            return false;
            |        }
            |        dropLast();
@@ -318,9 +342,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |                }
            |                dropLast();
            |                replace(pendingFinish);
-           |                if (verbose) {
-           |                    printStack();
-           |                }
+           |                if (verbose) printStack();
            |            }
            |        }
            |        return true;
@@ -347,24 +369,24 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |        log("Proceed EOF");
            |        return parser.proceedEof();
            |    }
-           |    $mainTestPart
+           |    $mainPart
            |}
              """.stripMargin
     }
 
-    def generateJavaSource(pkgName: String, className: String, testStr: Option[String] = None): String =
-        new Formatter().formatSource(generateUnformattedJavaSource(pkgName, className, testStr))
+    def generateJavaSource(pkgName: String, className: String, mainFunc: MainFunc): String =
+        new Formatter().formatSource(generateUnformattedJavaSource(pkgName, className, mainFunc))
 
-    def generateJavaSourceToFile(file: File, pkgName: String, className: String, testStr: Option[String] = None): Unit = {
+    def generateJavaSourceToFile(file: File, pkgName: String, className: String, mainFunc: MainFunc): Unit = {
         val writer = new PrintWriter(file)
-        writer.write(generateJavaSource(pkgName, className, testStr))
+        writer.write(generateJavaSource(pkgName, className, mainFunc))
         writer.close()
     }
 
-    def generateJavaSourceToDir(baseDir: File, pkgName: String, className: String, testStr: Option[String] = None): Unit = {
+    def generateJavaSourceToDir(baseDir: File, pkgName: String, className: String, mainFunc: MainFunc): Unit = {
         val file = new File(baseDir, (pkgName.split("\\.") :+ className + ".java").mkString(File.separator))
         println(s"generate parser to ${file.getAbsolutePath}")
-        generateJavaSourceToFile(file, pkgName, className, testStr)
+        generateJavaSourceToFile(file, pkgName, className, mainFunc)
     }
 }
 
@@ -372,17 +394,26 @@ object SimpleParserJavaGen {
     val baseDir = new File("parsergen/src/main/java")
     val pkgName = "com.giyeok.jparser.parsergen"
 
-    def generate(grammar: Grammar, className: String, example: Option[String]): Unit = {
+    sealed trait MainFunc
+
+    object NoMainFunc extends MainFunc
+
+    case class InputLoop(tests: List[String]) extends MainFunc
+
+    case class TestInputs(tests: List[String]) extends MainFunc
+
+    def generate(grammar: Grammar, className: String, mainFunc: MainFunc): Unit = {
         val ngrammar = NGrammar.fromGrammar(grammar)
         ngrammar.describe()
         val parser = new SimpleParserGen(ngrammar).generateParser()
         parser.describe()
 
-        new SimpleParserJavaGen(parser).generateJavaSourceToDir(baseDir, pkgName, className, example)
+        new SimpleParserJavaGen(parser).generateJavaSourceToDir(baseDir, pkgName, className, mainFunc)
     }
 
     def main(args: Array[String]): Unit = {
-        generate(SimpleGrammars.array0Grammar, "Array0GrammarParser", Some("[  a    ]"))
-        generate(JsonGrammar.fromJsonOrg, "JsonParser", Some("""{"abcd": ["hello", 123, {"xyz": 1}]}"""))
+        generate(SimpleGrammars.array0Grammar, "Array0GrammarParser", InputLoop(List("[a,a,a]")))
+        generate(JsonGrammar.fromJsonOrg, "JsonParser", TestInputs(List(
+            """{"abcd": ["hello", 123, {"xyz": 1}]}""")))
     }
 }
