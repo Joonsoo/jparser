@@ -1,6 +1,6 @@
-package com.giyeok.jparser.parsergen;
+package com.giyeok.jparser.parsergen.generated.simplegen;
 
-public class LongestParser {
+public class SuperSimpleGrammar {
   static class Stack {
     final int nodeId;
     final Stack prev;
@@ -15,7 +15,7 @@ public class LongestParser {
   private Stack stack;
   private int pendingFinish;
 
-  public LongestParser(boolean verbose) {
+  public SuperSimpleGrammar(boolean verbose) {
     this.verbose = verbose;
     this.stack = new Stack(0, null);
     this.pendingFinish = -1;
@@ -25,17 +25,15 @@ public class LongestParser {
     if (stack == null) return false;
     switch (stack.nodeId) {
       case 0:
-        return (c == 'a') || (c == 'b');
+        return (c == 'x');
       case 1:
-        return (c == 'a') || (c == 'b');
-      case 2:
-        return (c == 'a') || (c == 'b');
-      case 3:
-        return (c == 'a') || (c == 'b');
-      case 4:
         return (c == 'a');
-      case 5:
+      case 2:
         return (c == 'b');
+      case 4:
+        return (c == 'y');
+      case 6:
+        return (c == 'y');
     }
     throw new AssertionError("Unknown nodeId: " + stack.nodeId);
   }
@@ -45,15 +43,17 @@ public class LongestParser {
       case 0:
         return "{•<start>}";
       case 1:
-        return "{T*•T|'b'+•'b'}";
+        return "{'x'•A 'y'|'x'•B 'y'}";
       case 2:
-        return "{T*•T|'a'+•'a'}";
+        return "{'a'•'b'}";
       case 3:
-        return "{T*•T}";
+        return "{'x'•A 'y'}";
       case 4:
-        return "{'a'+•'a'}";
+        return "{'x' A•'y'}";
       case 5:
-        return "{'b'+•'b'}";
+        return "{'x'•B 'y'}";
+      case 6:
+        return "{'x' B•'y'}";
     }
     return null;
   }
@@ -73,46 +73,33 @@ public class LongestParser {
     }
     int prev = stack.prev.nodeId;
     int last = stack.nodeId;
-    if (prev == 0 && last == 1) { // (0,1)
-      // ReplaceEdge(0,1,Some(0))
-      pendingFinish = 0;
-      return false;
-    }
-    if (prev == 0 && last == 2) { // (0,2)
-      // ReplaceEdge(0,2,Some(0))
-      pendingFinish = 0;
-      return false;
-    }
     if (prev == 0 && last == 3) { // (0,3)
-      // ReplaceEdge(0,3,Some(0))
-      pendingFinish = 0;
+      // ReplaceEdge(0,4,None)
+      replace(4);
+      pendingFinish = -1;
       return false;
     }
-    if (prev == 1 && last == 5) { // (1,5)
-      // ReplaceEdge(3,5,Some(3))
+    if (prev == 0 && last == 4) { // (0,4)
+      // DropLast(0)
       dropLast();
-      replace(3);
-      append(5);
-      pendingFinish = 3;
+      return true;
+    }
+    if (prev == 0 && last == 5) { // (0,5)
+      // ReplaceEdge(0,6,None)
+      replace(6);
+      pendingFinish = -1;
       return false;
     }
-    if (prev == 2 && last == 4) { // (2,4)
-      // ReplaceEdge(3,4,Some(3))
+    if (prev == 0 && last == 6) { // (0,6)
+      // DropLast(0)
       dropLast();
-      replace(3);
-      append(4);
-      pendingFinish = 3;
-      return false;
+      return true;
     }
-    if (prev == 3 && last == 4) { // (3,4)
-      // ReplaceEdge(3,4,Some(3))
-      pendingFinish = 3;
-      return false;
-    }
-    if (prev == 3 && last == 5) { // (3,5)
-      // ReplaceEdge(3,5,Some(3))
-      pendingFinish = 3;
-      return false;
+    if (prev == 1 && last == 2) { // (1,2)
+      // DropLast(5)
+      dropLast();
+      replace(5);
+      return true;
     }
     throw new AssertionError("Unknown edge to finish: " + stackIds());
   }
@@ -194,82 +181,42 @@ public class LongestParser {
     }
     switch (stack.nodeId) {
       case 0:
-        if ((c == 'a')) {
-          // Append(0,2,Some(0))
-          append(2);
-          pendingFinish = 0;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'b')) {
-          // Append(0,1,Some(0))
+        if ((c == 'x')) {
+          // Append(0,1,None)
           append(1);
-          pendingFinish = 0;
+          pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         return false;
       case 1:
         if ((c == 'a')) {
-          // Append(3,4,Some(3))
-          replace(3);
-          append(4);
+          // Append(1,2,Some(3))
+          append(2);
           pendingFinish = 3;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'b')) {
-          // Append(1,5,Some(1))
-          append(5);
-          pendingFinish = 1;
           if (verbose) printStack();
           return true;
         }
         return false;
       case 2:
-        if ((c == 'a')) {
-          // Append(2,4,Some(2))
-          append(4);
-          pendingFinish = 2;
-          if (verbose) printStack();
-          return true;
-        }
         if ((c == 'b')) {
-          // Append(3,5,Some(3))
-          replace(3);
-          append(5);
-          pendingFinish = 3;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 3:
-        if ((c == 'a')) {
-          // Append(3,4,Some(3))
-          append(4);
-          pendingFinish = 3;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == 'b')) {
-          // Append(3,5,Some(3))
-          append(5);
-          pendingFinish = 3;
+          // Finish(2)
+          finish();
           if (verbose) printStack();
           return true;
         }
         return false;
       case 4:
-        if ((c == 'a')) {
+        if ((c == 'y')) {
           // Finish(4)
           finish();
           if (verbose) printStack();
           return true;
         }
         return false;
-      case 5:
-        if ((c == 'b')) {
-          // Finish(5)
+      case 6:
+        if ((c == 'y')) {
+          // Finish(6)
           finish();
           if (verbose) printStack();
           return true;
@@ -312,7 +259,7 @@ public class LongestParser {
   }
 
   public static boolean parse(String s) {
-    LongestParser parser = new LongestParser(false);
+    SuperSimpleGrammar parser = new SuperSimpleGrammar(false);
     for (int i = 0; i < s.length(); i++) {
       if (!parser.proceed(s.charAt(i))) {
         return false;
@@ -322,7 +269,7 @@ public class LongestParser {
   }
 
   public static boolean parseVerbose(String s) {
-    LongestParser parser = new LongestParser(true);
+    SuperSimpleGrammar parser = new SuperSimpleGrammar(true);
     for (int i = 0; i < s.length(); i++) {
       log("Proceed char at " + i + ": " + s.charAt(i));
       if (!parser.proceed(s.charAt(i))) {
@@ -339,19 +286,9 @@ public class LongestParser {
     log("Parsing " + (succeed ? "succeeded" : "failed"));
   }
 
-  private static void inputLoop() {
-    java.util.Scanner scanner = new java.util.Scanner(System.in);
-    while (true) {
-      System.out.print("> ");
-      String input = scanner.nextLine();
-      if (input.isEmpty()) break;
-      test(input);
-    }
-    System.out.println("Bye~");
-  }
-
   public static void main(String[] args) {
-
-    inputLoop();
+    test("xy");
+    test("xay");
+    test("xaby");
   }
 }

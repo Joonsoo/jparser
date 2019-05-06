@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.generated;
+package com.giyeok.jparser.parsergen.generated.deprecated;
 
 public class GeneratedExprStringInterpolation0GrammarParser {
   static class Node {

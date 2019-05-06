@@ -25,8 +25,6 @@ object SimpleParser {
     // stack top의 노드 2개를 제거하고 replacePrev, replaceLast로 치환.
     case class ReplaceEdge(replacePrev: Int, replaceLast: Int, pendingFinish: Option[Int]) extends EdgeAction
 
-    case class PrevNode(nodeId: Int, finishable: Boolean)
-
 }
 
 // grammar, prevNodes는 디버깅을 위한 목적

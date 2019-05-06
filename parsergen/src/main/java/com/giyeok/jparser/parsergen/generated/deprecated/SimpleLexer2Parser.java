@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.generated;
+package com.giyeok.jparser.parsergen.generated.deprecated;
 
 public class SimpleLexer2Parser {
   static class Node {

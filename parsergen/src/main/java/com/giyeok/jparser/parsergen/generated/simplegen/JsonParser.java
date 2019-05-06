@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen;
+package com.giyeok.jparser.parsergen.generated.simplegen;
 
 public class JsonParser {
   static class Stack {
