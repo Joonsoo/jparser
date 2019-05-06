@@ -3,7 +3,7 @@ package com.giyeok.jparser.parsergen.nocond
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar._
-import com.giyeok.jparser.parsergen.TermGrouper
+import com.giyeok.jparser.parsergen.utils.TermGrouper
 
 import scala.collection.mutable
 
@@ -89,7 +89,7 @@ class GrammarAnalyzer(val grammar: NGrammar) {
     // 커널셋을 nextKernelSet으로 주었을 때 나오는 결과의 다른 형태
     def termChanges(kernelSet: AKernelSet, term: CharacterTermGroupDesc): GraphChange = {
         val termSymbols = kernelSet.items flatMap reachableTermSymbolIdsFrom filter { symbolId =>
-            grammar.symbolOf(symbolId).asInstanceOf[NTerminal].symbol.accept(term)
+            grammar.symbolOf(symbolId).asInstanceOf[NTerminal].symbol.acceptTermGroup(term)
         }
         val termKernelSets = termSymbols map { termSymbolId =>
             AKernel(termSymbolId, 0)

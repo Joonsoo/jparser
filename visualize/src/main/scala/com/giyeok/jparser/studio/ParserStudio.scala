@@ -17,7 +17,6 @@ import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor, ParsingContext}
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.Parser.NaiveContext
-import com.giyeok.jparser.npreparser.PreprocessedParser
 import com.giyeok.jparser.visualize._
 import com.giyeok.jparser.visualize.utils.HorizontalResizableSplittedComposite
 import com.giyeok.jparser.visualize.utils.VerticalResizableSplittedComposite
@@ -219,8 +218,8 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
     }
 
     grammarInfoPanel.setLayout(new FillLayout)
-    val definitionViewButton = new Button(grammarInfoPanel, SWT.NONE)
-    definitionViewButton.setText("Derivation View")
+    val parserGenerationViewButton = new Button(grammarInfoPanel, SWT.NONE)
+    parserGenerationViewButton.setText("Parser Generator")
     //    val parserGeneratorPanel = new Composite(grammarInfoPanel, SWT.NONE)
     //    parserGeneratorPanel.setLayout(new FillLayout(SWT.VERTICAL))
     //    val generateParserSelector = new ParserSelector(parserGeneratorPanel, SWT.NONE)
@@ -445,7 +444,7 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
             }
         }
     })
-    definitionViewButton.addSelectionListener(new SelectionListener() {
+    parserGenerationViewButton.addSelectionListener(new SelectionListener() {
         def widgetDefaultSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {}
 
         def widgetSelected(e: org.eclipse.swt.events.SelectionEvent): Unit = {
@@ -453,10 +452,9 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
                 case Some(ParseComplete(Some(grammar), _)) =>
                     val display = Display.getDefault()
                     val shell = new Shell(display)
-                    val title = "Proceed View"
+                    val title = "Parser Generator View"
                     val ngrammar = NGrammar.fromGrammar(grammar)
-                    new PreprocessedDerivationViewer(grammar, ngrammar, new PreprocessedParser(ngrammar),
-                        BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start()
+                    // TODO
                 case _ => // TODO 어떻게 하지?
             }
         }

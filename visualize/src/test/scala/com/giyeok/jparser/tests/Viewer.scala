@@ -4,9 +4,7 @@ import scala.util.Success
 import scala.util.Try
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.ConcreteInput
-import com.giyeok.jparser.nparser.{NGrammar, ParsingContext}
 import com.giyeok.jparser.nparser.Parser.NaiveContext
-import com.giyeok.jparser.npreparser.DeriveTipsContext
 import com.giyeok.jparser.visualize._
 import org.eclipse.draw2d.ColorConstants
 import org.eclipse.draw2d.Figure
@@ -65,146 +63,91 @@ trait Viewer {
 
         val testButtons = new org.eclipse.swt.widgets.Composite(rightFrame, SWT.BORDER)
         testButtons.setLayout(new FillLayout(SWT.HORIZONTAL))
-        val parserTypeButton = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
         val proceedView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
-        val derivationView = new org.eclipse.swt.widgets.Button(testButtons, SWT.NONE)
-        parserTypeButton.setText("Parser Type")
         proceedView.setText("Proceed View")
-        derivationView.setText("Derivation View")
 
         textList.setFont(JFaceResources.getTextFont)
 
         sortedTestCases foreach { t => grammarList.add(t.grammar.name) }
         var shownTexts: Seq[Inputs.ConcreteSource] = Seq()
-        grammarList.addListener(SWT.Selection, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                val selectedIndex = grammarList.getSelectionIndex
-                if (0 <= selectedIndex && selectedIndex < sortedTestCases.length) {
-                    val testCases = sortedTestCases(grammarList.getSelectionIndex)
-                    val grammar = testCases.grammar
-                    def generateHtml(): xml.Elem =
-                        new GrammarDefinitionFigureGenerator[xml.Elem](grammar, new FigureGenerator.Appearances[xml.Elem] {
-                            val default = FigureGenerator.html.AppearanceByClass("default")
-                            val nonterminal = FigureGenerator.html.AppearanceByClass("nonterminal")
-                            val terminal = FigureGenerator.html.AppearanceByClass("terminal")
-                        }, FigureGenerator.html.Generator).grammarDefinitionFigure
-                    // grammar.usedSymbols foreach { s => println(s"used: $s") }
-                    val (missingSymbols, wrongLookaheads, unusedSymbols) = (grammar.missingSymbols, grammar.wrongLookaheads, grammar.unusedSymbols)
-                    val textFig = new GrammarDefinitionFigureGenerator[Figure](grammar, grammarFigAppearances, FigureGenerator.draw2d.Generator).grammarDefinitionFigure
-                    if (missingSymbols.isEmpty && wrongLookaheads.isEmpty && unusedSymbols.isEmpty) {
-                        grammarFig.setContents(textFig)
-                    } else {
-                        val messages = Seq(
-                            if (missingSymbols.nonEmpty) Some(s"Missing: ${missingSymbols map { _.toShortString } mkString ", "}") else None,
-                            if (wrongLookaheads.nonEmpty) Some(s"Wrong: ${wrongLookaheads map { _.toShortString } mkString ", "}") else None,
-                            if (unusedSymbols.nonEmpty) Some(s"Unused: ${unusedSymbols map { _.toShortString } mkString ", "}") else None
-                        )
-                        val fig = new Figure
-                        fig.setLayoutManager(new ToolbarLayout(false))
-                        val label = new Label
-                        label.setText(messages.flatten mkString "\n")
-                        label.setForegroundColor(ColorConstants.red)
-                        fig.add(label)
-                        fig.add(textFig)
-                        grammarFig.setContents(fig)
-                    }
-                    textList.removeAll()
+        grammarList.addListener(SWT.Selection, (e: Event) => {
+            val selectedIndex = grammarList.getSelectionIndex
+            if (0 <= selectedIndex && selectedIndex < sortedTestCases.length) {
+                val testCases = sortedTestCases(grammarList.getSelectionIndex)
+                val grammar = testCases.grammar
+                def generateHtml(): xml.Elem =
+                    new GrammarDefinitionFigureGenerator[xml.Elem](grammar, new FigureGenerator.Appearances[xml.Elem] {
+                        val default = FigureGenerator.html.AppearanceByClass("default")
+                        val nonterminal = FigureGenerator.html.AppearanceByClass("nonterminal")
+                        val terminal = FigureGenerator.html.AppearanceByClass("terminal")
+                    }, FigureGenerator.html.Generator).grammarDefinitionFigure
+                // grammar.usedSymbols foreach { s => println(s"used: $s") }
+                val (missingSymbols, wrongLookaheads, unusedSymbols) = (grammar.missingSymbols, grammar.wrongLookaheads, grammar.unusedSymbols)
+                val textFig = new GrammarDefinitionFigureGenerator[Figure](grammar, grammarFigAppearances, FigureGenerator.draw2d.Generator).grammarDefinitionFigure
+                if (missingSymbols.isEmpty && wrongLookaheads.isEmpty && unusedSymbols.isEmpty) {
+                    grammarFig.setContents(textFig)
+                } else {
+                    val messages = Seq(
+                        if (missingSymbols.nonEmpty) Some(s"Missing: ${missingSymbols map { _.toShortString } mkString ", "}") else None,
+                        if (wrongLookaheads.nonEmpty) Some(s"Wrong: ${wrongLookaheads map { _.toShortString } mkString ", "}") else None,
+                        if (unusedSymbols.nonEmpty) Some(s"Unused: ${unusedSymbols map { _.toShortString } mkString ", "}") else None
+                    )
+                    val fig = new Figure
+                    fig.setLayoutManager(new ToolbarLayout(false))
+                    val label = new Label
+                    label.setText(messages.flatten mkString "\n")
+                    label.setForegroundColor(ColorConstants.red)
+                    fig.add(label)
+                    fig.add(textFig)
+                    grammarFig.setContents(fig)
+                }
+                textList.removeAll()
 
-                    shownTexts = Seq()
-                    def addText(input: Inputs.ConcreteSource, text: String): Unit = {
-                        shownTexts = shownTexts :+ input
-                        textList.add(text)
-                    }
-                    testCases.correctSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
-                    testCases.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
-                    if (testCases.isInstanceOf[AmbiguousSamples]) {
-                        testCases.asInstanceOf[AmbiguousSamples].ambiguousSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"A: '${i.toCleanString}'") }
-                    }
+                shownTexts = Seq()
+                def addText(input: Inputs.ConcreteSource, text: String): Unit = {
+                    shownTexts = shownTexts :+ input
+                    textList.add(text)
+                }
+                testCases.correctSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
+                testCases.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
+                testCases match {
+                    case ambiguousSamples: AmbiguousSamples =>
+                        ambiguousSamples.ambiguousSampleInputs.toSeq sortBy (_.toCleanString) foreach { i =>
+                            addText(i, s"A: '${i.toCleanString}'")
+                        }
+                    case _ => // do nothing
                 }
             }
         })
 
-        object ParserTypes extends Enumeration {
-            val Naive, Preprocessed = Value
-            val order = Seq(Naive, Preprocessed)
-
-            def nextOf(parserType: ParserTypes.Value): ParserTypes.Value = {
-                val idx = ParserTypes.order.indexOf(parserType)
-                if (idx + 1 < ParserTypes.order.length) {
-                    ParserTypes.order(idx + 1)
-                } else {
-                    ParserTypes.order.head
-                }
-            }
-            def nameOf(parserType: ParserTypes.Value): String = parserType match {
-                case ParserTypes.Naive => "Naive"
-                case ParserTypes.Preprocessed => "Preprocessed"
-            }
-        }
-
-        var selectedParserType: ParserTypes.Value = ParserTypes.Preprocessed
-        def setParserType(newParserType: ParserTypes.Value): Unit = {
-            selectedParserType = newParserType
-            parserTypeButton.setText(ParserTypes.nameOf(selectedParserType))
-        }
-        setParserType(ParserTypes.Naive)
         def startParserVisualizer(gt: GrammarTestCases, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
             val grammar = gt.grammar
-            selectedParserType match {
-                case ParserTypes.Naive =>
-                    ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.naiveParser, source, display, new Shell(display),
-                        new ZestParsingContextWidget(_, _, _, _, _, _))
-                case ParserTypes.Preprocessed =>
-                    ???
-                    //ParsingProcessVisualizer.start[DeriveTipsContext](grammar.name, gt.preprocessedParser, source, display, new Shell(display),
-                    //    new ZestDeriveTipParsingContextWidget(_, _, _, _, _, _))
-            }
+            ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.naiveParser, source, display, new Shell(display),
+                new ZestParsingContextWidget(_, _, _, _, _, _))
         }
 
-        parserTypeButton.addListener(SWT.Selection, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                setParserType(ParserTypes.nextOf(selectedParserType))
+        textList.addListener(SWT.Selection, (e: Event) => {
+            (Try(sortedTestCases(grammarList.getSelectionIndex)), Try(shownTexts(textList.getSelectionIndex))) match {
+                case (Success(grammarTests), Success(source)) =>
+                    startParserVisualizer(grammarTests, source.toSeq, display, new Shell(display))
+                case _ => // ignore, nothing to do
             }
         })
 
-        textList.addListener(SWT.Selection, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                (Try(sortedTestCases(grammarList.getSelectionIndex)), Try(shownTexts(textList.getSelectionIndex))) match {
-                    case (Success(grammarTests), Success(source)) =>
-                        startParserVisualizer(grammarTests, source.toSeq, display, new Shell(display))
-                    case _ => // ignore, nothing to do
-                }
-            }
-        })
-
-        proceedView.addListener(SWT.Selection, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                if (grammarList.getSelectionIndex >= 0) {
-                    val gt = sortedTestCases(grammarList.getSelectionIndex)
-                    val source = Inputs.fromString(testText.getText())
-                    startParserVisualizer(gt, source.toSeq, display, new Shell(display))
-                }
-            }
-        })
-
-        derivationView.addListener(SWT.Selection, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                if (grammarList.getSelectionIndex >= 0) {
-                    val gt = sortedTestCases(grammarList.getSelectionIndex)
-                    new PreprocessedDerivationViewer(gt.grammar, gt.ngrammar,
-                        gt.preprocessedParser, BasicVisualizeResources.nodeFigureGenerators, display, new Shell(display)).start
-                }
+        proceedView.addListener(SWT.Selection, (e: Event) => {
+            if (grammarList.getSelectionIndex >= 0) {
+                val gt = sortedTestCases(grammarList.getSelectionIndex)
+                val source = Inputs.fromString(testText.getText())
+                startParserVisualizer(gt, source.toSeq, display, new Shell(display))
             }
         })
 
         val isMac = System.getProperty("os.name").toLowerCase contains "mac"
-        display.addFilter(SWT.KeyDown, new Listener() {
-            def handleEvent(e: Event): Unit = {
-                (isMac, e.stateMask, e.keyCode) match {
-                    case (true, SWT.COMMAND, 'w') | (false, SWT.CONTROL, 'w') =>
-                        display.getActiveShell.dispose()
-                    case _ =>
-                }
+        display.addFilter(SWT.KeyDown, (e: Event) => {
+            (isMac, e.stateMask, e.keyCode) match {
+                case (true, SWT.COMMAND, 'w') | (false, SWT.CONTROL, 'w') =>
+                    display.getActiveShell.dispose()
+                case _ =>
             }
         })
 

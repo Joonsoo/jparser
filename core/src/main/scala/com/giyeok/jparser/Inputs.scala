@@ -14,8 +14,6 @@ object Inputs {
 
     case class Virtual(name: String) extends ConcreteInput
 
-    case class AbstractInput(termGroup: TermGroupDesc) extends Input
-
     sealed trait TermGroupDesc {
         def toShortString: String
 
@@ -231,7 +229,6 @@ object Inputs {
                     case _ => s"$char"
                 }
             case Virtual(name) => s"<$name>"
-            case AbstractInput(chars) => s"{${chars.toShortString}}"
         }
 
         def toCleanString: String = input match {
@@ -243,7 +240,6 @@ object Inputs {
                     case c => c.toString
                 }
             case Virtual(name) => s"{$name}"
-            case AbstractInput(chars) => s"{${chars.toShortString}}"
         }
     }
 

@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen
+package com.giyeok.jparser.parsergen.utils
 
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, TermGroupDesc, VirtualTermGroupDesc}
 import com.giyeok.jparser.Symbols.Terminal

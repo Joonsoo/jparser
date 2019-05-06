@@ -196,7 +196,7 @@ trait ParsingTasks {
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.TermGroupDesc): Set[Node] = {
         def acceptable(symbolId: Int): Boolean =
             grammar.nsymbols get symbolId match {
-                case Some(NTerminal(terminal)) => terminal accept input
+                case Some(NTerminal(terminal)) => terminal acceptTermGroup input
                 case _ => false
             }
         graph.nodes collect {

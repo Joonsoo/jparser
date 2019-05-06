@@ -324,179 +324,179 @@ public class JsonParser {
   public String nodeDescriptionOf(int nodeId) {
     switch (nodeId) {
       case 0:
-        return "{•<start>}";
+        return "{\u2022<start>}";
       case 1:
-        return "{ws•element ws|{\\t-\\n\\r\\u0020}•ws}";
+        return "{ws\u2022element ws|{\\t-\\n\\r\\u0020}\u2022ws}";
       case 2:
-        return "{'\"'•characters '\"'|'\"' characters•'\"'}";
+        return "{'\"'\u2022characters '\"'|'\"' characters\u2022'\"'}";
       case 3:
-        return "{'['•ws ']'|'[' ws•']'|'['•ws elements ws ']'|'[' ws•elements ws ']'}";
+        return "{'['\u2022ws ']'|'[' ws\u2022']'|'['\u2022ws elements ws ']'|'[' ws\u2022elements ws ']'}";
       case 4:
-        return "{ws element•ws|int•frac exp|int frac•exp|onenine•digits}";
+        return "{ws element\u2022ws|int\u2022frac exp|int frac\u2022exp|onenine\u2022digits}";
       case 5:
-        return "{'t'•'r' 'u' 'e'}";
+        return "{'t'\u2022'r' 'u' 'e'}";
       case 6:
-        return "{'-'•digit|'-'•onenine digits}";
+        return "{'-'\u2022digit|'-'\u2022onenine digits}";
       case 7:
-        return "{'n'•'u' 'l' 'l'}";
+        return "{'n'\u2022'u' 'l' 'l'}";
       case 8:
-        return "{ws element•ws|int•frac exp|int frac•exp}";
+        return "{ws element\u2022ws|int\u2022frac exp|int frac\u2022exp}";
       case 9:
-        return "{'{'•ws '}'|'{' ws•'}'|'{'•ws members ws '}'|'{' ws•members ws '}'}";
+        return "{'{'\u2022ws '}'|'{' ws\u2022'}'|'{'\u2022ws members ws '}'|'{' ws\u2022members ws '}'}";
       case 10:
-        return "{'f'•'a' 'l' 's' 'e'}";
+        return "{'f'\u2022'a' 'l' 's' 'e'}";
       case 11:
-        return "{{\\t-\\n\\r\\u0020}•ws}";
+        return "{{\\t-\\n\\r\\u0020}\u2022ws}";
       case 12:
-        return "{ws•element ws}";
+        return "{ws\u2022element ws}";
       case 13:
-        return "{int•frac exp|int frac•exp|onenine•digits}";
+        return "{int\u2022frac exp|int frac\u2022exp|onenine\u2022digits}";
       case 14:
-        return "{int•frac exp|int frac•exp}";
+        return "{int\u2022frac exp|int frac\u2022exp}";
       case 15:
-        return "{ws element•ws}";
+        return "{ws element\u2022ws}";
       case 16:
-        return "{int•frac exp}";
+        return "{int\u2022frac exp}";
       case 17:
-        return "{'.'•{0-9}+}";
+        return "{'.'\u2022{0-9}+}";
       case 18:
-        return "{int frac•exp}";
+        return "{int frac\u2022exp}";
       case 19:
-        return "{'e'•sign {0-9}+|'e' sign•{0-9}+}";
+        return "{'e'\u2022sign {0-9}+|'e' sign\u2022{0-9}+}";
       case 20:
-        return "{'E'•sign {0-9}+|'E' sign•{0-9}+}";
+        return "{'E'\u2022sign {0-9}+|'E' sign\u2022{0-9}+}";
       case 21:
-        return "{'\"'•characters '\"'}";
+        return "{'\"'\u2022characters '\"'}";
       case 22:
-        return "{'\\'•escape}";
+        return "{'\\'\u2022escape}";
       case 23:
-        return "{'\"' characters•'\"'}";
+        return "{'\"' characters\u2022'\"'}";
       case 24:
-        return "{character•characters}";
+        return "{character\u2022characters}";
       case 25:
-        return "{onenine•digits}";
+        return "{onenine\u2022digits}";
       case 26:
-        return "{digit•digits}";
+        return "{digit\u2022digits}";
       case 27:
-        return "{'['•ws ']'|'['•ws elements ws ']'}";
+        return "{'['\u2022ws ']'|'['\u2022ws elements ws ']'}";
       case 28:
-        return "{'[' ws•elements ws ']'}";
+        return "{'[' ws\u2022elements ws ']'}";
       case 29:
-        return "{element•ws ',' ws elements|element ws•',' ws elements|int•frac exp|int frac•exp|onenine•digits}";
+        return "{element\u2022ws ',' ws elements|element ws\u2022',' ws elements|int\u2022frac exp|int frac\u2022exp|onenine\u2022digits}";
       case 30:
-        return "{'[' ws•']'}";
+        return "{'[' ws\u2022']'}";
       case 31:
-        return "{element•ws ',' ws elements|element ws•',' ws elements|int•frac exp|int frac•exp}";
+        return "{element\u2022ws ',' ws elements|element ws\u2022',' ws elements|int\u2022frac exp|int frac\u2022exp}";
       case 32:
-        return "{'-'•digit}";
+        return "{'-'\u2022digit}";
       case 33:
-        return "{'{'•ws '}'|'{'•ws members ws '}'|'{' ws•members ws '}'}";
+        return "{'{'\u2022ws '}'|'{'\u2022ws members ws '}'|'{' ws\u2022members ws '}'}";
       case 34:
-        return "{{\\t-\\n\\r\\u0020}•ws|ws•string ws ':' ws element}";
+        return "{{\\t-\\n\\r\\u0020}\u2022ws|ws\u2022string ws ':' ws element}";
       case 35:
-        return "{'{'•ws '}'|'{'•ws members ws '}'}";
+        return "{'{'\u2022ws '}'|'{'\u2022ws members ws '}'}";
       case 36:
-        return "{'{' ws•members ws '}'}";
+        return "{'{' ws\u2022members ws '}'}";
       case 37:
-        return "{'{' ws•'}'}";
+        return "{'{' ws\u2022'}'}";
       case 38:
-        return "{'e'•sign {0-9}+}";
+        return "{'e'\u2022sign {0-9}+}";
       case 39:
-        return "{'e' sign•{0-9}+}";
+        return "{'e' sign\u2022{0-9}+}";
       case 40:
-        return "{{0-9}+•{0-9}}";
+        return "{{0-9}+\u2022{0-9}}";
       case 41:
-        return "{'E'•sign {0-9}+}";
+        return "{'E'\u2022sign {0-9}+}";
       case 42:
-        return "{'E' sign•{0-9}+}";
+        return "{'E' sign\u2022{0-9}+}";
       case 43:
-        return "{ws•string ws ':' ws element}";
+        return "{ws\u2022string ws ':' ws element}";
       case 44:
-        return "{element•ws ',' ws elements}";
+        return "{element\u2022ws ',' ws elements}";
       case 45:
-        return "{element ws•',' ws elements}";
+        return "{element ws\u2022',' ws elements}";
       case 46:
-        return "{'u'•hex hex hex hex}";
+        return "{'u'\u2022hex hex hex hex}";
       case 47:
-        return "{element•ws ',' ws elements|element ws•',' ws elements|int•frac exp|int frac•exp|'-' onenine•digits}";
+        return "{element\u2022ws ',' ws elements|element ws\u2022',' ws elements|int\u2022frac exp|int frac\u2022exp|'-' onenine\u2022digits}";
       case 48:
-        return "{'[' ws•']'|'[' ws•elements ws ']'}";
+        return "{'[' ws\u2022']'|'[' ws\u2022elements ws ']'}";
       case 49:
-        return "{'[' ws elements•ws ']'|'[' ws elements ws•']'}";
+        return "{'[' ws elements\u2022ws ']'|'[' ws elements ws\u2022']'}";
       case 50:
-        return "{ws string•ws ':' ws element|ws string ws•':' ws element}";
+        return "{ws string\u2022ws ':' ws element|ws string ws\u2022':' ws element}";
       case 51:
-        return "{'n' 'u'•'l' 'l'}";
+        return "{'n' 'u'\u2022'l' 'l'}";
       case 52:
-        return "{'f' 'a'•'l' 's' 'e'}";
+        return "{'f' 'a'\u2022'l' 's' 'e'}";
       case 53:
-        return "{'t' 'r'•'u' 'e'}";
+        return "{'t' 'r'\u2022'u' 'e'}";
       case 54:
-        return "{int•frac exp|int frac•exp|'-' onenine•digits}";
+        return "{int\u2022frac exp|int frac\u2022exp|'-' onenine\u2022digits}";
       case 55:
-        return "{element•ws ',' ws elements|element ws•',' ws elements}";
+        return "{element\u2022ws ',' ws elements|element ws\u2022',' ws elements}";
       case 56:
-        return "{ws element•ws|int•frac exp|int frac•exp|'-' onenine•digits}";
+        return "{ws element\u2022ws|int\u2022frac exp|int frac\u2022exp|'-' onenine\u2022digits}";
       case 57:
-        return "{'{' ws•'}'|'{' ws•members ws '}'}";
+        return "{'{' ws\u2022'}'|'{' ws\u2022members ws '}'}";
       case 58:
-        return "{ws string•ws ':' ws element}";
+        return "{ws string\u2022ws ':' ws element}";
       case 59:
-        return "{ws string ws•':' ws element}";
+        return "{ws string ws\u2022':' ws element}";
       case 60:
-        return "{'-' onenine•digits}";
+        return "{'-' onenine\u2022digits}";
       case 61:
-        return "{'[' ws elements•ws ']'}";
+        return "{'[' ws elements\u2022ws ']'}";
       case 62:
-        return "{'[' ws elements ws•']'}";
+        return "{'[' ws elements ws\u2022']'}";
       case 63:
-        return "{element ws ','•ws elements|element ws ',' ws•elements}";
+        return "{element ws ','\u2022ws elements|element ws ',' ws\u2022elements}";
       case 64:
-        return "{element ws ','•ws elements}";
+        return "{element ws ','\u2022ws elements}";
       case 65:
-        return "{element ws ',' ws•elements}";
+        return "{element ws ',' ws\u2022elements}";
       case 66:
-        return "{'f' 'a' 'l'•'s' 'e'}";
+        return "{'f' 'a' 'l'\u2022's' 'e'}";
       case 67:
-        return "{'n' 'u' 'l'•'l'}";
+        return "{'n' 'u' 'l'\u2022'l'}";
       case 68:
-        return "{'t' 'r' 'u'•'e'}";
+        return "{'t' 'r' 'u'\u2022'e'}";
       case 69:
-        return "{ws string ws ':'•ws element|ws string ws ':' ws•element}";
+        return "{ws string ws ':'\u2022ws element|ws string ws ':' ws\u2022element}";
       case 70:
-        return "{'u' hex•hex hex hex}";
+        return "{'u' hex\u2022hex hex hex}";
       case 71:
-        return "{element•ws ',' ws elements|element ws•',' ws elements|int frac•exp}";
+        return "{element\u2022ws ',' ws elements|element ws\u2022',' ws elements|int frac\u2022exp}";
       case 72:
-        return "{ws element•ws|int frac•exp}";
+        return "{ws element\u2022ws|int frac\u2022exp}";
       case 73:
-        return "{ws string ws ':'•ws element}";
+        return "{ws string ws ':'\u2022ws element}";
       case 74:
-        return "{ws string ws ':' ws•element}";
+        return "{ws string ws ':' ws\u2022element}";
       case 75:
-        return "{'f' 'a' 'l' 's'•'e'}";
+        return "{'f' 'a' 'l' 's'\u2022'e'}";
       case 76:
-        return "{member•ws ',' ws members|member ws•',' ws members}";
+        return "{member\u2022ws ',' ws members|member ws\u2022',' ws members}";
       case 77:
-        return "{'u' hex hex•hex hex}";
+        return "{'u' hex hex\u2022hex hex}";
       case 78:
-        return "{member•ws ',' ws members}";
+        return "{member\u2022ws ',' ws members}";
       case 79:
-        return "{member ws•',' ws members}";
+        return "{member ws\u2022',' ws members}";
       case 80:
-        return "{'{' ws members•ws '}'|'{' ws members ws•'}'}";
+        return "{'{' ws members\u2022ws '}'|'{' ws members ws\u2022'}'}";
       case 81:
-        return "{'{' ws members•ws '}'}";
+        return "{'{' ws members\u2022ws '}'}";
       case 82:
-        return "{'{' ws members ws•'}'}";
+        return "{'{' ws members ws\u2022'}'}";
       case 83:
-        return "{member ws ','•ws members|member ws ',' ws•members}";
+        return "{member ws ','\u2022ws members|member ws ',' ws\u2022members}";
       case 84:
-        return "{'u' hex hex hex•hex}";
+        return "{'u' hex hex hex\u2022hex}";
       case 85:
-        return "{member ws ','•ws members}";
+        return "{member ws ','\u2022ws members}";
       case 86:
-        return "{member ws ',' ws•members}";
+        return "{member ws ',' ws\u2022members}";
     }
     return null;
   }

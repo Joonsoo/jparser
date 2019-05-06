@@ -10,17 +10,22 @@ object JavaGenUtils {
         }
     }
 
-    def javaChar(c: Char): String = c match {
+    def javaChar(char: Char): String = char match {
         case '\n' => "\\n"
         case '\r' => "\\r"
         case '\t' => "\\t"
         case '\\' => "\\\\"
         // TODO finish
+        case c if (c.toInt < 32 || c.toInt > 126) && c.toInt < 65536 =>
+            val c1 = (c.toInt >> 8) % 256
+            val c2 = c.toInt % 256
+            val hexChars = "0123456789abcdef"
+            s"\\u${hexChars(c1 >> 4)}${hexChars(c1 & 15)}${hexChars(c2 >> 4)}${hexChars(c2 & 15)}"
         case c => c.toString
     }
 
     def escapeToJavaString(str: String): String =
-        str.replaceAllLiterally("\\", "\\\\").replaceAllLiterally("\"", "\\\"")
+        str.flatMap(javaChar).replaceAllLiterally("\"", "\\\"")
 
     def javaString(str: String): String =
         "\"" + escapeToJavaString(str) + "\""

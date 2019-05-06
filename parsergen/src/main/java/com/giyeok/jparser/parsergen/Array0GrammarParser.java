@@ -53,39 +53,39 @@ public class Array0GrammarParser {
   public String nodeDescriptionOf(int nodeId) {
     switch (nodeId) {
       case 0:
-        return "{•<start>}";
+        return "{\u2022<start>}";
       case 1:
-        return "{'['•([WS E ([WS ',' WS E])*])? WS ']'|'[' ([WS E ([WS ',' WS E])*])?•WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS•']'}";
+        return "{'['\u2022([WS E ([WS ',' WS E])*])? WS ']'|'[' ([WS E ([WS ',' WS E])*])?\u2022WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS\u2022']'}";
       case 2:
-        return "{'['•([WS E ([WS ',' WS E])*])? WS ']'}";
+        return "{'['\u2022([WS E ([WS ',' WS E])*])? WS ']'}";
       case 3:
-        return "{WS E•([WS ',' WS E])*}";
+        return "{WS E\u2022([WS ',' WS E])*}";
       case 4:
-        return "{'[' ([WS E ([WS ',' WS E])*])? WS•']'}";
+        return "{'[' ([WS E ([WS ',' WS E])*])? WS\u2022']'}";
       case 5:
-        return "{'['•([WS E ([WS ',' WS E])*])? WS ']'|'[' ([WS E ([WS ',' WS E])*])?•WS ']'}";
+        return "{'['\u2022([WS E ([WS ',' WS E])*])? WS ']'|'[' ([WS E ([WS ',' WS E])*])?\u2022WS ']'}";
       case 6:
-        return "{WS•E ([WS ',' WS E])*|'\\u0020'*•'\\u0020'}";
+        return "{WS\u2022E ([WS ',' WS E])*|'\\u0020'*\u2022'\\u0020'}";
       case 7:
-        return "{'[' ([WS E ([WS ',' WS E])*])?•WS ']'}";
+        return "{'[' ([WS E ([WS ',' WS E])*])?\u2022WS ']'}";
       case 8:
-        return "{WS ','•WS E|WS ',' WS•E}";
+        return "{WS ','\u2022WS E|WS ',' WS\u2022E}";
       case 9:
-        return "{'\\u0020'*•'\\u0020'|WS•',' WS E}";
+        return "{'\\u0020'*\u2022'\\u0020'|WS\u2022',' WS E}";
       case 10:
-        return "{WS•E ([WS ',' WS E])*}";
+        return "{WS\u2022E ([WS ',' WS E])*}";
       case 11:
-        return "{'\\u0020'*•'\\u0020'}";
+        return "{'\\u0020'*\u2022'\\u0020'}";
       case 12:
-        return "{'[' ([WS E ([WS ',' WS E])*])?•WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS•']'}";
+        return "{'[' ([WS E ([WS ',' WS E])*])?\u2022WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS\u2022']'}";
       case 13:
-        return "{WS ',' WS•E}";
+        return "{WS ',' WS\u2022E}";
       case 14:
-        return "{WS ','•WS E}";
+        return "{WS ','\u2022WS E}";
       case 15:
-        return "{WS•',' WS E}";
+        return "{WS\u2022',' WS E}";
       case 16:
-        return "{([WS ',' WS E])*•([WS ',' WS E])}";
+        return "{([WS ',' WS E])*\u2022([WS ',' WS E])}";
     }
     return null;
   }

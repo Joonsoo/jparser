@@ -3,9 +3,8 @@ package com.giyeok.jparser.nparser
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.ParsingErrors._
 import com.giyeok.jparser.nparser.AcceptCondition._
-import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
-import com.giyeok.jparser.nparser.Parser.NaiveContext
-import com.giyeok.jparser.nparser.Parser._
+import com.giyeok.jparser.nparser.NGrammar.NTerminal
+import com.giyeok.jparser.nparser.Parser.{ConditionAccumulate, NaiveContext, _}
 import com.giyeok.jparser.nparser.ParsingContext._
 
 class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parser[NaiveContext] with ParsingTasks {
@@ -49,7 +48,15 @@ class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parse
         val (graph, gen, nextGen) = (ctx.nextGraph, ctx.gen, ctx.nextGen)
         val termFinishes = finishableTermNodes(graph, gen, input).toList map { ProgressTask(_, Always) }
         if (termFinishes.isEmpty) {
-            Right(UnexpectedInput(input, nextGen))
+            val terms = graph.nodes flatMap {
+                case Node(Kernel(symbolId, 0, `gen`, `gen`), _) =>
+                    grammar.symbolOf(symbolId) match {
+                        case nterm: NTerminal => Some(nterm.symbol)
+                        case _ => None
+                    }
+                case _ => None
+            }
+            Right(UnexpectedInput(input, terms, nextGen))
         } else {
             // 1. 1차 lift
             val liftedGraph = rec(nextGen, termFinishes, graph).graph

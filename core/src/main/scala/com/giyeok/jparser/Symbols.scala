@@ -32,7 +32,7 @@ object Symbols {
     sealed trait Terminal extends Symbol with AtomicSymbol {
         def accept(input: Inputs.Input): Boolean
 
-        def accept(termGroup: Inputs.TermGroupDesc): Boolean = accept(Inputs.AbstractInput(termGroup))
+        def acceptTermGroup(termGroup: Inputs.TermGroupDesc): Boolean
     }
 
     object Terminals {
@@ -45,12 +45,18 @@ object Symbols {
 
         case object Any extends Terminal {
             def accept(input: Input) = true
+
+            def acceptTermGroup(termGroup: TermGroupDesc) = true
         }
 
         case object AnyChar extends CharacterTerminal {
             def accept(input: Input): Boolean = input match {
                 case Character(_) => true
-                case AbstractInput(_: CharacterTermGroupDesc) => true
+                case _ => false
+            }
+
+            def acceptTermGroup(termGroup: TermGroupDesc): Boolean = termGroup match {
+                case _: CharacterTermGroupDesc => true
                 case _ => false
             }
         }
@@ -60,20 +66,22 @@ object Symbols {
 
             def accept(input: Input): Boolean = input match {
                 case Character(c) if char == c => true
-                case AbstractInput(termGroup) =>
-                    assert(!termGroup.isEmpty)
-                    termGroup match {
-                        case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if baseUnicodeCategories.isEmpty && excludingChars.isEmpty && (additionalChars == Set(char)) =>
-                            true
-                        case group: CharacterTermGroupDesc =>
-                            assert({
-                                val intersect = group intersect CharsGroup(Set(), Set(), Set(char))
-                                intersect.isEmpty || intersect == group
-                            })
-                            false
-                        case _: VirtualTermGroupDesc => false
-                    }
                 case _ => false
+            }
+
+            def acceptTermGroup(termGroup: TermGroupDesc): Boolean = {
+                assert(!termGroup.isEmpty)
+                termGroup match {
+                    case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if baseUnicodeCategories.isEmpty && excludingChars.isEmpty && (additionalChars == Set(char)) =>
+                        true
+                    case group: CharacterTermGroupDesc =>
+                        assert({
+                            val intersect = group intersect CharsGroup(Set(), Set(), Set(char))
+                            intersect.isEmpty || intersect == group
+                        })
+                        false
+                    case _: VirtualTermGroupDesc => false
+                }
             }
         }
 
@@ -82,21 +90,24 @@ object Symbols {
 
             def accept(input: Input): Boolean = input match {
                 case Character(c) if chars contains c => true
-                case AbstractInput(termGroup) =>
-                    assert(!termGroup.isEmpty)
-                    termGroup match {
-                        case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if baseUnicodeCategories.isEmpty && excludingChars.isEmpty && (additionalChars subsetOf chars) =>
-                            // 사실 subsetOf일 필요도 없고 additionalChars contains chars.head 로만 해도 상관 없음
-                            true
-                        case group: CharacterTermGroupDesc =>
-                            assert({
-                                val intersect = group intersect CharsGroup(Set(), Set(), chars)
-                                intersect.isEmpty || intersect == group
-                            })
-                            false
-                        case _: VirtualTermGroupDesc => false
-                    }
                 case _ => false
+            }
+
+            def acceptTermGroup(termGroup: TermGroupDesc): Boolean = {
+                assert(!termGroup.isEmpty)
+                termGroup match {
+                    case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if baseUnicodeCategories.isEmpty && excludingChars.isEmpty && (additionalChars subsetOf chars) =>
+                        // 사실 subsetOf일 필요도 없고 additionalChars contains chars.head 로만 해도 상관 없음
+                        true
+                    case group: CharacterTermGroupDesc =>
+                        assert({
+                            val intersect = group intersect CharsGroup(Set(), Set(), chars)
+                            intersect.isEmpty || intersect == group
+                        })
+                        false
+                    case _: VirtualTermGroupDesc => false
+                }
+
             }
         }
 
@@ -106,36 +117,40 @@ object Symbols {
             def accept(input: Input): Boolean =
                 input match {
                     case Character(c) if categories contains c.getType => true
-                    case AbstractInput(termGroup) =>
-                        assert(!termGroup.isEmpty)
-                        termGroup match {
-                            case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if (baseUnicodeCategories subsetOf categories) && (additionalChars forall {
-                                categories contains _.getType
-                            }) =>
-                                true
-                            case group: CharacterTermGroupDesc =>
-                                assert({
-                                    val intersect = group intersect CharsGroup(categories, Set(), Set())
-                                    intersect.isEmpty || intersect == group
-                                })
-                                false
-                            case _: VirtualTermGroupDesc => false
-                        }
                     case _ => false
                 }
+
+            def acceptTermGroup(termGroup: TermGroupDesc): Boolean = {
+                assert(!termGroup.isEmpty)
+                termGroup match {
+                    case CharsGroup(baseUnicodeCategories, excludingChars, additionalChars) if (baseUnicodeCategories subsetOf categories) && (additionalChars forall {
+                        categories contains _.getType
+                    }) =>
+                        true
+                    case group: CharacterTermGroupDesc =>
+                        assert({
+                            val intersect = group intersect CharsGroup(categories, Set(), Set())
+                            intersect.isEmpty || intersect == group
+                        })
+                        false
+                    case _: VirtualTermGroupDesc => false
+                }
+            }
         }
 
         case class ExactVirtual(name: String) extends VirtualTerminal {
             def accept(input: Input): Boolean = input match {
                 case Virtual(n) if n == name => true
-                case AbstractInput(termGroup) =>
-                    assert(!termGroup.isEmpty)
-                    termGroup match {
-                        case VirtualsGroup(virtualNames) if virtualNames == Set(name) => true
-                        case VirtualsGroup(virtualNames) if virtualNames contains name => throw new AssertionError("Invalid AbstractInput")
-                        case _ => false
-                    }
                 case _ => false
+            }
+
+            def acceptTermGroup(termGroup: TermGroupDesc): Boolean = {
+                assert(!termGroup.isEmpty)
+                termGroup match {
+                    case VirtualsGroup(virtualNames) if virtualNames == Set(name) => true
+                    case VirtualsGroup(virtualNames) if virtualNames contains name => throw new AssertionError("Invalid AbstractInput")
+                    case _ => false
+                }
             }
         }
 
@@ -144,15 +159,17 @@ object Symbols {
 
             def accept(input: Input): Boolean = input match {
                 case Virtual(n) if names contains n => true
-                case AbstractInput(termGroup) =>
-                    assert(!termGroup.isEmpty)
-                    termGroup match {
-                        case VirtualsGroup(virtualNames) if virtualNames subsetOf names => true
-                        case VirtualsGroup(virtualNames) if (virtualNames intersect names).nonEmpty =>
-                            throw new AssertionError("Invalid AbstractInput")
-                        case _ => false
-                    }
                 case _ => false
+            }
+
+            def acceptTermGroup(termGroup: TermGroupDesc): Boolean = {
+                assert(!termGroup.isEmpty)
+                termGroup match {
+                    case VirtualsGroup(virtualNames) if virtualNames subsetOf names => true
+                    case VirtualsGroup(virtualNames) if (virtualNames intersect names).nonEmpty =>
+                        throw new AssertionError("Invalid AbstractInput")
+                    case _ => false
+                }
             }
         }
 

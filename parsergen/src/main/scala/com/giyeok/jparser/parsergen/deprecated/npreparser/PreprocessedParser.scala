@@ -1,4 +1,4 @@
-package com.giyeok.jparser.npreparser
+package com.giyeok.jparser.parsergen.deprecated.npreparser
 
 import scala.annotation.tailrec
 import com.giyeok.jparser.Inputs.Input
@@ -47,7 +47,8 @@ class PreprocessedParser(val grammar: NGrammar) extends Parser[DeriveTipsContext
         // finishable term node를 포함한 deriveTip -> term node set
         val expandings = deriveTips flatMap { sliceOf(_, input) }
         if (expandings.isEmpty) {
-            Right(UnexpectedInput(input, nextGen))
+            // TODO set expectedTerms
+            Right(UnexpectedInput(input, Set(), nextGen))
         } else {
             // 1. graph에 expanding의 그래프들 추가, updatedNodes 병합, task들 병합
             val expandedGraph: Graph = {

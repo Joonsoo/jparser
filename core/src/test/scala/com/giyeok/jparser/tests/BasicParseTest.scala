@@ -3,7 +3,6 @@ package com.giyeok.jparser.tests
 import com.giyeok.jparser.Inputs
 import org.scalatest.FlatSpec
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.ParseResultTree
 import com.giyeok.jparser.ParseResultGraph
@@ -20,7 +19,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         // println(s)
     }
 
-    private def testNGrammar(ngrammar: NGrammar) = {
+    private def testNGrammar(ngrammar: NGrammar): Unit = {
         import NGrammar._
         assert((ngrammar.nsymbols.keySet intersect ngrammar.nsequences.keySet).isEmpty)
 
@@ -63,7 +62,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         }
     }
 
-    private def testCorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
+    private def testCorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource): Unit = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
         it should s"${tests.grammar.name} properly parsed on '${source.toCleanString}'" in {
             parse(tests, source) match {
@@ -73,7 +72,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         }
     }
 
-    private def testIncorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
+    private def testIncorrect(tests: GrammarTestCases, source: Inputs.ConcreteSource): Unit = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
         it should s"${tests.grammar.name} failed to parse on '${source.toCleanString}'" in {
             parse(tests, source) match {
@@ -83,7 +82,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         }
     }
 
-    private def testAmbiguous(tests: GrammarTestCases, source: Inputs.ConcreteSource) = {
+    private def testAmbiguous(tests: GrammarTestCases, source: Inputs.ConcreteSource): Unit = {
         log(s"testing ${tests.grammar.name} on ${source.toCleanString}")
         it should s"${tests.grammar.name} is ambiguous on '${source.toCleanString}'" in {
             parse(tests, source) match {
@@ -164,8 +163,10 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         testNGrammar(test.ngrammar)
         test.correctSampleInputs foreach { testCorrect(test, _) }
         test.incorrectSampleInputs foreach { testIncorrect(test, _) }
-        if (test.isInstanceOf[AmbiguousSamples]) test.asInstanceOf[AmbiguousSamples].ambiguousSampleInputs foreach {
-            testAmbiguous(test, _)
+        test match {
+            case samples: AmbiguousSamples =>
+                samples.ambiguousSampleInputs foreach { testAmbiguous(test, _) }
+            case _ =>
         }
     }
 }

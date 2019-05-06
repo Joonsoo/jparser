@@ -55,29 +55,29 @@ public class ExprGrammarSimpleParser {
   public String nodeDescriptionOf(int nodeId) {
     switch (nodeId) {
       case 0:
-        return "{•<start>}";
+        return "{\u2022<start>}";
       case 1:
-        return "{'('•E ')'}";
+        return "{'('\u2022E ')'}";
       case 2:
-        return "{T•'*' F|E•'+' T}";
+        return "{T\u2022'*' F|E\u2022'+' T}";
       case 3:
-        return "{{1-9}•{0-9}*|T•'*' F|E•'+' T}";
+        return "{{1-9}\u2022{0-9}*|T\u2022'*' F|E\u2022'+' T}";
       case 4:
-        return "{E•'+' T}";
+        return "{E\u2022'+' T}";
       case 5:
-        return "{T•'*' F}";
+        return "{T\u2022'*' F}";
       case 6:
-        return "{{1-9}•{0-9}*}";
+        return "{{1-9}\u2022{0-9}*}";
       case 7:
-        return "{{0-9}*•{0-9}}";
+        return "{{0-9}*\u2022{0-9}}";
       case 8:
-        return "{T '*'•F}";
+        return "{T '*'\u2022F}";
       case 9:
-        return "{'(' E•')'}";
+        return "{'(' E\u2022')'}";
       case 10:
-        return "{E '+'•T}";
+        return "{E '+'\u2022T}";
       case 11:
-        return "{{1-9}•{0-9}*|T•'*' F}";
+        return "{{1-9}\u2022{0-9}*|T\u2022'*' F}";
     }
     return null;
   }

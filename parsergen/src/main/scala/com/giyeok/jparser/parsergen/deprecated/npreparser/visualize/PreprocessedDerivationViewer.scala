@@ -1,33 +1,18 @@
-package com.giyeok.jparser.visualize
+package com.giyeok.jparser.parsergen.deprecated.npreparser.visualize
 
-import scala.collection.immutable.ListMap
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
-import com.giyeok.jparser.npreparser.DerivationPreprocessor
-import com.giyeok.jparser.visualize.utils.HorizontalResizableSplittedComposite
-import com.giyeok.jparser.visualize.utils.VerticalResizableSplittedComposite
-import org.eclipse.draw2d.ColorConstants
-import org.eclipse.draw2d.Figure
-import org.eclipse.draw2d.FigureCanvas
-import org.eclipse.draw2d.LineBorder
-import org.eclipse.draw2d.MouseListener
-import org.eclipse.draw2d.ToolbarLayout
+import com.giyeok.jparser.parsergen.deprecated.npreparser.DerivationPreprocessor
+import com.giyeok.jparser.visualize.NodeFigureGenerators
+import com.giyeok.jparser.visualize.utils.{HorizontalResizableSplittedComposite, VerticalResizableSplittedComposite}
+import org.eclipse.draw2d._
 import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.StackLayout
-import org.eclipse.swt.events.KeyEvent
-import org.eclipse.swt.events.KeyListener
-import org.eclipse.swt.events.SelectionListener
-import org.eclipse.swt.layout.FillLayout
-import org.eclipse.swt.layout.FormAttachment
-import org.eclipse.swt.layout.FormData
-import org.eclipse.swt.layout.FormLayout
-import org.eclipse.swt.widgets.Composite
-import org.eclipse.swt.widgets.Control
-import org.eclipse.swt.widgets.Display
-import org.eclipse.swt.widgets.List
-import org.eclipse.swt.widgets.Shell
+import org.eclipse.swt.events.{KeyEvent, KeyListener, SelectionListener}
+import org.eclipse.swt.layout.{FillLayout, FormAttachment, FormData, FormLayout}
+import org.eclipse.swt.widgets.{Composite, Control, Display, List, Shell}
 
 class PreprocessedDerivationViewer(grammar: Grammar, ngrammar: NGrammar,
         derivationPreprocessor: DerivationPreprocessor,

@@ -9,9 +9,9 @@ import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NSequence, NTerminal}
-import com.giyeok.jparser.parsergen.TermGrouper
 import com.giyeok.jparser.parsergen.deprecated.SimpleGen.{Action, ExistEdge, ExistGraph}
 import com.giyeok.jparser.parsergen.deprecated.SimpleGenGen.KAction
+import com.giyeok.jparser.parsergen.utils.TermGrouper
 
 object SimpleGenGen {
 
@@ -118,7 +118,7 @@ class SimpleGenGen(val grammar: NGrammar) {
         val (termNodes, termGroups) = consumableTerms(startKernels)
         (termGroups map { termGroup =>
             val acceptNodes = termNodes filter { termNode =>
-                grammar.symbolOf(termNode.symbolId).symbol.asInstanceOf[Terminal].accept(termGroup)
+                grammar.symbolOf(termNode.symbolId).symbol.asInstanceOf[Terminal].acceptTermGroup(termGroup)
             }
 
             val (reachable, appended, finishing) = influences(startKernels, acceptNodes)
