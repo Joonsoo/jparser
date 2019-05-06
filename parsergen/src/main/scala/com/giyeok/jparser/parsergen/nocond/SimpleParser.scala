@@ -37,6 +37,13 @@ class SimpleParser(val grammar: NGrammar,
                    // TODO empty string을 accept하는 경우를 위해 pendingFinish 초기값 필요
                    val termActions: Map[(Int, CharacterTermGroupDesc), SimpleParser.TermAction],
                    val edgeActions: Map[(Int, Int), SimpleParser.EdgeAction]) {
+
+    lazy val termActionsByNodeId: Map[Int, Map[CharacterTermGroupDesc, SimpleParser.TermAction]] =
+        termActions groupBy (_._1._1) mapValues (m => m map (p => p._1._2 -> p._2))
+
+    def acceptableTermsOf(nodeId: Int): Set[CharacterTermGroupDesc] =
+        termActionsByNodeId(nodeId).keySet
+
     def describe(): Unit = {
         nodes.toList.sortBy(_._1).foreach { kv =>
             val kernelIds = kv._2.sortedItems map (k => s"(${k.symbolId}, ${k.pointer})") mkString " "

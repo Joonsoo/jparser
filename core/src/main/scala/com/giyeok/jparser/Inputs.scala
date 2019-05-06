@@ -42,6 +42,13 @@ object Inputs {
 
     object CharacterTermGroupDesc {
         val empty: CharacterTermGroupDesc = CharsGroup(Set(), Set(), Set())
+
+        def merge(terms: Set[CharacterTermGroupDesc]): CharacterTermGroupDesc = {
+            if (terms.isEmpty) CharacterTermGroupDesc.empty else {
+                val head = terms.head
+                head + merge(terms - head)
+            }
+        }
     }
 
     sealed trait VirtualTermGroupDesc extends TermGroupDesc {
@@ -72,16 +79,16 @@ object Inputs {
                 other - excluding
         }
 
-        def contains(char: Char) = !(excluding contains char)
+        def contains(char: Char): Boolean = !(excluding contains char)
 
-        def toShortString: String = "AllCharsExcluding(" + (excluding.toShortString) + ")"
+        def toShortString: String = s"AllCharsExcluding(${excluding.toShortString})"
 
         def isEmpty = false
     }
 
-    case class CharsGroup(unicodeCategories: Set[Int], excludingChars: Set[Char], val chars: Set[Char]) extends CharacterTermGroupDesc {
+    case class CharsGroup(unicodeCategories: Set[Int], excludingChars: Set[Char], chars: Set[Char]) extends CharacterTermGroupDesc {
         assert((excludingChars intersect chars).isEmpty)
-        assert(excludingChars forall { c => (unicodeCategories contains c.getType) })
+        assert(excludingChars forall { c => unicodeCategories contains c.getType })
         assert(chars forall { c => !(unicodeCategories contains c.getType) })
 
         def +(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
@@ -89,11 +96,8 @@ object Inputs {
                 other + this
             case other: CharsGroup =>
                 val baseUnicodes = unicodeCategories ++ other.unicodeCategories
-                val excludings = (excludingChars filterNot {
-                    other contains _
-                }) ++ (other.excludingChars filterNot {
-                    this contains _
-                })
+                val excludings = (excludingChars filterNot other.contains) ++
+                    (other.excludingChars filterNot this.contains)
                 val chars = this.chars ++ other.chars
                 CharsGroup(baseUnicodes, excludings -- chars, chars filterNot {
                     baseUnicodes contains _.getType
@@ -108,11 +112,8 @@ object Inputs {
                 val excludings = (excludingChars ++ other.chars) filter {
                     baseUnicodes contains _.getType
                 }
-                val chars = (other.excludingChars filter {
-                    this contains _
-                }) ++ (this.chars filterNot {
-                    other contains _
-                })
+                val chars = (other.excludingChars filter this.contains) ++
+                    (this.chars filterNot other.contains)
                 CharsGroup(baseUnicodes, excludings, chars)
         }
 
@@ -124,15 +125,13 @@ object Inputs {
                 val excludings = (excludingChars ++ other.excludingChars) filter {
                     baseUnicodes contains _.getType
                 }
-                val chars = (this.chars filter {
-                    other contains _
-                }) ++ (other.chars filter {
-                    this contains _
-                })
+                val chars = (this.chars filter other.contains) ++
+                    (other.chars filter this.contains)
                 CharsGroup(baseUnicodes, excludings, chars)
         }
 
-        def contains(char: Char) = ((unicodeCategories contains char.getType) && !(excludingChars contains char)) || (chars contains char)
+        def contains(char: Char): Boolean =
+            ((unicodeCategories contains char.getType) && !(excludingChars contains char)) || (chars contains char)
 
         def toShortString: String = {
             var string = "CharsGroup("
@@ -155,7 +154,7 @@ object Inputs {
             string
         }
 
-        def isEmpty = unicodeCategories.isEmpty && chars.isEmpty
+        def isEmpty: Boolean = unicodeCategories.isEmpty && chars.isEmpty
     }
 
     implicit class CharsGrouping(chars: Set[Char]) {
@@ -193,9 +192,9 @@ object Inputs {
 
         def toShortString: String = virtualNames.toSeq.sorted mkString ","
 
-        def isEmpty = virtualNames.isEmpty
+        def isEmpty: Boolean = virtualNames.isEmpty
 
-        def contains(input: Input) = input match {
+        def contains(input: Input): Boolean = input match {
             case Character(_) => false
             case Virtual(name) => virtualNames contains name
             case _ => ???
@@ -207,7 +206,7 @@ object Inputs {
         import Symbols.Terminals._
 
         def descOf(term: CharacterTerminal): CharacterTermGroupDesc = term match {
-            case AnyChar => new AllCharsExcluding(CharsGroup(Set(), Set(), Set()))
+            case AnyChar => AllCharsExcluding(CharsGroup(Set(), Set(), Set()))
             case ExactChar(char) => CharsGroup(Set(), Set(), Set(char))
             case Chars(chars) => CharsGroup(Set(), Set(), chars)
             case Unicode(categories) => CharsGroup(categories, Set(), Set())

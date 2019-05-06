@@ -257,7 +257,7 @@ public class Array0GrammarParser {
     if (stack == null) {
       log("  .");
     } else {
-      log("  " + stackIds() + " " + stackDescription());
+      log("  " + stackIds() + "  pf=" + pendingFinish + "  " + stackDescription());
     }
   }
 
@@ -504,23 +504,26 @@ public class Array0GrammarParser {
     return parser.proceedEof();
   }
 
-  public static void main(String[] args) {
-    boolean succeed;
-
-    log("Test \"[a,a,a]\"");
-    succeed = parseVerbose("[a,a,a]");
+  private static void test(String input) {
+    log("Test \"" + input + "\"");
+    boolean succeed = parseVerbose(input);
     log("Parsing " + (succeed ? "succeeded" : "failed"));
+  }
 
+  private static void inputLoop() {
     java.util.Scanner scanner = new java.util.Scanner(System.in);
-    String input;
     while (true) {
       System.out.print("> ");
-      input = scanner.nextLine();
+      String input = scanner.nextLine();
       if (input.isEmpty()) break;
-      System.out.println("Input: \"" + input + "\"");
-      succeed = parseVerbose(input);
-      log("Parsing " + (succeed ? "succeeded" : "failed"));
+      test(input);
     }
     System.out.println("Bye~");
+  }
+
+  public static void main(String[] args) {
+    test("[a,a,a]");
+
+    inputLoop();
   }
 }

@@ -1775,7 +1775,7 @@ public class JsonParser {
     if (stack == null) {
       log("  .");
     } else {
-      log("  " + stackIds() + " " + stackDescription());
+      log("  " + stackIds() + "  pf=" + pendingFinish + "  " + stackDescription());
     }
   }
 
@@ -3638,11 +3638,13 @@ public class JsonParser {
     return parser.proceedEof();
   }
 
-  public static void main(String[] args) {
-    boolean succeed;
-
-    log("Test \"{\"abcd\": [\"hello\", 123, {\"xyz\": 1}]}\"");
-    succeed = parseVerbose("{\"abcd\": [\"hello\", 123, {\"xyz\": 1}]}");
+  private static void test(String input) {
+    log("Test \"" + input + "\"");
+    boolean succeed = parseVerbose(input);
     log("Parsing " + (succeed ? "succeeded" : "failed"));
+  }
+
+  public static void main(String[] args) {
+    test("{\"abcd\": [\"hello\", 123, {\"xyz\": 1}]}");
   }
 }

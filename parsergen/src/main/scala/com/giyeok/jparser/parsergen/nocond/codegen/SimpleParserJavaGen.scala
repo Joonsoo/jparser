@@ -3,48 +3,14 @@ package com.giyeok.jparser.parsergen.nocond.codegen
 import java.io.{File, PrintWriter}
 
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGrouping, TermGroupDesc}
-import com.giyeok.jparser.examples.{JsonGrammar, SimpleGrammars}
+import com.giyeok.jparser.examples.{ExpressionGrammars, JsonGrammar, SimpleGrammars}
 import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenUtils._
 import com.giyeok.jparser.parsergen.nocond.codegen.SimpleParserJavaGen.{InputLoop, MainFunc, NoMainFunc, TestInputs}
 import com.giyeok.jparser.parsergen.nocond.{SimpleParser, SimpleParserGen}
 import com.google.googlejavaformat.java.Formatter
 
 class SimpleParserJavaGen(val parser: SimpleParser) {
-    implicit def termGroupOrdering[A <: TermGroupDesc]: Ordering[A] = (x: A, y: A) => {
-        (x, y) match {
-            case (xx: CharsGroup, yy: CharsGroup) =>
-                xx.chars.min - yy.chars.min
-        }
-    }
-
-    private def javaChar(c: Char) = c match {
-        case '\n' => "\\n"
-        case '\r' => "\\r"
-        case '\t' => "\\t"
-        case '\\' => "\\\\"
-        // TODO finish
-        case c => c.toString
-    }
-
-    private def escapeToJavaString(str: String) =
-        str.replaceAllLiterally("\\", "\\\\").replaceAllLiterally("\"", "\\\"")
-
-    private def javaString(str: String) =
-        "\"" + escapeToJavaString(str) + "\""
-
-    private def charsToCondition(chars: Set[Char], varName: String): String =
-        chars.groups map { group =>
-            if (group._1 == group._2) s"($varName == '${javaChar(group._1)}')"
-            else s"('${javaChar(group._1)}' <= $varName && $varName <= '${javaChar(group._2)}')"
-        } mkString " || "
-
-    private def charGroupToCondition(charsGroup: CharsGroup, varName: String): String =
-        charsToCondition(charsGroup.chars, varName)
-
-    private def charGroupToCondition(termGroupDesc: CharacterTermGroupDesc, varName: String): String =
-        charGroupToCondition(termGroupDesc.asInstanceOf[CharsGroup], varName)
-
     def generateUnformattedJavaSource(pkgName: String, className: String, mainFunc: MainFunc): String = {
         // (nodeId, TermGroup) -> Action 의 형태를 (nodeId) -> (TermGroup -> Action) 으로 바꿈
         val termActions = (parser.termActions groupBy (_._1._1)
@@ -135,45 +101,46 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
                |    return false;""".stripMargin
         }
 
+        def mainTestFunc =
+            """private static void test(String input) {
+              |    log("Test \"" + input + "\"");
+              |    boolean succeed = parseVerbose(input);
+              |    log("Parsing " + (succeed? "succeeded":"failed"));
+              |}
+            """.stripMargin
+
+        def inputLoopFunc =
+            """private static void inputLoop() {
+              |    java.util.Scanner scanner = new java.util.Scanner(System.in);
+              |    while (true) {
+              |        System.out.print("> ");
+              |        String input = scanner.nextLine();
+              |        if (input.isEmpty()) break;
+              |        test(input);
+              |    }
+              |    System.out.println("Bye~");
+              |}
+            """.stripMargin
+
         val mainPart = mainFunc match {
             case NoMainFunc => ""
             case InputLoop(tests) =>
-                val testCodes = tests map { t =>
-                    s"""log("Test \\"${escapeToJavaString(t)}\\"");
-                       |succeed = parseVerbose(${javaString(t)});
-                       |log("Parsing " + (succeed? "succeeded":"failed"));
-                       |""".stripMargin
-                }
-                s"""
-                   |public static void main(String[] args) {
-                   |    boolean succeed;
+                val testCalls = tests map { t => s"test(${javaString(t)});" }
+                s"""$mainTestFunc
+                   |$inputLoopFunc
                    |
-                   |    ${testCodes mkString "\n"}
-                   |    java.util.Scanner scanner = new java.util.Scanner(System.in);
-                   |    String input;
-                   |    while (true) {
-                   |        System.out.print("> ");
-                   |        input = scanner.nextLine();
-                   |        if (input.isEmpty()) break;
-                   |        System.out.println("Input: \\"" + input + "\\"");
-                   |        succeed = parseVerbose(input);
-                   |        log("Parsing " + (succeed ? "succeeded" : "failed"));
-                   |    }
-                   |    System.out.println("Bye~");
+                   |public static void main(String[] args) {
+                   |    ${testCalls mkString "\n"}
+                   |
+                   |    inputLoop();
                    |}
                    |""".stripMargin
             case TestInputs(tests) =>
-                val testCodes = tests map { t =>
-                    s"""log("Test \\"${escapeToJavaString(t)}\\"");
-                       |succeed = parseVerbose(${javaString(t)});
-                       |log("Parsing " + (succeed? "succeeded":"failed"));
-                       |""".stripMargin
-                }
-                s"""
-                   |public static void main(String[] args) {
-                   |    boolean succeed;
+                val testCalls = tests map { t => s"test(${javaString(t)});" }
+                s"""$mainTestFunc
                    |
-                   |    ${testCodes mkString "\n"}
+                   |public static void main(String[] args) {
+                   |    ${testCalls mkString "\n"}
                    |}""".stripMargin
         }
 
@@ -285,7 +252,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |        if (stack == null) {
            |            log("  .");
            |        } else {
-           |            log("  " + stackIds() + " " + stackDescription());
+           |            log("  " + stackIds() + "  pf=" + pendingFinish + "  " + stackDescription());
            |        }
            |    }
            |
@@ -402,16 +369,21 @@ object SimpleParserJavaGen {
 
     case class TestInputs(tests: List[String]) extends MainFunc
 
-    def generate(grammar: Grammar, className: String, mainFunc: MainFunc): Unit = {
+    def generateParser(grammar: Grammar): SimpleParser = {
         val ngrammar = NGrammar.fromGrammar(grammar)
         ngrammar.describe()
         val parser = new SimpleParserGen(ngrammar).generateParser()
         parser.describe()
 
-        new SimpleParserJavaGen(parser).generateJavaSourceToDir(baseDir, pkgName, className, mainFunc)
+        parser
+    }
+
+    def generate(grammar: Grammar, className: String, mainFunc: MainFunc): Unit = {
+        new SimpleParserJavaGen(generateParser(grammar)).generateJavaSourceToDir(baseDir, pkgName, className, mainFunc)
     }
 
     def main(args: Array[String]): Unit = {
+        generate(ExpressionGrammars.simple, "ExprGrammarSimpleParser", InputLoop(List("123+456")))
         generate(SimpleGrammars.array0Grammar, "Array0GrammarParser", InputLoop(List("[a,a,a]")))
         generate(JsonGrammar.fromJsonOrg, "JsonParser", TestInputs(List(
             """{"abcd": ["hello", 123, {"xyz": 1}]}""")))

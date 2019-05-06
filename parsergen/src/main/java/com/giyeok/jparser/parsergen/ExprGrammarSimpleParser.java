@@ -14,17 +14,15 @@ public class ExprGrammarSimpleParser {
   private boolean verbose;
   private Stack stack;
   private int pendingFinish;
-  private boolean finished;
 
   public ExprGrammarSimpleParser(boolean verbose) {
     this.verbose = verbose;
     this.stack = new Stack(0, null);
     this.pendingFinish = -1;
-    this.finished = false;
   }
 
   public boolean canAccept(char c) {
-    if (finished) return false;
+    if (stack == null) return false;
     switch (stack.nodeId) {
       case 0:
         return (c == '(') || (c == '0') || ('1' <= c && c <= '9');
@@ -43,19 +41,13 @@ public class ExprGrammarSimpleParser {
       case 7:
         return ('0' <= c && c <= '9');
       case 8:
-        return (c == ')');
-      case 9:
         return (c == '(') || (c == '0') || ('1' <= c && c <= '9');
+      case 9:
+        return (c == ')');
       case 10:
-        return (c == '(') || (c == '*') || (c == '+') || (c == '0') || ('1' <= c && c <= '9');
+        return (c == '(') || (c == '0') || ('1' <= c && c <= '9');
       case 11:
         return (c == '*') || ('0' <= c && c <= '9');
-      case 12:
-        return (c == '(') || (c == '0') || ('1' <= c && c <= '9');
-      case 13:
-        return (c == '(') || (c == '0') || ('1' <= c && c <= '9');
-      case 14:
-        return (c == '(') || (c == '*') || (c == '0') || ('1' <= c && c <= '9');
     }
     throw new AssertionError("Unknown nodeId: " + stack.nodeId);
   }
@@ -65,33 +57,27 @@ public class ExprGrammarSimpleParser {
       case 0:
         return "{•<start>}";
       case 1:
-        return "{(•E )}";
+        return "{'('•E ')'}";
       case 2:
-        return "{T•* F | E•+ T}";
+        return "{T•'*' F|E•'+' T}";
       case 3:
-        return "{{1-9}•{0-9}* | T•* F | E•+ T}";
+        return "{{1-9}•{0-9}*|T•'*' F|E•'+' T}";
       case 4:
-        return "{E•+ T}";
+        return "{E•'+' T}";
       case 5:
-        return "{T•* F}";
+        return "{T•'*' F}";
       case 6:
         return "{{1-9}•{0-9}*}";
       case 7:
         return "{{0-9}*•{0-9}}";
       case 8:
-        return "{( E•)}";
+        return "{T '*'•F}";
       case 9:
-        return "{T *•F | E +•T}";
+        return "{'(' E•')'}";
       case 10:
-        return "{T•* F | T *•F | E•+ T | E +•T}";
+        return "{E '+'•T}";
       case 11:
-        return "{{1-9}•{0-9}* | T•* F}";
-      case 12:
-        return "{T *•F}";
-      case 13:
-        return "{E +•T}";
-      case 14:
-        return "{T•* F | T *•F}";
+        return "{{1-9}•{0-9}*|T•'*' F}";
     }
     return null;
   }
@@ -113,32 +99,20 @@ public class ExprGrammarSimpleParser {
     int prev = stack.prev.nodeId;
     int last = stack.nodeId;
     if (prev == 0 && last == 1) { // (0,1)
-      // ReplaceEdge(0,8,None)
-      replace(8);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 0 && last == 2) { // (0,2)
       // ReplaceEdge(0,9,None)
       replace(9);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 0 && last == 3) { // (0,3)
-      // ReplaceEdge(0,10,Some(0))
-      replace(10);
-      pendingFinish = 0;
-      return false;
-    }
     if (prev == 0 && last == 4) { // (0,4)
-      // ReplaceEdge(0,13,None)
-      replace(13);
+      // ReplaceEdge(0,10,None)
+      replace(10);
       pendingFinish = -1;
       return false;
     }
     if (prev == 0 && last == 5) { // (0,5)
-      // ReplaceEdge(0,12,None)
-      replace(12);
+      // ReplaceEdge(0,8,None)
+      replace(8);
       pendingFinish = -1;
       return false;
     }
@@ -161,18 +135,6 @@ public class ExprGrammarSimpleParser {
       return false;
     }
     if (prev == 0 && last == 10) { // (0,10)
-      // ReplaceEdge(0,10,Some(0))
-      replace(10);
-      pendingFinish = 0;
-      return false;
-    }
-    if (prev == 0 && last == 12) { // (0,12)
-      // ReplaceEdge(0,2,Some(0))
-      replace(2);
-      pendingFinish = 0;
-      return false;
-    }
-    if (prev == 0 && last == 13) { // (0,13)
       // ReplaceEdge(0,4,Some(0))
       replace(4);
       pendingFinish = 0;
@@ -183,27 +145,15 @@ public class ExprGrammarSimpleParser {
       dropLast();
       return true;
     }
-    if (prev == 1 && last == 2) { // (1,2)
-      // ReplaceEdge(1,9,None)
-      replace(9);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 1 && last == 3) { // (1,3)
-      // ReplaceEdge(1,10,Some(1))
-      replace(10);
-      pendingFinish = 1;
-      return false;
-    }
     if (prev == 1 && last == 4) { // (1,4)
-      // ReplaceEdge(1,13,None)
-      replace(13);
+      // ReplaceEdge(1,10,None)
+      replace(10);
       pendingFinish = -1;
       return false;
     }
     if (prev == 1 && last == 5) { // (1,5)
-      // ReplaceEdge(1,12,None)
-      replace(12);
+      // ReplaceEdge(1,8,None)
+      replace(8);
       pendingFinish = -1;
       return false;
     }
@@ -213,25 +163,13 @@ public class ExprGrammarSimpleParser {
       pendingFinish = 1;
       return false;
     }
-    if (prev == 1 && last == 9) { // (1,9)
+    if (prev == 1 && last == 8) { // (1,8)
       // ReplaceEdge(1,2,Some(1))
       replace(2);
       pendingFinish = 1;
       return false;
     }
     if (prev == 1 && last == 10) { // (1,10)
-      // ReplaceEdge(1,10,Some(1))
-      replace(10);
-      pendingFinish = 1;
-      return false;
-    }
-    if (prev == 1 && last == 12) { // (1,12)
-      // ReplaceEdge(1,2,Some(1))
-      replace(2);
-      pendingFinish = 1;
-      return false;
-    }
-    if (prev == 1 && last == 13) { // (1,13)
       // ReplaceEdge(1,4,Some(1))
       replace(4);
       pendingFinish = 1;
@@ -239,114 +177,53 @@ public class ExprGrammarSimpleParser {
     }
     if (prev == 6 && last == 7) { // (6,7)
       // ReplaceEdge(6,7,Some(6))
-      replace(7);
       pendingFinish = 6;
       return false;
     }
-    if (prev == 9 && last == 1) { // (9,1)
-      // ReplaceEdge(9,8,None)
-      replace(8);
+    if (prev == 8 && last == 1) { // (8,1)
+      // ReplaceEdge(8,9,None)
+      replace(9);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 9 && last == 5) { // (9,5)
-      // ReplaceEdge(13,12,None)
-      dropLast();
-      replace(13);
-      append(12);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 9 && last == 6) { // (9,6)
-      // ReplaceEdge(9,5,Some(9))
-      replace(5);
-      pendingFinish = 9;
-      return false;
-    }
-    if (prev == 9 && last == 8) { // (9,8)
-      // ReplaceEdge(9,5,Some(9))
-      replace(5);
-      pendingFinish = 9;
-      return false;
-    }
-    if (prev == 9 && last == 11) { // (9,11)
-      // ReplaceEdge(9,14,Some(9))
-      replace(14);
-      pendingFinish = 9;
-      return false;
-    }
-    if (prev == 9 && last == 12) { // (9,12)
-      // ReplaceEdge(13,5,Some(13))
-      dropLast();
-      replace(13);
-      append(5);
-      pendingFinish = 13;
-      return false;
-    }
-    if (prev == 9 && last == 14) { // (9,14)
-      // ReplaceEdge(13,14,Some(13))
-      dropLast();
-      replace(13);
-      append(14);
-      pendingFinish = 13;
-      return false;
-    }
-    if (prev == 12 && last == 1) { // (12,1)
-      // ReplaceEdge(12,8,None)
-      replace(8);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 12 && last == 6) { // (12,6)
-      // DropLast(12)
+    if (prev == 8 && last == 6) { // (8,6)
+      // DropLast(8)
       dropLast();
       return true;
     }
-    if (prev == 12 && last == 8) { // (12,8)
-      // DropLast(12)
+    if (prev == 8 && last == 9) { // (8,9)
+      // DropLast(8)
       dropLast();
       return true;
     }
-    if (prev == 13 && last == 1) { // (13,1)
-      // ReplaceEdge(13,8,None)
+    if (prev == 10 && last == 1) { // (10,1)
+      // ReplaceEdge(10,9,None)
+      replace(9);
+      pendingFinish = -1;
+      return false;
+    }
+    if (prev == 10 && last == 5) { // (10,5)
+      // ReplaceEdge(10,8,None)
       replace(8);
       pendingFinish = -1;
       return false;
     }
-    if (prev == 13 && last == 5) { // (13,5)
-      // ReplaceEdge(13,12,None)
-      replace(12);
-      pendingFinish = -1;
-      return false;
-    }
-    if (prev == 13 && last == 6) { // (13,6)
-      // ReplaceEdge(13,5,Some(13))
+    if (prev == 10 && last == 6) { // (10,6)
+      // ReplaceEdge(10,5,Some(10))
       replace(5);
-      pendingFinish = 13;
+      pendingFinish = 10;
       return false;
     }
-    if (prev == 13 && last == 8) { // (13,8)
-      // ReplaceEdge(13,5,Some(13))
+    if (prev == 10 && last == 8) { // (10,8)
+      // ReplaceEdge(10,5,Some(10))
       replace(5);
-      pendingFinish = 13;
+      pendingFinish = 10;
       return false;
     }
-    if (prev == 13 && last == 11) { // (13,11)
-      // ReplaceEdge(13,14,Some(13))
-      replace(14);
-      pendingFinish = 13;
-      return false;
-    }
-    if (prev == 13 && last == 12) { // (13,12)
-      // ReplaceEdge(13,5,Some(13))
+    if (prev == 10 && last == 9) { // (10,9)
+      // ReplaceEdge(10,5,Some(10))
       replace(5);
-      pendingFinish = 13;
-      return false;
-    }
-    if (prev == 13 && last == 14) { // (13,14)
-      // ReplaceEdge(13,14,Some(13))
-      replace(14);
-      pendingFinish = 13;
+      pendingFinish = 10;
       return false;
     }
     throw new AssertionError("Unknown edge to finish: " + stackIds());
@@ -357,11 +234,9 @@ public class ExprGrammarSimpleParser {
       return false;
     }
     while (finishStep()) {
-      if (verbose) {
-        printStack();
-      }
+      if (verbose) printStack();
       if (stack.prev == null) {
-        finished = true;
+        stack = null;
         return false;
       }
     }
@@ -373,6 +248,9 @@ public class ExprGrammarSimpleParser {
   }
 
   public String stackIds() {
+    if (stack == null) {
+      return ".";
+    }
     return stackIds(stack);
   }
 
@@ -382,6 +260,9 @@ public class ExprGrammarSimpleParser {
   }
 
   public String stackDescription() {
+    if (stack == null) {
+      return ".";
+    }
     return stackDescription(stack);
   }
 
@@ -395,33 +276,29 @@ public class ExprGrammarSimpleParser {
   }
 
   private void printStack() {
-    log("  " + stackIds() + " " + stackDescription());
+    if (stack == null) {
+      log("  .");
+    } else {
+      log("  " + stackIds() + "  pf=" + pendingFinish + "  " + stackDescription());
+    }
   }
 
   public boolean proceed(char c) {
-    if (finished) {
-      if (verbose) {
-        log("  - already finished");
-      }
+    if (stack == null) {
+      if (verbose) log("  - already finished");
       return false;
     }
     if (!canAccept(c)) {
-      if (verbose) {
-        log("  - cannot accept " + c + ", try pendingFinish");
-      }
+      if (verbose) log("  - cannot accept " + c + ", try pendingFinish");
       if (pendingFinish == -1) {
-        if (verbose) {
-          log("  - pendingFinish unavailable, proceed failed");
-        }
+        if (verbose) log("  - pendingFinish unavailable, proceed failed");
         return false;
       }
       dropLast();
       if (stack.nodeId != pendingFinish) {
         replace(pendingFinish);
       }
-      if (verbose) {
-        printStack();
-      }
+      if (verbose) printStack();
       if (!finish()) {
         return false;
       }
@@ -552,74 +429,54 @@ public class ExprGrammarSimpleParser {
         }
         return false;
       case 8:
-        if ((c == ')')) {
-          // Finish(8)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 9:
         if ((c == '(')) {
-          // Append(9,1,None)
+          // Append(8,1,None)
           append(1);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
         if ((c == '0')) {
-          // Append(9,5,Some(9))
-          append(5);
-          pendingFinish = 9;
+          // Finish(8)
+          finish();
           if (verbose) printStack();
           return true;
         }
         if (('1' <= c && c <= '9')) {
-          // Append(9,11,Some(9))
-          append(11);
-          pendingFinish = 9;
+          // Append(8,6,Some(8))
+          append(6);
+          pendingFinish = 8;
+          if (verbose) printStack();
+          return true;
+        }
+        return false;
+      case 9:
+        if ((c == ')')) {
+          // Finish(9)
+          finish();
           if (verbose) printStack();
           return true;
         }
         return false;
       case 10:
         if ((c == '(')) {
-          // Append(9,1,None)
-          replace(9);
+          // Append(10,1,None)
           append(1);
           pendingFinish = -1;
           if (verbose) printStack();
           return true;
         }
-        if ((c == '*')) {
-          // Finish(5)
-          replace(5);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '+')) {
-          // Finish(4)
-          replace(4);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
         if ((c == '0')) {
-          // Append(9,5,Some(9))
-          replace(9);
+          // Append(10,5,Some(10))
           append(5);
-          pendingFinish = 9;
+          pendingFinish = 10;
           if (verbose) printStack();
           return true;
         }
         if (('1' <= c && c <= '9')) {
-          // Append(9,11,Some(9))
-          replace(9);
+          // Append(10,11,Some(10))
           append(11);
-          pendingFinish = 9;
+          pendingFinish = 10;
           if (verbose) printStack();
           return true;
         }
@@ -642,123 +499,37 @@ public class ExprGrammarSimpleParser {
           return true;
         }
         return false;
-      case 12:
-        if ((c == '(')) {
-          // Append(12,1,None)
-          append(1);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '0')) {
-          // Finish(12)
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Append(12,6,Some(12))
-          append(6);
-          pendingFinish = 12;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 13:
-        if ((c == '(')) {
-          // Append(13,1,None)
-          append(1);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '0')) {
-          // Append(13,5,Some(13))
-          append(5);
-          pendingFinish = 13;
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Append(13,11,Some(13))
-          append(11);
-          pendingFinish = 13;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
-      case 14:
-        if ((c == '(')) {
-          // Append(12,1,None)
-          replace(12);
-          append(1);
-          pendingFinish = -1;
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '*')) {
-          // Finish(5)
-          replace(5);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if ((c == '0')) {
-          // Finish(12)
-          replace(12);
-          if (verbose) printStack();
-          finish();
-          if (verbose) printStack();
-          return true;
-        }
-        if (('1' <= c && c <= '9')) {
-          // Append(12,6,Some(12))
-          replace(12);
-          append(6);
-          pendingFinish = 12;
-          if (verbose) printStack();
-          return true;
-        }
-        return false;
     }
     throw new AssertionError("Unknown nodeId: " + stack.nodeId);
   }
 
   public boolean proceedEof() {
-    if (finished) {
-      if (verbose) {
-        log("  - already finished");
-        return true;
-      }
+    if (stack == null) {
+      if (verbose) log("  - already finished");
+      return true;
     }
     if (pendingFinish == -1) {
       if (stack.prev == null && stack.nodeId == 0) {
         return true;
       }
-      if (verbose) {
-        log("  - pendingFinish unavailable, proceedEof failed");
-      }
+      if (verbose) log("  - pendingFinish unavailable, proceedEof failed");
       return false;
     }
     dropLast();
     if (stack.nodeId != pendingFinish) {
       replace(pendingFinish);
     }
+    if (verbose) printStack();
     while (stack.prev != null) {
       boolean finishNeeded = finishStep();
-      if (verbose) {
-        printStack();
-      }
+      if (verbose) printStack();
       if (!finishNeeded) {
         if (pendingFinish == -1) {
           return false;
         }
         dropLast();
         replace(pendingFinish);
-        if (verbose) {
-          printStack();
-        }
+        if (verbose) printStack();
       }
     }
     return true;
@@ -786,8 +557,26 @@ public class ExprGrammarSimpleParser {
     return parser.proceedEof();
   }
 
-  public static void main(String[] args) {
-    boolean succeed = parseVerbose("123+456");
+  private static void test(String input) {
+    log("Test \"" + input + "\"");
+    boolean succeed = parseVerbose(input);
     log("Parsing " + (succeed ? "succeeded" : "failed"));
+  }
+
+  private static void inputLoop() {
+    java.util.Scanner scanner = new java.util.Scanner(System.in);
+    while (true) {
+      System.out.print("> ");
+      String input = scanner.nextLine();
+      if (input.isEmpty()) break;
+      test(input);
+    }
+    System.out.println("Bye~");
+  }
+
+  public static void main(String[] args) {
+    test("123+456");
+
+    inputLoop();
   }
 }
