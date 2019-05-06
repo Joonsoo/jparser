@@ -3,10 +3,7 @@ package com.giyeok.jparser.parsergen.nocond
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.nparser.NGrammar
 
-case class NodePath(nodes: Seq[Int])
-
 case class DisambigNode(paths: Seq[NodePath]) {
-
 }
 
 object DisambigParser {
