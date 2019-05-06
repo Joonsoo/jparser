@@ -57,15 +57,15 @@ class SimpleParserRunner(val simpleParser: SimpleParser) {
     }
 
     case class SucceededContext(lastNodeId: Int) extends Context {
-        override def proceed(c: Char): Context = FailedContext(CharacterTermGroupDesc.empty, c)
+        def proceed(c: Char): Context = FailedContext(CharacterTermGroupDesc.empty, c)
 
-        override def proceedEof(): Context = this
+        def proceedEof(): Context = this
     }
 
     case class FailedContext(expected: CharacterTermGroupDesc, actual: Char) extends Context {
-        override def proceed(c: Char): Context = this
+        def proceed(c: Char): Context = this
 
-        override def proceedEof(): Context = this
+        def proceedEof(): Context = this
     }
 
     case class ActiveContext(stack: Stack, pendingFinish: Option[Int]) extends Context {
@@ -75,7 +75,7 @@ class SimpleParserRunner(val simpleParser: SimpleParser) {
                 ActiveContext(stack.replaceTop(replace).append(append), pF)
         }
 
-        def applyPendingFin: Context = stack.pop().finish()
+        def applyPendingFin: Context = stack.pop().replaceTop(pendingFinish.get).finish()
 
         override def proceed(c: Char): Context = {
             val termActions = simpleParser.termActionsByNodeId(stack.nodeId)
@@ -90,7 +90,7 @@ class SimpleParserRunner(val simpleParser: SimpleParser) {
         def proceed(string: String): Context =
             string.foldLeft(this.asInstanceOf[Context])(_ proceed _)
 
-        override def proceedEof(): Context = {
+        def proceedEof(): Context = {
             def repeatFinish(ctx: Context): Context = ctx match {
                 case ctx: ActiveContext => repeatFinish(ctx.stack.finish().proceedEof())
                 case _ => ctx
@@ -122,7 +122,7 @@ object SimpleParserRunner {
     def main(args: Array[String]): Unit = {
         val parser = SimpleParserJavaGen.generateParser(SimpleGrammars.array0Grammar)
         val runner = new SimpleParserRunner(parser)
-        val input = "[a,a,a]"
+        val input = "[a  ]"
         input.foldLeft(runner.initialContext.asInstanceOf[runner.Context]) { (ctx, c) =>
             println(s"Proceed $c")
             val nextCtx = ctx.proceed(c)

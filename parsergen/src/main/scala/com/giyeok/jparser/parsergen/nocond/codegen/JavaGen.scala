@@ -1,6 +1,30 @@
 package com.giyeok.jparser.parsergen.nocond.codegen
 
+import java.io.{File, PrintWriter}
+
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGrouping, TermGroupDesc}
+import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenTemplates.MainFunc
+import com.google.googlejavaformat.java.Formatter
+
+trait JavaParserGenerator {
+    def generateUnformattedJavaSource(pkgName: String, className: String, mainFunc: MainFunc): String
+
+    def generateJavaSource(pkgName: String, className: String, mainFunc: MainFunc): String =
+        new Formatter().formatSource(generateUnformattedJavaSource(pkgName, className, mainFunc))
+
+    def generateJavaSourceToFile(file: File, pkgName: String, className: String, mainFunc: MainFunc): Unit = {
+        val writer = new PrintWriter(file)
+        writer.write(generateJavaSource(pkgName, className, mainFunc))
+        writer.close()
+    }
+
+    def generateJavaSourceToDir(baseDir: File, pkgName: String, className: String, mainFunc: MainFunc): Unit = {
+        val file = new File(baseDir, (pkgName.split("\\.") :+ className + ".java").mkString(File.separator))
+        println(s"generate parser to ${file.getAbsolutePath}")
+        generateJavaSourceToFile(file, pkgName, className, mainFunc)
+    }
+
+}
 
 object JavaGenUtils {
     implicit def termGroupOrdering[A <: TermGroupDesc]: Ordering[A] = (x: A, y: A) => {

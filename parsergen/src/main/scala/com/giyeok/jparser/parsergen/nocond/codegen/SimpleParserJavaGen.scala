@@ -1,6 +1,6 @@
 package com.giyeok.jparser.parsergen.nocond.codegen
 
-import java.io.{File, PrintWriter}
+import java.io.File
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.examples.{ExpressionGrammars, JsonGrammar, SimpleGrammars}
@@ -9,9 +9,8 @@ import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenTemplates.{InputLoop, MainFunc, TestInputs}
 import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenUtils._
 import com.giyeok.jparser.parsergen.nocond.{SimpleParser, SimpleParserGen}
-import com.google.googlejavaformat.java.Formatter
 
-class SimpleParserJavaGen(val parser: SimpleParser) {
+class SimpleParserJavaGen(val parser: SimpleParser) extends JavaParserGenerator {
     def generateUnformattedJavaSource(pkgName: String, className: String, mainFunc: MainFunc): String = {
         // (nodeId, TermGroup) -> Action 의 형태를 (nodeId) -> (TermGroup -> Action) 으로 바꿈
         val termActions = (parser.termActions groupBy (_._1._1)
@@ -152,21 +151,6 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |
            |    ${JavaGenTemplates.mainFunc(mainFunc)}
            |}""".stripMargin
-    }
-
-    def generateJavaSource(pkgName: String, className: String, mainFunc: MainFunc): String =
-        new Formatter().formatSource(generateUnformattedJavaSource(pkgName, className, mainFunc))
-
-    def generateJavaSourceToFile(file: File, pkgName: String, className: String, mainFunc: MainFunc): Unit = {
-        val writer = new PrintWriter(file)
-        writer.write(generateJavaSource(pkgName, className, mainFunc))
-        writer.close()
-    }
-
-    def generateJavaSourceToDir(baseDir: File, pkgName: String, className: String, mainFunc: MainFunc): Unit = {
-        val file = new File(baseDir, (pkgName.split("\\.") :+ className + ".java").mkString(File.separator))
-        println(s"generate parser to ${file.getAbsolutePath}")
-        generateJavaSourceToFile(file, pkgName, className, mainFunc)
     }
 }
 

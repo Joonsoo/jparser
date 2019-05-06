@@ -19,16 +19,20 @@ object DisambigParser {
     // PopAndReplace 액션에도 append가 필요한가?
     case class PopAndReplace(popCount: Int, replace: Int, pendingFinish: Option[Int]) extends TermAction
 
+    case class ReplaceToSeq(replace: List[Int], pendingFinish: Option[Int]) extends TermAction
+
     sealed trait EdgeAction
 
     case class DropLast(replace: Int) extends EdgeAction
 
     case class ReplaceEdge(replacePrev: Int, replaceLast: Int, pendingFinish: Option[Int]) extends EdgeAction
 
+    case class PopAndReplaceForEdge(popCount: Int, replace: Int, pendingFinish: Option[Int]) extends EdgeAction
+
 }
 
 // DisambigParser는 NodePathSet이 노드
-// grammar, simpleParser, kernelSetNodeRelInferer, disambigNodeRelInferer는 모두 참고용
+// grammar, simpleParser, kernelSetNodes, kernelSetNodeRelInferer, disambigNodeRelInferer는 모두 참고용
 class DisambigParser(val grammar: NGrammar,
                      val simpleParser: SimpleParser,
                      // simpleParser.nodes 외에 추가적인 kernelSet 노드들
@@ -40,18 +44,19 @@ class DisambigParser(val grammar: NGrammar,
                      val disambigNodeRelInferer: DisambigNodeRelInferer,
                      val startNodeId: Int,
                      val termActions: Map[(Int, CharacterTermGroupDesc), DisambigParser.TermAction],
-                     val edgeActions: Map[(Int, CharacterTermGroupDesc), DisambigParser.EdgeAction]) {
+                     val edgeActions: Map[(Int, Int), DisambigParser.EdgeAction]) {
     val baseKernelSetNodes: Map[Int, AKernelSet] = simpleParser.nodes
 
-    // SimpleParser에 새로운 노드를 추가해서 DisambigParser를 만들다 보면 불필요한 노드가 남아있을 수 있음.
-    // 그런 불필요한 노드들을 지워서 경량화한 DisambigParser를 반환한다. (단, simpleParser의 내용은 바꾸지 않음)
+    // SimpleParser에 새로운 노드를 추가해서 DisambigParser를 만들다 보면 불필요한 노드가 생길 수 있는데 DisambigParserGen은
+    // 이런 불필요한 노드들을 정리해주지 않음. 그런 불필요한 노드들을 지워서 경량화한 DisambigParser를 반환한다.
+    // 단, simpleParser의 내용은 바꾸지 않는다.
     def trim(): DisambigParser = {
         ???
     }
-}
 
-class DisambigParserGen(val simpleParser: SimpleParser) {
-    def this(grammar: NGrammar) = this(new SimpleParserGen(grammar).generateParser())
+    lazy val termActionsByNodeId: Map[Int, Map[CharacterTermGroupDesc, DisambigParser.TermAction]] =
+        termActions groupBy (_._1._1) mapValues (m => m map (p => p._1._2 -> p._2))
 
-    def generateParser(): DisambigParser = ???
+    def acceptableTermsOf(nodeId: Int): Set[CharacterTermGroupDesc] =
+        termActionsByNodeId(nodeId).keySet
 }
