@@ -196,5 +196,7 @@ object SimpleParserJavaGen {
             "SuperSimpleGrammar", TestInputs(List("xy", "xay", "xaby")))
         generate(JsonGrammar.fromJsonOrg, "JsonParser", InputLoop(List(
             """{"abcd": ["hello", 123, {"xyz": 1}]}""")))
+        generate(JsonGrammar.custom, "CustomJsonParser", InputLoop(List(
+            """{"abcd": ["hello", 123, {"xyz": 1}]}""")))
     }
 }

@@ -44,4 +44,20 @@ object JsonGrammar {
         .example("""123""")
         .example("""{"abc":"def"}""")
 
+    val custom: GrammarWithExamples = GrammarWithExamples(MetaGrammar.translateForce(
+        "JSON custom simple",
+        """Json = WS Elem WS
+          |Elem = Object | Array | String | Number | "true" | "false" | "null"
+          |Object = '{' WS '}' | '{' WS ObjectPair [WS ',' WS ObjectPair]* WS '}'
+          |ObjectPair = String WS ':' WS Elem
+          |Array = '[' WS ']' | '[' WS Elem [WS ',' WS Elem]* WS ']'
+          |
+          |String = '"' Char* '"'
+          |Char = {0-9a-zA-Z } | '\\' ({"\\/bnrt} | ['u' hex hex hex hex])*
+          |Number = int ['.' {0-9}+]? [{Ee} {+\-}? {0-9}+]?
+          |int = '-'? ({0-9} | [{1-9} {0-9}+])
+          |hex = {0-9A-Fa-f}
+          |WS = {\u0009\u000a\u000d\u0020}*""".stripMargin))
+        .example("""123""")
+        .example("""{"abc": "def" }""")
 }
