@@ -10,13 +10,17 @@ object JavaGenUtils {
         }
     }
 
+    def isPrintableChar(char: Char): Boolean = {
+        val block = Character.UnicodeBlock.of(char)
+        (!Character.isISOControl(char)) && block != null && block != Character.UnicodeBlock.SPECIALS
+    }
+
     def javaChar(char: Char): String = char match {
         case '\n' => "\\n"
         case '\r' => "\\r"
         case '\t' => "\\t"
         case '\\' => "\\\\"
-        // TODO finish
-        case c if (c.toInt < 32 || c.toInt > 126) && c.toInt < 65536 =>
+        case c if !isPrintableChar(c) && c.toInt < 65536 =>
             val c1 = (c.toInt >> 8) % 256
             val c2 = c.toInt % 256
             val hexChars = "0123456789abcdef"
@@ -25,7 +29,7 @@ object JavaGenUtils {
     }
 
     def escapeToJavaString(str: String): String =
-        str.flatMap(javaChar).replaceAllLiterally("\"", "\\\"")
+        (str flatMap javaChar).replaceAllLiterally("\"", "\\\"")
 
     def javaString(str: String): String =
         "\"" + escapeToJavaString(str) + "\""

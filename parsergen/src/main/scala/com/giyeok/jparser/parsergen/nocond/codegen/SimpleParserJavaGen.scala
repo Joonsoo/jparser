@@ -4,6 +4,7 @@ import java.io.{File, PrintWriter}
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.examples.{ExpressionGrammars, JsonGrammar, SimpleGrammars}
+import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenUtils._
 import com.giyeok.jparser.parsergen.nocond.codegen.SimpleParserJavaGen.{InputLoop, MainFunc, NoMainFunc, TestInputs}
@@ -190,8 +191,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |        stack = new Stack(newNodeId, stack);
            |    }
            |
-           |    // false를 리턴하면 더이상 finishStep을 하지 않아도 되는 상황
-           |    // true를 리턴하면 finishStep을 계속 해야하는 상황
+           |    // Returns true if further finishStep is required
            |    private boolean finishStep() {
            |        if (stack == null || stack.prev == null) {
            |            throw new AssertionError("No edge to finish: " + stackIds());
@@ -383,6 +383,8 @@ object SimpleParserJavaGen {
     }
 
     def main(args: Array[String]): Unit = {
+        generate(MetaGrammar.translateForce("X", "S = T*\nT = 'a'+|'b'+"),
+            "LongestParser", InputLoop(List()))
         generate(ExpressionGrammars.simple, "ExprGrammarSimpleParser", InputLoop(List("123+456")))
         generate(SimpleGrammars.array0Grammar, "Array0GrammarParser", InputLoop(List("[a,a,a]")))
         generate(JsonGrammar.fromJsonOrg, "JsonParser", TestInputs(List(

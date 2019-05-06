@@ -53,39 +53,39 @@ public class Array0GrammarParser {
   public String nodeDescriptionOf(int nodeId) {
     switch (nodeId) {
       case 0:
-        return "{\u2022<start>}";
+        return "{•<start>}";
       case 1:
-        return "{'['\u2022([WS E ([WS ',' WS E])*])? WS ']'|'[' ([WS E ([WS ',' WS E])*])?\u2022WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS\u2022']'}";
+        return "{'['•([WS E ([WS ',' WS E])*])? WS ']'|'[' ([WS E ([WS ',' WS E])*])?•WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS•']'}";
       case 2:
-        return "{'['\u2022([WS E ([WS ',' WS E])*])? WS ']'}";
+        return "{'['•([WS E ([WS ',' WS E])*])? WS ']'}";
       case 3:
-        return "{WS E\u2022([WS ',' WS E])*}";
+        return "{WS E•([WS ',' WS E])*}";
       case 4:
-        return "{'[' ([WS E ([WS ',' WS E])*])? WS\u2022']'}";
+        return "{'[' ([WS E ([WS ',' WS E])*])? WS•']'}";
       case 5:
-        return "{'['\u2022([WS E ([WS ',' WS E])*])? WS ']'|'[' ([WS E ([WS ',' WS E])*])?\u2022WS ']'}";
+        return "{'['•([WS E ([WS ',' WS E])*])? WS ']'|'[' ([WS E ([WS ',' WS E])*])?•WS ']'}";
       case 6:
-        return "{WS\u2022E ([WS ',' WS E])*|'\\u0020'*\u2022'\\u0020'}";
+        return "{WS•E ([WS ',' WS E])*|'\\u0020'*•'\\u0020'}";
       case 7:
-        return "{'[' ([WS E ([WS ',' WS E])*])?\u2022WS ']'}";
+        return "{'[' ([WS E ([WS ',' WS E])*])?•WS ']'}";
       case 8:
-        return "{WS ','\u2022WS E|WS ',' WS\u2022E}";
+        return "{WS ','•WS E|WS ',' WS•E}";
       case 9:
-        return "{'\\u0020'*\u2022'\\u0020'|WS\u2022',' WS E}";
+        return "{'\\u0020'*•'\\u0020'|WS•',' WS E}";
       case 10:
-        return "{WS\u2022E ([WS ',' WS E])*}";
+        return "{WS•E ([WS ',' WS E])*}";
       case 11:
-        return "{'\\u0020'*\u2022'\\u0020'}";
+        return "{'\\u0020'*•'\\u0020'}";
       case 12:
-        return "{'[' ([WS E ([WS ',' WS E])*])?\u2022WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS\u2022']'}";
+        return "{'[' ([WS E ([WS ',' WS E])*])?•WS ']'|'[' ([WS E ([WS ',' WS E])*])? WS•']'}";
       case 13:
-        return "{WS ',' WS\u2022E}";
+        return "{WS ',' WS•E}";
       case 14:
-        return "{WS ','\u2022WS E}";
+        return "{WS ','•WS E}";
       case 15:
-        return "{WS\u2022',' WS E}";
+        return "{WS•',' WS E}";
       case 16:
-        return "{([WS ',' WS E])*\u2022([WS ',' WS E])}";
+        return "{([WS ',' WS E])*•([WS ',' WS E])}";
     }
     return null;
   }
@@ -98,8 +98,7 @@ public class Array0GrammarParser {
     stack = new Stack(newNodeId, stack);
   }
 
-  // false를 리턴하면 더이상 finishStep을 하지 않아도 되는 상황
-  // true를 리턴하면 finishStep을 계속 해야하는 상황
+  // Returns true if further finishStep is required
   private boolean finishStep() {
     if (stack == null || stack.prev == null) {
       throw new AssertionError("No edge to finish: " + stackIds());

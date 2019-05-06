@@ -3,6 +3,8 @@ version in ThisBuild := "0.1"
 scalaVersion in ThisBuild := "2.12.5"
 crossPaths in ThisBuild := false
 
+javacOptions ++= Seq("-encoding", "UTF-8")
+
 lazy val testDeps = {
     val scalactic: ModuleID = "org.scalactic" %% "scalactic" % "3.0.1" % "test"
     val scalatest: ModuleID = "org.scalatest" %% "scalatest" % "3.0.1" % "test"

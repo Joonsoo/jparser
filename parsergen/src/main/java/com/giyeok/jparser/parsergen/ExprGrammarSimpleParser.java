@@ -55,29 +55,29 @@ public class ExprGrammarSimpleParser {
   public String nodeDescriptionOf(int nodeId) {
     switch (nodeId) {
       case 0:
-        return "{\u2022<start>}";
+        return "{•<start>}";
       case 1:
-        return "{'('\u2022E ')'}";
+        return "{'('•E ')'}";
       case 2:
-        return "{T\u2022'*' F|E\u2022'+' T}";
+        return "{T•'*' F|E•'+' T}";
       case 3:
-        return "{{1-9}\u2022{0-9}*|T\u2022'*' F|E\u2022'+' T}";
+        return "{{1-9}•{0-9}*|T•'*' F|E•'+' T}";
       case 4:
-        return "{E\u2022'+' T}";
+        return "{E•'+' T}";
       case 5:
-        return "{T\u2022'*' F}";
+        return "{T•'*' F}";
       case 6:
-        return "{{1-9}\u2022{0-9}*}";
+        return "{{1-9}•{0-9}*}";
       case 7:
-        return "{{0-9}*\u2022{0-9}}";
+        return "{{0-9}*•{0-9}}";
       case 8:
-        return "{T '*'\u2022F}";
+        return "{T '*'•F}";
       case 9:
-        return "{'(' E\u2022')'}";
+        return "{'(' E•')'}";
       case 10:
-        return "{E '+'\u2022T}";
+        return "{E '+'•T}";
       case 11:
-        return "{{1-9}\u2022{0-9}*|T\u2022'*' F}";
+        return "{{1-9}•{0-9}*|T•'*' F}";
     }
     return null;
   }
@@ -90,8 +90,7 @@ public class ExprGrammarSimpleParser {
     stack = new Stack(newNodeId, stack);
   }
 
-  // false를 리턴하면 더이상 finishStep을 하지 않아도 되는 상황
-  // true를 리턴하면 finishStep을 계속 해야하는 상황
+  // Returns true if further finishStep is required
   private boolean finishStep() {
     if (stack == null || stack.prev == null) {
       throw new AssertionError("No edge to finish: " + stackIds());
