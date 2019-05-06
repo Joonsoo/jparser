@@ -6,7 +6,7 @@ import com.giyeok.jparser.parsergen.nocond.codegen.SimpleParserJavaGen
 
 // path는 맨 뒤가 stack top
 case class NodePath(nodes: List[Int]) {
-    def top = nodes.last
+    def top: Int = nodes.last
 
     def prepend(node: Int) = NodePath(node +: nodes)
 
@@ -17,26 +17,26 @@ case class NodePath(nodes: List[Int]) {
     def replaceLast(replace: Int) = NodePath(nodes.init :+ replace)
 }
 
-case class FinishablePaths(paths: Seq[NodePath]) {
-    def prependNode(node: Int) = FinishablePaths(paths map (_.prepend(node)))
+case class NodePathSet(paths: Seq[NodePath]) {
+    def prependNode(node: Int) = NodePathSet(paths map (_.prepend(node)))
 
-    def addPath(newPath: NodePath) = FinishablePaths(paths :+ newPath)
+    def addPath(newPath: NodePath) = NodePathSet(paths :+ newPath)
 
     // paths 중에 맨 앞에 공통적으로 있는 node들 추려서 _1로, 남는 부분은 _2로 반환
-    def maxCommonPaths: (NodePath, FinishablePaths) = {
+    def maxCommonPaths: (NodePath, NodePathSet) = {
         ???
     }
 }
 
 class SimpleParserFinishSimulator(val parser: SimpleParser) {
-    private def traverse(head: Int, replace: Int, paths: FinishablePaths, cc: Seq[FinishablePaths]): Seq[FinishablePaths] = {
+    private def traverse(head: Int, replace: Int, pathSet: NodePathSet, cc: Seq[NodePathSet]): Seq[NodePathSet] = {
         val prevs = parser.nodeRelInferer.prevOf(head).toSeq.sorted
         prevs flatMap { prev =>
             parser.edgeActions(prev -> replace) match {
                 case SimpleParser.DropLast(replacePrev) =>
-                    traverse(prev, replacePrev, paths.prependNode(prev), cc)
+                    traverse(prev, replacePrev, pathSet.prependNode(prev), cc)
                 case SimpleParser.ReplaceEdge(replacePrev, replaceLast, pendingFinish) =>
-                    val newPaths = paths.prependNode(prev).addPath(NodePath(List(replacePrev, replaceLast)))
+                    val newPaths = pathSet.prependNode(prev).addPath(NodePath(List(replacePrev, replaceLast)))
                     val newCC = cc :+ newPaths
                     pendingFinish match {
                         case Some(pF) =>
@@ -47,26 +47,35 @@ class SimpleParserFinishSimulator(val parser: SimpleParser) {
         }
     }
 
-    def simulatePendingFinish(prev: Int, last: Int, pendingFinish: Int): Seq[FinishablePaths] = {
+    def simulatePendingFinish(prev: Int, last: Int, pendingFinish: Int): Seq[NodePathSet] = {
         val settledPath = NodePath(List(prev, last))
-        val initialFinishablePaths = FinishablePaths(Seq(settledPath))
-        traverse(prev, pendingFinish, initialFinishablePaths, Seq())
+        val initialFinishablePathSet = NodePathSet(Seq(settledPath))
+        traverse(prev, pendingFinish, initialFinishablePathSet, Seq())
     }
 }
 
 object SimpleParserFinishSimulator {
     private def simulatePendingFin(sim: SimpleParserFinishSimulator, prev: Int, last: Int, pendingFinish: Int): Unit = {
-        val simulation = sim.simulatePendingFinish(prev, last, pendingFinish)
-        println(s"$prev $last $pendingFinish: ")
-        simulation foreach { paths =>
-            val pathStrings = paths.paths map { nodePath =>
+        val pathSets = sim.simulatePendingFinish(prev, last, pendingFinish)
+        println(s"$prev $last $pendingFinish:")
+        pathSets foreach { pathSet =>
+            val conflictingTerms = CharacterTermGroupDesc.merge(
+                pathSet.paths.zipWithIndex flatMap { p1index =>
+                    val (p1, index) = p1index
+                    val p1Acc = sim.parser.acceptableTermsOf(p1.top)
+                    val rest = pathSet.paths.drop(index + 1)
+                    rest flatMap { p2 => sim.parser.acceptableTermsOf(p2.top) intersect p1Acc }
+                })
+            val pathStrings = pathSet.paths map { nodePath =>
                 s"(${nodePath.nodes mkString " -> "})"
             }
-            val acceptableTerms = paths.paths map { nodePath =>
+            val acceptableTerms = pathSet.paths map { nodePath =>
                 CharacterTermGroupDesc.merge(sim.parser.acceptableTermsOf(nodePath.top))
             }
             println(pathStrings mkString " ")
             println(acceptableTerms map (_.toShortString) mkString " ")
+            println(s"Conflict: ${conflictingTerms.toShortString}")
+            println()
         }
     }
 

@@ -57,9 +57,9 @@ case class NodeAdjacencyGraph(nodes: Set[Int], edges: Set[NodeAdjEdge], edgesByS
 
 case class NodeRels(nodesOnTop: Set[Int], finishableEdges: Set[(Int, Int)])
 
-class NodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.TermAction]],
-                     private val edgeActions: Map[(Int, Int), SimpleParser.EdgeAction],
-                     val adjGraph: NodeAdjacencyGraph) {
+class SimpleNodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.TermAction]],
+                           private val edgeActions: Map[(Int, Int), SimpleParser.EdgeAction],
+                           val adjGraph: NodeAdjacencyGraph) {
     // stack top에 올 수 있는 노드들
     def nodesOnTop: Set[Int] = {
         val topsFromAppends = termActions.values.toSeq flatMap { acts =>
@@ -103,7 +103,7 @@ class NodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.TermActi
     // node 앞에 올 수 있는 노드들
     def prevOf(nodeId: Int): Set[Int] = adjGraph.adjacencies.adjByFoll.getOrElse(nodeId, Set())
 
-    def addTermAction(baseNodeId: Int, termAction: SimpleParser.TermAction): (NodeRelInferer, NodeRels) = {
+    def addTermAction(baseNodeId: Int, termAction: SimpleParser.TermAction): (SimpleNodeRelInferer, NodeRels) = {
         val newTermActions = termActions + (baseNodeId -> (termActions.getOrElse(baseNodeId, Set()) + termAction))
         val newAdjGraph = {
             var n = adjGraph
@@ -119,14 +119,14 @@ class NodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.TermActi
             }
             n
         }
-        val newInferer = new NodeRelInferer(newTermActions, edgeActions, newAdjGraph)
+        val newInferer = new SimpleNodeRelInferer(newTermActions, edgeActions, newAdjGraph)
         assert(nodesOnTop subsetOf newInferer.nodesOnTop)
         assert(finishableEdges subsetOf newInferer.finishableEdges)
         val newNodeRels = NodeRels(newInferer.nodesOnTop -- nodesOnTop, newInferer.finishableEdges -- finishableEdges)
         (newInferer, newNodeRels)
     }
 
-    def addEdgeAction(prevNodeId: Int, lastNodeId: Int, edgeAction: SimpleParser.EdgeAction): (NodeRelInferer, NodeRels) = {
+    def addEdgeAction(prevNodeId: Int, lastNodeId: Int, edgeAction: SimpleParser.EdgeAction): (SimpleNodeRelInferer, NodeRels) = {
         val newEdgeActions = edgeActions + ((prevNodeId -> lastNodeId) -> edgeAction)
         val newAdjGraph = {
             var n = adjGraph
@@ -142,7 +142,7 @@ class NodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.TermActi
             }
             n
         }
-        val newInferer = new NodeRelInferer(termActions, newEdgeActions, newAdjGraph)
+        val newInferer = new SimpleNodeRelInferer(termActions, newEdgeActions, newAdjGraph)
         assert(nodesOnTop subsetOf newInferer.nodesOnTop)
         assert(finishableEdges subsetOf newInferer.finishableEdges)
         val newNodeRels = NodeRels(newInferer.nodesOnTop -- nodesOnTop, newInferer.finishableEdges -- finishableEdges)
@@ -150,6 +150,9 @@ class NodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.TermActi
     }
 }
 
-object NodeRelInferer {
-    val emptyInferer = new NodeRelInferer(Map(), Map(), NodeAdjacencyGraph(Set(), Set(), Map(), Map()))
+object SimpleNodeRelInferer {
+    val emptyInferer = new SimpleNodeRelInferer(Map(), Map(), NodeAdjacencyGraph(Set(), Set(), Map(), Map()))
 }
+
+// DisambigNodeRelInferer는 SimpleNodeRelInferer에 pop, restore 등의 추가적인 action 종류를 추가로 지원함
+class DisambigNodeRelInferer()

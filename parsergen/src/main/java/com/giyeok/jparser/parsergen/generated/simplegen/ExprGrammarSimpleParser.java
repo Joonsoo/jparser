@@ -52,6 +52,42 @@ public class ExprGrammarSimpleParser {
     throw new AssertionError("Unknown nodeId: " + stack.nodeId);
   }
 
+  public String stackIds() {
+    if (stack == null) {
+      return ".";
+    }
+    return stackIds(stack);
+  }
+
+  private String stackIds(Stack stack) {
+    if (stack.prev == null) return "" + stack.nodeId;
+    else return stackIds(stack.prev) + " " + stack.nodeId;
+  }
+
+  public String stackDescription() {
+    if (stack == null) {
+      return ".";
+    }
+    return stackDescription(stack);
+  }
+
+  private String stackDescription(Stack stack) {
+    if (stack.prev == null) return nodeDescriptionOf(stack.nodeId);
+    else return stackDescription(stack.prev) + " " + nodeDescriptionOf(stack.nodeId);
+  }
+
+  private static void log(String s) {
+    System.out.println(s);
+  }
+
+  private void printStack() {
+    if (stack == null) {
+      log("  .");
+    } else {
+      log("  " + stackIds() + "  pf=" + pendingFinish + "  " + stackDescription());
+    }
+  }
+
   public String nodeDescriptionOf(int nodeId) {
     switch (nodeId) {
       case 0:
@@ -88,6 +124,24 @@ public class ExprGrammarSimpleParser {
 
   private void append(int newNodeId) {
     stack = new Stack(newNodeId, stack);
+  }
+
+  private boolean finish() {
+    if (stack.prev == null) {
+      return false;
+    }
+    while (finishStep()) {
+      if (verbose) printStack();
+      if (stack.prev == null) {
+        stack = null;
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private void dropLast() {
+    stack = stack.prev;
   }
 
   // Returns true if further finishStep is required
@@ -228,81 +282,7 @@ public class ExprGrammarSimpleParser {
     throw new AssertionError("Unknown edge to finish: " + stackIds());
   }
 
-  private boolean finish() {
-    if (stack.prev == null) {
-      return false;
-    }
-    while (finishStep()) {
-      if (verbose) printStack();
-      if (stack.prev == null) {
-        stack = null;
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private void dropLast() {
-    stack = stack.prev;
-  }
-
-  public String stackIds() {
-    if (stack == null) {
-      return ".";
-    }
-    return stackIds(stack);
-  }
-
-  private String stackIds(Stack stack) {
-    if (stack.prev == null) return "" + stack.nodeId;
-    else return stackIds(stack.prev) + " " + stack.nodeId;
-  }
-
-  public String stackDescription() {
-    if (stack == null) {
-      return ".";
-    }
-    return stackDescription(stack);
-  }
-
-  private String stackDescription(Stack stack) {
-    if (stack.prev == null) return nodeDescriptionOf(stack.nodeId);
-    else return stackDescription(stack.prev) + " " + nodeDescriptionOf(stack.nodeId);
-  }
-
-  private static void log(String s) {
-    System.out.println(s);
-  }
-
-  private void printStack() {
-    if (stack == null) {
-      log("  .");
-    } else {
-      log("  " + stackIds() + "  pf=" + pendingFinish + "  " + stackDescription());
-    }
-  }
-
-  public boolean proceed(char c) {
-    if (stack == null) {
-      if (verbose) log("  - already finished");
-      return false;
-    }
-    if (!canAccept(c)) {
-      if (verbose) log("  - cannot accept " + c + ", try pendingFinish");
-      if (pendingFinish == -1) {
-        if (verbose) log("  - pendingFinish unavailable, proceed failed");
-        return false;
-      }
-      dropLast();
-      if (stack.nodeId != pendingFinish) {
-        replace(pendingFinish);
-      }
-      if (verbose) printStack();
-      if (!finish()) {
-        return false;
-      }
-      return proceed(c);
-    }
+  private boolean proceedStep(char c) {
     switch (stack.nodeId) {
       case 0:
         if ((c == '(')) {
@@ -502,6 +482,30 @@ public class ExprGrammarSimpleParser {
     throw new AssertionError("Unknown nodeId: " + stack.nodeId);
   }
 
+  public boolean proceed(char c) {
+    if (stack == null) {
+      if (verbose) log("  - already finished");
+      return false;
+    }
+    if (!canAccept(c)) {
+      if (verbose) log("  - cannot accept " + c + ", try pendingFinish");
+      if (pendingFinish == -1) {
+        if (verbose) log("  - pendingFinish unavailable, proceed failed");
+        return false;
+      }
+      dropLast();
+      if (stack.nodeId != pendingFinish) {
+        replace(pendingFinish);
+      }
+      if (verbose) printStack();
+      if (!finish()) {
+        return false;
+      }
+      return proceed(c);
+    }
+    return proceedStep(c);
+  }
+
   public boolean proceedEof() {
     if (stack == null) {
       if (verbose) log("  - already finished");
@@ -575,7 +579,6 @@ public class ExprGrammarSimpleParser {
 
   public static void main(String[] args) {
     test("123+456");
-
     inputLoop();
   }
 }

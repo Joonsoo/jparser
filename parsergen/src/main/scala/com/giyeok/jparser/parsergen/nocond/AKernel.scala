@@ -27,5 +27,3 @@ case class AKernelSet(items: Set[AKernel]) {
     def toReadableStrings(grammar: NGrammar, pointerString: String = "\u2022"): Seq[String] =
         sortedItems map (_.toReadableString(grammar, pointerString))
 }
-
-case class AKernelSetPath(path: List[AKernelSet])

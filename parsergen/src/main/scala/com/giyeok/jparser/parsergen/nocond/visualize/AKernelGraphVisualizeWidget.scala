@@ -68,7 +68,7 @@ object AKernelGraphVisualizeWidget {
             println(s"${s._1} -> ${s._2.symbol.toShortString}")
         }
 
-        val startKernels = Set(AKernel(12, 1), AKernel(9, 2))
+        val startKernels = Set(AKernel(12, 1), AKernel(19, 1))
         val endSet = Set(AKernelGen(13, 0, 0, 0))
 
         val analyzer = new GrammarAnalyzer(grammar)

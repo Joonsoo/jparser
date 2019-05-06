@@ -41,11 +41,15 @@ object Inputs {
     object CharacterTermGroupDesc {
         val empty: CharacterTermGroupDesc = CharsGroup(Set(), Set(), Set())
 
-        def merge(terms: Set[CharacterTermGroupDesc]): CharacterTermGroupDesc = {
-            if (terms.isEmpty) CharacterTermGroupDesc.empty else {
-                val head = terms.head
-                head + merge(terms - head)
+        def merge(terms: Iterable[CharacterTermGroupDesc]): CharacterTermGroupDesc = {
+            def recursive(it: Iterator[CharacterTermGroupDesc]): CharacterTermGroupDesc = {
+                if (!it.hasNext) CharacterTermGroupDesc.empty else {
+                    val next = it.next()
+                    next + recursive(it)
+                }
             }
+
+            recursive(terms.iterator)
         }
     }
 

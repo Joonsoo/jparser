@@ -16,9 +16,9 @@ class SimpleParserGen(val grammar: NGrammar) {
     private var idEdgeActions = Map[(Int, Int), SimpleParser.EdgeAction]()
 
     // key 앞에 올 수 있는 AKernelSet의 집합
-    private var nodeRelInferer = NodeRelInferer.emptyInferer
+    private var nodeRelInferer = SimpleNodeRelInferer.emptyInferer
 
-    private def updateNodeRelInferer(result: (NodeRelInferer, NodeRels)): Unit = {
+    private def updateNodeRelInferer(result: (SimpleNodeRelInferer, NodeRels)): Unit = {
         val (newInferer, newRels) = result
         nodeRelInferer = newInferer
         newToppableNodes ++= (newRels.nodesOnTop map nodesById)

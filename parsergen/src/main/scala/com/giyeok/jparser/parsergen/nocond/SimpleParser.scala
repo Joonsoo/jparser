@@ -27,10 +27,10 @@ object SimpleParser {
 
 }
 
-// grammar, prevNodes는 디버깅을 위한 목적
+// grammar, nodeRelInferer는 참고용
 class SimpleParser(val grammar: NGrammar,
                    val nodes: Map[Int, AKernelSet],
-                   val nodeRelInferer: NodeRelInferer,
+                   val nodeRelInferer: SimpleNodeRelInferer,
                    val startNodeId: Int,
                    // TODO empty string을 accept하는 경우를 위해 pendingFinish 초기값 필요
                    val termActions: Map[(Int, CharacterTermGroupDesc), SimpleParser.TermAction],

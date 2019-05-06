@@ -6,8 +6,8 @@ import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.examples.{ExpressionGrammars, JsonGrammar, SimpleGrammars}
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenTemplates.{InputLoop, MainFunc, TestInputs}
 import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenUtils._
-import com.giyeok.jparser.parsergen.nocond.codegen.SimpleParserJavaGen.{InputLoop, MainFunc, NoMainFunc, TestInputs}
 import com.giyeok.jparser.parsergen.nocond.{SimpleParser, SimpleParserGen}
 import com.google.googlejavaformat.java.Formatter
 
@@ -102,71 +102,10 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
                |    return false;""".stripMargin
         }
 
-        def mainTestFunc =
-            """private static void test(String input) {
-              |    log("Test \"" + input + "\"");
-              |    boolean succeed = parseVerbose(input);
-              |    log("Parsing " + (succeed? "succeeded":"failed"));
-              |}
-            """.stripMargin
-
-        def inputLoopFunc =
-            """private static void inputLoop() {
-              |    java.util.Scanner scanner = new java.util.Scanner(System.in);
-              |    while (true) {
-              |        System.out.print("> ");
-              |        String input = scanner.nextLine();
-              |        if (input.isEmpty()) break;
-              |        test(input);
-              |    }
-              |    System.out.println("Bye~");
-              |}
-            """.stripMargin
-
-        val mainPart = mainFunc match {
-            case NoMainFunc => ""
-            case InputLoop(tests) =>
-                val testCalls = tests map { t => s"test(${javaString(t)});" }
-                s"""$mainTestFunc
-                   |$inputLoopFunc
-                   |
-                   |public static void main(String[] args) {
-                   |    ${testCalls mkString "\n"}
-                   |
-                   |    inputLoop();
-                   |}
-                   |""".stripMargin
-            case TestInputs(tests) =>
-                val testCalls = tests map { t => s"test(${javaString(t)});" }
-                s"""$mainTestFunc
-                   |
-                   |public static void main(String[] args) {
-                   |    ${testCalls mkString "\n"}
-                   |}""".stripMargin
-        }
-
         s"""package $pkgName;
            |
            |public class $className {
-           |    static class Stack {
-           |        final int nodeId;
-           |        final Stack prev;
-           |
-           |        Stack(int nodeId, Stack prev) {
-           |            this.nodeId = nodeId;
-           |            this.prev = prev;
-           |        }
-           |    }
-           |
-           |    private boolean verbose;
-           |    private Stack stack;
-           |    private int pendingFinish;
-           |
-           |    public $className(boolean verbose) {
-           |        this.verbose = verbose;
-           |        this.stack = new Stack(${parser.startNodeId}, null);
-           |        this.pendingFinish = -1;
-           |    }
+           |    ${JavaGenTemplates.classDef(className, parser.startNodeId)}
            |
            |    public boolean canAccept(char c) {
            |        if (stack == null) return false;
@@ -176,6 +115,8 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |        throw new AssertionError("Unknown nodeId: " + stack.nodeId);
            |    }
            |
+           |    ${JavaGenTemplates.logFuncs}
+           |
            |    public String nodeDescriptionOf(int nodeId) {
            |        switch (nodeId) {
            |            ${nodeDescriptionCases mkString "\n"}
@@ -183,13 +124,7 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |        return null;
            |    }
            |
-           |    private void replace(int newNodeId) {
-           |        stack = new Stack(newNodeId, stack.prev);
-           |    }
-           |
-           |    private void append(int newNodeId) {
-           |        stack = new Stack(newNodeId, stack);
-           |    }
+           |    ${JavaGenTemplates.basicStackOpFuncs}
            |
            |    // Returns true if further finishStep is required
            |    private boolean finishStep() {
@@ -202,143 +137,21 @@ class SimpleParserJavaGen(val parser: SimpleParser) {
            |        throw new AssertionError("Unknown edge to finish: " + stackIds());
            |    }
            |
-           |    private boolean finish() {
-           |        if (stack.prev == null) {
-           |            return false;
-           |        }
-           |        while (finishStep()) {
-           |            if (verbose) printStack();
-           |            if (stack.prev == null) {
-           |                stack = null;
-           |                return false;
-           |            }
-           |        }
-           |        return true;
-           |    }
-           |
-           |    private void dropLast() {
-           |        stack = stack.prev;
-           |    }
-           |
-           |    public String stackIds() {
-           |        if (stack == null) {
-           |            return ".";
-           |        }
-           |        return stackIds(stack);
-           |    }
-           |
-           |    private String stackIds(Stack stack) {
-           |        if (stack.prev == null) return "" + stack.nodeId;
-           |        else return stackIds(stack.prev) + " " + stack.nodeId;
-           |    }
-           |
-           |    public String stackDescription() {
-           |        if (stack == null) {
-           |            return ".";
-           |        }
-           |        return stackDescription(stack);
-           |    }
-           |
-           |    private String stackDescription(Stack stack) {
-           |        if (stack.prev == null) return nodeDescriptionOf(stack.nodeId);
-           |        else return stackDescription(stack.prev) + " " + nodeDescriptionOf(stack.nodeId);
-           |    }
-           |
-           |    private static void log(String s) {
-           |        System.out.println(s);
-           |    }
-           |
-           |    private void printStack() {
-           |        if (stack == null) {
-           |            log("  .");
-           |        } else {
-           |            log("  " + stackIds() + "  pf=" + pendingFinish + "  " + stackDescription());
-           |        }
-           |    }
-           |
-           |    public boolean proceed(char c) {
-           |        if (stack == null) {
-           |            if (verbose) log("  - already finished");
-           |            return false;
-           |        }
-           |        if (!canAccept(c)) {
-           |            if (verbose) log("  - cannot accept " + c + ", try pendingFinish");
-           |            if (pendingFinish == -1) {
-           |                if (verbose) log("  - pendingFinish unavailable, proceed failed");
-           |                return false;
-           |            }
-           |            dropLast();
-           |            if (stack.nodeId != pendingFinish) {
-           |                replace(pendingFinish);
-           |            }
-           |            if (verbose) printStack();
-           |            if (!finish()) {
-           |                return false;
-           |            }
-           |            return proceed(c);
-           |        }
+           |    private boolean proceedStep(char c) {
            |        switch (stack.nodeId) {
            |            ${proceedCases mkString "\n"}
            |        }
            |        throw new AssertionError("Unknown nodeId: " + stack.nodeId);
            |    }
            |
-           |    public boolean proceedEof() {
-           |        if (stack == null) {
-           |            if (verbose) log("  - already finished");
-           |            return true;
-           |        }
-           |        if (pendingFinish == -1) {
-           |            if (stack.prev == null && stack.nodeId == ${parser.startNodeId}) {
-           |                return true;
-           |            }
-           |            if (verbose) log("  - pendingFinish unavailable, proceedEof failed");
-           |            return false;
-           |        }
-           |        dropLast();
-           |        if (stack.nodeId != pendingFinish) {
-           |            replace(pendingFinish);
-           |        }
-           |        if (verbose) printStack();
-           |        while (stack.prev != null) {
-           |            boolean finishNeeded = finishStep();
-           |            if (verbose) printStack();
-           |            if (!finishNeeded) {
-           |                if (pendingFinish == -1) {
-           |                    return false;
-           |                }
-           |                dropLast();
-           |                replace(pendingFinish);
-           |                if (verbose) printStack();
-           |            }
-           |        }
-           |        return true;
-           |    }
+           |    ${JavaGenTemplates.proceedFunc}
            |
-           |    public static boolean parse(String s) {
-           |        $className parser = new $className(false);
-           |        for (int i = 0; i < s.length(); i++) {
-           |            if (!parser.proceed(s.charAt(i))) {
-           |                return false;
-           |            }
-           |        }
-           |        return parser.proceedEof();
-           |    }
+           |    ${JavaGenTemplates.proceedEofFunc(parser.startNodeId)}
            |
-           |    public static boolean parseVerbose(String s) {
-           |        $className parser = new $className(true);
-           |        for (int i = 0; i < s.length(); i++) {
-           |            log("Proceed char at " + i + ": " + s.charAt(i));
-           |            if (!parser.proceed(s.charAt(i))) {
-           |                return false;
-           |            }
-           |        }
-           |        log("Proceed EOF");
-           |        return parser.proceedEof();
-           |    }
-           |    $mainPart
-           |}
-             """.stripMargin
+           |    ${JavaGenTemplates.parseFunc(className)}
+           |
+           |    ${JavaGenTemplates.mainFunc(mainFunc)}
+           |}""".stripMargin
     }
 
     def generateJavaSource(pkgName: String, className: String, mainFunc: MainFunc): String =
@@ -361,14 +174,6 @@ object SimpleParserJavaGen {
     val baseDir = new File("parsergen/src/main/java")
     val pkgName = "com.giyeok.jparser.parsergen.generated.simplegen"
 
-    sealed trait MainFunc
-
-    object NoMainFunc extends MainFunc
-
-    case class InputLoop(tests: List[String]) extends MainFunc
-
-    case class TestInputs(tests: List[String]) extends MainFunc
-
     def generateParser(grammar: Grammar): SimpleParser = {
         val ngrammar = NGrammar.fromGrammar(grammar)
         ngrammar.describe()
@@ -389,7 +194,7 @@ object SimpleParserJavaGen {
         generate(SimpleGrammars.array0Grammar, "Array0GrammarParser", InputLoop(List("[a,a,a]")))
         generate(MetaGrammar.translateForce("Super Simple", "S='x' A 'y'|'x' B 'y'\nA=['a']\nB=['a' 'b']"),
             "SuperSimpleGrammar", TestInputs(List("xy", "xay", "xaby")))
-        generate(JsonGrammar.fromJsonOrg, "JsonParser", TestInputs(List(
+        generate(JsonGrammar.fromJsonOrg, "JsonParser", InputLoop(List(
             """{"abcd": ["hello", 123, {"xyz": 1}]}""")))
     }
 }
