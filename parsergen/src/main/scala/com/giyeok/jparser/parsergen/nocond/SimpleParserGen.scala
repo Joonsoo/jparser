@@ -15,7 +15,6 @@ class SimpleParserGen(val grammar: NGrammar) {
     private var edgeActions = Map[(AKernelSet, AKernelSet), GraphChange]()
     private var idEdgeActions = Map[(Int, Int), SimpleParser.EdgeAction]()
 
-    // key 앞에 올 수 있는 AKernelSet의 집합
     private var nodeRelInferer = SimpleNodeRelInferer.emptyInferer
 
     private def updateNodeRelInferer(result: (SimpleNodeRelInferer, NodeRels)): Unit = {
@@ -34,18 +33,20 @@ class SimpleParserGen(val grammar: NGrammar) {
     private var newToppableNodes = Set[AKernelSet]()
     private var newFinishableEdges = Set[(AKernelSet, AKernelSet)]()
 
-    private def nodeIdOf(kernelSet: AKernelSet): Int = if (nodes contains kernelSet) nodes(kernelSet) else {
-        val newId = nodes.size
-        nodes += kernelSet -> newId
-        nodesById += newId -> kernelSet
-        newId
+    private def nodeIdOf(kernelSet: AKernelSet): Int = nodes get kernelSet match {
+        case Some(existingNodeId) => existingNodeId
+        case None =>
+            val newId = nodes.size
+            nodes += kernelSet -> newId
+            nodesById += newId -> kernelSet
+            newId
     }
 
-    private def calculateTermActions(start: AKernelSet): Unit = {
-        val startId = nodeIdOf(start)
-        val terms = analyzer.acceptableTerms(start)
+    private def calculateTermActions(base: AKernelSet): Unit = {
+        val baseId = nodeIdOf(base)
+        val terms = analyzer.acceptableTerms(base)
         terms foreach { term =>
-            val change = analyzer.termChanges(start, term)
+            val change = analyzer.termChanges(base, term)
             val replace = change.replacePrev
             val replaceId = nodeIdOf(replace)
             val idTermAction: SimpleParser.TermAction = change.following match {
@@ -64,9 +65,9 @@ class SimpleParserGen(val grammar: NGrammar) {
                     }
                     SimpleParser.Append(replaceId, followingId, pfIdOpt)
             }
-            termActions += (start, term) -> change
-            addTermAction(startId, idTermAction)
-            idTermActions += (startId, term) -> idTermAction
+            termActions += (base, term) -> change
+            addTermAction(baseId, idTermAction)
+            idTermActions += (baseId, term) -> idTermAction
         }
     }
 
@@ -111,6 +112,6 @@ class SimpleParserGen(val grammar: NGrammar) {
             processingNodes foreach calculateTermActions
             processingAdjs foreach calculateEdgeActions
         }
-        new SimpleParser(grammar, nodes map { p => p._2 -> p._1 }, nodeRelInferer, startId, idTermActions, idEdgeActions)
+        new SimpleParser(grammar, nodesById, nodeRelInferer, startId, idTermActions, idEdgeActions)
     }
 }

@@ -136,6 +136,12 @@ object DisambigParserRunner {
         val grammar = NGrammar.fromGrammar(SimpleGrammars.array0Grammar)
         val simpleParser = new SimpleParserGen(grammar).generateParser()
         val baseNodes = simpleParser.nodes
+
+        def DisambigNode(paths: Seq[NodePath]) =
+            DisambigParser.DisambigNode(AKernelSetPathSet((paths map { path =>
+                AKernelSetPath(path.nodes map simpleParser.nodes)
+            }).toSet), Set())
+
         val nodes0 = (baseNodes.keySet map { nodeId =>
             nodeId -> DisambigNode(Seq(NodePath(List(nodeId))))
         }).toMap
@@ -161,7 +167,7 @@ object DisambigParserRunner {
         // (23, ' ') -> PopAndReplace(0, 23, Some(7))
         // (23, ',') -> Restore(List(2, 3, 16, 8), None)
 
-        val nodes: Map[Int, DisambigNode] = nodes0 +
+        val nodes: Map[Int, DisambigParser.DisambigNode] = nodes0 +
             (20 -> DisambigNode(Seq(NodePath(List(2, 3)), NodePath(List(12))))) +
             (21 -> DisambigNode(Seq(NodePath(List(2, 3, 9)), NodePath(List(7, 11))))) +
             (22 -> DisambigNode(Seq(NodePath(List(2, 3, 16)), NodePath(List(12))))) +
@@ -207,8 +213,8 @@ object DisambigParserRunner {
         val edgeActions: Map[(Int, Int), DisambigParser.EdgeAction] = edgeActions0 +
             ((3, 16) -> DisambigParser.PopAndReplaceForEdge(2, 22, None))
 
-        new DisambigParser(grammar, simpleParser, Map(), nodes,
-            null, null, 0, termActions, edgeActions)
+        new DisambigParser(grammar, nodes,
+            null, 0, termActions, edgeActions)
     }
 
     def main(args: Array[String]): Unit = {

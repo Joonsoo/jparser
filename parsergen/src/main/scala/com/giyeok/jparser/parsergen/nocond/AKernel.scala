@@ -2,6 +2,7 @@ package com.giyeok.jparser.parsergen.nocond
 
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
+import com.giyeok.jparser.parsergen.utils.ListOrder
 
 case class AKernel(symbolId: Int, pointer: Int) extends Ordered[AKernel] {
     def toReadableString(grammar: NGrammar, pointerString: String = "\u2022"): String = {
@@ -18,7 +19,7 @@ case class AKernel(symbolId: Int, pointer: Int) extends Ordered[AKernel] {
         if (symbolId != that.symbolId) symbolId - that.symbolId else pointer - that.pointer
 }
 
-case class AKernelSet(items: Set[AKernel]) {
+case class AKernelSet(items: Set[AKernel]) extends Ordered[AKernelSet] {
     def sortedItems: List[AKernel] = items.toList.sorted
 
     def toReadableString(grammar: NGrammar, pointerString: String = "\u2022"): String =
@@ -26,4 +27,18 @@ case class AKernelSet(items: Set[AKernel]) {
 
     def toReadableStrings(grammar: NGrammar, pointerString: String = "\u2022"): Seq[String] =
         sortedItems map (_.toReadableString(grammar, pointerString))
+
+    override def compare(that: AKernelSet): Int = ListOrder.compare(sortedItems, that.sortedItems)
+}
+
+case class AKernelSetPath(path: List[AKernelSet]) extends Ordered[AKernelSetPath] {
+    override def compare(that: AKernelSetPath): Int = ListOrder.compare(path, that.path)
+}
+
+case class AKernelSetPathSet(paths: Set[AKernelSetPath]) {
+    def sortedItems: List[AKernelSetPath] = paths.toList.sorted
+
+    def heads = paths.map(_.path.head)
+
+    def lasts = paths.map(_.path.last)
 }

@@ -27,7 +27,7 @@ object SimpleParser {
 
 }
 
-// grammar, nodeRelInferer는 참고용
+// grammar, nodes, nodeRelInferer는 참고용 -- 파싱 동작에는 영향을 미치지 않음.
 class SimpleParser(val grammar: NGrammar,
                    val nodes: Map[Int, AKernelSet],
                    val nodeRelInferer: SimpleNodeRelInferer,

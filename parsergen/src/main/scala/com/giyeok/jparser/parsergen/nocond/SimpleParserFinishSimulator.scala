@@ -83,10 +83,15 @@ object SimpleParserFinishSimulator {
         val parser = SimpleParserJavaGen.generateParser(SimpleGrammars.array0Grammar)
         val sim = new SimpleParserFinishSimulator(parser)
 
-        simulatePendingFin(sim, 2, 3, 2)
-        simulatePendingFin(sim, 3, 16, 3)
-        simulatePendingFin(sim, 5, 6, 7)
-        simulatePendingFin(sim, 7, 11, 7)
-        simulatePendingFin(sim, 14, 11, 14)
+        val analysisPoints =
+            ((parser.termActions collect {
+                case (_, SimpleParser.Append(prev, last, Some(pF))) => (prev, last, pF)
+            }) ++ (parser.edgeActions collect {
+                case (_, SimpleParser.ReplaceEdge(prev, last, Some(pF))) => (prev, last, pF)
+            })).toSet
+
+        analysisPoints.toSeq.sorted foreach { p =>
+            simulatePendingFin(sim, p._1, p._2, p._3)
+        }
     }
 }

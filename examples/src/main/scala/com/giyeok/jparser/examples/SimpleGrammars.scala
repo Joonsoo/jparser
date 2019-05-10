@@ -17,6 +17,14 @@ object SimpleGrammars {
           |WS = ' '*
         """.stripMargin)
 
+    val arrayRGrammar: Grammar = MetaGrammar.translateForce("SimpleArrayRGrammar",
+        """S = '[' [WS E Erepeat]? WS ']'
+          |Ecomma = WS ',' WS E
+          |Erepeat = # | Ecomma Erepeat
+          |E = 'a'
+          |WS = # | ' ' WS
+        """.stripMargin)
+
     val arrayOrObjectGrammar: Grammar = MetaGrammar.translateForce("SimpleArrayOrObjectGrammar",
         """S = '[' WS elems WS ']' | '{' WS elems WS '}'
           |elems = elem | elem WS ',' WS elems

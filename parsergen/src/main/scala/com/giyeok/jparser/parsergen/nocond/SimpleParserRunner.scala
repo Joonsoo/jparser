@@ -53,17 +53,23 @@ class SimpleParserRunner(val simpleParser: SimpleParser) {
     sealed trait Context {
         def proceed(c: Char): Context
 
+        def proceedTermGroup(termGroup: CharacterTermGroupDesc): Context
+
         def proceedEof(): Context
     }
 
     case class SucceededContext(lastNodeId: Int) extends Context {
         def proceed(c: Char): Context = FailedContext(CharacterTermGroupDesc.empty, c)
 
+        def proceedTermGroup(termGroup: CharacterTermGroupDesc): Context = ???
+
         def proceedEof(): Context = this
     }
 
     case class FailedContext(expected: CharacterTermGroupDesc, actual: Char) extends Context {
         def proceed(c: Char): Context = this
+
+        def proceedTermGroup(termGroup: CharacterTermGroupDesc): Context = ???
 
         def proceedEof(): Context = this
     }
@@ -77,7 +83,7 @@ class SimpleParserRunner(val simpleParser: SimpleParser) {
 
         def applyPendingFin: Context = stack.pop().replaceTop(pendingFinish.get).finish()
 
-        override def proceed(c: Char): Context = {
+        def proceed(c: Char): Context = {
             val termActions = simpleParser.termActionsByNodeId(stack.nodeId)
             termActions find (_._1.contains(c)) match {
                 case Some((_, action)) => termAction(action)
@@ -87,7 +93,9 @@ class SimpleParserRunner(val simpleParser: SimpleParser) {
             }
         }
 
-        def proceed(string: String): Context =
+        def proceedTermGroup(termGroup: CharacterTermGroupDesc): Context = ???
+
+        def proceedString(string: String): Context =
             string.foldLeft(this.asInstanceOf[Context])(_ proceed _)
 
         def proceedEof(): Context = {

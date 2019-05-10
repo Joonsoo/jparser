@@ -3,9 +3,6 @@ package com.giyeok.jparser.parsergen.nocond
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.nparser.NGrammar
 
-case class DisambigNode(paths: Seq[NodePath]) {
-}
-
 object DisambigParser {
 
     // TermAction과 EdgeAction의 기본적인 의미는 SimpleParser와 동일, 다만 PopAndReplace 등의 액션이 추가됨.
@@ -31,25 +28,16 @@ object DisambigParser {
 
 }
 
-// DisambigParser는 NodePathSet이 노드
-// grammar, simpleParser, kernelSetNodes, kernelSetNodeRelInferer, disambigNodeRelInferer는 모두 참고용
+// grammar, nodes, nodeRelInferer는 참고용 -- 파싱 동작에는 영향을 미치지 않음.
 class DisambigParser(val grammar: NGrammar,
-                     val simpleParser: SimpleParser,
-                     // simpleParser.nodes 외에 추가적인 kernelSet 노드들
-                     val kernelSetNodes: Map[Int, AKernelSet],
                      // simpleParser.nodes, kernelSetNodes들도 모두 DisambigNode로 바뀌어서 nodes에 포함됨
-                     val nodes: Map[Int, DisambigNode],
-                     // kernelSetNodeRelInferer는 simpleParser.nodelRelInferer의 내용을 포함함
-                     val kernelSetNodeRelInferer: SimpleNodeRelInferer,
-                     val disambigNodeRelInferer: DisambigNodeRelInferer,
+                     val nodes: Map[Int, AKernelSetPathSet],
+                     val nodeRelInferer: DisambigNodeRelInferer,
                      val startNodeId: Int,
                      val termActions: Map[(Int, CharacterTermGroupDesc), DisambigParser.TermAction],
                      val edgeActions: Map[(Int, Int), DisambigParser.EdgeAction]) {
-    val baseKernelSetNodes: Map[Int, AKernelSet] = simpleParser.nodes
-
-    // SimpleParser에 새로운 노드를 추가해서 DisambigParser를 만들다 보면 불필요한 노드가 생길 수 있는데 DisambigParserGen은
-    // 이런 불필요한 노드들을 정리해주지 않음. 그런 불필요한 노드들을 지워서 경량화한 DisambigParser를 반환한다.
-    // 단, simpleParser의 내용은 바꾸지 않는다.
+    // DisambigParser를 만들다 보면 불필요한 노드가 생길 수 있는데 DisambigParserGen은 이런 불필요한 노드들을 정리해주지 않음
+    // 그런 불필요한 노드들을 지워서 경량화한 DisambigParser를 반환한다.
     def trim(): DisambigParser = {
         ???
     }
