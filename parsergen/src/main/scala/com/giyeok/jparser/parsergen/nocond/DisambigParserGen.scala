@@ -36,8 +36,11 @@ class DisambigParserGen(val grammar: NGrammar) {
     private var termActions = Map[(Int, CharacterTermGroupDesc), GenTermAction]()
     private var edgeActions = Map[(Int, Int), GenEdgeAction]()
 
-    private var termFinishSimulationReqs = Map[Int, TermFinishSimulationReq]()
-    private var edgeFinishSimulationReqs = Map[Int, EdgeFinishSimulationReq]()
+    private var termFinishSimReqs = Map[Int, TermFinishSimulationReq]()
+    private var edgeFinishSimReqs = Map[Int, EdgeFinishSimulationReq]()
+
+    private var termFinishSimResults = Map[Int, DisambigParser.TermAction]()
+    private var edgeFinishSimResults = Map[Int, DisambigParser.EdgeAction]()
 
     private var nodeRelInferer = DisambigNodeRelInferer.emptyInferer
 
@@ -63,17 +66,17 @@ class DisambigParserGen(val grammar: NGrammar) {
     }
 
     private def createTermFinSimReq(baseId: Int, change: GraphChange): Int = {
-        val newReqId = termFinishSimulationReqs.size
+        val newReqId = termFinishSimReqs.size
         val finSimReq = TermFinishSimulationReq(baseId, change)
-        termFinishSimulationReqs += newReqId -> finSimReq
+        termFinishSimReqs += newReqId -> finSimReq
         updateNodeRelInferer(nodeRelInferer.addTermFinishable(baseId, newReqId, finSimReq))
         newReqId
     }
 
     private def createEdgeFinSimReq(edge: (Int, Int), change: GraphChange): Int = {
-        val newReqId = edgeFinishSimulationReqs.size
+        val newReqId = edgeFinishSimReqs.size
         val finSimReq = EdgeFinishSimulationReq(edge._1, edge._2, change)
-        edgeFinishSimulationReqs += newReqId -> finSimReq
+        edgeFinishSimReqs += newReqId -> finSimReq
         updateNodeRelInferer(nodeRelInferer.addEdgeFinishable(edge, newReqId, finSimReq))
         newReqId
     }
@@ -102,10 +105,11 @@ class DisambigParserGen(val grammar: NGrammar) {
 
             val genTermAction: GenTermAction = change.following match {
                 case None =>
+                    // Finish
                     FinishableTermAction(createTermFinSimReq(baseId, change))
                 case Some(Following(following, pendingFinishReplace)) =>
                     if (pendingFinishReplace.items.isEmpty) {
-                        // pendingFinish가 필요한 path가 전혀 없으면 바로 append로 확정
+                        // pendingFinish가 필요한 path가 전혀 없으면 바로 Append로 확정
                         val followingNode = AKernelSetPathSet(Seq(AKernelSetPath(List(following))))
                         val followingId = nodeIdOf(followingNode)
                         val effectivePaths = effectivePathsFrom(base.paths, change)
@@ -114,6 +118,7 @@ class DisambigParserGen(val grammar: NGrammar) {
                         addTermActionAppend(baseId, appendAction)
                         FixedTermAction(appendAction)
                     } else {
+                        // Append w/ pendingFinish
                         FinishableTermAction(createTermFinSimReq(baseId, change))
                     }
             }
@@ -135,53 +140,115 @@ class DisambigParserGen(val grammar: NGrammar) {
 
         val genEdgeAction: GenEdgeAction = change.following match {
             case None =>
+                // Finish
                 FinishableEdgeAction(createEdgeFinSimReq(edge, change))
             case Some(Following(following, pendingFinishReplace)) =>
-                if (pendingFinishReplace.items.nonEmpty) {
-                    FinishableEdgeAction(createEdgeFinSimReq(edge, change))
-                } else {
+                if (pendingFinishReplace.items.isEmpty) {
+                    // Append
                     val effectivePaths = effectivePathsFrom(start.paths, change)
                     val replaceId = nodeIdOf(AKernelSetPathSet(effectivePaths))
                     val followingId = nodeIdOf(AKernelSetPathSet(Seq(AKernelSetPath(List(following)))))
                     val replaceAction = DisambigParser.ReplaceEdge(replaceId, followingId, None)
                     addEdgeActionReplace(edge, replaceAction)
                     FixedEdgeAction(replaceAction)
+                } else {
+                    // Append w/ pendingFinish
+                    FinishableEdgeAction(createEdgeFinSimReq(edge, change))
                 }
         }
         edgeActions += edge -> genEdgeAction
     }
 
-    private def applyGraphChangeToPath(path: AKernelSetPath, graphChange: GraphChange): (AKernelSetPath, Boolean) = {
-        val init = path.path.init
-        graphChange.following match {
-            case None =>
-                val newPath = init :+ graphChange.replacePrev
-                (AKernelSetPath(newPath), true)
-            case Some(Following(_, pendingFinishReplace)) =>
-                if (pendingFinishReplace.items.isEmpty) {
-                    val newPath = init.init :+ pendingFinishReplace
-                    (AKernelSetPath(newPath), false)
-                } else {
-                    val newPath = init :+ pendingFinishReplace
-                    (AKernelSetPath(newPath), true)
+    //    private def applyGraphChangeToPath(path: AKernelSetPath, graphChange: GraphChange): (AKernelSetPath, Option[AKernelSetPath]) = {
+    //        graphChange.following match {
+    //            case None =>
+    //                // Finish
+    //                val newPath = path.path.init :+ graphChange.replacePrev
+    //                (AKernelSetPath(newPath), true)
+    //            case Some(Following(_, pendingFinishReplace)) =>
+    //                if (pendingFinishReplace.items.isEmpty) {
+    //                    // Append
+    //                    val newPath = path.path :+ pendingFinishReplace
+    //                    (AKernelSetPath(newPath), false)
+    //                } else {
+    //                    // Append w/ pendingFinish
+    //                    val newPath = init :+ pendingFinishReplace
+    //                    (AKernelSetPath(newPath), true)
+    //                }
+    //        }
+    //    }
+
+    // nodeRelInferer.prevOf 를 포함해서, 실제로 path(의 last)에서 change가 일어난 경우 발생 가능한 "모든" finish 경우의 수를 반환
+    // 반환의 List[Int]는 사용된 node id들. 만약 path 안에서 다 해결 되면 빈 리스트가 반환됨.
+    private def simulateFinish(nodeId: Int, path: AKernelSetPath, change: GraphChange): Seq[(List[Int], AKernelSetPath)] = {
+        assert(nodes.byKey(nodeId).paths contains path)
+
+        val (paths, moreFins) = simulateFinishLocally(path, change)
+        moreFins match {
+            case None => paths map { p => (List(), p) }
+            case Some((lastKernel, lastChange)) =>
+                val x = nodeRelInferer.prevOf(nodeId).toSeq flatMap { prevId =>
+                    nodes.byKey(prevId).paths map { path =>
+                        simulateFinishLocally(AKernelSetPath(path.path :+ lastKernel), lastChange)
+                    }
                 }
+                ???
+        }
+    }
+
+    // 주어진 path(의 last)에서 change가 일어난 경우 만들어질 수 있는 term accept가 가능한 path를 반환.
+    // 반환 튜플의 _2는, finish를 계속 진행하다가 마지막 AKernelSet 하나만 남았는데 더 finish를 진행해야 하는 경우 그 AKernelSet 반환.
+    private def simulateFinishLocally(path: AKernelSetPath, change: GraphChange): (Seq[AKernelSetPath], Option[(AKernelSet, GraphChange)]) = {
+        val last = path.path.last
+        if ((change.replacePrev.items intersect last.items).isEmpty) {
+            // change에 기여하지 않은 path라면
+            (Seq(), None)
+        } else if (path.path.size == 1) {
+            (Seq(), Some(last, change))
+        } else {
+            change.following match {
+                case None =>
+                    // Finish
+                    simulateFinishLocally(AKernelSetPath(path.path.init :+ change.replacePrev),
+                        analyzer.edgeChanges(path.path.init.last, change.replacePrev))
+                case Some(Following(following, pendingFinishReplace)) =>
+                    if (pendingFinishReplace.items.isEmpty) {
+                        // Append
+                        val appended = path.path :+ following
+                        (Seq(AKernelSetPath(appended)), None)
+                    } else {
+                        // Append w/ pendingFinish
+                        val appended = path.path :+ following
+                        val finished = simulateFinishLocally(AKernelSetPath(path.path.init :+ pendingFinishReplace),
+                            analyzer.edgeChanges(path.path.init.last, pendingFinishReplace))
+                        (AKernelSetPath(appended) +: finished._1, finished._2)
+                    }
+            }
         }
     }
 
     private def calculateTermFinishable(finSimReqId: Int): Unit = {
-        val finSimReq = termFinishSimulationReqs(finSimReqId)
+        val finSimReq = termFinishSimReqs(finSimReqId)
         val base = nodes.byKey(finSimReq.baseId)
 
-        // base에서 finSimReq의 change 더이상 pendingFinish가 없을 때까지 extend하면서 모든 가능한 path를 계산해봄
+        // 1. base에서 finSimReq의 change 더이상 pendingFinish가 없을 때까지 extend하면서 모든 가능한 path를 계산
+        val allPaths = base.paths flatMap { p =>
+            simulateFinish(finSimReq.baseId, p, finSimReq.change)
+        }
+
         // 그 중에 stack top에 오는 AKernelSet 이 받을 수 있는 term끼리 겹치는 path가 있으면 그 path들을 묶어서 노드로 만듦
+        // 계산 결과를 termFinishSimResults(finSimReqId) 에 넣음. nodeRelInferer에도 추가.
+        ???
     }
 
     private def calculateEdgeFinishable(finSimReqId: Int): Unit = {
-        val finSimReq = edgeFinishSimulationReqs(finSimReqId)
+        val finSimReq = edgeFinishSimReqs(finSimReqId)
         val prev = nodes.byKey(finSimReq.prevId)
         println("edgeFin", finSimReq)
 
         // calculateTermFinishable 하고 거의 같음.
+        // 계산 결과를 edgeFinishSimResults(finSimReqId) 에 넣음. nodeRelInferer에도 추가.
+        ???
     }
 
     def generateParser(): DisambigParser = {
@@ -201,11 +268,19 @@ class DisambigParserGen(val grammar: NGrammar) {
             processingNodes foreach calculateTermActions
             processingAdjs foreach calculateEdgeActions
 
-            termFinishSimulationReqs.keys foreach calculateTermFinishable
-            edgeFinishSimulationReqs.keys foreach calculateEdgeFinishable
+            termFinishSimReqs.keys foreach calculateTermFinishable
+            edgeFinishSimReqs.keys foreach calculateEdgeFinishable
         }
 
-        new DisambigParser(grammar, nodes.byKey, ???, startId, ???, ???)
+        val finalTermActions = termActions mapValues {
+            case FixedTermAction(termAction) => termAction
+            case FinishableTermAction(finSimReqId) => termFinishSimResults(finSimReqId)
+        }
+        val finalEdgeActions = edgeActions mapValues {
+            case FixedEdgeAction(edgeAction) => edgeAction
+            case FinishableEdgeAction(finSimReqId) => edgeFinishSimResults(finSimReqId)
+        }
+        new DisambigParser(grammar, nodes.byKey, nodeRelInferer, startId, finalTermActions, finalEdgeActions)
     }
 }
 
