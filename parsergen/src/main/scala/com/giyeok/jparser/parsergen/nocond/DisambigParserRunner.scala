@@ -40,7 +40,7 @@ class DisambigParserRunner(val disambigParser: DisambigParser) {
             }
             case DisambigParser.ReplaceEdge(replacePrev, replaceLast, pF) =>
                 ActiveContext(pop().replaceTop(replacePrev).append(replaceLast), pF map DropReplaceFinish)
-            case DisambigParser.PopAndReplaceForEdge(popCount, replace, pF) =>
+            case DisambigParser.PopAndReplaceEdge(popCount, replace, pF) =>
                 ActiveContext(pop(popCount).replaceTop(replace), pF map ReplaceFinish)
         }
     }
@@ -77,13 +77,13 @@ class DisambigParserRunner(val disambigParser: DisambigParser) {
     case class ActiveContext(stack: Stack, pendingFinish: Option[PendingFinish]) extends Context {
         def termAction(termAction: DisambigParser.TermAction): Context = termAction match {
             case DisambigParser.Finish(replace) => stack.replaceTop(replace).finish()
-            case DisambigParser.Append(replace, append, pF) =>
+            case DisambigParser.Append(replace, List(append), pF) =>
                 ActiveContext(stack.replaceTop(replace).append(append), pF map DropReplaceFinish)
+            case DisambigParser.Append(replace, appends, pF) =>
+                ActiveContext(stack.replaceTopSeq(replace +: appends), pF map DropReplaceFinish)
             case DisambigParser.PopAndReplace(popCount, replace, pF) =>
                 val newStack = stack.pop(popCount).replaceTop(replace)
                 ActiveContext(newStack, pF map ReplaceFinish)
-            case DisambigParser.ReplaceToSeq(replace, pF) =>
-                ActiveContext(stack.replaceTopSeq(replace), pF map DropReplaceFinish)
         }
 
         def applyPendingFin: Context = pendingFinish.get match {
@@ -138,9 +138,9 @@ object DisambigParserRunner {
         val baseNodes = simpleParser.nodes
 
         def DisambigNode(paths: Seq[NodePath]) =
-            AKernelSetPathSet((paths map { path =>
+            AKernelSetPathSet(paths map { path =>
                 AKernelSetPath(path.nodes map simpleParser.nodes)
-            }))
+            })
 
         val nodes0 = (baseNodes.keySet map { nodeId =>
             nodeId -> DisambigNode(Seq(NodePath(List(nodeId))))
@@ -177,7 +177,7 @@ object DisambigParserRunner {
             val (trigger, action0) = kv
             val action = action0 match {
                 case SimpleParser.Append(replace, append, pendingFinish) =>
-                    DisambigParser.Append(replace, append, pendingFinish)
+                    DisambigParser.Append(replace, List(append), pendingFinish)
                 case SimpleParser.Finish(replace) =>
                     DisambigParser.Finish(replace)
             }
@@ -190,15 +190,15 @@ object DisambigParserRunner {
         val termActions: Map[(Int, Inputs.CharacterTermGroupDesc), DisambigParser.TermAction] = termActions0 +
             ((1, termA) -> DisambigParser.PopAndReplace(0, 20, None)) +
             ((20, termSpace) -> DisambigParser.PopAndReplace(0, 21, Some(7))) +
-            ((20, termComma) -> DisambigParser.ReplaceToSeq(List(2, 3, 8), None)) +
+            ((20, termComma) -> DisambigParser.Append(2, List(3, 8), None)) +
             ((20, termClose) -> DisambigParser.Finish(4)) +
             ((21, termSpace) -> DisambigParser.PopAndReplace(0, 21, Some(7))) +
-            ((21, termComma) -> DisambigParser.ReplaceToSeq(List(2, 3, 8), None)) +
+            ((21, termComma) -> DisambigParser.Append(2, List(3, 8), None)) +
             ((22, termSpace) -> DisambigParser.PopAndReplace(0, 23, Some(7))) +
             ((22, termClose) -> DisambigParser.Finish(4)) +
-            ((22, termComma) -> DisambigParser.ReplaceToSeq(List(2, 3, 16, 8), None)) +
+            ((22, termComma) -> DisambigParser.Append(2, List(3, 16, 8), None)) +
             ((23, termSpace) -> DisambigParser.PopAndReplace(0, 23, Some(7))) +
-            ((23, termComma) -> DisambigParser.ReplaceToSeq(List(2, 3, 16, 8), None))
+            ((23, termComma) -> DisambigParser.Append(2, List(2, 3, 16, 8), None))
 
         val edgeActions0 = simpleParser.edgeActions map { kv =>
             val (edge, action0) = kv
@@ -211,7 +211,7 @@ object DisambigParserRunner {
             edge -> action
         }
         val edgeActions: Map[(Int, Int), DisambigParser.EdgeAction] = edgeActions0 +
-            ((3, 16) -> DisambigParser.PopAndReplaceForEdge(2, 22, None))
+            ((3, 16) -> DisambigParser.PopAndReplaceEdge(2, 22, None))
 
         new DisambigParser(grammar, nodes,
             null, 0, termActions, edgeActions)

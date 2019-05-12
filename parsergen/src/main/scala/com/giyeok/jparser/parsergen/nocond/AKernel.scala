@@ -41,7 +41,7 @@ case class AKernelSetPath(path: List[AKernelSet]) extends Ordered[AKernelSetPath
 case class AKernelSetPathSet(paths: Seq[AKernelSetPath]) {
     def sortedItems: List[AKernelSetPath] = paths.toList.sorted
 
-    def heads = paths.map(_.path.head)
+    def heads: Seq[AKernelSet] = paths.map(_.path.head)
 
-    def lasts = paths.map(_.path.last)
+    def lasts: Seq[AKernelSet] = paths.map(_.path.last)
 }

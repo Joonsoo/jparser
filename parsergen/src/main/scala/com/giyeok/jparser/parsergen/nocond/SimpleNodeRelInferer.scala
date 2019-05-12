@@ -10,15 +10,15 @@ class SimpleNodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.Te
         val topsFromAppends = termActions.values.toSeq flatMap { acts =>
             acts.toSeq flatMap { act =>
                 act match {
-                    case SimpleParser.Append(_, append, _) => Set(append)
-                    case _: SimpleParser.Finish => Set[Int]()
+                    case SimpleParser.Append(_, append, _) => Seq(append)
+                    case _: SimpleParser.Finish => Seq()
                 }
             }
         }
         val topsFromReplaceEdge = edgeActions.values.toSeq flatMap { act: SimpleParser.EdgeAction =>
             act match {
-                case SimpleParser.ReplaceEdge(_, replaceLast, _) => Set(replaceLast)
-                case _: SimpleParser.DropLast => Set[Int]()
+                case SimpleParser.ReplaceEdge(_, replaceLast, _) => Seq(replaceLast)
+                case _: SimpleParser.DropLast => Seq()
             }
         }
         (topsFromAppends ++ topsFromReplaceEdge).toSet
@@ -26,7 +26,7 @@ class SimpleNodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.Te
 
     // finish될 수 있는 엣지들
     def finishableEdges: Set[(Int, Int)] = {
-        val edgesFromFinishes = termActions.toSeq flatMap { case (baseNodeId, acts) =>
+        val edgesFromTermActions = termActions.toSeq flatMap { case (baseNodeId, acts) =>
             acts.toSeq flatMap {
                 case SimpleParser.Finish(replace) => prevOf(baseNodeId) map (_ -> replace)
                 case SimpleParser.Append(_, _, Some(pendingFinish)) =>
@@ -34,7 +34,7 @@ class SimpleNodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.Te
                 case _: SimpleParser.Append => Set[(Int, Int)]()
             }
         }
-        val edgesFromDropLast = edgeActions.toSeq flatMap { kv =>
+        val edgesFromEdgeActions = edgeActions.toSeq flatMap { kv =>
             kv match {
                 case ((prev, _), SimpleParser.DropLast(replace)) => prevOf(prev) map (_ -> replace)
                 case ((prev, _), SimpleParser.ReplaceEdge(_, _, Some(pendingFinish))) =>
@@ -42,7 +42,7 @@ class SimpleNodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.Te
                 case (_, _: SimpleParser.ReplaceEdge) => Set[(Int, Int)]()
             }
         }
-        (edgesFromFinishes ++ edgesFromDropLast).toSet
+        (edgesFromTermActions ++ edgesFromEdgeActions).toSet
     }
 
     // node 앞에 올 수 있는 노드들
@@ -88,9 +88,11 @@ class SimpleNodeRelInferer(private val termActions: Map[Int, Set[SimpleParser.Te
             n
         }
         val newInferer = new SimpleNodeRelInferer(termActions, newEdgeActions, newAdjGraph)
-        assert(nodesOnTop subsetOf newInferer.nodesOnTop)
-        assert(finishableEdges subsetOf newInferer.finishableEdges)
-        val newNodeRels = NodeRels(newInferer.nodesOnTop -- nodesOnTop, newInferer.finishableEdges -- finishableEdges)
+        val newNodesOnTop = newInferer.nodesOnTop
+        val newFinishableEdges = newInferer.finishableEdges
+        assert(nodesOnTop subsetOf newNodesOnTop)
+        assert(finishableEdges subsetOf newFinishableEdges)
+        val newNodeRels = NodeRels(newNodesOnTop -- nodesOnTop, newFinishableEdges -- finishableEdges)
         (newInferer, newNodeRels)
     }
 }

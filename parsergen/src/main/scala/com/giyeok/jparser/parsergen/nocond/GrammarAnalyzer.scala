@@ -146,6 +146,8 @@ class GrammarAnalyzer(val grammar: NGrammar) {
             canBeInfluencedBy(List(AKernelGen.from(startKernel, 0, 0)))
         }).keySet
 
+        assert(replacePrev subsetOf prevKernelSet.items)
+
         val baseGraph = deriveGraphs.values.foldLeft(AKernelGenGraph.emptyGraph) { (m, i) =>
             m.merge(i)
         }

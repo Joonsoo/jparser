@@ -11,12 +11,11 @@ object DisambigParser {
 
     case class Finish(replace: Int) extends TermAction
 
-    case class Append(replace: Int, append: Int, pendingFinish: Option[Int]) extends TermAction
+    // stack에서 pop한 후, replace와 append를 순서대로 push
+    case class Append(replace: Int, append: List[Int], pendingFinish: Option[Int]) extends TermAction
 
     // PopAndReplace 액션에도 append가 필요한가?
     case class PopAndReplace(popCount: Int, replace: Int, pendingFinish: Option[Int]) extends TermAction
-
-    case class ReplaceToSeq(replace: List[Int], pendingFinish: Option[Int]) extends TermAction
 
     sealed trait EdgeAction
 
@@ -24,7 +23,7 @@ object DisambigParser {
 
     case class ReplaceEdge(replacePrev: Int, replaceLast: Int, pendingFinish: Option[Int]) extends EdgeAction
 
-    case class PopAndReplaceForEdge(popCount: Int, replace: Int, pendingFinish: Option[Int]) extends EdgeAction
+    case class PopAndReplaceEdge(popCount: Int, replace: Int, pendingFinish: Option[Int]) extends EdgeAction
 
 }
 
