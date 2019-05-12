@@ -138,9 +138,9 @@ object DisambigParserRunner {
         val baseNodes = simpleParser.nodes
 
         def DisambigNode(paths: Seq[NodePath]) =
-            DisambigParser.DisambigNode(AKernelSetPathSet((paths map { path =>
+            AKernelSetPathSet((paths map { path =>
                 AKernelSetPath(path.nodes map simpleParser.nodes)
-            }).toSet), Set())
+            }))
 
         val nodes0 = (baseNodes.keySet map { nodeId =>
             nodeId -> DisambigNode(Seq(NodePath(List(nodeId))))
@@ -167,7 +167,7 @@ object DisambigParserRunner {
         // (23, ' ') -> PopAndReplace(0, 23, Some(7))
         // (23, ',') -> Restore(List(2, 3, 16, 8), None)
 
-        val nodes: Map[Int, DisambigParser.DisambigNode] = nodes0 +
+        val nodes: Map[Int, AKernelSetPathSet] = nodes0 +
             (20 -> DisambigNode(Seq(NodePath(List(2, 3)), NodePath(List(12))))) +
             (21 -> DisambigNode(Seq(NodePath(List(2, 3, 9)), NodePath(List(7, 11))))) +
             (22 -> DisambigNode(Seq(NodePath(List(2, 3, 16)), NodePath(List(12))))) +

@@ -63,7 +63,6 @@ case class ParsingTaskSimulationResult(tasks: Set[Task], updateMap: Map[AKernelG
     lazy val progressTasks: Set[ProgressTask] = tasks collect { case task: ProgressTask => task }
 }
 
-// nullable은 어떻게 처리해야되지??
 class ParsingTaskSimulator(val grammar: NGrammar) {
     // deriveGraph는 simulate를 하러 오는 시점의 그래프이고, 리턴하는 그래프는 simulate한 뒤의 그래프이다
     // 같은 AKernel이 deriveGraph와 리턴한 그래프에 있어도 실제로는 endGen이 달라서 다른 노드.

@@ -32,10 +32,13 @@ case class AKernelSet(items: Set[AKernel]) extends Ordered[AKernelSet] {
 }
 
 case class AKernelSetPath(path: List[AKernelSet]) extends Ordered[AKernelSetPath] {
+    def replaceLast(newLast: AKernelSet): AKernelSetPath =
+        AKernelSetPath(path.init :+ newLast)
+
     override def compare(that: AKernelSetPath): Int = ListOrder.compare(path, that.path)
 }
 
-case class AKernelSetPathSet(paths: Set[AKernelSetPath]) {
+case class AKernelSetPathSet(paths: Seq[AKernelSetPath]) {
     def sortedItems: List[AKernelSetPath] = paths.toList.sorted
 
     def heads = paths.map(_.path.head)

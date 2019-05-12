@@ -28,6 +28,7 @@ object DisambigParser {
 
 }
 
+// DisambigParser는 SimpleParser의 superset이다.
 // grammar, nodes, nodeRelInferer는 참고용 -- 파싱 동작에는 영향을 미치지 않음.
 class DisambigParser(val grammar: NGrammar,
                      // simpleParser.nodes, kernelSetNodes들도 모두 DisambigNode로 바뀌어서 nodes에 포함됨
@@ -47,4 +48,8 @@ class DisambigParser(val grammar: NGrammar,
 
     def acceptableTermsOf(nodeId: Int): Set[CharacterTermGroupDesc] =
         termActionsByNodeId(nodeId).keySet
+
+    def describe(): Unit = {
+        println("DisambigParser Describe: TODO")
+    }
 }

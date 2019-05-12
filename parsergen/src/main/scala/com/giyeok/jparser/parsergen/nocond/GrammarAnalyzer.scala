@@ -13,7 +13,7 @@ import scala.collection.mutable
 // pendingFinishReplace로 바꿔서 진행해야 함.
 case class Following(following: AKernelSet, pendingFinishReplace: AKernelSet)
 
-case class GraphChange(replacePrev: AKernelSet, following: Option[Following])
+case class GraphChange(replacePrev: AKernelSet, following: Option[Following], simulationResult: ParsingTaskSimulationResult)
 
 case class Memoize[T <: Equals, U]() {
     private val memo = mutable.Map[T, U]()
@@ -74,11 +74,18 @@ class GrammarAnalyzer(val grammar: NGrammar) {
         deriveGraph.nodes filter (k => grammar.symbolOf(k.symbolId).isInstanceOf[NTerminal]) map (_.symbolId)
     }
 
-    def acceptableTerms(kernelSet: AKernelSet): Set[CharacterTermGroupDesc] = {
+    def termSymbolsFrom(kernelSet: AKernelSet): Set[NTerminal] = {
         val termSymbolIds = kernelSet.items flatMap reachableTermSymbolIdsFrom
-        val termSymbols = termSymbolIds map (grammar.symbolOf(_).asInstanceOf[NTerminal].symbol)
+        termSymbolIds map (grammar.symbolOf(_).asInstanceOf[NTerminal])
+    }
+
+    def acceptableTerms(kernelSet: AKernelSet): Set[CharacterTermGroupDesc] = {
+        val termSymbols = termSymbolsFrom(kernelSet) map (_.symbol)
         TermGrouper.termGroupsOf(termSymbols) map (_.asInstanceOf[CharacterTermGroupDesc])
     }
+
+    private val termChangesMemo = Memoize[(AKernelSet, CharacterTermGroupDesc), GraphChange]()
+    private val edgeChangesMemo = Memoize[(AKernelSet, AKernelSet), GraphChange]()
 
     // kernelSet에 term에 속한 글자가 들어왔을때 그래프의 변화.
     // - replace는 kernelSet의 커널들 중 term을 받을 수 있는 것들이고,
@@ -87,7 +94,7 @@ class GrammarAnalyzer(val grammar: NGrammar) {
     //   - append가 None이 아니고 append._2는 finishable이란 의미로, true이면 append되는 kernelset이 finish 가능함을 의미
     // - 사실 termChanges는 edgeChanges에서 nextKernelSet이 reachableTermSymbolsFrom(kernelSet) 중 term을 받을 수 있는
     // 커널셋을 nextKernelSet으로 주었을 때 나오는 결과의 다른 형태
-    def termChanges(kernelSet: AKernelSet, term: CharacterTermGroupDesc): GraphChange = {
+    def termChanges(kernelSet: AKernelSet, term: CharacterTermGroupDesc): GraphChange = termChangesMemo(kernelSet, term) {
         val termSymbols = kernelSet.items flatMap reachableTermSymbolIdsFrom filter { symbolId =>
             grammar.symbolOf(symbolId).asInstanceOf[NTerminal].symbol.acceptTermGroup(term)
         }
@@ -104,7 +111,7 @@ class GrammarAnalyzer(val grammar: NGrammar) {
     //   있으면 그런 커널들이 following.following으로 반환
     // - 만약 following.follwing이 non empty인데 progress/finish가 replacedPrevKernelSet의 일부로 도달하는 경우, 그렇게
     //   도달해서 progress되어야 하는 커널들은 following.pendingFinishReplace으로 반환
-    def edgeChanges(prevKernelSet: AKernelSet, nextKernelSet: AKernelSet): GraphChange = {
+    def edgeChanges(prevKernelSet: AKernelSet, nextKernelSet: AKernelSet): GraphChange = edgeChangesMemo(prevKernelSet, nextKernelSet) {
         // DeriveGraph에는 AKernel pointer=0으로 되어 있으므로
         val nextKernelSet0 = nextKernelSet.items map (k => AKernelGen(k.symbolId, 0, 0, 0))
 
@@ -156,11 +163,11 @@ class GrammarAnalyzer(val grammar: NGrammar) {
         }
         val initiatingProgressTasks = validNextKernelGens.toList map ProgressTask
         val boundaryTasks: Set[Task] = replacePrev map { k => ProgressTask(AKernelGen.from(k, 0, 0)) }
-        val simulation = new ParsingTaskSimulator(grammar).simulate(baseGraph, initiatingProgressTasks, boundaryTasks)
+        val simulationResult = new ParsingTaskSimulator(grammar).simulate(baseGraph, initiatingProgressTasks, boundaryTasks)
 
         // simulation.updateMap.get(replacePrev)
         // simulationResult.progressTasks에서 initiatingProgressTasks는 제외
-        val progressTasks = simulation.progressTasks filter (_.node.created == 0)
+        val progressTasks = simulationResult.progressTasks filter (_.node.created == 0)
         val (pendingFinishReplace, appending) = progressTasks map (_.node.kernel) partition replacePrev.contains
         // appending에는 simulationResult.nullableProgressTasks 중 sequence progress 추가
         val seqAppending = appending filter { k =>
@@ -181,6 +188,6 @@ class GrammarAnalyzer(val grammar: NGrammar) {
         } else {
             Some(Following(AKernelSet(notFinishedSeqAppendings), AKernelSet(pendingFinishReplace)))
         }
-        GraphChange(AKernelSet(replacePrev), following)
+        GraphChange(AKernelSet(replacePrev), following, simulationResult)
     }
 }

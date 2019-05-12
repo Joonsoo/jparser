@@ -4,7 +4,6 @@ package com.giyeok.jparser.parsergen.nocond
 class DisambigNodeRelInferer(private val termActions: Map[Int, Set[DisambigParser.TermAction]],
                              private val edgeActions: Map[(Int, Int), DisambigParser.EdgeAction],
                              val adjGraph: NodeAdjacencyGraph) {
-    // adjacency는 SimpleNodeRelInferer꺼 그대로 쓸 수 있을듯?
 }
 
 object DisambigNodeRelInferer {
