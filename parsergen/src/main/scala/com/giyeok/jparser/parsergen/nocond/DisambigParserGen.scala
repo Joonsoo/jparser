@@ -185,26 +185,37 @@ class DisambigParserGen(val grammar: NGrammar) {
 
         val (paths, moreFins) = simulateFinishLocally(path, change)
         moreFins match {
-            case None => paths map { p => (List(), p) }
-            case Some((lastKernel, lastChange)) =>
-                val x = nodeRelInferer.prevOf(nodeId).toSeq flatMap { prevId =>
-                    nodes.byKey(prevId).paths map { path =>
-                        simulateFinishLocally(AKernelSetPath(path.path :+ lastKernel), lastChange)
+            case None => paths map { p => (List(nodeId), p) }
+            case Some(lastKernel) =>
+                val pathsReform = paths map (List(nodeId) -> _)
+                val prevIds = nodeRelInferer.prevOf(nodeId)
+                val pathsMoreFinished = prevIds.toSeq flatMap { prevId =>
+                    nodes.byKey(prevId).paths flatMap { path =>
+                        simulateFinish(prevId, path, analyzer.edgeChanges(path.path.last, lastKernel))
                     }
-                }
-                ???
+                } map { p => (p._1 :+ nodeId, p._2) }
+                pathsReform ++ pathsMoreFinished
         }
     }
 
     // 주어진 path(의 last)에서 change가 일어난 경우 만들어질 수 있는 term accept가 가능한 path를 반환.
     // 반환 튜플의 _2는, finish를 계속 진행하다가 마지막 AKernelSet 하나만 남았는데 더 finish를 진행해야 하는 경우 그 AKernelSet 반환.
-    private def simulateFinishLocally(path: AKernelSetPath, change: GraphChange): (Seq[AKernelSetPath], Option[(AKernelSet, GraphChange)]) = {
+    private def simulateFinishLocally(path: AKernelSetPath, change: GraphChange): (Seq[AKernelSetPath], Option[AKernelSet]) = {
         val last = path.path.last
         if ((change.replacePrev.items intersect last.items).isEmpty) {
             // change에 기여하지 않은 path라면
             (Seq(), None)
         } else if (path.path.size == 1) {
-            (Seq(), Some(last, change))
+            change.following match {
+                case None => (Seq(), Some(last))
+                case Some(Following(following, pendingFinishReplace)) =>
+                    val appended = path.path.init :+ change.replacePrev :+ following
+                    if (pendingFinishReplace.items.isEmpty) {
+                        (Seq(AKernelSetPath(appended)), None)
+                    } else {
+                        (Seq(AKernelSetPath(appended)), Some(pendingFinishReplace))
+                    }
+            }
         } else {
             change.following match {
                 case None =>
@@ -212,15 +223,15 @@ class DisambigParserGen(val grammar: NGrammar) {
                     simulateFinishLocally(AKernelSetPath(path.path.init :+ change.replacePrev),
                         analyzer.edgeChanges(path.path.init.last, change.replacePrev))
                 case Some(Following(following, pendingFinishReplace)) =>
+                    val appended = path.path.init :+ change.replacePrev :+ following
                     if (pendingFinishReplace.items.isEmpty) {
                         // Append
-                        val appended = path.path :+ following
                         (Seq(AKernelSetPath(appended)), None)
                     } else {
                         // Append w/ pendingFinish
-                        val appended = path.path :+ following
-                        val finished = simulateFinishLocally(AKernelSetPath(path.path.init :+ pendingFinishReplace),
-                            analyzer.edgeChanges(path.path.init.last, pendingFinishReplace))
+                        val pendingFinPath = AKernelSetPath(path.path.init)
+                        val pendingFinChange = analyzer.edgeChanges(path.path.init.last, pendingFinishReplace)
+                        val finished = simulateFinishLocally(pendingFinPath, pendingFinChange)
                         (AKernelSetPath(appended) +: finished._1, finished._2)
                     }
             }
@@ -236,9 +247,16 @@ class DisambigParserGen(val grammar: NGrammar) {
             simulateFinish(finSimReq.baseId, p, finSimReq.change)
         }
 
+        allPaths foreach { p =>
+            println(p._1)
+            println(p._2)
+        }
+        println()
+
+        // allPaths의 각 path에 대해 analyzer.acceptableTerms(path.path.last) 한 것 중에 겹치는게 있으면 노드를 합치는 등의 작업이 필요
+
         // 그 중에 stack top에 오는 AKernelSet 이 받을 수 있는 term끼리 겹치는 path가 있으면 그 path들을 묶어서 노드로 만듦
         // 계산 결과를 termFinishSimResults(finSimReqId) 에 넣음. nodeRelInferer에도 추가.
-        ???
     }
 
     private def calculateEdgeFinishable(finSimReqId: Int): Unit = {
