@@ -39,9 +39,9 @@ class DisambigNodeRelInferer(private val termActionAppends: Map[Int, Set[Disambi
     def finishableEdges: Set[(Int, Int)] = {
         val edgesFromTermActions = termFinishSimResults.toSeq flatMap {
             case (finSimReqId, DisambigParser.Finish(replace)) =>
-                prevOf(edgeFinishSimReqs(finSimReqId).prevId) map (_ -> replace)
+                prevOf(termFinishSimReqs(finSimReqId).baseId) map (_ -> replace)
             case (finSimReqId, DisambigParser.Append(_, _, Some(pendingFinish))) =>
-                prevOf(edgeFinishSimReqs(finSimReqId).prevId) map (_ -> pendingFinish)
+                prevOf(termFinishSimReqs(finSimReqId).baseId) map (_ -> pendingFinish)
             case (finSimReqId, DisambigParser.PopAndReplace(popCount, replace, Some(pendingFinish))) =>
                 // prevOf(edgeFinishSimReqs(finSimReqId).prevId) 에서 시작해서 popCount만큼 빼서 나올 수 있는 모든 prev -> pendingFinish
                 // popCount가 0이면 그냥 prevOf(edgeFinishSimReqs(finSimReqId).prevId),

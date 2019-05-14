@@ -75,7 +75,8 @@ class SimpleParserGen(val grammar: NGrammar) {
         val replace = change.replacePrev
         val replaceId = nodeIdOf(replace)
         val idEdgeAction = change.following match {
-            case None => SimpleParser.DropLast(replaceId)
+            case None =>
+                SimpleParser.DropLast(replaceId)
             case Some(Following(following, pendingFinishReplace)) =>
                 val followingId = nodeIdOf(following)
                 val pfIdOpt = if (pendingFinishReplace.items.isEmpty) {

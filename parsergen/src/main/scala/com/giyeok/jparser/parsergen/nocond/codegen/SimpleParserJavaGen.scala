@@ -172,15 +172,15 @@ object SimpleParserJavaGen {
     }
 
     def main(args: Array[String]): Unit = {
-        generate(MetaGrammar.translateForce("LongestPrior", "S = T*\nT = 'a'+|'b'+"),
-            "LongestPriorParser", InputLoop(List()))
-        generate(ExpressionGrammars.simple, "ExprGrammarSimpleParser", InputLoop(List("123+456")))
+//        generate(MetaGrammar.translateForce("LongestPrior", "S = T*\nT = 'a'+|'b'+"),
+//            "LongestPriorParser", InputLoop(List()))
+//        generate(ExpressionGrammars.simple, "ExprGrammarSimpleParser", InputLoop(List("123+456")))
         generate(SimpleGrammars.array0Grammar, "Array0GrammarParser", InputLoop(List("[a,a,a]")))
-        generate(MetaGrammar.translateForce("Super Simple", "S='x' A 'y'|'x' B 'y'\nA=['a']\nB=['a' 'b']"),
-            "SuperSimpleGrammar", TestInputs(List("xy", "xay", "xaby")))
-        generate(JsonGrammar.fromJsonOrg, "JsonParser", InputLoop(List(
-            """{"abcd": ["hello", 123, {"xyz": 1}]}""")))
-        generate(JsonGrammar.custom, "CustomJsonParser", InputLoop(List(
-            """{"abcd": ["hello", 123, {"xyz": 1}]}""")))
+//        generate(MetaGrammar.translateForce("Super Simple", "S='x' A 'y'|'x' B 'y'\nA=['a']\nB=['a' 'b']"),
+//            "SuperSimpleGrammar", TestInputs(List("xy", "xay", "xaby")))
+//        generate(JsonGrammar.fromJsonOrg, "JsonParser", InputLoop(List(
+//            """{"abcd": ["hello", 123, {"xyz": 1}]}""")))
+//        generate(JsonGrammar.custom, "CustomJsonParser", InputLoop(List(
+//            """{"abcd": ["hello", 123, {"xyz": 1}]}""")))
     }
 }
