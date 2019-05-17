@@ -18,9 +18,9 @@ object SimpleGrammars {
         """.stripMargin)
 
     val arrayRGrammar: Grammar = MetaGrammar.translateForce("SimpleArrayRGrammar",
-        """S = '[' [WS E Erepeat]? WS ']'
-          |Ecomma = WS ',' WS E
-          |Erepeat = # | Ecomma Erepeat
+        """S = '[' [WS E Emores]? WS ']'
+          |Emore = WS ',' WS E
+          |Emores = # | Emore Emores
           |E = 'a'
           |WS = # | ' ' WS
         """.stripMargin)

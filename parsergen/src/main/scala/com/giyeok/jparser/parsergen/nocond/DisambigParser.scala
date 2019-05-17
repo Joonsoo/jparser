@@ -49,6 +49,19 @@ class DisambigParser(val grammar: NGrammar,
         termActionsByNodeId(nodeId).keySet
 
     def describe(): Unit = {
+        nodes.toList.sortBy(_._1).foreach { kv =>
+            println(s"Node ${kv._1}:")
+            val paths = kv._2.paths
+            paths foreach { path =>
+                println(path)
+            }
+        }
+        termActions.toList.sortBy(_._1._1).foreach { act =>
+            println(s"${act._1._1}, ${act._1._2.toShortString} -> ${act._2}")
+        }
+        edgeActions.toList.sortBy(_._1).foreach { act =>
+            println(s"fin ${act._1} -> ${act._2}")
+        }
         println("DisambigParser Describe: TODO")
     }
 }

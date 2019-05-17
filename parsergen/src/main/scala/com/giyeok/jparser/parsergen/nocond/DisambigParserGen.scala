@@ -87,6 +87,9 @@ class DisambigParserGen(val grammar: NGrammar) {
     private def updateTermFinSimResult(finSimReqId: Int, action: DisambigParser.TermAction): Unit =
         updateNodeRelInferer(nodeRelInferer.updateTermFinSimResult(finSimReqId, action))
 
+    private def updateEdgeFinSimResult(finSimReqId: Int, action: DisambigParser.EdgeAction): Unit =
+        updateNodeRelInferer(nodeRelInferer.updateEdgeFinSimResult(finSimReqId, action))
+
     private def addEdgeActionReplace(edge: (Int, Int), replaceAction: DisambigParser.ReplaceEdge): Unit =
         updateNodeRelInferer(nodeRelInferer.addEdgeActionReplace(edge._1, edge._2, replaceAction))
 
@@ -289,6 +292,7 @@ class DisambigParserGen(val grammar: NGrammar) {
         }
 
         if (allPaths exists (_.cycle)) {
+            // 아마도 right recursion?
             throw new Exception(s"Cycle found during analyzing termFinishables: $allPaths")
         }
 
@@ -338,11 +342,48 @@ class DisambigParserGen(val grammar: NGrammar) {
     private def calculateEdgeFinishable(finSimReqId: Int): Unit = {
         val finSimReq = edgeFinishSimReqs(finSimReqId)
         val prev = nodes.byKey(finSimReq.prevId)
+        val last = nodes.byKey(finSimReq.lastId)
         println("edgeFin", finSimReq)
 
+        val allPaths = prev.paths flatMap { p =>
+            simulateFinish(List(finSimReq.prevId), p, finSimReq.change)
+        }
+
+        if (allPaths exists (_.cycle)) {
+            // 아마도 right recursion?
+            throw new Exception(s"Cycle found during analyzing termFinishables: $allPaths")
+        }
+
         // calculateTermFinishable 하고 거의 같음.
+        val termConflictingPaths = acceptableTermConflictingPaths(allPaths)
+        if (termConflictingPaths.isEmpty) {
+            // 겹치는 term이 없으면
+            //   -> finSimReq.change를 보고 Finish나 Append w/ pendingFinish를 만들어줌
+            //   - finish는 각 path의 last를 replace한(뭘로 replace할 지는 좀 더 봐야함) 새 노드로 replace&finish 하면 됨
+            val finSimAction = finSimReq.change.following match {
+                case None =>
+                    val replace = replaceNodeFrom(prev, finSimReq.change)
+                    val replaceId = nodeIdOf(replace)
+                    DisambigParser.DropLast(replaceId)
+                case Some(Following(following, pendingFinishReplace)) =>
+                    assert(pendingFinishReplace.items.nonEmpty)
+                    // base 노드의 각 path의 last를 pendingFinishReplace로 바꾼 노드를 pendingFinish를 갖는 append
+                    val replace = replaceNodeFrom(prev, finSimReq.change)
+                    val replaceId = nodeIdOf(replace)
+                    val followingNode = AKernelSetPathSet(Seq(AKernelSetPath(List(following))))
+                    val followingId = nodeIdOf(followingNode)
+                    val pendingFinishNode = AKernelSetPathSet(replaceLastOf(prev.paths, pendingFinishReplace.items))
+                    val pendingFinishId = nodeIdOf(pendingFinishNode)
+                    DisambigParser.ReplaceEdge(replaceId, followingId, Some(pendingFinishId))
+            }
+            // 만들어진 action을 nodeRelInferer와 termFinishSimResults에 추가
+            updateEdgeFinSimResult(finSimReqId, finSimAction)
+            edgeFinishSimResults += finSimReqId -> finSimAction
+        } else {
+            // 겹치는 term이 있으면 PopAndReplace 를 만듦
+            ???
+        }
         // 계산 결과를 edgeFinishSimResults(finSimReqId) 에 넣음. nodeRelInferer에도 추가.
-        ???
     }
 
     def generateParser(): DisambigParser = {
@@ -381,7 +422,7 @@ class DisambigParserGen(val grammar: NGrammar) {
 object DisambigParserGen {
     def main(args: Array[String]): Unit = {
         val grammar1 = ExpressionGrammars.simple
-        val grammar2 = SimpleGrammars.array0Grammar
+        val grammar2 = SimpleGrammars.arrayRGrammar
 
         val ngrammar = NGrammar.fromGrammar(grammar2)
         ngrammar.describe()
