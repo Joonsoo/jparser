@@ -17,6 +17,15 @@ object SimpleGrammars {
           |WS = ' '*
         """.stripMargin)
 
+    val array1Grammar: Grammar = MetaGrammar.translateForce("ExprArrayGrammar",
+        """S = '[' [WS E [WS ',' WS E]*]? WS ']'
+          |E = T | E WS '+' WS T
+          |T = F | T WS '*' WS F
+          |F = N | '(' WS E WS ')'
+          |N = 'a'
+          |WS = ' ' *
+        """.stripMargin)
+
     val arrayRGrammar: Grammar = MetaGrammar.translateForce("SimpleArrayRGrammar",
         """S = '[' [WS E Emores]? WS ']'
           |Emore = WS ',' WS E

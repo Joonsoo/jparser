@@ -148,17 +148,17 @@ class ParseResultGraphViewer(r: ParseResultGraph, val figureGenerator: FigureGen
             case node: Sequence =>
                 g.horizontalFig(Spacing.None, Seq(
                     g.textFig(node.range.toString, ap.small),
-                    sfg.symbolPointerFig(node.symbol, node.pointer)
+                    sfg.symbolPointerFig(node.symbol.symbol, node.pointer)
                 ))
             case node @ Bind(_, _, symbol) =>
                 g.verticalFig(Spacing.None, Seq(
                     g.textFig(node.range.toString, ap.small),
-                    sfg.symbolFig(symbol)
+                    sfg.symbolFig(symbol.symbol)
                 ))
             case Join(_, _, symbol) =>
                 g.verticalFig(Spacing.None, Seq(
                     g.textFig(node.range.toString, ap.small),
-                    sfg.symbolFig(symbol)
+                    sfg.symbolFig(symbol.symbol)
                 ))
         }
         figure.setBorder(new LineBorder(ColorConstants.darkGray))

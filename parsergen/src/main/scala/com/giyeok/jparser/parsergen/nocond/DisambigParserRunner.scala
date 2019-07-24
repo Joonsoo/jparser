@@ -70,8 +70,10 @@ class DisambigParserRunner(val disambigParser: DisambigParser) {
 
     sealed trait PendingFinish
 
+    // DropReplaceFinish가 SimpleParser의 pendingFinish와 같은 동작
     case class DropReplaceFinish(replace: Int) extends PendingFinish
 
+    // ReplaceFinish는 PopAndReplace에서만 생길 수 있는 동작
     case class ReplaceFinish(replace: Int) extends PendingFinish
 
     case class ActiveContext(stack: Stack, pendingFinish: Option[PendingFinish]) extends Context {
@@ -104,13 +106,16 @@ class DisambigParserRunner(val disambigParser: DisambigParser) {
         def proceed(string: String): Context =
             string.foldLeft(this.asInstanceOf[Context])(_ proceed _)
 
-        def proceedEof(): Context = {
-            def repeatFinish(ctx: Context): Context = ctx match {
-                case ctx: ActiveContext => repeatFinish(ctx.stack.finish().proceedEof())
-                case _ => ctx
-            }
-
-            repeatFinish(this)
+        def proceedEof(): Context = pendingFinish match {
+            case Some(pF) =>
+                pF match {
+                    case DropReplaceFinish(replace) =>
+                        stack.replaceTop(replace).finish().proceedEof()
+                    case ReplaceFinish(replace) =>
+                        stack.pop().replaceTop(replace).finish().proceedEof()
+                }
+            case None =>
+                FailedContext(CharacterTermGroupDesc.merge(disambigParser.acceptableTermsOf(stack.nodeId)), 0)
         }
     }
 
@@ -217,15 +222,24 @@ object DisambigParserRunner {
             null, 0, termActions, edgeActions)
     }
 
-    def main(args: Array[String]): Unit = {
-        val runner = new DisambigParserRunner(array0Example)
+    def test(parser: DisambigParser, input: String): Unit = {
+        val runner = new DisambigParserRunner(parser)
 
-        val input = "[a,a,   a,   a  ,a  ,  a  ,  a ]"
-        input.foldLeft(runner.initialContext.asInstanceOf[runner.Context]) { (ctx, c) =>
+        val prelastContext = input.foldLeft(runner.initialContext.asInstanceOf[runner.Context]) { (ctx, c) =>
             println(s"Proceed '$c'")
             val nextCtx = ctx.proceed(c)
             runner.describeContext(nextCtx, "")
             nextCtx
         }
+        println("Proceed EOF")
+        val lastContext = prelastContext.proceedEof()
+        println(lastContext)
+        if (lastContext.isInstanceOf[runner.FailedContext]) {
+            println(s"Failed to parse: $lastContext")
+        }
+    }
+
+    def main(args: Array[String]): Unit = {
+        test(array0Example, "[a,a,   a,   a  ,a  ,  a  ,  a ]")
     }
 }

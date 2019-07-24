@@ -422,12 +422,14 @@ class DisambigParserGen(val grammar: NGrammar) {
 object DisambigParserGen {
     def main(args: Array[String]): Unit = {
         val grammar1 = ExpressionGrammars.simple
-        val grammar2 = SimpleGrammars.arrayRGrammar
+        val grammar2 = SimpleGrammars.array0Grammar
 
         val ngrammar = NGrammar.fromGrammar(grammar2)
         ngrammar.describe()
 
         val parser = new DisambigParserGen(ngrammar).generateParser()
         parser.describe()
+
+        DisambigParserRunner.test(parser, "[a,a,a]")
     }
 }

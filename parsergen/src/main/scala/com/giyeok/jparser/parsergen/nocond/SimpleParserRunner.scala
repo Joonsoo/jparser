@@ -98,13 +98,11 @@ class SimpleParserRunner(val simpleParser: SimpleParser) {
         def proceedString(string: String): Context =
             string.foldLeft(this.asInstanceOf[Context])(_ proceed _)
 
-        def proceedEof(): Context = {
-            def repeatFinish(ctx: Context): Context = ctx match {
-                case ctx: ActiveContext => repeatFinish(ctx.stack.finish().proceedEof())
-                case _ => ctx
-            }
-
-            repeatFinish(this)
+        def proceedEof(): Context = pendingFinish match {
+            case Some(pF) =>
+                stack.pop().replaceTop(pF).finish().proceedEof()
+            case None =>
+                FailedContext(CharacterTermGroupDesc.merge(simpleParser.acceptableTermsOf(stack.nodeId)), 0)
         }
     }
 
@@ -128,20 +126,17 @@ class SimpleParserRunner(val simpleParser: SimpleParser) {
 object SimpleParserRunner {
 
     def main(args: Array[String]): Unit = {
-        val parser = SimpleParserJavaGen.generateParser(SimpleGrammars.array0Grammar)
+        val parser = SimpleParserJavaGen.generateParser(SimpleGrammars.array1Grammar)
         val runner = new SimpleParserRunner(parser)
-        val input = "[a  ]"
-        input.foldLeft(runner.initialContext.asInstanceOf[runner.Context]) { (ctx, c) =>
+        val input = "[a,a,a+a*a+a]"
+        val prelastCtx = input.foldLeft(runner.initialContext.asInstanceOf[runner.Context]) { (ctx, c) =>
             println(s"Proceed $c")
             val nextCtx = ctx.proceed(c)
             runner.describeContext(nextCtx, "")
             nextCtx
         }
-
-        println()
-        val nc1 = runner.ActiveContext(runner.createStack(List(2, 3, 16, 9)).get, None).proceed(',')
-        runner.describeContext(nc1, "")
-        val nc2 = runner.ActiveContext(runner.createStack(List(7, 11)).get, None).proceed(' ')
-        runner.describeContext(nc2, "")
+        println("Proceed EOF")
+        val lastCtx = prelastCtx.proceedEof()
+        println(lastCtx)
     }
 }

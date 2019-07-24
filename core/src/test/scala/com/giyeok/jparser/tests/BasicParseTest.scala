@@ -13,6 +13,7 @@ import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.ParsingErrors
 import com.giyeok.jparser.ParseForest
+import com.giyeok.jparser.nparser.NGrammar.{NExcept, NJoin, NLongest, NLookaheadIs, NLookaheadSymbol, NNonterminal, NOneOf, NProxy, NRepeat, NSequence, NStart, NTerminal}
 
 class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends FlatSpec {
     def log(s: String): Unit = {
@@ -101,23 +102,23 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
         parseTree match {
             case BindNode(term: Terminal, TerminalNode(input)) =>
                 assert(term.accept(input))
-            case BindNode(Start, body @ BindNode(bodySym, _)) =>
+            case BindNode(_: NStart, body @ BindNode(bodySym, _)) =>
                 assert(grammar.startSymbol == bodySym)
                 checkParse(body, grammar)
-            case BindNode(Nonterminal(name), body @ BindNode(bodySymbol, _)) =>
-                assert(grammar.rules(name) contains bodySymbol)
+            case BindNode(NNonterminal(Nonterminal(name), _), body @ BindNode(bodySymbol, _)) =>
+                assert(grammar.rules(name) contains bodySymbol.symbol)
                 checkParse(body, grammar)
-            case BindNode(sym: Join, body @ JoinNode(BindNode(bodySym, _), BindNode(joinSym, _))) =>
+            case BindNode(NJoin(sym: Join, _, _), body @ JoinNode(BindNode(bodySym, _), BindNode(joinSym, _))) =>
                 assert(sym.sym == bodySym)
                 assert(sym.join == joinSym)
                 checkParse(body, grammar)
-            case BindNode(Sequence(seq, ws), seqBody: SequenceNode) =>
+            case BindNode(NSequence(Sequence(seq, _), _), seqBody: SequenceNode) =>
                 assert((seqBody.children map { _.asInstanceOf[BindNode].symbol }) == seq)
                 checkParse(seqBody, grammar)
-            case BindNode(OneOf(syms), body @ BindNode(bodySymbol, _)) =>
+            case BindNode(NOneOf(OneOf(syms), _), body @ BindNode(bodySymbol, _)) =>
                 assert(syms contains bodySymbol.asInstanceOf[AtomicSymbol])
                 checkParse(body, grammar)
-            case BindNode(Repeat(sym, _), body @ BindNode(bodySymbol, _)) =>
+            case BindNode(NRepeat(Repeat(sym, _), _), body @ BindNode(bodySymbol, _)) =>
                 def childrenOf(node: Node, sym: Symbol): Seq[BindNode] = node match {
                     case node @ BindNode(s, body) if s == sym => Seq(node)
                     case BindNode(s, body) => childrenOf(body, sym)
@@ -126,17 +127,17 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                 val children = childrenOf(body, sym)
                 assert(children forall { _.symbol == sym })
                 checkParse(body, grammar)
-            case BindNode(Except(sym, _), body @ BindNode(bodySym, _)) =>
+            case BindNode(NExcept(Except(sym, _), _, _), body @ BindNode(bodySym, _)) =>
                 assert(sym == bodySym)
                 checkParse(body, grammar)
-            case BindNode(Proxy(sym), body @ BindNode(bodySym, _)) =>
+            case BindNode(NProxy(Proxy(sym), _), body @ BindNode(bodySym, _)) =>
                 assert(sym == bodySym)
                 checkParse(body, grammar)
-            case BindNode(Longest(sym), body @ BindNode(bodySym, _)) =>
+            case BindNode(NLongest(Longest(sym), _), body @ BindNode(bodySym, _)) =>
                 assert(sym == bodySym)
                 checkParse(body, grammar)
-            case BindNode(_: LookaheadIs | _: LookaheadExcept, body) =>
-                assert(body == SequenceNode(Sequence(Seq()), List()))
+            case BindNode(_: NLookaheadSymbol, body) =>
+                assert(body == SequenceNode(NSequence(Sequence(Seq()), Seq()), List()))
             case node: SequenceNode =>
                 node.childrenAll foreach { checkParse(_, grammar) }
             case JoinNode(body, join) =>

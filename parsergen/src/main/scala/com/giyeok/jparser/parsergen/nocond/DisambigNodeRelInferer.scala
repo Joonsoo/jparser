@@ -109,9 +109,29 @@ class DisambigNodeRelInferer(private val termActionAppends: Map[Int, Set[Disambi
     }
 
     def updateTermFinSimResult(finSimReqId: Int, action: DisambigParser.TermAction): (DisambigNodeRelInferer, NodeRels) = {
+        val finSimReq = termFinishSimReqs(finSimReqId)
         val newTermFinishSimResults = termFinishSimResults + (finSimReqId -> action)
+        val newAdjGraph = {
+            var n = adjGraph
+            action match {
+                case DisambigParser.Finish(replace) =>
+                    if (replace != finSimReq.baseId) n = n.addReplace(finSimReq.baseId, replace)
+                case DisambigParser.Append(replace, append, pendingFinish) =>
+                    if (replace != finSimReq.baseId) n = n.addReplace(finSimReq.baseId, replace)
+                    n = n.addAppend(replace, append.head)
+                    append.sliding(2) foreach { e =>
+                        if (e.size == 2) n = n.addAppend(e.head, e.last)
+                    }
+                    if (pendingFinish.isDefined && pendingFinish.get != replace) {
+                        n = n.addReplace(replace, pendingFinish.get)
+                    }
+                case DisambigParser.PopAndReplace(popCount, replace, pendingFinish) =>
+                    ???
+            }
+            n
+        }
         val newInferer = new DisambigNodeRelInferer(termActionAppends, edgeActionReplaces, termFinishSimReqs,
-            newTermFinishSimResults, edgeFinishSimReqs, edgeFinishSimResults, adjGraph)
+            newTermFinishSimResults, edgeFinishSimReqs, edgeFinishSimResults, newAdjGraph)
 
         // 여기선 NodeRel이 추가가 아니라 변경될 수도 있지 않을까?
         nodeRelDiffs(newInferer)
@@ -126,9 +146,26 @@ class DisambigNodeRelInferer(private val termActionAppends: Map[Int, Set[Disambi
     }
 
     def updateEdgeFinSimResult(finSimReqId: Int, action: DisambigParser.EdgeAction): (DisambigNodeRelInferer, NodeRels) = {
+        val finSimReq = edgeFinishSimReqs(finSimReqId)
         val newEdgeFinishSimResults = edgeFinishSimResults + (finSimReqId -> action)
+        val newAdjGraph = {
+            var n = adjGraph
+            action match {
+                case DisambigParser.DropLast(replace) =>
+                    if (replace != finSimReq.prevId) n = n.addReplace(finSimReq.prevId, replace)
+                case DisambigParser.ReplaceEdge(replacePrev, replaceLast, pendingFinish) =>
+                    if (replacePrev != finSimReq.prevId) n = n.addReplace(finSimReq.prevId, replacePrev)
+                    n = n.addAppend(replacePrev, replaceLast)
+                    if (pendingFinish.isDefined && pendingFinish.get != replacePrev) {
+                        n = n.addReplace(replacePrev, pendingFinish.get)
+                    }
+                case DisambigParser.PopAndReplaceEdge(popCount, replace, pendingFinish) =>
+                    ???
+            }
+            n
+        }
         val newInferer = new DisambigNodeRelInferer(termActionAppends, edgeActionReplaces, termFinishSimReqs,
-            termFinishSimResults, edgeFinishSimReqs, newEdgeFinishSimResults, adjGraph)
+            termFinishSimResults, edgeFinishSimReqs, newEdgeFinishSimResults, newAdjGraph)
 
         // 여기선 NodeRel이 추가가 아니라 변경될 수도 있지 않을까?
         nodeRelDiffs(newInferer)

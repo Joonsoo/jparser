@@ -5,6 +5,7 @@ import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.ParseResultTree._
 import com.giyeok.jparser._
 import com.giyeok.jparser.Symbols._
+import com.giyeok.jparser.nparser.NGrammar.{NExcept, NNonterminal, NSequence, NStart}
 import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor}
 
 import scala.collection.immutable.{ListMap, ListSet}
@@ -171,8 +172,8 @@ object MetaGrammar extends Grammar {
     class NewGrammar(val name: String, val rules: ListMap[String, ListSet[Symbols.Symbol]], val startSymbol: Symbols.Nonterminal) extends Grammar
 
     def childrenOf(node: Node, sym: Symbol): Seq[Node] = node match {
-        case BindNode(s, body) if s == sym => Seq(node)
-        case BindNode(s, body) => childrenOf(body, sym)
+        case BindNode(s, _) if s.symbol == sym => Seq(node)
+        case BindNode(_, body) => childrenOf(body, sym)
         case s: SequenceNode => s.children flatMap {
             childrenOf(_, sym)
         }
@@ -191,12 +192,12 @@ object MetaGrammar extends Grammar {
 
     def charOf(node: Node): Char = {
         node match {
-            case BindNode(_, unicodeChar@BindNode(Nonterminal("unicodeChar"), _)) =>
+            case BindNode(_, unicodeChar@BindNode(NNonterminal(Nonterminal("unicodeChar"), _), _)) =>
                 charOf(unicodeChar)
-            case BindNode(Nonterminal("unicodeChar"), BindNode(_: Sequence, unicodeCharBody: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("unicodeChar"), _), BindNode(_: NSequence, unicodeCharBody: SequenceNode)) =>
                 val code = Integer.parseInt(textOf(unicodeCharBody).substring(2).toLowerCase(), 16)
                 code.toChar
-            case BindNode(Nonterminal(charNontermName), charBody) =>
+            case BindNode(NNonterminal(Nonterminal(charNontermName), _), charBody) =>
                 assert(Set("char", "charSetChar", "stringChar", "nontermNameChar") contains charNontermName)
                 charBody match {
                     case BindNode(_: Except, body) => textOf(body).charAt(0)
@@ -218,23 +219,23 @@ object MetaGrammar extends Grammar {
     }
 
     def sequenceOf(node: Node): Symbols.Symbol = {
-        val BindNode(Nonterminal("Sequence"), body) = node
+        val BindNode(NNonterminal(Nonterminal("Sequence"), _), body) = node
         body match {
-            case BindNode(Nonterminal("EmptySequence"), _) =>
+            case BindNode(NNonterminal(Nonterminal("EmptySequence"), _), _) =>
                 empty
-            case BindNode(Nonterminal("Symbol"), _) =>
+            case BindNode(NNonterminal(Nonterminal("Symbol"), _), _) =>
                 symbolOf(body)
-            case BindNode(Nonterminal("SymbolSeq"), symbolSeq) =>
+            case BindNode(NNonterminal(Nonterminal("SymbolSeq"), _), symbolSeq) =>
                 Sequence(childrenOf(symbolSeq, Nonterminal("Symbol")) map { node => proxyIfNeeded(symbolOf(node)) })
         }
     }
 
     def nonterminalNameOf(node: Node): String = {
-        val BindNode(Nonterminal("Nonterminal"), nonterminalNameBody) = node
+        val BindNode(NNonterminal(Nonterminal("Nonterminal"), _), nonterminalNameBody) = node
         nonterminalNameBody match {
-            case BindNode(Nonterminal("PlainNonterminalName"), nameBody) =>
+            case BindNode(NNonterminal(Nonterminal("PlainNonterminalName"), _), nameBody) =>
                 textOf(nameBody)
-            case BindNode(Nonterminal("QuoteNonterminalName"), BindNode(_: Sequence, nameBody: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("QuoteNonterminalName"), _), BindNode(_: NSequence, nameBody: SequenceNode)) =>
                 (childrenOf(nameBody.childrenAll(1), Nonterminal("nontermNameChar")) map {
                     charOf
                 }).mkString
@@ -243,81 +244,81 @@ object MetaGrammar extends Grammar {
 
     def symbolOf(node: Node): Symbols.Symbol = {
         node match {
-            case BindNode(Nonterminal("Symbol"), symbolBody) =>
+            case BindNode(NNonterminal(Nonterminal("Symbol"), _), symbolBody) =>
                 symbolBody match {
-                    case BindNode(_: Symbols.Except, exclusionBody@BindNode(Nonterminal("Exclusion"), _)) =>
+                    case BindNode(_: NExcept, exclusionBody@BindNode(NNonterminal(Nonterminal("Exclusion"), _), _)) =>
                         // Exclusion
                         symbolOf(exclusionBody)
-                    case BindNode(Nonterminal("Symbol4"), _) =>
+                    case BindNode(NNonterminal(Nonterminal("Symbol4"), _), _) =>
                         symbolOf(symbolBody)
                 }
-            case BindNode(Nonterminal("Exclusion"), exclusionBody) =>
+            case BindNode(NNonterminal(Nonterminal("Exclusion"), _), exclusionBody) =>
                 exclusionBody match {
-                    case BindNode(Nonterminal("Symbol4"), _) =>
+                    case BindNode(NNonterminal(Nonterminal("Symbol4"), _), _) =>
                         symbolOf(exclusionBody)
-                    case BindNode(_: Sequence, exclusionBody: SequenceNode) =>
+                    case BindNode(_: NSequence, exclusionBody: SequenceNode) =>
                         symbolOf(exclusionBody.childrenAll(0)).except(symbolOf(exclusionBody.childrenAll(4)))
                 }
-            case BindNode(Nonterminal("Symbol4"), symbol4Body) =>
+            case BindNode(NNonterminal(Nonterminal("Symbol4"), _), symbol4Body) =>
                 symbol4Body match {
-                    case BindNode(_: Symbols.Except, intersectionBody@BindNode(Nonterminal("Intersection"), _)) =>
+                    case BindNode(_: NExcept, intersectionBody@BindNode(NNonterminal(Nonterminal("Intersection"), _), _)) =>
                         // Intersection
                         symbolOf(intersectionBody)
-                    case BindNode(Nonterminal("Symbol3"), _) =>
+                    case BindNode(NNonterminal(Nonterminal("Symbol3"), _), _) =>
                         symbolOf(symbol4Body)
                 }
-            case BindNode(Nonterminal("Intersection"), intersectionBody) =>
+            case BindNode(NNonterminal(Nonterminal("Intersection"), _), intersectionBody) =>
                 intersectionBody match {
-                    case BindNode(Nonterminal("Symbol3"), symbol3) =>
+                    case BindNode(NNonterminal(Nonterminal("Symbol3"), _), symbol3) =>
                         symbolOf(symbol3)
-                    case BindNode(_: Sequence, intersectionBody: SequenceNode) =>
+                    case BindNode(_: NSequence, intersectionBody: SequenceNode) =>
                         symbolOf(intersectionBody.childrenAll(0)).join(symbolOf(intersectionBody.childrenAll(4)))
                 }
-            case BindNode(Nonterminal("Symbol3"), symbol3Body) =>
+            case BindNode(NNonterminal(Nonterminal("Symbol3"), _), symbol3Body) =>
                 symbolOf(symbol3Body)
-            case BindNode(Nonterminal("Repeat0"), BindNode(_: Sequence, repeat0Body: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("Repeat0"), _), BindNode(_: NSequence, repeat0Body: SequenceNode)) =>
                 symbolOf(repeat0Body.childrenAll.head).star
-            case BindNode(Nonterminal("Repeat1"), BindNode(_: Sequence, repeat1Body: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("Repeat1"), _), BindNode(_: NSequence, repeat1Body: SequenceNode)) =>
                 symbolOf(repeat1Body.childrenAll.head).plus
-            case BindNode(Nonterminal("Optional"), BindNode(_: Sequence, optionalBody: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("Optional"), _), BindNode(_: NSequence, optionalBody: SequenceNode)) =>
                 symbolOf(optionalBody.childrenAll.head).opt
-            case BindNode(Nonterminal("Symbol2"), symbol2Body) =>
+            case BindNode(NNonterminal(Nonterminal("Symbol2"), _), symbol2Body) =>
                 symbolOf(symbol2Body)
-            case BindNode(Nonterminal("FollowedBy"), BindNode(_: Sequence, followedByBody: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("FollowedBy"), _), BindNode(_: NSequence, followedByBody: SequenceNode)) =>
                 lookahead_is(symbolOf(followedByBody.childrenAll(2)))
-            case BindNode(Nonterminal("NotFollowedBy"), BindNode(_: Sequence, notFollowedByBody: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("NotFollowedBy"), _), BindNode(_: NSequence, notFollowedByBody: SequenceNode)) =>
                 lookahead_except(symbolOf(notFollowedByBody.childrenAll(2)))
-            case BindNode(Nonterminal("Symbol1"), symbol1Body) =>
+            case BindNode(NNonterminal(Nonterminal("Symbol1"), _), symbol1Body) =>
                 symbolOf(symbol1Body)
-            case BindNode(Nonterminal("Terminal"), terminalBody) =>
+            case BindNode(NNonterminal(Nonterminal("Terminal"), _), terminalBody) =>
                 terminalBody match {
-                    case BindNode(Nonterminal("anychar"), _) => anychar
-                    case BindNode(Nonterminal("TerminalCharSet"), charSetNodes) =>
+                    case BindNode(NNonterminal(Nonterminal("anychar"), _), _) => anychar
+                    case BindNode(NNonterminal(Nonterminal("TerminalCharSet"), _), charSetNodes) =>
                         val charRangeNodes = childrenOf(charSetNodes, Nonterminal("TerminalCharRange"))
                         val charRanges: Set[Char] = (charRangeNodes map {
-                            case BindNode(Nonterminal("TerminalCharRange"), singleChar@BindNode(Nonterminal("charSetChar"), _)) =>
+                            case BindNode(NNonterminal(Nonterminal("TerminalCharRange"), _), singleChar@BindNode(NNonterminal(Nonterminal("charSetChar"), _), _)) =>
                                 Set(charOf(singleChar))
-                            case BindNode(Nonterminal("TerminalCharRange"), BindNode(_: Sequence, seq: SequenceNode)) =>
+                            case BindNode(NNonterminal(Nonterminal("TerminalCharRange"), _), BindNode(_: NSequence, seq: SequenceNode)) =>
                                 (charOf(seq.childrenAll(0)) to charOf(seq.childrenAll(2))).toSet
                         }).toSet.flatten
                         c(charRanges)
-                    case BindNode(_: Sequence, seq: SequenceNode) =>
+                    case BindNode(_: NSequence, seq: SequenceNode) =>
                         Symbols.ExactChar(charOf(seq.childrenAll(1)))
                 }
-            case BindNode(Nonterminal("String"), BindNode(_: Sequence, stringBody: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("String"), _), BindNode(_: NSequence, stringBody: SequenceNode)) =>
                 val chars = childrenOf(stringBody.childrenAll(1), Nonterminal("stringChar")) map {
                     charOf
                 }
                 Sequence(chars map {
                     ExactChar
                 })
-            case nonterminal@BindNode(Nonterminal("Nonterminal"), _) =>
+            case nonterminal@BindNode(NNonterminal(Nonterminal("Nonterminal"), _), _) =>
                 Nonterminal(nonterminalNameOf(nonterminal))
-            case BindNode(Nonterminal("Proxy"), BindNode(_: Sequence, proxyBody: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("Proxy"), _), BindNode(_: NSequence, proxyBody: SequenceNode)) =>
                 Proxy(sequenceOf(proxyBody.childrenAll(2)))
-            case BindNode(Nonterminal("Longest"), BindNode(_: Sequence, longestBody: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("Longest"), _), BindNode(_: NSequence, longestBody: SequenceNode)) =>
                 longest(symbolOf(longestBody.childrenAll(2)))
-            case BindNode(_: Sequence, parenEitherBody: SequenceNode) =>
+            case BindNode(_: NSequence, parenEitherBody: SequenceNode) =>
                 oneof(childrenOf(parenEitherBody.childrenAll(2), Nonterminal("Symbol")) map {
                     symbolOf
                 }: _*)
@@ -325,10 +326,10 @@ object MetaGrammar extends Grammar {
     }
 
     def translate(name: String, tree: ParseResultTree.Node): Grammar = {
-        val BindNode(Start, BindNode(Nonterminal("Grammar"), BindNode(_, rulesSeq: SequenceNode))) = tree
-        val BindNode(Nonterminal("Rules"), rules) = rulesSeq.childrenAll(1)
+        val BindNode(_: NStart, BindNode(NNonterminal(Nonterminal("Grammar"), _), BindNode(_, rulesSeq: SequenceNode))) = tree
+        val BindNode(NNonterminal(Nonterminal("Rules"), _), rules) = rulesSeq.childrenAll(1)
         val nontermDefs: Seq[(String, Seq[Symbols.Symbol])] = childrenOf(rules, Nonterminal("Rule")) map {
-            case BindNode(Nonterminal("Rule"), BindNode(_: Sequence, seq: SequenceNode)) =>
+            case BindNode(NNonterminal(Nonterminal("Rule"), _), BindNode(_: NSequence, seq: SequenceNode)) =>
                 val nonterminalName = nonterminalNameOf(seq.childrenAll(0))
                 val rhsNodesSeq = childrenOf(seq.childrenAll(4), Nonterminal("Sequence"))
                 // println(nonterminalName)

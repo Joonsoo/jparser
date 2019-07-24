@@ -62,6 +62,8 @@ class DisambigParser(val grammar: NGrammar,
         edgeActions.toList.sortBy(_._1).foreach { act =>
             println(s"fin ${act._1} -> ${act._2}")
         }
-        println("DisambigParser Describe: TODO")
+        nodeRelInferer.adjGraph.adjacencies.adjByFoll.toList.sortBy(_._1).foreach { kv =>
+            println(s"${kv._1} follow {${kv._2.toList.sorted map (_.toString) mkString ", "}}")
+        }
     }
 }

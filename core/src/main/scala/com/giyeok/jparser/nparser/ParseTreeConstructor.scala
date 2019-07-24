@@ -1,19 +1,21 @@
 package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.ParseResult
-import com.giyeok.jparser.ParseResultFunc
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.nparser.ParsingContext._
+import com.giyeok.jparser.{ParseResult, ParseResultFunc}
 
 class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Graph], conditionFinal: Map[AcceptCondition, Boolean]) {
+
     // conditionFinal foreach { kv => println(s"${kv._1} -> ${kv._2}") }
     case class KernelEdge(start: Kernel, end: Kernel)
 
     case class KernelGraph(nodes: Seq[Kernel], edges: Seq[KernelEdge]) {
         val edgesByStart: Map[Kernel, Seq[KernelEdge]] = {
-            val edgesMap = edges groupBy { _.start }
+            val edgesMap = edges groupBy {
+                _.start
+            }
             ((nodes.toSet -- edgesMap.keySet) map { n => n -> Seq[KernelEdge]() }).toMap ++ edgesMap
         }
     }
@@ -21,10 +23,13 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     val finishes: Vector[KernelGraph] = {
         (history map { graph =>
             val filteredGraph = graph filterNode { node => conditionFinal(node.condition) }
-            val kernelNodes: Set[Kernel] = filteredGraph.nodes map { _.kernel }
+            val kernelNodes: Set[Kernel] = filteredGraph.nodes map {
+                _.kernel
+            }
             val kernelEdges0: Set[KernelEdge] = filteredGraph.edges map {
                 case Edge(start, end, _) => KernelEdge(start.kernel, end.kernel)
             }
+
             // 원래는 initial node로 가는 edge만 있기 때문에 edge들을 추가해서 고려해주어야 하는데, 우선은 non-actual edge들도 전부 고려하게 했기 때문에 필요 없음
             def augmentEdges(queue: List[Kernel], edges: Set[KernelEdge]): Set[KernelEdge] =
                 queue match {
@@ -33,12 +38,15 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                             augmentEdges(rest, edges)
                         } else {
                             val initialKernel = Kernel(head.symbolId, 0, head.beginGen, head.beginGen)(head.symbol)
-                            val newEdges = edges filter { _.end == initialKernel } map { edge => KernelEdge(edge.start, head) }
+                            val newEdges = edges filter {
+                                _.end == initialKernel
+                            } map { edge => KernelEdge(edge.start, head) }
                             augmentEdges(rest, edges ++ newEdges)
                         }
                     case List() =>
                         edges
                 }
+
             // val kernelEdges = augmentEdges(kernelNodes.toList, kernelEdges0)
             val kernelEdges = kernelEdges0
             KernelGraph(kernelNodes.toSeq, kernelEdges.toSeq)
@@ -49,6 +57,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     def reconstruct(): Option[R] = {
         reconstruct(Kernel(grammar.startSymbol, 1, 0, input.length)(grammar.nsymbols(grammar.startSymbol)), input.length)
     }
+
     def reconstruct(kernel: Kernel, gen: Int): Option[R] = {
         if (kernel.pointer > 0 && (finishes(gen).nodes contains kernel)) Some(reconstruct(kernel, gen, Set())) else None
     }
@@ -68,13 +77,13 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
         kernel.symbol match {
             case symbol: NAtomicSymbol if traces contains ((kernel.symbolId, kernel.pointer)) =>
                 // println("cyclicBind?")
-                resultFunc.cyclicBind(kernel.beginGen, gen, symbol.symbol)
+                resultFunc.cyclicBind(kernel.beginGen, gen, symbol)
 
             case symbol: NSequence if traces contains ((kernel.symbolId, kernel.pointer)) =>
                 // println(s"sequence cyclicBind - $kernel")
-                resultFunc.sequence(kernel.beginGen, gen, symbol.symbol, kernel.pointer)
+                resultFunc.sequence(kernel.beginGen, gen, symbol, kernel.pointer)
 
-            case NSequence(symbol, sequence) =>
+            case symbol@NSequence(_, sequence) =>
                 if (kernel.pointer == 0) {
                     assert(kernel.beginGen == kernel.endGen)
                     resultFunc.sequence(kernel.beginGen, kernel.endGen, symbol, 0)
@@ -97,7 +106,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                     if (kernel.pointer == sequence.length) resultFunc.bind(kernel.beginGen, gen, symbol, appendedSeq) else appendedSeq
                 }
 
-            case NJoin(symbol, body, join) =>
+            case symbol@NJoin(_, body, join) =>
                 assert(kernel.pointer == 1)
                 val bodyKernel = Kernel(body, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(body))
                 val joinKernel = Kernel(join, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(join))
@@ -105,7 +114,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 val joinTree = reconstruct0(joinKernel, kernel.endGen)
                 resultFunc.join(kernel.beginGen, kernel.endGen, symbol, bodyTree, joinTree)
 
-            case NTerminal(symbol) =>
+            case symbol: NTerminal =>
                 resultFunc.bind(kernel.beginGen, kernel.endGen, symbol,
                     resultFunc.terminal(kernel.beginGen, input(kernel.beginGen)))
 
@@ -120,7 +129,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                     reconstruct0(bodyKernel, kernel.endGen)
                 }
                 assert(bodyTrees.nonEmpty)
-                resultFunc.bind(kernel.beginGen, kernel.endGen, symbol.symbol, resultFunc.merge(bodyTrees))
+                resultFunc.bind(kernel.beginGen, kernel.endGen, symbol, resultFunc.merge(bodyTrees))
         }
     }
 }
