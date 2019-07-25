@@ -118,7 +118,7 @@ object ParseResultTree {
                 if (string.length >= width) string
                 else {
                     val prec = (width - string.length) / 2
-                    s" $prec$string${" " * (width - string.length - prec)}"
+                    s"${" " * prec}$string${" " * (width - string.length - prec)}"
                 }
             }
             def appendBottom(top: (Int, Seq[String]), bottom: String): (Int, Seq[String]) =

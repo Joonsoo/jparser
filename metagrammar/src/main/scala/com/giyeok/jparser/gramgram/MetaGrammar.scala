@@ -200,8 +200,8 @@ object MetaGrammar extends Grammar {
             case BindNode(NNonterminal(Nonterminal(charNontermName), _), charBody) =>
                 assert(Set("char", "charSetChar", "stringChar", "nontermNameChar") contains charNontermName)
                 charBody match {
-                    case BindNode(_: Except, body) => textOf(body).charAt(0)
-                    case BindNode(_: Sequence, seq: SequenceNode) =>
+                    case BindNode(_: NExcept, body) => textOf(body).charAt(0)
+                    case BindNode(_: NSequence, seq: SequenceNode) =>
                         textOf(seq.childrenAll(1)) match {
                             case "n" => '\n'
                             case "r" => '\r'

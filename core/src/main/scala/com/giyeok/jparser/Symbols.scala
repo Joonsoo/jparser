@@ -2,6 +2,8 @@ package com.giyeok.jparser
 
 import com.giyeok.jparser.Inputs.CharsGrouping
 
+import scala.collection.immutable.ListSet
+
 object Symbols {
 
     sealed trait Symbol {
@@ -215,7 +217,7 @@ object Symbols {
         def apply(seq: Seq[AtomicSymbol]): Sequence = Sequence(seq, seq.indices)
     }
 
-    case class OneOf(syms: Set[AtomicSymbol]) extends AtomicNonterm {
+    case class OneOf(syms: ListSet[AtomicSymbol]) extends AtomicNonterm {
         override val hashCode: Int = (classOf[OneOf], syms).hashCode
     }
 
