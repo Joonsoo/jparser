@@ -2,12 +2,12 @@ package com.giyeok.jparser.gramgram
 
 import com.giyeok.jparser.ParseResultTree._
 import com.giyeok.jparser.Symbols._
-import com.giyeok.jparser.nparser.NGrammar.{NNonterminal, NProxy, NRepeat, NStart}
+import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor}
-import com.giyeok.jparser.{Grammar, ParseForestFunc}
+import com.giyeok.jparser.{Inputs, ParseForestFunc, ParseResultTree}
 
-object MetaGrammar2 extends Grammar {
-    private val grammar = MetaGrammar.translateForce("Meta Grammar 2",
+object MetaGrammar2 {
+    private val oldGrammar = NGrammar.fromGrammar(MetaGrammar.translateForce("Meta Grammar 2",
         """Grammar = WS Def [WS Def]* WS
           |Def = Rule | TypeDef
           |
@@ -73,10 +73,11 @@ object MetaGrammar2 extends Grammar {
           |  | StringLiteral
           |  | Nonterminal
           |  | '(' InPlaceChoices ')'
-          |  | '<' InPlaceChoices '>'
+          |  | Longest
           |  | EmptySequence
           |InPlaceChoices = InPlaceSequence [WS '|' WS InPlaceSequence]*
           |InPlaceSequence = Symbol [WS Symbol]*
+          |Longest = '<' InPlaceChoices '>'
           |EmptySequence = '#'
           |Nonterminal = Id
           |Terminal = '\'' TerminalChar '\''
@@ -104,13 +105,28 @@ object MetaGrammar2 extends Grammar {
           |WS = ({ \n\r\t} | LineComment)*
           |LineComment = '/' '/' (.-'\n')* (EOF | '\n')
           |EOF = !.
-        """.stripMargin)
+        """.stripMargin))
 
     sealed trait AST
 
     object AST {
 
-        class Node()
+        class Node(val node: ParseResultTree.Node) {
+            override def toString: String = {
+                def rec(node: ParseResultTree.Node): String = node match {
+                    case TerminalNode(input) => input.toRawString
+                    case BindNode(_, body) => rec(body)
+                    case JoinNode(body, _) => rec(body)
+                    case seq: SequenceNode => seq.children map rec mkString ""
+                    case _: CyclicBindNode | _: CyclicSequenceNode =>
+                        throw new Exception("Cyclic bind")
+                }
+
+                rec(node)
+            }
+
+            def toRepr: String = super.toString
+        }
 
         case class Grammar(defs: List[Def])
 
@@ -134,13 +150,15 @@ object MetaGrammar2 extends Grammar {
 
         case class OnTheFlyTypeDef(name: TypeName, supers: List[TypeName]) extends ValueTypeDesc
 
-        case class Rule(lhs: LHS, rhs: List[List[Elem]]) extends Def
+        case class Rule(lhs: LHS, rhs: List[RHS]) extends Def
 
         case class LHS(name: Nonterminal, typeDesc: Option[TypeDesc])
 
+        case class RHS(elems: List[Elem])
+
         sealed trait Elem
 
-        sealed trait Processor
+        sealed trait Processor extends Elem
 
         sealed trait PExpr extends BoundedPExpr
 
@@ -166,7 +184,7 @@ object MetaGrammar2 extends Grammar {
 
         case class NamedParam(name: Node, typeDesc: Option[TypeDesc], expr: PExpr)
 
-        sealed trait Symbol
+        sealed trait Symbol extends Elem
 
         sealed trait BinSymbol extends Symbol
 
@@ -186,9 +204,9 @@ object MetaGrammar2 extends Grammar {
 
         sealed trait AtomSymbol extends PostUnSymbol
 
-        case class Paren(choices: List[InPlaceChoices]) extends AtomSymbol
+        case class Paren(choices: InPlaceChoices) extends AtomSymbol
 
-        case class Longest(choices: List[InPlaceChoices]) extends AtomSymbol
+        case class Longest(choices: InPlaceChoices) extends AtomSymbol
 
         object EmptySeq extends AtomSymbol
 
@@ -208,17 +226,15 @@ object MetaGrammar2 extends Grammar {
 
         sealed trait TerminalChoiceElem
 
-        case class TerminalChoiceRange(start: Node, end: Node) extends TerminalChoiceElem
+        case class TerminalChoiceChar(char: Node) extends TerminalChoiceElem
+
+        case class TerminalChoiceRange(start: TerminalChoiceChar, end: TerminalChoiceChar) extends TerminalChoiceElem
 
         case class StringLiteral(value: Node) extends AtomSymbol
 
     }
 
-    val name: String = grammar.name
-    val rules: RuleMap = grammar.rules
-    val startSymbol: Nonterminal = grammar.startSymbol
-
-    val selfGrammar: String =
+    val newGrammar: String =
         """Grammar = WS Def (WS Def)* WS {@Grammar(defs=[$1 + $2$1])}
           |Def: @Def = Rule | TypeDef
           |
@@ -243,7 +259,7 @@ object MetaGrammar2 extends Grammar {
           |Rule = LHS WS '=' WS RHSs {@Rule(lhs=$0, rhs=$4)}
           |LHS = Nonterminal (WS ':' WS TypeDesc)? {@LHS(name=$0, typeDesc=$1$3)}
           |RHSs = RHS (WS '|' WS RHS)* {[$0] + $1$3}
-          |RHS: [Elem] = Elem (WS Elem)* {[$0] + $1$1}
+          |RHS = Elem (WS Elem)* {@RHS(elems=[$0] + $1$1)}
           |Elem: @Elem = Processor | Symbol
           |
           |Processor: @Processor = Ref
@@ -284,10 +300,11 @@ object MetaGrammar2 extends Grammar {
           |  | StringLiteral
           |  | Nonterminal
           |  | '(' InPlaceChoices ')' {@Paren(choices=$1)}
-          |  | '<' InPlaceChoices '>' {@Longest(choices=$1)}
+          |  | Longest
           |  | EmptySequence {@EmptySeq()}
           |InPlaceChoices = InPlaceSequence (WS '|' WS InPlaceSequence)* {$InPlaceChoices(choices=[$0] + $1$3)}
           |InPlaceSequence = Symbol (WS Symbol)* {@InPlaceSequence(seq=[$0] + $1$1)}
+          |Longest = '<' InPlaceChoices '>' {@Longest(choices=$1)}
           |EmptySequence = '#'
           |Nonterminal = Id {@Nonterminal(name=$0)}
           |Terminal: @Terminal = '\'' TerminalChar '\'' {@TerminalChar(char=$2)}
@@ -295,7 +312,8 @@ object MetaGrammar2 extends Grammar {
           |@TerminalChoice(choices: [TerminalChoiceElem])
           |TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\'' {TerminalChoice([$1] + $2)}
           |  | '\'' TerminalChoiceRange '\'' {TerminalChoice([$1])}
-          |TerminalChoiceElem: @TerminalChoiceElem = TerminalChoiceChar | TerminalChoiceRange
+          |TerminalChoiceElem: @TerminalChoiceElem = TerminalChoiceChar {@TerminalChoiceChar(char=$0)}
+          |  | TerminalChoiceRange
           |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {@TerminalChoiceRange(start=$0, end=$2)}
           |StringLiteral = '"' StringChar* '"' {@StringLiteral(value=$1)}
           |
@@ -319,39 +337,246 @@ object MetaGrammar2 extends Grammar {
         """.stripMargin
 
     object ASTifier {
+        def transformNode(node: Node): AST.Node = new AST.Node(node)
+
         def unwindRepeat(node: Node): List[Node] = {
             val BindNode(repeat: NRepeat, body) = node
             body match {
-                case BindNode(symbol, repeating) if symbol.id == repeat.baseSeq => ???
-                case BindNode(symbol, repeating) if symbol.id == repeat.repeatSeq => ???
+                case BindNode(symbol, repeating: SequenceNode) if symbol.id == repeat.repeatSeq =>
+                    unwindRepeat(repeating.children(0)) :+ repeating.children(1)
+                case BindNode(symbol, _) if symbol.id == repeat.baseSeq =>
+                    List(body)
+                case seq@SequenceNode(symbol, _) if symbol.id == repeat.baseSeq =>
+                    seq.children.take(repeat.symbol.lower).toList
             }
+        }
+
+        def unwindOptional(node: Node): Option[Node] = {
+            val BindNode(_, body) = node
+            body match {
+                case BindNode(_, SequenceNode(_, List())) => None
+                case BindNode(_, SequenceNode(_, List(optBody))) => Some(optBody)
+            }
+        }
+
+        def unwindNonterm(name: String, node: Node): Node = {
+            val BindNode(NNonterminal(_, Nonterminal(`name`), _), body) = node
+            body
+        }
+
+        def matchNonterminal(node: Node): AST.Nonterminal = {
+            val BindNode(NNonterminal(_, Nonterminal("Nonterminal"), _), nonterminalBody) = node
+            AST.Nonterminal(transformNode(nonterminalBody))
+        }
+
+        def matchTypeDesc(node: Node): AST.TypeDesc = {
+            ???
+        }
+
+        def matchLHS(node: Node): AST.LHS = {
+            val BindNode(NNonterminal(_, Nonterminal("LHS"), _), BindNode(_, lhsBody: SequenceNode)) = node
+
+            val name = matchNonterminal(lhsBody.children(0))
+            val typeDesc = unwindOptional(lhsBody.children(1)) map { opt =>
+                val BindNode(_, typeDescBody: SequenceNode) = opt
+                matchTypeDesc(typeDescBody.children(3))
+            }
+            AST.LHS(name, typeDesc)
+        }
+
+        def matchTerminal(node: Node): AST.Terminal = node match {
+            case BindNode(_, SequenceNode(_, List(_, BindNode(NNonterminal(_, Nonterminal("TerminalChar"), _), terminalCharBody), _))) =>
+                AST.TerminalChar(transformNode(terminalCharBody))
+            case _ => AST.AnyTerminal
+        }
+
+        def matchTerminalChoiceChar(node: Node): AST.TerminalChoiceChar =
+            AST.TerminalChoiceChar(transformNode(node))
+
+        def matchTerminalChoiceRange(node: Node): AST.TerminalChoiceRange = node match {
+            case BindNode(_, seq: SequenceNode) =>
+                AST.TerminalChoiceRange(matchTerminalChoiceChar(seq.children(0)), matchTerminalChoiceChar(seq.children(2)))
+        }
+
+        def matchTerminalChoiceElem(node: Node): AST.TerminalChoiceElem = node match {
+            case BindNode(NNonterminal(_, Nonterminal("TerminalChoiceChar"), _), charBody) =>
+                matchTerminalChoiceChar(charBody)
+            case BindNode(NNonterminal(_, Nonterminal("TerminalChoiceRange"), _), rangeBody) =>
+                matchTerminalChoiceRange(rangeBody)
+        }
+
+        def matchTerminalChoice(node: Node): AST.TerminalChoice = node match {
+            case BindNode(_, seq: SequenceNode) if seq.children.size == 4 =>
+                val elem1 = matchTerminalChoiceElem(unwindNonterm("TerminalChoiceElem", seq.children(1)))
+                val elem2_ = unwindRepeat(seq.children(2))
+                val elem2 = elem2_ map { b => matchTerminalChoiceElem(unwindNonterm("TerminalChoiceElem", b)) }
+                AST.TerminalChoice(elem1 +: elem2)
+            case BindNode(_, seq: SequenceNode) if seq.children.size == 3 =>
+                val elem = matchTerminalChoiceElem(seq.children(1))
+                AST.TerminalChoice(List(elem))
+        }
+
+        def matchLongest(node: Node): AST.Longest = {
+            val BindNode(_, SequenceNode(_, List(_, body, _))) = node
+            AST.Longest(matchInPlaceChoices(body))
+        }
+
+        def matchInPlaceSequence(node: Node): AST.InPlaceSequence = {
+            val BindNode(_, BindNode(_, seq: SequenceNode)) = node
+
+            val choices1 = matchSymbol(unwindNonterm("Symbol", seq.children(0)))
+            val choices2_ = unwindRepeat(seq.children(1))
+            val choices2 = choices2_ map { b =>
+                val BindNode(_, BindNode(_, seq: SequenceNode)) = b
+                matchSymbol(unwindNonterm("Symbol", seq.children(1)))
+            }
+            AST.InPlaceSequence(choices1 +: choices2)
+        }
+
+        def matchInPlaceChoices(node: Node): AST.InPlaceChoices = {
+            val BindNode(_, BindNode(_, seq: SequenceNode)) = node
+
+            val choices1 = matchInPlaceSequence(seq.children(0))
+            val choices2_ = unwindRepeat(seq.children(1))
+            val choices2 = choices2_ map { b =>
+                val BindNode(_, BindNode(_, seq: SequenceNode)) = b
+                matchInPlaceSequence(seq.children(3))
+            }
+            AST.InPlaceChoices(choices1 +: choices2)
+        }
+
+        def matchAtomSymbol(node: Node): AST.AtomSymbol = node match {
+            case BindNode(NNonterminal(_, Nonterminal("Terminal"), _), terminalBody) =>
+                matchTerminal(terminalBody)
+            case BindNode(NNonterminal(_, Nonterminal("TerminalChoice"), _), terminalChoiceBody) =>
+                matchTerminalChoice(terminalChoiceBody)
+            case BindNode(NNonterminal(_, Nonterminal("StringLiteral"), _), BindNode(_, stringBody: SequenceNode)) =>
+                AST.StringLiteral(transformNode(stringBody.children(1)))
+            case BindNode(NNonterminal(_, Nonterminal("Nonterminal"), _), nonterminalBody) =>
+                AST.Nonterminal(transformNode(nonterminalBody))
+            case BindNode(NNonterminal(_, Nonterminal("Longest"), _), longestBody) =>
+                matchLongest(longestBody)
+            case BindNode(NNonterminal(_, Nonterminal("EmptySequence"), _), emptySeqBody) =>
+                AST.EmptySeq
+            case BindNode(_, SequenceNode(_, List(_, parenElem, _))) =>
+                matchInPlaceChoices(parenElem)
+        }
+
+        def matchPostUnSymbol(node: Node): AST.PostUnSymbol = node match {
+            case BindNode(NNonterminal(_, Nonterminal("AtomSymbol"), _), atomSymbolBody) =>
+                matchAtomSymbol(atomSymbolBody)
+            case BindNode(_, seq: SequenceNode) =>
+                val sym = matchPostUnSymbol(unwindNonterm("PostUnSymbol", seq.children(0)))
+                val op = seq.children(2)
+                AST.Repeat(sym, transformNode(op))
+        }
+
+        def matchPreUnSymbol(node: Node): AST.PreUnSymbol = node match {
+            case BindNode(NNonterminal(_, Nonterminal("PostUnSymbol"), _), postUnSymbolBody) =>
+                matchPostUnSymbol(postUnSymbolBody)
+            case BindNode(_, seq: SequenceNode) =>
+                val op = seq.children(0)
+                val sym = matchPreUnSymbol(unwindNonterm("PreUnSymbol", seq.children(2)))
+                op match {
+                    case BindNode(_, TerminalNode(Inputs.Character('^'))) => AST.FollowedBy(sym)
+                    case BindNode(_, TerminalNode(Inputs.Character('!'))) => AST.NotFollowedBy(sym)
+                }
+        }
+
+        def matchBinSymbol(node: Node): AST.BinSymbol = node match {
+            case BindNode(NNonterminal(_, Nonterminal("PreUnSymbol"), _), preUnSymbolBody) =>
+                matchPreUnSymbol(preUnSymbolBody)
+            case BindNode(_, seq: SequenceNode) =>
+                val op = seq.children(2)
+                val lhs = matchBinSymbol(unwindNonterm("BinSymbol", seq.children(0)))
+                val rhs = matchPreUnSymbol(unwindNonterm("PreUnSymbol", seq.children(4)))
+                op match {
+                    case BindNode(_, TerminalNode(Inputs.Character('&'))) => AST.JoinSymbol(lhs, rhs)
+                    case BindNode(_, TerminalNode(Inputs.Character('-'))) => AST.ExceptSymbol(lhs, rhs)
+                }
+        }
+
+        def matchSymbol(node: Node): AST.Symbol = node match {
+            case BindNode(NNonterminal(_, Nonterminal("BinSymbol"), _), binSymbolBody) =>
+                matchBinSymbol(binSymbolBody)
+        }
+
+        def matchProcessor(node: Node): AST.Processor = {
+            ???
+        }
+
+        def matchElem(node: Node): AST.Elem = {
+            val BindNode(_, body) = node
+            body match {
+                case BindNode(NNonterminal(_, Nonterminal("Symbol"), _), symbolBody) =>
+                    matchSymbol(symbolBody)
+                case BindNode(NNonterminal(_, Nonterminal("Processor"), _), processorBody) =>
+                    matchProcessor(processorBody)
+            }
+        }
+
+        def matchRHS(node: Node): AST.RHS = {
+            val BindNode(_, BindNode(_, rhsBody: SequenceNode)) = node
+            val elem1 = matchElem(rhsBody.children(0))
+            val elem2_ = unwindRepeat(rhsBody.children(1))
+            val elem2 = elem2_ map { repeat =>
+                val BindNode(_, BindNode(_, repeatBody: SequenceNode)) = repeat
+                matchElem(repeatBody.children(1))
+            }
+            AST.RHS(elem1 +: elem2)
+        }
+
+        def matchRHSs(node: Node): List[AST.RHS] = {
+            val BindNode(_, BindNode(_, rhsBody: SequenceNode)) = node
+            val rhs1 = matchRHS(rhsBody.children(0))
+            val rhs2_ = unwindRepeat(rhsBody.children(1))
+            val rhs2 = rhs2_ map { repeat =>
+                val BindNode(_, BindNode(_, repeatBody: SequenceNode)) = repeat
+                matchRHS(repeatBody.children(3))
+            }
+            rhs1 +: rhs2
+        }
+
+        def matchRule(node: Node): AST.Rule = {
+            val BindNode(_, seqBody: SequenceNode) = node
+            val lhs = matchLHS(seqBody.children(0))
+            val rhss = matchRHSs(seqBody.children(4))
+            AST.Rule(lhs, rhss)
+        }
+
+        def matchTypeDef(node: Node): AST.TypeDef = {
+            ???
         }
 
         def matchDef(node: Node): AST.Def = {
-            ???
+            val BindNode(NNonterminal(_, Nonterminal("Def"), _), body) = node
+
+            body match {
+                case BindNode(NNonterminal(_, Nonterminal("Rule"), _), ruleBody) => matchRule(ruleBody)
+                case BindNode(NNonterminal(_, Nonterminal("TypeDef"), _), typeDefBody) => matchTypeDef(typeDefBody)
+            }
         }
 
         def matchGrammar(node: Node): AST.Grammar = {
-            val BindNode(NStart(_, _), BindNode(NNonterminal(_, Nonterminal("Grammar"), _), SequenceNode(_, body))) = node
-            val def1 = matchDef(body(1))
-            val def2 = unwindRepeat(body(2)) map { repeat =>
-                val BindNode(_: NProxy, SequenceNode(_, repeatBody)) = repeat
-                matchDef(repeatBody(1))
+            val BindNode(NStart(_, _), BindNode(NNonterminal(_, Nonterminal("Grammar"), _), BindNode(_: NSequence, grammarBody: SequenceNode))) = node
+            val def1 = matchDef(grammarBody.children(1))
+            val def2_ = unwindRepeat(grammarBody.children(2))
+            val def2 = def2_ map { repeat =>
+                val BindNode(_, BindNode(_, repeatBody: SequenceNode)) = repeat
+                matchDef(repeatBody.children(1))
             }
-            ???
+            AST.Grammar(def1 +: def2)
         }
     }
 
-    def main(args: Array[String]): Unit = {
-        println(grammar.rules)
-        val ngrammar = NGrammar.fromGrammar(grammar)
-        val parser = new NaiveParser(ngrammar)
+    val parser = new NaiveParser(oldGrammar)
 
-        val result = parser.parse("A = b c d")
+    def grammarSpecToAST(grammar: String): Option[AST.Grammar] = {
+        val result = parser.parse(grammar)
 
-        val ast = result match {
+        result match {
             case Left(ctx) =>
-                val reconstructor = new ParseTreeConstructor(ParseForestFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFinal)
+                val reconstructor = new ParseTreeConstructor(ParseForestFunc)(oldGrammar)(ctx.inputs, ctx.history, ctx.conditionFinal)
                 reconstructor.reconstruct() match {
                     case Some(parseForest) =>
                         assert(parseForest.trees.size == 1)
@@ -366,6 +591,15 @@ object MetaGrammar2 extends Grammar {
                 println(error)
                 None
         }
+    }
+
+    def main(args: Array[String]): Unit = {
+        val ast = grammarSpecToAST(
+            """Abc = Z-Y G&H !A ^X 'a'+ 'b'* ('c' 'd')? <'a-z'+>?
+              |  | K&Z-"asdf" 'a' 'b-z' '0-9ax-z'
+            """.stripMargin)
+
+        println(ast)
 
         // 문법이 주어지면
         // 1a. processor가 없는 문법 텍스트

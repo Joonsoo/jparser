@@ -224,6 +224,11 @@ object Inputs {
     type ConcreteSource = Iterable[ConcreteInput]
 
     implicit class InputToShortString(input: Input) {
+        def toRawString: String = input match {
+            case Character(char) => s"$char"
+            case Virtual(_) => ""
+        }
+
         def toShortString: String = input match {
             case Character(char) =>
                 char match {
