@@ -1,29 +1,29 @@
-Grammar = WS [TypeDefs WS]? Rules WS
-TypeDefs = TypeDef [WS TypeDef]*
-Rules = Rule [WS Rule]*
+Grammar = WS Def [WS Def]* WS
+Def = Rule | TypeDef
 
 TypeDef = '@' ClassDef
   | '@' SuperDef
 ClassDef = TypeName WS '(' WS [ClassParams WS]? ')'
 SuperDef = TypeName WS '{' WS [SubTypes WS]? '}'
+TypeName = Id
 ClassParams = ClassParam [WS ',' WS ClassParam]*
 ClassParam = ParamName [WS ':' WS TypeDesc]?
 ParamName = Id
 TypeDesc = ValueTypeDesc [WS '?']?
 ValueTypeDesc = TypeName
+  | OnTheFlyTypeDef
   | '[' WS TypeDesc WS ']'
-  | '{' WS EnumList WS '}'
-EnumList = StringLiteral [WS ',' WS StringLiteral]*
 SubTypes = SubType [WS ',' WS SubType]*
-SubType = StringLiteral | TypeName | ClassDef | SuperDef
+SubType = TypeName | ClassDef | SuperDef
+
+OnTheFlyTypeDef = '@' WS TypeName [WS SuperTypes]?
+SuperTypes = '<' WS TypeName [WS ',' WS TypeName]* WS '>'
 
 Rule = LHS WS '=' WS RHSs
 LHS = Nonterminal [WS ':' WS TypeDesc]?
 RHSs = RHS [WS '|' WS RHS]*
 RHS = Elem [WS Elem]*
 Elem = Processor | Symbol
-
-
 
 Processor = Ref
   | '{' WS PExpr WS '}'
@@ -41,14 +41,11 @@ BoundedPExpr = Ref
   | BoundPExpr
   | '{' WS PExpr WS '}'
 ConstructExpr = TypeName WS ConstructParams
-  | ConstructWithTypeDefExpr
+  | OnTheFlyTypeDefConstructExpr
 ConstructParams = '(' WS [PExpr [WS ',' WS PExpr]* WS]? ')'
-ConstructWithTypeDefExpr = '@' TypeName [WS SuperTypes]? WS ConstructParamsWithType
-SuperTypes = '<' WS TypeName [WS ',' WS TypeName]* WS '>'
+OnTheFlyTypeDefConstructExpr = OnTheFlyTypeDef WS ConstructParamsWithType
 ConstructParamsWithType = '(' WS [PExprWithType [WS ',' WS PExprWithType]* WS]? ')'
-PExprWithType = PExpr [WS ':' WS TypeDesc]?
-
-
+PExprWithType = ParamName [WS ':' WS TypeDesc]? WS '=' PExpr
 
 Symbol = BinSymbol
 BinSymbol = BinSymbol WS '&' WS PreUnSymbol
@@ -74,68 +71,26 @@ EmptySequence = '#'
 Nonterminal = Id
 Terminal = '\'' TerminalChar '\''
   | '.'
-TerminalChoice = '\'' TerminalChoiceChar (TerminalChoiceChar | TerminalChoiceRange)+ '\''
+TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\''
   | '\'' TerminalChoiceRange '\''
+TerminalChoiceElem = TerminalChoiceChar | TerminalChoiceRange
 TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar
 StringLiteral = '"' StringChar* '"'
 
 UnicodeChar = '\\' 'u' {0-9A-Fa-f} {0-9A-Fa-f} {0-9A-Fa-f} {0-9A-Fa-f}
-TerminalChar = .-'\\'
-    | '\\' {"'\\bnrt}
-    | UnicodeChar
-TerminalChoiceChar = .-{'\-\\}
-    | '\\' {"'\-\\bnrt}
-    | UnicodeChar
+TerminalChar = .-{\\}
+  | '\\' {\'\\bnrt}
+  | UnicodeChar
+TerminalChoiceChar = .-{\'\-\\}
+  | '\\' {\'\-\\bnrt}
+  | UnicodeChar
 StringChar = .-{"\\}
-    | '\\' {"'\\bnrt}
-    | UnicodeChar
+  | '\\' {"\\bnrt}
+  | UnicodeChar
 
-
-StringLiteral = '"' {a-zA-Z}* '"'
-TypeName = Id
-RefIdx = <{0-9}+>
-Id = <{a-zA-Z}+>
-WS = { \n\r\t}*
-
-
-
-
-
-
-
-# 새 버전으로 다시
-@Elem {
-    Symbol {
-        Nonterminal(name: string)
-    },
-    PExpr {
-        ERef(id),
-        EConstruct(typeName: string, args: [PExpr]),
-        EBound(bound: ERef, bounded: PExpr)
-    }
-}
-
-Processor: PExpr = '@' RefIdx @{ERef($1)}
-  | '@' WS '{' WS PExpr WS '}' @4
-PExpr = PExpr WS BinOp WS PTerm
-  | PTerm
-BinOp = <"+" | "++">  # <> 안에 바로 시퀀스, oneof 쓸 수 있게
-PTerm = Ref
-  | BoundPExpr
-  | ConstructExpr
-  | '(' WS PExpr WS ')'
-  | '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']'  # 대괄호 -> ()
-Ref = '$' RefIdx @{ERef($1)}
-BoundPExpr = '$' RefIdx BoundedPExpr @{EBound(ERef($1), $2)}
-BoundedPExpr = Ref
-  | BoundPExpr
-  | '{' WS PExpr WS '}' @2
-ConstructExpr = TypeName WS '(' WS (PExpr (WS ',' WS PExpr)* WS)? ')' @{EConstruct($0, [$4$0] ++ $4$1$3)}
-TypeName = Id
-RefIdx = <'0-9'+>  # {} -> ''
-Id = <'a-zA-Z'+>
-WS = ' '*
-
-
-
-
+StringLiteral = '"' StringChar* '"'
+RefIdx = <('0' | [{1-9} {0-9}*])>
+Id = <[{a-zA-Z} {a-zA-Z0-9}*]>
+WS = ({ \n\r\t} | LineComment)*
+LineComment = '/' '/' (.-'\n')* (EOF | '\n')
+EOF = !.

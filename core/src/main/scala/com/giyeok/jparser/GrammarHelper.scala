@@ -1,8 +1,6 @@
 package com.giyeok.jparser
 
-import scala.collection.immutable.ListMap
-import scala.collection.immutable.ListSet
-import scala.collection.immutable.NumericRange
+import scala.collection.immutable.{ListMap, ListSet, NumericRange}
 
 object GrammarHelper {
     import Symbols._
@@ -40,8 +38,8 @@ object GrammarHelper {
         Sequence(insertedSeq, contentIds)
     }
     def seqWS(between: Set[Symbol], seq: Symbol*): Sequence = seqWS(oneof(between), seq: _*)
-    def oneof(items: Symbol*) = OneOf((items map proxyIfNeeded).toSet)
-    def oneof(items: Set[Symbol]) = OneOf(items map proxyIfNeeded)
+    def oneof(items: Symbol*) = OneOf(ListSet[AtomicSymbol](items map proxyIfNeeded: _*))
+    def oneof(items: Set[Symbol]) = OneOf(ListSet[AtomicSymbol]((items map proxyIfNeeded).toSeq: _*))
     def lookahead_is(lookahead: Symbol) = LookaheadIs(proxyIfNeeded(lookahead))
     def lookahead_is(lookaheads: Symbol*) = LookaheadIs(oneof(lookaheads.toSet))
     def lookahead_except(except: Symbol) = LookaheadExcept(proxyIfNeeded(except))
@@ -63,9 +61,10 @@ object GrammarHelper {
     }
     implicit class GrammarElementRepeatable(_sym: Symbol) {
         private val sym = proxyIfNeeded(_sym)
-        def repeat(lower: Int, upper: Int): OneOf = OneOf(((lower to upper) map { count =>
-            if (count == 1) sym else Proxy(Sequence((0 until count) map { _ => sym }))
-        }).toSet)
+        def repeat(lower: Int, upper: Int): OneOf = OneOf(ListSet(
+            (lower to upper) map { count =>
+                if (count == 1) sym else Proxy(Sequence((0 until count) map { _ => sym }))
+            }: _*))
         def repeat(lower: Int): Repeat = Repeat(sym, lower)
 
         // optional

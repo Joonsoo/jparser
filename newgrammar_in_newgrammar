@@ -1,33 +1,74 @@
-@ClassParam(name, typeDesc)
 @TypeDef { ClassDef }
-@Elem { Symbol, Processor }
+@Elem {
+	Symbol {},
+	Processor {
+		PExpr {
+			PTerm {
+			}
+		}
+	}
+}
+@SubType { ClassDef, SuperDef, TypeName }
 
 Grammar = WS (TypeDefs WS)? Rules WS {@Grammar($1$0, $2)}
 TypeDefs = TypeDef (WS TypeDef)* @{[$0] ++ $1$1}
 Rules = Rule (WS Rule)* @{[$0] ++ $1$1}
 
-TypeDef = '@' ClassDef
+TypeDef: @TypeDef = '@' ClassDef
   | '@' SuperDef
 ClassDef = TypeName WS '(' WS (ClassParams WS)? ')' {@ClassDef(name=$0, params=$4$0)}
-SuperDef = TypeName WS '{' WS (SubTypes WS)? '}' {@SuperDef<TypeDef>(name=$0, subtypes=$4$0)}
+SuperDef = TypeName WS '{' WS (SubTypes WS)? '}' {@SuperDef(name=$0, subtypes=$4$0)}
 ClassParams = ClassParam (WS ',' WS ClassParam)* {[$0] ++ $1$3}
-ClassParam = ParamName (WS ':' WS TypeDesc)? {ClassParam($0, $1$3)}
+ClassParam = ParamName (WS ':' WS TypeDesc)? {@ClassParam($0, $1$3)}
 ParamName = Id
-TypeDesc = ValueTypeDesc (WS '?')?
+TypeDesc = ValueTypeDesc (WS '?')? {@TypeDesc(typeDesc=$0, optional:bool=$1)}
 ValueTypeDesc = TypeName
-  | '[' WS TypeDesc WS ']'
-  | '{' WS EnumList WS '}'
-EnumList = StringLiteral (WS ',' WS StringLiteral)*
-SubTypes = SubType (WS ',' WS SubType)*
-SubType = StringLiteral | TypeName | ClassDef | SuperDef
+  | '[' WS TypeDesc WS ']' $2
+SubTypes = SubType (WS ',' WS SubType)* {[$0] ++ $1$3}
+SubType: @SubType = TypeName | ClassDef | SuperDef
+// TypeName, ClassDef, SuperDef는 모두 SubType의 subclass여야 한다
 
-Rule = LHS WS '=' WS RHSs {@Rule($0, $4)}
-LHS = Nonterminal (WS ':' WS TypeDesc)?
+Rule = LHS WS '=' WS RHSs {@Rule(lhs=$0, rhs:[RHS]=$4)}
+LHS = Nonterminal (WS ':' WS TypeDesc)? {@LHS(name=$0, type=$1$3)}
 RHSs = RHS (WS '|' WS RHS)* {[$0] ++ $1$3}
+// RHSs는 [[Processor | Symbol]] 타입이다
 RHS = Elem (WS Elem)* {[$0] ++ $1$1}
-Elem = Symbol | Processor
+// RHS는 [Processor | Symbol] 타입이다
+Elem = Processor | Symbol
+
+Processor = Ref
+  | '{' WS PExpr WS '}' $2
+// (type inference) Processor는 Ref | PExpr 타입이다
+PExpr: @PExpr = PExpr WS BinOp WS PTerm {@PBinOp(op=$1, lhs=$0, rhs=$2)}
+  | PTerm
+// (subclass relation collection) PBinOp, PTerm은 모두 PExpr의 subclass여야 한다
+BinOp = <"+" | "++">
+PTerm: @PTerm = Ref
+  | BoundPExpr
+  | ConstructExpr
+  | '(' WS PExpr WS ')' $2
+  | '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {@PSeq(elems=$2{[$0] ++ $1$3})}
+// Ref, BoundPExpr, ConstructExpr, PExpr, PSeq는 모두 PTerm의 subclass여야 한다
+// -> cycle inheritance 생김. 오류 발생
+//   -> '(' WS PExpr WS ')' 에서 그냥 $2 말고 ${@ParenTerm(expr=$2)} 같은 식으로 해야함
+Ref = '$' RefIdx {@Ref($1)}
+BoundPExpr = Ref BoundedPExpr {@BoundPExpr(ctx=$0, expr=$1)}
+BoundedPExpr: @BoundedPExpr = Ref
+  | BoundPExpr
+  | '{' WS PExpr WS '}' $2
+// Ref, BoundPExpr, PExpr은 모두 BoundedPExpr의 subclass여야 한다
+ConstructExpr = TypeName WS ConstructParams {@ConstructExpr(name=$0, params=$2)}
+  | ConstructWithTypeDefExpr
+ConstructParams = '(' WS (PExpr (WS ',' WS PExpr)* WS)? ')' {$2{[$0] ++ $1$3}}
+ConstructWithTypeDefExpr = '@' TypeName (WS SuperTypes)? WS ConstructParamsWithType
+SuperTypes = '<' WS TypeName (WS ',' WS TypeName)* WS '>'
+ConstructParamsWithType = '(' WS (PExprWithType (WS ',' WS PExprWithType)* WS)? ')'
+PExprWithType = PExpr (WS ':' WS TypeDesc)?
+
+// 자동 supertype inference?
 
 
+TypeName = Id {@TypeName($0)}
 
 TypeDef = '@' ClassDef
   | '@' SuperDef
