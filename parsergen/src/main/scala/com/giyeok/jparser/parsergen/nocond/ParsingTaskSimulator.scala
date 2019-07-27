@@ -75,12 +75,12 @@ class ParsingTaskSimulator(val grammar: NGrammar) {
             val gen = node.updated
             // DeriveTask에서는 grammar를 사용
             val derivedNodes: Set[AKernelGen] = grammar.symbolOf(node.symbolId) match {
-                case NTerminal(_) => Set()
-                case NSequence(_, sequence) => Set(AKernelGen(sequence(node.pointer), 0, gen, gen))
+                case NTerminal(_, _) => Set()
+                case NSequence(_, _, sequence) => Set(AKernelGen(sequence(node.pointer), 0, gen, gen))
                 case simpleDerive: NSimpleDerive => simpleDerive.produces map (AKernelGen(_, 0, gen, gen))
-                case NExcept(_, body, except) => ???
-                case NJoin(_, body, join) => ???
-                case NLongest(_, body) => ???
+                case NExcept(_, _, body, except) => ???
+                case NJoin(_, _, body, join) => ???
+                case NLongest(_, _, body) => ???
                 case lookahead: NLookaheadSymbol => ???
             }
             val newDerivedNodes = derivedNodes -- cc.nextGraph.nodes
@@ -97,7 +97,7 @@ class ParsingTaskSimulator(val grammar: NGrammar) {
             val nextGraph = derivedNodes.foldLeft(nextGraph0) { (g, n) => g.addEdge(AKernelGenEdge(node, n)) }
             val newTasks: Set[Task] = newDerivedNodes map { n =>
                 grammar.symbolOf(n.symbolId) match {
-                    case NSequence(_, seq) if seq.isEmpty => FinishTask(n)
+                    case NSequence(_, _, seq) if seq.isEmpty => FinishTask(n)
                     case _ => DeriveTask(n)
                 }
             }
@@ -119,7 +119,7 @@ class ParsingTaskSimulator(val grammar: NGrammar) {
         case ProgressTask(node) +: rest =>
             val newKernelGen = AKernelGen(node.symbolId, node.pointer + 1, node.created, 1)
             val newTask = grammar.symbolOf(node.symbolId) match {
-                case NSequence(_, seq) if newKernelGen.pointer < seq.size => DeriveTask(newKernelGen)
+                case NSequence(_, _, seq) if newKernelGen.pointer < seq.size => DeriveTask(newKernelGen)
                 case _ => FinishTask(newKernelGen)
             }
             val newUpdateMap = cc.updateMap +

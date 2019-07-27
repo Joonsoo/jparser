@@ -26,8 +26,8 @@ object MetaGrammar2 {
           |SubTypes = SubType [WS ',' WS SubType]*
           |SubType = TypeName | ClassDef | SuperDef
           |
-          |OnTheFlyTypeDef = '@' WS TypeName [WS SuperTypes]?
-          |SuperTypes = '<' WS TypeName [WS ',' WS TypeName]* WS '>'
+          |OnTheFlyTypeDef = '@' WS TypeName [WS OnTheFlySuperTypes]?
+          |OnTheFlySuperTypes = '<' WS TypeName [WS ',' WS TypeName]* WS '>'
           |
           |Rule = LHS WS '=' WS RHSs
           |LHS = Nonterminal [WS ':' WS TypeDesc]?
@@ -44,8 +44,9 @@ object MetaGrammar2 {
           |  | BoundPExpr
           |  | ConstructExpr
           |  | '(' WS PExpr WS ')'
-          |  | '[' WS [PExpr [WS ',' WS PExpr]* WS]? ']'
+          |  | ArrayTerm
           |Ref = '$' RefIdx
+          |ArrayTerm = '[' WS [PExpr [WS ',' WS PExpr]* WS]? ']'
           |BoundPExpr = '$' RefIdx BoundedPExpr
           |BoundedPExpr = Ref
           |  | BoundPExpr
@@ -53,9 +54,9 @@ object MetaGrammar2 {
           |ConstructExpr = TypeName WS ConstructParams
           |  | OnTheFlyTypeDefConstructExpr
           |ConstructParams = '(' WS [PExpr [WS ',' WS PExpr]* WS]? ')'
-          |OnTheFlyTypeDefConstructExpr = OnTheFlyTypeDef WS ConstructParamsWithType
-          |ConstructParamsWithType = '(' WS [PExprWithType [WS ',' WS PExprWithType]* WS]? ')'
-          |PExprWithType = ParamName [WS ':' WS TypeDesc]? WS '=' PExpr
+          |OnTheFlyTypeDefConstructExpr = OnTheFlyTypeDef WS NamedParams
+          |NamedParams = '(' WS [NamedParam [WS ',' WS NamedParam]* WS]? ')'
+          |NamedParam = ParamName [WS ':' WS TypeDesc]? WS '=' WS PExpr
           |
           |Symbol = BinSymbol
           |BinSymbol = BinSymbol WS '&' WS PreUnSymbol
@@ -140,7 +141,9 @@ object MetaGrammar2 {
 
         case class TypeName(name: Node) extends ValueTypeDesc
 
-        case class ClassParam(name: Node, typeDesc: Option[Node])
+        case class ClassParam(name: ParamName, typeDesc: Option[Node])
+
+        case class ParamName(name: Node)
 
         case class TypeDesc(typ: ValueTypeDesc, optional: Boolean) extends ValueTypeDesc
 
@@ -160,29 +163,29 @@ object MetaGrammar2 {
 
         sealed trait Processor extends Elem
 
-        sealed trait PExpr extends BoundedPExpr
+        sealed trait PExpr extends Processor with BoundedPExpr
 
         case class BinOpExpr(op: Node, lhs: PExpr, rhs: PTerm) extends PExpr
 
         sealed trait PTerm extends PExpr
 
-        case class Ref(idx: Node) extends PTerm with BoundedPExpr
+        case class Ref(idx: Node) extends Processor with PTerm with BoundedPExpr
 
         case class BoundPExpr(ctx: Ref, expr: BoundedPExpr) extends PTerm with BoundedPExpr
 
         sealed trait BoundedPExpr
 
-        sealed trait AbstractConstructExpr
+        sealed trait AbstractConstructExpr extends PTerm
 
-        case class ConstructExpr(typ: TypeName, params: List[PExpr]) extends PTerm
+        case class ConstructExpr(typ: TypeName, params: List[PExpr]) extends PTerm with AbstractConstructExpr
 
         case class PTermParen(expr: PExpr) extends PTerm
 
         case class PTermSeq(elems: List[PExpr]) extends PTerm
 
-        case class OnTheFlyTypeDefConstructExpr(typeDef: OnTheFlyTypeDef, params: List[NamedParam]) extends BoundedPExpr
+        case class OnTheFlyTypeDefConstructExpr(typeDef: OnTheFlyTypeDef, params: List[NamedParam]) extends BoundedPExpr with AbstractConstructExpr
 
-        case class NamedParam(name: Node, typeDesc: Option[TypeDesc], expr: PExpr)
+        case class NamedParam(name: ParamName, typeDesc: Option[TypeDesc], expr: PExpr)
 
         sealed trait Symbol extends Elem
 
@@ -271,8 +274,9 @@ object MetaGrammar2 {
           |  | BoundPExpr
           |  | ConstructExpr
           |  | '(' WS PExpr WS ')' {@PTermParen(expr=$2)}
-          |  | '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {@PTermSeq(elems=$2{[$0] + $1$3})}
+          |  | ArrayTerm
           |Ref = '$' RefIdx {@Ref(idx=$1)}
+          |ArrayTerm = '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {@PTermSeq(elems=$2{[$0] + $1$3})}
           |BoundPExpr = Ref BoundedPExpr {@BoundPExpr(ctx=$0, expr:@BoundedPExpr=$1)}
           |// type(BoundedPExpr)는 모두 BoundedPExpr의 subclass여야 함
           |BoundedPExpr = Ref
@@ -284,7 +288,7 @@ object MetaGrammar2 {
           |ConstructParams = '(' WS (PExpr (WS ',' WS PExpr)* WS)? ')' {$2{[$0] + $1$3}}
           |OnTheFlyTypeDefConstructExpr = OnTheFlyTypeDef WS NamedParams {@OnTheFlyTypeDefConstructExpr(typeDef=$0, params=$2)}
           |NamedParams = '(' WS (NamedParam (WS ',' WS NamedParam)* WS)? ')' {$2{[$0] + $1$3}}
-          |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' PExpr {@NamedParam(name=$0, typeDesc=$1$3, expr=$4)}
+          |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' WS PExpr {@NamedParam(name=$0, typeDesc=$1$3, expr=$5)}
           |
           |Symbol: @Symbol = BinSymbol
           |BinSymbol: @BinSymbol = BinSymbol WS '&' WS PreUnSymbol {@JoinSymbol(symbol1=$0, symbol2=$4)}
@@ -351,11 +355,13 @@ object MetaGrammar2 {
             }
         }
 
-        def unwindOptional(node: Node): Option[Node] = {
+        def unwindOptional(node: Node): Option[SequenceNode] = {
             val BindNode(_, body) = node
             body match {
-                case BindNode(_, SequenceNode(_, List())) => None
-                case BindNode(_, SequenceNode(_, List(optBody))) => Some(optBody)
+                case BindNode(_, BindNode(_, seq: SequenceNode)) =>
+                    if (seq.children.isEmpty) None else Some(seq)
+                case BindNode(_, seq: SequenceNode) =>
+                    if (seq.children.isEmpty) None else Some(seq)
             }
         }
 
@@ -369,17 +375,62 @@ object MetaGrammar2 {
             AST.Nonterminal(transformNode(nonterminalBody))
         }
 
+        def matchTypeName(node: Node): AST.TypeName = {
+            val BindNode(NNonterminal(_, Nonterminal("Id"), _), idBody) = node
+            AST.TypeName(transformNode(idBody))
+        }
+
+        def matchParamName(node: Node): AST.ParamName = {
+            val BindNode(NNonterminal(_, Nonterminal("Id"), _), idBody) = node
+            AST.ParamName(transformNode(idBody))
+        }
+
+        def matchOnTheFlySuperTypes(node: Node): List[AST.TypeName] = {
+            val BindNode(_, seq: SequenceNode) = node
+            val super1 = matchTypeName(unwindNonterm("TypeName", seq.children(2)))
+            val super2_ = unwindRepeat(seq.children(3))
+            val super2 = super2_ map { b =>
+                val BindNode(_, BindNode(_, seq1: SequenceNode)) = b
+                matchTypeName(unwindNonterm("TypeName", seq1.children(3)))
+            }
+            super1 +: super2
+        }
+
+        def matchOnTheFlyTypeDef(node: Node): AST.OnTheFlyTypeDef = {
+            val BindNode(_, seq: SequenceNode) = node
+            val name = matchTypeName(unwindNonterm("TypeName", seq.children(2)))
+            val supers: List[AST.TypeName] = (unwindOptional(seq.children(3)) map { seq =>
+                matchOnTheFlySuperTypes(unwindNonterm("OnTheFlySuperTypes", seq.children(1)))
+            }).getOrElse(List())
+            AST.OnTheFlyTypeDef(name, supers)
+        }
+
+        def matchValueTypeDesc(node: Node): AST.ValueTypeDesc = node match {
+            case BindNode(NNonterminal(_, Nonterminal("TypeName"), _), typeNameBody) =>
+                matchTypeName(typeNameBody)
+            case BindNode(NNonterminal(_, Nonterminal("OnTheFlyTypeDef"), _), ontheflyBody) =>
+                matchOnTheFlyTypeDef(ontheflyBody)
+            case seq: SequenceNode =>
+                matchTypeDesc(seq.children(2))
+        }
+
         def matchTypeDesc(node: Node): AST.TypeDesc = {
-            ???
+            val BindNode(_, seq: SequenceNode) = node
+            val valueTypeDesc = matchValueTypeDesc(unwindNonterm("ValueTypeDesc", seq.children(0)))
+            val optional = seq.children(1) match {
+                case BindNode(_, BindNode(_, seq: SequenceNode)) =>
+                    seq.children.nonEmpty
+            }
+            AST.TypeDesc(valueTypeDesc, optional)
         }
 
         def matchLHS(node: Node): AST.LHS = {
             val BindNode(NNonterminal(_, Nonterminal("LHS"), _), BindNode(_, lhsBody: SequenceNode)) = node
 
             val name = matchNonterminal(lhsBody.children(0))
-            val typeDesc = unwindOptional(lhsBody.children(1)) map { opt =>
-                val BindNode(_, typeDescBody: SequenceNode) = opt
-                matchTypeDesc(typeDescBody.children(3))
+            val typeDesc_ = unwindOptional(lhsBody.children(1))
+            val typeDesc = typeDesc_ map { opt =>
+                matchTypeDesc(unwindNonterm("TypeDesc", opt.children(3)))
             }
             AST.LHS(name, typeDesc)
         }
@@ -501,9 +552,112 @@ object MetaGrammar2 {
                 matchBinSymbol(binSymbolBody)
         }
 
-        def matchProcessor(node: Node): AST.Processor = {
-            ???
+        def matchRef(node: Node): AST.Ref = {
+            val BindNode(_, seq: SequenceNode) = node
+            AST.Ref(transformNode(seq.children(1)))
         }
+
+        def matchProcessor(node: Node): AST.Processor = node match {
+            case BindNode(NNonterminal(_, Nonterminal("Ref"), _), refBody) =>
+                matchRef(refBody)
+            case BindNode(_, seq: SequenceNode) =>
+                matchPExpr(unwindNonterm("PExpr", seq.children(2)))
+        }
+
+        def matchPExpr(node: Node): AST.PExpr = node match {
+            case BindNode(NNonterminal(_, Nonterminal("PTerm"), _), ptermBody) =>
+                matchPTerm(ptermBody)
+            case BindNode(_, seq: SequenceNode) =>
+                val op = seq.children(2)
+                val lhs = matchPExpr(unwindNonterm("PExpr", seq.children(0)))
+                val rhs = matchPTerm(unwindNonterm("PTerm", seq.children(4)))
+                AST.BinOpExpr(transformNode(op), lhs, rhs)
+        }
+
+        def matchPTerm(node: Node): AST.PTerm = node match {
+            case BindNode(NNonterminal(_, Nonterminal("Ref"), _), refBody) =>
+                matchRef(refBody)
+            case BindNode(NNonterminal(_, Nonterminal("BoundPExpr"), _), boundPExprBody) =>
+                matchBoundPExpr(boundPExprBody)
+            case BindNode(NNonterminal(_, Nonterminal("ConstructExpr"), _), constructBody) =>
+                matchConstructExpr(constructBody)
+            case BindNode(NNonterminal(_, Nonterminal("ArrayTerm"), _), arrayBody) =>
+                matchArrayTerm(arrayBody)
+            case BindNode(_, seq: SequenceNode) =>
+                AST.PTermParen(matchPExpr(unwindNonterm("PExpr", seq.children(2))))
+        }
+
+        def matchBoundPExpr(node: Node): AST.BoundPExpr = node match {
+            case BindNode(_, seq: SequenceNode) =>
+                val ctx = matchRef(unwindNonterm("Ref", seq.children(0)))
+                val expr = matchBoundedPExpr(unwindNonterm("BoundedPExpr", seq.children(1)))
+                AST.BoundPExpr(ctx, expr)
+        }
+
+        def matchBoundedPExpr(node: Node): AST.BoundedPExpr = node match {
+            case BindNode(NNonterminal(_, Nonterminal("Ref"), _), refBody) =>
+                matchRef(refBody)
+            case BindNode(NNonterminal(_, Nonterminal("BoundPExpr"), _), boundPExprBody) =>
+                matchBoundPExpr(boundPExprBody)
+            case BindNode(_, seq: SequenceNode) =>
+                matchPExpr(seq.children(2))
+        }
+
+        def matchConstructExpr(node: Node): AST.AbstractConstructExpr = node match {
+            case BindNode(NNonterminal(_, Nonterminal("OnTheFlyTypeDefConstructExpr"), _), ontheflyBody) =>
+                matchOnTheFlyTypeDefConstructExpr(ontheflyBody)
+            case BindNode(_, seq: SequenceNode) =>
+                val typename = matchTypeName(unwindNonterm("TypeName", seq.children(0)))
+                val params = matchConstructParams(unwindNonterm("ConstructParams", seq.children(2)))
+                AST.ConstructExpr(typename, params)
+        }
+
+        def matchConstructParams(node: Node): List[AST.PExpr] = {
+            val BindNode(_, seq: SequenceNode) = node
+            val params_ = unwindOptional(seq.children(2))
+            (params_ map { p =>
+                val param1 = matchPExpr(unwindNonterm("PExpr", p.children(0)))
+                val param2_ = unwindRepeat(p.children(1))
+                val param2 = param2_ map { b =>
+                    val BindNode(_, s: SequenceNode) = b
+                    matchPExpr(unwindNonterm("PExpr", s.children(3)))
+                }
+                param1 +: param2
+            }).getOrElse(List())
+        }
+
+        def matchOnTheFlyTypeDefConstructExpr(node: Node): AST.OnTheFlyTypeDefConstructExpr = {
+            val BindNode(_, seq: SequenceNode) = node
+            val onTheFlyTypeDef = matchOnTheFlyTypeDef(unwindNonterm("OnTheFlyTypeDef", seq.children(0)))
+            val params = matchNamedParams(unwindNonterm("NamedParams", seq.children(2)))
+            AST.OnTheFlyTypeDefConstructExpr(onTheFlyTypeDef, params)
+        }
+
+        def matchNamedParams(node: Node): List[AST.NamedParam] = {
+            val BindNode(_, seq1: SequenceNode) = node
+
+            (unwindOptional(seq1.children(2)) map { seq =>
+                val param1 = matchNamedParam(unwindNonterm("NamedParam", seq.children(0)))
+                val param2 = unwindRepeat(seq.children(1)) map { b =>
+                    val BindNode(_, BindNode(_, s: SequenceNode)) = b
+                    matchNamedParam(unwindNonterm("NamedParam", s.children(3)))
+                }
+                param1 +: param2
+            }).getOrElse(List())
+        }
+
+        def matchNamedParam(node: Node): AST.NamedParam = {
+            val BindNode(_, seq: SequenceNode) = node
+
+            val name = matchParamName(unwindNonterm("ParamName", seq.children(0)))
+            val typeDesc = unwindOptional(seq.children(1)) map { seq =>
+                matchTypeDesc(unwindNonterm("TypeDesc", seq.children(3)))
+            }
+            val expr = matchPExpr(unwindNonterm("PExpr", seq.children(5)))
+            AST.NamedParam(name, typeDesc, expr)
+        }
+
+        def matchArrayTerm(node: Node): AST.PTermSeq = ???
 
         def matchElem(node: Node): AST.Elem = {
             val BindNode(_, body) = node
@@ -595,8 +749,9 @@ object MetaGrammar2 {
 
     def main(args: Array[String]): Unit = {
         val ast = grammarSpecToAST(
-            """Abc = Z-Y G&H !A ^X 'a'+ 'b'* ('c' 'd')? <'a-z'+>?
-              |  | K&Z-"asdf" 'a' 'b-z' '0-9ax-z'
+            """Processor: @Processor = Ref
+              |  | '{' WS PExpr WS '}' $2$2$2
+              |PExpr: @PExpr<XXYZ> = PExpr WS <BinOp> WS PTerm {@Hello(a=$2,b=$2)}
             """.stripMargin)
 
         println(ast)

@@ -116,43 +116,43 @@ object GrammarGrammar extends Grammar {
     class NewGrammar(val name: String, val rules: ListMap[String, ListSet[Symbols.Symbol]], val startSymbol: Symbols.Nonterminal) extends Grammar
 
     def translate(tree: ParseResultTree.Node): Option[Grammar] = {
-        val BindNode(_: NStart, BindNode(NNonterminal(Nonterminal("Grammar"), _), seq: SequenceNode)) = tree
-        val BindNode(NNonterminal(Nonterminal("Rules"), _), body) = seq.children(1)
+        val BindNode(_: NStart, BindNode(NNonterminal(_, Nonterminal("Grammar"), _), seq: SequenceNode)) = tree
+        val BindNode(NNonterminal(_, Nonterminal("Rules"), _), body) = seq.children(1)
         val nontermDefs: Seq[(String, Seq[Symbols.Symbol])] = childrenOf(body, Nonterminal("NontermDef")) collect {
-            case BindNode(NNonterminal(Nonterminal("NontermDef"), _), seq: SequenceNode) =>
+            case BindNode(NNonterminal(_, Nonterminal("NontermDef"), _), seq: SequenceNode) =>
                 val name = textOf(seq.children(0))
                 val productions: Seq[Symbol] = childrenOf(seq.children(2), Nonterminal("Production")) collect {
-                    case BindNode(NNonterminal(Nonterminal("Production"), _), BindNode(NNonterminal(Nonterminal("Empty"), _), _)) => empty
-                    case BindNode(NNonterminal(Nonterminal("Production"), _), BindNode(NNonterminal(Nonterminal("Symbols"), _), body)) =>
+                    case BindNode(NNonterminal(_, Nonterminal("Production"), _), BindNode(NNonterminal(_, Nonterminal("Empty"), _), _)) => empty
+                    case BindNode(NNonterminal(_, Nonterminal("Production"), _), BindNode(NNonterminal(_, Nonterminal("Symbols"), _), body)) =>
                         def mapSymbol(node: Node): Symbols.Symbol = {
-                            val BindNode(NNonterminal(Nonterminal("Symbol"), _), body) = node
+                            val BindNode(NNonterminal(_, Nonterminal("Symbol"), _), body) = node
                             body match {
-                                case BindNode(NNonterminal(Nonterminal("NontermName"), _), body) =>
+                                case BindNode(NNonterminal(_, Nonterminal("NontermName"), _), body) =>
                                     Nonterminal(textOf(body))
-                                case BindNode(NNonterminal(Nonterminal("LongestName"), _), BindNode(_: NLongest, seq: SequenceNode)) =>
+                                case BindNode(NNonterminal(_, Nonterminal("LongestName"), _), BindNode(_: NLongest, seq: SequenceNode)) =>
                                     longest(mapSymbol(seq.children(2)))
-                                case BindNode(NNonterminal(Nonterminal("LookaheadName"), _), BindNode(_: NLongest, seq: SequenceNode)) =>
+                                case BindNode(NNonterminal(_, Nonterminal("LookaheadName"), _), BindNode(_: NLongest, seq: SequenceNode)) =>
                                     lookahead_is(mapSymbol(seq.children(2)))
-                                case BindNode(NNonterminal(Nonterminal("LookaheadExName"), _), BindNode(_: NLongest, seq: SequenceNode)) =>
+                                case BindNode(NNonterminal(_, Nonterminal("LookaheadExName"), _), BindNode(_: NLongest, seq: SequenceNode)) =>
                                     lookahead_except(mapSymbol(seq.children(2)))
-                                case BindNode(NNonterminal(Nonterminal("IntersectionName"), _), BindNode(_: NLongest, seq: SequenceNode)) =>
+                                case BindNode(NNonterminal(_, Nonterminal("IntersectionName"), _), BindNode(_: NLongest, seq: SequenceNode)) =>
                                     join(mapSymbol(seq.children(0)), mapSymbol(seq.children(2)))
-                                case BindNode(NNonterminal(Nonterminal("ExclusionName"), _), BindNode(_: NLongest, seq: SequenceNode)) =>
+                                case BindNode(NNonterminal(_, Nonterminal("ExclusionName"), _), BindNode(_: NLongest, seq: SequenceNode)) =>
                                     mapSymbol(seq.children(0)).except(mapSymbol(seq.children(2)))
-                                case BindNode(NNonterminal(Nonterminal("Terminal"), _), body) =>
+                                case BindNode(NNonterminal(_, Nonterminal("Terminal"), _), body) =>
                                     val terminal: Terminal = body match {
-                                        case BindNode(NNonterminal(Nonterminal("TerminalExactChar"), _), seq: SequenceNode) =>
+                                        case BindNode(NNonterminal(_, Nonterminal("TerminalExactChar"), _), seq: SequenceNode) =>
                                             chars(textOf(seq.children(1)))
-                                        case BindNode(NNonterminal(Nonterminal("TerminalRanges"), _), seq: SequenceNode) =>
+                                        case BindNode(NNonterminal(_, Nonterminal("TerminalRanges"), _), seq: SequenceNode) =>
                                             val chars: Set[Char] = (childrenOf(seq.children(1), Nonterminal("TerminalRange")) flatMap {
-                                                case BindNode(NNonterminal(Nonterminal("TerminalRange"), _), seq: SequenceNode) =>
-                                                    val BindNode(NTerminal(AnyChar), TerminalNode(Inputs.Character(c1))) = seq.children(0)
-                                                    val BindNode(NTerminal(AnyChar), TerminalNode(Inputs.Character(c2))) = seq.children(2)
+                                                case BindNode(NNonterminal(_, Nonterminal("TerminalRange"), _), seq: SequenceNode) =>
+                                                    val BindNode(NTerminal(_, AnyChar), TerminalNode(Inputs.Character(c1))) = seq.children(0)
+                                                    val BindNode(NTerminal(_, AnyChar), TerminalNode(Inputs.Character(c2))) = seq.children(2)
                                                     (c1 to c2).toSet
                                                 case _ => ???
                                             }).toSet
                                             Chars(chars)
-                                        case BindNode(NNonterminal(Nonterminal("TerminalSet"), _), seq: SequenceNode) =>
+                                        case BindNode(NNonterminal(_, Nonterminal("TerminalSet"), _), seq: SequenceNode) =>
                                             chars(textOf(seq.children(1)))
                                         case _ => ???
                                     }

@@ -83,7 +83,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 // println(s"sequence cyclicBind - $kernel")
                 resultFunc.sequence(kernel.beginGen, gen, symbol, kernel.pointer)
 
-            case symbol@NSequence(_, sequence) =>
+            case symbol@NSequence(_, _, sequence) =>
                 if (kernel.pointer == 0) {
                     assert(kernel.beginGen == kernel.endGen)
                     resultFunc.sequence(kernel.beginGen, kernel.endGen, symbol, 0)
@@ -106,7 +106,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                     if (kernel.pointer == sequence.length) resultFunc.bind(kernel.beginGen, gen, symbol, appendedSeq) else appendedSeq
                 }
 
-            case symbol@NJoin(_, body, join) =>
+            case symbol@NJoin(_, _, body, join) =>
                 assert(kernel.pointer == 1)
                 val bodyKernel = Kernel(body, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(body))
                 val joinKernel = Kernel(join, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(join))

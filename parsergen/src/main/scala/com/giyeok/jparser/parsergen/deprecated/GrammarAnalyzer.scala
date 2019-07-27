@@ -9,7 +9,7 @@ case class AKernel(symbolId: Int, pointer: Int) {
     def toReadableString(grammar: NGrammar, pointerString: String = "*"): String = {
         val symbols = grammar.symbolOf(symbolId) match {
             case atomicSymbol: NAtomicSymbol => Seq(atomicSymbol.symbol.toShortString)
-            case NGrammar.NSequence(_, sequence) => sequence map { elemId =>
+            case NGrammar.NSequence(_, _, sequence) => sequence map { elemId =>
                 grammar.symbolOf(elemId).symbol.toShortString
             }
         }
@@ -64,7 +64,7 @@ class GrammarAnalyzer(val grammar: NGrammar) {
         grammar.symbolOf(symbolId) match {
             case _: NAtomicSymbol =>
                 Set(AKernel(symbolId, 0))
-            case NSequence(_, sequence) =>
+            case NSequence(_, _, sequence) =>
                 ((0 until sequence.length) map { index =>
                     AKernel(symbolId, index)
                 }).toSet
@@ -76,7 +76,7 @@ class GrammarAnalyzer(val grammar: NGrammar) {
     def isZeroReachableAKernel(end: AKernel): Boolean =
         grammar.symbolOf(end.symbolId) match {
             case _: NAtomicSymbol => true
-            case NSequence(_, sequence) =>
+            case NSequence(_, _, sequence) =>
                 sequence take end.pointer forall nullableSymbols.contains
         }
 
@@ -90,9 +90,9 @@ class GrammarAnalyzer(val grammar: NGrammar) {
                         AKernelEdge(kernel, end)
 
                     val addingEdges: Set[AKernelEdge] = grammar.symbolOf(symbolId) match {
-                        case NTerminal(_) =>
+                        case NTerminal(_, _) =>
                             Set()
-                        case NSequence(_, sequence) =>
+                        case NSequence(_, _, sequence) =>
                             // add (kernel -> Kernel(sequence(pointer), 0)) to cc
                             allAKernels(sequence(pointer)) map { end =>
                                 AKernelEdge(kernel, end)
@@ -101,11 +101,11 @@ class GrammarAnalyzer(val grammar: NGrammar) {
                             simpleDerive.produces flatMap { produce =>
                                 allAKernels(produce) map createEdge
                             }
-                        case NExcept(_, body, except) =>
+                        case NExcept(_, _, body, except) =>
                             (allAKernels(except) ++ allAKernels(body)) map createEdge
-                        case NJoin(_, body, join) =>
+                        case NJoin(_, _, body, join) =>
                             (allAKernels(body) ++ allAKernels(join)) map createEdge
-                        case NLongest(_, body) =>
+                        case NLongest(_, _, body) =>
                             allAKernels(body) map { end => AKernelEdge(kernel, end) }
                         case lookahead: NLookaheadSymbol =>
                             (allAKernels(lookahead.emptySeqId) ++ allAKernels(lookahead.lookahead)) map { end =>

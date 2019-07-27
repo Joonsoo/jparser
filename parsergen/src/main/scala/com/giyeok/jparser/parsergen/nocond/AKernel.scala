@@ -8,7 +8,7 @@ case class AKernel(symbolId: Int, pointer: Int) extends Ordered[AKernel] {
     def toReadableString(grammar: NGrammar, pointerString: String = "\u2022"): String = {
         val symbols = grammar.symbolOf(symbolId) match {
             case atomicSymbol: NAtomicSymbol => Seq(atomicSymbol.symbol.toShortString)
-            case NGrammar.NSequence(_, sequence) => sequence map { elemId =>
+            case NGrammar.NSequence(_, _, sequence) => sequence map { elemId =>
                 grammar.symbolOf(elemId).symbol.toShortString
             }
         }

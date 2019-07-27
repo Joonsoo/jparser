@@ -83,16 +83,16 @@ trait ParsingTasks {
                         gtc0 // nothing to do
                     case simpleDerives: NSimpleDerive =>
                         simpleDerives.produces.foldLeft(gtc0) { (cc, deriveSymbolId) => derive0(cc, deriveSymbolId) }
-                    case NExcept(_, body, except) =>
+                    case NExcept(_, _, body, except) =>
                         addNode(derive0(gtc0, body), nodeOf(except))
-                    case NJoin(_, body, join) =>
+                    case NJoin(_, _, body, join) =>
                         addNode(derive0(gtc0, body), nodeOf(join))
-                    case NLongest(_, body) =>
+                    case NLongest(_, _, body) =>
                         derive0(gtc0, body)
                     case lookaheadSymbol: NLookaheadSymbol =>
                         addNode(derive0(gtc0, lookaheadSymbol.emptySeqId), nodeOf(lookaheadSymbol.lookahead))
                 }
-            case NSequence(_, seq) =>
+            case NSequence(_, _, seq) =>
                 assert(seq.nonEmpty) // empty인 sequence는 derive시점에 모두 처리되어야 함
                 assert(startNode.kernel.pointer < seq.length) // node의 pointer는 sequence의 length보다 작아야 함
                 derive0(gtc0, seq(startNode.kernel.pointer))
@@ -124,15 +124,15 @@ trait ParsingTasks {
 
         // nodeSymbolOpt에서 opt를 사용하는 것은 finish는 SequenceNode에 대해서도 실행되기 때문
         val newCondition = node.kernel.symbol match {
-            case NLongest(_, longest) =>
+            case NLongest(_, _, longest) =>
                 NotExists(node.kernel.beginGen, nextGen + 1, longest)(atomicSymbolOf(longest))
-            case NExcept(_, _, except) =>
+            case NExcept(_, _, _, except) =>
                 Unless(node.kernel.beginGen, nextGen, except)(atomicSymbolOf(except))
-            case NJoin(_, _, join) =>
+            case NJoin(_, _, _, join) =>
                 OnlyIf(node.kernel.beginGen, nextGen, join)(atomicSymbolOf(join))
-            case NLookaheadIs(_, _, lookahead) =>
+            case NLookaheadIs(_, _, _, lookahead) =>
                 Exists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead))
-            case NLookaheadExcept(_, _, lookahead) =>
+            case NLookaheadExcept(_, _, _, lookahead) =>
                 NotExists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead))
             case _ => Always
         }
@@ -185,7 +185,7 @@ trait ParsingTasks {
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.Input): Set[Node] = {
         def acceptable(symbolId: Int): Boolean =
             grammar.nsymbols get symbolId match {
-                case Some(NTerminal(terminal)) => terminal accept input
+                case Some(NTerminal(_, terminal)) => terminal accept input
                 case _ => false
             }
         graph.nodes collect {
@@ -196,7 +196,7 @@ trait ParsingTasks {
     def finishableTermNodes(graph: Graph, nextGen: Int, input: Inputs.TermGroupDesc): Set[Node] = {
         def acceptable(symbolId: Int): Boolean =
             grammar.nsymbols get symbolId match {
-                case Some(NTerminal(terminal)) => terminal acceptTermGroup input
+                case Some(NTerminal(_, terminal)) => terminal acceptTermGroup input
                 case _ => false
             }
         graph.nodes collect {
@@ -249,8 +249,8 @@ trait ParsingTasks {
                             val conditionReachables: Set[Node] = {
                                 val potential = if (node.kernel.pointer != 0) Set() else
                                     node.kernel.symbol match {
-                                        case NExcept(_, _, except) => Set(newNodeOf(except, node.kernel.beginGen))
-                                        case NJoin(_, _, join) => Set(newNodeOf(join, node.kernel.beginGen))
+                                        case NExcept(_, _, _, except) => Set(newNodeOf(except, node.kernel.beginGen))
+                                        case NJoin(_, _, _, join) => Set(newNodeOf(join, node.kernel.beginGen))
                                         // lookahead는 항상 바로 progress되므로 conditionReachables에서 처리됨
                                         case _ => Set()
                                     }
@@ -285,7 +285,7 @@ trait ParsingTasks {
         val trimmed1 = graph filterNode { node =>
             // TODO node.kernel.isFinished 인 노드도 지워도 될까?
             (node.condition != Never) && (!node.kernel.isFinal) && (node.kernel.symbol match {
-                case NTerminal(_) => node.kernel.beginGen == nextGen
+                case NTerminal(_, _) => node.kernel.beginGen == nextGen
                 case _ => true
             })
         }
