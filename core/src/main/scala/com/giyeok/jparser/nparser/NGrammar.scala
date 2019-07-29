@@ -32,7 +32,9 @@ object NGrammar {
         val id: Int
         val symbol: Symbols.Symbol
     }
-    sealed trait NAtomicSymbol extends NSymbol
+    sealed trait NAtomicSymbol extends NSymbol {
+        override val symbol: Symbols.AtomicSymbol
+    }
 
     case class NTerminal(id: Int, symbol: Symbols.Terminal) extends NAtomicSymbol
 
