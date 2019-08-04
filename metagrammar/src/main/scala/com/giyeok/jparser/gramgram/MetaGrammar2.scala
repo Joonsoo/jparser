@@ -809,7 +809,7 @@ object MetaGrammar2 {
                 // TODO typeDefs
                 def addTypeDefsLhs(typ: AST.ValueTypeDesc): Unit = typ match {
                     case AST.OnTheFlyTypeDef(_, name, supers) =>
-                        val newType = AbstractType(name.toString)
+                        val newType = AbstractType(name.name.toString)
                         val newSupers = superTypes.getOrElse(newType, List()) ++ (supers map {
                             _.name.toString
                         })
@@ -936,12 +936,6 @@ object MetaGrammar2 {
                     addSymbol(ast, Symbols.AnyChar)
             }
 
-            // rhs에 포함된 ref가 실제로 가리키는 AST 노드를 반환
-            private def findRef(rhs: AST.RHS, ref: AST.Ref): AST.Elem = {
-                // TODO
-                ???
-            }
-
             object TypeAnalyzeGraph {
 
                 sealed trait Node
@@ -958,11 +952,17 @@ object MetaGrammar2 {
 
                 case class ClassTypeNode(className: String) extends TypeNode
 
-                case class TypeGenArrayOf(typ: TypeNode) extends TypeNode
+                case class TypeArray(elemType: TypeNode) extends TypeNode
 
-                case class TypeGenOptionalOf(typ: TypeNode) extends TypeNode
+                case class TypeOptional(elemType: TypeNode) extends TypeNode
 
-                case class TypeGenUnion(typs: Set[TypeNode]) extends TypeNode
+                case class TypeGenArray(expr: ExprNode) extends TypeNode
+
+                case class TypeGenOptional(expr: ExprNode) extends TypeNode
+
+                case class TypeGenArrayOp(expr: ExprNode) extends TypeNode
+
+                case class TypeGenArrayElemsUnion(expr: ExprNode) extends TypeNode
 
                 object EdgeTypes extends Enumeration {
                     val Is, Accepts, Returns, Extends, Has = Value
@@ -987,20 +987,22 @@ object MetaGrammar2 {
                         val valueTypeNode = typeDesc.typ match {
                             case AST.ArrayTypeDesc(_, elemType) =>
                                 val elemTypeNode = typeDescToTypeNode(elemType)
-                                addNode(TypeGenArrayOf(elemTypeNode))
+                                addNode(TypeArray(elemTypeNode))
                             case AST.TypeName(_, typeName) =>
                                 ClassTypeNode(typeName.toString)
                             case AST.OnTheFlyTypeDef(_, name, _) =>
                                 ClassTypeNode(name.name.toString)
                         }
-                        if (typeDesc.optional) addNode(TypeGenOptionalOf(valueTypeNode)) else valueTypeNode
+                        if (typeDesc.optional) addNode(TypeOptional(valueTypeNode)) else valueTypeNode
                     }
 
-                    def analyze() = {
+                    private var classParamNodes = Map[String, List[ParamNode]]()
+
+                    def analyze(): TypeAnalyzeGraph = {
                         allTypes foreach {
                             case ClassType(className, params) =>
                                 val classNode = addNode(ClassTypeNode(className))
-                                params.zipWithIndex foreach { case (paramAst, paramIdx) =>
+                                val paramNodes = params.zipWithIndex map { case (paramAst, paramIdx) =>
                                     val paramNode = addNode(ParamNode(className, paramIdx, paramAst.name.name.toString))
                                     // ClassNode --has--> ParamNode
                                     addEdge(Edge(classNode, paramNode, EdgeTypes.Has))
@@ -1009,7 +1011,9 @@ object MetaGrammar2 {
                                         // ParamNode --is--> TypeNode
                                         addEdge(Edge(paramNode, paramType, EdgeTypes.Is))
                                     }
+                                    paramNode
                                 }
+                                classParamNodes += className -> paramNodes
                             case typ@AbstractType(name) =>
                                 val abstractType = addNode(ClassTypeNode(name))
                                 superTypes(typ) foreach { superTyp =>
@@ -1028,8 +1032,94 @@ object MetaGrammar2 {
                                 addEdge(Edge(lhsNontermNode, lhsTypeNode, EdgeTypes.Is))
                             }
 
-                            // ruleDef.rhs 를 하나씩 순회하면서 Param accept expr
+                            // TODO ruleDef.rhs 를 하나씩 순회하면서 Param accept expr
+                            ruleDef.rhs foreach { rhs =>
+                                def visitExpr(ctx: List[AST.Elem], expr: AST.PExpr): ExprNode = {
+                                    val node = addNode(ExprNode(expr))
+                                    expr match {
+                                        case AST.BinOpExpr(_, operator, operand1, operand2) =>
+                                            operator.toString match {
+                                                case "+" =>
+                                                    val op1 = visitExpr(ctx, operand1)
+                                                    val op2 = visitExpr(ctx, operand2)
+                                                    val typeNode = addNode(TypeGenArrayOp(node))
+                                                    addEdge(Edge(node, typeNode, EdgeTypes.Is))
+                                                    addEdge(Edge(typeNode, op1, EdgeTypes.Accepts))
+                                                    addEdge(Edge(typeNode, op2, EdgeTypes.Accepts))
+                                            }
+                                        case AST.Ref(_, idx) =>
+                                            addEdge(Edge(node, visitElem(ctx, ctx(idx.toString.toInt)), EdgeTypes.Accepts))
+                                        case AST.BoundPExpr(_, ctxRef, boundedExpr) =>
+                                            ctx(ctxRef.idx.toString.toInt) match {
+                                                case processor: AST.Processor =>
+                                                    throw new Exception("Invalid bound context")
+                                                case symbol: AST.Symbol =>
+                                                    symbol match {
+                                                        case AST.Repeat(nodeId, expr, repeat) =>
+                                                            // TODO
+                                                            ???
+                                                        case AST.Paren(nodeId, choices) =>
+                                                            // TODO
+                                                            ???
+                                                        case AST.Longest(nodeId, choices) =>
+                                                            // TODO
+                                                            ???
+                                                        case AST.InPlaceSequence(nodeId, seq) =>
+                                                            // TODO
+                                                            ???
+                                                        case _ =>
+                                                            throw new Exception("Invalid bound context")
+                                                    }
+                                            }
+                                        case AST.ConstructExpr(_, typ, params) =>
+                                            val className = typ.name.toString
+                                            addEdge(Edge(node, ClassTypeNode(className), EdgeTypes.Is))
+                                            params.zipWithIndex foreach { case (paramExpr, paramIdx) =>
+                                                addEdge(Edge(classParamNodes(className)(paramIdx), visitExpr(ctx, paramExpr), EdgeTypes.Accepts))
+                                            }
+                                        case AST.OnTheFlyTypeDefConstructExpr(_, typeDef, params) =>
+                                            val className = typeDef.name.name.toString
+                                            addEdge(Edge(node, ClassTypeNode(className), EdgeTypes.Is))
+                                            params.zipWithIndex foreach { case (paramExpr, paramIdx) =>
+                                                val paramNode = classParamNodes(className)(paramIdx)
+                                                assert(paramNode.name == paramExpr.name.name.toString)
+                                                addEdge(Edge(paramNode, visitExpr(ctx, paramExpr.expr), EdgeTypes.Accepts))
+                                            }
+                                        case AST.PTermParen(_, parenExpr) =>
+                                            addEdge(Edge(node, visitExpr(ctx, parenExpr), EdgeTypes.Accepts))
+                                        case AST.PTermSeq(_, elems) =>
+                                            val elemNodes = elems map {
+                                                visitExpr(ctx, _)
+                                            }
+                                            val typeNode = addNode(TypeGenArrayElemsUnion(node))
+                                            addEdge(Edge(node, typeNode, EdgeTypes.Is))
+                                            elemNodes foreach { seqElem =>
+                                                addEdge(Edge(typeNode, seqElem, EdgeTypes.Accepts))
+                                            }
+                                    }
+                                    node
+                                }
+
+                                def visitElem(ctx: List[AST.Elem], elem: AST.Elem): Node = elem match {
+                                    case processor: AST.Processor =>
+                                        processor match {
+                                            case expr: AST.PExpr =>
+                                                visitExpr(ctx, expr)
+                                                addNode(ExprNode(expr))
+                                            case AST.Ref(_, idx) =>
+                                                visitElem(ctx, ctx(idx.toString.toInt))
+                                        }
+                                    case symbol: AST.Symbol => addNode(SymbolNode(astToSymbol(symbol)))
+                                }
+
+                                val elemNodes: List[Node] = rhs.elems map { e => visitElem(rhs.elems, e) }
+
+                                // SymbolNode --accepts--> ExprNode|SymbolNode
+                                val lastElem = elemNodes.last
+                                addEdge(Edge(lhsNontermNode, lastElem, EdgeTypes.Accepts))
+                            }
                         }
+                        graph
                     }
                 }
 
@@ -1051,7 +1141,7 @@ object MetaGrammar2 {
                 // TODO check name conflict in allTypes
                 // TODO make sure no type has name the name "Node"
 
-                allTypes foreach println
+                // allTypes foreach println
 
                 ruleDefs foreach { rule =>
                     astToSymbol(rule.lhs.name)
@@ -1082,6 +1172,12 @@ object MetaGrammar2 {
 
                 val graph = new TypeAnalyzeGraph.Builder().analyze()
 
+                graph.nodes foreach println
+                println()
+                graph.edgesByStart foreach { edges =>
+                    edges._2 foreach println
+                }
+
                 new Analysis(grammarAst, grammar, ngrammar, ???, ???)
             }
         }
@@ -1107,7 +1203,7 @@ object MetaGrammar2 {
               |variable = <'A-Za-z'+> {@Variable(name=$0)}
             """.stripMargin
 
-        val ast = grammarSpecToAST(newGrammar)
+        val ast = grammarSpecToAST(expressionGrammar)
 
         println(ast)
 
