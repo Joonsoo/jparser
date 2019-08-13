@@ -1,6 +1,7 @@
-package com.giyeok.jparser.visualize
+package com.giyeok.jparser.utils
 
-import com.giyeok.jparser.visualize.DotGraphModel.{Edge, Node}
+import com.giyeok.jparser.utils.DotGraphModel.{Edge, Node}
+
 
 object DotGraphModel {
 
@@ -50,14 +51,16 @@ class DotGraphModel(val nodes: Set[Node], val edges: Seq[Edge]) {
     def removeNode(node: Node): DotGraphModel =
         new DotGraphModel(nodes - node, edges filterNot { e => e.start == node || e.end == node })
 
-    def printDotGraph(startNode: Node): Unit = {
-        println("digraph G {")
-        println("    node[fontname=\"monospace\", height=.1];")
+    def printDotGraph(startNode: Node): String = {
+        val printer = new StringBuilder()
+
+        printer.append("digraph G {\n")
+        printer.append("    node[fontname=\"monospace\", height=.1];\n")
 
         def depthFirstTraverse(node: Node, visited: Set[Node]): Set[Node] = {
             // startSymbol이면 출력은 할 필요 없음
             def printLine(line: String): Unit = {
-                println(line)
+                printer.append(line + "\n")
             }
 
             printLine(s"    ${node.name}[${node.attrStringWith(Map("label" -> node.escapedPrintName))}];")
@@ -80,6 +83,23 @@ class DotGraphModel(val nodes: Set[Node], val edges: Seq[Edge]) {
         while (toVisit != visited) {
             visited = depthFirstTraverse((toVisit -- visited).head, visited)
         }
-        println("}")
+        printer.append("}\n")
+
+        printer.toString()
+    }
+
+    def printDotGraph(): String = {
+        val printer = new StringBuilder()
+
+        printer.append("digraph G {\n")
+        printer.append("    node[fontname=\"monospace\", height=.1];\n")
+        nodes foreach { node =>
+            printer.append(s"    ${node.name}[${node.attrStringWith(Map("label" -> node.escapedPrintName))}];\n")
+        }
+        edges foreach { edge =>
+            printer.append(s"    ${edge.start.name} -> ${edge.end.name}[${edge.attrString}];\n")
+        }
+        printer.append("}\n")
+        printer.toString()
     }
 }

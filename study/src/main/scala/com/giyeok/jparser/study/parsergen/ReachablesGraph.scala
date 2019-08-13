@@ -4,6 +4,7 @@ import com.giyeok.jparser.examples.SimpleGrammars
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.parsergen.deprecated.{AKernel, AKernelEdge, AKernelGraph, GrammarAnalyzer}
+import com.giyeok.jparser.utils.DotGraphModel
 import com.giyeok.jparser.visualize._
 import org.eclipse.draw2d.{ColorConstants, Figure, LineBorder}
 import org.eclipse.swt.SWT
@@ -160,7 +161,7 @@ class ReachablesGraph(analyzer: GrammarAnalyzer) {
                             }
                             dotEdge
                         }
-                        new DotGraphModel(nodes.values.toSet, edges).printDotGraph(startNode)
+                        println(new DotGraphModel(nodes.values.toSet, edges).printDotGraph(startNode))
                     case _ => // do nothing
                 }
             }

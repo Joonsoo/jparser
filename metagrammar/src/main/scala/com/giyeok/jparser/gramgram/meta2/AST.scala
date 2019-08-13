@@ -106,7 +106,7 @@ object AST {
 
     sealed trait PostUnSymbol extends PreUnSymbol with AstNode
 
-    case class Repeat(nodeId: Int, expr: PostUnSymbol, repeat: Node) extends PostUnSymbol with AstNode
+    case class Repeat(nodeId: Int, repeatingSymbol: PostUnSymbol, repeatSpec: Node) extends PostUnSymbol with AstNode
 
     sealed trait AtomSymbol extends PostUnSymbol with AstNode
 
@@ -472,7 +472,7 @@ object ASTifier {
             val elem1 = matchPExpr(unwindNonterm("PExpr", elems.children(0)))
             val elem2_ = unwindRepeat(elems.children(1))
             val elem2 = elem2_ map { tails_ =>
-                val BindNode(_, tails: SequenceNode) = tails_
+                val BindNode(_, BindNode(_, tails: SequenceNode)) = tails_
                 matchPExpr(unwindNonterm("PExpr", tails.children(3)))
             }
             elem1 +: elem2

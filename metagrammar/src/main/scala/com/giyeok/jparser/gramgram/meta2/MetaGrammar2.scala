@@ -31,22 +31,24 @@ object MetaGrammar2 {
     def main(args: Array[String]): Unit = {
         val expressionGrammar =
             """expression: @Expression = term
-              |    | expression '+' term {@BinOp(op=$1, lhs=$0, rhs=$2)}
+              |    | expression '+' term {@BinOp(op=$1, lhs:Expression=$0, rhs=$2)}
               |term: @Term = factor
               |    | term '*' factor {BinOp($1, $0, $2)}
               |factor: @Factor = number {@Number(value=$0)}
               |    | variable
-              |    | '(' expression ')' $1
+              |    | '(' expression ')' {@Paren(expr=$1)}
               |number = '0'
-              |    | '1-9' '0-9'*
+              |    | '1-9' '0-9'* {[@Digits(value=[$0, $1])]}
               |variable = <'A-Za-z'+> {@Variable(name=$0)}
+              |list = '[' expression (',' expression)* ']' {@List(elems=[$1] + $2$1)}
             """.stripMargin
 
-        val ast = grammarSpecToAST(expressionGrammar)
+        val ast = grammarSpecToAST(GrammarDef.newGrammar)
 
         println(ast)
 
         val analysis = Analyzer.analyze(ast.get)
+        println(analysis.typeDependenceGraph.toDotGraphModel.printDotGraph())
 
         // 문법이 주어지면
         // 1a. processor가 없는 문법 텍스트

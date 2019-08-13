@@ -189,15 +189,15 @@ object GrammarDef {
           |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {@TerminalChoiceRange(start=$0, end=$2)}
           |StringLiteral = '"' StringChar* '"' {@StringLiteral(value=$1)}
           |
-          |UnicodeChar = '\\' 'u' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f'
-          |TerminalChar = .-'\\'
-          |  | '\\' '\'\\bnrt'
+          |UnicodeChar = '\\' 'u' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' {@CharUnicode(code=[$2, $3, $4, $5])}
+          |TerminalChar: @TerminalChar = .-'\\' {@CharAsIs(char=$0)}
+          |  | '\\' '\'\\bnrt' {@CharEscaped(escapeCode=$1)}
           |  | UnicodeChar
-          |TerminalChoiceChar = .-'\'\-\\'
-          |  | '\\' '\'\-\\bnrt'
+          |TerminalChoiceChar: @TerminalChoiceChar = .-'\'\-\\' {CharAsIs($0)}
+          |  | '\\' '\'\-\\bnrt' {CharEscaped($1)}
           |  | UnicodeChar
-          |StringChar = .-'"\\'
-          |  | '\\' '"\\bnrt'
+          |StringChar: @StringChar = .-'"\\' {CharAsIs($0)}
+          |  | '\\' '"\\bnrt' {CharEscaped($1)}
           |  | UnicodeChar
           |
           |StringLiteral = '"' StringChar* '"'

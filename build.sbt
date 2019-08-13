@@ -17,19 +17,22 @@ lazy val testDeps = {
 lazy val core = (project in file("core")).
     settings(
         name := "jparser-core",
-        libraryDependencies ++= testDeps
-    )
+        libraryDependencies ++= testDeps)
+
+lazy val utils = (project in file("utils")).
+    settings(
+        name := "jparser-utils",
+        libraryDependencies ++= testDeps)
 
 lazy val metagrammar = (project in file("metagrammar")).
     settings(
-        name := "jparser-metagrammar"
-    ).
-    dependsOn(core % "test->test;compile->compile")
+        name := "jparser-metagrammar").
+    dependsOn(core % "test->test;compile->compile").
+    dependsOn(utils % "test->test;compile->compile")
 
 lazy val examples = (project in file("examples")).
     settings(
-        name := "jparser-examples"
-    ).
+        name := "jparser-examples").
     dependsOn(core % "test->test;compile->compile").
     dependsOn(metagrammar % "test->test;compile->compile")
 
@@ -46,9 +49,9 @@ lazy val visualize = (project in file("visualize")).
             "swt" % "jface" % "3.0.1"
         ),
         libraryDependencies ++= testDeps,
-        javaOptions := visJavaOptions
-    ).
+        javaOptions := visJavaOptions).
     dependsOn(core % "test->test;compile->compile").
+    dependsOn(utils % "test->test;compile->compile").
     dependsOn(metagrammar % "test->test;compile->compile").
     dependsOn(examples % "test->test;compile->compile")
 
@@ -56,8 +59,8 @@ lazy val parsergen = (project in file("parsergen")).
     settings(
         name := "jparser-parsergen",
         libraryDependencies += "com.google.googlejavaformat" % "google-java-format" % "1.6",
-        libraryDependencies ++= testDeps
-    ).
+        libraryDependencies ++= testDeps,
+        javacOptions ++= Seq("-encoding", "UTF-8")).
     dependsOn(core % "test->test;compile->compile").
     dependsOn(examples % "test->test;compile->compile").
     dependsOn(visualize % "test->test;compile->compile")
@@ -66,9 +69,9 @@ lazy val study = (project in file("study")).
     settings(
         name := "jparser-study",
         libraryDependencies ++= testDeps,
-        javaOptions := visJavaOptions
-    ).
+        javaOptions := visJavaOptions).
     dependsOn(core % "test->test;compile->compile").
+    dependsOn(utils % "test->test;compile->compile").
     dependsOn(metagrammar % "test->test;compile->compile").
     dependsOn(examples % "test->test;compile->compile").
     dependsOn(visualize % "test->test;compile->compile").

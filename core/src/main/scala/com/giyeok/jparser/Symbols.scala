@@ -283,12 +283,12 @@ object Symbols {
             case Repeat(sym, 0) => s"${sym.toShortString}*"
             case Repeat(sym, 1) => s"${sym.toShortString}+"
             case Repeat(sym, lower) => s"${sym.toShortString}[$lower-]"
-            case s: Except => s"${s.sym.toShortString} except ${s.except.toShortString}"
+            case s: Except => s"${s.sym.toShortString}-${s.except.toShortString}"
             case LookaheadIs(lookahead) => s"la_is ${lookahead.toShortString}"
             case LookaheadExcept(except) => s"la_except ${except.toShortString}"
             case Proxy(sym) => s"(${sym.toShortString})"
-            case Join(sym, join) => s"${sym.toShortString} joinedwith ${join.toShortString}"
-            case Longest(sym) => s"L(${sym.toShortString})"
+            case Join(sym, join) => s"${sym.toShortString}&${join.toShortString}"
+            case Longest(sym) => s"<${sym.toShortString}>"
         }
     }
 
