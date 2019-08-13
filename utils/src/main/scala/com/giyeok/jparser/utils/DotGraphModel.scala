@@ -51,10 +51,10 @@ class DotGraphModel(val nodes: Set[Node], val edges: Seq[Edge]) {
     def removeNode(node: Node): DotGraphModel =
         new DotGraphModel(nodes - node, edges filterNot { e => e.start == node || e.end == node })
 
-    def printDotGraph(startNode: Node): String = {
+    def printReachableDotGraph(startNode: Node, graphName: String = "G"): String = {
         val printer = new StringBuilder()
 
-        printer.append("digraph G {\n")
+        printer.append(s"digraph $graphName {\n")
         printer.append("    node[fontname=\"monospace\", height=.1];\n")
 
         def depthFirstTraverse(node: Node, visited: Set[Node]): Set[Node] = {
@@ -88,10 +88,10 @@ class DotGraphModel(val nodes: Set[Node], val edges: Seq[Edge]) {
         printer.toString()
     }
 
-    def printDotGraph(): String = {
+    def printDotGraph(graphName: String = "G"): String = {
         val printer = new StringBuilder()
 
-        printer.append("digraph G {\n")
+        printer.append(s"digraph $graphName {\n")
         printer.append("    node[fontname=\"monospace\", height=.1];\n")
         nodes foreach { node =>
             printer.append(s"    ${node.name}[${node.attrStringWith(Map("label" -> node.escapedPrintName))}];\n")

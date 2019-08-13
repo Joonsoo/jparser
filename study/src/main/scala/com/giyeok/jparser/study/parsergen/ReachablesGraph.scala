@@ -161,7 +161,7 @@ class ReachablesGraph(analyzer: GrammarAnalyzer) {
                             }
                             dotEdge
                         }
-                        println(new DotGraphModel(nodes.values.toSet, edges).printDotGraph(startNode))
+                        println(new DotGraphModel(nodes.values.toSet, edges).printReachableDotGraph(startNode))
                     case _ => // do nothing
                 }
             }

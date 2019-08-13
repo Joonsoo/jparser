@@ -48,7 +48,10 @@ object MetaGrammar2 {
         println(ast)
 
         val analysis = Analyzer.analyze(ast.get)
-        println(analysis.typeDependenceGraph.toDotGraphModel.printDotGraph())
+
+        val dotGraph = analysis.typeDependenceGraph.toDotGraphModel
+
+        println(dotGraph.printDotGraph())
 
         // 문법이 주어지면
         // 1a. processor가 없는 문법 텍스트

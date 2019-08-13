@@ -124,7 +124,7 @@ object GrammarDef {
           |SubTypes = SubType (WS ',' WS SubType)*
           |SubType: @SubType = TypeName | ClassDef | SuperDef
           |
-          |OnTheFlyTypeDef = '@' WS TypeName (WS OnTheFlySuperTypes)? {@OnTheFlyTypeDef(name=$2, supers=$4$1)}
+          |OnTheFlyTypeDef = '@' WS TypeName (WS OnTheFlySuperTypes)? {@OnTheFlyTypeDef(name=$2, supers=$3$1)}
           |OnTheFlySuperTypes = '<' WS TypeName (WS ',' WS TypeName)* WS '>' {[$2] + $3$3}
           |
           |Rule = LHS WS '=' WS RHSs {@Rule(lhs=$0, rhs=$4)}

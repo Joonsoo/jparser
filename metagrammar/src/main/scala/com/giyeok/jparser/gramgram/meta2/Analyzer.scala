@@ -3,6 +3,7 @@ package com.giyeok.jparser.gramgram.meta2
 import com.giyeok.jparser.GrammarHelper.{i, _}
 import com.giyeok.jparser.ParseResultTree.{BindNode, SequenceNode, TerminalNode}
 import com.giyeok.jparser.Symbols.Nonterminal
+import com.giyeok.jparser.gramgram.meta2.AST.InPlaceChoices
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph, DotGraphModel}
 import com.giyeok.jparser.{Grammar, Inputs, Symbols}
@@ -338,7 +339,13 @@ object Analyzer {
                                                 case AST.Repeat(_, repeatingSymbol, repeatSpec) =>
                                                     // val repeatingSymbolNode = addNode(SymbolNode(astToSymbol(repeatingSymbol)))
                                                     // TODO ctx 처리
-                                                    val bound = ctx
+                                                    val bound = repeatingSymbol match {
+                                                        case AST.InPlaceChoices(_, List(choice)) => choice.seq
+                                                        case AST.Longest(_, AST.InPlaceChoices(_, List(choice))) => choice.seq
+                                                        case x =>
+                                                            println(x)
+                                                            ???
+                                                    }
                                                     val elemNode = boundedExpr match {
                                                         case expr: AST.PExpr => visitExpr(bound, expr)
                                                         case expr: AST.OnTheFlyTypeDefConstructExpr => visitExpr(bound, expr)
@@ -358,10 +365,10 @@ object Analyzer {
                                                             addEdge(Edge(typeNode, elemNode, EdgeTypes.Accepts))
                                                     }
                                                     node
-                                                case AST.Paren(_, choices) =>
+                                                case AST.Paren(_, AST.InPlaceChoices(_, choices)) =>
                                                     // TODO
                                                     ???
-                                                case AST.Longest(_, choices) =>
+                                                case AST.Longest(_, AST.InPlaceChoices(_, choices)) =>
                                                     // TODO
                                                     ???
                                                 case AST.InPlaceSequence(_, seq) =>
@@ -468,7 +475,7 @@ object Analyzer {
                         case term: AST.PTerm => term match {
                             case AST.Ref(_, idx) => s"$$$idx"
                             case AST.BoundPExpr(_, ctx, expr) =>
-                                s"${pexprString(ctx)}${boundExprString(expr)}"
+                                s"${pexprString(ctx)}{${boundExprString(expr)}}"
                             case expr: AST.AbstractConstructExpr => expr match {
                                 case AST.ConstructExpr(_, typ, params) =>
                                     s"${typ.name.toString}(${params map pexprString mkString ","})"
