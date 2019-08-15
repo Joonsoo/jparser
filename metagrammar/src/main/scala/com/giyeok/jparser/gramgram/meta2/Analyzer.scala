@@ -458,8 +458,6 @@ object Analyzer {
             // TODO check name conflict in userDefinedTypes
             // TODO make sure no type has name the name "Node"
 
-            // userDefinedTypes foreach println
-
             ruleDefs foreach { rule =>
                 astToSymbol(rule.lhs.name)
                 rule.rhs foreach { rhs =>
@@ -471,6 +469,20 @@ object Analyzer {
                 }
             }
 
+            val typeDependenceGraph = new TypeDependenceGraphBuilder().analyze()
+
+            val typeHierarchyGraph0 = typeDependenceGraph.typeHierarchyGraph
+            val typeHierarchyGraph = typeHierarchyGraph0.pruneRedundantEdges
+
+            // typeHierarchyGraph에서 ParseNodeType을 subtype으로 갖고있는 노드가 있으면 오류 발생
+            if (typeHierarchyGraph.edgesByEnd(ParseNodeType).nonEmpty) {
+                throw new Exception(s"Incomplete hierarchy from ${typeHierarchyGraph.edgesByEnd(ParseNodeType) map (_.start)}")
+            }
+            // TODO typeHierarchyGraph에 unrollArrayAndOptionals
+
+            val classDefs = generateClassDefs(typeDependenceGraph, typeHierarchyGraph)
+
+            // TODO grammar와 ngrammar 만들면서 Node -> AST 변환 코드도 생성
             val grammar = new Grammar {
                 override val name: String = grammarName
 
@@ -486,23 +498,6 @@ object Analyzer {
                 override val startSymbol: Nonterminal = Symbols.Nonterminal(ruleDefs.head.lhs.name.name.toString)
             }
 
-            val typeDependenceGraph = new TypeDependenceGraphBuilder().analyze()
-
-            typeDependenceGraph.nodes foreach println
-            println()
-            typeDependenceGraph.edgesByStart foreach { edges =>
-                edges._2 foreach println
-            }
-
-            val typeHierarchyGraph0 = typeDependenceGraph.typeHierarchyGraph
-            val typeHierarchyGraph = typeHierarchyGraph0.pruneRedundantEdges
-
-            // TODO typeHierarchyGraph에 unrollArrayAndOptionals
-
-            val classDefs = generateClassDefs(typeDependenceGraph, typeHierarchyGraph)
-            classDefs foreach println
-
-            // TODO ngrammar 만들면서 매칭 코드 생성
             val ngrammar = NGrammar.fromGrammar(grammar)
 
             new Analysis(grammarAst, grammar, ngrammar, typeDependenceGraph, typeHierarchyGraph, classDefs)

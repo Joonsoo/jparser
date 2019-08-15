@@ -113,7 +113,7 @@ object GrammarDef {
           |  | '@' SuperDef
           |ClassDef = TypeName WS '(' WS (ClassParams WS)? ')' {@ClassDef(typeName=$0, params=$4$0)}
           |SuperDef = TypeName WS '{' WS (SubTypes WS)? '}' {@SuperDef(typeName=$0, subs=$4$0)}
-          |TypeName = Id
+          |TypeName = Id {@TypeName(name=$0)}
           |ClassParams = ClassParam (WS ',' WS ClassParam)* {[$0] + $1$3}
           |ClassParam = ParamName (WS ':' WS TypeDesc)? {@ClassParam(name=$0, typeDesc=$1$3)}
           |ParamName = Id
@@ -200,7 +200,6 @@ object GrammarDef {
           |  | '\\' '"\\bnrt' {CharEscaped($1)}
           |  | UnicodeChar
           |
-          |StringLiteral = '"' StringChar* '"'
           |RefIdx = <'0' | '1-9' '0-9'*>
           |Id = <'a-zA-Z' 'a-zA-Z0-9'*>
           |WS = (' \n\r\t' | LineComment)*

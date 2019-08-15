@@ -10,9 +10,11 @@ object GeneratedAST {
 
     sealed trait TypeDef extends Def
 
-    case class ClassDef(typeName: Node, params: Option[List[ClassParam]]) extends SubType with TypeDef
+    case class ClassDef(typeName: TypeName, params: Option[List[ClassParam]]) extends SubType with TypeDef
 
-    case class SuperDef(typeName: Node, subs: Option[List[SubType]]) extends SubType with TypeDef
+    case class SuperDef(typeName: TypeName, subs: Option[List[SubType]]) extends SubType with TypeDef
+
+    case class TypeName(name: Node) extends SubType with ValueTypeDesc
 
     case class ClassParam(name: Node, typeDesc: Option[TypeDesc])
 
@@ -24,7 +26,7 @@ object GeneratedAST {
 
     sealed trait SubType
 
-    case class OnTheFlyTypeDef(name: Node, supers: Option[List[Node]]) extends ValueTypeDesc
+    case class OnTheFlyTypeDef(name: TypeName, supers: Option[List[TypeName]]) extends ValueTypeDesc
 
     case class Rule(lhs: LHS, rhs: List[RHS]) extends Def
 
@@ -54,7 +56,7 @@ object GeneratedAST {
 
     sealed trait AbstractConstructExpr extends PTerm
 
-    case class ConstructExpr(typeName: Node, params: Option[List[PExpr]]) extends AbstractConstructExpr
+    case class ConstructExpr(typeName: TypeName, params: Option[List[PExpr]]) extends AbstractConstructExpr
 
     case class OnTheFlyTypeDefConstructExpr(typeDef: OnTheFlyTypeDef, params: Option[List[NamedParam]]) extends AbstractConstructExpr
 
