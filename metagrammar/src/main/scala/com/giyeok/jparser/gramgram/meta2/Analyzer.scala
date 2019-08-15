@@ -11,24 +11,24 @@ import scala.collection.immutable.{ListMap, ListSet}
 
 object Analyzer {
 
-    sealed trait UserSpecifiedType
+    sealed trait UserDefinedType
 
-    case class UserClassType(name: String, params: List[AST.NamedParam]) extends UserSpecifiedType
+    case class UserClassType(name: String, params: List[AST.NamedParam]) extends UserDefinedType
 
-    case class UserAbstractType(name: String) extends UserSpecifiedType
+    case class UserAbstractType(name: String) extends UserDefinedType
 
     class Analysis private[Analyzer](val grammarAst: AST.Grammar,
                                      val grammar: Grammar,
                                      val ngrammar: NGrammar,
                                      val typeDependenceGraph: Analyzer#TypeDependenceGraph,
                                      val subclasses: Map[UserAbstractType, Set[UserClassType]],
-                                     val inferredTypes: Map[String, UserSpecifiedType])
+                                     val inferredTypes: Map[String, UserDefinedType])
 
     class Analyzer(val grammarAst: AST.Grammar) {
         val ruleDefs: List[AST.Rule] = grammarAst.defs collect { case r: AST.Rule => r }
         val typeDefs: List[AST.TypeDef] = grammarAst.defs collect { case r: AST.TypeDef => r }
 
-        private var allTypes = List[UserSpecifiedType]()
+        private var userDefinedTypes = List[UserDefinedType]()
         private var superTypes = Map[UserAbstractType, Set[String]]()
 
         def collectTypeDefs(): Unit = {
@@ -40,7 +40,7 @@ object Analyzer {
                         _.name.toString
                     })
                     superTypes += newType -> newSupers.toSet
-                    allTypes +:= newType
+                    userDefinedTypes +:= newType
                 case AST.ArrayTypeDesc(_, elemType) =>
                     addTypeDefsLhs(elemType.typ)
                 case _ => // do nothing
@@ -49,7 +49,7 @@ object Analyzer {
             def addTypeDefsOnTheFlyTypeDefConstructExpr(expr: AST.OnTheFlyTypeDefConstructExpr): Unit = expr match {
                 case AST.OnTheFlyTypeDefConstructExpr(_, tdef, params) =>
                     val newType = UserClassType(tdef.name.name.toString, params)
-                    allTypes +:= newType
+                    userDefinedTypes +:= newType
                     params foreach { p => addTypeDefsExpr(p.expr) }
             }
 
@@ -330,7 +330,7 @@ object Analyzer {
                 private var classParamNodes = Map[String, List[ParamNode]]()
 
                 def analyze(): TypeDependenceGraph = {
-                    allTypes foreach {
+                    userDefinedTypes foreach {
                         case UserClassType(className, params) =>
                             val classNode = addNode(ClassTypeNode(className))
                             val paramNodes = params.zipWithIndex map { case (paramAst, paramIdx) =>
@@ -533,7 +533,13 @@ object Analyzer {
             def createGraph(nodes: Set[TypeSpec], edges: Set[Extends], edgesByStart: Map[TypeSpec, Set[Extends]], edgesByEnd: Map[TypeSpec, Set[Extends]]): TypeHierarchyGraph =
                 new TypeHierarchyGraph(nodes, edges, edgesByStart, edgesByEnd)
 
-            def redundantEdgesPruned: TypeHierarchyGraph = {
+            def unrollArrayAndOptionals: TypeHierarchyGraph = {
+                // Array(Type A) --> Array(Type B) 이나 Optional(Type A) --> Optional(Type B) 엣지가 있으면 Type A --> Type B 노드 추가
+                var unrolled = this
+                unrolled
+            }
+
+            def pruneRedundantEdges: TypeHierarchyGraph = {
                 var cleaned = this
                 edges foreach { edge =>
                     val paths = GraphUtil.pathsBetween[TypeSpec, Extends, TypeHierarchyGraph](cleaned, edge.start, edge.end)
@@ -542,6 +548,11 @@ object Analyzer {
                     }
                 }
                 cleaned
+            }
+
+            def removeRedundantTypesFrom(types: List[TypeSpec]): List[TypeSpec] = {
+                // types에서 불필요한 타입 제거. 즉, supertype A와 subtype B가 같이 포함되어 있으면 B는 제거하고 A만 남겨서 반환
+                ???
             }
 
             def toDotGraphModel: DotGraphModel = {
@@ -667,10 +678,10 @@ object Analyzer {
 
         def analyze(): Analysis = {
             collectTypeDefs()
-            // TODO check name conflict in allTypes
+            // TODO check name conflict in userDefinedTypes
             // TODO make sure no type has name the name "Node"
 
-            // allTypes foreach println
+            // userDefinedTypes foreach println
 
             ruleDefs foreach { rule =>
                 astToSymbol(rule.lhs.name)
@@ -715,8 +726,10 @@ object Analyzer {
 
             val typeHierarchyGraph0 = typeDependenceGraph.typeHierarchyGraph
             println(typeHierarchyGraph0.toDotGraphModel.printDotGraph())
-            val typeHierarchyGraph = typeHierarchyGraph0.redundantEdgesPruned
+            val typeHierarchyGraph = typeHierarchyGraph0.pruneRedundantEdges
             println(typeHierarchyGraph.toDotGraphModel.printDotGraph())
+
+            println(userDefinedTypes)
 
             new Analysis(grammarAst, grammar, ngrammar, typeDependenceGraph, Map(), Map())
         }
