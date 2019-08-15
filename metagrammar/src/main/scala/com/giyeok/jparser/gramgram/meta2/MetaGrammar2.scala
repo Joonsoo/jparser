@@ -37,22 +37,23 @@ object MetaGrammar2 {
               |factor: @Factor = number
               |    | variable
               |    | '(' expression ')' {@Paren(expr=$1)}
-              |number: @Number = '0' {@Integer(value=$0)}
+              |number: @Number = '0' {@Integer(value=[$0])}
               |    | '1-9' '0-9'* {Integer([$0, $1])}
               |variable = <'A-Za-z'+> {@Variable(name=$0)}
-              |list = '[' expression (',' expression)* ']' {@List(elems=[$1] + $2$1)}
-              |something: [[@Something]]? = 'a'
+              |array = '[' expression (',' expression)* ']' {@Array(elems=[$1] + $2$1)}
             """.stripMargin
 
-        val ast = grammarSpecToAST(expressionGrammar)
+        val ast = grammarSpecToAST(GrammarDef.newGrammar)
 
         println(ast)
 
         val analysis = Analyzer.analyze(ast.get)
 
-        val dotGraph = analysis.typeDependenceGraph.toDotGraphModel
+        println(analysis.typeDependenceGraph.toDotGraphModel.printDotGraph())
+        println(analysis.typeHierarchyGraph.toDotGraphModel.printDotGraph())
 
-        println(dotGraph.printDotGraph())
+        val scaladef = new ScalaDefGenerator(analysis)
+        println(scaladef.classDefs())
 
         // 문법이 주어지면
         // 1a. processor가 없는 문법 텍스트

@@ -29,7 +29,7 @@ object DotGraphModel {
     }
 
     case class Node(name: String)(val printName: String) extends Props[Node] {
-        val escapedPrintName: String = printName // TODO?
+        val escapedPrintName: String = printName.replaceAllLiterally("\\", "\\\\").replaceAllLiterally("\"", "\\\"") // TODO?
     }
 
     case class Edge(start: Node, end: Node) extends Props[Edge]

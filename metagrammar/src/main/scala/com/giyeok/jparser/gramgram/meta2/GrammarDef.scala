@@ -106,7 +106,7 @@ object GrammarDef {
         """.stripMargin))
 
     val newGrammar: String =
-        """Grammar = WS Def (WS Def)* WS {@Grammar(defs=[$1 + $2$1])}
+        """Grammar = WS Def (WS Def)* WS {@Grammar(defs=[$1] + $2$1)}
           |Def: @Def = Rule | TypeDef
           |
           |TypeDef: @TypeDef = '@' ClassDef
@@ -181,8 +181,8 @@ object GrammarDef {
           |EmptySequence = '#'
           |Nonterminal = Id {@Nonterminal(name=$0)}
           |Terminal: @Terminal = '\'' TerminalChar '\'' {@TerminalChar(char=$2)}
-          |  | '.' {@AnyTerminal()}
-          |TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\'' {@TerminalChoice(choices=[$1] + $2)}
+          |  | '.' {@AnyTerminal(char=$0)}
+          |TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\'' {@TerminalChoice(choices:[TerminalChoiceElem]=[$1] + $2$0)}
           |  | '\'' TerminalChoiceRange '\'' {TerminalChoice([$1])}
           |TerminalChoiceElem: @TerminalChoiceElem = TerminalChoiceChar {@TerminalChoiceChar(char=$0)}
           |  | TerminalChoiceRange
