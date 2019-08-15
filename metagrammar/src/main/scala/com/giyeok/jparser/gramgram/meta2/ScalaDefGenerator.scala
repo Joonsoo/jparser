@@ -12,9 +12,8 @@ class ScalaDefGenerator(val analysis: Analysis) {
             s"List[${typeSpecToString(elemType)}]"
         case OptionalType(valueType) =>
             s"Option[${typeSpecToString(valueType)}]"
-        case _: UnionType | _: UnionNodeType =>
-            // throw new Exception(s"Union type is not supported: $typeSpec")
-            typeSpec.toString
+        case _: UnionType | _: UnionNodeType | _: ArrayConcatNodeType =>
+            throw new Exception(s"Union type is not supported: $typeSpec")
     }
 
     def classDefsList(): Map[String, String] = (analysis.classDefs map { d =>
@@ -33,7 +32,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
     }).toMap
 
     def classDefs(): String = {
-        // TODO order classDefsList() by analysis.typeHierarchyGraph.topologicalClassTypesOrder
+        // TODO sort classDefsList() by analysis.typeHierarchyGraph.topologicalClassTypesOrder
         classDefsList().values mkString "\n"
     }
 

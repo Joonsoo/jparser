@@ -114,7 +114,7 @@ class TypeDependenceGraph private(val nodes: Set[TypeDependenceGraph.Node],
             case TypeDependenceGraph.TypeGenArrayConcatOp(_, lhs, rhs) =>
                 val lhsType = inferType(lhs)
                 val rhsType = inferType(rhs)
-                ArrayType(UnionNodeType(Set(lhsType, rhsType)))
+                ArrayConcatNodeType(lhsType, rhsType)
             case TypeDependenceGraph.TypeGenArrayElemsUnion(elems) =>
                 val elemsType = elems map inferType
                 ArrayType(UnionNodeType(elemsType.toSet))
@@ -227,6 +227,20 @@ class TypeHierarchyGraph(val nodes: Set[TypeSpec], val edges: Set[Extends],
         cleaned
     }
 
+    def unrollNodeType(nodeType: NodeType): Set[TypeSpec] =
+        nodeType.fixedType match {
+            case Some(fixedType) => Set(cleanType(fixedType))
+            case None => removeRedundantTypesFrom(nodeType.inferredTypes) map cleanType
+        }
+
+    def getArrayElemType(typ: TypeSpec): TypeSpec = typ match {
+        case ArrayType(elemType) => elemType
+        case ParseNodeType | _: ClassType | _: OptionalType => throw new Exception("Invalid array concat type")
+        case ArrayConcatNodeType(lhsType, rhsType) => ???
+        case UnionNodeType(types) => ???
+        case UnionType(types) => ???
+    }
+
     def cleanType(typ: TypeSpec): TypeSpec = typ match {
         case ParseNodeType | _: ClassType => typ
         case ArrayType(elemType) =>
@@ -234,13 +248,16 @@ class TypeHierarchyGraph(val nodes: Set[TypeSpec], val edges: Set[Extends],
         case OptionalType(valueType) =>
             OptionalType(cleanType(valueType).asInstanceOf[OptionableTypeSpec])
         case UnionNodeType(types) =>
-            val cleanTypes = types flatMap { nodeType =>
-                nodeType.fixedType match {
-                    case Some(fixedType) => Set(cleanType(fixedType))
-                    case None => removeRedundantTypesFrom(nodeType.inferredTypes) map cleanType
-                }
-            }
+            val cleanTypes = types flatMap unrollNodeType
             if (cleanTypes.size == 1) cleanTypes.head else UnionType(cleanTypes)
+        case UnionType(types) =>
+            if (types.size == 1) types.head else typ
+        case ArrayConcatNodeType(lhsType, rhsType) =>
+            val lhsUnrolledType = unrollNodeType(lhsType)
+            val lhsElemType = lhsUnrolledType map getArrayElemType
+            val rhsUnrolledType = unrollNodeType(rhsType)
+            val rhsElemType = rhsUnrolledType map getArrayElemType
+            ArrayType(cleanType(UnionType(lhsElemType ++ rhsElemType)))
     }
 
     // types에서 불필요한 타입 제거. 즉, supertype A와 subtype B가 같이 포함되어 있으면 B는 제거하고 A만 남겨서 반환

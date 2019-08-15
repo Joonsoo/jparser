@@ -117,11 +117,11 @@ object GrammarDef {
           |ClassParams = ClassParam (WS ',' WS ClassParam)* {[$0] + $1$3}
           |ClassParam = ParamName (WS ':' WS TypeDesc)? {@ClassParam(name=$0, typeDesc=$1$3)}
           |ParamName = Id
-          |TypeDesc = ValueTypeDesc (WS '?')? {@TypeDesc(type=$0, optional:bool=$1)}
+          |TypeDesc = ValueTypeDesc (WS '?')? {@TypeDesc(typ=$0, optional=$1)}
           |ValueTypeDesc: @ValueTypeDesc = TypeName
           |  | OnTheFlyTypeDef
           |  | '[' WS TypeDesc WS ']' {@ArrayTypeDesc(elemType=$2)}
-          |SubTypes = SubType (WS ',' WS SubType)*
+          |SubTypes = SubType (WS ',' WS SubType)* {[$0] + $1$3}
           |SubType: @SubType = TypeName | ClassDef | SuperDef
           |
           |OnTheFlyTypeDef = '@' WS TypeName (WS OnTheFlySuperTypes)? {@OnTheFlyTypeDef(name=$2, supers=$3$1)}
@@ -135,7 +135,7 @@ object GrammarDef {
           |
           |Processor: @Processor = Ref
           |  | '{' WS PExpr WS '}' $2
-          |PExpr: @PExpr = PExpr WS <BinOp> WS PTerm {@BinOpExpr(op=$2, lhs=$0, rhs=$1)}
+          |PExpr: @PExpr = PExpr WS <BinOp> WS PTerm {@BinOpExpr(op=$2, lhs=$0, rhs=$4)}
           |  | PTerm
           |BinOp = "+"
           |PTerm: @PTerm = Ref
@@ -151,7 +151,7 @@ object GrammarDef {
           |  | BoundPExpr
           |  | '{' WS PExpr WS '}' $2
           |// Ref, BoundPExpr, PExpr은 모두 BoundedPExpr의 subclass여야 함
-          |ConstructExpr: @AbstractConstructExpr = TypeName WS ConstructParams {@ConstructExpr(type=$0, params=$2)}
+          |ConstructExpr: @AbstractConstructExpr = TypeName WS ConstructParams {@ConstructExpr(typeName=$0, params=$2)}
           |  | OnTheFlyTypeDefConstructExpr
           |ConstructParams = '(' WS (PExpr (WS ',' WS PExpr)* WS)? ')' {$2{[$0] + $1$3}}
           |OnTheFlyTypeDefConstructExpr = OnTheFlyTypeDef WS NamedParams {@OnTheFlyTypeDefConstructExpr(typeDef=$0, params=$2)}
@@ -180,17 +180,17 @@ object GrammarDef {
           |Longest = '<' InPlaceChoices '>' {@Longest(choices=$1)}
           |EmptySequence = '#'
           |Nonterminal = Id {@Nonterminal(name=$0)}
-          |Terminal: @Terminal = '\'' TerminalChar '\'' {@TerminalChar(char=$2)}
-          |  | '.' {@AnyTerminal(char=$0)}
+          |Terminal: @Terminal = '\'' TerminalChar '\'' $1
+          |  | '.' {@AnyTerminal(c=$0)}
           |TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\'' {@TerminalChoice(choices:[TerminalChoiceElem]=[$1] + $2$0)}
           |  | '\'' TerminalChoiceRange '\'' {TerminalChoice([$1])}
-          |TerminalChoiceElem: @TerminalChoiceElem = TerminalChoiceChar {@TerminalChoiceChar(char=$0)}
+          |TerminalChoiceElem: @TerminalChoiceElem = TerminalChoiceChar
           |  | TerminalChoiceRange
           |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {@TerminalChoiceRange(start=$0, end=$2)}
-          |StringLiteral = '"' StringChar* '"' {@StringLiteral(value=$1)}
+          |StringLiteral = '"' StringChar* '"' {@StringLiteral(value=$1$0)}
           |
           |UnicodeChar = '\\' 'u' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' {@CharUnicode(code=[$2, $3, $4, $5])}
-          |TerminalChar: @TerminalChar = .-'\\' {@CharAsIs(char=$0)}
+          |TerminalChar: @TerminalChar = .-'\\' {@CharAsIs(c=$0)}
           |  | '\\' '\'\\bnrt' {@CharEscaped(escapeCode=$1)}
           |  | UnicodeChar
           |TerminalChoiceChar: @TerminalChoiceChar = .-'\'\-\\' {CharAsIs($0)}

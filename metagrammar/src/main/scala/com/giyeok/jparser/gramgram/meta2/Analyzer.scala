@@ -52,7 +52,12 @@ object Analyzer {
                 case AST.OnTheFlyTypeDefConstructExpr(_, tdef, params) =>
                     val newType = UserClassType(tdef.name.name.toString, params)
                     userDefinedTypes +:= newType
-                    params foreach { p => addTypeDefsExpr(p.expr) }
+                    params foreach { p =>
+                        if (p.typeDesc.isDefined) {
+                            addTypeDefsLhs(p.typeDesc.get.typ)
+                        }
+                        addTypeDefsExpr(p.expr)
+                    }
             }
 
             def addTypeDefsBoundedPExpr(expr: AST.BoundedPExpr): Unit = expr match {
@@ -367,10 +372,15 @@ object Analyzer {
                                     val className = typeDef.name.name.toString
                                     // ExprNode --is--> ClassTypeNode
                                     addEdge(Edge(node, ClassTypeNode(className), EdgeTypes.Is))
-                                    // ParamNode --accepts--> ExprNode
                                     params.zipWithIndex foreach { case (paramExpr, paramIdx) =>
                                         val paramNode = classParamNodes(className)(paramIdx)
                                         assert(paramNode.name == paramExpr.name.name.toString)
+                                        if (paramExpr.typeDesc.isDefined) {
+                                            val typeDesc = typeDescToTypeNode(paramExpr.typeDesc.get)
+                                            // ParamNode --is--> ExprNode
+                                            addEdge(Edge(paramNode, typeDesc, EdgeTypes.Is))
+                                        }
+                                        // ParamNode --accepts--> ExprNode
                                         addEdge(Edge(paramNode, visitExpr(ctx, paramExpr.expr), EdgeTypes.Accepts))
                                     }
                                 case AST.PTermParen(_, parenExpr) =>

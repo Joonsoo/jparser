@@ -10,9 +10,11 @@ case object ParseNodeType extends OptionableTypeSpec with ActualTypeSpec
 
 case class ClassType(className: String) extends OptionableTypeSpec with ActualTypeSpec
 
-case class UnionNodeType(types: Set[NodeType]) extends TypeSpec
+case class UnionNodeType(types: Set[NodeType]) extends TypeSpec with OptionableTypeSpec
 
-case class UnionType(types: Set[TypeSpec]) extends TypeSpec
+case class ArrayConcatNodeType(lhsType: NodeType, rhsType: NodeType) extends TypeSpec with OptionableTypeSpec with ActualTypeSpec
+
+case class UnionType(types: Set[TypeSpec]) extends TypeSpec with OptionableTypeSpec
 
 case class ArrayType(elemType: TypeSpec) extends OptionableTypeSpec with ActualTypeSpec
 
