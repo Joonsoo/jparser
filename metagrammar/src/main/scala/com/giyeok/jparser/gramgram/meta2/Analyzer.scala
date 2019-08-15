@@ -425,7 +425,7 @@ object Analyzer {
         }
 
         def generateClassDefs(typeDependenceGraph: TypeDependenceGraph, typeHierarchyGraph: TypeHierarchyGraph): List[ClassDef] = {
-            userDefinedTypes map { typ =>
+            userDefinedTypes.reverse map { typ =>
                 val supers = typeHierarchyGraph.edgesByEnd(ClassType(typ.name)) map {
                     _.start match {
                         case ClassType(className) => className
@@ -453,7 +453,7 @@ object Analyzer {
             }
         }
 
-        def analyze(): Analysis = {
+        def analyze(grammarName: String = "Intermediate"): Analysis = {
             collectTypeDefs()
             // TODO check name conflict in userDefinedTypes
             // TODO make sure no type has name the name "Node"
@@ -472,7 +472,7 @@ object Analyzer {
             }
 
             val grammar = new Grammar {
-                override val name: String = "Intermediate"
+                override val name: String = grammarName
 
                 private def rhsToSeq(rhs: AST.RHS): Symbols.Sequence = Symbols.Sequence(rhs.elems collect {
                     case sym: AST.Symbol =>
@@ -502,6 +502,7 @@ object Analyzer {
             val classDefs = generateClassDefs(typeDependenceGraph, typeHierarchyGraph)
             classDefs foreach println
 
+            // TODO ngrammar 만들면서 매칭 코드 생성
             val ngrammar = NGrammar.fromGrammar(grammar)
 
             new Analysis(grammarAst, grammar, ngrammar, typeDependenceGraph, typeHierarchyGraph, classDefs)

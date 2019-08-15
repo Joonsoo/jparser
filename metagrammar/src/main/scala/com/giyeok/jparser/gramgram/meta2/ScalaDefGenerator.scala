@@ -16,11 +16,11 @@ class ScalaDefGenerator(val analysis: Analysis) {
             throw new Exception(s"Union type is not supported: $typeSpec")
     }
 
-    def classDefsList(): Map[String, String] = (analysis.classDefs map { d =>
+    def classDefsList(): List[String] = analysis.classDefs map { d =>
         val supers = if (d.supers.isEmpty) "" else {
             s" extends ${d.supers mkString " with "}"
         }
-        val defString: String = if (d.isAbstract) {
+        if (d.isAbstract) {
             s"sealed trait ${d.name}$supers"
         } else {
             val params = d.params map { p =>
@@ -28,13 +28,9 @@ class ScalaDefGenerator(val analysis: Analysis) {
             } mkString ", "
             s"case class ${d.name}($params)$supers"
         }
-        d.name -> defString
-    }).toMap
-
-    def classDefs(): String = {
-        // TODO sort classDefsList() by analysis.typeHierarchyGraph.topologicalClassTypesOrder
-        classDefsList().values mkString "\n"
     }
+
+    def classDefs(): String = classDefsList() mkString "\n"
 
     def astifierDefs(): String = ???
 }

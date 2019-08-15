@@ -272,10 +272,4 @@ class TypeHierarchyGraph(val nodes: Set[TypeSpec], val edges: Set[Extends],
         }).toMap
         new DotGraphModel(nodesMap.values.toSet, edges.toSeq map { e => DotGraphModel.Edge(nodesMap(e.start), nodesMap(e.end)) })
     }
-
-    def topologicalClassTypesOrder: List[ClassType] = {
-        val classTypes = nodes collect { case t: ClassType => t }
-        // TODO
-        classTypes.toList.sortBy(_.className)
-    }
 }
