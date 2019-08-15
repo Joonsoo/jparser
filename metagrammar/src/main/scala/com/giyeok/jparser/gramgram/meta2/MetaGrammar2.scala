@@ -34,16 +34,17 @@ object MetaGrammar2 {
               |    | expression '+' term {@BinOp(op=$1, lhs:Expression=$0, rhs=$2)}
               |term: @Term = factor
               |    | term '*' factor {BinOp($1, $0, $2)}
-              |factor: @Factor = number {@Number(value=$0)}
+              |factor: @Factor = number
               |    | variable
               |    | '(' expression ')' {@Paren(expr=$1)}
-              |number = '0'
-              |    | '1-9' '0-9'* {[@Digits(value=[$0, $1])]}
+              |number: @Number = '0' {@Integer(value=$0)}
+              |    | '1-9' '0-9'* {Integer([$0, $1])}
               |variable = <'A-Za-z'+> {@Variable(name=$0)}
               |list = '[' expression (',' expression)* ']' {@List(elems=[$1] + $2$1)}
+              |something: [[@Something]]? = 'a'
             """.stripMargin
 
-        val ast = grammarSpecToAST(GrammarDef.newGrammar)
+        val ast = grammarSpecToAST(expressionGrammar)
 
         println(ast)
 

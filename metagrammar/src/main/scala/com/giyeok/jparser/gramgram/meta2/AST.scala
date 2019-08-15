@@ -217,7 +217,7 @@ object ASTifier {
             matchTypeName(typeNameBody)
         case BindNode(NNonterminal(_, Nonterminal("OnTheFlyTypeDef"), _), ontheflyBody) =>
             matchOnTheFlyTypeDef(ontheflyBody)
-        case seq: SequenceNode =>
+        case BindNode(_, seq: SequenceNode) =>
             AST.ArrayTypeDesc(newId(), matchTypeDesc(unwindNonterm("TypeDesc", seq.children(2))))
     }
 
@@ -226,6 +226,8 @@ object ASTifier {
         val valueTypeDesc = matchValueTypeDesc(unwindNonterm("ValueTypeDesc", seq.children(0)))
         val optional = seq.children(1) match {
             case BindNode(_, BindNode(_, seq: SequenceNode)) =>
+                seq.children.nonEmpty
+            case BindNode(_, BindNode(_, BindNode(_, seq: SequenceNode))) =>
                 seq.children.nonEmpty
         }
         AST.TypeDesc(newId(), valueTypeDesc, optional)

@@ -4,8 +4,7 @@ import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.parsergen.utils.TermGrouper
-
-import scala.collection.mutable
+import com.giyeok.jparser.utils.Memoize
 
 // 현재 stack top이 replace로 바뀐 다음 following이 그 뒤에 붙음
 // pendingFinishReplace.nonEmpty인 경우 following을 붙이는 대신 stack top을 finish할 수도 있었다는 것을 의미하는데,
@@ -14,18 +13,6 @@ import scala.collection.mutable
 case class Following(following: AKernelSet, pendingFinishReplace: AKernelSet)
 
 case class GraphChange(replacePrev: AKernelSet, following: Option[Following], simulationResult: ParsingTaskSimulationResult)
-
-case class Memoize[T <: Equals, U]() {
-    private val memo = mutable.Map[T, U]()
-
-    def apply(param: T)(func: => U): U = memo get param match {
-        case Some(saved) => saved
-        case None =>
-            val newValue = func
-            memo(param) = newValue
-            newValue
-    }
-}
 
 class GrammarAnalyzer(val grammar: NGrammar) {
     lazy val nullableSymbols: Set[Int] = {

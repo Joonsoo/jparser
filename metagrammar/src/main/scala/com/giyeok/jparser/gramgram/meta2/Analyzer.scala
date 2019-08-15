@@ -3,46 +3,39 @@ package com.giyeok.jparser.gramgram.meta2
 import com.giyeok.jparser.GrammarHelper.{i, _}
 import com.giyeok.jparser.ParseResultTree.{BindNode, SequenceNode, TerminalNode}
 import com.giyeok.jparser.Symbols.Nonterminal
-import com.giyeok.jparser.gramgram.meta2.AST.InPlaceChoices
 import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph, DotGraphModel}
+import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph, DotGraphModel, GraphUtil, Memoize}
 import com.giyeok.jparser.{Grammar, Inputs, Symbols}
 
 import scala.collection.immutable.{ListMap, ListSet}
 
 object Analyzer {
 
-    sealed trait TypeSpec
+    sealed trait UserSpecifiedType
 
-    object NodeType extends TypeSpec
+    case class UserClassType(name: String, params: List[AST.NamedParam]) extends UserSpecifiedType
 
-    sealed trait SingleTypeSpec extends TypeSpec
-
-    case class ClassType(name: String, params: List[AST.NamedParam]) extends SingleTypeSpec
-
-    case class AbstractType(name: String) extends SingleTypeSpec
-
-    case class MultiType(types: Set[SingleTypeSpec]) extends TypeSpec
+    case class UserAbstractType(name: String) extends UserSpecifiedType
 
     class Analysis private[Analyzer](val grammarAst: AST.Grammar,
                                      val grammar: Grammar,
                                      val ngrammar: NGrammar,
                                      val typeDependenceGraph: Analyzer#TypeDependenceGraph,
-                                     val subclasses: Map[AbstractType, Set[ClassType]],
-                                     val inferredTypes: Map[String, TypeSpec])
+                                     val subclasses: Map[UserAbstractType, Set[UserClassType]],
+                                     val inferredTypes: Map[String, UserSpecifiedType])
 
     class Analyzer(val grammarAst: AST.Grammar) {
         val ruleDefs: List[AST.Rule] = grammarAst.defs collect { case r: AST.Rule => r }
         val typeDefs: List[AST.TypeDef] = grammarAst.defs collect { case r: AST.TypeDef => r }
 
-        private var allTypes = List[SingleTypeSpec]()
-        private var superTypes = Map[AbstractType, Set[String]]()
+        private var allTypes = List[UserSpecifiedType]()
+        private var superTypes = Map[UserAbstractType, Set[String]]()
 
         def collectTypeDefs(): Unit = {
             // TODO typeDefs
             def addTypeDefsLhs(typ: AST.ValueTypeDesc): Unit = typ match {
                 case AST.OnTheFlyTypeDef(_, name, supers) =>
-                    val newType = AbstractType(name.name.toString)
+                    val newType = UserAbstractType(name.name.toString)
                     val newSupers = superTypes.getOrElse(newType, List()) ++ (supers map {
                         _.name.toString
                     })
@@ -55,7 +48,7 @@ object Analyzer {
 
             def addTypeDefsOnTheFlyTypeDefConstructExpr(expr: AST.OnTheFlyTypeDefConstructExpr): Unit = expr match {
                 case AST.OnTheFlyTypeDefConstructExpr(_, tdef, params) =>
-                    val newType = ClassType(tdef.name.name.toString, params)
+                    val newType = UserClassType(tdef.name.name.toString, params)
                     allTypes +:= newType
                     params foreach { p => addTypeDefsExpr(p.expr) }
             }
@@ -233,17 +226,60 @@ object Analyzer {
 
         object TypeDependenceGraph {
 
-            sealed trait Node
+            sealed trait Node {
+                private def boundExprString(bexpr: AST.BoundedPExpr): String = bexpr match {
+                    case AST.BoundPExpr(_, ctx, expr) => s"${pexprString(ctx)}${boundExprString(expr)}"
+                    case expr: AST.PExpr => pexprString(expr)
+                }
 
-            case class SymbolNode(symbol: Symbols.Symbol) extends Node
+                private def pexprString(pexpr: AST.PExpr): String = pexpr match {
+                    case AST.BinOpExpr(_, op, lhs, rhs) => s"${pexprString(lhs)} $op ${pexprString(rhs)}"
+                    case term: AST.PTerm => term match {
+                        case AST.Ref(_, idx) => s"$$$idx"
+                        case AST.BoundPExpr(_, ctx, expr) =>
+                            s"${pexprString(ctx)}{${boundExprString(expr)}}"
+                        case expr: AST.AbstractConstructExpr => expr match {
+                            case AST.ConstructExpr(_, typ, params) =>
+                                s"${typ.name.toString}(${params map pexprString mkString ","})"
+                            case AST.OnTheFlyTypeDefConstructExpr(_, typeDef, params) =>
+                                s"${typeDef.name.name.toString}(${params map { p => pexprString(p.expr) } mkString ","})"
+                        }
+                        case AST.PTermParen(_, expr) =>
+                            s"(${pexprString(expr)})"
+                        case AST.PTermSeq(_, elems) =>
+                            s"[${elems map pexprString mkString ","}]"
+                    }
+                }
 
-            case class ExprNode(expr: AST.PExpr) extends Node
+                def nodeLabel: String = this match {
+                    case TypeDependenceGraph.SymbolNode(symbol) => s"Symbol(${symbol.toShortString})"
+                    case TypeDependenceGraph.ExprNode(expr) => s"Expr(${pexprString(expr)})"
+                    case TypeDependenceGraph.ParamNode(className, paramIdx, name) => s"Param($className, $paramIdx, $name)"
+                    case typeNode: TypeDependenceGraph.TypeNode =>
+                        def typeNodeToString(typ: TypeDependenceGraph.TypeNode): String =
+                            typ match {
+                                case TypeDependenceGraph.ClassTypeNode(className) => s"Class $className"
+                                case TypeDependenceGraph.TypeArray(elemType) => s"[${typeNodeToString(elemType)}]"
+                                case TypeDependenceGraph.TypeOptional(elemType) => s"${typeNodeToString(elemType)}?"
+                                case TypeDependenceGraph.TypeGenArray(expr) => s"[typeof ${expr.nodeLabel}]"
+                                case TypeDependenceGraph.TypeGenOptional(expr) => s"(typeof ${expr.nodeLabel})?"
+                                case TypeDependenceGraph.TypeGenArrayConcatOp(op, lhs, rhs) => s"[concat typeof ${lhs.nodeLabel} $op ${rhs.nodeLabel}]"
+                                case TypeDependenceGraph.TypeGenArrayElemsUnion(elems) => s"[union typeof ${elems map (_.nodeLabel) mkString ","}]"
+                            }
 
-            case class ConstructNode(expr: AST.ConstructExpr) extends Node
+                        typeNodeToString(typeNode)
+                }
+            }
 
-            case class ParamNode(className: String, paramIdx: Int, name: String) extends Node
+            sealed trait ElemNode extends Node with Equals
 
-            sealed trait TypeNode extends Node
+            case class SymbolNode(symbol: Symbols.Symbol) extends ElemNode
+
+            case class ExprNode(expr: AST.PExpr) extends ElemNode
+
+            case class ParamNode(className: String, paramIdx: Int, name: String) extends ElemNode
+
+            sealed trait TypeNode extends Node with Equals
 
             case class ClassTypeNode(className: String) extends TypeNode
 
@@ -255,9 +291,9 @@ object Analyzer {
 
             case class TypeGenOptional(typeof: ExprNode) extends TypeNode
 
-            case class TypeGenArrayConcatOp(typeof: ExprNode) extends TypeNode
+            case class TypeGenArrayConcatOp(op: String, lhs: ExprNode, rhs: ExprNode) extends TypeNode
 
-            case class TypeGenArrayElemsUnion(typeof: Node) extends TypeNode
+            case class TypeGenArrayElemsUnion(elems: List[ExprNode]) extends TypeNode
 
             object EdgeTypes extends Enumeration {
                 val Is, Accepts, Extends, Has = Value
@@ -295,7 +331,7 @@ object Analyzer {
 
                 def analyze(): TypeDependenceGraph = {
                     allTypes foreach {
-                        case ClassType(className, params) =>
+                        case UserClassType(className, params) =>
                             val classNode = addNode(ClassTypeNode(className))
                             val paramNodes = params.zipWithIndex map { case (paramAst, paramIdx) =>
                                 val paramNode = addNode(ParamNode(className, paramIdx, paramAst.name.name.toString))
@@ -309,7 +345,7 @@ object Analyzer {
                                 paramNode
                             }
                             classParamNodes += className -> paramNodes
-                        case typ@AbstractType(name) =>
+                        case typ@UserAbstractType(name) =>
                             val abstractType = addNode(ClassTypeNode(name))
                             superTypes(typ) foreach { superTyp =>
                                 val subType = addNode(ClassTypeNode(superTyp))
@@ -357,11 +393,15 @@ object Analyzer {
                                                     repeatSpec.toString match {
                                                         case "?" =>
                                                             val typeNode = addNode(TypeGenOptional(elemNode))
+                                                            // ExprNode --is--> TypeNode
                                                             addEdge(Edge(node, typeNode, EdgeTypes.Is))
+                                                            // TypeNode --accepts--> ElemNode (informative)
                                                             addEdge(Edge(typeNode, elemNode, EdgeTypes.Accepts))
                                                         case "*" | "+" =>
                                                             val typeNode = addNode(TypeGenArray(elemNode))
+                                                            // ExprNode --is--> TypeNode
                                                             addEdge(Edge(node, typeNode, EdgeTypes.Is))
+                                                            // TypeNode --accepts--> ElemNode (informative)
                                                             addEdge(Edge(typeNode, elemNode, EdgeTypes.Accepts))
                                                     }
                                                     node
@@ -388,36 +428,46 @@ object Analyzer {
                                             case "+" =>
                                                 val op1 = visitExpr(ctx, operand1)
                                                 val op2 = visitExpr(ctx, operand2)
-                                                val typeNode = addNode(TypeGenArrayConcatOp(node))
+                                                val typeNode = addNode(TypeGenArrayConcatOp(operator.toString, op1, op2))
+                                                // ExprNode --is--> TypeNode
                                                 addEdge(Edge(node, typeNode, EdgeTypes.Is))
+                                                // TypeNode --accepts--> ExprNode (informative)
                                                 addEdge(Edge(typeNode, op1, EdgeTypes.Accepts))
                                                 addEdge(Edge(typeNode, op2, EdgeTypes.Accepts))
                                         }
                                     case AST.Ref(_, idx) =>
+                                        // ExprNode --accepts--> ElemNode
                                         addEdge(Edge(node, visitElem(ctx, ctx(idx.toString.toInt)), EdgeTypes.Accepts))
                                     case bound: AST.BoundPExpr => visitBoundExpr(node, ctx, bound)
                                     case AST.ConstructExpr(_, typ, params) =>
                                         val className = typ.name.toString
+                                        // ExprNode --is--> ClassTypeNode
                                         addEdge(Edge(node, ClassTypeNode(className), EdgeTypes.Is))
+                                        // ParamNode --accepts--> ExprNode
                                         params.zipWithIndex foreach { case (paramExpr, paramIdx) =>
                                             addEdge(Edge(classParamNodes(className)(paramIdx), visitExpr(ctx, paramExpr), EdgeTypes.Accepts))
                                         }
                                     case AST.OnTheFlyTypeDefConstructExpr(_, typeDef, params) =>
                                         val className = typeDef.name.name.toString
+                                        // ExprNode --is--> ClassTypeNode
                                         addEdge(Edge(node, ClassTypeNode(className), EdgeTypes.Is))
+                                        // ParamNode --accepts--> ExprNode
                                         params.zipWithIndex foreach { case (paramExpr, paramIdx) =>
                                             val paramNode = classParamNodes(className)(paramIdx)
                                             assert(paramNode.name == paramExpr.name.name.toString)
                                             addEdge(Edge(paramNode, visitExpr(ctx, paramExpr.expr), EdgeTypes.Accepts))
                                         }
                                     case AST.PTermParen(_, parenExpr) =>
+                                        // ExprNode --accepts--> ExprNode
                                         addEdge(Edge(node, visitExpr(ctx, parenExpr), EdgeTypes.Accepts))
                                     case AST.PTermSeq(_, elems) =>
                                         val elemNodes = elems map {
                                             visitExpr(ctx, _)
                                         }
-                                        val typeNode = addNode(TypeGenArrayElemsUnion(node))
+                                        val typeNode = addNode(TypeGenArrayElemsUnion(elemNodes))
+                                        // ExprNode --is--> TypeNode
                                         addEdge(Edge(node, typeNode, EdgeTypes.Is))
+                                        // TypeNode --accepts--> ExprNode (informative)
                                         elemNodes foreach { seqElem =>
                                             addEdge(Edge(typeNode, seqElem, EdgeTypes.Accepts))
                                         }
@@ -425,7 +475,7 @@ object Analyzer {
                                 node
                             }
 
-                            def visitElem(ctx: List[AST.Elem], elem: AST.Elem): Node = elem match {
+                            def visitElem(ctx: List[AST.Elem], elem: AST.Elem): ElemNode = elem match {
                                 case processor: AST.Processor =>
                                     processor match {
                                         case expr: AST.PExpr =>
@@ -450,6 +500,58 @@ object Analyzer {
 
         }
 
+        sealed trait TypeSpec
+
+        sealed trait OptionableTypeSpec extends TypeSpec
+
+        sealed trait ActualTypeSpec extends TypeSpec
+
+        case object ParseNodeType extends OptionableTypeSpec with ActualTypeSpec
+
+        case class ClassType(className: String) extends OptionableTypeSpec with ActualTypeSpec
+
+        case class AbstractType(typeName: String) extends OptionableTypeSpec with ActualTypeSpec
+
+        case class UnionType(types: Set[NodeType]) extends TypeSpec
+
+        case class ArrayType(elemType: TypeSpec) extends OptionableTypeSpec with ActualTypeSpec
+
+        case class OptionalType(valueType: OptionableTypeSpec) extends TypeSpec with ActualTypeSpec
+
+        case class NodeType(fixedType: Option[TypeSpec], inferredTypes: Set[TypeSpec])
+
+        case class Extends(superType: TypeSpec, subType: TypeSpec) extends AbstractEdge[TypeSpec] {
+            val start: TypeSpec = superType
+            val end: TypeSpec = subType
+        }
+
+        class TypeHierarchyGraph(val nodes: Set[TypeSpec], val edges: Set[Extends],
+                                 val edgesByStart: Map[TypeSpec, Set[Extends]],
+                                 val edgesByEnd: Map[TypeSpec, Set[Extends]])
+            extends AbstractGraph[TypeSpec, Extends, TypeHierarchyGraph] {
+
+            def createGraph(nodes: Set[TypeSpec], edges: Set[Extends], edgesByStart: Map[TypeSpec, Set[Extends]], edgesByEnd: Map[TypeSpec, Set[Extends]]): TypeHierarchyGraph =
+                new TypeHierarchyGraph(nodes, edges, edgesByStart, edgesByEnd)
+
+            def redundantEdgesPruned: TypeHierarchyGraph = {
+                var cleaned = this
+                edges foreach { edge =>
+                    val paths = GraphUtil.pathsBetween[TypeSpec, Extends, TypeHierarchyGraph](cleaned, edge.start, edge.end)
+                    if (paths.edges.size > 1) {
+                        cleaned = cleaned.removeEdge(edge)
+                    }
+                }
+                cleaned
+            }
+
+            def toDotGraphModel: DotGraphModel = {
+                val nodesMap = (nodes.zipWithIndex map { case (n, i) =>
+                    n -> DotGraphModel.Node(s"n$i")(n.toString).attr("shape", "rect")
+                }).toMap
+                new DotGraphModel(nodesMap.values.toSet, edges.toSeq map { e => DotGraphModel.Edge(nodesMap(e.start), nodesMap(e.end)) })
+            }
+        }
+
         class TypeDependenceGraph private(val nodes: Set[TypeDependenceGraph.Node],
                                           val edges: Set[TypeDependenceGraph.Edge],
                                           val edgesByStart: Map[TypeDependenceGraph.Node, Set[TypeDependenceGraph.Edge]],
@@ -461,56 +563,93 @@ object Analyzer {
                                      edgesByEnd: Map[TypeDependenceGraph.Node, Set[TypeDependenceGraph.Edge]]): TypeDependenceGraph =
                 new TypeDependenceGraph(nodes, edges, edgesByStart, edgesByEnd)
 
+            private val visited = scala.collection.mutable.Set[TypeDependenceGraph.Node]()
+            private val typeTypeMemo = Memoize[TypeDependenceGraph.TypeNode, ActualTypeSpec]()
+            private val elemTypeMemo = Memoize[TypeDependenceGraph.ElemNode, NodeType]()
+
+            private def finalTypeOf(nodeType: NodeType): TypeSpec = nodeType.fixedType match {
+                case Some(fixedType) => fixedType
+                case None =>
+                    if (nodeType.inferredTypes.size == 1) nodeType.inferredTypes.toList.head else UnionType(Set(nodeType))
+            }
+
+            private def createTypeSpec(typeNode: TypeDependenceGraph.TypeNode): ActualTypeSpec = typeTypeMemo(typeNode) {
+                typeNode match {
+                    case TypeDependenceGraph.ClassTypeNode(className) => ClassType(className)
+                    case TypeDependenceGraph.TypeArray(elemType) => ArrayType(createTypeSpec(elemType))
+                    case TypeDependenceGraph.TypeOptional(elemType) => OptionalType(createTypeSpec(elemType).asInstanceOf[OptionableTypeSpec])
+                    case TypeDependenceGraph.TypeGenArray(typeof) => ArrayType(finalTypeOf(inferType(typeof)))
+                    case TypeDependenceGraph.TypeGenOptional(typeof) => OptionalType(finalTypeOf(inferType(typeof)).asInstanceOf[OptionableTypeSpec])
+                    case TypeDependenceGraph.TypeGenArrayConcatOp(_, lhs, rhs) =>
+                        val lhsType = inferType(lhs)
+                        val rhsType = inferType(rhs)
+                        ArrayType(UnionType(Set(lhsType, rhsType)))
+                    case TypeDependenceGraph.TypeGenArrayElemsUnion(elems) =>
+                        val elemsType = elems map inferType
+                        ArrayType(UnionType(elemsType.toSet))
+                }
+            }
+
+            def inferType(elemNode: TypeDependenceGraph.ElemNode): NodeType = elemTypeMemo(elemNode) {
+                if (visited contains elemNode) {
+                    throw new Exception("Conflicting type hierarchy")
+                }
+                visited += elemNode
+
+                val fixedTypeDecorators = edgesByStart(elemNode) filter {
+                    _.edgeType == TypeDependenceGraph.EdgeTypes.Is
+                }
+                if (fixedTypeDecorators.size >= 2) {
+                    // TODO 이게 가능함?
+                    throw new Exception("Duplicate type decorators")
+                }
+
+                val fixedType = if (fixedTypeDecorators.isEmpty) None else {
+                    Some(createTypeSpec(fixedTypeDecorators.head.end.asInstanceOf[TypeDependenceGraph.TypeNode]))
+                }
+
+                val inferredTypes = edgesByStart(elemNode) filter {
+                    _.edgeType == TypeDependenceGraph.EdgeTypes.Accepts
+                } flatMap { e =>
+                    val t = inferType(e.end.asInstanceOf[TypeDependenceGraph.ElemNode])
+                    t.fixedType.toSet ++ t.inferredTypes
+                }
+
+                elemNode match {
+                    case _: TypeDependenceGraph.SymbolNode | _: TypeDependenceGraph.ParamNode =>
+                        // SymbolNode --is--> TypeNode
+                        // SymbolNode --accepts--> ElemNode
+                        if (edgesByStart(elemNode).isEmpty) NodeType(Some(ParseNodeType), Set()) else {
+                            NodeType(fixedType, inferredTypes)
+                        }
+                    case _: TypeDependenceGraph.ExprNode =>
+                        assert(edgesByStart(elemNode).nonEmpty)
+                        NodeType(fixedType, inferredTypes)
+                }
+            }
+
+            def typeHierarchyGraph: TypeHierarchyGraph = {
+                var hierarchyGraph = new TypeHierarchyGraph(Set(), Set(), Map(), Map())
+                nodes collect {
+                    case node: TypeDependenceGraph.ElemNode =>
+                        val nodeType = inferType(node)
+                        if (nodeType.fixedType.isDefined) {
+                            val fixedType = nodeType.fixedType.get
+                            hierarchyGraph = hierarchyGraph.addNode(fixedType)
+                            nodeType.inferredTypes foreach { inferredType =>
+                                if (fixedType != inferredType) {
+                                    hierarchyGraph = hierarchyGraph.addEdgeSafe(Extends(fixedType, inferredType))
+                                }
+                            }
+                        }
+                }
+                hierarchyGraph
+            }
+
             def toDotGraphModel: DotGraphModel = {
                 val nodesMap = (nodes.zipWithIndex map { case (node, idx) =>
                     val nodeId = s"n$idx"
-
-                    def boundExprString(bexpr: AST.BoundedPExpr): String = bexpr match {
-                        case AST.BoundPExpr(_, ctx, expr) => s"${pexprString(ctx)}${boundExprString(expr)}"
-                        case expr: AST.PExpr => pexprString(expr)
-                    }
-
-                    def pexprString(pexpr: AST.PExpr): String = pexpr match {
-                        case AST.BinOpExpr(_, op, lhs, rhs) => s"${pexprString(lhs)} $op ${pexprString(rhs)}"
-                        case term: AST.PTerm => term match {
-                            case AST.Ref(_, idx) => s"$$$idx"
-                            case AST.BoundPExpr(_, ctx, expr) =>
-                                s"${pexprString(ctx)}{${boundExprString(expr)}}"
-                            case expr: AST.AbstractConstructExpr => expr match {
-                                case AST.ConstructExpr(_, typ, params) =>
-                                    s"${typ.name.toString}(${params map pexprString mkString ","})"
-                                case AST.OnTheFlyTypeDefConstructExpr(_, typeDef, params) =>
-                                    s"${typeDef.name.name.toString}(${params map { p => pexprString(p.expr) } mkString ","})"
-                            }
-                            case AST.PTermParen(_, expr) =>
-                                s"(${pexprString(expr)})"
-                            case AST.PTermSeq(_, elems) =>
-                                s"[${elems map pexprString mkString ","}]"
-                        }
-                    }
-
-                    def nodeLabel(node: TypeDependenceGraph.Node): String = node match {
-                        case TypeDependenceGraph.SymbolNode(symbol) => s"Symbol(${symbol.toShortString})"
-                        case TypeDependenceGraph.ExprNode(expr) => s"Expr(${pexprString(expr)})"
-                        case TypeDependenceGraph.ConstructNode(expr) => s"Construct(${expr.nodeId})"
-                        case TypeDependenceGraph.ParamNode(className, paramIdx, name) => s"Param($className, $paramIdx, $name)"
-                        case typeNode: TypeDependenceGraph.TypeNode =>
-                            def typeNodeToString(typ: TypeDependenceGraph.TypeNode): String =
-                                typ match {
-                                    case TypeDependenceGraph.ClassTypeNode(className) => s"Class $className"
-                                    case TypeDependenceGraph.TypeArray(elemType) => s"[${typeNodeToString(elemType)}]"
-                                    case TypeDependenceGraph.TypeOptional(elemType) => s"${typeNodeToString(elemType)}?"
-                                    case TypeDependenceGraph.TypeGenArray(expr) => s"[typeof ${nodeLabel(expr)}]"
-                                    case TypeDependenceGraph.TypeGenOptional(expr) => s"(typeof ${nodeLabel(expr)})?"
-                                    case TypeDependenceGraph.TypeGenArrayConcatOp(expr) => s"[concat typeof ${nodeLabel(expr)}]"
-                                    case TypeDependenceGraph.TypeGenArrayElemsUnion(expr) => s"[union typeof ${nodeLabel(expr)}]"
-                                }
-
-                            typeNodeToString(typeNode)
-                    }
-
-                    val dotNode0 = DotGraphModel.Node(nodeId)(nodeLabel(node))
-
+                    val dotNode0 = DotGraphModel.Node(nodeId)(node.nodeLabel)
                     val dotNode = node match {
                         case _: TypeDependenceGraph.SymbolNode => dotNode0.attr("shape", "rect")
                         case _: TypeDependenceGraph.TypeNode => dotNode0.attr("shape", "tab")
@@ -567,6 +706,17 @@ object Analyzer {
             typeDependenceGraph.edgesByStart foreach { edges =>
                 edges._2 foreach println
             }
+
+            typeDependenceGraph.nodes collect {
+                case node: TypeDependenceGraph.ElemNode =>
+                    val nodeType = typeDependenceGraph.inferType(node)
+                    println(s"${node.nodeLabel}: $nodeType")
+            }
+
+            val typeHierarchyGraph0 = typeDependenceGraph.typeHierarchyGraph
+            println(typeHierarchyGraph0.toDotGraphModel.printDotGraph())
+            val typeHierarchyGraph = typeHierarchyGraph0.redundantEdgesPruned
+            println(typeHierarchyGraph.toDotGraphModel.printDotGraph())
 
             new Analysis(grammarAst, grammar, ngrammar, typeDependenceGraph, Map(), Map())
         }
