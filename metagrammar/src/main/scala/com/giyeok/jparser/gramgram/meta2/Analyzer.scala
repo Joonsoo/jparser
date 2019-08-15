@@ -458,6 +458,13 @@ object Analyzer {
             // TODO check name conflict in userDefinedTypes
             // TODO make sure no type has name the name "Node"
 
+            // Check duplicate definitions of nonterminal
+            val ruleNames = grammarAst.defs.collect { case r: AST.Rule => r }.groupBy(_.lhs.name.name.toString)
+            if (ruleNames exists (_._2.size >= 2)) {
+                val duplicates = (ruleNames filter (_._2.size >= 2)).keys
+                throw new Exception(s"Duplicate definitions of nonterminal ${duplicates mkString ", "}")
+            }
+
             ruleDefs foreach { rule =>
                 astToSymbol(rule.lhs.name)
                 rule.rhs foreach { rhs =>
