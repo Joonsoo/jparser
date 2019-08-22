@@ -1,6 +1,7 @@
 package com.giyeok.jparser.gramgram.meta2
 
-import com.giyeok.jparser.ParseResultTree.Node
+import com.giyeok.jparser.ParseResultTree.{BindNode, Node, SequenceNode}
+import com.giyeok.jparser.nparser.NGrammar.{NNonterminal, NRepeat, NSequence, NStart}
 
 object GeneratedAST {
 
@@ -118,4 +119,69 @@ object GeneratedAST {
 
     sealed trait StringChar
 
+    def matchStart(node: Node): Grammar = {
+        // matchStart에만 node가 Start로 bind된 것이 오고, 다른 match** 함수들에는 그 심볼은 벗겨진 것이 감
+        val BindNode(_: NStart, BindNode(NNonterminal(1, _, _), body)) = node
+        matchGrammar(body)
+    }
+
+    def matchGrammar(node: Node): Grammar = {
+        node match {
+            case BindNode(symbol, body) =>
+                symbol.id match {
+                    case 1 => // WS Def (WS Def)* WS {@Grammar(defs=[$1] + $2$1)}
+                        matchGrammarRHS0(body)
+                }
+        }
+        ???
+    }
+
+    def unrollRepeat[T](node: Node, f: Node => T): List[T] = {
+        val BindNode(repeat: NRepeat, body) = node
+        body match {
+            case BindNode(symbol, repeating: SequenceNode) if symbol.id == repeat.repeatSeq =>
+                unrollRepeat(repeating.children(0), f) :+ f(repeating.children(1))
+            case BindNode(symbol, _) if symbol.id == repeat.baseSeq =>
+                List(f(body))
+            case seq@SequenceNode(symbol, _) if symbol.id == repeat.baseSeq =>
+                seq.children.take(repeat.symbol.lower).toList map f
+        }
+    }
+
+    def matchGrammarRHS0(node: Node): Grammar = {
+        val BindNode(symbol, body) = node
+        symbol.id match {
+            case 2 => // WS Def (WS Def)* WS {@Grammar(defs=[$1] + $2$1)}
+                assert(symbol.isInstanceOf[NSequence] && body.isInstanceOf[SequenceNode])
+                val bodySeq = body.asInstanceOf[SequenceNode]
+                val defs = matchDef(bodySeq.children(1)) +: unrollRepeat(bodySeq.children(2), { x => matchDef(x) })
+                Grammar(defs)
+        }
+    }
+
+    def matchDef(node: Node): Def = {
+        val BindNode(symbol, body) = node
+        symbol.id match {
+            case 3 => // Rule
+                matchRule(node)
+            case 4 => // TypeDef
+                matchTypeDef(node)
+        }
+    }
+
+    def matchRule(node: Node): Rule = {
+        val BindNode(symbol, body) = node
+        symbol.id match {
+            case 5 => // LHS WS '=' WS RHSs {@Rule(lhs=$0, rhs=$4)}
+                matchRuleRHS0(body)
+        }
+    }
+
+    def matchRuleRHS0(node: Node): Rule = {
+        ???
+    }
+
+    def matchTypeDef(node: Node): TypeDef = {
+        ???
+    }
 }

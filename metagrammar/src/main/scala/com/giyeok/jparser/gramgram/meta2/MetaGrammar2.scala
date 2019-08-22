@@ -1,6 +1,7 @@
 package com.giyeok.jparser.gramgram.meta2
 
-import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.{ParseForestFunc, Symbols}
+import com.giyeok.jparser.gramgram.meta2.TypeDependenceGraph.SymbolNode
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
 
 object MetaGrammar2 {
@@ -43,7 +44,7 @@ object MetaGrammar2 {
               |array = '[' expression (',' expression)* ']' {@Array(elems=[$1] + $2$1)}
             """.stripMargin
 
-        val ast = grammarSpecToAST(GrammarDef.newGrammar)
+        val ast = grammarSpecToAST(expressionGrammar)
 
         println(ast)
 
@@ -51,6 +52,12 @@ object MetaGrammar2 {
 
         println(analysis.typeDependenceGraph.toDotGraphModel.printDotGraph())
         println(analysis.typeHierarchyGraph.toDotGraphModel.printDotGraph())
+
+        analysis.grammar.rules.foreach { rule =>
+            val lhsName = rule._1
+            val lhsType = analysis.typeDependenceGraph.inferType(SymbolNode(Symbols.Nonterminal(lhsName)))
+            println(s"$lhsName: $lhsType")
+        }
 
         val scaladef = new ScalaDefGenerator(analysis)
         println(scaladef.classDefs())
