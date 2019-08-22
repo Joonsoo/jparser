@@ -198,11 +198,11 @@ trait Interactable[N, E <: AbstractEdge[N], G <: AbstractGraph[N, E, G]] extends
 
         val (x, y) = (ex + graphCtrl.getHorizontalBar.getSelection, ey + graphCtrl.getVerticalBar.getSelection)
 
-        graphCtrl.getNodes.asScala collect {
+        (graphCtrl.getNodes.asScala collect {
             case n: CGraphNode if n != null && n.getNodeFigure != null && n.getNodeFigure.containsPoint(x, y) && n.getData() != null =>
                 println(n)
                 n.getData
-        }
+        }).toSeq
     }
 }
 

@@ -1,5 +1,6 @@
 package com.giyeok.jparser.parsergen.nocond
 
+import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.nparser.NGrammar
 
@@ -37,7 +38,11 @@ class SimpleParser(val grammar: NGrammar,
                    val edgeActions: Map[(Int, Int), SimpleParser.EdgeAction]) {
 
     lazy val termActionsByNodeId: Map[Int, Map[CharacterTermGroupDesc, SimpleParser.TermAction]] =
-        termActions groupBy (_._1._1) mapValues (m => m map (p => p._1._2 -> p._2))
+        termActions.groupBy(_._1._1).view.mapValues { m =>
+            m.map {
+                p: ((Int, Inputs.CharacterTermGroupDesc), SimpleParser.TermAction) => p._1._2 -> p._2
+            }
+        }.toMap
 
     def acceptableTermsOf(nodeId: Int): Set[CharacterTermGroupDesc] =
         termActionsByNodeId(nodeId).keySet

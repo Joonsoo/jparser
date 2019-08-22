@@ -407,14 +407,14 @@ class DisambigParserGen(val grammar: NGrammar) {
             edgeFinishSimReqs.keys foreach calculateEdgeFinishable
         }
 
-        val finalTermActions = termActions mapValues {
+        val finalTermActions = termActions.view.mapValues {
             case FixedTermAction(termAction) => termAction
             case FinishableTermAction(finSimReqId) => termFinishSimResults(finSimReqId)
-        }
-        val finalEdgeActions = edgeActions mapValues {
+        }.toMap
+        val finalEdgeActions = edgeActions.view.mapValues {
             case FixedEdgeAction(edgeAction) => edgeAction
             case FinishableEdgeAction(finSimReqId) => edgeFinishSimResults(finSimReqId)
-        }
+        }.toMap
         new DisambigParser(grammar, nodes.byKey, nodeRelInferer, startId, finalTermActions, finalEdgeActions)
     }
 }

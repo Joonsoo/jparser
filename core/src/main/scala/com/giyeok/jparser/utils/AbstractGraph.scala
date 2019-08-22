@@ -73,24 +73,24 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
 
     def removeNodes(removingNodes: Set[N]): Self = {
         val removingEdges = removingNodes.foldLeft(Set[E]()) { (cc, node) => cc ++ edgesByStart(node) ++ edgesByEnd(node) }
-        val newEdgesByStart = (edgesByStart -- removingNodes) mapValues {
+        val newEdgesByStart = (edgesByStart -- removingNodes).view.mapValues {
             _ -- removingEdges
         }
-        val newEdgesByDest = (edgesByEnd -- removingNodes) mapValues {
+        val newEdgesByDest = (edgesByEnd -- removingNodes).view.mapValues {
             _ -- removingEdges
         }
-        createGraph(nodes -- removingNodes, edges -- removingEdges, newEdgesByStart, newEdgesByDest)
+        createGraph(nodes -- removingNodes, edges -- removingEdges, newEdgesByStart.toMap, newEdgesByDest.toMap)
     }
 
     def removeNode(removingNode: N): Self = {
         val removingEdges = edgesByStart(removingNode) ++ edgesByEnd(removingNode)
-        val newEdgesByStart = (edgesByStart - removingNode) mapValues {
+        val newEdgesByStart = (edgesByStart - removingNode).view.mapValues {
             _ -- removingEdges
         }
-        val newEdgesByDest = (edgesByEnd - removingNode) mapValues {
+        val newEdgesByDest = (edgesByEnd - removingNode).view.mapValues {
             _ -- removingEdges
         }
-        createGraph(nodes - removingNode, edges -- removingEdges, newEdgesByStart, newEdgesByDest)
+        createGraph(nodes - removingNode, edges -- removingEdges, newEdgesByStart.toMap, newEdgesByDest.toMap)
     }
 
     def removeEdge(edge: E): Self =
@@ -112,7 +112,7 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
         val newEdgesByEnd = edgesByEnd collect {
             case (node, edges) if nodesPredMap(node) => node -> (edges intersect newEdges)
         }
-        createGraph(newNodes, newEdges, newEdgesByStart, newEdgesByEnd)
+        createGraph(newNodes, newEdges, newEdgesByStart.toMap, newEdgesByEnd.toMap)
     }
 
     def merge[G <: AbstractGraph[N, E, G]](other: G): Self = {

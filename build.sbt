@@ -1,17 +1,17 @@
 organization in ThisBuild := "com.giyeok"
 version in ThisBuild := "0.1"
-scalaVersion in ThisBuild := "2.12.5"
+scalaVersion in ThisBuild := "2.13.0"
 crossPaths in ThisBuild := false
 
 javacOptions in ThisBuild ++= Seq("-encoding", "UTF-8")
 
 lazy val testDeps = {
-    val scalactic: ModuleID = "org.scalactic" %% "scalactic" % "3.0.1" % "test"
-    val scalatest: ModuleID = "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+    // val scalactic: ModuleID = "org.scalactic" %% "scalactic" % "3.0.1" % "test"
+    val scalatest: ModuleID = "org.scalatest" %% "scalatest" % "3.0.8" % "test"
 
     val junit: ModuleID = "junit" % "junit" % "4.12" % "test"
 
-    Seq(scalactic, scalatest, junit)
+    Seq(scalatest, junit)
 }
 
 lazy val core = (project in file("core")).
@@ -44,7 +44,7 @@ lazy val visualize = (project in file("visualize")).
     settings(
         name := "jparser-visualize",
         libraryDependencies ++= Seq(
-            "org.scala-lang.modules" % "scala-xml_2.12" % "1.0.6",
+            "org.scala-lang.modules" %% "scala-xml" % "1.2.0",
             sbtoneswt.OneSwtPlugin.archDependentSwt.value,
             "swt" % "jface" % "3.0.1"
         ),
