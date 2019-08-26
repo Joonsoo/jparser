@@ -76,7 +76,7 @@ object AST {
 
     case class BoundPExpr(nodeId: Int, ctx: Ref, expr: BoundedPExpr) extends PTerm with BoundedPExpr with AstNode
 
-    sealed trait BoundedPExpr extends AstNode
+    sealed trait BoundedPExpr extends AstNode with Processor
 
     sealed trait AbstractConstructExpr extends PTerm with AstNode
 

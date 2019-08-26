@@ -44,6 +44,11 @@ object MetaGrammar2 {
               |array = '[' expression (',' expression)* ']' {@Array(elems=[$1] + $2$1)}
             """.stripMargin
 
+        val arrayGrammar =
+            """expression = 'a'
+              |array = '[' expression (',' expression)* ']' {@Array(elems=[$1] + $2$1)}
+              |""".stripMargin
+
         val ast = grammarSpecToAST(expressionGrammar)
 
         println(ast)
@@ -61,6 +66,14 @@ object MetaGrammar2 {
 
         val scaladef = new ScalaDefGenerator(analysis)
         println(scaladef.classDefs())
+
+        analysis.astifiers.foreach { astifier =>
+            println(s"${astifier._1} =")
+            astifier._2 foreach { r =>
+                println(s"  ${r._1.toShortString}")
+                println(s"  ${r._2}")
+            }
+        }
 
         // 문법이 주어지면
         // 1a. processor가 없는 문법 텍스트

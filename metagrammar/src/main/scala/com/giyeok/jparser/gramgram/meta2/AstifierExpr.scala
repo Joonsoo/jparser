@@ -1,50 +1,72 @@
 package com.giyeok.jparser.gramgram.meta2
 
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.nparser.NGrammar.{NNonterminal, NSequence, NSymbol, NTerminal}
 
-sealed trait AstifierExpr
+sealed trait AstifierExpr {
+    def replaceThisNode(node: AstifierExpr): AstifierExpr
+}
 
-case object ThisNode extends AstifierExpr
+case object ThisNode extends AstifierExpr {
+    override def replaceThisNode(node: AstifierExpr): AstifierExpr = node
+}
 
-case class Unbinder(expr: AstifierExpr, symbol: NSymbol) extends AstifierExpr
+case class Unbinder(expr: AstifierExpr, symbol: Symbols.Symbol) extends AstifierExpr {
+    override def replaceThisNode(node: AstifierExpr): AstifierExpr = Unbinder(expr.replaceThisNode(node), symbol)
+}
 
-case class SeqRef(expr: AstifierExpr, symbol: NSequence, idx: Int) extends AstifierExpr
+case class SeqRef(expr: AstifierExpr, idx: Int) extends AstifierExpr {
+    override def replaceThisNode(node: AstifierExpr): AstifierExpr = SeqRef(expr.replaceThisNode(node), idx)
+}
 
-case class OptionalUnroller(expr: AstifierExpr) extends AstifierExpr
+case class UnrollMapper(boundType: BoundType.Value, target: AstifierExpr, mapFn: AstifierExpr) extends AstifierExpr {
+    override def replaceThisNode(node: AstifierExpr): AstifierExpr = UnrollMapper(boundType, target.replaceThisNode(node), mapFn)
+}
 
-case class Repeat0Unroller(expr: AstifierExpr) extends AstifierExpr
+case class MatchTo(expr: AstifierExpr, targetSymbol: Symbols.Symbol) extends AstifierExpr {
+    override def replaceThisNode(node: AstifierExpr): AstifierExpr = MatchTo(expr.replaceThisNode(node), targetSymbol)
+}
 
-case class Repeat1Unroller(expr: AstifierExpr) extends AstifierExpr
+case class CreateObj(className: String, args: List[AstifierExpr]) extends AstifierExpr {
+    override def replaceThisNode(node: AstifierExpr): AstifierExpr = CreateObj(className, args map (_.replaceThisNode(node)))
+}
 
-case class MatchTo(expr: AstifierExpr, targetType: TypeSpec) extends AstifierExpr
+case class CreateList(elems: List[AstifierExpr]) extends AstifierExpr {
+    override def replaceThisNode(node: AstifierExpr): AstifierExpr = CreateList(elems map (_.replaceThisNode(node)))
+}
 
-case class SymbolSeqBound(ctx: AstifierExpr, foreach: AstifierExpr) extends AstifierExpr
+case class ConcatList(lhs: AstifierExpr, rhs: AstifierExpr) extends AstifierExpr {
+    override def replaceThisNode(node: AstifierExpr): AstifierExpr = ConcatList(lhs.replaceThisNode(node), rhs.replaceThisNode(node))
+}
 
-case class ProcessorBound(ctx: AstifierExpr, foreach: AstifierExpr) extends AstifierExpr
+object BoundType extends Enumeration {
+    val Sequence, Repeat0, Repeat1, Optional, Paren, Longest = Value
+}
 
-case class CreateObj(className: String, args: List[AstifierExpr]) extends AstifierExpr
-
-case class CreateList(elems: List[AstifierExpr]) extends AstifierExpr
-
-case class ConcatList(lhs: AstifierExpr, rhs: AstifierExpr) extends AstifierExpr
+case class BoundRefs(boundType: BoundType.Value, refs: List[(AstifierExpr, Option[BoundRefs])]) {
+    def appendRef(astifier: AstifierExpr, boundRef: Option[BoundRefs]): BoundRefs =
+        BoundRefs(boundType, refs :+ (astifier, boundRef))
+}
 
 object ExpressionGrammar {
     def x(): Unit = {
-        val exprRhs2 = NSequence(2, Symbols.Sequence(Seq()), Seq())
-        // Code generator에서 이걸 보고 공통된 부분(e.g. Unbinder(ThisNode, exprRhs2))을 별도로 빼면 됨
+        (Symbols.Nonterminal("term"), Unbinder(ThisNode, Symbols.Nonterminal("term")))
 
-        val matchExpression = Map[NSymbol, AstifierExpr](
-            NNonterminal(1, Symbols.Nonterminal("term"), Set()) -> MatchTo(ThisNode, ClassType("Term")),
-            exprRhs2 -> CreateObj("BinOp", List(
-                SeqRef(Unbinder(ThisNode, exprRhs2), exprRhs2, 1),
-                MatchTo(SeqRef(Unbinder(ThisNode, exprRhs2), exprRhs2, 0), ClassType("Expression")),
-                MatchTo(SeqRef(Unbinder(ThisNode, exprRhs2), exprRhs2, 2), ClassType("Term"))
-            ))
-        )
+        0 -> (Symbols.Nonterminal("expression") -> Unbinder(SeqRef(ThisNode, 0), Symbols.Nonterminal("expression")))
+        1 -> (Symbols.ExactChar('+') -> Unbinder(SeqRef(ThisNode, 1), Symbols.ExactChar('+')))
+        2 -> (Symbols.Nonterminal("term") -> Unbinder(SeqRef(ThisNode, 2), Symbols.Nonterminal("term")))
 
-        val matchTerm = Map[NSymbol, AstifierExpr](
-            NNonterminal(10, Symbols.Nonterminal("factor"), Set()) -> MatchTo(ThisNode, ClassType("Factor"))
-        )
+        CreateObj("BinOp", List(Unbinder(SeqRef(ThisNode, 1), Symbols.ExactChar('+')),
+            Unbinder(SeqRef(ThisNode, 0), Symbols.Nonterminal("expression")),
+            Unbinder(SeqRef(ThisNode, 2), Symbols.Nonterminal("term"))
+        ))
+
+        // array
+        0 -> (Symbols.ExactChar('['), SeqRef(ThisNode, 0))
+        1 -> (Symbols.Nonterminal("expression"), Unbinder(SeqRef(ThisNode, 1), Symbols.Nonterminal("expression")))
+        val seqSymbol = Symbols.Sequence(Seq(Symbols.ExactChar(','), Symbols.Nonterminal("expression")))
+        2 -> (seqSymbol, Unbinder(SeqRef(ThisNode, 2), seqSymbol), Map(
+            0 -> (Symbols.ExactChar(','), SeqRef(Unbinder(SeqRef(ThisNode, 2), seqSymbol), 0)),
+            1 -> (Symbols.Nonterminal("expression"), MatchTo(SeqRef(Unbinder(SeqRef(ThisNode, 2), seqSymbol), 0), Symbols.Nonterminal("expression")))
+        ))
     }
 }
