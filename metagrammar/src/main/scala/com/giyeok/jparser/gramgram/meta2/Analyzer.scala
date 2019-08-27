@@ -572,7 +572,7 @@ object Analyzer {
 
             // grammar를 만들면서 Node -> AST 변환 코드도 생성
             val astifierGenerator = new GrammarAndAstifierGenerator()
-            val astifiers = (grammarAst.defs collect {
+            val astifiers = grammarAst.defs collect {
                 case AST.Rule(_, lhs, rhs) =>
                     val processedR = rhs map { r =>
                         val (symbol, _, boundRef) = astifierGenerator.astElemSequence(r.elems)
@@ -580,7 +580,7 @@ object Analyzer {
                         (symbol, lastExpr)
                     }
                     lhs.name.name.toString -> processedR
-            })
+            }
 
             val typeDependenceGraph = new TypeDependenceGraphBuilder().analyze()
 

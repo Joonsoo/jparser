@@ -62,10 +62,6 @@ object NGrammar {
 
     case class NSequence(id: Int, symbol: Symbols.Sequence, sequence: Seq[Int]) extends NSymbol
 
-    object NSymbolId {
-        def unapply(symbol: NSymbol): Option[Int] = Some(symbol.id)
-    }
-
     def fromGrammar(grammar: Grammar): NGrammar = {
         var newId = 0
         val symbolsMap = scala.collection.mutable.Map[Symbols.Symbol, Int]()

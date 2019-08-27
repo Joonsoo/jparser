@@ -21,4 +21,3 @@ case class ArrayType(elemType: TypeSpec) extends OptionableTypeSpec with ActualT
 case class OptionalType(valueType: OptionableTypeSpec) extends TypeSpec with ActualTypeSpec
 
 case class NodeType(fixedType: Option[TypeSpec], inferredTypes: Set[TypeSpec])
-

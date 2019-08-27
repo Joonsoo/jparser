@@ -1,7 +1,7 @@
 package com.giyeok.jparser.gramgram.meta2
 
 import com.giyeok.jparser.gramgram.meta2.TypeDependenceGraph.SymbolNode
-import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
+import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor}
 import com.giyeok.jparser.{ParseForestFunc, Symbols}
 
 object MetaGrammar2 {
@@ -45,8 +45,8 @@ object MetaGrammar2 {
             """.stripMargin
 
         val arrayGrammar =
-            """expression = 'axyz0'
-              |array = '[' expression (',' expression)* ']' {@Array(elems=[$1] + $2$1)}
+            """array = '[' expression (',' expression)* ']' {@Array(elems=[$1] + $2$1)}
+              |expression = 'axyz0'
               |""".stripMargin
 
         val ast = grammarSpecToAST(arrayGrammar)
@@ -67,6 +67,8 @@ object MetaGrammar2 {
         val scaladef = new ScalaDefGenerator(analysis)
         println(scaladef.grammarDef("G", includeAstifiers = false))
         println(scaladef.classDefs())
+
+        println(scaladef.toGrammarObject("G"))
 
         analysis.astifiers.foreach { astifier =>
             println(s"${astifier._1} =")

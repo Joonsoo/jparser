@@ -1,6 +1,8 @@
 package com.giyeok.jparser.gramgram.meta2
 
 import com.giyeok.jparser.ParseResultTree.{BindNode, Node, SequenceNode}
+import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NNonterminal, NRepeat, NSequence, NStart, NTerminal}
 
 object GeneratedAST {
