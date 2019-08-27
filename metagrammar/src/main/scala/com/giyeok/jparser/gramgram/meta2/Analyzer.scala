@@ -1,12 +1,10 @@
 package com.giyeok.jparser.gramgram.meta2
 
-import com.giyeok.jparser.GrammarHelper.{i, _}
 import com.giyeok.jparser.ParseResultTree.{BindNode, SequenceNode, TerminalNode}
 import com.giyeok.jparser.Symbols.Nonterminal
 import com.giyeok.jparser.gramgram.meta2.TypeDependenceGraph._
 import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.NGrammar.{NAtomicSymbol, NExcept, NJoin, NLongest, NLookaheadExcept, NLookaheadIs, NNonterminal, NOneOf, NProxy, NRepeat, NSequence, NStart, NSymbol, NTerminal}
-import com.giyeok.jparser.{Grammar, Inputs, Symbols}
+import com.giyeok.jparser.{Grammar, GrammarHelper, Inputs, Symbols}
 
 import scala.collection.immutable.{ListMap, ListSet}
 
@@ -21,12 +19,22 @@ object Analyzer {
     case class UserAbstractType(name: String) extends UserDefinedType
 
     class Analysis private[Analyzer](val grammarAst: AST.Grammar,
-                                     val grammar: Grammar,
-                                     val ngrammar: NGrammar,
+                                     val astifiers: List[(String, List[(Symbols.Symbol, AstifierExpr)])],
                                      val typeDependenceGraph: TypeDependenceGraph,
                                      val typeHierarchyGraph: TypeHierarchyGraph,
-                                     val classDefs: List[ClassDef],
-                                     val astifiers: Map[String, List[(Symbols.Symbol, AstifierExpr)]])
+                                     val classDefs: List[ClassDef]) {
+        val astifierMap: ListMap[String, List[(Symbols.Symbol, AstifierExpr)]] = ListMap(astifiers: _*)
+
+        def grammar(grammarName: String): Grammar = new Grammar {
+            val name: String = grammarName
+            val startSymbol: Nonterminal = Symbols.Nonterminal(astifiers.head._1)
+            val rules: RuleMap = ListMap[String, ListSet[Symbols.Symbol]](
+                astifierMap.toList.map { p => p._1 -> ListSet(p._2 map (_._1): _*) }: _*
+            )
+        }
+
+        lazy val ngrammar: NGrammar = NGrammar.fromGrammar(grammar("G"))
+    }
 
     class Analyzer(val grammarAst: AST.Grammar) {
         val ruleDefs: List[AST.Rule] = grammarAst.defs collect { case r: AST.Rule => r }
@@ -98,14 +106,173 @@ object Analyzer {
 
         private val astToSymbols = scala.collection.mutable.Map[AST.Symbol, Symbols.Symbol]()
 
-        private def addSymbol(ast: AST.Symbol, symbol: Symbols.Symbol): Symbols.Symbol = {
+        private def addSymbol[T <: Symbols.Symbol](ast: AST.Symbol, symbol: T): T = {
             astToSymbols get ast match {
                 case Some(existing) =>
                     assert(symbol == existing)
-                    existing
+                    existing.asInstanceOf[T]
                 case None =>
                     astToSymbols(ast) = symbol
                     symbol
+            }
+        }
+
+        private class GrammarAndAstifierGenerator() {
+            private def astProcessorToAstifier(ctx: BoundRefs, processor: AST.Processor): AstifierExpr = processor match {
+                case AST.Ref(_, idx) =>
+                    val idxNum = idx.toString.toInt
+                    ctx.refs(idxNum)._1.replaceThisNode(SeqRef(ThisNode, idxNum))
+                // ctx.refs(idx.toString.toInt)._1
+                case AST.BinOpExpr(_, op, lhs, rhs) =>
+                    op.toString match {
+                        case "+" =>
+                            ConcatList(astProcessorToAstifier(ctx, lhs), astProcessorToAstifier(ctx, rhs))
+                    }
+                case AST.BoundPExpr(_, ctxRef, expr) =>
+                    val refIdxNum = ctxRef.idx.toString.toInt
+                    val referred = ctx.refs(refIdxNum)
+                    val target = referred._1.replaceThisNode(SeqRef(ThisNode, refIdxNum))
+                    if (referred._2.isEmpty) {
+                        throw new Exception("Invalid bound expr")
+                    }
+                    val boundCtx = referred._2.get
+                    UnrollMapper(boundCtx.boundType, target, astProcessorToAstifier(boundCtx, expr))
+                case AST.OnTheFlyTypeDefConstructExpr(_, typeDef, params) =>
+                    CreateObj(typeDef.name.name.toString, params map { p => astProcessorToAstifier(ctx, p.expr) })
+                case AST.ConstructExpr(_, typ, params) =>
+                    CreateObj(typ.name.toString, params map (astProcessorToAstifier(ctx, _)))
+                case AST.PTermParen(_, expr) => astProcessorToAstifier(ctx, expr)
+                case AST.PTermSeq(_, elems) =>
+                    CreateList(elems map (astProcessorToAstifier(ctx, _)))
+            }
+
+            private def addSymbol1(symbol: AST.Symbol, r: (Symbols.Symbol, AstifierExpr, Option[BoundRefs])) = {
+                addSymbol(symbol, r._1)
+                r
+            }
+
+            def astSymbolToSymbol(symbol: AST.Symbol): (Symbols.Symbol, AstifierExpr, Option[BoundRefs]) = symbol match {
+                case symbol: AST.BinSymbol =>
+                    symbol match {
+                        case AST.JoinSymbol(nodeId, symbol1, symbol2) => ???
+                        case AST.ExceptSymbol(nodeId, symbol1, symbol2) => ???
+                        case AST.FollowedBy(nodeId, expr) => ???
+                        case AST.NotFollowedBy(nodeId, expr) => ???
+                        case AST.Repeat(_, repeatingSymbol, repeatSpec) =>
+                            val repeating = astSymbolToSymbol(repeatingSymbol)
+                            // TODO repeatSpec 종류에 따라서 BoundRef의 boundType 변경
+                            // TODO br.refs가 그대로 가면 안될듯 함
+                            val (repeatingBody, astifier) = repeating._1 match {
+                                case atom: Symbols.AtomicSymbol =>
+                                    (atom, repeating._2)
+                                case seq: Symbols.Sequence =>
+                                    val p = Symbols.Proxy(seq)
+                                    (p, repeating._2.replaceThisNode(Unbinder(ThisNode, p)))
+                            }
+                            repeatSpec.toString match {
+                                case "?" =>
+                                    val e = Symbols.Proxy(Symbols.Sequence(Seq()))
+                                    val s = addSymbol(symbol, Symbols.OneOf(ListSet(e, repeatingBody)))
+                                    (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), repeating._3 map (_.changeBoundType(BoundType.Optional)))
+                                case "*" =>
+                                    val s = addSymbol(symbol, Symbols.Repeat(repeatingBody, 0))
+                                    (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), repeating._3 map (_.changeBoundType(BoundType.Repeat0)))
+                                case "+" =>
+                                    val s = addSymbol(symbol, Symbols.Repeat(repeatingBody, 1))
+                                    (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), repeating._3 map (_.changeBoundType(BoundType.Repeat1)))
+                            }
+                        case AST.Paren(_, choices) =>
+                            addSymbol1(symbol, astSymbolToSymbol(choices))
+                        case AST.Longest(_, choices) =>
+                            val r = astSymbolToSymbol(choices)
+                            val (longestBody, astifier) = r._1 match {
+                                case atom: Symbols.AtomicSymbol => (atom, r._2)
+                                case seq: Symbols.Sequence =>
+                                    val s = Symbols.Proxy(seq)
+                                    (s, r._2.replaceThisNode(Unbinder(ThisNode, s)))
+                            }
+                            val s = addSymbol(symbol, Symbols.Longest(longestBody))
+                            (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), r._3)
+                        case AST.EmptySeq(_) =>
+                            val s = addSymbol(symbol, Symbols.Proxy(Symbols.Sequence(Seq())))
+                            (s, ThisNode, None)
+                        case AST.InPlaceChoices(_, choices) =>
+                            if (choices.size == 1) {
+                                addSymbol1(symbol, astSymbolToSymbol(choices.head))
+                            } else {
+                                val choiceBodies = choices map astSymbolToSymbol
+                                val proxied = choiceBodies.map { b =>
+                                    b._1 match {
+                                        case atom: Symbols.AtomicSymbol =>
+                                            (atom, b._2, b._3)
+                                        case seq: Symbols.Sequence =>
+                                            val p = Symbols.Proxy(seq)
+                                            (p, b._2.replaceThisNode(Unbinder(ThisNode, p)), b._3)
+                                    }
+                                }
+                                val s = addSymbol(symbol, Symbols.OneOf(ListSet(proxied map (_._1): _*)))
+                                val astifier = UnrollChoices(proxied.map { p => p._1 -> p._2 }.toMap)
+                                val refs = BoundRefs(BoundType.Choice, proxied.map { p => (p._2, p._3) })
+                                (s, astifier, Some(refs))
+                            }
+                        case AST.InPlaceSequence(_, seq) =>
+                            if (seq.size == 1) {
+                                addSymbol1(symbol, astSymbolToSymbol(seq.head))
+                            } else {
+                                val r = astElemSequence(seq)
+                                (addSymbol(symbol, r._1), r._2.replaceThisNode(Unbinder(ThisNode, r._1)), r._3)
+                            }
+                        case AST.Nonterminal(_, name) =>
+                            val s = addSymbol(symbol, Symbols.Nonterminal(name.toString))
+                            (s, Unbinder(ThisNode, s), None)
+                        case AST.TerminalChar(_, char) =>
+                            val s = addSymbol(symbol, Symbols.ExactChar(charNodeToChar(char)))
+                            (s, ThisNode, None)
+                        case AST.AnyTerminal(_) =>
+                            val s = addSymbol(symbol, Symbols.Any)
+                            (s, ThisNode, None)
+                        case AST.TerminalChoice(_, choices) =>
+                            val s = choices flatMap {
+                                case AST.TerminalChoiceChar(_, char) => Seq(charChoiceNodeToChar(char))
+                                case AST.TerminalChoiceRange(_, start, end) =>
+                                    charChoiceNodeToChar(start.char) to charChoiceNodeToChar(end.char)
+                            }
+                            (addSymbol(symbol, Symbols.Chars(s.toSet)), ThisNode, None)
+                        case AST.StringLiteral(_, value) =>
+                            val s = addSymbol(symbol, Symbols.Proxy(GrammarHelper.i(value.toString)))
+                            (s, ThisNode, None)
+                    }
+            }
+
+            def astElemToSymbolAndElemRefMap(ctx: BoundRefs, ast: AST.Elem): (Option[Symbols.Symbol], AstifierExpr, Option[BoundRefs]) = ast match {
+                case processor: AST.Processor =>
+                    (None, astProcessorToAstifier(ctx, processor), None)
+                case symbol: AST.Symbol =>
+                    val r = astSymbolToSymbol(symbol)
+                    (Some(r._1), r._2, r._3)
+            }
+
+            def astElemSequence(seq: List[AST.Elem]): (Symbols.Sequence, AstifierExpr, Option[BoundRefs]) = {
+                var syms = List[Symbols.AtomicSymbol]()
+                var ctx = BoundRefs(BoundType.Sequence, List())
+                seq foreach { subelem =>
+                    val r = astElemToSymbolAndElemRefMap(ctx, subelem)
+
+                    r._1 match {
+                        case Some(atom: Symbols.AtomicSymbol) =>
+                            syms :+= atom
+                            ctx = ctx.appendRef(r._2, r._3)
+                        case Some(seqSym: Symbols.Sequence) =>
+                            val proxySym = Symbols.Proxy(seqSym)
+                            syms :+= proxySym
+                            ctx = ctx.appendRef(Unbinder(r._2, proxySym), r._3)
+                        case None =>
+                            // no symbol
+                            ctx = ctx.appendRef(r._2, r._3)
+                    }
+                }
+                val seqSym = Symbols.Sequence(syms)
+                (seqSym, Unbinder(ThisNode, seqSym), Some(ctx))
             }
         }
 
@@ -161,70 +328,6 @@ object Analyzer {
                     case 't' => '\t'
                 }
             case _ => unicodeCharToChar(stringCharNode)
-        }
-
-        private def astToSymbol(ast: AST.Symbol): Symbols.Symbol = ast match {
-            case AST.JoinSymbol(_, symbol1, symbol2) =>
-                val ns1 = astToSymbol(symbol1).asInstanceOf[Symbols.AtomicSymbol]
-                val ns2 = astToSymbol(symbol2).asInstanceOf[Symbols.AtomicSymbol]
-                addSymbol(ast, Symbols.Join(ns1, ns2))
-            case AST.ExceptSymbol(_, symbol1, symbol2) =>
-                val ns1 = astToSymbol(symbol1).asInstanceOf[Symbols.AtomicSymbol]
-                val ns2 = astToSymbol(symbol2).asInstanceOf[Symbols.AtomicSymbol]
-                addSymbol(ast, Symbols.Except(ns1, ns2))
-            case AST.FollowedBy(_, symbol) =>
-                val ns = astToSymbol(symbol).asInstanceOf[Symbols.AtomicSymbol]
-                addSymbol(ast, Symbols.LookaheadIs(ns))
-            case AST.NotFollowedBy(_, symbol) =>
-                val ns = astToSymbol(symbol).asInstanceOf[Symbols.AtomicSymbol]
-                addSymbol(ast, Symbols.LookaheadExcept(ns))
-            case AST.Repeat(_, symbol, repeatSpec) =>
-                val ns = astToSymbol(symbol).asInstanceOf[Symbols.AtomicSymbol]
-
-                repeatSpec.toString match {
-                    case "?" => addSymbol(ast, ns.opt)
-                    case "*" => addSymbol(ast, ns.star)
-                    case "+" => addSymbol(ast, ns.plus)
-                }
-            case AST.Longest(_, choices) =>
-                val ns = choices.choices map {
-                    astToSymbol(_).asInstanceOf[Symbols.AtomicSymbol]
-                }
-                addSymbol(ast, Symbols.Longest(Symbols.OneOf(ListSet(ns: _*))))
-            case AST.Nonterminal(_, name) =>
-                addSymbol(ast, Symbols.Nonterminal(name.toString))
-            case AST.InPlaceChoices(_, choices) =>
-                val ns = choices map {
-                    astToSymbol(_).asInstanceOf[Symbols.AtomicSymbol]
-                }
-                addSymbol(ast, Symbols.OneOf(ListSet(ns: _*)))
-            case AST.Paren(_, choices) =>
-                val ns = choices.choices map {
-                    astToSymbol(_).asInstanceOf[Symbols.AtomicSymbol]
-                }
-                addSymbol(ast, Symbols.OneOf(ListSet(ns: _*)))
-            case AST.InPlaceSequence(_, seq) =>
-                val ns = seq map {
-                    astToSymbol(_).asInstanceOf[Symbols.AtomicSymbol]
-                }
-                addSymbol(ast, Symbols.Proxy(Symbols.Sequence(ns)))
-            case AST.StringLiteral(_, value) =>
-                // TODO
-                proxyIfNeeded(addSymbol(ast, i(value.toString)))
-            case AST.EmptySeq(_) =>
-                // TODO Symbols.Proxy?
-                addSymbol(ast, Symbols.Proxy(Symbols.Sequence(Seq())))
-            case AST.TerminalChoice(_, choices) =>
-                val charSet = choices flatMap {
-                    case AST.TerminalChoiceChar(_, char) => Seq(charChoiceNodeToChar(char))
-                    case AST.TerminalChoiceRange(_, start, end) =>
-                        charChoiceNodeToChar(start.char) to charChoiceNodeToChar(end.char)
-                }
-                addSymbol(ast, Symbols.Chars(charSet.toSet))
-            case AST.TerminalChar(_, value) =>
-                addSymbol(ast, Symbols.ExactChar(charNodeToChar(value)))
-            case AST.AnyTerminal(_) =>
-                addSymbol(ast, Symbols.AnyChar)
         }
 
         class TypeDependenceGraphBuilder() {
@@ -412,7 +515,7 @@ object Analyzer {
                                         visitExpr(ctx, expr)
                                         addNode(ExprNode(expr))
                                 }
-                            case symbol: AST.Symbol => addNode(SymbolNode(astToSymbol(symbol)))
+                            case symbol: AST.Symbol => addNode(SymbolNode(astToSymbols(symbol)))
                         }
 
                         val elemNodes: List[Node] = rhs.elems map { e => visitElem(rhs.elems, e) }
@@ -455,142 +558,6 @@ object Analyzer {
             }
         }
 
-        private class GrammarAndAstifierGenerator(private val typeDependenceGraph: TypeDependenceGraph) {
-            private def astProcessorToAstifier(ctx: BoundRefs, processor: AST.Processor): AstifierExpr = processor match {
-                case AST.Ref(_, idx) =>
-                    val idxNum = idx.toString.toInt
-                    ctx.refs(idxNum)._1.replaceThisNode(SeqRef(ThisNode, idxNum))
-                // ctx.refs(idx.toString.toInt)._1
-                case AST.BinOpExpr(_, op, lhs, rhs) =>
-                    op.toString match {
-                        case "+" =>
-                            ConcatList(astProcessorToAstifier(ctx, lhs), astProcessorToAstifier(ctx, rhs))
-                    }
-                case AST.BoundPExpr(_, ctxRef, expr) =>
-                    val refIdxNum = ctxRef.idx.toString.toInt
-                    val referred = ctx.refs(refIdxNum)
-                    val target = referred._1.replaceThisNode(SeqRef(ThisNode, refIdxNum))
-                    if (referred._2.isEmpty) {
-                        throw new Exception("Invalid bound expr")
-                    }
-                    val boundCtx = referred._2.get
-                    UnrollMapper(boundCtx.boundType, target, astProcessorToAstifier(boundCtx, expr))
-                case AST.OnTheFlyTypeDefConstructExpr(_, typeDef, params) =>
-                    CreateObj(typeDef.name.name.toString, params map { p => astProcessorToAstifier(ctx, p.expr) })
-                case AST.ConstructExpr(_, typ, params) =>
-                    CreateObj(typ.name.toString, params map (astProcessorToAstifier(ctx, _)))
-                case AST.PTermParen(_, expr) => astProcessorToAstifier(ctx, expr)
-                case AST.PTermSeq(_, elems) =>
-                    CreateList(elems map (astProcessorToAstifier(ctx, _)))
-            }
-
-            def astSymbolToSymbol(symbol: AST.Symbol): (Symbols.Symbol, AstifierExpr, Option[BoundRefs]) = symbol match {
-                case symbol: AST.BinSymbol =>
-                    symbol match {
-                        case AST.JoinSymbol(nodeId, symbol1, symbol2) => ???
-                        case AST.ExceptSymbol(nodeId, symbol1, symbol2) => ???
-                        case AST.FollowedBy(nodeId, expr) => ???
-                        case AST.NotFollowedBy(nodeId, expr) => ???
-                        case AST.Repeat(_, repeatingSymbol, repeatSpec) =>
-                            val repeating = astSymbolToSymbol(repeatingSymbol)
-                            // TODO repeatSpec 종류에 따라서 BoundRef의 boundType 변경
-                            // TODO br.refs가 그대로 가면 안될듯 함
-                            val (repeatingBody, astifier) = repeating._1 match {
-                                case atom: Symbols.AtomicSymbol =>
-                                    (atom, repeating._2)
-                                case seq: Symbols.Sequence =>
-                                    val p = Symbols.Proxy(seq)
-                                    (p, repeating._2.replaceThisNode(Unbinder(ThisNode, p)))
-                            }
-                            repeatSpec.toString match {
-                                case "?" =>
-                                    val e = Symbols.Proxy(Symbols.Sequence(Seq()))
-                                    val s = Symbols.OneOf(ListSet(e, repeatingBody))
-                                    (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), repeating._3 map (_.changeBoundType(BoundType.Optional)))
-                                case "*" =>
-                                    val s = Symbols.Repeat(repeatingBody, 0)
-                                    (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), repeating._3 map (_.changeBoundType(BoundType.Repeat0)))
-                                case "+" =>
-                                    val s = Symbols.Repeat(repeatingBody, 1)
-                                    (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), repeating._3 map (_.changeBoundType(BoundType.Repeat1)))
-                            }
-                        case AST.Paren(_, choices) =>
-                            astSymbolToSymbol(choices)
-                        case AST.Longest(_, choices) =>
-                            val r = astSymbolToSymbol(choices)
-                            val (longestBody, astifier) = r._1 match {
-                                case atom: Symbols.AtomicSymbol => (atom, r._2)
-                                case seq: Symbols.Sequence =>
-                                    val s = Symbols.Proxy(seq)
-                                    (s, r._2.replaceThisNode(Unbinder(ThisNode, s)))
-                            }
-                            val s = Symbols.Longest(longestBody)
-                            (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), r._3)
-                        case AST.EmptySeq(_) =>
-                            val s = Symbols.Proxy(Symbols.Sequence(Seq()))
-                            (s, ThisNode, None)
-                        case AST.InPlaceChoices(_, choices) =>
-                            if (choices.size == 1) {
-                                astSymbolToSymbol(choices.head)
-                            } else {
-                                ???
-                            }
-                        case AST.InPlaceSequence(_, seq) =>
-                            if (seq.size == 1) {
-                                astSymbolToSymbol(seq.head)
-                            } else {
-                                val r = astElemSequence(seq)
-                                (r._1, r._2.replaceThisNode(Unbinder(ThisNode, r._1)), r._3)
-                            }
-                        case AST.Nonterminal(_, name) =>
-                            val s = Symbols.Nonterminal(name.toString)
-                            (s, Unbinder(ThisNode, s), None)
-                        case AST.TerminalChar(_, char) =>
-                            val s = astToSymbol(symbol)
-                            (s, ThisNode, None)
-                        case AST.AnyTerminal(_) =>
-                            val s = Symbols.Any
-                            (s, ThisNode, None)
-                        case AST.TerminalChoice(_, choices) =>
-                            val s = astToSymbol(symbol)
-                            (s, ThisNode, None)
-                        case AST.StringLiteral(_, value) =>
-                            ???
-                    }
-            }
-
-            def astElemToSymbolAndElemRefMap(ctx: BoundRefs, ast: AST.Elem): (Option[Symbols.Symbol], AstifierExpr, Option[BoundRefs]) = ast match {
-                case processor: AST.Processor =>
-                    (None, astProcessorToAstifier(ctx, processor), None)
-                case symbol: AST.Symbol =>
-                    val r = astSymbolToSymbol(symbol)
-                    (Some(r._1), r._2, r._3)
-            }
-
-            def astElemSequence(seq: List[AST.Elem]): (Symbols.Sequence, AstifierExpr, Option[BoundRefs]) = {
-                var syms = List[Symbols.AtomicSymbol]()
-                var ctx = BoundRefs(BoundType.Sequence, List())
-                seq.zipWithIndex foreach { case (subelem, idx) =>
-                    val r = astElemToSymbolAndElemRefMap(ctx, subelem)
-
-                    r._1 match {
-                        case Some(atom: Symbols.AtomicSymbol) =>
-                            syms :+= atom
-                            ctx = ctx.appendRef(r._2, r._3)
-                        case Some(seqSym: Symbols.Sequence) =>
-                            val proxySym = Symbols.Proxy(seqSym)
-                            syms :+= proxySym
-                            ctx = ctx.appendRef(Unbinder(r._2, proxySym), r._3)
-                        case None =>
-                            // no symbol
-                            ctx = ctx.appendRef(r._2, r._3)
-                    }
-                }
-                val seqSym = Symbols.Sequence(syms)
-                (seqSym, Unbinder(ThisNode, seqSym), Some(ctx))
-            }
-        }
-
         def analyze(grammarName: String = "Intermediate"): Analysis = {
             collectTypeDefs()
             // TODO check name conflict in userDefinedTypes
@@ -603,16 +570,17 @@ object Analyzer {
                 throw new Exception(s"Duplicate definitions of nonterminal ${duplicates mkString ", "}")
             }
 
-            ruleDefs foreach { rule =>
-                astToSymbol(rule.lhs.name)
-                rule.rhs foreach { rhs =>
-                    rhs.elems foreach {
-                        case elemAst: AST.Symbol =>
-                            astToSymbol(elemAst)
-                        case _ => // do nothing
+            // grammar를 만들면서 Node -> AST 변환 코드도 생성
+            val astifierGenerator = new GrammarAndAstifierGenerator()
+            val astifiers = (grammarAst.defs collect {
+                case AST.Rule(_, lhs, rhs) =>
+                    val processedR = rhs map { r =>
+                        val (symbol, _, boundRef) = astifierGenerator.astElemSequence(r.elems)
+                        val lastExpr = boundRef.get.refs.last._1
+                        (symbol, lastExpr)
                     }
-                }
-            }
+                    lhs.name.name.toString -> processedR
+            })
 
             val typeDependenceGraph = new TypeDependenceGraphBuilder().analyze()
 
@@ -627,36 +595,7 @@ object Analyzer {
 
             val classDefs = generateClassDefs(typeDependenceGraph, typeHierarchyGraph)
 
-            // TODO grammar와 ngrammar 만들면서 Node -> AST 변환 코드도 생성
-            val grammar = new Grammar {
-                override val name: String = grammarName
-
-                private def rhsToSeq(rhs: AST.RHS): Symbols.Sequence = Symbols.Sequence(rhs.elems collect {
-                    case sym: AST.Symbol =>
-                        astToSymbol(sym).asInstanceOf[Symbols.AtomicSymbol]
-                })
-
-                override val rules: RuleMap = ListMap[String, ListSet[Symbols.Symbol]](ruleDefs map { ruleDef =>
-                    val x = ListSet[Symbols.Symbol](ruleDef.rhs map rhsToSeq: _*)
-                    ruleDef.lhs.name.name.toString -> x
-                }: _*)
-                override val startSymbol: Nonterminal = Symbols.Nonterminal(ruleDefs.head.lhs.name.name.toString)
-            }
-
-            val ngrammar = NGrammar.fromGrammar(grammar)
-
-            val astifierGenerator = new GrammarAndAstifierGenerator(typeDependenceGraph)
-            val astifiers = (grammarAst.defs collect {
-                case AST.Rule(_, lhs, rhs) =>
-                    val processedR = rhs map { r =>
-                        val (symbol, _, boundRef) = astifierGenerator.astElemSequence(r.elems)
-                        val lastExpr = boundRef.get.refs.last._1
-                        (symbol, lastExpr)
-                    }
-                    lhs.name.name.toString -> processedR
-            }).toMap
-
-            new Analysis(grammarAst, grammar, ngrammar, typeDependenceGraph, typeHierarchyGraph, classDefs, astifiers)
+            new Analysis(grammarAst, astifiers, typeDependenceGraph, typeHierarchyGraph, classDefs)
         }
     }
 

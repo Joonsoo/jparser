@@ -22,8 +22,9 @@ case class UnrollMapper(boundType: BoundType.Value, target: AstifierExpr, mapFn:
     override def replaceThisNode(node: AstifierExpr): AstifierExpr = UnrollMapper(boundType, target.replaceThisNode(node), mapFn)
 }
 
-case class MatchTo(expr: AstifierExpr, targetSymbol: Symbols.Symbol) extends AstifierExpr {
-    override def replaceThisNode(node: AstifierExpr): AstifierExpr = MatchTo(expr.replaceThisNode(node), targetSymbol)
+case class UnrollChoices(choiceSymbols: Map[Symbols.Symbol, AstifierExpr]) extends AstifierExpr {
+    override def replaceThisNode(node: AstifierExpr): AstifierExpr =
+        UnrollChoices(choiceSymbols.view.mapValues(_.replaceThisNode(node)).toMap)
 }
 
 case class CreateObj(className: String, args: List[AstifierExpr]) extends AstifierExpr {
@@ -39,7 +40,7 @@ case class ConcatList(lhs: AstifierExpr, rhs: AstifierExpr) extends AstifierExpr
 }
 
 object BoundType extends Enumeration {
-    val Sequence, Repeat0, Repeat1, Optional, Paren, Longest = Value
+    val Sequence, Choice, Repeat0, Repeat1, Optional, Paren, Longest = Value
 }
 
 case class BoundRefs(boundType: BoundType.Value, refs: List[(AstifierExpr, Option[BoundRefs])]) {
@@ -68,7 +69,7 @@ object ExpressionGrammar {
         val seqSymbol = Symbols.Sequence(Seq(Symbols.ExactChar(','), Symbols.Nonterminal("expression")))
         2 -> (seqSymbol, Unbinder(SeqRef(ThisNode, 2), seqSymbol), Map(
             0 -> (Symbols.ExactChar(','), SeqRef(Unbinder(SeqRef(ThisNode, 2), seqSymbol), 0)),
-            1 -> (Symbols.Nonterminal("expression"), MatchTo(SeqRef(Unbinder(SeqRef(ThisNode, 2), seqSymbol), 0), Symbols.Nonterminal("expression")))
+            1 -> (Symbols.Nonterminal("expression"), Unbinder(SeqRef(Unbinder(SeqRef(ThisNode, 2), seqSymbol), 0), Symbols.Nonterminal("expression")))
         ))
     }
 }
