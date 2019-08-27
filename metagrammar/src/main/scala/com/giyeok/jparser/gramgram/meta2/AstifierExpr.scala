@@ -43,6 +43,8 @@ object BoundType extends Enumeration {
 }
 
 case class BoundRefs(boundType: BoundType.Value, refs: List[(AstifierExpr, Option[BoundRefs])]) {
+    def changeBoundType(newBoundType: BoundType.Value) = BoundRefs(newBoundType, refs)
+
     def appendRef(astifier: AstifierExpr, boundRef: Option[BoundRefs]): BoundRefs =
         BoundRefs(boundType, refs :+ (astifier, boundRef))
 }
