@@ -18,8 +18,9 @@ case class SeqRef(expr: AstifierExpr, idx: Int) extends AstifierExpr {
     override def replaceThisNode(node: AstifierExpr): AstifierExpr = SeqRef(expr.replaceThisNode(node), idx)
 }
 
-case class UnrollMapper(boundType: BoundType.Value, target: AstifierExpr, mapFn: AstifierExpr) extends AstifierExpr {
-    override def replaceThisNode(node: AstifierExpr): AstifierExpr = UnrollMapper(boundType, target.replaceThisNode(node), mapFn)
+case class UnrollMapper(boundType: BoundType.Value, referrer: AstifierExpr, target: AstifierExpr, mapFn: AstifierExpr) extends AstifierExpr {
+    override def replaceThisNode(node: AstifierExpr): AstifierExpr =
+        UnrollMapper(boundType, referrer, target.replaceThisNode(node), mapFn)
 }
 
 case class UnrollChoices(choiceSymbols: Map[Symbols.Symbol, AstifierExpr]) extends AstifierExpr {

@@ -130,13 +130,17 @@ object Analyzer {
                     }
                 case AST.BoundPExpr(_, ctxRef, expr) =>
                     val refIdxNum = ctxRef.idx.toString.toInt
+                    val referrer = SeqRef(ThisNode, refIdxNum)
                     val referred = ctx.refs(refIdxNum)
-                    val target = referred._1.replaceThisNode(SeqRef(ThisNode, refIdxNum))
+                    val target = referred._1
                     if (referred._2.isEmpty) {
                         throw new Exception("Invalid bound expr")
                     }
                     val boundCtx = referred._2.get
-                    UnrollMapper(boundCtx.boundType, target, astProcessorToAstifier(boundCtx, expr))
+                    if (boundCtx.boundType == BoundType.Repeat0 || boundCtx.boundType == BoundType.Repeat1) {
+                        // TODO target에서 가장 바깥 Unbinder는 제거해야함(repeat symbol)
+                    }
+                    UnrollMapper(boundCtx.boundType, referrer, target, astProcessorToAstifier(boundCtx, expr))
                 case AST.OnTheFlyTypeDefConstructExpr(_, typeDef, params) =>
                     CreateObj(typeDef.name.name.toString, params map { p => astProcessorToAstifier(ctx, p.expr) })
                 case AST.ConstructExpr(_, typ, params) =>

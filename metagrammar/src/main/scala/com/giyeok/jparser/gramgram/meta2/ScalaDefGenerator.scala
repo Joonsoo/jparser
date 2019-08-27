@@ -151,19 +151,40 @@ class ScalaDefGenerator(val analysis: Analysis) {
             // TODO symbol 타입에 맞춰서 match** 함수 호출하는 경우 처리
             val bindedSymbolId = analysis.ngrammar.idOf(symbol)
             val e = astifierString(expr, argName)
-            val xn = nextArgName()
-            val nv = nextArgName()
-            GenAstifierString(e.prepare ++ List(
-                s"val BindNode($xn, $nv) = ${e.result}",
-                s"assert($xn.id == $bindedSymbolId)"),
-                nv)
+            if (symbol.isInstanceOf[Symbols.Nonterminal]) {
+                val v1 = nextArgName()
+                val v2 = nextArgName()
+                val v3 = nextArgName()
+                val matchFunc = matchFuncName(symbol)
+                GenAstifierString(e.prepare ++ List(
+                    s"val BindNode($v1, $v2) = ${e.result}",
+                    s"assert($v1.id == $bindedSymbolId)",
+                    s"val $v3 = $matchFunc($v2)"),
+                    v3)
+            } else {
+                val xn = nextArgName()
+                val nv = nextArgName()
+                GenAstifierString(e.prepare ++ List(
+                    s"val BindNode($xn, $nv) = ${e.result}",
+                    s"assert($xn.id == $bindedSymbolId)"),
+                    nv)
+            }
         case SeqRef(expr, idx) =>
             val e = astifierString(expr, argName)
             val nv = nextArgName()
             GenAstifierString(e.prepare :+ s"val $nv = ${e.result}.asInstanceOf[SequenceNode].children($idx)", nv)
-        case UnrollMapper(boundType, target, mapFn) =>
-            // TODO
-            astifierString(target, argName)
+        case UnrollMapper(boundType, referrer, target, mapFn) =>
+            // TODO boundType에 따라서 unrollRepeat0를 다른 함수로 바꿔야 함
+            val referrerAstifier = astifierString(referrer, argName)
+            val targetAstifier = astifierString(target, "n")
+            val mapFnAstifier = astifierString(mapFn, targetAstifier.result)
+            val v1 = nextArgName()
+            GenAstifierString(referrerAstifier.prepare ++
+                List(s"val $v1 = unrollRepeat0(${referrerAstifier.result}) map { n =>") ++
+                targetAstifier.prepare ++
+                mapFnAstifier.prepare ++
+                List(mapFnAstifier.result, "}"),
+                v1)
         case UnrollChoices(choiceSymbols) =>
             // TODO
             ???
@@ -190,14 +211,19 @@ class ScalaDefGenerator(val analysis: Analysis) {
                 nv)
     }
 
-    private def matchFuncName(lhsName: String): String = s"match$lhsName"
+    private def matchFuncName(symbol: Symbols.Symbol): String = symbol match {
+        case Symbols.Nonterminal(nonterm) =>
+            s"match${nonterm.substring(0, 1).toUpperCase}${nonterm.substring(1)}"
+    }
 
     def astifierDefs(): String = {
+        // TODO matchStart
         val astifierStrings = analysis.astifiers map { a =>
             val (lhs, rhs) = a
-            val funcName = matchFuncName(lhs)
+            val lhsNonterm = Symbols.Nonterminal(lhs)
+            val funcName = matchFuncName(lhsNonterm)
 
-            val returnType = analysis.typeDependenceGraph.inferType(SymbolNode(Symbols.Nonterminal(lhs)))
+            val returnType = analysis.typeDependenceGraph.inferType(SymbolNode(lhsNonterm))
             val returnTypeSpec = returnType.fixedType.getOrElse(returnType.inferredTypes.head)
 
             val rr = rhs map { r =>
@@ -217,10 +243,9 @@ class ScalaDefGenerator(val analysis: Analysis) {
     }
 
     def toGrammarObject(objectName: String): String = {
-        s"""import com.giyeok.jparser.{Grammar, Symbols}
+        s"""import com.giyeok.jparser.Symbols
            |import com.giyeok.jparser.nparser.NGrammar
            |import com.giyeok.jparser.ParseResultTree.Node
-           |import scala.collection.immutable.{ListMap, ListSet}
            |
            |object $objectName {
            |  val ngrammar = ${ngrammarDef()}

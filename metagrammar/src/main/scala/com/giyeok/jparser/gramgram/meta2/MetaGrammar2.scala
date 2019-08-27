@@ -46,7 +46,7 @@ object MetaGrammar2 {
 
         val arrayGrammar =
             """array = '[' expression (',' expression)* ']' {@Array(elems=[$1] + $2$1)}
-              |expression = 'axyz0'
+              |expression = 'axyz0' {@Expression(name=$0)}
               |""".stripMargin
 
         val ast = grammarSpecToAST(arrayGrammar)
