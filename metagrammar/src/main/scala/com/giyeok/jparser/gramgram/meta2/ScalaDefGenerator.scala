@@ -1,10 +1,11 @@
 package com.giyeok.jparser.gramgram.meta2
 
+import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.gramgram.meta2.Analyzer.Analysis
-import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.gramgram.meta2.TypeDependenceGraph.SymbolNode
 import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.nparser.NGrammar.{NStart, NSymbol}
 
 class ScalaDefGenerator(val analysis: Analysis) {
     // TODO
@@ -71,8 +72,8 @@ class ScalaDefGenerator(val analysis: Analysis) {
     private def nAtomicSymbolString(nsymbol: NGrammar.NAtomicSymbol): String = nsymbol match {
         case NGrammar.NTerminal(id, symbol) =>
             s"NGrammar.NTerminal($id, ${symbolString(symbol)})"
-        case NGrammar.NStart(id, produces) =>
-            s"NGrammar.NStart($id, ${intSetString(produces)})"
+        case NGrammar.NStart(id, produce) =>
+            s"NGrammar.NStart($id, $produce)"
         case NGrammar.NNonterminal(id, symbol, produces) =>
             s"NGrammar.NNonterminal($id, ${symbolString(symbol)}, ${intSetString(produces)})"
         case NGrammar.NOneOf(id, symbol, produces) =>
@@ -217,7 +218,6 @@ class ScalaDefGenerator(val analysis: Analysis) {
     }
 
     def astifierDefs(): String = {
-        // TODO matchStart
         val astifierStrings = analysis.astifiers map { a =>
             val (lhs, rhs) = a
             val lhsNonterm = Symbols.Nonterminal(lhs)
@@ -242,7 +242,77 @@ class ScalaDefGenerator(val analysis: Analysis) {
         astifierStrings mkString "\n\n"
     }
 
-    def toGrammarObject(objectName: String): String = {
+    private def startSymbol(): NSymbol =
+        analysis.ngrammar.symbolOf(analysis.ngrammar.nsymbols(analysis.ngrammar.startSymbol).asInstanceOf[NStart].produce)
+
+    def sourceTextOf(): String = {
+        s"""private def sourceTextOf(node: ParseResultTree.Node): String = node match {
+           |  case ParseResultTree.TerminalNode(input) => input.toRawString
+           |  case ParseResultTree.BindNode(_, body) => sourceTextOf(body)
+           |  case ParseResultTree.JoinNode(body, _) => sourceTextOf(body)
+           |  case seq: SequenceNode => seq.children map sourceTextOf mkString ""
+           |  case _ => throw new Exception("Cyclic bind")
+           |}""".stripMargin
+    }
+
+    def unrollRepeat0(): String = {
+        s"""private def unrollRepeat0(node: Node): List[Node] = {
+           |  val BindNode(repeat: NRepeat, body) = node
+           |  body match {
+           |    case BindNode(symbol, repeating: SequenceNode) =>
+           |      assert(symbol.id == repeat.repeatSeq)
+           |      val s = repeating.children(1)
+           |      val r = unrollRepeat0(repeating.children(0))
+           |      r :+ s
+           |    case SequenceNode(symbol, emptySeq) =>
+           |      assert(symbol.id == repeat.baseSeq)
+           |      assert(emptySeq.isEmpty)
+           |      List()
+           |  }
+           |}""".stripMargin
+    }
+
+    def matchStart(): String = {
+        val funcName = matchFuncName(startSymbol().symbol)
+
+        val returnType = analysis.typeDependenceGraph.inferType(SymbolNode(startSymbol().symbol))
+        val returnTypeSpec = returnType.fixedType.getOrElse(returnType.inferredTypes.head)
+
+        s"""def matchStart(node: Node): ${typeSpecToString(returnTypeSpec)} = {
+           |  val BindNode(start, BindNode(startNonterm, body)) = node
+           |  assert(start.id == ${analysis.ngrammar.startSymbol})
+           |  assert(startNonterm.id == ${startSymbol().id})
+           |  $funcName(body)
+           |}""".stripMargin
+    }
+
+    def parseUtilFuncs(): String = {
+        val startAstType = analysis.typeDependenceGraph.inferType(SymbolNode(startSymbol().symbol))
+        val startAstTypeSpec = startAstType.fixedType.getOrElse(startAstType.inferredTypes.head)
+        
+        s"""lazy val naiveParser = new NaiveParser(ngrammar)
+           |
+           |def parse(text: String): Either[Parser.NaiveContext, ParsingErrors.ParsingError] =
+           |  naiveParser.parse(text)
+           |
+           |def parseAst(text: String): Either[${typeSpecToString(startAstTypeSpec)}, ParsingErrors.ParsingError] =
+           |  parse(text) match {
+           |    case Left(ctx) =>
+           |      val tree = new ParseTreeConstructor(ParseForestFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
+           |      tree match {
+           |        case Some(forest) if forest.trees.size == 1 =>
+           |          Left(matchStart(forest.trees.head))
+           |        case Some(forest) =>
+           |          Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
+           |        case None => ???
+           |      }
+           |    case Right(error) => Right(error)
+           |  }""".stripMargin
+    }
+
+    def toGrammarObject(objectName: String, parseFuncs: Boolean = false): String = {
+        // TODO 필요한 모듈 종류에 따라 import 수정
+        // TODO unrollRepeat0 같은 함수는 필요한 경우에만 포함
         s"""import com.giyeok.jparser.Symbols
            |import com.giyeok.jparser.nparser.NGrammar
            |import com.giyeok.jparser.ParseResultTree.Node
@@ -252,7 +322,15 @@ class ScalaDefGenerator(val analysis: Analysis) {
            |
            |  ${classDefs()}
            |
+           |  ${sourceTextOf()}
+           |
+           |  ${unrollRepeat0()}
+           |
            |  ${astifierDefs()}
+           |
+           |  ${matchStart()}
+           |
+           |  ${parseUtilFuncs()}
            |}
            |""".stripMargin
     }

@@ -30,4 +30,6 @@ object ParsingErrors {
         val msg = "Unexpected Error??"
     }
 
+    case class AmbiguousParse(msg: String) extends ParsingError
+
 }

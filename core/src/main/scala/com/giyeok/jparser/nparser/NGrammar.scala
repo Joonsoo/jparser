@@ -41,7 +41,10 @@ object NGrammar {
     case class NTerminal(id: Int, symbol: Symbols.Terminal) extends NAtomicSymbol
 
     sealed trait NSimpleDerive { val produces: Set[Int] }
-    case class NStart(id: Int, produces: Set[Int]) extends NAtomicSymbol with NSimpleDerive { val symbol = Symbols.Start }
+    case class NStart(id: Int, produce: Int) extends NAtomicSymbol with NSimpleDerive {
+        val symbol = Symbols.Start
+        val produces = Set(produce)
+    }
     case class NNonterminal(id: Int, symbol: Symbols.Nonterminal, produces: Set[Int]) extends NAtomicSymbol with NSimpleDerive
     case class NOneOf(id: Int, symbol: Symbols.OneOf, produces: Set[Int]) extends NAtomicSymbol with NSimpleDerive
     case class NProxy(id: Int, symbol: Symbols.Proxy, produce: Int) extends NAtomicSymbol with NSimpleDerive { val produces = Set(produce) }
@@ -80,7 +83,7 @@ object NGrammar {
                             nsymbols(myId) = symbol match {
                                 case symbol: Symbols.Terminal => NTerminal(myId, symbol)
 
-                                case Symbols.Start => NStart(myId, Set(numberOf(grammar.startSymbol)))
+                                case Symbols.Start => NStart(myId, numberOf(grammar.startSymbol))
                                 case symbol: Symbols.Nonterminal => NNonterminal(myId, symbol, grammar.rules(symbol.name) map { numberOf })
                                 case symbol: Symbols.OneOf => NOneOf(myId, symbol, symbol.syms map { numberOf })
                                 case symbol: Symbols.Proxy => NProxy(myId, symbol, numberOf(symbol.sym))
