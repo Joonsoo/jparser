@@ -177,13 +177,13 @@ object Analyzer {
                                 case "?" =>
                                     val e = Symbols.Proxy(Symbols.Sequence(Seq()))
                                     val s = addSymbol(symbol, Symbols.OneOf(ListSet(e, repeatingBody)))
-                                    (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), repeating._3 map (_.changeBoundType(BoundType.Optional)))
+                                    (s, astifier, repeating._3 map (_.changeBoundType(BoundType.Optional)))
                                 case "*" =>
                                     val s = addSymbol(symbol, Symbols.Repeat(repeatingBody, 0))
-                                    (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), repeating._3 map (_.changeBoundType(BoundType.Repeat0)))
+                                    (s, astifier, repeating._3 map (_.changeBoundType(BoundType.Repeat0)))
                                 case "+" =>
                                     val s = addSymbol(symbol, Symbols.Repeat(repeatingBody, 1))
-                                    (s, astifier.replaceThisNode(Unbinder(ThisNode, s)), repeating._3 map (_.changeBoundType(BoundType.Repeat1)))
+                                    (s, astifier, repeating._3 map (_.changeBoundType(BoundType.Repeat1)))
                             }
                         case AST.Paren(_, choices) =>
                             addSymbol1(symbol, astSymbolToSymbol(choices))
@@ -276,7 +276,7 @@ object Analyzer {
                     }
                 }
                 val seqSym = Symbols.Sequence(syms)
-                (seqSym, Unbinder(ThisNode, seqSym), Some(ctx))
+                (seqSym, ThisNode, Some(ctx))
             }
         }
 

@@ -163,53 +163,73 @@ class ScalaDefGenerator(val analysis: Analysis) {
                     s"val $v3 = $matchFunc($v2)"),
                     v3)
             } else {
-                val xn = nextArgName()
-                val nv = nextArgName()
+                val v1 = nextArgName()
+                val v2 = nextArgName()
                 GenAstifierString(e.prepare ++ List(
-                    s"val BindNode($xn, $nv) = ${e.result}",
-                    s"assert($xn.id == $bindedSymbolId)"),
-                    nv)
+                    s"val BindNode($v1, $v2) = ${e.result}",
+                    s"assert($v1.id == $bindedSymbolId)"),
+                    v2)
             }
         case SeqRef(expr, idx) =>
             val e = astifierString(expr, argName)
-            val nv = nextArgName()
-            GenAstifierString(e.prepare :+ s"val $nv = ${e.result}.asInstanceOf[SequenceNode].children($idx)", nv)
+            val v = nextArgName()
+            GenAstifierString(e.prepare :+ s"val $v = ${e.result}.asInstanceOf[SequenceNode].children($idx)", v)
         case UnrollMapper(boundType, referrer, target, mapFn) =>
             // TODO boundType에 따라서 unrollRepeat0를 다른 함수로 바꿔야 함
             val referrerAstifier = astifierString(referrer, argName)
             val targetAstifier = astifierString(target, "n")
             val mapFnAstifier = astifierString(mapFn, targetAstifier.result)
-            val v1 = nextArgName()
-            GenAstifierString(referrerAstifier.prepare ++
-                List(s"val $v1 = unrollRepeat0(${referrerAstifier.result}) map { n =>") ++
-                targetAstifier.prepare ++
-                mapFnAstifier.prepare ++
-                List(mapFnAstifier.result, "}"),
-                v1)
+            val v = nextArgName()
+            boundType match {
+                case BoundType.Sequence =>
+                    ???
+                case BoundType.Choice =>
+                    ???
+                case BoundType.Repeat0 =>
+                    GenAstifierString(referrerAstifier.prepare ++
+                        List(s"val $v = unrollRepeat0(${referrerAstifier.result}) map { n =>") ++
+                        targetAstifier.prepare ++
+                        mapFnAstifier.prepare ++
+                        List(mapFnAstifier.result, "}"),
+                        v)
+                case BoundType.Repeat1 =>
+                    GenAstifierString(referrerAstifier.prepare ++
+                        List(s"val $v = unrollRepeat1(${referrerAstifier.result}) map { n =>") ++
+                        targetAstifier.prepare ++
+                        mapFnAstifier.prepare ++
+                        List(mapFnAstifier.result, "}"),
+                        v)
+                case BoundType.Optional =>
+                    ???
+                case BoundType.Paren =>
+                    ???
+                case BoundType.Longest =>
+                    ???
+            }
         case UnrollChoices(choiceSymbols) =>
             // TODO
             ???
         case CreateObj(className, args) =>
             val argStrings = args map (astifierString(_, argName))
-            val nv = nextArgName()
+            val v = nextArgName()
             GenAstifierString(
                 (argStrings flatMap (_.prepare)) :+
-                    s"val $nv = $className(${argStrings map (_.result) mkString ","})",
-                nv)
+                    s"val $v = $className(${argStrings map (_.result) mkString ","})",
+                v)
         case CreateList(elems) =>
             val elemStrings = elems map (astifierString(_, argName))
-            val nv = nextArgName()
+            val v = nextArgName()
             GenAstifierString(
                 (elemStrings flatMap (_.prepare)) :+
-                    s"val $nv = List(${elemStrings map (_.result) mkString ","})",
-                nv)
+                    s"val $v = List(${elemStrings map (_.result) mkString ","})",
+                v)
         case ConcatList(lhs, rhs) =>
             val ln = astifierString(lhs, argName)
             val rn = astifierString(rhs, argName)
-            val nv = nextArgName()
+            val v = nextArgName()
             GenAstifierString((ln.prepare ++ rn.prepare) :+
-                s"val $nv = ${ln.result} ++ ${rn.result}",
-                nv)
+                s"val $v = ${ln.result} ++ ${rn.result}",
+                v)
     }
 
     private def matchFuncName(symbol: Symbols.Symbol): String = symbol match {
@@ -289,8 +309,16 @@ class ScalaDefGenerator(val analysis: Analysis) {
     def parseUtilFuncs(): String = {
         val startAstType = analysis.typeDependenceGraph.inferType(SymbolNode(startSymbol().symbol))
         val startAstTypeSpec = startAstType.fixedType.getOrElse(startAstType.inferredTypes.head)
-        
+
         s"""lazy val naiveParser = new NaiveParser(ngrammar)
+           |
+           |def sourceTextOf(node: ParseResultTree.Node): String = node match {
+           |  case ParseResultTree.TerminalNode(input) => input.toRawString
+           |  case ParseResultTree.BindNode(_, body) => sourceTextOf(body)
+           |  case ParseResultTree.JoinNode(body, _) => sourceTextOf(body)
+           |  case seq: SequenceNode => seq.children map sourceTextOf mkString ""
+           |  case _ => throw new Exception("Cyclic bind")
+           |}
            |
            |def parse(text: String): Either[Parser.NaiveContext, ParsingErrors.ParsingError] =
            |  naiveParser.parse(text)

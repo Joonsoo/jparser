@@ -21,20 +21,10 @@ object G {
             3 -> NGrammar.NSequence(3, Symbols.Sequence(Seq(Symbols.ExactChar('['), Symbols.Nonterminal("expression"), Symbols.Repeat(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.ExactChar(','), Symbols.Nonterminal("expression")))), 0), Symbols.ExactChar(']'))), Seq(4, 5, 8, 14))),
         1)
 
-    case class Array(elems: List[Expression]) {
-        override def toString: String = s"Array(${
-            elems map { e => sourceTextOf(e.name) } mkString ","
-        })"
-    }
+    case class Array(elems: List[Expression])
 
-    case class Expression(name: Node)
-
-    private def sourceTextOf(node: ParseResultTree.Node): String = node match {
-        case ParseResultTree.TerminalNode(input) => input.toRawString
-        case ParseResultTree.BindNode(_, body) => sourceTextOf(body)
-        case ParseResultTree.JoinNode(body, _) => sourceTextOf(body)
-        case seq: SequenceNode => seq.children map sourceTextOf mkString ""
-        case _ => throw new Exception("Cyclic bind")
+    case class Expression(name: Node) {
+        override def toString(): String = sourceTextOf(name)
     }
 
     private def unrollRepeat0(node: Node): List[Node] = {
@@ -62,24 +52,20 @@ object G {
                 val v4 = matchExpression(v3)
                 val v5 = List(v4)
                 val v6 = body.asInstanceOf[SequenceNode].children(2)
-                val v19 = unrollRepeat0(v6) map { n =>
-                    // val BindNode(v7, v8) = n
-                    // assert(v7.id == 8)
-                    val BindNode(v9, v10) = n
-                    assert(v9.id == 11)
-                    val BindNode(v11, v12) = v10
-                    assert(v11.id == 12)
-                    // val BindNode(v13, v14) = v12
-                    // assert(v13.id == 12)
-                    val v15 = v12.asInstanceOf[SequenceNode].children(1)
-                    val BindNode(v16, v17) = v15
-                    assert(v16.id == 5)
-                    val v18 = matchExpression(v17)
-                    v18
+                val v15 = unrollRepeat0(v6) map { n =>
+                    val BindNode(v7, v8) = n
+                    assert(v7.id == 11)
+                    val BindNode(v9, v10) = v8
+                    assert(v9.id == 12)
+                    val v11 = v10.asInstanceOf[SequenceNode].children(1)
+                    val BindNode(v12, v13) = v11
+                    assert(v12.id == 5)
+                    val v14 = matchExpression(v13)
+                    v14
                 }
-                val v20 = v5 ++ v19
-                val v21 = Array(v20)
-                v21
+                val v16 = v5 ++ v15
+                val v17 = Array(v16)
+                v17
         }
     }
 
@@ -87,9 +73,9 @@ object G {
         val BindNode(symbol, body) = node
         symbol.id match {
             case 6 =>
-                val v22 = body.asInstanceOf[SequenceNode].children(0)
-                val v23 = Expression(v22)
-                v23
+                val v18 = body.asInstanceOf[SequenceNode].children(0)
+                val v19 = Expression(v18)
+                v19
         }
     }
 
@@ -101,6 +87,14 @@ object G {
     }
 
     lazy val naiveParser = new NaiveParser(ngrammar)
+
+    def sourceTextOf(node: ParseResultTree.Node): String = node match {
+        case ParseResultTree.TerminalNode(input) => input.toRawString
+        case ParseResultTree.BindNode(_, body) => sourceTextOf(body)
+        case ParseResultTree.JoinNode(body, _) => sourceTextOf(body)
+        case seq: SequenceNode => seq.children map sourceTextOf mkString ""
+        case _ => throw new Exception("Cyclic bind")
+    }
 
     def parse(text: String): Either[Parser.NaiveContext, ParsingErrors.ParsingError] =
         naiveParser.parse(text)
