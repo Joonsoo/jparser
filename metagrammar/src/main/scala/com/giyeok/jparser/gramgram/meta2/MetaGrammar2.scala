@@ -41,7 +41,6 @@ object MetaGrammar2 {
               |number: @Number = '0' {@Integer(value=[$0])}
               |    | '1-9' '0-9'* {Integer([$0, $1])}
               |variable = <'A-Za-z'+> {@Variable(name=$0)}
-              |array = '[' expression (',' expression)* ']' {@Array(elems=[$1] + $2$1)}
             """.stripMargin
 
         val arrayGrammar =
@@ -49,7 +48,7 @@ object MetaGrammar2 {
               |expression = 'axyz0' {@Expression(name=$0)}
               |""".stripMargin
 
-        val ast = grammarSpecToAST(arrayGrammar)
+        val ast = grammarSpecToAST(expressionGrammar)
 
         println(ast)
 
@@ -68,7 +67,7 @@ object MetaGrammar2 {
         println(scaladef.grammarDef("G", includeAstifiers = false))
         println(scaladef.classDefs())
 
-        println(scaladef.toGrammarObject("G"))
+        println(scaladef.toGrammarObject("G", parseUtils = true))
 
         analysis.astifiers.foreach { astifier =>
             println(s"${astifier._1} =")

@@ -580,7 +580,8 @@ object Analyzer {
                 case AST.Rule(_, lhs, rhs) =>
                     val processedR = rhs map { r =>
                         val (symbol, _, boundRef) = astifierGenerator.astElemSequence(r.elems)
-                        val lastExpr = boundRef.get.refs.last._1
+                        val lastExpr0 = boundRef.get.refs.last._1
+                        val lastExpr = if (r.elems.last.isInstanceOf[AST.Processor]) lastExpr0 else lastExpr0.replaceThisNode(SeqRef(ThisNode, symbol.seq.length - 1))
                         (symbol, lastExpr)
                     }
                     lhs.name.name.toString -> processedR

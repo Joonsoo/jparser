@@ -98,10 +98,10 @@ class ScalaDefGenerator(val analysis: Analysis) {
         s"NGrammar.NSequence(${nseq.id}, ${symbolString(nseq.symbol)}, ${intSeqString(nseq.sequence)})"
 
     def ngrammarDef(): String = {
-        val nsymbolsString = analysis.ngrammar.nsymbols.toList map { s =>
+        val nsymbolsString = analysis.ngrammar.nsymbols.toList.sortBy(_._1) map { s =>
             s"${s._1} -> ${nAtomicSymbolString(s._2)}"
         }
-        val nseqsString = analysis.ngrammar.nsequences.toList map { s =>
+        val nseqsString = analysis.ngrammar.nsequences.toList.sortBy(_._1) map { s =>
             s"${s._1} -> ${nSequenceString(s._2)}"
         }
         s"""new NGrammar(
@@ -135,7 +135,16 @@ class ScalaDefGenerator(val analysis: Analysis) {
         }
     }
 
-    def classDefs(): String = classDefsList() mkString "\n"
+    case class CodeBlock(code: String, requirements: Set[String]) {
+        def append(codeBlock: CodeBlock): CodeBlock =
+            CodeBlock(code + "\n" + codeBlock.code, requirements ++ codeBlock.requirements)
+
+        def addRequirement(requirement: String): CodeBlock = CodeBlock(code, requirements + requirement)
+
+        def removeRequirement(requirement: String): CodeBlock = CodeBlock(code, requirements - requirement)
+    }
+
+    def classDefs(): CodeBlock = CodeBlock(classDefsList() mkString "\n", Set())
 
     private var _argNum = 0
 
@@ -144,10 +153,10 @@ class ScalaDefGenerator(val analysis: Analysis) {
         "v" + _argNum
     }
 
-    case class GenAstifierString(prepare: List[String], result: String)
+    case class GenAstifierString(prepare: List[String], result: String, requirements: Set[String])
 
     private def astifierString(expr: AstifierExpr, argName: String): GenAstifierString = expr match {
-        case ThisNode => GenAstifierString(List(), argName)
+        case ThisNode => GenAstifierString(List(), argName, Set())
         case Unbinder(expr, symbol) =>
             // TODO symbol 타입에 맞춰서 match** 함수 호출하는 경우 처리
             val bindedSymbolId = analysis.ngrammar.idOf(symbol)
@@ -161,24 +170,25 @@ class ScalaDefGenerator(val analysis: Analysis) {
                     s"val BindNode($v1, $v2) = ${e.result}",
                     s"assert($v1.id == $bindedSymbolId)",
                     s"val $v3 = $matchFunc($v2)"),
-                    v3)
+                    v3, e.requirements)
             } else {
                 val v1 = nextArgName()
                 val v2 = nextArgName()
                 GenAstifierString(e.prepare ++ List(
                     s"val BindNode($v1, $v2) = ${e.result}",
                     s"assert($v1.id == $bindedSymbolId)"),
-                    v2)
+                    v2, e.requirements)
             }
         case SeqRef(expr, idx) =>
             val e = astifierString(expr, argName)
             val v = nextArgName()
-            GenAstifierString(e.prepare :+ s"val $v = ${e.result}.asInstanceOf[SequenceNode].children($idx)", v)
+            GenAstifierString(e.prepare :+ s"val $v = ${e.result}.asInstanceOf[SequenceNode].children($idx)", v, e.requirements)
         case UnrollMapper(boundType, referrer, target, mapFn) =>
             // TODO boundType에 따라서 unrollRepeat0를 다른 함수로 바꿔야 함
             val referrerAstifier = astifierString(referrer, argName)
             val targetAstifier = astifierString(target, "n")
             val mapFnAstifier = astifierString(mapFn, targetAstifier.result)
+            val requiredFeatures = referrerAstifier.requirements ++ targetAstifier.requirements ++ mapFnAstifier.requirements
             val v = nextArgName()
             boundType match {
                 case BoundType.Sequence =>
@@ -191,14 +201,14 @@ class ScalaDefGenerator(val analysis: Analysis) {
                         targetAstifier.prepare ++
                         mapFnAstifier.prepare ++
                         List(mapFnAstifier.result, "}"),
-                        v)
+                        v, requiredFeatures + "unrollRepeat0")
                 case BoundType.Repeat1 =>
                     GenAstifierString(referrerAstifier.prepare ++
                         List(s"val $v = unrollRepeat1(${referrerAstifier.result}) map { n =>") ++
                         targetAstifier.prepare ++
                         mapFnAstifier.prepare ++
                         List(mapFnAstifier.result, "}"),
-                        v)
+                        v, requiredFeatures + "unrollRepeat1")
                 case BoundType.Optional =>
                     ???
                 case BoundType.Paren =>
@@ -215,21 +225,21 @@ class ScalaDefGenerator(val analysis: Analysis) {
             GenAstifierString(
                 (argStrings flatMap (_.prepare)) :+
                     s"val $v = $className(${argStrings map (_.result) mkString ","})",
-                v)
+                v, argStrings.flatMap(_.requirements).toSet)
         case CreateList(elems) =>
             val elemStrings = elems map (astifierString(_, argName))
             val v = nextArgName()
             GenAstifierString(
                 (elemStrings flatMap (_.prepare)) :+
                     s"val $v = List(${elemStrings map (_.result) mkString ","})",
-                v)
+                v, elemStrings.flatMap(_.requirements).toSet)
         case ConcatList(lhs, rhs) =>
             val ln = astifierString(lhs, argName)
             val rn = astifierString(rhs, argName)
             val v = nextArgName()
             GenAstifierString((ln.prepare ++ rn.prepare) :+
                 s"val $v = ${ln.result} ++ ${rn.result}",
-                v)
+                v, ln.requirements ++ rn.requirements)
     }
 
     private def matchFuncName(symbol: Symbols.Symbol): String = symbol match {
@@ -237,7 +247,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
             s"match${nonterm.substring(0, 1).toUpperCase}${nonterm.substring(1)}"
     }
 
-    def astifierDefs(): String = {
+    def astifierDefs(): CodeBlock = {
         val astifierStrings = analysis.astifiers map { a =>
             val (lhs, rhs) = a
             val lhsNonterm = Symbols.Nonterminal(lhs)
@@ -250,34 +260,38 @@ class ScalaDefGenerator(val analysis: Analysis) {
                 // TODO unreachable symbol이 있으면 없는 심볼에 대해서 ngrammar.idOf 실행해서 오류 생길 수 있음
                 val symbolId = analysis.ngrammar.idOf(r._1)
                 val gen = astifierString(r._2, "body")
-                symbolId -> ((gen.prepare :+ gen.result) mkString "\n")
+                symbolId -> (((gen.prepare :+ gen.result) mkString "\n"), gen.requirements)
             }
-            s"""def $funcName(node: Node): ${typeSpecToString(returnTypeSpec)} = {
-               |  val BindNode(symbol, body) = node
-               |  symbol.id match {
-               |    ${rr map { c => s"case ${c._1} =>\n${c._2}" } mkString "\n"}
-               |  }
-               |}""".stripMargin
+            CodeBlock(
+                s"""def $funcName(node: Node): ${typeSpecToString(returnTypeSpec)} = {
+                   |  val BindNode(symbol, body) = node
+                   |  symbol.id match {
+                   |    ${rr map { c => s"case ${c._1} =>\n${c._2._1}" } mkString "\n"}
+                   |  }
+                   |}""".stripMargin, (rr flatMap (_._2._2)).toSet)
         }
-        astifierStrings mkString "\n\n"
+        astifierStrings.foldLeft(CodeBlock("", Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode"))) {
+            _.append(_)
+        }
     }
 
     private def startSymbol(): NSymbol =
         analysis.ngrammar.symbolOf(analysis.ngrammar.nsymbols(analysis.ngrammar.startSymbol).asInstanceOf[NStart].produce)
 
-    def sourceTextOf(): String = {
-        s"""private def sourceTextOf(node: ParseResultTree.Node): String = node match {
-           |  case ParseResultTree.TerminalNode(input) => input.toRawString
-           |  case ParseResultTree.BindNode(_, body) => sourceTextOf(body)
-           |  case ParseResultTree.JoinNode(body, _) => sourceTextOf(body)
+    def sourceTextOf(): CodeBlock = CodeBlock(
+        s"""def sourceTextOf(node: Node): String = node match {
+           |  case TerminalNode(input) => input.toRawString
+           |  case BindNode(_, body) => sourceTextOf(body)
+           |  case JoinNode(body, _) => sourceTextOf(body)
            |  case seq: SequenceNode => seq.children map sourceTextOf mkString ""
            |  case _ => throw new Exception("Cyclic bind")
-           |}""".stripMargin
-    }
+           |}""".stripMargin,
+        Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.TerminalNode", "jparser.ParseResultTree.BindNode",
+            "jparser.ParseResultTree.JoinNode", "jparser.ParseResultTree.SequenceNode", "jparser.Inputs.InputToShortString"))
 
-    def unrollRepeat0(): String = {
+    def unrollRepeat0(): CodeBlock = CodeBlock(
         s"""private def unrollRepeat0(node: Node): List[Node] = {
-           |  val BindNode(repeat: NRepeat, body) = node
+           |  val BindNode(repeat: NGrammar.NRepeat, body) = node
            |  body match {
            |    case BindNode(symbol, repeating: SequenceNode) =>
            |      assert(symbol.id == repeat.repeatSeq)
@@ -289,77 +303,83 @@ class ScalaDefGenerator(val analysis: Analysis) {
            |      assert(emptySeq.isEmpty)
            |      List()
            |  }
-           |}""".stripMargin
-    }
+           |}""".stripMargin,
+        Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode", "jparser.ParseResultTree.SequenceNode",
+            "jparser.nparser.NGrammar"))
 
-    def matchStart(): String = {
+    def matchStart(): CodeBlock = {
         val funcName = matchFuncName(startSymbol().symbol)
 
         val returnType = analysis.typeDependenceGraph.inferType(SymbolNode(startSymbol().symbol))
         val returnTypeSpec = returnType.fixedType.getOrElse(returnType.inferredTypes.head)
 
-        s"""def matchStart(node: Node): ${typeSpecToString(returnTypeSpec)} = {
-           |  val BindNode(start, BindNode(startNonterm, body)) = node
-           |  assert(start.id == ${analysis.ngrammar.startSymbol})
-           |  assert(startNonterm.id == ${startSymbol().id})
-           |  $funcName(body)
-           |}""".stripMargin
+        CodeBlock(
+            s"""def matchStart(node: Node): ${typeSpecToString(returnTypeSpec)} = {
+               |  val BindNode(start, BindNode(startNonterm, body)) = node
+               |  assert(start.id == ${analysis.ngrammar.startSymbol})
+               |  assert(startNonterm.id == ${startSymbol().id})
+               |  $funcName(body)
+               |}""".stripMargin,
+            Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode"))
     }
 
-    def parseUtilFuncs(): String = {
+    def parseUtilFuncs(): CodeBlock = {
         val startAstType = analysis.typeDependenceGraph.inferType(SymbolNode(startSymbol().symbol))
         val startAstTypeSpec = startAstType.fixedType.getOrElse(startAstType.inferredTypes.head)
 
-        s"""lazy val naiveParser = new NaiveParser(ngrammar)
-           |
-           |def sourceTextOf(node: ParseResultTree.Node): String = node match {
-           |  case ParseResultTree.TerminalNode(input) => input.toRawString
-           |  case ParseResultTree.BindNode(_, body) => sourceTextOf(body)
-           |  case ParseResultTree.JoinNode(body, _) => sourceTextOf(body)
-           |  case seq: SequenceNode => seq.children map sourceTextOf mkString ""
-           |  case _ => throw new Exception("Cyclic bind")
-           |}
-           |
-           |def parse(text: String): Either[Parser.NaiveContext, ParsingErrors.ParsingError] =
-           |  naiveParser.parse(text)
-           |
-           |def parseAst(text: String): Either[${typeSpecToString(startAstTypeSpec)}, ParsingErrors.ParsingError] =
-           |  parse(text) match {
-           |    case Left(ctx) =>
-           |      val tree = new ParseTreeConstructor(ParseForestFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
-           |      tree match {
-           |        case Some(forest) if forest.trees.size == 1 =>
-           |          Left(matchStart(forest.trees.head))
-           |        case Some(forest) =>
-           |          Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
-           |        case None => ???
-           |      }
-           |    case Right(error) => Right(error)
-           |  }""".stripMargin
+        CodeBlock(
+            s"""lazy val naiveParser = new NaiveParser(ngrammar)
+               |
+               |def parse(text: String): Either[Parser.NaiveContext, ParsingErrors.ParsingError] =
+               |  naiveParser.parse(text)
+               |
+               |def parseAst(text: String): Either[${typeSpecToString(startAstTypeSpec)}, ParsingErrors.ParsingError] =
+               |  parse(text) match {
+               |    case Left(ctx) =>
+               |      val tree = new ParseTreeConstructor(ParseForestFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
+               |      tree match {
+               |        case Some(forest) if forest.trees.size == 1 =>
+               |          Left(matchStart(forest.trees.head))
+               |        case Some(forest) =>
+               |          Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
+               |        case None => ???
+               |      }
+               |    case Right(error) => Right(error)
+               |  }""".stripMargin,
+            Set("jparser.nparser.NaiveParser", "jparser.nparser.Parser", "jparser.ParsingErrors",
+                "jparser.ParseForestFunc", "jparser.nparser.ParseTreeConstructor"))
     }
 
-    def toGrammarObject(objectName: String, parseFuncs: Boolean = false): String = {
-        // TODO 필요한 모듈 종류에 따라 import 수정
-        // TODO unrollRepeat0 같은 함수는 필요한 경우에만 포함
-        s"""import com.giyeok.jparser.Symbols
-           |import com.giyeok.jparser.nparser.NGrammar
-           |import com.giyeok.jparser.ParseResultTree.Node
+    def toGrammarObject(objectName: String, parseUtils: Boolean = false): String = {
+        var codeBlock = classDefs().append(sourceTextOf()).append(astifierDefs()).append(matchStart())
+        if (parseUtils) codeBlock = codeBlock.addRequirement("parseUtilFuncs")
+
+        var imports = Set[String]("jparser.nparser.NGrammar", "jparser.Symbols")
+        while (codeBlock.requirements.nonEmpty) {
+            // TODO 실행 순서가 deterministic하지 않을 수 있음
+            val requirement = codeBlock.requirements.head
+            requirement match {
+                case "unrollRepeat0" => codeBlock = codeBlock.append(unrollRepeat0())
+                case "parseUtilFuncs" => codeBlock = codeBlock.append(parseUtilFuncs())
+                // TODO
+                case imprt if requirement.startsWith("jparser.") => imports += imprt
+            }
+            codeBlock = codeBlock.removeRequirement(requirement)
+        }
+
+        val importsByParent = imports map { i => i.splitAt(i.lastIndexOf('.')) } groupBy (_._1)
+        val importLines = (importsByParent.values map { i =>
+            val lastTokens = i map (_._2.substring(1))
+            if (lastTokens.size == 1) s"import com.giyeok.${i.head._1}.${lastTokens.head}"
+            else s"import com.giyeok.${i.head._1}.{${lastTokens mkString ", "}}"
+        }).toList
+
+        s"""${importLines.sorted mkString "\n"}
            |
            |object $objectName {
            |  val ngrammar = ${ngrammarDef()}
            |
-           |  ${classDefs()}
-           |
-           |  ${sourceTextOf()}
-           |
-           |  ${unrollRepeat0()}
-           |
-           |  ${astifierDefs()}
-           |
-           |  ${matchStart()}
-           |
-           |  ${parseUtilFuncs()}
-           |}
-           |""".stripMargin
+           |  ${codeBlock.code}
+           |}""".stripMargin
     }
 }
