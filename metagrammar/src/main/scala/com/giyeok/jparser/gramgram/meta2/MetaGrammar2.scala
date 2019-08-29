@@ -48,7 +48,17 @@ object MetaGrammar2 {
               |expression = 'axyz0' {@Expression(name=$0)}
               |""".stripMargin
 
-        val ast = grammarSpecToAST(expressionGrammar)
+        val xGrammar =
+            """TerminalChoice = '\'' TerminalChoiceElem (TerminalChoiceElem #)+ '\'' {@TerminalChoice(choices:[TerminalChoiceElem]=[$1] + $2$0)}
+              |  | '\'' TerminalChoiceRange '\'' {TerminalChoice([$1])}
+              |TerminalChoiceElem: @TerminalChoiceElem = TerminalChoiceChar
+              |  | TerminalChoiceRange
+              |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {@TerminalChoiceRange(start=$0, end=$2)}
+              |TerminalChoiceChar: @TerminalChoiceChar = .-'\'\-\\' {@CharAsIs(c=$0)}
+              |  | '\\' '\'\-\\bnrt' {@CharEscaped(escapeCode=$1)}
+            """.stripMargin
+
+        val ast = grammarSpecToAST(xGrammar)
 
         println(ast)
 
@@ -64,10 +74,10 @@ object MetaGrammar2 {
         }
 
         val scaladef = new ScalaDefGenerator(analysis)
-        println(scaladef.grammarDef("G", includeAstifiers = false))
+        println(scaladef.grammarDef("G2", includeAstifiers = false))
         println(scaladef.classDefs())
 
-        println(scaladef.toGrammarObject("G", parseUtils = true))
+        println(scaladef.toGrammarObject("G2", parseUtils = true))
 
         analysis.astifiers.foreach { astifier =>
             println(s"${astifier._1} =")

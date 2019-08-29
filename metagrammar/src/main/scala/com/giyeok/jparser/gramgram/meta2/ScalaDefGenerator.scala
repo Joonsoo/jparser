@@ -11,11 +11,26 @@ class ScalaDefGenerator(val analysis: Analysis) {
     // TODO
     private def escapeString(str: String): String = s""""$str""""
 
-    private def escapeChar(c: Char): String = {
-        // TODO
-        val escaped = c
-        s"""'$escaped'"""
+    def isPrintableChar(char: Char): Boolean = {
+        val block = Character.UnicodeBlock.of(char)
+        (!Character.isISOControl(char)) && block != null && block != Character.UnicodeBlock.SPECIALS
     }
+
+    def javaChar(char: Char): String = char match {
+        case '\n' => "\\n"
+        case '\r' => "\\r"
+        case '\t' => "\\t"
+        case '\\' => "\\\\"
+        case '\'' => "\\'"
+        case c if !isPrintableChar(c) && c.toInt < 65536 =>
+            val c1 = (c.toInt >> 8) % 256
+            val c2 = c.toInt % 256
+            val hexChars = "0123456789abcdef"
+            s"\\u${hexChars(c1 >> 4)}${hexChars(c1 & 15)}${hexChars(c2 >> 4)}${hexChars(c2 & 15)}"
+        case c => c.toString
+    }
+
+    private def escapeChar(c: Char): String = s"'${javaChar(c)}'"
 
     private def symbolString(symbol: Symbols.Symbol): String = symbol match {
         case Symbols.Nonterminal(name) => s"Symbols.Nonterminal(${escapeString(name)})"
@@ -157,7 +172,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
 
     private def astifierString(expr: AstifierExpr, argName: String): GenAstifierString = expr match {
         case ThisNode => GenAstifierString(List(), argName, Set())
-        case Unbinder(expr, symbol) =>
+        case Matcher(expr, symbol) =>
             // TODO symbol 타입에 맞춰서 match** 함수 호출하는 경우 처리
             val bindedSymbolId = analysis.ngrammar.idOf(symbol)
             val e = astifierString(expr, argName)
@@ -183,42 +198,32 @@ class ScalaDefGenerator(val analysis: Analysis) {
             val e = astifierString(expr, argName)
             val v = nextArgName()
             GenAstifierString(e.prepare :+ s"val $v = ${e.result}.asInstanceOf[SequenceNode].children($idx)", v, e.requirements)
-        case UnrollMapper(boundType, referrer, target, mapFn) =>
-            // TODO boundType에 따라서 unrollRepeat0를 다른 함수로 바꿔야 함
+        case UnrollerRepeat(lower, target) =>
+            val r = astifierString(target, argName)
+            val v = nextArgName()
+            lower match {
+                case 0 =>
+                    GenAstifierString(r.prepare :+ s"val $v = unrollRepeat0(${r.result})", v, r.requirements + "unrollRepeat0")
+                case 1 =>
+                    GenAstifierString(r.prepare :+ s"val $v = unrollRepeat1(${r.result})", v, r.requirements + "unrollRepeat1")
+            }
+        case UnrollerOptional(target, emptySym, contentSym) =>
+            ???
+        case UnrollMapper(referrer, target, mapFn) =>
             val referrerAstifier = astifierString(referrer, argName)
             val targetAstifier = astifierString(target, "n")
             val mapFnAstifier = astifierString(mapFn, targetAstifier.result)
             val requiredFeatures = referrerAstifier.requirements ++ targetAstifier.requirements ++ mapFnAstifier.requirements
             val v = nextArgName()
-            boundType match {
-                case BoundType.Sequence =>
-                    ???
-                case BoundType.Choice =>
-                    ???
-                case BoundType.Repeat0 =>
-                    GenAstifierString(referrerAstifier.prepare ++
-                        List(s"val $v = unrollRepeat0(${referrerAstifier.result}) map { n =>") ++
-                        targetAstifier.prepare ++
-                        mapFnAstifier.prepare ++
-                        List(mapFnAstifier.result, "}"),
-                        v, requiredFeatures + "unrollRepeat0")
-                case BoundType.Repeat1 =>
-                    GenAstifierString(referrerAstifier.prepare ++
-                        List(s"val $v = unrollRepeat1(${referrerAstifier.result}) map { n =>") ++
-                        targetAstifier.prepare ++
-                        mapFnAstifier.prepare ++
-                        List(mapFnAstifier.result, "}"),
-                        v, requiredFeatures + "unrollRepeat1")
-                case BoundType.Optional =>
-                    ???
-                case BoundType.Paren =>
-                    ???
-                case BoundType.Longest =>
-                    ???
-            }
+            GenAstifierString(referrerAstifier.prepare ++
+                List(s"val $v = unrollRepeat0(${referrerAstifier.result}) map { n =>") ++
+                targetAstifier.prepare ++
+                mapFnAstifier.prepare ++
+                List(mapFnAstifier.result, "}"),
+                v, requiredFeatures)
         case UnrollChoices(choiceSymbols) =>
             // TODO
-            ???
+            GenAstifierString(List("// UnrollChoices"), argName, Set())
         case CreateObj(className, args) =>
             val argStrings = args map (astifierString(_, argName))
             val v = nextArgName()
@@ -247,14 +252,21 @@ class ScalaDefGenerator(val analysis: Analysis) {
             s"match${nonterm.substring(0, 1).toUpperCase}${nonterm.substring(1)}"
     }
 
+    private def matchFuncSignature(symbol: Symbols.Symbol): (String, TypeSpec) = {
+        val nodeType = analysis.typeDependenceGraph.inferType(TypeDependenceGraph.SymbolNode(symbol))
+        val returnType = nodeType.fixedType.getOrElse {
+            val types = analysis.typeHierarchyGraph.removeRedundantTypesFrom(nodeType.inferredTypes) map analysis.typeHierarchyGraph.cleanType
+            if (types.size == 1) types.head else UnionType(types)
+        }
+
+        (matchFuncName(symbol), returnType)
+    }
+
     def astifierDefs(): CodeBlock = {
         val astifierStrings = analysis.astifiers map { a =>
             val (lhs, rhs) = a
             val lhsNonterm = Symbols.Nonterminal(lhs)
-            val funcName = matchFuncName(lhsNonterm)
-
-            val returnType = analysis.typeDependenceGraph.inferType(SymbolNode(lhsNonterm))
-            val returnTypeSpec = returnType.fixedType.getOrElse(returnType.inferredTypes.head)
+            val (funcName, returnType) = matchFuncSignature(lhsNonterm)
 
             val rr = rhs map { r =>
                 // TODO unreachable symbol이 있으면 없는 심볼에 대해서 ngrammar.idOf 실행해서 오류 생길 수 있음
@@ -263,7 +275,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
                 symbolId -> (((gen.prepare :+ gen.result) mkString "\n"), gen.requirements)
             }
             CodeBlock(
-                s"""def $funcName(node: Node): ${typeSpecToString(returnTypeSpec)} = {
+                s"""def $funcName(node: Node): ${typeSpecToString(returnType)} = {
                    |  val BindNode(symbol, body) = node
                    |  symbol.id match {
                    |    ${rr map { c => s"case ${c._1} =>\n${c._2._1}" } mkString "\n"}
@@ -307,14 +319,38 @@ class ScalaDefGenerator(val analysis: Analysis) {
         Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode", "jparser.ParseResultTree.SequenceNode",
             "jparser.nparser.NGrammar"))
 
-    def matchStart(): CodeBlock = {
-        val funcName = matchFuncName(startSymbol().symbol)
+    def unrollRepeat1(): CodeBlock = CodeBlock(
+        s"""private def unrollRepeat1(node: Node): List[Node] = {
+           |  val BindNode(repeat: NGrammar.NRepeat, body) = node
+           |  body match {
+           |    case BindNode(symbol, repeating: SequenceNode) if symbol.id == repeat.repeatSeq =>
+           |      assert(symbol.id == repeat.repeatSeq)
+           |      val s = repeating.children(1)
+           |      val r = unrollRepeat1(repeating.children(0))
+           |      r :+ s
+           |    case base =>
+           |      List(base)
+           |  }
+           |}""".stripMargin,
+        Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode", "jparser.ParseResultTree.SequenceNode",
+            "jparser.nparser.NGrammar"))
 
-        val returnType = analysis.typeDependenceGraph.inferType(SymbolNode(startSymbol().symbol))
-        val returnTypeSpec = returnType.fixedType.getOrElse(returnType.inferredTypes.head)
+    def unrollOptional(): CodeBlock = CodeBlock(
+        s"""private def unrollOptional(node: Node, emptyId: Int, bodyId: Int): Option[Node] = {
+           |  val BindNode(opt: NGrammar.NOneOf, body) = node
+           |  body match {
+           |    case BindNode(symbol, _) if symbol.id == emptyId => None
+           |    case BindNode(symbol, optBody) if symbol.id == bodyId => Some(optBody)
+           |  }
+           |}""".stripMargin,
+        Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode", "jparser.ParseResultTree.SequenceNode",
+            "jparser.nparser.NGrammar"))
+
+    def matchStart(): CodeBlock = {
+        val (funcName, returnType) = matchFuncSignature(startSymbol().symbol)
 
         CodeBlock(
-            s"""def matchStart(node: Node): ${typeSpecToString(returnTypeSpec)} = {
+            s"""def matchStart(node: Node): ${typeSpecToString(returnType)} = {
                |  val BindNode(start, BindNode(startNonterm, body)) = node
                |  assert(start.id == ${analysis.ngrammar.startSymbol})
                |  assert(startNonterm.id == ${startSymbol().id})
@@ -354,12 +390,14 @@ class ScalaDefGenerator(val analysis: Analysis) {
         var codeBlock = classDefs().append(sourceTextOf()).append(astifierDefs()).append(matchStart())
         if (parseUtils) codeBlock = codeBlock.addRequirement("parseUtilFuncs")
 
-        var imports = Set[String]("jparser.nparser.NGrammar", "jparser.Symbols")
+        var imports = Set[String]("jparser.nparser.NGrammar", "jparser.Symbols", "scala.collection.immutable.ListSet")
         while (codeBlock.requirements.nonEmpty) {
             // TODO 실행 순서가 deterministic하지 않을 수 있음
             val requirement = codeBlock.requirements.head
             requirement match {
                 case "unrollRepeat0" => codeBlock = codeBlock.append(unrollRepeat0())
+                case "unrollRepeat1" => codeBlock = codeBlock.append(unrollRepeat1())
+                case "unrollOptional" => codeBlock = codeBlock.append(unrollOptional())
                 case "parseUtilFuncs" => codeBlock = codeBlock.append(parseUtilFuncs())
                 // TODO
                 case imprt if requirement.startsWith("jparser.") => imports += imprt
@@ -369,9 +407,15 @@ class ScalaDefGenerator(val analysis: Analysis) {
 
         val importsByParent = imports map { i => i.splitAt(i.lastIndexOf('.')) } groupBy (_._1)
         val importLines = (importsByParent.values map { i =>
-            val lastTokens = i map (_._2.substring(1))
-            if (lastTokens.size == 1) s"import com.giyeok.${i.head._1}.${lastTokens.head}"
-            else s"import com.giyeok.${i.head._1}.{${lastTokens mkString ", "}}"
+            if (i.head._1.startsWith("scala.")) {
+                val lastTokens = i map (_._2.substring(1))
+                if (lastTokens.size == 1) s"import ${i.head._1}.${lastTokens.head}"
+                else s"import ${i.head._1}.{${lastTokens mkString ", "}}"
+            } else {
+                val lastTokens = i map (_._2.substring(1))
+                if (lastTokens.size == 1) s"import com.giyeok.${i.head._1}.${lastTokens.head}"
+                else s"import com.giyeok.${i.head._1}.{${lastTokens mkString ", "}}"
+            }
         }).toList
 
         s"""${importLines.sorted mkString "\n"}
