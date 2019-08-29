@@ -58,7 +58,13 @@ object MetaGrammar2 {
               |  | '\\' '\'\-\\bnrt' {@CharEscaped(escapeCode=$1)}
             """.stripMargin
 
-        val ast = grammarSpecToAST(xGrammar)
+        val yGrammar =
+            """StringLiteral = '"' StringChar* '"' {@StringLiteral(value=$1$0)}
+              |StringChar: @StringChar = .-'"\\' {@CharAsIs(c=$0)}
+              |  | '\\' '"\\bnrt' {@CharEscaped(c=$1)}
+              |""".stripMargin
+
+        val ast = grammarSpecToAST(GrammarDef.newGrammar)
 
         println(ast)
 
@@ -77,8 +83,6 @@ object MetaGrammar2 {
         println(scaladef.grammarDef("G2", includeAstifiers = false))
         println(scaladef.classDefs())
 
-        println(scaladef.toGrammarObject("G2", parseUtils = true))
-
         analysis.astifiers.foreach { astifier =>
             println(s"${astifier._1} =")
             astifier._2 foreach { r =>
@@ -86,6 +90,11 @@ object MetaGrammar2 {
                 println(s"  ${r._2}")
             }
         }
+
+        println()
+        println("===== G2.scala =====")
+        println()
+        println(scaladef.toGrammarObject("G3", parseUtils = true))
 
         // 문법이 주어지면
         // 1a. processor가 없는 문법 텍스트

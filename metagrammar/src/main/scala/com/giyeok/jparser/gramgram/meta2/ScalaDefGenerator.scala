@@ -113,11 +113,11 @@ class ScalaDefGenerator(val analysis: Analysis) {
         s"NGrammar.NSequence(${nseq.id}, ${symbolString(nseq.symbol)}, ${intSeqString(nseq.sequence)})"
 
     def ngrammarDef(): String = {
-        val nsymbolsString = analysis.ngrammar.nsymbols.toList.sortBy(_._1) map { s =>
-            s"${s._1} -> ${nAtomicSymbolString(s._2)}"
+        val nsymbolsString = analysis.ngrammar.nsymbols.toList.sortBy(_._1) flatMap { s =>
+            List(s"// ${s._2.symbol.toShortString}", s"${s._1} -> ${nAtomicSymbolString(s._2)}")
         }
-        val nseqsString = analysis.ngrammar.nsequences.toList.sortBy(_._1) map { s =>
-            s"${s._1} -> ${nSequenceString(s._2)}"
+        val nseqsString = analysis.ngrammar.nsequences.toList.sortBy(_._1) flatMap { s =>
+            List(s"// ${s._2.symbol.toShortString}", s"${s._1} -> ${nSequenceString(s._2)}")
         }
         s"""new NGrammar(
            |  Map(${nsymbolsString mkString ",\n"}),
@@ -172,7 +172,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
 
     private def astifierString(expr: AstifierExpr, argName: String): GenAstifierString = expr match {
         case ThisNode => GenAstifierString(List(), argName, Set())
-        case Matcher(expr, symbol) =>
+        case Unbind(expr, symbol) =>
             // TODO symbol 타입에 맞춰서 match** 함수 호출하는 경우 처리
             val bindedSymbolId = analysis.ngrammar.idOf(symbol)
             val e = astifierString(expr, argName)
@@ -198,26 +198,37 @@ class ScalaDefGenerator(val analysis: Analysis) {
             val e = astifierString(expr, argName)
             val v = nextArgName()
             GenAstifierString(e.prepare :+ s"val $v = ${e.result}.asInstanceOf[SequenceNode].children($idx)", v, e.requirements)
-        case UnrollerRepeat(lower, target) =>
-            val r = astifierString(target, argName)
+        case UnrollRepeat(lower, source, eachAstifier) =>
+            val r = astifierString(source, argName)
+            val e = astifierString(eachAstifier, "n")
             val v = nextArgName()
             lower match {
                 case 0 =>
-                    GenAstifierString(r.prepare :+ s"val $v = unrollRepeat0(${r.result})", v, r.requirements + "unrollRepeat0")
+                    GenAstifierString(r.prepare ++ List(
+                        s"val $v = unrollRepeat0(${r.result}) map { n =>") ++
+                        e.prepare ++
+                        List(e.result, "}"),
+                        v, r.requirements + "unrollRepeat0")
                 case 1 =>
-                    GenAstifierString(r.prepare :+ s"val $v = unrollRepeat1(${r.result})", v, r.requirements + "unrollRepeat1")
+                    GenAstifierString(r.prepare ++ List(
+                        s"val $v = unrollRepeat1(${r.result}) map { n =>") ++
+                        e.prepare ++
+                        List(e.result, "}"),
+                        v, r.requirements + "unrollRepeat1")
             }
-        case UnrollerOptional(target, emptySym, contentSym) =>
-            ???
-        case UnrollMapper(referrer, target, mapFn) =>
-            val referrerAstifier = astifierString(referrer, argName)
-            val targetAstifier = astifierString(target, "n")
-            val mapFnAstifier = astifierString(mapFn, targetAstifier.result)
-            val requiredFeatures = referrerAstifier.requirements ++ targetAstifier.requirements ++ mapFnAstifier.requirements
+        case UnrollOptional(target, emptySym, contentSym) =>
+            val r = astifierString(target, argName)
             val v = nextArgName()
-            GenAstifierString(referrerAstifier.prepare ++
-                List(s"val $v = unrollRepeat0(${referrerAstifier.result}) map { n =>") ++
-                targetAstifier.prepare ++
+            GenAstifierString(r.prepare ++ List(
+                s"val $v = unrollOptional(${r.result}, ${analysis.ngrammar.idOf(emptySym)}, ${analysis.ngrammar.idOf(contentSym)})"),
+                v, r.requirements + "unrollOptional")
+        case EachMap(target, mapFn) =>
+            val targetAstifier = astifierString(target, argName)
+            val mapFnAstifier = astifierString(mapFn, "n")
+            val requiredFeatures = targetAstifier.requirements ++ mapFnAstifier.requirements
+            val v = nextArgName()
+            GenAstifierString(targetAstifier.prepare ++
+                List(s"val $v = ${targetAstifier.result} map { n =>") ++
                 mapFnAstifier.prepare ++
                 List(mapFnAstifier.result, "}"),
                 v, requiredFeatures)
@@ -336,11 +347,11 @@ class ScalaDefGenerator(val analysis: Analysis) {
             "jparser.nparser.NGrammar"))
 
     def unrollOptional(): CodeBlock = CodeBlock(
-        s"""private def unrollOptional(node: Node, emptyId: Int, bodyId: Int): Option[Node] = {
+        s"""private def unrollOptional(node: Node, emptyId: Int, contentId: Int): Option[Node] = {
            |  val BindNode(opt: NGrammar.NOneOf, body) = node
            |  body match {
            |    case BindNode(symbol, _) if symbol.id == emptyId => None
-           |    case BindNode(symbol, optBody) if symbol.id == bodyId => Some(optBody)
+           |    case BindNode(symbol, content) if symbol.id == contentId => Some(content)
            |  }
            |}""".stripMargin,
         Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode", "jparser.ParseResultTree.SequenceNode",
@@ -387,6 +398,8 @@ class ScalaDefGenerator(val analysis: Analysis) {
     }
 
     def toGrammarObject(objectName: String, parseUtils: Boolean = false): String = {
+        _argNum = 0
+
         var codeBlock = classDefs().append(sourceTextOf()).append(astifierDefs()).append(matchStart())
         if (parseUtils) codeBlock = codeBlock.addRequirement("parseUtilFuncs")
 
