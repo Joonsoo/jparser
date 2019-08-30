@@ -52,6 +52,10 @@ case class ConcatList(lhs: AstifierExpr, rhs: AstifierExpr) extends AstifierExpr
 
 case class AstifiedCtx(refs: List[Astified]) {
     def :+(ref: Astified): AstifiedCtx = AstifiedCtx(refs :+ ref)
+
+    def replaceThisNode(node: AstifierExpr): AstifiedCtx = AstifiedCtx(refs map { r =>
+        Astified(r.symbol, r.astifierExpr.replaceThisNode(node), r.insideCtx)
+    })
 }
 
 // symbol이 ThisNode인 경우, 그 symbol을 astify하는 expression이 astifierExpr.

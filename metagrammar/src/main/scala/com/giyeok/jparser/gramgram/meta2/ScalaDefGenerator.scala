@@ -116,10 +116,12 @@ class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
 
     def ngrammarDef(): String = {
         val nsymbolsString = astAnalysis.ngrammar.nsymbols.toList.sortBy(_._1) flatMap { s =>
-            List(s"// ${s._2.symbol.toShortString}", s"${s._1} -> ${nAtomicSymbolString(s._2)}")
+            List( // s"// ${s._2.symbol.toShortString}",
+                s"${s._1} -> ${nAtomicSymbolString(s._2)}")
         }
         val nseqsString = astAnalysis.ngrammar.nsequences.toList.sortBy(_._1) flatMap { s =>
-            List(s"// ${s._2.symbol.toShortString}", s"${s._1} -> ${nSequenceString(s._2)}")
+            List( // s"// ${s._2.symbol.toShortString}",
+                s"${s._1} -> ${nSequenceString(s._2)}")
         }
         s"""new NGrammar(
            |  Map(${nsymbolsString mkString ",\n"}),
@@ -306,12 +308,14 @@ class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
         astAnalysis.ngrammar.symbolOf(astAnalysis.ngrammar.nsymbols(astAnalysis.ngrammar.startSymbol).asInstanceOf[NStart].produce)
 
     def sourceTextOf(): CodeBlock = CodeBlock(
-        s"""def sourceTextOf(node: Node): String = node match {
-           |  case TerminalNode(input) => input.toRawString
-           |  case BindNode(_, body) => sourceTextOf(body)
-           |  case JoinNode(body, _) => sourceTextOf(body)
-           |  case seq: SequenceNode => seq.children map sourceTextOf mkString ""
-           |  case _ => throw new Exception("Cyclic bind")
+        s"""implicit class SourceTextOfNode(node: Node) {
+           |  def sourceText: String = node match {
+           |    case TerminalNode(input) => input.toRawString
+           |    case BindNode(_, body) => body.sourceText
+           |    case JoinNode(body, _) => body.sourceText
+           |    case seq: SequenceNode => seq.children map (_.sourceText) mkString ""
+           |    case _ => throw new Exception("Cyclic bind")
+           |  }
            |}""".stripMargin,
         Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.TerminalNode", "jparser.ParseResultTree.BindNode",
             "jparser.ParseResultTree.JoinNode", "jparser.ParseResultTree.SequenceNode", "jparser.Inputs.InputToShortString"))

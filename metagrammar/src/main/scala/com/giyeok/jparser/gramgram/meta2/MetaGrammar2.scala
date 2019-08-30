@@ -1,12 +1,11 @@
 package com.giyeok.jparser.gramgram.meta2
 
-import java.io.{BufferedWriter, File, FileWriter}
+import java.io.{BufferedWriter, FileWriter}
 
+import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.gramgram.MetaGrammar
-import com.giyeok.jparser.gramgram.meta2.TypeDependenceGraph.SymbolNode
 import com.giyeok.jparser.nparser.NGrammar.fromGrammar
 import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor}
-import com.giyeok.jparser.{ParseForestFunc, Symbols}
 
 object MetaGrammar2 {
 
@@ -256,10 +255,11 @@ object MetaGrammar2 {
     // 2. 정의된 타입들을 정의하는 자바 코드
     // 3. ParseForest를 주면 프로세서로 처리해서 가공한 값으로 만들어주는 자바 코드
 
-    case class TestGrammar(name: String, grammar: String)
+    case class TestGrammar(packageName: Option[String], name: String, grammar: String, parseUtils: Boolean)
 
     def main(args: Array[String]): Unit = {
-        val grammars = List(TestGrammar("ExpressionGrammar",
+        val pkgName = Some("com.giyeok.jparser.gramgram.meta2.generated")
+        val expressionGrammar = TestGrammar(pkgName, "ExpressionGrammar",
             """expression: @Expression = term
               |    | expression '+' term {@BinOp(op=$1, lhs:Expression=$0, rhs=$2)}
               |term: @Term = factor
@@ -270,10 +270,23 @@ object MetaGrammar2 {
               |number: @Number = '0' {@Integer(value=[$0])}
               |    | '1-9' '0-9'* {Integer([$0] + $1)}
               |variable = <'A-Za-z'+> {@Variable(name=$0)}
-            """.stripMargin),
-            TestGrammar("MetaGrammar2", GrammarDef.newGrammar))
-        grammars foreach { grammar =>
-            val scalaCode = new ScalaDefGenerator(analyze(grammarSpecToAST(grammar.grammar).get)).toGrammarObject(grammar.name)
+            """.stripMargin, parseUtils = true)
+        val metaGrammar2 = TestGrammar(pkgName, "MetaGrammar2Ast", GrammarDef.newGrammar, parseUtils = true)
+
+        List(expressionGrammar, metaGrammar2) foreach { grammar =>
+            val analysis = analyze(grammarSpecToAST(grammar.grammar).get)
+
+            analysis.astAnalysis.astifiers.foreach { case (lhs, rhs) =>
+                println(s"$lhs =")
+                rhs.foreach { r =>
+                    println(s"  ${r._1.toShortString}")
+                    println(s"  ${r._2}")
+                }
+            }
+            println(analysis.typeAnalysis.typeDependenceGraph.toDotGraphModel.printDotGraph())
+
+            val scalaCode = s"package ${grammar.packageName.get}\n\n" +
+                new ScalaDefGenerator(analysis).toGrammarObject(grammar.name, parseUtils = grammar.parseUtils)
             val filepath = s"./metagrammar/src/main/scala/com/giyeok/jparser/gramgram/meta2/generated/${grammar.name}.scala"
             val writer = new BufferedWriter(new FileWriter(filepath))
             writer.write(scalaCode)

@@ -176,10 +176,10 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
             addSymbol(ast, r.symbol)
             r
         case AST.Longest(_, choices) =>
-            val r = if (choices.choices.size == 1) astSymbolToSymbol(choices.choices.head).proxyIfNeeded else
-                astSymbolToSymbol(choices)
+            val r = if (choices.choices.size != 1) astSymbolToSymbol(choices) else
+                astSymbolToSymbol(choices.choices.head).proxyIfNeeded
             val s = addSymbol(ast, Symbols.Longest(r.symbol.asAtomic))
-            Astified(s, r.astifierExpr.replaceThisNode(Unbind(ThisNode, s)), r.insideCtx)
+            Astified(s, ThisNode, r.insideCtx map (_.replaceThisNode(Unbind(ThisNode, s))))
         case AST.EmptySeq(_) =>
             val s = addSymbol(ast, Symbols.Proxy(Symbols.Sequence(Seq())))
             Astified(s, ThisNode, None)
