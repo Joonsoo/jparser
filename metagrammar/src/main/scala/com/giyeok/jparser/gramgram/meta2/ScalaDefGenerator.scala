@@ -2,12 +2,14 @@ package com.giyeok.jparser.gramgram.meta2
 
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.gramgram.meta2.Analyzer.Analysis
 import com.giyeok.jparser.gramgram.meta2.TypeDependenceGraph.SymbolNode
 import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.NGrammar.{NStart, NSymbol}
 
-class ScalaDefGenerator(val analysis: Analysis) {
+class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
+    private val astAnalysis = analysis.astAnalysis
+    private val typeAnalysis = analysis.typeAnalysis
+
     // TODO
     private def escapeString(str: String): String = s""""$str""""
 
@@ -60,7 +62,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
     }
 
     def grammarDefBody(grammarName: String): String = {
-        val g = analysis.grammar(grammarName)
+        val g = astAnalysis.grammar(grammarName)
 
         val ruleString = g.rules.toList.map { r =>
             s"""${escapeString(r._1)} -> ListSet(
@@ -113,16 +115,16 @@ class ScalaDefGenerator(val analysis: Analysis) {
         s"NGrammar.NSequence(${nseq.id}, ${symbolString(nseq.symbol)}, ${intSeqString(nseq.sequence)})"
 
     def ngrammarDef(): String = {
-        val nsymbolsString = analysis.ngrammar.nsymbols.toList.sortBy(_._1) flatMap { s =>
+        val nsymbolsString = astAnalysis.ngrammar.nsymbols.toList.sortBy(_._1) flatMap { s =>
             List(s"// ${s._2.symbol.toShortString}", s"${s._1} -> ${nAtomicSymbolString(s._2)}")
         }
-        val nseqsString = analysis.ngrammar.nsequences.toList.sortBy(_._1) flatMap { s =>
+        val nseqsString = astAnalysis.ngrammar.nsequences.toList.sortBy(_._1) flatMap { s =>
             List(s"// ${s._2.symbol.toShortString}", s"${s._1} -> ${nSequenceString(s._2)}")
         }
         s"""new NGrammar(
            |  Map(${nsymbolsString mkString ",\n"}),
            |  Map(${nseqsString mkString ",\n"}),
-           |  ${analysis.ngrammar.startSymbol})""".stripMargin
+           |  ${astAnalysis.ngrammar.startSymbol})""".stripMargin
     }
 
     def typeSpecToString(typeSpec: TypeSpec): String = typeSpec match {
@@ -136,14 +138,12 @@ class ScalaDefGenerator(val analysis: Analysis) {
             throw new Exception(s"Union type is not supported: $typeSpec")
     }
 
-    def classDefsList(): List[String] = analysis.classDefs map { d =>
-        val supers = if (d.supers.isEmpty) "" else {
-            s" extends ${d.supers mkString " with "}"
-        }
+    def classDefsList(rootClassName: String, astNodeParamName: String): List[String] = typeAnalysis.classDefs map { d =>
+        val supers = s" extends ${(rootClassName +: d.supers) mkString " with "}"
         if (d.isAbstract) {
             s"sealed trait ${d.name}$supers"
         } else {
-            val params = d.params map { p =>
+            val params = (ClassParam(astNodeParamName, ParseNodeType) +: d.params) map { p =>
                 s"${p.name}:${typeSpecToString(p.typ)}"
             } mkString ", "
             s"case class ${d.name}($params)$supers"
@@ -159,7 +159,8 @@ class ScalaDefGenerator(val analysis: Analysis) {
         def removeRequirement(requirement: String): CodeBlock = CodeBlock(code, requirements - requirement)
     }
 
-    def classDefs(): CodeBlock = CodeBlock(classDefsList() mkString "\n", Set())
+    def classDefs(): CodeBlock = CodeBlock(s"sealed trait ASTNode { val astNode: ${typeSpecToString(ParseNodeType)} }", Set())
+        .append(CodeBlock(classDefsList("ASTNode", "astNode") mkString "\n", Set()))
 
     private var _argNum = 0
 
@@ -174,7 +175,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
         case ThisNode => GenAstifierString(List(), argName, Set())
         case Unbind(expr, symbol) =>
             // TODO symbol 타입에 맞춰서 match** 함수 호출하는 경우 처리
-            val bindedSymbolId = analysis.ngrammar.idOf(symbol)
+            val bindedSymbolId = astAnalysis.ngrammar.idOf(symbol)
             val e = astifierString(expr, argName)
             if (symbol.isInstanceOf[Symbols.Nonterminal]) {
                 val v1 = nextArgName()
@@ -216,12 +217,15 @@ class ScalaDefGenerator(val analysis: Analysis) {
                         List(e.result, "}"),
                         v, r.requirements + "unrollRepeat1")
             }
-        case UnrollOptional(target, emptySym, contentSym) =>
-            val r = astifierString(target, argName)
+        case UnrollOptional(source, contentAstifier, emptySym, contentSym) =>
+            val r = astifierString(source, argName)
+            val c = astifierString(contentAstifier, "n")
             val v = nextArgName()
             GenAstifierString(r.prepare ++ List(
-                s"val $v = unrollOptional(${r.result}, ${analysis.ngrammar.idOf(emptySym)}, ${analysis.ngrammar.idOf(contentSym)})"),
-                v, r.requirements + "unrollOptional")
+                s"val $v = unrollOptional(${r.result}, ${astAnalysis.ngrammar.idOf(emptySym)}, ${astAnalysis.ngrammar.idOf(contentSym)}) map { n =>") ++
+                c.prepare ++
+                List(c.result, "}"),
+                v, r.requirements ++ c.requirements + "unrollOptional")
         case EachMap(target, mapFn) =>
             val targetAstifier = astifierString(target, argName)
             val mapFnAstifier = astifierString(mapFn, "n")
@@ -240,7 +244,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
             val v = nextArgName()
             GenAstifierString(
                 (argStrings flatMap (_.prepare)) :+
-                    s"val $v = $className(${argStrings map (_.result) mkString ","})",
+                    s"val $v = $className(${"node" +: (argStrings map (_.result)) mkString ","})",
                 v, argStrings.flatMap(_.requirements).toSet)
         case CreateList(elems) =>
             val elemStrings = elems map (astifierString(_, argName))
@@ -264,9 +268,9 @@ class ScalaDefGenerator(val analysis: Analysis) {
     }
 
     private def matchFuncSignature(symbol: Symbols.Symbol): (String, TypeSpec) = {
-        val nodeType = analysis.typeDependenceGraph.inferType(TypeDependenceGraph.SymbolNode(symbol))
+        val nodeType = typeAnalysis.typeDependenceGraph.inferType(TypeDependenceGraph.SymbolNode(symbol))
         val returnType = nodeType.fixedType.getOrElse {
-            val types = analysis.typeHierarchyGraph.removeRedundantTypesFrom(nodeType.inferredTypes) map analysis.typeHierarchyGraph.cleanType
+            val types = typeAnalysis.typeHierarchyGraph.removeRedundantTypesFrom(nodeType.inferredTypes) map typeAnalysis.typeHierarchyGraph.cleanType
             if (types.size == 1) types.head else UnionType(types)
         }
 
@@ -274,14 +278,14 @@ class ScalaDefGenerator(val analysis: Analysis) {
     }
 
     def astifierDefs(): CodeBlock = {
-        val astifierStrings = analysis.astifiers map { a =>
+        val astifierStrings = astAnalysis.astifiers map { a =>
             val (lhs, rhs) = a
             val lhsNonterm = Symbols.Nonterminal(lhs)
             val (funcName, returnType) = matchFuncSignature(lhsNonterm)
 
             val rr = rhs map { r =>
                 // TODO unreachable symbol이 있으면 없는 심볼에 대해서 ngrammar.idOf 실행해서 오류 생길 수 있음
-                val symbolId = analysis.ngrammar.idOf(r._1)
+                val symbolId = astAnalysis.ngrammar.idOf(r._1)
                 val gen = astifierString(r._2, "body")
                 symbolId -> (((gen.prepare :+ gen.result) mkString "\n"), gen.requirements)
             }
@@ -299,7 +303,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
     }
 
     private def startSymbol(): NSymbol =
-        analysis.ngrammar.symbolOf(analysis.ngrammar.nsymbols(analysis.ngrammar.startSymbol).asInstanceOf[NStart].produce)
+        astAnalysis.ngrammar.symbolOf(astAnalysis.ngrammar.nsymbols(astAnalysis.ngrammar.startSymbol).asInstanceOf[NStart].produce)
 
     def sourceTextOf(): CodeBlock = CodeBlock(
         s"""def sourceTextOf(node: Node): String = node match {
@@ -348,11 +352,8 @@ class ScalaDefGenerator(val analysis: Analysis) {
 
     def unrollOptional(): CodeBlock = CodeBlock(
         s"""private def unrollOptional(node: Node, emptyId: Int, contentId: Int): Option[Node] = {
-           |  val BindNode(opt: NGrammar.NOneOf, body) = node
-           |  body match {
-           |    case BindNode(symbol, _) if symbol.id == emptyId => None
-           |    case BindNode(symbol, content) if symbol.id == contentId => Some(content)
-           |  }
+           |  val BindNode(_: NGrammar.NOneOf, body@BindNode(bodySymbol, _)) = node
+           |  if (bodySymbol.id == contentId) Some(body) else None
            |}""".stripMargin,
         Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode", "jparser.ParseResultTree.SequenceNode",
             "jparser.nparser.NGrammar"))
@@ -363,7 +364,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
         CodeBlock(
             s"""def matchStart(node: Node): ${typeSpecToString(returnType)} = {
                |  val BindNode(start, BindNode(startNonterm, body)) = node
-               |  assert(start.id == ${analysis.ngrammar.startSymbol})
+               |  assert(start.id == ${astAnalysis.ngrammar.startSymbol})
                |  assert(startNonterm.id == ${startSymbol().id})
                |  $funcName(body)
                |}""".stripMargin,
@@ -371,7 +372,7 @@ class ScalaDefGenerator(val analysis: Analysis) {
     }
 
     def parseUtilFuncs(): CodeBlock = {
-        val startAstType = analysis.typeDependenceGraph.inferType(SymbolNode(startSymbol().symbol))
+        val startAstType = typeAnalysis.typeDependenceGraph.inferType(SymbolNode(startSymbol().symbol))
         val startAstTypeSpec = startAstType.fixedType.getOrElse(startAstType.inferredTypes.head)
 
         CodeBlock(

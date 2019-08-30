@@ -41,8 +41,10 @@ object TypeDependenceGraph {
                         case TypeDependenceGraph.ClassTypeNode(className) => s"Class $className"
                         case TypeDependenceGraph.TypeArray(elemType) => s"[${typeNodeToString(elemType)}]"
                         case TypeDependenceGraph.TypeOptional(elemType) => s"${typeNodeToString(elemType)}?"
-                        case TypeDependenceGraph.TypeGenArray(expr) => s"[typeof ${expr.nodeLabel}]"
-                        case TypeDependenceGraph.TypeGenOptional(expr) => s"(typeof ${expr.nodeLabel})?"
+                        case TypeDependenceGraph.TypeGenArrayOfExpr(expr) => s"[typeof ${expr.nodeLabel}]"
+                        case TypeDependenceGraph.TypeGenArrayOfSymbol(symbol) => s"[typeof ${symbol.nodeLabel}]"
+                        case TypeDependenceGraph.TypeGenOptionalOfExpr(expr) => s"(typeof ${expr.nodeLabel})?"
+                        case TypeDependenceGraph.TypeGenOptionalOfSymbol(symbol) => s"(typeof ${symbol.nodeLabel})?"
                         case TypeDependenceGraph.TypeGenArrayConcatOp(op, lhs, rhs) => s"[concat typeof ${lhs.nodeLabel} $op ${rhs.nodeLabel}]"
                         case TypeDependenceGraph.TypeGenArrayElemsUnion(elems) => s"[union typeof ${elems map (_.nodeLabel) mkString ","}]"
                     }
@@ -67,9 +69,13 @@ object TypeDependenceGraph {
 
     case class TypeOptional(elemType: TypeNode) extends TypeNode
 
-    case class TypeGenArray(typeof: ExprNode) extends TypeNode
+    case class TypeGenArrayOfExpr(typeof: ExprNode) extends TypeNode
 
-    case class TypeGenOptional(typeof: ExprNode) extends TypeNode
+    case class TypeGenArrayOfSymbol(typeof: SymbolNode) extends TypeNode
+
+    case class TypeGenOptionalOfExpr(typeof: ExprNode) extends TypeNode
+
+    case class TypeGenOptionalOfSymbol(typeof: SymbolNode) extends TypeNode
 
     case class TypeGenArrayConcatOp(op: String, lhs: ExprNode, rhs: ExprNode) extends TypeNode
 
@@ -98,7 +104,7 @@ class TypeDependenceGraph private(val nodes: Set[TypeDependenceGraph.Node],
     private val typeTypeMemo = Memoize[TypeDependenceGraph.TypeNode, ActualTypeSpec]()
     private val elemTypeMemo = Memoize[TypeDependenceGraph.ElemNode, NodeType]()
 
-    private def finalTypeOf(nodeType: NodeType): TypeSpec = nodeType.fixedType match {
+    def finalTypeOf(nodeType: NodeType): TypeSpec = nodeType.fixedType match {
         case Some(fixedType) => fixedType
         case None =>
             if (nodeType.inferredTypes.size == 1) nodeType.inferredTypes.toList.head else UnionNodeType(Set(nodeType))
@@ -109,8 +115,10 @@ class TypeDependenceGraph private(val nodes: Set[TypeDependenceGraph.Node],
             case TypeDependenceGraph.ClassTypeNode(className) => ClassType(className)
             case TypeDependenceGraph.TypeArray(elemType) => ArrayType(createTypeSpec(elemType))
             case TypeDependenceGraph.TypeOptional(elemType) => OptionalType(createTypeSpec(elemType).asInstanceOf[OptionableTypeSpec])
-            case TypeDependenceGraph.TypeGenArray(typeof) => ArrayType(finalTypeOf(inferType(typeof)))
-            case TypeDependenceGraph.TypeGenOptional(typeof) => OptionalType(finalTypeOf(inferType(typeof)).asInstanceOf[OptionableTypeSpec])
+            case TypeDependenceGraph.TypeGenArrayOfExpr(typeof) => ArrayType(finalTypeOf(inferType(typeof)))
+            case TypeDependenceGraph.TypeGenArrayOfSymbol(typeof) => ArrayType(finalTypeOf(inferType(typeof)))
+            case TypeDependenceGraph.TypeGenOptionalOfExpr(typeof) => OptionalType(finalTypeOf(inferType(typeof)).asInstanceOf[OptionableTypeSpec])
+            case TypeDependenceGraph.TypeGenOptionalOfSymbol(typeof) => OptionalType(finalTypeOf(inferType(typeof)).asInstanceOf[OptionableTypeSpec])
             case TypeDependenceGraph.TypeGenArrayConcatOp(_, lhs, rhs) =>
                 val lhsType = inferType(lhs)
                 val rhsType = inferType(rhs)
@@ -159,7 +167,7 @@ class TypeDependenceGraph private(val nodes: Set[TypeDependenceGraph.Node],
         }
     }
 
-    def typeHierarchyGraph: TypeHierarchyGraph = {
+    def createTypeHierarchyGraph(): TypeHierarchyGraph = {
         var hierarchyGraph = new TypeHierarchyGraph(Set(), Set(), Map(), Map())
         // TODO extends edge 고려 추가
         nodes collect {

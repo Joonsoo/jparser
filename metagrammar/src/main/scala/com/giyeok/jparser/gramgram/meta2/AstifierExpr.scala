@@ -23,9 +23,9 @@ case class UnrollRepeat(lower: Int, source: AstifierExpr, eachAstifier: Astifier
         UnrollRepeat(lower: Int, source.replaceThisNode(node), eachAstifier)
 }
 
-case class UnrollOptional(target: AstifierExpr, emptySym: Symbols.Symbol, contentSym: Symbols.Symbol) extends AstifierExpr {
+case class UnrollOptional(source: AstifierExpr, contentAstifier: AstifierExpr, emptySym: Symbols.Symbol, contentSym: Symbols.Symbol) extends AstifierExpr {
     override def replaceThisNode(node: AstifierExpr): UnrollOptional =
-        UnrollOptional(target.replaceThisNode(node), emptySym, contentSym)
+        UnrollOptional(source.replaceThisNode(node), contentAstifier, emptySym, contentSym)
 }
 
 case class EachMap(target: AstifierExpr, mapFn: AstifierExpr) extends AstifierExpr {

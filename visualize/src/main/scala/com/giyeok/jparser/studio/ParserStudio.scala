@@ -14,6 +14,7 @@ import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.Symbols.Nonterminal
 import com.giyeok.jparser.Symbols.Sequence
 import com.giyeok.jparser.gramgram.MetaGrammar
+import com.giyeok.jparser.gramgram.meta2.{ASTifier, AstAnalyzer, MetaGrammar2}
 import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor, ParsingContext}
 import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.Parser.NaiveContext
@@ -79,8 +80,9 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
     val rootPanel = new VerticalResizableSplittedComposite(this, SWT.NONE, 40)
 
     val grammarDefParser = new ParseProcessor[Option[Grammar]](
-        NGrammar.fromGrammar(MetaGrammar),
-        (x: ParseForest) => Some(MetaGrammar.translate("Grammar", x.trees.head))
+        MetaGrammar2.GrammarDef.oldGrammar,
+        //MetaGrammar2.GrammarDef.ngrammar,
+        (x: ParseForest) => Some(new AstAnalyzer(ASTifier.matchGrammar(x.trees.head)).analyzeAstifiers().grammar("Grammar"))
     )
 
     val emptyGrammarParser = new ParseProcessor[ParseForest](
