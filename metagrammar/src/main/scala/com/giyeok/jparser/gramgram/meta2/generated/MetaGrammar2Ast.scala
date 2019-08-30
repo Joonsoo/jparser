@@ -4,7 +4,7 @@ import com.giyeok.jparser.Inputs.InputToShortString
 import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNode, TerminalNode}
 import com.giyeok.jparser.gramgram.meta2.generated.ExpressionGrammar.parseAst
 import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor, Parser}
-import com.giyeok.jparser.{ParseForestFunc, ParsingErrors, Symbols}
+import com.giyeok.jparser.{Inputs, ParseForestFunc, ParseResultTree, ParsingErrors, Symbols}
 
 import scala.collection.immutable.ListSet
 
@@ -411,7 +411,7 @@ object MetaGrammar2Ast {
 
     implicit class SourceTextOfNode(node: Node) {
         def sourceText: String = node match {
-            case TerminalNode(input) => input.toRawString
+            case TerminalNode(_, input) => input.toRawString
             case BindNode(_, body) => body.sourceText
             case JoinNode(body, _) => body.sourceText
             case seq: SequenceNode => seq.children map (_.sourceText) mkString ""
@@ -1732,7 +1732,7 @@ object MetaGrammar2Ast {
                 val s = repeating.children(1)
                 val r = unrollRepeat0(repeating.children(0))
                 r :+ s
-            case SequenceNode(symbol, emptySeq) =>
+            case SequenceNode(_, _, symbol, emptySeq) =>
                 assert(symbol.id == repeat.baseSeq)
                 assert(emptySeq.isEmpty)
                 List()
@@ -1766,5 +1766,11 @@ object MetaGrammar2Ast {
     def main(args: Array[String]): Unit = {
         val x = parseAst("ABC = DEF GHI").swap.getOrElse(???)
         println(x.astNode.sourceText)
+        x.defs.head match {
+            case typeDef: TypeDef =>
+            case Rule(astNode, lhs, rhs) =>
+                println(lhs.astNode.range)
+                println(rhs.last.elems map (_.astNode.range))
+        }
     }
 }

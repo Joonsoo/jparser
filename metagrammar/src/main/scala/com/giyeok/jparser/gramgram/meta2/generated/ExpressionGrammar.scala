@@ -62,7 +62,7 @@ object ExpressionGrammar {
 
     implicit class SourceTextOfNode(node: Node) {
         def sourceText: String = node match {
-            case TerminalNode(input) => input.toRawString
+            case TerminalNode(_, input) => input.toRawString
             case BindNode(_, body) => body.sourceText
             case JoinNode(body, _) => body.sourceText
             case seq: SequenceNode => seq.children map (_.sourceText) mkString ""
@@ -189,7 +189,7 @@ object ExpressionGrammar {
                 val s = repeating.children(1)
                 val r = unrollRepeat0(repeating.children(0))
                 r :+ s
-            case SequenceNode(symbol, emptySeq) =>
+            case SequenceNode(_, _, symbol, emptySeq) =>
                 assert(symbol.id == repeat.baseSeq)
                 assert(emptySeq.isEmpty)
                 List()

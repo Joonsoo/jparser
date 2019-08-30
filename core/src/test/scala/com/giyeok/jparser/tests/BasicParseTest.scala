@@ -100,7 +100,7 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
     private def checkParse(parseTree: ParseResultTree.Node, grammar: Grammar): Unit = {
         import ParseResultTree._
         parseTree match {
-            case BindNode(term: Terminal, TerminalNode(input)) =>
+            case BindNode(term: Terminal, TerminalNode(_, input)) =>
                 assert(term.accept(input))
             case BindNode(_: NStart, body @ BindNode(bodySym, _)) =>
                 assert(grammar.startSymbol == bodySym)
@@ -138,7 +138,10 @@ class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends Flat
                 checkParse(body, grammar)
             case BindNode(_: NLookaheadSymbol, body) =>
                 // TODO: empty sequence nsymbol id?
-                assert(body == SequenceNode(NSequence(-1, Sequence(Seq()), Seq()), List()))
+                body match {
+                    case SequenceNode(_, _, NSequence(-1, Sequence(Seq(), Seq()), Seq()), List()) => // OK
+                    case _ => assert(false)
+                }
             case node: SequenceNode =>
                 node.childrenAll foreach { checkParse(_, grammar) }
             case JoinNode(body, join) =>

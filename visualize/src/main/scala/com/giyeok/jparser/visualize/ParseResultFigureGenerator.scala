@@ -36,7 +36,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
     def parseForestResultFigure(symbolBorder: FigureGenerator.Appearance[Fig], vfig: (Spacing.Value, Seq[Fig]) => Fig, hfig: (Spacing.Value, Seq[Fig]) => Fig, renderConf: ParseResultFigureGenerator.RenderingConfiguration)(r: ParseForest): Fig = {
         import ParseResultTree._
         def parseNodeFig(n: Node): Fig = n match {
-            case TerminalNode(input) =>
+            case TerminalNode(_, input) =>
                 g.textFig(input.toShortString, ap.input)
             case BindNode(sym: Repeat, body) if renderConf.unrollRepeat =>
                 def childrenOf(node: Node, sym: Symbol): Seq[Fig] = node match {
@@ -61,7 +61,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                     symbolBorder.applyToFigure(parseNodeFig(body)),
                     symbolFigureGenerator.symbolFig(sym.symbol)
                 ))
-            case CyclicBindNode(sym) =>
+            case CyclicBindNode(_, _, sym) =>
                 ap.symbolBorder.applyToFigure(
                     vfig(Spacing.Small, Seq(
                         g.textFig("cyclic", ap.small),

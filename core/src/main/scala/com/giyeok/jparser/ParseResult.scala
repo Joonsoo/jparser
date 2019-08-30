@@ -7,7 +7,7 @@ trait ParseResult {
 }
 
 trait ParseResultFunc[R <: ParseResult] {
-    def terminal(left: Int, input: Inputs.Input): R
+    def terminal(location: Int, input: Inputs.Input): R
 
     def bind(left: Int, right: Int, symbol: NSymbol, body: R): R
 

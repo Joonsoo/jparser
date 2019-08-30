@@ -109,7 +109,7 @@ object GrammarGrammar extends Grammar {
         case BindNode(s, body) => textOf(body)
         case s: SequenceNode => (s.children map { textOf(_) }).mkString
         case JoinNode(body, join) => textOf(body)
-        case TerminalNode(Inputs.Character(c)) => s"$c"
+        case TerminalNode(_, Inputs.Character(c)) => s"$c"
         case _ => ???
     }
 
@@ -146,8 +146,8 @@ object GrammarGrammar extends Grammar {
                                         case BindNode(NNonterminal(_, Nonterminal("TerminalRanges"), _), seq: SequenceNode) =>
                                             val chars: Set[Char] = (childrenOf(seq.children(1), Nonterminal("TerminalRange")) flatMap {
                                                 case BindNode(NNonterminal(_, Nonterminal("TerminalRange"), _), seq: SequenceNode) =>
-                                                    val BindNode(NTerminal(_, AnyChar), TerminalNode(Inputs.Character(c1))) = seq.children(0)
-                                                    val BindNode(NTerminal(_, AnyChar), TerminalNode(Inputs.Character(c2))) = seq.children(2)
+                                                    val BindNode(NTerminal(_, AnyChar), TerminalNode(_, Inputs.Character(c1))) = seq.children(0)
+                                                    val BindNode(NTerminal(_, AnyChar), TerminalNode(_, Inputs.Character(c2))) = seq.children(2)
                                                     (c1 to c2).toSet
                                                 case _ => ???
                                             }).toSet

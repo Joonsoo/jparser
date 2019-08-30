@@ -44,9 +44,9 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
     }
 
     private def charNodeToChar(charNode: AST.Node): Char = charNode.node match {
-        case BindNode(_, BindNode(_, TerminalNode(c))) =>
+        case BindNode(_, BindNode(_, TerminalNode(_, c))) =>
             c.asInstanceOf[Inputs.Character].char
-        case BindNode(_, SequenceNode(_, List(BindNode(_, TerminalNode(escapeCode)), _))) =>
+        case BindNode(_, SequenceNode(_, _, _, List(BindNode(_, TerminalNode(_, escapeCode)), _))) =>
             escapeCode.asInstanceOf[Inputs.Character].char match {
                 case '\'' => '\''
                 case '\\' => '\\'
@@ -59,11 +59,11 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
     }
 
     private def charChoiceNodeToChar(charNode: AST.Node): Char = charNode.node match {
-        case BindNode(_, BindNode(_, TerminalNode(c))) =>
+        case BindNode(_, BindNode(_, TerminalNode(_, c))) =>
             c.asInstanceOf[Inputs.Character].char
-        case BindNode(_, BindNode(_, BindNode(_, TerminalNode(c)))) =>
+        case BindNode(_, BindNode(_, BindNode(_, TerminalNode(_, c)))) =>
             c.asInstanceOf[Inputs.Character].char
-        case BindNode(_, SequenceNode(_, List(BindNode(_, TerminalNode(escapeCode)), _))) =>
+        case BindNode(_, SequenceNode(_, _, _, List(BindNode(_, TerminalNode(_, escapeCode)), _))) =>
             escapeCode.asInstanceOf[Inputs.Character].char match {
                 case '\'' => '\''
                 case '-' => '-'
@@ -77,9 +77,9 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
     }
 
     private def stringCharToChar(stringCharNode: AST.Node): Char = stringCharNode.node match {
-        case BindNode(_, BindNode(_, TerminalNode(c))) =>
+        case BindNode(_, BindNode(_, TerminalNode(_, c))) =>
             c.asInstanceOf[Inputs.Character].char
-        case BindNode(_, SequenceNode(_, List(BindNode(_, TerminalNode(escapeCode)), _))) =>
+        case BindNode(_, SequenceNode(_, _, _, List(BindNode(_, TerminalNode(_, escapeCode)), _))) =>
             escapeCode.asInstanceOf[Inputs.Character].char match {
                 case '"' => '"'
                 case '\\' => '\\'

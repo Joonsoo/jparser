@@ -12,7 +12,7 @@ object AST {
     class Node(val node: ParseResultTree.Node) {
         override def toString: String = {
             def rec(node: ParseResultTree.Node): String = node match {
-                case TerminalNode(input) => input.toRawString
+                case TerminalNode(_, input) => input.toRawString
                 case BindNode(_, body) => rec(body)
                 case JoinNode(body, _) => rec(body)
                 case seq: SequenceNode => seq.children map rec mkString ""
@@ -157,7 +157,7 @@ object ASTifier {
                 unwindRepeat(repeating.children(0)) :+ repeating.children(1)
             case BindNode(symbol, _) if symbol.id == repeat.baseSeq =>
                 List(body)
-            case seq@SequenceNode(symbol, _) if symbol.id == repeat.baseSeq =>
+            case seq@SequenceNode(_, _, symbol, _) if symbol.id == repeat.baseSeq =>
                 seq.children.take(repeat.symbol.lower).toList
         }
     }
@@ -245,7 +245,7 @@ object ASTifier {
     }
 
     def matchTerminal(node: Node): AST.Terminal = node match {
-        case BindNode(_, SequenceNode(_, List(_, BindNode(NNonterminal(_, Nonterminal("TerminalChar"), _), terminalCharBody), _))) =>
+        case BindNode(_, SequenceNode(_, _, _, List(_, BindNode(NNonterminal(_, Nonterminal("TerminalChar"), _), terminalCharBody), _))) =>
             AST.TerminalChar(newId(), transformNode(terminalCharBody))
         case _ => AST.AnyTerminal(newId())
     }
@@ -277,7 +277,7 @@ object ASTifier {
     }
 
     def matchLongest(node: Node): AST.Longest = {
-        val BindNode(_, SequenceNode(_, List(_, body, _))) = node
+        val BindNode(_, SequenceNode(_, _, _, List(_, body, _))) = node
         AST.Longest(newId(), matchInPlaceChoices(body))
     }
 
@@ -318,7 +318,7 @@ object ASTifier {
             matchLongest(longestBody)
         case BindNode(NNonterminal(_, Nonterminal("EmptySequence"), _), emptySeqBody) =>
             AST.EmptySeq(newId())
-        case BindNode(_, SequenceNode(_, List(_, parenElem, _))) =>
+        case BindNode(_, SequenceNode(_, _, _, List(_, parenElem, _))) =>
             matchInPlaceChoices(parenElem)
     }
 
@@ -338,8 +338,8 @@ object ASTifier {
             val op = seq.children(0)
             val sym = matchPreUnSymbol(unwindNonterm("PreUnSymbol", seq.children(2)))
             op match {
-                case BindNode(_, TerminalNode(Inputs.Character('^'))) => AST.FollowedBy(newId(), sym)
-                case BindNode(_, TerminalNode(Inputs.Character('!'))) => AST.NotFollowedBy(newId(), sym)
+                case BindNode(_, TerminalNode(_, Inputs.Character('^'))) => AST.FollowedBy(newId(), sym)
+                case BindNode(_, TerminalNode(_, Inputs.Character('!'))) => AST.NotFollowedBy(newId(), sym)
             }
     }
 
@@ -351,8 +351,8 @@ object ASTifier {
             val lhs = matchBinSymbol(unwindNonterm("BinSymbol", seq.children(0)))
             val rhs = matchPreUnSymbol(unwindNonterm("PreUnSymbol", seq.children(4)))
             op match {
-                case BindNode(_, TerminalNode(Inputs.Character('&'))) => AST.JoinSymbol(newId(), lhs, rhs)
-                case BindNode(_, TerminalNode(Inputs.Character('-'))) => AST.ExceptSymbol(newId(), lhs, rhs)
+                case BindNode(_, TerminalNode(_, Inputs.Character('&'))) => AST.JoinSymbol(newId(), lhs, rhs)
+                case BindNode(_, TerminalNode(_, Inputs.Character('-'))) => AST.ExceptSymbol(newId(), lhs, rhs)
             }
     }
 

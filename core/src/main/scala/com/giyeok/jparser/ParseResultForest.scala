@@ -8,12 +8,12 @@ case class ParseForest(trees: Seq[ParseResultTree.Node]) extends ParseResult
 object ParseForestFunc extends ParseResultFunc[ParseForest] {
     import ParseResultTree._
 
-    def terminal(left: Int, input: Inputs.Input): ParseForest =
-        ParseForest(Seq(TerminalNode(input)))
+    def terminal(location: Int, input: Inputs.Input): ParseForest =
+        ParseForest(Seq(TerminalNode(location, input)))
     def bind(left: Int, right: Int, symbol: NSymbol, body: ParseForest): ParseForest =
         ParseForest(body.trees map { b => BindNode(symbol, b) })
     def cyclicBind(left: Int, right: Int, symbol: NSymbol): ParseForest =
-        ParseForest(Seq(CyclicBindNode(symbol)))
+        ParseForest(Seq(CyclicBindNode(left, right, symbol)))
     def join(left: Int, right: Int, symbol: NJoin, body: ParseForest, constraint: ParseForest): ParseForest = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
         ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
@@ -21,9 +21,9 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
 
     def sequence(left: Int, right: Int, symbol: NSequence, pointer: Int): ParseForest =
         if (pointer == 0) {
-            ParseForest(Seq(SequenceNode(symbol, List())))
+            ParseForest(Seq(SequenceNode(left, right, symbol, List())))
         } else {
-            ParseForest(Seq(CyclicSequenceNode(symbol, pointer, List())))
+            ParseForest(Seq(CyclicSequenceNode(left, right, symbol, pointer, List())))
         }
     def append(sequence: ParseForest, child: ParseForest): ParseForest = {
         assert(sequence.trees forall { n => n.isInstanceOf[SequenceNode] || n.isInstanceOf[CyclicSequenceNode] })
@@ -46,24 +46,36 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
 object ParseResultTree {
     import Inputs._
 
-    sealed trait Node
+    sealed trait Node {
+        val start: Inputs.Location
+        val end: Inputs.Location
+        def range: (Inputs.Location, Inputs.Location) = (start, end)
+    }
 
-    case class TerminalNode(input: Input) extends Node
-    case class BindNode(symbol: NSymbol, body: Node) extends Node
-    case class CyclicBindNode(symbol: NSymbol) extends Node
-    case class JoinNode(body: Node, join: Node) extends Node
-    case class SequenceNode(symbol: NSequence, _children: List[Node]) extends Node {
+    case class TerminalNode(start: Inputs.Location, input: Input) extends Node {
+        val end: Inputs.Location = start + 1
+    }
+    case class BindNode(symbol: NSymbol, body: Node) extends Node {
+        val start: Inputs.Location = body.start
+        val end: Inputs.Location = body.end
+    }
+    case class CyclicBindNode(start: Inputs.Location, end: Inputs.Location, symbol: NSymbol) extends Node
+    case class JoinNode(body: Node, join: Node) extends Node {
+        val start: Inputs.Location = body.start
+        val end: Inputs.Location = body.end
+    }
+    case class SequenceNode(start: Inputs.Location, end: Inputs.Location, symbol: NSequence, _children: List[Node]) extends Node {
         // _children: reverse of all children
 
         def append(child: Node): SequenceNode = {
-            SequenceNode(symbol, child +: _children)
+            SequenceNode(start, child.end, symbol, child +: _children)
         }
         lazy val childrenAll = _children.reverse
         lazy val children = symbol.symbol.contentIdx filter { _ < childrenAll.length } map { childrenAll(_) }
     }
-    case class CyclicSequenceNode(symbol: NSequence, pointer: Int, _children: List[Node]) extends Node {
+    case class CyclicSequenceNode(start: Inputs.Location, end: Inputs.Location, symbol: NSequence, pointer: Int, _children: List[Node]) extends Node {
         def append(child: Node): CyclicSequenceNode = {
-            CyclicSequenceNode(symbol, pointer, child +: _children)
+            CyclicSequenceNode(start, child.end, symbol, pointer, child +: _children)
         }
         lazy val childrenAll = _children.reverse
         lazy val children = symbol.symbol.contentIdx filter { _ < childrenAll.length } map { childrenAll(_) }
