@@ -1,8 +1,7 @@
 package com.giyeok.jparser.parsergen.nocond
 
-import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.{Inputs, NGrammar}
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
-import com.giyeok.jparser.nparser.NGrammar
 
 object SimpleParser {
 

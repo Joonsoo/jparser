@@ -1,8 +1,7 @@
 package com.giyeok.jparser.parsergen.deprecated.npreparser.visualize
 
-import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.{Grammar, NGrammar}
 import com.giyeok.jparser.Inputs.TermGroupDesc
-import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
 import com.giyeok.jparser.parsergen.deprecated.npreparser.DerivationPreprocessor
 import com.giyeok.jparser.visualize.NodeFigureGenerators

@@ -1,7 +1,7 @@
 package com.giyeok.jparser.parsergen.deprecated
 
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.NGrammar._
+import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.NGrammar._
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph, GraphUtil}
 
 // Abstract Kernel

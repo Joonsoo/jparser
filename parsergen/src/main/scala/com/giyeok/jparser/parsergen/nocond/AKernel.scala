@@ -1,7 +1,7 @@
 package com.giyeok.jparser.parsergen.nocond
 
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
+import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.NGrammar.NAtomicSymbol
 import com.giyeok.jparser.parsergen.utils.ListOrder
 
 case class AKernel(symbolId: Int, pointer: Int) extends Ordered[AKernel] {

@@ -1,11 +1,11 @@
 package com.giyeok.jparser
 
+import com.giyeok.jparser.Symbols.{AnyChar, AtomicSymbol, Chars, ExactChar, Except, Join, Longest, LookaheadExcept, LookaheadIs, Nonterminal, OneOf, Proxy, Repeat, Sequence, Symbol, Terminal, Terminals}
+import com.giyeok.jparser.utils.UnicodeUtil
+
 import scala.collection.immutable.{ListMap, ListSet, NumericRange}
 
 object GrammarHelper {
-    import Symbols._
-    import utils.UnicodeUtil
-
     private def charSymbol(set: Set[Char]): Terminal =
         if (set.size == 1) ExactChar(set.iterator.next) else Chars(set)
 
@@ -34,7 +34,7 @@ object GrammarHelper {
                 case (head, tail) =>
                     insert(tail, (cc._1 :+ proxyIfNeeded(head) :+ atomicBetween, cc._2 :+ cc._1.length))
             }
-        val (insertedSeq, contentIds) = insert(seq, (Seq(), Seq()))
+        val (insertedSeq, contentIds) = insert(seq.toSeq, (Seq(), Seq()))
         Sequence(insertedSeq, contentIds)
     }
     def seqWS(between: Set[Symbol], seq: Symbol*): Sequence = seqWS(oneof(between), seq: _*)

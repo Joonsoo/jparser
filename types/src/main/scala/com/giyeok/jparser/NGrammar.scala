@@ -1,7 +1,6 @@
-package com.giyeok.jparser.nparser
+package com.giyeok.jparser
 
-import com.giyeok.jparser.nparser.NGrammar.NSequence
-import com.giyeok.jparser.{Grammar, Symbols}
+import com.giyeok.jparser.NGrammar.NSequence
 
 // Numbered Grammar
 class NGrammar(val nsymbols: Map[Int, NGrammar.NAtomicSymbol], val nsequences: Map[Int, NGrammar.NSequence], val startSymbol: Int) {
@@ -42,12 +41,14 @@ object NGrammar {
 
     sealed trait NSimpleDerive { val produces: Set[Int] }
     case class NStart(id: Int, produce: Int) extends NAtomicSymbol with NSimpleDerive {
-        val symbol = Symbols.Start
-        val produces = Set(produce)
+        val symbol: Symbols.Start.type = Symbols.Start
+        val produces: Set[Int] = Set(produce)
     }
     case class NNonterminal(id: Int, symbol: Symbols.Nonterminal, produces: Set[Int]) extends NAtomicSymbol with NSimpleDerive
     case class NOneOf(id: Int, symbol: Symbols.OneOf, produces: Set[Int]) extends NAtomicSymbol with NSimpleDerive
-    case class NProxy(id: Int, symbol: Symbols.Proxy, produce: Int) extends NAtomicSymbol with NSimpleDerive { val produces = Set(produce) }
+    case class NProxy(id: Int, symbol: Symbols.Proxy, produce: Int) extends NAtomicSymbol with NSimpleDerive {
+        val produces: Set[Int] = Set(produce)
+    }
     case class NRepeat(id: Int, symbol: Symbols.Repeat, baseSeq: Int, repeatSeq: Int) extends NAtomicSymbol with NSimpleDerive {
         val produces: Set[Int] = Set(baseSeq, repeatSeq)
     }

@@ -2,10 +2,10 @@ package com.giyeok.jparser.gramgram.meta2
 
 import java.io.{BufferedWriter, FileWriter}
 
-import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.NGrammar.fromGrammar
 import com.giyeok.jparser.gramgram.MetaGrammar
-import com.giyeok.jparser.nparser.NGrammar.fromGrammar
-import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor}
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
+import com.giyeok.jparser.{NGrammar, ParseForestFunc}
 
 object MetaGrammar2 {
 

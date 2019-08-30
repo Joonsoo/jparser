@@ -3,7 +3,7 @@ package com.giyeok.jparser.visualize
 import com.giyeok.jparser._
 import com.giyeok.jparser.nparser.Parser.Context
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.nparser.{NGrammar, ParseTreeConstructor, ParsingContext}
+import com.giyeok.jparser.nparser.{ParseTreeConstructor, ParsingContext}
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 import org.eclipse.draw2d.{ColorConstants, Figure, LineBorder}

@@ -2,8 +2,9 @@ package com.giyeok.jparser.nparser
 
 import ParsingContext._
 import AcceptCondition._
-import NGrammar._
-import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.NGrammar.{NAtomicSymbol, NExcept, NJoin, NLongest, NLookaheadExcept, NLookaheadIs, NLookaheadSymbol, NSequence, NSimpleDerive, NSymbol, NTerminal}
+import com.giyeok.jparser.{Inputs, NGrammar}
+
 import scala.annotation.tailrec
 import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 

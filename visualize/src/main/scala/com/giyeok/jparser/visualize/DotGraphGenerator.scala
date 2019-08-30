@@ -1,25 +1,15 @@
 package com.giyeok.jparser.visualize
 
-import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.Symbols._
-import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.nparser.AcceptCondition.Always
-import com.giyeok.jparser.nparser.AcceptCondition.And
-import com.giyeok.jparser.nparser.AcceptCondition.Exists
-import com.giyeok.jparser.nparser.AcceptCondition.Never
-import com.giyeok.jparser.nparser.AcceptCondition.NotExists
-import com.giyeok.jparser.nparser.AcceptCondition.OnlyIf
-import com.giyeok.jparser.nparser.AcceptCondition.Or
-import com.giyeok.jparser.nparser.AcceptCondition.Unless
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
-import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.Inputs.CharsGrouping
+import com.giyeok.jparser.NGrammar.NAtomicSymbol
+import com.giyeok.jparser.Symbols._
+import com.giyeok.jparser.nparser.AcceptCondition._
+import com.giyeok.jparser.nparser.ParsingContext._
+import com.giyeok.jparser.{NGrammar, Symbols}
 
 class DotGraphGenerator(ngrammar: NGrammar) {
     implicit class DotGraphSymbols(sym: Symbol) {
-        import com.giyeok.jparser.utils.UnicodeUtil.categoryCodeToName
-        import com.giyeok.jparser.utils.UnicodeUtil.toReadable
+        import com.giyeok.jparser.utils.UnicodeUtil.{categoryCodeToName, toReadable}
 
         def toDotSymbolName: String = ???
         def toDotLabelName: String = sym match {
@@ -81,7 +71,7 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             attr("style", newStyle)
         }
         def attrString: String = {
-            properties map { kv => kv._1 + "=\"" + kv._2 + "\"" } mkString ","
+            properties.toList.map { kv => kv._1 + "=\"" + kv._2 + "\"" } mkString ","
         }
     }
     class DotGraphNode(val name: String, val properties: scala.collection.mutable.Map[String, String]) extends Props[DotGraphNode] {

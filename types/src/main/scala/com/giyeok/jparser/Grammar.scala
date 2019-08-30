@@ -1,7 +1,6 @@
 package com.giyeok.jparser
 
-import scala.collection.immutable.ListMap
-import scala.collection.immutable.ListSet
+import scala.collection.immutable.{ListMap, ListSet}
 
 trait Grammar {
     type RuleMap = ListMap[String, ListSet[Symbols.Symbol]]
@@ -113,8 +112,3 @@ object Grammar {
             ((grammar.rules.keySet map { Nonterminal(_) }): Set[Symbol]) -- usedSymbols
     }
 }
-
-case class GrammarDefinitionException(msg: String) extends Exception(msg)
-case class AmbiguousGrammarException(msg: String) extends Exception(msg)
-case class AmbiguousParsingException(name: String) extends Exception
-case class NoDefinitionOfNonterminalException(name: String) extends Exception

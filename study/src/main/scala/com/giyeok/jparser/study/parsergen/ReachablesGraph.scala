@@ -1,8 +1,8 @@
 package com.giyeok.jparser.study.parsergen
 
+import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.NGrammar.NTerminal
 import com.giyeok.jparser.examples.SimpleGrammars
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.parsergen.deprecated.{AKernel, AKernelEdge, AKernelGraph, GrammarAnalyzer}
 import com.giyeok.jparser.utils.DotGraphModel
 import com.giyeok.jparser.visualize._

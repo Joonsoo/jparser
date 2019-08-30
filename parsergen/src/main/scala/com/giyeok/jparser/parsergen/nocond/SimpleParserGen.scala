@@ -1,7 +1,7 @@
 package com.giyeok.jparser.parsergen.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
-import com.giyeok.jparser.nparser.NGrammar
+import com.giyeok.jparser.NGrammar
 
 // AKernelSet 하나가 한 노드가 되는 parser 생성.
 // SimpleGrammars.array0Grammar 같은 문법을 제대로 처리 못함.

@@ -1,7 +1,6 @@
 package com.giyeok.jparser
 
-import Symbols._
-import com.giyeok.jparser.nparser.NGrammar.{NJoin, NSequence, NSymbol}
+import com.giyeok.jparser.NGrammar.{NJoin, NSequence, NSymbol}
 
 case class ParseForest(trees: Seq[ParseResultTree.Node]) extends ParseResult
 

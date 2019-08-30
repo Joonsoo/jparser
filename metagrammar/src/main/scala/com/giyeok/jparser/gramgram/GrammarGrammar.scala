@@ -1,16 +1,12 @@
 package com.giyeok.jparser.gramgram
 
-import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.GrammarHelper._
-
-import scala.collection.immutable.ListMap
-import scala.collection.immutable.ListSet
-import com.giyeok.jparser.Symbols._
-import com.giyeok.jparser.ParseResultTree
+import com.giyeok.jparser.NGrammar.{NLongest, NNonterminal, NStart, NTerminal}
 import com.giyeok.jparser.ParseResultTree._
-import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.nparser.NGrammar.{NLongest, NNonterminal, NStart, NTerminal}
+import com.giyeok.jparser.{Grammar, Inputs, ParseResultTree, Symbols}
+import com.giyeok.jparser.Symbols._
+
+import scala.collection.immutable.{ListMap, ListSet}
 
 object GrammarGrammar extends Grammar {
     val whitespace = chars(" \t\n\r").star

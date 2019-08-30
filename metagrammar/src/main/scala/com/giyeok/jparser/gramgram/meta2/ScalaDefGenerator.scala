@@ -1,10 +1,9 @@
 package com.giyeok.jparser.gramgram.meta2
 
 import com.giyeok.jparser.Inputs.CharsGrouping
-import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.NGrammar.{NStart, NSymbol}
 import com.giyeok.jparser.gramgram.meta2.TypeDependenceGraph.SymbolNode
-import com.giyeok.jparser.nparser.NGrammar
-import com.giyeok.jparser.nparser.NGrammar.{NStart, NSymbol}
+import com.giyeok.jparser.{NGrammar, Symbols}
 
 class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
     private val astAnalysis = analysis.astAnalysis

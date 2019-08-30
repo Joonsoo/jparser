@@ -2,47 +2,25 @@ package com.giyeok.jparser.studio
 
 import java.util.concurrent.LinkedBlockingDeque
 
-import scala.collection.immutable.ListMap
-import scala.collection.immutable.ListSet
-import scala.util.{Failure, Try}
-import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.ParseForest
-import com.giyeok.jparser.ParseForestFunc
+import com.giyeok.jparser.NGrammar.NTerminal
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.Symbols.Nonterminal
-import com.giyeok.jparser.Symbols.Sequence
+import com.giyeok.jparser.Symbols.{Nonterminal, Sequence}
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.gramgram.meta2.{ASTifier, AstAnalyzer, MetaGrammar2}
-import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor, ParsingContext}
-import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.Parser.NaiveContext
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParsingContext}
 import com.giyeok.jparser.visualize._
-import com.giyeok.jparser.visualize.utils.HorizontalResizableSplittedComposite
-import com.giyeok.jparser.visualize.utils.VerticalResizableSplittedComposite
-import org.eclipse.draw2d.ColorConstants
-import org.eclipse.draw2d.Figure
-import org.eclipse.draw2d.FigureCanvas
+import com.giyeok.jparser.visualize.utils.{HorizontalResizableSplittedComposite, VerticalResizableSplittedComposite}
+import com.giyeok.jparser._
+import org.eclipse.draw2d.{ColorConstants, Figure, FigureCanvas}
 import org.eclipse.swt.SWT
-import org.eclipse.swt.custom.ExtendedModifyListener
-import org.eclipse.swt.custom.StyleRange
-import org.eclipse.swt.custom.StyledText
-import org.eclipse.swt.events.DisposeListener
-import org.eclipse.swt.events.SelectionEvent
-import org.eclipse.swt.events.SelectionListener
-import org.eclipse.swt.layout.FillLayout
-import org.eclipse.swt.layout.FormAttachment
-import org.eclipse.swt.layout.FormData
-import org.eclipse.swt.layout.FormLayout
-import org.eclipse.swt.layout.RowLayout
-import org.eclipse.swt.widgets.Button
-import org.eclipse.swt.widgets.Composite
-import org.eclipse.swt.widgets.Control
-import org.eclipse.swt.widgets.Display
-import org.eclipse.swt.widgets.Label
-import org.eclipse.swt.widgets.MessageBox
-import org.eclipse.swt.widgets.Shell
+import org.eclipse.swt.custom.{ExtendedModifyListener, StyleRange, StyledText}
+import org.eclipse.swt.events.{DisposeListener, SelectionEvent, SelectionListener}
+import org.eclipse.swt.layout._
+import org.eclipse.swt.widgets.{Button, Composite, Control, Display, Label, MessageBox, Shell}
+
+import scala.collection.immutable.{ListMap, ListSet}
+import scala.util.{Failure, Try}
 
 object ParserStudio {
     def start(initialGrammar: String, initialTest: String, examples: Seq[GrammarExample]): Unit = {

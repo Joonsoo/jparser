@@ -1,6 +1,6 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.nparser.NGrammar.{NJoin, NSequence, NSymbol}
+import com.giyeok.jparser.NGrammar.{NJoin, NSequence, NSymbol}
 
 trait ParseResult {
     // ParseResult는 동일성 비교가 가능해야 한다

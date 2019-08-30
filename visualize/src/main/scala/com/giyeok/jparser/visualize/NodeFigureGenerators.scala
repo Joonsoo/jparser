@@ -1,7 +1,7 @@
 package com.giyeok.jparser.visualize
 
+import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.nparser.AcceptCondition._
-import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 

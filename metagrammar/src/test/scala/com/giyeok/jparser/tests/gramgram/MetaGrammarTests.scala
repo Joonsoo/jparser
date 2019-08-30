@@ -1,9 +1,9 @@
 package com.giyeok.jparser.tests.gramgram
 
 import com.giyeok.jparser.gramgram.MetaGrammar
-import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor}
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
 import com.giyeok.jparser.tests.{GrammarTestCases, StringSamples}
-import com.giyeok.jparser.{Grammar, ParseForestFunc}
+import com.giyeok.jparser.{Grammar, NGrammar, ParseForestFunc}
 
 object MetaGrammarTests extends GrammarTestCases with StringSamples {
     val grammar = MetaGrammar

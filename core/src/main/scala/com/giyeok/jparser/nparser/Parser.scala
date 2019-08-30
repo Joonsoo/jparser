@@ -4,7 +4,7 @@ import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.{Inputs, NGrammar}
 import Parser._
 
 trait Parser[T <: Context] {

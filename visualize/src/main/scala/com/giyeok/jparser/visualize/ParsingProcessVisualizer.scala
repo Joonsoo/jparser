@@ -1,8 +1,9 @@
 package com.giyeok.jparser.visualize
 
 import com.giyeok.jparser.Inputs.ConcreteInput
+import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.nparser.{NGrammar, Parser, ParsingContext}
+import com.giyeok.jparser.nparser.{Parser, ParsingContext}
 import com.giyeok.jparser.nparser.Parser.Context
 import com.giyeok.jparser.nparser.Parser.ProceedDetail
 import com.giyeok.jparser.nparser.ParsingContext.Node

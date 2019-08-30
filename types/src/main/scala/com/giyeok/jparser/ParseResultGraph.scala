@@ -1,7 +1,7 @@
 package com.giyeok.jparser
 
+import com.giyeok.jparser.NGrammar.{NJoin, NSequence, NSymbol}
 import com.giyeok.jparser.ParseResultGraph._
-import com.giyeok.jparser.nparser.NGrammar.{NJoin, NSequence, NSymbol}
 
 case class ParseResultGraph(left: Int, right: Int, root: Node, nodes: Set[Node], edges: Set[Edge]) extends ParseResult {
     assert(left == root.left && right == root.right)

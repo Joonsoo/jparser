@@ -2,10 +2,9 @@ package com.giyeok.jparser.parsergen.nocond.codegen
 
 import java.io.File
 
-import com.giyeok.jparser.Grammar
+import com.giyeok.jparser.{Grammar, NGrammar}
 import com.giyeok.jparser.examples.{ExpressionGrammars, JsonGrammar, SimpleGrammars}
 import com.giyeok.jparser.gramgram.MetaGrammar
-import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenTemplates.{InputLoop, MainFunc, TestInputs}
 import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenUtils._
 import com.giyeok.jparser.parsergen.nocond.{SimpleParser, SimpleParserGen}

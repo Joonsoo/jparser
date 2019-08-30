@@ -1,8 +1,8 @@
 package com.giyeok.jparser.parsergen.deprecated
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
+import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.examples.SimpleGrammars
-import com.giyeok.jparser.nparser.NGrammar
 
 class UnambiguousGen(val grammar: NGrammar) {
     val simpleGenGen: SimpleGenGen = new SimpleGenGen(grammar)

@@ -3,8 +3,8 @@ package com.giyeok.jparser.gramgram.meta2.generated
 import com.giyeok.jparser.Inputs.InputToShortString
 import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNode, TerminalNode}
 import com.giyeok.jparser.gramgram.meta2.generated.ExpressionGrammar.parseAst
-import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor, Parser}
-import com.giyeok.jparser.{Inputs, ParseForestFunc, ParseResultTree, ParsingErrors, Symbols}
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, Parser}
+import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc, ParseResultTree, ParsingErrors, Symbols}
 
 import scala.collection.immutable.ListSet
 

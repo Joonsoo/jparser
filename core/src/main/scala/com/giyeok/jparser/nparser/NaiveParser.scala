@@ -1,9 +1,10 @@
 package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.Inputs.Input
+import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.NGrammar.NTerminal
 import com.giyeok.jparser.ParsingErrors._
 import com.giyeok.jparser.nparser.AcceptCondition._
-import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.Parser.{ConditionAccumulate, NaiveContext, _}
 import com.giyeok.jparser.nparser.ParsingContext._
 

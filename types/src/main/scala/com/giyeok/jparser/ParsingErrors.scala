@@ -1,6 +1,6 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.Inputs._
+import com.giyeok.jparser.Inputs.{Character, Input, Virtual}
 
 object ParsingErrors {
 

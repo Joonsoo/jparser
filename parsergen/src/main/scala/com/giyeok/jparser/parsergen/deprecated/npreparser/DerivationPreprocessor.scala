@@ -1,8 +1,8 @@
 package com.giyeok.jparser.parsergen.deprecated.npreparser
 
 import com.giyeok.jparser.Inputs.{Input, TermGroupDesc}
+import com.giyeok.jparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
-import com.giyeok.jparser.nparser.NGrammar.NTerminal
 import com.giyeok.jparser.nparser.ParsingContext.{Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.ParsingTasks
 import com.giyeok.jparser.parsergen.utils.TermGrouper

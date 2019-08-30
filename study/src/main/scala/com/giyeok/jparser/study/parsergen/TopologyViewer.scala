@@ -1,7 +1,7 @@
 package com.giyeok.jparser.study.parsergen
 
+import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.examples.SimpleGrammars
-import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.deprecated.{SimpleGen, SimpleGenGen}
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing

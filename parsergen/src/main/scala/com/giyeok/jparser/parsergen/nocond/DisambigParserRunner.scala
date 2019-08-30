@@ -1,9 +1,8 @@
 package com.giyeok.jparser.parsergen.nocond
 
-import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.{Inputs, NGrammar}
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup}
 import com.giyeok.jparser.examples.SimpleGrammars
-import com.giyeok.jparser.nparser.NGrammar
 
 class DisambigParserRunner(val disambigParser: DisambigParser) {
 

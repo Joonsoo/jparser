@@ -1,7 +1,7 @@
 package com.giyeok.jparser
 
-import ParseResultDerivations._
-import com.giyeok.jparser.nparser.NGrammar.{NJoin, NSequence, NSymbol}
+import com.giyeok.jparser.NGrammar.{NJoin, NSequence, NSymbol}
+import com.giyeok.jparser.ParseResultDerivations._
 
 // TODO 수정 필요
 case class ParseResultDerivationsSet(left: Int, right: Int, derivations: Set[Derivation]) extends ParseResult

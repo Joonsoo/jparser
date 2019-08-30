@@ -1,6 +1,6 @@
 package com.giyeok.jparser.nparser
 
-import com.giyeok.jparser.nparser.NGrammar.NAtomicSymbol
+import com.giyeok.jparser.NGrammar.NAtomicSymbol
 
 object AcceptCondition {
     import ParsingContext._

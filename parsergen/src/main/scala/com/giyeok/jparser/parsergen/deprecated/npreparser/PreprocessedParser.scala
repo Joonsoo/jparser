@@ -2,9 +2,9 @@ package com.giyeok.jparser.parsergen.deprecated.npreparser
 
 import scala.annotation.tailrec
 import com.giyeok.jparser.Inputs.Input
+import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.ParsingErrors.UnexpectedInput
-import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.nparser.Parser
 import com.giyeok.jparser.nparser.Parser.ConditionAccumulate
 import com.giyeok.jparser.nparser.Parser.Context

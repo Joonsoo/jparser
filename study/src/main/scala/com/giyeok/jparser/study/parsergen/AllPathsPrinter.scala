@@ -1,8 +1,7 @@
 package com.giyeok.jparser.study.parsergen
 
-import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.{NGrammar, Symbols}
 import com.giyeok.jparser.gramgram.MetaGrammar
-import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.deprecated.{AKernel, GrammarAnalyzer}
 import com.giyeok.jparser.parsergen.utils.TermGrouper
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing

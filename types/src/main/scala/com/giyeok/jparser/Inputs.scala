@@ -1,7 +1,6 @@
 package com.giyeok.jparser
 
 import com.giyeok.jparser.utils.UnicodeUtil
-import com.giyeok.jparser.utils.UnicodeUtil.toReadable
 
 object Inputs {
     type Location = Int
@@ -177,9 +176,9 @@ object Inputs {
 
         def groupedString: String =
             groups.sorted map { range =>
-                if (range._1 == range._2) s"${toReadable(range._1)}"
-                else if (range._1 + 1 == range._2) s"${toReadable(range._1)}-${toReadable(range._2)}"
-                else s"${toReadable(range._1)}-${toReadable(range._2)}"
+                if (range._1 == range._2) s"${UnicodeUtil.toReadable(range._1)}"
+                else if (range._1 + 1 == range._2) s"${UnicodeUtil.toReadable(range._1)}-${UnicodeUtil.toReadable(range._2)}"
+                else s"${UnicodeUtil.toReadable(range._1)}-${UnicodeUtil.toReadable(range._2)}"
             } mkString ""
     }
 

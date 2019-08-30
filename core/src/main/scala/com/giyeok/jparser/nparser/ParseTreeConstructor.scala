@@ -1,10 +1,10 @@
 package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.Inputs.Input
+import com.giyeok.jparser.NGrammar.{NAtomicSymbol, NJoin, NSequence, NTerminal}
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.nparser.NGrammar._
 import com.giyeok.jparser.nparser.ParsingContext._
-import com.giyeok.jparser.{ParseResult, ParseResultFunc}
+import com.giyeok.jparser.{NGrammar, ParseResult, ParseResultFunc}
 
 class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], val history: Seq[Graph], conditionFinal: Map[AcceptCondition, Boolean]) {
 

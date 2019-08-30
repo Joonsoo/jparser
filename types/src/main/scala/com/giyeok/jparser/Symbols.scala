@@ -1,5 +1,6 @@
 package com.giyeok.jparser
 
+import com.giyeok.jparser.utils.UnicodeUtil
 import com.giyeok.jparser.Inputs.CharsGrouping
 
 import scala.collection.immutable.ListSet
@@ -257,17 +258,16 @@ object Symbols {
 
     implicit class ShortStringSymbols(sym: Symbol) {
         // TODO improve short string
-        import com.giyeok.jparser.utils.UnicodeUtil.{categoryCodeToName, toReadable}
 
         def toShortString: String = sym match {
             case Any => "<any>"
             case AnyChar => "<any>"
-            case ExactChar(c) => s"'${toReadable(c)}'"
+            case ExactChar(c) => s"'${UnicodeUtil.toReadable(c)}'"
             case chars: Terminals.Chars =>
                 "{" + chars.chars.groupedString + "}"
             case Unicode(c) => s"<unicode ${
                 (c.toSeq.sorted map {
-                    categoryCodeToName
+                    UnicodeUtil.categoryCodeToName
                 }) mkString ", "
             }>"
             case Start => "<start>"

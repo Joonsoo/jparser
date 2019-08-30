@@ -1,8 +1,8 @@
 package com.giyeok.jparser.parsergen.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
+import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
-import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.parsergen.utils.BiDirectionalMap
 
 sealed trait GenTermAction

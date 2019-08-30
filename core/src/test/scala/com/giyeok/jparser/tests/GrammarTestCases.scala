@@ -1,7 +1,7 @@
 package com.giyeok.jparser.tests
 
-import com.giyeok.jparser.nparser.{NGrammar, NaiveParser}
-import com.giyeok.jparser.{Grammar, Inputs}
+import com.giyeok.jparser.nparser.NaiveParser
+import com.giyeok.jparser.{Grammar, Inputs, NGrammar}
 
 trait Samples {
     val correctSampleInputs: Set[Inputs.ConcreteSource]

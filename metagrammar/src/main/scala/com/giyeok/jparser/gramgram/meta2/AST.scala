@@ -3,7 +3,7 @@ package com.giyeok.jparser.gramgram.meta2
 import com.giyeok.jparser.{Inputs, ParseResultTree}
 import com.giyeok.jparser.ParseResultTree.{BindNode, CyclicBindNode, CyclicSequenceNode, JoinNode, Node, SequenceNode, TerminalNode}
 import com.giyeok.jparser.Symbols.Nonterminal
-import com.giyeok.jparser.nparser.NGrammar.{NNonterminal, NRepeat, NSequence, NStart}
+import com.giyeok.jparser.NGrammar.{NNonterminal, NRepeat, NSequence, NStart}
 
 sealed trait AST
 

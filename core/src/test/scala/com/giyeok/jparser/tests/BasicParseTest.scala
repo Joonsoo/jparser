@@ -1,21 +1,13 @@
 package com.giyeok.jparser.tests
 
-import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.{Grammar, Inputs, NGrammar, ParseForest, ParseResultDerivationsSet, ParseResultGraph, ParseResultGraphFunc, ParseResultTree, ParsingErrors}
 import org.scalatest.FlatSpec
-import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.Symbols._
-import com.giyeok.jparser.ParseResultTree
-import com.giyeok.jparser.ParseResultGraph
-import com.giyeok.jparser.ParseResultDerivationsSet
 import com.giyeok.jparser.nparser.ParseTreeConstructor
-import com.giyeok.jparser.ParseResultGraphFunc
-import com.giyeok.jparser.nparser.NGrammar
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.ParsingErrors
-import com.giyeok.jparser.ParseForest
-import com.giyeok.jparser.nparser.NGrammar.{NExcept, NJoin, NLongest, NLookaheadIs, NLookaheadSymbol, NNonterminal, NOneOf, NProxy, NRepeat, NSequence, NStart, NTerminal}
+import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLongest, NLookaheadIs, NLookaheadSymbol, NNonterminal, NOneOf, NProxy, NRepeat, NSequence, NStart, NTerminal}
 
-class BasicParseTest(val testsSuite: Traversable[GrammarTestCases]) extends FlatSpec {
+class BasicParseTest(val testsSuite: Iterable[GrammarTestCases]) extends FlatSpec {
     def log(s: String): Unit = {
         // println(s)
     }

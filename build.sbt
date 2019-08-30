@@ -14,15 +14,22 @@ lazy val testDeps = {
     Seq(scalatest, junit)
 }
 
-lazy val core = (project in file("core")).
-    settings(
-        name := "jparser-core",
-        libraryDependencies ++= testDeps)
-
 lazy val utils = (project in file("utils")).
     settings(
         name := "jparser-utils",
         libraryDependencies ++= testDeps)
+
+lazy val types = (project in file("types")).
+	settings(
+		name := "jparser-types",
+		libraryDependencies ++= testDeps).
+    dependsOn(utils % "test->test;compile->compile")
+
+lazy val core = (project in file("core")).
+    settings(
+        name := "jparser-core",
+        libraryDependencies ++= testDeps).
+    dependsOn(types % "test->test;compile->compile")
 
 lazy val metagrammar = (project in file("metagrammar")).
     settings(

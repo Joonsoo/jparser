@@ -1,9 +1,10 @@
 package com.giyeok.jparser.gramgram.meta2.generated
 
 import com.giyeok.jparser.Inputs.InputToShortString
-import com.giyeok.jparser.ParseResultTree.{JoinNode, Node, BindNode, TerminalNode, SequenceNode}
-import com.giyeok.jparser.nparser.{NGrammar, ParseTreeConstructor, NaiveParser, Parser}
-import com.giyeok.jparser.{ParsingErrors, ParseForestFunc, Symbols}
+import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNode, TerminalNode}
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, Parser}
+import com.giyeok.jparser.{NGrammar, ParseForestFunc, ParsingErrors, Symbols}
+
 import scala.collection.immutable.ListSet
 
 object ExpressionGrammar {

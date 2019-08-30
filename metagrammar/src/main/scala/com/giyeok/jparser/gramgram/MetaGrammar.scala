@@ -2,11 +2,11 @@ package com.giyeok.jparser.gramgram
 
 import com.giyeok.jparser.GrammarHelper._
 import com.giyeok.jparser.Inputs.CharsGrouping
+import com.giyeok.jparser.NGrammar.{NExcept, NNonterminal, NSequence, NStart}
 import com.giyeok.jparser.ParseResultTree._
-import com.giyeok.jparser._
 import com.giyeok.jparser.Symbols._
-import com.giyeok.jparser.nparser.NGrammar.{NExcept, NNonterminal, NSequence, NStart}
-import com.giyeok.jparser.nparser.{NGrammar, NaiveParser, ParseTreeConstructor}
+import com.giyeok.jparser._
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
 
 import scala.collection.immutable.{ListMap, ListSet}
 
