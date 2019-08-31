@@ -3,13 +3,9 @@ package com.giyeok.jparser.gramgram.meta2
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.{NStart, NSymbol}
 import com.giyeok.jparser.gramgram.meta2.TypeDependenceGraph.SymbolNode
-import com.giyeok.jparser.{NGrammar, Symbols}
+import com.giyeok.jparser.{Grammar, NGrammar, Symbols}
 
-class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
-    private val astAnalysis = analysis.astAnalysis
-    private val typeAnalysis = analysis.typeAnalysis
-
-    // TODO
+object ScalaDefGenerator {
     private def escapeString(str: String): String = s""""$str""""
 
     def isPrintableChar(char: Char): Boolean = {
@@ -60,27 +56,6 @@ class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
         case Symbols.Sequence(seq, _) => s"Symbols.Sequence(Seq(${seq map symbolString mkString ","}))"
     }
 
-    def grammarDefBody(grammarName: String): String = {
-        val g = astAnalysis.grammar(grammarName)
-
-        val ruleString = g.rules.toList.map { r =>
-            s"""${escapeString(r._1)} -> ListSet(
-               |  ${r._2 map symbolString mkString ",\n  "}
-               |)""".stripMargin
-        }
-        s"""  val name: String = ${escapeString(grammarName)}
-           |  val startSymbol: Symbols.Nonterminal = Symbols.Nonterminal(${escapeString(g.startSymbol.name)})
-           |  val rules: RuleMap = ListMap(
-           |    ${ruleString mkString ",\n"}
-           |  )""".stripMargin
-    }
-
-    def grammarDef(grammarName: String, includeAstifiers: Boolean): String = {
-        s"""new Grammar {
-           |  ${grammarDefBody(grammarName)}
-           |}""".stripMargin
-    }
-
     private def intSetString(s: Set[Int]) = s"Set(${s mkString ","})"
 
     private def intSeqString(s: Seq[Int]) = s"Seq(${s mkString ","})"
@@ -113,20 +88,44 @@ class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
     private def nSequenceString(nseq: NGrammar.NSequence): String =
         s"NGrammar.NSequence(${nseq.id}, ${symbolString(nseq.symbol)}, ${intSeqString(nseq.sequence)})"
 
-    def ngrammarDef(): String = {
-        val nsymbolsString = astAnalysis.ngrammar.nsymbols.toList.sortBy(_._1) flatMap { s =>
+    def ngrammarDef(ngrammar: NGrammar): String = {
+        val nsymbolsString = ngrammar.nsymbols.toList.sortBy(_._1) flatMap { s =>
             List( // s"// ${s._2.symbol.toShortString}",
                 s"${s._1} -> ${nAtomicSymbolString(s._2)}")
         }
-        val nseqsString = astAnalysis.ngrammar.nsequences.toList.sortBy(_._1) flatMap { s =>
+        val nseqsString = ngrammar.nsequences.toList.sortBy(_._1) flatMap { s =>
             List( // s"// ${s._2.symbol.toShortString}",
                 s"${s._1} -> ${nSequenceString(s._2)}")
         }
         s"""new NGrammar(
            |  Map(${nsymbolsString mkString ",\n"}),
            |  Map(${nseqsString mkString ",\n"}),
-           |  ${astAnalysis.ngrammar.startSymbol})""".stripMargin
+           |  ${ngrammar.startSymbol})""".stripMargin
     }
+
+    private def grammarDefBody(g: Grammar): String = {
+        val ruleString = g.rules.toList.map { r =>
+            s"""${escapeString(r._1)} -> ListSet(
+               |  ${r._2 map symbolString mkString ",\n  "}
+               |)""".stripMargin
+        }
+        s"""  val name: String = ${escapeString(g.name)}
+           |  val startSymbol: Symbols.Nonterminal = Symbols.Nonterminal(${escapeString(g.startSymbol.name)})
+           |  val rules: RuleMap = ListMap(
+           |    ${ruleString mkString ",\n"}
+           |  )""".stripMargin
+    }
+
+    def grammarDef(grammar: Grammar): String = {
+        s"""new Grammar {
+           |  ${ScalaDefGenerator.grammarDefBody(grammar)}
+           |}""".stripMargin
+    }
+}
+
+class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
+    private val astAnalysis = analysis.astAnalysis
+    private val typeAnalysis = analysis.typeAnalysis
 
     def typeSpecToString(typeSpec: TypeSpec): String = typeSpec match {
         case ParseNodeType => "Node"
@@ -438,7 +437,7 @@ class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
         s"""${importLines.sorted mkString "\n"}
            |
            |object $objectName {
-           |  val ngrammar = ${ngrammarDef()}
+           |  val ngrammar = ${ScalaDefGenerator.ngrammarDef(astAnalysis.ngrammar)}
            |
            |  ${codeBlock.code}
            |}""".stripMargin

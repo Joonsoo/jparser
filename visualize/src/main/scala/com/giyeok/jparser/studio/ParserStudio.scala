@@ -48,7 +48,7 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
 
     private val exampleGrammars: Seq[(GrammarExample, String)] =
         _exampleGrammars flatMap { g =>
-            val grammarInText = Try(MetaGrammar.reverse(g.grammar))
+            val grammarInText = Try(MetaGrammar.stringify(g.grammar))
             if (grammarInText.isFailure) {
                 println(s"${g.name}, ${grammarInText.asInstanceOf[Failure[_]].exception}")
             }

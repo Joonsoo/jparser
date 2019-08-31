@@ -143,16 +143,16 @@ object MetaGrammarTests extends GrammarTestCases with StringSamples {
 
     def main(): Unit = {
         println("===== generated =====")
-        println(MetaGrammar.reverse(MetaGrammar))
+        println(MetaGrammar.stringify(MetaGrammar))
 
         val metaGrammar1 = MetaGrammar.translate("Grammar", metaGrammarText1).left.get
         println("===== translated =====")
-        println(MetaGrammar.reverse(metaGrammar1))
+        println(MetaGrammar.stringify(metaGrammar1))
         println("Meta=meta1", MetaGrammar.rules.toSet == metaGrammar1.rules.toSet)
 
         val metaGrammar2 = MetaGrammar.translate("Grammar", metaGrammarText2).left.get
         println("===== translated0 =====")
-        println(MetaGrammar.reverse(metaGrammar2))
+        println(MetaGrammar.stringify(metaGrammar2))
         println("Meta=meta2", MetaGrammar.rules.toSet == metaGrammar2.rules.toSet)
 
         println("meta1=meta2", metaGrammar1.rules.toSet == metaGrammar2.rules.toSet)

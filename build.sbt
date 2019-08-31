@@ -40,6 +40,7 @@ lazy val metagrammar = (project in file("metagrammar")).
 lazy val examples = (project in file("examples")).
     settings(
         name := "jparser-examples").
+    dependsOn(types % "test->test;compile->compile").
     dependsOn(core % "test->test;compile->compile").
     dependsOn(metagrammar % "test->test;compile->compile")
 

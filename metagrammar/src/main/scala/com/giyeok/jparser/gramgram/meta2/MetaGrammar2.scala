@@ -2,10 +2,12 @@ package com.giyeok.jparser.gramgram.meta2
 
 import java.io.{BufferedWriter, FileWriter}
 
+import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.fromGrammar
+import com.giyeok.jparser.Symbols.Terminals
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
-import com.giyeok.jparser.{NGrammar, ParseForestFunc}
+import com.giyeok.jparser.{Grammar, NGrammar, ParseForestFunc, Symbols}
 
 object MetaGrammar2 {
 
@@ -246,6 +248,110 @@ object MetaGrammar2 {
         val typeAnalysis = new TypeAnalyzer(astAnalyzer).analyzeTypeHierarchy()
 
         new Analysis(astAnalysis, typeAnalysis)
+    }
+
+    def stringify(grammar: Grammar): String = {
+        def symbolStringOf(symbol: Symbols.Symbol, outerPrec: Int): String = {
+            val (string: String, prec: Int) = symbol match {
+                case terminal: Symbols.Terminal =>
+                    val s = terminal match {
+                        case Terminals.Any | Terminals.AnyChar => "."
+                        case Terminals.ExactChar(char) =>
+                            val s = char match {
+                                case '\n' => "\\n"
+                                case '\\' => "\\\\"
+                                case '\'' => "\\'"
+                                // TODO complete escape
+                                case _ => s"$char"
+                            }
+                            s"'$s'"
+                        case chars: Terminals.Chars =>
+                            def escapeChar(char: Char): String =
+                                char match {
+                                    case '-' => "\\-"
+                                    case '}' => "\\}"
+                                    case '\n' => "\\n"
+                                    case '\t' => "\\t"
+                                    case '\r' => "\\r"
+                                    case '\\' => "\\\\"
+                                    // TODO complete escape
+                                    case _ => "" + char
+                                }
+
+                            "{" + (chars.chars.groups.sorted map { pair =>
+                                if (pair._1 == pair._2) s"${escapeChar(pair._1)}"
+                                else if (pair._1 + 1 == pair._2) s"${escapeChar(pair._1)}${escapeChar(pair._2)}"
+                                else s"${escapeChar(pair._1)}-${escapeChar(pair._2)}"
+                            } mkString "") + "}"
+                        // case Terminals.Unicode(categories) =>
+                        // case Terminals.ExactVirtual(name) =>
+                        // case Terminals.Virtuals(names) =>
+                    }
+                    (s, 0)
+                case Symbols.Nonterminal(name) =>
+                    (name, 0)
+                case Symbols.Sequence(seq, contentIdx) =>
+                    val isString = seq forall (_.isInstanceOf[Symbols.Terminals.ExactChar])
+                    if (isString) {
+                        // string인 경우
+                        // TODO escape
+                        ("\"" + (seq map (_.asInstanceOf[Symbols.Terminals.ExactChar].char)).mkString + "\"", 0)
+                    } else {
+                        (seq map {
+                            symbolStringOf(_, 5)
+                        } mkString " ", 5)
+                    }
+                case Symbols.OneOf(syms) =>
+                    val isOptional = syms.size == 2 && (syms contains Symbols.Proxy(Symbols.Sequence(Seq())))
+                    if (isOptional) {
+                        val optContent = (syms - Symbols.Proxy(Symbols.Sequence(Seq()))).head
+                        (symbolStringOf(optContent, 2) + "?", 2)
+                    } else {
+                        ("(" + (syms.toSeq map {
+                            symbolStringOf(_, 5)
+                        } mkString " | ") + ")", 0)
+                    }
+                case Symbols.Repeat(sym, 0) =>
+                    (symbolStringOf(sym, 2) + "*", 2)
+                case Symbols.Repeat(sym, 1) =>
+                    (symbolStringOf(sym, 2) + "+", 2)
+                case Symbols.Repeat(sym, more) =>
+                    ("(" + ((symbolStringOf(sym, 5) + " ") * more) + (symbolStringOf(sym, 5) + "*") + ")", 0)
+                case Symbols.Except(sym, except) =>
+                    (symbolStringOf(sym, 4) + "-" + symbolStringOf(except, 4), 4)
+                case Symbols.LookaheadIs(lookahead) =>
+                    ("^" + symbolStringOf(lookahead, 0), 1)
+                case Symbols.LookaheadExcept(except) =>
+                    ("!" + symbolStringOf(except, 0), 1)
+                case Symbols.Proxy(sym) =>
+                    ("(" + symbolStringOf(sym, 5) + ")", 0)
+                case Symbols.Join(sym, join) =>
+                    (symbolStringOf(sym, 3) + "&" + symbolStringOf(join, 3), 3)
+                case Symbols.Longest(sym) =>
+                    ("<" + symbolStringOf(sym, 5) + ">", 0)
+            }
+            if (outerPrec < prec) "(" + string + ")" else string
+        }
+
+        def nonterminalNameOf(name: String): String = {
+            val charArray = name.toCharArray
+            if (charArray forall { c => ('0' <= c && c <= '9') || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || (c == '_') }) {
+                name
+            } else {
+                // TODO \하고 ` escape
+                s"`$name`"
+            }
+        }
+
+        def ruleStringOf(lhs: String, rhs: List[Symbols.Symbol]): String = {
+            nonterminalNameOf(lhs) + " = " + ((rhs map { symbol => symbolStringOf(symbol, 6) }) mkString "\n    | ")
+        }
+
+        val startRule = grammar.rules(grammar.startSymbol.name).toList
+        val restRules = grammar.rules - grammar.startSymbol.name
+
+        ruleStringOf(grammar.startSymbol.name, startRule) + "\n" +
+            (restRules.toList.map { kv => ruleStringOf(kv._1, kv._2.toList) } mkString "\n")
     }
 
     // 문법이 주어지면

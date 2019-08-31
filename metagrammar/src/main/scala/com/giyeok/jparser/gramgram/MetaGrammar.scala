@@ -367,7 +367,7 @@ object MetaGrammar extends Grammar {
         translate(name, source).left.get
 
     // TODO 우선순위 처리
-    def reverse(grammar: Grammar): String = {
+    def stringify(grammar: Grammar): String = {
         def nonterminalNameOf(name: String): String = {
             val charArray = name.toCharArray
             if (charArray forall { c => ('0' <= c && c <= '9') || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || (c == '_') }) {
@@ -417,14 +417,11 @@ object MetaGrammar extends Grammar {
                 case Sequence(Seq(), _) =>
                     ("ε", 0)
                 case Sequence(seq, _) =>
-                    if (seq forall {
-                        _.isInstanceOf[Symbols.Terminals.ExactChar]
-                    }) {
+                    val isString = seq forall (_.isInstanceOf[Symbols.Terminals.ExactChar])
+                    if (isString) {
                         // string인 경우
                         // TODO escape
-                        ("\"" + (seq map {
-                            _.asInstanceOf[Symbols.Terminals.ExactChar].char
-                        }).mkString + "\"", 0)
+                        ("\"" + (seq map (_.asInstanceOf[Symbols.Terminals.ExactChar].char)).mkString + "\"", 0)
                     } else {
                         (seq map {
                             symbolStringOf(_, 5)
