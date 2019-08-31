@@ -2,8 +2,8 @@ package com.giyeok.jparser.parsergen.nocond.codegen
 
 import java.io.File
 
+import com.giyeok.jparser.examples.metagram.{JsonGrammar, SimpleGrammars}
 import com.giyeok.jparser.{Grammar, NGrammar}
-import com.giyeok.jparser.examples.{ExpressionGrammars, JsonGrammar, SimpleGrammars}
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenTemplates.{InputLoop, MainFunc, TestInputs}
 import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenUtils._
@@ -174,7 +174,7 @@ object SimpleParserJavaGen {
 //        generate(MetaGrammar.translateForce("LongestPrior", "S = T*\nT = 'a'+|'b'+"),
 //            "LongestPriorParser", InputLoop(List()))
 //        generate(ExpressionGrammars.simple, "ExprGrammarSimpleParser", InputLoop(List("123+456")))
-        generate(SimpleGrammars.array0Grammar, "Array0GrammarParser", InputLoop(List("[a,a,a]")))
+        generate(SimpleGrammars.array0Grammar.toGrammar(MetaGrammar.translateForce), "Array0GrammarParser", InputLoop(List("[a,a,a]")))
 //        generate(MetaGrammar.translateForce("Super Simple", "S='x' A 'y'|'x' B 'y'\nA=['a']\nB=['a' 'b']"),
 //            "SuperSimpleGrammar", TestInputs(List("xy", "xay", "xaby")))
 //        generate(JsonGrammar.fromJsonOrg, "JsonParser", InputLoop(List(

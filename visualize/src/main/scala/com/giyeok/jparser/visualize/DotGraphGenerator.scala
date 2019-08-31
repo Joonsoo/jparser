@@ -37,8 +37,8 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                     s.seq map { _.toDotLabelName } mkString " "
                 }
             case s: OneOf =>
-                if (s.syms.size == 2 && (s.syms contains Proxy(Sequence(Seq(), Seq())))) {
-                    (s.syms - Proxy(Sequence(Seq(), Seq()))).head.toDotLabelName + "?"
+                if (s.syms.size == 2 && (s.syms contains Proxy(Sequence(Seq())))) {
+                    (s.syms - Proxy(Sequence(Seq()))).head.toDotLabelName + "?"
                 } else {
                     s.syms map { _.toDotLabelName } mkString "|"
                 }
@@ -130,7 +130,7 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                     s"${kernel.symbol.symbol.toDotLabelName}&bull;,${kernel.beginGen}&#x2025;${kernel.endGen}"
                 }
             case kernel =>
-                val Symbols.Sequence(seq, whitespace) = ngrammar.nsequences(kernel.symbolId).symbol
+                val Symbols.Sequence(seq) = ngrammar.nsequences(kernel.symbolId).symbol
                 val split = seq.splitAt(kernel.pointer)
                 (split._1 map { _.toDotLabelName } mkString " ") + "&bull;" + (split._2 map { _.toDotLabelName } mkString " ") + "," + s"${kernel.beginGen}&#x2025;${kernel.endGen}"
         }

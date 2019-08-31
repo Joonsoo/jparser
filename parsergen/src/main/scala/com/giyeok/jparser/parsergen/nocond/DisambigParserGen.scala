@@ -2,7 +2,8 @@ package com.giyeok.jparser.parsergen.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
+import com.giyeok.jparser.examples.metagram.{ExpressionGrammars, SimpleGrammars}
+import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.parsergen.utils.BiDirectionalMap
 
 sealed trait GenTermAction
@@ -421,8 +422,8 @@ class DisambigParserGen(val grammar: NGrammar) {
 
 object DisambigParserGen {
     def main(args: Array[String]): Unit = {
-        val grammar1 = ExpressionGrammars.simple
-        val grammar2 = SimpleGrammars.array0Grammar
+        val grammar1 = ExpressionGrammars.simple.toGrammar(MetaGrammar.translateForce)
+        val grammar2 = SimpleGrammars.array0Grammar.toGrammar(MetaGrammar.translateForce)
 
         val ngrammar = NGrammar.fromGrammar(grammar2)
         ngrammar.describe()

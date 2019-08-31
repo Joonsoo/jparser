@@ -14,7 +14,7 @@ object AST {
             def rec(node: ParseResultTree.Node): String = node match {
                 case TerminalNode(_, input) => input.toRawString
                 case BindNode(_, body) => rec(body)
-                case JoinNode(body, _) => rec(body)
+                case JoinNode(_, body, _) => rec(body)
                 case seq: SequenceNode => seq.children map rec mkString ""
                 case _: CyclicBindNode | _: CyclicSequenceNode =>
                     throw new Exception("Cyclic bind")

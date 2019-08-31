@@ -53,7 +53,7 @@ object ScalaDefGenerator {
                 Some(g mkString " ++ ")
             }
             s"Symbols.Chars(${List(singlesString, doublesString).flatten mkString " ++ "})"
-        case Symbols.Sequence(seq, _) => s"Symbols.Sequence(Seq(${seq map symbolString mkString ","}))"
+        case Symbols.Sequence(seq) => s"Symbols.Sequence(Seq(${seq map symbolString mkString ","}))"
     }
 
     private def intSetString(s: Set[Int]) = s"Set(${s mkString ","})"
@@ -310,7 +310,7 @@ class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
            |  def sourceText: String = node match {
            |    case TerminalNode(_, input) => input.toRawString
            |    case BindNode(_, body) => body.sourceText
-           |    case JoinNode(body, _) => body.sourceText
+           |    case JoinNode(_, body, _) => body.sourceText
            |    case seq: SequenceNode => seq.children map (_.sourceText) mkString ""
            |    case _ => throw new Exception("Cyclic bind")
            |  }

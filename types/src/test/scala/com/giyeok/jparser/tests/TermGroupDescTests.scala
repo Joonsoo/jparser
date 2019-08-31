@@ -1,9 +1,7 @@
-package com.giyeok.jparser.tests.unittests
+package com.giyeok.jparser.tests
 
-import org.scalatest.FlatSpec
 import com.giyeok.jparser.Inputs._
-import com.giyeok.jparser.utils.UnicodeUtil
-import org.scalatest._
+import org.scalatest.{FlatSpec, _}
 
 class TermGroupDescTests extends FlatSpec with Matchers {
     it should "flat exact char and flat exact char" in {

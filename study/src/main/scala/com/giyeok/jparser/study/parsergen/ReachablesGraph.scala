@@ -2,7 +2,8 @@ package com.giyeok.jparser.study.parsergen
 
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.NTerminal
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.metagram.SimpleGrammars
+import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.parsergen.deprecated.{AKernel, AKernelEdge, AKernelGraph, GrammarAnalyzer}
 import com.giyeok.jparser.utils.DotGraphModel
 import com.giyeok.jparser.visualize._
@@ -191,7 +192,7 @@ class ReachablesGraph(analyzer: GrammarAnalyzer) {
 
 object ReachablesGraph {
     def main(args: Array[String]): Unit = {
-        val grammar: NGrammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
+        val grammar: NGrammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar.toGrammar(MetaGrammar.translateForce))
         new ReachablesGraph(new GrammarAnalyzer(grammar)).start()
     }
 }

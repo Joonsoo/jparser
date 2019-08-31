@@ -1,19 +1,21 @@
-package com.giyeok.jparser.tests.javascript
+package com.giyeok.jparser.examples.javascript
 
-import scala.collection.immutable.ListMap
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.Symbols.Symbol
 import com.giyeok.jparser.GrammarHelper._
-import com.giyeok.jparser.Symbols._
-import scala.collection.immutable.ListSet
+import com.giyeok.jparser.examples.{GrammarWithExamples, StringExamples}
 
-object JavaScriptGrammar extends Grammar {
+import scala.collection.immutable.{ListMap, ListSet}
+
+object JavaScript extends Grammar {
     private val whitespace = oneof(n("WhiteSpace"), n("LineTerminator"), n("Comment")).star
     private val oneline = oneof(n("WhiteSpace"), n("Comment")).star
 
     def expr(s: Symbol*) = seqWS(whitespace, s: _*)
+
     def lex(s: Symbol*) = seq(s: _*)
+
     def line(s: Symbol*) = seqWS(oneline, s: _*)
+
     val lineend = {
         val semicolon = i(";")
         val alternative = oneof(
@@ -22,9 +24,11 @@ object JavaScriptGrammar extends Grammar {
         )
         oneof(semicolon, seq(lookahead_except(semicolon), alternative))
     }
+
     def stmt(s: Symbol*) = longest(expr((s.toSeq :+ lineend): _*))
 
     def token(s: String) = i(s).join(n("Token"))
+
     def token(s: Symbol) = s.join(n("Token"))
 
     val name = "JavaScript"
@@ -911,4 +915,21 @@ object JavaScriptGrammar extends Grammar {
             expr(n("JSONElementList"), token(","), n("JSONValue"))
         )
     )
+}
+
+object JavaScriptGrammarExamples1 extends GrammarWithExamples with StringExamples {
+    val grammar: Grammar = JavaScript
+
+    val correctExamples: Set[String] = List(
+        "",
+        "var x = 1;",
+        "varx = 1;",
+        "iff=1;",
+        "a=b\nc=d;",
+        "abc=  function(a){return a+1;}(1);",
+        "console.log(function(a){return a+1;}(1));",
+        "function x(a) { return a + 1; }",
+        "{return a}",
+        "var vara = function ifx(a){return(function(y){return (y+1);})(a)};").toSet
+    val incorrectExamples: Set[String] = List().toSet
 }

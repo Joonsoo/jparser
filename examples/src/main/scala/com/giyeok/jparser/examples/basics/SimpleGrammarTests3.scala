@@ -1,17 +1,12 @@
-package com.giyeok.jparser.tests.basics
+package com.giyeok.jparser.examples.basics
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.GrammarHelper._
-import scala.collection.immutable.ListMap
-import com.giyeok.jparser.Inputs._
-import scala.collection.immutable.ListSet
-import com.giyeok.jparser.tests.BasicParseTest
-import com.giyeok.jparser.tests.Samples
-import com.giyeok.jparser.tests.StringSamples
-import com.giyeok.jparser.tests.AmbiguousSamples
-import com.giyeok.jparser.tests.GrammarTestCases
+import com.giyeok.jparser.examples.{AmbiguousExamples, GrammarWithExamples, StringExamples}
 
-object SimpleGrammar5 extends Grammar with GrammarTestCases with StringSamples {
+import scala.collection.immutable.{ListMap, ListSet}
+
+object SimpleGrammar5 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 5"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A"), n("B"))),
@@ -21,11 +16,11 @@ object SimpleGrammar5 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("", "a", "b", "ab")
-    val incorrectSamples = Set("aa")
+    val correctExamples = Set("", "a", "b", "ab")
+    val incorrectExamples = Set("aa")
 }
 
-object SimpleGrammar6 extends Grammar with GrammarTestCases with StringSamples {
+object SimpleGrammar6 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 6"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A"), n("C"))),
@@ -36,11 +31,11 @@ object SimpleGrammar6 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("", "ab", "c", "ccc", "abc", "aa", "aaabccc")
-    val incorrectSamples = Set("cb")
+    val correctExamples = Set("", "ab", "c", "ccc", "abc", "aa", "aaabccc")
+    val incorrectExamples = Set("cb")
 }
 
-object SimpleGrammar7_1 extends Grammar with GrammarTestCases with StringSamples {
+object SimpleGrammar7_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 7-1 (right associative)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -72,16 +67,16 @@ object SimpleGrammar7_1 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set(
+    val correctExamples = Set(
         "1+2+3",
         "123+456+abc+sdf+123+wer+aasdfwer+123123",
         "123*456*abc*sdf*123*wer*aasdfwer*123123",
         "123+456*abc+sdf*123+wer*aasdfwer*123123"
     )
-    val incorrectSamples = Set("")
+    val incorrectExamples = Set("")
 }
 
-object SimpleGrammar7_2 extends Grammar with GrammarTestCases with StringSamples {
+object SimpleGrammar7_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 7-2 (left associative)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -113,16 +108,16 @@ object SimpleGrammar7_2 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set(
+    val correctExamples = Set(
         "1+2+3",
         "123+456+abc+sdf+123+wer+aasdfwer+123123",
         "123*456*abc*sdf*123*wer*aasdfwer*123123",
         "123+456*abc+sdf*123+wer*aasdfwer*123123"
     )
-    val incorrectSamples = Set("")
+    val incorrectExamples = Set("")
 }
 
-object SimpleGrammar8 extends Grammar with GrammarTestCases with StringSamples {
+object SimpleGrammar8 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 8"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -136,15 +131,15 @@ object SimpleGrammar8 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "(((0)))(((0)))",
         "(0)(0)(0)",
         ""
     )
-    val incorrectSamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
-object SimpleGrammar8_1 extends Grammar with GrammarTestCases with StringSamples {
+object SimpleGrammar8_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 8-1 (ambiguous)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -156,11 +151,11 @@ object SimpleGrammar8_1 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]()
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
-object SimpleGrammar8_2 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+object SimpleGrammar8_2 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "Simple Grammar 8-2 (ambiguous)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -170,14 +165,14 @@ object SimpleGrammar8_2 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]()
-    val incorrectSamples = Set[String]()
-    val ambiguousSamples = Set[String](
+    val correctExamples = Set[String]()
+    val incorrectExamples = Set[String]()
+    val ambiguousExamples = Set[String](
         "a"
     )
 }
 
-object SimpleGrammar9 extends Grammar with GrammarTestCases with StringSamples {
+object SimpleGrammar9 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 9 (Infinitely ambiguous)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -192,11 +187,11 @@ object SimpleGrammar9 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]()
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
-object SimpleGrammar9_1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+object SimpleGrammar9_1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "Simple Grammar 9_1 (ambiguous)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -211,12 +206,12 @@ object SimpleGrammar9_1 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]("a")
-    val incorrectSamples = Set[String]()
-    val ambiguousSamples = Set[String]("aaa")
+    val correctExamples = Set[String]("a")
+    val incorrectExamples = Set[String]()
+    val ambiguousExamples = Set[String]("aaa")
 }
 
-object SimpleGrammar9_2 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+object SimpleGrammar9_2 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "Simple Grammar 9_2 (ambiguous)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -227,12 +222,12 @@ object SimpleGrammar9_2 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]()
-    val incorrectSamples = Set[String]()
-    val ambiguousSamples = Set[String]("aaa")
+    val correctExamples = Set[String]()
+    val incorrectExamples = Set[String]()
+    val ambiguousExamples = Set[String]("aaa")
 }
 
-object SimpleGrammar10 extends Grammar with GrammarTestCases with StringSamples {
+object SimpleGrammar10 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 10 (Ambiguous Reverter)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -246,11 +241,11 @@ object SimpleGrammar10 extends Grammar with GrammarTestCases with StringSamples 
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]()
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
-object AsteriskNullable extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+object AsteriskNullable extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "*-nullable"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(c('a').opt.star)
@@ -258,13 +253,13 @@ object AsteriskNullable extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]("")
-    val incorrectSamples = Set[String]()
-    val ambiguousSamples = Set[String]("aa")
+    val correctExamples = Set[String]("")
+    val incorrectExamples = Set[String]()
+    val ambiguousExamples = Set[String]("aa")
 }
 
 object SimpleGrammarSet3 {
-    val tests: Set[GrammarTestCases] = Set(
+    val tests: Set[GrammarWithExamples] = Set(
         SimpleGrammar5,
         SimpleGrammar6,
         SimpleGrammar7_1,
@@ -279,5 +274,3 @@ object SimpleGrammarSet3 {
         AsteriskNullable
     )
 }
-
-class SimpleGrammarTestSuite3 extends BasicParseTest(SimpleGrammarSet3.tests)

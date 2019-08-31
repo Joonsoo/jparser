@@ -15,7 +15,7 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
         ParseForest(Seq(CyclicBindNode(left, right, symbol)))
     def join(left: Int, right: Int, symbol: NJoin, body: ParseForest, constraint: ParseForest): ParseForest = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
-        ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(b, c) } })
+        ParseForest(body.trees flatMap { b => constraint.trees map { c => JoinNode(symbol, b, c) } })
     }
 
     def sequence(left: Int, right: Int, symbol: NSequence, pointer: Int): ParseForest =
@@ -59,7 +59,7 @@ object ParseResultTree {
         val end: Inputs.Location = body.end
     }
     case class CyclicBindNode(start: Inputs.Location, end: Inputs.Location, symbol: NSymbol) extends Node
-    case class JoinNode(body: Node, join: Node) extends Node {
+    case class JoinNode(symbol: NJoin, body: Node, join: Node) extends Node {
         val start: Inputs.Location = body.start
         val end: Inputs.Location = body.end
     }
@@ -70,14 +70,14 @@ object ParseResultTree {
             SequenceNode(start, child.end, symbol, child +: _children)
         }
         lazy val childrenAll = _children.reverse
-        lazy val children = symbol.symbol.contentIdx filter { _ < childrenAll.length } map { childrenAll(_) }
+        lazy val children = childrenAll
     }
     case class CyclicSequenceNode(start: Inputs.Location, end: Inputs.Location, symbol: NSequence, pointer: Int, _children: List[Node]) extends Node {
         def append(child: Node): CyclicSequenceNode = {
             CyclicSequenceNode(start, child.end, symbol, pointer, child +: _children)
         }
         lazy val childrenAll = _children.reverse
-        lazy val children = symbol.symbol.contentIdx filter { _ < childrenAll.length } map { childrenAll(_) }
+        lazy val children = childrenAll
     }
 
     object HorizontalTreeStringSeqUtil {

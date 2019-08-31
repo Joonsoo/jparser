@@ -30,7 +30,7 @@ object Grammar {
                                 case Some(rhs) => rhs.foldRight(cc) { traverse(_, _) }
                                 case None => cc + symbol
                             }
-                        case Sequence(seq, _) => seq.foldRight(cc) { traverse(_, _) }
+                        case Sequence(seq) => seq.foldRight(cc) { traverse(_, _) }
                         case OneOf(syms) => syms.foldRight(cc) { traverse(_, _) }
                         case Except(sym, except) => traverse(sym, traverse(except, cc))
                         case r: Repeat => traverse(r.sym, cc)
@@ -59,18 +59,18 @@ object Grammar {
                                 case Some(rhs) => rhs.foldRight(cc) { traverse(_, Some(symbol), _) }
                                 case None => cc
                             }
-                        case Sequence(seq, _) => seq.foldRight(cc) { traverse(_, Some(symbol), _) }
+                        case Sequence(seq) => seq.foldRight(cc) { traverse(_, Some(symbol), _) }
                         case OneOf(syms) => syms.foldRight(cc) { traverse(_, Some(symbol), _) }
                         case Except(sym, except) => traverse(sym, Some(symbol), traverse(except, Some(symbol), cc))
                         case r: Repeat => traverse(r.sym, Some(symbol), cc)
                         case LookaheadIs(lookahead) =>
                             parent match {
-                                case Some(Sequence(_, _)) => traverse(lookahead, Some(symbol), cc + symbol)
+                                case Some(Sequence(_)) => traverse(lookahead, Some(symbol), cc + symbol)
                                 case _ => traverse(lookahead, Some(symbol), cc)
                             }
                         case LookaheadExcept(except) =>
                             parent match {
-                                case Some(Sequence(_, _)) => traverse(except, Some(symbol), cc + symbol)
+                                case Some(Sequence(_)) => traverse(except, Some(symbol), cc + symbol)
                                 case _ => traverse(except, Some(symbol), cc)
                             }
                         case Join(sym, join) => traverse(sym, Some(symbol), traverse(join, Some(symbol), cc))
@@ -93,7 +93,7 @@ object Grammar {
                                 case Some(rhs) => rhs.foldRight(cc + symbol) { traverse(_, _) }
                                 case None => cc + symbol
                             }
-                        case Sequence(seq, _) => seq.foldRight(cc + symbol) { traverse(_, _) }
+                        case Sequence(seq) => seq.foldRight(cc + symbol) { traverse(_, _) }
                         case OneOf(syms) => (syms).foldRight(cc + symbol) { traverse(_, _) }
                         case Except(sym, except) => traverse(sym, traverse(except, cc + symbol))
                         case repeat: Repeat =>

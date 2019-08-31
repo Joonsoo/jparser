@@ -2,7 +2,8 @@ package com.giyeok.jparser.parsergen.nocond.visualize
 
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.NSequence
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.metagram.SimpleGrammars
+import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.nparser.ParsingContext
 import com.giyeok.jparser.parsergen.nocond._
 import com.giyeok.jparser.visualize.{AbstractZestGraphWidget, BasicVisualizeResources}
@@ -63,7 +64,7 @@ object AKernelGraphVisualizeWidget {
     }
 
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(SimpleGrammars.array0Grammar)
+        val grammar = NGrammar.fromGrammar(SimpleGrammars.array0Grammar.toGrammar(MetaGrammar.translateForce))
 
         (grammar.nsymbols ++ grammar.nsequences).toList.sortBy(_._1) foreach { s =>
             println(s"${s._1} -> ${s._2.symbol.toShortString}")

@@ -15,7 +15,7 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
 
         def needParentheses(symbol: Symbol): Boolean =
             symbol match {
-                case _@ (Nonterminal(_) | Terminals.ExactChar(_) | Sequence(Seq(Terminals.ExactChar(_)), _)) => false
+                case _@ (Nonterminal(_) | Terminals.ExactChar(_) | Sequence(Seq(Terminals.ExactChar(_)))) => false
                 case _ => true
             }
 
@@ -43,7 +43,7 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
             case t: Terminal => fig.textFig(t.toShortString, ap.terminal)
             case Start => fig.textFig("Start", ap.default)
             case Nonterminal(name) => fig.textFig(name, ap.nonterminal)
-            case Sequence(seq, ws) =>
+            case Sequence(seq) =>
                 if (seq.isEmpty) {
                     fig.textFig("ε", ap.nonterminal)
                 } else {
@@ -60,7 +60,7 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
                     fig.horizontalFig(Spacing.Medium, if (grouped._2.isEmpty) grouped._1 else adjExChars(grouped._2) +: grouped._1)
                 }
             case OneOf(syms) =>
-                if (syms.size == 2 && (syms contains Proxy(Sequence(Seq(), Seq())))) {
+                if (syms.size == 2 && (syms contains Proxy(Sequence(Seq())))) {
                     // A? 의 경우
                     val opt = (syms - Proxy(Sequence(Seq()))).head
                     fig.horizontalFig(Spacing.None, Seq(symbolFig(opt), fig.textFig("?", ap.small)))
@@ -115,7 +115,7 @@ class SymbolFigureGenerator[Fig](fig: FigureGenerator.Generator[Fig], ap: Figure
             case _: AtomicSymbol =>
                 fig.horizontalFig(Spacing.Small, if (pointer == 0) Seq(dot, symbolFig(symbol)) else Seq(symbolFig(symbol), dot))
 
-            case Sequence(sequence, _) =>
+            case Sequence(sequence) =>
                 val (p, f) = sequence.splitAt(pointer)
                 val f0 = fig.horizontalFig(Spacing.Medium, p map { symbolFig })
                 val f1 = fig.horizontalFig(Spacing.Medium, f map { symbolFig })

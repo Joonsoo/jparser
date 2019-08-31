@@ -201,12 +201,8 @@ object Symbols {
         override val hashCode: Int = (classOf[Nonterminal], name).hashCode
     }
 
-    case class Sequence(seq: Seq[AtomicSymbol], contentIdx: Seq[Int]) extends Symbol {
-        override val hashCode: Int = (classOf[Sequence], seq, contentIdx).hashCode
-    }
-
-    object Sequence {
-        def apply(seq: Seq[AtomicSymbol]): Sequence = Sequence(seq, seq.indices)
+    case class Sequence(seq: Seq[AtomicSymbol]) extends Symbol {
+        override val hashCode: Int = (classOf[Sequence], seq).hashCode
     }
 
     case class OneOf(syms: ListSet[AtomicSymbol]) extends AtomicSymbol {
@@ -266,8 +262,8 @@ object Symbols {
             case s: Sequence => "[" + (s.seq map {
                 _.toShortString
             } mkString " ") + "]"
-            case s: OneOf if s.syms.size == 2 && s.syms.contains(Proxy(Sequence(Seq(), Seq()))) =>
-                s"${(s.syms - Proxy(Sequence(Seq(), Seq()))).head.toShortString}?"
+            case s: OneOf if s.syms.size == 2 && s.syms.contains(Proxy(Sequence(Seq()))) =>
+                s"${(s.syms - Proxy(Sequence(Seq()))).head.toShortString}?"
             case s: OneOf => s.syms map {
                 _.toShortString
             } mkString "|"

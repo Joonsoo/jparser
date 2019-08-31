@@ -1,22 +1,17 @@
-package com.giyeok.jparser.tests.javascript
+package com.giyeok.jparser.examples.javascript
 
-import com.giyeok.jparser.tests.BasicParseTest
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.tests.Samples
-import com.giyeok.jparser.tests.StringSamples
-import scala.collection.immutable.ListMap
 import com.giyeok.jparser.GrammarHelper._
-import com.giyeok.jparser.Grammar
-import scala.collection.immutable.ListSet
-import com.giyeok.jparser.Symbols.Symbol
-import com.giyeok.jparser.tests.GrammarTestCases
+import com.giyeok.jparser.examples.{GrammarWithExamples, StringExamples}
+
+import scala.collection.immutable.{ListMap, ListSet}
 
 trait Grammar0 extends Grammar {
     def expr(s: Symbol*): Symbol = seqWS(oneof(n("WhiteSpace"), n("LineTerminator"), n("Comment")).star, s: _*)
     def token(s: Symbol): Symbol = s.join(n("Token"))
 }
 
-object VarDecGrammar1 extends Grammar0 with GrammarTestCases with StringSamples {
+object VarDecGrammar1 extends Grammar0 with GrammarWithExamples with StringExamples {
     val name = "JS VarDec Test 1"
 
     val startSymbol = n("Start")
@@ -63,13 +58,13 @@ object VarDecGrammar1 extends Grammar0 with GrammarTestCases with StringSamples 
     val rules = _rules
 
     val grammar = this
-    val correctSamples = Set(
+    val correctExamples = Set(
         "var abc = 123;\n\nvar xyz = 321; var if = 154;")
-    val incorrectSamples = Set(
+    val incorrectExamples = Set(
         "")
 }
 
-object VarDecGrammar1_1 extends Grammar0 with GrammarTestCases with StringSamples {
+object VarDecGrammar1_1 extends Grammar0 with GrammarWithExamples with StringExamples {
     val name = "JS VarDec Test 1_1"
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
@@ -78,13 +73,13 @@ object VarDecGrammar1_1 extends Grammar0 with GrammarTestCases with StringSample
             n("Number"))))
 
     val grammar = this
-    val correctSamples = Set(
+    val correctExamples = Set(
         "var abc = 123;\n\nvar xyz = 321; var if = 154;")
-    val incorrectSamples = Set(
+    val incorrectExamples = Set(
         "varx=1;")
 }
 
-object VarDecGrammar1_2 extends Grammar0 with GrammarTestCases with StringSamples {
+object VarDecGrammar1_2 extends Grammar0 with GrammarWithExamples with StringExamples {
     val name = "JS VarDec Test 1_2"
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
@@ -97,13 +92,13 @@ object VarDecGrammar1_2 extends Grammar0 with GrammarTestCases with StringSample
             expr(i("("), n("TestExpr"), i(")")))))
 
     val grammar = this
-    val correctSamples = Set(
+    val correctExamples = Set(
         "var abc = 123 + 321;\n\nvar xyz = 321 * (423-1); var if = 154;")
-    val incorrectSamples = Set(
+    val incorrectExamples = Set(
         "")
 }
 
-object VarDecGrammar2 extends Grammar0 with GrammarTestCases with StringSamples {
+object VarDecGrammar2 extends Grammar0 with GrammarWithExamples with StringExamples {
     val name = "VarDecGrammar2"
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
@@ -125,11 +120,11 @@ object VarDecGrammar2 extends Grammar0 with GrammarTestCases with StringSamples 
             n("Id"))))
 
     val grammar = this
-    val correctSamples = Set[String]()
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
-object VarDecGrammar3 extends Grammar0 with GrammarTestCases with StringSamples {
+object VarDecGrammar3 extends Grammar0 with GrammarWithExamples with StringExamples {
     val name = "JS VarDec with Semicolon Backup Test 1"
     val lineend = {
         val semicolon = i(";")
@@ -145,19 +140,17 @@ object VarDecGrammar3 extends Grammar0 with GrammarTestCases with StringSamples 
             seq(expr(token(i("var")), n("VarDecList")), lineend))))
 
     val grammar = this
-    val correctSamples = Set(
+    val correctExamples = Set(
         "var abc = 123\n\nvar xyz = 321; var if = 154;")
-    val incorrectSamples = Set(
+    val incorrectExamples = Set(
         "")
 }
 
 object JavaScriptVarDecTestSuite1 {
-    val tests: Set[GrammarTestCases] = Set(
+    val tests: Set[GrammarWithExamples] = Set(
         VarDecGrammar1,
         VarDecGrammar1_1,
         VarDecGrammar1_2,
         VarDecGrammar2,
         VarDecGrammar3)
 }
-
-class JavaScriptVarDecTestSuite1 extends BasicParseTest(JavaScriptVarDecTestSuite1.tests)

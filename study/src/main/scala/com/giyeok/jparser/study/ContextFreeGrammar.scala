@@ -121,7 +121,7 @@ object ContextFreeGrammar {
                 if (first.length <= 15) (first, false) else (second, true)
 
             symbol match {
-                case Symbols.Sequence(seq, contentIdx) => ifLong("[" + (seq map {
+                case Symbols.Sequence(seq) => ifLong("[" + (seq map {
                     readableNameOf(_)._1
                 } mkString "_") + "]", "Seq")
                 case terminal: Symbols.Terminal => (terminal.toShortString, false)
@@ -129,8 +129,8 @@ object ContextFreeGrammar {
                 case Symbols.OneOf(syms) =>
                     val first = {
                         syms.toSeq match {
-                            case Seq(Symbols.Proxy(Symbols.Sequence(Seq(), Seq())), sym) => readableNameOf(sym)._1 + "?"
-                            case Seq(sym, Symbols.Proxy(Symbols.Sequence(Seq(), Seq()))) => readableNameOf(sym)._1 + "?"
+                            case Seq(Symbols.Proxy(Symbols.Sequence(Seq())), sym) => readableNameOf(sym)._1 + "?"
+                            case Seq(sym, Symbols.Proxy(Symbols.Sequence(Seq()))) => readableNameOf(sym)._1 + "?"
                             case seq if (seq forall {
                                 _.isInstanceOf[Symbols.Sequence]
                             }) &&
@@ -232,19 +232,12 @@ object ContextFreeGrammar {
             list match {
                 case (lhs, rhs) +: tail =>
                     // mappingOf는 기본적으로 Symbol을 넣으면 CfgSymbol이 나오는 함수
-                    def sequenceOf(seq: Seq[Symbol], contentIdx: Set[Int], cc: ConvertCC): (ConvertCC, Seq[CfgSymbol]) = {
-                        val wsIdx = seq.indices.toSet -- contentIdx
+                    def sequenceOf(seq: Seq[Symbol], cc: ConvertCC): (ConvertCC, Seq[CfgSymbol]) = {
                         val (ncc, elemsRev) = seq.zipWithIndex.foldLeft((cc, Seq[CfgSymbol]())) { (nccSeq, symbolIdx) =>
                             val (ncc, elemsRev) = nccSeq
                             val (symbol, idx) = symbolIdx
                             val (nextCC, cfgSymbol) = mappingOf(symbol, ncc)
-                            if (wsIdx contains idx) {
-                                // TODO wsIdx 처리
-                                // (nextCC, cfgSymbol의 optional 버젼 +: elemsRev)
-                                ???
-                            } else {
-                                (nextCC, cfgSymbol +: elemsRev)
-                            }
+                            (nextCC, cfgSymbol +: elemsRev)
                         }
                         (ncc, elemsRev.reverse)
                     }
@@ -252,9 +245,9 @@ object ContextFreeGrammar {
                     def mappingOf(symbol: Symbol, cc: ConvertCC): (ConvertCC, CfgSymbol) = {
                         import ReadableNameOfSymbol.readableNameOf
                         symbol match {
-                            case Symbols.Sequence(seq, contentIdx) =>
+                            case Symbols.Sequence(seq) =>
                                 val (ncc0, newName, cfgSymbol) = cc.addNewNontermMapping(readableNameOf(symbol), symbol)
-                                val (ncc1, elems) = sequenceOf(seq, contentIdx.toSet, ncc0)
+                                val (ncc1, elems) = sequenceOf(seq, ncc0)
                                 (ncc1.addRule(newName, elems), cfgSymbol)
                             case terminal: Symbols.Terminal =>
                                 // mapping에 (terminal -> CfgSymbols.Terminal(terminal)) 를 넣는다
@@ -269,7 +262,7 @@ object ContextFreeGrammar {
                                 val (ncc0, newName, cfgSymbol) = cc.addNewNontermMapping(readableNameOf(symbol), symbol)
                                 val ncc = syms.foldLeft(ncc0) { (ncc, symbol) =>
                                     symbol match {
-                                        case Symbols.Proxy(Symbols.Sequence(Seq(), Seq())) =>
+                                        case Symbols.Proxy(Symbols.Sequence(Seq())) =>
                                             ncc.addRule(newName, Seq())
                                         case _ =>
                                             val (nextCC, cfgSymbol) = mappingOf(symbol, ncc)
@@ -300,10 +293,10 @@ object ContextFreeGrammar {
 
                     val newCC = {
                         rhs match {
-                            case Symbols.Sequence(seq, contentIdx) =>
+                            case Symbols.Sequence(seq) =>
                                 // seq에 속한 Symbol을 CfgSymbol로 바꿔서 모두 맵핑에 넣는다
                                 // contentIdx에 속하지 않은 인덱스의 seq의 element에 대해서는 원래의 Symbol.Symbol의 optional 심볼들을 모두 맵핑에 추가한다
-                                val (ncc, elems) = sequenceOf(seq, contentIdx.toSet, cc)
+                                val (ncc, elems) = sequenceOf(seq, cc)
                                 ncc.addRule(lhs, elems)
                             case symbol =>
                                 val (ncc, cfgSymbol) = mappingOf(symbol, cc)

@@ -1,7 +1,8 @@
 package com.giyeok.jparser.study.parsergen
 
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.metagram.SimpleGrammars
+import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.parsergen.deprecated.{SimpleGen, SimpleGenGen}
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
@@ -100,7 +101,7 @@ class TopologyViewer(val simpleGen: SimpleGen) {
 
 object TopologyViewer {
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
+        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar.toGrammar(MetaGrammar.translateForce))
 
         new TopologyViewer(new SimpleGenGen(grammar).generateGenerator()).start()
     }

@@ -68,7 +68,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                         symbolFigureGenerator.symbolFig(sym.symbol)
                     ))
                 )
-            case JoinNode(body, join) =>
+            case JoinNode(_, body, join) =>
                 var content = Seq(symbolBorder.applyToFigure(parseNodeFig(body)))
                 if (renderConf.renderJoin) {
                     content :+= ap.joinHighlightBorder.applyToFigure(hfig(Spacing.Small, Seq(g.textFig("&", ap.default), parseNodeFig(join))))
@@ -86,24 +86,15 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                     val seq: Seq[Fig] =
                         s.childrenAll.zipWithIndex flatMap { c =>
                             val (child, idx) = c
-                            if (s.symbol.symbol.contentIdx contains idx) {
-                                // if it is content child
-                                if (isLookaheadNode(child)) {
-                                    if (renderConf.renderLookaheadExcept) {
-                                        Some(ap.wsBorder.applyToFigure(parseNodeFig(child)))
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    Some(ap.symbolBorder.applyToFigure(parseNodeFig(child)))
-                                }
-                            } else {
-                                // if it is whitespace child
-                                if (renderConf.renderWS) {
+                            // if it is content child
+                            if (isLookaheadNode(child)) {
+                                if (renderConf.renderLookaheadExcept) {
                                     Some(ap.wsBorder.applyToFigure(parseNodeFig(child)))
                                 } else {
                                     None
                                 }
+                            } else {
+                                Some(ap.symbolBorder.applyToFigure(parseNodeFig(child)))
                             }
                         }
                     ap.symbolBorder.applyToFigure(hfig(Spacing.Medium, seq))

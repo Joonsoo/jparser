@@ -35,7 +35,7 @@ object GrammarHelper {
                     insert(tail, (cc._1 :+ proxyIfNeeded(head) :+ atomicBetween, cc._2 :+ cc._1.length))
             }
         val (insertedSeq, contentIds) = insert(seq.toSeq, (Seq(), Seq()))
-        Sequence(insertedSeq, contentIds)
+        Sequence(insertedSeq)
     }
     def seqWS(between: Set[Symbol], seq: Symbol*): Sequence = seqWS(oneof(between), seq: _*)
     def oneof(items: Symbol*) = OneOf(ListSet[AtomicSymbol](items map proxyIfNeeded: _*))

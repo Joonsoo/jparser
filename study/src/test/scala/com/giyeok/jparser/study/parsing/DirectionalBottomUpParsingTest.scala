@@ -1,9 +1,9 @@
 package com.giyeok.jparser.study.parsing
 
 import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.examples.basics.Fig7_8
 import com.giyeok.jparser.study.ContextFreeGrammar
 import com.giyeok.jparser.study.parsing.DirectionalBottomUpParsing.EarleyParserNoEmptyRules
-import com.giyeok.jparser.tests.basics.Fig7_8
 
 object DirectionalBottomUpParsingTest {
     def test(grammar: ContextFreeGrammar, inputs: Seq[Inputs.Input]): Unit = {

@@ -5,7 +5,7 @@ import java.io.File
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.NGrammar.{NAtomicSymbol, NSequence, NTerminal}
 import com.giyeok.jparser.Symbols.Terminal
-import com.giyeok.jparser.examples.{ExpressionGrammars, SimpleGrammars}
+import com.giyeok.jparser.examples.metagram.{ExpressionGrammars, SimpleGrammars}
 import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.parsergen.deprecated.SimpleGen.{Action, ExistEdge, ExistGraph}
 import com.giyeok.jparser.parsergen.deprecated.SimpleGenGen.KAction
@@ -356,7 +356,7 @@ object SimpleGenGenMain {
     val pkgName = "com.giyeok.jparser.parsergen.generated"
 
     def expressionSimple(): Unit = {
-        generate(ExpressionGrammars.simple,
+        generate(ExpressionGrammars.simple.toGrammar(MetaGrammar.translateForce),
             baseDir = baseDir,
             pkgName = pkgName,
             className = "ExprSimpleParser",
@@ -377,7 +377,7 @@ object SimpleGenGenMain {
     }
 
     def expressionStringInterpolation0(): Unit = {
-        generate(ExpressionGrammars.withStringInterpolation0,
+        generate(ExpressionGrammars.withStringInterpolation0.toGrammar(MetaGrammar.translateForce),
             baseDir = baseDir,
             pkgName = pkgName,
             className = "ExprStringInterpolation0Parser",
@@ -385,7 +385,7 @@ object SimpleGenGenMain {
     }
 
     def simpleArray(): Unit = {
-        generate(SimpleGrammars.array0Grammar,
+        generate(SimpleGrammars.array0Grammar.toGrammar(MetaGrammar.translateForce),
             baseDir = baseDir,
             pkgName = pkgName,
             className = "SimpleArray0GrammarParser",
@@ -393,7 +393,7 @@ object SimpleGenGenMain {
     }
 
     def simpleLexer1(): Unit = {
-        generate(SimpleGrammars.lexer1,
+        generate(SimpleGrammars.lexer1.toGrammar(MetaGrammar.translateForce),
             baseDir = new File("parsegen/src/main/java"),
             pkgName = pkgName,
             className = "SimpleLexer1Parser",
@@ -402,7 +402,7 @@ object SimpleGenGenMain {
 
     def simpleLexer2(): Unit = {
         // TODO lexer2와 lexer2_1의 차이는 term symbol들이 disjoint한가/아닌가의 차이 -> 자동화 기능 구현
-        generate(SimpleGrammars.lexer2_1,
+        generate(SimpleGrammars.lexer2_1.toGrammar(MetaGrammar.translateForce),
             baseDir = baseDir,
             pkgName = pkgName,
             className = "SimpleLexer2Parser",
@@ -410,7 +410,7 @@ object SimpleGenGenMain {
     }
 
     def weird(): Unit = {
-        generate(SimpleGrammars.weird,
+        generate(SimpleGrammars.weird.toGrammar(MetaGrammar.translateForce),
             baseDir = baseDir,
             pkgName = pkgName,
             className = "Weird1Parser",

@@ -1,7 +1,8 @@
 package com.giyeok.jparser.study.parsergen
 
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.metagram.SimpleGrammars
+import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.parsergen.deprecated.{AKernel, SimpleGen, SimpleGenGen}
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
@@ -115,7 +116,7 @@ class SimpleGenGraphViewer(val simpleGen: SimpleGen) {
 
 object SimpleGenGraphViewer {
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
+        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar.toGrammar(MetaGrammar.translateForce))
 
         new SimpleGenGraphViewer(new SimpleGenGen(grammar).generateGenerator()).start()
     }

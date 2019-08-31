@@ -1,18 +1,12 @@
-package com.giyeok.jparser.tests.basics
+package com.giyeok.jparser.examples.basics
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.GrammarHelper._
-import scala.collection.immutable.ListMap
-import com.giyeok.jparser.Inputs._
-import org.junit.Assert._
-import scala.collection.immutable.ListSet
-import com.giyeok.jparser.tests.AmbiguousSamples
-import com.giyeok.jparser.tests.BasicParseTest
-import com.giyeok.jparser.tests.Samples
-import com.giyeok.jparser.tests.StringSamples
-import com.giyeok.jparser.tests.GrammarTestCases
+import com.giyeok.jparser.examples.{AmbiguousExamples, GrammarWithExamples, StringExamples}
 
-object ExceptGrammar1 extends Grammar with GrammarTestCases with StringSamples {
+import scala.collection.immutable.{ListMap, ListSet}
+
+object ExceptGrammar1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Except Grammar 1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A").except(n("B")), c('c'))),
@@ -22,11 +16,11 @@ object ExceptGrammar1 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("abc", "abbbc")
-    val incorrectSamples = Set("a", "abbc")
+    val correctExamples = Set("abc", "abbbc")
+    val incorrectExamples = Set("a", "abbc")
 }
 
-object ExceptGrammar1_1 extends Grammar with GrammarTestCases with StringSamples {
+object ExceptGrammar1_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Except Grammar 1_1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(n("C").plus),
@@ -37,11 +31,11 @@ object ExceptGrammar1_1 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("abc", "abbbc", "abbbcac", "abbbcabbbc")
-    val incorrectSamples = Set("a", "abbc", "abbbcabbc")
+    val correctExamples = Set("abc", "abbbc", "abbbcac", "abbbcabbbc")
+    val incorrectExamples = Set("a", "abbc", "abbbcabbc")
 }
 
-object ExceptGrammar1_2 extends Grammar with GrammarTestCases with StringSamples {
+object ExceptGrammar1_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Except Grammar 1_2"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A").except(n("B")), c('c'), c('c'))),
@@ -51,11 +45,11 @@ object ExceptGrammar1_2 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("abcc", "abbbbcc")
-    val incorrectSamples = Set("a", "abbcc", "abbbcc")
+    val correctExamples = Set("abcc", "abbbbcc")
+    val incorrectExamples = Set("a", "abbcc", "abbbcc")
 }
 
-object ExceptGrammar1_3 extends Grammar with GrammarTestCases with StringSamples {
+object ExceptGrammar1_3 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Except Grammar 1_3"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A").except(n("B")), c('c'))),
@@ -65,11 +59,11 @@ object ExceptGrammar1_3 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("ac", "abc", "abbc", "abbbc", "abbbbbbbbc")
-    val incorrectSamples = Set("a", "abbbbc", "abbbbbc", "abbbbbbc", "abbbbbbbc")
+    val correctExamples = Set("ac", "abc", "abbc", "abbbc", "abbbbbbbbc")
+    val incorrectExamples = Set("a", "abbbbc", "abbbbbc", "abbbbbbc", "abbbbbbbc")
 }
 
-object ExceptGrammar1_4 extends Grammar with GrammarTestCases with StringSamples {
+object ExceptGrammar1_4 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Except Grammar 1_4"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A").except(n("B")))),
@@ -79,11 +73,11 @@ object ExceptGrammar1_4 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]()
-    val incorrectSamples = Set("a", "ab", "abb", "abbb", "abbbb", "abbbbb")
+    val correctExamples = Set[String]()
+    val incorrectExamples = Set("a", "ab", "abb", "abbb", "abbbb", "abbbbb")
 }
 
-object ExceptGrammar2 extends Grammar with GrammarTestCases with StringSamples {
+object ExceptGrammar2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Except Grammar 2"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A").except(n("B")), c('c')), i("abbc")),
@@ -93,11 +87,11 @@ object ExceptGrammar2 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("abc", "abbbc", "abbc")
-    val incorrectSamples = Set("a")
+    val correctExamples = Set("abc", "abbbc", "abbc")
+    val incorrectExamples = Set("a")
 }
 
-object ExceptGrammar3_1 extends Grammar with GrammarTestCases with StringSamples {
+object ExceptGrammar3_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Except Grammar 3-1 (except with lookahead_is)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A").except(n("B")), chars('0' to '9').plus)),
@@ -107,11 +101,11 @@ object ExceptGrammar3_1 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]()
-    val incorrectSamples = Set[String]("abc0")
+    val correctExamples = Set[String]()
+    val incorrectExamples = Set[String]("abc0")
 }
 
-object ExceptGrammar4_1 extends Grammar with GrammarTestCases with StringSamples {
+object ExceptGrammar4_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Except Grammar 4_1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -121,11 +115,11 @@ object ExceptGrammar4_1 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("abcd", "aaaab", "baaaa")
-    val incorrectSamples = Set("a", "aaaaa", "aaaaaaaaa", "")
+    val correctExamples = Set("abcd", "aaaab", "baaaa")
+    val incorrectExamples = Set("a", "aaaaa", "aaaaaaaaa", "")
 }
 
-object ExceptGrammar4_2 extends Grammar with GrammarTestCases with StringSamples {
+object ExceptGrammar4_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Except Grammar 4_2"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -146,11 +140,11 @@ object ExceptGrammar4_2 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("abbbbr", "aaaabch", "baaaach", "for", "foreach")
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set("abbbbr", "aaaabch", "baaaach", "for", "foreach")
+    val incorrectExamples = Set[String]()
 }
 
-object ExceptGrammar4_3 extends Grammar with GrammarTestCases with StringSamples {
+object ExceptGrammar4_3 extends Grammar with GrammarWithExamples with StringExamples {
     // 4.2에서 for->x, ea->y, ch->z 로 바꾼 버젼
     val name = "Except Grammar 4_3"
     val rules: RuleMap = ListMap(
@@ -167,11 +161,11 @@ object ExceptGrammar4_3 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("xyz")
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set("xyz")
+    val incorrectExamples = Set[String]()
 }
 
-object ExceptGrammar5_1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+object ExceptGrammar5_1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "Except Grammar 5_1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -187,13 +181,13 @@ object ExceptGrammar5_1 extends Grammar with GrammarTestCases with StringSamples
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set()
-    val incorrectSamples = Set()
-    val ambiguousSamples = Set("bbbb")
+    val correctExamples = Set()
+    val incorrectExamples = Set()
+    val ambiguousExamples = Set("bbbb")
 }
 
 object GrammarWithExcept {
-    val tests: Set[GrammarTestCases] = Set(
+    val tests: Set[GrammarWithExamples] = Set(
         ExceptGrammar1,
         ExceptGrammar1_1,
         ExceptGrammar1_2,
@@ -207,5 +201,3 @@ object GrammarWithExcept {
         ExceptGrammar5_1
     )
 }
-
-class ExceptGrammarTestSuite1 extends BasicParseTest(GrammarWithExcept.tests)

@@ -1,11 +1,27 @@
 package com.giyeok.jparser.examples
 
-import com.giyeok.jparser.{Grammar, Symbols}
+import com.giyeok.jparser.{Grammar, Inputs, NGrammar}
 
-case class GrammarWithExamples(grammar: Grammar, examples: Seq[String] = Seq()) extends Grammar {
-    override val name: String = grammar.name
-    override val rules: RuleMap = grammar.rules
-    override val startSymbol: Symbols.Nonterminal = grammar.startSymbol
+trait Examples {
+    val correctExampleInputs: Set[Inputs.ConcreteSource]
+    val incorrectExampleInputs: Set[Inputs.ConcreteSource]
+}
 
-    def example(example: String) = GrammarWithExamples(grammar, examples :+ example)
+trait StringExamples extends Examples {
+    val correctExamples: Set[String]
+    val incorrectExamples: Set[String]
+
+    lazy val correctExampleInputs: Set[Inputs.ConcreteSource] = correctExamples map Inputs.fromString
+    lazy val incorrectExampleInputs: Set[Inputs.ConcreteSource] = incorrectExamples map Inputs.fromString
+}
+
+trait AmbiguousExamples extends Examples {
+    val ambiguousExamples: Set[String]
+    lazy val ambiguousExampleInputs: Set[Inputs.ConcreteSource] = ambiguousExamples map Inputs.fromString
+}
+
+trait GrammarWithExamples extends Examples {
+    val grammar: Grammar
+
+    lazy val ngrammar: NGrammar = NGrammar.fromGrammar(grammar)
 }

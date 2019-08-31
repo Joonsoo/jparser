@@ -290,7 +290,7 @@ object MetaGrammar2 {
                     (s, 0)
                 case Symbols.Nonterminal(name) =>
                     (name, 0)
-                case Symbols.Sequence(seq, contentIdx) =>
+                case Symbols.Sequence(seq) =>
                     val isString = seq forall (_.isInstanceOf[Symbols.Terminals.ExactChar])
                     if (isString) {
                         // string인 경우

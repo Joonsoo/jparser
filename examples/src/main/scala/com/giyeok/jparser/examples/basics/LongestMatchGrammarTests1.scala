@@ -1,16 +1,12 @@
-package com.giyeok.jparser.tests.basics
+package com.giyeok.jparser.examples.basics
 
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.tests.StringSamples
-import scala.collection.immutable.ListMap
-import scala.collection.immutable.ListSet
 import com.giyeok.jparser.GrammarHelper._
-import com.giyeok.jparser.tests.Samples
-import com.giyeok.jparser.tests.BasicParseTest
-import com.giyeok.jparser.tests.AmbiguousSamples
-import com.giyeok.jparser.tests.GrammarTestCases
+import com.giyeok.jparser.examples.{AmbiguousExamples, GrammarWithExamples, StringExamples}
 
-object LongestMatchGrammar1 extends Grammar with GrammarTestCases with StringSamples {
+import scala.collection.immutable.{ListMap, ListSet}
+
+object LongestMatchGrammar1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar1"
     def longest(c: Symbol) = seq(c.plus, lookahead_except(c))
     val wsChars = chars("\n\r\t ")
@@ -31,11 +27,11 @@ object LongestMatchGrammar1 extends Grammar with GrammarTestCases with StringSam
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]("abc def")
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set[String]("abc def")
+    val incorrectExamples = Set[String]()
 }
 
-object LongestMatchGrammar1_1 extends Grammar with GrammarTestCases with StringSamples {
+object LongestMatchGrammar1_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar1_1"
     def longest(c: Symbol) = seq(c.plus, lookahead_except(c))
     val wsChars = chars("\n\r\t ")
@@ -58,11 +54,11 @@ object LongestMatchGrammar1_1 extends Grammar with GrammarTestCases with StringS
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]("abc def")
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set[String]("abc def")
+    val incorrectExamples = Set[String]()
 }
 
-object LongestMatchGrammar2 extends Grammar with GrammarTestCases with StringSamples {
+object LongestMatchGrammar2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar2"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
@@ -83,11 +79,11 @@ object LongestMatchGrammar2 extends Grammar with GrammarTestCases with StringSam
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]("abc a123123 def")
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set[String]("abc a123123 def")
+    val incorrectExamples = Set[String]()
 }
 
-object LongestMatchGrammar2_0 extends Grammar with GrammarTestCases with StringSamples {
+object LongestMatchGrammar2_0 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar2_0"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
@@ -107,11 +103,11 @@ object LongestMatchGrammar2_0 extends Grammar with GrammarTestCases with StringS
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]("a123b", "abcd")
-    val incorrectSamples = Set[String]("123")
+    val correctExamples = Set[String]("a123b", "abcd")
+    val incorrectExamples = Set[String]("123")
 }
 
-object LongestMatchGrammar2_1 extends Grammar with GrammarTestCases with StringSamples {
+object LongestMatchGrammar2_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar2_1"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
@@ -136,14 +132,14 @@ object LongestMatchGrammar2_1 extends Grammar with GrammarTestCases with StringS
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "abc a123123 def",
         "    abcdedr     afsdf   j1jdf1j35j"
     )
-    val incorrectSamples = Set[String]("12")
+    val incorrectExamples = Set[String]("12")
 }
 
-object LongestMatchGrammar2_2 extends Grammar with GrammarTestCases with StringSamples {
+object LongestMatchGrammar2_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar2_2"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
@@ -175,7 +171,7 @@ object LongestMatchGrammar2_2 extends Grammar with GrammarTestCases with StringS
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "111.222e333",
         "abc a123123 def",
         "    abcdedr     afsdf   j1jdf1j35j",
@@ -189,10 +185,10 @@ object LongestMatchGrammar2_2 extends Grammar with GrammarTestCases with StringS
         "1111e",
         "1.a"
     )
-    val incorrectSamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
-object LongestMatchGrammar2_3 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+object LongestMatchGrammar2_3 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "LongestMatchGrammar2_3"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
@@ -225,7 +221,7 @@ object LongestMatchGrammar2_3 extends Grammar with GrammarTestCases with StringS
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "abc a123123 def",
         "    abcdedr     afsdf   j1jdf1j35j",
         "aaaaa 11111    bbbbb",
@@ -239,11 +235,11 @@ object LongestMatchGrammar2_3 extends Grammar with GrammarTestCases with StringS
         "aaaaa 11111.222222e33333   bbbbb",
         "aaaaa -11111.22222e33333   bbbbb"
     )
-    val incorrectSamples = Set[String]()
-    val ambiguousSamples = Set[String]()
+    val incorrectExamples = Set[String]()
+    val ambiguousExamples = Set[String]()
 }
 
-object LongestMatchGrammar2_4 extends Grammar with GrammarTestCases with StringSamples {
+object LongestMatchGrammar2_4 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar2_4"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -266,15 +262,15 @@ object LongestMatchGrammar2_4 extends Grammar with GrammarTestCases with StringS
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "-1111.2222E123123;"
     )
-    val incorrectSamples = Set[String](
+    val incorrectExamples = Set[String](
         "0.1"
     )
 }
 
-object LongestMatchGrammar3_1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+object LongestMatchGrammar3_1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "LongestMatchGrammar3_1"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -294,16 +290,16 @@ object LongestMatchGrammar3_1 extends Grammar with GrammarTestCases with StringS
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "12",
         "1.a",
         "1.2"
     )
-    val incorrectSamples = Set[String]()
-    val ambiguousSamples = Set[String]()
+    val incorrectExamples = Set[String]()
+    val ambiguousExamples = Set[String]()
 }
 
-object LongestMatchGrammar3_2 extends Grammar with GrammarTestCases with StringSamples {
+object LongestMatchGrammar3_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar3_2"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -326,13 +322,13 @@ object LongestMatchGrammar3_2 extends Grammar with GrammarTestCases with StringS
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "1.2"
     )
-    val incorrectSamples = Set[String]("1.a")
+    val incorrectExamples = Set[String]("1.a")
 }
 
-object LongestMatchGrammar3_3 extends Grammar with GrammarTestCases with StringSamples {
+object LongestMatchGrammar3_3 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar3_3"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -360,16 +356,16 @@ object LongestMatchGrammar3_3 extends Grammar with GrammarTestCases with StringS
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "0.11233221",
         "1000.123123",
         "0",
         "123123"
     )
-    val incorrectSamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
-object LongestMatchGrammar4 extends Grammar with GrammarTestCases with StringSamples {
+object LongestMatchGrammar4 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar4"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -389,15 +385,15 @@ object LongestMatchGrammar4 extends Grammar with GrammarTestCases with StringSam
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "123", "123abc123"
     )
-    val incorrectSamples = Set[String](
+    val incorrectExamples = Set[String](
         "."
     )
 }
 
-object LongestMatchGrammar5 extends Grammar with GrammarTestCases with StringSamples {
+object LongestMatchGrammar5 extends Grammar with GrammarWithExamples with StringExamples {
     def expr(syms: Symbol*) = seqWS(n("WS").star, syms: _*)
     val name = "LongestMatchGrammar5 (dangling else solution)"
     val rules: RuleMap = ListMap(
@@ -422,15 +418,15 @@ object LongestMatchGrammar5 extends Grammar with GrammarTestCases with StringSam
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "if(true)if(false){}else{}",
         "if(true)if(true)if(true)if(true)if(true)if(true)if(true){}else{}",
         "if(true)if(false){}else{}else{}"
     )
-    val incorrectSamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
-object LongestMatchGrammar5_1 extends Grammar with GrammarTestCases with StringSamples with AmbiguousSamples {
+object LongestMatchGrammar5_1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     def expr(syms: Symbol*) = seqWS(n("WS").star, syms: _*)
     val name = "LongestMatchGrammar5-1 (ambiguous, dangling else)"
     val rules: RuleMap = ListMap(
@@ -455,17 +451,17 @@ object LongestMatchGrammar5_1 extends Grammar with GrammarTestCases with StringS
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "if(true)if(false){}else{}else{}"
     )
-    val incorrectSamples = Set[String]()
-    val ambiguousSamples = Set[String](
+    val incorrectExamples = Set[String]()
+    val ambiguousExamples = Set[String](
         "if(true)if(false){}else{}"
     )
 }
 
 object LongestMatchGrammars {
-    val tests: Set[GrammarTestCases] = Set(
+    val tests: Set[GrammarWithExamples] = Set(
         LongestMatchGrammar1,
         LongestMatchGrammar1_1,
         LongestMatchGrammar2,
@@ -482,5 +478,3 @@ object LongestMatchGrammars {
         LongestMatchGrammar5_1
     )
 }
-
-class LongestMatchGrammarTestSuite1 extends BasicParseTest(LongestMatchGrammars.tests)

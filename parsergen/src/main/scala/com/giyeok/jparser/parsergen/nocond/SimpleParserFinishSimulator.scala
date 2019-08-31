@@ -1,7 +1,8 @@
 package com.giyeok.jparser.parsergen.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.metagram.SimpleGrammars
+import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.parsergen.nocond.codegen.SimpleParserJavaGen
 
 // path는 맨 뒤가 stack top
@@ -80,7 +81,7 @@ object SimpleParserFinishSimulator {
     }
 
     def main(args: Array[String]): Unit = {
-        val parser = SimpleParserJavaGen.generateParser(SimpleGrammars.array0Grammar)
+        val parser = SimpleParserJavaGen.generateParser(SimpleGrammars.array0Grammar.toGrammar(MetaGrammar.translateForce))
         val sim = new SimpleParserFinishSimulator(parser)
 
         val analysisPoints =

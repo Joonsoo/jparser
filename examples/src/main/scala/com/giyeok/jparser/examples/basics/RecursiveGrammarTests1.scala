@@ -1,40 +1,34 @@
-package com.giyeok.jparser.tests.basics
+package com.giyeok.jparser.examples.basics
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.GrammarHelper._
-import scala.collection.immutable.ListMap
-import com.giyeok.jparser.Inputs._
-import org.junit.Assert._
-import com.giyeok.jparser.Symbols.Symbol
-import scala.collection.immutable.ListSet
-import com.giyeok.jparser.tests.BasicParseTest
-import com.giyeok.jparser.tests.Samples
-import com.giyeok.jparser.tests.StringSamples
-import com.giyeok.jparser.tests.GrammarTestCases
+import com.giyeok.jparser.examples.{GrammarWithExamples, StringExamples}
 
-object RecursiveGrammar1 extends Grammar with GrammarTestCases with StringSamples {
+import scala.collection.immutable.{ListMap, ListSet}
+
+object RecursiveGrammar1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Recursive Grammar 1 (Right Recursion)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(chars('a' to 'z'), seq(chars('a' to 'z'), n("S"))))
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("a", "aaa")
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set("a", "aaa")
+    val incorrectExamples = Set[String]()
 }
 
-object RecursiveGrammar1_1 extends Grammar with GrammarTestCases with StringSamples {
+object RecursiveGrammar1_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Recursive Grammar 1-1 (Left Recursion)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(chars('a' to 'z'), seq(n("S"), chars('a' to 'z'))))
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("a", "aaa")
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set("a", "aaa")
+    val incorrectExamples = Set[String]()
 }
 
-object RecursiveGrammar1_2 extends Grammar with GrammarTestCases with StringSamples {
+object RecursiveGrammar1_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Recursive Grammar 1-2 (Left Recursion 2)"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(c('s'), seq(n("A"), c('s')), seq(n("S"), c('s'))),
@@ -43,11 +37,11 @@ object RecursiveGrammar1_2 extends Grammar with GrammarTestCases with StringSamp
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("as", "bas", "sssbas")
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set("as", "bas", "sssbas")
+    val incorrectExamples = Set[String]()
 }
 
-object RecursiveGrammar2 extends Grammar with GrammarTestCases with StringSamples {
+object RecursiveGrammar2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Recursive Grammar 2"
     def expr(s: Symbol*) = seqWS(chars(" \t\n").star, s: _*)
     val rules: RuleMap = ListMap(
@@ -63,11 +57,11 @@ object RecursiveGrammar2 extends Grammar with GrammarTestCases with StringSample
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String]("and (random 10) (random 20)", "and (random 12) (and (or (random 10) (random 10)) (or (random 12) (random 123123)))")
-    val incorrectSamples = Set[String]("ran dom 10", "and (random 12) (and (or (random 10) (random 10)) (or (random 12) (random 123123))")
+    val correctExamples = Set[String]("and (random 10) (random 20)", "and (random 12) (and (or (random 10) (random 10)) (or (random 12) (random 123123)))")
+    val incorrectExamples = Set[String]("ran dom 10", "and (random 12) (and (or (random 10) (random 10)) (or (random 12) (random 123123))")
 }
 
-object RecursiveGrammar3 extends Grammar with GrammarTestCases with StringSamples {
+object RecursiveGrammar3 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Recursive Grammar 3"
     def expr(s: Symbol*) = seqWS(chars(" \t\n").star, s: _*)
     val rules: RuleMap = ListMap(
@@ -86,17 +80,15 @@ object RecursiveGrammar3 extends Grammar with GrammarTestCases with StringSample
 
     // Because of the associativity of binary opeartors, this grammar may not parse expressions like `1+2+3` properly
     val grammar = this
-    val correctSamples = Set[String]("123123", "1+2", "1+2*3", "3*2+1", "12300+23400*34500", "34500*23400+12300")
-    val incorrectSamples = Set[String]()
+    val correctExamples = Set[String]("123123", "1+2", "1+2*3", "3*2+1", "12300+23400*34500", "34500*23400+12300")
+    val incorrectExamples = Set[String]()
 }
 
 object RecursiveGrammarSet1 {
-    val tests: Set[GrammarTestCases] = Set(
+    val tests: Set[GrammarWithExamples] = Set(
         RecursiveGrammar1,
         RecursiveGrammar1_1,
         RecursiveGrammar1_2,
         RecursiveGrammar2,
         RecursiveGrammar3)
 }
-
-class RecursiveGrammarTestSuite1 extends BasicParseTest(RecursiveGrammarSet1.tests)

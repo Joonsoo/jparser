@@ -1,8 +1,8 @@
 package com.giyeok.jparser.study.parsing
 
 import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.examples.basics.Fig6_6
 import com.giyeok.jparser.study.ContextFreeGrammar
-import com.giyeok.jparser.tests.basics.Fig6_6
 
 object DirectionalTopDownParsingTest {
     def main(args: Array[String]): Unit = {

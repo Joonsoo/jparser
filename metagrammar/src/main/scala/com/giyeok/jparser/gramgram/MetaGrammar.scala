@@ -14,10 +14,10 @@ object MetaGrammar extends Grammar {
     val name = "Meta Grammar"
     val rules: RuleMap = ListMap(
         "Grammar" -> ListSet(
-            Sequence(Seq(n("ws"), n("Rules"), n("ws")), Seq(1))
+            Sequence(Seq(n("ws"), n("Rules"), n("ws")))
         ),
         "Rules" -> ListSet(
-            Sequence(Seq(n("Rules"), longest(n("ws0").star), c('\n'), n("ws"), n("Rule")), Seq(0, 4)),
+            Sequence(Seq(n("Rules"), longest(n("ws0").star), c('\n'), n("ws"), n("Rule"))),
             n("Rule")
         ),
         "Rule" -> ListSet(
@@ -185,7 +185,7 @@ object MetaGrammar extends Grammar {
         case s: SequenceNode => (s.children map {
             textOf
         }).mkString
-        case JoinNode(body, join) => textOf(body)
+        case JoinNode(_, body, join) => textOf(body)
         case TerminalNode(_, Inputs.Character(c)) => s"$c"
         case _ => ???
     }
@@ -414,9 +414,9 @@ object MetaGrammar extends Grammar {
                     (s, 0)
                 case Nonterminal(nontermName) =>
                     (nonterminalNameOf(nontermName), 0)
-                case Sequence(Seq(), _) =>
+                case Sequence(Seq()) =>
                     ("ε", 0)
-                case Sequence(seq, _) =>
+                case Sequence(seq) =>
                     val isString = seq forall (_.isInstanceOf[Symbols.Terminals.ExactChar])
                     if (isString) {
                         // string인 경우

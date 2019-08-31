@@ -1,7 +1,8 @@
 package com.giyeok.jparser.parsergen.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.metagram.SimpleGrammars
+import com.giyeok.jparser.gramgram.MetaGrammar
 import com.giyeok.jparser.parsergen.nocond.codegen.SimpleParserJavaGen
 
 class SimpleParserRunner(val simpleParser: SimpleParser) {
@@ -126,7 +127,7 @@ class SimpleParserRunner(val simpleParser: SimpleParser) {
 object SimpleParserRunner {
 
     def main(args: Array[String]): Unit = {
-        val parser = SimpleParserJavaGen.generateParser(SimpleGrammars.array1Grammar)
+        val parser = SimpleParserJavaGen.generateParser(SimpleGrammars.array1Grammar.toGrammar(MetaGrammar.translateForce))
         val runner = new SimpleParserRunner(parser)
         val input = "[a,a,a+a*a+a]"
         val prelastCtx = input.foldLeft(runner.initialContext.asInstanceOf[runner.Context]) { (ctx, c) =>

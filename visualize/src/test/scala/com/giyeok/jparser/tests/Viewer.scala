@@ -1,24 +1,23 @@
 package com.giyeok.jparser.tests
 
-import scala.util.Success
-import scala.util.Try
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.ConcreteInput
+import com.giyeok.jparser.examples.{AmbiguousExamples, GrammarWithExamples}
+import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.Parser.NaiveContext
+import com.giyeok.jparser.visualize.FigureGenerator.draw2d
 import com.giyeok.jparser.visualize._
-import org.eclipse.draw2d.ColorConstants
-import org.eclipse.draw2d.Figure
-import org.eclipse.draw2d.FigureCanvas
-import org.eclipse.draw2d.Label
-import org.eclipse.draw2d.ToolbarLayout
+import org.eclipse.draw2d.{Label => Draw2dLabel, _}
 import org.eclipse.jface.resource.JFaceResources
 import org.eclipse.swt.SWT
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets._
 
+import scala.util.{Success, Try}
+
 object AllTestGrammars {
-    val allTestGrammars: Set[GrammarTestCases] = Set(
+    val allTestGrammars: Set[GrammarWithExamples] = Set(
         com.giyeok.jparser.tests.basics.Visualization.allTests,
         com.giyeok.jparser.tests.gramgram.Visualization.allTests,
         com.giyeok.jparser.tests.javascript.Visualization.allTests
@@ -26,7 +25,7 @@ object AllTestGrammars {
 }
 
 object AllViewer extends Viewer {
-    val allTests: Set[GrammarTestCases] = AllTestGrammars.allTestGrammars
+    val allTests: Set[GrammarWithExamples] = AllTestGrammars.allTestGrammars
 
     def main(args: Array[String]): Unit = {
         start()
@@ -34,7 +33,7 @@ object AllViewer extends Viewer {
 }
 
 trait Viewer {
-    val allTests: Set[GrammarTestCases]
+    val allTests: Set[GrammarWithExamples]
 
     def start(): Unit = {
         val display = Display.getDefault
@@ -94,7 +93,7 @@ trait Viewer {
                     )
                     val fig = new Figure
                     fig.setLayoutManager(new ToolbarLayout(false))
-                    val label = new Label
+                    val label = new Draw2dLabel
                     label.setText(messages.flatten mkString "\n")
                     label.setForegroundColor(ColorConstants.red)
                     fig.add(label)
@@ -108,11 +107,11 @@ trait Viewer {
                     shownTexts = shownTexts :+ input
                     textList.add(text)
                 }
-                testCases.correctSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
-                testCases.incorrectSampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
+                testCases.correctExampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"O: '${i.toCleanString}'") }
+                testCases.incorrectExampleInputs.toSeq sortBy { _.toCleanString } foreach { i => addText(i, s"X: '${i.toCleanString}'") }
                 testCases match {
-                    case ambiguousSamples: AmbiguousSamples =>
-                        ambiguousSamples.ambiguousSampleInputs.toSeq sortBy (_.toCleanString) foreach { i =>
+                    case ambiguousSamples: AmbiguousExamples =>
+                        ambiguousSamples.ambiguousExampleInputs.toSeq sortBy (_.toCleanString) foreach { i =>
                             addText(i, s"A: '${i.toCleanString}'")
                         }
                     case _ => // do nothing
@@ -120,9 +119,9 @@ trait Viewer {
             }
         })
 
-        def startParserVisualizer(gt: GrammarTestCases, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
+        def startParserVisualizer(gt: GrammarWithExamples, source: Seq[ConcreteInput], display: Display, shell: Shell): Unit = {
             val grammar = gt.grammar
-            ParsingProcessVisualizer.start[NaiveContext](grammar.name, gt.naiveParser, source, display, new Shell(display),
+            ParsingProcessVisualizer.start[NaiveContext](grammar.name, new NaiveParser(gt.ngrammar), source, display, new Shell(display),
                 new ZestParsingContextWidget(_, _, _, _, _, _))
         }
 

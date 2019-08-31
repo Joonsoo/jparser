@@ -1,17 +1,12 @@
-package com.giyeok.jparser.tests.basics
+package com.giyeok.jparser.examples.basics
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.GrammarHelper._
-import com.giyeok.jparser.Inputs._
-import org.junit.Assert._
-import scala.collection.immutable.ListSet
-import scala.collection.immutable.ListMap
-import com.giyeok.jparser.tests.BasicParseTest
-import com.giyeok.jparser.tests.Samples
-import com.giyeok.jparser.tests.StringSamples
-import com.giyeok.jparser.tests.GrammarTestCases
+import com.giyeok.jparser.examples.{GrammarWithExamples, StringExamples}
 
-object SimpleGrammar2 extends Grammar with GrammarTestCases with StringSamples {
+import scala.collection.immutable.{ListMap, ListSet}
+
+object SimpleGrammar2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 2"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(
@@ -28,11 +23,11 @@ object SimpleGrammar2 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("10.1e2", "10.1e-00002")
-    val incorrectSamples = Set("--10.1e2")
+    val correctExamples = Set("10.1e2", "10.1e-00002")
+    val incorrectExamples = Set("--10.1e2")
 }
 
-object SimpleGrammar3 extends Grammar with GrammarTestCases with StringSamples {
+object SimpleGrammar3 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 3 - Donald Knuth 63"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(n("A"), n("D"))),
@@ -44,26 +39,24 @@ object SimpleGrammar3 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("abcde")
-    val incorrectSamples = Set("f")
+    val correctExamples = Set("abcde")
+    val incorrectExamples = Set("f")
 }
 
-object SimpleGrammar4 extends Grammar with GrammarTestCases with StringSamples {
+object SimpleGrammar4 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 4 - StackOverflow"
     val rules: RuleMap = ListMap(
         "S" -> ListSet(seq(chars("ab").star, c('a'), chars("ab").star)))
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set("abb", "bbbabbb")
-    val incorrectSamples = Set("c")
+    val correctExamples = Set("abb", "bbbabbb")
+    val incorrectExamples = Set("c")
 }
 
 object SimpleGrammarSet2 {
-    val tests: Set[GrammarTestCases] = Set(
+    val tests: Set[GrammarWithExamples] = Set(
         SimpleGrammar2,
         SimpleGrammar3,
         SimpleGrammar4)
 }
-
-class SimpleGrammarTestSuite2 extends BasicParseTest(SimpleGrammarSet2.tests)

@@ -1,15 +1,12 @@
-package com.giyeok.jparser.tests.basics
+package com.giyeok.jparser.examples.basics
 
-import com.giyeok.jparser.tests.BasicParseTest
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.tests.Samples
-import com.giyeok.jparser.tests.StringSamples
-import scala.collection.immutable.ListMap
 import com.giyeok.jparser.GrammarHelper._
-import scala.collection.immutable.ListSet
-import com.giyeok.jparser.tests.GrammarTestCases
+import com.giyeok.jparser.examples.{GrammarWithExamples, StringExamples}
 
-object JoinGrammar1 extends Grammar with GrammarTestCases with StringSamples {
+import scala.collection.immutable.{ListMap, ListSet}
+
+object JoinGrammar1 extends Grammar with GrammarWithExamples with StringExamples {
     def token(sym: Symbol): Symbol = sym.join(n("Token"))
     def expr(syms: Symbol*): Symbol = seqWS(token(n("Whitespace")).opt, syms: _*)
 
@@ -45,13 +42,13 @@ object JoinGrammar1 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "var xyz = (123 + 456)"
     )
-    val incorrectSamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
-object JoinGrammar2 extends Grammar with GrammarTestCases with StringSamples {
+object JoinGrammar2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "JoinGrammar2 (nullable case)"
 
     val rules: RuleMap = ListMap(
@@ -68,15 +65,15 @@ object JoinGrammar2 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "bcd"
     )
-    val incorrectSamples = Set[String](
+    val incorrectExamples = Set[String](
         "bca"
     )
 }
 
-object JoinGrammar3 extends Grammar with GrammarTestCases with StringSamples {
+object JoinGrammar3 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "JoinGrammar3 (a^n b^n c^n)"
 
     val rules: RuleMap = ListMap(
@@ -109,15 +106,15 @@ object JoinGrammar3 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "", "abc", "aabbcc", "aaabbbccc"
     )
-    val incorrectSamples = Set[String](
+    val incorrectExamples = Set[String](
         "aaabbb"
     )
 }
 
-object JoinGrammar3_1 extends Grammar with GrammarTestCases with StringSamples {
+object JoinGrammar3_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "JoinGrammar3_1 (a^n b^n c^n)"
 
     val rules: RuleMap = ListMap(
@@ -142,10 +139,10 @@ object JoinGrammar3_1 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "abc", "aabbcc", "aaabbbccc"
     )
-    val incorrectSamples = Set[String](
+    val incorrectExamples = Set[String](
         "aaabbb",
         ("a" * 4) + ("b" * 3) + ("c" * 3),
         ("a" * 3) + ("b" * 4) + ("c" * 3),
@@ -157,12 +154,10 @@ object JoinGrammar3_1 extends Grammar with GrammarTestCases with StringSamples {
 }
 
 object JoinGrammars {
-    val tests: Set[GrammarTestCases] = Set(
+    val tests: Set[GrammarWithExamples] = Set(
         JoinGrammar1,
         JoinGrammar2,
         JoinGrammar3,
         JoinGrammar3_1
     )
 }
-
-class JoinGrammarTestSuite1 extends BasicParseTest(JoinGrammars.tests)

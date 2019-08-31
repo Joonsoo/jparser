@@ -1,15 +1,13 @@
-package com.giyeok.jparser.examples
+package com.giyeok.jparser.examples.metagram
 
-import com.giyeok.jparser.gramgram.MetaGrammar
-
-object JsonGrammar {
+object JsonGrammar extends MetaGramExamples {
     // https://tools.ietf.org/html/rfc8259
     // https://github.com/nst/JSONTestSuite/tree/master/test_parsing
     // http://seriot.ch/parsing_json.php
     // https://www.ecma-international.org/publications/files/ECMA-ST/Ecma-262.pdf
     // http://json.org/
     // https://ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
-    val fromJsonOrg: GrammarWithExamples = GrammarWithExamples(MetaGrammar.translateForce(
+    val fromJsonOrg: MetaGram1Example = MetaGram1Example(
         "JSON from JSON.org",
         """json = ws element ws
           |element = value
@@ -40,11 +38,11 @@ object JsonGrammar {
           |exp = # | 'E' sign {0-9}+ | 'e' sign {0-9}+
           |sign = # | '+' | '-'
           |ws = # | {\u0009\u000a\u000d\u0020} ws
-          |""".stripMargin))
+          |""".stripMargin)
         .example("""123""")
         .example("""{"abc":"def"}""")
 
-    val custom: GrammarWithExamples = GrammarWithExamples(MetaGrammar.translateForce(
+    val custom: MetaGram1Example = MetaGram1Example(
         "JSON custom simple",
         """Json = WS Elem WS
           |Elem = Object | Array | String | Number | "true" | "false" | "null"
@@ -57,7 +55,9 @@ object JsonGrammar {
           |Number = int ['.' {0-9}+]? [{Ee} {+\-}? {0-9}+]?
           |int = '-'? ({0-9} | [{1-9} {0-9}+])
           |hex = {0-9A-Fa-f}
-          |WS = {\u0009\u000a\u000d\u0020}*""".stripMargin))
+          |WS = {\u0009\u000a\u000d\u0020}*""".stripMargin)
         .example("""123""")
         .example("""{"abc": "def" }""")
+
+    val examples: List[MetaGramExample] = List(fromJsonOrg, custom)
 }

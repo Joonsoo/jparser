@@ -1,15 +1,12 @@
-package com.giyeok.jparser.tests.basics
+package com.giyeok.jparser.examples.basics
 
-import com.giyeok.jparser.tests.BasicParseTest
 import com.giyeok.jparser.Grammar
-import com.giyeok.jparser.tests.Samples
-import com.giyeok.jparser.tests.StringSamples
-import scala.collection.immutable.ListMap
 import com.giyeok.jparser.GrammarHelper._
-import scala.collection.immutable.ListSet
-import com.giyeok.jparser.tests.GrammarTestCases
+import com.giyeok.jparser.examples.{GrammarWithExamples, StringExamples}
 
-object BackupGrammar1 extends Grammar with GrammarTestCases with StringSamples {
+import scala.collection.immutable.{ListMap, ListSet}
+
+object BackupGrammar1 extends Grammar with GrammarWithExamples with StringExamples {
     val wsChars = chars(" ")
     val name = "BackupGrammar1"
 
@@ -23,13 +20,13 @@ object BackupGrammar1 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "aa;a ",
         "aaaa aaaa ")
-    val incorrectSamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
-object BackupGrammar2 extends Grammar with GrammarTestCases with StringSamples {
+object BackupGrammar2 extends Grammar with GrammarWithExamples with StringExamples {
     val wsChars = chars(" ")
     val name = "BackupGrammar2 (automatic semicolon insertion)"
 
@@ -61,7 +58,7 @@ object BackupGrammar2 extends Grammar with GrammarTestCases with StringSamples {
     val startSymbol = n("S")
 
     val grammar = this
-    val correctSamples = Set[String](
+    val correctExamples = Set[String](
         "{aaa\naaa}",
         "aaa\naaa\n",
         "{aaa;\naaa}",
@@ -69,13 +66,11 @@ object BackupGrammar2 extends Grammar with GrammarTestCases with StringSamples {
         "{aaa\naaa\naaa;\naaa\naaa}",
         "{aaa\n+aaa\n+aaa}",
         "{aaa;\n+aaa}")
-    val incorrectSamples = Set[String]()
+    val incorrectExamples = Set[String]()
 }
 
 object BackupGrammars {
-    val tests: Set[GrammarTestCases] = Set(
+    val tests: Set[GrammarWithExamples] = Set(
         BackupGrammar1,
         BackupGrammar2)
 }
-
-class BackupGrammarTestSuite1 extends BasicParseTest(BackupGrammars.tests)

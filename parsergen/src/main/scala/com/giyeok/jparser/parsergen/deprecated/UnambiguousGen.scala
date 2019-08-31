@@ -2,7 +2,8 @@ package com.giyeok.jparser.parsergen.deprecated
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.examples.SimpleGrammars
+import com.giyeok.jparser.examples.metagram.SimpleGrammars
+import com.giyeok.jparser.gramgram.MetaGrammar
 
 class UnambiguousGen(val grammar: NGrammar) {
     val simpleGenGen: SimpleGenGen = new SimpleGenGen(grammar)
@@ -112,7 +113,7 @@ object UnambiguousGen {
     }
 
     def main(args: Array[String]): Unit = {
-        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar)
+        val grammar = NGrammar.fromGrammar(SimpleGrammars.arrayGrammar.toGrammar(MetaGrammar.translateForce))
         val ugen = new UnambiguousGen(grammar)
         printUnambiguousGen(ugen)
         printAmbiguousTermActions(ugen, ugen.analyzeAmbiguousTermActions())

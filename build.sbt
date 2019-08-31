@@ -25,24 +25,24 @@ lazy val types = (project in file("types")).
 		libraryDependencies ++= testDeps).
     dependsOn(utils % "test->test;compile->compile")
 
+lazy val examples = (project in file("examples")).
+    settings(
+        name := "jparser-examples").
+    dependsOn(types % "test->test;compile->compile")
+
 lazy val core = (project in file("core")).
     settings(
         name := "jparser-core",
         libraryDependencies ++= testDeps).
-    dependsOn(types % "test->test;compile->compile")
+    dependsOn(types % "test->test;compile->compile").
+    dependsOn(examples % "compile->test")
 
 lazy val metagrammar = (project in file("metagrammar")).
     settings(
         name := "jparser-metagrammar").
     dependsOn(core % "test->test;compile->compile").
-    dependsOn(utils % "test->test;compile->compile")
-
-lazy val examples = (project in file("examples")).
-    settings(
-        name := "jparser-examples").
-    dependsOn(types % "test->test;compile->compile").
-    dependsOn(core % "test->test;compile->compile").
-    dependsOn(metagrammar % "test->test;compile->compile")
+    dependsOn(utils % "test->test;compile->compile").
+    dependsOn(examples % "compile->test")
 
 lazy val visJavaOptions: Seq[String] = {
     if (sys.props("os.name") == "Mac OS X") Seq("-XstartOnFirstThread", "-d64") else Seq()
