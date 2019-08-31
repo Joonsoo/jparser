@@ -37,9 +37,9 @@ lazy val core = (project in file("core")).
     dependsOn(types % "test->test;compile->compile").
     dependsOn(examples % "compile->test")
 
-lazy val metagrammar = (project in file("metagrammar")).
+lazy val metalang = (project in file("metalang")).
     settings(
-        name := "jparser-metagrammar").
+        name := "jparser-metalang").
     dependsOn(core % "test->test;compile->compile").
     dependsOn(utils % "test->test;compile->compile").
     dependsOn(examples % "compile->test")
@@ -60,7 +60,7 @@ lazy val visualize = (project in file("visualize")).
         javaOptions := visJavaOptions).
     dependsOn(core % "test->test;compile->compile").
     dependsOn(utils % "test->test;compile->compile").
-    dependsOn(metagrammar % "test->test;compile->compile").
+    dependsOn(metalang % "test->test;compile->compile").
     dependsOn(examples % "test->test;compile->compile")
 
 lazy val parsergen = (project in file("parsergen")).
@@ -80,7 +80,7 @@ lazy val study = (project in file("study")).
         javaOptions := visJavaOptions).
     dependsOn(core % "test->test;compile->compile").
     dependsOn(utils % "test->test;compile->compile").
-    dependsOn(metagrammar % "test->test;compile->compile").
+    dependsOn(metalang % "test->test;compile->compile").
     dependsOn(examples % "test->test;compile->compile").
     dependsOn(visualize % "test->test;compile->compile").
     dependsOn(parsergen % "test->test;compile->compile")
