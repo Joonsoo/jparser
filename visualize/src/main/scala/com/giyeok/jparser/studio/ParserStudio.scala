@@ -5,7 +5,6 @@ import java.util.concurrent.LinkedBlockingDeque
 import com.giyeok.jparser.NGrammar.NTerminal
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.Symbols.{Nonterminal, Sequence}
-import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParsingContext}
 import com.giyeok.jparser.visualize._
@@ -48,7 +47,7 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
 
     private val exampleGrammars: Seq[(GrammarExample, String)] =
         _exampleGrammars flatMap { g =>
-            val grammarInText = Try(MetaGrammar.stringify(g.grammar))
+            val grammarInText = Try(MetaLanguage2.stringify(g.grammar))
             if (grammarInText.isFailure) {
                 println(s"${g.name}, ${grammarInText.asInstanceOf[Failure[_]].exception}")
             }

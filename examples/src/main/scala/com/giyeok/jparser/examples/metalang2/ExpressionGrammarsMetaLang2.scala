@@ -14,7 +14,8 @@ object ExpressionGrammarsMetaLang2 extends MetaLangExamples {
           |number: @Number = '0' {@Integer(value=[$0])}
           |    | '1-9' '0-9'* {Integer([$0] + $1)}
           |variable = <'A-Za-z'+> {@Variable(name=$0)}
-            """.stripMargin)
+          |""".stripMargin)
+        .example("123*(456+abc)")
 
     val examples: List[MetaLangExample] = List(basic)
 }

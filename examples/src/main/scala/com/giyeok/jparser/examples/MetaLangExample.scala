@@ -18,6 +18,8 @@ case class MetaLang1Example(name: String, grammar: String,
     def toGrammar(translateForce: (String, String) => Grammar): Grammar = translateForce(name, grammar)
 
     def example(newExample: String): MetaLang1Example = copy(correctExamples = correctExamples :+ newExample)
+
+    def incorrect(newExample: String): MetaLang1Example = copy(incorrectExamples = incorrectExamples :+ newExample)
 }
 
 case class MetaLang2Example(name: String, grammar: String,

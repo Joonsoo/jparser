@@ -42,6 +42,10 @@ object MetaLanguage2 {
         }
     }
 
+    def grammarSpecToGrammar(grammarName: String, grammar: String): Option[Grammar] = grammarSpecToAST(grammar) map { ast =>
+        new AstAnalyzer(ast).analyzeAstifiers().grammar(grammarName)
+    }
+
     class Analysis(val astAnalysis: AstAnalysis, val typeAnalysis: TypeAnalysis)
 
     def analyze(ast: AST.Grammar): Analysis = {
@@ -80,11 +84,11 @@ object MetaLanguage2 {
                                     case _ => "" + char
                                 }
 
-                            "{" + (chars.chars.groups.sorted map { pair =>
+                            "'" + (chars.chars.groups.sorted map { pair =>
                                 if (pair._1 == pair._2) s"${escapeChar(pair._1)}"
                                 else if (pair._1 + 1 == pair._2) s"${escapeChar(pair._1)}${escapeChar(pair._2)}"
                                 else s"${escapeChar(pair._1)}-${escapeChar(pair._2)}"
-                            } mkString "") + "}"
+                            } mkString "") + "'"
                         // case Terminals.Unicode(categories) =>
                         // case Terminals.ExactVirtual(name) =>
                         // case Terminals.Virtuals(names) =>

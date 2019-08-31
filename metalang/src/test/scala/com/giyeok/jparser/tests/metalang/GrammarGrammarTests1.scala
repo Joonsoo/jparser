@@ -1,6 +1,7 @@
 package com.giyeok.jparser.tests.metalang
 
 import com.giyeok.jparser.Inputs.ConcreteSource
+import com.giyeok.jparser.examples.basics.TrickyLookaheadsTests1
 import com.giyeok.jparser.examples.metalang.{ExpressionGrammars, LexicalGrammars, MetaLangGrammar}
 import com.giyeok.jparser.examples.{GrammarWithExamples, MetaLang1Example, StringExamples}
 import com.giyeok.jparser.metalang.{GrammarGrammar, MetaGrammar}
@@ -45,6 +46,8 @@ object GrammarGrammarTests {
         GrammarTestCasesFromMetaGram1Example(MetaLangGrammar.metaGrammar2),
         GrammarTestCasesFromMetaGram1Example(ExpressionGrammars.basic),
         GrammarTestCasesFromMetaGram1Example(ExpressionGrammars.basic1),
+        GrammarTestCasesFromMetaGram1Example(TrickyLookaheadsTests1.tricky1),
+        GrammarTestCasesFromMetaGram1Example(TrickyLookaheadsTests1.tricky2),
         GrammarTestCasesFromMetaGram1Example(LexicalGrammars.basic0),
         GrammarTestCasesFromMetaGram1Example(LexicalGrammars.basic1),
         GrammarTestCasesFromMetaGram1Example(LexicalGrammars.basic2)
