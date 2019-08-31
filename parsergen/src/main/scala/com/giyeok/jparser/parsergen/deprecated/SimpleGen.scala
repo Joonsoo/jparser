@@ -4,7 +4,7 @@ import java.io.{File, PrintWriter}
 
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGrouping, TermGroupDesc}
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.gramgram.MetaGrammar
+import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.parsergen.deprecated.SimpleGen._
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 import com.google.googlejavaformat.java.Formatter

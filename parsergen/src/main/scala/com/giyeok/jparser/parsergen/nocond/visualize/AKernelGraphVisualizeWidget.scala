@@ -2,8 +2,8 @@ package com.giyeok.jparser.parsergen.nocond.visualize
 
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.NSequence
-import com.giyeok.jparser.examples.metagram.SimpleGrammars
-import com.giyeok.jparser.gramgram.MetaGrammar
+import com.giyeok.jparser.examples.metalang.SimpleGrammars
+import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.nparser.ParsingContext
 import com.giyeok.jparser.parsergen.nocond._
 import com.giyeok.jparser.visualize.{AbstractZestGraphWidget, BasicVisualizeResources}

@@ -1,29 +1,29 @@
-package com.giyeok.jparser.tests.gramgram
+package com.giyeok.jparser.tests.metalang
 
-import com.giyeok.jparser.examples.metagram.MetaGramInMetaGram
+import com.giyeok.jparser.examples.metalang.MetaLangGrammar
 import com.giyeok.jparser.examples.{GrammarWithExamples, StringExamples}
-import com.giyeok.jparser.gramgram.MetaGrammar
+import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
 import com.giyeok.jparser.{Grammar, NGrammar, ParseForestFunc}
 
 object MetaGrammarTests extends GrammarWithExamples with StringExamples {
     val grammar = MetaGrammar
 
-    val metaGrammarText1: String = MetaGramInMetaGram.metaGrammarText1
-    val metaGrammarText2: String = MetaGramInMetaGram.metaGrammarText2
-    val correctExamples = MetaGramInMetaGram.correctExamples.toSet
-    val incorrectExamples = MetaGramInMetaGram.incorrectExamples.toSet
+    val metaGrammarText1: String = MetaLangGrammar.metaGrammarText1
+    val metaGrammarText2: String = MetaLangGrammar.metaGrammarText2
+    val correctExamples = MetaLangGrammar.correctExamples.toSet
+    val incorrectExamples = MetaLangGrammar.incorrectExamples.toSet
 
     def main(): Unit = {
         println("===== generated =====")
         println(MetaGrammar.stringify(MetaGrammar))
 
-        val metaGrammar1 = MetaGrammar.translate("Grammar", metaGrammarText1).left.get
+        val metaGrammar1 = MetaGrammar.translateForce("Grammar", metaGrammarText1)
         println("===== translated =====")
         println(MetaGrammar.stringify(metaGrammar1))
         println("Meta=meta1", MetaGrammar.rules.toSet == metaGrammar1.rules.toSet)
 
-        val metaGrammar2 = MetaGrammar.translate("Grammar", metaGrammarText2).left.get
+        val metaGrammar2 = MetaGrammar.translateForce("Grammar", metaGrammarText2)
         println("===== translated0 =====")
         println(MetaGrammar.stringify(metaGrammar2))
         println("Meta=meta2", MetaGrammar.rules.toSet == metaGrammar2.rules.toSet)

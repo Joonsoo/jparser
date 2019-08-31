@@ -1,8 +1,8 @@
-package com.giyeok.jparser.gramgram.meta2
+package com.giyeok.jparser.metalang2
 
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.{NStart, NSymbol}
-import com.giyeok.jparser.gramgram.meta2.TypeDependenceGraph.SymbolNode
+import com.giyeok.jparser.metalang2.TypeDependenceGraph.SymbolNode
 import com.giyeok.jparser.{Grammar, NGrammar, Symbols}
 
 object ScalaDefGenerator {
@@ -123,7 +123,7 @@ object ScalaDefGenerator {
     }
 }
 
-class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
+class ScalaDefGenerator(analysis: MetaLanguage2.Analysis) {
     private val astAnalysis = analysis.astAnalysis
     private val typeAnalysis = analysis.typeAnalysis
 
@@ -334,7 +334,7 @@ class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
            |  }
            |}""".stripMargin,
         Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode", "jparser.ParseResultTree.SequenceNode",
-            "jparser.nparser.NGrammar"))
+            "jparser.NGrammar"))
 
     def unrollRepeat1(): CodeBlock = CodeBlock(
         s"""private def unrollRepeat1(node: Node): List[Node] = {
@@ -350,7 +350,7 @@ class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
            |  }
            |}""".stripMargin,
         Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode", "jparser.ParseResultTree.SequenceNode",
-            "jparser.nparser.NGrammar"))
+            "jparser.NGrammar"))
 
     def unrollOptional(): CodeBlock = CodeBlock(
         s"""private def unrollOptional(node: Node, emptyId: Int, contentId: Int): Option[Node] = {
@@ -358,7 +358,7 @@ class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
            |  if (bodySymbol.id == contentId) Some(body) else None
            |}""".stripMargin,
         Set("jparser.ParseResultTree.Node", "jparser.ParseResultTree.BindNode", "jparser.ParseResultTree.SequenceNode",
-            "jparser.nparser.NGrammar"))
+            "jparser.NGrammar"))
 
     def matchStart(): CodeBlock = {
         val (funcName, returnType) = matchFuncSignature(startSymbol().symbol)
@@ -406,7 +406,7 @@ class ScalaDefGenerator(analysis: MetaGrammar2.Analysis) {
         var codeBlock = classDefs().append(sourceTextOf()).append(astifierDefs()).append(matchStart())
         if (parseUtils) codeBlock = codeBlock.addRequirement("parseUtilFuncs")
 
-        var imports = Set[String]("jparser.nparser.NGrammar", "jparser.Symbols", "scala.collection.immutable.ListSet")
+        var imports = Set[String]("jparser.NGrammar", "jparser.Symbols", "scala.collection.immutable.ListSet")
         while (codeBlock.requirements.nonEmpty) {
             // TODO 실행 순서가 deterministic하지 않을 수 있음
             val requirement = codeBlock.requirements.head

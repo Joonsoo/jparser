@@ -1,8 +1,8 @@
-package com.giyeok.jparser.gramgram.meta2
+package com.giyeok.jparser.metalang2
 
 import com.giyeok.jparser.ParseResultTree.{BindNode, SequenceNode, TerminalNode}
-import com.giyeok.jparser.{Grammar, GrammarHelper, Inputs, NGrammar, Symbols}
 import com.giyeok.jparser.Symbols.Nonterminal
+import com.giyeok.jparser._
 
 import scala.collection.immutable.{ListMap, ListSet}
 

@@ -2,7 +2,7 @@ package com.giyeok.jparser.tests
 
 import com.giyeok.jparser.{Grammar, Inputs}
 import com.giyeok.jparser.examples.{GrammarWithExamples, StringExamples}
-import com.giyeok.jparser.gramgram.MetaGrammar
+import com.giyeok.jparser.metalang.MetaGrammar
 
 object TrickyTests1 extends GrammarWithExamples with StringExamples {
     val grammar: Grammar =

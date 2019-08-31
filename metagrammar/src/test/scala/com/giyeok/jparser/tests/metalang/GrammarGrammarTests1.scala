@@ -1,9 +1,9 @@
-package com.giyeok.jparser.tests.gramgram
+package com.giyeok.jparser.tests.metalang
 
 import com.giyeok.jparser.Inputs.ConcreteSource
-import com.giyeok.jparser.examples.metagram.{ExpressionGrammars, LexicalGrammars, MetaGram1Example, MetaGramInMetaGram}
-import com.giyeok.jparser.examples.{GrammarWithExamples, StringExamples}
-import com.giyeok.jparser.gramgram.{GrammarGrammar, MetaGrammar}
+import com.giyeok.jparser.examples.metalang.{ExpressionGrammars, LexicalGrammars, MetaLangGrammar}
+import com.giyeok.jparser.examples.{GrammarWithExamples, MetaLang1Example, StringExamples}
+import com.giyeok.jparser.metalang.{GrammarGrammar, MetaGrammar}
 import com.giyeok.jparser.tests.BasicParseTest
 import com.giyeok.jparser.{Grammar, Inputs}
 
@@ -31,7 +31,7 @@ object GrammarGrammarTests1 extends GrammarWithExamples with StringExamples {
     val incorrectExamples: Set[String] = Set[String]()
 }
 
-case class GrammarTestCasesFromMetaGram1Example(example: MetaGram1Example) extends GrammarWithExamples {
+case class GrammarTestCasesFromMetaGram1Example(example: MetaLang1Example) extends GrammarWithExamples {
     lazy val grammar: Grammar = MetaGrammar.translateForce(example.name, example.grammar)
 
     val correctExampleInputs: Set[ConcreteSource] = example.correctExamples.toSet map Inputs.fromString
@@ -41,8 +41,8 @@ case class GrammarTestCasesFromMetaGram1Example(example: MetaGram1Example) exten
 object GrammarGrammarTests {
     val tests: Set[GrammarWithExamples] = Set(
         GrammarGrammarTests1,
-        GrammarTestCasesFromMetaGram1Example(MetaGramInMetaGram.metaGrammar1),
-        GrammarTestCasesFromMetaGram1Example(MetaGramInMetaGram.metaGrammar2),
+        GrammarTestCasesFromMetaGram1Example(MetaLangGrammar.metaGrammar1),
+        GrammarTestCasesFromMetaGram1Example(MetaLangGrammar.metaGrammar2),
         GrammarTestCasesFromMetaGram1Example(ExpressionGrammars.basic),
         GrammarTestCasesFromMetaGram1Example(ExpressionGrammars.basic1),
         GrammarTestCasesFromMetaGram1Example(LexicalGrammars.basic0),

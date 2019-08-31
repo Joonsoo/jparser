@@ -1,14 +1,16 @@
-package com.giyeok.jparser.examples.metagram
+package com.giyeok.jparser.examples.metalang
 
-object ExpressionGrammars extends MetaGramExamples {
-    val simple: MetaGram1Example = MetaGram1Example(
+import com.giyeok.jparser.examples.{MetaLang1Example, MetaLangExamples}
+
+object ExpressionGrammars extends MetaLangExamples {
+    val simple: MetaLang1Example = MetaLang1Example(
         "Expression Grammar Simple",
         """E = T | E '+' T
           |T = F | T '*' F
           |F = N | '(' E ')'
           |N = '0' | {1-9} {0-9}*""".stripMargin)
 
-    val basic: MetaGram1Example = MetaGram1Example(
+    val basic: MetaLang1Example = MetaLang1Example(
         "Expression Grammar 0",
         """expression = term | expression '+' term
           |term = factor | term '*' factor
@@ -19,7 +21,7 @@ object ExpressionGrammars extends MetaGramExamples {
         .example("a+b")
         .example("1234+1234*4321")
 
-    val basic1: MetaGram1Example = MetaGram1Example(
+    val basic1: MetaLang1Example = MetaLang1Example(
         "Expression Grammar 1",
         """expression = term | expression {+\-} term
           |term = factor | term {*/} factor
@@ -31,7 +33,7 @@ object ExpressionGrammars extends MetaGramExamples {
         .example("1234e+1234++1234")
         .example("1234e+1234++1234*abcdef-e")
 
-    val withStringInterpolation0: MetaGram1Example = MetaGram1Example(
+    val withStringInterpolation0: MetaLang1Example = MetaLang1Example(
         "Expression Grammar with String Interpolation",
         """expression = term | expression '+' term
           |term = factor | term '*' factor
@@ -46,7 +48,7 @@ object ExpressionGrammars extends MetaGramExamples {
         .example(""""${"${1+2}"}"""")
         .example(""""${"${"1"+"2"}"}"""")
 
-    val withStringInterpolation: MetaGram1Example = MetaGram1Example(
+    val withStringInterpolation: MetaLang1Example = MetaLang1Example(
         "Expression Grammar with String Interpolation",
         """expression = term | expression '+' term
           |term = factor | term '*' factor
@@ -61,5 +63,5 @@ object ExpressionGrammars extends MetaGramExamples {
         .example(""""${"${1+2}"}"""")
         .example(""""${"${"1"+"2"}"}"""")
 
-    val examples: List[MetaGram1Example] = List(simple, basic, basic1, withStringInterpolation0, withStringInterpolation)
+    val examples: List[MetaLang1Example] = List(simple, basic, basic1, withStringInterpolation0, withStringInterpolation)
 }

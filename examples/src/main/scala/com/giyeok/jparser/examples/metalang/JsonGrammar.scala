@@ -1,13 +1,15 @@
-package com.giyeok.jparser.examples.metagram
+package com.giyeok.jparser.examples.metalang
 
-object JsonGrammar extends MetaGramExamples {
+import com.giyeok.jparser.examples.{MetaLang1Example, MetaLangExample, MetaLangExamples}
+
+object JsonGrammar extends MetaLangExamples {
     // https://tools.ietf.org/html/rfc8259
     // https://github.com/nst/JSONTestSuite/tree/master/test_parsing
     // http://seriot.ch/parsing_json.php
     // https://www.ecma-international.org/publications/files/ECMA-ST/Ecma-262.pdf
     // http://json.org/
     // https://ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
-    val fromJsonOrg: MetaGram1Example = MetaGram1Example(
+    val fromJsonOrg: MetaLang1Example = MetaLang1Example(
         "JSON from JSON.org",
         """json = ws element ws
           |element = value
@@ -42,7 +44,7 @@ object JsonGrammar extends MetaGramExamples {
         .example("""123""")
         .example("""{"abc":"def"}""")
 
-    val custom: MetaGram1Example = MetaGram1Example(
+    val custom: MetaLang1Example = MetaLang1Example(
         "JSON custom simple",
         """Json = WS Elem WS
           |Elem = Object | Array | String | Number | "true" | "false" | "null"
@@ -59,5 +61,5 @@ object JsonGrammar extends MetaGramExamples {
         .example("""123""")
         .example("""{"abc": "def" }""")
 
-    val examples: List[MetaGramExample] = List(fromJsonOrg, custom)
+    val examples: List[MetaLangExample] = List(fromJsonOrg, custom)
 }

@@ -1,4 +1,4 @@
-package com.giyeok.jparser.gramgram.meta2
+package com.giyeok.jparser.metalang2
 
 sealed trait TypeSpec
 

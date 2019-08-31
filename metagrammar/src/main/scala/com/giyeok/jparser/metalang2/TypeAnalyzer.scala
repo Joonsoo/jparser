@@ -1,7 +1,7 @@
-package com.giyeok.jparser.gramgram.meta2
+package com.giyeok.jparser.metalang2
 
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.gramgram.meta2.TypeDependenceGraph._
+import com.giyeok.jparser.metalang2.TypeDependenceGraph._
 
 case class ClassParam(name: String, typ: TypeSpec)
 

@@ -5,13 +5,13 @@ import java.util.concurrent.LinkedBlockingDeque
 import com.giyeok.jparser.NGrammar.NTerminal
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.Symbols.{Nonterminal, Sequence}
-import com.giyeok.jparser.gramgram.MetaGrammar
-import com.giyeok.jparser.gramgram.meta2.{ASTifier, AstAnalyzer, MetaGrammar2}
+import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParsingContext}
 import com.giyeok.jparser.visualize._
 import com.giyeok.jparser.visualize.utils.{HorizontalResizableSplittedComposite, VerticalResizableSplittedComposite}
 import com.giyeok.jparser._
+import com.giyeok.jparser.metalang2.{ASTifier, AstAnalyzer, MetaLanguage2}
 import org.eclipse.draw2d.{ColorConstants, Figure, FigureCanvas}
 import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.{ExtendedModifyListener, StyleRange, StyledText}
@@ -58,7 +58,7 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
     val rootPanel = new VerticalResizableSplittedComposite(this, SWT.NONE, 40)
 
     val grammarDefParser = new ParseProcessor[Option[Grammar]](
-        MetaGrammar2.GrammarDef.oldGrammar,
+        MetaLanguage2.GrammarDef.oldGrammar,
         //MetaGrammar2.GrammarDef.ngrammar,
         (x: ParseForest) => Some(new AstAnalyzer(ASTifier.matchGrammar(x.trees.head)).analyzeAstifiers().grammar("Grammar"))
     )

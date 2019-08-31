@@ -3,7 +3,7 @@ package com.giyeok.jparser.tests
 import com.giyeok.jparser.examples.basics.{FollowedByGrammar3, JoinGrammar3_1}
 import com.giyeok.jparser.examples.{AmbiguousExamples, GrammarWithExamples, StringExamples}
 import com.giyeok.jparser.studio.{GrammarExample, ParserStudio}
-import com.giyeok.jparser.tests.gramgram.MetaGrammarTests
+import com.giyeok.jparser.tests.metalang.MetaGrammarTests
 
 object ParserStudioMain {
     def main(args: Array[String]): Unit = {

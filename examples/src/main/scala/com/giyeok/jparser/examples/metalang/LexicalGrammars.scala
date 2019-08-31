@@ -1,7 +1,9 @@
-package com.giyeok.jparser.examples.metagram
+package com.giyeok.jparser.examples.metalang
 
-object LexicalGrammars extends MetaGramExamples {
-    val basic0: MetaGram1Example = MetaGram1Example("Lexical Grammar 0",
+import com.giyeok.jparser.examples.{MetaLang1Example, MetaLangExample, MetaLangExamples}
+
+object LexicalGrammars extends MetaLangExamples {
+    val basic0: MetaLang1Example = MetaLang1Example("Lexical Grammar 0",
         """S = token*
           |token = <(keyword | operator | identifier | number | whitespace)>
           |keyword = ("if" | "else" | "true" | "false") & name
@@ -15,7 +17,7 @@ object LexicalGrammars extends MetaGramExamples {
         .example("ifx true 1+2+=3 else 4-5-=6")
         .example("ifx truex 1+2+=3 elsex 4-5-=6")
 
-    val basic1: MetaGram1Example = MetaGram1Example("Lexical Grammar 1",
+    val basic1: MetaLang1Example = MetaLang1Example("Lexical Grammar 1",
         """S = token*
           |token = <(keyword | operator | paren | identifier | number | whitespace)>
           |keyword = ("if" | "else" | "true" | "false") & name
@@ -49,7 +51,7 @@ object LexicalGrammars extends MetaGramExamples {
               |789""".stripMargin('|'))
         .example("if (x /* x is not a blah blah //// **** * / */) y+=1")
 
-    val basic2: MetaGram1Example = MetaGram1Example("Lexical Grammar 2",
+    val basic2: MetaLang1Example = MetaLang1Example("Lexical Grammar 2",
         """S = token*
           |token = keyword | operator | identifier
           |keyword = ("if" | "else") & name
@@ -60,7 +62,7 @@ object LexicalGrammars extends MetaGramExamples {
           |""".stripMargin('|'))
         .example("ifx")
 
-    val keywordAndIf: MetaGram1Example = MetaGram1Example("Kw/if",
+    val keywordAndIf: MetaLang1Example = MetaLang1Example("Kw/if",
         """S = T*
           |T = Kw | Id | Ws
           |Kw = N & "if"
@@ -69,7 +71,7 @@ object LexicalGrammars extends MetaGramExamples {
           |Ws = <' '+>
           |""".stripMargin)
 
-    val keywordAndIfab: MetaGram1Example = MetaGram1Example("Kw/if-ifab",
+    val keywordAndIfab: MetaLang1Example = MetaLang1Example("Kw/if-ifab",
         """S = T*
           |T = Kw | Id | Ws
           |Kw = N & ("if"|"ifab")
@@ -78,5 +80,5 @@ object LexicalGrammars extends MetaGramExamples {
           |Ws = <' '+>
           |""".stripMargin)
 
-    val examples: List[MetaGramExample] = List(basic0, basic1, keywordAndIf, keywordAndIfab)
+    val examples: List[MetaLangExample] = List(basic0, basic1, keywordAndIf, keywordAndIfab)
 }

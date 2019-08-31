@@ -1,6 +1,8 @@
-package com.giyeok.jparser.examples.metagram
+package com.giyeok.jparser.examples.metalang
 
-object MetaGramInMetaGram extends MetaGramExamples {
+import com.giyeok.jparser.examples.{MetaLang1Example, MetaLangExample, MetaLangExamples}
+
+object MetaLangGrammar extends MetaLangExamples {
     val metaGrammarText1: String =
         """Grammar = ws* Rules ws*
           |Rules = Rules <(ws-'\n')*> '\n' ws* Rule
@@ -133,10 +135,10 @@ object MetaGramInMetaGram extends MetaGramExamples {
 
     val incorrectExamples: List[String] = List("S = ()")
 
-    val metaGrammar1 = MetaGram1Example("MetaGrammar1", metaGrammarText1,
+    val metaGrammar1 = MetaLang1Example("MetaGrammar1", metaGrammarText1,
         correctExamples = correctExamples, incorrectExamples = incorrectExamples)
-    val metaGrammar2 = MetaGram1Example("MetaGrammar2", metaGrammarText2,
+    val metaGrammar2 = MetaLang1Example("MetaGrammar2", metaGrammarText2,
         correctExamples = correctExamples, incorrectExamples = incorrectExamples)
 
-    val examples: List[MetaGramExample] = List(metaGrammar1, metaGrammar2)
+    val examples: List[MetaLangExample] = List(metaGrammar1, metaGrammar2)
 }

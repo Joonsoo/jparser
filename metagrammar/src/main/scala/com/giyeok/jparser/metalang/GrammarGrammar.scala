@@ -1,4 +1,4 @@
-package com.giyeok.jparser.gramgram
+package com.giyeok.jparser.metalang
 
 import com.giyeok.jparser.GrammarHelper._
 import com.giyeok.jparser.NGrammar.{NLongest, NNonterminal, NStart, NTerminal}
