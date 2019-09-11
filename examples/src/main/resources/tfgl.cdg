@@ -1,0 +1,192 @@
+Graph = WS (NodeDef WS)+
+
+NodeDef = (NodeAlias WS '=' WS)? Expr
+NodeAlias = NodeName
+
+// TODO parenthesis for Expr, UntypedExpr, NodeExpr
+
+// Expr(UntypedExpr) represents one value(i.e. one output of a node)
+Expr = <UntypedExpr (WS ':' WS TfglValueType)?>
+
+UntypedExpr = NodeExpr (WS '.' WS NodeOutNameLiteral)?
+NodeOutNameLiteral = NodeOutNameIdx | ArgName
+NodeOutNameIdx = <'0' | '1-9' '0-9'*>
+
+// NodeExpr(UntypedNodeExpr) represents a node
+NodeExpr = <UntypedNodeExpr (WS ':' WS TfglReturnType)?>
+
+TfglValueType = TfScalarType
+  | TfTensorType
+TfTensorType = TfScalarType WS '<' WS (Dim (ElemsDelim Dim)* WS)? '>'
+
+// TfglReturnType represents the return type of nodes.
+// Note that a node may return more than one value.
+TfglReturnType = TfglValueType
+  | '(' WS (TfglReturnTypeField (WS ',' WS TfglReturnTypeField)* WS)? ')'
+TfglReturnTypeField = TfglValueType
+  | ArgName WS ':' WS TfglValueType
+
+UntypedNodeExpr = OpNodeExpr
+  | ConstExpr
+  | ReadVarExpr
+  | AssignVarExpr
+  | PlaceholderExpr
+
+KeywordOpName = Tk&"const"
+  | Tk&"var"
+  | Tk&"placeholder"
+
+OpNodeExpr = OpName WS (NodeAttrs WS)? '(' WS (NodeArgs WS)? ')' (WS AsNodeName)?
+
+NodeAttrs = '{' WS (NodeAttr (WS ',' WS NodeAttr)* WS)? '}'
+NodeAttr = AttrName WS '=' WS AttrValue
+
+AsNodeName = Tk&"as" WS NodeName
+
+ConstExpr = Tk&"const" WS '(' WS AttrValue WS ')' (WS AsNodeName)?
+ReadVarExpr = Tk&"var" WS '(' WS NodeName WS ')' (WS AsNodeName)?
+AssignVarExpr = Tk&"var" WS '(' WS NodeName WS ')' WS Tk&":=" WS <Expr> (WS AsNodeName)?
+
+PlaceholderExpr = Tk&"placeholder" WS '(' WS NodeName WS ')'
+
+NodeArgs = NamedNodeArg (WS ',' WS NamedNodeArg)*
+NamedNodeArg = (ArgName WS '=' WS)? NodeArg
+NodeArg = Expr
+  | NodeAlias (WS ':' WS TfglValueType)?
+
+AttrValue = AttrStringValue
+  | AttrIntValue
+  | AttrFloatValue
+  | AttrBoolValue
+  | AttrScalarTypeValue
+  | AttrShapeValue
+  | AttrTensorValue
+  | AttrNameAttrsListValue
+  | AttrPlaceholderValue
+  | AttrListValue
+
+AttrStringValue = Tk&"string" WS '(' WS AttrStringLiteral WS ')'
+AttrIntValue = Tk&"int" WS '(' WS AttrIntLiteral WS ')'
+AttrFloatValue = Tk&"float" WS '(' WS AttrFloatLiteral WS ')'
+AttrBoolValue = Tk&"bool" WS '(' WS AttrBoolLiteral WS ')'
+AttrScalarTypeValue = Tk&"stype" WS '(' WS AttrScalarTypeLiteral WS ')'
+AttrShapeValue = Tk&"shape" WS '(' WS AttrShapeLiteral WS ')'
+AttrTensorValue = Tk&"tensor" WS '(' WS AttrTensorLiteral WS ')'
+AttrNameAttrsListValue = Tk&"attrs" WS '(' WS NodeAttrs WS ')'
+AttrPlaceholderValue = Tk&"placeholder" WS '(' WS NodeName WS ')'
+
+AttrListValue = AttrListStringValue
+  | AttrListIntValue // TODO list<int32>, list<int64> 구분이 필요한가?
+  | AttrListFloatValue // TODO list<float>, list<double> 구분이 필요한가?
+  | AttrListBoolValue
+  | AttrListScalarTypeValue
+  | AttrListShapeValue
+  | AttrListTensorValue
+  | AttrListNameAttrsValue
+
+AttrListStringValue = Tk&"list" WS '<' WS Tk&"string" WS '>' WS '[' WS (AttrStringLiteral (ElemsDelim AttrStringLiteral)* WS)? ']'
+AttrListIntValue = Tk&"list" WS '<' WS Tk&"int" WS '>' WS '[' WS (AttrIntLiteral (ElemsDelim AttrIntLiteral)* WS)? ']'
+AttrListFloatValue = Tk&"list" WS '<' WS Tk&"float" WS '>' WS '[' WS (AttrFloatLiteral (ElemsDelim AttrFloatLiteral)* WS)? ']'
+AttrListBoolValue = Tk&"list" WS '<' WS Tk&"bool" WS '>' WS '[' WS (AttrBoolLiteral (ElemsDelim AttrBoolLiteral)* WS)? ']'
+AttrListScalarTypeValue = Tk&"list" WS '<' WS Tk&"stype" WS '>' WS '[' WS (AttrScalarTypeLiteral (ElemsDelim AttrScalarTypeLiteral)* WS)? ']'
+AttrListShapeValue = Tk&"list" WS '<' WS Tk&"shape" WS '>' WS '[' WS (AttrShapeLiteral (ElemsDelim AttrShapeLiteral)* WS)? ']'
+AttrListTensorValue = Tk&"list" WS '<' WS Tk&"tensor" WS '>' WS '[' WS (AttrTensorLiteral (ElemsDelim AttrTensorLiteral)* WS)? ']'
+  | Tk&"list" WS '<' WS Tk&"tensor" WS '<' WS AttrTensorSignature WS '>' WS '>' WS '[' WS (AttrTensorContent (ElemsDelim AttrTensorContent)* WS)? ']'
+AttrListNameAttrsValue = Tk&"list" WS '<' WS Tk&"attrs" WS '>' WS '[' WS (AttrNameAttrsLiteral (ElemsDelim AttrNameAttrsLiteral)* WS)? ']'
+
+AttrStringLiteral = StringLiteral
+AttrIntLiteral = IntLiteral
+AttrFloatLiteral = RealLiteral
+AttrBoolLiteral = BoolLiteral
+AttrScalarTypeLiteral = TfScalarType
+TfScalarType = Tk&"?"
+  | Tk&"float"
+  | Tk&"double"
+  | Tk&"int32"
+  | Tk&"uint8"
+  | Tk&"int16"
+  | Tk&"int8"
+  | Tk&"string"
+  | Tk&"complex64"
+  | Tk&"int64"
+  | Tk&"bool"
+  | Tk&"qint8"
+  | Tk&"quint8"
+  | Tk&"qint32"
+  | Tk&"bfloat16"
+  | Tk&"qint16"
+  | Tk&"quint16"
+  | Tk&"uint16"
+  | Tk&"complex128"
+  | Tk&"half"
+  | Tk&"resource"
+  | Tk&"variant"
+  | Tk&"uint32"
+  | Tk&"uint64"
+
+AttrShapeLiteral = '<' WS (NamedDim (ElemsDelim NamedDim)* WS)? '>'
+  | '<' WS Tk&"?" WS '>'
+
+NamedDim = Dim (WS Tk&"as" WS DimName)?
+Dim = <'1-9' '0-9'*> | "*"
+
+AttrTensorSignature = AttrScalarTypeLiteral WS AttrShapeLiteral
+AttrTensorLiteral = AttrTensorSignature WS AttrTensorContent
+AttrTensorContent = AttrTensorElems
+  | '(' WS StringLiteral WS ')'
+
+AttrTensorElems = '[' WS ']'
+  | '[' WS AttrTensorElemLiteral (ElemsDelim AttrTensorElemLiteral)* WS ']'
+  | '[' WS AttrTensorElems (ElemsDelim0 AttrTensorElems)* WS ']'
+ElemsDelim0 = WS (',' WS)?
+ElemsDelim = WS1 | WS ',' WS
+
+AttrTensorElemLiteral = RealLiteral
+  | StringLiteral
+  | ComplexLiteral
+  | BoolLiteral
+
+AttrNameAttrsLiteral = NameAttrsName WS NodeAttrs
+
+RealLiteral = IntLiteral | FloatLiteral
+IntLiteral = '+\-'? UnsignedIntLiteral
+UnsignedIntLiteral = <'0' | '1-9' '0-9'*>
+FloatLiteral = '+\-'? UnsignedFloatLiteral
+UnsignedFloatLiteral = <('0' | '1-9' '0-9'*)? '.' '0-9'+ ('eE' '+\-'? '1-9' '0-9'*)?>
+UnsignedRealLiteral = UnsignedIntLiteral | UnsignedFloatLiteral
+
+StringLiteral = 'x' '"' HexStringChar* '"'
+  | 'o' '"' OctStringChar* '"'
+  | 'b' '"' BinStringChar* '"'
+  | "b64" '"' Base64StringChar* '"'
+  | '"' Utf8StringChar* '"'
+
+HexStringChar = '0-9a-fA-F' '0-9a-fA-F'
+OctStringChar = '0-7'
+BinStringChar = '01'
+Base64StringChar = '0-9a-zA-Z+/='
+Utf8StringChar = '0-9a-zA-Z' // TODO
+
+BoolLiteral = Tk&"true" | Tk&"false"
+ComplexLiteral = RealLiteral '+' UnsignedRealLiteral 'i'
+  | RealLiteral '-' UnsignedRealLiteral 'i'
+
+Tk = <'a-zA-Z_' 'a-zA-Z0-9_/'* | ":=" | '?'>
+WS = ws*
+WS1 = ws+
+ws = ' \n\r\t'
+
+OpName = <'a-zA-Z.' 'a-zA-Z_0-9.'*> - KeywordOpName
+  | ArbitraryName
+Name = <'a-zA-Z_.' 'a-zA-Z_0-9/.'*>
+  | ArbitraryName
+
+ArbitraryName = <'`' NameChar* '`'>
+NameChar = .-'`\\'
+  | '\\' '`'
+  | '\\' '\\'
+DimName = Name
+NodeName = Name
+AttrName = Name
+ArgName = Name
+NameAttrsName = Name
