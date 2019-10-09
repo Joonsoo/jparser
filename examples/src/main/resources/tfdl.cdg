@@ -1,30 +1,42 @@
-Graph = WS (NodeDef WS)+
+TfdlProgram = Imports? (WS Opdefs)? (WS Macros)? (WS Graph)?
 
-NodeDef = (NodeAlias WS '=' WS)? Expr
+Imports = Tk&"import" WS ImportFile
+
+Opdefs = Opdef (WS Opdef)*
+
+Macros = Macro (WS Macro)*
+Macro = Tk&"macro" // TODO
+
+Graph = WS (Def WS)+
+
+Def = NodeDef | SigDef
+// TODO SigDef
+
+NodeDef = (NodeAlias WS '=' WS)? ValueExpr
 NodeAlias = NodeName
 
-// TODO parenthesis for Expr, UntypedExpr, NodeExpr
+// TODO parenthesis for ValueExpr, UntypedValueExpr, NodeExpr
 
-// Expr(UntypedExpr) represents one value(i.e. one output of a node)
-Expr = <UntypedExpr (WS ':' WS TfglValueType)?>
+// ValueExpr(UntypedValueExpr) represents one value(i.e. one output of a node)
+ValueExpr = <UntypedValueExpr (WS ':' WS TfdlValueType)?>
 
-UntypedExpr = NodeExpr (WS '.' WS NodeOutNameLiteral)?
+UntypedValueExpr = NodeExpr (WS '.' WS NodeOutNameLiteral)?
 NodeOutNameLiteral = NodeOutNameIdx | ArgName
 NodeOutNameIdx = <'0' | '1-9' '0-9'*>
 
 // NodeExpr(UntypedNodeExpr) represents a node
-NodeExpr = <UntypedNodeExpr (WS ':' WS TfglReturnType)?>
+NodeExpr = <UntypedNodeExpr (WS ':' WS TfdlReturnType)?>
 
-TfglValueType = TfScalarType
+TfdlValueType = TfScalarType
   | TfTensorType
 TfTensorType = TfScalarType WS '<' WS (Dim (ElemsDelim Dim)* WS)? '>'
 
-// TfglReturnType represents the return type of nodes.
+// TfdlReturnType represents the return type of nodes.
 // Note that a node may return more than one value.
-TfglReturnType = TfglValueType
-  | '(' WS (TfglReturnTypeField (WS ',' WS TfglReturnTypeField)* WS)? ')'
-TfglReturnTypeField = TfglValueType
-  | ArgName WS ':' WS TfglValueType
+TfdlReturnType = TfdlValueType
+  | '(' WS (TfdlReturnTypeField (WS ',' WS TfdlReturnTypeField)* WS)? ')'
+TfdlReturnTypeField = TfdlValueType
+  | ArgName WS ':' WS TfdlValueType
 
 UntypedNodeExpr = OpNodeExpr
   | ConstExpr
@@ -52,7 +64,7 @@ PlaceholderExpr = Tk&"placeholder" WS '(' WS NodeName WS ')'
 NodeArgs = NamedNodeArg (WS ',' WS NamedNodeArg)*
 NamedNodeArg = (ArgName WS '=' WS)? NodeArg
 NodeArg = Expr
-  | NodeAlias (WS ':' WS TfglValueType)?
+  | NodeAlias (WS ':' WS TfdlValueType)?
 
 AttrValue = AttrStringValue
   | AttrIntValue

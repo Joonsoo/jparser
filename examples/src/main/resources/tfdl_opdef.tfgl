@@ -1,0 +1,103 @@
+opdef tf.Conv2d<T is (half, bfloat16, float32, float64)>(
+                   input: T<?, ?, ?, ?>, 
+                   filter: T<filter_height, filter_width, in_channels, out_channels>,
+                   attr strides: int | int[],
+                   attr padding: "SAME" | "VALID" | int[][],
+                   attr use_cudnn_on_gpu: bool = true,
+                   attr data_format: "NHWC" | "NCHW" = "NHWC",
+                   attr dilations: int | int[] = [1, 1, 1, 1]) {
+    when(data_format) {
+        "NHWC" ->
+            let [batch, height, width, channels] = input.shape
+        "NCHW" ->
+            let [batch, channels, height, width] = input.shape
+    }
+    when(strides) {
+        stride: int ->
+            let [stride_height, stride_width, stride_batch, stride_channel] = [stride, stride, 1, 1]
+        [stride] ->
+            let [stride_height, stride_width, stride_batch, stride_channel] = [stride, stride, 1, 1]
+        [stride_height, stride_width] ->
+            let stride_height = stride_height
+            let stride_width = stride_width
+            let stride_batch = 1
+            let stride_channel = 1
+    }
+    when(padding) {
+        "SAME" ->
+        "VALID" ->
+        else ->
+            // int[][]
+            when(data_format) {
+            "NHWC" -> let [[0, 0], [pad_top, pad_bottom], [pad_left, pad_right], [0, 0]] = padding
+            "NCHW" -> let [[0, 0], [0, 0], [pad_top, pad_bottom], [pad_left, pad_right]] = padding
+            }
+    }
+    check in_channels == channels
+    let out_batch = batch
+    // no op behavior def, only type def
+    when(data_format) {
+        "NHWC" -> return T<out_batch, out_height, out_width, out_channels>
+        "NCHW" -> return T<out_batch, out_channels, out_height, out_width>
+    }
+
+    impl {
+        ref {
+            when (data_format) {
+                "NHWC" -> {
+                    let output: T<out_batch, out_height, out_width, out_channels> := 0
+                    for b in 0 until batch {
+                        for c_o in 0 until out_channels {
+                            for y in 0 to height + pad_top + pad_bottom - filter_height {
+                                for x in 0 to width + pad_left + pad_right - filter_width {
+                                    for c_i in 0 until in_channels {
+                                        for f_y in 0 until filter_height {
+                                            for f_x in 0 until filter_width {
+                                                if (y < pad_top || y >= height + pad_top || x < pad_left || x >= width + pad_left) {
+                                                    let i_val = 0
+                                                } else {
+                                                    let i_val = input[b, c_i, y - pad_top, x - pad_left]
+                                                }
+                                                output[b, y, x, c_o] += i_val * filters[f_y, f_x, c_i, c_o]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                "NCHW" -> {
+                    // TODO
+                }
+            }
+            return output
+        }
+        cc {}
+        ccgpu {}
+        cuda {}
+        cudnn {}
+        nnapi {}
+    }
+    diff {
+        ref = auto
+    }
+}
+
+
+opdef tf.GatherNd<T, I is int>(params: T<*>, indices: I<?>) {
+    
+}
+
+opdef tf.ScatterNd<T, I is int>(indices: T<*>, updates: T<*>, shape: I<?>) {
+    impl {
+        ref {
+            let output: T<shape..> := 0
+            for pointer, idx in indices {
+                output[pointer..] += updates[idx]
+            }
+            return output
+        }
+    }
+}
+

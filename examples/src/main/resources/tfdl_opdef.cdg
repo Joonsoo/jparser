@@ -1,0 +1,31 @@
+Opdefs = Opdef (WS Opdef)*
+
+Opdef = Tk&"opdef" WS OpName (WS OpTypeArgs)? WS Tk&'(' (WS OpArgs)? WS Tk&')' WS Tk&'{' WS OpdefBody WS Tk&'}'
+
+OpTypeArgs = OpTypeArg (WS Tk&',' WS OpTypeArg)*
+OpTypeArg = OpArgName (WS OpTypeArgConstraint)?
+OpTypeArgConstraint = Tk&"is" WS TfdlValueType
+  | Tk&"is" WS Tk&'(' WS TfdlValueType (WS ',' WS TfdlValueType)* WS Tk&')'
+
+OpArgs = OpArg (WS Tk&',' WS OpArg)*
+OpArg = (Tk&"attr" WS)? OpArgName WS Tk&':' WS OpArgType (WS Tk&'=' WS OpArgDefault)?
+OpArgType = Literal | TfdlValueType
+// input: T<?, ?, ?, ?>
+// filter: T<filter_height, filter_width, in_channels, out_channels>
+// strides: int | int[]
+// padding: "SAME" | "VALID" | int[][],
+// use_cudnn_on_gpu: bool = true,
+// data_format: "NHWC" | "NCHW" = "NHWC",
+// dilations: int | int[] = [1, 1, 1, 1]
+OpArgDefault = Literal
+// TODO Literal
+
+OpdefBody = TypeInfererBody (WS ImplBody (WS DiffBody)?)?
+
+TypeInfererBody = TypeInfererStmt (WS TypeInfererStmt)*
+TypeInfererStmt = TypeInfererExprStmt
+  | TypeInfererCheckStmt
+  | TypeInfererLetStmt
+  | TypeReturnStmt
+
+TypeInfererExprStmt = WhenStmt
