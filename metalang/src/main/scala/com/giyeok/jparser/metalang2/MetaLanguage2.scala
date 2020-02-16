@@ -1,6 +1,6 @@
 package com.giyeok.jparser.metalang2
 
-import java.io.{BufferedWriter, FileWriter}
+import java.io.{BufferedWriter, File, FileWriter}
 
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.Symbols.Terminals
@@ -8,6 +8,8 @@ import com.giyeok.jparser.examples.metalang2.{ExpressionGrammarsMetaLang2, MetaL
 import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
 import com.giyeok.jparser.{Grammar, NGrammar, ParseForestFunc, Symbols}
+
+import scala.io.Source
 
 object MetaLanguage2 {
 
@@ -169,12 +171,18 @@ object MetaLanguage2 {
 
     case class TestGrammar(packageName: Option[String], name: String, grammar: String, parseUtils: Boolean)
 
+    def readFile(path: String): String = {
+        val s = Source.fromFile(new File(path))
+        try s.getLines().mkString("\n") finally s.close()
+    }
+
     def main(args: Array[String]): Unit = {
         val pkgName = Some("com.giyeok.jparser.metalang2.generated")
         val expressionGrammar = TestGrammar(pkgName, "ExpressionGrammar", ExpressionGrammarsMetaLang2.basic.grammar, parseUtils = true)
         val metaGrammar2 = TestGrammar(pkgName, "MetaGrammar2Ast", MetaLang2Grammar.inMetaLang2.grammar, parseUtils = true)
+        val pyobjGrammar = TestGrammar(pkgName, "PyObjGrammar", readFile("./examples/src/main/resources/pyobj.cdg"), parseUtils = true)
 
-        List(expressionGrammar, metaGrammar2) foreach { grammar =>
+        List(pyobjGrammar, expressionGrammar, metaGrammar2) foreach { grammar =>
             val analysis = analyze(grammarSpecToAST(grammar.grammar).get)
 
             analysis.astAnalysis.astifiers.foreach { case (lhs, rhs) =>
@@ -188,7 +196,7 @@ object MetaLanguage2 {
 
             val scalaCode = s"package ${grammar.packageName.get}\n\n" +
                 new ScalaDefGenerator(analysis).toGrammarObject(grammar.name, parseUtils = grammar.parseUtils)
-            val filepath = s"./metagrammar/src/main/scala/com/giyeok/jparser/metalang2/generated/${grammar.name}.scala"
+            val filepath = s"./metalang/src/main/scala/com/giyeok/jparser/metalang2/generated/${grammar.name}.scala"
             val writer = new BufferedWriter(new FileWriter(filepath))
             writer.write(scalaCode)
             writer.close()

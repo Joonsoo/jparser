@@ -1,0 +1,247 @@
+
+
+module Conv2d<T: Num>(
+  inChannels: Int, outChannels: Int, kernelSize: Int|(h:Int, w:Int),
+  stride: Int|(h:Int, w:Int) = 1,
+  padding: Int|(h:Int, w:Int) = 0,
+  dilation: Int|(h:Int, w:Int) = 1,
+  groups: Int = 1,
+  hasBias: Bool = true,
+  paddingMode: enum<'zeros', 'circular'> = 'zeros'
+) {
+  check(inChannels%groups == 0 and outChannels%groups == 0)
+
+  let kernelSize: (h: Int, w: Int) = when(kernelSize) {
+    size: Int -> (size, size)
+    (h: Int, w: Int) -> (h, w)
+  }
+  let stride: (h: Int, w: Int) = when(stride) {
+    is Int -> (stride, stride)
+    (h: Int, w: Int) -> stride
+  }
+  let padding = when(padding) {
+    p: Int -> (h: p, w: p)
+    (is Int, is Int) -> padding
+  }
+
+  var weight: T<outChannels, inChannels/groups, kernelSize.h, kernelSize.w>
+  if (hasBias) {
+    var bias: T<outChannels>
+  }
+
+  init {
+    let k = 1/(inChannels * kernelSize.h * kernelSize.w)
+    weight.setEach { Random.uniformSample(-sqrt(k), sqrt(k)) }
+    if (hasBias) {
+      bias.setEach { Random.uniformSample(-sqrt(k), sqrt(k)) }
+    }
+  }
+
+  def ref conv2d()
+
+  // return type은 inference. 구현체 사이의 리턴타입이 동일해야 함. 기준은 ref 구현.
+  // batch는 어떻게 하지?
+  forward(input: T<inChannels, `inputSize.h`, `inputSize.w`>) {
+    let outputSize = (
+      h: (inputSize.h + 2 * padding.h - dilation.h * (kernelSize.h - 1) - 1) / stride.h + 1
+      w: (inputSize.w + 2 * padding.w - dilation.w * (kernelSize.w - 1) - 1) / stride.w + 1
+    )
+    var output: T<outChannels, outputSize.h, outputSize.w>
+    if (hasBias) {
+      for cout in range(0, outChannels) {
+        for y in range(0, outputSize.h) {
+          for x in range(0, outputSize.w) {
+            output[cout, y, x] = bias[cout]
+          }
+        }
+      }
+    }
+    // attribute로 동작이 확정되는 코드/아닌 코드 구분
+    let kyRange: (start: Int, end: Int) = (-(kernelSize.h / 2).floor, (kernelSize.h / 2).ceil)
+    let kxRange: (start: Int, end: Int) = (-(kernelSize.w / 2).floor, (kernelSize.w / 2).ceil)
+    for cout in range(0, outChannels) {
+      for cin in range(0, inChannels) {
+        for y in range(0, outputSize.h) {
+          for x in range(0, outputSize.w) {
+            // TODO padding 크기를 반영해서 ky, kx iterate 범위 설정
+            for ky in range(kyRange.start, kyRange.end, stride.h) {
+              for kx in range(kxRange.start, kxRange.end, stride.w) {
+                // TODO dilation 반영해서 (yy, xx) 수정
+                let (yy, xx) = (y + ky, x + kx)
+                let c: T = if (0 <= yy < inputSize.h and 0 <= xx < inputSize.x) input[cin, yy, xx]
+                  else when(paddingMode) {
+                    'zeros' -> 0
+                    'circular' -> {
+                      TODO()
+                    }
+                  }
+                output[cout, y, x] += c * weight[cout, cin, ky - kyRange.start, kx - kxRange.start]
+              }
+            }
+          }
+        }
+      }
+    }
+    return output
+  }
+
+  grad(weight) {
+
+  }
+
+  grad(hasBias) {
+
+  }
+}
+
+module ReLU<T: Num> {
+  forward(input: T<*>) {
+    return input.mapEach { x -> max(0, x) }
+  }
+}
+
+module PReLU<T: Num>(numParams: Int = 1, init: Real = 0.25) {
+  var weight: T<numParams>
+
+  init {
+    weight.setEach(init)
+  }
+
+  forward(input: T<*>) {
+    let channels: Int? = if (input.shape.length < 1) null else input.shape[0]
+    check(numParams == 1 or numParams == channels)
+
+    return when(numParams) {
+      1 -> input.mapEach { x -> max(0, x) + weight[0] * min(0, x) }
+      else -> {
+        var output: T<input.shape..>
+        for i in range(input.shape[1:]) {
+          output[i].setEach { x -> max(0, x) + weight[i] * min(0, x) }
+        }
+        output
+      }
+    }
+  }
+}
+
+module LeakyReLU<T: Real>(negativeSlope: T = 0.01, inplace: Bool = false) {
+  forward(input: T<*>) {
+    return input.mapEach { x -> max(0, x) + negativeSlope * min(0, x) }
+  }
+}
+
+module ResNet<T: Real>(inChannels: Int, intraChannel: Int, layers: Int, skipEvery: Int) {
+  module ResNetLayer(inChannels: Int, outChannels: Int) {
+    var conv: Conv2d<T>(10, 10)
+
+    forward(input: T<inChannels, `inputSize.h`, `inputSize.w`>) {
+      return conv.forward(input)
+    }
+  }
+  var firstLayer: ResNetLayer(inChannels, intraChannel)
+  var layers: ResNetLayer(intraChannel, intraChannel)[layers]
+
+  init {
+    // firstLayer와 layers 모두에 대해 init
+  }
+
+  forward(input: T<inChannels, ?, ?>) {
+    var x = firstLayer.forward(input)
+    for i in range(0, layers) {
+      x = layers[i].forward(x)
+    }
+    return x
+  }
+}
+
+module VGG11<T: Real>(inputSize: (w: Int, h: Int)) {
+  module VGGLayer(inChannels: Int, outChannels: Int) = Conv2d(inChannels, outChannels, (3, 3))
+  var conv1: VGGLayer(3, 64)
+  var conv2: VGGLayer(64, 64)
+  var conv3: VGGLayer(64, 128)
+  var conv4: VGGLayer(128, 128)
+  var conv5: VGGLayer(128, 256)
+  var conv6: VGGLayer(256, 256)
+  var conv7: VGGLayer(256, 512)
+  var conv8: VGGLayer(512, 512)
+  var conv9: VGGLayer(512, 512)
+  var conv10: VGGLayer(512, 512)
+  var fc1: LinearLayer(covn10.outshape.elemsCount, 4096)
+  var fc2: LinearLayer(4096, 4096)
+  var fc3: LinearLayer(4096, 1000)
+
+  forward(input: T<3, inputSize.w, inputSize.h>) {
+    var x = conv1(input)
+    x = conv2(x)
+    x = MaxPool2d(2, 2)(x)
+    x = conv3(x)
+    x = conv4(x)
+    x = MaxPool2d(2, 2)(x)
+    x = conv5(x)
+    x = conv6(x)
+    x = MaxPool2d(2, 2)(x)
+    x = conv7(x)
+    x = conv8(x)
+    x = MaxPool2d(2, 2)(x)
+    x = conv9(x)
+    x = conv10(x)
+    x = MaxPool2d(2, 2)(x)
+    x = x.reshape(fc1.inLength)
+    x = fc1(x)
+    x = fc2(x)
+    x = fc3(x)
+    x = Softmax()(x)
+    return x
+  }
+}
+
+module MaxPool2d<T: Real>(kernelSize: Int|(h: Int, w: Int),
+  stride?: Int|(h: Int, w: Int),
+  padding: Int|(h: Int, w: Int) = 0,
+  dilation: Int|(h: Int, w: Int) = 1,
+  returnIndices: Bool = false,
+  ceilMode: Bool = false) {
+  let kernelSize = when(kernelSize) {
+    is Int -> (kernelSize, kernelSize)
+    else -> kernelSize
+  }
+  let stride = when(stride) {
+    none -> kernelSize
+    s: Int -> (s, s)
+    else -> stride
+  }
+
+  forward(input: T<`channels`, `inputSize.h`, `inputSize.w`>) {
+    var output: T<channels, inputSize.h / 2, inputSize.w / 2>
+    for y in range(0, inputSize.h / 2) {
+      for x in range(0, inputSize.w / 2) {
+        output[y, x] = input[y * kernelSize.h, x * kernelSize.w]
+        for cy in range(0, kernelSize.h) {
+          for cx in range(0, kernelSize.w) {
+            output[y, x] = max(output[y, x], input[y * kernelSize.h + cy, x * kernelSize.w + cx])
+          }
+        }
+      }
+    }
+    return output
+  }
+}
+
+module Softmax<T: Real>() {
+  forward(input: T<*>) {
+    @impl(cc) = "code locator for cc implementation"
+    @impl(cudnn) = "code locator for cudnn implementation"
+    // impl이 지정이 안된 환경으로 컴파일하면 reference 코드 컴파일해서 사용
+
+    var output: T<input.shape..> = input
+    output.setEach { x -> exp(x) }
+    let sum = output.reduce(0) { m, i -> m + i }
+    output.setEach { x -> x / sum }
+    return output
+  }
+
+  grad(output: T<*>) {
+    // ref는 자동으로 grad가 계산
+    @impl(cc) = "code locator for cc grad implementation"
+  }
+}

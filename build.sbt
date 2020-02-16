@@ -1,6 +1,6 @@
 organization in ThisBuild := "com.giyeok"
 version in ThisBuild := "0.1"
-scalaVersion in ThisBuild := "2.13.0"
+scalaVersion in ThisBuild := "2.13.1"
 crossPaths in ThisBuild := false
 
 javacOptions in ThisBuild ++= Seq("-encoding", "UTF-8")
@@ -20,9 +20,9 @@ lazy val utils = (project in file("utils")).
         libraryDependencies ++= testDeps)
 
 lazy val types = (project in file("types")).
-	settings(
-		name := "jparser-types",
-		libraryDependencies ++= testDeps).
+    settings(
+        name := "jparser-types",
+        libraryDependencies ++= testDeps).
     dependsOn(utils % "test->test;compile->compile")
 
 lazy val examples = (project in file("examples")).
