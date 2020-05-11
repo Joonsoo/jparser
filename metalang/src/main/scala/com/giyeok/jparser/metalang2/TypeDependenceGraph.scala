@@ -38,15 +38,22 @@ object TypeDependenceGraph {
             case typeNode: TypeDependenceGraph.TypeNode =>
                 def typeNodeToString(typ: TypeDependenceGraph.TypeNode): String =
                     typ match {
-                        case TypeDependenceGraph.ClassTypeNode(className) => s"Class $className"
-                        case TypeDependenceGraph.TypeArray(elemType) => s"[${typeNodeToString(elemType)}]"
-                        case TypeDependenceGraph.TypeOptional(elemType) => s"${typeNodeToString(elemType)}?"
-                        case TypeDependenceGraph.TypeGenArrayOfExpr(expr) => s"[typeof ${expr.nodeLabel}]"
-                        case TypeDependenceGraph.TypeGenArrayOfSymbol(symbol) => s"[typeof ${symbol.nodeLabel}]"
-                        case TypeDependenceGraph.TypeGenOptionalOfExpr(expr) => s"(typeof ${expr.nodeLabel})?"
-                        case TypeDependenceGraph.TypeGenOptionalOfSymbol(symbol) => s"(typeof ${symbol.nodeLabel})?"
-                        case TypeDependenceGraph.TypeGenArrayConcatOp(op, lhs, rhs) => s"[concat typeof ${lhs.nodeLabel} $op ${rhs.nodeLabel}]"
-                        case TypeDependenceGraph.TypeGenArrayElemsUnion(elems) => s"[union typeof ${elems map (_.nodeLabel) mkString ","}]"
+                        case TypeSpecNode(typeDesc) => typeDesc.toString
+                        case TypeOfElemNode(symNode: SymbolNode) => s"typeof($symNode)"
+                        case TypeOfElemNode(exprNode: ExprNode) => s"typeof(${pexprString(exprNode.expr)})"
+                        case TypeOfElemNode(paramNode: ParamNode) => s"typeof($paramNode})"
+                        case OptionalTypeOf(typeNode) => s"optional(${typeNodeToString(typeNode)})"
+                        case ArrayTypeOf(typeNode) => s"array(${typeNodeToString(typeNode)})"
+                        case UnionTypeOf(typeNodes) => s"union(${typeNodes.map(_.nodeLabel)})"
+                        //                        case TypeDependenceGraph.ClassTypeNode(className) => s"Class $className"
+                        //                        case TypeDependenceGraph.TypeArray(elemType) => s"[${typeNodeToString(elemType)}]"
+                        //                        case TypeDependenceGraph.TypeOptional(elemType) => s"${typeNodeToString(elemType)}?"
+                        //                        case TypeDependenceGraph.TypeGenArrayOfExpr(expr) => s"[typeof ${expr.nodeLabel}]"
+                        //                        case TypeDependenceGraph.TypeGenArrayOfSymbol(symbol) => s"[typeof ${symbol.nodeLabel}]"
+                        //                        case TypeDependenceGraph.TypeGenOptionalOfExpr(expr) => s"(typeof ${expr.nodeLabel})?"
+                        //                        case TypeDependenceGraph.TypeGenOptionalOfSymbol(symbol) => s"(typeof ${symbol.nodeLabel})?"
+                        //                        case TypeDependenceGraph.TypeGenArrayConcatOp(op, lhs, rhs) => s"[concat typeof ${lhs.nodeLabel} $op ${rhs.nodeLabel}]"
+                        //                        case TypeDependenceGraph.TypeGenArrayElemsUnion(elems) => s"[union typeof ${elems map (_.nodeLabel) mkString ","}]"
                     }
 
                 typeNodeToString(typeNode)
@@ -63,23 +70,15 @@ object TypeDependenceGraph {
 
     sealed trait TypeNode extends Node with Equals
 
-    case class ClassTypeNode(className: String) extends TypeNode
+    case class TypeSpecNode(typeDesc: TypeSpec) extends TypeNode
 
-    case class TypeArray(elemType: TypeNode) extends TypeNode
+    case class TypeOfElemNode(elemNode: ElemNode) extends TypeNode
 
-    case class TypeOptional(elemType: TypeNode) extends TypeNode
+    case class OptionalTypeOf(typeNode: TypeNode) extends TypeNode
 
-    case class TypeGenArrayOfExpr(typeof: ExprNode) extends TypeNode
+    case class ArrayTypeOf(typeNode: TypeNode) extends TypeNode
 
-    case class TypeGenArrayOfSymbol(typeof: SymbolNode) extends TypeNode
-
-    case class TypeGenOptionalOfExpr(typeof: ExprNode) extends TypeNode
-
-    case class TypeGenOptionalOfSymbol(typeof: SymbolNode) extends TypeNode
-
-    case class TypeGenArrayConcatOp(op: String, lhs: ExprNode, rhs: ExprNode) extends TypeNode
-
-    case class TypeGenArrayElemsUnion(elems: List[ExprNode]) extends TypeNode
+    case class UnionTypeOf(typeNodes: Set[TypeNode]) extends TypeNode
 
     object EdgeTypes extends Enumeration {
         val Is, Accepts, Extends, Has = Value
@@ -101,31 +100,35 @@ class TypeDependenceGraph private(val nodes: Set[TypeDependenceGraph.Node],
         new TypeDependenceGraph(nodes, edges, edgesByStart, edgesByEnd)
 
     private val visited = scala.collection.mutable.Set[TypeDependenceGraph.Node]()
-    private val typeTypeMemo = Memoize[TypeDependenceGraph.TypeNode, ActualTypeSpec]()
+    private val typeTypeMemo = Memoize[TypeDependenceGraph.TypeNode, TypeSpec]()
     private val elemTypeMemo = Memoize[TypeDependenceGraph.ElemNode, NodeType]()
 
     def finalTypeOf(nodeType: NodeType): TypeSpec = nodeType.fixedType match {
         case Some(fixedType) => fixedType
-        case None =>
-            if (nodeType.inferredTypes.size == 1) nodeType.inferredTypes.toList.head else UnionNodeType(Set(nodeType))
+        case None => if (nodeType.inferredTypes.size == 1) nodeType.inferredTypes.toList.head else UnionType(nodeType.inferredTypes)
     }
 
-    private def createTypeSpec(typeNode: TypeDependenceGraph.TypeNode): ActualTypeSpec = typeTypeMemo(typeNode) {
+    private def createTypeSpec(typeNode: TypeDependenceGraph.TypeNode): TypeSpec = typeTypeMemo(typeNode) {
         typeNode match {
-            case TypeDependenceGraph.ClassTypeNode(className) => ClassType(className)
-            case TypeDependenceGraph.TypeArray(elemType) => ArrayType(createTypeSpec(elemType))
-            case TypeDependenceGraph.TypeOptional(elemType) => OptionalType(createTypeSpec(elemType).asInstanceOf[OptionableTypeSpec])
-            case TypeDependenceGraph.TypeGenArrayOfExpr(typeof) => ArrayType(finalTypeOf(inferType(typeof)))
-            case TypeDependenceGraph.TypeGenArrayOfSymbol(typeof) => ArrayType(finalTypeOf(inferType(typeof)))
-            case TypeDependenceGraph.TypeGenOptionalOfExpr(typeof) => OptionalType(finalTypeOf(inferType(typeof)).asInstanceOf[OptionableTypeSpec])
-            case TypeDependenceGraph.TypeGenOptionalOfSymbol(typeof) => OptionalType(finalTypeOf(inferType(typeof)).asInstanceOf[OptionableTypeSpec])
-            case TypeDependenceGraph.TypeGenArrayConcatOp(_, lhs, rhs) =>
-                val lhsType = inferType(lhs)
-                val rhsType = inferType(rhs)
-                ArrayConcatNodeType(lhsType, rhsType)
-            case TypeDependenceGraph.TypeGenArrayElemsUnion(elems) =>
-                val elemsType = elems map inferType
-                ArrayType(UnionNodeType(elemsType.toSet))
+            case TypeDependenceGraph.TypeSpecNode(typeDesc) => typeDesc
+            case TypeDependenceGraph.TypeOfElemNode(exprNode) => finalTypeOf(inferType(exprNode))
+            case TypeDependenceGraph.OptionalTypeOf(typeNode) => OptionalType(createTypeSpec(typeNode))
+            case TypeDependenceGraph.ArrayTypeOf(typeNode) => ArrayType(createTypeSpec(typeNode))
+            case TypeDependenceGraph.UnionTypeOf(typeNodes) => UnionType(typeNodes.map(createTypeSpec))
+            //            case TypeDependenceGraph.ClassTypeNode(className) => ClassType(className)
+            //            case TypeDependenceGraph.TypeArray(elemType) => ArrayType(createTypeSpec(elemType))
+            //            case TypeDependenceGraph.TypeOptional(elemType) => OptionalType(createTypeSpec(elemType).asInstanceOf[OptionableTypeSpec])
+            //            case TypeDependenceGraph.TypeGenArrayOfExpr(typeof) => ArrayType(finalTypeOf(inferType(typeof)))
+            //            case TypeDependenceGraph.TypeGenArrayOfSymbol(typeof) => ArrayType(finalTypeOf(inferType(typeof)))
+            //            case TypeDependenceGraph.TypeGenOptionalOfExpr(typeof) => OptionalType(finalTypeOf(inferType(typeof)).asInstanceOf[OptionableTypeSpec])
+            //            case TypeDependenceGraph.TypeGenOptionalOfSymbol(typeof) => OptionalType(finalTypeOf(inferType(typeof)).asInstanceOf[OptionableTypeSpec])
+            //            case TypeDependenceGraph.TypeGenArrayConcatOp(_, lhs, rhs) =>
+            //                val lhsType = inferType(lhs)
+            //                val rhsType = inferType(rhs)
+            //                ArrayConcatNodeType(lhsType, rhsType)
+            //            case TypeDependenceGraph.TypeGenArrayElemsUnion(elems) =>
+            //                val elemsType = elems map inferType
+            //                ArrayType(UnionNodeType(elemsType.toSet))
         }
     }
 
@@ -235,18 +238,10 @@ class TypeHierarchyGraph(val nodes: Set[TypeSpec], val edges: Set[Extends],
         cleaned
     }
 
-    def unrollNodeType(nodeType: NodeType): Set[TypeSpec] =
-        nodeType.fixedType match {
-            case Some(fixedType) => Set(cleanType(fixedType))
-            case None => removeRedundantTypesFrom(nodeType.inferredTypes) map cleanType
-        }
-
     def getArrayElemType(typ: TypeSpec): TypeSpec = typ match {
         case ArrayType(elemType) => elemType
         case ParseNodeType | _: ClassType | _: OptionalType => throw new Exception("Invalid array concat type")
-        case ArrayConcatNodeType(lhsType, rhsType) => ???
-        case UnionNodeType(types) => ???
-        case UnionType(types) => ???
+        case _ => ???
     }
 
     def cleanType(typ: TypeSpec): TypeSpec = typ match {
@@ -254,18 +249,11 @@ class TypeHierarchyGraph(val nodes: Set[TypeSpec], val edges: Set[Extends],
         case ArrayType(elemType) =>
             ArrayType(cleanType(elemType))
         case OptionalType(valueType) =>
-            OptionalType(cleanType(valueType).asInstanceOf[OptionableTypeSpec])
-        case UnionNodeType(types) =>
-            val cleanTypes = types flatMap unrollNodeType
-            if (cleanTypes.size == 1) cleanTypes.head else UnionType(cleanTypes)
+            OptionalType(cleanType(valueType))
         case UnionType(types) =>
-            if (types.size == 1) types.head else typ
-        case ArrayConcatNodeType(lhsType, rhsType) =>
-            val lhsUnrolledType = unrollNodeType(lhsType)
-            val lhsElemType = lhsUnrolledType map getArrayElemType
-            val rhsUnrolledType = unrollNodeType(rhsType)
-            val rhsElemType = rhsUnrolledType map getArrayElemType
-            ArrayType(cleanType(UnionType(lhsElemType ++ rhsElemType)))
+            // types에 상위 클래스가 있으면 하위 클래스는 모두 제거
+            val mergedTypes = removeRedundantTypesFrom(types.map(cleanType))
+            if (mergedTypes.size == 1) mergedTypes.head else UnionType(mergedTypes)
     }
 
     // types에서 불필요한 타입 제거. 즉, supertype A와 subtype B가 같이 포함되어 있으면 B는 제거하고 A만 남겨서 반환

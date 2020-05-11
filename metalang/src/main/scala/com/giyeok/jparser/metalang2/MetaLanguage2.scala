@@ -181,8 +181,9 @@ object MetaLanguage2 {
         val expressionGrammar = TestGrammar(pkgName, "ExpressionGrammar", ExpressionGrammarsMetaLang2.basic.grammar, parseUtils = true)
         val metaGrammar2 = TestGrammar(pkgName, "MetaGrammar2Ast", MetaLang2Grammar.inMetaLang2.grammar, parseUtils = true)
         val pyobjGrammar = TestGrammar(pkgName, "PyObjGrammar", readFile("./examples/src/main/resources/pyobj.cdg"), parseUtils = true)
+        val protobufTextFormatGrammar = TestGrammar(pkgName, "ProtobufTextFormatGrammar", readFile("./protobuf_textformat.cdg"), parseUtils = true)
 
-        List(pyobjGrammar, expressionGrammar, metaGrammar2) foreach { grammar =>
+        List(expressionGrammar, metaGrammar2, pyobjGrammar, protobufTextFormatGrammar) foreach { grammar =>
             val analysis = analyze(grammarSpecToAST(grammar.grammar).get)
 
             analysis.astAnalysis.astifiers.foreach { case (lhs, rhs) =>

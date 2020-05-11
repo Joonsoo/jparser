@@ -134,7 +134,7 @@ class ScalaDefGenerator(analysis: MetaLanguage2.Analysis) {
             s"List[${typeSpecToString(elemType)}]"
         case OptionalType(valueType) =>
             s"Option[${typeSpecToString(valueType)}]"
-        case _: UnionType | _: UnionNodeType | _: ArrayConcatNodeType =>
+        case _: UnionType =>
             throw new Exception(s"Union type is not supported: $typeSpec")
     }
 

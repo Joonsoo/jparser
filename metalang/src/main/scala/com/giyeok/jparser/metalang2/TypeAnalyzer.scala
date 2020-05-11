@@ -105,13 +105,13 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
         val valueTypeNode = typeDesc.typ match {
             case AST.ArrayTypeDesc(_, elemType) =>
                 val elemTypeNode = typeDescToTypeNode(elemType)
-                addNode(TypeArray(elemTypeNode))
+                ArrayTypeOf(elemTypeNode)
             case AST.TypeName(_, typeName) =>
-                ClassTypeNode(typeName.toString)
+                TypeSpecNode(ClassType(typeName.toString))
             case AST.OnTheFlyTypeDef(_, name, _) =>
-                ClassTypeNode(name.name.toString)
+                TypeSpecNode(ClassType(name.name.toString))
         }
-        if (typeDesc.optional) addNode(TypeOptional(valueTypeNode)) else valueTypeNode
+        if (typeDesc.optional) addNode(OptionalTypeOf(valueTypeNode)) else valueTypeNode
     }
 
     private var classParamNodes = Map[String, List[ParamNode]]()
@@ -119,7 +119,7 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
     def createTypeDependencyGraph(): TypeDependenceGraph = {
         userDefinedTypes foreach {
             case UserClassType(className, params) =>
-                val classNode = addNode(ClassTypeNode(className))
+                val classNode = addNode(TypeSpecNode(ClassType(className)))
                 val paramNodes = params.zipWithIndex map { case (paramAst, paramIdx) =>
                     val paramNode = addNode(ParamNode(className, paramIdx, paramAst.name.name.toString))
                     // ClassNode --has--> ParamNode
@@ -133,9 +133,9 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                 }
                 classParamNodes += className -> paramNodes
             case typ@UserAbstractType(name) =>
-                val abstractType = addNode(ClassTypeNode(name))
+                val abstractType = addNode(TypeSpecNode(ClassType(name)))
                 superTypes(typ) foreach { superTyp =>
-                    val subType = addNode(ClassTypeNode(superTyp))
+                    val subType = addNode(TypeSpecNode(ClassType(superTyp)))
                     // ClassTypeNode --extends--> ClassTypeNode
                     addEdge(Edge(subType, abstractType, EdgeTypes.Extends))
                 }
@@ -176,13 +176,13 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                                         }
                                         repeatSpec.toString match {
                                             case "?" =>
-                                                val typeNode = addNode(TypeGenOptionalOfExpr(elemNode))
+                                                val typeNode = addNode(OptionalTypeOf(addNode(TypeOfElemNode(elemNode))))
                                                 // ExprNode --is--> TypeNode
                                                 addEdge(Edge(node, typeNode, EdgeTypes.Is))
                                                 // TypeNode --accepts--> ElemNode (informative)
                                                 addEdge(Edge(typeNode, elemNode, EdgeTypes.Accepts))
                                             case "*" | "+" =>
-                                                val typeNode = addNode(TypeGenArrayOfExpr(elemNode))
+                                                val typeNode = addNode(ArrayTypeOf(TypeOfElemNode(elemNode)))
                                                 // ExprNode --is--> TypeNode
                                                 addEdge(Edge(node, typeNode, EdgeTypes.Is))
                                                 // TypeNode --accepts--> ElemNode (informative)
@@ -204,6 +204,9 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                         }
                 }
 
+                def mergeTypes(typeNodes: List[TypeNode]): TypeNode =
+                    if (typeNodes.size == 1) typeNodes.head else UnionTypeOf(typeNodes.toSet)
+
                 def visitExpr(ctx: List[AST.Elem], expr: AST.PExpr): ExprNode = {
                     val node = addNode(ExprNode(expr))
                     expr match {
@@ -212,7 +215,7 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                                 case "+" =>
                                     val op1 = visitExpr(ctx, operand1)
                                     val op2 = visitExpr(ctx, operand2)
-                                    val typeNode = addNode(TypeGenArrayConcatOp(operator.toString, op1, op2))
+                                    val typeNode = addNode(mergeTypes(List(TypeOfElemNode(op1), TypeOfElemNode(op2))))
                                     // ExprNode --is--> TypeNode
                                     addEdge(Edge(node, typeNode, EdgeTypes.Is))
                                     // TypeNode --accepts--> ExprNode (informative)
@@ -226,7 +229,7 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                         case AST.ConstructExpr(_, typ, params) =>
                             val className = typ.name.toString
                             // ExprNode --is--> ClassTypeNode
-                            addEdge(Edge(node, ClassTypeNode(className), EdgeTypes.Is))
+                            addEdge(Edge(node, TypeSpecNode(ClassType(className)), EdgeTypes.Is))
                             // ParamNode --accepts--> ExprNode
                             params.zipWithIndex foreach { case (paramExpr, paramIdx) =>
                                 addEdge(Edge(classParamNodes(className)(paramIdx), visitExpr(ctx, paramExpr), EdgeTypes.Accepts))
@@ -234,7 +237,7 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                         case AST.OnTheFlyTypeDefConstructExpr(_, typeDef, params) =>
                             val className = typeDef.name.name.toString
                             // ExprNode --is--> ClassTypeNode
-                            addEdge(Edge(node, ClassTypeNode(className), EdgeTypes.Is))
+                            addEdge(Edge(node, TypeSpecNode(ClassType(className)), EdgeTypes.Is))
                             params.zipWithIndex foreach { case (paramExpr, paramIdx) =>
                                 val paramNode = classParamNodes(className)(paramIdx)
                                 assert(paramNode.name == paramExpr.name.name.toString)
@@ -253,7 +256,7 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                             val elemNodes = elems map {
                                 visitExpr(ctx, _)
                             }
-                            val typeNode = addNode(TypeGenArrayElemsUnion(elemNodes))
+                            val typeNode = addNode(ArrayTypeOf(mergeTypes(elemNodes.map(TypeOfElemNode))))
                             // ExprNode --is--> TypeNode
                             addEdge(Edge(node, typeNode, EdgeTypes.Is))
                             // TypeNode --accepts--> ExprNode (informative)
@@ -280,9 +283,9 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                                 val repeatingSymbolNode = addNode(SymbolNode(astAnalyzer.astToSymbols(repeatingSymbolAst)))
                                 val typeNode = repeatSpec.toString match {
                                     case "?" =>
-                                        TypeGenOptionalOfSymbol(repeatingSymbolNode)
+                                        OptionalTypeOf(TypeOfElemNode(repeatingSymbolNode))
                                     case "*" | "+" =>
-                                        TypeGenArrayOfSymbol(repeatingSymbolNode)
+                                        ArrayTypeOf(TypeOfElemNode(repeatingSymbolNode))
                                 }
                                 // SymbolNode --is--> TypeNode
                                 addEdge(Edge(symbolNode, addNode(typeNode), EdgeTypes.Is))
@@ -315,7 +318,7 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                 case UserAbstractType(name) =>
                     ClassDef(name, isAbstract = true, List(), supers.toList.sorted)
                 case UserClassType(name, paramsAst) =>
-                    val paramNodes = (typeDependenceGraph.edgesByStart(TypeDependenceGraph.ClassTypeNode(typ.name)) map {
+                    val paramNodes = (typeDependenceGraph.edgesByStart(TypeDependenceGraph.TypeSpecNode(ClassType(typ.name))) map {
                         _.end.asInstanceOf[TypeDependenceGraph.ParamNode]
                     }).toList.sortBy(_.paramIdx)
                     assert(paramNodes.size == paramsAst.size && paramNodes.map(_.name) == paramsAst.map(_.name.name.toString))
