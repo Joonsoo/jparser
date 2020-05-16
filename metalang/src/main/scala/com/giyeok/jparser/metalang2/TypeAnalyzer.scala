@@ -106,6 +106,8 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
             case AST.ArrayTypeDesc(_, elemType) =>
                 val elemTypeNode = typeDescToTypeNode(elemType)
                 ArrayTypeOf(elemTypeNode)
+            case AST.TypeName(_, typeName) if typeName.toString == "Node" =>
+                TypeSpecNode(ParseNodeType)
             case AST.TypeName(_, typeName) =>
                 TypeSpecNode(ClassType(typeName.toString))
             case AST.OnTheFlyTypeDef(_, name, _) =>

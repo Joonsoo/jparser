@@ -419,7 +419,18 @@ def parseAst(text: String): Either[PyObj, ParsingErrors.ParsingError] =
   }
 
   def main(args:Array[String]): Unit = {
-    val parsed = parseAst("{'descr': '<U4', 'fortran_order': True, 'shape': (1001,)}")
-    println(parsed)
+    val parsed = parseAst("{'descr': '<U4', 'fortran_order': True, 'shape': (1001,)}").left.get
+    println(parsed.fields.get.length)
+    val fields = parsed.fields.get
+    println(fields(0).name.value.map(_.sourceText).mkString)
+    println(fields(2).value match {
+      case BoolValue(astNode, value) => s"bool ${value.sourceText}"
+      case IntValue(astNode, value) => s"int ${astNode.sourceText}"
+      case StrValue(astNode, value) => s"str ${astNode.sourceText}"
+      case ListValue(astNode, elems) => s"list ${astNode.sourceText}"
+      case TupleValue(astNode, elems) => s"tuple ${astNode.sourceText}"
+    })
+    println(fields(1).name.value.map(_.sourceText).mkString)
+    println(fields(2).name.value.map(_.sourceText).mkString)
   }
 }

@@ -123,7 +123,7 @@ object ScalaDefGenerator {
     }
 }
 
-class ScalaDefGenerator(analysis: MetaLanguage2.Analysis) {
+class ScalaDefGenerator(analysis: MetaLanguage2.Analysis, astPrettyPrinter: Boolean = true, parseUtils: Boolean = false) {
     private val astAnalysis = analysis.astAnalysis
     private val typeAnalysis = analysis.typeAnalysis
 
@@ -134,6 +134,8 @@ class ScalaDefGenerator(analysis: MetaLanguage2.Analysis) {
             s"List[${typeSpecToString(elemType)}]"
         case OptionalType(valueType) =>
             s"Option[${typeSpecToString(valueType)}]"
+        //        case UnionType(types) =>
+        //            s"(${types.map(typeSpecToString).mkString("|")})"
         case _: UnionType =>
             throw new Exception(s"Union type is not supported: $typeSpec")
     }
@@ -146,7 +148,29 @@ class ScalaDefGenerator(analysis: MetaLanguage2.Analysis) {
             val params = (ClassParam(astNodeParamName, ParseNodeType) +: d.params) map { p =>
                 s"${p.name}:${typeSpecToString(p.typ)}"
             } mkString ", "
-            s"case class ${d.name}($params)$supers"
+
+            val classBody: String = if (!astPrettyPrinter) "" else {
+                def classParamPrettyPrint(name: String, typ: TypeSpec): String = typ match {
+                    case ParseNodeType => name + ".sourceText + " + name + ".range"
+                    case ClassType(_) => s"$name.prettyPrint()"
+                    case ArrayType(elemType) =>
+                        s""""[" + $name.map(e => ${classParamPrettyPrint("e", elemType)}).mkString(",") + "]""""
+                    case OptionalType(valueType) =>
+                        s"""($name match { case Some(v) =>
+                           |  ${classParamPrettyPrint("v", valueType)}
+                           |  case None => "null"
+                           |})""".stripMargin
+                    case _: UnionType => throw new Exception(s"Union type is not supported: $typ")
+                }
+
+                val paramsPrettyPrint = d.params.map { p =>
+                    s""""${p.name}=" + ${classParamPrettyPrint(p.name, p.typ)}"""
+                }
+                s"""{
+                   |  def prettyPrint(): String = s"${d.name}(" + ${paramsPrettyPrint.mkString("+ \", \" + ")} + ")"
+                   |}""".stripMargin
+            }
+            s"case class ${d.name}($params)$supers$classBody"
         }
     }
 
@@ -159,7 +183,11 @@ class ScalaDefGenerator(analysis: MetaLanguage2.Analysis) {
         def removeRequirement(requirement: String): CodeBlock = CodeBlock(code, requirements - requirement)
     }
 
-    def classDefs(): CodeBlock = CodeBlock(s"sealed trait ASTNode { val astNode: ${typeSpecToString(ParseNodeType)} }", Set())
+    def classDefs(): CodeBlock = CodeBlock(
+        s"""sealed trait ASTNode {
+           |  val astNode: ${typeSpecToString(ParseNodeType)}
+           |  ${if (astPrettyPrinter) "def prettyPrint(): String" else ""}
+           |}""".stripMargin, Set())
         .append(CodeBlock(classDefsList("ASTNode", "astNode") mkString "\n", Set()))
 
     private var _argNum = 0
@@ -392,15 +420,22 @@ class ScalaDefGenerator(analysis: MetaLanguage2.Analysis) {
                |          Left(matchStart(forest.trees.head))
                |        case Some(forest) =>
                |          Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
-               |        case None => ???
+               |        case None =>
+               |          val expectedTerms = ctx.nextGraph.nodes.flatMap { node =>
+               |            node.kernel.symbol match {
+               |              case NGrammar.NTerminal(_, term) => Some(term)
+               |              case _ => None
+               |            }
+               |          }
+               |          Right(ParsingErrors.UnexpectedEOF(expectedTerms, text.length))
                |      }
                |    case Right(error) => Right(error)
                |  }""".stripMargin,
             Set("jparser.nparser.NaiveParser", "jparser.nparser.Parser", "jparser.ParsingErrors",
-                "jparser.ParseForestFunc", "jparser.nparser.ParseTreeConstructor"))
+                "jparser.ParseForestFunc", "jparser.nparser.ParseTreeConstructor", "jparser.NGrammar"))
     }
 
-    def toGrammarObject(objectName: String, parseUtils: Boolean = false): String = {
+    def toGrammarObject(objectName: String): String = {
         _argNum = 0
 
         var codeBlock = classDefs().append(sourceTextOf()).append(astifierDefs()).append(matchStart())

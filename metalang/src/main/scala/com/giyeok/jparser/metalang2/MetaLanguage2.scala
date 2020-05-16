@@ -169,7 +169,7 @@ object MetaLanguage2 {
     // 2. 정의된 타입들을 정의하는 자바 코드
     // 3. ParseForest를 주면 프로세서로 처리해서 가공한 값으로 만들어주는 자바 코드
 
-    case class TestGrammar(packageName: Option[String], name: String, grammar: String, parseUtils: Boolean)
+    case class TestGrammar(packageName: Option[String], name: String, grammar: String, parseUtils: Boolean = true, astPrettyPrinter: Boolean = true)
 
     def readFile(path: String): String = {
         val s = Source.fromFile(new File(path))
@@ -178,12 +178,12 @@ object MetaLanguage2 {
 
     def main(args: Array[String]): Unit = {
         val pkgName = Some("com.giyeok.jparser.metalang2.generated")
-        val expressionGrammar = TestGrammar(pkgName, "ExpressionGrammar", ExpressionGrammarsMetaLang2.basic.grammar, parseUtils = true)
-        val metaGrammar2 = TestGrammar(pkgName, "MetaGrammar2Ast", MetaLang2Grammar.inMetaLang2.grammar, parseUtils = true)
-        val pyobjGrammar = TestGrammar(pkgName, "PyObjGrammar", readFile("./examples/src/main/resources/pyobj.cdg"), parseUtils = true)
-        val protobufTextFormatGrammar = TestGrammar(pkgName, "ProtobufTextFormatGrammar", readFile("./protobuf_textformat.cdg"), parseUtils = true)
+        val expressionGrammar = TestGrammar(pkgName, "ExpressionGrammar", ExpressionGrammarsMetaLang2.basic.grammar)
+        val metaGrammar2 = TestGrammar(pkgName, "MetaGrammar2Ast", MetaLang2Grammar.inMetaLang2.grammar)
+        val pyobjGrammar = TestGrammar(pkgName, "PyObjGrammar", readFile("./examples/src/main/resources/pyobj.cdg"))
+        val protobufTextFormatGrammar = TestGrammar(pkgName, "ProtobufTextFormatGrammar", readFile("./protobuf_textformat.cdg"))
 
-        List(expressionGrammar, metaGrammar2, pyobjGrammar, protobufTextFormatGrammar) foreach { grammar =>
+        List(protobufTextFormatGrammar) foreach { grammar =>
             val analysis = analyze(grammarSpecToAST(grammar.grammar).get)
 
             analysis.astAnalysis.astifiers.foreach { case (lhs, rhs) =>
@@ -196,7 +196,7 @@ object MetaLanguage2 {
             println(analysis.typeAnalysis.typeDependenceGraph.toDotGraphModel.printDotGraph())
 
             val scalaCode = s"package ${grammar.packageName.get}\n\n" +
-                new ScalaDefGenerator(analysis).toGrammarObject(grammar.name, parseUtils = grammar.parseUtils)
+                new ScalaDefGenerator(analysis, parseUtils = grammar.parseUtils).toGrammarObject(grammar.name)
             val filepath = s"./metalang/src/main/scala/com/giyeok/jparser/metalang2/generated/${grammar.name}.scala"
             val writer = new BufferedWriter(new FileWriter(filepath))
             writer.write(scalaCode)
