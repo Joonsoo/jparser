@@ -2,6 +2,7 @@ package com.giyeok.jparser.examples
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.examples.metalang._
+import com.giyeok.jparser.examples.metalang2.MetaLang3Grammar
 
 sealed trait MetaLangExample {
     val name: String
@@ -29,6 +30,12 @@ case class MetaLang2Example(name: String, grammar: String,
     def example(newExample: String): MetaLang2Example = copy(correctExamples = correctExamples :+ newExample)
 }
 
+case class MetaLang3Example(name: String, grammar: String, correctExamples: List[String] = List(),
+                            incorrectExamples: List[String] = List(),
+                            ambiguousExamples: List[String] = List()) extends MetaLangExample {
+    def example(newExample: String): MetaLang3Example = copy(correctExamples = correctExamples :+ newExample)
+}
+
 trait MetaLangExamples {
     val examples: List[MetaLangExample]
 }
@@ -39,5 +46,6 @@ object MetaLangExamples extends MetaLangExamples {
         ExpressionGrammars.examples,
         JsonGrammar.examples,
         LexicalGrammars.examples,
-        MetaLangGrammar.examples).flatten
+        MetaLangGrammar.examples,
+        MetaLang3Grammar.examples).flatten
 }

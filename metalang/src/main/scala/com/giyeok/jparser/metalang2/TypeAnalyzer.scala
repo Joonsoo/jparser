@@ -344,6 +344,8 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
 
         val typeDependenceGraph = createTypeDependencyGraph()
 
+        println(typeDependenceGraph.toDotGraphModel.printDotGraph())
+
         val typeHierarchyGraph0 = typeDependenceGraph.createTypeHierarchyGraph()
         val typeHierarchyGraph = typeHierarchyGraph0.pruneRedundantEdges
 

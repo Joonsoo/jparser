@@ -20,10 +20,10 @@ A pair of curly brackets represents a character class. `{*/}` is matched to `*` 
 
 
 CDG has 5 special _conditional nonterminals_ as follows:
-	
+
 * `A&B` is intersection symbol. `A&B` matches to a string iff the string is matched to both `A` and `B`.
 * `A-B` is exclusion symbol. `A-B` matches to a string iff the string is matched to `A`, but not to `B`.
-* `$A` is followed-by symbol. It is matched to an empty string iff there exists a following substring that is matched to `A`.
+* `^A` is followed-by symbol. It is matched to an empty string iff there exists a following substring that is matched to `A`.
 * `!A` is not-followed-by symbol. It is matched to an empty string iff there exists NOT any following substring that is matched to `A`.
 * `<A>` is the longest match symbol of `A`. It is matched to a string iff the string is matched to `A`, and no longer match is possible.
 
