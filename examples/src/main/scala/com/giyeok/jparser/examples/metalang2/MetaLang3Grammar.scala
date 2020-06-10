@@ -35,10 +35,10 @@ import com.giyeok.jparser.examples.{MetaLang2Example, MetaLangExamples}
 //   - bounded expr은 중첩된 repeat에서는 사용할 수 없다.
 //   - 하지만 A???가 정말 필요할까..?
 // - 기본적인 programming 지원
-//   - bool, int(=int32), int64, chr, str 와 같은 기본적인 타입 지원
+//   - bool, char, string 과 같은 기본적인 타입 지원
 //     - bool literal: true/false
-//     - int/int32/int64, chr, string literal
 //     - "null" literal for nullable types
+//     - int나 float같은 숫자가 들어가면 문제가 너무 복잡해져서 char, string과 같이 파싱과 바로 연결되는 타입만 지원.
 //   - 간단한 함수식 지원
 //     - isempty(x: [T]): bool = if (x.isEmpty()) true else false
 //     - isempty(x: T?): bool = if (x == null) true else false
@@ -51,7 +51,7 @@ import com.giyeok.jparser.examples.{MetaLang2Example, MetaLangExamples}
 //       - ispresent($0)? %OpType.ADD:null
 //     - bool && bool, bool || bool, !bool
 //     - A ?: B (elvis operator in kotlin, nullish coalescing in Typescript)
-//     - ==, !=
+//     - str == str, str != str, char == char, char != char. [str], [[str]], 도 비교할 수 있지 않을까?
 //     - (a:[T]) + (b:[T])
 //     - (a:str) + (b:str)
 //     - 우선순위: (+) (?:) (==, !=) (&&) (||) (? :)
