@@ -96,7 +96,6 @@ object MetaLang2Grammar extends MetaLangExamples {
           |  | '\\' {"\\bnrt}
           |  | UnicodeChar
           |
-          |StringLiteral = '"' StringChar* '"'
           |RefIdx = <('0' | [{1-9} {0-9}*])>
           |Id = <[{a-zA-Z_} {a-zA-Z0-9_}*]>
           |WS = ({ \n\r\t} | LineComment)*
