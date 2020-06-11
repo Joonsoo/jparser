@@ -70,7 +70,6 @@ import com.giyeok.jparser.examples.{MetaLang2Example, MetaLang3Example, MetaLang
 object MetaLang3Grammar extends MetaLangExamples {
     // Ref가 metalang2와 달리 세가지로 세분화됨.
     // - $는 의미적 reference. $0가 A*를 가리키고 있으면 $0는 A의 리스트가 된다.
-    // - $$는 conditional nonterminal의 condition 부분에 대한 reference. $$는 A&B, A-B, ^A, !A 심볼에 대해서만 사용 가능
     // - \$는 raw ParseNode에 대한 refernce. \$0가 A*를 가리키고 있으면 \$0는 A의 리스트가 아니라 A* 자체의 ParseNode
 
     val inMetaLang2: MetaLang2Example = MetaLang2Example("Meta Language 3",
@@ -205,12 +204,14 @@ object MetaLang3Grammar extends MetaLangExamples {
           |NonNullTypeDesc: @NonNullTypeDesc = TypeName
           |  | '[' WS TypeDesc WS ']' {@ArrayTypeDesc(elemType=$2)}
           |  | ValueType
+          |  | AnyType
           |  | EnumTypeName
           |  | TypeDef
           |
           |ValueType: @ValueType = "boolean" {@BooleanType()}
           |  | "char" {@CharType()}
           |  | "string" {@StringType()}
+          |AnyType = "any" {@AnyType()}
           |EnumTypeName = '%' Id {@EnumTypeName(name=$1)}
           |// EnumTypeDef로 enum의 모든 값이 한군데서 정의되었으면 이값들만 사용되어야 한다.
           |
@@ -266,7 +267,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | TerminalChoiceRange
           |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {TerminalChoiceRange(start=$0, end=$2)}
           |StringSymbol = '"' StringChar* '"' {StringSymbol(value=$1$0)}
-          |Nonterminal = Id {Nonterminal(name=$0)}
+          |Nonterminal = NonterminalName {Nonterminal(name=$0)}
           |InPlaceChoices = InPlaceSequence (WS '|' WS InPlaceSequence)* {InPlaceChoices(choices=[$0] + $1)}
           |InPlaceSequence = Elem (WS Elem)* {InPlaceSequence(seq=[$0] + $1)}
           |Longest = '<' WS InPlaceChoices WS '>' {Longest(choices=$2)}
@@ -360,19 +361,25 @@ object MetaLang3Grammar extends MetaLangExamples {
           |NonNullTypeDesc: NonNullTypeDesc = TypeName
           |  | '[' WS TypeDesc WS ']' {ArrayTypeDesc(elemType=$2)}
           |  | ValueType
+          |  | AnyType
           |  | EnumTypeName
           |  | TypeDef
           |
           |ValueType: ValueType = "boolean" {BooleanType()}
           |  | "char" {CharType()}
           |  | "string" {StringType()}
+          |AnyType = "any" {AnyType()}
           |EnumTypeName = '%' Id {EnumTypeName(name=str($1))}
           |// If EnumTypeDef defines all its values, no other values can be used.
           |
           |
           |// Common
-          |TypeName = Id {TypeName(name=$0)}
-          |TypeOrFuncName = Id {TypeOrFuncName(name=$0)}
+          |// TODO TypeName, NonterminalName에서 `` 사이에는 Id 말고 다른거(공백, keyword 등도 쓸 수 있는)
+          |TypeName = Id-ValueType {TypeName(name=$0)}
+          |  | '`' Id '`' {TypeName(name=$0)}
+          |NonterminalName = Id {NonterminalName(name=$0)}
+          |  | '`' Id '`' {NonterminalName(name=$0)}
+          |TypeOrFuncName = Id-ValueType {TypeOrFuncName(name=$0)}
           |ParamName = Id {ParamName(name=$0)}
           |StrChar = StringChar
           |CharChar = TerminalChar
