@@ -1,6 +1,6 @@
 package com.giyeok.jparser.examples.metalang2
 
-import com.giyeok.jparser.examples.{MetaLang2Example, MetaLangExamples}
+import com.giyeok.jparser.examples.{MetaLang2Example, MetaLang3Example, MetaLangExamples}
 
 // meta lang 3는 2에 비해
 // - A&B, A-B, ^A, !A에 대한 처리 방식이 정해짐.
@@ -34,6 +34,7 @@ import com.giyeok.jparser.examples.{MetaLang2Example, MetaLangExamples}
 //     Some(Some(None))에 매핑할 수 있다. 하지만 구분하는 의미가 없기 때문에 Some(None)과 Some(Some(None)) 모두 None으로
 //   - bounded expr은 중첩된 repeat에서는 사용할 수 없다.
 //   - 하지만 A???가 정말 필요할까..?
+// - 각종 이름 escape 기능 지원 (string이란 이름은 예약어라 안되지만 `string`은 사용 가능)
 // - 기본적인 programming 지원
 //   - bool, char, string 과 같은 기본적인 타입 지원
 //     - bool literal: true/false
@@ -75,129 +76,151 @@ object MetaLang3Grammar extends MetaLangExamples {
     val inMetaLang2: MetaLang2Example = MetaLang2Example("Meta Language 3",
         """Grammar = WS Def (WS Def)* WS {@Grammar(defs=[$1] + $2$1)}
           |Def: @Def = Rule | TypeDef
-          |TypeDef: @TypeDef = ClassDef
-          |  | SuperDef
-          |  | EnumTypeDef
-          |ClassDef = TypeName WS '(' WS (ClassParams WS)? ')' {@ClassDef(typeName=$0, params=$4$0)}
-          |SuperDef = TypeName WS '{' WS (SubTypes WS)? '}' {@SuperDef(typeName=$0, subs=$4$0)}
-          |TypeName = Id {@TypeName(name=$0)}
-          |ClassParams = ClassParam (WS ',' WS ClassParam)* {[$0] + $1$3}
-          |ClassParam = ParamName (WS ':' WS TypeDesc)? {@ClassParam(name=$0, typeDesc=$1$3)}
-          |ParamName = Id {@ParamName(name=$0)}
-          |TypeDesc = NonNullTypeDesc (WS '?')? {@TypeDesc(typ=$0, optional=$1)}
-          |NonNullTypeDesc: @NonNullTypeDesc = TypeName
-          |  | OnTheFlyTypeDef
-          |  | '[' WS TypeDesc WS ']' {@ArrayTypeDesc(elemType=$2)}
-          |  | ValueTypeDesc
-          |  | EnumTypeName
-          |  | OnTheFlyEnumTypeDef
-          |SubTypes = SubType (WS ',' WS SubType)* {[$0] + $1$3}
-          |SubType: @SubType = TypeName | ClassDef | SuperDef
           |
-          |OnTheFlyTypeDef = TypeName (WS OnTheFlySuperTypes)? {@OnTheFlyTypeDef(name=$2, supers=$3$1)}
-          |OnTheFlySuperTypes = '<' WS TypeName (WS ',' WS TypeName)* WS '>' {[$2] + $3$3}
-          |
-          |Rule = LHS WS '=' WS RHSs {@Rule(lhs=$0, rhs=$4)}
+          |Rule = LHS WS '=' WS (RHS (WS '|' WS RHS)*) {@Rule(lhs=$0, rhs=$4{[$0] + $1$3})}
           |LHS = Nonterminal (WS ':' WS TypeDesc)? {@LHS(name=$0, typeDesc=$1$3)}
-          |RHSs = RHS (WS '|' WS RHS)* {[$0] + $1$3}
           |RHS = Elem (WS Elem)* {@RHS(elems=[$0] + $1$1)}
           |Elem: @Elem = Symbol | Processor
           |
+          |
+          |// Symbol
           |Symbol: @Symbol = BinSymbol
-          |BinSymbol: @BinSymbol = BinSymbol WS '&' WS PreUnSymbol {@JoinSymbol(symbol1=$0, symbol2=$4)}
-          |  | BinSymbol WS '-' WS PreUnSymbol {@ExceptSymbol(symbol1=$0, symbol2=$4)}
+          |BinSymbol: @BinSymbol = BinSymbol WS '&' WS PreUnSymbol {@JoinSymbol(body=$0, join=$4)}
+          |  | BinSymbol WS '-' WS PreUnSymbol {@ExceptSymbol(body=$0, except=$4)}
           |  | PreUnSymbol
-          |PreUnSymbol: @PreUnSymbol = '^' WS PreUnSymbol {@FollowedBy(expr=$2)}
-          |  | '!' WS PreUnSymbol {@NotFollowedBy(expr=$2)}
+          |PreUnSymbol: @PreUnSymbol = '^' WS PreUnSymbol {@FollowedBy(followedBy=$2)}
+          |  | '!' WS PreUnSymbol {@NotFollowedBy(notFollowedBy=$2)}
           |  | PostUnSymbol
-          |PostUnSymbol: @PostUnSymbol = PostUnSymbol WS '?' {@Optional(expr=$0)}
-          |  | PostUnSymbol WS '*' {@Repeat(expr=$0, repeatType=$2)}
-          |  | PostUnSymbol WS '+' {Repeat($0, $2)}
+          |PostUnSymbol: @PostUnSymbol = PostUnSymbol WS '?' {@Optional(body=$0)}
+          |  | PostUnSymbol WS '*' {@RepeatFromZero(body=$0)}
+          |  | PostUnSymbol WS '+' {@RepeatFromOne(body=$0)}
           |  | AtomSymbol
           |AtomSymbol: @AtomSymbol = Terminal
           |  | TerminalChoice
-          |  | StringLiteral
+          |  | StringSymbol
           |  | Nonterminal
-          |  | '(' InPlaceChoices ')' {@Paren(choices=$1)}
+          |  | '(' WS InPlaceChoices WS ')' $2
           |  | Longest
-          |  | EmptySequence {@EmptySeq()}
-          |InPlaceChoices = InPlaceSequence (WS '|' WS InPlaceSequence)* {@InPlaceChoices(choices=[$0] + $1$3)}
-          |InPlaceSequence = Elem (WS Elem)* {@InPlaceSequence(seq=[$0] + $1$1)}
-          |Longest = '<' WS InPlaceChoices WS '>' {@Longest(choices=$2)}
-          |EmptySequence = '#'
-          |Nonterminal = Id {@Nonterminal(name=$0)}
-          |Terminal: @Terminal = '\'' TerminalChar '\'' $1
-          |  | '.' {@AnyTerminal(c=$0)}
-          |TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\'' {@TerminalChoice(choices:[TerminalChoiceElem]=[$1] + $2$0)}
+          |  | EmptySequence
+          |Terminal: Terminal = '\'' TerminalChar '\'' $1
+          |  | '.' {@AnyTerminal()}
+          |TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\'' {@TerminalChoice(choices=[$1] + $2)}
           |  | '\'' TerminalChoiceRange '\'' {TerminalChoice([$1])}
           |TerminalChoiceElem: @TerminalChoiceElem = TerminalChoiceChar
           |  | TerminalChoiceRange
           |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {@TerminalChoiceRange(start=$0, end=$2)}
-          |StringLiteral = '"' StringChar* '"' {@StringLiteral(value=$1$0)}
+          |StringSymbol = '"' StringChar* '"' {@StringSymbol(value=$1$0)}
+          |Nonterminal = Id {@Nonterminal(name=$0)}
+          |InPlaceChoices = InPlaceSequence (WS '|' WS InPlaceSequence)* {@InPlaceChoices(choices=[$0] + $1$3)}
+          |InPlaceSequence = Elem (WS Elem)* {@InPlaceSequence(seq=[$0] + $1$1)}
+          |Longest = '<' WS InPlaceChoices WS '>' {@Longest(choices=$2)}
+          |EmptySequence = '#' {@EmptySeq()}
           |
-          |UnicodeChar = '\\' 'u' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' {@CharUnicode(code=[$2, $3, $4, $5])}
-          |TerminalChar: @TerminalChar = .-'\\' {@CharAsIs(c=$0)}
+          |TerminalChar: TerminalChar = .-'\\' {@CharAsIs(value=$0)}
           |  | '\\' '\'\\bnrt' {@CharEscaped(escapeCode=$1)}
           |  | UnicodeChar
-          |TerminalChoiceChar: @TerminalChoiceChar = .-'\'\-\\' {CharAsIs($0)}
+          |TerminalChoiceChar: TerminalChoiceChar = .-'\'\-\\' {CharAsIs($0)}
           |  | '\\' '\'\-\\bnrt' {CharEscaped($1)}
           |  | UnicodeChar
-          |StringChar: @StringChar = .-'"\\' {CharAsIs($0)}
+          |StringChar: StringChar = .-'"\\' {CharAsIs($0)}
           |  | '\\' '"\\bnrt' {CharEscaped($1)}
           |  | UnicodeChar
+          |UnicodeChar = '\\' 'u' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' {@CharUnicode(code=[$2, $3, $4, $5])}
           |
-          |Processor: @Processor = Ref
+          |
+          |// Processor
+          |Processor: Processor = Ref
           |  | '{' WS PExpr WS '}' $2
-          |PExpr: @PExpr = PTerm WS "?:" WS PExpr {@Elvis(body=$0, whenNull=$4)}
-          |  | PTerm
-          |PTerm: @PTerm = Ref
-          |  | BoundPExpr
-          |  | ConstructExpr
-          |  | '(' WS PExpr WS ')' {@PTermParen(expr=$2)}
+          |
+          |Ref: @Ref = ValRef | RawRef
+          |ValRef = '$' CondSymPath? RefIdx {@ValRef(idx=$2, condSymPath=$1)}
+          |CondSymPath = ('<' | '>')+
+          |RawRef = "\\$" CondSymPath? RefIdx {@RawRef(idx=$2, condSymPath=$1)}
+          |
+          |// 우선순위 낮은것부터
+          |PExpr = TernateryExpr // TODO (WS ':' WS TypeDesc)? 를 뒤에 붙일 수 있을까?
+          |TernateryExpr = BoolOrExpr WS '?' WS <TernateryExpr> WS ':' WS <TernateryExpr> {@TerOp(cond=$0, then=$4, otherwise=$8)}
+          |  | BoolOrExpr
+          |BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {@BinOp(lhs=$0, rhs=$4, op=$2)}
+          |  | BoolAndExpr
+          |BoolAndExpr = BoolEqExpr WS "||" WS BoolAndExpr {BinOp($0, $4, $2)}
+          |  | BoolEqExpr
+          |BoolEqExpr = ElvisExpr WS ("==" | "!=") WS BoolEqExpr {BinOp($0, $4, $2)}
+          |  | ElvisExpr
+          |ElvisExpr = AdditiveExpr WS "?:" WS ElvisExpr {@Elvis(value=$0, whenNull=$4)}
+          |  | AdditiveExpr
+          |AdditiveExpr = PrefixNotExpr WS '+' WS AdditiveExpr {BinOp($0, $4, $2)}
+          |  | PrefixNotExpr
+          |PrefixNotExpr = '!' WS PrefixNotExpr {@PreOp(expr=$2, op=$0)}
+          |  | Atom
+          |Atom = Ref
+          |  | BindExpr
+          |  | NamedConstructExpr
+          |  | FuncCallOrConstructExpr
           |  | ArrayExpr
           |  | Literal
-          |  | FuncCallExpr
-          |Ref: @Ref = ValRef | RawRef
-          |ValRef = '$' CondSymPath? RefIdx {@ValRef(idx=$1, condSymPath=$1)}
-          |CondSymPath = '<>'+
-          |RawRef = "\\$" RefIdx {@RawRef(idx=$1)}
-          |BoundPExpr = ValRef BoundedPExpr {@BoundPExpr(ctx:@BindableRef=$0, expr=$1)}
-          |// type(BoundedPExpr)는 모두 BoundedPExpr의 subclass여야 함
-          |BoundedPExpr: @BoundedPExpr = Ref
-          |  | BoundPExpr
-          |  | '{' WS PExpr WS '}' $2
-          |ConstructExpr: @AbstractConstructExpr = TypeName WS ConstructParams {@ConstructExpr(typeName=$0, params=$2)}
-          |  | OnTheFlyTypeDefConstructExpr
-          |ConstructParams = '(' WS (PExpr (WS ',' WS PExpr)* WS)? ')' {$2{[$0] + $1$3}}
-          |OnTheFlyTypeDefConstructExpr = OnTheFlyTypeDef WS NamedParams {@OnTheFlyTypeDefConstructExpr(typeDef=$0, params=$2)}
-          |NamedParams = '(' WS (NamedParam (WS ',' WS NamedParam)* WS)? ')' {$2{[$0] + $1$3}}
-          |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' WS PExpr {@NamedParam(name=$0, typeDesc=$1$3, expr=$5)}
-          |ArrayExpr = '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {@PTermSeq(elems=$2{[$0] + $1$3})}
-          |Literal: @Literal = "null" {@NullLiteral()}
-          |  | "true" {@BoolLiteral(value=$0)}
-          |  | "false" {BoolLiteral($0)}
-          |  | '0' {@IntLiteral(value=[$0])}
-          |  | '1-9' '0-9'* {IntLiteral([$0] + $1)}
-          |  | '\'' CharChar '\'' {@CharLiteral(char=$1)}
-          |  | '"' StrChar* '"' {@StrLiteral(chars=$1)}
           |  | EnumValue
-          |FuncCallExpr: @FuncCallExpr = FuncName WS '(' WS (PExpr (WS ',' WS PExpr)*)? ')'
-          |FuncName = "ispresent" | "isempty" | "not" | "and" | "or"
-          |  | "chr" | "str" | "int" | "int32" | "int64" | "if" | "eq" | "neq"
-          |  | "gt" | "ge" | "lt" | "le" | "concat"
+          |  | '(' WS PExpr WS ')' {@ExprParen(body=$2)}
           |
-          |ValueTypeDesc: @ValueTypeDesc = "bool" {@BoolTypeDesc()}
-          |  | "int" {@Int32TypeDesc()}
-          |  | "int32" {Int32TypeDesc()}
-          |  | "int64" {@Int64TypeDesc()}
-          |  | "chr" {@ChrTypeDesc()}
-          |  | "str" {@StrTypeDesc()}
-          |EnumTypeName = '%' Id
+          |BindExpr = ValRef BinderExpr {@BindExpr(ctx=$0, binder=$1)}
+          |BinderExpr = Ref
+          |  | BindExpr
+          |  | '{' WS PExpr WS '}' $2
+          |NamedConstructExpr = TypeName WS NamedConstructParams {@NamedConstructExpr(typeName=$0, params=$2)}
+          |NamedConstructParams = '(' WS (NamedParam (WS ',' WS NamedParam)* WS)? ')' {$2{[$0] + $1$3}}
+          |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' WS PExpr {@NamedParam(name=$0, typeDesc=$1, expr=$5)}
+          |FuncCallOrConstructExpr = TypeOrFuncName WS CallParams {@FuncCallOrConstructExpr(funcName=$0, params=$2)}
+          |CallParams = '(' WS (PExpr (WS ',' WS PExpr)* WS)? ')' {$2{[$0] + $1$3}}
+          |ArrayExpr = '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {@ArrayExpr(elems=$2{[$0] + $1})}
+          |Literal: Literal = "null" {NullLiteral()}
+          |  | ("true" | "false") {@BoolLiteral(value=$0)}
+          |  | '\'' CharChar '\'' {@CharLiteral(value=$1)}
+          |  | '"' StrChar* '"' {@StringLiteral(value=$1)}
+          |EnumValue: AbstractEnumValue = <CanonicalEnumValue | ShortenedEnumValue>
+          |CanonicalEnumValue = EnumTypeName '.' Id {@CanonicalEnumValue(enumName=$0, valueName=$2)}
+          |// ShortenedEnumValue는 어떤 Enum 값인지 외부의 정보로부터 확실히 알 수 있을 때만 사용 가능
+          |ShortenedEnumValue = '%' Id {@ShortenedEnumValue(valueName=$1)}
+          |
+          |
+          |// TypeDef
+          |TypeDef: @TypeDef = ClassDef
+          |  | SuperDef // SuperDef는 super class가 자신의 sub class를 리스팅하는 식으로 정의하는 것.
+          |  | EnumTypeDef
+          |ClassDef = TypeName WS SuperTypes {@AbstractClassDef(name=$0, supers=$2)}
+          |  | TypeName WS ClassParamsDef {@ConcreteClassDef(name=$0, supers=[], params=$2)}
+          |  | TypeName WS SuperTypes WS ClassParamsDef {ConcreteClassDef($0, $2, $4)}
+          |SuperTypes = '<' WS (TypeName (WS ',' WS TypeName)* WS)? '>' {$2{[$0] + $1$3}}
+          |ClassParamsDef = '(' WS (ClassParamDef (WS ',' WS ClassParamDef)* WS)? WS ')' {$2{[$0] + $1$3}}
+          |ClassParamDef = ParamName (WS ':' WS TypeDesc)? {@ClassParamDef(name=$0, typeDesc=$1$3)}
+          |
+          |SuperDef = TypeName WS '{' WS (SubTypes WS)? '}' {@SuperDef(typeName=$0, subs=$4$0)}
+          |SubTypes = SubType (WS ',' WS SubType)* {[$0] + $1$3}
+          |SubType: SubType = TypeName | ClassDef | SuperDef
+          |
           |EnumTypeDef = EnumTypeName WS '{' WS Id (WS ',' WS Id)* WS '}'
-          |EnumValue = <CanonicalEnumValue | ShortenedEnumName>
-          |CanonicalEnumValue = '%' Id '.' Id
-          |ShortenedEnumName = '%' Id
-          |OnTheFlyEnumTypeDef = EnumTypeDef
+          |
+          |
+          |// TypeDesc
+          |TypeDesc = NonNullTypeDesc (WS '?')? {@TypeDesc(typ=$0, optional=$1)}
+          |NonNullTypeDesc: NonNullTypeDesc = TypeName
+          |  | '[' WS TypeDesc WS ']' {@ArrayTypeDesc(elemType=$2)}
+          |  | ValueType
+          |  | EnumTypeName
+          |  | TypeDef
+          |
+          |ValueType: ValueType = "boolean" {@BooleanType()}
+          |  | "char" {@CharType()}
+          |  | "string" {@StringType()}
+          |EnumTypeName = '%' Id
+          |// EnumTypeDef로 enum의 모든 값이 한군데서 정의되었으면 이값들만 사용되어야 한다.
+          |
+          |
+          |// Common
+          |TypeName = Id {@TypeName(name=$0)}
+          |TypeOrFuncName = Id {@TypeOrFuncName(name=$0)}
+          |ParamName = Id {@ParamName(name=$0)}
+          |StrChar = StringChar
+          |CharChar = TerminalChar
           |
           |RefIdx = <'0' | '1-9' '0-9'*>
           |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*>
@@ -206,5 +229,161 @@ object MetaLang3Grammar extends MetaLangExamples {
           |EOF = !.
           |""".stripMargin)
 
-    val examples = List(inMetaLang2)
+    val inMetaLang3: MetaLang3Example = MetaLang3Example("Meta Language 3",
+        """Grammar = WS Def (WS Def)* WS {Grammar(defs=[$1] + $2)}
+          |Def: Def = Rule | TypeDef
+          |
+          |Rule = LHS WS '=' WS (RHS (WS '|' WS RHS)* {[$0] + $1}) {Rule(lhs=$0, rhs=$4)}
+          |LHS = Nonterminal (WS ':' WS TypeDesc)? {LHS(name=$0, typeDesc=$1)}
+          |RHS = Elem (WS Elem)* {RHS(elems=[$0] + $1)}
+          |Elem: Elem = Symbol | Processor
+          |
+          |
+          |// Symbol
+          |Symbol: Symbol = BinSymbol
+          |BinSymbol: BinSymbol = BinSymbol WS '&' WS PreUnSymbol {JoinSymbol(body=$0, join=$4)}
+          |  | BinSymbol WS '-' WS PreUnSymbol {ExceptSymbol(body=$0, except=$4)}
+          |  | PreUnSymbol
+          |PreUnSymbol: PreUnSymbol = '^' WS PreUnSymbol {FollowedBy(followedBy=$2)}
+          |  | '!' WS PreUnSymbol {NotFollowedBy(notFollowedBy=$2)}
+          |  | PostUnSymbol
+          |PostUnSymbol: PostUnSymbol = PostUnSymbol WS '?' {Optional(body=$0)}
+          |  | PostUnSymbol WS '*' {RepeatFromZero(body=$0)}
+          |  | PostUnSymbol WS '+' {RepeatFromOne(body=$0)}
+          |  | AtomSymbol
+          |AtomSymbol: AtomSymbol = Terminal
+          |  | TerminalChoice
+          |  | StringSymbol
+          |  | Nonterminal
+          |  | '(' WS InPlaceChoices WS ')' {Paren(choices=$2)}
+          |  | Longest
+          |  | EmptySequence {EmptySeq()}
+          |Terminal: Terminal = '\'' TerminalChar '\'' $1
+          |  | '.' {AnyTerminal()}
+          |TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\'' {TerminalChoice(choices=[$1] + $2)}
+          |  | '\'' TerminalChoiceRange '\'' {TerminalChoice(choices=[$1])}
+          |TerminalChoiceElem: TerminalChoiceElem = TerminalChoiceChar
+          |  | TerminalChoiceRange
+          |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {TerminalChoiceRange(start=$0, end=$2)}
+          |StringSymbol = '"' StringChar* '"' {StringSymbol(value=$1$0)}
+          |Nonterminal = Id {Nonterminal(name=$0)}
+          |InPlaceChoices = InPlaceSequence (WS '|' WS InPlaceSequence)* {InPlaceChoices(choices=[$0] + $1)}
+          |InPlaceSequence = Elem (WS Elem)* {InPlaceSequence(seq=[$0] + $1)}
+          |Longest = '<' WS InPlaceChoices WS '>' {Longest(choices=$2)}
+          |EmptySequence = '#'
+          |
+          |TerminalChar: TerminalChar = .-'\\' {CharAsIs(value=chr($0))}
+          |  | '\\' '\'\\bnrt' {CharEscaped(escapeCode=chr($1))}
+          |  | UnicodeChar
+          |TerminalChoiceChar: TerminalChoiceChar = .-'\'\-\\' {CharAsIs(value=chr($0))}
+          |  | '\\' '\'\-\\bnrt' {CharEscaped(escapeCode=chr($1))}
+          |  | UnicodeChar
+          |StringChar: StringChar = .-'"\\' {CharAsIs(value=chr($0))}
+          |  | '\\' '"\\bnrt' {CharEscaped(escapeCode=chr($1))}
+          |  | UnicodeChar
+          |UnicodeChar = '\\' 'u' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' {CharUnicode(code=[chr($2), chr($3), chr($4), chr($5)])}
+          |
+          |
+          |// Processor
+          |Processor: Processor = Ref
+          |  | '{' WS PExpr WS '}' $2
+          |
+          |Ref: Ref = ValRef | RawRef
+          |ValRef = '$' CondSymPath? RefIdx {ValRef(idx=$2, condSymPath=$1)}
+          |CondSymPath: [%CondSymDir{BODY, COND}] = ('<' {%BODY} | '>' {%COND})+
+          |RawRef = "\\$" CondSymPath? RefIdx {RawRef(idx=$2, condSymPath=$1)}
+          |
+          |// 우선순위 낮은것부터
+          |PExpr = TernateryExpr // TODO (WS ':' WS TypeDesc)? 를 뒤에 붙일 수 있을까?
+          |TernateryExpr = BoolOrExpr WS '?' WS <TernateryExpr> WS ':' WS <TernateryExpr> {TerOp(cond=$0, then=$4, otherwise=$8)}
+          |  | BoolOrExpr
+          |BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {BinOp(lhs=$0, rhs=$4, op=%Op.AND)}
+          |  | BoolAndExpr
+          |BoolAndExpr = BoolEqExpr WS "||" WS BoolAndExpr {BinOp(lhs=$0, rhs=$4, op=%Op.OR)}
+          |  | BoolEqExpr
+          |BoolEqExpr = ElvisExpr WS ("==" {%Op.EQ} | "!=" {%Op.NE}) WS BoolEqExpr {BinOp(lhs=$0, rhs=$4, op=$2)}
+          |  | ElvisExpr
+          |ElvisExpr = AdditiveExpr WS "?:" WS ElvisExpr {Elvis(value=$0, whenNull=$4)}
+          |  | AdditiveExpr
+          |AdditiveExpr = PrefixNotExpr WS ('+' {%Op.ADD}) WS AdditiveExpr {BinOp(lhs=$0, rhs=$4, op=$2)}
+          |  | PrefixNotExpr
+          |PrefixNotExpr = '!' WS PrefixNotExpr
+          |  | Atom
+          |Atom = Ref
+          |  | BindExpr
+          |  | NamedConstructExpr
+          |  | FuncCallOrConstructExpr
+          |  | ArrayExpr
+          |  | Literal
+          |  | EnumValue
+          |  | '(' WS PExpr WS ')' {ExprParen(body=$2)}
+          |
+          |BindExpr = ValRef BinderExpr
+          |BinderExpr = Ref
+          |  | BindExpr
+          |  | '{' WS PExpr WS '}' $2
+          |NamedConstructExpr = TypeName WS NamedConstructParams {NamedConstructExpr(typeName=$0, params=$2)}
+          |NamedConstructParams = '(' WS (NamedParam (WS ',' WS NamedParam {[$0] + $1})* WS)? ')' $2
+          |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' WS PExpr {NamedParam(name=$0, typeDesc=$1, expr=$5)}
+          |FuncCallOrConstructExpr = TypeOrFuncName WS CallParams {FuncCallOrConstructExpr(funcName=$0, params=$2)}
+          |CallParams = '(' WS (PExpr (WS ',' WS PExpr)* WS {[$0] + $1})? ')' {$2 ?: []}
+          |ArrayExpr = '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {ArrayExpr(elems=$2{[$0] + $1} ?: [])}
+          |Literal: Literal = "null" {NullLiteral()}
+          |  | ("true" {true} | "false" {false}) {BoolLiteral(value=$0)}
+          |  | '\'' CharChar '\'' {CharLiteral(value=$1)}
+          |  | '"' StrChar* '"' {StrLiteral(value=$1)}
+          |EnumValue: AbstractEnumValue = <CanonicalEnumValue | ShortenedEnumValue>
+          |CanonicalEnumValue = EnumTypeName '.' Id {CanonicalEnumValue(enumName=$0, valueName=$2)}
+          |// ShortenedEnumValue는 어떤 Enum 값인지 외부의 정보로부터 확실히 알 수 있을 때만 사용 가능
+          |ShortenedEnumValue = '%' Id {ShortenedEnumValue(valueName=$1)}
+          |
+          |
+          |// TypeDef
+          |TypeDef: TypeDef = ClassDef
+          |  | SuperDef // SuperDef는 super class가 자신의 sub class를 리스팅하는 식으로 정의하는 것.
+          |  | EnumTypeDef
+          |ClassDef = TypeName WS SuperTypes {AbstractClassDef(name=$0, supers=$2)}
+          |  | TypeName WS ClassParamsDef {ConcreteClassDef(name=$0, supers=[], params=$2)}
+          |  | TypeName WS SuperTypes WS ClassParamsDef {ConcreteClassDef(name=$0, supers=$2, params=$4)}
+          |SuperTypes = '<' WS (TypeName (WS ',' WS TypeName)* WS {[$0] + $1})? '>' {$2 ?: []}
+          |ClassParamsDef = '(' WS (ClassParamDef (WS ',' WS ClassParamDef)* WS {[$0] + $1})? WS ')' {$2 ?: []}
+          |ClassParamDef = ParamName (WS ':' WS TypeDesc)? {ClassParamDef(name=$0, typeDesc=$1)}
+          |
+          |SuperDef = TypeName WS '{' WS (SubTypes WS)? '}' {SuperDef(typeName=$0, subs=$4$0)}
+          |SubTypes = SubType (WS ',' WS SubType)* {[$0] + $1}
+          |SubType: SubType = TypeName | ClassDef | SuperDef
+          |
+          |EnumTypeDef = EnumTypeName WS '{' WS Id (WS ',' WS Id)* WS '}'
+          |
+          |
+          |// TypeDesc
+          |TypeDesc = NonNullTypeDesc (WS '?')? {TypeDesc(typ=$0, optional=ispresent($1))}
+          |NonNullTypeDesc: NonNullTypeDesc = TypeName
+          |  | '[' WS TypeDesc WS ']' {ArrayTypeDesc(elemType=$2)}
+          |  | ValueType
+          |  | EnumTypeName
+          |  | TypeDef
+          |
+          |ValueType: ValueType = "boolean" {BooleanType()}
+          |  | "char" {CharType()}
+          |  | "string" {StringType()}
+          |EnumTypeName = '%' Id
+          |// EnumTypeDef로 enum의 모든 값이 한군데서 정의되었으면 이값들만 사용되어야 한다.
+          |
+          |
+          |// Common
+          |TypeName = Id {TypeName(name=$0)}
+          |TypeOrFuncName = Id {TypeOrFuncName(name=$0)}
+          |ParamName = Id {ParamName(name=$0)}
+          |StrChar = StringChar
+          |CharChar = TerminalChar
+          |
+          |RefIdx = <'0' | '1-9' '0-9'*>
+          |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*>
+          |WS = (' \n\r\t' | LineComment)*
+          |LineComment = '/' '/' (.-'\n')* (EOF | '\n')
+          |EOF = !.
+          |""".stripMargin)
+
+    val examples = List(inMetaLang2, inMetaLang3)
 }
