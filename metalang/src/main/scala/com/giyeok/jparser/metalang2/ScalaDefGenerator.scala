@@ -151,7 +151,7 @@ class ScalaDefGenerator(analysis: MetaLanguage2.Analysis, astPrettyPrinter: Bool
 
             val classBody: String = if (!astPrettyPrinter) "" else {
                 def classParamPrettyPrint(name: String, typ: TypeSpec): String = typ match {
-                    case ParseNodeType => name + ".sourceText + " + name + ".range"
+                    case ParseNodeType => name + ".sourceText"
                     case ClassType(_) => s"$name.prettyPrint()"
                     case ArrayType(elemType) =>
                         s""""[" + $name.map(e => ${classParamPrettyPrint("e", elemType)}).mkString(",") + "]""""
@@ -166,8 +166,9 @@ class ScalaDefGenerator(analysis: MetaLanguage2.Analysis, astPrettyPrinter: Bool
                 val paramsPrettyPrint = d.params.map { p =>
                     s""""${p.name}=" + ${classParamPrettyPrint(p.name, p.typ)}"""
                 }
+                val prettyPrintBody = if (paramsPrettyPrint.isEmpty) "" else (paramsPrettyPrint.mkString("+ \", \" + ") + " + ")
                 s"""{
-                   |  def prettyPrint(): String = s"${d.name}(" + ${paramsPrettyPrint.mkString("+ \", \" + ")} + ")"
+                   |  def prettyPrint(): String = "${d.name}(" + $prettyPrintBody ")"
                    |}""".stripMargin
             }
             s"case class ${d.name}($params)$supers$classBody"
