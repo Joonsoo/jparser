@@ -77,7 +77,7 @@ object MetaLang3Grammar extends MetaLangExamples {
         """Grammar = WS Def (WS Def)* WS {@Grammar(defs=[$1] + $2$1)}
           |Def: @Def = Rule | TypeDef
           |
-          |Rule = LHS WS '=' WS (RHS (WS '|' WS RHS)*) {@Rule(lhs=$0, rhs=$4{[$0] + $1$3})}
+          |Rule = LHS WS '=' WS RHS (WS '|' WS RHS)* {@Rule(lhs=$0, rhs=[$4] + $5$3)}
           |LHS = Nonterminal (WS ':' WS TypeDesc)? {@LHS(name=$0, typeDesc=$1$3)}
           |RHS = Elem (WS Elem)* {@RHS(elems=[$0] + $1$1)}
           |Elem: @Elem = Symbol | Processor

@@ -4,7 +4,7 @@ import java.io.{BufferedWriter, File, FileWriter}
 
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.Symbols.Terminals
-import com.giyeok.jparser.examples.metalang2.{ExpressionGrammarsMetaLang2, MetaLang2Grammar}
+import com.giyeok.jparser.examples.metalang2.{ExpressionGrammarsMetaLang2, MetaLang2Grammar, MetaLang3Grammar}
 import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
 import com.giyeok.jparser.{Grammar, NGrammar, ParseForestFunc, Symbols}
@@ -180,11 +180,12 @@ object MetaLanguage2 {
         val pkgName = Some("com.giyeok.jparser.metalang2.generated")
         val expressionGrammar = TestGrammar(pkgName, "ExpressionGrammar", ExpressionGrammarsMetaLang2.basic.grammar)
         val metaGrammar2 = TestGrammar(pkgName, "MetaGrammar2Ast", MetaLang2Grammar.inMetaLang2.grammar)
+        val metaGrammar3 = TestGrammar(pkgName, "MetaGrammar3Ast", MetaLang3Grammar.inMetaLang2.grammar)
         val pyobjGrammar = TestGrammar(pkgName, "PyObjGrammar", readFile("./examples/src/main/resources/pyobj.cdg"))
         // val protobufTextFormatGrammar = TestGrammar(pkgName, "ProtobufTextFormatGrammar", readFile("./protobuf_textformat.cdg"))
         val argsGrammar = TestGrammar(pkgName, "ArgsGrammar", readFile("./examples/src/main/resources/args.cdg"))
 
-        List(argsGrammar) foreach { grammar =>
+        List(metaGrammar3) foreach { grammar =>
             val analysis = analyze(grammarSpecToAST(grammar.grammar).get)
 
             analysis.astAnalysis.astifiers.foreach { case (lhs, rhs) =>

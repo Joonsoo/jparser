@@ -201,6 +201,7 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                                         // TODO
                                         ???
                                     case _ =>
+                                        println(symbol)
                                         throw new Exception("Invalid bound context")
                                 }
                         }
