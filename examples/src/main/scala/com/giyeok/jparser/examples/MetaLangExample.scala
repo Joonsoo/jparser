@@ -2,7 +2,7 @@ package com.giyeok.jparser.examples
 
 import com.giyeok.jparser.Grammar
 import com.giyeok.jparser.examples.metalang._
-import com.giyeok.jparser.examples.metalang2.MetaLang3Grammar
+import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 
 sealed trait MetaLangExample {
     val name: String

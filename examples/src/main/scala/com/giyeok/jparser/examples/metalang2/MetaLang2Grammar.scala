@@ -180,8 +180,8 @@ object MetaLang2Grammar extends MetaLangExamples {
           |Nonterminal = Id {@Nonterminal(name=$0)}
           |Terminal: @Terminal = '\'' TerminalChar '\'' $1
           |  | '.' {@AnyTerminal(c=$0)}
-          |TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\'' {@TerminalChoice(choices:[TerminalChoiceElem]=[$1] + $2$0)}
-          |  | '\'' TerminalChoiceRange '\'' {TerminalChoice([$1])}
+          |TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\'' {TerminalChoice(choices=[$1] + $2)}
+          |  | '\'' TerminalChoiceRange '\'' {TerminalChoice(choices=[$1])}
           |TerminalChoiceElem: @TerminalChoiceElem = TerminalChoiceChar
           |  | TerminalChoiceRange
           |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {@TerminalChoiceRange(start=$0, end=$2)}

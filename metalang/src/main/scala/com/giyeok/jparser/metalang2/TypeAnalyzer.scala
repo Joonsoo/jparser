@@ -246,7 +246,7 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                                 assert(paramNode.name == paramExpr.name.name.toString)
                                 if (paramExpr.typeDesc.isDefined) {
                                     val typeDesc = typeDescToTypeNode(paramExpr.typeDesc.get)
-                                    // ParamNode --is--> ExprNode
+                                    // ParamNode --is--> TypeNode
                                     addEdge(Edge(paramNode, typeDesc, EdgeTypes.Is))
                                 }
                                 // ParamNode --accepts--> ExprNode
