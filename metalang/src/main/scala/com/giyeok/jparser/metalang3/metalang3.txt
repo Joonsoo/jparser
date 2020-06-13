@@ -189,7 +189,7 @@ ValueifyExpr
   - PrefixOp
   - BinOp
   - ElvisOp
-  - TernateryExpr(condition: ValueifyExpr, then: ValueifyExpr, otherwise: ValueifyExpr)
+  - TernaryExpr(condition: ValueifyExpr, then: ValueifyExpr, otherwise: ValueifyExpr)
   - Literal
     - NullLiteral singleton
     - BoolLiteral(value)

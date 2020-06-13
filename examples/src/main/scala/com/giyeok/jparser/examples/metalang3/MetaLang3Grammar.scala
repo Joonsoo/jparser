@@ -46,8 +46,6 @@ import com.giyeok.jparser.examples.{MetaLang2Example, MetaLang3Example, MetaLang
 //     - ispresent(x: [T] | T?): bool = not(isempty(x))
 //     - chr(x: Terminal Node): chr
 //     - str(x: Node): str
-//     - int/int32(x: str|Node): int32
-//     - int64(x: str|Node): int64
 //     - cond? then:else
 //       - ispresent($0)? %OpType.ADD:null
 //     - bool && bool, bool || bool, !bool
@@ -111,7 +109,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |StringSymbol = '"' StringChar* '"' {@StringSymbol(value=$1$0)}
           |Nonterminal = NonterminalName {@Nonterminal(name=$0)}
           |InPlaceChoices = InPlaceSequence (WS '|' WS InPlaceSequence)* {@InPlaceChoices(choices=[$0] + $1$3)}
-          |InPlaceSequence = Elem (WS Elem)* {@InPlaceSequence(seq=[$0] + $1$1)}
+          |InPlaceSequence = Elem (WS Elem)* {@InPlaceSequence<Symbol>(seq=[$0] + $1$1)}
           |Longest = '<' WS InPlaceChoices WS '>' {@Longest(choices=$2)}
           |EmptySequence = '#' {@EmptySeq()}
           |
@@ -137,8 +135,8 @@ object MetaLang3Grammar extends MetaLangExamples {
           |RawRef = "\\$" CondSymPath? RefIdx {@RawRef(idx=$2, condSymPath=$1)}
           |
           |// 우선순위 낮은것부터
-          |PExpr: @PExpr = TernateryExpr // TODO (WS ':' WS TypeDesc)? 를 뒤에 붙일 수 있을까?
-          |TernateryExpr: @TerExpr = // BoolOrExpr WS '?' WS <TernateryExpr> WS ':' WS <TernateryExpr> {@TernateryOp(cond=$0, ifTrue=$4$0, ifFalse=$8$0)}
+          |PExpr: @PExpr = TernaryExpr // TODO (WS ':' WS TypeDesc)? 를 뒤에 붙일 수 있을까?
+          |TernaryExpr: @TerExpr = // BoolOrExpr WS '?' WS <TernaryExpr> WS ':' WS <TernaryExpr> {@TernaryOp(cond=$0, ifTrue=$4$0, ifFalse=$8$0)}
           |  BoolOrExpr
           |BoolOrExpr: @BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {@BinOp(op=$2, lhs=$0, rhs=$4)}
           |  | BoolAndExpr
@@ -176,9 +174,9 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | '\'' CharChar '\'' {@CharLiteral(value=$1)}
           |  | '"' StrChar* '"' {@StringLiteral(value=$1)}
           |EnumValue: @AbstractEnumValue = CanonicalEnumValue | ShortenedEnumValue
-          |CanonicalEnumValue = EnumTypeName '.' Id {@CanonicalEnumValue(enumName=$0, valueName=$2)}
+          |CanonicalEnumValue = EnumTypeName '.' EnumValueName {@CanonicalEnumValue(enumName=$0, valueName=$2)}
           |// ShortenedEnumValue는 어떤 Enum 값인지 외부의 정보로부터 확실히 알 수 있을 때만 사용 가능
-          |ShortenedEnumValue = '%' Id {@ShortenedEnumValue(valueName=$1)}
+          |ShortenedEnumValue = '%' EnumValueName {@ShortenedEnumValue(valueName=$1)}
           |
           |
           |// TypeDef
@@ -225,6 +223,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | '`' Id '`' {TypeOrFuncName($0)}
           |ParamName = Id-Keyword {@ParamName(name=$0)}
           |  | '`' Id '`' {ParamName($0)}
+          |EnumValueName = Id
           |Keyword = "boolean" | "char" | "string" | "true" | "false" | "null"
           |StrChar = StringChar
           |CharChar = TerminalChar
@@ -301,8 +300,8 @@ object MetaLang3Grammar extends MetaLangExamples {
           |CondSymPath: [%CondSymDir{BODY, COND}] = ('<' {%BODY} | '>' {%COND})+
           |RawRef = "\\$" CondSymPath? RefIdx {RawRef(idx=$2, condSymPath=$1)}
           |
-          |PExpr: PExpr = TernateryExpr // TODO Add (WS ':' WS TypeDesc)?
-          |TernateryExpr: TernateryExpr = BoolOrExpr WS '?' WS <TernateryExpr> WS ':' WS <TernateryExpr> {TernateryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
+          |PExpr: PExpr = TernaryExpr // TODO Add (WS ':' WS TypeDesc)?
+          |TernaryExpr: TernaryExpr = BoolOrExpr WS '?' WS <TernaryExpr> WS ':' WS <TernaryExpr> {TernaryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
           |  | BoolOrExpr
           |BoolOrExpr: BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {BinOp(op=%Op.AND, lhs=$0, rhs=$4)}
           |  | BoolAndExpr
@@ -340,9 +339,9 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | '\'' CharChar '\'' {CharLiteral(value=$1)}
           |  | '"' StrChar* '"' {StrLiteral(value=$1)}
           |EnumValue: AbstractEnumValue = <CanonicalEnumValue | ShortenedEnumValue>
-          |CanonicalEnumValue = EnumTypeName '.' Id {CanonicalEnumValue(enumName=$0, valueName=$2)}
+          |CanonicalEnumValue = EnumTypeName '.' EnumValueName {CanonicalEnumValue(enumName=$0, valueName=$2)}
           |// ShortenedEnumValue only can be used when it is clear of which enum type of the value.
-          |ShortenedEnumValue = '%' Id {ShortenedEnumValue(valueName=$1)}
+          |ShortenedEnumValue = '%' EnumValueName {ShortenedEnumValue(valueName=$1)}
           |
           |
           |// TypeDef
@@ -390,6 +389,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | '`' Id '`' {TypeOrFuncName(name=$0)}
           |ParamName = Id-Keyword {ParamName(name=$0)}
           |  | '`' Id '`' {ParamName(name=$0)}
+          |EnumValueName = Id
           |Keyword = "boolean" | "char" | "string" | "true" | "false" | "null"
           |StrChar = StringChar
           |CharChar = TerminalChar
