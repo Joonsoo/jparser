@@ -186,7 +186,7 @@ object MetaLanguage2 {
         // val protobufTextFormatGrammar = TestGrammar(pkgName, "ProtobufTextFormatGrammar", readFile("./protobuf_textformat.cdg"))
         val argsGrammar = TestGrammar(pkgName, "ArgsGrammar", readFile("./examples/src/main/resources/args.cdg"))
 
-        List(expressionGrammar) foreach { grammar =>
+        List(metaGrammar3) foreach { grammar =>
             val analysis = analyze(grammarSpecToAST(grammar.grammar).get)
 
             analysis.astAnalysis.astifiers.foreach { case (lhs, rhs) =>

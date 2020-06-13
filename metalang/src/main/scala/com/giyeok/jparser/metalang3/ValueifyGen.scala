@@ -3,7 +3,7 @@ package com.giyeok.jparser.metalang3
 import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{Elem, Rule, ngrammar}
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{Elem, InPlaceSequence, Rule, ngrammar}
 import com.giyeok.jparser.metalang3.TypeFunc._
 import com.giyeok.jparser.metalang3.codegen.ScalaGen
 import com.giyeok.jparser.nparser.ParseTreeConstructor
@@ -22,14 +22,21 @@ object ValueifyGen {
     private def unifyTypes(types: Iterable[TypeFunc]): TypeFunc = if (types.size == 1) types.head else UnionOf(types.toList)
 
     private def valueifyInPlaceSequence(choices: List[MetaGrammar3Ast.InPlaceSequence], condSymPath: String, input: ValueifyExpr): (ValueifyExpr, TypeFunc) = {
+        def valueifyChoice(choice: InPlaceSequence) = {
+            assert(choice.seq.nonEmpty)
+            val bodyInput = choice.seq.last match {
+                case _: MetaGrammar3Ast.Symbol => SeqElemAt(Unbind(choice, input), choice.seq.size - 1)
+                case _: MetaGrammar3Ast.Processor => Unbind(choice, input)
+            }
+            valueify(choice.seq, choice.seq.last, condSymPath, bodyInput)
+        }
+
         if (choices.size == 1) {
-            val singleChoice = choices.head
-            assert(singleChoice.seq.nonEmpty)
-            valueify(singleChoice.seq, singleChoice.seq.last, condSymPath, input)
+            valueifyChoice(choices.head)
         } else {
+            check(condSymPath.isEmpty, "")
             val vChoices = choices.map { choice =>
-                assert(choice.seq.nonEmpty)
-                choice -> valueify(choice.seq, choice.seq.last, "", input)
+                choice -> valueifyChoice(choice)
             }
             val choicesMap: Map[DerivationChoice, ValueifyExpr] = vChoices.map(choice => InPlaceSequenceChoice(choice._1) -> choice._2._1).toMap
             val returnType = unifyTypes(vChoices.map(_._2._2))
@@ -76,12 +83,12 @@ object ValueifyGen {
                     (UnrollChoices(Map(EmptySeqChoice -> NullLiteral, SymbolChoice(body) -> vBody._1)), OptionalOf(vBody._2))
                 case symbol@MetaGrammar3Ast.RepeatFromZero(astNode, body) =>
                     check(condSymPath.isEmpty, "")
-                    val vBody = valueify(refCtx, body, condSymPath, input)
-                    (UnrollRepeatFromZero(vBody._1), ArrayOf(vBody._2))
+                    val vBody = valueify(refCtx, body, condSymPath, InputNode)
+                    (UnrollRepeat(0, input, vBody._1), ArrayOf(vBody._2))
                 case symbol@MetaGrammar3Ast.RepeatFromOne(astNode, body) =>
                     check(condSymPath.isEmpty, "")
                     val vBody = valueify(refCtx, body, condSymPath, input)
-                    (UnrollRepeatFromOne(vBody._1), ArrayOf(vBody._2))
+                    (UnrollRepeat(1, input, vBody._1), ArrayOf(vBody._2))
                 case MetaGrammar3Ast.InPlaceChoices(astNode, choices) =>
                     check(condSymPath.isEmpty, "")
                     valueifyInPlaceSequence(choices, condSymPath, input)
@@ -206,12 +213,11 @@ object ValueifyGen {
     }
 
     def main(args: Array[String]): Unit = {
+        MetaLang3Grammar.inMetaLang3
         val example =
-            """TypeDesc = NonNullTypeDesc (WS '?' {str($1)})? {TypeDesc(typ=$0, optional=$1 ?: "qwe")}
-              |A = ({true}|{false}) C {Asdf(first=ispresent($0), second=$1)}
-              |  | 'w'
+            """Rule = LHS WS '=' WS (RHS (WS '|' WS RHS)* {[$0] + $1}) {Rule(lhs=$0, rhs=$4)}
               |""".stripMargin
-        val defs = MetaGrammar3Ast.parseAst(MetaLang3Grammar.inMetaLang3.grammar).left.get.defs
+        val defs = MetaGrammar3Ast.parseAst(example).left.get.defs
         val rule = defs.head.asInstanceOf[Rule]
         val v = valueifyRule(rule)
 

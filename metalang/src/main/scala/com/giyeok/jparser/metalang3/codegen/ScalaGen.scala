@@ -63,29 +63,28 @@ class ScalaGen(val analysis: AnalysisResult) {
             val e = valueifyExprCode(expr, inputName)
             val v1 = newVarName()
             val v2 = newVarName()
-            val bindedSymbolId = analysis.symbolOf(symbol)
+            val bindedSymbol = analysis.symbolOf(symbol)
             ValueifierCode(e.codes ++ List(
                 s"val BindNode($v1, $v2) = ${e.result}",
-                s"assert($v1.id == $bindedSymbolId)"
+                s"assert($v1.id == ${bindedSymbol.id})"
             ), v2, e.requirements)
         case JoinBodyOf(expr) => ???
         case JoinCondOf(expr) => ???
         case ExceptBodyOf(expr) => ???
         case ExceptCondOf(expr) => ???
-        case UnrollRepeatFromZero(elemProcessExpr) =>
+        case UnrollRepeat(minimumRepeat, arrayExpr, elemProcessExpr) =>
             // inputName을 repeatSymbol로 unroll repeat하고, 각각을 expr로 가공
+            val arrayExprCode = valueifyExprCode(arrayExpr, inputName)
             val elemProcessCode = valueifyExprCode(elemProcessExpr, "elem")
             val v = newVarName()
+            val funcName = s"ASTUtils.unrollRepeat$minimumRepeat"
             ValueifierCode(
-                s"val $v = ASTUtils.unrollRepeat0($inputName) map { elem =>"
-                    +: elemProcessCode.codes :+ "}", v, elemProcessCode.requirements + "ASTUtils.unrollRepeat0")
-        case UnrollRepeatFromOne(elemProcessExpr) =>
-            // inputName을 repeatSymbol로 unroll repeat하고, 각각을 expr로 가공
-            val elemProcessCode = valueifyExprCode(elemProcessExpr, "elem")
-            val v = newVarName()
-            ValueifierCode(
-                s"val $v = ASTUtils.unrollRepeat1($inputName) map { elem =>"
-                    +: elemProcessCode.codes :+ "}", v, elemProcessCode.requirements + "ASTUtils.unrollRepeat1")
+                arrayExprCode.codes ++
+                    List(s"val $v = $funcName(${arrayExprCode.result}) map { elem =>") ++
+                    elemProcessCode.codes ++
+                    List(elemProcessCode.result,
+                        "}"),
+                v, arrayExprCode.requirements ++ elemProcessCode.requirements + funcName)
         case UnrollChoices(mappings) =>
             val symbol = newVarName()
             val body = newVarName()

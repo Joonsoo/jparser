@@ -24,9 +24,7 @@ case class ExceptCondOf(expr: ValueifyExpr) extends ValueifyExpr
 
 case class SeqElemAt(expr: ValueifyExpr, index: Int) extends ValueifyExpr
 
-case class UnrollRepeatFromZero(elemProcessExpr: ValueifyExpr) extends ValueifyExpr
-
-case class UnrollRepeatFromOne(elemProcessExpr: ValueifyExpr) extends ValueifyExpr
+case class UnrollRepeat(minimumRepeat: Int, arrayExpr: ValueifyExpr, elemProcessExpr: ValueifyExpr) extends ValueifyExpr
 
 case class UnrollChoices(map: Map[DerivationChoice, ValueifyExpr]) extends ValueifyExpr
 
