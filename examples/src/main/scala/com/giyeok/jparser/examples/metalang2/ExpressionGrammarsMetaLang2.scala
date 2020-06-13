@@ -5,15 +5,16 @@ import com.giyeok.jparser.examples.{MetaLang2Example, MetaLangExample, MetaLangE
 object ExpressionGrammarsMetaLang2 extends MetaLangExamples {
     val basic = MetaLang2Example("MetaLang2 Expression Grammar 0",
         """expression: @Expression = term
-          |    | expression '+' term {@BinOp(op=$1, lhs:Expression=$0, rhs=$2)}
+          |    | expression WS '+' WS term {@BinOp(op=$2, lhs:Expression=$0, rhs=$4)}
           |term: @Term = factor
-          |    | term '*' factor {BinOp($1, $0, $2)}
+          |    | term WS '*' WS factor {BinOp($2, $0, $4)}
           |factor: @Factor = number
           |    | variable
-          |    | '(' expression ')' {@Paren(expr=$1)}
+          |    | '(' WS expression WS ')' {@Paren(expr=$2)}
           |number: @Number = '0' {@Integer(value=[$0])}
           |    | '1-9' '0-9'* {Integer([$0] + $1)}
           |variable = <'A-Za-z'+> {@Variable(name=$0)}
+          |WS = ' '*
           |""".stripMargin)
         .example("123*(456+abc)")
 

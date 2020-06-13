@@ -223,7 +223,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | '`' Id '`' {TypeOrFuncName($0)}
           |ParamName = Id-Keyword {@ParamName(name=$0)}
           |  | '`' Id '`' {ParamName($0)}
-          |EnumValueName = Id
+          |EnumValueName = Id {@EnumValueName(name=$0)}
           |Keyword = "boolean" | "char" | "string" | "true" | "false" | "null"
           |StrChar = StringChar
           |CharChar = TerminalChar
@@ -389,7 +389,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | '`' Id '`' {TypeOrFuncName(name=$0)}
           |ParamName = Id-Keyword {ParamName(name=$0)}
           |  | '`' Id '`' {ParamName(name=$0)}
-          |EnumValueName = Id
+          |EnumValueName = Id {EnumValueName(name=$0)}
           |Keyword = "boolean" | "char" | "string" | "true" | "false" | "null"
           |StrChar = StringChar
           |CharChar = TerminalChar

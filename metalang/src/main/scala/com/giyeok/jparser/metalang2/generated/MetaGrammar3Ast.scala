@@ -555,11 +555,11 @@ case class StringLiteral(astNode:Node, value:List[StringChar]) extends ASTNode w
   def prettyPrint(): String = "StringLiteral(" + "value=" + "[" + value.map(e => e.prettyPrint()).mkString(",") + "]" +  ")"
 }
 sealed trait AbstractEnumValue extends ASTNode with Atom
-case class CanonicalEnumValue(astNode:Node, enumName:EnumTypeName, valueName:Node) extends ASTNode with AbstractEnumValue{
-  def prettyPrint(): String = "CanonicalEnumValue(" + "enumName=" + enumName.prettyPrint()+ ", " + "valueName=" + valueName.sourceText +  ")"
+case class CanonicalEnumValue(astNode:Node, enumName:EnumTypeName, valueName:EnumValueName) extends ASTNode with AbstractEnumValue{
+  def prettyPrint(): String = "CanonicalEnumValue(" + "enumName=" + enumName.prettyPrint()+ ", " + "valueName=" + valueName.prettyPrint() +  ")"
 }
-case class ShortenedEnumValue(astNode:Node, valueName:Node) extends ASTNode with AbstractEnumValue{
-  def prettyPrint(): String = "ShortenedEnumValue(" + "valueName=" + valueName.sourceText +  ")"
+case class ShortenedEnumValue(astNode:Node, valueName:EnumValueName) extends ASTNode with AbstractEnumValue{
+  def prettyPrint(): String = "ShortenedEnumValue(" + "valueName=" + valueName.prettyPrint() +  ")"
 }
 sealed trait TypeDef extends ASTNode with Def with NonNullTypeDesc
 sealed trait ClassDef extends ASTNode with SubType with TypeDef
@@ -631,6 +631,9 @@ case class TypeOrFuncName(astNode:Node, name:Node) extends ASTNode{
 }
 case class ParamName(astNode:Node, name:Node) extends ASTNode{
   def prettyPrint(): String = "ParamName(" + "name=" + name.sourceText +  ")"
+}
+case class EnumValueName(astNode:Node, name:Node) extends ASTNode{
+  def prettyPrint(): String = "EnumValueName(" + "name=" + name.sourceText +  ")"
 }
 implicit class SourceTextOfNode(node: Node) {
   def sourceText: String = node match {
@@ -2200,7 +2203,7 @@ val v854 = ParamName(node,v853)
 v854
   }
 }
-def matchEnumValueName(node: Node): Node = {
+def matchEnumValueName(node: Node): EnumValueName = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 349 =>
@@ -2208,91 +2211,92 @@ val v855 = body.asInstanceOf[SequenceNode].children(0)
 val BindNode(v856, v857) = v855
 assert(v856.id == 34)
 val v858 = matchId(v857)
-v858
+val v859 = EnumValueName(node,v858)
+v859
   }
 }
 def matchKeyword(node: Node): Node = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 44 =>
-val v859 = body.asInstanceOf[SequenceNode].children(0)
-v859
-case 53 =>
 val v860 = body.asInstanceOf[SequenceNode].children(0)
 v860
-case 59 =>
+case 53 =>
 val v861 = body.asInstanceOf[SequenceNode].children(0)
 v861
-case 66 =>
+case 59 =>
 val v862 = body.asInstanceOf[SequenceNode].children(0)
 v862
-case 70 =>
+case 66 =>
 val v863 = body.asInstanceOf[SequenceNode].children(0)
 v863
-case 74 =>
+case 70 =>
 val v864 = body.asInstanceOf[SequenceNode].children(0)
 v864
+case 74 =>
+val v865 = body.asInstanceOf[SequenceNode].children(0)
+v865
   }
 }
 def matchStrChar(node: Node): StringChar = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 342 =>
-val v865 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v866, v867) = v865
-assert(v866.id == 226)
-val v868 = matchStringChar(v867)
-v868
+val v866 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v867, v868) = v866
+assert(v867.id == 226)
+val v869 = matchStringChar(v868)
+v869
   }
 }
 def matchCharChar(node: Node): TerminalChar = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 337 =>
-val v869 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v870, v871) = v869
-assert(v870.id == 190)
-val v872 = matchTerminalChar(v871)
-v872
+val v870 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v871, v872) = v870
+assert(v871.id == 190)
+val v873 = matchTerminalChar(v872)
+v873
   }
 }
 def matchRefIdx(node: Node): Node = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 266 =>
-val v873 = body.asInstanceOf[SequenceNode].children(0)
-v873
+val v874 = body.asInstanceOf[SequenceNode].children(0)
+v874
   }
 }
 def matchId(node: Node): Node = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 35 =>
-val v874 = body.asInstanceOf[SequenceNode].children(0)
-v874
+val v875 = body.asInstanceOf[SequenceNode].children(0)
+v875
   }
 }
 def matchWS(node: Node): List[Node] = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 5 =>
-val v875 = body.asInstanceOf[SequenceNode].children(0)
-val v876 = unrollRepeat0(v875) map { n =>
+val v876 = body.asInstanceOf[SequenceNode].children(0)
+val v877 = unrollRepeat0(v876) map { n =>
 // UnrollChoices
 n
 }
-v876
+v877
   }
 }
 def matchWSNL(node: Node): List[Node] = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 383 =>
-val v877 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v878, v879) = v877
-assert(v878.id == 4)
-val v880 = matchWS(v879)
-v880
+val v878 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v879, v880) = v878
+assert(v879.id == 4)
+val v881 = matchWS(v880)
+v881
   }
 }
 def matchLineComment(node: Node): Node = {
@@ -2307,10 +2311,10 @@ def matchEOF(node: Node): Node = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 21 =>
-val v881 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v882, v883) = v881
-assert(v882.id == 22)
-v883
+val v882 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v883, v884) = v882
+assert(v883.id == 22)
+v884
   }
 }
 def matchStart(node: Node): Grammar = {

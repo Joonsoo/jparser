@@ -1,6 +1,7 @@
 package com.giyeok.jparser.metalang3
 
 import com.giyeok.jparser.ParseResultTree.Node
+import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{Elem, Rule, ngrammar}
 import com.giyeok.jparser.metalang3.TypeFunc._
@@ -60,20 +61,24 @@ object ValueifyGen {
                     if (condSymPath.isEmpty) {
                         valueify(refCtx, body, condSymPath, ExceptBodyOf(Unbind(symbol, input)))
                     } else {
-                        // TODO
+                        // TODO condSymPath
                         ???
                     }
-                case MetaGrammar3Ast.FollowedBy(astNode, followedBy) => (InputNode, NodeType) // TODO
-                case MetaGrammar3Ast.NotFollowedBy(astNode, notFollowedBy) => (InputNode, NodeType) // TODO
+                case MetaGrammar3Ast.FollowedBy(astNode, followedBy) =>
+                    // TODO condSymPath
+                    (InputNode, NodeType)
+                case MetaGrammar3Ast.NotFollowedBy(astNode, notFollowedBy) =>
+                    // TODO condSymPath
+                    (InputNode, NodeType)
                 case MetaGrammar3Ast.Optional(astNode, body) =>
                     check(condSymPath.isEmpty, "")
                     val vBody = valueify(refCtx, body, condSymPath, Unbind(symbol, input))
                     (UnrollChoices(Map(EmptySeqChoice -> NullLiteral, SymbolChoice(body) -> vBody._1)), OptionalOf(vBody._2))
-                case MetaGrammar3Ast.RepeatFromZero(astNode, body) =>
+                case symbol@MetaGrammar3Ast.RepeatFromZero(astNode, body) =>
                     check(condSymPath.isEmpty, "")
                     val vBody = valueify(refCtx, body, condSymPath, input)
                     (UnrollRepeatFromZero(vBody._1), ArrayOf(vBody._2))
-                case MetaGrammar3Ast.RepeatFromOne(astNode, body) =>
+                case symbol@MetaGrammar3Ast.RepeatFromOne(astNode, body) =>
                     check(condSymPath.isEmpty, "")
                     val vBody = valueify(refCtx, body, condSymPath, input)
                     (UnrollRepeatFromOne(vBody._1), ArrayOf(vBody._2))
@@ -106,7 +111,7 @@ object ValueifyGen {
                 //                    val vCond = valueify(refCtx, cond, "", InputNode)
                 //                    val vIfTrue = valueify(refCtx, ??? /*ifTrue*/ , "", InputNode)
                 //                    val vIfFalse = valueify(refCtx, ??? /*ifFalse*/ , "", InputNode)
-                //                    (TernaryExpr(vCond._1, vIfTrue._1, vIfFalse._1, vCond._2), UnionOf(List(vIfTrue._2, vIfFalse._2)))
+                //                    (TernaryExpr(vCond._1, vIfTrue._1, vIfFalse._1, vCond._2), unifyTypes(List(vIfTrue._2, vIfFalse._2)))
                 case MetaGrammar3Ast.ElvisOp(astNode, value, ifNull) =>
                     val vValue = valueify(refCtx, value, "", input)
                     val vIfNull = valueify(refCtx, ifNull, "", input)
@@ -162,8 +167,10 @@ object ValueifyGen {
                     case MetaGrammar3Ast.CharLiteral(astNode, value) => (CharLiteral(value.astNode.sourceText.charAt(0)), CharType)
                     case MetaGrammar3Ast.StringLiteral(astNode, value) => (StringLiteral(value.map(_.astNode.sourceText).mkString), StringType)
                 }
-                case MetaGrammar3Ast.CanonicalEnumValue(astNode, enumName, valueName) => ???
-                case MetaGrammar3Ast.ShortenedEnumValue(astNode, valueName) => ???
+                case MetaGrammar3Ast.CanonicalEnumValue(astNode, enumName, valueName) =>
+                    (CanonicalEnumValue(enumName, valueName), EnumType(enumName))
+                case MetaGrammar3Ast.ShortenedEnumValue(astNode, valueName) =>
+                    (ShortenedEnumValue(valueName), UnspecifiedEnum(1)) // TODO uniqueId
             }
     }
 
@@ -200,22 +207,16 @@ object ValueifyGen {
 
     def main(args: Array[String]): Unit = {
         val example =
-            """TypeDesc = NonNullTypeDesc (WS '?')? {TypeDesc(typ=$0, optional=$1 ?: "qwe")}
+            """TypeDesc = NonNullTypeDesc (WS '?' {str($1)})? {TypeDesc(typ=$0, optional=$1 ?: "qwe")}
               |A = ({true}|{false}) C {Asdf(first=ispresent($0), second=$1)}
               |  | 'w'
               |""".stripMargin
-        val rule = MetaGrammar3Ast.parseAst(example).left.get.defs.head.asInstanceOf[Rule]
+        val defs = MetaGrammar3Ast.parseAst(MetaLang3Grammar.inMetaLang3.grammar).left.get.defs
+        val rule = defs.head.asInstanceOf[Rule]
         val v = valueifyRule(rule)
 
-        val parsed = parse(example)
-        println(parsed)
         val analysis = new AnalysisResult()
         val scalaGen = new ScalaGen(analysis)
-        val exprCode = scalaGen.valueifyExprCode(v._1, "input")
-        println(s"def ${scalaGen.matchFuncNameForNonterminal(rule.lhs.name)}(input: Node): ${scalaGen.typeDescStringOf(analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(v._2)))} = {")
-        exprCode.codes.foreach(println)
-        println(s"${exprCode.result}")
-        println("}")
-        println()
+        scalaGen.matchFuncFor(rule.lhs.name, v._1, v._2).codes.foreach(println)
     }
 }

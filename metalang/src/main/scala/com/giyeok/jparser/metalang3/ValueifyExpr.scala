@@ -1,7 +1,7 @@
 package com.giyeok.jparser.metalang3
 
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, InPlaceSequence, NamedParam, RHS, StringChar, TypeName, TypeOrFuncName}
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, EnumValueName, InPlaceSequence, NamedParam, RHS, StringChar, TypeName, TypeOrFuncName}
 
 // Node를 받아서 Elem의 값을 얻는 expression
 sealed class ValueifyExpr
@@ -24,9 +24,9 @@ case class ExceptCondOf(expr: ValueifyExpr) extends ValueifyExpr
 
 case class SeqElemAt(expr: ValueifyExpr, index: Int) extends ValueifyExpr
 
-case class UnrollRepeatFromZero(expr: ValueifyExpr) extends ValueifyExpr
+case class UnrollRepeatFromZero(elemProcessExpr: ValueifyExpr) extends ValueifyExpr
 
-case class UnrollRepeatFromOne(expr: ValueifyExpr) extends ValueifyExpr
+case class UnrollRepeatFromOne(elemProcessExpr: ValueifyExpr) extends ValueifyExpr
 
 case class UnrollChoices(map: Map[DerivationChoice, ValueifyExpr]) extends ValueifyExpr
 
@@ -80,6 +80,6 @@ case object StringLiteral {
 
 sealed class EnumValue extends ValueifyExpr
 
-case class CanonicalEnumValue(name: EnumTypeName, value: CanonicalEnumValue) extends EnumValue
+case class CanonicalEnumValue(name: EnumTypeName, value: EnumValueName) extends EnumValue
 
-case class ShortenedEnumValue(value: String) extends EnumValue
+case class ShortenedEnumValue(value: EnumValueName) extends EnumValue

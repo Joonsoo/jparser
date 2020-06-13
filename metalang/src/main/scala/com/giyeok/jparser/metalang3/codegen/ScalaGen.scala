@@ -15,6 +15,8 @@ class ScalaGen(val analysis: AnalysisResult) {
 
     case class ValueifierCode(codes: List[String], result: String, requirements: Set[String])
 
+    case class CodeBlock(codes: List[String])
+
     private def firstCharUpperCase(name: String) = s"${name.charAt(0).toUpper}${name.substring(1)}"
 
     def matchFuncNameForNonterminal(nonterminal: Nonterminal): String =
@@ -37,6 +39,8 @@ class ScalaGen(val analysis: AnalysisResult) {
         case ConcreteType.UnionOf(types) =>
             throw IllegalGrammar(s"Union type is not supported: Union(${types.map(typeDescStringOf).mkString(", ")})")
     }
+
+    private def escapeChar(char: Char): String = s"'$char'"
 
     private def escapeString(str: String): String = s""""$str""""
 
@@ -68,8 +72,20 @@ class ScalaGen(val analysis: AnalysisResult) {
         case JoinCondOf(expr) => ???
         case ExceptBodyOf(expr) => ???
         case ExceptCondOf(expr) => ???
-        case UnrollRepeatFromZero(expr) => ???
-        case UnrollRepeatFromOne(expr) => ???
+        case UnrollRepeatFromZero(elemProcessExpr) =>
+            // inputName을 repeatSymbol로 unroll repeat하고, 각각을 expr로 가공
+            val elemProcessCode = valueifyExprCode(elemProcessExpr, "elem")
+            val v = newVarName()
+            ValueifierCode(
+                s"val $v = ASTUtils.unrollRepeat0($inputName) map { elem =>"
+                    +: elemProcessCode.codes :+ "}", v, elemProcessCode.requirements + "ASTUtils.unrollRepeat0")
+        case UnrollRepeatFromOne(elemProcessExpr) =>
+            // inputName을 repeatSymbol로 unroll repeat하고, 각각을 expr로 가공
+            val elemProcessCode = valueifyExprCode(elemProcessExpr, "elem")
+            val v = newVarName()
+            ValueifierCode(
+                s"val $v = ASTUtils.unrollRepeat1($inputName) map { elem =>"
+                    +: elemProcessCode.codes :+ "}", v, elemProcessCode.requirements + "ASTUtils.unrollRepeat1")
         case UnrollChoices(mappings) =>
             val symbol = newVarName()
             val body = newVarName()
@@ -146,14 +162,31 @@ class ScalaGen(val analysis: AnalysisResult) {
             val v = newVarName()
             val assign = s"val $v = ${vExpr.result}.getOrElse(${vIfNull.result})"
             ValueifierCode(vExpr.codes ++ vIfNull.codes :+ assign, v, vExpr.requirements ++ vIfNull.requirements)
-        case TernaryExpr(condition, ifTrue, ifFalse, conditionType) => ???
+        case TernaryExpr(condition, ifTrue, ifFalse, conditionType) =>
+            val vCondition = valueifyExprCode(condition, inputName)
+            val vIfTrue = valueifyExprCode(ifTrue, inputName)
+            val vIfFalse = valueifyExprCode(ifFalse, inputName)
+            val v = newVarName()
+            val ternaryStmt = s"val $v = if (${vCondition.result}) ${vIfTrue.result} else ${vIfFalse.result}"
+            ValueifierCode(vCondition.codes ++ vIfTrue.codes ++ vIfFalse.codes :+ ternaryStmt, v,
+                vCondition.requirements ++ vIfTrue.requirements ++ vIfFalse.requirements)
         case literal: Literal =>
             literal match {
                 case NullLiteral => ValueifierCode(List(), "None", Set())
                 case BoolLiteral(value) => ValueifierCode(List(), s"$value", Set())
-                case CharLiteral(value) => ???
+                case CharLiteral(value) => ValueifierCode(List(), escapeChar(value), Set())
                 case StringLiteral(value) => ValueifierCode(List(), escapeString(value), Set())
             }
-        case value: EnumValue => ???
+        case value: EnumValue => value match {
+            case CanonicalEnumValue(name, value) => ???
+            case ShortenedEnumValue(value) => ???
+        }
+    }
+
+    def matchFuncFor(nonterminal: Nonterminal, valueifyExpr: ValueifyExpr, returnType: TypeFunc): CodeBlock = {
+        val exprCode = valueifyExprCode(valueifyExpr, "input")
+        val returnTypeString = typeDescStringOf(analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(returnType)))
+        CodeBlock(List(s"def ${matchFuncNameForNonterminal(nonterminal)}(input: Node): $returnTypeString = {") ++
+            exprCode.codes ++ List(s"${exprCode.result}", "}"))
     }
 }

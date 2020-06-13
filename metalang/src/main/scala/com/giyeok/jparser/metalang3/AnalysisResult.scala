@@ -15,7 +15,7 @@ class AnalysisResult {
 
     def concreteTypeOf(typeFunc: TypeFunc): ConcreteType = typeFunc match {
         case TypeFunc.NodeType => ConcreteType.NodeType
-        case TypeFunc.TypeOfSymbol(symbol) => ???
+        case TypeFunc.TypeOfSymbol(symbol) => ConcreteType.NodeType
         case TypeFunc.TypeOfProcessor(processor) => ???
         case TypeFunc.ClassType(name) => ConcreteType.ClassType(name)
         case TypeFunc.OptionalOf(typ) => ConcreteType.OptionalOf(concreteTypeOf(typ))
@@ -27,7 +27,7 @@ class AnalysisResult {
         case TypeFunc.AddOpType(lhs, rhs) => ???
         case TypeFunc.FuncCallResultType(typeOrFuncName, params) => ???
         case TypeFunc.UnionOf(types) => ???
-        case TypeFunc.CanonicalEnum(enumName) => ???
+        case TypeFunc.EnumType(enumName) => ???
         case TypeFunc.UnspecifiedEnum(uniqueId) => ???
         case TypeFunc.NullType => ConcreteType.NullType
         case TypeFunc.BoolType => ConcreteType.BoolType
