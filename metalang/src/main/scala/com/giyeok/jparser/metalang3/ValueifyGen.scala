@@ -22,7 +22,9 @@ object ValueifyGen {
     private def unifyTypes(types: Iterable[TypeFunc]): TypeFunc = if (types.size == 1) types.head else UnionOf(types.toList)
 
     private def valueifyInPlaceSequence(choices: List[MetaGrammar3Ast.InPlaceSequence], condSymPath: String, input: ValueifyExpr): (ValueifyExpr, TypeFunc) = {
-        def valueifyChoice(choice: InPlaceSequence) = {
+        // TODO 이 안에서 `input`들 잘 들어가는지 확인
+        def valueifyChoice(choice: InPlaceSequence, input: ValueifyExpr): (ValueifyExpr, TypeFunc) = {
+            // 마지막 element가 symbol이면 SeqElemAt이 들어가야 한다.
             assert(choice.seq.nonEmpty)
             val bodyInput = choice.seq.last match {
                 case _: MetaGrammar3Ast.Symbol => SeqElemAt(Unbind(choice, input), choice.seq.size - 1)
@@ -32,15 +34,15 @@ object ValueifyGen {
         }
 
         if (choices.size == 1) {
-            valueifyChoice(choices.head)
+            valueifyChoice(choices.head, input)
         } else {
             check(condSymPath.isEmpty, "")
             val vChoices = choices.map { choice =>
-                choice -> valueifyChoice(choice)
+                choice -> valueifyChoice(choice, input)
             }
             val choicesMap: Map[DerivationChoice, ValueifyExpr] = vChoices.map(choice => InPlaceSequenceChoice(choice._1) -> choice._2._1).toMap
             val returnType = unifyTypes(vChoices.map(_._2._2))
-            (UnrollChoices(choicesMap), returnType)
+            (UnrollChoices(input, choicesMap), returnType)
         }
     }
 
@@ -79,8 +81,11 @@ object ValueifyGen {
                     (InputNode, NodeType)
                 case MetaGrammar3Ast.Optional(astNode, body) =>
                     check(condSymPath.isEmpty, "")
-                    val vBody = valueify(refCtx, body, condSymPath, Unbind(symbol, input))
-                    (UnrollChoices(Map(EmptySeqChoice -> NullLiteral, SymbolChoice(body) -> vBody._1)), OptionalOf(vBody._2))
+                    val vBody = valueify(refCtx, body, condSymPath, InputNode)
+                    (UnrollChoices(Unbind(symbol, input), Map(
+                        EmptySeqChoice -> NullLiteral,
+                        SymbolChoice(body) -> vBody._1)
+                    ), OptionalOf(vBody._2))
                 case symbol@MetaGrammar3Ast.RepeatFromZero(astNode, body) =>
                     check(condSymPath.isEmpty, "")
                     val vBody = valueify(refCtx, body, condSymPath, InputNode)
@@ -187,7 +192,7 @@ object ValueifyGen {
         }.toMap
         val mappings = mappers.map(mapper => mapper._1 -> mapper._2._1)
         val returnType = unifyTypes(mappers.map(_._2._2))
-        (UnrollChoices(mappings.toMap), returnType)
+        (UnrollChoices(InputNode, mappings.toMap), returnType)
     }
 
     def parse(text: String): ParseResultTree.Node = {
@@ -215,7 +220,9 @@ object ValueifyGen {
     def main(args: Array[String]): Unit = {
         MetaLang3Grammar.inMetaLang3
         val example =
-            """Rule = LHS WS '=' WS (RHS (WS '|' WS RHS)* {[$0] + $1}) {Rule(lhs=$0, rhs=$4)}
+            """LHS = Nonterminal (WS ':' WS TypeDesc)? {LHS(name=$0, typeDesc=$1)}
+              |RHS = Elem (WS Elem)* {RHS(elems=[$0] + $1)}
+              |Elem: Elem = Symbol | Processor
               |""".stripMargin
         val defs = MetaGrammar3Ast.parseAst(example).left.get.defs
         val rule = defs.head.asInstanceOf[Rule]

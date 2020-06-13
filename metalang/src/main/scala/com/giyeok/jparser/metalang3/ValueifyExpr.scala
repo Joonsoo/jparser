@@ -26,7 +26,7 @@ case class SeqElemAt(expr: ValueifyExpr, index: Int) extends ValueifyExpr
 
 case class UnrollRepeat(minimumRepeat: Int, arrayExpr: ValueifyExpr, elemProcessExpr: ValueifyExpr) extends ValueifyExpr
 
-case class UnrollChoices(map: Map[DerivationChoice, ValueifyExpr]) extends ValueifyExpr
+case class UnrollChoices(choiceExpr: ValueifyExpr, map: Map[DerivationChoice, ValueifyExpr]) extends ValueifyExpr
 
 sealed class DerivationChoice
 

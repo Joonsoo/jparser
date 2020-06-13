@@ -85,15 +85,16 @@ class ScalaGen(val analysis: AnalysisResult) {
                     List(elemProcessCode.result,
                         "}"),
                 v, arrayExprCode.requirements ++ elemProcessCode.requirements + funcName)
-        case UnrollChoices(mappings) =>
+        case UnrollChoices(choiceExpr, mappings) =>
             val symbol = newVarName()
             val body = newVarName()
             val v = newVarName()
-            var codes = List(
-                s"val BindNode($symbol, $body) = $inputName",
+            val vChoiceExpr = valueifyExprCode(choiceExpr, inputName)
+            var codes = vChoiceExpr.codes ++ List(
+                s"val BindNode($symbol, $body) = ${vChoiceExpr.result}",
                 s"val $v = $symbol.id match {"
             )
-            var requirements = Set[String]()
+            var requirements = vChoiceExpr.requirements
             mappings.foreach { mapping =>
                 val symbol = mapping._1 match {
                     case InPlaceSequenceChoice(inPlaceSequence) => analysis.symbolOf(inPlaceSequence)
