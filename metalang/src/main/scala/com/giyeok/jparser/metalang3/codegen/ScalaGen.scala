@@ -48,6 +48,7 @@ class ScalaGen(val analysis: AnalysisResult) {
 
     private def collectRequirementsFrom(codes: List[ValueifierCode]) = codes.foldLeft(Set[String]())(_ ++ _.requirements)
 
+    // TODO 값이 가는 곳이 OptionalType인데 주는 값이 아니면, Some(**)로 넣어주도록
     def valueifyExprCode(expr: ValueifyExpr, inputName: String): ValueifierCode = expr match {
         case InputNode => ValueifierCode(List(), inputName, Set())
         case MatchNonterminal(nonterminal, expr) =>

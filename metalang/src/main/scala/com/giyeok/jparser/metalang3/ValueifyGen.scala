@@ -9,6 +9,8 @@ import com.giyeok.jparser.metalang3.codegen.ScalaGen
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.{NGrammar, ParseForestFunc, ParseResultTree, ParsingErrors}
 
+import scala.annotation.tailrec
+
 object ValueifyGen {
 
     case class IllegalGrammar(msg: String) extends Exception
@@ -48,7 +50,7 @@ object ValueifyGen {
 
     // _1는 elem 속의 refCtx
     // _2는 elem이 Longest 등인 경우 그걸 어떻게 발라먹을지
-    private def getBindingContext(elem: MetaGrammar3Ast.Elem, input: ValueifyExpr): (List[Elem], ValueifyExpr) = elem match {
+    @tailrec private def getBindingContext(elem: MetaGrammar3Ast.Elem, input: ValueifyExpr): (List[Elem], ValueifyExpr) = elem match {
         case symbol@MetaGrammar3Ast.Longest(astNode, choices) if choices.choices.size == 1 =>
             getBindingContext(choices.choices.head, Unbind(symbol, input))
         case MetaGrammar3Ast.InPlaceChoices(astNode, choices) if choices.size == 1 =>
