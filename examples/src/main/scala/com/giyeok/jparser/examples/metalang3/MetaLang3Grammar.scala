@@ -73,7 +73,7 @@ object MetaLang3Grammar extends MetaLangExamples {
     // - \$는 raw ParseNode에 대한 refernce. \$0가 A*를 가리키고 있으면 \$0는 A의 리스트가 아니라 A* 자체의 ParseNode
 
     val inMetaLang2: MetaLang2Example = MetaLang2Example("Meta Language 3",
-        """Grammar = WS Def (WS Def)* WS {@Grammar(defs=[$1] + $2$1)}
+        """Grammar = WS Def (WSNL Def)* WS {@Grammar(defs=[$1] + $2$1)}
           |Def: @Def = Rule | TypeDef
           |
           |Rule = LHS WS '=' WS RHS (WS '|' WS RHS)* {@Rule(lhs=$0, rhs=[$4] + $5$3)}
@@ -109,7 +109,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | TerminalChoiceRange
           |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {@TerminalChoiceRange(start=$0, end=$2)}
           |StringSymbol = '"' StringChar* '"' {@StringSymbol(value=$1$0)}
-          |Nonterminal = Id {@Nonterminal(name=$0)}
+          |Nonterminal = NonterminalName {@Nonterminal(name=$0)}
           |InPlaceChoices = InPlaceSequence (WS '|' WS InPlaceSequence)* {@InPlaceChoices(choices=[$0] + $1$3)}
           |InPlaceSequence = Elem (WS Elem)* {@InPlaceSequence(seq=[$0] + $1$1)}
           |Longest = '<' WS InPlaceChoices WS '>' {@Longest(choices=$2)}
@@ -217,21 +217,28 @@ object MetaLang3Grammar extends MetaLangExamples {
           |
           |
           |// Common
-          |TypeName = Id {@TypeName(name=$0)}
-          |TypeOrFuncName = Id {@TypeOrFuncName(name=$0)}
-          |ParamName = Id {@ParamName(name=$0)}
+          |TypeName = Id-Keyword {@TypeName(name=$0)}
+          |  | '`' Id '`' {TypeName($0)}
+          |NonterminalName = Id-Keyword {@NonterminalName(name=$0)}
+          |  | '`' Id '`' {NonterminalName($0)}
+          |TypeOrFuncName = Id-Keyword {@TypeOrFuncName(name=$0)}
+          |  | '`' Id '`' {TypeOrFuncName($0)}
+          |ParamName = Id-Keyword {@ParamName(name=$0)}
+          |  | '`' Id '`' {ParamName($0)}
+          |Keyword = "boolean" | "char" | "string" | "true" | "false" | "null"
           |StrChar = StringChar
           |CharChar = TerminalChar
           |
           |RefIdx = <'0' | '1-9' '0-9'*>
           |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*>
           |WS = (' \n\r\t' | LineComment)*
+          |WSNL = WS // TODO newline이 포함된 WS
           |LineComment = '/' '/' (.-'\n')* (EOF | '\n')
           |EOF = !.
           |""".stripMargin)
 
     val inMetaLang3: MetaLang3Example = MetaLang3Example("Meta Language 3",
-        """Grammar = WS Def (WS Def)* WS {Grammar(defs=[$1] + $2)}
+        """Grammar = WS Def (WSNL Def)* WS {Grammar(defs=[$1] + $2)}
           |Def: Def = Rule | TypeDef
           |
           |Rule = LHS WS '=' WS (RHS (WS '|' WS RHS)* {[$0] + $1}) {Rule(lhs=$0, rhs=$4)}
@@ -375,19 +382,22 @@ object MetaLang3Grammar extends MetaLangExamples {
           |
           |// Common
           |// TODO TypeName, NonterminalName에서 `` 사이에는 Id 말고 다른거(공백, keyword 등도 쓸 수 있는)
-          |TypeName = Id-ValueType {TypeName(name=$0)}
+          |TypeName = Id-Keyword {TypeName(name=$0)}
           |  | '`' Id '`' {TypeName(name=$0)}
-          |NonterminalName = Id {NonterminalName(name=$0)}
+          |NonterminalName = Id-Keyword {NonterminalName(name=$0)}
           |  | '`' Id '`' {NonterminalName(name=$0)}
-          |TypeOrFuncName = Id {TypeOrFuncName(name=$0)}
+          |TypeOrFuncName = Id-Keyword {TypeOrFuncName(name=$0)}
           |  | '`' Id '`' {TypeOrFuncName(name=$0)}
-          |ParamName = Id {ParamName(name=$0)}
+          |ParamName = Id-Keyword {ParamName(name=$0)}
+          |  | '`' Id '`' {ParamName(name=$0)}
+          |Keyword = "boolean" | "char" | "string" | "true" | "false" | "null"
           |StrChar = StringChar
           |CharChar = TerminalChar
           |
           |RefIdx = <'0' | '1-9' '0-9'*>
           |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*>
           |WS = (' \n\r\t' | LineComment)*
+          |WSNL = WS // TODO newline이 포함된 WS
           |LineComment = '/' '/' (.-'\n')* (EOF | '\n')
           |EOF = !.
           |""".stripMargin)
