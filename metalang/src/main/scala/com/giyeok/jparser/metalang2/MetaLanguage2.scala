@@ -4,7 +4,7 @@ import java.io.{BufferedWriter, File, FileWriter}
 
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.Symbols.Terminals
-import com.giyeok.jparser.examples.metalang2.{ExpressionGrammarsMetaLang2, MetaLang2Grammar, MetaLang3Grammar}
+import com.giyeok.jparser.examples.metalang2.{ExpressionGrammarsMetaLang2, MetaLang2Grammar}
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}

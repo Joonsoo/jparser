@@ -10,19 +10,6 @@ sealed trait AST
 object AST {
 
     class Node(val node: ParseResultTree.Node) {
-        override def toString: String = {
-            def rec(node: ParseResultTree.Node): String = node match {
-                case TerminalNode(_, input) => input.toRawString
-                case BindNode(_, body) => rec(body)
-                case JoinNode(_, body, _) => rec(body)
-                case seq: SequenceNode => seq.children map rec mkString ""
-                case _: CyclicBindNode | _: CyclicSequenceNode =>
-                    throw new Exception("Cyclic bind")
-            }
-
-            rec(node)
-        }
-
         def toRepr: String = super.toString
     }
 

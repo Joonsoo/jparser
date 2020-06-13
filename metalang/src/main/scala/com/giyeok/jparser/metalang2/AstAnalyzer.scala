@@ -39,7 +39,7 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
     private def unicodeCharToChar(charNode: AST.Node): Char = charNode.node match {
         case BindNode(_, seq: SequenceNode) =>
             assert(seq.children.size == 6)
-            Integer.parseInt(s"${seq.children(2).toString}${seq.children(3).toString}${seq.children(4).toString}${seq.children(5).toString}", 16).toChar
+            Integer.parseInt(s"${seq.children(2).sourceText}${seq.children(3).sourceText}${seq.children(4).sourceText}${seq.children(5).sourceText}", 16).toChar
     }
 
     private def charNodeToChar(charNode: AST.Node): Char = charNode.node match {
@@ -109,23 +109,23 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
 
     private def astProcessorToAstifier(ctx: AstifiedCtx, processor: AST.Processor): AstifierExpr = processor match {
         case AST.Ref(_, idx) =>
-            val idxNum = idx.toString.toInt
+            val idxNum = idx.node.sourceText.toInt
             ctx.refs(idxNum).astifierExpr
         case AST.BoundPExpr(_, ctxRef, expr) =>
-            val referred = ctx.refs(ctxRef.idx.toString.toInt)
+            val referred = ctx.refs(ctxRef.idx.node.sourceText.toInt)
             // TODO .getOrElse 해서 명시적 insideCtx가 없으면 $0을 전체를 가리키도록
             val referredCtx = referred.insideCtx.get
             val mapFn = astProcessorToAstifier(referredCtx, expr)
             // TODO referred.symbol의 종류에 따라서 UnrollMapper를 다른 형태로 바꿔야될 수도?
             EachMap(referred.astifierExpr, mapFn)
         case AST.BinOpExpr(_, op, lhs, rhs) =>
-            op.toString match {
+            op.node.sourceText match {
                 case "+" => ConcatList(astProcessorToAstifier(ctx, lhs), astProcessorToAstifier(ctx, rhs))
             }
         case AST.ConstructExpr(_, typ, params) =>
-            CreateObj(typ.name.toString, params map (astProcessorToAstifier(ctx, _)))
+            CreateObj(typ.name.node.sourceText, params map (astProcessorToAstifier(ctx, _)))
         case AST.OnTheFlyTypeDefConstructExpr(_, typeDef, params) =>
-            CreateObj(typeDef.name.name.toString, params map { p => astProcessorToAstifier(ctx, p.expr) })
+            CreateObj(typeDef.name.name.node.sourceText, params map { p => astProcessorToAstifier(ctx, p.expr) })
         case AST.PTermParen(_, expr) =>
             astProcessorToAstifier(ctx, expr)
         case AST.PTermSeq(_, elems) =>
@@ -157,7 +157,7 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
                 // TODO 이거 다시 확인
                 Astified(Symbols.Start, ThisNode, None)
             ))))
-            repeatSpec.toString match {
+            repeatSpec.node.sourceText match {
                 case "?" =>
                     val empty = Symbols.Proxy(Symbols.Sequence(Seq()))
                     val content = r.symbol.asAtomic
@@ -203,7 +203,7 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
                 Astified(addSymbol(ast, r.symbol), r.astifierExpr, r.insideCtx)
             }
         case AST.Nonterminal(_, name) =>
-            val s = addSymbol(ast, Symbols.Nonterminal(name.toString))
+            val s = addSymbol(ast, Symbols.Nonterminal(name.node.sourceText))
             Astified(s, Unbind(ThisNode, s), None)
         case AST.TerminalChar(_, char) =>
             val s = addSymbol(ast, Symbols.ExactChar(charNodeToChar(char)))
@@ -220,7 +220,7 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
             Astified(s, ThisNode, None)
         case AST.StringLiteral(_, value) =>
             // TODO stringCharToChar 사용하도록 수정
-            val s = addSymbol(ast, Symbols.Proxy(GrammarHelper.i(value.toString)))
+            val s = addSymbol(ast, Symbols.Proxy(GrammarHelper.i(value.node.sourceText)))
             Astified(s, ThisNode, None)
     }
 
@@ -244,7 +244,7 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
 
     def analyzeAstifiers(): AstAnalysis = {
         // Check duplicate definitions of nonterminal
-        val ruleNames = grammarAst.defs.collect { case r: AST.Rule => r }.groupBy(_.lhs.name.name.toString)
+        val ruleNames = grammarAst.defs.collect { case r: AST.Rule => r }.groupBy(_.lhs.name.name.node.sourceText)
         if (ruleNames exists (_._2.size >= 2)) {
             val duplicates = (ruleNames filter (_._2.size >= 2)).keys
             throw new Exception(s"Duplicate definitions of nonterminal ${duplicates mkString ", "}")
@@ -259,7 +259,7 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
                     val lastExpr = astified.insideCtx.get.refs.last.astifierExpr
                     (symbol, lastExpr)
                 }
-                lhs.name.name.toString -> processedR
+                lhs.name.name.node.sourceText -> processedR
         }
         new AstAnalysis(astifiers)
     }

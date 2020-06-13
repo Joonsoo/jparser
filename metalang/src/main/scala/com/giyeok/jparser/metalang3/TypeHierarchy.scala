@@ -8,6 +8,6 @@ class TypeHierarchy {
 
     case class ClassType(name: String, params: List[ClassParam])
 
-    case class ClassParam(name: String, specifiedType: Option[TypeDesc])
+    case class ClassParam(name: String, specifiedType: Option[TypeFunc])
 
 }

@@ -49,6 +49,15 @@ object ParseResultTree {
         val start: Inputs.Location
         val end: Inputs.Location
         def range: (Inputs.Location, Inputs.Location) = (start, end)
+
+        def sourceText: String = this match {
+            case TerminalNode(_, input) => input.toRawString
+            case BindNode(_, body) => body.sourceText
+            case JoinNode(_, body, _) => body.sourceText
+            case seq: SequenceNode => seq.children.map(_.sourceText).mkString
+            case _: CyclicBindNode | _: CyclicSequenceNode =>
+                throw new Exception("Cyclic bind")
+        }
     }
 
     case class TerminalNode(start: Inputs.Location, input: Input) extends Node {

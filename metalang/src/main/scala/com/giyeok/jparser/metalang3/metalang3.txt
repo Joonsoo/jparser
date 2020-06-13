@@ -175,6 +175,50 @@ ref된 elem에 대해 ElemExpr과 type constructor?를 계산해야 함. 이 때
     - valueify(a ? b : c): {B, C}
 
 
+ValueifyExpr
+  - Node
+  - MatchNonterminal(nonterminal symbol, ValueifyExpr)
+  - Unbind(symbol, Node)
+  - SeqElemAt(Node, Index)
+  - UnrollOptional(ValueifyExpr)
+  - UnrollRepeat(* or +, ValueifyExpr)
+  - UnrollLongest
+  - UnrollChoices(Map[Symbol, ValueifyExpr])
+  - ConstructExpr
+  - ArrayExpr
+  - PrefixOp
+  - BinOp
+  - ElvisOp
+  - TernateryExpr(condition: ValueifyExpr, then: ValueifyExpr, otherwise: ValueifyExpr)
+  - Literal
+    - NullLiteral singleton
+    - BoolLiteral(value)
+    - CharLiteral(value)
+    - StringLiteral(string)
+  - EnumValue
+    - CanonicalEnumValue
+    - ShortenedEnumValue
+
+
+valueify(Symbol, ValueifyExpr)
+valueify(Processor, ValueifyExpr)
+
+TypeFunc
+  - Node
+  - TypeOfSymbol(symbol)
+  - TypeOfProcessor(processor)
+  - ClassType(typeName)
+  - OptionalOf(TypeFunc)
+  - ArrayOf(TypeFunc)
+  - UnionOf(TypeFuncs..)
+  - CanonicalEnum(EnumName)
+  - UnspecifiedEnum(unique id)
+  - NullType
+  - BoolType
+  - CharType
+  - StringType
+
+
 
 - 클래스 인자나, 넌터미널(이나 추후 PExpr)의 타입이 명시적으로 ": ~~"로 정의되어 있지 않은 경우에는, 그 위치에 넣어주는
   값(예를 들어 클래스를 생성할 때 그 인자에 주는 값)의 타입들을 보고 bottom up으로 inference한다.
@@ -183,3 +227,9 @@ ref된 elem에 대해 ElemExpr과 type constructor?를 계산해야 함. 이 때
 - union type은 클래스 계층 구조상에서 해당 타입에 속한 모든 타입을 tightly cover하는 가장 낮은 위치의 abstract type으로
   치환한다
 
+
+
+
+
+- valueify를 해서 필요한 모든 symbol 및 processor에 대한 ValueifyExpr과 TypeFunc를 계산한 다음,
+- DependenceGraph를 만들어서 검증, 타입 hierarchy 계산, shortened enum value 타입 계산

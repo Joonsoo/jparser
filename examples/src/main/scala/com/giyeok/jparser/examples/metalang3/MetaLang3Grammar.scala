@@ -98,7 +98,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | TerminalChoice
           |  | StringSymbol
           |  | Nonterminal
-          |  | '(' WS InPlaceChoices WS ')' {@Paren(choices=$2)}
+          |  | '(' WS InPlaceChoices WS ')' $2
           |  | Longest
           |  | EmptySequence
           |Terminal: @Terminal = '\'' TerminalChar '\'' $1
@@ -138,17 +138,17 @@ object MetaLang3Grammar extends MetaLangExamples {
           |
           |// 우선순위 낮은것부터
           |PExpr: @PExpr = TernateryExpr // TODO (WS ':' WS TypeDesc)? 를 뒤에 붙일 수 있을까?
-          |TernateryExpr: @TerExpr = BoolOrExpr WS '?' WS <TernateryExpr> WS ':' WS <TernateryExpr> {@TernateryOp(cond=$0, then=$4, otherwise=$8)}
-          |  | BoolOrExpr
-          |BoolOrExpr: @BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {@BinOp(lhs=$0, rhs=$4, op=$2)}
+          |TernateryExpr: @TerExpr = // BoolOrExpr WS '?' WS <TernateryExpr> WS ':' WS <TernateryExpr> {@TernateryOp(cond=$0, ifTrue=$4$0, ifFalse=$8$0)}
+          |  BoolOrExpr
+          |BoolOrExpr: @BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {@BinOp(op=$2, lhs=$0, rhs=$4)}
           |  | BoolAndExpr
-          |BoolAndExpr: @BoolAndExpr = BoolEqExpr WS "||" WS BoolAndExpr {BinOp($0, $4, $2)}
+          |BoolAndExpr: @BoolAndExpr = BoolEqExpr WS "||" WS BoolAndExpr {BinOp($2, $0, $4)}
           |  | BoolEqExpr
-          |BoolEqExpr: @BoolEqExpr = ElvisExpr WS ("==" | "!=") WS BoolEqExpr {BinOp($0, $4, $2)}
+          |BoolEqExpr: @BoolEqExpr = ElvisExpr WS ("==" | "!=") WS BoolEqExpr {BinOp($2, $0, $4)}
           |  | ElvisExpr
-          |ElvisExpr: @ElvisExpr = AdditiveExpr WS "?:" WS ElvisExpr {@ElvisOp(value=$0, whenNull=$4)}
+          |ElvisExpr: @ElvisExpr = AdditiveExpr WS "?:" WS ElvisExpr {@ElvisOp(value=$0, ifNull=$4)}
           |  | AdditiveExpr
-          |AdditiveExpr: @AdditiveExpr = PrefixNotExpr WS '+' WS AdditiveExpr {BinOp($0, $4, $2)}
+          |AdditiveExpr: @AdditiveExpr = PrefixNotExpr WS '+' WS AdditiveExpr {BinOp($2, $0, $4)}
           |  | PrefixNotExpr
           |PrefixNotExpr: @PrefixNotExpr = '!' WS PrefixNotExpr {@PrefixOp(expr=$2, op=$0)}
           |  | Atom
@@ -162,7 +162,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | '(' WS PExpr WS ')' {@ExprParen(body=$2)}
           |
           |BindExpr = ValRef BinderExpr {@BindExpr(ctx=$0, binder=$1)}
-          |BinderExpr = Ref
+          |BinderExpr: @BinderExpr = Ref
           |  | BindExpr
           |  | '{' WS PExpr WS '}' $2
           |NamedConstructExpr = TypeName WS NamedConstructParams {@NamedConstructExpr(typeName=$0, params=$2)}
@@ -192,7 +192,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |ClassParamsDef = '(' WS (ClassParamDef (WS ',' WS ClassParamDef)* WS)? WS ')' {$2{[$0] + $1$3}}
           |ClassParamDef = ParamName (WS ':' WS TypeDesc)? {@ClassParamDef(name=$0, typeDesc=$1$3)}
           |
-          |SuperDef = TypeName WS '{' WS (SubTypes WS)? '}' {@SuperDef(typeName=$0, subs=$4$0)}
+          |SuperDef = TypeName WS '{' (WS SubTypes)? WS '}' {@SuperDef(typeName=$0, subs=$3$1)}
           |SubTypes = SubType (WS ',' WS SubType)* {[$0] + $1$3}
           |SubType: @SubType = TypeName | ClassDef | SuperDef
           |
@@ -256,7 +256,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | TerminalChoice
           |  | StringSymbol
           |  | Nonterminal
-          |  | '(' WS InPlaceChoices WS ')' {Paren(choices=$2)}
+          |  | '(' WS InPlaceChoices WS ')' $2
           |  | Longest
           |  | EmptySequence
           |Terminal: Terminal = '\'' TerminalChar '\'' $1
@@ -295,19 +295,19 @@ object MetaLang3Grammar extends MetaLangExamples {
           |RawRef = "\\$" CondSymPath? RefIdx {RawRef(idx=$2, condSymPath=$1)}
           |
           |PExpr: PExpr = TernateryExpr // TODO Add (WS ':' WS TypeDesc)?
-          |TernateryExpr: TernateryExpr = BoolOrExpr WS '?' WS <TernateryExpr> WS ':' WS <TernateryExpr> {TernateryOp(cond=$0, then=$4, otherwise=$8)}
+          |TernateryExpr: TernateryExpr = BoolOrExpr WS '?' WS <TernateryExpr> WS ':' WS <TernateryExpr> {TernateryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
           |  | BoolOrExpr
-          |BoolOrExpr: BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {BinOp(lhs=$0, rhs=$4, op=%Op.AND)}
+          |BoolOrExpr: BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {BinOp(op=%Op.AND, lhs=$0, rhs=$4)}
           |  | BoolAndExpr
-          |BoolAndExpr: BoolAndExpr = BoolEqExpr WS "||" WS BoolAndExpr {BinOp(lhs=$0, rhs=$4, op=%Op.OR)}
+          |BoolAndExpr: BoolAndExpr = BoolEqExpr WS "||" WS BoolAndExpr {BinOp(op=%Op.OR, lhs=$0, rhs=$4)}
           |  | BoolEqExpr
-          |BoolEqExpr: BoolEqExpr = ElvisExpr WS ("==" {%Op.EQ} | "!=" {%Op.NE}) WS BoolEqExpr {BinOp(lhs=$0, rhs=$4, op=$2)}
+          |BoolEqExpr: BoolEqExpr = ElvisExpr WS ("==" {%Op.EQ} | "!=" {%Op.NE}) WS BoolEqExpr {BinOp(op=$2, lhs=$0, rhs=$4)}
           |  | ElvisExpr
-          |ElvisExpr: ElvisExpr = AdditiveExpr WS "?:" WS ElvisExpr {Elvis(value=$0, whenNull=$4)}
+          |ElvisExpr: ElvisExpr = AdditiveExpr WS "?:" WS ElvisExpr {Elvis(value=$0, ifNull=$4)}
           |  | AdditiveExpr
-          |AdditiveExpr: AdditiveExpr = PrefixNotExpr WS ('+' {%Op.ADD}) WS AdditiveExpr {BinOp(lhs=$0, rhs=$4, op=$2)}
+          |AdditiveExpr: AdditiveExpr = PrefixNotExpr WS ('+' {%Op.ADD}) WS AdditiveExpr {BinOp(op=$2, lhs=$0, rhs=$4)}
           |  | PrefixNotExpr
-          |PrefixNotExpr: PrefixNotExpr = '!' WS PrefixNotExpr
+          |PrefixNotExpr: PrefixNotExpr = '!' WS PrefixNotExpr {PrefixOp(op=%PreOp.NOT, expr=$2)}
           |  | Atom
           |Atom: Atom = Ref
           |  | BindExpr
@@ -319,7 +319,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | '(' WS PExpr WS ')' {ExprParen(body=$2)}
           |
           |BindExpr = ValRef BinderExpr
-          |BinderExpr = Ref
+          |BinderExpr: BinderExpr = Ref
           |  | BindExpr
           |  | '{' WS PExpr WS '}' $2
           |NamedConstructExpr = TypeName WS NamedConstructParams {NamedConstructExpr(typeName=$0, params=$2)}
@@ -349,7 +349,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |ClassParamsDef = '(' WS (ClassParamDef (WS ',' WS ClassParamDef)* WS {[$0] + $1})? WS ')' {$2 ?: []}
           |ClassParamDef = ParamName (WS ':' WS TypeDesc)? {ClassParamDef(name=$0, typeDesc=$1)}
           |
-          |SuperDef = TypeName WS '{' WS (SubTypes WS)? '}' {SuperDef(typeName=$0, subs=$4$0)}
+          |SuperDef = TypeName WS '{' (WS SubTypes)? WS '}' {SuperDef(typeName=$0, subs=$3)}
           |SubTypes = SubType (WS ',' WS SubType)* {[$0] + $1}
           |SubType: SubType = TypeName | ClassDef | SuperDef
           |
@@ -379,7 +379,8 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | '`' Id '`' {TypeName(name=$0)}
           |NonterminalName = Id {NonterminalName(name=$0)}
           |  | '`' Id '`' {NonterminalName(name=$0)}
-          |TypeOrFuncName = Id-ValueType {TypeOrFuncName(name=$0)}
+          |TypeOrFuncName = Id {TypeOrFuncName(name=$0)}
+          |  | '`' Id '`' {TypeOrFuncName(name=$0)}
           |ParamName = Id {ParamName(name=$0)}
           |StrChar = StringChar
           |CharChar = TerminalChar

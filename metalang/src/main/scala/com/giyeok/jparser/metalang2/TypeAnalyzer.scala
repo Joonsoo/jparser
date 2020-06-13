@@ -195,8 +195,23 @@ class TypeAnalyzer(val astAnalyzer: AstAnalyzer) {
                                         // TODO
                                         ???
                                     case AST.Longest(_, AST.InPlaceChoices(_, choices)) =>
-                                        // TODO
-                                        ???
+                                        if (choices.size == 1) {
+                                            val elemNode = boundedExpr match {
+                                                case expr: AST.OnTheFlyTypeDefConstructExpr => visitExpr(choices, expr)
+                                                case expr: AST.PExpr => visitExpr(choices, expr)
+                                                case expr: AST.BoundPExpr =>
+                                                    // TODO 첫번째 인자 node 수정
+                                                    visitBoundExpr(node, choices, expr)
+                                            }
+                                            val typeNode = addNode(TypeOfElemNode(elemNode))
+                                            // ExprNode --is--> TypeNode
+                                            addEdge(Edge(node, typeNode, EdgeTypes.Is))
+                                            // TypeNode --accepts--> ElemNode (informative)
+                                            addEdge(Edge(typeNode, elemNode, EdgeTypes.Accepts))
+                                            node
+                                        } else {
+                                            ???
+                                        }
                                     case AST.InPlaceSequence(_, seq) =>
                                         // TODO
                                         ???
