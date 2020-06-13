@@ -122,14 +122,19 @@ object ValueifyGen {
                 case MetaGrammar3Ast.ExprParen(astNode, body) =>
                     valueify(refCtx, body, "", input)
                 case MetaGrammar3Ast.BindExpr(astNode, ctx, binder) => ???
-                case MetaGrammar3Ast.NamedConstructExpr(astNode, typeName, params) => ???
-                case MetaGrammar3Ast.FuncCallOrConstructExpr(astNode, funcName, params) => ???
+                case MetaGrammar3Ast.NamedConstructExpr(astNode, typeName, params) =>
+                    val vParams = params.map(param => (param, valueify(refCtx, param.expr, "", input)))
+                    (NamedConstructCall(typeName, vParams), ClassType(typeName))
+                case MetaGrammar3Ast.FuncCallOrConstructExpr(astNode, funcName, params) =>
+                    val vParams = params.getOrElse(List()).map(param => valueify(refCtx, param, "", input))
+                    // TODO FuncCall or UnnamedConstructCall depending on its name
+                    (FuncCall(funcName, vParams), FuncCallType(funcName, vParams))
                 case MetaGrammar3Ast.ArrayExpr(astNode, elems) => ???
                 case literal: MetaGrammar3Ast.Literal => literal match {
                     case MetaGrammar3Ast.NullLiteral(astNode) => (NullLiteral, NullType)
-                    case MetaGrammar3Ast.BoolLiteral(astNode, value) => (BoolLiteral(value.toString.toBoolean), BoolType)
+                    case MetaGrammar3Ast.BoolLiteral(astNode, value) => (BoolLiteral(value.sourceText.toBoolean), BoolType)
                     case MetaGrammar3Ast.CharLiteral(astNode, value) => ???
-                    case MetaGrammar3Ast.StringLiteral(astNode, value) => (StringLiteral(value.toString), StringType)
+                    case MetaGrammar3Ast.StringLiteral(astNode, value) => (StringLiteral(value.map(_.astNode.sourceText).mkString), StringType)
                 }
                 case MetaGrammar3Ast.CanonicalEnumValue(astNode, enumName, valueName) => ???
                 case MetaGrammar3Ast.ShortenedEnumValue(astNode, valueName) => ???
@@ -160,7 +165,7 @@ object ValueifyGen {
 
     def main(args: Array[String]): Unit = {
         val example =
-            """A = B C {true}
+            """A = B C {Asdf(first=$0, second=$1)}
               |""".stripMargin
         val rule = MetaGrammar3Ast.parseAst(example).left.get.defs.head.asInstanceOf[Rule]
         val v = valueify(rule.rhs.head.elems, rule.rhs.head.elems.last, "", InputNode)
@@ -172,7 +177,7 @@ object ValueifyGen {
         val scalaGen = new ScalaGen()
         val exprCode = scalaGen.valueifyExprCode(v._1, "input")
         exprCode.codes.foreach(println)
-        println(s"return ${exprCode.result}")
+        println(s"${exprCode.result}")
         println()
     }
 }

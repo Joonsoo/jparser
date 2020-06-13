@@ -1,7 +1,7 @@
 package com.giyeok.jparser.metalang3
 
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.Processor
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{Processor, TypeName, TypeOrFuncName}
 
 sealed class TypeFunc
 
@@ -11,7 +11,7 @@ case class TypeOfSymbol(symbol: MetaGrammar3Ast.Symbol) extends TypeFunc
 
 case class TypeOfProcessor(processor: Processor) extends TypeFunc
 
-case class ClassType(name: String) extends TypeFunc
+case class ClassType(name: TypeName) extends TypeFunc
 
 case class OptionalOf(typ: TypeFunc) extends TypeFunc
 
@@ -20,6 +20,8 @@ case class ArrayOf(typ: TypeFunc) extends TypeFunc
 case class ElvisType(value: TypeFunc, ifNull: TypeFunc) extends TypeFunc
 
 case class AddOpType(lhs: TypeFunc, rhs: TypeFunc) extends TypeFunc
+
+case class FuncCallType(typeOrFuncName: TypeOrFuncName, params: List[(ValueifyExpr, TypeFunc)]) extends TypeFunc
 
 case class UnionOf(types: List[TypeFunc]) extends TypeFunc
 

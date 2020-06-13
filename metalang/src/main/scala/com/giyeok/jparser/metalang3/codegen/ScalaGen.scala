@@ -1,8 +1,8 @@
 package com.giyeok.jparser.metalang3.codegen
 
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.Nonterminal
-import com.giyeok.jparser.metalang3.{ArrayExpr, BinOp, BoolLiteral, CharLiteral, ConstructExpr, ElvisOp, EnumValue, ExceptBodyOf, ExceptCondOf, InputNode, JoinBodyOf, JoinCondOf, Literal, MatchNonterminal, NullLiteral, PrefixOp, SeqElemAt, StringLiteral, TernateryExpr, Unbind, UnrollChoices, UnrollLongest, UnrollOptional, UnrollRepeatFromOne, UnrollRepeatFromZero, ValueifyExpr}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.Nonterminal
+import com.giyeok.jparser.metalang3._
 
 class ScalaGen {
 
@@ -27,7 +27,7 @@ class ScalaGen {
     private def firstCharUpperCase(name: String) = s"${name.charAt(0).toUpper}${name.substring(1)}"
 
     private def matchFuncNameForNonterminal(nonterminal: Nonterminal): String =
-        s"match${firstCharUpperCase(nonterminal.name.sourceText)}"
+        s"match${firstCharUpperCase(nonterminal.name.name.sourceText)}"
 
     // TODO
     private def symbolIdOf(symbol: MetaGrammar3Ast.Symbol): Int = 1
@@ -61,7 +61,14 @@ class ScalaGen {
         case UnrollRepeatFromOne(expr) => ???
         case UnrollLongest(expr) => ???
         case UnrollChoices(map) => ???
-        case ConstructExpr(className, params) => ???
+        case NamedConstructCall(className, params) =>
+            val paramCodes = params.map { param => valueifyExprCode(param._2._1, inputName) }
+            val codes = paramCodes.foldLeft(List[String]()) { (m, i) => m ++ i.codes }
+            val args = paramCodes.map(_.result)
+            val createStmt = s"${className.astNode.sourceText}(${args.mkString(", ")})" // TODO
+            ValueifierCode(codes, createStmt, paramCodes.foldLeft(Set[String]()) { (m, i) => m ++ i.requirements })
+        case UnnamedConstructCall(className, params) => ???
+        case FuncCall(funcName, params) => ???
         case ArrayExpr(elems) => ???
         case PrefixOp(prefixOpType, expr, exprType) => ???
         case BinOp(op, lhs, rhs, lhsType, rhsType) => ???
@@ -70,7 +77,7 @@ class ScalaGen {
         case literal: Literal =>
             literal match {
                 case NullLiteral => ValueifierCode(List(), "null", Set())
-                case BoolLiteral(value) => ValueifierCode(List(), "$value", Set())
+                case BoolLiteral(value) => ValueifierCode(List(), s"$value", Set())
                 case CharLiteral(value) => ???
                 case StringLiteral(value) => ???
             }

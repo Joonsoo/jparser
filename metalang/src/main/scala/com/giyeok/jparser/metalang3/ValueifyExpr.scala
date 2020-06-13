@@ -1,7 +1,7 @@
 package com.giyeok.jparser.metalang3
 
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.StringChar
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{NamedParam, ParamName, StringChar, TypeName, TypeOrFuncName}
 
 // Node를 받아서 Elem의 값을 얻는 expression
 sealed class ValueifyExpr
@@ -34,7 +34,11 @@ case class UnrollLongest(expr: ValueifyExpr) extends ValueifyExpr
 
 case class UnrollChoices(map: Map[MetaGrammar3Ast.Symbol, ValueifyExpr]) extends ValueifyExpr
 
-case class ConstructExpr(className: String, params: List[ValueifyExpr]) extends ValueifyExpr
+case class NamedConstructCall(className: TypeName, params: List[(NamedParam, (ValueifyExpr, TypeFunc))]) extends ValueifyExpr
+
+case class UnnamedConstructCall(className: TypeName, params: List[(ValueifyExpr, TypeFunc)]) extends ValueifyExpr
+
+case class FuncCall(funcName: TypeOrFuncName, params: List[(ValueifyExpr, TypeFunc)]) extends ValueifyExpr
 
 case class ArrayExpr(elems: List[ValueifyExpr]) extends ValueifyExpr
 
