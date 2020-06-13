@@ -29,8 +29,8 @@ object ValueifyGen {
             // 마지막 element가 symbol이면 SeqElemAt이 들어가야 한다.
             assert(choice.seq.nonEmpty)
             val bodyInput = choice.seq.last match {
-                case _: MetaGrammar3Ast.Symbol => SeqElemAt(Unbind(choice, input, ???), choice.seq.size - 1, ???)
-                case _: MetaGrammar3Ast.Processor => Unbind(choice, input, ???)
+                case symbol: MetaGrammar3Ast.Symbol => SeqElemAt(Unbind(choice, input, TypeOfSymbol(choice)), choice.seq.size - 1, TypeOfSymbol(symbol))
+                case _: MetaGrammar3Ast.Processor => Unbind(choice, input, TypeOfSymbol(choice))
             }
             valueify(choice.seq, choice.seq.last, condSymPath, bodyInput)
         }
@@ -52,10 +52,15 @@ object ValueifyGen {
     // _2는 elem이 Longest 등인 경우 그걸 어떻게 발라먹을지
     @tailrec private def getBindingContext(elem: MetaGrammar3Ast.Elem, input: ValueifyExpr): (List[Elem], ValueifyExpr) = elem match {
         case symbol@MetaGrammar3Ast.Longest(astNode, choices) if choices.choices.size == 1 =>
-            getBindingContext(choices.choices.head, Unbind(symbol, input, ???))
+            getBindingContext(choices.choices.head, Unbind(symbol, input, TypeOfSymbol(symbol)))
         case MetaGrammar3Ast.InPlaceChoices(astNode, choices) if choices.size == 1 =>
             (choices.head.seq, input)
         case _ => throw IllegalGrammar("Bind expression only can refer to Longest or InPlaceChoices with only choice")
+    }
+
+    private def typeOfElem(elem: MetaGrammar3Ast.Elem) = elem match {
+        case symbol: MetaGrammar3Ast.Symbol => TypeOfSymbol(symbol)
+        case processor: MetaGrammar3Ast.Processor => TypeOfProcessor(processor)
     }
 
     def valueify(refCtx: List[Elem], elem: Elem, condSymPath: String, input: ValueifyExpr): ValueifyExpr = elem match {
@@ -63,14 +68,14 @@ object ValueifyGen {
             symbol match {
                 case MetaGrammar3Ast.JoinSymbol(astNode, body, join) =>
                     if (condSymPath.isEmpty) {
-                        valueify(refCtx, body, condSymPath, JoinBodyOf(Unbind(symbol, input, ???), ???))
+                        valueify(refCtx, body, condSymPath, JoinBodyOf(Unbind(symbol, input, TypeOfSymbol(symbol)), TypeOfSymbol(body)))
                     } else {
                         // TODO condSymPath.head 방향 봐서 JoinBodyOf/JoinCondOf, valueify 재귀호출 할 때는 condSymPath.tail
                         ???
                     }
                 case MetaGrammar3Ast.ExceptSymbol(astNode, body, except) =>
                     if (condSymPath.isEmpty) {
-                        valueify(refCtx, body, condSymPath, ExceptBodyOf(Unbind(symbol, input, ???), ???))
+                        valueify(refCtx, body, condSymPath, ExceptBodyOf(Unbind(symbol, input, TypeOfSymbol(symbol)), TypeOfSymbol(body)))
                     } else {
                         // TODO condSymPath
                         ???
@@ -84,7 +89,7 @@ object ValueifyGen {
                 case MetaGrammar3Ast.Optional(astNode, body) =>
                     check(condSymPath.isEmpty, "")
                     val vBody = valueify(refCtx, body, condSymPath, InputNode)
-                    UnrollChoices(Unbind(symbol, input, ???), Map(
+                    UnrollChoices(Unbind(symbol, input, TypeOfSymbol(symbol)), Map(
                         EmptySeqChoice -> NullLiteral,
                         SymbolChoice(body) -> vBody),
                         OptionalOf(vBody.resultType))
@@ -150,8 +155,9 @@ object ValueifyGen {
                         val idxValue = idx.sourceText.toInt
                         if (idxValue >= refCtx.size) throw new IllegalGrammar("")
                         val symbolIdx = idxValue // TODO idxValue - refCtx(0~idxValue 전)까지 symbol의 갯수
-                        valueify(refCtx, refCtx(idxValue), condSymPath.map(condSymPathOf).getOrElse(""),
-                            SeqElemAt(input, symbolIdx, ???))
+                        val referredElem = refCtx(idxValue)
+                        valueify(refCtx, referredElem, condSymPath.map(condSymPathOf).getOrElse(""),
+                            SeqElemAt(input, symbolIdx, typeOfElem(referredElem)))
                     case MetaGrammar3Ast.RawRef(astNode, idx, condSymPath) => ???
                 }
                 case MetaGrammar3Ast.ExprParen(astNode, body) =>
