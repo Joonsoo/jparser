@@ -51,16 +51,16 @@ class ScalaGen(val analysis: AnalysisResult) {
     // TODO 값이 가는 곳이 OptionalType인데 주는 값이 아니면, Some(**)로 넣어주도록
     def valueifyExprCode(expr: ValueifyExpr, inputName: String): ValueifierCode = expr match {
         case InputNode => ValueifierCode(List(), inputName, Set())
-        case MatchNonterminal(nonterminal, expr) =>
+        case MatchNonterminal(nonterminal, expr, _) =>
             val e = valueifyExprCode(expr, inputName)
             val v = newVarName()
             val matchFunc = matchFuncNameForNonterminal(nonterminal)
             ValueifierCode(e.codes :+ s"val $v = $matchFunc(${e.result})", v, e.requirements)
-        case SeqElemAt(expr, index) =>
+        case SeqElemAt(expr, index, _) =>
             val e = valueifyExprCode(expr, inputName)
             val v = newVarName()
             ValueifierCode(e.codes :+ s"val $v = ${e.result}.asInstanceOf[SequenceNode].children($index)", v, e.requirements)
-        case Unbind(symbol, expr) =>
+        case Unbind(symbol, expr, _) =>
             val e = valueifyExprCode(expr, inputName)
             val v1 = newVarName()
             val v2 = newVarName()
@@ -69,11 +69,11 @@ class ScalaGen(val analysis: AnalysisResult) {
                 s"val BindNode($v1, $v2) = ${e.result}",
                 s"assert($v1.id == ${bindedSymbol.id})"
             ), v2, e.requirements)
-        case JoinBodyOf(expr) => ???
-        case JoinCondOf(expr) => ???
-        case ExceptBodyOf(expr) => ???
-        case ExceptCondOf(expr) => ???
-        case UnrollRepeat(minimumRepeat, arrayExpr, elemProcessExpr) =>
+        case JoinBodyOf(expr, _) => ???
+        case JoinCondOf(expr, _) => ???
+        case ExceptBodyOf(expr, _) => ???
+        case ExceptCondOf(expr, _) => ???
+        case UnrollRepeat(minimumRepeat, arrayExpr, elemProcessExpr, _) =>
             // inputName을 repeatSymbol로 unroll repeat하고, 각각을 expr로 가공
             val arrayExprCode = valueifyExprCode(arrayExpr, inputName)
             val elemProcessCode = valueifyExprCode(elemProcessExpr, "elem")
@@ -86,7 +86,7 @@ class ScalaGen(val analysis: AnalysisResult) {
                     List(elemProcessCode.result,
                         "}"),
                 v, arrayExprCode.requirements ++ elemProcessCode.requirements + funcName)
-        case UnrollChoices(choiceExpr, mappings) =>
+        case UnrollChoices(choiceExpr, mappings, _) =>
             val symbol = newVarName()
             val body = newVarName()
             val v = newVarName()
@@ -111,41 +111,41 @@ class ScalaGen(val analysis: AnalysisResult) {
             }
             codes :+= "}"
             ValueifierCode(codes, v, requirements)
-        case NamedConstructCall(className, params) =>
-            val vParams = params.map { param => valueifyExprCode(param._2._1, inputName) }
+        case NamedConstructCall(className, params, _) =>
+            val vParams = params.map { param => valueifyExprCode(param._2, inputName) }
             val createExpr = s"${className.astNode.sourceText}(${vParams.map(_.result).mkString(", ")})"
             ValueifierCode(collectCodesFrom(vParams), createExpr, collectRequirementsFrom(vParams))
-        case UnnamedConstructCall(className, params) =>
-            val vParams = params.map { param => valueifyExprCode(param._1, inputName) }
+        case UnnamedConstructCall(className, params, _) =>
+            val vParams = params.map { param => valueifyExprCode(param, inputName) }
             val createExpr = s"${className.astNode.sourceText}(${vParams.map(_.result).mkString(", ")})"
             ValueifierCode(collectCodesFrom(vParams), createExpr, collectRequirementsFrom(vParams))
-        case FuncCall(funcName, params) =>
+        case FuncCall(funcName, params, _) =>
             val scalaFuncName = funcName.name.sourceText match {
                 case "isempty" => "ASTUtils.isEmpty"
                 case "ispresent" => "ASTUtils.isPresent"
                 case "chr" => "ASTUtils.toChar"
                 case "str" => "ASTUtils.toString"
             }
-            val vParams = params.map { param => valueifyExprCode(param._1, inputName) }
+            val vParams = params.map { param => valueifyExprCode(param, inputName) }
             val args = vParams.map(_.result)
             val callExpr = s"$scalaFuncName(${args.mkString(", ")})"
             ValueifierCode(collectCodesFrom(vParams), callExpr, collectRequirementsFrom(vParams) + scalaFuncName)
-        case ArrayExpr(elems) =>
+        case ArrayExpr(elems, _) =>
             val vElems = elems.map(valueifyExprCode(_, inputName))
             ValueifierCode(collectCodesFrom(vElems), s"List(${vElems.map(_.result).mkString(", ")})", collectRequirementsFrom(vElems))
-        case PrefixOp(prefixOpType, expr, exprType) =>
+        case PrefixOp(prefixOpType, expr, _) =>
             val vExpr = valueifyExprCode(expr, inputName)
             val result = prefixOpType match {
                 case com.giyeok.jparser.metalang3.PreOp.NOT => s"! ${vExpr.result}"
             }
             ValueifierCode(vExpr.codes, result, vExpr.requirements)
-        case BinOp(op, lhs, rhs, lhsType, rhsType) =>
+        case BinOp(op, lhs, rhs, _) =>
             val vLhs = valueifyExprCode(lhs, inputName)
             val vRhs = valueifyExprCode(rhs, inputName)
             val result = op match {
                 case com.giyeok.jparser.metalang3.Op.ADD =>
-                    val vLhsType = analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(lhsType))
-                    val vRhsType = analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(rhsType))
+                    val vLhsType = analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(lhs.resultType))
+                    val vRhsType = analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(rhs.resultType))
                     (vLhsType, vRhsType) match {
                         case (StringType, StringType) => s"${vLhs.result} + ${vRhs.result}"
                         case (_: ArrayOf, _: ArrayOf) => s"${vLhs.result} ++ ${vRhs.result}"
@@ -157,13 +157,13 @@ class ScalaGen(val analysis: AnalysisResult) {
                 case com.giyeok.jparser.metalang3.Op.BOOL_OR => s"${vLhs.result} || ${vRhs.result}"
             }
             ValueifierCode(vLhs.codes ++ vRhs.codes, result, vLhs.requirements ++ vRhs.requirements)
-        case ElvisOp(expr, ifNull) =>
+        case ElvisOp(expr, ifNull, _) =>
             val vExpr = valueifyExprCode(expr, inputName)
             val vIfNull = valueifyExprCode(ifNull, inputName)
             val v = newVarName()
             val assign = s"val $v = ${vExpr.result}.getOrElse(${vIfNull.result})"
             ValueifierCode(vExpr.codes ++ vIfNull.codes :+ assign, v, vExpr.requirements ++ vIfNull.requirements)
-        case TernaryExpr(condition, ifTrue, ifFalse, conditionType) =>
+        case TernaryExpr(condition, ifTrue, ifFalse, conditionType, _) =>
             val vCondition = valueifyExprCode(condition, inputName)
             val vIfTrue = valueifyExprCode(ifTrue, inputName)
             val vIfFalse = valueifyExprCode(ifFalse, inputName)
@@ -179,14 +179,14 @@ class ScalaGen(val analysis: AnalysisResult) {
                 case StringLiteral(value) => ValueifierCode(List(), escapeString(value), Set())
             }
         case value: EnumValue => value match {
-            case CanonicalEnumValue(name, value) => ???
-            case ShortenedEnumValue(value) => ???
+            case CanonicalEnumValue(name, value, _) => ???
+            case ShortenedEnumValue(value, _) => ???
         }
     }
 
-    def matchFuncFor(nonterminal: Nonterminal, valueifyExpr: ValueifyExpr, returnType: TypeFunc): CodeBlock = {
+    def matchFuncFor(nonterminal: Nonterminal, valueifyExpr: ValueifyExpr): CodeBlock = {
         val exprCode = valueifyExprCode(valueifyExpr, "input")
-        val returnTypeString = typeDescStringOf(analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(returnType)))
+        val returnTypeString = typeDescStringOf(analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(valueifyExpr.resultType)))
         CodeBlock(List(s"def ${matchFuncNameForNonterminal(nonterminal)}(input: Node): $returnTypeString = {") ++
             exprCode.codes ++ List(s"${exprCode.result}", "}"))
     }

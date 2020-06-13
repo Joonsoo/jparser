@@ -23,7 +23,7 @@ object TypeFunc {
 
     case class AddOpType(lhs: TypeFunc, rhs: TypeFunc) extends TypeFunc
 
-    case class FuncCallResultType(typeOrFuncName: TypeOrFuncName, params: List[(ValueifyExpr, TypeFunc)]) extends TypeFunc
+    case class FuncCallResultType(typeOrFuncName: TypeOrFuncName, params: List[ValueifyExpr]) extends TypeFunc
 
     case class UnionOf(types: List[TypeFunc]) extends TypeFunc
 
