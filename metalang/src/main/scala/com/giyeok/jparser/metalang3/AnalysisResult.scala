@@ -4,9 +4,11 @@ import com.giyeok.jparser.NGrammar.{NNonterminal, NSequence, NSymbol}
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.Symbols.Nonterminal
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang3.ConcreteType.UnionOf
+import com.giyeok.jparser.metalang3.types.{ConcreteType, TypeFunc}
+import com.giyeok.jparser.metalang3.valueify.ValueifyExpr
 
-class AnalysisResult {
+// ruleValueifyExprs: Nonterminal name -> ValueifyExpr
+class AnalysisResult(val startNonterminal: String, val valueifyExprsMap: Map[String, ValueifyExpr]) {
     def symbolOf(symbol: MetaGrammar3Ast.Symbol): NSymbol = NNonterminal(1, Nonterminal("Nonterm"), Set())
 
     def symbolOf(rhs: MetaGrammar3Ast.RHS): NSymbol = NNonterminal(1, Nonterminal("Nonterm"), Set())
@@ -36,7 +38,7 @@ class AnalysisResult {
     }
 
     def mostSpecificSuperTypeOf(typ: ConcreteType): ConcreteType = typ match {
-        case UnionOf(types) => ???
+        case ConcreteType.UnionOf(types) => ???
         case ConcreteType.OptionalOf(typ) =>
             ConcreteType.OptionalOf(mostSpecificSuperTypeOf(typ))
         case ConcreteType.ArrayOf(elemType) =>

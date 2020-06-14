@@ -1,19 +1,22 @@
-package com.giyeok.jparser.metalang3
+package com.giyeok.jparser.metalang3.valueify
 
 import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{Elem, InPlaceSequence, Rule, ngrammar}
-import com.giyeok.jparser.metalang3.TypeFunc._
+import com.giyeok.jparser.metalang3.AnalysisResult
 import com.giyeok.jparser.metalang3.codegen.ScalaGen
+import com.giyeok.jparser.metalang3.symbols.Escapes
+import com.giyeok.jparser.metalang3.symbols.Escapes.NonterminalName
+import com.giyeok.jparser.metalang3.types.TypeFunc
+import com.giyeok.jparser.metalang3.types.TypeFunc._
+import com.giyeok.jparser.metalang3.valueify.ValueifyGen.IllegalGrammar
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.{NGrammar, ParseForestFunc, ParseResultTree, ParsingErrors}
 
 import scala.annotation.tailrec
 
-object ValueifyGen {
-
-    case class IllegalGrammar(msg: String) extends Exception
+class ValueifyGen {
 
     private def check(cond: Boolean, msg: String): Unit = {
         if (!cond) throw IllegalGrammar(msg)
@@ -29,8 +32,8 @@ object ValueifyGen {
             // 마지막 element가 symbol이면 SeqElemAt이 들어가야 한다.
             assert(choice.seq.nonEmpty)
             val bodyInput = choice.seq.last match {
-                case symbol: MetaGrammar3Ast.Symbol => SeqElemAt(Unbind(choice, input, TypeOfSymbol(choice)), choice.seq.size - 1, TypeOfSymbol(symbol))
-                case _: MetaGrammar3Ast.Processor => Unbind(choice, input, TypeOfSymbol(choice))
+                case symbol: MetaGrammar3Ast.Symbol => SeqElemAt(Unbind(choice, input), choice.seq.size - 1, TypeOfSymbol(symbol))
+                case _: MetaGrammar3Ast.Processor => Unbind(choice, input)
             }
             valueify(choice.seq, choice.seq.last, condSymPath, bodyInput)
         }
@@ -52,7 +55,7 @@ object ValueifyGen {
     // _2는 elem이 Longest 등인 경우 그걸 어떻게 발라먹을지
     @tailrec private def getBindingContext(elem: MetaGrammar3Ast.Elem, input: ValueifyExpr): (List[Elem], ValueifyExpr) = elem match {
         case symbol@MetaGrammar3Ast.Longest(astNode, choices) if choices.choices.size == 1 =>
-            getBindingContext(choices.choices.head, Unbind(symbol, input, TypeOfSymbol(symbol)))
+            getBindingContext(choices.choices.head, Unbind(symbol, input))
         case MetaGrammar3Ast.InPlaceChoices(astNode, choices) if choices.size == 1 =>
             (choices.head.seq, input)
         case _ => throw IllegalGrammar("Bind expression only can refer to Longest or InPlaceChoices with only choice")
@@ -63,19 +66,26 @@ object ValueifyGen {
         case processor: MetaGrammar3Ast.Processor => TypeOfProcessor(processor)
     }
 
+    private var idCounter: Int = 0
+
+    private def nextId(): Int = {
+        idCounter += 1
+        idCounter
+    }
+
     def valueify(refCtx: List[Elem], elem: Elem, condSymPath: String, input: ValueifyExpr): ValueifyExpr = elem match {
         case symbol: MetaGrammar3Ast.Symbol =>
             symbol match {
-                case MetaGrammar3Ast.JoinSymbol(astNode, body, join) =>
+                case symbol@MetaGrammar3Ast.JoinSymbol(astNode, body, join) =>
                     if (condSymPath.isEmpty) {
-                        valueify(refCtx, body, condSymPath, JoinBodyOf(Unbind(symbol, input, TypeOfSymbol(symbol)), TypeOfSymbol(body)))
+                        valueify(refCtx, body, condSymPath, JoinBodyOf(symbol, Unbind(symbol, input), TypeOfSymbol(body)))
                     } else {
                         // TODO condSymPath.head 방향 봐서 JoinBodyOf/JoinCondOf, valueify 재귀호출 할 때는 condSymPath.tail
                         ???
                     }
-                case MetaGrammar3Ast.ExceptSymbol(astNode, body, except) =>
+                case symbol@MetaGrammar3Ast.ExceptSymbol(astNode, body, except) =>
                     if (condSymPath.isEmpty) {
-                        valueify(refCtx, body, condSymPath, ExceptBodyOf(Unbind(symbol, input, TypeOfSymbol(symbol)), TypeOfSymbol(body)))
+                        valueify(refCtx, body, condSymPath, ExceptBodyOf(symbol, Unbind(symbol, input), TypeOfSymbol(body)))
                     } else {
                         // TODO condSymPath
                         ???
@@ -87,39 +97,41 @@ object ValueifyGen {
                     // TODO condSymPath
                     InputNode
                 case MetaGrammar3Ast.Optional(astNode, body) =>
-                    check(condSymPath.isEmpty, "")
+                    check(condSymPath.isEmpty, "Optional cannot be referred with condSymPath")
                     val vBody = valueify(refCtx, body, condSymPath, InputNode)
-                    UnrollChoices(Unbind(symbol, input, TypeOfSymbol(symbol)), Map(
+                    UnrollChoices(Unbind(symbol, input), Map(
                         EmptySeqChoice -> NullLiteral,
                         SymbolChoice(body) -> vBody),
                         OptionalOf(vBody.resultType))
-                case symbol@MetaGrammar3Ast.RepeatFromZero(astNode, body) =>
-                    check(condSymPath.isEmpty, "")
+                case MetaGrammar3Ast.RepeatFromZero(astNode, body) =>
+                    check(condSymPath.isEmpty, "Repeat* cannot be referred with condSymPath")
                     val vBody = valueify(refCtx, body, condSymPath, InputNode)
                     UnrollRepeat(0, input, vBody, ArrayOf(vBody.resultType))
-                case symbol@MetaGrammar3Ast.RepeatFromOne(astNode, body) =>
-                    check(condSymPath.isEmpty, "")
+                case MetaGrammar3Ast.RepeatFromOne(astNode, body) =>
+                    check(condSymPath.isEmpty, "Repeat+ cannot be referred with condSymPath")
                     val vBody = valueify(refCtx, body, condSymPath, input)
                     UnrollRepeat(1, input, vBody, ArrayOf(vBody.resultType))
                 case MetaGrammar3Ast.InPlaceChoices(astNode, choices) =>
-                    check(condSymPath.isEmpty, "")
+                    check(condSymPath.isEmpty, "InPlaceChoices cannot be referred with condSymPath")
                     valueifyInPlaceSequence(choices, condSymPath, input)
                 case symbol@MetaGrammar3Ast.Longest(astNode, choices) =>
-                    check(condSymPath.isEmpty, "")
+                    check(condSymPath.isEmpty, "Longest cannot be referred with condSymPath")
                     val vChoices = valueifyInPlaceSequence(choices.choices, condSymPath, input)
-                    Unbind(symbol, vChoices, vChoices.resultType)
+                    Unbind(symbol, vChoices) //vChoices.resultType)
                 case _: MetaGrammar3Ast.Terminal =>
-                    check(condSymPath.isEmpty, "")
+                    check(condSymPath.isEmpty, "Terminal cannot be referred with condSymPath")
                     InputNode
                 case MetaGrammar3Ast.TerminalChoice(astNode, choices) =>
-                    check(condSymPath.isEmpty, "")
+                    check(condSymPath.isEmpty, "TerminalChoice cannot be referred with condSymPath")
                     InputNode
                 case MetaGrammar3Ast.StringSymbol(astNode, value) =>
+                    check(condSymPath.isEmpty, "String cannot be referred with condSymPath")
                     StringLiteral(StringLiteral.escape(value))
                 case nonterm@MetaGrammar3Ast.Nonterminal(astNode, name) =>
+                    check(condSymPath.isEmpty, "Nonterminal cannot be referred with condSymPath")
                     MatchNonterminal(nonterm, input, TypeOfSymbol(symbol))
                 case MetaGrammar3Ast.EmptySeq(astNode) =>
-                    check(condSymPath.isEmpty, "")
+                    check(condSymPath.isEmpty, "EmptySeq cannot be referred with condSymPath")
                     InputNode
             }
         case processor: MetaGrammar3Ast.Processor =>
@@ -130,7 +142,7 @@ object ValueifyGen {
                 //                    val vCond = valueify(refCtx, cond, "", InputNode)
                 //                    val vIfTrue = valueify(refCtx, ??? /*ifTrue*/ , "", InputNode)
                 //                    val vIfFalse = valueify(refCtx, ??? /*ifFalse*/ , "", InputNode)
-                //                    (TernaryExpr(vCond._1, vIfTrue._1, vIfFalse._1, vCond._2), unifyTypes(List(vIfTrue._2, vIfFalse._2)))
+                //                    TernaryExpr(vCond, vIfTrue, vIfFalse, unifyTypes(List(vIfTrue.resultType, vIfFalse.resultType)))
                 case MetaGrammar3Ast.ElvisOp(astNode, value, ifNull) =>
                     val vValue = valueify(refCtx, value, "", input)
                     val vIfNull = valueify(refCtx, ifNull, "", input)
@@ -190,11 +202,11 @@ object ValueifyGen {
                 case MetaGrammar3Ast.CanonicalEnumValue(astNode, enumName, valueName) =>
                     CanonicalEnumValue(enumName, valueName, EnumType(enumName))
                 case MetaGrammar3Ast.ShortenedEnumValue(astNode, valueName) =>
-                    ShortenedEnumValue(valueName, UnspecifiedEnum(1)) // TODO uniqueId
+                    ShortenedEnumValue(valueName, UnspecifiedEnum(nextId()))
             }
     }
 
-    private def valueifyRule(rule: Rule) = {
+    def valueifyRule(rule: Rule): UnrollChoices = {
         val mappers = rule.rhs.map { rhs =>
             RightHandSideChoice(rhs) -> valueify(rhs.elems, rhs.elems.last, "", InputNode)
         }.toMap
@@ -224,19 +236,22 @@ object ValueifyGen {
             case Right(error) => throw new Exception(error.toString)
         }
     }
+}
+
+object ValueifyGen {
+
+    case class IllegalGrammar(msg: String) extends Exception
 
     def main(args: Array[String]): Unit = {
         MetaLang3Grammar.inMetaLang3
         val example =
-            """LHS = Nonterminal (WS ':' WS TypeDesc)? {LHS(name=$0, typeDesc=$1)}
-              |RHS = Elem (WS Elem)* {RHS(elems=[$0] + $1)}
-              |Elem: Elem = Symbol | Processor
+            """A = B&C
               |""".stripMargin
         val defs = MetaGrammar3Ast.parseAst(example).left.get.defs
         val rule = defs.head.asInstanceOf[Rule]
-        val v = valueifyRule(rule)
+        val v = new ValueifyGen().valueifyRule(rule)
 
-        val analysis = new AnalysisResult()
+        val analysis = new AnalysisResult(rule.lhs.name.name.stringName, Map(rule.lhs.name.name.stringName -> v))
         val scalaGen = new ScalaGen(analysis)
         scalaGen.matchFuncFor(rule.lhs.name, v).codes.foreach(println)
     }

@@ -1,8 +1,9 @@
-package com.giyeok.jparser.metalang3
+package com.giyeok.jparser.metalang3.valueify
 
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, EnumValueName, InPlaceSequence, NamedParam, RHS, StringChar, TypeName, TypeOrFuncName}
-import com.giyeok.jparser.metalang3.TypeFunc.{BoolType, CharType, NodeType, NullType, StringType}
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, EnumValueName, ExceptSymbol, InPlaceSequence, JoinSymbol, NamedParam, RHS, StringChar, TypeName, TypeOrFuncName}
+import com.giyeok.jparser.metalang3.types.TypeFunc
+import com.giyeok.jparser.metalang3.types.TypeFunc._
 
 // Node를 받아서 Elem의 값을 얻는 expression
 abstract sealed class ValueifyExpr {
@@ -15,17 +16,19 @@ case object InputNode extends ValueifyExpr {
 
 case class MatchNonterminal(nonterminal: MetaGrammar3Ast.Nonterminal, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
-case class Unbind(symbol: MetaGrammar3Ast.Symbol, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
+case class Unbind(symbol: MetaGrammar3Ast.Symbol, expr: ValueifyExpr) extends ValueifyExpr {
+    override val resultType: TypeFunc = TypeOfSymbol(symbol)
+}
 
-case class JoinBodyOf(expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
+case class JoinBodyOf(joinSymbol: JoinSymbol, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
-case class JoinCondOf(expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
+case class JoinCondOf(joinSymbol: JoinSymbol, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
-case class ExceptBodyOf(expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
+case class ExceptBodyOf(exceptSymbol: ExceptSymbol, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
-case class ExceptCondOf(expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
+case class ExceptCondOf(exceptSymbol: ExceptSymbol, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
-// TODO Except, Lookahead, LookaheadNot
+// TODO Lookahead, LookaheadNot
 
 case class SeqElemAt(expr: ValueifyExpr, index: Int, override val resultType: TypeFunc) extends ValueifyExpr
 
@@ -65,7 +68,7 @@ case class BinOp(op: Op.Value, lhs: ValueifyExpr, rhs: ValueifyExpr, override va
 
 case class ElvisOp(expr: ValueifyExpr, ifNull: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
-case class TernaryExpr(condition: ValueifyExpr, ifTrue: ValueifyExpr, ifFalse: ValueifyExpr, conditionType: TypeFunc, override val resultType: TypeFunc) extends ValueifyExpr
+case class TernaryExpr(condition: ValueifyExpr, ifTrue: ValueifyExpr, ifFalse: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
 abstract sealed class Literal extends ValueifyExpr
 

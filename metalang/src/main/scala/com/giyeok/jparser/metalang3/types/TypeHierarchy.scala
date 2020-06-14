@@ -1,4 +1,4 @@
-package com.giyeok.jparser.metalang3
+package com.giyeok.jparser.metalang3.types
 
 class TypeHierarchy {
 

@@ -1,7 +1,8 @@
-package com.giyeok.jparser.metalang3
+package com.giyeok.jparser.metalang3.types
 
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, Processor, TypeName, TypeOrFuncName}
+import com.giyeok.jparser.metalang3.valueify.ValueifyExpr
 
 sealed class TypeFunc
 

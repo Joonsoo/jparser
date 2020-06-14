@@ -1,10 +1,15 @@
 package com.giyeok.jparser.metalang3.codegen
 
+import com.giyeok.jparser.ParseResultTree.JoinNode
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, Nonterminal, TypeName}
-import com.giyeok.jparser.metalang3.ConcreteType.{ArrayOf, StringType}
-import com.giyeok.jparser.metalang3.ValueifyGen.IllegalGrammar
-import com.giyeok.jparser.metalang3._
+import com.giyeok.jparser.metalang3.valueify.ValueifyGen.IllegalGrammar
+import com.giyeok.jparser.metalang3.{valueify, _}
+import com.giyeok.jparser.metalang3.types.ConcreteType
+import com.giyeok.jparser.metalang3.valueify.{ArrayExpr, BinOp, BoolLiteral, CanonicalEnumValue, CharLiteral, ElvisOp, EmptySeqChoice, EnumValue, ExceptBodyOf, ExceptCondOf, FuncCall, InPlaceSequenceChoice, InputNode, JoinBodyOf, JoinCondOf, Literal, MatchNonterminal, NamedConstructCall, NullLiteral, Op, PreOp, PrefixOp, RightHandSideChoice, SeqElemAt, ShortenedEnumValue, StringLiteral, SymbolChoice, TernaryExpr, Unbind, UnnamedConstructCall, UnrollChoices, UnrollRepeat, ValueifyExpr}
 
+// TODO codegen options
+// - null vs Option
+// - mostSpecificSuperTypeOf 옵션(extensive하지 않은 super type을 허용할지)
 class ScalaGen(val analysis: AnalysisResult) {
     private var _argNum = 0
 
@@ -30,7 +35,7 @@ class ScalaGen(val analysis: AnalysisResult) {
         case ConcreteType.NodeType => "Node"
         case ConcreteType.ClassType(name) => typeNameString(name)
         case ConcreteType.OptionalOf(typ) => s"Option[${typeDescStringOf(typ)}]"
-        case ArrayOf(elemType) => s"List[${typeDescStringOf(elemType)}]"
+        case ConcreteType.ArrayOf(elemType) => s"List[${typeDescStringOf(elemType)}]"
         case ConcreteType.EnumType(enumName) => enumNameString(enumName)
         case ConcreteType.NullType => "Nothing"
         case ConcreteType.BoolType => "Boolean"
@@ -59,8 +64,9 @@ class ScalaGen(val analysis: AnalysisResult) {
         case SeqElemAt(expr, index, _) =>
             val e = valueifyExprCode(expr, inputName)
             val v = newVarName()
-            ValueifierCode(e.codes :+ s"val $v = ${e.result}.asInstanceOf[SequenceNode].children($index)", v, e.requirements)
-        case Unbind(symbol, expr, _) =>
+            ValueifierCode(e.codes :+ s"val $v = ${e.result}.asInstanceOf[SequenceNode].children($index)",
+                v, e.requirements + "jparser.SequenceNode")
+        case Unbind(symbol, expr) =>
             val e = valueifyExprCode(expr, inputName)
             val v1 = newVarName()
             val v2 = newVarName()
@@ -68,11 +74,43 @@ class ScalaGen(val analysis: AnalysisResult) {
             ValueifierCode(e.codes ++ List(
                 s"val BindNode($v1, $v2) = ${e.result}",
                 s"assert($v1.id == ${bindedSymbol.id})"
-            ), v2, e.requirements)
-        case JoinBodyOf(expr, _) => ???
-        case JoinCondOf(expr, _) => ???
-        case ExceptBodyOf(expr, _) => ???
-        case ExceptCondOf(expr, _) => ???
+            ), v2, e.requirements + "jparser.BindNode")
+        case JoinBodyOf(joinSymbol, expr, _) =>
+            val e = valueifyExprCode(expr, inputName)
+            val v1 = newVarName()
+            val v2 = newVarName()
+            val symbol = analysis.symbolOf(joinSymbol)
+            ValueifierCode(e.codes ++ List(
+                s"val JoinNode($v1, $v2, _) = ${e.result}",
+                s"assert($v1.id == ${symbol.id})"
+            ), v2, e.requirements + "jparser.JoinNode")
+        case JoinCondOf(joinSymbol, expr, _) =>
+            val e = valueifyExprCode(expr, inputName)
+            val v1 = newVarName()
+            val v2 = newVarName()
+            val symbol = analysis.symbolOf(joinSymbol)
+            ValueifierCode(e.codes ++ List(
+                s"val JoinNode($v1, _, $v2) = ${e.result}",
+                s"assert($v1.id == ${symbol.id})"
+            ), v2, e.requirements + "jparser.JoinNode")
+        case ExceptBodyOf(exceptSymbol, expr, _) =>
+            val e = valueifyExprCode(expr, inputName)
+            val v1 = newVarName()
+            val v2 = newVarName()
+            val symbol = analysis.symbolOf(exceptSymbol)
+            ValueifierCode(e.codes ++ List(
+                s"val ExceptNode($v1, $v2, _) = ${e.result}",
+                s"assert($v1.id == ${symbol.id})"
+            ), v2, e.requirements + "jparser.ExceptNode")
+        case ExceptCondOf(exceptSymbol, expr, _) =>
+            val e = valueifyExprCode(expr, inputName)
+            val v1 = newVarName()
+            val v2 = newVarName()
+            val symbol = analysis.symbolOf(exceptSymbol)
+            ValueifierCode(e.codes ++ List(
+                s"val ExceptNode($v1, _, $v2) = ${e.result}",
+                s"assert($v1.id == ${symbol.id})"
+            ), v2, e.requirements + "jparser.ExceptNode")
         case UnrollRepeat(minimumRepeat, arrayExpr, elemProcessExpr, _) =>
             // inputName을 repeatSymbol로 unroll repeat하고, 각각을 expr로 가공
             val arrayExprCode = valueifyExprCode(arrayExpr, inputName)
@@ -136,25 +174,25 @@ class ScalaGen(val analysis: AnalysisResult) {
         case PrefixOp(prefixOpType, expr, _) =>
             val vExpr = valueifyExprCode(expr, inputName)
             val result = prefixOpType match {
-                case com.giyeok.jparser.metalang3.PreOp.NOT => s"! ${vExpr.result}"
+                case PreOp.NOT => s"! ${vExpr.result}"
             }
             ValueifierCode(vExpr.codes, result, vExpr.requirements)
         case BinOp(op, lhs, rhs, _) =>
             val vLhs = valueifyExprCode(lhs, inputName)
             val vRhs = valueifyExprCode(rhs, inputName)
             val result = op match {
-                case com.giyeok.jparser.metalang3.Op.ADD =>
+                case Op.ADD =>
                     val vLhsType = analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(lhs.resultType))
                     val vRhsType = analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(rhs.resultType))
                     (vLhsType, vRhsType) match {
-                        case (StringType, StringType) => s"${vLhs.result} + ${vRhs.result}"
-                        case (_: ArrayOf, _: ArrayOf) => s"${vLhs.result} ++ ${vRhs.result}"
+                        case (ConcreteType.StringType, ConcreteType.StringType) => s"${vLhs.result} + ${vRhs.result}"
+                        case (_: ConcreteType.ArrayOf, _: ConcreteType.ArrayOf) => s"${vLhs.result} ++ ${vRhs.result}"
                         case _ => throw IllegalGrammar(s"Cannot add ${vLhsType} and ${vRhsType}")
                     }
-                case com.giyeok.jparser.metalang3.Op.EQ => s"${vLhs.result} == ${vRhs.result}"
-                case com.giyeok.jparser.metalang3.Op.NE => s"${vLhs.result} != ${vRhs.result}"
-                case com.giyeok.jparser.metalang3.Op.BOOL_AND => s"${vLhs.result} && ${vRhs.result}"
-                case com.giyeok.jparser.metalang3.Op.BOOL_OR => s"${vLhs.result} || ${vRhs.result}"
+                case valueify.Op.EQ => s"${vLhs.result} == ${vRhs.result}"
+                case valueify.Op.NE => s"${vLhs.result} != ${vRhs.result}"
+                case valueify.Op.BOOL_AND => s"${vLhs.result} && ${vRhs.result}"
+                case valueify.Op.BOOL_OR => s"${vLhs.result} || ${vRhs.result}"
             }
             ValueifierCode(vLhs.codes ++ vRhs.codes, result, vLhs.requirements ++ vRhs.requirements)
         case ElvisOp(expr, ifNull, _) =>
@@ -163,7 +201,7 @@ class ScalaGen(val analysis: AnalysisResult) {
             val v = newVarName()
             val assign = s"val $v = ${vExpr.result}.getOrElse(${vIfNull.result})"
             ValueifierCode(vExpr.codes ++ vIfNull.codes :+ assign, v, vExpr.requirements ++ vIfNull.requirements)
-        case TernaryExpr(condition, ifTrue, ifFalse, conditionType, _) =>
+        case TernaryExpr(condition, ifTrue, ifFalse, _) =>
             val vCondition = valueifyExprCode(condition, inputName)
             val vIfTrue = valueifyExprCode(ifTrue, inputName)
             val vIfFalse = valueifyExprCode(ifFalse, inputName)

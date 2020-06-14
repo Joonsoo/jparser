@@ -1,7 +1,7 @@
 package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.NGrammar.{NAtomicSymbol, NJoin, NSequence, NTerminal}
+import com.giyeok.jparser.NGrammar.{NAtomicSymbol, NExcept, NJoin, NLookaheadExcept, NLookaheadIs, NSequence, NTerminal}
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.{NGrammar, ParseResult, ParseResultFunc}

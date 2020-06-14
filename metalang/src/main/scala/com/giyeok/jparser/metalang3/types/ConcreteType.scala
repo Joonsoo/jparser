@@ -1,4 +1,4 @@
-package com.giyeok.jparser.metalang3
+package com.giyeok.jparser.metalang3.types
 
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, TypeName}
 
