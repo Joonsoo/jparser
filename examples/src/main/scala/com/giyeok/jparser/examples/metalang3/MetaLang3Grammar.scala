@@ -166,7 +166,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | '{' WS PExpr WS '}' $2
           |NamedConstructExpr = TypeName WS NamedConstructParams {@NamedConstructExpr(typeName=$0, params=$2)}
           |NamedConstructParams = '(' WS NamedParam (WS ',' WS NamedParam)* WS ')' {[$2] + $3$3}
-          |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' WS PExpr {@NamedParam(name=$0, typeDesc=$1, expr=$5)}
+          |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' WS PExpr {@NamedParam(name=$0, typeDesc=$1$3, expr=$5)}
           |FuncCallOrConstructExpr = TypeOrFuncName WS CallParams {@FuncCallOrConstructExpr(funcName=$0, params=$2)}
           |CallParams = '(' WS (PExpr (WS ',' WS PExpr)* WS)? ')' {$2{[$0] + $1$3}}
           |ArrayExpr = '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {@ArrayExpr(elems=$2{[$0] + $1$3})}

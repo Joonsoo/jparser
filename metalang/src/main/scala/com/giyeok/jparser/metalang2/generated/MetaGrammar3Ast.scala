@@ -521,9 +521,9 @@ sealed trait BinderExpr extends ASTNode
 case class NamedConstructExpr(astNode:Node, typeName:TypeName, params:List[NamedParam]) extends ASTNode with Atom{
   def prettyPrint(): String = "NamedConstructExpr(" + "typeName=" + typeName.prettyPrint()+ ", " + "params=" + "[" + params.map(e => e.prettyPrint()).mkString(",") + "]" +  ")"
 }
-case class NamedParam(astNode:Node, name:ParamName, typeDesc:Option[Node], expr:PExpr) extends ASTNode{
+case class NamedParam(astNode:Node, name:ParamName, typeDesc:Option[TypeDesc], expr:PExpr) extends ASTNode{
   def prettyPrint(): String = "NamedParam(" + "name=" + name.prettyPrint()+ ", " + "typeDesc=" + (typeDesc match { case Some(v) =>
-  v.sourceText
+  v.prettyPrint()
   case None => "null"
 })+ ", " + "expr=" + expr.prettyPrint() +  ")"
 }
@@ -1580,703 +1580,722 @@ val BindNode(v506, v507) = v505
 assert(v506.id == 82)
 v507
 }
-val v509 = body.asInstanceOf[SequenceNode].children(5)
+val v513 = v508 map { n =>
+val v509 = n.asInstanceOf[SequenceNode].children(3)
 val BindNode(v510, v511) = v509
-assert(v510.id == 283)
-val v512 = matchPExpr(v511)
-val v513 = NamedParam(node,v502,v508,v512)
-v513
+assert(v510.id == 84)
+val v512 = matchTypeDesc(v511)
+v512
+}
+val v514 = body.asInstanceOf[SequenceNode].children(5)
+val BindNode(v515, v516) = v514
+assert(v515.id == 283)
+val v517 = matchPExpr(v516)
+val v518 = NamedParam(node,v502,v513,v517)
+v518
   }
 }
 def matchFuncCallOrConstructExpr(node: Node): FuncCallOrConstructExpr = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 318 =>
-val v514 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v515, v516) = v514
-assert(v515.id == 319)
-val v517 = matchTypeOrFuncName(v516)
-val v518 = body.asInstanceOf[SequenceNode].children(2)
-val BindNode(v519, v520) = v518
-assert(v519.id == 320)
-val v521 = matchCallParams(v520)
-val v522 = FuncCallOrConstructExpr(node,v517,v521)
-v522
+val v519 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v520, v521) = v519
+assert(v520.id == 319)
+val v522 = matchTypeOrFuncName(v521)
+val v523 = body.asInstanceOf[SequenceNode].children(2)
+val BindNode(v524, v525) = v523
+assert(v524.id == 320)
+val v526 = matchCallParams(v525)
+val v527 = FuncCallOrConstructExpr(node,v522,v526)
+v527
   }
 }
 def matchCallParams(node: Node): Option[List[PExpr]] = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 321 =>
-val v523 = body.asInstanceOf[SequenceNode].children(2)
-val v528 = unrollOptional(v523, 80, 323) map { n =>
-val BindNode(v524, v525) = n
-assert(v524.id == 323)
-val BindNode(v526, v527) = v525
-assert(v526.id == 324)
-v527
+val v528 = body.asInstanceOf[SequenceNode].children(2)
+val v533 = unrollOptional(v528, 80, 323) map { n =>
+val BindNode(v529, v530) = n
+assert(v529.id == 323)
+val BindNode(v531, v532) = v530
+assert(v531.id == 324)
+v532
 }
-val v546 = v528 map { n =>
-val v529 = n.asInstanceOf[SequenceNode].children(0)
-val BindNode(v530, v531) = v529
-assert(v530.id == 283)
-val v532 = matchPExpr(v531)
-val v533 = List(v532)
-val v534 = n.asInstanceOf[SequenceNode].children(1)
-val v539 = unrollRepeat0(v534) map { n =>
-val BindNode(v535, v536) = n
-assert(v535.id == 327)
-val BindNode(v537, v538) = v536
-assert(v537.id == 328)
-v538
-}
-val v544 = v539 map { n =>
-val v540 = n.asInstanceOf[SequenceNode].children(3)
-val BindNode(v541, v542) = v540
-assert(v541.id == 283)
-val v543 = matchPExpr(v542)
+val v551 = v533 map { n =>
+val v534 = n.asInstanceOf[SequenceNode].children(0)
+val BindNode(v535, v536) = v534
+assert(v535.id == 283)
+val v537 = matchPExpr(v536)
+val v538 = List(v537)
+val v539 = n.asInstanceOf[SequenceNode].children(1)
+val v544 = unrollRepeat0(v539) map { n =>
+val BindNode(v540, v541) = n
+assert(v540.id == 327)
+val BindNode(v542, v543) = v541
+assert(v542.id == 328)
 v543
 }
-val v545 = v533 ++ v544
-v545
+val v549 = v544 map { n =>
+val v545 = n.asInstanceOf[SequenceNode].children(3)
+val BindNode(v546, v547) = v545
+assert(v546.id == 283)
+val v548 = matchPExpr(v547)
+v548
 }
-v546
+val v550 = v538 ++ v549
+v550
+}
+v551
   }
 }
 def matchArrayExpr(node: Node): ArrayExpr = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 331 =>
-val v547 = body.asInstanceOf[SequenceNode].children(2)
-val v552 = unrollOptional(v547, 80, 323) map { n =>
-val BindNode(v548, v549) = n
-assert(v548.id == 323)
-val BindNode(v550, v551) = v549
-assert(v550.id == 324)
-v551
+val v552 = body.asInstanceOf[SequenceNode].children(2)
+val v557 = unrollOptional(v552, 80, 323) map { n =>
+val BindNode(v553, v554) = n
+assert(v553.id == 323)
+val BindNode(v555, v556) = v554
+assert(v555.id == 324)
+v556
 }
-val v570 = v552 map { n =>
-val v553 = n.asInstanceOf[SequenceNode].children(0)
-val BindNode(v554, v555) = v553
-assert(v554.id == 283)
-val v556 = matchPExpr(v555)
-val v557 = List(v556)
-val v558 = n.asInstanceOf[SequenceNode].children(1)
-val v563 = unrollRepeat0(v558) map { n =>
-val BindNode(v559, v560) = n
-assert(v559.id == 327)
-val BindNode(v561, v562) = v560
-assert(v561.id == 328)
-v562
-}
-val v568 = v563 map { n =>
-val v564 = n.asInstanceOf[SequenceNode].children(3)
-val BindNode(v565, v566) = v564
-assert(v565.id == 283)
-val v567 = matchPExpr(v566)
+val v575 = v557 map { n =>
+val v558 = n.asInstanceOf[SequenceNode].children(0)
+val BindNode(v559, v560) = v558
+assert(v559.id == 283)
+val v561 = matchPExpr(v560)
+val v562 = List(v561)
+val v563 = n.asInstanceOf[SequenceNode].children(1)
+val v568 = unrollRepeat0(v563) map { n =>
+val BindNode(v564, v565) = n
+assert(v564.id == 327)
+val BindNode(v566, v567) = v565
+assert(v566.id == 328)
 v567
 }
-val v569 = v557 ++ v568
-v569
+val v573 = v568 map { n =>
+val v569 = n.asInstanceOf[SequenceNode].children(3)
+val BindNode(v570, v571) = v569
+assert(v570.id == 283)
+val v572 = matchPExpr(v571)
+v572
 }
-val v571 = ArrayExpr(node,v570)
-v571
+val v574 = v562 ++ v573
+v574
+}
+val v576 = ArrayExpr(node,v575)
+v576
   }
 }
 def matchLiteral(node: Node): Literal = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 74 =>
-val v572 = NullLiteral(node)
-v572
+val v577 = NullLiteral(node)
+v577
 case 334 =>
 // UnrollChoices
-val v573 = BoolLiteral(node,body)
-v573
-case 336 =>
-val v574 = body.asInstanceOf[SequenceNode].children(1)
-val BindNode(v575, v576) = v574
-assert(v575.id == 337)
-val v577 = matchCharChar(v576)
-val v578 = CharLiteral(node,v577)
+val v578 = BoolLiteral(node,body)
 v578
-case 339 =>
+case 336 =>
 val v579 = body.asInstanceOf[SequenceNode].children(1)
-val v583 = unrollRepeat0(v579) map { n =>
-val BindNode(v580, v581) = n
-assert(v580.id == 342)
-val v582 = matchStrChar(v581)
-v582
+val BindNode(v580, v581) = v579
+assert(v580.id == 337)
+val v582 = matchCharChar(v581)
+val v583 = CharLiteral(node,v582)
+v583
+case 339 =>
+val v584 = body.asInstanceOf[SequenceNode].children(1)
+val v588 = unrollRepeat0(v584) map { n =>
+val BindNode(v585, v586) = n
+assert(v585.id == 342)
+val v587 = matchStrChar(v586)
+v587
 }
-val v584 = StringLiteral(node,v583)
-v584
+val v589 = StringLiteral(node,v588)
+v589
   }
 }
 def matchEnumValue(node: Node): AbstractEnumValue = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 346 =>
-val v585 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v586, v587) = v585
-assert(v586.id == 347)
-val v588 = matchCanonicalEnumValue(v587)
-v588
+val v590 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v591, v592) = v590
+assert(v591.id == 347)
+val v593 = matchCanonicalEnumValue(v592)
+v593
 case 351 =>
-val v589 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v590, v591) = v589
-assert(v590.id == 352)
-val v592 = matchShortenedEnumValue(v591)
-v592
+val v594 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v595, v596) = v594
+assert(v595.id == 352)
+val v597 = matchShortenedEnumValue(v596)
+v597
   }
 }
 def matchCanonicalEnumValue(node: Node): CanonicalEnumValue = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 348 =>
-val v593 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v594, v595) = v593
-assert(v594.id == 101)
-val v596 = matchEnumTypeName(v595)
-val v597 = body.asInstanceOf[SequenceNode].children(2)
-val BindNode(v598, v599) = v597
-assert(v598.id == 349)
-val v600 = matchEnumValueName(v599)
-val v601 = CanonicalEnumValue(node,v596,v600)
-v601
+val v598 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v599, v600) = v598
+assert(v599.id == 101)
+val v601 = matchEnumTypeName(v600)
+val v602 = body.asInstanceOf[SequenceNode].children(2)
+val BindNode(v603, v604) = v602
+assert(v603.id == 349)
+val v605 = matchEnumValueName(v604)
+val v606 = CanonicalEnumValue(node,v601,v605)
+v606
   }
 }
 def matchShortenedEnumValue(node: Node): ShortenedEnumValue = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 353 =>
-val v602 = body.asInstanceOf[SequenceNode].children(1)
-val BindNode(v603, v604) = v602
-assert(v603.id == 349)
-val v605 = matchEnumValueName(v604)
-val v606 = ShortenedEnumValue(node,v605)
-v606
+val v607 = body.asInstanceOf[SequenceNode].children(1)
+val BindNode(v608, v609) = v607
+assert(v608.id == 349)
+val v610 = matchEnumValueName(v609)
+val v611 = ShortenedEnumValue(node,v610)
+v611
   }
 }
 def matchTypeDef(node: Node): TypeDef = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 106 =>
-val v607 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v608, v609) = v607
-assert(v608.id == 107)
-val v610 = matchClassDef(v609)
-v610
+val v612 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v613, v614) = v612
+assert(v613.id == 107)
+val v615 = matchClassDef(v614)
+v615
 case 136 =>
-val v611 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v612, v613) = v611
-assert(v612.id == 137)
-val v614 = matchSuperDef(v613)
-v614
+val v616 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v617, v618) = v616
+assert(v617.id == 137)
+val v619 = matchSuperDef(v618)
+v619
 case 151 =>
-val v615 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v616, v617) = v615
-assert(v616.id == 152)
-val v618 = matchEnumTypeDef(v617)
-v618
+val v620 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v621, v622) = v620
+assert(v621.id == 152)
+val v623 = matchEnumTypeDef(v622)
+v623
   }
 }
 def matchClassDef(node: Node): ClassDef = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 108 =>
-val v619 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v620, v621) = v619
-assert(v620.id == 88)
-val v622 = matchTypeName(v621)
-val v623 = body.asInstanceOf[SequenceNode].children(2)
-val BindNode(v624, v625) = v623
-assert(v624.id == 109)
-val v626 = matchSuperTypes(v625)
-val v627 = AbstractClassDef(node,v622,v626)
-v627
-case 121 =>
-val v628 = body.asInstanceOf[SequenceNode].children(0)
+val v624 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v625, v626) = v624
+assert(v625.id == 88)
+val v627 = matchTypeName(v626)
+val v628 = body.asInstanceOf[SequenceNode].children(2)
 val BindNode(v629, v630) = v628
-assert(v629.id == 88)
-val v631 = matchTypeName(v630)
-val v632 = body.asInstanceOf[SequenceNode].children(2)
-val BindNode(v633, v634) = v632
-assert(v633.id == 109)
-val v635 = matchSuperTypes(v634)
-val v636 = body.asInstanceOf[SequenceNode].children(4)
-val BindNode(v637, v638) = v636
-assert(v637.id == 122)
-val v639 = matchClassParamsDef(v638)
-val v640 = ConcreteClassDef(node,v631,v635,v639)
-v640
+assert(v629.id == 109)
+val v631 = matchSuperTypes(v630)
+val v632 = AbstractClassDef(node,v627,v631)
+v632
+case 121 =>
+val v633 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v634, v635) = v633
+assert(v634.id == 88)
+val v636 = matchTypeName(v635)
+val v637 = body.asInstanceOf[SequenceNode].children(2)
+val BindNode(v638, v639) = v637
+assert(v638.id == 109)
+val v640 = matchSuperTypes(v639)
+val v641 = body.asInstanceOf[SequenceNode].children(4)
+val BindNode(v642, v643) = v641
+assert(v642.id == 122)
+val v644 = matchClassParamsDef(v643)
+val v645 = ConcreteClassDef(node,v636,v640,v644)
+v645
   }
 }
 def matchSuperTypes(node: Node): Option[List[TypeName]] = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 110 =>
-val v641 = body.asInstanceOf[SequenceNode].children(2)
-val v646 = unrollOptional(v641, 80, 113) map { n =>
-val BindNode(v642, v643) = n
-assert(v642.id == 113)
-val BindNode(v644, v645) = v643
-assert(v644.id == 114)
-v645
+val v646 = body.asInstanceOf[SequenceNode].children(2)
+val v651 = unrollOptional(v646, 80, 113) map { n =>
+val BindNode(v647, v648) = n
+assert(v647.id == 113)
+val BindNode(v649, v650) = v648
+assert(v649.id == 114)
+v650
 }
-val v664 = v646 map { n =>
-val v647 = n.asInstanceOf[SequenceNode].children(0)
-val BindNode(v648, v649) = v647
-assert(v648.id == 88)
-val v650 = matchTypeName(v649)
-val v651 = List(v650)
-val v652 = n.asInstanceOf[SequenceNode].children(1)
-val v657 = unrollRepeat0(v652) map { n =>
-val BindNode(v653, v654) = n
-assert(v653.id == 117)
-val BindNode(v655, v656) = v654
-assert(v655.id == 118)
-v656
-}
-val v662 = v657 map { n =>
-val v658 = n.asInstanceOf[SequenceNode].children(3)
-val BindNode(v659, v660) = v658
-assert(v659.id == 88)
-val v661 = matchTypeName(v660)
+val v669 = v651 map { n =>
+val v652 = n.asInstanceOf[SequenceNode].children(0)
+val BindNode(v653, v654) = v652
+assert(v653.id == 88)
+val v655 = matchTypeName(v654)
+val v656 = List(v655)
+val v657 = n.asInstanceOf[SequenceNode].children(1)
+val v662 = unrollRepeat0(v657) map { n =>
+val BindNode(v658, v659) = n
+assert(v658.id == 117)
+val BindNode(v660, v661) = v659
+assert(v660.id == 118)
 v661
 }
-val v663 = v651 ++ v662
-v663
+val v667 = v662 map { n =>
+val v663 = n.asInstanceOf[SequenceNode].children(3)
+val BindNode(v664, v665) = v663
+assert(v664.id == 88)
+val v666 = matchTypeName(v665)
+v666
 }
-v664
+val v668 = v656 ++ v667
+v668
+}
+v669
   }
 }
 def matchClassParamsDef(node: Node): Option[List[ClassParamDef]] = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 123 =>
-val v665 = body.asInstanceOf[SequenceNode].children(2)
-val v670 = unrollOptional(v665, 80, 126) map { n =>
-val BindNode(v666, v667) = n
-assert(v666.id == 126)
-val BindNode(v668, v669) = v667
-assert(v668.id == 127)
-v669
+val v670 = body.asInstanceOf[SequenceNode].children(2)
+val v675 = unrollOptional(v670, 80, 126) map { n =>
+val BindNode(v671, v672) = n
+assert(v671.id == 126)
+val BindNode(v673, v674) = v672
+assert(v673.id == 127)
+v674
 }
-val v688 = v670 map { n =>
-val v671 = n.asInstanceOf[SequenceNode].children(0)
-val BindNode(v672, v673) = v671
-assert(v672.id == 128)
-val v674 = matchClassParamDef(v673)
-val v675 = List(v674)
-val v676 = n.asInstanceOf[SequenceNode].children(1)
-val v681 = unrollRepeat0(v676) map { n =>
-val BindNode(v677, v678) = n
-assert(v677.id == 133)
-val BindNode(v679, v680) = v678
-assert(v679.id == 134)
-v680
-}
-val v686 = v681 map { n =>
-val v682 = n.asInstanceOf[SequenceNode].children(3)
-val BindNode(v683, v684) = v682
-assert(v683.id == 128)
-val v685 = matchClassParamDef(v684)
+val v693 = v675 map { n =>
+val v676 = n.asInstanceOf[SequenceNode].children(0)
+val BindNode(v677, v678) = v676
+assert(v677.id == 128)
+val v679 = matchClassParamDef(v678)
+val v680 = List(v679)
+val v681 = n.asInstanceOf[SequenceNode].children(1)
+val v686 = unrollRepeat0(v681) map { n =>
+val BindNode(v682, v683) = n
+assert(v682.id == 133)
+val BindNode(v684, v685) = v683
+assert(v684.id == 134)
 v685
 }
-val v687 = v675 ++ v686
-v687
+val v691 = v686 map { n =>
+val v687 = n.asInstanceOf[SequenceNode].children(3)
+val BindNode(v688, v689) = v687
+assert(v688.id == 128)
+val v690 = matchClassParamDef(v689)
+v690
 }
-v688
+val v692 = v680 ++ v691
+v692
+}
+v693
   }
 }
 def matchClassParamDef(node: Node): ClassParamDef = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 129 =>
-val v689 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v690, v691) = v689
-assert(v690.id == 130)
-val v692 = matchParamName(v691)
-val v693 = body.asInstanceOf[SequenceNode].children(1)
-val v698 = unrollOptional(v693, 80, 81) map { n =>
-val BindNode(v694, v695) = n
-assert(v694.id == 81)
-val BindNode(v696, v697) = v695
-assert(v696.id == 82)
-v697
-}
-val v703 = v698 map { n =>
-val v699 = n.asInstanceOf[SequenceNode].children(3)
-val BindNode(v700, v701) = v699
-assert(v700.id == 84)
-val v702 = matchTypeDesc(v701)
+val v694 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v695, v696) = v694
+assert(v695.id == 130)
+val v697 = matchParamName(v696)
+val v698 = body.asInstanceOf[SequenceNode].children(1)
+val v703 = unrollOptional(v698, 80, 81) map { n =>
+val BindNode(v699, v700) = n
+assert(v699.id == 81)
+val BindNode(v701, v702) = v700
+assert(v701.id == 82)
 v702
 }
-val v704 = ClassParamDef(node,v692,v703)
-v704
+val v708 = v703 map { n =>
+val v704 = n.asInstanceOf[SequenceNode].children(3)
+val BindNode(v705, v706) = v704
+assert(v705.id == 84)
+val v707 = matchTypeDesc(v706)
+v707
+}
+val v709 = ClassParamDef(node,v697,v708)
+v709
   }
 }
 def matchSuperDef(node: Node): SuperDef = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 138 =>
-val v705 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v706, v707) = v705
-assert(v706.id == 88)
-val v708 = matchTypeName(v707)
-val v709 = body.asInstanceOf[SequenceNode].children(3)
-val v714 = unrollOptional(v709, 80, 141) map { n =>
-val BindNode(v710, v711) = n
-assert(v710.id == 141)
-val BindNode(v712, v713) = v711
-assert(v712.id == 142)
-v713
-}
-val v719 = v714 map { n =>
-val v715 = n.asInstanceOf[SequenceNode].children(1)
-val BindNode(v716, v717) = v715
-assert(v716.id == 143)
-val v718 = matchSubTypes(v717)
+val v710 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v711, v712) = v710
+assert(v711.id == 88)
+val v713 = matchTypeName(v712)
+val v714 = body.asInstanceOf[SequenceNode].children(3)
+val v719 = unrollOptional(v714, 80, 141) map { n =>
+val BindNode(v715, v716) = n
+assert(v715.id == 141)
+val BindNode(v717, v718) = v716
+assert(v717.id == 142)
 v718
 }
-val v720 = SuperDef(node,v708,v719)
-v720
+val v724 = v719 map { n =>
+val v720 = n.asInstanceOf[SequenceNode].children(1)
+val BindNode(v721, v722) = v720
+assert(v721.id == 143)
+val v723 = matchSubTypes(v722)
+v723
+}
+val v725 = SuperDef(node,v713,v724)
+v725
   }
 }
 def matchSubTypes(node: Node): List[SubType] = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 144 =>
-val v721 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v722, v723) = v721
-assert(v722.id == 145)
-val v724 = matchSubType(v723)
-val v725 = List(v724)
-val v726 = body.asInstanceOf[SequenceNode].children(1)
-val v731 = unrollRepeat0(v726) map { n =>
-val BindNode(v727, v728) = n
-assert(v727.id == 148)
-val BindNode(v729, v730) = v728
-assert(v729.id == 149)
-v730
-}
-val v736 = v731 map { n =>
-val v732 = n.asInstanceOf[SequenceNode].children(3)
-val BindNode(v733, v734) = v732
-assert(v733.id == 145)
-val v735 = matchSubType(v734)
+val v726 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v727, v728) = v726
+assert(v727.id == 145)
+val v729 = matchSubType(v728)
+val v730 = List(v729)
+val v731 = body.asInstanceOf[SequenceNode].children(1)
+val v736 = unrollRepeat0(v731) map { n =>
+val BindNode(v732, v733) = n
+assert(v732.id == 148)
+val BindNode(v734, v735) = v733
+assert(v734.id == 149)
 v735
 }
-val v737 = v725 ++ v736
-v737
+val v741 = v736 map { n =>
+val v737 = n.asInstanceOf[SequenceNode].children(3)
+val BindNode(v738, v739) = v737
+assert(v738.id == 145)
+val v740 = matchSubType(v739)
+v740
+}
+val v742 = v730 ++ v741
+v742
   }
 }
 def matchSubType(node: Node): SubType = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 87 =>
-val v738 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v739, v740) = v738
-assert(v739.id == 88)
-val v741 = matchTypeName(v740)
-v741
+val v743 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v744, v745) = v743
+assert(v744.id == 88)
+val v746 = matchTypeName(v745)
+v746
 case 106 =>
-val v742 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v743, v744) = v742
-assert(v743.id == 107)
-val v745 = matchClassDef(v744)
-v745
+val v747 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v748, v749) = v747
+assert(v748.id == 107)
+val v750 = matchClassDef(v749)
+v750
 case 136 =>
-val v746 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v747, v748) = v746
-assert(v747.id == 137)
-val v749 = matchSuperDef(v748)
-v749
+val v751 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v752, v753) = v751
+assert(v752.id == 137)
+val v754 = matchSuperDef(v753)
+v754
   }
 }
 def matchEnumTypeDef(node: Node): EnumTypeDef = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 153 =>
-val v750 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v751, v752) = v750
-assert(v751.id == 101)
-val v753 = matchEnumTypeName(v752)
-val v754 = body.asInstanceOf[SequenceNode].children(4)
-val BindNode(v755, v756) = v754
-assert(v755.id == 34)
-val v757 = matchId(v756)
-val v758 = List(v757)
-val v759 = body.asInstanceOf[SequenceNode].children(5)
-val v764 = unrollRepeat0(v759) map { n =>
-val BindNode(v760, v761) = n
-assert(v760.id == 156)
-val BindNode(v762, v763) = v761
-assert(v762.id == 157)
-v763
-}
-val v769 = v764 map { n =>
-val v765 = n.asInstanceOf[SequenceNode].children(3)
-val BindNode(v766, v767) = v765
-assert(v766.id == 34)
-val v768 = matchId(v767)
+val v755 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v756, v757) = v755
+assert(v756.id == 101)
+val v758 = matchEnumTypeName(v757)
+val v759 = body.asInstanceOf[SequenceNode].children(4)
+val BindNode(v760, v761) = v759
+assert(v760.id == 34)
+val v762 = matchId(v761)
+val v763 = List(v762)
+val v764 = body.asInstanceOf[SequenceNode].children(5)
+val v769 = unrollRepeat0(v764) map { n =>
+val BindNode(v765, v766) = n
+assert(v765.id == 156)
+val BindNode(v767, v768) = v766
+assert(v767.id == 157)
 v768
 }
-val v770 = v758 ++ v769
-val v771 = EnumTypeDef(node,v753,v770)
-v771
+val v774 = v769 map { n =>
+val v770 = n.asInstanceOf[SequenceNode].children(3)
+val BindNode(v771, v772) = v770
+assert(v771.id == 34)
+val v773 = matchId(v772)
+v773
+}
+val v775 = v763 ++ v774
+val v776 = EnumTypeDef(node,v758,v775)
+v776
   }
 }
 def matchTypeDesc(node: Node): TypeDesc = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 85 =>
-val v772 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v773, v774) = v772
-assert(v773.id == 86)
-val v775 = matchNonNullTypeDesc(v774)
-val v776 = body.asInstanceOf[SequenceNode].children(1)
-val v781 = unrollOptional(v776, 80, 159) map { n =>
-val BindNode(v777, v778) = n
-assert(v777.id == 159)
-val BindNode(v779, v780) = v778
-assert(v779.id == 160)
-v780
+val v777 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v778, v779) = v777
+assert(v778.id == 86)
+val v780 = matchNonNullTypeDesc(v779)
+val v781 = body.asInstanceOf[SequenceNode].children(1)
+val v786 = unrollOptional(v781, 80, 159) map { n =>
+val BindNode(v782, v783) = n
+assert(v782.id == 159)
+val BindNode(v784, v785) = v783
+assert(v784.id == 160)
+v785
 }
-val v782 = TypeDesc(node,v775,v781)
-v782
+val v787 = TypeDesc(node,v780,v786)
+v787
   }
 }
 def matchNonNullTypeDesc(node: Node): NonNullTypeDesc = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 87 =>
-val v783 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v784, v785) = v783
-assert(v784.id == 88)
-val v786 = matchTypeName(v785)
-v786
-case 89 =>
-val v787 = body.asInstanceOf[SequenceNode].children(2)
-val BindNode(v788, v789) = v787
-assert(v788.id == 84)
-val v790 = matchTypeDesc(v789)
-val v791 = ArrayTypeDesc(node,v790)
+val v788 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v789, v790) = v788
+assert(v789.id == 88)
+val v791 = matchTypeName(v790)
 v791
-case 92 =>
-val v792 = body.asInstanceOf[SequenceNode].children(0)
+case 89 =>
+val v792 = body.asInstanceOf[SequenceNode].children(2)
 val BindNode(v793, v794) = v792
-assert(v793.id == 93)
-val v795 = matchValueType(v794)
-v795
+assert(v793.id == 84)
+val v795 = matchTypeDesc(v794)
+val v796 = ArrayTypeDesc(node,v795)
+v796
+case 92 =>
+val v797 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v798, v799) = v797
+assert(v798.id == 93)
+val v800 = matchValueType(v799)
+v800
 case 94 =>
-val v796 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v797, v798) = v796
-assert(v797.id == 95)
-val v799 = matchAnyType(v798)
-v799
+val v801 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v802, v803) = v801
+assert(v802.id == 95)
+val v804 = matchAnyType(v803)
+v804
 case 100 =>
-val v800 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v801, v802) = v800
-assert(v801.id == 101)
-val v803 = matchEnumTypeName(v802)
-v803
+val v805 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v806, v807) = v805
+assert(v806.id == 101)
+val v808 = matchEnumTypeName(v807)
+v808
 case 104 =>
-val v804 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v805, v806) = v804
-assert(v805.id == 105)
-val v807 = matchTypeDef(v806)
-v807
+val v809 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v810, v811) = v809
+assert(v810.id == 105)
+val v812 = matchTypeDef(v811)
+v812
   }
 }
 def matchValueType(node: Node): ValueType = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 44 =>
-val v808 = BooleanType(node)
-v808
+val v813 = BooleanType(node)
+v813
 case 53 =>
-val v809 = CharType(node)
-v809
+val v814 = CharType(node)
+v814
 case 59 =>
-val v810 = StringType(node)
-v810
+val v815 = StringType(node)
+v815
   }
 }
 def matchAnyType(node: Node): AnyType = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 96 =>
-val v811 = AnyType(node)
-v811
+val v816 = AnyType(node)
+v816
   }
 }
 def matchEnumTypeName(node: Node): EnumTypeName = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 102 =>
-val v812 = body.asInstanceOf[SequenceNode].children(1)
-val BindNode(v813, v814) = v812
-assert(v813.id == 34)
-val v815 = matchId(v814)
-val v816 = EnumTypeName(node,v815)
-v816
+val v817 = body.asInstanceOf[SequenceNode].children(1)
+val BindNode(v818, v819) = v817
+assert(v818.id == 34)
+val v820 = matchId(v819)
+val v821 = EnumTypeName(node,v820)
+v821
   }
 }
 def matchTypeName(node: Node): TypeName = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 32 =>
-val v817 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v818, v819) = v817
-assert(v818.id == 33)
-val v820 = TypeName(node,v819)
-v820
+val v822 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v823, v824) = v822
+assert(v823.id == 33)
+val v825 = TypeName(node,v824)
+v825
 case 77 =>
-val v821 = body.asInstanceOf[SequenceNode].children(0)
-val v822 = TypeName(node,v821)
-v822
+val v826 = body.asInstanceOf[SequenceNode].children(1)
+val BindNode(v827, v828) = v826
+assert(v827.id == 34)
+val v829 = matchId(v828)
+val v830 = TypeName(node,v829)
+v830
   }
 }
 def matchNonterminalName(node: Node): NonterminalName = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 32 =>
-val v823 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v824, v825) = v823
-assert(v824.id == 33)
-val v826 = NonterminalName(node,v825)
-v826
+val v831 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v832, v833) = v831
+assert(v832.id == 33)
+val v834 = NonterminalName(node,v833)
+v834
 case 77 =>
-val v827 = body.asInstanceOf[SequenceNode].children(0)
-val v828 = NonterminalName(node,v827)
-v828
+val v835 = body.asInstanceOf[SequenceNode].children(1)
+val BindNode(v836, v837) = v835
+assert(v836.id == 34)
+val v838 = matchId(v837)
+val v839 = NonterminalName(node,v838)
+v839
   }
 }
 def matchTypeOrFuncName(node: Node): TypeOrFuncName = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 32 =>
-val v829 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v830, v831) = v829
-assert(v830.id == 33)
-val v832 = TypeOrFuncName(node,v831)
-v832
+val v840 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v841, v842) = v840
+assert(v841.id == 33)
+val v843 = TypeOrFuncName(node,v842)
+v843
 case 77 =>
-val v833 = body.asInstanceOf[SequenceNode].children(0)
-val v834 = TypeOrFuncName(node,v833)
-v834
+val v844 = body.asInstanceOf[SequenceNode].children(1)
+val BindNode(v845, v846) = v844
+assert(v845.id == 34)
+val v847 = matchId(v846)
+val v848 = TypeOrFuncName(node,v847)
+v848
   }
 }
 def matchParamName(node: Node): ParamName = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 32 =>
-val v835 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v836, v837) = v835
-assert(v836.id == 33)
-val v838 = ParamName(node,v837)
-v838
+val v849 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v850, v851) = v849
+assert(v850.id == 33)
+val v852 = ParamName(node,v851)
+v852
 case 77 =>
-val v839 = body.asInstanceOf[SequenceNode].children(0)
-val v840 = ParamName(node,v839)
-v840
+val v853 = body.asInstanceOf[SequenceNode].children(1)
+val BindNode(v854, v855) = v853
+assert(v854.id == 34)
+val v856 = matchId(v855)
+val v857 = ParamName(node,v856)
+v857
   }
 }
 def matchEnumValueName(node: Node): EnumValueName = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 350 =>
-val v841 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v842, v843) = v841
-assert(v842.id == 34)
-val v844 = matchId(v843)
-val v845 = EnumValueName(node,v844)
-v845
+val v858 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v859, v860) = v858
+assert(v859.id == 34)
+val v861 = matchId(v860)
+val v862 = EnumValueName(node,v861)
+v862
   }
 }
 def matchKeyword(node: Node): Node = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 44 =>
-val v846 = body.asInstanceOf[SequenceNode].children(0)
-v846
+val v863 = body.asInstanceOf[SequenceNode].children(0)
+v863
 case 53 =>
-val v847 = body.asInstanceOf[SequenceNode].children(0)
-v847
+val v864 = body.asInstanceOf[SequenceNode].children(0)
+v864
 case 59 =>
-val v848 = body.asInstanceOf[SequenceNode].children(0)
-v848
+val v865 = body.asInstanceOf[SequenceNode].children(0)
+v865
 case 66 =>
-val v849 = body.asInstanceOf[SequenceNode].children(0)
-v849
+val v866 = body.asInstanceOf[SequenceNode].children(0)
+v866
 case 70 =>
-val v850 = body.asInstanceOf[SequenceNode].children(0)
-v850
+val v867 = body.asInstanceOf[SequenceNode].children(0)
+v867
 case 74 =>
-val v851 = body.asInstanceOf[SequenceNode].children(0)
-v851
+val v868 = body.asInstanceOf[SequenceNode].children(0)
+v868
   }
 }
 def matchStrChar(node: Node): StringChar = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 343 =>
-val v852 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v853, v854) = v852
-assert(v853.id == 228)
-val v855 = matchStringChar(v854)
-v855
+val v869 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v870, v871) = v869
+assert(v870.id == 228)
+val v872 = matchStringChar(v871)
+v872
   }
 }
 def matchCharChar(node: Node): TerminalChar = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 338 =>
-val v856 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v857, v858) = v856
-assert(v857.id == 192)
-val v859 = matchTerminalChar(v858)
-v859
+val v873 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v874, v875) = v873
+assert(v874.id == 192)
+val v876 = matchTerminalChar(v875)
+v876
   }
 }
 def matchRefIdx(node: Node): Node = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 267 =>
-val v860 = body.asInstanceOf[SequenceNode].children(0)
-v860
+val v877 = body.asInstanceOf[SequenceNode].children(0)
+v877
   }
 }
 def matchId(node: Node): Node = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 35 =>
-val v861 = body.asInstanceOf[SequenceNode].children(0)
-v861
+val v878 = body.asInstanceOf[SequenceNode].children(0)
+v878
   }
 }
 def matchWS(node: Node): List[Node] = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 5 =>
-val v862 = body.asInstanceOf[SequenceNode].children(0)
-val v863 = unrollRepeat0(v862) map { n =>
+val v879 = body.asInstanceOf[SequenceNode].children(0)
+val v880 = unrollRepeat0(v879) map { n =>
 // UnrollChoices
 n
 }
-v863
+v880
   }
 }
 def matchWSNL(node: Node): List[Node] = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 384 =>
-val v864 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v865, v866) = v864
-assert(v865.id == 4)
-val v867 = matchWS(v866)
-v867
+val v881 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v882, v883) = v881
+assert(v882.id == 4)
+val v884 = matchWS(v883)
+v884
   }
 }
 def matchLineComment(node: Node): Node = {
@@ -2291,10 +2310,10 @@ def matchEOF(node: Node): Node = {
   val BindNode(symbol, body) = node
   symbol.id match {
     case 21 =>
-val v868 = body.asInstanceOf[SequenceNode].children(0)
-val BindNode(v869, v870) = v868
-assert(v869.id == 22)
-v870
+val v885 = body.asInstanceOf[SequenceNode].children(0)
+val BindNode(v886, v887) = v885
+assert(v886.id == 22)
+v887
   }
 }
 def matchStart(node: Node): Grammar = {
