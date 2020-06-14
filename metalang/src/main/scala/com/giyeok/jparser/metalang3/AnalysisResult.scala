@@ -1,19 +1,16 @@
 package com.giyeok.jparser.metalang3
 
-import com.giyeok.jparser.NGrammar.{NNonterminal, NSequence, NSymbol}
-import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.Symbols.Nonterminal
+import com.giyeok.jparser.NGrammar.NSymbol
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang3.types.{ConcreteType, TypeFunc}
 import com.giyeok.jparser.metalang3.valueify.ValueifyExpr
+import com.giyeok.jparser.{NGrammar, Symbols}
 
 // ruleValueifyExprs: Nonterminal name -> ValueifyExpr
-class AnalysisResult(val startNonterminal: String, val valueifyExprsMap: Map[String, ValueifyExpr]) {
-    def symbolOf(symbol: MetaGrammar3Ast.Symbol): NSymbol = NNonterminal(1, Nonterminal("Nonterm"), Set())
+class AnalysisResult(val startNonterminal: String, val ngrammar: NGrammar, val symbolsMap: Map[MetaGrammar3Ast.Symbol, Symbols.Symbol],
+                     val valueifyExprsMap: Map[String, ValueifyExpr]) {
 
-    def symbolOf(rhs: MetaGrammar3Ast.RHS): NSymbol = NNonterminal(1, Nonterminal("Nonterm"), Set())
-
-    def emptySymbol(): NSymbol = NSequence(1, Symbols.Sequence(Seq()), Seq(1))
+    def symbolOf(symbol: MetaGrammar3Ast.Symbol): NSymbol = ngrammar.findSymbol(symbolsMap(symbol)).get._2
 
     def concreteTypeOf(typeFunc: TypeFunc): ConcreteType = typeFunc match {
         case TypeFunc.NodeType => ConcreteType.NodeType

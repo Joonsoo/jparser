@@ -1,5 +1,7 @@
 package com.giyeok.jparser.metalang3
 
+import com.giyeok.jparser.NGrammar.NNonterminal
+import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.{Grammar, NGrammar, Symbols}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.Rule
@@ -13,14 +15,14 @@ object MetaLanguage3 {
 
     case class IllegalGrammar(msg: String) extends Exception(msg)
 
-    private def parseGrammar(grammar: String): MetaGrammar3Ast.Grammar = {
+    def parseGrammar(grammar: String): MetaGrammar3Ast.Grammar = {
         MetaGrammar3Ast.parseAst(grammar) match {
             case Left(value) => value
             case Right(value) => throw IllegalGrammar(value.msg)
         }
     }
 
-    def analyze(grammarDefinition: String, grammarName: String = "GeneratedGrammar"): AnalysisResult = {
+    def analyzeGrammar(grammarDefinition: String, grammarName: String = "GeneratedGrammar"): AnalysisResult = {
         val defs = parseGrammar(grammarDefinition).defs
         val valueifyGen = new ValueifyGen()
         val grammarRules = defs collect {
@@ -55,11 +57,31 @@ object MetaLanguage3 {
         val rule = defs.head.asInstanceOf[Rule]
 
         val startNonterminalName = rule.lhs.name.name.stringName
-        val analysis = new AnalysisResult(startNonterminalName, Map())
+        val analysis = new AnalysisResult(startNonterminalName, ngrammar, valueifyGen.symbolsMap, Map())
         val scalaGen = new ScalaGen(analysis)
         scalaGen.matchFuncFor(rule.lhs.name, grammarRules.head._2._1).codes.foreach(println)
         println()
 
         analysis
+    }
+
+    def main(args: Array[String]): Unit = {
+        MetaLang3Grammar.inMetaLang3
+        val example =
+            """A = (B? {$0 ?: "abc"}) 'd' {MyClass(value=$0$0)}
+              |B = 'b'
+              |C = 'c'
+              |""".stripMargin
+
+        val analysis = MetaLanguage3.analyzeGrammar(example)
+        analysis.ngrammar.nsymbols.foreach(pair =>
+            println(s"${pair._2.symbol.toShortString} -> ${pair._1}"))
+        analysis.ngrammar.nsequences.foreach(pair =>
+            println(s"${pair._2.symbol.toShortString} -> ${pair._1}"))
+        println("====")
+        analysis.ngrammar.nsymbols.collect {
+            case (i, symbol: NNonterminal) =>
+                println(s"${symbol.symbol.name} -> $i -> ${symbol.produces.toList.sorted}")
+        }
     }
 }

@@ -1,16 +1,14 @@
 package com.giyeok.jparser.metalang3.valueify
 
 import com.giyeok.jparser.ParseResultTree.Node
-import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
+import com.giyeok.jparser._
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{Elem, InPlaceSequence, ngrammar}
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.Elem
 import com.giyeok.jparser.metalang3.MetaLanguage3.IllegalGrammar
+import com.giyeok.jparser.metalang3.symbols.Escapes
 import com.giyeok.jparser.metalang3.symbols.Escapes.NonterminalName
 import com.giyeok.jparser.metalang3.types.TypeFunc
 import com.giyeok.jparser.metalang3.types.TypeFunc._
-import com.giyeok.jparser.nparser.ParseTreeConstructor
-import com.giyeok.jparser._
-import com.giyeok.jparser.metalang3.MetaLanguage3
 
 import scala.annotation.tailrec
 import scala.collection.immutable.ListSet
@@ -19,6 +17,28 @@ class ValueifyGen {
 
     private def check(cond: Boolean, msg: String): Unit = {
         if (!cond) throw IllegalGrammar(msg)
+    }
+
+    private var _symbolsMap = Map[MetaGrammar3Ast.Symbol, Symbols.Symbol]()
+
+    def symbolsMap: Map[MetaGrammar3Ast.Symbol, Symbols.Symbol] = _symbolsMap
+
+    // ID는 UnspecifiedEnum 객체 생성시 필요
+    private var idCounter: Int = 0
+
+    private def nextId(): Int = {
+        idCounter += 1
+        idCounter
+    }
+
+    private def collectSymbolAndReturn(symbol: MetaGrammar3Ast.Symbol, tuple: (ValueifyExpr, Symbols.Symbol)): (ValueifyExpr, Symbols.Symbol) = {
+        _symbolsMap += (symbol -> tuple._2)
+        tuple
+    }
+
+    private def collectSequenceAndReturn(sequence: MetaGrammar3Ast.Sequence, tuple: (ValueifyExpr, Symbols.Symbol)): (ValueifyExpr, Symbols.Symbol) = {
+        _symbolsMap += (sequence -> tuple._2)
+        tuple
     }
 
     private def condSymPathOf(condSymPath: List[Node]): String = condSymPath.map(_.sourceText).mkString
@@ -39,9 +59,9 @@ class ValueifyGen {
         (lastProcessor, seqSymbol)
     }
 
-    private def valueifyInPlaceSequence(choices: List[MetaGrammar3Ast.InPlaceSequence], condSymPath: String, input: ValueifyExpr): (ValueifyExpr, Symbols.Symbol) = {
+    private def valueifyChoices(choices: List[MetaGrammar3Ast.Sequence], condSymPath: String, input: ValueifyExpr): (ValueifyExpr, Symbols.Symbol) = {
         // TODO 이 안에서 `input`들 잘 들어가는지 확인
-        def valueifyChoice(choice: InPlaceSequence, input: ValueifyExpr): ValueifyExpr = {
+        def valueifyChoice(choice: MetaGrammar3Ast.Sequence, input: ValueifyExpr): ValueifyExpr = {
             // 마지막 element가 symbol이면 SeqElemAt이 들어가야 한다.
             assert(choice.seq.nonEmpty)
             val bodyInput = choice.seq.last match {
@@ -55,7 +75,7 @@ class ValueifyGen {
         }
 
         if (choices.size == 1) {
-            valueifySequence(choices.head.seq, input)
+            collectSequenceAndReturn(choices.head, valueifySequence(choices.head.seq, input))
         } else {
             ???
             //            check(condSymPath.isEmpty, "")
@@ -73,19 +93,12 @@ class ValueifyGen {
         case processor: MetaGrammar3Ast.Processor => TypeOfProcessor(processor)
     }
 
-    private var idCounter: Int = 0
-
-    private def nextId(): Int = {
-        idCounter += 1
-        idCounter
-    }
-
     private def proxyIf(pair: (ValueifyExpr, Symbols.Symbol)): (ValueifyExpr, Symbols.AtomicSymbol) = pair._2 match {
         case symbol: Symbols.AtomicSymbol => (pair._1, symbol)
-        case seq: Symbols.Sequence => (pair._1, Symbols.Proxy(seq))
+        case seq: Symbols.Sequence => (pair._1, Symbols.Proxy(seq)) // TODO pair._1에서 Unbind하는거 넣어야할듯
     }
 
-    def valueifySymbol(refCtx: List[Elem], symbol: MetaGrammar3Ast.Symbol, condSymPath: String, input: ValueifyExpr): (ValueifyExpr, Symbols.Symbol) = symbol match {
+    def valueifySymbol(refCtx: List[Elem], symbol: MetaGrammar3Ast.Symbol, condSymPath: String, input: ValueifyExpr): (ValueifyExpr, Symbols.Symbol) = collectSymbolAndReturn(symbol, symbol match {
         case symbol@MetaGrammar3Ast.JoinSymbol(astNode, body, join) =>
             if (condSymPath.isEmpty) {
                 // body나 join이 SingleChoice/OneSymbol 가 아니면 Proxy + Unbind 추가
@@ -93,8 +106,15 @@ class ValueifyGen {
                 val vJoin = proxyIf(valueifySymbol(refCtx, join, "", InputNode))
                 (JoinBodyOf(symbol, Unbind(symbol, input), vBody._1, TypeOfSymbol(body)), Symbols.Join(vBody._2, vJoin._2))
             } else {
-                // TODO condSymPath.head 방향 봐서 JoinBodyOf/JoinCondOf, valueify 재귀호출 할 때는 condSymPath.tail
-                ???
+                // condSymPath.head 방향 봐서 JoinBodyOf/JoinCondOf, valueify 재귀호출 할 때는 condSymPath.tail
+                val vBody = proxyIf(valueifySymbol(refCtx, body, condSymPath.tail, InputNode))
+                val vJoin = proxyIf(valueifySymbol(refCtx, join, condSymPath.tail, InputNode))
+                condSymPath.head match {
+                    case '<' => // body
+                        (JoinBodyOf(symbol, Unbind(symbol, input), vBody._1, TypeOfSymbol(body)), Symbols.Join(vBody._2, vJoin._2))
+                    case '>' => // cond
+                        (JoinCondOf(symbol, Unbind(symbol, input), vJoin._1, TypeOfSymbol(join)), Symbols.Join(vBody._2, vJoin._2))
+                }
             }
         case symbol@MetaGrammar3Ast.ExceptSymbol(astNode, body, except) =>
             check(condSymPath.isEmpty, "Except cannot be referred with condSymPath")
@@ -114,7 +134,7 @@ class ValueifyGen {
             val vBody = proxyIf(valueifySymbol(refCtx, body, condSymPath, InputNode))
             val emptySymbol = Symbols.Proxy(Symbols.Sequence(Seq()))
             (UnrollChoices(Unbind(symbol, input), Map(
-                EmptySeqChoice -> NullLiteral, SymbolChoice(body) -> vBody._1
+                GrammarSymbolChoice(emptySymbol) -> NullLiteral, AstSymbolChoice(body) -> vBody._1
             ), OptionalOf(vBody._1.resultType)), Symbols.OneOf(ListSet(emptySymbol, vBody._2)))
         case MetaGrammar3Ast.RepeatFromZero(astNode, body) =>
             check(condSymPath.isEmpty, "Repeat* cannot be referred with condSymPath")
@@ -126,33 +146,30 @@ class ValueifyGen {
             (UnrollRepeat(1, input, vBody._1, ArrayOf(vBody._1.resultType)), ???)
         case MetaGrammar3Ast.InPlaceChoices(astNode, choices) =>
             check(condSymPath.isEmpty, "InPlaceChoices cannot be referred with condSymPath")
-            valueifyInPlaceSequence(choices, condSymPath, input)
+            valueifyChoices(choices, condSymPath, input)
         case symbol@MetaGrammar3Ast.Longest(astNode, choices) =>
             check(condSymPath.isEmpty, "Longest cannot be referred with condSymPath")
-            val vChoices = proxyIf(valueifyInPlaceSequence(choices.choices, condSymPath, input))
+            val vChoices = proxyIf(valueifyChoices(choices.choices, condSymPath, input))
             // TODO Unbind resultType이 vChoices.resultType인가..?
             (Unbind(symbol, vChoices._1), Symbols.Longest(vChoices._2))
-        case _: MetaGrammar3Ast.Terminal =>
+        case terminal: MetaGrammar3Ast.Terminal =>
             check(condSymPath.isEmpty, "Terminal cannot be referred with condSymPath")
-            // TODO Symbols
-            (InputNode, Symbols.ExactChar('a'))
+            (InputNode, Escapes.terminalToSymbol(terminal))
         case MetaGrammar3Ast.TerminalChoice(astNode, choices) =>
             check(condSymPath.isEmpty, "TerminalChoice cannot be referred with condSymPath")
-            // TODO Symbols
-            (InputNode, Symbols.ExactChar('a'))
+            (InputNode, Escapes.terminalChoiceToSymbol(choices))
         case MetaGrammar3Ast.StringSymbol(astNode, value) =>
             check(condSymPath.isEmpty, "String cannot be referred with condSymPath")
-            (StringLiteral(StringLiteral.escape(value)), ???)
+            (StringLiteral(StringLiteral.escape(value)), Symbols.Proxy(Symbols.Sequence(value.map(Escapes.stringCharToChar))))
         case nonterm@MetaGrammar3Ast.Nonterminal(astNode, name) =>
             check(condSymPath.isEmpty, "Nonterminal cannot be referred with condSymPath")
             (MatchNonterminal(nonterm, input, TypeOfSymbol(symbol)), Symbols.Nonterminal(name.stringName))
         case MetaGrammar3Ast.EmptySeq(astNode) =>
             check(condSymPath.isEmpty, "EmptySeq cannot be referred with condSymPath")
             (InputNode, Symbols.Sequence(Seq()))
-    }
+    })
 
     def valueifyProcessor(refCtx: List[Elem], processor: MetaGrammar3Ast.Processor, input: ValueifyExpr): ValueifyExpr = processor match {
-
         //                case MetaGrammar3Ast.TernaryOp(astNode, cond, ifTrue, ifFalse) =>
         //                    val vCond = valueify(refCtx, cond, "", InputNode)
         //                    val vIfTrue = valueify(refCtx, ??? /*ifTrue*/ , "", InputNode)
@@ -208,6 +225,7 @@ class ValueifyGen {
                     getBindingContext(choices.choices.head, Unbind(symbol, input))
                 case MetaGrammar3Ast.InPlaceChoices(astNode, choices) if choices.size == 1 =>
                     (choices.head.seq, input)
+                // TODO Join symbol의 body가 Longest나 InPlaceChoices인 경우도 안될것 없는듯 "(A B C)&D {$0$2}" 하면 B나오면 되지 않을까?
                 case _ => throw IllegalGrammar("Bind expression only can refer to Longest or InPlaceChoices symbol with only choice")
             }
 
@@ -244,47 +262,12 @@ class ValueifyGen {
             ShortenedEnumValue(valueName, UnspecifiedEnum(nextId()))
     }
 
-    def valueifyRule(rhsList: List[MetaGrammar3Ast.RHS]): (UnrollChoices, List[Symbols.Symbol]) = {
+    def valueifyRule(rhsList: List[MetaGrammar3Ast.Sequence]): (UnrollChoices, List[Symbols.Symbol]) = {
         val mappers = rhsList.map { rhs =>
-            RightHandSideChoice(rhs) -> valueifySequence(rhs.elems, InputNode)
+            AstSymbolChoice(rhs) -> collectSequenceAndReturn(rhs, valueifySequence(rhs.seq, InputNode))
         }.toMap
         val mappings = mappers.map(mapper => mapper._1 -> mapper._2._1)
         val returnType = unifyTypes(mappers.map(_._2._1.resultType))
         (UnrollChoices(InputNode, mappings.toMap, returnType), mappers.map(_._2._2).toList)
-    }
-
-    def parse(text: String): ParseResultTree.Node = {
-        MetaGrammar3Ast.parse(text) match {
-            case Left(ctx) =>
-                val tree = new ParseTreeConstructor(ParseForestFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
-                tree match {
-                    case Some(forest) if forest.trees.size == 1 =>
-                        forest.trees.head
-                    case Some(forest) =>
-                        throw new Exception(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size).toString)
-                    case None =>
-                        val expectedTerms = ctx.nextGraph.nodes.flatMap { node =>
-                            node.kernel.symbol match {
-                                case NGrammar.NTerminal(_, term) => Some(term)
-                                case _ => None
-                            }
-                        }
-                        throw new Exception(ParsingErrors.UnexpectedEOF(expectedTerms, text.length).toString)
-                }
-            case Right(error) => throw new Exception(error.toString)
-        }
-    }
-}
-
-object ValueifyGen {
-    def main(args: Array[String]): Unit = {
-        MetaLang3Grammar.inMetaLang3
-        val example =
-            """A = (B? {$0 ?: "abc"})&C
-              |B = 'b'
-              |C = 'c'
-              |""".stripMargin
-
-        MetaLanguage3.analyze(example)
     }
 }

@@ -1,7 +1,8 @@
 package com.giyeok.jparser.metalang3.valueify
 
+import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, EnumValueName, ExceptSymbol, InPlaceSequence, JoinSymbol, NamedParam, RHS, StringChar, TypeName, TypeOrFuncName}
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, EnumValueName, JoinSymbol, NamedParam, StringChar, TypeName, TypeOrFuncName}
 import com.giyeok.jparser.metalang3.types.TypeFunc
 import com.giyeok.jparser.metalang3.types.TypeFunc._
 
@@ -32,13 +33,9 @@ case class UnrollChoices(choiceExpr: ValueifyExpr, map: Map[DerivationChoice, Va
 
 sealed class DerivationChoice
 
-case class InPlaceSequenceChoice(inPlaceSequence: InPlaceSequence) extends DerivationChoice
+case class AstSymbolChoice(symbol: MetaGrammar3Ast.Symbol) extends DerivationChoice
 
-case class SymbolChoice(symbol: MetaGrammar3Ast.Symbol) extends DerivationChoice
-
-case class RightHandSideChoice(rhs: RHS) extends DerivationChoice
-
-case object EmptySeqChoice extends DerivationChoice
+case class GrammarSymbolChoice(symbol: Symbols.Symbol) extends DerivationChoice
 
 case class NamedConstructCall(className: TypeName, params: List[(NamedParam, ValueifyExpr)], override val resultType: TypeFunc) extends ValueifyExpr
 

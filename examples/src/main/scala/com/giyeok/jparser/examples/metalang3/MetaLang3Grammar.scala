@@ -18,6 +18,7 @@ import com.giyeok.jparser.examples.{MetaLang2Example, MetaLang3Example, MetaLang
 //   - \$0 은 0번 symbol의 가공되지 않은 ParseNode 그 자체를 나타낸다. 여기서도 cond symbol traverse path 사용 가능
 // - InPlaceSequence 안에서 Symbol 뿐만 아니라 Processor도 사용 가능해졌다. InPlaceSequence 내에서도 일반적인 RHS에서와
 //   마찬가지로 가장 마지막 element가 전체 sequence를 대변하는 값이 된다.
+//   - 문법 정의상에서는 InPlaceSequence가 삭제되고 RHS와 InplaceSequence가 모두 Sequence로 통합됨.
 // - bounded expression의 의미가 정립되었다.
 //   - bounded expression은 InPlaceSequence의 내용을 처리해야하는 상황에 사용할 수 있는 syntactic sugar로 본다.
 //   - 예를 들어, "A (WS ',' WS A)* {[$0] + $1$3}"은 사실 "A (WS ',' WS A $3)* {[$0] + $1}"을 다르게 쓴 것이다.
@@ -76,7 +77,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |
           |Rule = LHS WS '=' WS RHS (WS '|' WS RHS)* {@Rule(lhs=$0, rhs=[$4] + $5$3)}
           |LHS = Nonterminal (WS ':' WS TypeDesc)? {@LHS(name=$0, typeDesc=$1$3)}
-          |RHS = Elem (WS Elem)* {@RHS(elems=[$0] + $1$1)}
+          |RHS = Sequence
           |Elem: @Elem = Symbol | Processor
           |
           |
@@ -108,8 +109,8 @@ object MetaLang3Grammar extends MetaLangExamples {
           |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {@TerminalChoiceRange(start=$0, end=$2)}
           |StringSymbol = '"' StringChar* '"' {@StringSymbol(value=$1$0)}
           |Nonterminal = NonterminalName {@Nonterminal(name=$0)}
-          |InPlaceChoices = InPlaceSequence (WS '|' WS InPlaceSequence)* {@InPlaceChoices(choices=[$0] + $1$3)}
-          |InPlaceSequence = Elem (WS Elem)* {@InPlaceSequence<Symbol>(seq=[$0] + $1$1)}
+          |InPlaceChoices = Sequence (WS '|' WS Sequence)* {@InPlaceChoices(choices=[$0] + $1$3)}
+          |Sequence = Elem (WS Elem)* {@Sequence<Symbol>(seq=[$0] + $1$1)}
           |Longest = '<' WS InPlaceChoices WS '>' {@Longest(choices=$2)}
           |EmptySequence = '#' {@EmptySeq()}
           |
@@ -242,7 +243,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |
           |Rule = LHS WS '=' WS (RHS (WS '|' WS RHS)* {[$0] + $1}) {Rule(lhs=$0, rhs=$4)}
           |LHS = Nonterminal (WS ':' WS TypeDesc)? {LHS(name=$0, typeDesc=$1)}
-          |RHS = Elem (WS Elem)* {RHS(elems=[$0] + $1)}
+          |RHS = Sequence
           |Elem: Elem = Symbol | Processor
           |
           |
@@ -274,8 +275,8 @@ object MetaLang3Grammar extends MetaLangExamples {
           |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {TerminalChoiceRange(start=$0, end=$2)}
           |StringSymbol = '"' StringChar* '"' {StringSymbol(value=$1$0)}
           |Nonterminal = NonterminalName {Nonterminal(name=$0)}
-          |InPlaceChoices = InPlaceSequence (WS '|' WS InPlaceSequence)* {InPlaceChoices(choices=[$0] + $1)}
-          |InPlaceSequence = Elem (WS Elem)* {InPlaceSequence(seq=[$0] + $1)}
+          |InPlaceChoices = Sequence (WS '|' WS Sequence)* {InPlaceChoices(choices=[$0] + $1)}
+          |Sequence = Elem (WS Elem)* {Sequence<Symbol>(seq=[$0] + $1)}
           |Longest = '<' WS InPlaceChoices WS '>' {Longest(choices=$2)}
           |EmptySequence = '#' {EmptySeq()}
           |

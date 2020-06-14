@@ -2,6 +2,7 @@ package com.giyeok.jparser.metalang3.codegen
 
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, Nonterminal, TypeName}
 import com.giyeok.jparser.metalang3.MetaLanguage3.IllegalGrammar
+import com.giyeok.jparser.metalang3.codegen.ScalaGen.Options
 import com.giyeok.jparser.metalang3.types.ConcreteType
 import com.giyeok.jparser.metalang3.valueify._
 import com.giyeok.jparser.metalang3.{valueify, _}
@@ -9,7 +10,17 @@ import com.giyeok.jparser.metalang3.{valueify, _}
 // TODO codegen options
 // - null vs Option
 // - mostSpecificSuperTypeOf 옵션(extensive하지 않은 super type을 허용할지)
-class ScalaGen(val analysis: AnalysisResult) {
+
+object ScalaGen {
+
+    case class Options(useNull: Boolean = false,
+                       allowNonExtensiveSuperTypes: Boolean = false,
+                       assertBindTypes: Boolean = true,
+                       symbolComments: Boolean = true)
+
+}
+
+class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
     private var _argNum = 0
 
     private def newVarName(): String = {
@@ -70,22 +81,30 @@ class ScalaGen(val analysis: AnalysisResult) {
             val v1 = newVarName()
             val v2 = newVarName()
             val bindedSymbol = analysis.symbolOf(symbol)
-            ValueifierCode(e.codes ++ List(
-                s"val BindNode($v1, $v2) = ${e.result}",
-                s"assert($v1.id == ${bindedSymbol.id})"
-            ), v2, e.requirements + "jparser.BindNode")
+            ValueifierCode(e.codes ++
+                List(s"val BindNode($v1, $v2) = ${e.result}" + (if (options.symbolComments) s" // id=${bindedSymbol.id} ${bindedSymbol.symbol.toShortString}" else "")) ++
+                (if (options.assertBindTypes) List(s"assert($v1.id == ${bindedSymbol.id})") else List())
+                , v2, e.requirements + "jparser.BindNode")
         case JoinBodyOf(joinSymbol, joinExpr, bodyProcessorExpr, _) =>
             val join = valueifyExprCode(joinExpr, inputName)
             val v1 = newVarName()
             val v2 = newVarName()
             val processor = valueifyExprCode(bodyProcessorExpr, v2)
             val symbol = analysis.symbolOf(joinSymbol)
-            ValueifierCode(join.codes ++ List(
-                s"val JoinNode($v1, $v2, _) = ${join.result}",
-                s"assert($v1.id == ${symbol.id})"
-            ) ++ processor.codes, processor.result, join.requirements ++ processor.requirements + "jparser.JoinNode")
+            ValueifierCode(join.codes ++
+                List(s"val JoinNode($v1, $v2, _) = ${join.result}") ++
+                (if (options.assertBindTypes) List(s"assert($v1.id == ${symbol.id})") else List()) ++
+                processor.codes, processor.result, join.requirements ++ processor.requirements + "jparser.JoinNode")
         case JoinCondOf(joinSymbol, joinExpr, condProcessorExpr, _) =>
-            ???
+            val join = valueifyExprCode(joinExpr, inputName)
+            val v1 = newVarName()
+            val v2 = newVarName()
+            val processor = valueifyExprCode(condProcessorExpr, v2)
+            val symbol = analysis.symbolOf(joinSymbol)
+            ValueifierCode(join.codes ++
+                List(s"val JoinNode($v1, _, $v2) = ${join.result}") ++
+                (if (options.assertBindTypes) List(s"assert($v1.id == ${symbol.id})") else List()) ++
+                processor.codes, processor.result, join.requirements ++ processor.requirements + "jparser.JoinNode")
         case UnrollRepeat(minimumRepeat, arrayExpr, elemProcessExpr, _) =>
             // inputName을 repeatSymbol로 unroll repeat하고, 각각을 expr로 가공
             val arrayExprCode = valueifyExprCode(arrayExpr, inputName)
@@ -111,13 +130,11 @@ class ScalaGen(val analysis: AnalysisResult) {
             var requirements = vChoiceExpr.requirements
             mappings.foreach { mapping =>
                 val symbol = mapping._1 match {
-                    case InPlaceSequenceChoice(inPlaceSequence) => analysis.symbolOf(inPlaceSequence)
-                    case SymbolChoice(symbol) => analysis.symbolOf(symbol)
-                    case RightHandSideChoice(rhs) => analysis.symbolOf(rhs)
-                    case EmptySeqChoice => analysis.emptySymbol()
+                    case AstSymbolChoice(symbol) => analysis.symbolOf(symbol)
+                    case GrammarSymbolChoice(symbol) => analysis.ngrammar.findSymbol(symbol).get._2
                 }
                 val vMapper = valueifyExprCode(mapping._2, body)
-                codes :+= s"case ${symbol.id} => // ${symbol.symbol.toShortString}"
+                codes :+= s"case ${symbol.id} =>" + (if (options.symbolComments) s" // ${symbol.symbol.toShortString}" else "")
                 codes ++= vMapper.codes
                 codes :+= vMapper.result
                 requirements ++= vMapper.requirements
