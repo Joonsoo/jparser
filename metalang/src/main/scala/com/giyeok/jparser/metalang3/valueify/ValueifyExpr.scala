@@ -20,15 +20,9 @@ case class Unbind(symbol: MetaGrammar3Ast.Symbol, expr: ValueifyExpr) extends Va
     override val resultType: TypeFunc = TypeOfSymbol(symbol)
 }
 
-case class JoinBodyOf(joinSymbol: JoinSymbol, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
+case class JoinBodyOf(joinSymbol: JoinSymbol, joinExpr: ValueifyExpr, bodyProcessorExpr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
-case class JoinCondOf(joinSymbol: JoinSymbol, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
-
-case class ExceptBodyOf(exceptSymbol: ExceptSymbol, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
-
-case class ExceptCondOf(exceptSymbol: ExceptSymbol, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
-
-// TODO Lookahead, LookaheadNot
+case class JoinCondOf(joinSymbol: JoinSymbol, joinExpr: ValueifyExpr, condProcessorExpr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
 case class SeqElemAt(expr: ValueifyExpr, index: Int, override val resultType: TypeFunc) extends ValueifyExpr
 

@@ -5,7 +5,7 @@ import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, Non
 import com.giyeok.jparser.metalang3.valueify.ValueifyGen.IllegalGrammar
 import com.giyeok.jparser.metalang3.{valueify, _}
 import com.giyeok.jparser.metalang3.types.ConcreteType
-import com.giyeok.jparser.metalang3.valueify.{ArrayExpr, BinOp, BoolLiteral, CanonicalEnumValue, CharLiteral, ElvisOp, EmptySeqChoice, EnumValue, ExceptBodyOf, ExceptCondOf, FuncCall, InPlaceSequenceChoice, InputNode, JoinBodyOf, JoinCondOf, Literal, MatchNonterminal, NamedConstructCall, NullLiteral, Op, PreOp, PrefixOp, RightHandSideChoice, SeqElemAt, ShortenedEnumValue, StringLiteral, SymbolChoice, TernaryExpr, Unbind, UnnamedConstructCall, UnrollChoices, UnrollRepeat, ValueifyExpr}
+import com.giyeok.jparser.metalang3.valueify.{ArrayExpr, BinOp, BoolLiteral, CanonicalEnumValue, CharLiteral, ElvisOp, EmptySeqChoice, EnumValue, FuncCall, InPlaceSequenceChoice, InputNode, JoinBodyOf, JoinCondOf, Literal, MatchNonterminal, NamedConstructCall, NullLiteral, Op, PreOp, PrefixOp, RightHandSideChoice, SeqElemAt, ShortenedEnumValue, StringLiteral, SymbolChoice, TernaryExpr, Unbind, UnnamedConstructCall, UnrollChoices, UnrollRepeat, ValueifyExpr}
 
 // TODO codegen options
 // - null vs Option
@@ -75,42 +75,18 @@ class ScalaGen(val analysis: AnalysisResult) {
                 s"val BindNode($v1, $v2) = ${e.result}",
                 s"assert($v1.id == ${bindedSymbol.id})"
             ), v2, e.requirements + "jparser.BindNode")
-        case JoinBodyOf(joinSymbol, expr, _) =>
-            val e = valueifyExprCode(expr, inputName)
+        case JoinBodyOf(joinSymbol, joinExpr, bodyProcessorExpr, _) =>
             val v1 = newVarName()
             val v2 = newVarName()
+            val join = valueifyExprCode(joinExpr, inputName)
+            val processor = valueifyExprCode(bodyProcessorExpr, v2)
             val symbol = analysis.symbolOf(joinSymbol)
-            ValueifierCode(e.codes ++ List(
-                s"val JoinNode($v1, $v2, _) = ${e.result}",
+            ValueifierCode(join.codes ++ List(
+                s"val JoinNode($v1, $v2, _) = ${join.result}",
                 s"assert($v1.id == ${symbol.id})"
-            ), v2, e.requirements + "jparser.JoinNode")
-        case JoinCondOf(joinSymbol, expr, _) =>
-            val e = valueifyExprCode(expr, inputName)
-            val v1 = newVarName()
-            val v2 = newVarName()
-            val symbol = analysis.symbolOf(joinSymbol)
-            ValueifierCode(e.codes ++ List(
-                s"val JoinNode($v1, _, $v2) = ${e.result}",
-                s"assert($v1.id == ${symbol.id})"
-            ), v2, e.requirements + "jparser.JoinNode")
-        case ExceptBodyOf(exceptSymbol, expr, _) =>
-            val e = valueifyExprCode(expr, inputName)
-            val v1 = newVarName()
-            val v2 = newVarName()
-            val symbol = analysis.symbolOf(exceptSymbol)
-            ValueifierCode(e.codes ++ List(
-                s"val ExceptNode($v1, $v2, _) = ${e.result}",
-                s"assert($v1.id == ${symbol.id})"
-            ), v2, e.requirements + "jparser.ExceptNode")
-        case ExceptCondOf(exceptSymbol, expr, _) =>
-            val e = valueifyExprCode(expr, inputName)
-            val v1 = newVarName()
-            val v2 = newVarName()
-            val symbol = analysis.symbolOf(exceptSymbol)
-            ValueifierCode(e.codes ++ List(
-                s"val ExceptNode($v1, _, $v2) = ${e.result}",
-                s"assert($v1.id == ${symbol.id})"
-            ), v2, e.requirements + "jparser.ExceptNode")
+            ) ++ processor.codes, processor.result, join.requirements ++ processor.requirements + "jparser.JoinNode")
+        case JoinCondOf(joinSymbol, joinExpr, condProcessorExpr, _) =>
+            ???
         case UnrollRepeat(minimumRepeat, arrayExpr, elemProcessExpr, _) =>
             // inputName을 repeatSymbol로 unroll repeat하고, 각각을 expr로 가공
             val arrayExprCode = valueifyExprCode(arrayExpr, inputName)
