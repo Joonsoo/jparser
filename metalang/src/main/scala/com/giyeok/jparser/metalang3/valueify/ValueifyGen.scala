@@ -3,18 +3,17 @@ package com.giyeok.jparser.metalang3.valueify
 import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{Elem, InPlaceSequence, RHS, Rule, ngrammar}
-import com.giyeok.jparser.metalang3.AnalysisResult
-import com.giyeok.jparser.metalang3.codegen.ScalaGen
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{Elem, InPlaceSequence, ngrammar}
+import com.giyeok.jparser.metalang3.MetaLanguage3.IllegalGrammar
 import com.giyeok.jparser.metalang3.symbols.Escapes.NonterminalName
 import com.giyeok.jparser.metalang3.types.TypeFunc
 import com.giyeok.jparser.metalang3.types.TypeFunc._
-import com.giyeok.jparser.metalang3.valueify.ValueifyGen.IllegalGrammar
 import com.giyeok.jparser.nparser.ParseTreeConstructor
-import com.giyeok.jparser.{Grammar, NGrammar, ParseForestFunc, ParseResultTree, ParsingErrors, Symbols}
+import com.giyeok.jparser._
+import com.giyeok.jparser.metalang3.MetaLanguage3
 
 import scala.annotation.tailrec
-import scala.collection.immutable.{ListMap, ListSet}
+import scala.collection.immutable.ListSet
 
 class ValueifyGen {
 
@@ -278,52 +277,14 @@ class ValueifyGen {
 }
 
 object ValueifyGen {
-
-    case class IllegalGrammar(msg: String) extends Exception
-
     def main(args: Array[String]): Unit = {
         MetaLang3Grammar.inMetaLang3
         val example =
-            """A = (B {ispresent($0) && true})&C
+            """A = (B? {$0 ?: "abc"})&C
               |B = 'b'
               |C = 'c'
               |""".stripMargin
-        val defs = MetaGrammar3Ast.parseAst(example).left.get.defs
 
-        val valueifyGen = new ValueifyGen()
-        val grammarRules = defs collect {
-            case MetaGrammar3Ast.Rule(astNode, lhs, rhsList) =>
-                lhs.name.name.stringName -> valueifyGen.valueifyRule(rhsList)
-        }
-        val names = grammarRules.map(_._1)
-        if (names.distinct.size != names.size) {
-            throw IllegalGrammar("Duplicate rule definition")
-        }
-        //        val typeDefs = defs collect {
-        //            case typeDef: MetaGrammar3Ast.TypeDef =>
-        //                typeDef match {
-        //                    case classDef: MetaGrammar3Ast.ClassDef =>
-        //                        classDef match {
-        //                            case MetaGrammar3Ast.AbstractClassDef(astNode, name, supers) => ???
-        //                            case MetaGrammar3Ast.ConcreteClassDef(astNode, name, supers, params) => ???
-        //                        }
-        //                    case MetaGrammar3Ast.SuperDef(astNode, typeName, subs) => ???
-        //                    case MetaGrammar3Ast.EnumTypeDef(astNode, name, values) => ???
-        //                }
-        //        }
-
-        val grammar = NGrammar.fromGrammar(new Grammar {
-            val name: String = "GeneratedGrammar"
-            val rules: RuleMap = ListMap.from(grammarRules.map(rule => rule._1 -> ListSet.from(rule._2._2)))
-            val startSymbol: Symbols.Nonterminal = Symbols.Nonterminal(grammarRules.head._1)
-        })
-        println(grammar)
-
-        val rule = defs.head.asInstanceOf[Rule]
-
-        val analysis = new AnalysisResult(rule.lhs.name.name.stringName, Map())
-        val scalaGen = new ScalaGen(analysis)
-        scalaGen.matchFuncFor(rule.lhs.name, grammarRules.head._2._1).codes.foreach(println)
-        println()
+        MetaLanguage3.analyze(example)
     }
 }

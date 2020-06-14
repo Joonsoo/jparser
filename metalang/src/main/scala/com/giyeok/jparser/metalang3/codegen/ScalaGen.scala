@@ -1,11 +1,10 @@
 package com.giyeok.jparser.metalang3.codegen
 
-import com.giyeok.jparser.ParseResultTree.JoinNode
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, Nonterminal, TypeName}
-import com.giyeok.jparser.metalang3.valueify.ValueifyGen.IllegalGrammar
-import com.giyeok.jparser.metalang3.{valueify, _}
+import com.giyeok.jparser.metalang3.MetaLanguage3.IllegalGrammar
 import com.giyeok.jparser.metalang3.types.ConcreteType
-import com.giyeok.jparser.metalang3.valueify.{ArrayExpr, BinOp, BoolLiteral, CanonicalEnumValue, CharLiteral, ElvisOp, EmptySeqChoice, EnumValue, FuncCall, InPlaceSequenceChoice, InputNode, JoinBodyOf, JoinCondOf, Literal, MatchNonterminal, NamedConstructCall, NullLiteral, Op, PreOp, PrefixOp, RightHandSideChoice, SeqElemAt, ShortenedEnumValue, StringLiteral, SymbolChoice, TernaryExpr, Unbind, UnnamedConstructCall, UnrollChoices, UnrollRepeat, ValueifyExpr}
+import com.giyeok.jparser.metalang3.valueify._
+import com.giyeok.jparser.metalang3.{valueify, _}
 
 // TODO codegen options
 // - null vs Option
@@ -76,9 +75,9 @@ class ScalaGen(val analysis: AnalysisResult) {
                 s"assert($v1.id == ${bindedSymbol.id})"
             ), v2, e.requirements + "jparser.BindNode")
         case JoinBodyOf(joinSymbol, joinExpr, bodyProcessorExpr, _) =>
+            val join = valueifyExprCode(joinExpr, inputName)
             val v1 = newVarName()
             val v2 = newVarName()
-            val join = valueifyExprCode(joinExpr, inputName)
             val processor = valueifyExprCode(bodyProcessorExpr, v2)
             val symbol = analysis.symbolOf(joinSymbol)
             ValueifierCode(join.codes ++ List(
@@ -91,8 +90,8 @@ class ScalaGen(val analysis: AnalysisResult) {
             // inputName을 repeatSymbol로 unroll repeat하고, 각각을 expr로 가공
             val arrayExprCode = valueifyExprCode(arrayExpr, inputName)
             val elemProcessCode = valueifyExprCode(elemProcessExpr, "elem")
-            val v = newVarName()
             val funcName = s"ASTUtils.unrollRepeat$minimumRepeat"
+            val v = newVarName()
             ValueifierCode(
                 arrayExprCode.codes ++
                     List(s"val $v = $funcName(${arrayExprCode.result}) map { elem =>") ++
@@ -101,10 +100,10 @@ class ScalaGen(val analysis: AnalysisResult) {
                         "}"),
                 v, arrayExprCode.requirements ++ elemProcessCode.requirements + funcName)
         case UnrollChoices(choiceExpr, mappings, _) =>
+            val vChoiceExpr = valueifyExprCode(choiceExpr, inputName)
             val symbol = newVarName()
             val body = newVarName()
             val v = newVarName()
-            val vChoiceExpr = valueifyExprCode(choiceExpr, inputName)
             var codes = vChoiceExpr.codes ++ List(
                 s"val BindNode($symbol, $body) = ${vChoiceExpr.result}",
                 s"val $v = $symbol.id match {"
@@ -170,7 +169,8 @@ class ScalaGen(val analysis: AnalysisResult) {
                 case valueify.Op.BOOL_AND => s"${vLhs.result} && ${vRhs.result}"
                 case valueify.Op.BOOL_OR => s"${vLhs.result} || ${vRhs.result}"
             }
-            ValueifierCode(vLhs.codes ++ vRhs.codes, result, vLhs.requirements ++ vRhs.requirements)
+            val v = newVarName()
+            ValueifierCode(vLhs.codes ++ vRhs.codes :+ s"val $v = $result", v, vLhs.requirements ++ vRhs.requirements)
         case ElvisOp(expr, ifNull, _) =>
             val vExpr = valueifyExprCode(expr, inputName)
             val vIfNull = valueifyExprCode(ifNull, inputName)
