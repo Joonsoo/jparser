@@ -28,7 +28,7 @@ object TypeFunc {
 
     case class UnionOf(types: List[TypeFunc]) extends TypeFunc
 
-    case class EnumType(enumName: EnumTypeName) extends TypeFunc
+    case class EnumType(enumTypeName: EnumTypeName) extends TypeFunc
 
     case class UnspecifiedEnum(uniqueId: Int) extends TypeFunc
 

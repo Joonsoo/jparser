@@ -2,8 +2,7 @@ package com.giyeok.jparser.metalang3.valueify
 
 import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node}
 import com.giyeok.jparser.metalang3.AnalysisResult
-import com.giyeok.jparser.metalang3.valueify.ValueifyInterpreter.{BoolValue, CharValue, NodeValue, NullValue, StringValue, Value, ValueifyException}
-import com.giyeok.jparser.metalang3.symbols.Escapes.NonterminalName
+import com.giyeok.jparser.metalang3.valueify.ValueifyInterpreter._
 
 // TODO ParseResultTree.Node, ValueifyExpr 받아서 결과물 반환
 class ValueifyInterpreter(val analysis: AnalysisResult) {
@@ -14,10 +13,10 @@ class ValueifyInterpreter(val analysis: AnalysisResult) {
 
     def valueify(node: Node, valueifyExpr: ValueifyExpr): Value = valueifyExpr match {
         case InputNode => NodeValue(node)
-        case MatchNonterminal(nonterminal, expr, _) =>
+        case MatchNonterminal(nonterminalName, expr, _) =>
             val e = valueify(node, expr)
             assert(e.isInstanceOf[NodeValue])
-            val matcher = analysis.valueifyExprsMap(nonterminal.name.stringName)
+            val matcher = analysis.valueifyExprsMap(nonterminalName)
             valueify(e.asInstanceOf[NodeValue].astNode, matcher)
         case Unbind(symbol, expr) =>
             val BindNode(bindSymbol, body) = node

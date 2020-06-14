@@ -15,7 +15,7 @@ case object InputNode extends ValueifyExpr {
     override val resultType: TypeFunc = NodeType
 }
 
-case class MatchNonterminal(nonterminal: MetaGrammar3Ast.Nonterminal, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
+case class MatchNonterminal(nonterminalName: String, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
 case class Unbind(symbol: MetaGrammar3Ast.Symbol, expr: ValueifyExpr) extends ValueifyExpr {
     override val resultType: TypeFunc = TypeOfSymbol(symbol)

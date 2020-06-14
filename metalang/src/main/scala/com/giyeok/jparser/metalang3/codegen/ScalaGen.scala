@@ -1,9 +1,8 @@
 package com.giyeok.jparser.metalang3.codegen
 
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.Nonterminal
 import com.giyeok.jparser.metalang3.MetaLanguage3.IllegalGrammar
 import com.giyeok.jparser.metalang3.codegen.ScalaGen.Options
-import com.giyeok.jparser.metalang3.types.ConcreteType
+import com.giyeok.jparser.metalang3.types.{ConcreteType, TypeFunc}
 import com.giyeok.jparser.metalang3.valueify._
 import com.giyeok.jparser.metalang3.{valueify, _}
 
@@ -15,18 +14,24 @@ object ScalaGen {
 
     /**
      *
-     * @param useNull                     (미구현) true이면 Option 대신 그냥 값+null을 사용한다.
-     * @param allowNonExtensiveSuperTypes TODO
-     * @param assertBindTypes             Unbind할 때 unbind된 심볼의 타입을 체크한다.
-     * @param symbolComments              human readable한 심볼 설명 코멘트를 추가한다.
+     * @param useNull              (미구현) true이면 Option 대신 그냥 값+null을 사용한다.
+     * @param looseSuperType       TODO 기본 false
+     * @param assertBindTypes      Unbind할 때 unbind된 심볼의 타입을 체크한다. 기본 true
+     * @param symbolComments       human readable한 심볼 설명 코멘트를 추가한다. 기본 true
+     * @param astNodesInAllClasses 모든 클래스에 astNode를 기본으로 포함시킨다. 기본 true
      */
     case class Options(useNull: Boolean = false,
-                       allowNonExtensiveSuperTypes: Boolean = false,
+                       looseSuperType: Boolean = false,
                        assertBindTypes: Boolean = true,
-                       symbolComments: Boolean = true)
+                       symbolComments: Boolean = true,
+                       astNodesInAllClasses: Boolean = true)
 
 }
 
+// TODO 값이 가는 곳이 OptionalType인데 주는 값은 아니면, Some(**)로 넣어주도록
+// - 값을 어딘가에 넘겨주는 경우에만.
+// - NamedConstructCall, UnnamedConstructCall, FuncCall, ArrayExpr, PrefixOp, BinOp, ElvisOp, TernaryExpr
+// - UnrollChoices에서도 resultType은 optional인데 case 안의 타입이 아닌 경우 Some(**)
 class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
     private var _argNum = 0
 
@@ -41,8 +46,8 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
 
     private def firstCharUpperCase(name: String) = s"${name.charAt(0).toUpper}${name.substring(1)}"
 
-    def matchFuncNameForNonterminal(nonterminal: Nonterminal): String =
-        s"match${firstCharUpperCase(nonterminal.name.name.sourceText)}"
+    def matchFuncNameForNonterminal(nonterminalName: String): String =
+        s"match${firstCharUpperCase(nonterminalName)}"
 
     def typeDescStringOf(concreteType: ConcreteType): String = concreteType match {
         case ConcreteType.NodeType => "Node"
@@ -66,7 +71,9 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
 
     private def collectRequirementsFrom(codes: List[ValueifierCode]) = codes.foldLeft(Set[String]())(_ ++ _.requirements)
 
-    // TODO 값이 가는 곳이 OptionalType인데 주는 값이 아니면, Some(**)로 넣어주도록
+    private def realTypeOf(typeFunc: TypeFunc): ConcreteType =
+        analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(typeFunc), options.looseSuperType)
+
     def valueifyExprCode(expr: ValueifyExpr, inputName: String): ValueifierCode = expr match {
         case InputNode => ValueifierCode(List(), inputName, Set())
         case MatchNonterminal(nonterminal, expr, _) =>
@@ -121,7 +128,7 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
                     List(elemProcessCode.result,
                         "}"),
                 v, arrayExprCode.requirements ++ elemProcessCode.requirements + funcName)
-        case UnrollChoices(choiceExpr, mappings, _) =>
+        case UnrollChoices(choiceExpr, mappings, resultType) =>
             val vChoiceExpr = valueifyExprCode(choiceExpr, inputName)
             val symbol = newVarName()
             val body = newVarName()
@@ -177,8 +184,8 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
             val vRhs = valueifyExprCode(rhs, inputName)
             val result = op match {
                 case Op.ADD =>
-                    val vLhsType = analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(lhs.resultType))
-                    val vRhsType = analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(rhs.resultType))
+                    val vLhsType = realTypeOf(lhs.resultType)
+                    val vRhsType = realTypeOf(rhs.resultType)
                     (vLhsType, vRhsType) match {
                         case (ConcreteType.StringType, ConcreteType.StringType) => s"${vLhs.result} + ${vRhs.result}"
                         case (_: ConcreteType.ArrayOf, _: ConcreteType.ArrayOf) => s"${vLhs.result} ++ ${vRhs.result}"
@@ -218,10 +225,10 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
         }
     }
 
-    def matchFuncFor(nonterminal: Nonterminal, valueifyExpr: ValueifyExpr): CodeBlock = {
+    def matchFuncFor(nonterminalName: String, valueifyExpr: ValueifyExpr): CodeBlock = {
         val exprCode = valueifyExprCode(valueifyExpr, "input")
-        val returnTypeString = typeDescStringOf(analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(valueifyExpr.resultType)))
-        CodeBlock(List(s"def ${matchFuncNameForNonterminal(nonterminal)}(input: Node): $returnTypeString = {") ++
+        val returnTypeString = typeDescStringOf(realTypeOf(valueifyExpr.resultType))
+        CodeBlock(List(s"def ${matchFuncNameForNonterminal(nonterminalName)}(input: Node): $returnTypeString = {") ++
             exprCode.codes ++ List(s"${exprCode.result}", "}"))
     }
 }

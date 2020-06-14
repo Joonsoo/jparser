@@ -164,7 +164,7 @@ class ValueifyGen {
             (StringLiteral(Escapes.stringCharsToString(value)), stringSymbol)
         case nonterm@MetaGrammar3Ast.Nonterminal(astNode, name) =>
             check(condSymPath.isEmpty, "Nonterminal cannot be referred with condSymPath")
-            (MatchNonterminal(nonterm, input, TypeOfSymbol(symbol)), Symbols.Nonterminal(name.stringName))
+            (MatchNonterminal(name.stringName, input, TypeOfSymbol(symbol)), Symbols.Nonterminal(name.stringName))
         case MetaGrammar3Ast.EmptySeq(astNode) =>
             check(condSymPath.isEmpty, "EmptySeq cannot be referred with condSymPath")
             (InputNode, Symbols.Sequence(Seq()))

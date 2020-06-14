@@ -2,45 +2,30 @@ package com.giyeok.jparser.metalang3
 
 import com.giyeok.jparser.NGrammar.NSymbol
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
+import com.giyeok.jparser.metalang3.graphs.GrammarGraphGen
 import com.giyeok.jparser.metalang3.types.{ConcreteType, TypeFunc}
-import com.giyeok.jparser.metalang3.valueify.ValueifyExpr
+import com.giyeok.jparser.metalang3.valueify.UnrollChoices
 import com.giyeok.jparser.{NGrammar, Symbols}
-import com.giyeok.jparser.metalang3.symbols.Escapes.TypeNameName
 
 // ruleValueifyExprs: Nonterminal name -> ValueifyExpr
-class AnalysisResult(val startNonterminal: String, val ngrammar: NGrammar, val symbolsMap: Map[MetaGrammar3Ast.Symbol, Symbols.Symbol],
-                     val valueifyExprsMap: Map[String, ValueifyExpr]) {
+class AnalysisResult(val ngrammar: NGrammar,
+                     val startSymbolName: String,
+                     val valueifyExprsMap: Map[String, UnrollChoices],
+                     val symbolsMap: Map[MetaGrammar3Ast.Symbol, Symbols.Symbol],
+                     val grammarGraph: GrammarGraphGen) {
 
     def symbolOf(symbol: MetaGrammar3Ast.Symbol): NSymbol = ngrammar.findSymbol(symbolsMap(symbol)).get._2
 
-    def concreteTypeOf(typeFunc: TypeFunc): ConcreteType = typeFunc match {
-        case TypeFunc.NodeType => ConcreteType.NodeType
-        case TypeFunc.TypeOfSymbol(symbol) => ConcreteType.NodeType
-        case TypeFunc.TypeOfProcessor(processor) => ???
-        case TypeFunc.ClassType(name) => ConcreteType.ClassType(name.stringName)
-        case TypeFunc.OptionalOf(typ) => ConcreteType.OptionalOf(concreteTypeOf(typ))
-        case TypeFunc.ArrayOf(elemType) => ConcreteType.ArrayOf(concreteTypeOf(elemType))
-        case TypeFunc.ElvisType(value, ifNull) =>
-            val valueType = concreteTypeOf(value)
-            val ifNullType = concreteTypeOf(ifNull)
-            ???
-        case TypeFunc.AddOpType(lhs, rhs) => ???
-        case TypeFunc.FuncCallResultType(typeOrFuncName, params) => ???
-        case TypeFunc.UnionOf(types) => ???
-        case TypeFunc.EnumType(enumName) => ???
-        case TypeFunc.UnspecifiedEnum(uniqueId) => ???
-        case TypeFunc.NullType => ConcreteType.NullType
-        case TypeFunc.BoolType => ConcreteType.BoolType
-        case TypeFunc.CharType => ConcreteType.CharType
-        case TypeFunc.StringType => ConcreteType.StringType
-    }
+    def concreteTypeOf(typeFunc: TypeFunc): ConcreteType = grammarGraph.concreteTypeOf(typeFunc)
 
-    def mostSpecificSuperTypeOf(typ: ConcreteType): ConcreteType = typ match {
+    // loose = true이면 union type이 들어왔을 때, 그 모든 union type 외에 다른 타입을 자식으로 가질 수 있는 super type이
+    // 있는 경우, 그 타입을 반환한다. loose = false이면 이런 경우 exception 발생
+    def mostSpecificSuperTypeOf(typ: ConcreteType, loose: Boolean): ConcreteType = typ match {
         case ConcreteType.UnionOf(types) => ???
         case ConcreteType.OptionalOf(typ) =>
-            ConcreteType.OptionalOf(mostSpecificSuperTypeOf(typ))
+            ConcreteType.OptionalOf(mostSpecificSuperTypeOf(typ, loose))
         case ConcreteType.ArrayOf(elemType) =>
-            ConcreteType.ArrayOf(mostSpecificSuperTypeOf(elemType))
+            ConcreteType.ArrayOf(mostSpecificSuperTypeOf(elemType, loose))
         case _: ConcreteType.ClassType | _: ConcreteType.EnumType | ConcreteType.NodeType | ConcreteType.NullType |
              ConcreteType.BoolType | ConcreteType.CharType | ConcreteType.StringType => typ
     }

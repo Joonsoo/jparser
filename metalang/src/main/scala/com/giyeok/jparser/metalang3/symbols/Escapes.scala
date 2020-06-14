@@ -16,6 +16,10 @@ object Escapes {
         def stringName: String = typeName.name.sourceText // backtick escape
     }
 
+    implicit class EnumTypeNameName(val enumTypeName: MetaGrammar3Ast.EnumTypeName) {
+        def stringName: String = enumTypeName.name.sourceText // backtick escape
+    }
+
     def charEscapedToChar(charEscaped: MetaGrammar3Ast.CharEscaped): Char = charEscaped.escapeCode.sourceText match {
         case "\'" => '\''
         case "\\" => '\\'
