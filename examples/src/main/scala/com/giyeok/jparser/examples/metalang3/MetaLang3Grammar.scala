@@ -217,13 +217,13 @@ object MetaLang3Grammar extends MetaLangExamples {
           |
           |// Common
           |TypeName = Id-Keyword {@TypeName(name=$0)}
-          |  | '`' Id '`' {TypeName($0)}
+          |  | '`' Id '`' {TypeName($1)}
           |NonterminalName = Id-Keyword {@NonterminalName(name=$0)}
-          |  | '`' Id '`' {NonterminalName($0)}
+          |  | '`' Id '`' {NonterminalName($1)}
           |TypeOrFuncName = Id-Keyword {@TypeOrFuncName(name=$0)}
-          |  | '`' Id '`' {TypeOrFuncName($0)}
+          |  | '`' Id '`' {TypeOrFuncName($1)}
           |ParamName = Id-Keyword {@ParamName(name=$0)}
-          |  | '`' Id '`' {ParamName($0)}
+          |  | '`' Id '`' {ParamName($1)}
           |EnumValueName = Id {@EnumValueName(name=$0)}
           |Keyword = "boolean" | "char" | "string" | "true" | "false" | "null"
           |StrChar = StringChar

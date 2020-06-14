@@ -160,7 +160,8 @@ class ValueifyGen {
             (InputNode, Escapes.terminalChoiceToSymbol(choices))
         case MetaGrammar3Ast.StringSymbol(astNode, value) =>
             check(condSymPath.isEmpty, "String cannot be referred with condSymPath")
-            (StringLiteral(StringLiteral.escape(value)), Symbols.Proxy(Symbols.Sequence(value.map(Escapes.stringCharToChar))))
+            val stringSymbol = Symbols.Proxy(Symbols.Sequence(value.map(Escapes.stringCharToChar).map(Symbols.ExactChar)))
+            (StringLiteral(Escapes.stringCharsToString(value)), stringSymbol)
         case nonterm@MetaGrammar3Ast.Nonterminal(astNode, name) =>
             check(condSymPath.isEmpty, "Nonterminal cannot be referred with condSymPath")
             (MatchNonterminal(nonterm, input, TypeOfSymbol(symbol)), Symbols.Nonterminal(name.stringName))
@@ -242,6 +243,7 @@ class ValueifyGen {
             val vParams = params.map(param => (param, valueifyProcessor(refCtx, param.expr, input)))
             NamedConstructCall(typeName, vParams, ClassType(typeName))
         case MetaGrammar3Ast.FuncCallOrConstructExpr(astNode, funcName, params) =>
+            // TODO funcName이 backtick이면 무조건 ConstructExpr
             val vParams = params.getOrElse(List()).map(param => valueifyProcessor(refCtx, param, input))
             // TODO FuncCall or UnnamedConstructCall depending on its name
             FuncCall(funcName, vParams, FuncCallResultType(funcName, vParams))
@@ -252,9 +254,8 @@ class ValueifyGen {
         case literal: MetaGrammar3Ast.Literal => literal match {
             case MetaGrammar3Ast.NullLiteral(astNode) => NullLiteral
             case MetaGrammar3Ast.BoolLiteral(astNode, value) => BoolLiteral(value.sourceText.toBoolean)
-            // TODO Fix StringLiteral and CharLiteral value
-            case MetaGrammar3Ast.CharLiteral(astNode, value) => CharLiteral(value.astNode.sourceText.charAt(0))
-            case MetaGrammar3Ast.StringLiteral(astNode, value) => StringLiteral(value.map(_.astNode.sourceText).mkString)
+            case MetaGrammar3Ast.CharLiteral(astNode, value) => CharLiteral(Escapes.terminalCharToChar(value))
+            case MetaGrammar3Ast.StringLiteral(astNode, value) => StringLiteral(Escapes.stringCharsToString(value))
         }
         case MetaGrammar3Ast.CanonicalEnumValue(astNode, enumName, valueName) =>
             CanonicalEnumValue(enumName, valueName, EnumType(enumName))

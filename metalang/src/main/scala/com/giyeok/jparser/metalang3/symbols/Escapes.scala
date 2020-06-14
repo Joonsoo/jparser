@@ -2,7 +2,7 @@ package com.giyeok.jparser.metalang3.symbols
 
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{CharUnicode, StringChar, Terminal, TerminalChoiceElem}
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{CharEscaped, CharUnicode, StringChar, Terminal, TerminalChoiceElem}
 
 object Escapes {
 
@@ -12,34 +12,31 @@ object Escapes {
         def toSymbol: Symbols.Nonterminal = Symbols.Nonterminal(nonterminal.stringName)
     }
 
+    def charEscapedToChar(charEscaped: MetaGrammar3Ast.CharEscaped): Char = charEscaped.escapeCode.sourceText match {
+        case "\'" => '\''
+        case "\\" => '\\'
+        case "b" => '\b'
+        case "n" => '\n'
+        case "r" => '\r'
+        case "t" => '\t'
+    }
+
+    def charUnicodeToChar(charUnicode: CharUnicode): Char = {
+        val code = charUnicode.code
+        assert(code.size == 4)
+        Integer.parseInt(s"${code(0).sourceText}${code(1).sourceText}${code(2).sourceText}${code(3).sourceText}", 16).toChar
+    }
+
     def terminalCharToChar(c: MetaGrammar3Ast.TerminalChar): Char = c match {
-        case MetaGrammar3Ast.CharAsIs(astNode, value) => value.sourceText.charAt(0)
-        case MetaGrammar3Ast.CharEscaped(astNode, escapeCode) => escapeCode.sourceText match {
-            case "\'" => '\''
-            case "\\" => '\\'
-            case "b" => '\b'
-            case "n" => '\n'
-            case "r" => '\r'
-            case "t" => '\t'
-        }
-        case MetaGrammar3Ast.CharUnicode(astNode, code) =>
-            assert(code.size == 4)
-            Integer.parseInt(s"${code(0).sourceText}${code(1).sourceText}${code(2).sourceText}${code(3).sourceText}", 16).toChar
+        case MetaGrammar3Ast.CharAsIs(astNode, value) => value.sourceText.head
+        case escaped: MetaGrammar3Ast.CharEscaped => charEscapedToChar(escaped)
+        case unicode: MetaGrammar3Ast.CharUnicode => charUnicodeToChar(unicode)
     }
 
     def terminalChoiceCharToChar(c: MetaGrammar3Ast.TerminalChoiceChar): Char = c match {
-        case MetaGrammar3Ast.CharAsIs(astNode, value) => value.sourceText.charAt(0)
-        case MetaGrammar3Ast.CharEscaped(astNode, escapeCode) => escapeCode.sourceText match {
-            case "\'" => '\''
-            case "\\" => '\\'
-            case "b" => '\b'
-            case "n" => '\n'
-            case "r" => '\r'
-            case "t" => '\t'
-        }
-        case MetaGrammar3Ast.CharUnicode(astNode, code) =>
-            assert(code.size == 4)
-            Integer.parseInt(s"${code(0).sourceText}${code(1).sourceText}${code(2).sourceText}${code(3).sourceText}", 16).toChar
+        case MetaGrammar3Ast.CharAsIs(astNode, value) => value.sourceText.head
+        case escaped: MetaGrammar3Ast.CharEscaped => charEscapedToChar(escaped)
+        case unicode: MetaGrammar3Ast.CharUnicode => charUnicodeToChar(unicode)
     }
 
     def terminalToSymbol(terminal: Terminal): Symbols.Terminal = terminal match {
@@ -57,9 +54,11 @@ object Escapes {
         Symbols.Chars(chars)
     }
 
-    def stringCharToChar(stringChar: StringChar): Symbols.Terminal = stringChar match {
-        case MetaGrammar3Ast.CharAsIs(astNode, value) => ???
-        case MetaGrammar3Ast.CharEscaped(astNode, escapeCode) => ???
-        case CharUnicode(astNode, code) => ???
+    def stringCharToChar(stringChar: StringChar): Char = stringChar match {
+        case MetaGrammar3Ast.CharAsIs(astNode, value) => value.sourceText.head
+        case escaped: MetaGrammar3Ast.CharEscaped => charEscapedToChar(escaped)
+        case unicode: MetaGrammar3Ast.CharUnicode => charUnicodeToChar(unicode)
     }
+
+    def stringCharsToString(chars: List[StringChar]): String = chars.map(Escapes.stringCharToChar).mkString
 }

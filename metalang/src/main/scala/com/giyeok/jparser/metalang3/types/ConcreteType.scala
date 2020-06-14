@@ -1,14 +1,12 @@
 package com.giyeok.jparser.metalang3.types
 
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, TypeName}
-
 sealed class ConcreteType
 
 object ConcreteType {
 
     object NodeType extends ConcreteType
 
-    case class ClassType(name: TypeName) extends ConcreteType
+    case class ClassType(name: String) extends ConcreteType
 
     case class OptionalOf(typ: ConcreteType) extends ConcreteType
 
@@ -16,7 +14,7 @@ object ConcreteType {
 
     case class UnionOf(types: List[ConcreteType]) extends ConcreteType
 
-    case class EnumType(enumName: EnumTypeName) extends ConcreteType
+    case class EnumType(enumName: String) extends ConcreteType
 
     object NullType extends ConcreteType
 

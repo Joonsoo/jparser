@@ -13,6 +13,13 @@ import com.giyeok.jparser.metalang3.{valueify, _}
 
 object ScalaGen {
 
+    /**
+     *
+     * @param useNull (미구현) true이면 Option 대신 그냥 값+null을 사용한다.
+     * @param allowNonExtensiveSuperTypes TODO
+     * @param assertBindTypes Unbind할 때 unbind된 심볼의 타입을 체크한다.
+     * @param symbolComments human readable한 심볼 설명 코멘트를 추가한다.
+     */
     case class Options(useNull: Boolean = false,
                        allowNonExtensiveSuperTypes: Boolean = false,
                        assertBindTypes: Boolean = true,

@@ -1,6 +1,6 @@
 package com.giyeok.jparser.metalang3
 
-import com.giyeok.jparser.NGrammar.NNonterminal
+import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.{Grammar, NGrammar, Symbols}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
@@ -80,8 +80,10 @@ object MetaLanguage3 {
             println(s"${pair._2.symbol.toShortString} -> ${pair._1}"))
         println("====")
         analysis.ngrammar.nsymbols.collect {
+            case (i, symbol: NStart) =>
+                println(s"<start> $i -> ${symbol.produces.toList.sorted}")
             case (i, symbol: NNonterminal) =>
-                println(s"${symbol.symbol.name} -> $i -> ${symbol.produces.toList.sorted}")
+                println(s"${symbol.symbol.name} $i -> ${symbol.produces.toList.sorted}")
         }
     }
 }

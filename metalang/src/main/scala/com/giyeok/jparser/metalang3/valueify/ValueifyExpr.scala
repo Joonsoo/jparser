@@ -79,10 +79,6 @@ case class StringLiteral(value: String) extends Literal {
     override val resultType: TypeFunc = StringType
 }
 
-case object StringLiteral {
-    def escape(list: List[StringChar]): String = ???
-}
-
 abstract sealed class EnumValue extends ValueifyExpr
 
 case class CanonicalEnumValue(name: EnumTypeName, value: EnumValueName, override val resultType: TypeFunc) extends EnumValue
