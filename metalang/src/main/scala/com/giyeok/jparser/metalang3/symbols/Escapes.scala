@@ -12,6 +12,10 @@ object Escapes {
         def toSymbol: Symbols.Nonterminal = Symbols.Nonterminal(nonterminal.stringName)
     }
 
+    implicit class TypeNameName(val typeName: MetaGrammar3Ast.TypeName) {
+        def stringName: String = typeName.name.sourceText // backtick escape
+    }
+
     def charEscapedToChar(charEscaped: MetaGrammar3Ast.CharEscaped): Char = charEscaped.escapeCode.sourceText match {
         case "\'" => '\''
         case "\\" => '\\'

@@ -5,6 +5,7 @@ import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang3.types.{ConcreteType, TypeFunc}
 import com.giyeok.jparser.metalang3.valueify.ValueifyExpr
 import com.giyeok.jparser.{NGrammar, Symbols}
+import com.giyeok.jparser.metalang3.symbols.Escapes.TypeNameName
 
 // ruleValueifyExprs: Nonterminal name -> ValueifyExpr
 class AnalysisResult(val startNonterminal: String, val ngrammar: NGrammar, val symbolsMap: Map[MetaGrammar3Ast.Symbol, Symbols.Symbol],
@@ -16,7 +17,7 @@ class AnalysisResult(val startNonterminal: String, val ngrammar: NGrammar, val s
         case TypeFunc.NodeType => ConcreteType.NodeType
         case TypeFunc.TypeOfSymbol(symbol) => ConcreteType.NodeType
         case TypeFunc.TypeOfProcessor(processor) => ???
-        case TypeFunc.ClassType(name) => ConcreteType.ClassType(name)
+        case TypeFunc.ClassType(name) => ConcreteType.ClassType(name.stringName)
         case TypeFunc.OptionalOf(typ) => ConcreteType.OptionalOf(concreteTypeOf(typ))
         case TypeFunc.ArrayOf(elemType) => ConcreteType.ArrayOf(concreteTypeOf(elemType))
         case TypeFunc.ElvisType(value, ifNull) =>

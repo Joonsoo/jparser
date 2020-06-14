@@ -1,6 +1,6 @@
 package com.giyeok.jparser.metalang3.codegen
 
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, Nonterminal, TypeName}
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.Nonterminal
 import com.giyeok.jparser.metalang3.MetaLanguage3.IllegalGrammar
 import com.giyeok.jparser.metalang3.codegen.ScalaGen.Options
 import com.giyeok.jparser.metalang3.types.ConcreteType
@@ -15,10 +15,10 @@ object ScalaGen {
 
     /**
      *
-     * @param useNull (미구현) true이면 Option 대신 그냥 값+null을 사용한다.
+     * @param useNull                     (미구현) true이면 Option 대신 그냥 값+null을 사용한다.
      * @param allowNonExtensiveSuperTypes TODO
-     * @param assertBindTypes Unbind할 때 unbind된 심볼의 타입을 체크한다.
-     * @param symbolComments human readable한 심볼 설명 코멘트를 추가한다.
+     * @param assertBindTypes             Unbind할 때 unbind된 심볼의 타입을 체크한다.
+     * @param symbolComments              human readable한 심볼 설명 코멘트를 추가한다.
      */
     case class Options(useNull: Boolean = false,
                        allowNonExtensiveSuperTypes: Boolean = false,
@@ -44,16 +44,12 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
     def matchFuncNameForNonterminal(nonterminal: Nonterminal): String =
         s"match${firstCharUpperCase(nonterminal.name.name.sourceText)}"
 
-    private def typeNameString(typeName: TypeName): String = typeName.name.sourceText
-
-    private def enumNameString(typeName: EnumTypeName): String = typeName.name.sourceText
-
     def typeDescStringOf(concreteType: ConcreteType): String = concreteType match {
         case ConcreteType.NodeType => "Node"
-        case ConcreteType.ClassType(name) => typeNameString(name)
+        case ConcreteType.ClassType(name) => name
         case ConcreteType.OptionalOf(typ) => s"Option[${typeDescStringOf(typ)}]"
         case ConcreteType.ArrayOf(elemType) => s"List[${typeDescStringOf(elemType)}]"
-        case ConcreteType.EnumType(enumName) => enumNameString(enumName)
+        case ConcreteType.EnumType(enumName) => enumName
         case ConcreteType.NullType => "Nothing"
         case ConcreteType.BoolType => "Boolean"
         case ConcreteType.CharType => "Char"
