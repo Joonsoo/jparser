@@ -164,7 +164,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |BinderExpr: @BinderExpr = Ref
           |  | BindExpr
           |  | '{' WS PExpr WS '}' $2
-          |NamedConstructExpr = TypeName WS NamedConstructParams {@NamedConstructExpr(typeName=$0, params=$2)}
+          |NamedConstructExpr = TypeName (WS SuperTypes)? WS NamedConstructParams {@NamedConstructExpr(typeName=$0, params=$3, supers=$1$1)}
           |NamedConstructParams = '(' WS NamedParam (WS ',' WS NamedParam)* WS ')' {[$2] + $3$3}
           |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' WS PExpr {@NamedParam(name=$0, typeDesc=$1$3, expr=$5)}
           |FuncCallOrConstructExpr = TypeOrFuncName WS CallParams {@FuncCallOrConstructExpr(funcName=$0, params=$2)}
@@ -191,7 +191,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |ClassParamsDef = '(' WS (ClassParamDef (WS ',' WS ClassParamDef)* WS)? WS ')' {$2{[$0] + $1$3}}
           |ClassParamDef = ParamName (WS ':' WS TypeDesc)? {@ClassParamDef(name=$0, typeDesc=$1$3)}
           |
-          |SuperDef = TypeName WS '{' (WS SubTypes)? WS '}' {@SuperDef(typeName=$0, subs=$3$1)}
+          |SuperDef = TypeName (WS SuperTypes)? WS '{' (WS SubTypes)? WS '}' {@SuperDef(typeName=$0, subs=$4$1, supers=$1$1)}
           |SubTypes = SubType (WS ',' WS SubType)* {[$0] + $1$3}
           |SubType: @SubType = TypeName | ClassDef | SuperDef
           |
@@ -329,7 +329,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |BinderExpr: BinderExpr = Ref
           |  | BindExpr
           |  | '{' WS PExpr WS '}' $2
-          |NamedConstructExpr = TypeName WS NamedConstructParams {NamedConstructExpr(typeName=$0, params=$2)}
+          |NamedConstructExpr = TypeName (WS SuperTypes)? WS NamedConstructParams {NamedConstructExpr(typeName=$0, params=$3, supers=$1)}
           |NamedConstructParams = '(' WS (NamedParam (WS ',' WS NamedParam)* WS {[$0] + $1}) ')' $2
           |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' WS PExpr {NamedParam(name=$0, typeDesc=$1, expr=$5)}
           |FuncCallOrConstructExpr = TypeOrFuncName WS CallParams {FuncCallOrConstructExpr(funcName=$0, params=$2)}
@@ -356,7 +356,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |ClassParamsDef = '(' WS (ClassParamDef (WS ',' WS ClassParamDef)* WS {[$0] + $1})? WS ')' {$2 ?: []}
           |ClassParamDef = ParamName (WS ':' WS TypeDesc)? {ClassParamDef(name=$0, typeDesc=$1)}
           |
-          |SuperDef = TypeName WS '{' (WS SubTypes)? WS '}' {SuperDef(typeName=$0, subs=$3)}
+          |SuperDef = TypeName (WS SuperTypes)? WS '{' (WS SubTypes)? WS '}' {SuperDef(typeName=$0, subs=$4, supers=$1)}
           |SubTypes = SubType (WS ',' WS SubType)* {[$0] + $1}
           |SubType: SubType = TypeName | ClassDef | SuperDef
           |

@@ -5,22 +5,26 @@ import com.giyeok.jparser._
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.Elem
 import com.giyeok.jparser.metalang3.MetaLanguage3.IllegalGrammar
+import com.giyeok.jparser.metalang3.analysis.GrammarInfoCollector
 import com.giyeok.jparser.metalang3.symbols.Escapes
-import com.giyeok.jparser.metalang3.symbols.Escapes.NonterminalName
+import com.giyeok.jparser.metalang3.symbols.Escapes.{EnumTypeNameName, NonterminalName, ParamNameName, TypeNameName}
 import com.giyeok.jparser.metalang3.types.TypeFunc
 import com.giyeok.jparser.metalang3.types.TypeFunc._
 
 import scala.annotation.tailrec
 import scala.collection.immutable.ListSet
 
-class ValueifyGen {
+class ValueifyGen(val defs: List[MetaGrammar3Ast.Def]) {
     private def check(cond: Boolean, msg: String): Unit = {
         if (!cond) throw IllegalGrammar(msg)
     }
 
     private var _symbolsMap = Map[MetaGrammar3Ast.Symbol, Symbols.Symbol]()
+    private val _collector = new GrammarInfoCollector()
 
     def symbolsMap: Map[MetaGrammar3Ast.Symbol, Symbols.Symbol] = _symbolsMap
+
+    def collector: GrammarInfoCollector = _collector
 
     // ID는 UnspecifiedEnum 객체 생성시 필요
     private var idCounter: Int = 0
@@ -47,7 +51,7 @@ class ValueifyGen {
     private def valueifySequence(elemsSeq: List[Elem], input: ValueifyExpr): (ValueifyExpr, Symbols.Symbol) = {
         val elems = elemsSeq map {
             case elem: MetaGrammar3Ast.Symbol =>
-                val p = proxyIf(valueifySymbol(elemsSeq, elem, "", input))
+                val p = proxy(valueifySymbol(elemsSeq, elem, "", input))
                 (p._1, Some(p._2))
             case elem: MetaGrammar3Ast.Processor =>
                 (valueifyProcessor(elemsSeq, elem, input), None)
@@ -87,51 +91,22 @@ class ValueifyGen {
         }
     }
 
-    private def typeOfElem(elem: MetaGrammar3Ast.Elem) = elem match {
-        case symbol: MetaGrammar3Ast.Symbol => TypeOfSymbol(symbol)
-        case processor: MetaGrammar3Ast.Processor => TypeOfProcessor(processor)
-    }
-
-    private def proxyIf(pair: (ValueifyExpr, Symbols.Symbol)): (ValueifyExpr, Symbols.AtomicSymbol) = pair._2 match {
+    private def proxy(pair: (ValueifyExpr, Symbols.Symbol)): (ValueifyExpr, Symbols.AtomicSymbol) = pair._2 match {
         case symbol: Symbols.AtomicSymbol => (pair._1, symbol)
-        case seq: Symbols.Sequence => (pair._1, Symbols.Proxy(seq)) // TODO pair._1에서 Unbind하는거 넣어야할듯
+        case seq: Symbols.Sequence => (pair._1, Symbols.Proxy(seq)) // TODO pair._1에서 UnbindProxy(**)
     }
 
-    def typeFuncOf(typeDesc: MetaGrammar3Ast.TypeDesc): TypeFunc = {
-        val valType: TypeFunc = typeDesc.typ match {
-            case typeDef: MetaGrammar3Ast.TypeDef => typeDef match {
-                case classDef: MetaGrammar3Ast.ClassDef =>
-                    classDef match {
-                        case MetaGrammar3Ast.AbstractClassDef(astNode, name, supers) => ???
-                        case MetaGrammar3Ast.ConcreteClassDef(astNode, name, supers, params) => ???
-                    }
-                case MetaGrammar3Ast.SuperDef(astNode, typeName, subs) => ???
-                case MetaGrammar3Ast.EnumTypeDef(astNode, name, values) => ???
-            }
-            case MetaGrammar3Ast.ArrayTypeDesc(astNode, elemType) => ???
-            case valueType: MetaGrammar3Ast.ValueType => valueType match {
-                case MetaGrammar3Ast.BooleanType(_) => BoolType
-                case MetaGrammar3Ast.CharType(_) => CharType
-                case MetaGrammar3Ast.StringType(_) => StringType
-            }
-            case MetaGrammar3Ast.AnyType(astNode) => AnyType
-            case MetaGrammar3Ast.EnumTypeName(astNode, name) => ???
-            case MetaGrammar3Ast.TypeName(astNode, name) => ???
-        }
-        if (typeDesc.optional.isEmpty) valType else OptionalOf(valType)
-    }
-
-    def valueifySymbol(refCtx: List[Elem], symbol: MetaGrammar3Ast.Symbol, condSymPath: String, input: ValueifyExpr): (ValueifyExpr, Symbols.Symbol) = collectSymbolAndReturn(symbol, symbol match {
+    private def valueifySymbol(refCtx: List[Elem], symbol: MetaGrammar3Ast.Symbol, condSymPath: String, input: ValueifyExpr): (ValueifyExpr, Symbols.Symbol) = collectSymbolAndReturn(symbol, symbol match {
         case symbol@MetaGrammar3Ast.JoinSymbol(astNode, body, join) =>
             if (condSymPath.isEmpty) {
                 // body나 join이 SingleChoice/OneSymbol 가 아니면 Proxy + Unbind 추가
-                val vBody = proxyIf(valueifySymbol(refCtx, body, "", InputNode(nextId())))
-                val vJoin = proxyIf(valueifySymbol(refCtx, join, "", InputNode(nextId())))
+                val vBody = proxy(valueifySymbol(refCtx, body, "", InputNode(nextId())))
+                val vJoin = proxy(valueifySymbol(refCtx, join, "", InputNode(nextId())))
                 (JoinBodyOf(symbol, Unbind(symbol, input), vBody._1, TypeOfSymbol(body)), Symbols.Join(vBody._2, vJoin._2))
             } else {
                 // condSymPath.head 방향 봐서 JoinBodyOf/JoinCondOf, valueify 재귀호출 할 때는 condSymPath.tail
-                val vBody = proxyIf(valueifySymbol(refCtx, body, condSymPath.tail, InputNode(nextId())))
-                val vJoin = proxyIf(valueifySymbol(refCtx, join, condSymPath.tail, InputNode(nextId())))
+                val vBody = proxy(valueifySymbol(refCtx, body, condSymPath.tail, InputNode(nextId())))
+                val vJoin = proxy(valueifySymbol(refCtx, join, condSymPath.tail, InputNode(nextId())))
                 condSymPath.head match {
                     case '<' => // body
                         (JoinBodyOf(symbol, Unbind(symbol, input), vBody._1, TypeOfSymbol(body)), Symbols.Join(vBody._2, vJoin._2))
@@ -141,38 +116,38 @@ class ValueifyGen {
             }
         case symbol@MetaGrammar3Ast.ExceptSymbol(astNode, body, except) =>
             check(condSymPath.isEmpty, "Except cannot be referred with condSymPath")
-            val vBody = proxyIf(valueifySymbol(refCtx, body, "", input))
-            val vExcept = proxyIf(valueifySymbol(refCtx, except, "", input))
+            val vBody = proxy(valueifySymbol(refCtx, body, "", input))
+            val vExcept = proxy(valueifySymbol(refCtx, except, "", input))
             (Unbind(symbol, input), Symbols.Except(vBody._2, vExcept._2))
         case MetaGrammar3Ast.FollowedBy(astNode, followedBy) =>
             check(condSymPath.isEmpty, "FollowedBy cannot be referred with condSymPath")
-            val vLookahead = proxyIf(valueifySymbol(refCtx, followedBy, "", input))
+            val vLookahead = proxy(valueifySymbol(refCtx, followedBy, "", input))
             (InputNode(nextId()), Symbols.LookaheadIs(vLookahead._2))
         case MetaGrammar3Ast.NotFollowedBy(astNode, notFollowedBy) =>
             check(condSymPath.isEmpty, "NotFollowedBy cannot be referred with condSymPath")
-            val vLookahead = proxyIf(valueifySymbol(refCtx, notFollowedBy, "", input))
+            val vLookahead = proxy(valueifySymbol(refCtx, notFollowedBy, "", input))
             (InputNode(nextId()), Symbols.LookaheadExcept(vLookahead._2))
         case MetaGrammar3Ast.Optional(astNode, body) =>
             check(condSymPath.isEmpty, "Optional cannot be referred with condSymPath")
-            val vBody = proxyIf(valueifySymbol(refCtx, body, condSymPath, InputNode(nextId())))
+            val vBody = proxy(valueifySymbol(refCtx, body, condSymPath, InputNode(nextId())))
             val emptySymbol = Symbols.Proxy(Symbols.Sequence(Seq()))
             (UnrollChoices(Unbind(symbol, input), Map(
                 GrammarSymbolChoice(emptySymbol) -> NullLiteral, AstSymbolChoice(body) -> vBody._1
             ), OptionalOf(vBody._1.resultType)), Symbols.OneOf(ListSet(emptySymbol, vBody._2)))
         case MetaGrammar3Ast.RepeatFromZero(astNode, body) =>
             check(condSymPath.isEmpty, "Repeat* cannot be referred with condSymPath")
-            val vBody = valueifySymbol(refCtx, body, condSymPath, InputNode(nextId()))
-            (UnrollRepeat(0, input, vBody._1, ArrayOf(vBody._1.resultType)), ???)
+            val vBody = proxy(valueifySymbol(refCtx, body, condSymPath, InputNode(nextId())))
+            (UnrollRepeat(0, input, vBody._1, ArrayOf(vBody._1.resultType)), Symbols.Repeat(vBody._2, 0))
         case MetaGrammar3Ast.RepeatFromOne(astNode, body) =>
             check(condSymPath.isEmpty, "Repeat+ cannot be referred with condSymPath")
-            val vBody = valueifySymbol(refCtx, body, condSymPath, input)
-            (UnrollRepeat(1, input, vBody._1, ArrayOf(vBody._1.resultType)), ???)
+            val vBody = proxy(valueifySymbol(refCtx, body, condSymPath, input))
+            (UnrollRepeat(1, input, vBody._1, ArrayOf(vBody._1.resultType)), Symbols.Repeat(vBody._2, 1))
         case MetaGrammar3Ast.InPlaceChoices(astNode, choices) =>
             check(condSymPath.isEmpty, "InPlaceChoices cannot be referred with condSymPath")
             valueifyChoices(choices, condSymPath, input)
         case symbol@MetaGrammar3Ast.Longest(astNode, choices) =>
             check(condSymPath.isEmpty, "Longest cannot be referred with condSymPath")
-            val vChoices = proxyIf(valueifyChoices(choices.choices, condSymPath, input))
+            val vChoices = proxy(valueifyChoices(choices.choices, condSymPath, input))
             // TODO Unbind resultType이 vChoices.resultType인가..?
             (Unbind(symbol, vChoices._1), Symbols.Longest(vChoices._2))
         case terminal: MetaGrammar3Ast.Terminal =>
@@ -193,51 +168,56 @@ class ValueifyGen {
             (InputNode(nextId()), Symbols.Sequence(Seq()))
     })
 
-    def valueifyProcessor(refCtx: List[Elem], processor: MetaGrammar3Ast.Processor, input: ValueifyExpr): ValueifyExpr = processor match {
+    private def valueifyProcessor(refCtx: List[Elem], processor: MetaGrammar3Ast.Processor, input: ValueifyExpr): ValueifyExpr = processor match {
         //                case MetaGrammar3Ast.TernaryOp(astNode, cond, ifTrue, ifFalse) =>
         //                    val vCond = valueify(refCtx, cond, "", InputNode)
         //                    val vIfTrue = valueify(refCtx, ??? /*ifTrue*/ , "", InputNode)
         //                    val vIfFalse = valueify(refCtx, ??? /*ifFalse*/ , "", InputNode)
         //                    TernaryExpr(vCond, vIfTrue, vIfFalse, unifyTypes(List(vIfTrue.resultType, vIfFalse.resultType)))
-        case MetaGrammar3Ast.ElvisOp(astNode, value, ifNull) =>
+        case MetaGrammar3Ast.ElvisOp(_, value, ifNull) =>
             val vValue = valueifyProcessor(refCtx, value, input)
             val vIfNull = valueifyProcessor(refCtx, ifNull, input)
             ElvisOp(vValue, vIfNull, ElvisType(vValue.resultType, vIfNull.resultType))
-        case MetaGrammar3Ast.BinOp(astNode, op, lhs, rhs) =>
+        case MetaGrammar3Ast.BinOp(_, op, lhs, rhs) =>
             val vLhs = valueifyProcessor(refCtx, lhs, input)
             val vRhs = valueifyProcessor(refCtx, rhs, input)
-            op.sourceText match {
+            val opExpr = op.sourceText match {
                 case "&&" => BinOp(Op.BOOL_AND, vLhs, vRhs, BoolType)
                 case "||" => BinOp(Op.BOOL_OR, vLhs, vRhs, BoolType)
                 case "==" => BinOp(Op.EQ, vLhs, vRhs, BoolType)
                 case "!=" => BinOp(Op.NE, vLhs, vRhs, BoolType)
-                case "+" => BinOp(Op.ADD, vLhs, vRhs, BinOpResultType(Op.ADD, vLhs.resultType, vRhs.resultType))
+                case "+" => BinOp(Op.ADD, vLhs, vRhs, AddOpType(vLhs.resultType, vRhs.resultType))
             }
+            _collector.addExprParamExpr(opExpr, 0, vLhs)
+            _collector.addExprParamExpr(opExpr, 1, vRhs)
+            opExpr
         case MetaGrammar3Ast.PrefixOp(astNode, expr, op) =>
             val vExpr = valueifyProcessor(refCtx, expr, input)
-            op.sourceText match {
+            val opExpr = op.sourceText match {
                 case "!" => PrefixOp(PreOp.NOT, vExpr, BoolType)
             }
+            _collector.addExprParamExpr(opExpr, 0, vExpr)
+            opExpr
         case ref: MetaGrammar3Ast.Ref => ref match {
-            case MetaGrammar3Ast.ValRef(astNode, idx, condSymPath0) =>
+            case MetaGrammar3Ast.ValRef(_, idx, condSymPath0) =>
                 val condSymPath = condSymPath0.getOrElse(List())
                 val idxValue = idx.sourceText.toInt
                 if (idxValue >= refCtx.size) throw new IllegalGrammar("")
                 val symbolIdx = idxValue // TODO idxValue - refCtx(0~idxValue 전)까지 symbol의 갯수
                 refCtx(symbolIdx) match {
-                    case referredElem: MetaGrammar3Ast.Symbol =>
+                    case referredSymbol: MetaGrammar3Ast.Symbol =>
                         // valueifySymbol에서 나오는 symbol은 여기서는 의미 없음
-                        valueifySymbol(refCtx, referredElem, condSymPathOf(condSymPath),
-                            SeqElemAt(input, symbolIdx, typeOfElem(referredElem)))._1
-                    case referredElem: MetaGrammar3Ast.Processor =>
+                        valueifySymbol(refCtx, referredSymbol, condSymPathOf(condSymPath),
+                            SeqElemAt(input, symbolIdx, TypeOfSymbol(referredSymbol)))._1
+                    case referredProcessor: MetaGrammar3Ast.Processor =>
                         check(condSymPath.isEmpty, "")
-                        valueifyProcessor(refCtx, referredElem, SeqElemAt(input, symbolIdx, typeOfElem(referredElem)))
+                        valueifyProcessor(refCtx, referredProcessor, input)
                 }
-            case MetaGrammar3Ast.RawRef(astNode, idx, condSymPath) => ???
+            case MetaGrammar3Ast.RawRef(_, idx, condSymPath) => ???
         }
-        case MetaGrammar3Ast.ExprParen(astNode, body) =>
+        case MetaGrammar3Ast.ExprParen(_, body) =>
             valueifyProcessor(refCtx, body, input)
-        case MetaGrammar3Ast.BindExpr(astNode, ctx, binder) =>
+        case MetaGrammar3Ast.BindExpr(_, ctx, binder) =>
             check(ctx.condSymPath.getOrElse(List()).isEmpty, "Binding context cannot have condSymPath")
             val idx = ctx.idx.sourceText.toInt
             check(idx < refCtx.size, "")
@@ -245,55 +225,95 @@ class ValueifyGen {
             // _1는 elem 속의 refCtx
             // _2는 elem이 Longest 등인 경우 그걸 어떻게 발라먹을지
             @tailrec def getBindingContext(elem: MetaGrammar3Ast.Elem, input: ValueifyExpr): (List[Elem], ValueifyExpr) = elem match {
-                case symbol@MetaGrammar3Ast.Longest(astNode, choices) if choices.choices.size == 1 =>
+                case symbol@MetaGrammar3Ast.Longest(_, choices) if choices.choices.size == 1 =>
                     getBindingContext(choices.choices.head, Unbind(symbol, input))
-                case MetaGrammar3Ast.InPlaceChoices(astNode, choices) if choices.size == 1 =>
+                case MetaGrammar3Ast.InPlaceChoices(_, choices) if choices.size == 1 =>
                     (choices.head.seq, input)
+                case symbol@MetaGrammar3Ast.RepeatFromZero(_, body) =>
+                    getBindingContext(body, Unbind(symbol, input))
+                case symbol@MetaGrammar3Ast.RepeatFromOne(_, body) =>
+                    getBindingContext(body, Unbind(symbol, input))
                 // TODO Join symbol의 body가 Longest나 InPlaceChoices인 경우도 안될것 없는듯 "(A B C)&D {$0$2}" 하면 B나오면 되지 않을까?
-                case _ => throw IllegalGrammar("Bind expression only can refer to Longest or InPlaceChoices symbol with only choice")
+                case _ =>
+                    throw IllegalGrammar("Bind expression only can refer to Longest or InPlaceChoices symbol with only choice")
             }
 
             val bindingCtx = getBindingContext(refCtx(idx), input)
-            assert(bindingCtx._1.nonEmpty)
-            bindingCtx._1.last match {
-                case lastElem: MetaGrammar3Ast.Symbol =>
-                    // valueifySymbol에서 나오는 symbol은 여기서는 의미 없음
-                    valueifySymbol(bindingCtx._1, lastElem, "", bindingCtx._2)._1
-                case lastElem: MetaGrammar3Ast.Processor =>
-                    valueifyProcessor(bindingCtx._1, lastElem, bindingCtx._2)
-            }
-        case MetaGrammar3Ast.NamedConstructExpr(astNode, typeName, params) =>
+            valueifyProcessor(bindingCtx._1, binder.asInstanceOf[MetaGrammar3Ast.PExpr], bindingCtx._2)
+        //            assert(bindingCtx._1.nonEmpty)
+        //            bindingCtx._1.last match {
+        //                case lastElem: MetaGrammar3Ast.Symbol =>
+        //                    // valueifySymbol에서 나오는 symbol은 여기서는 의미 없음
+        //                    valueifySymbol(bindingCtx._1, lastElem, "", bindingCtx._2)._1
+        //                case lastElem: MetaGrammar3Ast.Processor =>
+        //                    valueifyProcessor(bindingCtx._1, lastElem, bindingCtx._2)
+        //            }
+        case MetaGrammar3Ast.NamedConstructExpr(_, typeName, params, supers0) =>
+            val className = typeName.stringName
             val vParams = params.map(param => (param, valueifyProcessor(refCtx, param.expr, input)))
-            // TODO params의 TypeDesc
-            NamedConstructCall(typeName, vParams, ClassType(typeName))
-        case MetaGrammar3Ast.FuncCallOrConstructExpr(astNode, funcName, params) =>
+            val supers = supers0.flatten.getOrElse(List())
+
+            _collector.addSuperTypes(className, supers.map(_.stringName))
+            _collector.addClassParamSpecs(className, params.map(p => (p.name.stringName, p.typeDesc.map(_collector.typeFuncOf))))
+            _collector.addConcreteClassParamValues(className, vParams.map(_._2))
+            NamedConstructCall(typeName.stringName, vParams, ClassType(className))
+        case MetaGrammar3Ast.FuncCallOrConstructExpr(_, funcName, params) =>
             // TODO funcName이 backtick이면 무조건 ConstructExpr
-            val vParams = params.getOrElse(List()).map(param => valueifyProcessor(refCtx, param, input))
-            // TODO FuncCall or UnnamedConstructCall depending on its name
-            // TODO params의 TypeDesc
-            FuncCall(funcName, vParams, FuncCallResultType(funcName, vParams))
-        case MetaGrammar3Ast.ArrayExpr(astNode, elems) =>
+            val funcNames = Set("isempty", "ispresent", "chr", "str")
+            val calleeName = funcName.name.sourceText
+            if (funcNames.contains(calleeName)) {
+                // function인 경우
+                val vParams = params.getOrElse(List()).map(param => valueifyProcessor(refCtx, param, input))
+                val funcCallExpr = calleeName match {
+                    case "isempty" => FuncCall(calleeName, vParams, BoolType)
+                    case "ispresent" => FuncCall(calleeName, vParams, BoolType)
+                    case "chr" => FuncCall(calleeName, vParams, CharType)
+                    case "str" => FuncCall(calleeName, vParams, StringType)
+                }
+                _collector.addFuncCallParamValues(funcCallExpr, vParams)
+                funcCallExpr
+            } else {
+                // unnamed construct expr인 경우
+                val vParams = params.getOrElse(List()).map(param => valueifyProcessor(refCtx, param, input))
+                _collector.addConcreteClassParamValues(calleeName, vParams)
+                UnnamedConstructCall(calleeName, vParams, ClassType(calleeName))
+            }
+        case MetaGrammar3Ast.ArrayExpr(_, elems) =>
             val vElems = elems.getOrElse(List()).map(elem => valueifyProcessor(refCtx, elem, input))
             val arrayElemType = unifyTypes(vElems.map(_.resultType).toSet)
             ArrayExpr(vElems, ArrayOf(arrayElemType))
         case literal: MetaGrammar3Ast.Literal => literal match {
-            case MetaGrammar3Ast.NullLiteral(astNode) => NullLiteral
-            case MetaGrammar3Ast.BoolLiteral(astNode, value) => BoolLiteral(value.sourceText.toBoolean)
-            case MetaGrammar3Ast.CharLiteral(astNode, value) => CharLiteral(Escapes.terminalCharToChar(value))
-            case MetaGrammar3Ast.StringLiteral(astNode, value) => StringLiteral(Escapes.stringCharsToString(value))
+            case MetaGrammar3Ast.NullLiteral(_) => NullLiteral
+            case MetaGrammar3Ast.BoolLiteral(_, value) => BoolLiteral(value.sourceText.toBoolean)
+            case MetaGrammar3Ast.CharLiteral(_, value) => CharLiteral(Escapes.terminalCharToChar(value))
+            case MetaGrammar3Ast.StringLiteral(_, value) => StringLiteral(Escapes.stringCharsToString(value))
         }
-        case MetaGrammar3Ast.CanonicalEnumValue(astNode, enumName, valueName) =>
-            CanonicalEnumValue(enumName, valueName, EnumType(enumName))
-        case MetaGrammar3Ast.ShortenedEnumValue(astNode, valueName) =>
+        case MetaGrammar3Ast.CanonicalEnumValue(_, enumName, valueName) =>
+            CanonicalEnumValue(enumName, valueName, EnumType(enumName.stringName))
+        case MetaGrammar3Ast.ShortenedEnumValue(_, valueName) =>
             ShortenedEnumValue(valueName, UnspecifiedEnum(nextId()))
     }
 
-    def valueifyRule(rhsList: List[MetaGrammar3Ast.Sequence]): (UnrollChoices, List[Symbols.Symbol]) = {
+    private def valueifyRule(rhsList: List[MetaGrammar3Ast.Sequence]): (UnrollChoices, List[Symbols.Symbol]) = {
         val mappers = rhsList.map { rhs =>
             AstSymbolChoice(rhs) -> collectSequenceAndReturn(rhs, valueifySequence(rhs.seq, InputNode(nextId())))
         }.toMap
         val mappings = mappers.map(mapper => mapper._1 -> mapper._2._1)
         val returnType = unifyTypes(mappers.map(_._2._1.resultType))
         (UnrollChoices(InputNode(nextId()), mappings.toMap, returnType), mappers.map(_._2._2).toList)
+    }
+
+    val grammarRules: List[(String, (UnrollChoices, List[Symbols.Symbol]))] = defs flatMap {
+        case MetaGrammar3Ast.Rule(_, lhs, rhsList) =>
+            val lhsName = lhs.name.name.stringName
+            if (lhs.typeDesc.isDefined) {
+                _collector.addNonterminalType(lhsName, _collector.typeFuncOf(lhs.typeDesc.get))
+            }
+            val valueifies = valueifyRule(rhsList)
+            valueifies._1.map.values.foreach(m => _collector.addNonterminalType(lhsName, m.resultType))
+            Some(lhsName -> valueifies)
+        case typeDef: MetaGrammar3Ast.TypeDef =>
+            _collector.addTypeDef(typeDef)
+            None
     }
 }

@@ -37,11 +37,11 @@ case class AstSymbolChoice(symbol: MetaGrammar3Ast.Symbol) extends DerivationCho
 
 case class GrammarSymbolChoice(symbol: Symbols.Symbol) extends DerivationChoice
 
-case class NamedConstructCall(className: TypeName, params: List[(NamedParam, ValueifyExpr)], override val resultType: TypeFunc) extends ValueifyExpr
+case class NamedConstructCall(className: String, params: List[(NamedParam, ValueifyExpr)], override val resultType: TypeFunc) extends ValueifyExpr
 
-case class UnnamedConstructCall(className: TypeName, params: List[ValueifyExpr], override val resultType: TypeFunc) extends ValueifyExpr
+case class UnnamedConstructCall(className: String, params: List[ValueifyExpr], override val resultType: TypeFunc) extends ValueifyExpr
 
-case class FuncCall(funcName: TypeOrFuncName, params: List[ValueifyExpr], override val resultType: TypeFunc) extends ValueifyExpr
+case class FuncCall(funcName: String, params: List[ValueifyExpr], override val resultType: TypeFunc) extends ValueifyExpr
 
 case class ArrayExpr(elems: List[ValueifyExpr], override val resultType: TypeFunc) extends ValueifyExpr
 

@@ -75,7 +75,7 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
         analysis.mostSpecificSuperTypeOf(analysis.concreteTypeOf(typeFunc), options.looseSuperType)
 
     def valueifyExprCode(expr: ValueifyExpr, inputName: String): ValueifierCode = expr match {
-        case InputNode => ValueifierCode(List(), inputName, Set())
+        case InputNode(_) => ValueifierCode(List(), inputName, Set())
         case MatchNonterminal(nonterminal, expr, _) =>
             val e = valueifyExprCode(expr, inputName)
             val v = newVarName()
@@ -153,14 +153,14 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
             ValueifierCode(codes, v, requirements)
         case NamedConstructCall(className, params, _) =>
             val vParams = params.map { param => valueifyExprCode(param._2, inputName) }
-            val createExpr = s"${className.astNode.sourceText}(${vParams.map(_.result).mkString(", ")})"
+            val createExpr = s"$className(${vParams.map(_.result).mkString(", ")})"
             ValueifierCode(collectCodesFrom(vParams), createExpr, collectRequirementsFrom(vParams))
         case UnnamedConstructCall(className, params, _) =>
             val vParams = params.map { param => valueifyExprCode(param, inputName) }
-            val createExpr = s"${className.astNode.sourceText}(${vParams.map(_.result).mkString(", ")})"
+            val createExpr = s"$className(${vParams.map(_.result).mkString(", ")})"
             ValueifierCode(collectCodesFrom(vParams), createExpr, collectRequirementsFrom(vParams))
         case FuncCall(funcName, params, _) =>
-            val scalaFuncName = funcName.name.sourceText match {
+            val scalaFuncName = funcName match {
                 case "isempty" => "ASTUtils.isEmpty"
                 case "ispresent" => "ASTUtils.isPresent"
                 case "chr" => "ASTUtils.toChar"

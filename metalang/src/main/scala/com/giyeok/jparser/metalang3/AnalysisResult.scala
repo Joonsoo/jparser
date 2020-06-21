@@ -12,11 +12,11 @@ class AnalysisResult(val ngrammar: NGrammar,
                      val startSymbolName: String,
                      val valueifyExprsMap: Map[String, UnrollChoices],
                      val symbolsMap: Map[MetaGrammar3Ast.Symbol, Symbols.Symbol],
-                     val grammarGraph: Analyzer) {
+                     val analyzer: Analyzer) {
 
     def symbolOf(symbol: MetaGrammar3Ast.Symbol): NSymbol = ngrammar.findSymbol(symbolsMap(symbol)).get._2
 
-    def concreteTypeOf(typeFunc: TypeFunc): ConcreteType = grammarGraph.concreteTypeOf(typeFunc)
+    def concreteTypeOf(typeFunc: TypeFunc): ConcreteType = analyzer.bottomUpTypeInferer.typeOf(typeFunc)
 
     // loose = true이면 union type이 들어왔을 때, 그 모든 union type 외에 다른 타입을 자식으로 가질 수 있는 super type이
     // 있는 경우, 그 타입을 반환한다. loose = false이면 이런 경우 exception 발생

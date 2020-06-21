@@ -12,7 +12,7 @@ class ValueifyInterpreter(val analysis: AnalysisResult) {
     }
 
     def valueify(node: Node, valueifyExpr: ValueifyExpr): Value = valueifyExpr match {
-        case InputNode => NodeValue(node)
+        case InputNode(_) => NodeValue(node)
         case MatchNonterminal(nonterminalName, expr, _) =>
             val e = valueify(node, expr)
             assert(e.isInstanceOf[NodeValue])

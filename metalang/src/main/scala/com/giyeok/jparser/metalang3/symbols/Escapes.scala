@@ -2,7 +2,7 @@ package com.giyeok.jparser.metalang3.symbols
 
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{CharEscaped, CharUnicode, StringChar, Terminal, TerminalChoiceElem}
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{CharEscaped, CharUnicode, StringChar, Terminal, TerminalChoiceElem, TypeOrFuncName}
 
 object Escapes {
 
@@ -18,6 +18,14 @@ object Escapes {
 
     implicit class EnumTypeNameName(val enumTypeName: MetaGrammar3Ast.EnumTypeName) {
         def stringName: String = enumTypeName.name.sourceText // backtick escape
+    }
+
+    implicit class TypeOrFuncNameName(val typeOrFuncName: MetaGrammar3Ast.TypeOrFuncName) {
+        def stringName: String = typeOrFuncName.name.sourceText // TODO
+    }
+
+    implicit class ParamNameName(val namedParam: MetaGrammar3Ast.ParamName) {
+        def stringName: String = namedParam.name.sourceText
     }
 
     def charEscapedToChar(charEscaped: MetaGrammar3Ast.CharEscaped): Char = charEscaped.escapeCode.sourceText match {

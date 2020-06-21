@@ -18,6 +18,8 @@ object ConcreteType {
 
     object NullType extends ConcreteType
 
+    object AnyType extends ConcreteType
+
     object BoolType extends ConcreteType
 
     object CharType extends ConcreteType
