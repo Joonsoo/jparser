@@ -2,7 +2,7 @@ package com.giyeok.jparser.metalang3.valueify
 
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, EnumValueName, JoinSymbol, NamedParam, StringChar, TypeName, TypeOrFuncName}
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, EnumValueName, JoinSymbol, NamedParam, TypeName, TypeOrFuncName}
 import com.giyeok.jparser.metalang3.types.TypeFunc
 import com.giyeok.jparser.metalang3.types.TypeFunc._
 
@@ -11,7 +11,7 @@ abstract sealed class ValueifyExpr {
     val resultType: TypeFunc
 }
 
-case object InputNode extends ValueifyExpr {
+case class InputNode(uniqueId: Int) extends ValueifyExpr {
     override val resultType: TypeFunc = NodeType
 }
 

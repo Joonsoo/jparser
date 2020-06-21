@@ -2,7 +2,7 @@ package com.giyeok.jparser.metalang3.types
 
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{EnumTypeName, Processor, TypeName, TypeOrFuncName}
-import com.giyeok.jparser.metalang3.valueify.ValueifyExpr
+import com.giyeok.jparser.metalang3.valueify.{Op, ValueifyExpr}
 
 sealed class TypeFunc
 
@@ -26,6 +26,8 @@ object TypeFunc {
 
     case class FuncCallResultType(typeOrFuncName: TypeOrFuncName, params: List[ValueifyExpr]) extends TypeFunc
 
+    case class BinOpResultType(binOp: Op.Value, lhsType: TypeFunc, rhsType: TypeFunc) extends TypeFunc
+
     case class UnionOf(types: List[TypeFunc]) extends TypeFunc
 
     case class EnumType(enumTypeName: EnumTypeName) extends TypeFunc
@@ -33,6 +35,8 @@ object TypeFunc {
     case class UnspecifiedEnum(uniqueId: Int) extends TypeFunc
 
     object NullType extends TypeFunc
+
+    object AnyType extends TypeFunc
 
     object BoolType extends TypeFunc
 

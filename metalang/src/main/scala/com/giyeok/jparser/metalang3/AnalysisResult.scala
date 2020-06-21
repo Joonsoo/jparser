@@ -2,7 +2,7 @@ package com.giyeok.jparser.metalang3
 
 import com.giyeok.jparser.NGrammar.NSymbol
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang3.graphs.GrammarGraphGen
+import com.giyeok.jparser.metalang3.analysis.Analyzer
 import com.giyeok.jparser.metalang3.types.{ConcreteType, TypeFunc}
 import com.giyeok.jparser.metalang3.valueify.UnrollChoices
 import com.giyeok.jparser.{NGrammar, Symbols}
@@ -12,7 +12,7 @@ class AnalysisResult(val ngrammar: NGrammar,
                      val startSymbolName: String,
                      val valueifyExprsMap: Map[String, UnrollChoices],
                      val symbolsMap: Map[MetaGrammar3Ast.Symbol, Symbols.Symbol],
-                     val grammarGraph: GrammarGraphGen) {
+                     val grammarGraph: Analyzer) {
 
     def symbolOf(symbol: MetaGrammar3Ast.Symbol): NSymbol = ngrammar.findSymbol(symbolsMap(symbol)).get._2
 

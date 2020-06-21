@@ -1,6 +1,6 @@
-package com.giyeok.jparser.metalang3.graphs
+package com.giyeok.jparser.metalang3.analysis
 
-import com.giyeok.jparser.metalang3.graphs.TypeGraph.{Supers, Node}
+import com.giyeok.jparser.metalang3.analysis.TypeGraph.{Supers, Node}
 import com.giyeok.jparser.metalang3.types.TypeHierarchy
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 

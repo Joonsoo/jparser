@@ -14,7 +14,6 @@ import scala.annotation.tailrec
 import scala.collection.immutable.ListSet
 
 class ValueifyGen {
-
     private def check(cond: Boolean, msg: String): Unit = {
         if (!cond) throw IllegalGrammar(msg)
     }
@@ -98,17 +97,41 @@ class ValueifyGen {
         case seq: Symbols.Sequence => (pair._1, Symbols.Proxy(seq)) // TODO pair._1에서 Unbind하는거 넣어야할듯
     }
 
+    def typeFuncOf(typeDesc: MetaGrammar3Ast.TypeDesc): TypeFunc = {
+        val valType: TypeFunc = typeDesc.typ match {
+            case typeDef: MetaGrammar3Ast.TypeDef => typeDef match {
+                case classDef: MetaGrammar3Ast.ClassDef =>
+                    classDef match {
+                        case MetaGrammar3Ast.AbstractClassDef(astNode, name, supers) => ???
+                        case MetaGrammar3Ast.ConcreteClassDef(astNode, name, supers, params) => ???
+                    }
+                case MetaGrammar3Ast.SuperDef(astNode, typeName, subs) => ???
+                case MetaGrammar3Ast.EnumTypeDef(astNode, name, values) => ???
+            }
+            case MetaGrammar3Ast.ArrayTypeDesc(astNode, elemType) => ???
+            case valueType: MetaGrammar3Ast.ValueType => valueType match {
+                case MetaGrammar3Ast.BooleanType(_) => BoolType
+                case MetaGrammar3Ast.CharType(_) => CharType
+                case MetaGrammar3Ast.StringType(_) => StringType
+            }
+            case MetaGrammar3Ast.AnyType(astNode) => AnyType
+            case MetaGrammar3Ast.EnumTypeName(astNode, name) => ???
+            case MetaGrammar3Ast.TypeName(astNode, name) => ???
+        }
+        if (typeDesc.optional.isEmpty) valType else OptionalOf(valType)
+    }
+
     def valueifySymbol(refCtx: List[Elem], symbol: MetaGrammar3Ast.Symbol, condSymPath: String, input: ValueifyExpr): (ValueifyExpr, Symbols.Symbol) = collectSymbolAndReturn(symbol, symbol match {
         case symbol@MetaGrammar3Ast.JoinSymbol(astNode, body, join) =>
             if (condSymPath.isEmpty) {
                 // body나 join이 SingleChoice/OneSymbol 가 아니면 Proxy + Unbind 추가
-                val vBody = proxyIf(valueifySymbol(refCtx, body, "", InputNode))
-                val vJoin = proxyIf(valueifySymbol(refCtx, join, "", InputNode))
+                val vBody = proxyIf(valueifySymbol(refCtx, body, "", InputNode(nextId())))
+                val vJoin = proxyIf(valueifySymbol(refCtx, join, "", InputNode(nextId())))
                 (JoinBodyOf(symbol, Unbind(symbol, input), vBody._1, TypeOfSymbol(body)), Symbols.Join(vBody._2, vJoin._2))
             } else {
                 // condSymPath.head 방향 봐서 JoinBodyOf/JoinCondOf, valueify 재귀호출 할 때는 condSymPath.tail
-                val vBody = proxyIf(valueifySymbol(refCtx, body, condSymPath.tail, InputNode))
-                val vJoin = proxyIf(valueifySymbol(refCtx, join, condSymPath.tail, InputNode))
+                val vBody = proxyIf(valueifySymbol(refCtx, body, condSymPath.tail, InputNode(nextId())))
+                val vJoin = proxyIf(valueifySymbol(refCtx, join, condSymPath.tail, InputNode(nextId())))
                 condSymPath.head match {
                     case '<' => // body
                         (JoinBodyOf(symbol, Unbind(symbol, input), vBody._1, TypeOfSymbol(body)), Symbols.Join(vBody._2, vJoin._2))
@@ -124,21 +147,21 @@ class ValueifyGen {
         case MetaGrammar3Ast.FollowedBy(astNode, followedBy) =>
             check(condSymPath.isEmpty, "FollowedBy cannot be referred with condSymPath")
             val vLookahead = proxyIf(valueifySymbol(refCtx, followedBy, "", input))
-            (InputNode, Symbols.LookaheadIs(vLookahead._2))
+            (InputNode(nextId()), Symbols.LookaheadIs(vLookahead._2))
         case MetaGrammar3Ast.NotFollowedBy(astNode, notFollowedBy) =>
             check(condSymPath.isEmpty, "NotFollowedBy cannot be referred with condSymPath")
             val vLookahead = proxyIf(valueifySymbol(refCtx, notFollowedBy, "", input))
-            (InputNode, Symbols.LookaheadExcept(vLookahead._2))
+            (InputNode(nextId()), Symbols.LookaheadExcept(vLookahead._2))
         case MetaGrammar3Ast.Optional(astNode, body) =>
             check(condSymPath.isEmpty, "Optional cannot be referred with condSymPath")
-            val vBody = proxyIf(valueifySymbol(refCtx, body, condSymPath, InputNode))
+            val vBody = proxyIf(valueifySymbol(refCtx, body, condSymPath, InputNode(nextId())))
             val emptySymbol = Symbols.Proxy(Symbols.Sequence(Seq()))
             (UnrollChoices(Unbind(symbol, input), Map(
                 GrammarSymbolChoice(emptySymbol) -> NullLiteral, AstSymbolChoice(body) -> vBody._1
             ), OptionalOf(vBody._1.resultType)), Symbols.OneOf(ListSet(emptySymbol, vBody._2)))
         case MetaGrammar3Ast.RepeatFromZero(astNode, body) =>
             check(condSymPath.isEmpty, "Repeat* cannot be referred with condSymPath")
-            val vBody = valueifySymbol(refCtx, body, condSymPath, InputNode)
+            val vBody = valueifySymbol(refCtx, body, condSymPath, InputNode(nextId()))
             (UnrollRepeat(0, input, vBody._1, ArrayOf(vBody._1.resultType)), ???)
         case MetaGrammar3Ast.RepeatFromOne(astNode, body) =>
             check(condSymPath.isEmpty, "Repeat+ cannot be referred with condSymPath")
@@ -154,10 +177,10 @@ class ValueifyGen {
             (Unbind(symbol, vChoices._1), Symbols.Longest(vChoices._2))
         case terminal: MetaGrammar3Ast.Terminal =>
             check(condSymPath.isEmpty, "Terminal cannot be referred with condSymPath")
-            (InputNode, Escapes.terminalToSymbol(terminal))
+            (InputNode(nextId()), Escapes.terminalToSymbol(terminal))
         case MetaGrammar3Ast.TerminalChoice(astNode, choices) =>
             check(condSymPath.isEmpty, "TerminalChoice cannot be referred with condSymPath")
-            (InputNode, Escapes.terminalChoiceToSymbol(choices))
+            (InputNode(nextId()), Escapes.terminalChoiceToSymbol(choices))
         case MetaGrammar3Ast.StringSymbol(astNode, value) =>
             check(condSymPath.isEmpty, "String cannot be referred with condSymPath")
             val stringSymbol = Symbols.Proxy(Symbols.Sequence(value.map(Escapes.stringCharToChar).map(Symbols.ExactChar)))
@@ -167,7 +190,7 @@ class ValueifyGen {
             (MatchNonterminal(name.stringName, input, TypeOfSymbol(symbol)), Symbols.Nonterminal(name.stringName))
         case MetaGrammar3Ast.EmptySeq(astNode) =>
             check(condSymPath.isEmpty, "EmptySeq cannot be referred with condSymPath")
-            (InputNode, Symbols.Sequence(Seq()))
+            (InputNode(nextId()), Symbols.Sequence(Seq()))
     })
 
     def valueifyProcessor(refCtx: List[Elem], processor: MetaGrammar3Ast.Processor, input: ValueifyExpr): ValueifyExpr = processor match {
@@ -188,7 +211,7 @@ class ValueifyGen {
                 case "||" => BinOp(Op.BOOL_OR, vLhs, vRhs, BoolType)
                 case "==" => BinOp(Op.EQ, vLhs, vRhs, BoolType)
                 case "!=" => BinOp(Op.NE, vLhs, vRhs, BoolType)
-                case "+" => BinOp(Op.ADD, vLhs, vRhs, BoolType)
+                case "+" => BinOp(Op.ADD, vLhs, vRhs, BinOpResultType(Op.ADD, vLhs.resultType, vRhs.resultType))
             }
         case MetaGrammar3Ast.PrefixOp(astNode, expr, op) =>
             val vExpr = valueifyProcessor(refCtx, expr, input)
@@ -241,11 +264,13 @@ class ValueifyGen {
             }
         case MetaGrammar3Ast.NamedConstructExpr(astNode, typeName, params) =>
             val vParams = params.map(param => (param, valueifyProcessor(refCtx, param.expr, input)))
+            // TODO params의 TypeDesc
             NamedConstructCall(typeName, vParams, ClassType(typeName))
         case MetaGrammar3Ast.FuncCallOrConstructExpr(astNode, funcName, params) =>
             // TODO funcName이 backtick이면 무조건 ConstructExpr
             val vParams = params.getOrElse(List()).map(param => valueifyProcessor(refCtx, param, input))
             // TODO FuncCall or UnnamedConstructCall depending on its name
+            // TODO params의 TypeDesc
             FuncCall(funcName, vParams, FuncCallResultType(funcName, vParams))
         case MetaGrammar3Ast.ArrayExpr(astNode, elems) =>
             val vElems = elems.getOrElse(List()).map(elem => valueifyProcessor(refCtx, elem, input))
@@ -265,10 +290,10 @@ class ValueifyGen {
 
     def valueifyRule(rhsList: List[MetaGrammar3Ast.Sequence]): (UnrollChoices, List[Symbols.Symbol]) = {
         val mappers = rhsList.map { rhs =>
-            AstSymbolChoice(rhs) -> collectSequenceAndReturn(rhs, valueifySequence(rhs.seq, InputNode))
+            AstSymbolChoice(rhs) -> collectSequenceAndReturn(rhs, valueifySequence(rhs.seq, InputNode(nextId())))
         }.toMap
         val mappings = mappers.map(mapper => mapper._1 -> mapper._2._1)
         val returnType = unifyTypes(mappers.map(_._2._1.resultType))
-        (UnrollChoices(InputNode, mappings.toMap, returnType), mappers.map(_._2._2).toList)
+        (UnrollChoices(InputNode(nextId()), mappings.toMap, returnType), mappers.map(_._2._2).toList)
     }
 }

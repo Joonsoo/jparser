@@ -3,8 +3,8 @@ package com.giyeok.jparser.metalang3
 import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
+import com.giyeok.jparser.metalang3.analysis.{Analyzer, GrammarValidationException}
 import com.giyeok.jparser.metalang3.codegen.ScalaGen
-import com.giyeok.jparser.metalang3.graphs.{GrammarGraphGen, GrammarValidationException}
 import com.giyeok.jparser.metalang3.symbols.Escapes.NonterminalName
 import com.giyeok.jparser.metalang3.valueify.ValueifyGen
 import com.giyeok.jparser.{Grammar, NGrammar, Symbols}
@@ -48,7 +48,7 @@ object MetaLanguage3 {
             val startSymbol: Symbols.Nonterminal = Symbols.Nonterminal(startNonterminalName)
         })
 
-        val grammarGraph = new GrammarGraphGen(defs, ngrammar, grammarRules, valueifyGen.symbolsMap)
+        val grammarGraph = new Analyzer(defs, ngrammar, grammarRules, valueifyGen.symbolsMap)
         grammarGraph.validate()
 
         val valueifyExprsMap = grammarRules.map(rule => rule._1 -> rule._2._1).toMap
