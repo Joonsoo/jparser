@@ -90,7 +90,7 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
             val e = valueifyExprCode(expr, inputName)
             val v1 = newVarName()
             val v2 = newVarName()
-            val bindedSymbol = analysis.symbolOf(symbol)
+            val bindedSymbol = analysis.symbolOf(???)
             ValueifierCode(e.codes ++
                 List(s"val BindNode($v1, $v2) = ${e.result}" + (if (options.symbolComments) s" // id=${bindedSymbol.id} ${bindedSymbol.symbol.toShortString}" else "")) ++
                 (if (options.assertBindTypes) List(s"assert($v1.id == ${bindedSymbol.id})") else List())
@@ -115,7 +115,7 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
                 List(s"val JoinNode($v1, _, $v2) = ${join.result}") ++
                 (if (options.assertBindTypes) List(s"assert($v1.id == ${symbol.id})") else List()) ++
                 processor.codes, processor.result, join.requirements ++ processor.requirements + "jparser.JoinNode")
-        case UnrollRepeat(minimumRepeat, arrayExpr, elemProcessExpr, _) =>
+        case UnrollRepeat(minimumRepeat, arrayExpr, elemProcessExpr) =>
             // inputName을 repeatSymbol로 unroll repeat하고, 각각을 expr로 가공
             val arrayExprCode = valueifyExprCode(arrayExpr, inputName)
             val elemProcessCode = valueifyExprCode(elemProcessExpr, "elem")
@@ -151,11 +151,11 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
             }
             codes :+= "}"
             ValueifierCode(codes, v, requirements)
-        case NamedConstructCall(className, params, _) =>
+        case NamedConstructCall(className, params) =>
             val vParams = params.map { param => valueifyExprCode(param._2, inputName) }
             val createExpr = s"$className(${vParams.map(_.result).mkString(", ")})"
             ValueifierCode(collectCodesFrom(vParams), createExpr, collectRequirementsFrom(vParams))
-        case UnnamedConstructCall(className, params, _) =>
+        case UnnamedConstructCall(className, params) =>
             val vParams = params.map { param => valueifyExprCode(param, inputName) }
             val createExpr = s"$className(${vParams.map(_.result).mkString(", ")})"
             ValueifierCode(collectCodesFrom(vParams), createExpr, collectRequirementsFrom(vParams))
@@ -198,7 +198,7 @@ class ScalaGen(val analysis: AnalysisResult, val options: Options = Options()) {
             }
             val v = newVarName()
             ValueifierCode(vLhs.codes ++ vRhs.codes :+ s"val $v = $result", v, vLhs.requirements ++ vRhs.requirements)
-        case ElvisOp(expr, ifNull, _) =>
+        case ElvisOp(expr, ifNull) =>
             val vExpr = valueifyExprCode(expr, inputName)
             val vIfNull = valueifyExprCode(ifNull, inputName)
             val v = newVarName()

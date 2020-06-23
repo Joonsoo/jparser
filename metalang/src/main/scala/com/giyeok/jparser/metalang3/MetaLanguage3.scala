@@ -3,9 +3,9 @@ package com.giyeok.jparser.metalang3
 import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang3.analysis.{Analyzer, GrammarValidationException, BottomUpTypeInferer}
+import com.giyeok.jparser.metalang3.analysis.{Analyzer, BottomUpTypeInferer, GrammarValidationException}
 import com.giyeok.jparser.metalang3.codegen.ScalaGen
-import com.giyeok.jparser.metalang3.valueify.ValueifyGen
+import com.giyeok.jparser.metalang3.valueify.{ValueifyGen, ValueifyInterpreter}
 import com.giyeok.jparser.{Grammar, NGrammar, Symbols}
 
 import scala.collection.immutable.{ListMap, ListSet}
@@ -51,13 +51,16 @@ object MetaLanguage3 {
         val startNonterminalName = grammarRules.head._1
 
         val bottomUpTypeInferer = new BottomUpTypeInferer(
-            startNonterminalName, valueifyGen.symbolsMap, valueifyGen.collector.nonterminalTypes)
+            startNonterminalName, valueifyGen.symbolsMap, valueifyGen.collector.nonterminalTypes, Map())
 
         val ngrammar = NGrammar.fromGrammar(new Grammar {
             val name: String = grammarName
             val rules: RuleMap = ListMap.from(grammarRules.map(rule => rule._1 -> ListSet.from(rule._2._2)))
             val startSymbol: Symbols.Nonterminal = Symbols.Nonterminal(startNonterminalName)
         })
+        println(ngrammar.startSymbol)
+        println(ngrammar.nsymbols)
+        println(ngrammar.nsequences)
 
         val analyzer = new Analyzer(ngrammar, grammarRules, valueifyGen.symbolsMap, valueifyGen.collector, bottomUpTypeInferer)
         analyzer.validate()
@@ -76,7 +79,9 @@ object MetaLanguage3 {
               |B = 'b'* {B(value=str($0))}
               |""".stripMargin
 
-        val analysis = MetaLanguage3.analyzeGrammar(MetaLang3Grammar.inMetaLang3.grammar)
+        val analysis = MetaLanguage3.analyzeGrammar(example)
+
+        println(new ValueifyInterpreter(analysis).valueify("abc").left.get.prettyPrint())
 
         val scalaGen = new ScalaGen(analysis)
         scalaGen.matchFuncFor(analysis.startSymbolName, analysis.valueifyExprsMap(analysis.startSymbolName)).codes.foreach(println)

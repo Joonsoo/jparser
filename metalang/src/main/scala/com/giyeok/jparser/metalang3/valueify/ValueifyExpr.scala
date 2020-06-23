@@ -17,8 +17,12 @@ case class InputNode(uniqueId: Int) extends ValueifyExpr {
 
 case class MatchNonterminal(nonterminalName: String, expr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
-case class Unbind(symbol: MetaGrammar3Ast.Symbol, expr: ValueifyExpr) extends ValueifyExpr {
+case class Unbind(symbol: Symbols.Symbol, expr: ValueifyExpr) extends ValueifyExpr {
     override val resultType: TypeFunc = TypeOfSymbol(symbol)
+}
+
+case class UnbindSymbolAst(symbolAst: MetaGrammar3Ast.Symbol, expr: ValueifyExpr) extends ValueifyExpr {
+    override val resultType: TypeFunc = ???
 }
 
 case class JoinBodyOf(joinSymbol: JoinSymbol, joinExpr: ValueifyExpr, bodyProcessorExpr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
@@ -27,7 +31,9 @@ case class JoinCondOf(joinSymbol: JoinSymbol, joinExpr: ValueifyExpr, condProces
 
 case class SeqElemAt(expr: ValueifyExpr, index: Int, override val resultType: TypeFunc) extends ValueifyExpr
 
-case class UnrollRepeat(minimumRepeat: Int, arrayExpr: ValueifyExpr, elemProcessExpr: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
+case class UnrollRepeat(minimumRepeat: Int, arrayExpr: ValueifyExpr, elemProcessExpr: ValueifyExpr) extends ValueifyExpr {
+    override val resultType: TypeFunc = ArrayOf(elemProcessExpr.resultType)
+}
 
 case class UnrollChoices(choiceExpr: ValueifyExpr, map: Map[DerivationChoice, ValueifyExpr], override val resultType: TypeFunc) extends ValueifyExpr
 
@@ -37,9 +43,13 @@ case class AstSymbolChoice(symbol: MetaGrammar3Ast.Symbol) extends DerivationCho
 
 case class GrammarSymbolChoice(symbol: Symbols.Symbol) extends DerivationChoice
 
-case class NamedConstructCall(className: String, params: List[(NamedParam, ValueifyExpr)], override val resultType: TypeFunc) extends ValueifyExpr
+case class NamedConstructCall(className: String, params: List[(NamedParam, ValueifyExpr)]) extends ValueifyExpr {
+    override val resultType: TypeFunc = ClassType(className)
+}
 
-case class UnnamedConstructCall(className: String, params: List[ValueifyExpr], override val resultType: TypeFunc) extends ValueifyExpr
+case class UnnamedConstructCall(className: String, params: List[ValueifyExpr]) extends ValueifyExpr {
+    override val resultType: TypeFunc = ClassType(className)
+}
 
 case class FuncCall(funcName: String, params: List[ValueifyExpr], override val resultType: TypeFunc) extends ValueifyExpr
 
@@ -57,7 +67,9 @@ object Op extends Enumeration {
 
 case class BinOp(op: Op.Value, lhs: ValueifyExpr, rhs: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 
-case class ElvisOp(expr: ValueifyExpr, ifNull: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
+case class ElvisOp(expr: ValueifyExpr, ifNull: ValueifyExpr) extends ValueifyExpr {
+    override val resultType: TypeFunc = ElvisType(expr.resultType, ifNull.resultType)
+}
 
 case class TernaryExpr(condition: ValueifyExpr, ifTrue: ValueifyExpr, ifFalse: ValueifyExpr, override val resultType: TypeFunc) extends ValueifyExpr
 

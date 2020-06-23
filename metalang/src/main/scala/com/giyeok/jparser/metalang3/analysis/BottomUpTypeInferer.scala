@@ -3,11 +3,14 @@ package com.giyeok.jparser.metalang3.analysis
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang3.MetaLanguage3.IllegalGrammar
+import com.giyeok.jparser.metalang3.types.ConcreteType.EnumType
+import com.giyeok.jparser.metalang3.types.TypeFunc.UnspecifiedEnum
 import com.giyeok.jparser.metalang3.types.{ConcreteType, TypeFunc}
 
 class BottomUpTypeInferer(val startSymbolName: String,
                           val symbolsMap: Map[MetaGrammar3Ast.Symbol, Symbols.Symbol],
-                          val nonterminalTypeFuncs: Map[String, List[TypeFunc]]) {
+                          val nonterminalTypeFuncs: Map[String, List[TypeFunc]],
+                          val unspecifiedEnumsMap: Map[UnspecifiedEnum, EnumType]) {
     private def unifyTypes(types: Iterable[ConcreteType]): ConcreteType =
         if (types.size == 1) types.head else ConcreteType.UnionOf(types.toList)
 
@@ -42,7 +45,9 @@ class BottomUpTypeInferer(val startSymbolName: String,
             val valueType = typeOf(value)
             valueType match {
                 case ConcreteType.OptionalOf(valueType) => unifyTypes(Set(valueType, typeOf(ifNull)))
-                case _ => throw IllegalGrammar("Only nullable type can be used with ?: operator")
+                case _ =>
+                    // TODO warning?
+                    throw IllegalGrammar("Only nullable type can be used with ?: operator")
             }
         case TypeFunc.AddOpType(lhs, rhs) =>
             val lhsType = typeOf(lhs)
@@ -55,7 +60,7 @@ class BottomUpTypeInferer(val startSymbolName: String,
             }
         case TypeFunc.UnionOf(types) => ConcreteType.UnionOf(types.map(typeOf))
         case TypeFunc.EnumType(enumTypeName) => ConcreteType.EnumType(enumTypeName)
-        case TypeFunc.UnspecifiedEnum(uniqueId) => ??? // TODO
+        case unspecifiedEnum: TypeFunc.UnspecifiedEnum => unspecifiedEnumsMap(unspecifiedEnum)
         case TypeFunc.NullType => ConcreteType.NullType
         case TypeFunc.AnyType => ConcreteType.AnyType
         case TypeFunc.BoolType => ConcreteType.BoolType

@@ -34,6 +34,8 @@ case class MetaLang3Example(name: String, grammar: String, correctExamples: List
                             incorrectExamples: List[String] = List(),
                             ambiguousExamples: List[String] = List()) extends MetaLangExample {
     def example(newExample: String): MetaLang3Example = copy(correctExamples = correctExamples :+ newExample)
+
+    def example(newExample: String, valuefyResult: String): MetaLang3Example = copy(correctExamples = correctExamples :+ newExample)
 }
 
 trait MetaLangExamples {

@@ -112,7 +112,8 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 val joinKernel = Kernel(join, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(join))
                 val bodyTree = reconstruct0(bodyKernel, kernel.endGen)
                 val joinTree = reconstruct0(joinKernel, kernel.endGen)
-                resultFunc.join(kernel.beginGen, kernel.endGen, symbol, bodyTree, joinTree)
+                resultFunc.bind(kernel.beginGen, kernel.endGen, symbol,
+                    resultFunc.join(kernel.beginGen, kernel.endGen, symbol, bodyTree, joinTree))
 
             case symbol: NTerminal =>
                 resultFunc.bind(kernel.beginGen, kernel.endGen, symbol,

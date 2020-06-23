@@ -1,6 +1,6 @@
 package com.giyeok.jparser.metalang3.types
 
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
+import com.giyeok.jparser.Symbols
 
 sealed class TypeFunc
 
@@ -8,7 +8,7 @@ object TypeFunc {
 
     object NodeType extends TypeFunc
 
-    case class TypeOfSymbol(symbol: MetaGrammar3Ast.Symbol) extends TypeFunc
+    case class TypeOfSymbol(symbol: Symbols.Symbol) extends TypeFunc
 
     case class ClassType(name: String) extends TypeFunc
 
