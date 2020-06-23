@@ -129,8 +129,16 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
             valuefy(body, choiceValuefyExpr)
         case ValuefyExpr.ConstructCall(className, params) =>
             ClassValue(className, params.map(valuefy(parseNode, _)))
-        case ValuefyExpr.FuncCall(funcType, params) => ???
-        case ValuefyExpr.ArrayExpr(elems) => ???
+        case ValuefyExpr.FuncCall(funcType, params) =>
+            funcType match {
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent => ???
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsEmpty => ???
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Chr => ???
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Str => ???
+            }
+        case ValuefyExpr.ArrayExpr(elems) =>
+            val elemValues = elems.map(valuefy(parseNode, _))
+            ArrayValue(elemValues)
         case ValuefyExpr.BinOp(op, lhs, rhs) => ???
         case ValuefyExpr.PreOp(op, expr) => ???
         case ValuefyExpr.ElvisOp(expr, ifNull) => ???

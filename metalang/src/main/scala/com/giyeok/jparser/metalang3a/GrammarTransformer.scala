@@ -175,7 +175,7 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
             check(condSymPath.isEmpty, "InPlaceChoices cannot be referred with condSymPath")
             val vChoices = choices.map(c => proxy(valuefySymbol(c, "", input)))
             val oneofSymbol = Symbols.OneOf(ListSet.from(vChoices.map(_._2)))
-            (UnrollChoices(vChoices.map(c => c._2 -> c._1).toMap), oneofSymbol)
+            (UnrollChoices(vChoices.map(c => oneofSymbol -> c._1).toMap), oneofSymbol)
         case MetaGrammar3Ast.Longest(_, choices) =>
             check(condSymPath.isEmpty, "Longest cannot be referred with condSymPath")
             val vChoices = proxy(valuefySymbol(choices, "", input))
@@ -219,7 +219,7 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
                 refCtx(idx) match {
                     case symbol: MetaGrammar3Ast.Symbol =>
                         val symbolIdx = idx // TODO processor 갯수 빼기
-                        valuefySymbol(symbol, condSymPath.map(_.sourceText).mkString, SeqElemAt(symbolIdx, input))._1
+                        SeqElemAt(symbolIdx, valuefySymbol(symbol, condSymPath.map(_.sourceText).mkString, input)._1)
                     case processor: MetaGrammar3Ast.Processor =>
                         check(condSymPath.isEmpty, "Ref to processor cannot have cond sym path")
                         valuefyProcessor(refCtx, processor, input)
@@ -270,6 +270,7 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
         }
     }
 
+    // TODO rawIfNoProcessor boolean, true이면 seq에 processor가 하나도 없으면 return하는 ValuefyExpr을 InputNode로 반환
     private def valuefySequence(seq: List[MetaGrammar3Ast.Elem], input: ValuefyExpr): (ValuefyExpr, Symbols.Symbol) = {
         val elems = seq map {
             case symbol: MetaGrammar3Ast.Symbol =>
@@ -280,9 +281,12 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
         }
         val symbols = elems.flatMap(_._2)
         val lastProcessor = elems.last._1
-        if (symbols.size == 1) (lastProcessor, symbols.head) else {
-            val seqSymbol = Symbols.Sequence(symbols)
-            (SeqElemAt(symbols.size - 1, lastProcessor), seqSymbol)
+        val seqSymbol = Symbols.Sequence(symbols)
+        seq.last match {
+            case _: MetaGrammar3Ast.Symbol =>
+                (SeqElemAt(symbols.size - 1, lastProcessor), seqSymbol)
+            case _: MetaGrammar3Ast.Processor =>
+                (lastProcessor, seqSymbol)
         }
     }
 
@@ -291,6 +295,7 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
             _nonterminalInfoCollector = _nonterminalInfoCollector.setNonterminalType(nonterminalName, someNonterminalType)
         }
         val vRhs = rhs.map { derivation =>
+            // TODO 특정 상황에서는 ValuefyExpr을 InputNode로 반환해서 전체를 얻도록
             valuefySequence(derivation.seq, InputNode)
         }
         _nonterminalSymbols += nonterminalName -> vRhs.map(_._2)

@@ -35,21 +35,21 @@ object MetaLanguage3 {
             val valuefyExprSimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs)
             example.correctExamples.foreach { exampleSource =>
                 val parsed = valuefyExprSimulator.parse(exampleSource).left.get
-                valuefyExprSimulator.printNodeStructure(parsed)
+                // valuefyExprSimulator.printNodeStructure(parsed)
                 println(valuefyExprSimulator.valuefy(parsed).prettyPrint())
             }
         }
 
         testExample(MetaLang3Example("Simple test",
-            """A = B&X Q {MyClass(value=$0)}
+            """A = B&X {MyClass(value=$0, qs=[])} | B&X Q {MyClass(value=$0, qs=$1)}
               |B = C 'b'
               |C = 'c' D
               |D = 'd' | #
               |X = 'c' 'd'* 'b'
-              |Q = 'q'*
+              |Q = 'q'+ {QValue(value="hello")}
               |""".stripMargin)
             .example("cb")
             .example("cdb")
-            .example("qq"))
+            .example("cbqq"))
     }
 }
