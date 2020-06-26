@@ -130,10 +130,11 @@ object MetaLang3Grammar extends MetaLangExamples {
           |Processor: @Processor = Ref
           |  | '{' WS PExpr WS '}' $2
           |
-          |Ref: @Ref = ValRef | RawRef
+          |Ref: @Ref = ValRef | RawRef | AllRawRef
           |ValRef = '$' CondSymPath? RefIdx {@ValRef(idx=$2, condSymPath=$1)}
           |CondSymPath = ('<' | '>')+
           |RawRef = "\\$" CondSymPath? RefIdx {@RawRef(idx=$2, condSymPath=$1)}
+          |AllRawRef = "\\$$" {@AllRawRef()}
           |
           |// 우선순위 낮은것부터
           |PExpr: @PExpr = TernaryExpr // TODO (WS ':' WS TypeDesc)? 를 뒤에 붙일 수 있을까?
@@ -296,10 +297,11 @@ object MetaLang3Grammar extends MetaLangExamples {
           |Processor: Processor = Ref
           |  | '{' WS PExpr WS '}' $2
           |
-          |Ref: Ref = ValRef | RawRef
+          |Ref: Ref = ValRef | RawRef | AllRawRef
           |ValRef = '$' CondSymPath? RefIdx {ValRef(idx=$2, condSymPath=$1)}
           |CondSymPath: [%CondSymDir{BODY, COND}] = ('<' {%BODY} | '>' {%COND})+
           |RawRef = "\\$" CondSymPath? RefIdx {RawRef(idx=$2, condSymPath=$1)}
+          |AllRawRef = "\\$$" {AllRawRef()}
           |
           |PExpr: PExpr = TernaryExpr // TODO Add (WS ':' WS TypeDesc)?
           |TernaryExpr: TernaryExpr = BoolOrExpr WS '?' WS <TernaryExpr> WS ':' WS <TernaryExpr> {TernaryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
@@ -382,14 +384,14 @@ object MetaLang3Grammar extends MetaLangExamples {
           |
           |// Common
           |// TODO TypeName, NonterminalName에서 `` 사이에는 Id 말고 다른거(공백, keyword 등도 쓸 수 있는)
-          |TypeName = Id-Keyword {TypeName(name=$0)}
-          |  | '`' Id '`' {TypeName(name=$0)}
-          |NonterminalName = Id-Keyword {NonterminalName(name=$0)}
-          |  | '`' Id '`' {NonterminalName(name=$0)}
-          |TypeOrFuncName = Id-Keyword {TypeOrFuncName(name=$0)}
-          |  | '`' Id '`' {TypeOrFuncName(name=$0)}
-          |ParamName = Id-Keyword {ParamName(name=$0)}
-          |  | '`' Id '`' {ParamName(name=$0)}
+          |TypeName = Id-Keyword {TypeName(name=str(\$0))}
+          |  | '`' Id '`' {TypeName(name=str(\$1))}
+          |NonterminalName = Id-Keyword {NonterminalName(name=str(\$0))}
+          |  | '`' Id '`' {NonterminalName(name=str(\$1))}
+          |TypeOrFuncName = Id-Keyword {TypeOrFuncName(name=str(\$0))}
+          |  | '`' Id '`' {TypeOrFuncName(name=str(\$1))}
+          |ParamName = Id-Keyword {ParamName(name=str(\$0))}
+          |  | '`' Id '`' {ParamName(name=str(\$1))}
           |EnumValueName = Id {EnumValueName(name=$0)}
           |Keyword = "boolean" | "char" | "string" | "true" | "false" | "null"
           |StrChar = StringChar

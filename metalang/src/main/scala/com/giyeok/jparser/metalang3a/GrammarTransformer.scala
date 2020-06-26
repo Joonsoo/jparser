@@ -2,9 +2,10 @@ package com.giyeok.jparser.metalang3a
 
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang3a.ClassInfoCollector.{ClassParamSpec, ClassSpec}
-import com.giyeok.jparser.metalang3a.ValuefyExpr.{ArrayExpr, BoolLiteral, CharLiteral, ConstructCall, ElvisOp, FuncCall, FuncType, InputNode, JoinBody, JoinCond, MatchNonterminal, NullLiteral, SeqElemAt, StringLiteral, Unbind, UnrollChoices, UnrollRepeatFromOne, UnrollRepeatFromZero}
+import com.giyeok.jparser.metalang3a.ValuefyExpr.{ArrayExpr, BinOp, BinOpType, BoolLiteral, CharLiteral, ConstructCall, ElvisOp, FuncCall, FuncType, InputNode, JoinBody, JoinCond, MatchNonterminal, NullLiteral, PreOp, PreOpType, SeqElemAt, StringLiteral, Unbind, UnrollChoices, UnrollRepeatFromOne, UnrollRepeatFromZero}
 import com.giyeok.jparser.{Grammar, Symbols}
-import MetaLanguage3.check
+import MetaLanguage3.{IllegalGrammar, check}
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.ValRef
 
 import scala.collection.immutable.{ListMap, ListSet}
 
@@ -204,13 +205,30 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
             (input, TerminalUtil.terminalChoicesToSymbol(choices))
     }
 
+    private def symbolIndexFrom(refCtx: List[MetaGrammar3Ast.Elem], index: Int): Int = index // TODO processor 갯수 빼기
+
     private def valuefyProcessor(refCtx: List[MetaGrammar3Ast.Elem], processor: MetaGrammar3Ast.Processor, input: ValuefyExpr): ValuefyExpr = processor match {
         case MetaGrammar3Ast.ElvisOp(_, value, ifNull) =>
             val vValue = valuefyProcessor(refCtx, value, input)
             val vIfNull = valuefyProcessor(refCtx, ifNull, input)
             ElvisOp(vValue, vIfNull)
-        case MetaGrammar3Ast.BinOp(_, op, lhs, rhs) => ???
-        case MetaGrammar3Ast.PrefixOp(_, expr, op) => ???
+        case MetaGrammar3Ast.BinOp(_, op, lhs, rhs) =>
+            val vLhs = valuefyProcessor(refCtx, lhs, input)
+            val vRhs = valuefyProcessor(refCtx, rhs, input)
+            val opType = op.sourceText match {
+                case "+" => BinOpType.ADD
+                case "==" => BinOpType.EQ
+                case "!=" => BinOpType.NE
+                case "&&" => BinOpType.BOOL_AND
+                case "||" => BinOpType.BOOL_OR
+            }
+            BinOp(opType, vLhs, vRhs)
+        case MetaGrammar3Ast.PrefixOp(_, expr, op) =>
+            val vExpr = valuefyProcessor(refCtx, expr, input)
+            val opType = op.sourceText match {
+                case "!" => PreOpType.NOT
+            }
+            PreOp(opType, vExpr)
         case ref: MetaGrammar3Ast.Ref => ref match {
             case MetaGrammar3Ast.ValRef(_, idx0, condSymPath0) =>
                 val idx = idx0.sourceText.toInt
@@ -218,16 +236,57 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
                 val condSymPath = condSymPath0.getOrElse(List())
                 refCtx(idx) match {
                     case symbol: MetaGrammar3Ast.Symbol =>
-                        val symbolIdx = idx // TODO processor 갯수 빼기
+                        val symbolIdx = symbolIndexFrom(refCtx, idx)
                         SeqElemAt(symbolIdx, valuefySymbol(symbol, condSymPath.map(_.sourceText).mkString, input)._1)
                     case processor: MetaGrammar3Ast.Processor =>
                         check(condSymPath.isEmpty, "Ref to processor cannot have cond sym path")
                         valuefyProcessor(refCtx, processor, input)
                 }
-            case MetaGrammar3Ast.RawRef(_, idx0, condSymPath) => ???
+            case MetaGrammar3Ast.RawRef(_, idx0, condSymPath0) =>
+                val idx = idx0.sourceText.toInt
+                check(idx < refCtx.size, "reference index out of range")
+                val condSymPath = condSymPath0.getOrElse(List())
+                refCtx(idx) match {
+                    case _: MetaGrammar3Ast.Symbol =>
+                        val symbolIdx = symbolIndexFrom(refCtx, idx)
+                        check(condSymPath.isEmpty, "RawRef with cond sym path not implemented")
+                        SeqElemAt(symbolIdx, input)
+                    case _: MetaGrammar3Ast.Processor =>
+                        throw IllegalGrammar("RawRef cannot refer to processor")
+                }
         }
         case MetaGrammar3Ast.ExprParen(_, body) => valuefyProcessor(refCtx, body, input)
-        case MetaGrammar3Ast.BindExpr(_, ctx, binder) => ???
+        case MetaGrammar3Ast.BindExpr(_, ctx, binder) =>
+            val ValRef(_, idx0, condSymPath0) = ctx
+            val idx = idx0.sourceText.toInt
+            check(idx < refCtx.size, "reference index out of range")
+            val condSymPath = condSymPath0.getOrElse(List())
+            check(condSymPath.isEmpty, "BindExpr with cond sym path not implemented")
+            refCtx(idx) match {
+                case symbol: MetaGrammar3Ast.Symbol =>
+                    // 이 부분은 valuefySequence에서 마지막 elem의 종류에 따라 SeqElem을 넣는 것 때문에
+                    // valuefySymbol을 재사용하지 못하고 valuefySymbol과 거의 같은 코드가 중복돼서 들어갔음
+                    // TODO 고칠 수 있으면 좋을텐데..
+                    def processBindExpr(symbol: MetaGrammar3Ast.Symbol): ValuefyExpr =
+                        symbol match {
+                            case MetaGrammar3Ast.Optional(_, body) => ???
+                            case MetaGrammar3Ast.RepeatFromZero(_, body) => ???
+                            case MetaGrammar3Ast.RepeatFromOne(_, body) => ???
+                            case MetaGrammar3Ast.InPlaceChoices(_, choices) if choices.size == 1 =>
+                                Unbind(valuefySymbol(symbol, "", InputNode)._2, processBindExpr(choices.head))
+                            case MetaGrammar3Ast.Longest(_, choices) =>
+                                Unbind(valuefySymbol(symbol, "", InputNode)._2, processBindExpr(choices))
+                            case MetaGrammar3Ast.Sequence(_, seq) =>
+                                val (processor, seqSymbol) = valuefySequence(seq :+ binder.asInstanceOf[MetaGrammar3Ast.Processor], input)
+                                proxy(Unbind(seqSymbol, processor), seqSymbol)._1
+                            case _ =>
+                                throw IllegalGrammar("Unsupported binding context")
+                        }
+
+                    SeqElemAt(symbolIndexFrom(refCtx, idx), processBindExpr(symbol))
+                case _: MetaGrammar3Ast.Processor =>
+                    throw IllegalGrammar("BindExpr cannot refer to processor")
+            }
         case MetaGrammar3Ast.NamedConstructExpr(_, typeName, params, supers0) =>
             val className = stringNameOf(typeName)
             // add className->supers
@@ -270,7 +329,6 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
         }
     }
 
-    // TODO rawIfNoProcessor boolean, true이면 seq에 processor가 하나도 없으면 return하는 ValuefyExpr을 InputNode로 반환
     private def valuefySequence(seq: List[MetaGrammar3Ast.Elem], input: ValuefyExpr): (ValuefyExpr, Symbols.Symbol) = {
         val elems = seq map {
             case symbol: MetaGrammar3Ast.Symbol =>
@@ -283,10 +341,8 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
         val lastProcessor = elems.last._1
         val seqSymbol = Symbols.Sequence(symbols)
         seq.last match {
-            case _: MetaGrammar3Ast.Symbol =>
-                (SeqElemAt(symbols.size - 1, lastProcessor), seqSymbol)
-            case _: MetaGrammar3Ast.Processor =>
-                (lastProcessor, seqSymbol)
+            case _: MetaGrammar3Ast.Symbol => (SeqElemAt(symbols.size - 1, lastProcessor), seqSymbol)
+            case _: MetaGrammar3Ast.Processor => (lastProcessor, seqSymbol)
         }
     }
 

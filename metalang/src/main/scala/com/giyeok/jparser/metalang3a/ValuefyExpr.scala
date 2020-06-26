@@ -32,37 +32,37 @@ object ValuefyExpr {
     // input ParseNode가 BindNode일 것으로 보고, 어떤 symbol로 bind됐는지 보고 맞는 node에 대해 valuefy
     case class UnrollChoices(choices: Map[Symbols.Symbol, ValuefyExpr]) extends ValuefyExpr
 
-    // TODO
+    // input ParamNode를 params로 valuefy해서 class 생성해서 반환
     case class ConstructCall(className: String, params: List[ValuefyExpr]) extends ValuefyExpr
 
     object FuncType extends Enumeration {
         val IsPresent, IsEmpty, Chr, Str = Value
     }
 
-    // TODO
+    // TODO input ParamNode를 params로 valuefy해서 builtin function 콜해서 반환
     case class FuncCall(funcType: FuncType.Value, params: List[ValuefyExpr]) extends ValuefyExpr
 
-    // TODO
+    // input ParamNode를 elems로 valuefy해서 array 반환
     case class ArrayExpr(elems: List[ValuefyExpr]) extends ValuefyExpr
 
     object BinOpType extends Enumeration {
         val ADD, EQ, NE, BOOL_AND, BOOL_OR = Value
     }
 
-    // TODO
+    // TODO input ParseNode를 lhs로 가공한 값, rhs로 가공한 값을 op으로 binary 연산해서 반환
     case class BinOp(op: BinOpType.Value, lhs: ValuefyExpr, rhs: ValuefyExpr) extends ValuefyExpr
 
     object PreOpType extends Enumeration {
         val NOT: PreOpType.Value = Value
     }
 
-    // TODO
+    // TODO input ParseNode를 expr로 가공한 값을 op으로 binary 연산해서 반환
     case class PreOp(op: PreOpType.Value, expr: ValuefyExpr) extends ValuefyExpr
 
-    // TODO
+    // TODO input ParseNode를 expr로 가공한 값, ifNull로 가공한 값을 elvis 연산해서 반환
     case class ElvisOp(expr: ValuefyExpr, ifNull: ValuefyExpr) extends ValuefyExpr
 
-    // TODO
+    // TODO input ParseNode를 condition으로 가공한 값이 true이면 input을 ifTrue로 가공한 값을, false이면 input을 ifFalse로 가공한 값을 반환
     case class TernaryOp(condition: ValuefyExpr, ifTrue: ValuefyExpr, ifFalse: ValuefyExpr) extends ValuefyExpr
 
     // Literal과 Enum은 input ParseNode와 관계없이 지정된 값을 반환

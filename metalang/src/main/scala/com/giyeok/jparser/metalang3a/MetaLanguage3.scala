@@ -22,6 +22,17 @@ object MetaLanguage3 {
 
     def analyzeGrammar(grammar: MetaGrammar3Ast.Grammar, grammarName: String): ProcessedGrammar = {
         val transformer = new GrammarTransformer(grammar)
+
+        val typeInferer = new TypeInferer(transformer.startNonterminalName(), transformer.nonterminalInfo.specifiedTypes)
+        transformer.classInfo.classConstructCalls.foreach { calls =>
+            calls._2.foreach { call =>
+                println(call)
+                call.foreach { param =>
+                    println(typeInferer.typeOfValuefyExpr(param))
+                }
+            }
+        }
+
         val ngrammar = NGrammar.fromGrammar(transformer.grammar(grammarName))
         ProcessedGrammar(ngrammar, transformer.startNonterminalName(), transformer.nonterminalValuefyExprs)
     }
@@ -31,16 +42,18 @@ object MetaLanguage3 {
 
     def main(args: Array[String]): Unit = {
         def testExample(example: MetaLang3Example): Unit = {
+            println(example.grammar)
             val analysis = analyzeGrammar(example.grammar, example.name)
             val valuefyExprSimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs)
             example.correctExamples.foreach { exampleSource =>
                 val parsed = valuefyExprSimulator.parse(exampleSource).left.get
-                // valuefyExprSimulator.printNodeStructure(parsed)
+                valuefyExprSimulator.printNodeStructure(parsed)
+                valuefyExprSimulator.printValuefyStructure()
                 println(valuefyExprSimulator.valuefy(parsed).prettyPrint())
             }
         }
 
-        testExample(MetaLang3Example("Simple test",
+        val ex1 = MetaLang3Example("Simple test",
             """A = B&X {MyClass(value=$0, qs=[])} | B&X Q {MyClass(value=$0, qs=$1)}
               |B = C 'b'
               |C = 'c' D
@@ -50,6 +63,20 @@ object MetaLanguage3 {
               |""".stripMargin)
             .example("cb")
             .example("cdb")
-            .example("cbqq"))
+            .example("cbqq")
+        val ex2 = MetaLang3Example("Simple",
+            """A = ('b' Y 'd') 'x' {A(val=$0$1, raw=$0\\$1, raw1=\\$0)}
+              |Y = 'y' {Y(value=true)}
+              |""".stripMargin)
+            .example("bydx")
+        //        testExample(ex1)
+        //        testExample(ex2)
+        val ex3 = MetaLang3Example("BinOp",
+            """A = B ' ' C {ClassA(value=str($0) + str($2))}
+              |B = 'a'
+              |C = 'b'
+              |""".stripMargin)
+            .example("a b")
+        testExample(ex3)
     }
 }

@@ -10,7 +10,7 @@ import com.giyeok.jparser._
 class ValuefyExprSimulator(val ngrammar: NGrammar,
                            val startNonterminalName: String,
                            val nonterminalValuefyExprs: Map[String, UnrollChoices]) {
-    def check(cond: Boolean, msg: String) = {
+    def check(cond: Boolean, msg: => String) = {
         if (!cond) throw new Exception(msg)
     }
 
@@ -40,10 +40,11 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
             case Right(error) => Right(error)
         }
 
-    def valuefy(parseNode: Node): Value =
-        valuefy(parseNode,
-            Unbind(Symbols.Start, Unbind(Symbols.Nonterminal(startNonterminalName),
-                MatchNonterminal(startNonterminalName))))
+    def startValuefyExpr: ValuefyExpr = Unbind(Symbols.Start,
+        Unbind(Symbols.Nonterminal(startNonterminalName),
+            MatchNonterminal(startNonterminalName)))
+
+    def valuefy(parseNode: Node): Value = valuefy(parseNode, startValuefyExpr)
 
     def printNodeStructure(parseNode: Node, indent: String = ""): Unit = parseNode match {
         case ParseResultTree.TerminalNode(start, input) => println(s"${indent}Terminal ${input}")
@@ -63,6 +64,44 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
             }
         case ParseResultTree.CyclicSequenceNode(start, end, symbol, pointer, _children) =>
             println(s"${indent}Cyclic Sequence")
+    }
+
+    def printValuefyStructure(valuefyExpr: ValuefyExpr, indent: String = ""): Unit = valuefyExpr match {
+        case ValuefyExpr.InputNode => println(s"${indent}InputNode")
+        case MatchNonterminal(nonterminalName) => println(s"${indent}match $nonterminalName")
+        case Unbind(symbol, expr) =>
+            println(s"${indent}Unbind ${symbol.toShortString}")
+            printValuefyStructure(expr, indent + "  ")
+        case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) => ???
+        case ValuefyExpr.JoinCond(joinSymbol, bodyProcessor) => ???
+        case ValuefyExpr.SeqElemAt(index, expr) =>
+            println(s"${indent}SeqElem $index")
+            printValuefyStructure(expr, indent + "  ")
+        case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) => ???
+        case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) => ???
+        case UnrollChoices(choices) =>
+            println(s"${indent}choices")
+            choices.foreach { choice =>
+                println(s"${indent}${choice._1.toShortString} -> ")
+                printValuefyStructure(choice._2, indent + "  ")
+            }
+        case ValuefyExpr.ConstructCall(className, params) =>
+        case ValuefyExpr.FuncCall(funcType, params) =>
+        case ValuefyExpr.ArrayExpr(elems) =>
+        case ValuefyExpr.BinOp(op, lhs, rhs) =>
+        case ValuefyExpr.PreOp(op, expr) =>
+        case ValuefyExpr.ElvisOp(expr, ifNull) =>
+        case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
+        case literal: ValuefyExpr.Literal =>
+        case value: ValuefyExpr.EnumValue =>
+    }
+
+    def printValuefyStructure(): Unit = {
+        printValuefyStructure(startValuefyExpr)
+        nonterminalValuefyExprs.foreach { expr =>
+            println(s"== ${expr._1}:")
+            printValuefyStructure(expr._2)
+        }
     }
 
     private def unrollRepeat1(node: Node): List[Node] = {
@@ -102,7 +141,7 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
             valuefy(body, matcher)
         case Unbind(symbol, expr) =>
             val BindNode(bindedSymbol, body) = parseNode
-            check(bindedSymbol.symbol == symbol, "Invalid unbind")
+            check(bindedSymbol.symbol == symbol, s"Invalid unbind expected: ${bindedSymbol.symbol.toShortString}, actual: ${symbol.toShortString}")
             valuefy(body, expr)
         case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) =>
             val JoinNode(bindedSymbol, body, _) = parseNode
@@ -113,6 +152,7 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
             check(bindedSymbol.symbol == joinSymbol, "Invalid unbind join cond")
             valuefy(join, bodyProcessor)
         case ValuefyExpr.SeqElemAt(index, expr) =>
+            check(parseNode.isInstanceOf[SequenceNode], s"Expected sequence, but actual=unbind(${parseNode.asInstanceOf[BindNode].symbol.symbol.toShortString})")
             val referredElem = parseNode.asInstanceOf[SequenceNode].children(index)
             valuefy(referredElem, expr)
         case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) =>
@@ -134,12 +174,36 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent => ???
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsEmpty => ???
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Chr => ???
-                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Str => ???
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Str =>
+                    val vParams = params.map(valuefy(parseNode, _))
+                    StringValue(vParams.map {
+                        case NodeValue(astNode) => astNode.sourceText
+                        case ClassValue(className, args) => ???
+                        case ArrayValue(elems) => ???
+                        case EnumValue(enumType, enumValue) => s"%$enumType.$enumValue"
+                        case NullValue() => "null"
+                        case BoolValue(value) => value.toString
+                        case CharValue(value) => value.toString
+                        case StringValue(value) => value
+                    }.mkString)
             }
         case ValuefyExpr.ArrayExpr(elems) =>
             val elemValues = elems.map(valuefy(parseNode, _))
             ArrayValue(elemValues)
-        case ValuefyExpr.BinOp(op, lhs, rhs) => ???
+        case ValuefyExpr.BinOp(op, lhs, rhs) =>
+            val lhsValue = valuefy(parseNode, lhs)
+            val rhsValue = valuefy(parseNode, rhs)
+            op match {
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.ADD =>
+                    (lhsValue, rhsValue) match {
+                        case (StringValue(lhsValue), StringValue(rhsValue)) => StringValue(lhsValue + rhsValue)
+                        // TODO exception
+                    }
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.EQ => ???
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.NE => ???
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.BOOL_AND => ???
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.BOOL_OR => ???
+            }
         case ValuefyExpr.PreOp(op, expr) => ???
         case ValuefyExpr.ElvisOp(expr, ifNull) => ???
         case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) => ???
