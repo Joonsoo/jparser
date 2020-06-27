@@ -41,11 +41,16 @@ class InferredTypeCollector(private val startNonterminalName: String,
             className -> paramTypes.zipWithIndex.map {
                 case (fixedType@Some(_), _) => fixedType
                 case (None, index) =>
+                    val specifiedType = classInfo.classParamSpecs(className).params(index).typ
                     val calls = classInfo.classConstructCalls(className).map(_ (index))
                     val callTypes = calls.flatMap(typeInferer.typeOfValuefyExpr)
                     if (callTypes.isEmpty) None else {
                         newInfo = true
-                        Some(unifyTypes(callTypes.toSet))
+                        val inferredParamType = unifyTypes(callTypes.toSet)
+                        // user specified type이 있으면 addTypeRelation
+                        specifiedType.foreach(someSpecifiedType =>
+                            _classRelations = _classRelations.addTypeRelation(someSpecifiedType, inferredParamType))
+                        Some(inferredParamType)
                     }
             }
         }
