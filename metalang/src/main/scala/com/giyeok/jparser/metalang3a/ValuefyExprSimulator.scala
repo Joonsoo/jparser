@@ -46,64 +46,6 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
 
     def valuefy(parseNode: Node): Value = valuefy(parseNode, startValuefyExpr)
 
-    def printNodeStructure(parseNode: Node, indent: String = ""): Unit = parseNode match {
-        case ParseResultTree.TerminalNode(start, input) => println(s"${indent}Terminal ${input}")
-        case BindNode(symbol, body) =>
-            println(s"${indent}Bind(${symbol.symbol.toShortString})")
-            printNodeStructure(body, indent + "  ")
-        case ParseResultTree.CyclicBindNode(start, end, symbol) =>
-            println(s"${indent}Cyclic Bind")
-        case JoinNode(symbol, body, join) =>
-            println(s"${indent}Join(${symbol.symbol.toShortString})")
-            printNodeStructure(body, indent + "  ")
-            printNodeStructure(join, indent + "  ")
-        case seq@SequenceNode(start, end, symbol, _children) =>
-            println(s"${indent}Sequence(${symbol.symbol.toShortString})")
-            seq.children.zipWithIndex.foreach { childIdx =>
-                printNodeStructure(childIdx._1, indent + "  ")
-            }
-        case ParseResultTree.CyclicSequenceNode(start, end, symbol, pointer, _children) =>
-            println(s"${indent}Cyclic Sequence")
-    }
-
-    def printValuefyStructure(valuefyExpr: ValuefyExpr, indent: String = ""): Unit = valuefyExpr match {
-        case ValuefyExpr.InputNode => println(s"${indent}InputNode")
-        case MatchNonterminal(nonterminalName) => println(s"${indent}match $nonterminalName")
-        case Unbind(symbol, expr) =>
-            println(s"${indent}Unbind ${symbol.toShortString}")
-            printValuefyStructure(expr, indent + "  ")
-        case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) => ???
-        case ValuefyExpr.JoinCond(joinSymbol, bodyProcessor) => ???
-        case ValuefyExpr.SeqElemAt(index, expr) =>
-            println(s"${indent}SeqElem $index")
-            printValuefyStructure(expr, indent + "  ")
-        case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) => ???
-        case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) => ???
-        case UnrollChoices(choices) =>
-            println(s"${indent}choices")
-            choices.foreach { choice =>
-                println(s"${indent}${choice._1.toShortString} -> ")
-                printValuefyStructure(choice._2, indent + "  ")
-            }
-        case ValuefyExpr.ConstructCall(className, params) =>
-        case ValuefyExpr.FuncCall(funcType, params) =>
-        case ValuefyExpr.ArrayExpr(elems) =>
-        case ValuefyExpr.BinOp(op, lhs, rhs) =>
-        case ValuefyExpr.PreOp(op, expr) =>
-        case ValuefyExpr.ElvisOp(expr, ifNull) =>
-        case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
-        case literal: ValuefyExpr.Literal =>
-        case value: ValuefyExpr.EnumValue =>
-    }
-
-    def printValuefyStructure(): Unit = {
-        printValuefyStructure(startValuefyExpr)
-        nonterminalValuefyExprs.foreach { expr =>
-            println(s"== ${expr._1}:")
-            printValuefyStructure(expr._2)
-        }
-    }
-
     private def unrollRepeat1(node: Node): List[Node] = {
         val BindNode(repeat: NGrammar.NRepeat, body) = node
         body match {
@@ -197,6 +139,9 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.ADD =>
                     (lhsValue, rhsValue) match {
                         case (StringValue(lhsValue), StringValue(rhsValue)) => StringValue(lhsValue + rhsValue)
+                        case (ArrayValue(lhsElems), ArrayValue(rhsElems)) => ArrayValue(lhsElems ++ rhsElems)
+                        case _ =>
+                            throw new Exception(s"tried ${lhsValue.prettyPrint()} + ${rhsValue.prettyPrint()}")
                         // TODO exception
                     }
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.EQ => ???

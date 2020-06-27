@@ -1,11 +1,11 @@
 package com.giyeok.jparser.metalang3a
 
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang3a.ClassInfoCollector.{ClassParamSpec, ClassSpec}
-import com.giyeok.jparser.metalang3a.ValuefyExpr.{ArrayExpr, BinOp, BinOpType, BoolLiteral, CharLiteral, ConstructCall, ElvisOp, FuncCall, FuncType, InputNode, JoinBody, JoinCond, MatchNonterminal, NullLiteral, PreOp, PreOpType, SeqElemAt, StringLiteral, Unbind, UnrollChoices, UnrollRepeatFromOne, UnrollRepeatFromZero}
-import com.giyeok.jparser.{Grammar, Symbols}
-import MetaLanguage3.{IllegalGrammar, check}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.ValRef
+import com.giyeok.jparser.metalang3a.ClassInfoCollector.{ClassParamSpec, ClassSpec}
+import com.giyeok.jparser.metalang3a.MetaLanguage3.{IllegalGrammar, check}
+import com.giyeok.jparser.metalang3a.ValuefyExpr._
+import com.giyeok.jparser.{Grammar, Symbols}
 
 import scala.collection.immutable.{ListMap, ListSet}
 
@@ -72,8 +72,14 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
                 case MetaGrammar3Ast.StringType(_) => Type.StringType
             }
         case MetaGrammar3Ast.AnyType(_) => Type.AnyType
-        case name: MetaGrammar3Ast.EnumTypeName => Type.EnumType(stringNameOf(name))
-        case name: MetaGrammar3Ast.TypeName => Type.ClassType(stringNameOf(name))
+        case name: MetaGrammar3Ast.EnumTypeName =>
+            val enumName = stringNameOf(name)
+            _classInfoCollector = _classInfoCollector.addEnumTypeName(enumName)
+            Type.EnumType(enumName)
+        case name: MetaGrammar3Ast.TypeName =>
+            val className = stringNameOf(name)
+            _classInfoCollector = _classInfoCollector.addClassName(className)
+            Type.ClassType(className)
     }
 
     private def typeOf(typeDesc: MetaGrammar3Ast.TypeDesc): Type = {
@@ -123,7 +129,7 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
             case MetaGrammar3Ast.EnumTypeDef(_, name, values) =>
                 val enumTypeName = stringNameOf(name)
                 val enumValueNames = values.map(_.sourceText)
-                _classInfoCollector = _classInfoCollector.addEnumTypes(enumTypeName, enumValueNames)
+                _classInfoCollector = _classInfoCollector.addEnumType(enumTypeName, enumValueNames)
                 Type.EnumType(enumTypeName)
         }
     }
@@ -351,8 +357,9 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
             _nonterminalInfoCollector = _nonterminalInfoCollector.setNonterminalType(nonterminalName, someNonterminalType)
         }
         val vRhs = rhs.map { derivation =>
-            // TODO 특정 상황에서는 ValuefyExpr을 InputNode로 반환해서 전체를 얻도록
-            valuefySequence(derivation.seq, InputNode)
+            val (valuefyExpr, seqSymbol) = valuefySequence(derivation.seq, InputNode)
+            _nonterminalInfoCollector = _nonterminalInfoCollector.addNonterminalExpr(nonterminalName, valuefyExpr)
+            (valuefyExpr, seqSymbol)
         }
         _nonterminalSymbols += nonterminalName -> vRhs.map(_._2)
         _nonterminalValuefyExprs += nonterminalName -> UnrollChoices(vRhs.map { v => v._2 -> v._1 }.toMap)

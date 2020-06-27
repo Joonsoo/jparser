@@ -18,10 +18,26 @@ object MetaLanguage3 {
         case Right(value) => throw IllegalGrammar(value.msg)
     }
 
-    case class ProcessedGrammar(ngrammar: NGrammar, startNonterminalName: String, nonterminalValuefyExprs: Map[String, UnrollChoices])
+    case class ProcessedGrammar(ngrammar: NGrammar, startNonterminalName: String, nonterminalValuefyExprs: Map[String, UnrollChoices],
+                                classRelations: ClassRelationCollector, classParamTypes: Map[String, List[(String, Type)]])
 
-    def analyzeGrammar(grammar: MetaGrammar3Ast.Grammar, grammarName: String): ProcessedGrammar = {
-        val transformer = new GrammarTransformer(grammar)
+    def analyzeGrammar(grammarDef: MetaGrammar3Ast.Grammar, grammarName: String): ProcessedGrammar = {
+        val transformer = new GrammarTransformer(grammarDef)
+        val grammar = transformer.grammar(grammarName)
+
+        val inferredTypeCollector = new InferredTypeCollector(transformer.startNonterminalName(), transformer.classInfo, grammar.rules.keySet, transformer.nonterminalInfo)
+        while (inferredTypeCollector.tryInference()) {
+            println("tryInference")
+        }
+
+        if (!inferredTypeCollector.isComplete()) {
+            throw IllegalGrammar("incomplete type info")
+        }
+
+        if (inferredTypeCollector.classRelations.hasCycle) {
+            // TODO error handling
+            throw IllegalGrammar("cyclic class relation")
+        }
 
         val typeInferer = new TypeInferer(transformer.startNonterminalName(), transformer.nonterminalInfo.specifiedTypes)
         transformer.classInfo.classConstructCalls.foreach { calls =>
@@ -33,8 +49,15 @@ object MetaLanguage3 {
             }
         }
 
-        val ngrammar = NGrammar.fromGrammar(transformer.grammar(grammarName))
-        ProcessedGrammar(ngrammar, transformer.startNonterminalName(), transformer.nonterminalValuefyExprs)
+        val classParamTypes = inferredTypeCollector.classParamTypes.map { pair =>
+            val (className, paramTypes) = pair
+            val paramNames = transformer.classInfo.classParamSpecs(className).params.map(_.name)
+            className -> paramNames.zip(paramTypes)
+        }.toMap
+
+        val ngrammar = NGrammar.fromGrammar(grammar)
+        ProcessedGrammar(ngrammar, transformer.startNonterminalName(), transformer.nonterminalValuefyExprs,
+            inferredTypeCollector.classRelations, classParamTypes)
     }
 
     def analyzeGrammar(grammarDefinition: String, grammarName: String = "GeneratedGrammar"): ProcessedGrammar =
@@ -45,10 +68,18 @@ object MetaLanguage3 {
             println(example.grammar)
             val analysis = analyzeGrammar(example.grammar, example.name)
             val valuefyExprSimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs)
+            val analysisPrinter = new AnalysisPrinter(valuefyExprSimulator.startValuefyExpr, analysis.nonterminalValuefyExprs)
+
+            val classHierarchy = analysis.classRelations.toHierarchy
+            analysisPrinter.printClassHierarchy(classHierarchy)
+            analysis.classParamTypes.foreach(pair =>
+                // TODO supers
+                analysisPrinter.printClassDef(pair._1, pair._2)
+            )
             example.correctExamples.foreach { exampleSource =>
                 val parsed = valuefyExprSimulator.parse(exampleSource).left.get
-                valuefyExprSimulator.printNodeStructure(parsed)
-                valuefyExprSimulator.printValuefyStructure()
+                analysisPrinter.printNodeStructure(parsed)
+                analysisPrinter.printValuefyStructure()
                 println(valuefyExprSimulator.valuefy(parsed).prettyPrint())
             }
         }
@@ -64,12 +95,12 @@ object MetaLanguage3 {
             .example("cb")
             .example("cdb")
             .example("cbqq")
+        //        testExample(ex1)
         val ex2 = MetaLang3Example("Simple",
             """A = ('b' Y 'd') 'x' {A(val=$0$1, raw=$0\\$1, raw1=\\$0)}
               |Y = 'y' {Y(value=true)}
               |""".stripMargin)
             .example("bydx")
-        //        testExample(ex1)
         //        testExample(ex2)
         val ex3 = MetaLang3Example("BinOp",
             """A = B ' ' C {ClassA(value=str($0) + str($2))}
@@ -77,6 +108,21 @@ object MetaLanguage3 {
               |C = 'b'
               |""".stripMargin)
             .example("a b")
-        testExample(ex3)
+        //        testExample(ex3)
+        val ex4 = MetaLang3Example("Nonterm type inference",
+            """expression: Expression = term
+              |    | expression WS '+' WS term {BinOp(op=$2, lhs:Expression=$0, rhs=$4)}
+              |term: Term = factor
+              |    | term WS '*' WS factor {BinOp($2, $0, $4)}
+              |factor: Factor = number
+              |    | variable
+              |    | '(' WS expression WS ')' {Paren(expr=$2)}
+              |number: Number = '0' {Integer(value=[$0])}
+              |    | '1-9' '0-9'* {Integer([$0] + $1)}
+              |variable = <'A-Za-z'+> {Variable(name=$0)}
+              |WS = ' '*
+              |""".stripMargin)
+            .example("1+2")
+        testExample(ex4)
     }
 }

@@ -28,4 +28,28 @@ object Type {
 
     object StringType extends Type
 
+    def unifyTypes(types: Set[Type]): Type =
+        if (types.size == 1) {
+            types.head
+        } else if (types.contains(Type.NullType)) {
+            val exceptNull = types - Type.NullType
+            Type.OptionalOf(unifyTypes(exceptNull))
+        } else {
+            Type.UnionOf(types)
+        }
+
+    def readableNameOf(typ: Type): String = typ match {
+        case NodeType => "node"
+        case ClassType(name) => s"class $name"
+        case OptionalOf(typ) => s"opt(${readableNameOf(typ)})"
+        case ArrayOf(elemType) => s"array(${readableNameOf(elemType)})"
+        case UnionOf(types) => s"union(${types.map(readableNameOf).mkString(",")})"
+        case EnumType(enumName) => s"enum $enumName"
+        case UnspecifiedEnumType(uniqueId) => s"usenum $uniqueId"
+        case NullType => "null"
+        case AnyType => "any"
+        case BoolType => "boolean"
+        case CharType => "char"
+        case StringType => "string"
+    }
 }

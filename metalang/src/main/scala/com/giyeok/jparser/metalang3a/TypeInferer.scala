@@ -1,8 +1,8 @@
 package com.giyeok.jparser.metalang3a
 
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.metalang3a.MetaLanguage3.IllegalGrammar
-import MetaLanguage3.check
+import com.giyeok.jparser.metalang3a.MetaLanguage3.{IllegalGrammar, check}
+import com.giyeok.jparser.metalang3a.Type.{readableNameOf, unifyTypes}
 
 // bottom-up type inference
 // nonterminalTypes는 처음에 사용자가 지정한 값들만 채워짐
@@ -12,16 +12,6 @@ import MetaLanguage3.check
 // 문법에 nonterminal 타입이 명시되어 있지 않으면 RHS의 타입을 bottom-up inference해서 확정되면 그 타입으로 지정
 class TypeInferer(val startNonterminalName: String, val nonterminalTypes: Map[String, Type]) {
     def typeOfNonterminal(nonterminalName: String): Option[Type] = nonterminalTypes get nonterminalName
-
-    def unifyTypes(types: Set[Type]): Type =
-        if (types.size == 1) {
-            types.head
-        } else if (types.contains(Type.NullType)) {
-            val exceptNull = types - Type.NullType
-            Type.OptionalOf(unifyTypes(exceptNull))
-        } else {
-            Type.UnionOf(types)
-        }
 
     def typeOfSymbol(symbol: Symbols.Symbol): Option[Type] = symbol match {
         case symbol: Symbols.AtomicSymbol => symbol match {
@@ -47,7 +37,7 @@ class TypeInferer(val startNonterminalName: String, val nonterminalTypes: Map[St
         case ValuefyExpr.Unbind(symbol, _) => typeOfSymbol(symbol)
         case ValuefyExpr.JoinBody(_, bodyProcessor) => typeOfValuefyExpr(bodyProcessor)
         case ValuefyExpr.JoinCond(_, bodyProcessor) => typeOfValuefyExpr(bodyProcessor)
-        case ValuefyExpr.SeqElemAt(expr, index) => Some(Type.NodeType)
+        case ValuefyExpr.SeqElemAt(_, expr) => typeOfValuefyExpr(expr)
         case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) => typeOfValuefyExpr(elemProcessor).map(Type.ArrayOf)
         case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) => typeOfValuefyExpr(elemProcessor).map(Type.ArrayOf)
         case ValuefyExpr.UnrollChoices(choices) =>
@@ -78,7 +68,8 @@ class TypeInferer(val startNonterminalName: String, val nonterminalTypes: Map[St
                 if (lhsType.isEmpty || rhsType.isEmpty) None else (lhsType.get, rhsType.get) match {
                     case (Type.StringType, Type.StringType) => Some(Type.StringType)
                     case (Type.ArrayOf(lhsElemType), Type.ArrayOf(rhsElemType)) => Some(Type.ArrayOf(unifyTypes(Set(lhsElemType, rhsElemType))))
-                    case _ => throw IllegalGrammar("")
+                    case (lhsType, rhsType) =>
+                        throw IllegalGrammar(s"+ operator cannot be applied to: lhs=${readableNameOf(lhsType)} and rhs=${readableNameOf(rhsType)}")
                 }
             case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.EQ => Some(Type.BoolType)
             case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.NE => Some(Type.BoolType)

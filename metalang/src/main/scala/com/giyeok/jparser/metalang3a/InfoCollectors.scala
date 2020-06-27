@@ -3,20 +3,26 @@ package com.giyeok.jparser.metalang3a
 import com.giyeok.jparser.metalang3a.ClassInfoCollector.ClassSpec
 import com.giyeok.jparser.metalang3a.MetaLanguage3.check
 
-case class ClassInfoCollector(classParamSpecs: Map[String, ClassSpec],
+case class ClassInfoCollector(allClasses: Set[String],
+                              classParamSpecs: Map[String, ClassSpec],
                               classConstructCalls: Map[String, List[List[ValuefyExpr]]],
                               classSuperTypes: Map[String, Set[String]],
                               classSubTypes: Map[String, Set[String]],
+                              allEnumTypes: Set[String],
                               enumTypes: Map[String, Set[String]]) {
+    def addClassName(className: String): ClassInfoCollector = copy(allClasses = allClasses + className)
+
+    def addClassNames(classNames: List[String]): ClassInfoCollector = copy(allClasses = allClasses ++ classNames.toSet)
+
     def addClassParamSpecs(className: String, classSpec: ClassSpec): ClassInfoCollector = {
         // className의 파라메터들이 classSpec이라고 정의
-        // 만약 두 번 이상 호출됐는데 classSpec이 기존 것과 일치하지 않으면 throw IllegalGrammar
+        // TODO 만약 두 번 이상 호출됐는데 classSpec이 기존 것과 일치하지 않으면 throw IllegalGrammar
 
-        copy(classParamSpecs = classParamSpecs + (className -> classSpec))
+        addClassName(className).copy(classParamSpecs = classParamSpecs + (className -> classSpec))
     }
 
     def addClassConstructCall(className: String, params: List[ValuefyExpr]): ClassInfoCollector =
-        copy(classConstructCalls = classConstructCalls +
+        addClassName(className).copy(classConstructCalls = classConstructCalls +
             (className -> (classConstructCalls.getOrElse(className, List()) :+ params)))
 
     def addClassSuperTypes(className: String, superTypes: List[String]): ClassInfoCollector = {
@@ -24,7 +30,8 @@ case class ClassInfoCollector(classParamSpecs: Map[String, ClassSpec],
         // TODO superTypes에 duplicate 있으면 오류
         // TODO 만약 두 번 이상 호출됐는데 superTypes가 기존 것과 일치하지 않으면 throw IllegalGrammar
 
-        copy(classSuperTypes = classSuperTypes + (className -> superTypes.toSet))
+        addClassName(className).addClassNames(superTypes)
+            .copy(classSuperTypes = classSuperTypes + (className -> superTypes.toSet))
     }
 
     def addClassSubTypes(className: String, subTypes: List[String]): ClassInfoCollector = {
@@ -32,13 +39,17 @@ case class ClassInfoCollector(classParamSpecs: Map[String, ClassSpec],
         // TODO subTypes에 duplicate 있으면 오류
         // TODO 만약 두 번 이상 호출됐는데 subTypes가 기존 것과 일치하지 않으면 throw IllegalGrammar
 
-        copy(classSubTypes = classSubTypes + (className -> subTypes.toSet))
+        addClassName(className).addClassNames(subTypes)
+            .copy(classSubTypes = classSubTypes + (className -> subTypes.toSet))
     }
 
-    def addEnumTypes(enumTypeName: String, values: List[String]): ClassInfoCollector = {
+    def addEnumTypeName(enumTypeName: String): ClassInfoCollector =
+        copy(allEnumTypes = allEnumTypes + enumTypeName)
+
+    def addEnumType(enumTypeName: String, values: List[String]): ClassInfoCollector = {
         // TODO values에 duplicate 있으면 오류
         // TODO 두번 이상 호출시 기존것과 일치하지 않으면 throw IllegalGrammar
-        copy(enumTypes = enumTypes + (enumTypeName -> values.toSet))
+        addEnumTypeName(enumTypeName).copy(enumTypes = enumTypes + (enumTypeName -> values.toSet))
     }
 
     def validate(): Unit = {
@@ -48,7 +59,7 @@ case class ClassInfoCollector(classParamSpecs: Map[String, ClassSpec],
 }
 
 object ClassInfoCollector {
-    val empty = new ClassInfoCollector(Map(), Map(), Map(), Map(), Map())
+    val empty = new ClassInfoCollector(Set(), Map(), Map(), Map(), Map(), Set(), Map())
 
     case class ClassSpec(params: List[ClassParamSpec])
 
