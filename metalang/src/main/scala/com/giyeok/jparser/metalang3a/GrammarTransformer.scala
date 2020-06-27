@@ -280,9 +280,11 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
                     def processBindExpr(symbol: MetaGrammar3Ast.Symbol): ValuefyExpr =
                         symbol match {
                             case MetaGrammar3Ast.Optional(_, body) => ???
-                            case MetaGrammar3Ast.RepeatFromZero(_, body) => ???
+                            case MetaGrammar3Ast.RepeatFromZero(_, body) =>
+                                UnrollRepeatFromZero(valuefySymbol(body, "", processBindExpr(body))._1)
                             case MetaGrammar3Ast.RepeatFromOne(_, body) => ???
                             case MetaGrammar3Ast.InPlaceChoices(_, choices) if choices.size == 1 =>
+                                // 어차피 choice가 하나이므로 UnrollChoices 대신 Unbind만 해도 됨
                                 Unbind(valuefySymbol(symbol, "", InputNode)._2, processBindExpr(choices.head))
                             case MetaGrammar3Ast.Longest(_, choices) =>
                                 Unbind(valuefySymbol(symbol, "", InputNode)._2, processBindExpr(choices))
