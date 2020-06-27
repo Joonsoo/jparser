@@ -2,10 +2,10 @@ package com.giyeok.jparser.metalang3a
 
 import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNode}
 import com.giyeok.jparser.Symbols.ShortStringSymbols
+import com.giyeok.jparser._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.{MatchNonterminal, Unbind, UnrollChoices}
 import com.giyeok.jparser.metalang3a.ValuefyExprSimulator._
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
-import com.giyeok.jparser._
 
 class ValuefyExprSimulator(val ngrammar: NGrammar,
                            val startNonterminalName: String,
@@ -158,7 +158,10 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
             case ValuefyExpr.CharLiteral(value) => CharValue(value)
             case ValuefyExpr.StringLiteral(value) => StringValue(value)
         }
-        case value: ValuefyExpr.EnumValue => ???
+        case value: ValuefyExpr.EnumValue => value match {
+            case ValuefyExpr.CanonicalEnumValue(enumName, enumValue) => EnumValue(enumName, enumValue)
+            case ValuefyExpr.ShortenedEnumValue(unspecifiedEnumTypeId, enumValue) => ???
+        }
     }
 }
 

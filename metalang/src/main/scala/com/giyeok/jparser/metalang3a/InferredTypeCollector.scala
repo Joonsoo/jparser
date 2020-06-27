@@ -9,7 +9,8 @@ import scala.collection.MapView
 class InferredTypeCollector(private val startNonterminalName: String,
                             private val classInfo: ClassInfoCollector,
                             private val allNonterms: Set[String],
-                            private val nonterminalInfo: NonterminalInfoCollector) {
+                            private val nonterminalInfo: NonterminalInfoCollector,
+                            private val errorCollector: ErrorCollector) {
     private var _classRelations: ClassRelationCollector = ClassRelationCollector.empty
     private var _nontermTypes: Map[String, Type] = nonterminalInfo.specifiedTypes
     private var _classParamTypes: Map[String, List[Option[Type]]] = classInfo.classParamSpecs.map(kv =>
@@ -29,7 +30,7 @@ class InferredTypeCollector(private val startNonterminalName: String,
 
     initialize()
 
-    def isComplete(): Boolean = _nontermTypes.keySet == allNonterms && _classParamTypes.forall(!_._2.contains(None))
+    def isComplete: Boolean = _nontermTypes.keySet == allNonterms && _classParamTypes.forall(!_._2.contains(None))
 
     // 새로 얻어낸 정보가 있으면 true, 없으면 false
     def tryInference(): Boolean = {

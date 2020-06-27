@@ -25,36 +25,65 @@ case class ClassInfoCollector(allClasses: Set[String],
         addClassName(className).copy(classConstructCalls = classConstructCalls +
             (className -> (classConstructCalls.getOrElse(className, List()) :+ params)))
 
-    def addClassSuperTypes(className: String, superTypes: List[String]): ClassInfoCollector = {
+    def addClassSuperTypes(className: String, superTypes: List[String])(implicit errorCollector: ErrorCollector): ClassInfoCollector = {
         // className의 상위 클래스가 superTypes라고 정의
-        // TODO superTypes에 duplicate 있으면 오류
-        // TODO 만약 두 번 이상 호출됐는데 superTypes가 기존 것과 일치하지 않으면 throw IllegalGrammar
-
-        addClassName(className).addClassNames(superTypes)
-            .copy(classSuperTypes = classSuperTypes + (className -> superTypes.toSet))
+        if (superTypes.toSet.size != superTypes.size) {
+            // superTypes에 duplicate 있으면 오류
+            errorCollector.addError(s"Super types of $className has duplicates")
+            this
+        } else if ((classSuperTypes contains className) && (classSuperTypes(className) != superTypes.toSet)) {
+            // 만약 두 번 이상 호출됐는데 superTypes가 기존 것과 일치하지 않으면 throw IllegalGrammar
+            errorCollector.addError(s"Inconsistent super types of $className")
+            this
+        } else {
+            addClassName(className).addClassNames(superTypes)
+                .copy(classSuperTypes = classSuperTypes + (className -> superTypes.toSet))
+        }
     }
 
-    def addClassSubTypes(className: String, subTypes: List[String]): ClassInfoCollector = {
+    def addClassSubTypes(className: String, subTypes: List[String])(implicit errorCollector: ErrorCollector): ClassInfoCollector = {
         // className의 하위 클래스가 subTypes만 있다고 정의
-        // TODO subTypes에 duplicate 있으면 오류
-        // TODO 만약 두 번 이상 호출됐는데 subTypes가 기존 것과 일치하지 않으면 throw IllegalGrammar
-
-        addClassName(className).addClassNames(subTypes)
-            .copy(classSubTypes = classSubTypes + (className -> subTypes.toSet))
+        if (subTypes.toSet.size != subTypes.size) {
+            // subTypes에 duplicate 있으면 오류
+            errorCollector.addError(s"Subtypes of $className has duplicates")
+            this
+        } else if ((classSubTypes contains className) && (classSubTypes(className) != subTypes.toSet)) {
+            // 만약 두 번 이상 호출됐는데 subTypes가 기존 것과 일치하지 않으면 throw IllegalGrammar
+            errorCollector.addError(s"Inconsistent subtypes of $className")
+            this
+        } else {
+            addClassName(className).addClassNames(subTypes)
+                .copy(classSubTypes = classSubTypes + (className -> subTypes.toSet))
+        }
     }
 
     def addEnumTypeName(enumTypeName: String): ClassInfoCollector =
         copy(allEnumTypes = allEnumTypes + enumTypeName)
 
-    def addEnumType(enumTypeName: String, values: List[String]): ClassInfoCollector = {
-        // TODO values에 duplicate 있으면 오류
-        // TODO 두번 이상 호출시 기존것과 일치하지 않으면 throw IllegalGrammar
-        addEnumTypeName(enumTypeName).copy(enumTypes = enumTypes + (enumTypeName -> values.toSet))
+    def addEnumType(enumTypeName: String, values: List[String])(implicit errorCollector: ErrorCollector): ClassInfoCollector = {
+        if (values.toSet.size != values.size) {
+            // values에 duplicate 있으면 오류
+            errorCollector.addError(s"Values of $enumTypeName has duplicates")
+            this
+        } else if ((enumTypes contains enumTypeName) && (enumTypes(enumTypeName) != values.toSet)) {
+            // 두번 이상 호출시 기존것과 일치하지 않으면 throw IllegalGrammar
+            errorCollector.addError(s"Inconsistent values of $enumTypeName")
+            this
+        } else {
+            addEnumTypeName(enumTypeName).copy(enumTypes = enumTypes + (enumTypeName -> values.toSet))
+        }
     }
 
-    def validate(): Unit = {
-        // TODO supertype과 subtype이 불일치하는 경우 오류 발생
-        // 모든 constructcall의 파라메터 갯수가 일치하는지
+    def validate()(implicit errorCollector: ErrorCollector): Unit = {
+        // supertype과 subtype이 불일치하는 경우는 나중에 TypeRelations에서 확인
+        // 모든 constructcall의 파라메터 갯수가 일치하는지 확인
+        classConstructCalls.foreach { kv =>
+            val (className, calls) = kv
+            val callArities = calls.map(_.size).distinct
+            if (callArities.size != 1) {
+                errorCollector.addError(s"Inconsistent construct call params count on $className")
+            }
+        }
     }
 }
 

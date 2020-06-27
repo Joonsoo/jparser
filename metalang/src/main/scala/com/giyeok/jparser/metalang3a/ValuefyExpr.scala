@@ -78,8 +78,8 @@ object ValuefyExpr {
 
     abstract sealed class EnumValue extends ValuefyExpr
 
-    case class CanonicalEnumValue(name: String, value: String) extends EnumValue
+    case class CanonicalEnumValue(enumName: String, enumValue: String) extends EnumValue
 
-    case class ShortenedEnumValue(unspecifiedEnumTypeId: Int, value: String) extends EnumValue
+    case class ShortenedEnumValue(unspecifiedEnumTypeId: Int, enumValue: String) extends EnumValue
 
 }

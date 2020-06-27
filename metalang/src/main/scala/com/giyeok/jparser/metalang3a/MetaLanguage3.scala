@@ -19,34 +19,24 @@ object MetaLanguage3 {
     }
 
     case class ProcessedGrammar(ngrammar: NGrammar, startNonterminalName: String, nonterminalValuefyExprs: Map[String, UnrollChoices],
-                                classRelations: ClassRelationCollector, classParamTypes: Map[String, List[(String, Type)]])
+                                classRelations: ClassRelationCollector, classParamTypes: Map[String, List[(String, Type)]],
+                                errors: CollectedErrors)
 
     def analyzeGrammar(grammarDef: MetaGrammar3Ast.Grammar, grammarName: String): ProcessedGrammar = {
-        val transformer = new GrammarTransformer(grammarDef)
+        val errorCollector = new ErrorCollector()
+        val transformer = new GrammarTransformer(grammarDef, errorCollector)
         val grammar = transformer.grammar(grammarName)
 
-        val inferredTypeCollector = new InferredTypeCollector(transformer.startNonterminalName(), transformer.classInfo, grammar.rules.keySet, transformer.nonterminalInfo)
-        while (inferredTypeCollector.tryInference()) {
-            println("tryInference")
-        }
+        val inferredTypeCollector = new InferredTypeCollector(
+            transformer.startNonterminalName(), transformer.classInfo, grammar.rules.keySet, transformer.nonterminalInfo, errorCollector)
+        while (errorCollector.isClear && inferredTypeCollector.tryInference()) {}
 
-        if (!inferredTypeCollector.isComplete()) {
-            throw IllegalGrammar("incomplete type info")
+        if (!inferredTypeCollector.isComplete) {
+            errorCollector.addError("Incomplete type info")
         }
 
         if (inferredTypeCollector.classRelations.hasCycle) {
-            // TODO error handling
-            throw IllegalGrammar("cyclic class relation")
-        }
-
-        val typeInferer = new TypeInferer(transformer.startNonterminalName(), transformer.nonterminalInfo.specifiedTypes)
-        transformer.classInfo.classConstructCalls.foreach { calls =>
-            calls._2.foreach { call =>
-                println(call)
-                call.foreach { param =>
-                    println(typeInferer.typeOfValuefyExpr(param))
-                }
-            }
+            errorCollector.addError("Cyclic class relation")
         }
 
         val classParamTypes = inferredTypeCollector.classParamTypes.map { pair =>
@@ -55,9 +45,11 @@ object MetaLanguage3 {
             className -> paramNames.zip(paramTypes)
         }.toMap
 
+        // TODO A가 B의 super class일 때, class C extends A, B 이면 C는 B만 상속받으면 되고, union(A, B)는 A로 바꾸면 됨
+
         val ngrammar = NGrammar.fromGrammar(grammar)
         ProcessedGrammar(ngrammar, transformer.startNonterminalName(), transformer.nonterminalValuefyExprs,
-            inferredTypeCollector.classRelations, classParamTypes)
+            inferredTypeCollector.classRelations, classParamTypes, errorCollector.collectedErrors)
     }
 
     def analyzeGrammar(grammarDefinition: String, grammarName: String = "GeneratedGrammar"): ProcessedGrammar =
@@ -76,10 +68,11 @@ object MetaLanguage3 {
                 // TODO supers
                 analysisPrinter.printClassDef(pair._1, pair._2)
             )
+            analysisPrinter.printValuefyStructure()
             example.correctExamples.foreach { exampleSource =>
                 val parsed = valuefyExprSimulator.parse(exampleSource).left.get
+                println(s"== Input: $exampleSource")
                 analysisPrinter.printNodeStructure(parsed)
-                analysisPrinter.printValuefyStructure()
                 println(valuefyExprSimulator.valuefy(parsed).prettyPrint())
             }
         }
@@ -123,6 +116,18 @@ object MetaLanguage3 {
               |WS = ' '*
               |""".stripMargin)
             .example("1+2")
-        testExample(ex4)
+        //        testExample(ex4)
+        val ex5 = MetaLang3Example("Canonical enum",
+            """A = "hello" {%MyEnum.Hello} | "xyz" {%MyEnum.Xyz}
+              |""".stripMargin)
+            .example("hello")
+            .example("xyz")
+        //        testExample(ex5)
+        val ex6 = MetaLang3Example("Canonical enum",
+            """A:%MyEnum = "hello" {%Hello} | "xyz" {%Xyz}
+              |""".stripMargin)
+            .example("hello")
+            .example("xyz")
+        testExample(ex6)
     }
 }

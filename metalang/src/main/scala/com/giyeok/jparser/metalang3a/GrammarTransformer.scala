@@ -3,13 +3,13 @@ package com.giyeok.jparser.metalang3a
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.ValRef
 import com.giyeok.jparser.metalang3a.ClassInfoCollector.{ClassParamSpec, ClassSpec}
-import com.giyeok.jparser.metalang3a.MetaLanguage3.{IllegalGrammar, check}
+import com.giyeok.jparser.metalang3a.MetaLanguage3.check
 import com.giyeok.jparser.metalang3a.ValuefyExpr._
 import com.giyeok.jparser.{Grammar, Symbols}
 
 import scala.collection.immutable.{ListMap, ListSet}
 
-class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
+class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit private val errorCollector: ErrorCollector) {
     // grammar를 traverse하면서
     // nonterminal -> (Symbol, UnrollChoices)
     // className -> [class construct calls]
@@ -61,6 +61,8 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
     private def stringNameOf(name: MetaGrammar3Ast.TypeOrFuncName): String = name.name.sourceText
 
     private def stringNameOf(name: MetaGrammar3Ast.EnumTypeName): String = name.name.sourceText
+
+    private def stringNameOf(name: MetaGrammar3Ast.EnumValueName): String = name.name.sourceText
 
     private def typeOf(typeDesc: MetaGrammar3Ast.NonNullTypeDesc): Type = typeDesc match {
         case typeDef: MetaGrammar3Ast.TypeDef => addTypeDef(typeDef)
@@ -258,7 +260,9 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
                         check(condSymPath.isEmpty, "RawRef with cond sym path not implemented")
                         SeqElemAt(symbolIdx, input)
                     case _: MetaGrammar3Ast.Processor =>
-                        throw IllegalGrammar("RawRef cannot refer to processor")
+                        errorCollector.addError("RawRef cannot refer to processor", ref)
+                        // throw IllegalGrammar("RawRef cannot refer to processor")
+                        InputNode
                 }
         }
         case MetaGrammar3Ast.ExprParen(_, body) => valuefyProcessor(refCtx, body, input)
@@ -286,12 +290,16 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
                                 val (processor, seqSymbol) = valuefySequence(seq :+ binder.asInstanceOf[MetaGrammar3Ast.Processor], input)
                                 proxy(Unbind(seqSymbol, processor), seqSymbol)._1
                             case _ =>
-                                throw IllegalGrammar("Unsupported binding context")
+                                // throw IllegalGrammar("Unsupported binding context")
+                                errorCollector.addError("Unsupported binding context", processor)
+                                InputNode
                         }
 
                     SeqElemAt(symbolIndexFrom(refCtx, idx), processBindExpr(symbol))
                 case _: MetaGrammar3Ast.Processor =>
-                    throw IllegalGrammar("BindExpr cannot refer to processor")
+                    // throw IllegalGrammar("BindExpr cannot refer to processor")
+                    errorCollector.addError("BindExpr cannot refer to processor", processor)
+                    InputNode
             }
         case MetaGrammar3Ast.NamedConstructExpr(_, typeName, params, supers0) =>
             val className = stringNameOf(typeName)
@@ -330,8 +338,8 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar) {
             case MetaGrammar3Ast.StringLiteral(_, value) => StringLiteral(TerminalUtil.stringCharsToString(value))
         }
         case enumValue: MetaGrammar3Ast.AbstractEnumValue => enumValue match {
-            case MetaGrammar3Ast.CanonicalEnumValue(_, enumName, valueName) => ???
-            case MetaGrammar3Ast.ShortenedEnumValue(_, valueName) => ???
+            case MetaGrammar3Ast.CanonicalEnumValue(_, enumName, valueName) => CanonicalEnumValue(stringNameOf(enumName), stringNameOf(valueName))
+            case MetaGrammar3Ast.ShortenedEnumValue(_, valueName) => ShortenedEnumValue(nextId(), stringNameOf(valueName))
         }
     }
 
