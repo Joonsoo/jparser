@@ -20,7 +20,7 @@ object MetaLanguage3 {
 
     case class ProcessedGrammar(ngrammar: NGrammar, startNonterminalName: String, nonterminalValuefyExprs: Map[String, UnrollChoices],
                                 classRelations: ClassRelationCollector, classParamTypes: Map[String, List[(String, Type)]],
-                                enumTypesMap: Map[Int, String],
+                                shortenedEnumTypesMap: Map[Int, String], enumValuesMap: Map[String, Set[String]],
                                 errors: CollectedErrors)
 
     def analyzeGrammar(grammarDef: MetaGrammar3Ast.Grammar, grammarName: String): ProcessedGrammar = {
@@ -49,10 +49,19 @@ object MetaLanguage3 {
         // TODO A가 B의 super class일 때, class C extends A, B 이면 C는 B만 상속받으면 되고, union(A, B)는 A로 바꾸면 됨
 
         val ngrammar = NGrammar.fromGrammar(grammar)
+
+        val enumsMap = inferredTypeCollector.typeRelations.enumRelations.toUnspecifiedEnumMap(errorCollector)
+        var enumValues = transformer.classInfo.canonicalEnumValues
+        enumsMap.foreach(pair =>
+            enumValues += (pair._2 -> (enumValues.getOrElse(pair._2, Set()) ++
+                transformer.classInfo.shortenedEnumValues.getOrElse(pair._1, Set())))
+        )
+
         ProcessedGrammar(ngrammar, transformer.startNonterminalName(), transformer.nonterminalValuefyExprs,
             inferredTypeCollector.typeRelations.classRelations, classParamTypes,
-            inferredTypeCollector.typeRelations.enumRelations.toUnspecifiedEnumMap(errorCollector),
-            errorCollector.collectedErrors)
+            enumsMap, enumValues,
+            errorCollector.collectedErrors
+        )
     }
 
     def analyzeGrammar(grammarDefinition: String, grammarName: String = "GeneratedGrammar"): ProcessedGrammar =
@@ -62,7 +71,7 @@ object MetaLanguage3 {
         def testExample(example: MetaLang3Example): Unit = {
             println(example.grammar)
             val analysis = analyzeGrammar(example.grammar, example.name)
-            val valuefyExprSimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs, analysis.enumTypesMap)
+            val valuefyExprSimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
             val analysisPrinter = new AnalysisPrinter(valuefyExprSimulator.startValuefyExpr, analysis.nonterminalValuefyExprs)
 
             val classHierarchy = analysis.classRelations.toHierarchy
@@ -72,6 +81,8 @@ object MetaLanguage3 {
                 analysisPrinter.printClassDef(pair._1, pair._2)
             )
             analysisPrinter.printValuefyStructure()
+
+            println(analysis.enumValuesMap)
             example.correctExamples.foreach { exampleSource =>
                 val parsed = valuefyExprSimulator.parse(exampleSource).left.get
                 println(s"== Input: $exampleSource")
@@ -122,11 +133,25 @@ object MetaLanguage3 {
             .example("hello", "%MyEnum.Hello")
             .example("xyz", "%MyEnum.Xyz")
         //        testExample(ex5)
-        val ex6 = MetaLang3Example("Canonical enum",
+        val ex6a = MetaLang3Example("Shortened enum",
             """A:%MyEnum = "hello" {%Hello} | "xyz" {%Xyz}
               |""".stripMargin)
             .example("hello", "%MyEnum.Hello")
             .example("xyz", "%MyEnum.Xyz")
-        testExample(ex6)
+        val ex6b = MetaLang3Example("Shortened enum",
+            """A:%MyEnum = B | "xyz" {%Xyz}
+              |B = "hello" {%Hello}
+              |""".stripMargin)
+            .example("hello", "%MyEnum.Hello")
+            .example("xyz", "%MyEnum.Xyz")
+        val ex6c = MetaLang3Example("Shortened enum",
+            """A:%MyEnum = B
+              |B = "hello" {%Hello} | "xyz" {%Xyz}
+              |""".stripMargin)
+            .example("hello", "%MyEnum.Hello")
+            .example("xyz", "%MyEnum.Xyz")
+        testExample(ex6a)
+        testExample(ex6b)
+        // testExample(ex6c)
     }
 }

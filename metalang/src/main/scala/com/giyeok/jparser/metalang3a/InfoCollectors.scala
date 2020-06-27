@@ -9,7 +9,9 @@ case class ClassInfoCollector(allClasses: Set[String],
                               classSuperTypes: Map[String, Set[String]],
                               classSubTypes: Map[String, Set[String]],
                               allEnumTypes: Set[String],
-                              enumTypes: Map[String, Set[String]]) {
+                              enumTypes: Map[String, Set[String]],
+                              canonicalEnumValues: Map[String, Set[String]],
+                              shortenedEnumValues: Map[Int, Set[String]]) {
     def addClassName(className: String): ClassInfoCollector = copy(allClasses = allClasses + className)
 
     def addClassNames(classNames: List[String]): ClassInfoCollector = copy(allClasses = allClasses ++ classNames.toSet)
@@ -74,6 +76,14 @@ case class ClassInfoCollector(allClasses: Set[String],
         }
     }
 
+    def addCanonicalEnumValue(enumTypeName: String, valueName: String): ClassInfoCollector =
+        addEnumTypeName(enumTypeName).copy(canonicalEnumValues = canonicalEnumValues +
+            (enumTypeName -> (canonicalEnumValues.getOrElse(enumTypeName, Set()) + valueName)))
+
+    def addShortenedEnumValue(unspecifiedEnumTypeId: Int, valueName: String): ClassInfoCollector =
+        copy(shortenedEnumValues = shortenedEnumValues +
+            (unspecifiedEnumTypeId -> (shortenedEnumValues.getOrElse(unspecifiedEnumTypeId, Set()) + valueName)))
+
     def validate()(implicit errorCollector: ErrorCollector): Unit = {
         // supertype과 subtype이 불일치하는 경우는 나중에 TypeRelations에서 확인
         // 모든 constructcall의 파라메터 갯수가 일치하는지 확인
@@ -88,7 +98,7 @@ case class ClassInfoCollector(allClasses: Set[String],
 }
 
 object ClassInfoCollector {
-    val empty = new ClassInfoCollector(Set(), Map(), Map(), Map(), Map(), Set(), Map())
+    val empty = new ClassInfoCollector(Set(), Map(), Map(), Map(), Map(), Set(), Map(), Map(), Map())
 
     case class ClassSpec(params: List[ClassParamSpec])
 
@@ -111,5 +121,3 @@ case class NonterminalInfoCollector(specifiedTypes: Map[String, Type],
 object NonterminalInfoCollector {
     val empty = new NonterminalInfoCollector(Map(), Map())
 }
-
-// TODO EnumInfoCollector - Canonical/Shortened enum value들 수집

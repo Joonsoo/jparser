@@ -341,13 +341,15 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
             case MetaGrammar3Ast.CanonicalEnumValue(_, enumName, valueName) =>
                 val enumTypeName = stringNameOf(enumName)
                 val enumValueName = stringNameOf(valueName)
-                // TODO enumTypeName의 value로 enumValueName 추가
+                // enumTypeName의 value로 enumValueName 추가
+                _classInfoCollector = _classInfoCollector.addCanonicalEnumValue(enumTypeName, enumValueName)
                 CanonicalEnumValue(enumTypeName, enumValueName)
             case MetaGrammar3Ast.ShortenedEnumValue(_, valueName) =>
-                val enumId = nextId()
+                val shortenedEnumTypeId = nextId()
                 val enumValueName = stringNameOf(valueName)
-                // TODO enumId의 value로 enumValueName 추가
-                ShortenedEnumValue(enumId, enumValueName)
+                // enumId의 value로 enumValueName 추가
+                _classInfoCollector = _classInfoCollector.addShortenedEnumValue(shortenedEnumTypeId, enumValueName)
+                ShortenedEnumValue(shortenedEnumTypeId, enumValueName)
         }
     }
 

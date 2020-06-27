@@ -86,6 +86,7 @@ case class TypeRelationCollector(classRelations: ClassRelationCollector, enumRel
         copy(classRelations = _classRelations)
     }
 
+    // TODO supertype이나 subtype이 union이면 풀어서 하나라도 true이면 true. add할 때도 마찬가지로 풀어서.
     def isNewTypeRelation(supertype: Type, subtype: Type): Boolean = (supertype, subtype) match {
         case (NodeType, NodeType) => false
         case (ClassType(superclass), ClassType(subclass)) => isNewClassRelation(superclass, subclass)
