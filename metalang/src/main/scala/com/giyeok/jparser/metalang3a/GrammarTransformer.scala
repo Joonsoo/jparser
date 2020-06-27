@@ -338,8 +338,16 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
             case MetaGrammar3Ast.StringLiteral(_, value) => StringLiteral(TerminalUtil.stringCharsToString(value))
         }
         case enumValue: MetaGrammar3Ast.AbstractEnumValue => enumValue match {
-            case MetaGrammar3Ast.CanonicalEnumValue(_, enumName, valueName) => CanonicalEnumValue(stringNameOf(enumName), stringNameOf(valueName))
-            case MetaGrammar3Ast.ShortenedEnumValue(_, valueName) => ShortenedEnumValue(nextId(), stringNameOf(valueName))
+            case MetaGrammar3Ast.CanonicalEnumValue(_, enumName, valueName) =>
+                val enumTypeName = stringNameOf(enumName)
+                val enumValueName = stringNameOf(valueName)
+                // TODO enumTypeName의 value로 enumValueName 추가
+                CanonicalEnumValue(enumTypeName, enumValueName)
+            case MetaGrammar3Ast.ShortenedEnumValue(_, valueName) =>
+                val enumId = nextId()
+                val enumValueName = stringNameOf(valueName)
+                // TODO enumId의 value로 enumValueName 추가
+                ShortenedEnumValue(enumId, enumValueName)
         }
     }
 

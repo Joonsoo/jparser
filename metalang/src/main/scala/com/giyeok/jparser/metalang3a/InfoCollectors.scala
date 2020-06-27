@@ -111,3 +111,5 @@ case class NonterminalInfoCollector(specifiedTypes: Map[String, Type],
 object NonterminalInfoCollector {
     val empty = new NonterminalInfoCollector(Map(), Map())
 }
+
+// TODO EnumInfoCollector - Canonical/Shortened enum value들 수집

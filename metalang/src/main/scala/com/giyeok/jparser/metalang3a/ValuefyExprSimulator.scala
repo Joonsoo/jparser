@@ -9,7 +9,8 @@ import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
 
 class ValuefyExprSimulator(val ngrammar: NGrammar,
                            val startNonterminalName: String,
-                           val nonterminalValuefyExprs: Map[String, UnrollChoices]) {
+                           val nonterminalValuefyExprs: Map[String, UnrollChoices],
+                           val enumTypesMap: Map[Int, String]) {
     def check(cond: Boolean, msg: => String) = {
         if (!cond) throw new Exception(msg)
     }
@@ -160,7 +161,8 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
         }
         case value: ValuefyExpr.EnumValue => value match {
             case ValuefyExpr.CanonicalEnumValue(enumName, enumValue) => EnumValue(enumName, enumValue)
-            case ValuefyExpr.ShortenedEnumValue(unspecifiedEnumTypeId, enumValue) => ???
+            case ValuefyExpr.ShortenedEnumValue(unspecifiedEnumTypeId, enumValue) =>
+                EnumValue(enumTypesMap(unspecifiedEnumTypeId), enumValue)
         }
     }
 }
