@@ -36,20 +36,21 @@ class InferredTypeCollector(private val startNonterminalName: String,
         val typeInferer = new TypeInferer(startNonterminalName, _nontermTypes)
         _classParamTypes = _classParamTypes.map { kv =>
             val (className, paramTypes) = kv
-            className -> paramTypes.zipWithIndex.map {
-                case (fixedType@Some(_), _) => fixedType
-                case (None, index) =>
-                    val specifiedType = classInfo.classParamSpecs(className).params(index).typ
-                    val calls = classInfo.classConstructCalls(className).map(_ (index))
-                    val callTypes = calls.flatMap(typeInferer.typeOfValuefyExpr)
-                    if (callTypes.isEmpty) None else {
-                        newInfo = true
-                        val inferredParamType = unifyTypes(callTypes.toSet)
-                        // user specified type이 있으면 addTypeRelation
-                        specifiedType.foreach(someSpecifiedType =>
-                            _typeRelations = _typeRelations.addTypeRelation(someSpecifiedType, inferredParamType))
-                        Some(inferredParamType)
+            className -> paramTypes.zipWithIndex.map { case (prevType, index) =>
+                val specifiedType = classInfo.classParamSpecs(className).params(index).typ
+                val calls = classInfo.classConstructCalls(className).map(_ (index))
+                val callTypes = calls.flatMap(typeInferer.typeOfValuefyExpr)
+                if (callTypes.isEmpty) specifiedType else {
+                    val inferredParamType = unifyTypes(callTypes.toSet)
+                    // user specified type이 있으면 addTypeRelation
+                    specifiedType.foreach { someSpecifiedType =>
+                        if (_typeRelations.isNewTypeRelation(someSpecifiedType, inferredParamType)) {
+                            newInfo = true
+                            _typeRelations = _typeRelations.addTypeRelation(someSpecifiedType, inferredParamType)
+                        }
                     }
+                    Some(specifiedType.getOrElse(inferredParamType))
+                }
             }
         }
         allNonterms.foreach { nontermName =>
@@ -87,37 +88,43 @@ case class TypeRelationCollector(classRelations: ClassRelationCollector, enumRel
     }
 
     // TODO supertype이나 subtype이 union이면 풀어서 하나라도 true이면 true. add할 때도 마찬가지로 풀어서.
-    def isNewTypeRelation(supertype: Type, subtype: Type): Boolean = (supertype, subtype) match {
-        case (NodeType, NodeType) => false
-        case (ClassType(superclass), ClassType(subclass)) => isNewClassRelation(superclass, subclass)
-        case (OptionalOf(superopt), OptionalOf(subopt)) => isNewTypeRelation(superopt, subopt)
-        case (ArrayOf(superelem), ArrayOf(subelem)) => isNewTypeRelation(superelem, subelem)
-        case (EnumType(superEnumName), EnumType(subEnumName)) if superEnumName == subEnumName => false
-        case (EnumType(enumName), UnspecifiedEnumType(unspecifiedId)) => enumRelations.isNewRelation(enumName, unspecifiedId)
-        case (UnspecifiedEnumType(unspecifiedId), EnumType(enumName)) => enumRelations.isNewRelation(enumName, unspecifiedId)
-        case (UnspecifiedEnumType(unspecifiedId), UnspecifiedEnumType(otherUnspecifiedId)) => enumRelations.isNewRelation(unspecifiedId, otherUnspecifiedId)
-        case (OptionalOf(_), NullType) => false
-        case (AnyType, _) => false
-        case (BoolType, BoolType) => false
-        case (CharType, CharType) => false
-        case (StringType, StringType) => false
-    }
+    def isNewTypeRelation(supertype: Type, subtype: Type): Boolean =
+        if (supertype == subtype) false else (supertype, subtype) match {
+            case (UnionOf(supertypes), _) => supertypes.exists(isNewTypeRelation(_, subtype))
+            case (_, UnionOf(subtypes)) => subtypes.exists(isNewTypeRelation(supertype, _))
+            case (NodeType, NodeType) => false
+            case (ClassType(superclass), ClassType(subclass)) => isNewClassRelation(superclass, subclass)
+            case (OptionalOf(superopt), OptionalOf(subopt)) => isNewTypeRelation(superopt, subopt)
+            case (ArrayOf(superelem), ArrayOf(subelem)) => isNewTypeRelation(superelem, subelem)
+            case (EnumType(superEnumName), EnumType(subEnumName)) if superEnumName == subEnumName => false
+            case (EnumType(enumName), UnspecifiedEnumType(unspecifiedId)) => enumRelations.isNewRelation(enumName, unspecifiedId)
+            case (UnspecifiedEnumType(unspecifiedId), EnumType(enumName)) => enumRelations.isNewRelation(enumName, unspecifiedId)
+            case (UnspecifiedEnumType(unspecifiedId), UnspecifiedEnumType(otherUnspecifiedId)) => enumRelations.isNewRelation(unspecifiedId, otherUnspecifiedId)
+            case (OptionalOf(_), NullType) => false
+            case (AnyType, _) => false
+            case (BoolType, BoolType) => false
+            case (CharType, CharType) => false
+            case (StringType, StringType) => false
+        }
 
-    def addTypeRelation(supertype: Type, subtype: Type)(implicit errorCollector: ErrorCollector): TypeRelationCollector = (supertype, subtype) match {
-        case (NodeType, NodeType) => this
-        case (ClassType(superclass), ClassType(subclass)) => addClassRelation(superclass, subclass)
-        case (OptionalOf(superopt), OptionalOf(subopt)) => addTypeRelation(superopt, subopt)
-        case (ArrayOf(superelem), ArrayOf(subelem)) => addTypeRelation(superelem, subelem)
-        case (EnumType(superEnumName), EnumType(subEnumName)) if superEnumName == subEnumName => this
-        case (EnumType(enumName), UnspecifiedEnumType(unspecifiedId)) => addEnumRelation(enumName, unspecifiedId)
-        case (UnspecifiedEnumType(unspecifiedId), EnumType(enumName)) => addEnumRelation(enumName, unspecifiedId)
-        case (UnspecifiedEnumType(unspecifiedId), UnspecifiedEnumType(otherUnspecifiedId)) => addEnumRelation(unspecifiedId, otherUnspecifiedId)
-        case (OptionalOf(_), NullType) => this
-        case (AnyType, _) => this
-        case (BoolType, BoolType) => this
-        case (CharType, CharType) => this
-        case (StringType, StringType) => this
-    }
+    def addTypeRelation(supertype: Type, subtype: Type)(implicit errorCollector: ErrorCollector): TypeRelationCollector =
+        if (supertype == subtype) this else (supertype, subtype) match {
+            case (UnionOf(supertypes), _) => supertypes.foldLeft(this) { (m, i) => m.addTypeRelation(i, subtype) }
+            case (_, UnionOf(subtypes)) => subtypes.foldLeft(this) { (m, i) => m.addTypeRelation(supertype, i) }
+            case (NodeType, NodeType) => this
+            case (ClassType(superclass), ClassType(subclass)) => addClassRelation(superclass, subclass)
+            case (OptionalOf(superopt), OptionalOf(subopt)) => addTypeRelation(superopt, subopt)
+            case (ArrayOf(superelem), ArrayOf(subelem)) => addTypeRelation(superelem, subelem)
+            case (EnumType(superEnumName), EnumType(subEnumName)) if superEnumName == subEnumName => this
+            case (EnumType(enumName), UnspecifiedEnumType(unspecifiedId)) => addEnumRelation(enumName, unspecifiedId)
+            case (UnspecifiedEnumType(unspecifiedId), EnumType(enumName)) => addEnumRelation(enumName, unspecifiedId)
+            case (UnspecifiedEnumType(unspecifiedId), UnspecifiedEnumType(otherUnspecifiedId)) => addEnumRelation(unspecifiedId, otherUnspecifiedId)
+            case (OptionalOf(_), NullType) => this
+            case (AnyType, _) => this
+            case (BoolType, BoolType) => this
+            case (CharType, CharType) => this
+            case (StringType, StringType) => this
+        }
 
     def isNewClassRelation(superclass: String, subclass: String): Boolean =
         !classRelations.edges.contains(Super(superclass, subclass))
@@ -142,15 +149,17 @@ class ClassRelationCollector private(override val nodes: Set[String], override v
     override def createGraph(nodes: Set[String], edges: Set[Super], edgesByStart: Map[String, Set[Super]], edgesByEnd: Map[String, Set[Super]]): ClassRelationCollector =
         new ClassRelationCollector(nodes, edges, edgesByStart, edgesByEnd)
 
-    def hasCycle: Boolean = {
+    def checkCycle(implicit errorCollector: ErrorCollector): Boolean = {
         var visited = Set[String]()
 
         def traverse(curr: String, path: List[String]): Boolean = {
             visited += curr
             edgesByStart(curr).foldLeft(false) { (m, i) =>
                 if (m) true
-                else if (path contains i.end) true
-                else traverse(i.end, curr +: path)
+                else if (path contains i.end) {
+                    errorCollector.addError(s"Cyclic class relation found: ${i.end +: path}")
+                    true
+                } else traverse(i.end, i.end +: path)
             }
         }
 
@@ -161,6 +170,8 @@ class ClassRelationCollector private(override val nodes: Set[String], override v
         val allItems = nodes.toList.map(className =>
             ClassHierarchyItem(className, edgesByEnd(className).map(_.superclass), edgesByStart(className).map(_.subclass)))
         val rootItems = allItems.filter(_.superclasses.isEmpty)
+        // TODO 중복된 super class 제거
+        // -> class B extends A 이고 class C extends A, B 이면 C는 B만 상속받으면 됨
         ClassHierarchyTree(allItems.map(i => i.className -> i).toMap, rootItems)
     }
 }

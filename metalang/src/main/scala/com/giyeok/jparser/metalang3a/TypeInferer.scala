@@ -34,7 +34,7 @@ class TypeInferer(val startNonterminalName: String, val nonterminalTypes: Map[St
     def typeOfValuefyExpr(valuefyExpr: ValuefyExpr): Option[Type] = valuefyExpr match {
         case ValuefyExpr.InputNode => Some(Type.NodeType)
         case ValuefyExpr.MatchNonterminal(nonterminalName) => typeOfNonterminal(nonterminalName)
-        case ValuefyExpr.Unbind(symbol, _) => typeOfSymbol(symbol)
+        case ValuefyExpr.Unbind(_, expr) => typeOfValuefyExpr(expr)
         case ValuefyExpr.JoinBody(_, bodyProcessor) => typeOfValuefyExpr(bodyProcessor)
         case ValuefyExpr.JoinCond(_, bodyProcessor) => typeOfValuefyExpr(bodyProcessor)
         case ValuefyExpr.SeqElemAt(_, expr) => typeOfValuefyExpr(expr)

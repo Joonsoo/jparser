@@ -2,6 +2,7 @@ package com.giyeok.jparser.metalang3a
 
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.examples.MetaLang3Example
+import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
 import com.giyeok.jparser.examples.metalang3.SimpleExamples
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
@@ -31,15 +32,20 @@ object MetaLanguage3 {
 
         val inferredTypeCollector = new InferredTypeCollector(
             transformer.startNonterminalName(), transformer.classInfo, grammar.rules.keySet, transformer.nonterminalInfo)(errorCollector)
-        while (errorCollector.isClear && inferredTypeCollector.tryInference()) {}
+
+        var counter = 0
+        while (errorCollector.isClear && inferredTypeCollector.tryInference()) {
+            counter += 1
+            if (counter > 5) {
+                println(s"try inference for $counter times...")
+            }
+        }
 
         if (!inferredTypeCollector.isComplete) {
             errorCollector.addError("Incomplete type info")
         }
 
-        if (inferredTypeCollector.typeRelations.classRelations.hasCycle) {
-            errorCollector.addError("Cyclic class relation")
-        }
+        inferredTypeCollector.typeRelations.classRelations.checkCycle(errorCollector)
 
         val classParamTypes = inferredTypeCollector.classParamTypes.map { pair =>
             val (className, paramTypes) = pair
@@ -77,24 +83,30 @@ object MetaLanguage3 {
 
             val classHierarchy = analysis.classRelations.toHierarchy
             analysisPrinter.printClassHierarchy(classHierarchy)
+            println(s"Enum Values: ${analysis.enumValuesMap}")
+            println(s"Shortened enums: ${analysis.shortenedEnumTypesMap}")
             analysis.classParamTypes.foreach(pair =>
                 // TODO supers
                 analysisPrinter.printClassDef(pair._1, pair._2)
             )
             analysisPrinter.printValuefyStructure()
 
-            println(analysis.enumValuesMap)
-            example.correctExamples.foreach { exampleSource =>
-                val parsed = valuefyExprSimulator.parse(exampleSource).left.get
-                println(s"== Input: $exampleSource")
+            if (!analysis.errors.isClear) {
+                throw IllegalGrammar(s"Errors: ${analysis.errors.errors}")
+            }
+            example.correctExamplesWithResults.foreach { example =>
+                val CorrectExample(input, expectedResult) = example
+                val parsed = valuefyExprSimulator.parse(input).left.get
+                println(s"== Input: $input")
                 analysisPrinter.printNodeStructure(parsed)
-                println(valuefyExprSimulator.valuefy(parsed).prettyPrint())
+                val valuefied = valuefyExprSimulator.valuefy(parsed)
+                println(valuefied.prettyPrint())
+                expectedResult.foreach(someExpectedResult =>
+                    check(valuefied.prettyPrint() == someExpectedResult, s"Valuefy result mismatch, actual=${valuefied.prettyPrint()}, expected=$someExpectedResult"))
             }
         }
 
-        testExample(SimpleExamples.ex7)
-        // testExample(SimpleExamples.ex6a)
-        // testExample(SimpleExamples.ex6b)
-        // testExample(SimpleExamples.ex6c)
+        // SimpleExamples.examples.foreach(ex => testExample(ex.asInstanceOf[MetaLang3Example]))
+        testExample(SimpleExamples.ex8)
     }
 }

@@ -195,7 +195,8 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
             (input, Symbols.Sequence(Seq()))
         case MetaGrammar3Ast.Sequence(_, seq) =>
             check(condSymPath.isEmpty, "Sequence cannot be referred with condSymPath")
-            valuefySequence(seq, input)
+            val vSeq = valuefySequence(seq, input)
+            (Unbind(vSeq._2, vSeq._1), vSeq._2)
         case MetaGrammar3Ast.Nonterminal(_, name) =>
             check(condSymPath.isEmpty, "Nonterminal cannot be referred with condSymPath")
             val nonterminalName = stringNameOf(name)
@@ -213,7 +214,8 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
             (input, TerminalUtil.terminalChoicesToSymbol(choices))
     }
 
-    private def symbolIndexFrom(refCtx: List[MetaGrammar3Ast.Elem], index: Int): Int = index // TODO processor 갯수 빼기
+    private def symbolIndexFrom(refCtx: List[MetaGrammar3Ast.Elem], index: Int): Int =
+        index - refCtx.slice(0, index).count(_.isInstanceOf[MetaGrammar3Ast.Processor]) // index 앞에 있는 processor 갯수 빼기
 
     private def valuefyProcessor(refCtx: List[MetaGrammar3Ast.Elem], processor: MetaGrammar3Ast.Processor, input: ValuefyExpr): ValuefyExpr = processor match {
         case MetaGrammar3Ast.ElvisOp(_, value, ifNull) =>
@@ -281,8 +283,9 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
                         symbol match {
                             case MetaGrammar3Ast.Optional(_, body) => ???
                             case MetaGrammar3Ast.RepeatFromZero(_, body) =>
-                                UnrollRepeatFromZero(valuefySymbol(body, "", processBindExpr(body))._1)
-                            case MetaGrammar3Ast.RepeatFromOne(_, body) => ???
+                                UnrollRepeatFromZero(processBindExpr(body))
+                            case MetaGrammar3Ast.RepeatFromOne(_, body) =>
+                                UnrollRepeatFromOne(processBindExpr(body))
                             case MetaGrammar3Ast.InPlaceChoices(_, choices) if choices.size == 1 =>
                                 // 어차피 choice가 하나이므로 UnrollChoices 대신 Unbind만 해도 됨
                                 Unbind(valuefySymbol(symbol, "", InputNode)._2, processBindExpr(choices.head))

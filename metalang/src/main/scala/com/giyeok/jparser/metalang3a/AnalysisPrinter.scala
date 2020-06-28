@@ -45,8 +45,12 @@ class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
         case Unbind(symbol, expr) =>
             println(s"${indent}Unbind ${symbol.toShortString}")
             printValuefyStructure(expr, indent + "  ")
-        case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) => ???
-        case ValuefyExpr.JoinCond(joinSymbol, bodyProcessor) => ???
+        case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) =>
+            println(s"${indent}JoinBody of ${joinSymbol.toShortString}")
+            printValuefyStructure(bodyProcessor, indent + "  ")
+        case ValuefyExpr.JoinCond(joinSymbol, bodyProcessor) =>
+            println(s"${indent}JoinCond of ${joinSymbol.toShortString}")
+            printValuefyStructure(bodyProcessor, indent + "  ")
         case ValuefyExpr.SeqElemAt(index, expr) =>
             println(s"${indent}SeqElem $index")
             printValuefyStructure(expr, indent + "  ")
