@@ -106,7 +106,7 @@ object MetaLanguage3 {
             }
         }
 
-        // SimpleExamples.examples.foreach(ex => testExample(ex.asInstanceOf[MetaLang3Example]))
+        SimpleExamples.examples.foreach(ex => testExample(ex))
         testExample(SimpleExamples.ex8)
     }
 }

@@ -36,6 +36,8 @@ object AllExamples {
         MetaLang2Grammar.examples
     ).flatten
 
+    // TODO add examples from metalang3
+
     def metaLangsToGrammar(v1Translate: (String, String) => Grammar, v2Translate: (String, String) => Grammar): List[GrammarWithExamples] = {
         metalangExamples map { e =>
             val g = e match {
