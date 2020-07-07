@@ -1,6 +1,6 @@
 package com.giyeok.jparser.metalang3a
 
-import com.giyeok.jparser.metalang3a.ClassInfoCollector.ClassSpec
+import com.giyeok.jparser.metalang3a.ClassInfoCollector.{ClassParamSpec, ClassSpec}
 import com.giyeok.jparser.metalang3a.MetaLanguage3.check
 
 case class ClassInfoCollector(allClasses: Set[String],
@@ -16,11 +16,37 @@ case class ClassInfoCollector(allClasses: Set[String],
 
     def addClassNames(classNames: List[String]): ClassInfoCollector = copy(allClasses = allClasses ++ classNames.toSet)
 
-    def addClassParamSpecs(className: String, classSpec: ClassSpec): ClassInfoCollector = {
+    def addClassParamSpecs(className: String, classSpec: ClassSpec)(implicit errorCollector: ErrorCollector): ClassInfoCollector = {
         // className의 파라메터들이 classSpec이라고 정의
-        // TODO 만약 두 번 이상 호출됐는데 classSpec이 기존 것과 일치하지 않으면 throw IllegalGrammar
+        // 만약 두 번 이상 호출됐는데 classSpec이 기존 것과 일치하지 않으면 error
 
-        addClassName(className).copy(classParamSpecs = classParamSpecs + (className -> classSpec))
+        val newClassSpec = classParamSpecs get className match {
+            case Some(prevSpec) =>
+                if (classSpec.params.size != prevSpec.params.size) {
+                    errorCollector.addError(s"Inconsistent class params(size mismatch) for $className")
+                }
+                if (classSpec.params.map(_.name) != prevSpec.params.map(_.name)) {
+                    errorCollector.addError(s"Inconsistent class params(name mismatch) for $className")
+                }
+                // merged class spec
+                val mergedParams = classSpec.params.zip(prevSpec.params).map { p =>
+                    val name = p._1.name
+                    (p._1.typ, p._2.typ) match {
+                        case (Some(typ1), Some(typ2)) =>
+                            if (typ1 != typ2) {
+                                errorCollector.addError(s"Inconsistent class params(type mismatch) for $className")
+                            }
+                            ClassParamSpec(name, Some(typ1))
+                        case (Some(typ), None) => ClassParamSpec(name, Some(typ))
+                        case (None, Some(typ)) => ClassParamSpec(name, Some(typ))
+                        case (None, None) => ClassParamSpec(name, None)
+                    }
+                }
+                ClassSpec(mergedParams)
+            case None => classSpec
+        }
+
+        addClassName(className).copy(classParamSpecs = classParamSpecs + (className -> newClassSpec))
     }
 
     def addClassConstructCall(className: String, params: List[ValuefyExpr]): ClassInfoCollector =

@@ -20,10 +20,13 @@ object MetaLanguage3 {
         case Right(value) => throw IllegalGrammar(value.msg)
     }
 
-    case class ProcessedGrammar(ngrammar: NGrammar, startNonterminalName: String, nonterminalValuefyExprs: Map[String, UnrollChoices],
-                                classRelations: ClassRelationCollector, classParamTypes: Map[String, List[(String, Type)]],
+    case class ProcessedGrammar(ngrammar: NGrammar, startNonterminalName: String,
+                                nonterminalTypes: Map[String, Type], nonterminalValuefyExprs: Map[String, UnrollChoices],
+                                rawClassRelations: ClassRelationCollector, classParamTypes: Map[String, List[(String, Type)]],
                                 shortenedEnumTypesMap: Map[Int, String], enumValuesMap: Map[String, Set[String]],
-                                errors: CollectedErrors)
+                                errors: CollectedErrors) {
+        val classRelations: ClassRelationCollector = rawClassRelations.removeDuplicateEdges()
+    }
 
     def analyzeGrammar(grammarDef: MetaGrammar3Ast.Grammar, grammarName: String): ProcessedGrammar = {
         val errorCollector = new ErrorCollector()
@@ -53,8 +56,6 @@ object MetaLanguage3 {
             className -> paramNames.zip(paramTypes)
         }.toMap
 
-        // TODO A가 B의 super class일 때, class C extends A, B 이면 C는 B만 상속받으면 되고, union(A, B)는 A로 바꾸면 됨
-
         val ngrammar = NGrammar.fromGrammar(grammar)
 
         val enumsMap = inferredTypeCollector.typeRelations.enumRelations.toUnspecifiedEnumMap(errorCollector)
@@ -64,7 +65,8 @@ object MetaLanguage3 {
                 transformer.classInfo.shortenedEnumValues.getOrElse(pair._1, Set())))
         )
 
-        ProcessedGrammar(ngrammar, transformer.startNonterminalName(), transformer.nonterminalValuefyExprs,
+        ProcessedGrammar(ngrammar, transformer.startNonterminalName(),
+            inferredTypeCollector.nonterminalTypes, transformer.nonterminalValuefyExprs,
             inferredTypeCollector.typeRelations.classRelations, classParamTypes,
             enumsMap, enumValues,
             errorCollector.collectedErrors
@@ -81,13 +83,17 @@ object MetaLanguage3 {
             val valuefyExprSimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
             val analysisPrinter = new AnalysisPrinter(valuefyExprSimulator.startValuefyExpr, analysis.nonterminalValuefyExprs)
 
+            analysis.nonterminalTypes.foreach { p =>
+                println(s"Nonterm `${p._1}` = ${Type.readableNameOf(p._2)}")
+            }
+            analysisPrinter.printClassHierarchy(analysis.rawClassRelations.toHierarchy)
             val classHierarchy = analysis.classRelations.toHierarchy
             analysisPrinter.printClassHierarchy(classHierarchy)
             println(s"Enum Values: ${analysis.enumValuesMap}")
             println(s"Shortened enums: ${analysis.shortenedEnumTypesMap}")
             analysis.classParamTypes.foreach(pair =>
                 // TODO supers
-                analysisPrinter.printClassDef(pair._1, pair._2)
+                analysisPrinter.printClassDef(classHierarchy, pair._1, pair._2)
             )
             analysisPrinter.printValuefyStructure()
 
@@ -106,7 +112,7 @@ object MetaLanguage3 {
             }
         }
 
-        SimpleExamples.examples.foreach(ex => testExample(ex))
+        // testExample(MetaLang3Grammar.inMetaLang3)
         testExample(SimpleExamples.ex8)
     }
 }

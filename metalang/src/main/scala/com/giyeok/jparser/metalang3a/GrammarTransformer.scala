@@ -189,7 +189,7 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
             check(condSymPath.isEmpty, "Longest cannot be referred with condSymPath")
             val vChoices = proxy(valuefySymbol(choices, "", input))
             val longestSymbol = Symbols.Longest(vChoices._2)
-            (Unbind(vChoices._2, vChoices._1), longestSymbol)
+            (Unbind(longestSymbol, vChoices._1), longestSymbol)
         case MetaGrammar3Ast.EmptySeq(_) =>
             check(condSymPath.isEmpty, "EmptySeq cannot be referred with condSymPath")
             (input, Symbols.Sequence(Seq()))

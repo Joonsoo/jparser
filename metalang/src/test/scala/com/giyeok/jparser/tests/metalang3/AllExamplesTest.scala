@@ -24,7 +24,7 @@ class AllExamplesTest extends FlatSpec {
             println(s"Shortened enums: ${analysis.shortenedEnumTypesMap}")
             analysis.classParamTypes.foreach(pair =>
                 // TODO supers
-                analysisPrinter.printClassDef(pair._1, pair._2)
+                analysisPrinter.printClassDef(classHierarchy, pair._1, pair._2)
             )
             analysisPrinter.printValuefyStructure()
         }

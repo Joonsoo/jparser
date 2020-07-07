@@ -404,6 +404,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |LineComment = '/' '/' (.-'\n')* (EOF | '\n')
           |EOF = !.
           |""".stripMargin)
+        .examples(SimpleExamples.examples.map(_.grammar))
 
     val examples = List(inMetaLang2, inMetaLang3)
 }

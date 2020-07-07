@@ -38,6 +38,9 @@ case class MetaLang3Example(name: String, grammar: String,
     def example(newExample: String): MetaLang3Example =
         copy(correctExamplesWithResults = correctExamplesWithResults :+ CorrectExample(newExample, None))
 
+    def examples(newExamples: List[String]): MetaLang3Example =
+        copy(correctExamplesWithResults = correctExamplesWithResults ++ newExamples.map(CorrectExample(_, None)))
+
     def example(newExample: String, valuefyResult: String): MetaLang3Example =
         copy(correctExamplesWithResults = correctExamplesWithResults :+ CorrectExample(newExample, Some(valuefyResult)))
 

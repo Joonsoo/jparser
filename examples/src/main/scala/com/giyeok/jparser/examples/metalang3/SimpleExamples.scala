@@ -99,11 +99,12 @@ object SimpleExamples extends MetaLangExamples {
           |    | '(' WS expression WS ')' {Paren(expr=$2)}
           |number: Number = '0' {Integer(value=str($0))}
           |    | '1-9' '0-9'* {Integer(str(\\$0, \\$1))}
-          |variable = <'A-Za-z'+> {Variable(name=$0)}
+          |variable = <'A-Za-z'+> {Variable(name=str(\\$0))}
           |WS = ' '*
           |""".stripMargin)
         .example("123+456", "BinOp(%Op.Add,Integer(\"123\"),Integer(\"456\"))")
         .example("0*(123+456)", "BinOp(%Op.Mul,Integer(\"0\"),Paren(BinOp(%Op.Add,Integer(\"123\"),Integer(\"456\"))))")
+        .example("aabcd*rrewdf+98431", "BinOp(%Op.Add,BinOp(%Op.Mul,Variable(\"aabcd\"),Variable(\"rrewdf\")),Integer(\"98431\"))")
 
     override val examples: List[MetaLang3Example] =
         List(ex1, ex2, ex3, ex4, ex5, ex6a, ex6b, ex6c, ex6d, ex7, ex7a, ex7b, ex7c, ex8)

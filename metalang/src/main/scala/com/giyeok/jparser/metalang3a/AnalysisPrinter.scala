@@ -90,7 +90,7 @@ class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
         }
     }
 
-    def printClassDef(className: String, classParams: List[(String, Type)]): Unit = {
-        println(s"class $className(${classParams.map(p => s"${p._1}: ${readableNameOf(p._2)}").mkString(", ")})")
+    def printClassDef(classHierarchy: ClassHierarchyTree, className: String, classParams: List[(String, Type)]): Unit = {
+        println(s"class $className(${classParams.map(p => s"${p._1}: ${readableNameOf(classHierarchy.simplifyType(p._2))}(${readableNameOf(p._2)})").mkString(", ")})")
     }
 }

@@ -1,7 +1,8 @@
 package com.giyeok.jparser.metalang3a.codegen
 
 import com.giyeok.jparser.metalang3a.MetaLanguage3.ProcessedGrammar
-import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.Options
+import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.{CodeBlob, Options}
+import com.giyeok.jparser.metalang3a.{Type, ValuefyExpr}
 
 object ScalaCodeGen {
 
@@ -19,8 +20,16 @@ object ScalaCodeGen {
                        symbolComments: Boolean = true,
                        astNodesInAllClasses: Boolean = true)
 
+    case class CodeBlob(code: String, outputName: String, outputType: Type, requirements: Set[String]) {
+        def indent(width: Int = 2): CodeBlob =
+            copy(code.linesIterator.toList.map(line => (" " * width) + line).mkString("\n"))
+    }
+
 }
 
 class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Options()) {
     // TODO
+    def valuefyExprToCode(valuefyExpr: ValuefyExpr): CodeBlob = ???
+
+    def nonterminalMatchFunc(nonterminal: String): CodeBlob = ???
 }
