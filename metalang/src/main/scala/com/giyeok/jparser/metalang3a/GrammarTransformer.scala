@@ -160,10 +160,12 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
             (Unbind(exceptSymbol, input), exceptSymbol)
         case MetaGrammar3Ast.FollowedBy(_, followedBy) =>
             check(condSymPath.isEmpty, "FollowedBy cannot be referred with condSymPath")
-            ???
+            val vFollowedBy = proxy(valuefySymbol(followedBy, "", input))
+            (input, Symbols.LookaheadIs(vFollowedBy._2))
         case MetaGrammar3Ast.NotFollowedBy(_, notFollowedBy) =>
             check(condSymPath.isEmpty, "NotFollowedBy cannot be referred with condSymPath")
-            ???
+            val vNotFollowedBy = proxy(valuefySymbol(notFollowedBy, "", input))
+            (input, Symbols.LookaheadExcept(vNotFollowedBy._2))
         case MetaGrammar3Ast.Optional(_, body) =>
             check(condSymPath.isEmpty, "Optional cannot be referred with condSymPath")
             val vBody = proxy(valuefySymbol(body, "", input))
@@ -184,7 +186,7 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
             check(condSymPath.isEmpty, "InPlaceChoices cannot be referred with condSymPath")
             val vChoices = choices.map(c => proxy(valuefySymbol(c, "", input)))
             val oneofSymbol = Symbols.OneOf(ListSet.from(vChoices.map(_._2)))
-            (UnrollChoices(vChoices.map(c => oneofSymbol -> c._1).toMap), oneofSymbol)
+            (Unbind(oneofSymbol, UnrollChoices(vChoices.map(c => c._2 -> c._1).toMap)), oneofSymbol)
         case MetaGrammar3Ast.Longest(_, choices) =>
             check(condSymPath.isEmpty, "Longest cannot be referred with condSymPath")
             val vChoices = proxy(valuefySymbol(choices, "", input))
@@ -207,11 +209,13 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
             val stringSymbol = Symbols.Proxy(Symbols.Sequence(value.map(TerminalUtil.stringCharToChar).map(Symbols.ExactChar)))
             (StringLiteral(TerminalUtil.stringCharsToString(value)), stringSymbol)
         case terminal: MetaGrammar3Ast.Terminal =>
-            check(condSymPath.isEmpty, "NotFollowedBy cannot be referred with condSymPath")
-            (input, TerminalUtil.terminalToSymbol(terminal))
+            check(condSymPath.isEmpty, "Terminal cannot be referred with condSymPath")
+            val terminalSymbol = TerminalUtil.terminalToSymbol(terminal)
+            (Unbind(terminalSymbol, CharFromTerminalLiteral), terminalSymbol)
         case MetaGrammar3Ast.TerminalChoice(_, choices) =>
-            check(condSymPath.isEmpty, "NotFollowedBy cannot be referred with condSymPath")
-            (input, TerminalUtil.terminalChoicesToSymbol(choices))
+            check(condSymPath.isEmpty, "TerminalChoice cannot be referred with condSymPath")
+            val terminalSymbol = TerminalUtil.terminalChoicesToSymbol(choices)
+            (Unbind(terminalSymbol, CharFromTerminalLiteral), terminalSymbol)
     }
 
     private def symbolIndexFrom(refCtx: List[MetaGrammar3Ast.Elem], index: Int): Int =
@@ -281,7 +285,12 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
                     // TODO 고칠 수 있으면 좋을텐데..
                     def processBindExpr(symbol: MetaGrammar3Ast.Symbol): ValuefyExpr =
                         symbol match {
-                            case MetaGrammar3Ast.Optional(_, body) => ???
+                            case MetaGrammar3Ast.Optional(_, body) =>
+                                val vBody = proxy(valuefySymbol(body, "", input))
+                                val emptySeq = Symbols.Proxy(Symbols.Sequence(Seq()))
+                                val oneofSymbol = Symbols.OneOf(ListSet(vBody._2, emptySeq))
+                                Unbind(oneofSymbol, UnrollChoices(Map(emptySeq -> NullLiteral,
+                                    vBody._2 -> processBindExpr(body))))
                             case MetaGrammar3Ast.RepeatFromZero(_, body) =>
                                 UnrollRepeatFromZero(processBindExpr(body))
                             case MetaGrammar3Ast.RepeatFromOne(_, body) =>

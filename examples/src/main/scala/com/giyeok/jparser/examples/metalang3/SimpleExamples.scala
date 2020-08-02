@@ -105,7 +105,42 @@ object SimpleExamples extends MetaLangExamples {
         .example("123+456", "BinOp(%Op.Add,Integer(\"123\"),Integer(\"456\"))")
         .example("0*(123+456)", "BinOp(%Op.Mul,Integer(\"0\"),Paren(BinOp(%Op.Add,Integer(\"123\"),Integer(\"456\"))))")
         .example("aabcd*rrewdf+98431", "BinOp(%Op.Add,BinOp(%Op.Mul,Variable(\"aabcd\"),Variable(\"rrewdf\")),Integer(\"98431\"))")
+    val ex9: MetaLang3Example = MetaLang3Example("Optional",
+        """A = ('a' 'b' 'c' $1)?
+          |""".stripMargin)
+        .example("abc", "'b'")
+        .example("", "null")
+    val ex10: MetaLang3Example = MetaLang3Example("Optional bind ref expr",
+        """A = ('a' 'b' 'c')? {$0$1}
+          |""".stripMargin)
+        .example("abc", "'b'")
+        .example("", "null")
+    val ex10a: MetaLang3Example = MetaLang3Example("Optional bind expr",
+        """A = ('a' 'b'* 'c')? {$0{str(\\$1)}}
+          |""".stripMargin)
+        .example("ac", "\"\"")
+        .example("abc", "\"b\"")
+        .example("abbbbbbc", "\"bbbbbb\"")
+        .example("", "null")
+    val ex11: MetaLang3Example = MetaLang3Example("Inplace choice",
+        """A = ('a' 'b' 'c' | "def")
+          |""".stripMargin)
+        .example("abc", "'c'")
+        .example("def", "\"def\"")
+    val ex12: MetaLang3Example = MetaLang3Example("Elvis op",
+        """A = (B+)? {$0 ?: []}
+          |B = 'b'
+          |""".stripMargin)
+        .example("")
+        .example("bbb")
+    val ex12a: MetaLang3Example = MetaLang3Example("Elvis op with bind",
+        """A = ('a' 'b'* 'c')? {$0{str(\\$1)} ?: "none"}
+          |""".stripMargin)
+        .example("ac", "\"\"")
+        .example("abc", "\"b\"")
+        .example("abbbbbbc", "\"bbbbbb\"")
+        .example("", "\"none\"")
 
     override val examples: List[MetaLang3Example] =
-        List(ex1, ex2, ex3, ex4, ex5, ex6a, ex6b, ex6c, ex6d, ex7, ex7a, ex7b, ex7c, ex8)
+        List(ex1, ex2, ex3, ex4, ex5, ex6a, ex6b, ex6c, ex6d, ex7, ex7a, ex7b, ex7c, ex8, ex9, ex10, ex10a, ex11, ex12, ex12a)
 }

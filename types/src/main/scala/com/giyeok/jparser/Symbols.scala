@@ -250,23 +250,14 @@ object Symbols {
             case Any => "<any>"
             case AnyChar => "<any>"
             case ExactChar(c) => s"'${UnicodeUtil.toReadable(c)}'"
-            case chars: Terminals.Chars =>
-                "{" + chars.chars.groupedString + "}"
-            case Unicode(c) => s"<unicode ${
-                (c.toSeq.sorted map {
-                    UnicodeUtil.categoryCodeToName
-                }) mkString ", "
-            }>"
+            case chars: Terminals.Chars => "{" + chars.chars.groupedString + "}"
+            case Unicode(c) => s"<unicode ${(c.toSeq.sorted map UnicodeUtil.categoryCodeToName) mkString ", "}>"
             case Start => "<start>"
             case s: Nonterminal => s.name
-            case s: Sequence => "seq [" + (s.seq map {
-                _.toShortString
-            } mkString " ") + "]"
+            case s: Sequence => "seq [" + (s.seq map (_.toShortString) mkString " ") + "]"
             case s: OneOf if s.syms.size == 2 && s.syms.contains(Proxy(Sequence(Seq()))) =>
                 s"${(s.syms - Proxy(Sequence(Seq()))).head.toShortString}?"
-            case s: OneOf => "{" + (s.syms map {
-                _.toShortString
-            } mkString "|") + "}"
+            case s: OneOf => "{" + (s.syms map (_.toShortString) mkString "|") + "}"
             case Repeat(sym, 0) => s"${sym.toShortString}*"
             case Repeat(sym, 1) => s"${sym.toShortString}+"
             case Repeat(sym, lower) => s"${sym.toShortString}[$lower-]"

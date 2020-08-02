@@ -274,7 +274,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |TerminalChoiceElem: TerminalChoiceElem = TerminalChoiceChar
           |  | TerminalChoiceRange
           |TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {TerminalChoiceRange(start=$0, end=$2)}
-          |StringSymbol = '"' StringChar* '"' {StringSymbol(value=$1$0)}
+          |StringSymbol = '"' StringChar* '"' {StringSymbol(value=$1)}
           |Nonterminal = NonterminalName {Nonterminal(name=$0)}
           |InPlaceChoices = Sequence (WS '|' WS Sequence)* {InPlaceChoices(choices=[$0] + $1)}
           |Sequence = Elem (WS Elem)* {Sequence<Symbol>(seq=[$0] + $1)}
@@ -384,14 +384,14 @@ object MetaLang3Grammar extends MetaLangExamples {
           |
           |// Common
           |// TODO TypeName, NonterminalName에서 `` 사이에는 Id 말고 다른거(공백, keyword 등도 쓸 수 있는)
-          |TypeName = Id-Keyword {TypeName(name=str(\$0))}
-          |  | '`' Id '`' {TypeName(name=str(\$1))}
-          |NonterminalName = Id-Keyword {NonterminalName(name=str(\$0))}
-          |  | '`' Id '`' {NonterminalName(name=str(\$1))}
-          |TypeOrFuncName = Id-Keyword {TypeOrFuncName(name=str(\$0))}
-          |  | '`' Id '`' {TypeOrFuncName(name=str(\$1))}
-          |ParamName = Id-Keyword {ParamName(name=str(\$0))}
-          |  | '`' Id '`' {ParamName(name=str(\$1))}
+          |TypeName = Id-Keyword {TypeName(name=str(\\$0))}
+          |  | '`' Id '`' {TypeName(name=str(\\$1))}
+          |NonterminalName = Id-Keyword {NonterminalName(name=str(\\$0))}
+          |  | '`' Id '`' {NonterminalName(name=str(\\$1))}
+          |TypeOrFuncName = Id-Keyword {TypeOrFuncName(name=str(\\$0))}
+          |  | '`' Id '`' {TypeOrFuncName(name=str(\\$1))}
+          |ParamName = Id-Keyword {ParamName(name=str(\\$0))}
+          |  | '`' Id '`' {ParamName(name=str(\\$1))}
           |EnumValueName = Id {EnumValueName(name=$0)}
           |Keyword = "boolean" | "char" | "string" | "true" | "false" | "null"
           |StrChar = StringChar

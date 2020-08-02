@@ -89,7 +89,7 @@ class TypeInferer(val startNonterminalName: String, val nonterminalTypes: Map[St
             val ifNullType = typeOfValuefyExpr(ifNull)
             if (exprType0.isEmpty || ifNullType.isEmpty) None else {
                 val exprType = exprType0.get
-                check(!exprType.isInstanceOf[Type.OptionalOf], "Elvis operator only can be used with optional expression")
+                check(exprType.isInstanceOf[Type.OptionalOf], "Elvis operator only can be used with optional expression")
                 Some(unifyTypes(Set(exprType.asInstanceOf[Type.OptionalOf].typ, ifNullType.get)))
             }
         case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
@@ -104,6 +104,7 @@ class TypeInferer(val startNonterminalName: String, val nonterminalTypes: Map[St
             case ValuefyExpr.NullLiteral => Type.NullType
             case ValuefyExpr.BoolLiteral(_) => Type.BoolType
             case ValuefyExpr.CharLiteral(_) => Type.CharType
+            case ValuefyExpr.CharFromTerminalLiteral => Type.CharType
             case ValuefyExpr.StringLiteral(_) => Type.StringType
         })
         case value: ValuefyExpr.EnumValue => value match {

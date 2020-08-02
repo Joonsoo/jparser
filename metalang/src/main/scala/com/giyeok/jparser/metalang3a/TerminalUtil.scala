@@ -9,11 +9,13 @@ object TerminalUtil {
 
     def charEscapedToChar(charEscaped: MetaGrammar3Ast.CharEscaped): Char = charEscaped.escapeCode.sourceText match {
         case "\'" => '\''
+        case "\"" => '"'
         case "\\" => '\\'
         case "b" => '\b'
         case "n" => '\n'
         case "r" => '\r'
         case "t" => '\t'
+        case "-" => '-'
     }
 
     def charUnicodeToChar(charUnicode: CharUnicode): Char = {

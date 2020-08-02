@@ -3,7 +3,7 @@ package com.giyeok.jparser.metalang3a
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
-import com.giyeok.jparser.examples.metalang3.SimpleExamples
+import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, SimpleExamples}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 
@@ -80,8 +80,11 @@ object MetaLanguage3 {
         def testExample(example: MetaLang3Example): Unit = {
             println(example.grammar)
             val analysis = analyzeGrammar(example.grammar, example.name)
+            if (!analysis.errors.isClear) {
+                throw new Exception(analysis.errors.toString)
+            }
             val valuefyExprSimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
-            val analysisPrinter = new AnalysisPrinter(valuefyExprSimulator.startValuefyExpr, analysis.nonterminalValuefyExprs)
+            val analysisPrinter = new AnalysisPrinter(valuefyExprSimulator.startValuefyExpr, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
 
             analysis.nonterminalTypes.foreach { p =>
                 println(s"Nonterm `${p._1}` = ${Type.readableNameOf(p._2)}")
@@ -107,12 +110,13 @@ object MetaLanguage3 {
                 analysisPrinter.printNodeStructure(parsed)
                 val valuefied = valuefyExprSimulator.valuefy(parsed)
                 println(valuefied.prettyPrint())
+                // println(valuefied.detailPrint())
                 expectedResult.foreach(someExpectedResult =>
-                    check(valuefied.prettyPrint() == someExpectedResult, s"Valuefy result mismatch, actual=${valuefied.prettyPrint()}, expected=$someExpectedResult"))
+                    check(valuefied.prettyPrint() == someExpectedResult, s"Valuefy result mismatch, expected=$someExpectedResult, actual=${valuefied.prettyPrint()}"))
             }
         }
 
-        // testExample(MetaLang3Grammar.inMetaLang3)
-        testExample(SimpleExamples.ex8)
+        testExample(SimpleExamples.ex12a)
+        testExample(MetaLang3Grammar.inMetaLang3)
     }
 }

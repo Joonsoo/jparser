@@ -1,6 +1,6 @@
 package com.giyeok.jparser.metalang3a
 
-import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNode}
+import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNode, TerminalNode}
 import com.giyeok.jparser.Symbols.ShortStringSymbols
 import com.giyeok.jparser._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.{MatchNonterminal, Unbind, UnrollChoices}
@@ -84,7 +84,7 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
             valuefy(body, matcher)
         case Unbind(symbol, expr) =>
             val BindNode(bindedSymbol, body) = parseNode
-            check(bindedSymbol.symbol == symbol, s"Invalid unbind expected: ${bindedSymbol.symbol.toShortString}, actual: ${symbol.toShortString}")
+            check(bindedSymbol.symbol == symbol, s"Invalid unbind expected: ${symbol.toShortString}, actual: ${bindedSymbol.symbol.toShortString}")
             valuefy(body, expr)
         case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) =>
             val JoinNode(bindedSymbol, body, _) = parseNode
@@ -109,7 +109,7 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
         case ValuefyExpr.UnrollChoices(choices) =>
             val BindNode(bindedSymbol, body) = parseNode
             val choiceValuefyExpr = choices(bindedSymbol.symbol)
-            valuefy(body, choiceValuefyExpr)
+            valuefy(parseNode, choiceValuefyExpr)
         case ValuefyExpr.ConstructCall(className, params) =>
             ClassValue(className, params.map(valuefy(parseNode, _)))
         case ValuefyExpr.FuncCall(funcType, params) =>
@@ -125,10 +125,10 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
                         case ClassValue(className, args) => s"$className(${args.map(stringify).mkString(",")})"
                         case ArrayValue(elems) => s"[${elems.map(stringify).mkString(",")}]"
                         case EnumValue(enumType, enumValue) => s"%$enumType.$enumValue"
-                        case NullValue() => "null"
+                        case NullValue => "null"
                         case BoolValue(value) => value.toString
                         case CharValue(value) => value.toString
-                        case StringValue(value) => value
+                        case StringValue(value) => "\"" + value + "\""
                     }
 
                     StringValue(vParams.map(stringify).mkString)
@@ -154,12 +154,16 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.BOOL_OR => ???
             }
         case ValuefyExpr.PreOp(op, expr) => ???
-        case ValuefyExpr.ElvisOp(expr, ifNull) => ???
+        case ValuefyExpr.ElvisOp(expr, ifNull) =>
+            val exprValue = valuefy(parseNode, expr)
+            if (exprValue == NullValue) valuefy(parseNode, ifNull) else exprValue
         case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) => ???
         case literal: ValuefyExpr.Literal => literal match {
-            case ValuefyExpr.NullLiteral => NullValue()
+            case ValuefyExpr.NullLiteral => NullValue
             case ValuefyExpr.BoolLiteral(value) => BoolValue(value)
             case ValuefyExpr.CharLiteral(value) => CharValue(value)
+            case ValuefyExpr.CharFromTerminalLiteral =>
+                CharValue(parseNode.asInstanceOf[TerminalNode].input.asInstanceOf[Inputs.Character].char)
             case ValuefyExpr.StringLiteral(value) => StringValue(value)
         }
         case value: ValuefyExpr.EnumValue => value match {
@@ -202,7 +206,7 @@ object ValuefyExprSimulator {
         override def detailPrint(): String = prettyPrint()
     }
 
-    case class NullValue() extends Value {
+    case object NullValue extends Value {
         override def prettyPrint(): String = "null"
 
         override def detailPrint(): String = "null"
@@ -215,7 +219,7 @@ object ValuefyExprSimulator {
     }
 
     case class CharValue(value: Char) extends Value {
-        override def prettyPrint(): String = s"$value"
+        override def prettyPrint(): String = s"'$value'"
 
         override def detailPrint(): String = s"Char($value)"
     }

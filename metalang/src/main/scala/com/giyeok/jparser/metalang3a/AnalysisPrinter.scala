@@ -6,7 +6,8 @@ import com.giyeok.jparser.metalang3a.Type.readableNameOf
 import com.giyeok.jparser.metalang3a.ValuefyExpr.{MatchNonterminal, Unbind, UnrollChoices}
 
 class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
-                      val nonterminalValuefyExprs: Map[String, UnrollChoices]) {
+                      val nonterminalValuefyExprs: Map[String, UnrollChoices],
+                      val shortenedEnumTypesMap: Map[Int, String]) {
     def printClassHierarchy(classHierarchy: ClassHierarchyTree): Unit = {
         def printHierarchyItem(item: ClassHierarchyItem, indent: String = ""): Unit = {
             val extending = if (item.superclasses.isEmpty) "" else s" extends ${item.superclasses.toList.sorted.mkString(", ")}"
@@ -22,16 +23,16 @@ class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
     def printNodeStructure(parseNode: Node, indent: String = ""): Unit = parseNode match {
         case ParseResultTree.TerminalNode(start, input) => println(s"${indent}Terminal ${input}")
         case BindNode(symbol, body) =>
-            println(s"${indent}Bind(${symbol.symbol.toShortString})")
+            println(s"${indent}Bind ${symbol.symbol.toShortString}")
             printNodeStructure(body, indent + "  ")
         case ParseResultTree.CyclicBindNode(start, end, symbol) =>
             println(s"${indent}Cyclic Bind")
         case JoinNode(symbol, body, join) =>
-            println(s"${indent}Join(${symbol.symbol.toShortString})")
+            println(s"${indent}Join ${symbol.symbol.toShortString}")
             printNodeStructure(body, indent + "  ")
             printNodeStructure(join, indent + "  ")
         case seq@SequenceNode(start, end, symbol, _children) =>
-            println(s"${indent}Sequence(${symbol.symbol.toShortString})")
+            println(s"${indent}Sequence ${symbol.symbol.toShortString}")
             seq.children.zipWithIndex.foreach { childIdx =>
                 printNodeStructure(childIdx._1, indent + "  ")
             }
@@ -79,7 +80,21 @@ class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
         case ValuefyExpr.ElvisOp(expr, ifNull) =>
         case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
         case literal: ValuefyExpr.Literal =>
+            val literalName = literal match {
+                case ValuefyExpr.NullLiteral => "null"
+                case ValuefyExpr.BoolLiteral(value) => s"bool $value"
+                case ValuefyExpr.CharLiteral(value) => s"char $value"
+                case ValuefyExpr.CharFromTerminalLiteral => s"char from node"
+                case ValuefyExpr.StringLiteral(value) => s"string $value"
+            }
+            println(s"$indent$literalName")
         case value: ValuefyExpr.EnumValue =>
+            val enumName = value match {
+                case ValuefyExpr.CanonicalEnumValue(enumName, enumValue) => s"%$enumName.$enumValue"
+                case ValuefyExpr.ShortenedEnumValue(unspecifiedEnumTypeId, enumValue) =>
+                    s"%${shortenedEnumTypesMap(unspecifiedEnumTypeId)}.$enumValue"
+            }
+            println(s"${indent}enum $enumName")
     }
 
     def printValuefyStructure(): Unit = {

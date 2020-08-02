@@ -74,6 +74,9 @@ object ValuefyExpr {
 
     case class CharLiteral(value: Char) extends Literal
 
+    // TerminalNode를 받아서 그 값을 CharValue로 변환
+    case object CharFromTerminalLiteral extends Literal
+
     case class StringLiteral(value: String) extends Literal
 
     abstract sealed class EnumValue extends ValuefyExpr
