@@ -1,11 +1,14 @@
 package com.giyeok.jparser.metalang3a
 
+import java.io.{BufferedWriter, FileWriter}
+
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
 import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, SimpleExamples}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
+import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
 
 object MetaLanguage3 {
 
@@ -25,7 +28,9 @@ object MetaLanguage3 {
                                 rawClassRelations: ClassRelationCollector, classParamTypes: Map[String, List[(String, Type)]],
                                 shortenedEnumTypesMap: Map[Int, String], enumValuesMap: Map[String, Set[String]],
                                 errors: CollectedErrors) {
-        val classRelations: ClassRelationCollector = rawClassRelations.removeDuplicateEdges()
+        val typeInferer = new TypeInferer(startNonterminalName, nonterminalTypes)
+        val classRelations: ClassRelationCollector =
+            if (errors.isClear) rawClassRelations.removeDuplicateEdges() else null
     }
 
     def analyzeGrammar(grammarDef: MetaGrammar3Ast.Grammar, grammarName: String): ProcessedGrammar = {
@@ -105,18 +110,43 @@ object MetaLanguage3 {
             }
             example.correctExamplesWithResults.foreach { example =>
                 val CorrectExample(input, expectedResult) = example
-                val parsed = valuefyExprSimulator.parse(input).left.get
-                println(s"== Input: $input")
-                analysisPrinter.printNodeStructure(parsed)
-                val valuefied = valuefyExprSimulator.valuefy(parsed)
-                println(valuefied.prettyPrint())
-                // println(valuefied.detailPrint())
-                expectedResult.foreach(someExpectedResult =>
-                    check(valuefied.prettyPrint() == someExpectedResult, s"Valuefy result mismatch, expected=$someExpectedResult, actual=${valuefied.prettyPrint()}"))
+                valuefyExprSimulator.parse(input) match {
+                    case Left(parsed) =>
+                        println(s"== Input: $input")
+                        analysisPrinter.printNodeStructure(parsed)
+                        val valuefied = valuefyExprSimulator.valuefy(parsed)
+                        println(valuefied.prettyPrint())
+                        // println(valuefied.detailPrint())
+                        expectedResult.foreach(someExpectedResult =>
+                            check(valuefied.prettyPrint() == someExpectedResult,
+                                s"Valuefy result mismatch, expected=$someExpectedResult, actual=${valuefied.prettyPrint()}"))
+                    case Right(error) =>
+                        println(error)
+                }
             }
         }
 
-        testExample(SimpleExamples.ex12a)
-        testExample(MetaLang3Grammar.inMetaLang3)
+        // testExample(SimpleExamples.ex12a)
+        // testExample(MetaLang3Grammar.inMetaLang3)
+
+        def generateParser(grammar: String, grammarName: String): Unit = {
+            val analysis = analyzeGrammar(grammar, grammarName)
+            if (!analysis.errors.isClear) {
+                throw new Exception(analysis.errors.toString)
+            }
+            val codegen = new ScalaCodeGen(analysis)
+
+            val packageName = "com.giyeok.jparser.metalang3a.generated"
+
+            val filePath = s"./metalang/src/main/scala/${packageName.split('.').mkString("/")}/$grammarName.scala"
+            val generatedCode = s"package $packageName\n\n" + codegen.generateParser(grammarName)
+
+            val writer = new BufferedWriter(new FileWriter(filePath))
+            writer.write(generatedCode)
+            writer.close()
+        }
+
+        generateParser(SimpleExamples.ex3.grammar, "Simple3")
+        // generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3")
     }
 }

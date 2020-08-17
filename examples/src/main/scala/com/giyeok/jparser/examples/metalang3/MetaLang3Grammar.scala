@@ -327,7 +327,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | EnumValue
           |  | '(' WS PExpr WS ')' {ExprParen(body=$2)}
           |
-          |BindExpr = ValRef BinderExpr
+          |BindExpr = ValRef BinderExpr {BindExpr(ctx=$0, binder=$1)}
           |BinderExpr: BinderExpr = Ref
           |  | BindExpr
           |  | '{' WS PExpr WS '}' $2

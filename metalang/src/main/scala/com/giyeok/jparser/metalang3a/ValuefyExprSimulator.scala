@@ -7,6 +7,8 @@ import com.giyeok.jparser.metalang3a.ValuefyExpr.{MatchNonterminal, Unbind, Unro
 import com.giyeok.jparser.metalang3a.ValuefyExprSimulator._
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
 
+import scala.annotation.tailrec
+
 class ValuefyExprSimulator(val ngrammar: NGrammar,
                            val startNonterminalName: String,
                            val nonterminalValuefyExprs: Map[String, UnrollChoices],
@@ -113,10 +115,37 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
         case ValuefyExpr.ConstructCall(className, params) =>
             ClassValue(className, params.map(valuefy(parseNode, _)))
         case ValuefyExpr.FuncCall(funcType, params) =>
+            def ispresent(value: Value): Boolean = value match {
+                case ArrayValue(elems) if elems.nonEmpty => true
+                case StringValue(value) if value.nonEmpty => true
+                case NullValue => false
+                case _ => true
+            }
+
             funcType match {
-                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent => ???
-                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsEmpty => ???
-                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Chr => ???
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent =>
+                    check(params.size == 1, "ispresent function takes only one parameter")
+                    BoolValue(ispresent(valuefy(parseNode, params.head)))
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsEmpty =>
+                    check(params.size == 1, "isempty function takes only one parameter")
+                    BoolValue(!ispresent(valuefy(parseNode, params.head)))
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Chr =>
+                    check(params.size == 1, "chr function takes only one parameter")
+                    val vParams = params.map(valuefy(parseNode, _))
+
+                    @tailrec def charifyNode(node: Node): Char = node match {
+                        case TerminalNode(_, Inputs.Character(inputChar)) => inputChar
+                        case BindNode(_, body) => charifyNode(body)
+                        case seq: SequenceNode if seq.children.size == 1 => charifyNode(seq.children(0))
+                    }
+
+                    def charify(value: Value): Char = value match {
+                        case NodeValue(astNode) => charifyNode(astNode)
+                        case CharValue(value) => value
+                        case StringValue(value) if value.length == 1 => value.charAt(0)
+                    }
+
+                    CharValue(charify(vParams.head))
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Str =>
                     val vParams = params.map(valuefy(parseNode, _))
 

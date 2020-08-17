@@ -1,6 +1,6 @@
 organization in ThisBuild := "com.giyeok"
 version in ThisBuild := "0.1"
-scalaVersion in ThisBuild := "2.13.1"
+scalaVersion in ThisBuild := "2.13.3"
 crossPaths in ThisBuild := false
 
 javacOptions in ThisBuild ++= Seq("-encoding", "UTF-8")
