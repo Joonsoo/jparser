@@ -178,15 +178,14 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                 throw new Exception(s"Union type of {${unionTypeNames.mkString(", ")}} is not supported$contextText")
             }
             typeDescStringOf(reducedType)
-        case Type.EnumType(enumName) => CodeBlob(enumName, Set())
-        case Type.UnspecifiedEnumType(uniqueId) => CodeBlob(analysis.shortenedEnumTypesMap(uniqueId), Set())
+        case Type.EnumType(enumName) => CodeBlob(s"$enumName.Value", Set())
+        case Type.UnspecifiedEnumType(uniqueId) => CodeBlob(s"${analysis.shortenedEnumTypesMap(uniqueId)}.Value", Set())
         case Type.NullType => CodeBlob("Nothing", Set())
         case Type.AnyType => CodeBlob("Any", Set())
         case Type.BoolType => CodeBlob("Boolean", Set())
         case Type.CharType => CodeBlob("Char", Set())
         case Type.StringType => CodeBlob("String", Set())
-        case Type.NothingType =>
-            CodeBlob("Nothing", Set())
+        case Type.NothingType => CodeBlob("Nothing", Set())
     }
 
     def enumDefs(enumValuesMap: Map[String, Set[String]]): CodeBlob = {
