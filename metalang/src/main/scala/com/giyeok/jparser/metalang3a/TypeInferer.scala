@@ -31,6 +31,7 @@ class TypeInferer(val startNonterminalName: String, val nonterminalTypes: Map[St
         case Symbols.Sequence(seq) => if (seq.isEmpty) Some(Type.NodeType) else typeOfSymbol(seq.last)
     }
 
+    // 현재까지 알려진 정보로는 valuefyExpr의 타입을 확정할 수 없으면 None 반환
     def typeOfValuefyExpr(valuefyExpr: ValuefyExpr): Option[Type] = valuefyExpr match {
         case ValuefyExpr.InputNode => Some(Type.NodeType)
         case ValuefyExpr.MatchNonterminal(nonterminalName) => typeOfNonterminal(nonterminalName)

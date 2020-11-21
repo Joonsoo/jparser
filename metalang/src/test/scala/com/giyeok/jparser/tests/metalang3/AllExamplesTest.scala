@@ -19,12 +19,12 @@ class AllExamplesTest extends FlatSpec {
             analysisPrinter = new AnalysisPrinter(valuefySimulator.startValuefyExpr, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
 
             val classHierarchy = analysis.classRelations.toHierarchy
-            analysisPrinter.printClassHierarchy(classHierarchy)
+            AnalysisPrinter.printClassHierarchy(classHierarchy)
             println(s"Enum Values: ${analysis.enumValuesMap}")
             println(s"Shortened enums: ${analysis.shortenedEnumTypesMap}")
             analysis.classParamTypes.foreach(pair =>
                 // TODO supers
-                analysisPrinter.printClassDef(classHierarchy, pair._1, pair._2)
+                AnalysisPrinter.printClassDef(classHierarchy, pair._1, pair._2)
             )
             analysisPrinter.printValuefyStructure()
         }
@@ -35,7 +35,7 @@ class AllExamplesTest extends FlatSpec {
                 assert(parsed.isLeft)
                 println(s"== Input: $input")
                 val parsedNode = parsed.left.get
-                analysisPrinter.printNodeStructure(parsedNode)
+                AnalysisPrinter.printNodeStructure(parsedNode)
                 val valuefied = valuefySimulator.valuefy(parsedNode)
                 println(valuefied.prettyPrint())
                 expectedResult.foreach(someExpectedResult =>

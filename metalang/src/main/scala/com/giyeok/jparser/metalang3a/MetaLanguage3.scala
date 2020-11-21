@@ -7,6 +7,8 @@ import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
 import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, SimpleExamples}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
+import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.AnyType
+import com.giyeok.jparser.metalang3a.Type.{ArrayOf, ClassType, EnumType, NodeType, OptionalOf, UnionOf, UnspecifiedEnumType, readableNameOf}
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
 
@@ -31,6 +33,29 @@ object MetaLanguage3 {
         val typeInferer = new TypeInferer(startNonterminalName, nonterminalTypes)
         val classRelations: ClassRelationCollector =
             if (errors.isClear) rawClassRelations.removeDuplicateEdges() else null
+
+        def isSubtypeOf(superType: Type, subType: Type): Boolean = (superType, subType) match {
+            case (ClassType(superClass), ClassType(subClass)) => classRelations.reachableBetween(superClass, subClass)
+            case (OptionalOf(superOpt), OptionalOf(subOpt)) => isSubtypeOf(superOpt, subOpt)
+            case (ArrayOf(superElem), ArrayOf(subElem)) => isSubtypeOf(superElem, subElem)
+            case (EnumType(superEnumName), EnumType(subEnumName)) => superEnumName == subEnumName
+            case (EnumType(enumName), UnspecifiedEnumType(uniqueId)) => shortenedEnumTypesMap(uniqueId) == enumName
+            case (UnspecifiedEnumType(uniqueId), EnumType(enumName)) => shortenedEnumTypesMap(uniqueId) == enumName
+            case (UnspecifiedEnumType(superEnumId), UnspecifiedEnumType(subEnumId)) =>
+                shortenedEnumTypesMap(superEnumId) == shortenedEnumTypesMap(subEnumId)
+            case (Type.AnyType, _) => true
+            case (_, Type.NothingType) => true
+            case (superType, subType) => superType == subType
+        }
+
+        def reduceUnionType(unionType: UnionOf): Type = {
+            val types = unionType.types
+            val reducedTypes = types.filterNot { subType =>
+                // (types - subType)에 subType보다 super type인 타입이 존재하면 subType은 없어도 됨
+                (types - subType).exists { superType => isSubtypeOf(superType, subType) }
+            }
+            Type.unifyTypes(reducedTypes)
+        }
     }
 
     def analyzeGrammar(grammarDef: MetaGrammar3Ast.Grammar, grammarName: String): ProcessedGrammar = {
@@ -94,14 +119,14 @@ object MetaLanguage3 {
             analysis.nonterminalTypes.foreach { p =>
                 println(s"Nonterm `${p._1}` = ${Type.readableNameOf(p._2)}")
             }
-            analysisPrinter.printClassHierarchy(analysis.rawClassRelations.toHierarchy)
+            AnalysisPrinter.printClassHierarchy(analysis.rawClassRelations.toHierarchy)
             val classHierarchy = analysis.classRelations.toHierarchy
-            analysisPrinter.printClassHierarchy(classHierarchy)
+            AnalysisPrinter.printClassHierarchy(classHierarchy)
             println(s"Enum Values: ${analysis.enumValuesMap}")
             println(s"Shortened enums: ${analysis.shortenedEnumTypesMap}")
             analysis.classParamTypes.foreach(pair =>
                 // TODO supers
-                analysisPrinter.printClassDef(classHierarchy, pair._1, pair._2)
+                AnalysisPrinter.printClassDef(classHierarchy, pair._1, pair._2)
             )
             analysisPrinter.printValuefyStructure()
 
@@ -113,7 +138,7 @@ object MetaLanguage3 {
                 valuefyExprSimulator.parse(input) match {
                     case Left(parsed) =>
                         println(s"== Input: $input")
-                        analysisPrinter.printNodeStructure(parsed)
+                        AnalysisPrinter.printNodeStructure(parsed)
                         val valuefied = valuefyExprSimulator.valuefy(parsed)
                         println(valuefied.prettyPrint())
                         // println(valuefied.detailPrint())
@@ -129,11 +154,16 @@ object MetaLanguage3 {
         // testExample(SimpleExamples.ex12a)
         // testExample(MetaLang3Grammar.inMetaLang3)
 
-        def generateParser(grammar: String, grammarName: String): Unit = {
+        def generateParser(grammar: String, grammarName: String, printClassHierarchy: Boolean = false): Unit = {
             val analysis = analyzeGrammar(grammar, grammarName)
             if (!analysis.errors.isClear) {
                 throw new Exception(analysis.errors.toString)
             }
+
+            if (printClassHierarchy) {
+                AnalysisPrinter.printClassHierarchy(analysis.classRelations.toHierarchy)
+            }
+
             val codegen = new ScalaCodeGen(analysis)
 
             val packageName = "com.giyeok.jparser.metalang3a.generated"
@@ -146,7 +176,8 @@ object MetaLanguage3 {
             writer.close()
         }
 
-        generateParser(SimpleExamples.ex3.grammar, "Simple3")
-        // generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3")
+        // generateParser(SimpleExamples.ex3.grammar, "Simple3")
+        // generateParser(SimpleExamples.ex12a.grammar, "Simple12a")
+        generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
     }
 }

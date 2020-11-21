@@ -1,17 +1,13 @@
 package com.giyeok.jparser.metalang3a.codegen
 
-import com.giyeok.jparser.{Inputs, NGrammar, Symbols}
-import com.giyeok.jparser.metalang2.ScalaDefGenerator.{escapeChar, escapeString, intSeqString, intSetString, javaChar, symbolString}
-import com.giyeok.jparser.metalang3a.MetaLanguage3.ProcessedGrammar
-import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.{CodeBlob, ExprBlob, Options}
-import com.giyeok.jparser.metalang3a.{ClassHierarchyTree, Type, ValuefyExpr}
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
-import com.giyeok.jparser.ParseResultTree.TerminalNode
+import com.giyeok.jparser.metalang2.ScalaDefGenerator.javaChar
+import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, check}
 import com.giyeok.jparser.metalang3a.Type.{ArrayOf, StringType}
-import com.giyeok.jparser.metalang3a.ValuefyExprSimulator.CharValue
-
-import scala.:+
+import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.{CodeBlob, ExprBlob, Options}
+import com.giyeok.jparser.metalang3a.{ClassHierarchyTree, Type, ValuefyExpr}
+import com.giyeok.jparser.{NGrammar, Symbols}
 
 object ScalaCodeGen {
 
@@ -148,35 +144,56 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
     def classDefs(classHierarchy: ClassHierarchyTree): CodeBlob = {
         if (classHierarchy.allTypes.isEmpty) CodeBlob("", Set()) else
             classHierarchy.allTypes.values.map { cls =>
-                val params = analysis.classParamTypes(cls.className).map { param =>
-                    val paramType = typeDescStringOf(param._2)
-                    CodeBlob(s"${param._1}: ${paramType.code}", paramType.required)
+                if (cls.subclasses.isEmpty) {
+                    // concrete type
+                    val params = analysis.classParamTypes.getOrElse(cls.className, List()).map { param =>
+                        val paramType = typeDescStringOf(param._2)
+                        CodeBlob(s"${param._1}: ${paramType.code}", paramType.required)
+                    }
+                    val supers = if (cls.superclasses.isEmpty) "" else s" extends ${cls.superclasses.mkString(" with ")}"
+                    CodeBlob(s"case class ${cls.className}(${params.map(_.code).mkString(", ")})$supers",
+                        params.flatMap(_.required).toSet)
+                } else {
+                    // abstract type
+                    val supers = if (cls.superclasses.isEmpty) "" else s" extends ${cls.superclasses.mkString(" with ")}"
+                    CodeBlob(s"sealed trait ${cls.className}$supers", Set())
                 }
-                val supers = if (cls.superclasses.isEmpty) "" else s"extends ${cls.superclasses.mkString(" with ")}"
-                CodeBlob(s"case class ${cls.className}(${params.map(_.code).mkString(", ")})$supers",
-                    params.flatMap(_.required).toSet)
             }.reduce(_ + _)
     }
 
-    private def typeDescStringOf(value: Type): CodeBlob = value match {
+    private def typeDescStringOf(typ: Type, context: Option[String] = None): CodeBlob = typ match {
         case Type.NodeType => CodeBlob("Node", Set("com.giyeok.jparser.ParseResultTree.Node"))
         case Type.ClassType(name) => CodeBlob(name, Set())
         case Type.OptionalOf(typ) =>
-            val elemType = typeDescStringOf(typ)
+            val elemType = typeDescStringOf(typ, context)
             CodeBlob(s"Option[${elemType.code}]", elemType.required)
         case Type.ArrayOf(typ) =>
-            val elemType = typeDescStringOf(typ)
+            val elemType = typeDescStringOf(typ, context)
             CodeBlob(s"List[${elemType.code}]", elemType.required)
-        case Type.UnionOf(types) =>
-            println(types)
-            ???
-        case Type.EnumType(enumName) => ???
-        case Type.UnspecifiedEnumType(uniqueId) => ???
+        case unionType: Type.UnionOf =>
+            val reducedType = analysis.reduceUnionType(unionType)
+            if (reducedType.isInstanceOf[Type.UnionOf]) {
+                val unionTypeNames = reducedType.asInstanceOf[Type.UnionOf].types.map(Type.readableNameOf)
+                val contextText = context.map(ctx => s" around $ctx").getOrElse("")
+                throw new Exception(s"Union type of {${unionTypeNames.mkString(", ")}} is not supported$contextText")
+            }
+            typeDescStringOf(reducedType)
+        case Type.EnumType(enumName) => CodeBlob(enumName, Set())
+        case Type.UnspecifiedEnumType(uniqueId) => CodeBlob(analysis.shortenedEnumTypesMap(uniqueId), Set())
         case Type.NullType => CodeBlob("Nothing", Set())
         case Type.AnyType => CodeBlob("Any", Set())
         case Type.BoolType => CodeBlob("Boolean", Set())
         case Type.CharType => CodeBlob("Char", Set())
         case Type.StringType => CodeBlob("String", Set())
+        case Type.NothingType =>
+            CodeBlob("Nothing", Set())
+    }
+
+    def enumDefs(enumValuesMap: Map[String, Set[String]]): CodeBlob = {
+        if (enumValuesMap.isEmpty) CodeBlob("", Set()) else enumValuesMap.keySet.toList.sorted.map { enumName =>
+            val members = enumValuesMap(enumName).toList.sorted
+            CodeBlob(s"object $enumName extends Enumeration { val ${members.mkString(", ")} = Value }", Set())
+        }.reduce(_ + _)
     }
 
     def matchStartFunc(): CodeBlob = {
@@ -194,15 +211,16 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
     }
 
     def nonterminalMatchFunc(nonterminal: String): CodeBlob = {
-        val body = valuefyExprToCode(analysis.nonterminalValuefyExprs(nonterminal), "node")
-        val returnType = typeDescStringOf(analysis.nonterminalTypes(nonterminal))
+        val valuefyExpr = analysis.nonterminalValuefyExprs(nonterminal)
+        val body = valuefyExprToCode(valuefyExpr, "node")
+        val returnType = typeDescStringOf(analysis.nonterminalTypes(nonterminal), Some(s"return type of nonterminal $nonterminal"))
         val bodyCode = if (body.prepares.isEmpty) {
             CodeBlob(body.result, body.required)
         } else {
             CodeBlob(body.preparesCode + "\n" + body.result, body.required).wrapBrace()
         }
         CodeBlob(s"def ${nonterminalMatchFuncName(nonterminal)}(node: Node): ${returnType.code} = " + bodyCode.code,
-            bodyCode.required ++ returnType.required + "com.giyeok.jparser.ParseResultTree.Node")
+            body.required ++ returnType.required ++ bodyCode.required + "com.giyeok.jparser.ParseResultTree.Node")
     }
 
     private def nonterminalMatchFuncName(nonterminal: String) =
@@ -215,6 +233,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         s"v$counter"
     }
 
+    // TODO valuefyExprToCode 결과에 expected type에 맞춰서 wrap해주는 기능 추가
     def valuefyExprToCode(valuefyExpr: ValuefyExpr, inputName: String): ExprBlob = valuefyExpr match {
         case ValuefyExpr.InputNode => ExprBlob(List(), inputName, Set())
         case ValuefyExpr.MatchNonterminal(nonterminalName) =>
@@ -227,8 +246,12 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                 s"val BindNode($bindedVar, $bodyVar) = $inputName",
                 s"assert($bindedVar.id == ${analysis.ngrammar.idOf(symbol)})"
             ) ++ exprCode.prepares, exprCode.result, exprCode.required)
-        case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) => ExprBlob(List(), s"$valuefyExpr", Set())
-        case ValuefyExpr.JoinCond(joinSymbol, bodyProcessor) => ExprBlob(List(), s"$valuefyExpr", Set())
+        case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) =>
+            // TODO
+            ExprBlob(List(), s"$valuefyExpr", Set())
+        case ValuefyExpr.JoinCond(joinSymbol, bodyProcessor) =>
+            // TODO
+            ExprBlob(List(), s"$valuefyExpr", Set())
         case ValuefyExpr.SeqElemAt(index, expr) =>
             val elemVar = newVar()
             val exprCode = valuefyExprToCode(expr, elemVar)
@@ -237,8 +260,12 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                 s"val $elemVar = $inputName.asInstanceOf[SequenceNode].children$indexer" +: exprCode.prepares,
                 exprCode.result,
                 exprCode.required + "com.giyeok.jparser.ParseResultTree.SequenceNode")
-        case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) => ExprBlob(List(), s"$valuefyExpr", Set())
-        case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) => ExprBlob(List(), s"$valuefyExpr", Set())
+        case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) =>
+            // TODO
+            ExprBlob(List(), s"$valuefyExpr", Set())
+        case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
+            // TODO
+            ExprBlob(List(), s"$valuefyExpr", Set())
         case ValuefyExpr.UnrollChoices(choices) =>
             val bindedVar = newVar()
             val bodyVar = newVar()
@@ -262,16 +289,26 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                 paramCodes.flatMap(_.required).toSet)
         case ValuefyExpr.FuncCall(funcType, params) =>
             funcType match {
-                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent => ???
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent =>
+                    val paramCodes = params.map(valuefyExprToCode(_, inputName))
+                    // TODO 제대로 다시 구현
+                    ExprBlob(paramCodes.flatMap(_.prepares),
+                        paramCodes.map(_.result + ".toString").mkString(" + "),
+                        paramCodes.flatMap(_.required).toSet)
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsEmpty => ???
-                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Chr => ???
+                case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Chr =>
+                    check(params.size == 1, "chr function only can have exactly one parameter")
+                    val paramCode = valuefyExprToCode(params.head, inputName)
+                    ExprBlob(paramCode.prepares, paramCode.result + ".toString.charAt(0)", paramCode.required)
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Str =>
-                    val paramsCodes = params.map(valuefyExprToCode(_, inputName))
-                    ExprBlob(paramsCodes.flatMap(_.prepares),
-                        paramsCodes.map(_.result + ".toString").mkString(" + "),
-                        paramsCodes.flatMap(_.required).toSet)
+                    val paramCodes = params.map(valuefyExprToCode(_, inputName))
+                    ExprBlob(paramCodes.flatMap(_.prepares),
+                        paramCodes.map(_.result + ".toString").mkString(" + "),
+                        paramCodes.flatMap(_.required).toSet)
             }
-        case ValuefyExpr.ArrayExpr(elems) => ExprBlob(List(), s"$valuefyExpr", Set())
+        case ValuefyExpr.ArrayExpr(elems) =>
+            // TODO
+            ExprBlob(List(), s"$valuefyExpr", Set())
         case ValuefyExpr.BinOp(op, lhs, rhs) =>
             val lhsCode = valuefyExprToCode(lhs, inputName)
             val rhsCode = valuefyExprToCode(rhs, inputName)
@@ -289,7 +326,9 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.BOOL_OR => ???
             }
             ExprBlob(lhsCode.prepares ++ rhsCode.prepares, opExpr, lhsCode.required ++ rhsCode.required)
-        case ValuefyExpr.PreOp(op, expr) => ExprBlob(List(), s"$valuefyExpr", Set())
+        case ValuefyExpr.PreOp(op, expr) =>
+            // TODO
+            ExprBlob(List(), s"$valuefyExpr", Set())
         case ValuefyExpr.ElvisOp(expr, ifNull) =>
             val exprVar = newVar()
             val exprCode = valuefyExprToCode(expr, inputName)
@@ -298,7 +337,9 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                 exprCode.prepares :+ s"val $exprVar = ${exprCode.result}",
                 s"if ($exprVar.isDefined) $exprVar else ${ifNullCode.withBraceIfNeeded}",
                 exprCode.required ++ ifNullCode.required)
-        case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) => ExprBlob(List(), s"$valuefyExpr", Set())
+        case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
+            // TODO
+            ExprBlob(List(), s"$valuefyExpr", Set())
         case literal: ValuefyExpr.Literal =>
             literal match {
                 case ValuefyExpr.NullLiteral => ExprBlob.code("None")
@@ -311,18 +352,27 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                             "com.giyeok.jparser.Inputs"))
                 case ValuefyExpr.StringLiteral(value) => ExprBlob.code("\"" + value + "\"") // TODO escape
             }
-        case value: ValuefyExpr.EnumValue => ExprBlob(List(), s"$valuefyExpr", Set())
+        case enumValue: ValuefyExpr.EnumValue =>
+            enumValue match {
+                case ValuefyExpr.CanonicalEnumValue(enumName, enumValue) => ExprBlob.code(s"$enumName.$enumValue")
+                case ValuefyExpr.ShortenedEnumValue(unspecifiedEnumTypeId, enumValue) =>
+                    val enumName = analysis.shortenedEnumTypesMap(unspecifiedEnumTypeId)
+                    ExprBlob.code(s"$enumName.$enumValue")
+            }
     }
 
     def generateParser(className: String): String = {
         val ngrammarDefCode = ngrammarDef(analysis.ngrammar)
         val classDefsCode = classDefs(analysis.classRelations.toHierarchy)
+        val enumDefsCode = enumDefs(analysis.enumValuesMap)
+        // TODO nontermMatchCodes에서 AST에서 쓰이지 않는 nonterminal은 제외
         val nontermMatchCodes = analysis.nonterminalTypes.keys.map(nonterminalMatchFunc).toList
         val startMatchCode = matchStartFunc()
         val startType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName))
 
         val allImports = (ngrammarDefCode.required ++
             classDefsCode.required ++
+            enumDefsCode.required ++
             nontermMatchCodes.flatMap(_.required) ++
             startMatchCode.required ++
             startType.required).toList.sorted
@@ -332,6 +382,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
            |  val ngrammar = ${ngrammarDefCode.indent().code}
            |
            |${classDefsCode.indent().code}
+           |${enumDefsCode.indent().code}
            |
            |${nontermMatchCodes.map(_.indent().code).mkString("\n\n")}
            |

@@ -132,9 +132,7 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
         def recursion(current: N): Boolean =
             if (current == end) true else {
                 visited += current
-                ((edgesByStart(start) map { e => e.end }) -- visited) exists { end =>
-                    recursion(end)
-                }
+                ((edgesByStart(current) map { e => e.end }) -- visited) exists recursion
             }
 
         recursion(start)

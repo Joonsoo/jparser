@@ -104,6 +104,7 @@ case class TypeRelationCollector(classRelations: ClassRelationCollector, enumRel
             case (UnspecifiedEnumType(unspecifiedId), UnspecifiedEnumType(otherUnspecifiedId)) => enumRelations.isNewRelation(unspecifiedId, otherUnspecifiedId)
             case (OptionalOf(_), NullType) => false
             case (AnyType, _) => false
+            case (_, NothingType) => false
             case (BoolType, BoolType) => false
             case (CharType, CharType) => false
             case (StringType, StringType) => false

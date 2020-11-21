@@ -12,7 +12,9 @@ object Type {
 
     case class ArrayOf(elemType: Type) extends Type
 
-    case class UnionOf(types: Set[Type]) extends Type
+    case class UnionOf(types: Set[Type]) extends Type {
+        assert(types.nonEmpty)
+    }
 
     case class EnumType(enumName: String) extends Type
 
@@ -22,6 +24,8 @@ object Type {
 
     object AnyType extends Type
 
+    object NothingType extends Type
+
     object BoolType extends Type
 
     object CharType extends Type
@@ -29,7 +33,9 @@ object Type {
     object StringType extends Type
 
     def unifyTypes(types: Set[Type]): Type =
-        if (types.size == 1) {
+        if (types.isEmpty) {
+            Type.NothingType
+        } else if (types.size == 1) {
             types.head
         } else if (types.contains(Type.NullType)) {
             val exceptNull = types - Type.NullType
@@ -51,5 +57,6 @@ object Type {
         case BoolType => "boolean"
         case CharType => "char"
         case StringType => "string"
+        case NothingType => "nothing"
     }
 }

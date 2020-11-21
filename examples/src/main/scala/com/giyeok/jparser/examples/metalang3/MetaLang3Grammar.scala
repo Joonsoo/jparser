@@ -335,8 +335,8 @@ object MetaLang3Grammar extends MetaLangExamples {
           |NamedConstructParams = '(' WS (NamedParam (WS ',' WS NamedParam)* WS {[$0] + $1}) ')' $2
           |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' WS PExpr {NamedParam(name=$0, typeDesc=$1, expr=$5)}
           |FuncCallOrConstructExpr = TypeOrFuncName WS CallParams {FuncCallOrConstructExpr(funcName=$0, params=$2)}
-          |CallParams = '(' WS (PExpr (WS ',' WS PExpr)* WS {[$0] + $1})? ')' {$2 ?: []}
-          |ArrayExpr = '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {ArrayExpr(elems=$2{[$0] + $1} ?: [])}
+          |CallParams: [PExpr] = '(' WS (PExpr (WS ',' WS PExpr)* WS {[$0] + $1})? ')' {$2 ?: []}
+          |ArrayExpr = '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {ArrayExpr(elems: [PExpr]=$2{[$0] + $1} ?: [])}
           |Literal: Literal = "null" {NullLiteral()}
           |  | ("true" {true} | "false" {false}) {BoolLiteral(value=$0)}
           |  | '\'' CharChar '\'' {CharLiteral(value=$1)}
@@ -352,10 +352,10 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | SuperDef // SuperDef is defining super class by listing all its subclasses.
           |  | EnumTypeDef
           |ClassDef: ClassDef = TypeName WS SuperTypes {AbstractClassDef(name=$0, supers=$2)}
-          |  | TypeName WS ClassParamsDef {ConcreteClassDef(name=$0, supers=[], params=$2)}
+          |  | TypeName WS ClassParamsDef {ConcreteClassDef(name=$0, supers: [TypeName]=[], params=$2)}
           |  | TypeName WS SuperTypes WS ClassParamsDef {ConcreteClassDef(name=$0, supers=$2, params=$4)}
-          |SuperTypes = '<' WS (TypeName (WS ',' WS TypeName)* WS {[$0] + $1})? '>' {$2 ?: []}
-          |ClassParamsDef = '(' WS (ClassParamDef (WS ',' WS ClassParamDef)* WS {[$0] + $1})? WS ')' {$2 ?: []}
+          |SuperTypes: [TypeName] = '<' WS (TypeName (WS ',' WS TypeName)* WS {[$0] + $1})? '>' {$2 ?: []}
+          |ClassParamsDef: [ClassParamDef] = '(' WS (ClassParamDef (WS ',' WS ClassParamDef)* WS {[$0] + $1})? WS ')' {$2 ?: []}
           |ClassParamDef = ParamName (WS ':' WS TypeDesc)? {ClassParamDef(name=$0, typeDesc=$1)}
           |
           |SuperDef = TypeName (WS SuperTypes)? WS '{' (WS SubTypes)? WS '}' {SuperDef(typeName=$0, subs=$4, supers=$1)}
@@ -393,16 +393,21 @@ object MetaLang3Grammar extends MetaLangExamples {
           |ParamName = Id-Keyword {ParamName(name=str(\\$0))}
           |  | '`' Id '`' {ParamName(name=str(\\$1))}
           |EnumValueName = Id {EnumValueName(name=$0)}
-          |Keyword = "boolean" | "char" | "string" | "true" | "false" | "null"
+          |Keyword: %KeyWord = "boolean" {%BOOLEAN}
+          |  | "char" {%CHAR}
+          |  | "string" {%STRING}
+          |  | "true" {%TRUE}
+          |  | "false" {%FALSE}
+          |  | "null" {%NULL}
           |StrChar = StringChar
           |CharChar = TerminalChar
           |
-          |RefIdx = <'0' | '1-9' '0-9'*>
-          |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*>
-          |WS = (' \n\r\t' | LineComment)*
-          |WSNL = WS // TODO newline이 포함된 WS
-          |LineComment = '/' '/' (.-'\n')* (EOF | '\n')
-          |EOF = !.
+          |RefIdx = <'0' | '1-9' '0-9'*> {str($0)}
+          |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*> {""}
+          |WS = (' \n\r\t' | LineComment)* {""}
+          |WSNL = <(' \r\t' | LineComment)* '\n' WS> {""} // newline이 최소 한 개 이상 포함된 WS
+          |LineComment = '/' '/' (.-'\n')* (EOF | '\n') {""}
+          |EOF = !. {""}
           |""".stripMargin)
         .examples(SimpleExamples.examples.map(_.grammar))
 

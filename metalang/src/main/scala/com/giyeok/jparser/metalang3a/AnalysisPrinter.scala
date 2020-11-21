@@ -5,9 +5,7 @@ import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNod
 import com.giyeok.jparser.metalang3a.Type.readableNameOf
 import com.giyeok.jparser.metalang3a.ValuefyExpr.{MatchNonterminal, Unbind, UnrollChoices}
 
-class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
-                      val nonterminalValuefyExprs: Map[String, UnrollChoices],
-                      val shortenedEnumTypesMap: Map[Int, String]) {
+object AnalysisPrinter {
     def printClassHierarchy(classHierarchy: ClassHierarchyTree): Unit = {
         def printHierarchyItem(item: ClassHierarchyItem, indent: String = ""): Unit = {
             val extending = if (item.superclasses.isEmpty) "" else s" extends ${item.superclasses.toList.sorted.mkString(", ")}"
@@ -39,6 +37,15 @@ class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
         case ParseResultTree.CyclicSequenceNode(start, end, symbol, pointer, _children) =>
             println(s"${indent}Cyclic Sequence")
     }
+
+    def printClassDef(classHierarchy: ClassHierarchyTree, className: String, classParams: List[(String, Type)]): Unit = {
+        println(s"class $className(${classParams.map(p => s"${p._1}: ${readableNameOf(classHierarchy.simplifyType(p._2))}(${readableNameOf(p._2)})").mkString(", ")})")
+    }
+}
+
+class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
+                      val nonterminalValuefyExprs: Map[String, UnrollChoices],
+                      val shortenedEnumTypesMap: Map[Int, String]) {
 
     def printValuefyStructure(valuefyExpr: ValuefyExpr, indent: String = ""): Unit = valuefyExpr match {
         case ValuefyExpr.InputNode => println(s"${indent}InputNode")
@@ -103,9 +110,5 @@ class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
             println(s"== ${expr._1}:")
             printValuefyStructure(expr._2)
         }
-    }
-
-    def printClassDef(classHierarchy: ClassHierarchyTree, className: String, classParams: List[(String, Type)]): Unit = {
-        println(s"class $className(${classParams.map(p => s"${p._1}: ${readableNameOf(classHierarchy.simplifyType(p._2))}(${readableNameOf(p._2)})").mkString(", ")})")
     }
 }
