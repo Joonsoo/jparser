@@ -140,7 +140,13 @@ object SimpleExamples extends MetaLangExamples {
         .example("abc", "\"b\"")
         .example("abbbbbbc", "\"bbbbbb\"")
         .example("", "\"none\"")
+    val repeat: MetaLang3Example = MetaLang3Example("Repeat",
+        """A = 'a'* 'b'+ {A(as=$0, bs=$1, cs=[$0, $1], ds=$0 + $1)}
+          |""".stripMargin)
+        .example("b")
+        .example("ab")
+        .example("aaaabbbbb")
 
     override val examples: List[MetaLang3Example] =
-        List(ex1, ex2, ex3, ex4, ex5, ex6a, ex6b, ex6c, ex6d, ex7, ex7a, ex7b, ex7c, ex8, ex9, ex10, ex10a, ex11, ex12, ex12a)
+        List(ex1, ex2, ex3, ex4, ex5, ex6a, ex6b, ex6c, ex6d, ex7, ex7a, ex7b, ex7c, ex8, ex9, ex10, ex10a, ex11, ex12, ex12a, repeat)
 }

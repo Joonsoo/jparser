@@ -178,6 +178,7 @@ object MetaLanguage3 {
 
         // generateParser(SimpleExamples.ex3.grammar, "Simple3")
         // generateParser(SimpleExamples.ex12a.grammar, "Simple12a")
-        generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
+        // generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
+        generateParser(SimpleExamples.repeat.grammar, "RepeatExample")
     }
 }

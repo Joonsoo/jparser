@@ -189,7 +189,6 @@ class ClassRelationCollector private(override val nodes: Set[String], override v
         nodes.foreach(node => traverse(node, List()))
 
         val essentialEdges = nodesReachability.values.filter(_.size == 1).filter(_.head.size == 1).flatMap(_.map(_.head))
-        println(essentialEdges)
 
         (edges -- essentialEdges).foldLeft(this) { (m, i) => m.removeEdge(i) }
     }
