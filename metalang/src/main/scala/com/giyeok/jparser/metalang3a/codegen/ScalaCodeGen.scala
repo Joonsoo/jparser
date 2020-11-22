@@ -2,6 +2,7 @@ package com.giyeok.jparser.metalang3a.codegen
 
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
+import com.giyeok.jparser.ParseResultTree.{BindNode, Node, SequenceNode}
 import com.giyeok.jparser.metalang2.ScalaDefGenerator.javaChar
 import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, check}
 import com.giyeok.jparser.metalang3a.Type.{ArrayOf, StringType}
@@ -171,13 +172,13 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
             val elemType = typeDescStringOf(typ, context)
             CodeBlob(s"List[${elemType.code}]", elemType.required)
         case unionType: Type.UnionOf =>
-            val reducedType = analysis.reduceUnionType(unionType)
-            if (reducedType.isInstanceOf[Type.UnionOf]) {
-                val unionTypeNames = reducedType.asInstanceOf[Type.UnionOf].types.map(Type.readableNameOf)
-                val contextText = context.map(ctx => s" around $ctx").getOrElse("")
-                throw new Exception(s"Union type of {${unionTypeNames.mkString(", ")}} is not supported$contextText")
+            analysis.reduceUnionType(unionType) match {
+                case reducedType: Type.UnionOf =>
+                    val unionTypeNames = reducedType.types.map(Type.readableNameOf)
+                    val contextText = context.map(ctx => s" around $ctx").getOrElse("")
+                    throw new Exception(s"Union type of {${unionTypeNames.mkString(", ")}} is not supported$contextText")
+                case reducedType => typeDescStringOf(reducedType)
             }
-            typeDescStringOf(reducedType)
         case Type.EnumType(enumName) => CodeBlob(s"$enumName.Value", Set())
         case Type.UnspecifiedEnumType(uniqueId) => CodeBlob(s"${analysis.shortenedEnumTypesMap(uniqueId)}.Value", Set())
         case Type.NullType => CodeBlob("Nothing", Set())
@@ -260,11 +261,25 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                 exprCode.result,
                 exprCode.required + "com.giyeok.jparser.ParseResultTree.SequenceNode")
         case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) =>
-            // TODO
-            ExprBlob(List(), s"$valuefyExpr", Set())
+            val unrolledVar = newVar()
+            val elemProcessorCode = valuefyExprToCode(elemProcessor, "elem")
+            ExprBlob(
+                List(s"val $unrolledVar = unrollRepeat0($inputName).map { elem =>") ++
+                    elemProcessorCode.prepares :+
+                    elemProcessorCode.result :+
+                    "}",
+                unrolledVar,
+                elemProcessorCode.required + "com.giyeok.jparser.metalang3a.codegen.ScalaCodeGenUtil.unrollRepeat0")
         case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
-            // TODO
-            ExprBlob(List(), s"$valuefyExpr", Set())
+            val unrolledVar = newVar()
+            val elemProcessorCode = valuefyExprToCode(elemProcessor, "elem")
+            ExprBlob(
+                List(s"val $unrolledVar = unrollRepeat1($inputName).map { elem =>") ++
+                    elemProcessorCode.prepares :+
+                    elemProcessorCode.result :+
+                    "}",
+                unrolledVar,
+                elemProcessorCode.required + "com.giyeok.jparser.metalang3a.codegen.ScalaCodeGenUtil.unrollRepeat1")
         case ValuefyExpr.UnrollChoices(choices) =>
             val bindedVar = newVar()
             val bodyVar = newVar()
@@ -280,9 +295,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                 s"val BindNode($bindedVar, $bodyVar) = $inputName"
             ), casesExpr.wrap(s"$bindedVar.id match {", "}").code, casesExpr.required)
         case ValuefyExpr.ConstructCall(className, params) =>
-            val paramCodes = params.map { param =>
-                valuefyExprToCode(param, inputName)
-            }
+            val paramCodes = params.map(valuefyExprToCode(_, inputName))
             ExprBlob(paramCodes.flatMap(_.prepares),
                 s"$className(${paramCodes.map(_.result).mkString(", ")})",
                 paramCodes.flatMap(_.required).toSet)
@@ -306,8 +319,10 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                         paramCodes.flatMap(_.required).toSet)
             }
         case ValuefyExpr.ArrayExpr(elems) =>
-            // TODO
-            ExprBlob(List(), s"$valuefyExpr", Set())
+            val elemCodes = elems.map(valuefyExprToCode(_, inputName))
+            ExprBlob(elemCodes.flatMap(_.prepares),
+                s"List(${elemCodes.map(_.result).mkString(", ")})",
+                elemCodes.flatMap(_.required).toSet)
         case ValuefyExpr.BinOp(op, lhs, rhs) =>
             val lhsCode = valuefyExprToCode(lhs, inputName)
             val rhsCode = valuefyExprToCode(rhs, inputName)
@@ -334,7 +349,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
             val ifNullCode = valuefyExprToCode(ifNull, inputName)
             ExprBlob(
                 exprCode.prepares :+ s"val $exprVar = ${exprCode.result}",
-                s"if ($exprVar.isDefined) $exprVar else ${ifNullCode.withBraceIfNeeded}",
+                s"if ($exprVar.isDefined) $exprVar.get else ${ifNullCode.withBraceIfNeeded}",
                 exprCode.required ++ ifNullCode.required)
         case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
             // TODO
@@ -403,5 +418,40 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
            |    case Right(error) => Right(error)
            |  }
            |}""".stripMargin
+    }
+}
+
+object ScalaCodeGenUtil {
+    def unrollRepeat1(node: Node): List[Node] = {
+        val BindNode(repeat: NGrammar.NRepeat, body) = node
+        body match {
+            case BindNode(symbol, repeating: SequenceNode) if symbol.id == repeat.repeatSeq =>
+                assert(symbol.id == repeat.repeatSeq)
+                val s = repeating.children(1)
+                val r = unrollRepeat1(repeating.children.head)
+                r :+ s
+            case base =>
+                List(base)
+        }
+    }
+
+    def unrollRepeat0(node: Node): List[Node] = {
+        val BindNode(repeat: NGrammar.NRepeat, body) = node
+        body match {
+            case BindNode(symbol, repeating: SequenceNode) =>
+                assert(symbol.id == repeat.repeatSeq)
+                val s = repeating.children(1)
+                val r = unrollRepeat0(repeating.children.head)
+                r :+ s
+            case SequenceNode(_, _, symbol, emptySeq) =>
+                assert(symbol.id == repeat.baseSeq)
+                assert(emptySeq.isEmpty)
+                List()
+        }
+    }
+
+    def unrollOptional(node: Node, emptyId: Int, contentId: Int): Option[Node] = {
+        val BindNode(_: NGrammar.NOneOf, body@BindNode(bodySymbol, _)) = node
+        if (bodySymbol.id == contentId) Some(body) else None
     }
 }
