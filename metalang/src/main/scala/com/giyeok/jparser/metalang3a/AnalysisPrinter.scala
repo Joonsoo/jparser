@@ -26,8 +26,8 @@ object AnalysisPrinter {
             printNodeStructure(body, indent + "  ")
         case ParseResultTree.CyclicBindNode(start, end, symbol) =>
             println(s"${indent}Cyclic Bind")
-        case JoinNode(symbol, body, join) =>
-            println(s"${indent}Join ${symbol.id}:${symbol.symbol.toShortString}")
+        case JoinNode(body, join) =>
+            println(s"${indent}Join")
             printNodeStructure(body, indent + "  ")
             printNodeStructure(join, indent + "  ")
         case seq@SequenceNode(start, end, symbol, _children) =>
@@ -53,11 +53,11 @@ class AnalysisPrinter(val grammar: NGrammar, val startValuefyExpr: ValuefyExpr,
         case Unbind(symbol, expr) =>
             println(s"${indent}Unbind ${grammar.idOf(symbol)}:${symbol.toShortString}")
             printValuefyStructure(expr, indent + "  ")
-        case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) =>
-            println(s"${indent}JoinBody of ${grammar.idOf(joinSymbol)}:${joinSymbol.toShortString}")
+        case ValuefyExpr.JoinBody(bodyProcessor) =>
+            println(s"${indent}JoinBody")
             printValuefyStructure(bodyProcessor, indent + "  ")
-        case ValuefyExpr.JoinCond(joinSymbol, bodyProcessor) =>
-            println(s"${indent}JoinCond of ${grammar.idOf(joinSymbol)}:${joinSymbol.toShortString}")
+        case ValuefyExpr.JoinCond(bodyProcessor) =>
+            println(s"${indent}JoinCond")
             printValuefyStructure(bodyProcessor, indent + "  ")
         case ValuefyExpr.SeqElemAt(index, expr) =>
             println(s"${indent}SeqElem $index")

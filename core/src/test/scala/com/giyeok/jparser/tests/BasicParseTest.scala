@@ -95,10 +95,9 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends AnyF
     }
 
     private def getSymbolOf(node: ParseResultTree.Node): NSymbol = node match {
-        // must not be TerminalNode
+        // must not be TerminalNode or JoinNode
         case ParseResultTree.BindNode(symbol, _) => symbol
         case ParseResultTree.CyclicBindNode(_, _, symbol) => symbol
-        case ParseResultTree.JoinNode(symbol, _, _) => symbol
         case ParseResultTree.SequenceNode(_, _, symbol, _) => symbol
         case ParseResultTree.CyclicSequenceNode(_, _, symbol, _, _) => symbol
     }
@@ -116,7 +115,7 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends AnyF
                 assert(nonterm.produces contains bodySym.id)
                 assert(grammar.rules(name) contains bodySym.symbol)
                 checkParse(body, grammar)
-            case BindNode(NJoin(_, sym: Join, _, _), body@JoinNode(_, BindNode(bodySym, _), BindNode(joinSym, _))) =>
+            case BindNode(NJoin(_, sym: Join, _, _), body@JoinNode(BindNode(bodySym, _), BindNode(joinSym, _))) =>
                 assert(sym.sym == bodySym.symbol)
                 assert(sym.join == joinSym.symbol)
                 checkParse(body, grammar)
@@ -194,7 +193,7 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends AnyF
                 node.childrenAll foreach {
                     checkParse(_, grammar)
                 }
-            case JoinNode(_, body, join) =>
+            case JoinNode(body, join) =>
                 checkParse(body, grammar)
                 checkParse(join, grammar)
             case _: CyclicBindNode | _: CyclicSequenceNode =>

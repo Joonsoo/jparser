@@ -185,7 +185,7 @@ object MetaGrammar extends Grammar {
         case s: SequenceNode => (s.children map {
             textOf
         }).mkString
-        case JoinNode(_, body, join) => textOf(body)
+        case JoinNode(body, join) => textOf(body)
         case TerminalNode(_, Inputs.Character(c)) => s"$c"
         case _ => ???
     }

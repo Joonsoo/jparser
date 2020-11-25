@@ -15,10 +15,10 @@ object ValuefyExpr {
     case class Unbind(symbol: Symbols.Symbol, expr: ValuefyExpr) extends ValuefyExpr
 
     // input ParseNode가 joinSymbol의 JoinNode일 것으로 가정. JoinNode의 sym 부분을 bodyProcessor로 valuefy
-    case class JoinBody(joinSymbol: Symbols.Join, bodyProcessor: ValuefyExpr) extends ValuefyExpr
+    case class JoinBody(bodyProcessor: ValuefyExpr) extends ValuefyExpr
 
     // input ParseNode가 joinSymbol의 JoinNode일 것으로 가정. JoinNode의 join 부분을 bodyProcessor로 valuefy
-    case class JoinCond(joinSymbol: Symbols.Join, bodyProcessor: ValuefyExpr) extends ValuefyExpr
+    case class JoinCond(condProcessor: ValuefyExpr) extends ValuefyExpr
 
     // input ParseNode가 SequenceNode일 것으로 가정하고, index번째 Node에 대해 expr로 valuefy
     case class SeqElemAt(index: Int, expr: ValuefyExpr) extends ValuefyExpr

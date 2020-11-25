@@ -150,8 +150,8 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
             val vJoin = proxy(valuefySymbol(join, condSymPathTail, input))
             val joinSymbol = Symbols.Join(vBody._2, vJoin._2)
             val useBody = condSymPath.isEmpty || condSymPath.charAt(0) == '<'
-            if (useBody) (JoinBody(joinSymbol, vBody._1), joinSymbol)
-            else (JoinCond(joinSymbol, vJoin._1), joinSymbol)
+            if (useBody) (Unbind(joinSymbol, JoinBody(vBody._1)), joinSymbol)
+            else (Unbind(joinSymbol, JoinCond(vJoin._1)), joinSymbol)
         case MetaGrammar3Ast.ExceptSymbol(_, body, except) =>
             check(condSymPath.isEmpty, "Except cannot be referred with condSymPath")
             val vBody = proxy(valuefySymbol(body, "", input))

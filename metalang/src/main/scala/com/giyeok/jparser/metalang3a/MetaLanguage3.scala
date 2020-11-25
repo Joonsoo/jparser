@@ -5,7 +5,7 @@ import java.io.{BufferedWriter, FileWriter}
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
-import com.giyeok.jparser.examples.metalang3.{OptionalExamples, SimpleExamples}
+import com.giyeok.jparser.examples.metalang3.{JoinExamples, OptionalExamples, SimpleExamples}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang3a.Type._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
@@ -140,7 +140,7 @@ object MetaLanguage3 {
                         println(s"== Input: $input")
                         AnalysisPrinter.printNodeStructure(parsed)
                         val valuefied = valuefyExprSimulator.valuefy(parsed)
-                        println(valuefied.prettyPrint())
+                        println(s"Value: ${valuefied.prettyPrint()}")
                         // println(valuefied.detailPrint())
                         expectedResult.foreach(someExpectedResult =>
                             check(valuefied.prettyPrint() == someExpectedResult,
@@ -183,7 +183,14 @@ object MetaLanguage3 {
         // generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
         // generateParser(SimpleExamples.repeat.grammar, "RepeatExample")
         // generateParser(OptionalExamples.simple.grammar, "OptionalExample")
-        generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(List("a.a")))
-        testExample(OptionalExamples.withShortEnum)
+        // generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(List("a.a")))
+        // testExample(OptionalExamples.withShortEnum)
+
+        testExample(MetaLang3Example("Simple Join",
+            """A = !"bbbb" B+? {Cls(v=$0,bs=$1)}
+              |B = 'b'
+              |""".stripMargin)
+            .example("")
+            .example("bbb"))
     }
 }

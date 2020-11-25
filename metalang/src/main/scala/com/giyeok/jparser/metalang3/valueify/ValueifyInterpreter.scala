@@ -46,13 +46,15 @@ class ValueifyInterpreter(val analysis: AnalysisResult) {
             check(bindSymbol.id == analysis.symbolOf(???).id, "")
             valueify(body, expr)
         case JoinBodyOf(joinSymbol, joinExpr, bodyProcessorExpr, _) =>
-            val JoinNode(bindSymbol, body, _) = node
-            check(bindSymbol.id == analysis.symbolOf(joinSymbol).id, "")
-            valueify(body, joinExpr)
+            //            val JoinNode(bindSymbol, body, _) = node
+            //            check(bindSymbol.id == analysis.symbolOf(joinSymbol).id, "")
+            //            valueify(body, joinExpr)
+            ???
         case JoinCondOf(joinSymbol, joinExpr, condProcessorExpr, resultType) =>
-            val JoinNode(bindSymbol, _, cond) = node
-            check(bindSymbol.id == analysis.symbolOf(joinSymbol).id, "")
-            valueify(cond, joinExpr)
+            //            val JoinNode(bindSymbol, _, cond) = node
+            //            check(bindSymbol.id == analysis.symbolOf(joinSymbol).id, "")
+            //            valueify(cond, joinExpr)
+            ???
         case SeqElemAt(expr, index, resultType) =>
             valueify(node.asInstanceOf[SequenceNode].children(index), expr)
         case UnrollRepeat(minimumRepeat, arrayExpr, elemProcessExpr) =>

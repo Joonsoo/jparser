@@ -260,10 +260,10 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                 s"val BindNode($bindedVar, $bodyVar) = $inputName",
                 s"assert($bindedVar.id == ${analysis.ngrammar.idOf(symbol)})"
             ) ++ exprCode.prepares, exprCode.result, exprCode.required)
-        case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) =>
+        case ValuefyExpr.JoinBody(bodyProcessor) =>
             // TODO
             ExprBlob(List(), s"$valuefyExpr", Set())
-        case ValuefyExpr.JoinCond(joinSymbol, bodyProcessor) =>
+        case ValuefyExpr.JoinCond(condProcessor) =>
             // TODO
             ExprBlob(List(), s"$valuefyExpr", Set())
         case ValuefyExpr.SeqElemAt(index, expr) =>
@@ -283,7 +283,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                     addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
                     "}",
                 unrolledVar,
-                elemProcessorCode.required + "com.giyeok.jparser.metalang3a.codegen.ScalaCodeGenUtil.unrollRepeat0")
+                elemProcessorCode.required + "com.giyeok.jparser.metalang3a.Utils.unrollRepeat0")
         case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
             val unrolledVar = newVar()
             val elemProcessorCode = valuefyExprToCode(elemProcessor, "elem")
@@ -293,7 +293,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                     addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
                     "}",
                 unrolledVar,
-                elemProcessorCode.required + "com.giyeok.jparser.metalang3a.codegen.ScalaCodeGenUtil.unrollRepeat1")
+                elemProcessorCode.required + "com.giyeok.jparser.metalang3a.Utils.unrollRepeat1")
         case ValuefyExpr.UnrollChoices(choices) =>
             val bindedVar = newVar()
             val bodyVar = newVar()
@@ -447,40 +447,5 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
            |  }$mainFunc
            |}
            |""".stripMargin
-    }
-}
-
-object ScalaCodeGenUtil {
-    def unrollRepeat1(node: Node): List[Node] = {
-        val BindNode(repeat: NGrammar.NRepeat, body) = node
-        body match {
-            case BindNode(symbol, repeating: SequenceNode) if symbol.id == repeat.repeatSeq =>
-                assert(symbol.id == repeat.repeatSeq)
-                val s = repeating.children(1)
-                val r = unrollRepeat1(repeating.children.head)
-                r :+ s
-            case base =>
-                List(base)
-        }
-    }
-
-    def unrollRepeat0(node: Node): List[Node] = {
-        val BindNode(repeat: NGrammar.NRepeat, body) = node
-        body match {
-            case BindNode(symbol, repeating: SequenceNode) =>
-                assert(symbol.id == repeat.repeatSeq)
-                val s = repeating.children(1)
-                val r = unrollRepeat0(repeating.children.head)
-                r :+ s
-            case SequenceNode(_, _, symbol, emptySeq) =>
-                assert(symbol.id == repeat.baseSeq)
-                assert(emptySeq.isEmpty)
-                List()
-        }
-    }
-
-    def unrollOptional(node: Node, emptyId: Int, contentId: Int): Option[Node] = {
-        val BindNode(_: NGrammar.NOneOf, body@BindNode(bodySymbol, _)) = node
-        if (bodySymbol.id == contentId) Some(body) else None
     }
 }

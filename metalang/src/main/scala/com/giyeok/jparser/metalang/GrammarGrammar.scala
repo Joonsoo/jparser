@@ -104,7 +104,7 @@ object GrammarGrammar extends Grammar {
     def textOf(node: Node): String = node match {
         case BindNode(s, body) => textOf(body)
         case s: SequenceNode => (s.children map { textOf(_) }).mkString
-        case JoinNode(_, body, join) => textOf(body)
+        case JoinNode(body, join) => textOf(body)
         case TerminalNode(_, Inputs.Character(c)) => s"$c"
         case _ => ???
     }

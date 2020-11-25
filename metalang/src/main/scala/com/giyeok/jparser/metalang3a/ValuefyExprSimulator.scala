@@ -49,34 +49,6 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
 
     def valuefy(parseNode: Node): Value = valuefy(parseNode, startValuefyExpr)
 
-    private def unrollRepeat1(node: Node): List[Node] = {
-        val BindNode(repeat: NGrammar.NRepeat, body) = node
-        body match {
-            case BindNode(symbol, repeating: SequenceNode) if symbol.id == repeat.repeatSeq =>
-                assert(symbol.id == repeat.repeatSeq)
-                val s = repeating.children(1)
-                val r = unrollRepeat1(repeating.children(0))
-                r :+ s
-            case base =>
-                List(base)
-        }
-    }
-
-    private def unrollRepeat0(node: Node): List[Node] = {
-        val BindNode(repeat: NGrammar.NRepeat, body) = node
-        body match {
-            case BindNode(symbol, repeating: SequenceNode) =>
-                assert(symbol.id == repeat.repeatSeq)
-                val s = repeating.children(1)
-                val r = unrollRepeat0(repeating.children(0))
-                r :+ s
-            case SequenceNode(_, _, symbol, emptySeq) =>
-                assert(symbol.id == repeat.baseSeq)
-                assert(emptySeq.isEmpty)
-                List()
-        }
-    }
-
     def valuefy(parseNode: Node, valuefyExpr: ValuefyExpr): Value = valuefyExpr match {
         case ValuefyExpr.InputNode => NodeValue(parseNode)
         case ValuefyExpr.MatchNonterminal(nonterminalName) =>
@@ -88,28 +60,26 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
             val BindNode(bindedSymbol, body) = parseNode
             check(bindedSymbol.symbol == symbol, s"Invalid unbind expected: ${symbol.toShortString}, actual: ${bindedSymbol.symbol.toShortString}")
             valuefy(body, expr)
-        case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) =>
-            val JoinNode(bindedSymbol, body, _) = parseNode
-            check(bindedSymbol.symbol == joinSymbol, "Invalid unbind join body")
+        case ValuefyExpr.JoinBody(bodyProcessor) =>
+            val JoinNode(body, _) = parseNode
             valuefy(body, bodyProcessor)
-        case ValuefyExpr.JoinCond(joinSymbol, bodyProcessor) =>
-            val JoinNode(bindedSymbol, _, join) = parseNode
-            check(bindedSymbol.symbol == joinSymbol, "Invalid unbind join cond")
+        case ValuefyExpr.JoinCond(bodyProcessor) =>
+            val JoinNode(_, join) = parseNode
             valuefy(join, bodyProcessor)
         case ValuefyExpr.SeqElemAt(index, expr) =>
             check(parseNode.isInstanceOf[SequenceNode], s"Expected sequence, but actual=unbind(${parseNode.asInstanceOf[BindNode].symbol.symbol.toShortString})")
             val referredElem = parseNode.asInstanceOf[SequenceNode].children(index)
             valuefy(referredElem, expr)
         case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) =>
-            val elemNodes = unrollRepeat0(parseNode)
+            val elemNodes = Utils.unrollRepeat0(parseNode)
             val elemValues = elemNodes.map(valuefy(_, elemProcessor))
             ArrayValue(elemValues)
         case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
-            val elemNodes = unrollRepeat1(parseNode)
+            val elemNodes = Utils.unrollRepeat1(parseNode)
             val elemValues = elemNodes.map(valuefy(_, elemProcessor))
             ArrayValue(elemValues)
         case ValuefyExpr.UnrollChoices(choices) =>
-            val BindNode(bindedSymbol, body) = parseNode
+            val BindNode(bindedSymbol, _) = parseNode
             val choiceValuefyExpr = choices(bindedSymbol.symbol)
             valuefy(parseNode, choiceValuefyExpr)
         case ValuefyExpr.ConstructCall(className, params) =>
