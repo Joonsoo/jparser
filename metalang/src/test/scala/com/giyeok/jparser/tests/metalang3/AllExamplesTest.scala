@@ -4,9 +4,9 @@ import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
 import com.giyeok.jparser.examples.metalang3.AllMetaLang3Examples
 import com.giyeok.jparser.metalang3a.MetaLanguage3.ProcessedGrammar
 import com.giyeok.jparser.metalang3a.{AnalysisPrinter, MetaLanguage3, ValuefyExprSimulator}
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec.AnyFlatSpec
 
-class AllExamplesTest extends FlatSpec {
+class AllExamplesTest extends AnyFlatSpec {
     AllMetaLang3Examples.examples foreach { example =>
         var analysis: ProcessedGrammar = null
         var valuefySimulator: ValuefyExprSimulator = null

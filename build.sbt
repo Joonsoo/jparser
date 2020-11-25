@@ -7,7 +7,7 @@ javacOptions in ThisBuild ++= Seq("-encoding", "UTF-8")
 
 lazy val testDeps = {
     // val scalactic: ModuleID = "org.scalactic" %% "scalactic" % "3.0.1" % "test"
-    val scalatest: ModuleID = "org.scalatest" %% "scalatest" % "3.0.8" % "test"
+    val scalatest: ModuleID = "org.scalatest" %% "scalatest" % "3.2.2" % "test"
 
     val junit: ModuleID = "junit" % "junit" % "4.12" % "test"
 

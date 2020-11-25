@@ -1,9 +1,10 @@
 package com.giyeok.jparser.tests
 
 import com.giyeok.jparser.Inputs._
-import org.scalatest.{FlatSpec, _}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class TermGroupDescTests extends FlatSpec with Matchers {
+class TermGroupDescTests extends AnyFlatSpec with Matchers {
     it should "flat exact char and flat exact char" in {
         val g1 = CharsGroup(Set(), Set(), Set('a', 'b', 'c'))
         val g2 = CharsGroup(Set(), Set(), Set('a', 'c', 'd'))

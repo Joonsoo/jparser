@@ -6,9 +6,9 @@ import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
 import com.giyeok.jparser._
 import com.giyeok.jparser.examples.{AmbiguousExamples, GrammarWithExamples}
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec.AnyFlatSpec
 
-class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends FlatSpec {
+class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends AnyFlatSpec {
     def log(s: String): Unit = {
         // println(s)
     }
@@ -34,7 +34,9 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends Flat
         }
         ngrammar.nsequences.values foreach {
             case NSequence(_, _, sequence) =>
-                assert(sequence forall { ngrammar.nsymbols.keySet contains _ })
+                assert(sequence forall {
+                    ngrammar.nsymbols.keySet contains _
+                })
                 assert(sequence forall { id => !(ngrammar.nsequences.keySet contains id) })
         }
     }
@@ -87,7 +89,9 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends Flat
     }
 
     private def checkParse(result: ParseForest, grammar: Grammar): Unit = {
-        result.trees foreach { checkParse(_, grammar) }
+        result.trees foreach {
+            checkParse(_, grammar)
+        }
     }
 
     private def getSymbolOf(node: ParseResultTree.Node): NSymbol = node match {
@@ -166,10 +170,10 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends Flat
                     }
                     checkParse(bodyContent, grammar)
                 }
-            case BindNode(NExcept(_, Except(sym, _), _, _), body @ BindNode(bodySym, _)) =>
+            case BindNode(NExcept(_, Except(sym, _), _, _), body@BindNode(bodySym, _)) =>
                 assert(sym == bodySym.symbol)
                 checkParse(body, grammar)
-            case BindNode(proxy@NProxy(_, Proxy(sym), _), body @ BindNode(bodySym, _)) =>
+            case BindNode(proxy@NProxy(_, Proxy(sym), _), body@BindNode(bodySym, _)) =>
                 assert(proxy.produce == body.symbol.id)
                 assert(sym == bodySym.symbol)
                 checkParse(body, grammar)
@@ -177,7 +181,7 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends Flat
                 assert(proxy.produce == body.symbol.id)
                 assert(sym == body.symbol.symbol)
                 checkParse(body, grammar)
-            case BindNode(NLongest(_, Longest(sym), _), body @ BindNode(bodySym, _)) =>
+            case BindNode(NLongest(_, Longest(sym), _), body@BindNode(bodySym, _)) =>
                 assert(sym == bodySym.symbol)
                 checkParse(body, grammar)
             case BindNode(_: NLookaheadSymbol, body) =>
@@ -187,12 +191,14 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends Flat
                     case _ => assert(false)
                 }
             case node: SequenceNode =>
-                node.childrenAll foreach { checkParse(_, grammar) }
+                node.childrenAll foreach {
+                    checkParse(_, grammar)
+                }
             case JoinNode(_, body, join) =>
                 checkParse(body, grammar)
                 checkParse(join, grammar)
             case _: CyclicBindNode | _: CyclicSequenceNode =>
-                // ignore cyclic binds and do nothing
+            // ignore cyclic binds and do nothing
             case BindNode(symbol, body) =>
                 println(symbol)
                 ???
@@ -212,11 +218,17 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends Flat
 
     testsSuite foreach { test =>
         testNGrammar(test.ngrammar)
-        test.correctExampleInputs foreach { testCorrect(test, _) }
-        test.incorrectExampleInputs foreach { testIncorrect(test, _) }
+        test.correctExampleInputs foreach {
+            testCorrect(test, _)
+        }
+        test.incorrectExampleInputs foreach {
+            testIncorrect(test, _)
+        }
         test match {
             case samples: AmbiguousExamples =>
-                samples.ambiguousExampleInputs foreach { testAmbiguous(test, _) }
+                samples.ambiguousExampleInputs foreach {
+                    testAmbiguous(test, _)
+                }
             case _ =>
         }
     }
