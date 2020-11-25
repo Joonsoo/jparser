@@ -97,6 +97,7 @@ case class TypeRelationCollector(classRelations: ClassRelationCollector, enumRel
             case (NodeType, NodeType) => false
             case (ClassType(superclass), ClassType(subclass)) => isNewClassRelation(superclass, subclass)
             case (OptionalOf(superopt), OptionalOf(subopt)) => isNewTypeRelation(superopt, subopt)
+            case (OptionalOf(opttype), valuetype) if opttype == valuetype => false
             case (ArrayOf(superelem), ArrayOf(subelem)) => isNewTypeRelation(superelem, subelem)
             case (EnumType(superEnumName), EnumType(subEnumName)) if superEnumName == subEnumName => false
             case (EnumType(enumName), UnspecifiedEnumType(unspecifiedId)) => enumRelations.isNewRelation(enumName, unspecifiedId)
@@ -121,6 +122,7 @@ case class TypeRelationCollector(classRelations: ClassRelationCollector, enumRel
             case (NodeType, NodeType) => this
             case (ClassType(superclass), ClassType(subclass)) => addClassRelation(superclass, subclass)
             case (OptionalOf(superopt), OptionalOf(subopt)) => addTypeRelation(superopt, subopt)
+            case (OptionalOf(opttype), valuetype) if opttype == valuetype => this
             case (ArrayOf(superelem), ArrayOf(subelem)) => addTypeRelation(superelem, subelem)
             case (EnumType(superEnumName), EnumType(subEnumName)) if superEnumName == subEnumName => this
             case (EnumType(enumName), UnspecifiedEnumType(unspecifiedId)) => addEnumRelation(enumName, unspecifiedId)

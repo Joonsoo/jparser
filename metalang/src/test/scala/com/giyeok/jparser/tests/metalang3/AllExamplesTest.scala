@@ -16,7 +16,7 @@ class AllExamplesTest extends FlatSpec {
             assert(analysis.errors.isClear, analysis.errors)
 
             valuefySimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
-            analysisPrinter = new AnalysisPrinter(valuefySimulator.startValuefyExpr, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
+            analysisPrinter = new AnalysisPrinter(analysis.ngrammar, valuefySimulator.startValuefyExpr, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
 
             val classHierarchy = analysis.classRelations.toHierarchy
             AnalysisPrinter.printClassHierarchy(classHierarchy)

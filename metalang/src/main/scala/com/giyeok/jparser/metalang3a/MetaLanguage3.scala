@@ -5,10 +5,9 @@ import java.io.{BufferedWriter, FileWriter}
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
-import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, SimpleExamples}
+import com.giyeok.jparser.examples.metalang3.{OptionalExamples, SimpleExamples}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.AnyType
-import com.giyeok.jparser.metalang3a.Type.{ArrayOf, ClassType, EnumType, NodeType, OptionalOf, UnionOf, UnspecifiedEnumType, readableNameOf}
+import com.giyeok.jparser.metalang3a.Type._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
 
@@ -48,6 +47,7 @@ object MetaLanguage3 {
             case (superType, subType) => superType == subType
         }
 
+        // TODO UnionOf(UnspecifiedEnumType(1), UnspecifiedEnumType(2))가 들어왔는데 UnspecifiedEnumType(1)과 2가 같은 enum인 경우 Nothing이 반환됨. 고쳐야 함
         def reduceUnionType(unionType: UnionOf): Type = {
             val types = unionType.types
             val reducedTypes = types.filterNot { subType =>
@@ -114,7 +114,7 @@ object MetaLanguage3 {
                 throw new Exception(analysis.errors.toString)
             }
             val valuefyExprSimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
-            val analysisPrinter = new AnalysisPrinter(valuefyExprSimulator.startValuefyExpr, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
+            val analysisPrinter = new AnalysisPrinter(analysis.ngrammar, valuefyExprSimulator.startValuefyExpr, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
 
             analysis.nonterminalTypes.foreach { p =>
                 println(s"Nonterm `${p._1}` = ${Type.readableNameOf(p._2)}")
@@ -154,7 +154,9 @@ object MetaLanguage3 {
         // testExample(SimpleExamples.ex12a)
         // testExample(MetaLang3Grammar.inMetaLang3)
 
-        def generateParser(grammar: String, grammarName: String, printClassHierarchy: Boolean = false): Unit = {
+        def generateParser(grammar: String, grammarName: String,
+                           mainFuncExamples: Option[List[String]] = None,
+                           printClassHierarchy: Boolean = false): Unit = {
             val analysis = analyzeGrammar(grammar, grammarName)
             if (!analysis.errors.isClear) {
                 throw new Exception(analysis.errors.toString)
@@ -169,7 +171,7 @@ object MetaLanguage3 {
             val packageName = "com.giyeok.jparser.metalang3a.generated"
 
             val filePath = s"./metalang/src/main/scala/${packageName.split('.').mkString("/")}/$grammarName.scala"
-            val generatedCode = s"package $packageName\n\n" + codegen.generateParser(grammarName)
+            val generatedCode = s"package $packageName\n\n" + codegen.generateParser(grammarName, mainFuncExamples)
 
             val writer = new BufferedWriter(new FileWriter(filePath))
             writer.write(generatedCode)
@@ -179,6 +181,9 @@ object MetaLanguage3 {
         // generateParser(SimpleExamples.ex3.grammar, "Simple3")
         // generateParser(SimpleExamples.ex12a.grammar, "Simple12a")
         // generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
-        generateParser(SimpleExamples.repeat.grammar, "RepeatExample")
+        // generateParser(SimpleExamples.repeat.grammar, "RepeatExample")
+        // generateParser(OptionalExamples.simple.grammar, "OptionalExample")
+        generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(List("a.a")))
+        testExample(OptionalExamples.withShortEnum)
     }
 }

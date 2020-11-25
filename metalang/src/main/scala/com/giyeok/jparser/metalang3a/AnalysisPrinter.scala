@@ -1,7 +1,8 @@
 package com.giyeok.jparser.metalang3a
 
-import com.giyeok.jparser.ParseResultTree
+import com.giyeok.jparser.{NGrammar, ParseResultTree}
 import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNode}
+import com.giyeok.jparser.metalang3a.AnalysisPrinter.printNodeStructure
 import com.giyeok.jparser.metalang3a.Type.readableNameOf
 import com.giyeok.jparser.metalang3a.ValuefyExpr.{MatchNonterminal, Unbind, UnrollChoices}
 
@@ -21,16 +22,16 @@ object AnalysisPrinter {
     def printNodeStructure(parseNode: Node, indent: String = ""): Unit = parseNode match {
         case ParseResultTree.TerminalNode(start, input) => println(s"${indent}Terminal ${input}")
         case BindNode(symbol, body) =>
-            println(s"${indent}Bind ${symbol.symbol.toShortString}")
+            println(s"${indent}Bind ${symbol.id}:${symbol.symbol.toShortString}")
             printNodeStructure(body, indent + "  ")
         case ParseResultTree.CyclicBindNode(start, end, symbol) =>
             println(s"${indent}Cyclic Bind")
         case JoinNode(symbol, body, join) =>
-            println(s"${indent}Join ${symbol.symbol.toShortString}")
+            println(s"${indent}Join ${symbol.id}:${symbol.symbol.toShortString}")
             printNodeStructure(body, indent + "  ")
             printNodeStructure(join, indent + "  ")
         case seq@SequenceNode(start, end, symbol, _children) =>
-            println(s"${indent}Sequence ${symbol.symbol.toShortString}")
+            println(s"${indent}Sequence ${symbol.id}:${symbol.symbol.toShortString}")
             seq.children.zipWithIndex.foreach { childIdx =>
                 printNodeStructure(childIdx._1, indent + "  ")
             }
@@ -43,21 +44,20 @@ object AnalysisPrinter {
     }
 }
 
-class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
+class AnalysisPrinter(val grammar: NGrammar, val startValuefyExpr: ValuefyExpr,
                       val nonterminalValuefyExprs: Map[String, UnrollChoices],
                       val shortenedEnumTypesMap: Map[Int, String]) {
-
     def printValuefyStructure(valuefyExpr: ValuefyExpr, indent: String = ""): Unit = valuefyExpr match {
         case ValuefyExpr.InputNode => println(s"${indent}InputNode")
         case MatchNonterminal(nonterminalName) => println(s"${indent}match $nonterminalName")
         case Unbind(symbol, expr) =>
-            println(s"${indent}Unbind ${symbol.toShortString}")
+            println(s"${indent}Unbind ${grammar.idOf(symbol)}:${symbol.toShortString}")
             printValuefyStructure(expr, indent + "  ")
         case ValuefyExpr.JoinBody(joinSymbol, bodyProcessor) =>
-            println(s"${indent}JoinBody of ${joinSymbol.toShortString}")
+            println(s"${indent}JoinBody of ${grammar.idOf(joinSymbol)}:${joinSymbol.toShortString}")
             printValuefyStructure(bodyProcessor, indent + "  ")
         case ValuefyExpr.JoinCond(joinSymbol, bodyProcessor) =>
-            println(s"${indent}JoinCond of ${joinSymbol.toShortString}")
+            println(s"${indent}JoinCond of ${grammar.idOf(joinSymbol)}:${joinSymbol.toShortString}")
             printValuefyStructure(bodyProcessor, indent + "  ")
         case ValuefyExpr.SeqElemAt(index, expr) =>
             println(s"${indent}SeqElem $index")
@@ -71,7 +71,7 @@ class AnalysisPrinter(val startValuefyExpr: ValuefyExpr,
         case UnrollChoices(choices) =>
             println(s"${indent}choices")
             choices.foreach { choice =>
-                println(s"${indent}${choice._1.toShortString} -> ")
+                println(s"${indent}${grammar.idOf(choice._1)}:${choice._1.toShortString} -> ")
                 printValuefyStructure(choice._2, indent + "  ")
             }
         case ValuefyExpr.ConstructCall(className, params) =>

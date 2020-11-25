@@ -212,7 +212,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
 
     def nonterminalMatchFunc(nonterminal: String): CodeBlob = {
         val valuefyExpr = analysis.nonterminalValuefyExprs(nonterminal)
-        val body = valuefyExprToCode(valuefyExpr, "node")
+        val body = valuefyExprToCodeWithCoercion(valuefyExpr, "node", analysis.nonterminalTypes(nonterminal))
         val returnType = typeDescStringOf(analysis.nonterminalTypes(nonterminal), Some(s"return type of nonterminal $nonterminal"))
         val bodyCode = if (body.prepares.isEmpty) {
             CodeBlob(body.result, body.required)
@@ -233,7 +233,21 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         s"v$counter"
     }
 
-    // TODO valuefyExprToCode 결과에 expected type에 맞춰서 wrap해주는 기능 추가
+    private def typeOf(expr: ValuefyExpr): Type = analysis.typeInferer.typeOfValuefyExpr(expr).get
+
+    private def addCoercion(expr: String, requiredType: Type, actualType: Type): String =
+        (requiredType, actualType) match {
+            case (requiredType, actualType) if requiredType == actualType => expr
+            case (Type.OptionalOf(optType), actual) if optType == actual => s"Some($expr)"
+            case _ => expr // TODO
+        }
+
+    private def addCoercion(expr: ExprBlob, requiredType: Type, actualType: Type): ExprBlob =
+        expr.copy(result = addCoercion(expr.result, requiredType, actualType))
+
+    private def valuefyExprToCodeWithCoercion(valuefyExpr: ValuefyExpr, inputName: String, requiredType: Type): ExprBlob =
+        addCoercion(valuefyExprToCode(valuefyExpr, inputName), requiredType, typeOf(valuefyExpr))
+
     def valuefyExprToCode(valuefyExpr: ValuefyExpr, inputName: String): ExprBlob = valuefyExpr match {
         case ValuefyExpr.InputNode => ExprBlob(List(), inputName, Set())
         case ValuefyExpr.MatchNonterminal(nonterminalName) =>
@@ -266,7 +280,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
             ExprBlob(
                 List(s"val $unrolledVar = unrollRepeat0($inputName).map { elem =>") ++
                     elemProcessorCode.prepares :+
-                    elemProcessorCode.result :+
+                    addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
                     "}",
                 unrolledVar,
                 elemProcessorCode.required + "com.giyeok.jparser.metalang3a.codegen.ScalaCodeGenUtil.unrollRepeat0")
@@ -276,16 +290,17 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
             ExprBlob(
                 List(s"val $unrolledVar = unrollRepeat1($inputName).map { elem =>") ++
                     elemProcessorCode.prepares :+
-                    elemProcessorCode.result :+
+                    addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
                     "}",
                 unrolledVar,
                 elemProcessorCode.required + "com.giyeok.jparser.metalang3a.codegen.ScalaCodeGenUtil.unrollRepeat1")
         case ValuefyExpr.UnrollChoices(choices) =>
             val bindedVar = newVar()
             val bodyVar = newVar()
+            val requiredType = typeOf(valuefyExpr)
             val casesExpr = choices.map { choice =>
                 val choiceId = analysis.ngrammar.idOf(choice._1)
-                val bodyCode = valuefyExprToCode(choice._2, bodyVar)
+                val bodyCode = valuefyExprToCodeWithCoercion(choice._2, bodyVar, requiredType)
                 val caseBody =
                     if (bodyCode.prepares.isEmpty) bodyCode.result
                     else (bodyCode.prepares :+ bodyCode.result).map("  " + _) mkString ("\n")
@@ -295,11 +310,14 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                 s"val BindNode($bindedVar, $bodyVar) = $inputName"
             ), casesExpr.wrap(s"$bindedVar.id match {", "}").code, casesExpr.required)
         case ValuefyExpr.ConstructCall(className, params) =>
-            val paramCodes = params.map(valuefyExprToCode(_, inputName))
+            val paramCodes = params.zipWithIndex.map { case (param, index) =>
+                valuefyExprToCodeWithCoercion(param, inputName, analysis.classParamTypes(className)(index)._2)
+            }
             ExprBlob(paramCodes.flatMap(_.prepares),
                 s"$className(${paramCodes.map(_.result).mkString(", ")})",
                 paramCodes.flatMap(_.required).toSet)
         case ValuefyExpr.FuncCall(funcType, params) =>
+            // TODO coercion
             funcType match {
                 case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent =>
                     val paramCodes = params.map(valuefyExprToCode(_, inputName))
@@ -319,11 +337,13 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                         paramCodes.flatMap(_.required).toSet)
             }
         case ValuefyExpr.ArrayExpr(elems) =>
-            val elemCodes = elems.map(valuefyExprToCode(_, inputName))
+            val elemType = typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType
+            val elemCodes = elems.map(valuefyExprToCodeWithCoercion(_, inputName, elemType))
             ExprBlob(elemCodes.flatMap(_.prepares),
                 s"List(${elemCodes.map(_.result).mkString(", ")})",
                 elemCodes.flatMap(_.required).toSet)
         case ValuefyExpr.BinOp(op, lhs, rhs) =>
+            // TODO coercion
             val lhsCode = valuefyExprToCode(lhs, inputName)
             val rhsCode = valuefyExprToCode(rhs, inputName)
             val lhsType = analysis.typeInferer.typeOfValuefyExpr(lhs).get
@@ -345,8 +365,9 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
             ExprBlob(List(), s"$valuefyExpr", Set())
         case ValuefyExpr.ElvisOp(expr, ifNull) =>
             val exprVar = newVar()
-            val exprCode = valuefyExprToCode(expr, inputName)
-            val ifNullCode = valuefyExprToCode(ifNull, inputName)
+            val requiredType = typeOf(valuefyExpr)
+            val exprCode = valuefyExprToCodeWithCoercion(expr, inputName, requiredType)
+            val ifNullCode = valuefyExprToCodeWithCoercion(ifNull, inputName, requiredType)
             ExprBlob(
                 exprCode.prepares :+ s"val $exprVar = ${exprCode.result}",
                 s"if ($exprVar.isDefined) $exprVar.get else ${ifNullCode.withBraceIfNeeded}",
@@ -375,7 +396,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
             }
     }
 
-    def generateParser(className: String): String = {
+    def generateParser(className: String, mainFuncExamples: Option[List[String]] = None): String = {
         val ngrammarDefCode = ngrammarDef(analysis.ngrammar)
         val classDefsCode = classDefs(analysis.classRelations.toHierarchy)
         val enumDefsCode = enumDefs(analysis.enumValuesMap)
@@ -390,6 +411,13 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
             nontermMatchCodes.flatMap(_.required) ++
             startMatchCode.required ++
             startType.required).toList.sorted
+        val mainFunc = mainFuncExamples match {
+            case Some(examples) =>
+                "\n\n  def main(args: Array[String]): Unit = {\n" +
+                    examples.map(example => "    println(parseAst(\"" + example + "\"))").mkString("\n") +
+                    "\n  }"
+            case None => ""
+        }
         s"""${allImports.map(pkg => s"import $pkg").mkString("\n")}
            |
            |object $className {
@@ -416,8 +444,9 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
            |        case None => ???
            |      }
            |    case Right(error) => Right(error)
-           |  }
-           |}""".stripMargin
+           |  }$mainFunc
+           |}
+           |""".stripMargin
     }
 }
 
