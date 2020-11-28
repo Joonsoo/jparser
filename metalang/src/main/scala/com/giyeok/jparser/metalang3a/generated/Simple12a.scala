@@ -46,13 +46,11 @@ object Simple12a {
         None
         case 5 =>
           val BindNode(v9, v10) = v8
-          assert(v9.id == 5)
+          assert(v9.id == 6)
           val BindNode(v11, v12) = v10
-          assert(v11.id == 6)
-          val BindNode(v13, v14) = v12
-          assert(v13.id == 7)
-          val v15 = v14.asInstanceOf[SequenceNode].children(1)
-          Some(v15.toString)
+          assert(v11.id == 7)
+          val v13 = v12.asInstanceOf[SequenceNode].children(1)
+          Some(v13.toString)
       }
         if (v3.isDefined) v3.get else "none"
     }

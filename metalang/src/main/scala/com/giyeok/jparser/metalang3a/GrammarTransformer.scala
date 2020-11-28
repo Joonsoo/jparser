@@ -161,11 +161,11 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
         case MetaGrammar3Ast.FollowedBy(_, followedBy) =>
             check(condSymPath.isEmpty, "FollowedBy cannot be referred with condSymPath")
             val vFollowedBy = proxy(valuefySymbol(followedBy, "", input))
-            (input, Symbols.LookaheadIs(vFollowedBy._2))
+            (NullLiteral, Symbols.LookaheadIs(vFollowedBy._2))
         case MetaGrammar3Ast.NotFollowedBy(_, notFollowedBy) =>
             check(condSymPath.isEmpty, "NotFollowedBy cannot be referred with condSymPath")
             val vNotFollowedBy = proxy(valuefySymbol(notFollowedBy, "", input))
-            (input, Symbols.LookaheadExcept(vNotFollowedBy._2))
+            (NullLiteral, Symbols.LookaheadExcept(vNotFollowedBy._2))
         case MetaGrammar3Ast.Optional(_, body) =>
             check(condSymPath.isEmpty, "Optional cannot be referred with condSymPath")
             val vBody = proxy(valuefySymbol(body, "", input))
@@ -194,7 +194,7 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
             (Unbind(longestSymbol, vChoices._1), longestSymbol)
         case MetaGrammar3Ast.EmptySeq(_) =>
             check(condSymPath.isEmpty, "EmptySeq cannot be referred with condSymPath")
-            (input, Symbols.Sequence(Seq()))
+            (NullLiteral, Symbols.Sequence())
         case MetaGrammar3Ast.Sequence(_, seq) =>
             check(condSymPath.isEmpty, "Sequence cannot be referred with condSymPath")
             val vSeq = valuefySequence(seq, input)

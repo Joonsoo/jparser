@@ -6,6 +6,7 @@ import com.giyeok.jparser.ParseResultTree.{BindNode, Node, SequenceNode}
 import com.giyeok.jparser.metalang2.ScalaDefGenerator.javaChar
 import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, check}
 import com.giyeok.jparser.metalang3a.Type.{ArrayOf, StringType}
+import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.{CodeBlob, ExprBlob, Options}
 import com.giyeok.jparser.metalang3a.{ClassHierarchyTree, Type, ValuefyExpr}
 import com.giyeok.jparser.{NGrammar, Symbols}
@@ -212,7 +213,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
 
   def nonterminalMatchFunc(nonterminal: String): CodeBlob = {
     val valuefyExpr = analysis.nonterminalValuefyExprs(nonterminal)
-    val body = valuefyExprToCodeWithCoercion(valuefyExpr, "node", analysis.nonterminalTypes(nonterminal))
+    val body = unrollChoicesExpr(valuefyExpr.choices, "node", analysis.nonterminalTypes(nonterminal), useOriginalInput = false)
     val returnType = typeDescStringOf(analysis.nonterminalTypes(nonterminal), Some(s"return type of nonterminal $nonterminal"))
     val bodyCode = if (body.prepares.isEmpty) {
       CodeBlob(body.result, body.required)
@@ -221,6 +222,38 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
     }
     CodeBlob(s"def ${nonterminalMatchFuncName(nonterminal)}(node: Node): ${returnType.code} = " + bodyCode.code,
       body.required ++ returnType.required ++ bodyCode.required + "com.giyeok.jparser.ParseResultTree.Node")
+  }
+
+  private def unrollChoicesExpr(choices: Map[Symbols.Symbol, ValuefyExpr], inputName: String, requiredType: Type, useOriginalInput: Boolean): ExprBlob = {
+    val bindedVar = newVar()
+    val bodyVar = newVar()
+    val casesExpr = choices.map { choice =>
+      val choiceId = analysis.ngrammar.idOf(choice._1)
+      /**
+       * UnrollChoices가 사용되는 경우는 1. Nonterminal match function 2. Optional이나 InPlaceChoices에서 사용되는 경우
+       * 이 때,
+       *  * 1의 경우는 가장 바깥의 Nonterminal symbol에 대한(즉 LHS에 대한) bind가 벗겨진 채로 오고,
+       *  * 2의 경우는 가장 바깥 symbol에 대한 bind가 그대로 들어온다.
+       * 그래서 1의 경우 useOriginalInput=false, 2의 경우 useOriginalInput=true이다.
+       * 여기서, unroll choice를 하기 위해 기본적으로 Bind를 한 번 풀어야 하기 때문에 2에서 가장 첫번째 valuefy expr이 Unbind인 경우
+       * original input은 사용하지 않고 unbind된 body를 사용함
+       */
+      val bodyCode = if (useOriginalInput) {
+        choice._2 match {
+          case ValuefyExpr.Unbind(symbol, unbindExpr) =>
+            assert(symbol == choice._1)
+            valuefyExprToCodeWithCoercion(unbindExpr, bodyVar, requiredType)
+          case _ => valuefyExprToCodeWithCoercion(choice._2, inputName, requiredType)
+        }
+      } else valuefyExprToCodeWithCoercion(choice._2, bodyVar, requiredType)
+      val caseBody =
+        if (bodyCode.prepares.isEmpty) bodyCode.result
+        else (bodyCode.prepares :+ bodyCode.result).map("  " + _) mkString ("\n")
+      CodeBlob(s"case $choiceId =>\n$caseBody", bodyCode.required)
+    }.toList.reduce(_ + _)
+    ExprBlob(List(
+      s"val BindNode($bindedVar, $bodyVar) = $inputName"
+    ), casesExpr.wrap(s"$bindedVar.id match {", "}").code, casesExpr.required)
   }
 
   private def nonterminalMatchFuncName(nonterminal: String) =
@@ -295,20 +328,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         unrolledVar,
         elemProcessorCode.required + "com.giyeok.jparser.nparser.RepeatUtils.unrollRepeat1")
     case ValuefyExpr.UnrollChoices(choices) =>
-      val bindedVar = newVar()
-      val bodyVar = newVar()
-      val requiredType = typeOf(valuefyExpr)
-      val casesExpr = choices.map { choice =>
-        val choiceId = analysis.ngrammar.idOf(choice._1)
-        val bodyCode = valuefyExprToCodeWithCoercion(choice._2, bodyVar, requiredType)
-        val caseBody =
-          if (bodyCode.prepares.isEmpty) bodyCode.result
-          else (bodyCode.prepares :+ bodyCode.result).map("  " + _) mkString ("\n")
-        CodeBlob(s"case $choiceId =>\n$caseBody", bodyCode.required)
-      }.toList.reduce(_ + _)
-      ExprBlob(List(
-        s"val BindNode($bindedVar, $bodyVar) = $inputName"
-      ), casesExpr.wrap(s"$bindedVar.id match {", "}").code, casesExpr.required)
+      unrollChoicesExpr(choices, inputName, typeOf(valuefyExpr), useOriginalInput = true)
     case ValuefyExpr.ConstructCall(className, params) =>
       val paramCodes = params.zipWithIndex.map { case (param, index) =>
         valuefyExprToCodeWithCoercion(param, inputName, analysis.classParamTypes(className)(index)._2)

@@ -4,7 +4,7 @@ import com.giyeok.jparser.Symbols.{ExactChar, Nonterminal, OneOf, Proxy, Repeat,
 import com.giyeok.jparser.metalang3a.MetaLanguage3
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeMatchers._
-import com.giyeok.jparser.nparser.TestUtil.{NaiveParserParseToTree, grammarFrom}
+import com.giyeok.jparser.nparser.TestUtil.{NaiveParserParseToTree, grammarFrom, parseToTree}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
@@ -70,5 +70,21 @@ class SimpleGrammarsTest extends AnyFlatSpec {
         Sequence(Proxy(Sequence()), Proxy(Sequence())), SeqM(
           BindM(Proxy(Sequence()), DontCare),
           BindM(Proxy(Sequence()), DontCare)))))
+  }
+
+  "MetaLang3" should "parse simple grammar" in {
+    val grammar = MetaLanguage3.analyzeGrammar(
+      """A = B C D
+        |B = "abc"
+        |C = 'def'*
+        |D = 'g'?
+        |""".stripMargin)
+
+    new NaiveParser(grammar.ngrammar).parseToTree("abcdefg") should BindM(Start,
+      BindM(Nonterminal("A"), BindM(Sequence(Nonterminal("B"), Nonterminal("C"), Nonterminal("D")), SeqM(
+        BindM(Nonterminal("B"), DontCare),
+        BindM(Nonterminal("C"), DontCare),
+        BindM(Nonterminal("D"), DontCare),
+      ))))
   }
 }

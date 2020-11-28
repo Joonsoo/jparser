@@ -4,7 +4,7 @@ import java.io.{BufferedWriter, FileWriter}
 
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
-import com.giyeok.jparser.examples.metalang3.{OptionalExamples, SimpleExamples}
+import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, OptionalExamples, SimpleExamples}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang3a.Type._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
@@ -162,6 +162,10 @@ object MetaLanguage3 {
         throw new Exception(analysis.errors.toString)
       }
 
+      println(analysis.ngrammar.startSymbol)
+      analysis.ngrammar.nsymbols.foreach(println)
+      analysis.ngrammar.nsequences.foreach(println)
+
       if (printClassHierarchy) {
         AnalysisPrinter.printClassHierarchy(analysis.classRelations.toHierarchy)
       }
@@ -178,18 +182,13 @@ object MetaLanguage3 {
       writer.close()
     }
 
+    // testExample(OptionalExamples.withShortEnum)
+
     generateParser(SimpleExamples.ex3.grammar, "Simple3", Some(List("a b")))
     generateParser(SimpleExamples.ex12a.grammar, "Simple12a", Some(List("ac", "abbbbc")))
-    // generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
     generateParser(SimpleExamples.repeat.grammar, "RepeatExample", Some(List("b", "aaaabbbbb")))
     generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
-    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(List("a.a")))
-
-    testExample(MetaLang3Example("Simple Join",
-      """A = !"bbbb" B+? {Cls(v=$0,bs=$1)}
-        |B = 'b'
-        |""".stripMargin)
-      .example("")
-      .example("bbb"))
+    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
+    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
   }
 }
