@@ -232,8 +232,8 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       /**
        * UnrollChoices가 사용되는 경우는 1. Nonterminal match function 2. Optional이나 InPlaceChoices에서 사용되는 경우
        * 이 때,
-       *  * 1의 경우는 가장 바깥의 Nonterminal symbol에 대한(즉 LHS에 대한) bind가 벗겨진 채로 오고,
-       *  * 2의 경우는 가장 바깥 symbol에 대한 bind가 그대로 들어온다.
+       * * 1의 경우는 가장 바깥의 Nonterminal symbol에 대한(즉 LHS에 대한) bind가 벗겨진 채로 오고,
+       * * 2의 경우는 가장 바깥 symbol에 대한 bind가 그대로 들어온다.
        * 그래서 1의 경우 useOriginalInput=false, 2의 경우 useOriginalInput=true이다.
        * 여기서, unroll choice를 하기 위해 기본적으로 Bind를 한 번 풀어야 하기 때문에 2에서 가장 첫번째 valuefy expr이 Unbind인 경우
        * original input은 사용하지 않고 unbind된 body를 사용함
@@ -316,7 +316,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
           addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
           "}",
         unrolledVar,
-        elemProcessorCode.required + "com.giyeok.jparser.nparser.RepeatUtils.unrollRepeat0")
+        elemProcessorCode.required + "com.giyeok.jparser.nparser.ParseTreeUtil.unrollRepeat0")
     case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
       val unrolledVar = newVar()
       val elemProcessorCode = valuefyExprToCode(elemProcessor, "elem")
@@ -326,7 +326,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
           addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
           "}",
         unrolledVar,
-        elemProcessorCode.required + "com.giyeok.jparser.nparser.RepeatUtils.unrollRepeat1")
+        elemProcessorCode.required + "com.giyeok.jparser.nparser.ParseTreeUtil.unrollRepeat1")
     case ValuefyExpr.UnrollChoices(choices) =>
       unrollChoicesExpr(choices, inputName, typeOf(valuefyExpr), useOriginalInput = true)
     case ValuefyExpr.ConstructCall(className, params) =>
@@ -338,10 +338,10 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         paramCodes.flatMap(_.required).toSet)
     case ValuefyExpr.FuncCall(funcType, params) =>
       // TODO coercion
+      // TODO 함수들 제대로 다시 구현
       funcType match {
         case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent =>
           val paramCodes = params.map(valuefyExprToCode(_, inputName))
-          // TODO 제대로 다시 구현
           ExprBlob(paramCodes.flatMap(_.prepares),
             paramCodes.map(_.result + ".toString").mkString(" + "),
             paramCodes.flatMap(_.required).toSet)
@@ -430,7 +430,8 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       enumDefsCode.required ++
       nontermMatchCodes.flatMap(_.required) ++
       startMatchCode.required ++
-      startType.required).toList.sorted
+      startType.required +
+      "com.giyeok.jparser.nparser.ParseTreeUtil").toList.sorted
     val mainFunc = mainFuncExamples match {
       case Some(examples) =>
         "\n\n  def main(args: Array[String]): Unit = {\n" +
@@ -455,16 +456,8 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
        |  def parse(text: String): Either[Parser.NaiveContext, ParsingErrors.ParsingError] =
        |    naiveParser.parse(text)
        |
-       |  def parseAst(text: String): Either[${startType.code}, ParsingErrors.ParsingError] = parse(text) match {
-       |    case Left(ctx) =>
-       |      val tree = new ParseTreeConstructor(ParseForestFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
-       |      tree match {
-       |        case Some(forest) if forest.trees.size == 1 => Left(matchStart(forest.trees.head))
-       |        case Some(forest) => Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
-       |        case None => ???
-       |      }
-       |    case Right(error) => Right(error)
-       |  }$mainFunc
+       |  def parseAst(text: String): Either[${startType.code}, ParsingErrors.ParsingError] =
+       |    ParseTreeUtil.parseAst(naiveParser, text, matchStart)$mainFunc
        |}
        |""".stripMargin
   }

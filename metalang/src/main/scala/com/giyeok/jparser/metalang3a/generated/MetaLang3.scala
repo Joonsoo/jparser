@@ -9,11 +9,10 @@ import com.giyeok.jparser.ParseResultTree.SequenceNode
 import com.giyeok.jparser.ParseResultTree.TerminalNode
 import com.giyeok.jparser.ParsingErrors
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.nparser.NaiveParser
-import com.giyeok.jparser.nparser.ParseTreeConstructor
-import com.giyeok.jparser.nparser.Parser
-import com.giyeok.jparser.nparser.RepeatUtils.unrollRepeat0
-import com.giyeok.jparser.nparser.RepeatUtils.unrollRepeat1
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParseTreeUtil, Parser}
+import com.giyeok.jparser.nparser.ParseTreeUtil.{unrollRepeat0, unrollRepeat1}
+
+import scala.annotation.tailrec
 import scala.collection.immutable.ListSet
 
 object MetaLang3 {
@@ -211,7 +210,7 @@ object MetaLang3 {
       322 -> NGrammar.NNonterminal(322, Symbols.Nonterminal("AllRawRef"), Set(323)),
       324 -> NGrammar.NProxy(324, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.ExactChar('\\'), Symbols.ExactChar('$'), Symbols.ExactChar('$')))), 325),
       327 -> NGrammar.NNonterminal(327, Symbols.Nonterminal("PExpr"), Set(328)),
-      329 -> NGrammar.NNonterminal(329, Symbols.Nonterminal("TernaryExpr"), Set(330, 438)),
+      329 -> NGrammar.NNonterminal(329, Symbols.Nonterminal("TernaryExpr"), Set(330, 439)),
       331 -> NGrammar.NNonterminal(331, Symbols.Nonterminal("BoolOrExpr"), Set(332, 434)),
       333 -> NGrammar.NNonterminal(333, Symbols.Nonterminal("BoolAndExpr"), Set(334, 431)),
       335 -> NGrammar.NNonterminal(335, Symbols.Nonterminal("BoolEqExpr"), Set(336, 428)),
@@ -266,25 +265,25 @@ object MetaLang3 {
       432 -> NGrammar.NProxy(432, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.ExactChar('&'), Symbols.ExactChar('&')))), 433),
       435 -> NGrammar.NLongest(435, Symbols.Longest(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("TernaryExpr"))))))), 436),
       436 -> NGrammar.NOneOf(436, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("TernaryExpr")))))), Set(437)),
-      437 -> NGrammar.NProxy(437, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("TernaryExpr")))), 328),
-      439 -> NGrammar.NRepeat(439, Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))))), 0), 7, 440),
-      441 -> NGrammar.NOneOf(441, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))))), Set(442)),
-      442 -> NGrammar.NProxy(442, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))), 443),
-      444 -> NGrammar.NRepeat(444, Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))))), 0), 7, 445),
-      446 -> NGrammar.NOneOf(446, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))))), Set(447)),
-      447 -> NGrammar.NProxy(447, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))), 448),
-      449 -> NGrammar.NRepeat(449, Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))))), 0), 7, 450),
-      451 -> NGrammar.NOneOf(451, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))))), Set(452)),
-      452 -> NGrammar.NProxy(452, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))), 453),
-      454 -> NGrammar.NNonterminal(454, Symbols.Nonterminal("WSNL"), Set(455)),
-      456 -> NGrammar.NLongest(456, Symbols.Longest(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.ExactChar('\n'), Symbols.Nonterminal("WS"))))))), 457),
-      457 -> NGrammar.NOneOf(457, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.ExactChar('\n'), Symbols.Nonterminal("WS")))))), Set(458)),
-      458 -> NGrammar.NProxy(458, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.ExactChar('\n'), Symbols.Nonterminal("WS")))), 459),
-      460 -> NGrammar.NRepeat(460, Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), 7, 461),
-      462 -> NGrammar.NOneOf(462, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), Set(463, 13)),
-      463 -> NGrammar.NProxy(463, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), 464),
-      465 -> NGrammar.NTerminal(465, Symbols.Chars(Set('\t', '\r', ' ')))),
-    Map(3 -> NGrammar.NSequence(3, Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Def"), Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))))), 0), Symbols.Nonterminal("WS"))), Seq(4, 34, 449, 4)),
+      437 -> NGrammar.NProxy(437, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("TernaryExpr")))), 438),
+      440 -> NGrammar.NRepeat(440, Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))))), 0), 7, 441),
+      442 -> NGrammar.NOneOf(442, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))))), Set(443)),
+      443 -> NGrammar.NProxy(443, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))), 444),
+      445 -> NGrammar.NRepeat(445, Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))))), 0), 7, 446),
+      447 -> NGrammar.NOneOf(447, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))))), Set(448)),
+      448 -> NGrammar.NProxy(448, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))), 449),
+      450 -> NGrammar.NRepeat(450, Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))))), 0), 7, 451),
+      452 -> NGrammar.NOneOf(452, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))))), Set(453)),
+      453 -> NGrammar.NProxy(453, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))), 454),
+      455 -> NGrammar.NNonterminal(455, Symbols.Nonterminal("WSNL"), Set(456)),
+      457 -> NGrammar.NLongest(457, Symbols.Longest(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.ExactChar('\n'), Symbols.Nonterminal("WS"))))))), 458),
+      458 -> NGrammar.NOneOf(458, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.ExactChar('\n'), Symbols.Nonterminal("WS")))))), Set(459)),
+      459 -> NGrammar.NProxy(459, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.ExactChar('\n'), Symbols.Nonterminal("WS")))), 460),
+      461 -> NGrammar.NRepeat(461, Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), 7, 462),
+      463 -> NGrammar.NOneOf(463, Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), Set(464, 13)),
+      464 -> NGrammar.NProxy(464, Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), 465),
+      466 -> NGrammar.NTerminal(466, Symbols.Chars(Set('\t', '\r', ' ')))),
+    Map(3 -> NGrammar.NSequence(3, Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Def"), Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))))), 0), Symbols.Nonterminal("WS"))), Seq(4, 34, 450, 4)),
       5 -> NGrammar.NSequence(5, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\r', ' ') ++ ('\t' to '\n').toSet)))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0))), Seq(6)),
       7 -> NGrammar.NSequence(7, Symbols.Sequence(Seq()), Seq()),
       8 -> NGrammar.NSequence(8, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\r', ' ') ++ ('\t' to '\n').toSet)))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\r', ' ') ++ ('\t' to '\n').toSet)))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))))), Seq(6, 9)),
@@ -354,9 +353,9 @@ object MetaLang3 {
       182 -> NGrammar.NSequence(182, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar(','), Symbols.Nonterminal("WS"), Symbols.Nonterminal("Id")))))), 0), Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar(','), Symbols.Nonterminal("WS"), Symbols.Nonterminal("Id")))))))), Seq(181, 183)),
       185 -> NGrammar.NSequence(185, Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar(','), Symbols.Nonterminal("WS"), Symbols.Nonterminal("Id"))), Seq(4, 133, 4, 45)),
       189 -> NGrammar.NSequence(189, Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('?'))), Seq(4, 190)),
-      194 -> NGrammar.NSequence(194, Symbols.Sequence(Seq(Symbols.Nonterminal("RHS"), Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))))), 0))), Seq(195, 444)),
+      194 -> NGrammar.NSequence(194, Symbols.Sequence(Seq(Symbols.Nonterminal("RHS"), Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))))), 0))), Seq(195, 445)),
       196 -> NGrammar.NSequence(196, Symbols.Sequence(Seq(Symbols.Nonterminal("Sequence"))), Seq(197)),
-      198 -> NGrammar.NSequence(198, Symbols.Sequence(Seq(Symbols.Nonterminal("Elem"), Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))))), 0))), Seq(199, 439)),
+      198 -> NGrammar.NSequence(198, Symbols.Sequence(Seq(Symbols.Nonterminal("Elem"), Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))))), 0))), Seq(199, 440)),
       200 -> NGrammar.NSequence(200, Symbols.Sequence(Seq(Symbols.Nonterminal("Symbol"))), Seq(201)),
       202 -> NGrammar.NSequence(202, Symbols.Sequence(Seq(Symbols.Nonterminal("BinSymbol"))), Seq(203)),
       204 -> NGrammar.NSequence(204, Symbols.Sequence(Seq(Symbols.Nonterminal("BinSymbol"), Symbols.Nonterminal("WS"), Symbols.ExactChar('&'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("PreUnSymbol"))), Seq(203, 4, 205, 4, 206)),
@@ -418,7 +417,7 @@ object MetaLang3 {
       323 -> NGrammar.NSequence(323, Symbols.Sequence(Seq(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.ExactChar('\\'), Symbols.ExactChar('$'), Symbols.ExactChar('$')))))), Seq(324)),
       325 -> NGrammar.NSequence(325, Symbols.Sequence(Seq(Symbols.ExactChar('\\'), Symbols.ExactChar('$'), Symbols.ExactChar('$'))), Seq(227, 292, 292)),
       326 -> NGrammar.NSequence(326, Symbols.Sequence(Seq(Symbols.ExactChar('{'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("PExpr"), Symbols.Nonterminal("WS"), Symbols.ExactChar('}'))), Seq(161, 4, 327, 4, 174)),
-      328 -> NGrammar.NSequence(328, Symbols.Sequence(Seq(Symbols.Nonterminal("TernaryExpr"))), Seq(329)),
+      328 -> NGrammar.NSequence(328, Symbols.Sequence(Seq(Symbols.Nonterminal("TernaryExpr"), Symbols.OneOf(ListSet(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar(':'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("TypeDesc")))))), Symbols.Proxy(Symbols.Sequence(Seq())))))), Seq(329, 91)),
       330 -> NGrammar.NSequence(330, Symbols.Sequence(Seq(Symbols.Nonterminal("BoolOrExpr"), Symbols.Nonterminal("WS"), Symbols.ExactChar('?'), Symbols.Nonterminal("WS"), Symbols.Longest(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("TernaryExpr"))))))), Symbols.Nonterminal("WS"), Symbols.ExactChar(':'), Symbols.Nonterminal("WS"), Symbols.Longest(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("TernaryExpr"))))))))), Seq(331, 4, 190, 4, 435, 4, 95, 4, 435)),
       332 -> NGrammar.NSequence(332, Symbols.Sequence(Seq(Symbols.Nonterminal("BoolAndExpr"), Symbols.Nonterminal("WS"), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.ExactChar('&'), Symbols.ExactChar('&')))), Symbols.Nonterminal("WS"), Symbols.Nonterminal("BoolOrExpr"))), Seq(333, 4, 432, 4, 331)),
       334 -> NGrammar.NSequence(334, Symbols.Sequence(Seq(Symbols.Nonterminal("BoolEqExpr"), Symbols.Nonterminal("WS"), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.ExactChar('|'), Symbols.ExactChar('|')))), Symbols.Nonterminal("WS"), Symbols.Nonterminal("BoolAndExpr"))), Seq(335, 4, 429, 4, 333)),
@@ -472,17 +471,18 @@ object MetaLang3 {
       431 -> NGrammar.NSequence(431, Symbols.Sequence(Seq(Symbols.Nonterminal("BoolEqExpr"))), Seq(335)),
       433 -> NGrammar.NSequence(433, Symbols.Sequence(Seq(Symbols.ExactChar('&'), Symbols.ExactChar('&'))), Seq(205, 205)),
       434 -> NGrammar.NSequence(434, Symbols.Sequence(Seq(Symbols.Nonterminal("BoolAndExpr"))), Seq(333)),
-      438 -> NGrammar.NSequence(438, Symbols.Sequence(Seq(Symbols.Nonterminal("BoolOrExpr"))), Seq(331)),
-      440 -> NGrammar.NSequence(440, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))))), 0), Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))))))), Seq(439, 441)),
-      443 -> NGrammar.NSequence(443, Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem"))), Seq(4, 199)),
-      445 -> NGrammar.NSequence(445, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))))), 0), Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))))))), Seq(444, 446)),
-      448 -> NGrammar.NSequence(448, Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS"))), Seq(4, 275, 4, 195)),
-      450 -> NGrammar.NSequence(450, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))))), 0), Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))))))), Seq(449, 451)),
-      453 -> NGrammar.NSequence(453, Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def"))), Seq(454, 34)),
-      455 -> NGrammar.NSequence(455, Symbols.Sequence(Seq(Symbols.Longest(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.ExactChar('\n'), Symbols.Nonterminal("WS"))))))))), Seq(456)),
-      459 -> NGrammar.NSequence(459, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.ExactChar('\n'), Symbols.Nonterminal("WS"))), Seq(460, 25, 4)),
-      461 -> NGrammar.NSequence(461, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))))), Seq(460, 462)),
-      464 -> NGrammar.NSequence(464, Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' ')))), Seq(465))),
+      438 -> NGrammar.NSequence(438, Symbols.Sequence(Seq(Symbols.Nonterminal("TernaryExpr"))), Seq(329)),
+      439 -> NGrammar.NSequence(439, Symbols.Sequence(Seq(Symbols.Nonterminal("BoolOrExpr"))), Seq(331)),
+      441 -> NGrammar.NSequence(441, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))))), 0), Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem")))))))), Seq(440, 442)),
+      444 -> NGrammar.NSequence(444, Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.Nonterminal("Elem"))), Seq(4, 199)),
+      446 -> NGrammar.NSequence(446, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))))), 0), Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS")))))))), Seq(445, 447)),
+      449 -> NGrammar.NSequence(449, Symbols.Sequence(Seq(Symbols.Nonterminal("WS"), Symbols.ExactChar('|'), Symbols.Nonterminal("WS"), Symbols.Nonterminal("RHS"))), Seq(4, 275, 4, 195)),
+      451 -> NGrammar.NSequence(451, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))))), 0), Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def")))))))), Seq(450, 452)),
+      454 -> NGrammar.NSequence(454, Symbols.Sequence(Seq(Symbols.Nonterminal("WSNL"), Symbols.Nonterminal("Def"))), Seq(455, 34)),
+      456 -> NGrammar.NSequence(456, Symbols.Sequence(Seq(Symbols.Longest(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.ExactChar('\n'), Symbols.Nonterminal("WS"))))))))), Seq(457)),
+      460 -> NGrammar.NSequence(460, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.ExactChar('\n'), Symbols.Nonterminal("WS"))), Seq(461, 25, 4)),
+      462 -> NGrammar.NSequence(462, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))), 0), Symbols.OneOf(ListSet(Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' '))))), Symbols.Proxy(Symbols.Sequence(Seq(Symbols.Nonterminal("LineComment")))))))), Seq(461, 463)),
+      465 -> NGrammar.NSequence(465, Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' ')))), Seq(466))),
     1)
 
   sealed trait TerminalChoiceElem
@@ -559,7 +559,7 @@ object MetaLang3 {
 
   sealed trait PrefixNotExpr extends AdditiveExpr
 
-  case class ConcreteClassDef(name: TypeName, supers: List[TypeName], params: List[ClassParamDef]) extends ClassDef
+  case class ConcreteClassDef(name: TypeName, supers: Option[List[TypeName]], params: List[ClassParamDef]) extends ClassDef
 
   case class FuncCallOrConstructExpr(funcName: TypeOrFuncName, params: List[PExpr]) extends Atom
 
@@ -742,6 +742,44 @@ object MetaLang3 {
     }
   }
 
+  def matchRule(node: Node): Rule = {
+    val BindNode(v472, v473) = node
+    v472.id match {
+      case 37 =>
+        val v474 = v473.asInstanceOf[SequenceNode].children.head
+        val BindNode(v475, v476) = v474
+        assert(v475.id == 38)
+        val v477 = v473.asInstanceOf[SequenceNode].children(4)
+        val BindNode(v478, v479) = v477
+        assert(v478.id == 192)
+        val BindNode(v480, v481) = v479
+        Rule(matchLHS(v476), v480.id match {
+          case 193 =>
+            val BindNode(v482, v483) = v481
+            assert(v482.id == 194)
+            val v484 = v483.asInstanceOf[SequenceNode].children.head
+            val BindNode(v485, v486) = v484
+            assert(v485.id == 195)
+            val v487 = v483.asInstanceOf[SequenceNode].children(1)
+            val v488 = unrollRepeat0(v487).map { elem =>
+              val BindNode(v489, v490) = elem
+              assert(v489.id == 447)
+              val BindNode(v491, v492) = v490
+              v491.id match {
+                case 448 =>
+                  val BindNode(v493, v494) = v492
+                  assert(v493.id == 449)
+                  val v495 = v494.asInstanceOf[SequenceNode].children(3)
+                  val BindNode(v496, v497) = v495
+                  assert(v496.id == 195)
+                  matchRHS(v497)
+              }
+            }
+            List(matchRHS(v486)) ++ v488
+        })
+    }
+  }
+
   def matchTypeDef(node: Node): TypeDef = {
     val BindNode(v498, v499) = node
     v498.id match {
@@ -763,34 +801,6 @@ object MetaLang3 {
     }
   }
 
-  def matchAdditiveExpr(node: Node): AdditiveExpr = {
-    val BindNode(v756, v757) = node
-    v756.id match {
-      case 340 =>
-        val v758 = v757.asInstanceOf[SequenceNode].children(2)
-        val BindNode(v759, v760) = v758
-        assert(v759.id == 412)
-        val BindNode(v761, v762) = v760
-        val v765 = v757.asInstanceOf[SequenceNode].children.head
-        val BindNode(v766, v767) = v765
-        assert(v766.id == 341)
-        val v768 = v757.asInstanceOf[SequenceNode].children(4)
-        val BindNode(v769, v770) = v768
-        assert(v769.id == 339)
-        BinOp(v761.id match {
-          case 413 =>
-            val BindNode(v763, v764) = v762
-            assert(v763.id == 414)
-            Op.ADD
-        }, matchPrefixNotExpr(v767), matchAdditiveExpr(v770))
-      case 415 =>
-        val v771 = v757.asInstanceOf[SequenceNode].children.head
-        val BindNode(v772, v773) = v771
-        assert(v772.id == 341)
-        matchPrefixNotExpr(v773)
-    }
-  }
-
   def matchTerminalChoiceElem(node: Node): TerminalChoiceElem = {
     val BindNode(v138, v139) = node
     v138.id match {
@@ -807,21 +817,38 @@ object MetaLang3 {
     }
   }
 
-  def matchKeyword(node: Node): KeyWord.Value = {
-    val BindNode(v828, v829) = node
-    v828.id match {
-      case 86 =>
-        KeyWord.NULL
-      case 71 =>
-        KeyWord.STRING
-      case 78 =>
-        KeyWord.TRUE
-      case 56 =>
-        KeyWord.BOOLEAN
-      case 65 =>
-        KeyWord.CHAR
-      case 82 =>
-        KeyWord.FALSE
+  def matchElem(node: Node): Elem = {
+    val BindNode(v614, v615) = node
+    v614.id match {
+      case 200 =>
+        val v616 = v615.asInstanceOf[SequenceNode].children.head
+        val BindNode(v617, v618) = v616
+        assert(v617.id == 201)
+        matchSymbol(v618)
+      case 285 =>
+        val v619 = v615.asInstanceOf[SequenceNode].children.head
+        val BindNode(v620, v621) = v619
+        assert(v620.id == 286)
+        matchProcessor(v621)
+    }
+  }
+
+  def matchElvisExpr(node: Node): ElvisExpr = {
+    val BindNode(v935, v936) = node
+    v935.id match {
+      case 338 =>
+        val v937 = v936.asInstanceOf[SequenceNode].children.head
+        val BindNode(v938, v939) = v937
+        assert(v938.id == 339)
+        val v940 = v936.asInstanceOf[SequenceNode].children(4)
+        val BindNode(v941, v942) = v940
+        assert(v941.id == 337)
+        Elvis(matchAdditiveExpr(v939), matchElvisExpr(v942))
+      case 418 =>
+        val v943 = v936.asInstanceOf[SequenceNode].children.head
+        val BindNode(v944, v945) = v943
+        assert(v944.id == 339)
+        matchAdditiveExpr(v945)
     }
   }
 
@@ -878,32 +905,6 @@ object MetaLang3 {
     }
   }
 
-  def matchSequence(node: Node): Sequence = {
-    val BindNode(v411, v412) = node
-    v411.id match {
-      case 198 =>
-        val v413 = v412.asInstanceOf[SequenceNode].children.head
-        val BindNode(v414, v415) = v413
-        assert(v414.id == 199)
-        val v416 = v412.asInstanceOf[SequenceNode].children(1)
-        val v417 = unrollRepeat0(v416).map { elem =>
-          val BindNode(v418, v419) = elem
-          assert(v418.id == 441)
-          val BindNode(v420, v421) = v419
-          v420.id match {
-            case 442 =>
-              val BindNode(v422, v423) = v421
-              assert(v422.id == 443)
-              val v424 = v423.asInstanceOf[SequenceNode].children(1)
-              val BindNode(v425, v426) = v424
-              assert(v425.id == 199)
-              matchElem(v426)
-          }
-        }
-        Sequence(List(matchElem(v415)) ++ v417)
-    }
-  }
-
   def matchClassParamDef(node: Node): ClassParamDef = {
     val BindNode(v1, v2) = node
     v1.id match {
@@ -933,49 +934,47 @@ object MetaLang3 {
     }
   }
 
-  def matchAtom(node: Node): Atom = {
-    val BindNode(v107, v108) = node
-    v107.id match {
-      case 345 =>
-        val v109 = v108.asInstanceOf[SequenceNode].children.head
-        val BindNode(v110, v111) = v109
-        assert(v110.id == 346)
-        matchBindExpr(v111)
-      case 396 =>
-        val v112 = v108.asInstanceOf[SequenceNode].children.head
-        val BindNode(v113, v114) = v112
-        assert(v113.id == 397)
-        matchEnumValue(v114)
-      case 379 =>
-        val v115 = v108.asInstanceOf[SequenceNode].children.head
-        val BindNode(v116, v117) = v115
-        assert(v116.id == 380)
-        matchArrayExpr(v117)
-      case 411 =>
-        val v118 = v108.asInstanceOf[SequenceNode].children(2)
-        val BindNode(v119, v120) = v118
-        assert(v119.id == 327)
-        ExprParen(matchPExpr(v120))
-      case 364 =>
-        val v121 = v108.asInstanceOf[SequenceNode].children.head
-        val BindNode(v122, v123) = v121
-        assert(v122.id == 365)
-        matchFuncCallOrConstructExpr(v123)
-      case 382 =>
-        val v124 = v108.asInstanceOf[SequenceNode].children.head
-        val BindNode(v125, v126) = v124
-        assert(v125.id == 383)
-        matchLiteral(v126)
-      case 287 =>
-        val v127 = v108.asInstanceOf[SequenceNode].children.head
-        val BindNode(v128, v129) = v127
-        assert(v128.id == 288)
-        matchRef(v129)
-      case 349 =>
-        val v130 = v108.asInstanceOf[SequenceNode].children.head
-        val BindNode(v131, v132) = v130
-        assert(v131.id == 350)
-        matchNamedConstructExpr(v132)
+  def matchTernaryExpr(node: Node): TernaryExpr = {
+    val BindNode(v693, v694) = node
+    v693.id match {
+      case 330 =>
+        val v695 = v694.asInstanceOf[SequenceNode].children.head
+        val BindNode(v696, v697) = v695
+        assert(v696.id == 331)
+        val v698 = v694.asInstanceOf[SequenceNode].children(4)
+        val BindNode(v699, v700) = v698
+        assert(v699.id == 435)
+        val BindNode(v701, v702) = v700
+        assert(v701.id == 436)
+        val BindNode(v703, v704) = v702
+        val v710 = v694.asInstanceOf[SequenceNode].children(8)
+        val BindNode(v711, v712) = v710
+        assert(v711.id == 435)
+        val BindNode(v713, v714) = v712
+        assert(v713.id == 436)
+        val BindNode(v715, v716) = v714
+        TernaryOp(matchBoolOrExpr(v697), v703.id match {
+          case 437 =>
+            val BindNode(v705, v706) = v704
+            assert(v705.id == 438)
+            val v707 = v706.asInstanceOf[SequenceNode].children.head
+            val BindNode(v708, v709) = v707
+            assert(v708.id == 329)
+            matchTernaryExpr(v709)
+        }, v715.id match {
+          case 437 =>
+            val BindNode(v717, v718) = v716
+            assert(v717.id == 438)
+            val v719 = v718.asInstanceOf[SequenceNode].children.head
+            val BindNode(v720, v721) = v719
+            assert(v720.id == 329)
+            matchTernaryExpr(v721)
+        })
+      case 439 =>
+        val v722 = v694.asInstanceOf[SequenceNode].children.head
+        val BindNode(v723, v724) = v722
+        assert(v723.id == 331)
+        matchBoolOrExpr(v724)
     }
   }
 
@@ -1033,6 +1032,24 @@ object MetaLang3 {
     }
   }
 
+  def matchKeyword(node: Node): KeyWord.Value = {
+    val BindNode(v828, v829) = node
+    v828.id match {
+      case 82 =>
+        KeyWord.FALSE
+      case 78 =>
+        KeyWord.TRUE
+      case 86 =>
+        KeyWord.NULL
+      case 65 =>
+        KeyWord.CHAR
+      case 71 =>
+        KeyWord.STRING
+      case 56 =>
+        KeyWord.BOOLEAN
+    }
+  }
+
   def matchTypeOrFuncName(node: Node): TypeOrFuncName = {
     val BindNode(v824, v825) = node
     v824.id match {
@@ -1065,6 +1082,52 @@ object MetaLang3 {
       case 89 =>
         val v192 = v190.asInstanceOf[SequenceNode].children(1)
         TypeName(v192.toString)
+    }
+  }
+
+  def matchAtom(node: Node): Atom = {
+    val BindNode(v107, v108) = node
+    v107.id match {
+      case 396 =>
+        val v109 = v108.asInstanceOf[SequenceNode].children.head
+        val BindNode(v110, v111) = v109
+        assert(v110.id == 397)
+        matchEnumValue(v111)
+      case 287 =>
+        val v112 = v108.asInstanceOf[SequenceNode].children.head
+        val BindNode(v113, v114) = v112
+        assert(v113.id == 288)
+        matchRef(v114)
+      case 411 =>
+        val v115 = v108.asInstanceOf[SequenceNode].children(2)
+        val BindNode(v116, v117) = v115
+        assert(v116.id == 327)
+        ExprParen(matchPExpr(v117))
+      case 349 =>
+        val v118 = v108.asInstanceOf[SequenceNode].children.head
+        val BindNode(v119, v120) = v118
+        assert(v119.id == 350)
+        matchNamedConstructExpr(v120)
+      case 364 =>
+        val v121 = v108.asInstanceOf[SequenceNode].children.head
+        val BindNode(v122, v123) = v121
+        assert(v122.id == 365)
+        matchFuncCallOrConstructExpr(v123)
+      case 379 =>
+        val v124 = v108.asInstanceOf[SequenceNode].children.head
+        val BindNode(v125, v126) = v124
+        assert(v125.id == 380)
+        matchArrayExpr(v126)
+      case 382 =>
+        val v127 = v108.asInstanceOf[SequenceNode].children.head
+        val BindNode(v128, v129) = v127
+        assert(v128.id == 383)
+        matchLiteral(v129)
+      case 345 =>
+        val v130 = v108.asInstanceOf[SequenceNode].children.head
+        val BindNode(v131, v132) = v130
+        assert(v131.id == 346)
+        matchBindExpr(v132)
     }
   }
 
@@ -1122,6 +1185,32 @@ object MetaLang3 {
         val BindNode(v187, v188) = v186
         assert(v187.id == 327)
         matchPExpr(v188)
+    }
+  }
+
+  def matchGrammar(node: Node): Grammar = {
+    val BindNode(v946, v947) = node
+    v946.id match {
+      case 3 =>
+        val v948 = v947.asInstanceOf[SequenceNode].children(1)
+        val BindNode(v949, v950) = v948
+        assert(v949.id == 34)
+        val v951 = v947.asInstanceOf[SequenceNode].children(2)
+        val v952 = unrollRepeat0(v951).map { elem =>
+          val BindNode(v953, v954) = elem
+          assert(v953.id == 452)
+          val BindNode(v955, v956) = v954
+          v955.id match {
+            case 453 =>
+              val BindNode(v957, v958) = v956
+              assert(v957.id == 454)
+              val v959 = v958.asInstanceOf[SequenceNode].children(1)
+              val BindNode(v960, v961) = v959
+              assert(v960.id == 34)
+              matchDef(v961)
+          }
+        }
+        Grammar(List(matchDef(v950)) ++ v952)
     }
   }
 
@@ -1204,68 +1293,6 @@ object MetaLang3 {
     }
   }
 
-  def matchGrammar(node: Node): Grammar = {
-    val BindNode(v946, v947) = node
-    v946.id match {
-      case 3 =>
-        val v948 = v947.asInstanceOf[SequenceNode].children(1)
-        val BindNode(v949, v950) = v948
-        assert(v949.id == 34)
-        val v951 = v947.asInstanceOf[SequenceNode].children(2)
-        val v952 = unrollRepeat0(v951).map { elem =>
-          val BindNode(v953, v954) = elem
-          assert(v953.id == 451)
-          val BindNode(v955, v956) = v954
-          v955.id match {
-            case 452 =>
-              val BindNode(v957, v958) = v956
-              assert(v957.id == 453)
-              val v959 = v958.asInstanceOf[SequenceNode].children(1)
-              val BindNode(v960, v961) = v959
-              assert(v960.id == 34)
-              matchDef(v961)
-          }
-        }
-        Grammar(List(matchDef(v950)) ++ v952)
-    }
-  }
-
-  def matchNonNullTypeDesc(node: Node): NonNullTypeDesc = {
-    val BindNode(v734, v735) = node
-    v734.id match {
-      case 101 =>
-        val v736 = v735.asInstanceOf[SequenceNode].children(2)
-        val BindNode(v737, v738) = v736
-        assert(v737.id == 96)
-        ArrayTypeDesc(matchTypeDesc(v738))
-      case 116 =>
-        val v739 = v735.asInstanceOf[SequenceNode].children.head
-        val BindNode(v740, v741) = v739
-        assert(v740.id == 117)
-        matchTypeDef(v741)
-      case 99 =>
-        val v742 = v735.asInstanceOf[SequenceNode].children.head
-        val BindNode(v743, v744) = v742
-        assert(v743.id == 100)
-        matchTypeName(v744)
-      case 106 =>
-        val v745 = v735.asInstanceOf[SequenceNode].children.head
-        val BindNode(v746, v747) = v745
-        assert(v746.id == 107)
-        matchAnyType(v747)
-      case 104 =>
-        val v748 = v735.asInstanceOf[SequenceNode].children.head
-        val BindNode(v749, v750) = v748
-        assert(v749.id == 105)
-        matchValueType(v750)
-      case 112 =>
-        val v751 = v735.asInstanceOf[SequenceNode].children.head
-        val BindNode(v752, v753) = v751
-        assert(v752.id == 113)
-        matchEnumTypeName(v753)
-    }
-  }
-
   def matchBindExpr(node: Node): BindExpr = {
     val BindNode(v571, v572) = node
     v571.id match {
@@ -1306,44 +1333,6 @@ object MetaLang3 {
     v650.id match {
       case 30 =>
         ""
-    }
-  }
-
-  def matchRule(node: Node): Rule = {
-    val BindNode(v472, v473) = node
-    v472.id match {
-      case 37 =>
-        val v474 = v473.asInstanceOf[SequenceNode].children.head
-        val BindNode(v475, v476) = v474
-        assert(v475.id == 38)
-        val v477 = v473.asInstanceOf[SequenceNode].children(4)
-        val BindNode(v478, v479) = v477
-        assert(v478.id == 192)
-        val BindNode(v480, v481) = v479
-        Rule(matchLHS(v476), v480.id match {
-          case 193 =>
-            val BindNode(v482, v483) = v481
-            assert(v482.id == 194)
-            val v484 = v483.asInstanceOf[SequenceNode].children.head
-            val BindNode(v485, v486) = v484
-            assert(v485.id == 195)
-            val v487 = v483.asInstanceOf[SequenceNode].children(1)
-            val v488 = unrollRepeat0(v487).map { elem =>
-              val BindNode(v489, v490) = elem
-              assert(v489.id == 446)
-              val BindNode(v491, v492) = v490
-              v491.id match {
-                case 447 =>
-                  val BindNode(v493, v494) = v492
-                  assert(v493.id == 448)
-                  val v495 = v494.asInstanceOf[SequenceNode].children(3)
-                  val BindNode(v496, v497) = v495
-                  assert(v496.id == 195)
-                  matchRHS(v497)
-              }
-            }
-            List(matchRHS(v486)) ++ v488
-        })
     }
   }
 
@@ -1488,6 +1477,39 @@ object MetaLang3 {
     }
   }
 
+  def matchClassDef(node: Node): ClassDef = {
+    val BindNode(v215, v216) = node
+    v215.id match {
+      case 120 =>
+        val v217 = v216.asInstanceOf[SequenceNode].children.head
+        val BindNode(v218, v219) = v217
+        assert(v218.id == 100)
+        val v220 = v216.asInstanceOf[SequenceNode].children(2)
+        val BindNode(v221, v222) = v220
+        assert(v221.id == 121)
+        AbstractClassDef(matchTypeName(v219), matchSuperTypes(v222))
+      case 136 =>
+        val v223 = v216.asInstanceOf[SequenceNode].children.head
+        val BindNode(v224, v225) = v223
+        assert(v224.id == 100)
+        val v226 = v216.asInstanceOf[SequenceNode].children(2)
+        val BindNode(v227, v228) = v226
+        assert(v227.id == 137)
+        ConcreteClassDef(matchTypeName(v225), None, matchClassParamsDef(v228))
+      case 153 =>
+        val v229 = v216.asInstanceOf[SequenceNode].children.head
+        val BindNode(v230, v231) = v229
+        assert(v230.id == 100)
+        val v232 = v216.asInstanceOf[SequenceNode].children(2)
+        val BindNode(v233, v234) = v232
+        assert(v233.id == 121)
+        val v235 = v216.asInstanceOf[SequenceNode].children(4)
+        val BindNode(v236, v237) = v235
+        assert(v236.id == 137)
+        ConcreteClassDef(matchTypeName(v231), Some(matchSuperTypes(v234)), matchClassParamsDef(v237))
+    }
+  }
+
   def matchCallParams(node: Node): List[PExpr] = {
     val BindNode(v862, v863) = node
     v862.id match {
@@ -1530,6 +1552,60 @@ object MetaLang3 {
     }
   }
 
+  def matchSequence(node: Node): Sequence = {
+    val BindNode(v411, v412) = node
+    v411.id match {
+      case 198 =>
+        val v413 = v412.asInstanceOf[SequenceNode].children.head
+        val BindNode(v414, v415) = v413
+        assert(v414.id == 199)
+        val v416 = v412.asInstanceOf[SequenceNode].children(1)
+        val v417 = unrollRepeat0(v416).map { elem =>
+          val BindNode(v418, v419) = elem
+          assert(v418.id == 442)
+          val BindNode(v420, v421) = v419
+          v420.id match {
+            case 443 =>
+              val BindNode(v422, v423) = v421
+              assert(v422.id == 444)
+              val v424 = v423.asInstanceOf[SequenceNode].children(1)
+              val BindNode(v425, v426) = v424
+              assert(v425.id == 199)
+              matchElem(v426)
+          }
+        }
+        Sequence(List(matchElem(v415)) ++ v417)
+    }
+  }
+
+  def matchAdditiveExpr(node: Node): AdditiveExpr = {
+    val BindNode(v756, v757) = node
+    v756.id match {
+      case 340 =>
+        val v758 = v757.asInstanceOf[SequenceNode].children(2)
+        val BindNode(v759, v760) = v758
+        assert(v759.id == 412)
+        val BindNode(v761, v762) = v760
+        val v765 = v757.asInstanceOf[SequenceNode].children.head
+        val BindNode(v766, v767) = v765
+        assert(v766.id == 341)
+        val v768 = v757.asInstanceOf[SequenceNode].children(4)
+        val BindNode(v769, v770) = v768
+        assert(v769.id == 339)
+        BinOp(v761.id match {
+          case 413 =>
+            val BindNode(v763, v764) = v762
+            assert(v763.id == 414)
+            Op.ADD
+        }, matchPrefixNotExpr(v767), matchAdditiveExpr(v770))
+      case 415 =>
+        val v771 = v757.asInstanceOf[SequenceNode].children.head
+        val BindNode(v772, v773) = v771
+        assert(v772.id == 341)
+        matchPrefixNotExpr(v773)
+    }
+  }
+
   def matchPostUnSymbol(node: Node): PostUnSymbol = {
     val BindNode(v28, v29) = node
     v28.id match {
@@ -1553,6 +1629,47 @@ object MetaLang3 {
         val BindNode(v40, v41) = v39
         assert(v40.id == 219)
         matchAtomSymbol(v41)
+    }
+  }
+
+  def matchAtomSymbol(node: Node): AtomSymbol = {
+    val BindNode(v622, v623) = node
+    v622.id match {
+      case 279 =>
+        val v624 = v623.asInstanceOf[SequenceNode].children.head
+        val BindNode(v625, v626) = v624
+        assert(v625.id == 280)
+        matchEmptySequence(v626)
+      case 276 =>
+        val v627 = v623.asInstanceOf[SequenceNode].children.head
+        val BindNode(v628, v629) = v627
+        assert(v628.id == 277)
+        matchLongest(v629)
+      case 266 =>
+        val v630 = v623.asInstanceOf[SequenceNode].children.head
+        val BindNode(v631, v632) = v630
+        assert(v631.id == 40)
+        matchNonterminal(v632)
+      case 254 =>
+        val v633 = v623.asInstanceOf[SequenceNode].children.head
+        val BindNode(v634, v635) = v633
+        assert(v634.id == 255)
+        matchStringSymbol(v635)
+      case 220 =>
+        val v636 = v623.asInstanceOf[SequenceNode].children.head
+        val BindNode(v637, v638) = v636
+        assert(v637.id == 221)
+        matchTerminal(v638)
+      case 267 =>
+        val v639 = v623.asInstanceOf[SequenceNode].children(2)
+        val BindNode(v640, v641) = v639
+        assert(v640.id == 268)
+        matchInPlaceChoices(v641)
+      case 236 =>
+        val v642 = v623.asInstanceOf[SequenceNode].children.head
+        val BindNode(v643, v644) = v642
+        assert(v643.id == 237)
+        matchTerminalChoice(v644)
     }
   }
 
@@ -1655,6 +1772,14 @@ object MetaLang3 {
     }
   }
 
+  def matchWSNL(node: Node): String = {
+    val BindNode(v333, v334) = node
+    v333.id match {
+      case 456 =>
+        ""
+    }
+  }
+
   def matchTypeDesc(node: Node): TypeDesc = {
     val BindNode(v676, v677) = node
     v676.id match {
@@ -1681,6 +1806,25 @@ object MetaLang3 {
                 v692.asInstanceOf[TerminalNode].input.asInstanceOf[Inputs.Character].char
             })
         }).isDefined)
+    }
+  }
+
+  def matchBoolAndExpr(node: Node): BoolAndExpr = {
+    val BindNode(v384, v385) = node
+    v384.id match {
+      case 334 =>
+        val v386 = v385.asInstanceOf[SequenceNode].children.head
+        val BindNode(v387, v388) = v386
+        assert(v387.id == 335)
+        val v389 = v385.asInstanceOf[SequenceNode].children(4)
+        val BindNode(v390, v391) = v389
+        assert(v390.id == 333)
+        BinOp(Op.OR, matchBoolEqExpr(v388), matchBoolAndExpr(v391))
+      case 431 =>
+        val v392 = v385.asInstanceOf[SequenceNode].children.head
+        val BindNode(v393, v394) = v392
+        assert(v393.id == 335)
+        matchBoolEqExpr(v394)
     }
   }
 
@@ -1759,118 +1903,6 @@ object MetaLang3 {
         val BindNode(v136, v137) = v135
         assert(v136.id == 224)
         matchTerminalChar(v137)
-    }
-  }
-
-  def matchBoolAndExpr(node: Node): BoolAndExpr = {
-    val BindNode(v384, v385) = node
-    v384.id match {
-      case 334 =>
-        val v386 = v385.asInstanceOf[SequenceNode].children.head
-        val BindNode(v387, v388) = v386
-        assert(v387.id == 335)
-        val v389 = v385.asInstanceOf[SequenceNode].children(4)
-        val BindNode(v390, v391) = v389
-        assert(v390.id == 333)
-        BinOp(Op.OR, matchBoolEqExpr(v388), matchBoolAndExpr(v391))
-      case 431 =>
-        val v392 = v385.asInstanceOf[SequenceNode].children.head
-        val BindNode(v393, v394) = v392
-        assert(v393.id == 335)
-        matchBoolEqExpr(v394)
-    }
-  }
-
-  def matchTernaryExpr(node: Node): TernaryExpr = {
-    val BindNode(v693, v694) = node
-    v693.id match {
-      case 330 =>
-        val v695 = v694.asInstanceOf[SequenceNode].children.head
-        val BindNode(v696, v697) = v695
-        assert(v696.id == 331)
-        val v698 = v694.asInstanceOf[SequenceNode].children(4)
-        val BindNode(v699, v700) = v698
-        assert(v699.id == 435)
-        val BindNode(v701, v702) = v700
-        assert(v701.id == 436)
-        val BindNode(v703, v704) = v702
-        val v710 = v694.asInstanceOf[SequenceNode].children(8)
-        val BindNode(v711, v712) = v710
-        assert(v711.id == 435)
-        val BindNode(v713, v714) = v712
-        assert(v713.id == 436)
-        val BindNode(v715, v716) = v714
-        TernaryOp(matchBoolOrExpr(v697), v703.id match {
-          case 437 =>
-            val BindNode(v705, v706) = v704
-            assert(v705.id == 328)
-            val v707 = v706.asInstanceOf[SequenceNode].children.head
-            val BindNode(v708, v709) = v707
-            assert(v708.id == 329)
-            matchTernaryExpr(v709)
-        }, v715.id match {
-          case 437 =>
-            val BindNode(v717, v718) = v716
-            assert(v717.id == 328)
-            val v719 = v718.asInstanceOf[SequenceNode].children.head
-            val BindNode(v720, v721) = v719
-            assert(v720.id == 329)
-            matchTernaryExpr(v721)
-        })
-      case 438 =>
-        val v722 = v694.asInstanceOf[SequenceNode].children.head
-        val BindNode(v723, v724) = v722
-        assert(v723.id == 331)
-        matchBoolOrExpr(v724)
-    }
-  }
-
-  def matchClassDef(node: Node): ClassDef = {
-    val BindNode(v215, v216) = node
-    v215.id match {
-      case 120 =>
-        val v217 = v216.asInstanceOf[SequenceNode].children.head
-        val BindNode(v218, v219) = v217
-        assert(v218.id == 100)
-        val v220 = v216.asInstanceOf[SequenceNode].children(2)
-        val BindNode(v221, v222) = v220
-        assert(v221.id == 121)
-        AbstractClassDef(matchTypeName(v219), matchSuperTypes(v222))
-      case 136 =>
-        val v223 = v216.asInstanceOf[SequenceNode].children.head
-        val BindNode(v224, v225) = v223
-        assert(v224.id == 100)
-        val v226 = v216.asInstanceOf[SequenceNode].children(2)
-        val BindNode(v227, v228) = v226
-        assert(v227.id == 137)
-        ConcreteClassDef(matchTypeName(v225), List(), matchClassParamsDef(v228))
-      case 153 =>
-        val v229 = v216.asInstanceOf[SequenceNode].children.head
-        val BindNode(v230, v231) = v229
-        assert(v230.id == 100)
-        val v232 = v216.asInstanceOf[SequenceNode].children(2)
-        val BindNode(v233, v234) = v232
-        assert(v233.id == 121)
-        val v235 = v216.asInstanceOf[SequenceNode].children(4)
-        val BindNode(v236, v237) = v235
-        assert(v236.id == 137)
-        ConcreteClassDef(matchTypeName(v231), matchSuperTypes(v234), matchClassParamsDef(v237))
-    }
-  }
-
-  def matchElem(node: Node): Elem = {
-    val BindNode(v614, v615) = node
-    v614.id match {
-      case 200 =>
-        val v616 = v615.asInstanceOf[SequenceNode].children.head
-        val BindNode(v617, v618) = v616
-        assert(v617.id == 201)
-        matchSymbol(v618)
-      case 285 =>
-        val v619 = v615.asInstanceOf[SequenceNode].children.head
-        val BindNode(v620, v621) = v619
-        assert(v620.id == 286)
-        matchProcessor(v621)
     }
   }
 
@@ -2079,33 +2111,6 @@ object MetaLang3 {
     }
   }
 
-  def matchElvisExpr(node: Node): ElvisExpr = {
-    val BindNode(v935, v936) = node
-    v935.id match {
-      case 338 =>
-        val v937 = v936.asInstanceOf[SequenceNode].children.head
-        val BindNode(v938, v939) = v937
-        assert(v938.id == 339)
-        val v940 = v936.asInstanceOf[SequenceNode].children(4)
-        val BindNode(v941, v942) = v940
-        assert(v941.id == 337)
-        Elvis(matchAdditiveExpr(v939), matchElvisExpr(v942))
-      case 418 =>
-        val v943 = v936.asInstanceOf[SequenceNode].children.head
-        val BindNode(v944, v945) = v943
-        assert(v944.id == 339)
-        matchAdditiveExpr(v945)
-    }
-  }
-
-  def matchWSNL(node: Node): String = {
-    val BindNode(v333, v334) = node
-    v333.id match {
-      case 455 =>
-        ""
-    }
-  }
-
   def matchRHS(node: Node): Sequence = {
     val BindNode(v645, v646) = node
     v645.id match {
@@ -2244,44 +2249,39 @@ object MetaLang3 {
     }
   }
 
-  def matchAtomSymbol(node: Node): AtomSymbol = {
-    val BindNode(v622, v623) = node
-    v622.id match {
-      case 266 =>
-        val v624 = v623.asInstanceOf[SequenceNode].children.head
-        val BindNode(v625, v626) = v624
-        assert(v625.id == 40)
-        matchNonterminal(v626)
-      case 276 =>
-        val v627 = v623.asInstanceOf[SequenceNode].children.head
-        val BindNode(v628, v629) = v627
-        assert(v628.id == 277)
-        matchLongest(v629)
-      case 254 =>
-        val v630 = v623.asInstanceOf[SequenceNode].children.head
-        val BindNode(v631, v632) = v630
-        assert(v631.id == 255)
-        matchStringSymbol(v632)
-      case 220 =>
-        val v633 = v623.asInstanceOf[SequenceNode].children.head
-        val BindNode(v634, v635) = v633
-        assert(v634.id == 221)
-        matchTerminal(v635)
-      case 279 =>
-        val v636 = v623.asInstanceOf[SequenceNode].children.head
-        val BindNode(v637, v638) = v636
-        assert(v637.id == 280)
-        matchEmptySequence(v638)
-      case 267 =>
-        val v639 = v623.asInstanceOf[SequenceNode].children(2)
-        val BindNode(v640, v641) = v639
-        assert(v640.id == 268)
-        matchInPlaceChoices(v641)
-      case 236 =>
-        val v642 = v623.asInstanceOf[SequenceNode].children.head
-        val BindNode(v643, v644) = v642
-        assert(v643.id == 237)
-        matchTerminalChoice(v644)
+  def matchNonNullTypeDesc(node: Node): NonNullTypeDesc = {
+    val BindNode(v734, v735) = node
+    v734.id match {
+      case 112 =>
+        val v736 = v735.asInstanceOf[SequenceNode].children.head
+        val BindNode(v737, v738) = v736
+        assert(v737.id == 113)
+        matchEnumTypeName(v738)
+      case 104 =>
+        val v739 = v735.asInstanceOf[SequenceNode].children.head
+        val BindNode(v740, v741) = v739
+        assert(v740.id == 105)
+        matchValueType(v741)
+      case 101 =>
+        val v742 = v735.asInstanceOf[SequenceNode].children(2)
+        val BindNode(v743, v744) = v742
+        assert(v743.id == 96)
+        ArrayTypeDesc(matchTypeDesc(v744))
+      case 116 =>
+        val v745 = v735.asInstanceOf[SequenceNode].children.head
+        val BindNode(v746, v747) = v745
+        assert(v746.id == 117)
+        matchTypeDef(v747)
+      case 106 =>
+        val v748 = v735.asInstanceOf[SequenceNode].children.head
+        val BindNode(v749, v750) = v748
+        assert(v749.id == 107)
+        matchAnyType(v750)
+      case 99 =>
+        val v751 = v735.asInstanceOf[SequenceNode].children.head
+        val BindNode(v752, v753) = v751
+        assert(v752.id == 100)
+        matchTypeName(v753)
     }
   }
 
@@ -2425,19 +2425,26 @@ object MetaLang3 {
   def parse(text: String): Either[Parser.NaiveContext, ParsingErrors.ParsingError] =
     naiveParser.parse(text)
 
-  def parseAst(text: String): Either[Grammar, ParsingErrors.ParsingError] = parse(text) match {
-    case Left(ctx) =>
-      val tree = new ParseTreeConstructor(ParseForestFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
-      tree match {
-        case Some(forest) if forest.trees.size == 1 => Left(matchStart(forest.trees.head))
-        case Some(forest) => Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
-        case None => ???
-      }
-    case Right(error) => Right(error)
-  }
+  def parseAst(text: String): Either[Grammar, ParsingErrors.ParsingError] =
+    ParseTreeUtil.parseAst(naiveParser, text, matchStart)
 
   def main(args: Array[String]): Unit = {
-    val grammar = parseAst("A = B C D")
-    println(grammar)
+    println(parseAst("A = 'abc' 'd-f'"))
+    println(parseAst("A = '\\-'"))
+    println(parseAst("A = '--'"))
+    println(parseAst("MyClass()"))
+    println(parseAst(
+      """Class2<Super1,Super2>
+        |Class2<>(param1:string, param2:string)
+        |Class2(param1:string)
+        |""".stripMargin))
+    println(parseAst(
+      """SuperClass<GrandSuper> {
+        |  SomeClass,
+        |  SubSuperClass<AnotherClass> {
+        |    IndirectSubConcreteClass(param1:string)
+        |  },
+        |  DirectSubConcreteClass()
+        |}""".stripMargin))
   }
 }

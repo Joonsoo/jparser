@@ -12,8 +12,8 @@ import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.nparser.Parser
-import com.giyeok.jparser.nparser.RepeatUtils.unrollRepeat0
-import com.giyeok.jparser.nparser.RepeatUtils.unrollRepeat1
+import com.giyeok.jparser.nparser.ParseTreeUtil.unrollRepeat0
+import com.giyeok.jparser.nparser.ParseTreeUtil.unrollRepeat1
 import scala.collection.immutable.ListSet
 
 object RepeatExample {

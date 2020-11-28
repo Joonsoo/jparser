@@ -184,11 +184,35 @@ object MetaLanguage3 {
 
     // testExample(OptionalExamples.withShortEnum)
 
-    generateParser(SimpleExamples.ex3.grammar, "Simple3", Some(List("a b")))
-    generateParser(SimpleExamples.ex12a.grammar, "Simple12a", Some(List("ac", "abbbbc")))
-    generateParser(SimpleExamples.repeat.grammar, "RepeatExample", Some(List("b", "aaaabbbbb")))
-    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
-    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
-    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
+    //    testExample(MetaLang3Example("A",
+    //      """MyClass<SuperClass>(value: string)
+    //        |A: AnotherClass = # {MyClass("123")}
+    //        |""".stripMargin).example(""))
+    //    testExample(MetaLang3Example("B",
+    //      """MyClass<SuperClass, AnohterClass>(value: string)
+    //        |A: AnotherClass = # {MyClass("123")}
+    //        |""".stripMargin).example(""))
+    //    testExample(MetaLang3Example("C",
+    //      """MyClass(value: string)
+    //        |A: AnotherClass = # {MyClass("123")}
+    //        |""".stripMargin).example(""))
+    //    testExample(MetaLang3Example("D",
+    //      """SuperClass<GrandSuper> {
+    //        |  SomeClass,
+    //        |  SubSuperClass<AnotherClass> {
+    //        |    IndirectSubConcreteClass<>(param1:string)
+    //        |  },
+    //        |  DirectSubConcreteClass<>()
+    //        |}
+    //        |A = 'a'
+    //        |""".stripMargin))
+    testExample(MetaLang3Example("E", "Op: %Op = '+' {%ADD} | '-' {%SUB} | '*' {%MUL}"))
+
+    //    generateParser(SimpleExamples.ex3.grammar, "Simple3", Some(List("a b")))
+    //    generateParser(SimpleExamples.ex12a.grammar, "Simple12a", Some(List("ac", "abbbbc")))
+    //    generateParser(SimpleExamples.repeat.grammar, "RepeatExample", Some(List("b", "aaaabbbbb")))
+    //    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
+    //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
+    //    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
   }
 }

@@ -2,8 +2,8 @@ package com.giyeok.jparser.metalang2.generated
 
 import com.giyeok.jparser.Inputs.InputToShortString
 import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNode, TerminalNode}
-import com.giyeok.jparser.nparser.RepeatUtils.unrollRepeat0
-import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, Parser, RepeatUtils}
+import com.giyeok.jparser.nparser.ParseTreeUtil.unrollRepeat0
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, Parser, ParseTreeUtil}
 import com.giyeok.jparser.{NGrammar, ParseForestFunc, ParsingErrors, Symbols}
 
 import scala.collection.immutable.ListSet
@@ -1061,7 +1061,7 @@ assert(v218.id == 168)
 val v220 = matchSequence(v219)
 val v221 = List(v220)
 val v222 = body.asInstanceOf[SequenceNode].children(1)
-val v227 = RepeatUtils.unrollRepeat0(v222) map { n =>
+val v227 = ParseTreeUtil.unrollRepeat0(v222) map { n =>
 val BindNode(v223, v224) = n
 assert(v223.id == 243)
 val BindNode(v225, v226) = v224
@@ -1090,7 +1090,7 @@ assert(v236.id == 170)
 val v238 = matchElem(v237)
 val v239 = List(v238)
 val v240 = body.asInstanceOf[SequenceNode].children(1)
-val v245 = RepeatUtils.unrollRepeat0(v240) map { n =>
+val v245 = ParseTreeUtil.unrollRepeat0(v240) map { n =>
 val BindNode(v241, v242) = n
 assert(v241.id == 376)
 val BindNode(v243, v244) = v242
@@ -1578,7 +1578,7 @@ assert(v494.id == 313)
 val v496 = matchNamedParam(v495)
 val v497 = List(v496)
 val v498 = body.asInstanceOf[SequenceNode].children(3)
-val v503 = RepeatUtils.unrollRepeat0(v498) map { n =>
+val v503 = ParseTreeUtil.unrollRepeat0(v498) map { n =>
 val BindNode(v499, v500) = n
 assert(v499.id == 317)
 val BindNode(v501, v502) = v500
@@ -1662,7 +1662,7 @@ assert(v546.id == 286)
 val v548 = matchPExpr(v547)
 val v549 = List(v548)
 val v550 = n.asInstanceOf[SequenceNode].children(1)
-val v555 = RepeatUtils.unrollRepeat0(v550) map { n =>
+val v555 = ParseTreeUtil.unrollRepeat0(v550) map { n =>
 val BindNode(v551, v552) = n
 assert(v551.id == 330)
 val BindNode(v553, v554) = v552
@@ -1701,7 +1701,7 @@ assert(v570.id == 286)
 val v572 = matchPExpr(v571)
 val v573 = List(v572)
 val v574 = n.asInstanceOf[SequenceNode].children(1)
-val v579 = RepeatUtils.unrollRepeat0(v574) map { n =>
+val v579 = ParseTreeUtil.unrollRepeat0(v574) map { n =>
 val BindNode(v575, v576) = n
 assert(v575.id == 330)
 val BindNode(v577, v578) = v576
@@ -1741,7 +1741,7 @@ val v594 = CharLiteral(node,v593)
 v594
 case 342 =>
 val v595 = body.asInstanceOf[SequenceNode].children(1)
-val v599 = RepeatUtils.unrollRepeat0(v595) map { n =>
+val v599 = ParseTreeUtil.unrollRepeat0(v595) map { n =>
 val BindNode(v596, v597) = n
 assert(v596.id == 345)
 val v598 = matchStrChar(v597)
@@ -1869,7 +1869,7 @@ assert(v664.id == 88)
 val v666 = matchTypeName(v665)
 val v667 = List(v666)
 val v668 = n.asInstanceOf[SequenceNode].children(1)
-val v673 = RepeatUtils.unrollRepeat0(v668) map { n =>
+val v673 = ParseTreeUtil.unrollRepeat0(v668) map { n =>
 val BindNode(v669, v670) = n
 assert(v669.id == 117)
 val BindNode(v671, v672) = v670
@@ -1908,7 +1908,7 @@ assert(v688.id == 128)
 val v690 = matchClassParamDef(v689)
 val v691 = List(v690)
 val v692 = n.asInstanceOf[SequenceNode].children(1)
-val v697 = RepeatUtils.unrollRepeat0(v692) map { n =>
+val v697 = ParseTreeUtil.unrollRepeat0(v692) map { n =>
 val BindNode(v693, v694) = n
 assert(v693.id == 133)
 val BindNode(v695, v696) = v694
@@ -2007,7 +2007,7 @@ assert(v749.id == 148)
 val v751 = matchSubType(v750)
 val v752 = List(v751)
 val v753 = body.asInstanceOf[SequenceNode].children(1)
-val v758 = RepeatUtils.unrollRepeat0(v753) map { n =>
+val v758 = ParseTreeUtil.unrollRepeat0(v753) map { n =>
 val BindNode(v754, v755) = n
 assert(v754.id == 151)
 val BindNode(v756, v757) = v755
@@ -2062,7 +2062,7 @@ assert(v782.id == 34)
 val v784 = matchId(v783)
 val v785 = List(v784)
 val v786 = body.asInstanceOf[SequenceNode].children(5)
-val v791 = RepeatUtils.unrollRepeat0(v786) map { n =>
+val v791 = ParseTreeUtil.unrollRepeat0(v786) map { n =>
 val BindNode(v787, v788) = n
 assert(v787.id == 159)
 val BindNode(v789, v790) = v788
@@ -2327,7 +2327,7 @@ def matchWS(node: Node): List[Node] = {
   symbol.id match {
     case 5 =>
 val v901 = body.asInstanceOf[SequenceNode].children(0)
-val v902 = RepeatUtils.unrollRepeat0(v901) map { n =>
+val v902 = ParseTreeUtil.unrollRepeat0(v901) map { n =>
 // UnrollChoices
 n
 }

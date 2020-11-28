@@ -69,7 +69,7 @@ import com.giyeok.jparser.examples.{MetaLang2Example, MetaLang3Example, MetaLang
 object MetaLang3Grammar extends MetaLangExamples {
     // Ref가 metalang2와 달리 세가지로 세분화됨.
     // - $는 의미적 reference. $0가 A*를 가리키고 있으면 $0는 A의 리스트가 된다.
-    // - \$는 raw ParseNode에 대한 refernce. \$0가 A*를 가리키고 있으면 \$0는 A의 리스트가 아니라 A* 자체의 ParseNode
+    // - \$는 raw ParseNode에 대한 reference. \$0가 A*를 가리키고 있으면 \$0는 A의 리스트가 아니라 A* 자체의 ParseNode
 
     val inMetaLang2: MetaLang2Example = MetaLang2Example("Meta Language 3",
         """Grammar = WS Def (WSNL Def)* WS {@Grammar(defs=[$1] + $2$1)}
@@ -245,6 +245,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |Rule = LHS WS '=' WS (RHS (WS '|' WS RHS)* {[$0] + $1}) {Rule(lhs=$0, rhs=$4)}
           |LHS = Nonterminal (WS ':' WS TypeDesc)? {LHS(name=$0, typeDesc=$1)}
           |RHS = Sequence
+          |Sequence = Elem (WS Elem)* {Sequence<Symbol>(seq=[$0] + $1)}
           |Elem: Elem = Symbol | Processor
           |
           |
@@ -277,7 +278,6 @@ object MetaLang3Grammar extends MetaLangExamples {
           |StringSymbol = '"' StringChar* '"' {StringSymbol(value=$1)}
           |Nonterminal = NonterminalName {Nonterminal(name=$0)}
           |InPlaceChoices = Sequence (WS '|' WS Sequence)* {InPlaceChoices(choices=[$0] + $1)}
-          |Sequence = Elem (WS Elem)* {Sequence<Symbol>(seq=[$0] + $1)}
           |Longest = '<' WS InPlaceChoices WS '>' {Longest(choices=$2)}
           |EmptySequence = '#' {EmptySeq()}
           |
@@ -297,13 +297,12 @@ object MetaLang3Grammar extends MetaLangExamples {
           |Processor: Processor = Ref
           |  | '{' WS PExpr WS '}' $2
           |
-          |Ref: Ref = ValRef | RawRef | AllRawRef
+          |Ref: Ref = ValRef | RawRef
           |ValRef = '$' CondSymPath? RefIdx {ValRef(idx=$2, condSymPath=$1)}
           |CondSymPath: [%CondSymDir{BODY, COND}] = ('<' {%BODY} | '>' {%COND})+
           |RawRef = "\\$" CondSymPath? RefIdx {RawRef(idx=$2, condSymPath=$1)}
-          |AllRawRef = "\\$$" {AllRawRef()}
           |
-          |PExpr: PExpr = TernaryExpr // TODO Add (WS ':' WS TypeDesc)?
+          |PExpr: PExpr = TernaryExpr (WS ':' WS TypeDesc)? $0
           |TernaryExpr: TernaryExpr = BoolOrExpr WS '?' WS <TernaryExpr> WS ':' WS <TernaryExpr> {TernaryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
           |  | BoolOrExpr
           |BoolOrExpr: BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {BinOp(op=%Op.AND, lhs=$0, rhs=$4)}
@@ -352,7 +351,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | SuperDef // SuperDef is defining super class by listing all its subclasses.
           |  | EnumTypeDef
           |ClassDef: ClassDef = TypeName WS SuperTypes {AbstractClassDef(name=$0, supers=$2)}
-          |  | TypeName WS ClassParamsDef {ConcreteClassDef(name=$0, supers: [TypeName]=[], params=$2)}
+          |  | TypeName WS ClassParamsDef {ConcreteClassDef(name=$0, supers: [TypeName]?=null, params=$2)}
           |  | TypeName WS SuperTypes WS ClassParamsDef {ConcreteClassDef(name=$0, supers=$2, params=$4)}
           |SuperTypes: [TypeName] = '<' WS (TypeName (WS ',' WS TypeName)* WS {[$0] + $1})? '>' {$2 ?: []}
           |ClassParamsDef: [ClassParamDef] = '(' WS (ClassParamDef (WS ',' WS ClassParamDef)* WS {[$0] + $1})? WS ')' {$2 ?: []}
