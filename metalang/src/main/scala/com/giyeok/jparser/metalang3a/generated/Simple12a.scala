@@ -45,7 +45,9 @@ object Simple12a {
         case 14 =>
         None
         case 5 =>
-          val BindNode(v11, v12) = v8
+          val BindNode(v9, v10) = v8
+          assert(v9.id == 5)
+          val BindNode(v11, v12) = v10
           assert(v11.id == 6)
           val BindNode(v13, v14) = v12
           assert(v13.id == 7)
