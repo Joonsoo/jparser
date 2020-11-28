@@ -61,10 +61,10 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
             check(bindedSymbol.symbol == symbol, s"Invalid unbind expected: ${symbol.toShortString}, actual: ${bindedSymbol.symbol.toShortString}")
             valuefy(body, expr)
         case ValuefyExpr.JoinBody(bodyProcessor) =>
-            val JoinNode(body, _) = parseNode
+            val JoinNode(_, body, _) = parseNode
             valuefy(body, bodyProcessor)
         case ValuefyExpr.JoinCond(bodyProcessor) =>
-            val JoinNode(_, join) = parseNode
+            val JoinNode(_, _, join) = parseNode
             valuefy(join, bodyProcessor)
         case ValuefyExpr.SeqElemAt(index, expr) =>
             check(parseNode.isInstanceOf[SequenceNode], s"Expected sequence, but actual=unbind(${parseNode.asInstanceOf[BindNode].symbol.symbol.toShortString})")

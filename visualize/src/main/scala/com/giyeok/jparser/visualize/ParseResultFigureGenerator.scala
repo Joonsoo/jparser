@@ -68,7 +68,7 @@ class ParseResultFigureGenerator[Fig](figureGenerator: FigureGenerator.Generator
                         symbolFigureGenerator.symbolFig(sym.symbol)
                     ))
                 )
-            case JoinNode(body, join) =>
+            case JoinNode(_, body, join) =>
                 var content = Seq(symbolBorder.applyToFigure(parseNodeFig(body)))
                 if (renderConf.renderJoin) {
                     content :+= ap.joinHighlightBorder.applyToFigure(hfig(Spacing.Small, Seq(g.textFig("&", ap.default), parseNodeFig(join))))

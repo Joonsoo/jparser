@@ -19,7 +19,7 @@ object ParseForestFunc extends ParseResultFunc[ParseForest] {
 
     def join(left: Int, right: Int, symbol: NJoin, body: ParseForest, constraint: ParseForest): ParseForest = {
         // body와 join의 tree 각각에 대한 조합을 추가한다
-        ParseForest(body.trees flatMap { b => constraint.trees map { c => BindNode(symbol, JoinNode(b, c)) } })
+        ParseForest(body.trees flatMap { b => constraint.trees map { c => BindNode(symbol, JoinNode(symbol, b, c)) } })
     }
 
     def sequence(left: Int, right: Int, symbol: NSequence, pointer: Int): ParseForest =
@@ -60,7 +60,7 @@ object ParseResultTree {
         def sourceText: String = this match {
             case TerminalNode(_, input) => input.toRawString
             case BindNode(_, body) => body.sourceText
-            case JoinNode(body, _) => body.sourceText
+            case JoinNode(_, body, _) => body.sourceText
             case seq: SequenceNode => seq.children.map(_.sourceText).mkString
             case _: CyclicBindNode | _: CyclicSequenceNode =>
                 throw new Exception("Cyclic bind")
@@ -78,7 +78,7 @@ object ParseResultTree {
 
     case class CyclicBindNode(start: Inputs.Location, end: Inputs.Location, symbol: NSymbol) extends Node
 
-    case class JoinNode(body: Node, join: Node) extends Node {
+    case class JoinNode(symbol: NJoin, body: Node, join: Node) extends Node {
         val start: Inputs.Location = body.start
         val end: Inputs.Location = body.end
     }

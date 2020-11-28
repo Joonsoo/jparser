@@ -115,7 +115,7 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends AnyF
                 assert(nonterm.produces contains bodySym.id)
                 assert(grammar.rules(name) contains bodySym.symbol)
                 checkParse(body, grammar)
-            case BindNode(NJoin(_, sym: Join, _, _), body@JoinNode(BindNode(bodySym, _), BindNode(joinSym, _))) =>
+            case BindNode(NJoin(_, sym: Join, _, _), body@JoinNode(_, BindNode(bodySym, _), BindNode(joinSym, _))) =>
                 assert(sym.sym == bodySym.symbol)
                 assert(sym.join == joinSym.symbol)
                 checkParse(body, grammar)
@@ -193,7 +193,7 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends AnyF
                 node.childrenAll foreach {
                     checkParse(_, grammar)
                 }
-            case JoinNode(body, join) =>
+            case JoinNode(_, body, join) =>
                 checkParse(body, grammar)
                 checkParse(join, grammar)
             case _: CyclicBindNode | _: CyclicSequenceNode =>

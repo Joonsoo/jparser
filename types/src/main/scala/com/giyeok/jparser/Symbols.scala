@@ -205,6 +205,8 @@ object Symbols {
         override val hashCode: Int = (classOf[Sequence], seq).hashCode
     }
 
+    def Sequence(elems: AtomicSymbol*): Sequence = Sequence(elems)
+
     case class OneOf(syms: ListSet[AtomicSymbol]) extends AtomicSymbol {
         override val hashCode: Int = (classOf[OneOf], syms).hashCode
     }

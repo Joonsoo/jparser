@@ -2,7 +2,7 @@ package com.giyeok.jparser.metalang3a
 
 import java.io.{BufferedWriter, FileWriter}
 
-import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.{Grammar, NGrammar}
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
 import com.giyeok.jparser.examples.metalang3.{JoinExamples, OptionalExamples, SimpleExamples}
@@ -24,7 +24,7 @@ object MetaLanguage3 {
         case Right(value) => throw IllegalGrammar(value.msg)
     }
 
-    case class ProcessedGrammar(ngrammar: NGrammar, startNonterminalName: String,
+    case class ProcessedGrammar(grammar: Grammar, ngrammar: NGrammar, startNonterminalName: String,
                                 nonterminalTypes: Map[String, Type], nonterminalValuefyExprs: Map[String, UnrollChoices],
                                 rawClassRelations: ClassRelationCollector, classParamTypes: Map[String, List[(String, Type)]],
                                 shortenedEnumTypesMap: Map[Int, String], enumValuesMap: Map[String, Set[String]],
@@ -95,7 +95,7 @@ object MetaLanguage3 {
                 transformer.classInfo.shortenedEnumValues.getOrElse(pair._1, Set())))
         )
 
-        ProcessedGrammar(ngrammar, transformer.startNonterminalName(),
+        ProcessedGrammar(grammar, ngrammar, transformer.startNonterminalName(),
             inferredTypeCollector.nonterminalTypes, transformer.nonterminalValuefyExprs,
             inferredTypeCollector.typeRelations.classRelations, classParamTypes,
             enumsMap, enumValues,

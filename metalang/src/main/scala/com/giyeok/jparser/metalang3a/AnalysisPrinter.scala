@@ -26,7 +26,7 @@ object AnalysisPrinter {
             printNodeStructure(body, indent + "  ")
         case ParseResultTree.CyclicBindNode(start, end, symbol) =>
             println(s"${indent}Cyclic Bind")
-        case JoinNode(body, join) =>
+        case JoinNode(_, body, join) =>
             println(s"${indent}Join")
             printNodeStructure(body, indent + "  ")
             printNodeStructure(join, indent + "  ")
