@@ -107,6 +107,11 @@ class ParseTreeConstructorTest extends AnyFlatSpec {
       BindM(Proxy(Sequence()), SeqM())))
   }
 
+  "Single seq" should "be constructed correctly" in {
+    parseToTree("A" -> List(Sequence(ExactChar('a'))))("a") should BindM(Start, BindM(Nonterminal("A"),
+      BindM(Sequence(ExactChar('a')), SeqM(BindM(ExactChar('a'), TermM('a'))))))
+  }
+
   "Plain seq" should "be constructed correctly" in {
     parseToTree("A" -> List(Sequence(ExactChar('a'), ExactChar('b'), ExactChar('c'))))("abc") should BindM(Start,
       BindM(Nonterminal("A"), BindM(Sequence(ExactChar('a'), ExactChar('b'), ExactChar('c')), SeqM(
