@@ -283,7 +283,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                     addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
                     "}",
                 unrolledVar,
-                elemProcessorCode.required + "com.giyeok.jparser.metalang3a.Utils.unrollRepeat0")
+                elemProcessorCode.required + "com.giyeok.jparser.nparser.RepeatUtils.unrollRepeat0")
         case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
             val unrolledVar = newVar()
             val elemProcessorCode = valuefyExprToCode(elemProcessor, "elem")
@@ -293,7 +293,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
                     addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
                     "}",
                 unrolledVar,
-                elemProcessorCode.required + "com.giyeok.jparser.metalang3a.Utils.unrollRepeat1")
+                elemProcessorCode.required + "com.giyeok.jparser.nparser.RepeatUtils.unrollRepeat1")
         case ValuefyExpr.UnrollChoices(choices) =>
             val bindedVar = newVar()
             val bodyVar = newVar()

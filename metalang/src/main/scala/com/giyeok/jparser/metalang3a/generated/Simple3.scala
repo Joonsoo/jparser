@@ -30,6 +30,7 @@ object Simple3 {
 
   case class ClassA(value: String)
 
+
   def matchA(node: Node): ClassA = {
     val BindNode(v1, v2) = node
     v1.id match {
@@ -86,5 +87,9 @@ object Simple3 {
         case None => ???
       }
     case Right(error) => Right(error)
+  }
+
+  def main(args: Array[String]): Unit = {
+    println(parseAst("a b"))
   }
 }

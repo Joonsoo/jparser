@@ -5,7 +5,7 @@ import com.giyeok.jparser.Symbols.ShortStringSymbols
 import com.giyeok.jparser._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.{MatchNonterminal, Unbind, UnrollChoices}
 import com.giyeok.jparser.metalang3a.ValuefyExprSimulator._
-import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, RepeatUtils}
 
 import scala.annotation.tailrec
 
@@ -71,11 +71,11 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
             val referredElem = parseNode.asInstanceOf[SequenceNode].children(index)
             valuefy(referredElem, expr)
         case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) =>
-            val elemNodes = Utils.unrollRepeat0(parseNode)
+            val elemNodes = RepeatUtils.unrollRepeat0(parseNode)
             val elemValues = elemNodes.map(valuefy(_, elemProcessor))
             ArrayValue(elemValues)
         case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
-            val elemNodes = Utils.unrollRepeat1(parseNode)
+            val elemNodes = RepeatUtils.unrollRepeat1(parseNode)
             val elemValues = elemNodes.map(valuefy(_, elemProcessor))
             ArrayValue(elemValues)
         case ValuefyExpr.UnrollChoices(choices) =>

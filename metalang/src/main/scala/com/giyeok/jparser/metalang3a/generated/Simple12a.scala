@@ -32,6 +32,7 @@ object Simple12a {
 
 
 
+
   def matchA(node: Node): String = {
     val BindNode(v1, v2) = node
     v1.id match {
@@ -44,9 +45,7 @@ object Simple12a {
         case 14 =>
         None
         case 5 =>
-          val BindNode(v9, v10) = v8
-          assert(v9.id == 5)
-          val BindNode(v11, v12) = v10
+          val BindNode(v11, v12) = v8
           assert(v11.id == 6)
           val BindNode(v13, v14) = v12
           assert(v13.id == 7)
@@ -77,5 +76,10 @@ object Simple12a {
         case None => ???
       }
     case Right(error) => Right(error)
+  }
+
+  def main(args: Array[String]): Unit = {
+    println(parseAst("ac"))
+    println(parseAst("abbbbc"))
   }
 }

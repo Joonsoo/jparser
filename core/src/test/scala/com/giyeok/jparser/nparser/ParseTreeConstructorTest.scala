@@ -10,13 +10,13 @@ import org.scalatest.matchers.should.Matchers._
 import scala.collection.immutable.ListSet
 
 class ParseTreeConstructorTest extends AnyFlatSpec {
-  "Terminal symbol" should "be constructed as bind and terminal node" in {
+  "ParseTreeConstructor" should "construct Terminal symbol grammar to bind and terminal node" in {
     val tree = parseToTree("A" -> List(ExactChar('a')))("a")
 
     tree should BindM(Start, BindM(Nonterminal("A"), BindM(ExactChar('a'), TermM('a'))))
   }
 
-  "Join symbol" should "be constructed as bind and join node" in {
+  "ParseTreeConstructor" should "construct Join symbol grammar to bind and join node" in {
     val tree = parseToTree(
       "A" -> List(Symbols.Join(Nonterminal("B"), Nonterminal("C"))),
       "B" -> List(ExactChar('a'), ExactChar('b')),
@@ -30,7 +30,7 @@ class ParseTreeConstructorTest extends AnyFlatSpec {
       ))))
   }
 
-  "Sequence" should "be constructed as sequence of bind nodes" in {
+  "ParseTreeConstructor" should "construct Sequence to sequence of bind nodes" in {
     val tree = parseToTree(
       "A" -> List(Sequence(Seq(Nonterminal("B"), Nonterminal("C")))),
       "B" -> List(Sequence(Seq(Nonterminal("C"))), Sequence(Seq())),
@@ -45,35 +45,37 @@ class ParseTreeConstructorTest extends AnyFlatSpec {
       ))))
   }
 
-  "Repeat0" should "be constructed correctly" in {
+  "ParseTreeConstructor" should "construct Repeat0 correctly" in {
     val repeatSymbol = Repeat(Nonterminal("B"), 0)
     val parser = parseToTree(
       "A" -> List(repeatSymbol),
       "B" -> List(ExactChar('a'), ExactChar('b'), ExactChar('c'))
     )
 
-    parser("") should BindM(Start, BindM(Nonterminal("A"), BindM(repeatSymbol, SeqM())))
-    parser("a") should BindM(Start, BindM(Nonterminal("A"), BindM(repeatSymbol,
-      BindM(repeatSymbol.repeatSeq, SeqM(
-        BindM(repeatSymbol, SeqM()),
+    repeatSymbol.baseSeq shouldBe Sequence()
+    parser("") should BindM(Start, BindM(Nonterminal("A"),
+      BindM(repeatSymbol, BindM(Sequence(), SeqM()))))
+    parser("a") should BindM(Start, BindM(Nonterminal("A"),
+      BindM(repeatSymbol, BindM(repeatSymbol.repeatSeq, SeqM(
+        BindM(repeatSymbol, BindM(Sequence(), SeqM())),
         BindM(Nonterminal("B"), BindM(ExactChar('a'), TermM('a'))))))))
     parser("ab") should BindM(Start, BindM(Nonterminal("A"),
       BindM(repeatSymbol, BindM(repeatSymbol.repeatSeq, SeqM(
         BindM(repeatSymbol, BindM(repeatSymbol.repeatSeq, SeqM(
-          BindM(repeatSymbol, SeqM()),
+          BindM(repeatSymbol, BindM(Sequence(), SeqM())),
           BindM(Nonterminal("B"), BindM(ExactChar('a'), TermM('a')))))),
         BindM(Nonterminal("B"), BindM(ExactChar('b'), TermM('b'))))))))
     parser("abc") should BindM(Start, BindM(Nonterminal("A"),
       BindM(repeatSymbol, BindM(repeatSymbol.repeatSeq, SeqM(
         BindM(repeatSymbol, BindM(repeatSymbol.repeatSeq, SeqM(
           BindM(repeatSymbol, BindM(repeatSymbol.repeatSeq, SeqM(
-            BindM(repeatSymbol, SeqM()),
+            BindM(repeatSymbol, BindM(Sequence(), SeqM())),
             BindM(Nonterminal("B"), BindM(ExactChar('a'), TermM('a')))))),
           BindM(Nonterminal("B"), BindM(ExactChar('b'), TermM('b')))))),
         BindM(Nonterminal("B"), BindM(ExactChar('c'), TermM('c'))))))))
   }
 
-  "Repeat1" should "be constructed correctly" in {
+  "ParseTreeConstructor" should "construct Repeat1 correctly" in {
     val repeatSymbol = Repeat(Nonterminal("B"), 1)
     val parser = parseToTree(
       "A" -> List(repeatSymbol),
@@ -97,22 +99,31 @@ class ParseTreeConstructorTest extends AnyFlatSpec {
       )))))
   }
 
-  "Empty seq" should "be constructed correctly" in {
+  "ParseTreeConstructor" should "construct Empty seq correctly" in {
     parseToTree("A" -> List(Sequence()))("") should BindM(Start, BindM(Nonterminal("A"),
-      SeqM()))
+      BindM(Sequence(), SeqM())))
   }
 
-  "Proxy empty seq" should "be constructed correctly" in {
+  "ParseTreeConstructor" should "construct Empty seq after a correctly" in {
+    parseToTree("A" -> List(Sequence(ExactChar('a'), Proxy(Sequence()))))("a") should BindM(Start,
+      BindM(Nonterminal("A"), BindM(Sequence(ExactChar('a'), Proxy(Sequence())), SeqM(
+        BindM(ExactChar('a'), TermM('a')),
+        BindM(Proxy(Sequence()),
+          BindM(Sequence(), SeqM())),
+      ))))
+  }
+
+  "ParseTreeConstructor" should "construct Proxy empty seq correctly" in {
     parseToTree("A" -> List(Proxy(Sequence())))("") should BindM(Start, BindM(Nonterminal("A"),
-      BindM(Proxy(Sequence()), SeqM())))
+      BindM(Proxy(Sequence()), BindM(Sequence(), SeqM()))))
   }
 
-  "Single seq" should "be constructed correctly" in {
+  "ParseTreeConstructor" should "construct Single seq correctly" in {
     parseToTree("A" -> List(Sequence(ExactChar('a'))))("a") should BindM(Start, BindM(Nonterminal("A"),
       BindM(Sequence(ExactChar('a')), SeqM(BindM(ExactChar('a'), TermM('a'))))))
   }
 
-  "Plain seq" should "be constructed correctly" in {
+  "ParseTreeConstructor" should "construct Plain seq correctly" in {
     parseToTree("A" -> List(Sequence(ExactChar('a'), ExactChar('b'), ExactChar('c'))))("abc") should BindM(Start,
       BindM(Nonterminal("A"), BindM(Sequence(ExactChar('a'), ExactChar('b'), ExactChar('c')), SeqM(
         BindM(ExactChar('a'), TermM('a')),
@@ -121,12 +132,12 @@ class ParseTreeConstructorTest extends AnyFlatSpec {
       ))))
   }
 
-  "Optional" should "be constructed correctly" in {
+  "ParseTreeConstructor" should "construct Optional correctly" in {
     val parser = parseToTree(
       "A" -> List(OneOf(ListSet(ExactChar('a'), Proxy(Sequence())))))
 
     parser("") should BindM(Start, BindM(Nonterminal("A"),
-      BindM(OneOf(ListSet(ExactChar('a'), Proxy(Sequence()))), BindM(Proxy(Sequence()), SeqM()))))
+      BindM(OneOf(ListSet(ExactChar('a'), Proxy(Sequence()))), BindM(Proxy(Sequence()), DontCare))))
     parser("a") should BindM(Start, BindM(Nonterminal("A"),
       BindM(OneOf(ListSet(ExactChar('a'), Proxy(Sequence()))), BindM(ExactChar('a'), TermM('a')))))
   }

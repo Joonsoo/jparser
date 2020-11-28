@@ -186,7 +186,8 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends AnyF
             case BindNode(_: NLookaheadSymbol, body) =>
                 // TODO: empty sequence nsymbol id?
                 body match {
-                    case seq: SequenceNode => assert(seq.children.isEmpty) // OK
+                    case BindNode(NSequence(_, Sequence(Seq()), Seq()), seq: SequenceNode) =>
+                        assert(seq.children.isEmpty) // OK
                     case _ => assert(false)
                 }
             case node: SequenceNode =>

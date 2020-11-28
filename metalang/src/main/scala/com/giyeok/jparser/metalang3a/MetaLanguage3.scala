@@ -178,12 +178,12 @@ object MetaLanguage3 {
             writer.close()
         }
 
-        // generateParser(SimpleExamples.ex3.grammar, "Simple3")
-        // generateParser(SimpleExamples.ex12a.grammar, "Simple12a")
+        generateParser(SimpleExamples.ex3.grammar, "Simple3", Some(List("a b")))
+        generateParser(SimpleExamples.ex12a.grammar, "Simple12a", Some(List("ac", "abbbbc")))
         // generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
-        // generateParser(SimpleExamples.repeat.grammar, "RepeatExample")
-        // generateParser(OptionalExamples.simple.grammar, "OptionalExample")
-        // generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(List("a.a")))
+        generateParser(SimpleExamples.repeat.grammar, "RepeatExample", Some(List("b", "aaaabbbbb")))
+        generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
+        generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(List("a.a")))
         // testExample(OptionalExamples.withShortEnum)
 
         testExample(MetaLang3Example("Simple Join",

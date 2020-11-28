@@ -37,7 +37,7 @@ class SimpleGrammarsTest extends AnyFlatSpec {
         BindM(Nonterminal("D"), BindM(Sequence(Repeat(ExactChar('d'), 1)), SeqM(BindM(Repeat(ExactChar('d'), 1), DontCare)))),
         BindM(Nonterminal("E"), BindM(Sequence(OneOf(ListSet(ExactChar('e'), Proxy(Sequence())))),
           SeqM(BindM(OneOf(ListSet(ExactChar('e'), Proxy(Sequence()))), BindM(ExactChar('e'), TermM('e')))))),
-        DontCare, // BindM(Nonterminal("F"), BindM(Sequence(Seq(ExactChar('s'), ExactChar('t'), ExactChar('r'))), DontCare)),
+        BindM(Nonterminal("F"), BindM(Sequence(Proxy(Sequence(Seq(ExactChar('s'), ExactChar('t'), ExactChar('r'))))), DontCare)),
       ))))
   }
 
@@ -52,7 +52,8 @@ class SimpleGrammarsTest extends AnyFlatSpec {
 
     new NaiveParser(grammar.ngrammar).parseToTree("") should BindM(Start,
       BindM(Nonterminal("A"),
-        BindM(Sequence(Proxy(Sequence())), SeqM(BindM(Proxy(Sequence()), SeqM())))))
+        BindM(Sequence(Proxy(Sequence())), SeqM(
+          BindM(Proxy(Sequence()), BindM(Sequence(), SeqM()))))))
   }
 
   "MetaLang3" should "parse double empty sequence" in {
@@ -67,6 +68,7 @@ class SimpleGrammarsTest extends AnyFlatSpec {
     new NaiveParser(grammar.ngrammar).parseToTree("") should BindM(Start,
       BindM(Nonterminal("A"), BindM(
         Sequence(Proxy(Sequence()), Proxy(Sequence())), SeqM(
-          BindM(Proxy(Sequence()), DontCare), BindM(Proxy(Sequence()), DontCare)))))
+          BindM(Proxy(Sequence()), DontCare),
+          BindM(Proxy(Sequence()), DontCare)))))
   }
 }

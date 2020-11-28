@@ -84,7 +84,10 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 resultFunc.sequence(kernel.beginGen, gen, symbol, kernel.pointer)
 
             case symbol@NSequence(_, _, sequence) =>
-                if (kernel.pointer == 0) {
+                if (sequence.isEmpty) {
+                    assert(kernel.pointer == 0 && kernel.beginGen == kernel.endGen && kernel.beginGen == gen)
+                    resultFunc.bind(kernel.beginGen, gen, symbol, resultFunc.sequence(kernel.beginGen, kernel.endGen, symbol, 0))
+                } else if (kernel.pointer == 0) {
                     assert(kernel.beginGen == kernel.endGen)
                     resultFunc.sequence(kernel.beginGen, kernel.endGen, symbol, 0)
                 } else {
