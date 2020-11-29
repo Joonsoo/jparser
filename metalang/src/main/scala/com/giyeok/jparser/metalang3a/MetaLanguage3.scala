@@ -184,10 +184,10 @@ object MetaLanguage3 {
 
     // testExample(OptionalExamples.withShortEnum)
 
-    //    testExample(MetaLang3Example("A",
-    //      """MyClass<SuperClass>(value: string)
-    //        |A: AnotherClass = # {MyClass("123")}
-    //        |""".stripMargin).example(""))
+    testExample(MetaLang3Example("A",
+      """MyClass<SuperClass>(value: string)
+        |A: AnotherClass = # {MyClass("123")}
+        |""".stripMargin).example(""))
     //    testExample(MetaLang3Example("B",
     //      """MyClass<SuperClass, AnohterClass>(value: string)
     //        |A: AnotherClass = # {MyClass("123")}
@@ -206,7 +206,6 @@ object MetaLanguage3 {
     //        |}
     //        |A = 'a'
     //        |""".stripMargin))
-    testExample(MetaLang3Example("E", "Op: %Op = '+' {%ADD} | '-' {%SUB} | '*' {%MUL}"))
 
     //    generateParser(SimpleExamples.ex3.grammar, "Simple3", Some(List("a b")))
     //    generateParser(SimpleExamples.ex12a.grammar, "Simple12a", Some(List("ac", "abbbbc")))
