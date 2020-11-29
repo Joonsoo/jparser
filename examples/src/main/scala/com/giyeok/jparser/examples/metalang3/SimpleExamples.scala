@@ -39,6 +39,20 @@ object SimpleExamples extends MetaLangExamples {
       |WS = ' '*
       |""".stripMargin)
     .example("123+456", "BinOp(\"+\",Integer(\"123\"),Integer(\"456\"))")
+  val ex4a: MetaLang3Example = MetaLang3Example("Expression Grammar",
+    """Expression: Expression = Term
+      |    | Expression WS '+' WS Term {BinOp(op:%Op=%Add, lhs:Expression=$0, rhs=$4)}
+      |Term: Term = Factor
+      |    | Term WS '*' WS Factor {BinOp(%Mul, $0, $4)}
+      |Factor: Factor = Number
+      |    | Variable
+      |    | '(' WS Expression WS ')' {Paren(expr=$2)}
+      |Number: Number = '0' {Integer(value=str($0))}
+      |    | '1-9' '0-9'* {Integer(str(\\$0, \\$1))}
+      |Variable = <'A-Za-z'+> {Variable(name=str(\\$0))}
+      |WS = ' '*
+      |""".stripMargin)
+    .example("123+456", "BinOp(%Op.Add,Integer(\"123\"),Integer(\"456\"))")
   val ex5: MetaLang3Example = MetaLang3Example("Canonical enum",
     """A = "hello" {%MyEnum.Hello} | "xyz" {%MyEnum.Xyz}
       |""".stripMargin)

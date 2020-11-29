@@ -106,7 +106,7 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
           @tailrec def charifyNode(node: Node): Char = node match {
             case TerminalNode(_, Inputs.Character(inputChar)) => inputChar
             case BindNode(_, body) => charifyNode(body)
-            case seq: SequenceNode if seq.children.size == 1 => charifyNode(seq.children(0))
+            case seq: SequenceNode if seq.children.size == 1 => charifyNode(seq.children.head)
           }
 
           def charify(value: Value): Char = value match {

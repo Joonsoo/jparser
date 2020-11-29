@@ -1,8 +1,8 @@
 package com.giyeok.jparser.nparser
 
-import com.giyeok.jparser.{NGrammar, ParseForestFunc, ParsingErrors}
 import com.giyeok.jparser.ParseResultTree.{BindNode, Node, SequenceNode}
 import com.giyeok.jparser.nparser.Parser.NaiveContext
+import com.giyeok.jparser.{NGrammar, ParseForestFunc, ParsingErrors}
 
 object ParseTreeUtil {
   def unrollRepeat1(node: Node): List[Node] = {

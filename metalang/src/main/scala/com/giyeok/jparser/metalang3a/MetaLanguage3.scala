@@ -4,7 +4,7 @@ import java.io.{BufferedWriter, FileWriter}
 
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
-import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, OptionalExamples, SimpleExamples}
+import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, OptionalExamples, PExprExamples, SimpleExamples}
 import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
 import com.giyeok.jparser.metalang3a.Type._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
@@ -56,6 +56,12 @@ object MetaLanguage3 {
       }
       Type.unifyTypes(reducedTypes)
     }
+
+    def validated(): ProcessedGrammar = if (!errors.isClear) this else {
+      // validate하기 전에 이미 오류가 있었으면 더이상 validate할 필요가 없음
+      // 여기까지 얻어진 정보에서 오류를 찾아서 오류가 있으면 `errors`에 추가해서 반환. 오류가 없으면 그대로 반환
+      this
+    }
   }
 
   def analyzeGrammar(grammarDef: MetaGrammar3Ast.Grammar, grammarName: String): ProcessedGrammar = {
@@ -100,7 +106,7 @@ object MetaLanguage3 {
       inferredTypeCollector.typeRelations.classRelations, classParamTypes,
       enumsMap, enumValues,
       errorCollector.collectedErrors
-    )
+    ).validated()
   }
 
   def analyzeGrammar(grammarDefinition: String, grammarName: String = "GeneratedGrammar"): ProcessedGrammar =
@@ -208,10 +214,14 @@ object MetaLanguage3 {
     //        |""".stripMargin))
 
     //    generateParser(SimpleExamples.ex3.grammar, "Simple3", Some(List("a b")))
+    testExample(PExprExamples.ex3)
+    testExample(PExprExamples.ex3a)
+    testExample(PExprExamples.ex3b)
+    //    generateParser(PExprExamples.ex1.grammar, "BindPExpr", Some(PExprExamples.ex1.correctExamples))
     //    generateParser(SimpleExamples.ex12a.grammar, "Simple12a", Some(List("ac", "abbbbc")))
     //    generateParser(SimpleExamples.repeat.grammar, "RepeatExample", Some(List("b", "aaaabbbbb")))
     //    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
     //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
-    //    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
+    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
   }
 }

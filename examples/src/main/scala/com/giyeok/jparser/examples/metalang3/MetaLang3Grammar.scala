@@ -302,7 +302,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |CondSymPath: [%CondSymDir{BODY, COND}] = ('<' {%BODY} | '>' {%COND})+
           |RawRef = "\\$" CondSymPath? RefIdx {RawRef(idx=$2, condSymPath=$1)}
           |
-          |PExpr: PExpr = TernaryExpr (WS ':' WS TypeDesc)? $0
+          |PExpr = TernaryExpr (WS ':' WS TypeDesc)? {PExpr(body=$0, typ=$1)}
           |TernaryExpr: TernaryExpr = BoolOrExpr WS '?' WS <TernaryExpr> WS ':' WS <TernaryExpr> {TernaryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
           |  | BoolOrExpr
           |BoolOrExpr: BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {BinOp(op=%Op.AND, lhs=$0, rhs=$4)}

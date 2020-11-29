@@ -353,7 +353,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Str =>
           val paramCodes = params.map(valuefyExprToCode(_, inputName))
           ExprBlob(paramCodes.flatMap(_.prepares),
-            paramCodes.map(_.result + ".toString").mkString(" + "),
+            paramCodes.map(_.result + ".sourceText").mkString(" + "),
             paramCodes.flatMap(_.required).toSet)
       }
     case ValuefyExpr.ArrayExpr(elems) =>
