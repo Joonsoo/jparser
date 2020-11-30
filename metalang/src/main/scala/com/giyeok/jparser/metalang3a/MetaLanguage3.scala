@@ -60,6 +60,11 @@ object MetaLanguage3 {
     def validated(): ProcessedGrammar = if (!errors.isClear) this else {
       // validate하기 전에 이미 오류가 있었으면 더이상 validate할 필요가 없음
       // 여기까지 얻어진 정보에서 오류를 찾아서 오류가 있으면 `errors`에 추가해서 반환. 오류가 없으면 그대로 반환
+      // - function call에서
+      //   - ispresent의 인자는 하나여야 하고, 그 타입은 array, optional, string, node 중 하나여야 함
+      //   - isempty도 마찬가지
+      //   - str은 각 인자가 node, bool, char, string, 혹은 이 네가지 타입의 어레이(혹은 그 어레이의 어레이)여야 함
+
       this
     }
   }
@@ -190,10 +195,10 @@ object MetaLanguage3 {
 
     // testExample(OptionalExamples.withShortEnum)
 
-    testExample(MetaLang3Example("A",
-      """MyClass<SuperClass>(value: string)
-        |A: AnotherClass = # {MyClass("123")}
-        |""".stripMargin).example(""))
+    //    testExample(MetaLang3Example("A",
+    //      """MyClass<SuperClass>(value: string)
+    //        |A: AnotherClass = # {MyClass("123")}
+    //        |""".stripMargin).example(""))
     //    testExample(MetaLang3Example("B",
     //      """MyClass<SuperClass, AnohterClass>(value: string)
     //        |A: AnotherClass = # {MyClass("123")}
@@ -214,14 +219,19 @@ object MetaLanguage3 {
     //        |""".stripMargin))
 
     //    generateParser(SimpleExamples.ex3.grammar, "Simple3", Some(List("a b")))
-    testExample(PExprExamples.ex3)
-    testExample(PExprExamples.ex3a)
-    testExample(PExprExamples.ex3b)
+    //    testExample(PExprExamples.ex3)
+    //    testExample(PExprExamples.ex3a)
+    //    testExample(PExprExamples.ex3b)
     //    generateParser(PExprExamples.ex1.grammar, "BindPExpr", Some(PExprExamples.ex1.correctExamples))
     //    generateParser(SimpleExamples.ex12a.grammar, "Simple12a", Some(List("ac", "abbbbc")))
     //    generateParser(SimpleExamples.repeat.grammar, "RepeatExample", Some(List("b", "aaaabbbbb")))
     //    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
     //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
-    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", printClassHierarchy = true)
+    generateParser(
+      """A = "hello" " " B 'a'* C {str($0, $1, [$0, $1], $2, $3, isempty($2), ispresent($2))}
+        |B = "world" \\$0
+        |C = 'x-y'
+        |""".stripMargin, "FuncTest", printClassHierarchy = true,
+      mainFuncExamples = Some(List("hello worldaaax")))
   }
 }

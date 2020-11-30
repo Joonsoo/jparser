@@ -11,6 +11,8 @@ import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.{CodeBlob, ExprBlob, O
 import com.giyeok.jparser.metalang3a.{ClassHierarchyTree, Type, ValuefyExpr}
 import com.giyeok.jparser.{NGrammar, Symbols}
 
+import scala.annotation.tailrec
+
 object ScalaCodeGen {
 
   /**
@@ -251,9 +253,11 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         else (bodyCode.prepares :+ bodyCode.result).map("  " + _) mkString ("\n")
       CodeBlob(s"case $choiceId =>\n$caseBody", bodyCode.required)
     }.toList.reduce(_ + _)
+    val unrolledVar = newVar()
     ExprBlob(List(
-      s"val BindNode($bindedVar, $bodyVar) = $inputName"
-    ), casesExpr.wrap(s"$bindedVar.id match {", "}").code, casesExpr.required)
+      s"val BindNode($bindedVar, $bodyVar) = $inputName",
+      s"val $unrolledVar = " + casesExpr.wrap(s"$bindedVar.id match {", "}").code
+    ), unrolledVar, casesExpr.required)
   }
 
   private def nonterminalMatchFuncName(nonterminal: String) =
@@ -280,6 +284,73 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
 
   private def valuefyExprToCodeWithCoercion(valuefyExpr: ValuefyExpr, inputName: String, requiredType: Type): ExprBlob =
     addCoercion(valuefyExprToCode(valuefyExpr, inputName), requiredType, typeOf(valuefyExpr))
+
+  def funcCallToCode(funcCall: ValuefyExpr.FuncCall, inputName: String): ExprBlob = {
+    val ValuefyExpr.FuncCall(funcType, params) = funcCall
+    // TODO coercion
+    // TODO 함수들 제대로 다시 구현
+    funcType match {
+      case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent =>
+        check(params.size == 1, "ispresent function only can have exactly one parameter")
+        val param = valuefyExprToCode(params.head, inputName)
+
+        @tailrec def isPresentCode(paramType: Type): String = paramType match {
+          case Type.NodeType => s"${param.result}.sourceText.nonEmpty"
+          case ArrayOf(_) => s"${param.result}.nonEmpty"
+          case Type.OptionalOf(_) => s"${param.result}.isDefined"
+          case Type.StringType => s"${param.result}.nonEmpty"
+          case unionType: Type.UnionOf =>
+            val reducedType = analysis.reduceUnionType(unionType)
+            check(!reducedType.isInstanceOf[Type.UnionOf], "union type not supported in ispresent function")
+            isPresentCode(reducedType)
+          // 그 외 타입은 지원하지 않음
+        }
+
+        ExprBlob(param.prepares, isPresentCode(typeOf(params.head)), param.required)
+      case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsEmpty =>
+        check(params.size == 1, "isempty function only can have exactly one parameter")
+        val param = valuefyExprToCode(params.head, inputName)
+
+        @tailrec def isEmptyCode(paramType: Type): String = paramType match {
+          case Type.NodeType => s"${param.result}.sourceText.isEmpty"
+          case ArrayOf(_) => s"${param.result}.isEmpty"
+          case Type.OptionalOf(_) => s"${param.result}.isEmpty"
+          case Type.StringType => s"${param.result}.isEmpty"
+          case unionType: Type.UnionOf =>
+            val reducedType = analysis.reduceUnionType(unionType)
+            check(!reducedType.isInstanceOf[Type.UnionOf], "union type not supported in isempty function")
+            isEmptyCode(reducedType)
+          // 그 외 타입은 지원하지 않음
+        }
+
+        ExprBlob(param.prepares, isEmptyCode(typeOf(params.head)), param.required)
+      case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Chr =>
+        check(params.size == 1, "chr function only can have exactly one parameter")
+        val paramCode = valuefyExprToCode(params.head, inputName)
+        ExprBlob(paramCode.prepares, paramCode.result + ".toString.charAt(0)", paramCode.required)
+      case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Str =>
+        val paramCodes = params.map(valuefyExprToCode(_, inputName))
+
+        def toStringCode(input: String, inputType: Type): String = inputType match {
+          case Type.NodeType => s"$input.sourceText"
+          case ArrayOf(elemType) => s"""$input.map(x => ${toStringCode("x", elemType)}).mkString("")"""
+          case Type.BoolType => s"$input.toString"
+          case Type.CharType => s"$input.toString"
+          case Type.StringType => input
+          case unionType: Type.UnionOf =>
+            val reducedType = analysis.reduceUnionType(unionType)
+            check(!reducedType.isInstanceOf[Type.UnionOf], "union type not supported in str function")
+            toStringCode(input, reducedType)
+        }
+
+        ExprBlob(paramCodes.flatMap(_.prepares),
+          paramCodes.zip(params).map { case (paramCode, param) =>
+            val paramType = typeOf(param)
+            toStringCode(paramCode.result, paramType)
+          }.mkString(" + "),
+          paramCodes.flatMap(_.required).toSet)
+    }
+  }
 
   def valuefyExprToCode(valuefyExpr: ValuefyExpr, inputName: String): ExprBlob = valuefyExpr match {
     case ValuefyExpr.InputNode => ExprBlob(List(), inputName, Set())
@@ -336,26 +407,8 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       ExprBlob(paramCodes.flatMap(_.prepares),
         s"$className(${paramCodes.map(_.result).mkString(", ")})",
         paramCodes.flatMap(_.required).toSet)
-    case ValuefyExpr.FuncCall(funcType, params) =>
-      // TODO coercion
-      // TODO 함수들 제대로 다시 구현
-      funcType match {
-        case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent =>
-          val paramCodes = params.map(valuefyExprToCode(_, inputName))
-          ExprBlob(paramCodes.flatMap(_.prepares),
-            paramCodes.map(_.result + ".toString").mkString(" + "),
-            paramCodes.flatMap(_.required).toSet)
-        case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsEmpty => ???
-        case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Chr =>
-          check(params.size == 1, "chr function only can have exactly one parameter")
-          val paramCode = valuefyExprToCode(params.head, inputName)
-          ExprBlob(paramCode.prepares, paramCode.result + ".toString.charAt(0)", paramCode.required)
-        case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Str =>
-          val paramCodes = params.map(valuefyExprToCode(_, inputName))
-          ExprBlob(paramCodes.flatMap(_.prepares),
-            paramCodes.map(_.result + ".sourceText").mkString(" + "),
-            paramCodes.flatMap(_.required).toSet)
-      }
+    case funcCall: ValuefyExpr.FuncCall =>
+      funcCallToCode(funcCall, inputName)
     case ValuefyExpr.ArrayExpr(elems) =>
       val elemType = typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType
       val elemCodes = elems.map(valuefyExprToCodeWithCoercion(_, inputName, elemType))
