@@ -281,16 +281,16 @@ object MetaLang3Grammar extends MetaLangExamples {
           |Longest = '<' WS InPlaceChoices WS '>' {Longest(choices=$2)}
           |EmptySequence = '#' {EmptySeq()}
           |
-          |TerminalChar: TerminalChar = .-'\\' {CharAsIs(value=chr($0))}
-          |  | '\\' '\'\\bnrt' {CharEscaped(escapeCode=chr($1))}
+          |TerminalChar: TerminalChar = .-'\\' {CharAsIs(value=$0)}
+          |  | '\\' '\'\\bnrt' {CharEscaped(escapeCode=$1)}
           |  | UnicodeChar
-          |TerminalChoiceChar: TerminalChoiceChar = .-'\'\-\\' {CharAsIs(value=chr($0))}
-          |  | '\\' '\'\-\\bnrt' {CharEscaped(escapeCode=chr($1))}
+          |TerminalChoiceChar: TerminalChoiceChar = .-'\'\-\\' {CharAsIs(value=$0)}
+          |  | '\\' '\'\-\\bnrt' {CharEscaped(escapeCode=$1)}
           |  | UnicodeChar
-          |StringChar: StringChar = .-'"\\' {CharAsIs(value=chr($0))}
-          |  | '\\' '"\\bnrt' {CharEscaped(escapeCode=chr($1))}
+          |StringChar: StringChar = .-'"\\' {CharAsIs(value=$0)}
+          |  | '\\' '"\\bnrt' {CharEscaped(escapeCode=$1)}
           |  | UnicodeChar
-          |UnicodeChar = '\\' 'u' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' {CharUnicode(code=[chr($2), chr($3), chr($4), chr($5)])}
+          |UnicodeChar = '\\' 'u' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' '0-9A-Fa-f' {CharUnicode(code=[$2, $3, $4, $5])}
           |
           |
           |// Processor

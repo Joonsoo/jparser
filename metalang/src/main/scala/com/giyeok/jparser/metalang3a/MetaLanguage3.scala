@@ -231,7 +231,7 @@ object MetaLanguage3 {
     //    generateParser(SimpleExamples.repeat.grammar, "RepeatExample", Some(List("b", "aaaabbbbb")))
     //    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
     //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
-    //    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", Some(OptionalExamples.withShortEnum.correctExamples))
+    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", Some(OptionalExamples.withShortEnum.correctExamples))
     generateParser(
       """TerminalChar = A B
         |A = .-'\\'

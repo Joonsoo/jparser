@@ -157,7 +157,7 @@ class GrammarTransformer(val grammarDef: MetaGrammar3Ast.Grammar, implicit priva
       val vBody = proxy(valuefySymbol(body, "", input))
       val vExcept = proxy(valuefySymbol(except, "", input))
       val exceptSymbol = Symbols.Except(vBody._2, vExcept._2)
-      (Unbind(exceptSymbol, input), exceptSymbol)
+      (Unbind(exceptSymbol, vBody._1), exceptSymbol)
     case MetaGrammar3Ast.FollowedBy(_, followedBy) =>
       check(condSymPath.isEmpty, "FollowedBy cannot be referred with condSymPath")
       val vFollowedBy = proxy(valuefySymbol(followedBy, "", input))
