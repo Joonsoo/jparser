@@ -383,14 +383,14 @@ object MetaLang3Grammar extends MetaLangExamples {
           |
           |// Common
           |// TODO TypeName, NonterminalName에서 `` 사이에는 Id 말고 다른거(공백, keyword 등도 쓸 수 있는)
-          |TypeName = Id-Keyword {TypeName(name=str(\\$0))}
-          |  | '`' Id '`' {TypeName(name=str(\\$1))}
-          |NonterminalName = Id-Keyword {NonterminalName(name=str(\\$0))}
-          |  | '`' Id '`' {NonterminalName(name=str(\\$1))}
-          |TypeOrFuncName = Id-Keyword {TypeOrFuncName(name=str(\\$0))}
-          |  | '`' Id '`' {TypeOrFuncName(name=str(\\$1))}
-          |ParamName = Id-Keyword {ParamName(name=str(\\$0))}
-          |  | '`' Id '`' {ParamName(name=str(\\$1))}
+          |TypeName = IdNoKeyword {TypeName(name=$0)}
+          |  | '`' Id '`' {TypeName(name=$1)}
+          |NonterminalName = IdNoKeyword {NonterminalName(name=$0)}
+          |  | '`' Id '`' {NonterminalName(name=$1)}
+          |TypeOrFuncName = IdNoKeyword {TypeOrFuncName(name=$0)}
+          |  | '`' Id '`' {TypeOrFuncName(name=$1)}
+          |ParamName = IdNoKeyword {ParamName(name=$0)}
+          |  | '`' Id '`' {ParamName(name=$1)}
           |EnumValueName = Id {EnumValueName(name=$0)}
           |Keyword: %KeyWord = "boolean" {%BOOLEAN}
           |  | "char" {%CHAR}
@@ -401,8 +401,9 @@ object MetaLang3Grammar extends MetaLangExamples {
           |StrChar = StringChar
           |CharChar = TerminalChar
           |
-          |RefIdx = <'0' | '1-9' '0-9'*> {str($0)}
-          |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*> {""}
+          |RefIdx = <'0' | '1-9' '0-9'*> {str(\\$0)}
+          |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*> {str(\\$0)}
+          |IdNoKeyword = Id-Keyword {str(\\$0)}
           |WS = (' \n\r\t' | LineComment)* {""}
           |WSNL = <(' \r\t' | LineComment)* '\n' WS> {""} // newline이 최소 한 개 이상 포함된 WS
           |LineComment = '/' '/' (.-'\n')* (EOF | '\n') {""}

@@ -138,10 +138,8 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         "com.giyeok.jparser.NGrammar",
         "com.giyeok.jparser.Symbols",
         "com.giyeok.jparser.ParsingErrors",
-        "com.giyeok.jparser.ParseForestFunc",
         "com.giyeok.jparser.nparser.Parser",
-        "com.giyeok.jparser.nparser.NaiveParser",
-        "com.giyeok.jparser.nparser.ParseTreeConstructor"))
+        "com.giyeok.jparser.nparser.NaiveParser"))
   }
 
   def classDefs(classHierarchy: ClassHierarchyTree): CodeBlob = {
@@ -287,7 +285,6 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
   def funcCallToCode(funcCall: ValuefyExpr.FuncCall, inputName: String): ExprBlob = {
     val ValuefyExpr.FuncCall(funcType, params) = funcCall
     // TODO coercion
-    // TODO 함수들 제대로 다시 구현
     funcType match {
       case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.IsPresent =>
         check(params.size == 1, "ispresent function only can have exactly one parameter")
@@ -326,7 +323,11 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Chr =>
         check(params.size == 1, "chr function only can have exactly one parameter")
         val paramCode = valuefyExprToCode(params.head, inputName)
-        ExprBlob(paramCode.prepares, paramCode.result + ".toString.charAt(0)", paramCode.required)
+        val result = typeOf(params.head) match {
+          case Type.NodeType => s"${paramCode.result}.sourceText.charAt(0)"
+          case Type.CharType => paramCode.result
+        }
+        ExprBlob(paramCode.prepares, result, paramCode.required)
       case com.giyeok.jparser.metalang3a.ValuefyExpr.FuncType.Str =>
         val paramCodes = params.map(valuefyExprToCode(_, inputName))
 

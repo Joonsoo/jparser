@@ -231,11 +231,11 @@ object MetaLanguage3 {
     //    generateParser(SimpleExamples.repeat.grammar, "RepeatExample", Some(List("b", "aaaabbbbb")))
     //    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
     //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
+    //    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", Some(OptionalExamples.withShortEnum.correctExamples))
     generateParser(
-      """A = B&C {$>0}
-        |B = 'a-z'+ {B(text=str($0))}
-        |C = 'b-y'+ {C(text=str($0))}
-        |""".stripMargin, "JoinTest", printClassHierarchy = true,
-      mainFuncExamples = Some(List("b")))
+      """TerminalChar = A B
+        |A = .-'\\'
+        |B = .
+        |""".stripMargin, "ChrFuncTest", mainFuncExamples = Some(List("xy")))
   }
 }
