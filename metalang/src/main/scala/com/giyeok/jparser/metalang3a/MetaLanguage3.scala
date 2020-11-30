@@ -64,7 +64,8 @@ object MetaLanguage3 {
       //   - ispresent의 인자는 하나여야 하고, 그 타입은 array, optional, string, node 중 하나여야 함
       //   - isempty도 마찬가지
       //   - str은 각 인자가 node, bool, char, string, 혹은 이 네가지 타입의 어레이(혹은 그 어레이의 어레이)여야 함
-
+      // - 연산자에서
+      //   - !expr에서 expr은 bool 타입이어야 함
       this
     }
   }
@@ -228,10 +229,8 @@ object MetaLanguage3 {
     //    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
     //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
     generateParser(
-      """A = "hello" " " B 'a'* C {str($0, $1, [$0, $1], $2, $3, isempty($2), ispresent($2))}
-        |B = "world" \\$0
-        |C = 'x-y'
+      """A = 'a'* {!isempty($0)}
         |""".stripMargin, "FuncTest", printClassHierarchy = true,
-      mainFuncExamples = Some(List("hello worldaaax")))
+      mainFuncExamples = Some(List("", "aa")))
   }
 }

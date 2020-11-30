@@ -434,8 +434,13 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       }
       ExprBlob(lhsCode.prepares ++ rhsCode.prepares, opExpr, lhsCode.required ++ rhsCode.required)
     case ValuefyExpr.PreOp(op, expr) =>
-      // TODO
-      ExprBlob(List(), s"$valuefyExpr", Set())
+      op match {
+        case com.giyeok.jparser.metalang3a.ValuefyExpr.PreOpType.NOT =>
+          check(typeOf(expr) == Type.BoolType, "not can be applied only to boolean expression")
+          val exprCode = valuefyExprToCodeWithCoercion(expr, inputName, Type.BoolType)
+          val resultVar = newVar()
+          ExprBlob(exprCode.prepares :+ s"val $resultVar = !${exprCode.result}", resultVar, exprCode.required)
+      }
     case ValuefyExpr.ElvisOp(expr, ifNull) =>
       val exprVar = newVar()
       val requiredType = typeOf(valuefyExpr)
