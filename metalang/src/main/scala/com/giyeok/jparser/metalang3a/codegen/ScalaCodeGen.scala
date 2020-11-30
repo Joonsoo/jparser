@@ -5,7 +5,6 @@ import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
 import com.giyeok.jparser.ParseResultTree.{BindNode, Node, SequenceNode}
 import com.giyeok.jparser.metalang2.ScalaDefGenerator.javaChar
 import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, check}
-import com.giyeok.jparser.metalang3a.Type.{ArrayOf, StringType}
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.{CodeBlob, ExprBlob, Options}
 import com.giyeok.jparser.metalang3a.{ClassHierarchyTree, Type, ValuefyExpr}
@@ -296,7 +295,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
 
         @tailrec def isPresentCode(paramType: Type): String = paramType match {
           case Type.NodeType => s"${param.result}.sourceText.nonEmpty"
-          case ArrayOf(_) => s"${param.result}.nonEmpty"
+          case Type.ArrayOf(_) => s"${param.result}.nonEmpty"
           case Type.OptionalOf(_) => s"${param.result}.isDefined"
           case Type.StringType => s"${param.result}.nonEmpty"
           case unionType: Type.UnionOf =>
@@ -313,7 +312,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
 
         @tailrec def isEmptyCode(paramType: Type): String = paramType match {
           case Type.NodeType => s"${param.result}.sourceText.isEmpty"
-          case ArrayOf(_) => s"${param.result}.isEmpty"
+          case Type.ArrayOf(_) => s"${param.result}.isEmpty"
           case Type.OptionalOf(_) => s"${param.result}.isEmpty"
           case Type.StringType => s"${param.result}.isEmpty"
           case unionType: Type.UnionOf =>
@@ -333,7 +332,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
 
         def toStringCode(input: String, inputType: Type): String = inputType match {
           case Type.NodeType => s"$input.sourceText"
-          case ArrayOf(elemType) => s"""$input.map(x => ${toStringCode("x", elemType)}).mkString("")"""
+          case Type.ArrayOf(elemType) => s"""$input.map(x => ${toStringCode("x", elemType)}).mkString("")"""
           case Type.BoolType => s"$input.toString"
           case Type.CharType => s"$input.toString"
           case Type.StringType => input
@@ -416,21 +415,28 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         s"List(${elemCodes.map(_.result).mkString(", ")})",
         elemCodes.flatMap(_.required).toSet)
     case ValuefyExpr.BinOp(op, lhs, rhs) =>
-      // TODO coercion
       val lhsCode = valuefyExprToCode(lhs, inputName)
       val rhsCode = valuefyExprToCode(rhs, inputName)
-      val lhsType = analysis.typeInferer.typeOfValuefyExpr(lhs).get
-      val rhsType = analysis.typeInferer.typeOfValuefyExpr(rhs).get
       val opExpr = op match {
         case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.ADD =>
-          (lhsType, rhsType) match {
-            case (StringType, StringType) => s"${lhsCode.result} + ${rhsCode.result}"
-            case (ArrayOf(_), ArrayOf(_)) => s"${lhsCode.result} ++ ${rhsCode.result}"
+          (typeOf(lhs), typeOf(rhs)) match {
+            case (Type.StringType, Type.StringType) => s"${lhsCode.result} + ${rhsCode.result}"
+            case (Type.ArrayOf(_), Type.ArrayOf(_)) => s"${lhsCode.result} ++ ${rhsCode.result}"
           }
-        case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.EQ => ???
-        case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.NE => ???
-        case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.BOOL_AND => ???
-        case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.BOOL_OR => ???
+        case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.EQ =>
+          check(typeOf(lhs) == typeOf(rhs), "lhs and rhs of == must be same type")
+          s"${lhsCode.result} == ${rhsCode.result}"
+        case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.NE =>
+          check(typeOf(lhs) == typeOf(rhs), "lhs and rhs of == must be same type")
+          s"${lhsCode.result} != ${rhsCode.result}"
+        case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.BOOL_AND =>
+          (typeOf(lhs), typeOf(rhs)) match {
+            case (Type.BoolType, Type.BoolType) => s"${lhsCode.result} && ${rhsCode.result}"
+          }
+        case com.giyeok.jparser.metalang3a.ValuefyExpr.BinOpType.BOOL_OR =>
+          (typeOf(lhs), typeOf(rhs)) match {
+            case (Type.BoolType, Type.BoolType) => s"${lhsCode.result} || ${rhsCode.result}"
+          }
       }
       ExprBlob(lhsCode.prepares ++ rhsCode.prepares, opExpr, lhsCode.required ++ rhsCode.required)
     case ValuefyExpr.PreOp(op, expr) =>

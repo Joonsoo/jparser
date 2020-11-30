@@ -1370,7 +1370,7 @@ val v373 = body.asInstanceOf[SequenceNode].children(4)
 val BindNode(v374, v375) = v373
 assert(v374.id == 294)
 val v376 = matchBoolEqExpr(v375)
-val v377 = BinOp(node,body,v372,v376)
+val v377 = BinOp(node,body.asInstanceOf[SequenceNode].children(2),v372,v376)
 v377
 case 367 =>
 val v378 = body.asInstanceOf[SequenceNode].children(0)

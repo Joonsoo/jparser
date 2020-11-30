@@ -66,6 +66,8 @@ object MetaLanguage3 {
       //   - str은 각 인자가 node, bool, char, string, 혹은 이 네가지 타입의 어레이(혹은 그 어레이의 어레이)여야 함
       // - 연산자에서
       //   - !expr에서 expr은 bool 타입이어야 함
+      //   - A&&B와 A||B에서 A와 B는 bool 타입이어야 함
+      //   - A==B와 A!=B에서 A와 B의 타입이 일치해야 함(A가 B의 서브타입이거나 B가 A의 서브타입이면 될듯?)
       this
     }
   }
@@ -229,8 +231,8 @@ object MetaLanguage3 {
     //    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
     //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
     generateParser(
-      """A = 'a'* {!isempty($0)}
+      """A = 'a-x' 'b-z' {$0 == $1}
         |""".stripMargin, "FuncTest", printClassHierarchy = true,
-      mainFuncExamples = Some(List("", "aa")))
+      mainFuncExamples = Some(List("ab", "bb")))
   }
 }
