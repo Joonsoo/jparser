@@ -232,8 +232,10 @@ object MetaLanguage3 {
     //    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
     //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
     generateParser(
-      """A = 'a-x' 'b-z' {$0 == $1}
-        |""".stripMargin, "FuncTest", printClassHierarchy = true,
-      mainFuncExamples = Some(List("ab", "bb")))
+      """A = B&C {$>0}
+        |B = 'a-z'+ {B(text=str($0))}
+        |C = 'b-y'+ {C(text=str($0))}
+        |""".stripMargin, "JoinTest", printClassHierarchy = true,
+      mainFuncExamples = Some(List("b")))
   }
 }

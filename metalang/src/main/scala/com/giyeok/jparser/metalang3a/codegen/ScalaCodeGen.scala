@@ -364,11 +364,17 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         s"assert($bindedVar.id == ${analysis.ngrammar.idOf(symbol)})"
       ) ++ exprCode.prepares, exprCode.result, exprCode.required)
     case ValuefyExpr.JoinBody(bodyProcessor) =>
-      // TODO
-      ExprBlob(List(), s"$valuefyExpr", Set())
+      val bodyVar = newVar()
+      val bodyProcessorCode = valuefyExprToCode(bodyProcessor, bodyVar)
+      ExprBlob(s"val JoinNode(_, $bodyVar, _) = $inputName" +: bodyProcessorCode.prepares,
+        bodyProcessorCode.result,
+        bodyProcessorCode.required + "com.giyeok.jparser.ParseResultTree.JoinNode")
     case ValuefyExpr.JoinCond(condProcessor) =>
-      // TODO
-      ExprBlob(List(), s"$valuefyExpr", Set())
+      val condVar = newVar()
+      val bodyProcessorCode = valuefyExprToCode(condProcessor, condVar)
+      ExprBlob(s"val JoinNode(_, _, $condVar) = $inputName" +: bodyProcessorCode.prepares,
+        bodyProcessorCode.result,
+        bodyProcessorCode.required + "com.giyeok.jparser.ParseResultTree.JoinNode")
     case ValuefyExpr.SeqElemAt(index, expr) =>
       val elemVar = newVar()
       val exprCode = valuefyExprToCode(expr, elemVar)
