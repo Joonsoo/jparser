@@ -457,8 +457,18 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         s"if ($exprVar.isDefined) $exprVar.get else ${ifNullCode.withBraceIfNeeded}",
         exprCode.required ++ ifNullCode.required)
     case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
-      // TODO
-      ExprBlob(List(), s"$valuefyExpr", Set())
+      val conditionCode = valuefyExprToCode(condition, inputName)
+      val resultType = typeOf(valuefyExpr)
+      val thenCode = valuefyExprToCodeWithCoercion(ifTrue, inputName, resultType)
+      val elseCode = valuefyExprToCodeWithCoercion(ifFalse, inputName, resultType)
+      val resultVar = newVar()
+      ExprBlob(conditionCode.prepares ++
+        List(s"val $resultVar = if (${conditionCode.result}) {") ++
+        thenCode.prepares ++
+        List(thenCode.result, "} else {") ++
+        elseCode.prepares ++ List(elseCode.result, "}"),
+        resultVar,
+        conditionCode.required ++ thenCode.required ++ elseCode.required)
     case literal: ValuefyExpr.Literal =>
       literal match {
         case ValuefyExpr.NullLiteral => ExprBlob.code("None")

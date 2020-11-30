@@ -67,7 +67,8 @@ object MetaLanguage3 {
       // - 연산자에서
       //   - !expr에서 expr은 bool 타입이어야 함
       //   - A&&B와 A||B에서 A와 B는 bool 타입이어야 함
-      //   - A==B와 A!=B에서 A와 B의 타입이 일치해야 함(A가 B의 서브타입이거나 B가 A의 서브타입이면 될듯?)
+      //   - A==B와 A!=B에서 A와 B의 타입이 consistent해야 함(A가 B의 서브타입이거나 B가 A의 서브타입이면 될듯?)
+      //   - A?B:C 에서 A는 bool이어야 하고 B와 C의 타입은 consistent(B가 C의 서브타입이거나 C가 B의 서브타입이거나)
       this
     }
   }
