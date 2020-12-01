@@ -1,13 +1,14 @@
 package com.giyeok.jparser.metalang3a
 
-import java.io.{BufferedWriter, FileWriter}
+import java.io.{BufferedWriter, File, FileWriter}
 
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
-import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
+import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, SimpleExamples}
 import com.giyeok.jparser.metalang3a.Type._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
+import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.Options
 import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import com.giyeok.jparser.{Grammar, NGrammar}
 
@@ -123,6 +124,31 @@ object MetaLanguage3 {
   def analyzeGrammar(grammarDefinition: String, grammarName: String = "GeneratedGrammar"): ProcessedGrammar =
     analyzeGrammar(parseGrammar(grammarDefinition), grammarName)
 
+  def generateScalaParserCode(grammar: String, className: String, packageName: String,
+                              mainFuncExamples: Option[List[String]] = None,
+                              options: ScalaCodeGen.Options = ScalaCodeGen.Options()): String = {
+    val analysis = analyzeGrammar(grammar, className)
+    if (!analysis.errors.isClear) {
+      throw new Exception(analysis.errors.toString)
+    }
+
+    val codegen = new ScalaCodeGen(analysis, options)
+
+    s"package $packageName\n\n" + codegen.generateParser(className, mainFuncExamples)
+  }
+
+  def writeScalaParserCode(grammar: String, className: String, packageName: String, targetDir: File,
+                           mainFuncExamples: Option[List[String]] = None,
+                           options: ScalaCodeGen.Options = ScalaCodeGen.Options()): Unit = {
+    val generatedCode = generateScalaParserCode(grammar, className, packageName, mainFuncExamples, options)
+
+    val filePath = new File(targetDir, s"${packageName.split('.').mkString("/")}/$className.scala")
+
+    val writer = new BufferedWriter(new FileWriter(filePath))
+    writer.write(generatedCode)
+    writer.close()
+  }
+
   def main(args: Array[String]): Unit = {
     def testExample(example: MetaLang3Example): Unit = {
       println(example.grammar)
@@ -168,74 +194,17 @@ object MetaLanguage3 {
       }
     }
 
-    // testExample(SimpleExamples.ex12a)
-    // testExample(MetaLang3Grammar.inMetaLang3)
-
-    def generateParser(grammar: String, grammarName: String,
-                       mainFuncExamples: Option[List[String]] = None,
-                       printClassHierarchy: Boolean = false): Unit = {
-      val analysis = analyzeGrammar(grammar, grammarName)
-      if (!analysis.errors.isClear) {
-        throw new Exception(analysis.errors.toString)
-      }
-
-      println(analysis.ngrammar.startSymbol)
-      analysis.ngrammar.nsymbols.foreach(println)
-      analysis.ngrammar.nsequences.foreach(println)
-
-      if (printClassHierarchy) {
-        AnalysisPrinter.printClassHierarchy(analysis.classRelations.toHierarchy)
-      }
-
-      val codegen = new ScalaCodeGen(analysis)
-
-      val packageName = "com.giyeok.jparser.metalang3a.generated"
-
-      val filePath = s"./metalang/src/main/scala/${packageName.split('.').mkString("/")}/$grammarName.scala"
-      val generatedCode = s"package $packageName\n\n" + codegen.generateParser(grammarName, mainFuncExamples)
-
-      val writer = new BufferedWriter(new FileWriter(filePath))
-      writer.write(generatedCode)
-      writer.close()
-    }
-
-    // testExample(OptionalExamples.withShortEnum)
-
-    //    testExample(MetaLang3Example("A",
-    //      """MyClass<SuperClass>(value: string)
-    //        |A: AnotherClass = # {MyClass("123")}
-    //        |""".stripMargin).example(""))
-    //    testExample(MetaLang3Example("B",
-    //      """MyClass<SuperClass, AnohterClass>(value: string)
-    //        |A: AnotherClass = # {MyClass("123")}
-    //        |""".stripMargin).example(""))
-    //    testExample(MetaLang3Example("C",
-    //      """MyClass(value: string)
-    //        |A: AnotherClass = # {MyClass("123")}
-    //        |""".stripMargin).example(""))
-    //    testExample(MetaLang3Example("D",
-    //      """SuperClass<GrandSuper> {
-    //        |  SomeClass,
-    //        |  SubSuperClass<AnotherClass> {
-    //        |    IndirectSubConcreteClass<>(param1:string)
-    //        |  },
-    //        |  DirectSubConcreteClass<>()
-    //        |}
-    //        |A = 'a'
-    //        |""".stripMargin))
-
-    //    generateParser(SimpleExamples.ex3.grammar, "Simple3", Some(List("a b")))
-    //    testExample(PExprExamples.ex3)
-    //    testExample(PExprExamples.ex3a)
-    //    testExample(PExprExamples.ex3b)
-    //    generateParser(PExprExamples.ex1.grammar, "BindPExpr", Some(PExprExamples.ex1.correctExamples))
-    //    generateParser(SimpleExamples.ex12a.grammar, "Simple12a", Some(List("ac", "abbbbc")))
-    //    generateParser(SimpleExamples.repeat.grammar, "RepeatExample", Some(List("b", "aaaabbbbb")))
-    //    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
-    //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
-    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3Ast", Some(List("A = B C 'd' 'e'*")))
-    generateParser(
+    val srcRoot = new File("./metalang/src/main/scala")
+    writeScalaParserCode(SimpleExamples.lookaheadExcept.grammar, "MetaLang3Ast",
+      "com.giyeok.jparser.metalang3a.generated", srcRoot,
+      mainFuncExamples = Some(List("A = B C 'd' 'e'*")))
+    writeScalaParserCode(
       """A = !.
-        |""".stripMargin, "SymbolTest", mainFuncExamples = Some(List("")))
+        |""".stripMargin,
+      "SymbolTest", "com.giyeok.jparser.metalang3a.generated", srcRoot,
+      mainFuncExamples = Some(List("")))
+
+    writeScalaParserCode(SimpleExamples.lookaheadExcept.grammar, "MetaLang3Ast",
+      "com.giyeok.jparser.metalang3a.generated", srcRoot)
   }
 }

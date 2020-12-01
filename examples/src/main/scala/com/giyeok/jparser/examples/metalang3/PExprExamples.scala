@@ -33,5 +33,5 @@ object PExprExamples extends MetaLangExamples {
   val ex3b: MetaLang3Example = MetaLang3Example("string returning nonterm", "A: string = \"abcdef\" | \"ghijkl\"")
     .example("abcdef", "\"abcdef\"").example("ghijkl", "\"ghijkl\"")
 
-  override val examples: List[MetaLangExample] = List(ex1, ex1a, ex2, ex2a, ex2b, ex3, ex3a, ex3b)
+  override val examples: List[MetaLang3Example] = List(ex1, ex1a, ex2, ex2a, ex2b, ex3, ex3a, ex3b)
 }

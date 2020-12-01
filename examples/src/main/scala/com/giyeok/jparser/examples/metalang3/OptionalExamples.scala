@@ -25,5 +25,5 @@ object OptionalExamples extends MetaLangExamples {
     .example("b.a")
     .example("b.b")
 
-  override val examples: List[MetaLangExample] = List(simple, withShortEnum)
+  override val examples: List[MetaLang3Example] = List(simple, withShortEnum)
 }
