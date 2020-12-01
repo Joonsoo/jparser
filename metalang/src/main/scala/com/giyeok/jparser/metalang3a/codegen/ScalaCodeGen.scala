@@ -152,7 +152,8 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
             CodeBlob(s"${param._1}: ${paramType.code}", paramType.required)
           }
           val supers = if (cls.superclasses.isEmpty) "" else s" extends ${cls.superclasses.mkString(" with ")}"
-          CodeBlob(s"case class ${cls.className}(${params.map(_.code).mkString(", ")})$supers",
+          val astNodeVal = if (options.astNodesInAllClasses) "(val astNode: Node)" else ""
+          CodeBlob(s"case class ${cls.className}(${params.map(_.code).mkString(", ")})$astNodeVal$supers",
             params.flatMap(_.required).toSet)
         } else {
           // abstract type
@@ -410,9 +411,8 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       val paramCodes = params.zipWithIndex.map { case (param, index) =>
         valuefyExprToCodeWithCoercion(param, inputName, analysis.classParamTypes(className)(index)._2)
       }
-      ExprBlob(paramCodes.flatMap(_.prepares),
-        s"$className(${paramCodes.map(_.result).mkString(", ")})",
-        paramCodes.flatMap(_.required).toSet)
+      val constructorExpr = s"$className(${paramCodes.map(_.result).mkString(", ")})" + (if (options.astNodesInAllClasses) s"($inputName)" else "")
+      ExprBlob(paramCodes.flatMap(_.prepares), constructorExpr, paramCodes.flatMap(_.required).toSet)
     case funcCall: ValuefyExpr.FuncCall =>
       funcCallToCode(funcCall, inputName)
     case ValuefyExpr.ArrayExpr(elems) =>
