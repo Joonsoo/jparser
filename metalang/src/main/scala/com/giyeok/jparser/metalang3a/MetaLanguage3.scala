@@ -117,27 +117,32 @@ object MetaLanguage3 {
     ).validated()
   }
 
-  def analyzeGrammar(grammarDef: MetaLang3Ast.Grammar, grammarName: String): ProcessedGrammar = {
-    val errorCollector = new ErrorCollector()
+  def transformGrammar(grammarDef: MetaLang3Ast.Grammar, grammarName: String)
+                      (implicit errorCollector: ErrorCollector): (GrammarTransformer, Grammar, NGrammar) = {
     val transformer = new GrammarTransformer(grammarDef, errorCollector)
     val grammar = transformer.grammar(grammarName)
     val ngrammar = NGrammar.fromGrammar(grammar)
 
-    analyzeGrammar(transformer, grammar, ngrammar)(errorCollector)
+    (transformer, grammar, ngrammar)
+  }
+
+  def analyzeGrammar(grammarDef: MetaLang3Ast.Grammar, grammarName: String): ProcessedGrammar = {
+    implicit val errorCollector: ErrorCollector = new ErrorCollector()
+    val (transformer, grammar, ngrammar) = transformGrammar(grammarDef, grammarName)
+
+    analyzeGrammar(transformer, grammar, ngrammar)
   }
 
   def analyzeGrammar(grammarDefinition: String, grammarName: String = "GeneratedGrammar"): ProcessedGrammar =
     analyzeGrammar(parseGrammar(grammarDefinition), grammarName)
 
-  def analyzeGrammarAsync(grammarDef: MetaLang3Ast.Grammar, grammarName: String = "GeneratedGramar")
+  def analyzeGrammarAsync(grammarDef: MetaLang3Ast.Grammar, grammarName: String)
                          (implicit executor: ExecutionContext): Future[(NGrammar, Future[ProcessedGrammar])] = Future {
-    val errorCollector = new ErrorCollector()
-    val transformer = new GrammarTransformer(grammarDef, errorCollector)
-    val grammar = transformer.grammar(grammarName)
-    val ngrammar = NGrammar.fromGrammar(grammar)
+    implicit val errorCollector: ErrorCollector = new ErrorCollector()
+    val (transformer, grammar, ngrammar) = transformGrammar(grammarDef, grammarName)
 
     (ngrammar, Future {
-      analyzeGrammar(transformer, grammar, ngrammar)(errorCollector)
+      analyzeGrammar(transformer, grammar, ngrammar)
     })
   }
 
