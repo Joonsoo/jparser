@@ -158,7 +158,7 @@ class ClassRelationCollector private(override val nodes: Set[String], override v
   override def createGraph(nodes: Set[String], edges: Set[Super], edgesByStart: Map[String, Set[Super]], edgesByEnd: Map[String, Set[Super]]): ClassRelationCollector =
     new ClassRelationCollector(nodes, edges, edgesByStart, edgesByEnd)
 
-  def checkCycle(implicit errorCollector: ErrorCollector): Boolean = {
+  def checkCycle()(implicit errorCollector: ErrorCollector): Boolean = {
     var visited = Set[String]()
 
     def traverse(curr: String, path: List[String]): Boolean = {

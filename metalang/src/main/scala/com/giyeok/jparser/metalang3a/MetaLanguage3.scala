@@ -10,6 +10,8 @@ import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
 import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import com.giyeok.jparser.{Grammar, NGrammar}
 
+import scala.concurrent.{ExecutionContext, Future}
+
 object MetaLanguage3 {
 
   case class IllegalGrammar(msg: String) extends Exception(msg)
@@ -74,13 +76,10 @@ object MetaLanguage3 {
     }
   }
 
-  def analyzeGrammar(grammarDef: MetaLang3Ast.Grammar, grammarName: String): ProcessedGrammar = {
-    val errorCollector = new ErrorCollector()
-    val transformer = new GrammarTransformer(grammarDef, errorCollector)
-    val grammar = transformer.grammar(grammarName)
-
+  def analyzeGrammar(transformer: GrammarTransformer, grammar: Grammar, ngrammar: NGrammar)
+                    (implicit errorCollector: ErrorCollector): ProcessedGrammar = {
     val inferredTypeCollector = new InferredTypeCollector(
-      transformer.startNonterminalName(), transformer.classInfo, grammar.rules.keySet, transformer.nonterminalInfo)(errorCollector)
+      transformer.startNonterminalName(), transformer.classInfo, grammar.rules.keySet, transformer.nonterminalInfo)
 
     var counter = 0
     while (errorCollector.isClear && inferredTypeCollector.tryInference()) {
@@ -94,7 +93,7 @@ object MetaLanguage3 {
       errorCollector.addError("Incomplete type info")
     }
 
-    inferredTypeCollector.typeRelations.classRelations.checkCycle(errorCollector)
+    inferredTypeCollector.typeRelations.classRelations.checkCycle()
 
     val classParamTypes = inferredTypeCollector.classParamTypes.map { pair =>
       val (className, paramTypes) = pair
@@ -102,9 +101,8 @@ object MetaLanguage3 {
       className -> paramNames.zip(paramTypes)
     }.toMap
 
-    val ngrammar = NGrammar.fromGrammar(grammar)
 
-    val enumsMap = inferredTypeCollector.typeRelations.enumRelations.toUnspecifiedEnumMap(errorCollector)
+    val enumsMap = inferredTypeCollector.typeRelations.enumRelations.toUnspecifiedEnumMap
     var enumValues = transformer.classInfo.canonicalEnumValues
     enumsMap.foreach(pair =>
       enumValues += (pair._2 -> (enumValues.getOrElse(pair._2, Set()) ++
@@ -119,8 +117,33 @@ object MetaLanguage3 {
     ).validated()
   }
 
+  def analyzeGrammar(grammarDef: MetaLang3Ast.Grammar, grammarName: String): ProcessedGrammar = {
+    val errorCollector = new ErrorCollector()
+    val transformer = new GrammarTransformer(grammarDef, errorCollector)
+    val grammar = transformer.grammar(grammarName)
+    val ngrammar = NGrammar.fromGrammar(grammar)
+
+    analyzeGrammar(transformer, grammar, ngrammar)(errorCollector)
+  }
+
   def analyzeGrammar(grammarDefinition: String, grammarName: String = "GeneratedGrammar"): ProcessedGrammar =
     analyzeGrammar(parseGrammar(grammarDefinition), grammarName)
+
+  def analyzeGrammarAsync(grammarDef: MetaLang3Ast.Grammar, grammarName: String = "GeneratedGramar")
+                         (implicit executor: ExecutionContext): Future[(NGrammar, Future[ProcessedGrammar])] = Future {
+    val errorCollector = new ErrorCollector()
+    val transformer = new GrammarTransformer(grammarDef, errorCollector)
+    val grammar = transformer.grammar(grammarName)
+    val ngrammar = NGrammar.fromGrammar(grammar)
+
+    (ngrammar, Future {
+      analyzeGrammar(transformer, grammar, ngrammar)(errorCollector)
+    })
+  }
+
+  def analyzeGrammarAsync(grammarDefinition: String, grammarName: String = "GeneratedGrammar")
+                         (implicit executor: ExecutionContext): Future[(NGrammar, Future[ProcessedGrammar])] =
+    analyzeGrammarAsync(parseGrammar(grammarDefinition), grammarName)
 
   def generateScalaParserCode(grammar: String, className: String, packageName: String,
                               mainFuncExamples: Option[List[String]] = None,
