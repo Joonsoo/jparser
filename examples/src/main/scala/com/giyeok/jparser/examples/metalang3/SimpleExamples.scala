@@ -15,7 +15,7 @@ object SimpleExamples extends MetaLangExamples {
     .example("cdb")
     .example("cbqq")
   val ex2: MetaLang3Example = MetaLang3Example("Raw ref",
-    """A = ('b' Y 'd') 'x' {A(val=$0$1, raw=$0\\$1, raw1=\\$0)}
+    """A = ('b' Y 'd') 'x' {A(val=$0$1, raw=$0\$1, raw1=\$0)}
       |Y = 'y' {Y(value=true)}
       |""".stripMargin)
     .example("bydx")
@@ -34,7 +34,7 @@ object SimpleExamples extends MetaLangExamples {
       |    | variable
       |    | '(' WS expression WS ')' {Paren(expr=$2)}
       |number: Number = '0' {Integer(value=str($0))}
-      |    | '1-9' '0-9'* {Integer(str(\\$0, \\$1))}
+      |    | '1-9' '0-9'* {Integer(str(\$0, \$1))}
       |variable = <'A-Za-z'+> {Variable(name=$0)}
       |WS = ' '*
       |""".stripMargin)
@@ -48,8 +48,8 @@ object SimpleExamples extends MetaLangExamples {
       |    | Variable
       |    | '(' WS Expression WS ')' {Paren(expr=$2)}
       |Number: Number = '0' {Integer(value=str($0))}
-      |    | '1-9' '0-9'* {Integer(str(\\$0, \\$1))}
-      |Variable = <'A-Za-z'+> {Variable(name=str(\\$0))}
+      |    | '1-9' '0-9'* {Integer(str(\$0, \$1))}
+      |Variable = <'A-Za-z'+> {Variable(name=str(\$0))}
       |WS = ' '*
       |""".stripMargin)
     .example("123+456", "BinOp(%Op.Add,Integer(\"123\"),Integer(\"456\"))")
@@ -112,8 +112,8 @@ object SimpleExamples extends MetaLangExamples {
       |    | variable
       |    | '(' WS expression WS ')' {Paren(expr=$2)}
       |number: Number = '0' {Integer(value=str($0))}
-      |    | '1-9' '0-9'* {Integer(str(\\$0, \\$1))}
-      |variable = <'A-Za-z'+> {Variable(name=str(\\$0))}
+      |    | '1-9' '0-9'* {Integer(str(\$0, \$1))}
+      |variable = <'A-Za-z'+> {Variable(name=str(\$0))}
       |WS = ' '*
       |""".stripMargin)
     .example("123+456", "BinOp(%Op.Add,Integer(\"123\"),Integer(\"456\"))")
@@ -130,7 +130,7 @@ object SimpleExamples extends MetaLangExamples {
     .example("abc", "'b'")
     .example("", "null")
   val ex10a: MetaLang3Example = MetaLang3Example("Optional bind expr",
-    """A = ('a' 'b'* 'c')? {$0{str(\\$1)}}
+    """A = ('a' 'b'* 'c')? {$0{str(\$1)}}
       |""".stripMargin)
     .example("ac", "\"\"")
     .example("abc", "\"b\"")
@@ -148,7 +148,7 @@ object SimpleExamples extends MetaLangExamples {
     .example("")
     .example("bbb")
   val ex12a: MetaLang3Example = MetaLang3Example("Elvis op with bind",
-    """A = ('a' 'b'* 'c')? {$0{str(\\$1)} ?: "none"}
+    """A = ('a' 'b'* 'c')? {$0{str(\$1)} ?: "none"}
       |""".stripMargin)
     .example("ac", "\"\"")
     .example("abc", "\"b\"")
@@ -160,14 +160,15 @@ object SimpleExamples extends MetaLangExamples {
     .example("b")
     .example("ab")
     .example("aaaabbbbb")
-  val join: MetaLang3Example = MetaLang3Example("Simple Join",
+  val lookaheadExcept: MetaLang3Example = MetaLang3Example("MetaLang3 Lookahead Except",
     """A = !"bbbb" B+? {Cls(v=$0,bs=$1)}
       |B = 'b'
       |""".stripMargin)
     .example("")
     .example("bbb")
+    .incorrect("bbbb")
 
   override val examples: List[MetaLang3Example] =
     List(ex1, ex2, ex3, ex4, ex5, ex6a, ex6b, ex6c, ex6d, ex7, ex7a, ex7b, ex7c, ex8, ex9, ex10, ex10a, ex11, ex12,
-      ex12a, repeat, join)
+      ex12a, repeat, lookaheadExcept)
 }
