@@ -69,6 +69,8 @@ object MetaLanguage3 {
       //   - A&&B와 A||B에서 A와 B는 bool 타입이어야 함
       //   - A==B와 A!=B에서 A와 B의 타입이 consistent해야 함(A가 B의 서브타입이거나 B가 A의 서브타입이면 될듯?)
       //   - A?B:C 에서 A는 bool이어야 하고 B와 C의 타입은 consistent(B가 C의 서브타입이거나 C가 B의 서브타입이거나)
+      // - 타입 관계에서
+      //   - abstract로도 concrete로도 사용되는 클래스(다른 클래스의 super 클래스이면서 어딘가에서 생성자도 호출되는 클래스)
       this
     }
   }
@@ -231,7 +233,7 @@ object MetaLanguage3 {
     //    generateParser(SimpleExamples.repeat.grammar, "RepeatExample", Some(List("b", "aaaabbbbb")))
     //    generateParser(OptionalExamples.simple.grammar, "OptionalExample", Some(List("abc", "d")))
     //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
-    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3", Some(OptionalExamples.withShortEnum.correctExamples))
+    generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3Ast", Some(List("A = B C 'd' 'e'*")))
     generateParser(
       """TerminalChar = A B
         |A = .-'\\'
