@@ -401,9 +401,9 @@ object MetaLang3Grammar extends MetaLangExamples {
           |StrChar = StringChar
           |CharChar = TerminalChar
           |
-          |RefIdx = <'0' | '1-9' '0-9'*> {str(\\$0)}
-          |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*> {str(\\$0)}
-          |IdNoKeyword = Id-Keyword {str(\\$0)}
+          |RefIdx = <'0' | '1-9' '0-9'*> {str(\$0)}
+          |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*> {str(\$0)}
+          |IdNoKeyword = Id-Keyword {str(\$0)}
           |WS = (' \n\r\t' | LineComment)* {""}
           |WSNL = <(' \r\t' | LineComment)* '\n' WS> {""} // newline이 최소 한 개 이상 포함된 WS
           |LineComment = '/' '/' (.-'\n')* (EOF | '\n') {""}

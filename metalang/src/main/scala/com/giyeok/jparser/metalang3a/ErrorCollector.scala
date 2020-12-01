@@ -1,6 +1,6 @@
 package com.giyeok.jparser.metalang3a
 
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
+import com.giyeok.jparser.ParseResultTree
 
 class ErrorCollector {
   private var errors = List[ErrorMessage]()
@@ -11,7 +11,7 @@ class ErrorCollector {
     errors :+= ErrorMessage(message, None)
   }
 
-  def addError(message: String, location: MetaGrammar3Ast.ASTNode): Unit = {
+  def addError(message: String, location: ParseResultTree.Node): Unit = {
     errors :+= ErrorMessage(message, Some(location))
   }
 
@@ -22,4 +22,4 @@ case class CollectedErrors(errors: List[ErrorMessage]) {
   val isClear: Boolean = errors.isEmpty
 }
 
-case class ErrorMessage(message: String, astNode: Option[MetaGrammar3Ast.ASTNode])
+case class ErrorMessage(message: String, astNode: Option[ParseResultTree.Node])

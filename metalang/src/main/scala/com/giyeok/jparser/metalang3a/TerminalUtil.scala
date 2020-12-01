@@ -1,61 +1,60 @@
 package com.giyeok.jparser.metalang3a
 
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast.{CharUnicode, StringChar, Terminal, TerminalChoiceElem}
-import com.giyeok.jparser.metalang3.symbols.Escapes
+import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 
 object TerminalUtil {
 
-  def charEscapedToChar(charEscaped: MetaGrammar3Ast.CharEscaped): Char = charEscaped.escapeCode.sourceText match {
-    case "\'" => '\''
-    case "\"" => '"'
-    case "\\" => '\\'
-    case "b" => '\b'
-    case "n" => '\n'
-    case "r" => '\r'
-    case "t" => '\t'
-    case "-" => '-'
+  def charEscapedToChar(charEscaped: MetaLang3Ast.CharEscaped): Char = charEscaped.escapeCode match {
+    case '\'' => '\''
+    case '\"' => '"'
+    case '\\' => '\\'
+    case 'b' => '\b'
+    case 'n' => '\n'
+    case 'r' => '\r'
+    case 't' => '\t'
+    case '-' => '-'
   }
 
-  def charUnicodeToChar(charUnicode: CharUnicode): Char = {
+  def charUnicodeToChar(charUnicode: MetaLang3Ast.CharUnicode): Char = {
     val code = charUnicode.code
     assert(code.size == 4)
-    Integer.parseInt(s"${code(0).sourceText}${code(1).sourceText}${code(2).sourceText}${code(3).sourceText}", 16).toChar
+    Integer.parseInt(s"${code.head}${code(1)}${code(2)}${code(3)}", 16).toChar
   }
 
-  def terminalCharToChar(c: MetaGrammar3Ast.TerminalChar): Char = c match {
-    case MetaGrammar3Ast.CharAsIs(astNode, value) => value.sourceText.head
-    case escaped: MetaGrammar3Ast.CharEscaped => charEscapedToChar(escaped)
-    case unicode: MetaGrammar3Ast.CharUnicode => charUnicodeToChar(unicode)
+  def terminalCharToChar(c: MetaLang3Ast.TerminalChar): Char = c match {
+    case MetaLang3Ast.CharAsIs(value) => value
+    case escaped: MetaLang3Ast.CharEscaped => charEscapedToChar(escaped)
+    case unicode: MetaLang3Ast.CharUnicode => charUnicodeToChar(unicode)
   }
 
-  def terminalChoiceCharToChar(c: MetaGrammar3Ast.TerminalChoiceChar): Char = c match {
-    case MetaGrammar3Ast.CharAsIs(astNode, value) => value.sourceText.head
-    case escaped: MetaGrammar3Ast.CharEscaped => charEscapedToChar(escaped)
-    case unicode: MetaGrammar3Ast.CharUnicode => charUnicodeToChar(unicode)
+  def terminalChoiceCharToChar(c: MetaLang3Ast.TerminalChoiceChar): Char = c match {
+    case MetaLang3Ast.CharAsIs(value) => value
+    case escaped: MetaLang3Ast.CharEscaped => charEscapedToChar(escaped)
+    case unicode: MetaLang3Ast.CharUnicode => charUnicodeToChar(unicode)
   }
 
-  def terminalToSymbol(terminal: Terminal): Symbols.Terminal = terminal match {
-    case MetaGrammar3Ast.AnyTerminal(astNode) => Symbols.AnyChar
-    case char: MetaGrammar3Ast.TerminalChar => Symbols.ExactChar(terminalCharToChar(char))
+  def terminalToSymbol(terminal: MetaLang3Ast.Terminal): Symbols.Terminal = terminal match {
+    case MetaLang3Ast.AnyTerminal() => Symbols.AnyChar
+    case char: MetaLang3Ast.TerminalChar => Symbols.ExactChar(terminalCharToChar(char))
   }
 
-  def terminalChoicesToSymbol(choices: List[TerminalChoiceElem]): Symbols.Terminal = {
+  def terminalChoicesToSymbol(choices: List[MetaLang3Ast.TerminalChoiceElem]): Symbols.Terminal = {
     val chars = choices.flatMap {
-      case MetaGrammar3Ast.TerminalChoiceRange(astNode, start, end) =>
+      case MetaLang3Ast.TerminalChoiceRange(start, end) =>
         terminalChoiceCharToChar(start) to terminalChoiceCharToChar(end)
-      case char: MetaGrammar3Ast.TerminalChoiceChar =>
+      case char: MetaLang3Ast.TerminalChoiceChar =>
         Set(terminalChoiceCharToChar(char))
     }.toSet
     Symbols.Chars(chars)
   }
 
-  def stringCharToChar(stringChar: StringChar): Char = stringChar match {
-    case MetaGrammar3Ast.CharAsIs(astNode, value) => value.sourceText.head
-    case escaped: MetaGrammar3Ast.CharEscaped => charEscapedToChar(escaped)
-    case unicode: MetaGrammar3Ast.CharUnicode => charUnicodeToChar(unicode)
+  def stringCharToChar(stringChar: MetaLang3Ast.StringChar): Char = stringChar match {
+    case MetaLang3Ast.CharAsIs(value) => value
+    case escaped: MetaLang3Ast.CharEscaped => charEscapedToChar(escaped)
+    case unicode: MetaLang3Ast.CharUnicode => charUnicodeToChar(unicode)
   }
 
-  def stringCharsToString(chars: List[StringChar]): String = chars.map(Escapes.stringCharToChar).mkString
+  def stringCharsToString(chars: List[MetaLang3Ast.StringChar]): String =
+    chars.map(stringCharToChar).mkString
 }

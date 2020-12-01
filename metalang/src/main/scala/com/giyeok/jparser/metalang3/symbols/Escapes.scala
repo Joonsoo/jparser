@@ -76,5 +76,5 @@ object Escapes {
         case unicode: MetaGrammar3Ast.CharUnicode => charUnicodeToChar(unicode)
     }
 
-    def stringCharsToString(chars: List[StringChar]): String = chars.map(Escapes.stringCharToChar).mkString
+    def stringCharsToString(chars: List[StringChar]): String = chars.map(stringCharToChar).mkString
 }

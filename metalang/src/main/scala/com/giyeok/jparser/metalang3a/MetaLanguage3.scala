@@ -4,11 +4,11 @@ import java.io.{BufferedWriter, FileWriter}
 
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
-import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, OptionalExamples, PExprExamples, SimpleExamples}
-import com.giyeok.jparser.metalang2.generated.MetaGrammar3Ast
+import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang3a.Type._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
+import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import com.giyeok.jparser.{Grammar, NGrammar}
 
 object MetaLanguage3 {
@@ -19,7 +19,7 @@ object MetaLanguage3 {
     if (!cond) throw IllegalGrammar(errorMessage)
   }
 
-  def parseGrammar(grammar: String): MetaGrammar3Ast.Grammar = MetaGrammar3Ast.parseAst(grammar) match {
+  def parseGrammar(grammar: String): MetaLang3Ast.Grammar = MetaLang3Ast.parseAst(grammar) match {
     case Left(value) => value
     case Right(value) => throw IllegalGrammar(value.msg)
   }
@@ -75,7 +75,7 @@ object MetaLanguage3 {
     }
   }
 
-  def analyzeGrammar(grammarDef: MetaGrammar3Ast.Grammar, grammarName: String): ProcessedGrammar = {
+  def analyzeGrammar(grammarDef: MetaLang3Ast.Grammar, grammarName: String): ProcessedGrammar = {
     val errorCollector = new ErrorCollector()
     val transformer = new GrammarTransformer(grammarDef, errorCollector)
     val grammar = transformer.grammar(grammarName)
@@ -235,9 +235,9 @@ object MetaLanguage3 {
     //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
     generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3Ast", Some(List("A = B C 'd' 'e'*")))
     generateParser(
-      """TerminalChar = A B
-        |A = .-'\\'
-        |B = .
+      """A = X | Y
+        |X = '1' {[]}
+        |Y = '2' {['a']}
         |""".stripMargin, "ChrFuncTest", mainFuncExamples = Some(List("xy")))
   }
 }
