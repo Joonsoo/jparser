@@ -235,9 +235,7 @@ object MetaLanguage3 {
     //    generateParser(OptionalExamples.withShortEnum.grammar, "OptionalWithShortEnumExample", Some(OptionalExamples.withShortEnum.correctExamples))
     generateParser(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3Ast", Some(List("A = B C 'd' 'e'*")))
     generateParser(
-      """A = X | Y
-        |X = '1' {[]}
-        |Y = '2' {['a']}
-        |""".stripMargin, "ChrFuncTest", mainFuncExamples = Some(List("xy")))
+      """A = !.
+        |""".stripMargin, "SymbolTest", mainFuncExamples = Some(List("")))
   }
 }

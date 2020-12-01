@@ -2,12 +2,10 @@ package com.giyeok.jparser.metalang3a.codegen
 
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
-import com.giyeok.jparser.ParseResultTree.{BindNode, Node, SequenceNode}
 import com.giyeok.jparser.metalang2.ScalaDefGenerator.javaChar
 import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, check}
-import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.{CodeBlob, ExprBlob, Options}
-import com.giyeok.jparser.metalang3a.{ClassHierarchyTree, Type, ValuefyExpr}
+import com.giyeok.jparser.metalang3a.{ClassHierarchyItem, ClassHierarchyTree, ClassRelationCollector, Type, ValuefyExpr}
 import com.giyeok.jparser.{NGrammar, Symbols}
 
 import scala.annotation.tailrec
@@ -142,9 +140,10 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         "com.giyeok.jparser.nparser.NaiveParser"))
   }
 
-  def classDefs(classHierarchy: ClassHierarchyTree): CodeBlob = {
-    if (classHierarchy.allTypes.isEmpty) CodeBlob("", Set()) else
-      classHierarchy.allTypes.values.map { cls =>
+  def classDefs(classRelation: ClassRelationCollector): CodeBlob = {
+    val classHierarchy = classRelation.toHierarchy
+    if (classHierarchy.allTypes.isEmpty) CodeBlob("", Set()) else {
+      def classDefinitionCode(cls: ClassHierarchyItem): CodeBlob = {
         if (cls.subclasses.isEmpty) {
           // concrete type
           val params = analysis.classParamTypes.getOrElse(cls.className, List()).map { param =>
@@ -160,7 +159,10 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
           val supers = if (cls.superclasses.isEmpty) "" else s" extends ${cls.superclasses.mkString(" with ")}"
           CodeBlob(s"sealed trait ${cls.className}$supers", Set())
         }
-      }.reduce(_ + _)
+      }
+
+      classHierarchy.allTypes.values.toList.sorted.map(classDefinitionCode).reduce(_ + _)
+    }
   }
 
   private def typeDescStringOf(typ: Type, context: Option[String] = None): CodeBlob = typ match {
@@ -182,7 +184,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       }
     case Type.EnumType(enumName) => CodeBlob(s"$enumName.Value", Set())
     case Type.UnspecifiedEnumType(uniqueId) => CodeBlob(s"${analysis.shortenedEnumTypesMap(uniqueId)}.Value", Set())
-    case Type.NullType => CodeBlob("Nothing", Set())
+    case Type.NullType => CodeBlob("Option[Nothing]", Set())
     case Type.AnyType => CodeBlob("Any", Set())
     case Type.BoolType => CodeBlob("Boolean", Set())
     case Type.CharType => CodeBlob("Char", Set())
@@ -497,12 +499,44 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       }
   }
 
+  def reachableNonterminalMatchFuncs(valuefyExpr: ValuefyExpr, cc: Set[String]): Set[String] = valuefyExpr match {
+    case ValuefyExpr.MatchNonterminal(nonterminalName) =>
+      if (cc contains nonterminalName) cc
+      else reachableNonterminalMatchFuncs(analysis.nonterminalValuefyExprs(nonterminalName), cc + nonterminalName)
+    case ValuefyExpr.Unbind(_, expr) => reachableNonterminalMatchFuncs(expr, cc)
+    case ValuefyExpr.JoinBody(bodyProcessor) => reachableNonterminalMatchFuncs(bodyProcessor, cc)
+    case ValuefyExpr.JoinCond(condProcessor) => reachableNonterminalMatchFuncs(condProcessor, cc)
+    case ValuefyExpr.SeqElemAt(_, expr) => reachableNonterminalMatchFuncs(expr, cc)
+    case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) => reachableNonterminalMatchFuncs(elemProcessor, cc)
+    case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) => reachableNonterminalMatchFuncs(elemProcessor, cc)
+    case ValuefyExpr.UnrollChoices(choices) =>
+      choices.values.foldLeft(cc) { (m, choiceExpr) => reachableNonterminalMatchFuncs(choiceExpr, m) }
+    case ValuefyExpr.ConstructCall(_, params) =>
+      params.foldLeft(cc) { (m, paramExpr) => reachableNonterminalMatchFuncs(paramExpr, m) }
+    case ValuefyExpr.FuncCall(_, params) =>
+      params.foldLeft(cc) { (m, paramExpr) => reachableNonterminalMatchFuncs(paramExpr, m) }
+    case ValuefyExpr.ArrayExpr(elems) =>
+      elems.foldLeft(cc) { (m, elemExpr) => reachableNonterminalMatchFuncs(elemExpr, m) }
+    case ValuefyExpr.BinOp(_, lhs, rhs) =>
+      reachableNonterminalMatchFuncs(lhs, reachableNonterminalMatchFuncs(rhs, cc))
+    case ValuefyExpr.PreOp(_, expr) =>
+      reachableNonterminalMatchFuncs(expr, cc)
+    case ValuefyExpr.ElvisOp(expr, ifNull) =>
+      reachableNonterminalMatchFuncs(expr, reachableNonterminalMatchFuncs(ifNull, cc))
+    case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
+      reachableNonterminalMatchFuncs(condition,
+        reachableNonterminalMatchFuncs(ifTrue,
+          reachableNonterminalMatchFuncs(ifFalse, cc)))
+    case ValuefyExpr.InputNode | _: ValuefyExpr.Literal | _: ValuefyExpr.EnumValue => cc
+  }
+
   def generateParser(className: String, mainFuncExamples: Option[List[String]] = None): String = {
     val ngrammarDefCode = ngrammarDef(analysis.ngrammar)
-    val classDefsCode = classDefs(analysis.classRelations.toHierarchy)
+    val classDefsCode = classDefs(analysis.classRelations)
     val enumDefsCode = enumDefs(analysis.enumValuesMap)
-    // TODO nontermMatchCodes에서 AST에서 쓰이지 않는 nonterminal은 제외
-    val nontermMatchCodes = analysis.nonterminalTypes.keys.toList.sorted.map(nonterminalMatchFunc)
+    val reachableNonterms = reachableNonterminalMatchFuncs(
+      analysis.nonterminalValuefyExprs(analysis.startNonterminalName), Set(analysis.startNonterminalName))
+    val nontermMatchCodes = reachableNonterms.toList.sorted.map(nonterminalMatchFunc)
     val startMatchCode = matchStartFunc()
     val startType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName))
 

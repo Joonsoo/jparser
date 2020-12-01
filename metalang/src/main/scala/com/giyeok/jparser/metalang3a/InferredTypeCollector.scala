@@ -240,6 +240,9 @@ case class ClassHierarchyTree(allTypes: Map[String, ClassHierarchyItem], rootTyp
 }
 
 case class ClassHierarchyItem(className: String, superclasses: Set[String], subclasses: Set[String])
+  extends Ordered[ClassHierarchyItem] {
+  override def compare(that: ClassHierarchyItem): Int = className.compare(that.className)
+}
 
 case class EnumRelationCollector(enumTypes: Set[String], unspecifiedTypes: Set[Int],
                                  directRelations: Map[Int, String], indirectRelations: Set[(Int, Int)]) {
