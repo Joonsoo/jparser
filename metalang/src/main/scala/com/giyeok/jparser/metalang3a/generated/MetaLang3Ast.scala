@@ -15,7 +15,7 @@ import com.giyeok.jparser.nparser.ParseTreeUtil.unrollRepeat1
 import com.giyeok.jparser.nparser.Parser
 import scala.collection.immutable.ListSet
 
-object MetaLang3 {
+object MetaLang3Ast {
   val ngrammar = new NGrammar(
     Map(1 -> NGrammar.NStart(1, 2),
       2 -> NGrammar.NNonterminal(2, Symbols.Nonterminal("Grammar"), Set(3)),
@@ -490,8 +490,6 @@ object MetaLang3 {
 
   sealed trait BinderExpr
 
-  sealed trait TerminalChar extends Terminal
-
   case class EmptySeq()(val astNode: Node) extends AtomSymbol
 
   case class StringType()(val astNode: Node) extends ValueType
@@ -528,7 +526,7 @@ object MetaLang3 {
 
   sealed trait ClassDef extends TypeDef with SubType
 
-  case class PExpr(body: TernaryExpr, typ: Option[TypeDesc])(val astNode: Node) extends BinderExpr with Processor
+  sealed trait PExpr extends BinderExpr with Processor
 
   case class ValRef(idx: String, condSymPath: Option[List[CondSymDir.Value]])(val astNode: Node) extends Ref
 
@@ -543,8 +541,6 @@ object MetaLang3 {
   case class RawRef(idx: String, condSymPath: Option[List[CondSymDir.Value]])(val astNode: Node) extends Ref
 
   case class BoolLiteral(value: Boolean)(val astNode: Node) extends Literal
-
-  case class Elvis(value: AdditiveExpr, ifNull: ElvisExpr)(val astNode: Node) extends ElvisExpr
 
   sealed trait Literal extends Atom
 
@@ -574,9 +570,11 @@ object MetaLang3 {
 
   case class CharAsIs(value: Char)(val astNode: Node) extends StringChar with TerminalChoiceChar with TerminalChar
 
+  case class ElvisOp(value: AdditiveExpr, ifNull: ElvisExpr)(val astNode: Node) extends ElvisExpr
+
   case class AnyTerminal()(val astNode: Node) extends Terminal
 
-  case class BindExpr(ctx: ValRef, binder: BinderExpr)(val astNode: Node) extends BinderExpr with Atom
+  case class BindExpr(ctx: ValRef, binder: BinderExpr)(val astNode: Node) extends Atom
 
   sealed trait TerminalChoiceChar extends TerminalChoiceElem
 
@@ -608,7 +606,7 @@ object MetaLang3 {
 
   case class TypeDesc(typ: NonNullTypeDesc, optional: Boolean)(val astNode: Node)
 
-  sealed trait TernaryExpr
+  sealed trait TernaryExpr extends PExpr
 
   case class NonterminalName(name: String)(val astNode: Node)
 
@@ -644,11 +642,15 @@ object MetaLang3 {
 
   sealed trait BinSymbol extends Symbol
 
+  case class TypedPExpr(body: TernaryExpr, typ: Option[TypeDesc])(val astNode: Node) extends PExpr
+
+  sealed trait TerminalChar extends Terminal
+
   case class CanonicalEnumValue(enumName: EnumTypeName, valueName: EnumValueName)(val astNode: Node) extends AbstractEnumValue
 
   case class CharEscaped(escapeCode: Char)(val astNode: Node) extends StringChar with TerminalChoiceChar with TerminalChar
 
-  sealed trait Ref extends BinderExpr with Atom with Processor
+  sealed trait Ref extends Atom
 
   sealed trait BoolEqExpr extends BoolAndExpr
 
@@ -995,6 +997,38 @@ object MetaLang3 {
         matchEnumTypeDef(v620)
     }
     v621
+  }
+
+  def matchPExpr(node: Node): PExpr = {
+    val BindNode(v339, v340) = node
+    val v358 = v339.id match {
+      case 325 =>
+        val v341 = v340.asInstanceOf[SequenceNode].children.head
+        val BindNode(v342, v343) = v341
+        assert(v342.id == 326)
+        val v344 = v340.asInstanceOf[SequenceNode].children(1)
+        val BindNode(v345, v346) = v344
+        assert(v345.id == 93)
+        val BindNode(v347, v348) = v346
+        val v357 = v347.id match {
+          case 136 =>
+            None
+          case 94 =>
+            val BindNode(v349, v350) = v348
+            val v356 = v349.id match {
+              case 95 =>
+                val BindNode(v351, v352) = v350
+                assert(v351.id == 96)
+                val v353 = v352.asInstanceOf[SequenceNode].children(3)
+                val BindNode(v354, v355) = v353
+                assert(v354.id == 98)
+                matchTypeDesc(v355)
+            }
+            Some(v356)
+        }
+        TypedPExpr(matchTernaryExpr(v343), v357)(v340)
+    }
+    v358
   }
 
   def matchBinSymbol(node: Node): BinSymbol = {
@@ -1893,38 +1927,6 @@ object MetaLang3 {
     v528
   }
 
-  def matchPExpr(node: Node): PExpr = {
-    val BindNode(v339, v340) = node
-    val v358 = v339.id match {
-      case 325 =>
-        val v341 = v340.asInstanceOf[SequenceNode].children.head
-        val BindNode(v342, v343) = v341
-        assert(v342.id == 326)
-        val v344 = v340.asInstanceOf[SequenceNode].children(1)
-        val BindNode(v345, v346) = v344
-        assert(v345.id == 93)
-        val BindNode(v347, v348) = v346
-        val v357 = v347.id match {
-          case 136 =>
-            None
-          case 94 =>
-            val BindNode(v349, v350) = v348
-            val v356 = v349.id match {
-              case 95 =>
-                val BindNode(v351, v352) = v350
-                assert(v351.id == 96)
-                val v353 = v352.asInstanceOf[SequenceNode].children(3)
-                val BindNode(v354, v355) = v353
-                assert(v354.id == 98)
-                matchTypeDesc(v355)
-            }
-            Some(v356)
-        }
-        PExpr(matchTernaryExpr(v343), v357)(v340)
-    }
-    v358
-  }
-
   def matchPrefixNotExpr(node: Node): PrefixNotExpr = {
     val BindNode(v493, v494) = node
     val v501 = v493.id match {
@@ -2314,7 +2316,7 @@ object MetaLang3 {
         val v1079 = v1075.asInstanceOf[SequenceNode].children(4)
         val BindNode(v1080, v1081) = v1079
         assert(v1080.id == 334)
-        Elvis(matchAdditiveExpr(v1078), matchElvisExpr(v1081))(v1075)
+        ElvisOp(matchAdditiveExpr(v1078), matchElvisExpr(v1081))(v1075)
       case 415 =>
         val v1082 = v1075.asInstanceOf[SequenceNode].children.head
         val BindNode(v1083, v1084) = v1082
@@ -2564,33 +2566,6 @@ object MetaLang3 {
     ParseTreeUtil.parseAst(naiveParser, text, matchStart)
 
   def main(args: Array[String]): Unit = {
-    //    println(parseAst("A = 'abc' 'd-f'"))
-    //    println(parseAst("A = '\\-'"))
-    //    println(parseAst("A = '--'"))
-    //    println(parseAst("MyClass()"))
-    //    println(parseAst(
-    //      """Class2<Super1,Super2>
-    //        |Class2<>(param1:string, param2:string)
-    //        |Class2(param1:string)
-    //        |""".stripMargin))
-    //    println(parseAst(
-    //      """SuperClass<GrandSuper> {
-    //        |  SomeClass,
-    //        |  SubSuperClass<AnotherClass> {
-    //        |    IndirectSubConcreteClass(param1:string)
-    //        |  },
-    //        |  DirectSubConcreteClass()
-    //        |}""".stripMargin))
-    val x = parseAst(
-      """A = 'a'* B 'c'* {ClassForA(a=$0)}
-        |B = 'b'*
-        |""".stripMargin).left.get
-    println(x)
-    println(parseAst("""A = 'a' {$0?"abc":"def":string}""".stripMargin))
-    println(parseAst("""A = 'a' {$0?:"abc":string}""".stripMargin))
-    println(parseAst("""A = 'a' {($0?:"abc"):string}""".stripMargin))
-    println(parseAst("""A = 'a' {$0?:("abc":string):string}""".stripMargin))
-    println(parseAst("""A = 'a' {true && ispresent($<0)} {null}""".stripMargin))
-    println(parseAst("""StartSymbol = AnotherNonterminal {null ?: "string"}""".stripMargin))
+    println(parseAst("A = B C 'd' 'e'*"))
   }
 }

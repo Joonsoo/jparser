@@ -302,8 +302,8 @@ object MetaLang3Grammar extends MetaLangExamples {
           |CondSymPath: [%CondSymDir{BODY, COND}] = ('<' {%BODY} | '>' {%COND})+
           |RawRef = "\\$" CondSymPath? RefIdx {RawRef(idx=$2, condSymPath=$1)}
           |
-          |PExpr = TernaryExpr (WS ':' WS TypeDesc)? {PExpr(body=$0, typ=$1)}
-          |TernaryExpr: TernaryExpr = BoolOrExpr WS '?' WS <TernaryExpr> WS ':' WS <TernaryExpr> {TernaryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
+          |PExpr: PExpr = TernaryExpr (WS ':' WS TypeDesc)? {TypedPExpr(body=$0, typ=$1)}
+          |TernaryExpr: TernaryExpr<PExpr> = BoolOrExpr WS '?' WS <TernaryExpr> WS ':' WS <TernaryExpr> {TernaryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
           |  | BoolOrExpr
           |BoolOrExpr: BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {BinOp(op=%Op.AND, lhs=$0, rhs=$4)}
           |  | BoolAndExpr
@@ -311,7 +311,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |  | BoolEqExpr
           |BoolEqExpr: BoolEqExpr = ElvisExpr WS ("==" {%Op.EQ} | "!=" {%Op.NE}) WS BoolEqExpr {BinOp(op=$2, lhs=$0, rhs=$4)}
           |  | ElvisExpr
-          |ElvisExpr: ElvisExpr = AdditiveExpr WS "?:" WS ElvisExpr {Elvis(value=$0, ifNull=$4)}
+          |ElvisExpr: ElvisExpr = AdditiveExpr WS "?:" WS ElvisExpr {ElvisOp(value=$0, ifNull=$4)}
           |  | AdditiveExpr
           |AdditiveExpr: AdditiveExpr = PrefixNotExpr WS ('+' {%Op.ADD}) WS AdditiveExpr {BinOp(op=$2, lhs=$0, rhs=$4)}
           |  | PrefixNotExpr
