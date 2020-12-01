@@ -10,7 +10,8 @@ import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParsingCon
 import com.giyeok.jparser.visualize._
 import com.giyeok.jparser.visualize.utils.{HorizontalResizableSplittedComposite, VerticalResizableSplittedComposite}
 import com.giyeok.jparser._
-import com.giyeok.jparser.metalang2.{ASTifier, AstAnalyzer, MetaLanguage2}
+import com.giyeok.jparser.metalang3a.{ErrorCollector, MetaLanguage3}
+import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import org.eclipse.draw2d.{ColorConstants, Figure, FigureCanvas}
 import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.{ExtendedModifyListener, StyleRange, StyledText}
@@ -47,7 +48,7 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
 
     private val exampleGrammars: Seq[(GrammarExample, String)] =
         _exampleGrammars flatMap { g =>
-            val grammarInText = Try(MetaLanguage2.stringify(g.grammar))
+            val grammarInText = Try("")
             if (grammarInText.isFailure) {
                 println(s"${g.name}, ${grammarInText.asInstanceOf[Failure[_]].exception}")
             }
@@ -57,9 +58,11 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
     val rootPanel = new VerticalResizableSplittedComposite(this, SWT.NONE, 40)
 
     val grammarDefParser = new ParseProcessor[Option[Grammar]](
-        MetaLanguage2.GrammarDef.oldGrammar,
-        //MetaGrammar2.GrammarDef.ngrammar,
-        (x: ParseForest) => Some(new AstAnalyzer(ASTifier.matchGrammar(x.trees.head)).analyzeAstifiers().grammar("Grammar"))
+        MetaLang3Ast.ngrammar,
+        { (x: ParseForest) =>
+            Some(MetaLanguage3.transformGrammar(
+                MetaLang3Ast.matchStart(x.trees.head), "Grammar")(new ErrorCollector())._2)
+        }
     )
 
     val emptyGrammarParser = new ParseProcessor[ParseForest](
