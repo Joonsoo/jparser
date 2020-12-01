@@ -4,7 +4,6 @@ import java.io.{BufferedWriter, File, FileWriter}
 
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
-import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang3a.Type._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
@@ -148,14 +147,6 @@ object MetaLanguage3 {
     writer.close()
   }
 
-  def generateMetaLang3Ast(): Unit = {
-    println("Generating MetaLang3Ast...")
-    writeScalaParserCode(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3Ast",
-      "com.giyeok.jparser.metalang3a.generated", new File("./metalang/src/main/scala"),
-      mainFuncExamples = Some(List("A = B C 'd' 'e'*")))
-    println("MetaLang3Ast generated...")
-  }
-
   def testExample(example: MetaLang3Example): Unit = {
     println(example.grammar)
     val analysis = analyzeGrammar(example.grammar, example.name)
@@ -198,9 +189,5 @@ object MetaLanguage3 {
           println(error)
       }
     }
-  }
-
-  def main(args: Array[String]): Unit = {
-    generateMetaLang3Ast()
   }
 }

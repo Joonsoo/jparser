@@ -1,4 +1,17 @@
-mlproto: @MLProto = 
+Program = WS Module (WS Module)* WS {MLProto(modules=[$1] + $2)}
+Module = "module"&Tk WS Id (WS TypeGenerics)? WS '(' (WS ModuleParams)? WS ')' WS '{' (WS ModuleBody)? WS '}'
+  {Module(name=$2, generics=$3, params=$6 ?: [], body=$11)}
+TypeGenerics = '<' WS '>'
+ModuleParams = ModuleParam (WS ',' WS ModuleParam)* {[$0] + $1}
+ModuleParam = ParamName WS ':' WS ParamType (WS '=' WS Expr)? {ModuleParam(name=$0, typ=$4, defaultValue=$5)}
+ModuleBody = 'a'
+ParamName = Id {ParamName(value=$0)}
+ParamType = Id
+Expr = 'b'
 
-
-
+Tk = <'a-zA-Z_' 'a-zA-Z0-9_/'* | ":=" | '?'>
+Id = <'a-zA-Z_' 'a-zA-Z0-9_'*> {str(\$0)}
+WS = (' \n\r\t' | LineComment)*
+WSNL = <(' \r\t' | LineComment)* '\n' WS>
+LineComment = "//" (.-'\n')* (EOF | '\n')
+EOF = !.
