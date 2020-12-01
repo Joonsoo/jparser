@@ -4,11 +4,10 @@ import java.io.{BufferedWriter, File, FileWriter}
 
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
-import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, SimpleExamples}
+import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang3a.Type._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
-import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.Options
 import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import com.giyeok.jparser.{Grammar, NGrammar}
 
@@ -149,62 +148,59 @@ object MetaLanguage3 {
     writer.close()
   }
 
-  def main(args: Array[String]): Unit = {
-    def testExample(example: MetaLang3Example): Unit = {
-      println(example.grammar)
-      val analysis = analyzeGrammar(example.grammar, example.name)
-      if (!analysis.errors.isClear) {
-        throw new Exception(analysis.errors.toString)
-      }
-      val valuefyExprSimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
-      val analysisPrinter = new AnalysisPrinter(analysis.ngrammar, valuefyExprSimulator.startValuefyExpr, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
+  def generateMetaLang3Ast(): Unit = {
+    println("Generating MetaLang3Ast...")
+    writeScalaParserCode(MetaLang3Grammar.inMetaLang3.grammar, "MetaLang3Ast",
+      "com.giyeok.jparser.metalang3a.generated", new File("./metalang/src/main/scala"),
+      mainFuncExamples = Some(List("A = B C 'd' 'e'*")))
+    println("MetaLang3Ast generated...")
+  }
 
-      analysis.nonterminalTypes.foreach { p =>
-        println(s"Nonterm `${p._1}` = ${Type.readableNameOf(p._2)}")
-      }
-      AnalysisPrinter.printClassHierarchy(analysis.rawClassRelations.toHierarchy)
-      val classHierarchy = analysis.classRelations.toHierarchy
-      AnalysisPrinter.printClassHierarchy(classHierarchy)
-      println(s"Enum Values: ${analysis.enumValuesMap}")
-      println(s"Shortened enums: ${analysis.shortenedEnumTypesMap}")
-      analysis.classParamTypes.foreach(pair =>
-        // TODO supers
-        AnalysisPrinter.printClassDef(classHierarchy, pair._1, pair._2)
-      )
-      analysisPrinter.printValuefyStructure()
+  def testExample(example: MetaLang3Example): Unit = {
+    println(example.grammar)
+    val analysis = analyzeGrammar(example.grammar, example.name)
+    if (!analysis.errors.isClear) {
+      throw new Exception(analysis.errors.toString)
+    }
+    val valuefyExprSimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
+    val analysisPrinter = new AnalysisPrinter(analysis.ngrammar, valuefyExprSimulator.startValuefyExpr, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
 
-      if (!analysis.errors.isClear) {
-        throw IllegalGrammar(s"Errors: ${analysis.errors.errors}")
-      }
-      example.correctExamplesWithResults.foreach { example =>
-        val CorrectExample(input, expectedResult) = example
-        valuefyExprSimulator.parse(input) match {
-          case Left(parsed) =>
-            println(s"== Input: $input")
-            AnalysisPrinter.printNodeStructure(parsed)
-            val valuefied = valuefyExprSimulator.valuefy(parsed)
-            println(s"Value: ${valuefied.prettyPrint()}")
-            // println(valuefied.detailPrint())
-            expectedResult.foreach(someExpectedResult =>
-              check(valuefied.prettyPrint() == someExpectedResult,
-                s"Valuefy result mismatch, expected=$someExpectedResult, actual=${valuefied.prettyPrint()}"))
-          case Right(error) =>
-            println(error)
-        }
+    analysis.nonterminalTypes.foreach { p =>
+      println(s"Nonterm `${p._1}` = ${Type.readableNameOf(p._2)}")
+    }
+    AnalysisPrinter.printClassHierarchy(analysis.rawClassRelations.toHierarchy)
+    val classHierarchy = analysis.classRelations.toHierarchy
+    AnalysisPrinter.printClassHierarchy(classHierarchy)
+    println(s"Enum Values: ${analysis.enumValuesMap}")
+    println(s"Shortened enums: ${analysis.shortenedEnumTypesMap}")
+    analysis.classParamTypes.foreach(pair =>
+      // TODO supers
+      AnalysisPrinter.printClassDef(classHierarchy, pair._1, pair._2)
+    )
+    analysisPrinter.printValuefyStructure()
+
+    if (!analysis.errors.isClear) {
+      throw IllegalGrammar(s"Errors: ${analysis.errors.errors}")
+    }
+    example.correctExamplesWithResults.foreach { example =>
+      val CorrectExample(input, expectedResult) = example
+      valuefyExprSimulator.parse(input) match {
+        case Left(parsed) =>
+          println(s"== Input: $input")
+          AnalysisPrinter.printNodeStructure(parsed)
+          val valuefied = valuefyExprSimulator.valuefy(parsed)
+          println(s"Value: ${valuefied.prettyPrint()}")
+          // println(valuefied.detailPrint())
+          expectedResult.foreach(someExpectedResult =>
+            check(valuefied.prettyPrint() == someExpectedResult,
+              s"Valuefy result mismatch, expected=$someExpectedResult, actual=${valuefied.prettyPrint()}"))
+        case Right(error) =>
+          println(error)
       }
     }
+  }
 
-    val srcRoot = new File("./metalang/src/main/scala")
-    writeScalaParserCode(SimpleExamples.lookaheadExcept.grammar, "MetaLang3Ast",
-      "com.giyeok.jparser.metalang3a.generated", srcRoot,
-      mainFuncExamples = Some(List("A = B C 'd' 'e'*")))
-    writeScalaParserCode(
-      """A = !.
-        |""".stripMargin,
-      "SymbolTest", "com.giyeok.jparser.metalang3a.generated", srcRoot,
-      mainFuncExamples = Some(List("")))
-
-    writeScalaParserCode(SimpleExamples.lookaheadExcept.grammar, "MetaLang3Ast",
-      "com.giyeok.jparser.metalang3a.generated", srcRoot)
+  def main(args: Array[String]): Unit = {
+    generateMetaLang3Ast()
   }
 }

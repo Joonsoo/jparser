@@ -83,7 +83,7 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
       val choiceValuefyExpr = choices(bindedSymbol.symbol)
       valuefy(parseNode, choiceValuefyExpr)
     case ValuefyExpr.ConstructCall(className, params) =>
-      ClassValue(className, params.map(valuefy(parseNode, _)))
+      ClassValue(className, params.map(valuefy(parseNode, _)))(parseNode)
     case ValuefyExpr.FuncCall(funcType, params) =>
       def ispresent(value: Value): Boolean = value match {
         case ArrayValue(elems) if elems.nonEmpty => true
@@ -187,7 +187,7 @@ object ValuefyExprSimulator {
     override def detailPrint(): String = s"node(${astNode.sourceText})"
   }
 
-  case class ClassValue(className: String, args: List[Value]) extends Value {
+  case class ClassValue(className: String, args: List[Value])(val parseNode: Node) extends Value {
     override def prettyPrint(): String = s"$className(${args.map(_.prettyPrint()).mkString(",")})"
 
     override def detailPrint(): String = prettyPrint()
