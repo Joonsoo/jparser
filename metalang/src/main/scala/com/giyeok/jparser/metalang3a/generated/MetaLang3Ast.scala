@@ -484,183 +484,187 @@ object MetaLang3Ast {
       464 -> NGrammar.NSequence(464, Symbols.Sequence(Seq(Symbols.Chars(Set('\t', '\r', ' ')))), Seq(465))),
     1)
 
-  sealed trait TerminalChoiceElem
+  sealed trait WithParseNode {
+    val parseNode: Node
+  }
 
-  sealed trait PostUnSymbol extends PreUnSymbol
+  case class AbstractClassDef(name: TypeName, supers: List[TypeName])(override val parseNode: Node) extends ClassDef with WithParseNode
 
-  sealed trait BoolOrExpr extends TernaryExpr
+  sealed trait AbstractEnumValue extends Atom with WithParseNode
 
-  sealed trait BinderExpr
+  sealed trait AdditiveExpr extends ElvisExpr with WithParseNode
 
-  case class EmptySeq()(val astNode: Node) extends AtomSymbol
+  case class AnyTerminal()(override val parseNode: Node) extends Terminal with WithParseNode
 
-  case class StringType()(val astNode: Node) extends ValueType
+  case class AnyType()(override val parseNode: Node) extends NonNullTypeDesc with WithParseNode
 
-  sealed trait Terminal extends AtomSymbol
+  case class ArrayExpr(elems: List[PExpr])(override val parseNode: Node) extends Atom with WithParseNode
 
-  sealed trait Atom extends PrefixNotExpr
+  case class ArrayTypeDesc(elemType: TypeDesc)(override val parseNode: Node) extends NonNullTypeDesc with WithParseNode
 
-  case class AbstractClassDef(name: TypeName, supers: List[TypeName])(val astNode: Node) extends ClassDef
+  sealed trait Atom extends PrefixNotExpr with WithParseNode
 
-  case class NotFollowedBy(notFollowedBy: PreUnSymbol)(val astNode: Node) extends PreUnSymbol
+  sealed trait AtomSymbol extends PostUnSymbol with WithParseNode
 
-  sealed trait AbstractEnumValue extends Atom
+  case class BinOp(op: Op.Value, lhs: BoolAndExpr, rhs: BoolOrExpr)(override val parseNode: Node) extends AdditiveExpr with WithParseNode
 
-  case class ClassParamDef(name: ParamName, typeDesc: Option[TypeDesc])(val astNode: Node)
+  sealed trait BinSymbol extends Symbol with WithParseNode
 
-  case class EnumTypeDef(name: EnumTypeName, values: List[String])(val astNode: Node) extends TypeDef
+  case class BindExpr(ctx: ValRef, binder: BinderExpr)(override val parseNode: Node) extends Atom with WithParseNode
 
-  case class Nonterminal(name: NonterminalName)(val astNode: Node) extends AtomSymbol
+  sealed trait BinderExpr extends WithParseNode
 
-  case class FollowedBy(followedBy: PreUnSymbol)(val astNode: Node) extends PreUnSymbol
+  sealed trait BoolAndExpr extends BoolOrExpr with WithParseNode
 
-  case class AnyType()(val astNode: Node) extends NonNullTypeDesc
+  sealed trait BoolEqExpr extends BoolAndExpr with WithParseNode
 
-  sealed trait Processor extends Elem
+  case class BoolLiteral(value: Boolean)(override val parseNode: Node) extends Literal with WithParseNode
 
-  case class TypeName(name: String)(val astNode: Node) extends SubType with NonNullTypeDesc
+  sealed trait BoolOrExpr extends TernaryExpr with WithParseNode
 
-  case class Optional(body: PostUnSymbol)(val astNode: Node) extends PostUnSymbol
+  case class BooleanType()(override val parseNode: Node) extends ValueType with WithParseNode
 
-  sealed trait ValueType extends NonNullTypeDesc
+  case class CanonicalEnumValue(enumName: EnumTypeName, valueName: EnumValueName)(override val parseNode: Node) extends AbstractEnumValue with WithParseNode
 
-  case class NamedConstructExpr(typeName: TypeName, params: List[NamedParam], supers: Option[List[TypeName]])(val astNode: Node) extends Atom
+  case class CharAsIs(value: Char)(override val parseNode: Node) extends StringChar with TerminalChar with TerminalChoiceChar with WithParseNode
 
-  sealed trait ClassDef extends TypeDef with SubType
+  case class CharEscaped(escapeCode: Char)(override val parseNode: Node) extends StringChar with TerminalChar with TerminalChoiceChar with WithParseNode
 
-  sealed trait PExpr extends BinderExpr with Processor
+  case class CharLiteral(value: TerminalChar)(override val parseNode: Node) extends Literal with WithParseNode
 
-  case class ValRef(idx: String, condSymPath: Option[List[CondSymDir.Value]])(val astNode: Node) extends Ref
+  case class CharType()(override val parseNode: Node) extends ValueType with WithParseNode
 
-  case class ArrayExpr(elems: List[PExpr])(val astNode: Node) extends Atom
+  case class CharUnicode(code: List[Char])(override val parseNode: Node) extends StringChar with TerminalChar with TerminalChoiceChar with WithParseNode
 
-  case class TerminalChoiceRange(start: TerminalChoiceChar, end: TerminalChoiceChar)(val astNode: Node) extends TerminalChoiceElem
+  sealed trait ClassDef extends SubType with TypeDef with WithParseNode
 
-  sealed trait StringChar
+  case class ClassParamDef(name: ParamName, typeDesc: Option[TypeDesc])(override val parseNode: Node) extends WithParseNode
 
-  case class ExceptSymbol(body: BinSymbol, except: PreUnSymbol)(val astNode: Node) extends BinSymbol
+  case class ConcreteClassDef(name: TypeName, supers: Option[List[TypeName]], params: List[ClassParamDef])(override val parseNode: Node) extends ClassDef with WithParseNode
 
-  case class RawRef(idx: String, condSymPath: Option[List[CondSymDir.Value]])(val astNode: Node) extends Ref
+  sealed trait Def extends WithParseNode
 
-  case class BoolLiteral(value: Boolean)(val astNode: Node) extends Literal
+  sealed trait Elem extends WithParseNode
 
-  sealed trait Literal extends Atom
+  sealed trait ElvisExpr extends BoolEqExpr with WithParseNode
 
-  case class LHS(name: Nonterminal, typeDesc: Option[TypeDesc])(val astNode: Node)
+  case class ElvisOp(value: AdditiveExpr, ifNull: ElvisExpr)(override val parseNode: Node) extends ElvisExpr with WithParseNode
 
-  case class TernaryOp(cond: BoolOrExpr, ifTrue: TernaryExpr, ifFalse: TernaryExpr)(val astNode: Node) extends TernaryExpr
+  case class EmptySeq()(override val parseNode: Node) extends AtomSymbol with WithParseNode
 
-  sealed trait BoolAndExpr extends BoolOrExpr
+  case class EnumTypeDef(name: EnumTypeName, values: List[String])(override val parseNode: Node) extends TypeDef with WithParseNode
 
-  sealed trait PrefixNotExpr extends AdditiveExpr
+  case class EnumTypeName(name: String)(override val parseNode: Node) extends NonNullTypeDesc with WithParseNode
 
-  case class ConcreteClassDef(name: TypeName, supers: Option[List[TypeName]], params: List[ClassParamDef])(val astNode: Node) extends ClassDef
+  case class EnumValueName(name: String)(override val parseNode: Node) extends WithParseNode
 
-  case class FuncCallOrConstructExpr(funcName: TypeOrFuncName, params: List[PExpr])(val astNode: Node) extends Atom
+  case class ExceptSymbol(body: BinSymbol, except: PreUnSymbol)(override val parseNode: Node) extends BinSymbol with WithParseNode
 
-  case class Sequence(seq: List[Elem])(val astNode: Node) extends Symbol
+  case class ExprParen(body: PExpr)(override val parseNode: Node) extends Atom with WithParseNode
 
-  case class InPlaceChoices(choices: List[Sequence])(val astNode: Node) extends AtomSymbol
+  case class FollowedBy(followedBy: PreUnSymbol)(override val parseNode: Node) extends PreUnSymbol with WithParseNode
 
-  case class SuperDef(typeName: TypeName, subs: Option[List[SubType]], supers: Option[List[TypeName]])(val astNode: Node) extends TypeDef with SubType
+  case class FuncCallOrConstructExpr(funcName: TypeOrFuncName, params: List[PExpr])(override val parseNode: Node) extends Atom with WithParseNode
 
-  case class Rule(lhs: LHS, rhs: List[Sequence])(val astNode: Node) extends Def
+  case class Grammar(defs: List[Def])(override val parseNode: Node) extends WithParseNode
 
-  sealed trait TypeDef extends NonNullTypeDesc with Def
+  case class InPlaceChoices(choices: List[Sequence])(override val parseNode: Node) extends AtomSymbol with WithParseNode
 
-  case class StrLiteral(value: List[StringChar])(val astNode: Node) extends Literal
+  case class JoinSymbol(body: BinSymbol, join: PreUnSymbol)(override val parseNode: Node) extends BinSymbol with WithParseNode
 
-  case class CharAsIs(value: Char)(val astNode: Node) extends StringChar with TerminalChoiceChar with TerminalChar
+  case class LHS(name: Nonterminal, typeDesc: Option[TypeDesc])(override val parseNode: Node) extends WithParseNode
 
-  case class ElvisOp(value: AdditiveExpr, ifNull: ElvisExpr)(val astNode: Node) extends ElvisExpr
+  sealed trait Literal extends Atom with WithParseNode
 
-  case class AnyTerminal()(val astNode: Node) extends Terminal
+  case class Longest(choices: InPlaceChoices)(override val parseNode: Node) extends AtomSymbol with WithParseNode
 
-  case class BindExpr(ctx: ValRef, binder: BinderExpr)(val astNode: Node) extends Atom
+  case class NamedConstructExpr(typeName: TypeName, params: List[NamedParam], supers: Option[List[TypeName]])(override val parseNode: Node) extends Atom with WithParseNode
 
-  sealed trait TerminalChoiceChar extends TerminalChoiceElem
+  case class NamedParam(name: ParamName, typeDesc: Option[TypeDesc], expr: PExpr)(override val parseNode: Node) extends WithParseNode
 
-  case class RepeatFromZero(body: PostUnSymbol)(val astNode: Node) extends PostUnSymbol
+  sealed trait NonNullTypeDesc extends WithParseNode
 
-  case class ExprParen(body: PExpr)(val astNode: Node) extends Atom
+  case class Nonterminal(name: NonterminalName)(override val parseNode: Node) extends AtomSymbol with WithParseNode
 
-  case class EnumTypeName(name: String)(val astNode: Node) extends NonNullTypeDesc
+  case class NonterminalName(name: String)(override val parseNode: Node) extends WithParseNode
 
-  case class JoinSymbol(body: BinSymbol, join: PreUnSymbol)(val astNode: Node) extends BinSymbol
+  case class NotFollowedBy(notFollowedBy: PreUnSymbol)(override val parseNode: Node) extends PreUnSymbol with WithParseNode
 
-  sealed trait Elem
+  case class NullLiteral()(override val parseNode: Node) extends Literal with WithParseNode
 
-  sealed trait AtomSymbol extends PostUnSymbol
+  case class Optional(body: PostUnSymbol)(override val parseNode: Node) extends PostUnSymbol with WithParseNode
 
-  case class ArrayTypeDesc(elemType: TypeDesc)(val astNode: Node) extends NonNullTypeDesc
+  sealed trait PExpr extends BinderExpr with Processor with WithParseNode
 
-  case class NullLiteral()(val astNode: Node) extends Literal
+  case class ParamName(name: String)(override val parseNode: Node) extends WithParseNode
 
-  sealed trait SubType
+  sealed trait PostUnSymbol extends PreUnSymbol with WithParseNode
 
-  case class CharType()(val astNode: Node) extends ValueType
+  sealed trait PreUnSymbol extends BinSymbol with WithParseNode
 
-  case class StringSymbol(value: List[StringChar])(val astNode: Node) extends AtomSymbol
+  sealed trait PrefixNotExpr extends AdditiveExpr with WithParseNode
 
-  case class BinOp(op: Op.Value, lhs: BoolAndExpr, rhs: BoolOrExpr)(val astNode: Node) extends AdditiveExpr
+  case class PrefixOp(op: PreOp.Value, expr: PrefixNotExpr)(override val parseNode: Node) extends PrefixNotExpr with WithParseNode
 
-  sealed trait Symbol extends Elem
+  sealed trait Processor extends Elem with WithParseNode
 
-  case class TypeDesc(typ: NonNullTypeDesc, optional: Boolean)(val astNode: Node)
+  case class RawRef(idx: String, condSymPath: Option[List[CondSymDir.Value]])(override val parseNode: Node) extends Ref with WithParseNode
 
-  sealed trait TernaryExpr extends PExpr
+  sealed trait Ref extends Atom with WithParseNode
 
-  case class NonterminalName(name: String)(val astNode: Node)
+  case class RepeatFromOne(body: PostUnSymbol)(override val parseNode: Node) extends PostUnSymbol with WithParseNode
 
-  sealed trait NonNullTypeDesc
+  case class RepeatFromZero(body: PostUnSymbol)(override val parseNode: Node) extends PostUnSymbol with WithParseNode
 
-  sealed trait AdditiveExpr extends ElvisExpr
+  case class Rule(lhs: LHS, rhs: List[Sequence])(override val parseNode: Node) extends Def with WithParseNode
 
-  case class RepeatFromOne(body: PostUnSymbol)(val astNode: Node) extends PostUnSymbol
+  case class Sequence(seq: List[Elem])(override val parseNode: Node) extends Symbol with WithParseNode
 
-  case class Longest(choices: InPlaceChoices)(val astNode: Node) extends AtomSymbol
+  case class ShortenedEnumValue(valueName: EnumValueName)(override val parseNode: Node) extends AbstractEnumValue with WithParseNode
 
-  case class NamedParam(name: ParamName, typeDesc: Option[TypeDesc], expr: PExpr)(val astNode: Node)
+  case class StrLiteral(value: List[StringChar])(override val parseNode: Node) extends Literal with WithParseNode
 
-  sealed trait Def
+  sealed trait StringChar extends WithParseNode
 
-  case class PrefixOp(op: PreOp.Value, expr: PrefixNotExpr)(val astNode: Node) extends PrefixNotExpr
+  case class StringSymbol(value: List[StringChar])(override val parseNode: Node) extends AtomSymbol with WithParseNode
 
-  case class CharLiteral(value: TerminalChar)(val astNode: Node) extends Literal
+  case class StringType()(override val parseNode: Node) extends ValueType with WithParseNode
 
-  case class TerminalChoice(choices: List[TerminalChoiceElem])(val astNode: Node) extends AtomSymbol
+  sealed trait SubType extends WithParseNode
 
-  case class ShortenedEnumValue(valueName: EnumValueName)(val astNode: Node) extends AbstractEnumValue
+  case class SuperDef(typeName: TypeName, subs: Option[List[SubType]], supers: Option[List[TypeName]])(override val parseNode: Node) extends SubType with TypeDef with WithParseNode
 
-  case class TypeOrFuncName(name: String)(val astNode: Node)
+  sealed trait Symbol extends Elem with WithParseNode
 
-  case class ParamName(name: String)(val astNode: Node)
+  sealed trait Terminal extends AtomSymbol with WithParseNode
 
-  case class CharUnicode(code: List[Char])(val astNode: Node) extends StringChar with TerminalChoiceChar with TerminalChar
+  sealed trait TerminalChar extends Terminal with WithParseNode
 
-  sealed trait PreUnSymbol extends BinSymbol
+  case class TerminalChoice(choices: List[TerminalChoiceElem])(override val parseNode: Node) extends AtomSymbol with WithParseNode
 
-  case class BooleanType()(val astNode: Node) extends ValueType
+  sealed trait TerminalChoiceChar extends TerminalChoiceElem with WithParseNode
 
-  sealed trait BinSymbol extends Symbol
+  sealed trait TerminalChoiceElem extends WithParseNode
 
-  case class TypedPExpr(body: TernaryExpr, typ: TypeDesc)(val astNode: Node) extends PExpr
+  case class TerminalChoiceRange(start: TerminalChoiceChar, end: TerminalChoiceChar)(override val parseNode: Node) extends TerminalChoiceElem with WithParseNode
 
-  sealed trait TerminalChar extends Terminal
+  sealed trait TernaryExpr extends PExpr with WithParseNode
 
-  case class CanonicalEnumValue(enumName: EnumTypeName, valueName: EnumValueName)(val astNode: Node) extends AbstractEnumValue
+  case class TernaryOp(cond: BoolOrExpr, ifTrue: TernaryExpr, ifFalse: TernaryExpr)(override val parseNode: Node) extends TernaryExpr with WithParseNode
 
-  case class CharEscaped(escapeCode: Char)(val astNode: Node) extends StringChar with TerminalChoiceChar with TerminalChar
+  sealed trait TypeDef extends Def with NonNullTypeDesc with WithParseNode
 
-  sealed trait Ref extends Atom
+  case class TypeDesc(typ: NonNullTypeDesc, optional: Boolean)(override val parseNode: Node) extends WithParseNode
 
-  sealed trait BoolEqExpr extends BoolAndExpr
+  case class TypeName(name: String)(override val parseNode: Node) extends NonNullTypeDesc with SubType with WithParseNode
 
-  case class EnumValueName(name: String)(val astNode: Node)
+  case class TypeOrFuncName(name: String)(override val parseNode: Node) extends WithParseNode
 
-  sealed trait ElvisExpr extends BoolEqExpr
+  case class TypedPExpr(body: TernaryExpr, typ: TypeDesc)(override val parseNode: Node) extends PExpr with WithParseNode
 
-  case class Grammar(defs: List[Def])(val astNode: Node)
+  case class ValRef(idx: String, condSymPath: Option[List[CondSymDir.Value]])(override val parseNode: Node) extends Ref with WithParseNode
+
+  sealed trait ValueType extends NonNullTypeDesc with WithParseNode
 
   object CondSymDir extends Enumeration {
     val BODY, COND = Value

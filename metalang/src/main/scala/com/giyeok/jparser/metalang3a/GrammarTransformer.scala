@@ -266,7 +266,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
             check(condSymPath.isEmpty, "RawRef with cond sym path not implemented")
             SeqElemAt(symbolIdx, input)
           case _: MetaLang3Ast.Processor =>
-            errorCollector.addError("RawRef cannot refer to processor" /*, ref*/)
+            errorCollector.addError("RawRef cannot refer to processor", ref.parseNode)
             // throw IllegalGrammar("RawRef cannot refer to processor")
             InputNode
         }
@@ -305,14 +305,14 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
                 proxy(Unbind(seqSymbol, processor), seqSymbol)._1
               case _ =>
                 // throw IllegalGrammar("Unsupported binding context")
-                errorCollector.addError("Unsupported binding context" /*, processor*/)
+                errorCollector.addError("Unsupported binding context", processor.parseNode)
                 InputNode
             }
 
           SeqElemAt(symbolIndexFrom(refCtx, idx), processBindExpr(symbol))
         case _: MetaLang3Ast.Processor =>
           // throw IllegalGrammar("BindExpr cannot refer to processor")
-          errorCollector.addError("BindExpr cannot refer to processor" /*, processor*/)
+          errorCollector.addError("BindExpr cannot refer to processor", processor.parseNode)
           InputNode
       }
     case MetaLang3Ast.NamedConstructExpr(typeName, params, supers0) =>

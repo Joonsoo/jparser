@@ -405,10 +405,10 @@ object MetaLang3Grammar extends MetaLangExamples {
           |RefIdx = <'0' | '1-9' '0-9'*> {str(\$0)}
           |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*> {str(\$0)}
           |IdNoKeyword = Id-Keyword {str(\$0)}
-          |WS = (' \n\r\t' | LineComment)* {""}
-          |WSNL = <(' \r\t' | LineComment)* '\n' WS> {""}
-          |LineComment = "//" (.-'\n')* (EOF | '\n') {""}
-          |EOF = !. {""}
+          |WS = (' \n\r\t' | LineComment)*
+          |WSNL = <(' \r\t' | LineComment)* '\n' WS>
+          |LineComment = "//" (.-'\n')* (EOF | '\n')
+          |EOF = !.
           |""".stripMargin)
         .examples(SimpleExamples.examples.map(_.grammar))
 

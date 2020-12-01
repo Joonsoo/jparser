@@ -1,10 +1,9 @@
 package com.giyeok.jparser.metalang3a
 
-import com.giyeok.jparser.{NGrammar, ParseResultTree}
 import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNode}
-import com.giyeok.jparser.metalang3a.AnalysisPrinter.printNodeStructure
 import com.giyeok.jparser.metalang3a.Type.readableNameOf
 import com.giyeok.jparser.metalang3a.ValuefyExpr.{MatchNonterminal, Unbind, UnrollChoices}
+import com.giyeok.jparser.{NGrammar, ParseResultTree}
 
 object AnalysisPrinter {
   def printClassHierarchy(classHierarchy: ClassHierarchyTree): Unit = {

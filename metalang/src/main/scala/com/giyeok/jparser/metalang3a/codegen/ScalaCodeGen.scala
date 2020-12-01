@@ -14,17 +14,17 @@ object ScalaCodeGen {
 
   /**
    *
-   * @param useNull              (미구현) true이면 Option 대신 그냥 값+null을 사용한다.
-   * @param looseSuperType       TODO 기본 false
-   * @param assertBindTypes      Unbind할 때 unbind된 심볼의 타입을 체크한다. 기본 true
-   * @param symbolComments       human readable한 심볼 설명 코멘트를 추가한다. 기본 true
-   * @param astNodesInAllClasses 모든 클래스에 astNode를 기본으로 포함시킨다. 기본 true
+   * @param useNull                 (미구현) true이면 Option 대신 그냥 값+null을 사용한다.
+   * @param looseSuperType          TODO 기본 false
+   * @param assertBindTypes         Unbind할 때 unbind된 심볼의 타입을 체크한다. 기본 true
+   * @param symbolComments          human readable한 심볼 설명 코멘트를 추가한다. 기본 true
+   * @param withParseNodesInClasses 모든 클래스를 WithParseNode trait를 상속받게 하고 모든 클래스를 생성할 때 parseNode를 설정한다. 기본 true
    */
   case class Options(useNull: Boolean = false,
                      looseSuperType: Boolean = false,
                      assertBindTypes: Boolean = true,
                      symbolComments: Boolean = true,
-                     astNodesInAllClasses: Boolean = true)
+                     withParseNodesInClasses: Boolean = true)
 
   case class CodeBlob(code: String, required: Set[String]) {
     def indent(width: Int = 2): CodeBlob =
@@ -42,8 +42,6 @@ object ScalaCodeGen {
   }
 
   case class ExprBlob(prepares: List[String], result: String, required: Set[String]) {
-    def preparesCode = prepares.mkString("\n")
-
     def withBraceIfNeeded: String =
       if (prepares.isEmpty) result else "{\n" + prepares.map("  " + _).mkString("\n") + "\n}"
   }
@@ -142,26 +140,33 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
 
   def classDefs(classRelation: ClassRelationCollector): CodeBlob = {
     val classHierarchy = classRelation.toHierarchy
-    if (classHierarchy.allTypes.isEmpty) CodeBlob("", Set()) else {
+    val baseCodeBlob = if (!options.withParseNodesInClasses) CodeBlob("", Set())
+    else CodeBlob("sealed trait WithParseNode { val parseNode: Node }", Set())
+    if (classHierarchy.allTypes.isEmpty) baseCodeBlob else {
       def classDefinitionCode(cls: ClassHierarchyItem): CodeBlob = {
+        val supers = if (cls.superclasses.isEmpty) {
+          if (options.withParseNodesInClasses) " extends WithParseNode" else ""
+        } else {
+          val superclasses = if (options.withParseNodesInClasses) cls.superclasses.toList.sorted :+ "WithParseNode"
+          else cls.superclasses.toList.sorted
+          s" extends ${superclasses.mkString(" with ")}"
+        }
         if (cls.subclasses.isEmpty) {
           // concrete type
           val params = analysis.classParamTypes.getOrElse(cls.className, List()).map { param =>
             val paramType = typeDescStringOf(param._2)
             CodeBlob(s"${param._1}: ${paramType.code}", paramType.required)
           }
-          val supers = if (cls.superclasses.isEmpty) "" else s" extends ${cls.superclasses.mkString(" with ")}"
-          val astNodeVal = if (options.astNodesInAllClasses) "(val astNode: Node)" else ""
-          CodeBlob(s"case class ${cls.className}(${params.map(_.code).mkString(", ")})$astNodeVal$supers",
+          val parseNodeVal = if (options.withParseNodesInClasses) "(override val parseNode: Node)" else ""
+          CodeBlob(s"case class ${cls.className}(${params.map(_.code).mkString(", ")})$parseNodeVal$supers",
             params.flatMap(_.required).toSet)
         } else {
           // abstract type
-          val supers = if (cls.superclasses.isEmpty) "" else s" extends ${cls.superclasses.mkString(" with ")}"
           CodeBlob(s"sealed trait ${cls.className}$supers", Set())
         }
       }
 
-      classHierarchy.allTypes.values.toList.sorted.map(classDefinitionCode).reduce(_ + _)
+      (baseCodeBlob +: classHierarchy.allTypes.values.toList.sorted.map(classDefinitionCode)).reduce(_ + _)
     }
   }
 
@@ -220,7 +225,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
     val bodyCode = if (body.prepares.isEmpty) {
       CodeBlob(body.result, body.required)
     } else {
-      CodeBlob(body.preparesCode + "\n" + body.result, body.required).wrapBrace()
+      CodeBlob(body.prepares.mkString("\n") + "\n" + body.result, body.required).wrapBrace()
     }
     CodeBlob(s"def ${nonterminalMatchFuncName(nonterminal)}(node: Node): ${returnType.code} = " + bodyCode.code,
       body.required ++ returnType.required ++ bodyCode.required + "com.giyeok.jparser.ParseResultTree.Node")
@@ -413,7 +418,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       val paramCodes = params.zipWithIndex.map { case (param, index) =>
         valuefyExprToCodeWithCoercion(param, inputName, analysis.classParamTypes(className)(index)._2)
       }
-      val constructorExpr = s"$className(${paramCodes.map(_.result).mkString(", ")})" + (if (options.astNodesInAllClasses) s"($inputName)" else "")
+      val constructorExpr = s"$className(${paramCodes.map(_.result).mkString(", ")})" + (if (options.withParseNodesInClasses) s"($inputName)" else "")
       ExprBlob(paramCodes.flatMap(_.prepares), constructorExpr, paramCodes.flatMap(_.required).toSet)
     case funcCall: ValuefyExpr.FuncCall =>
       funcCallToCode(funcCall, inputName)
