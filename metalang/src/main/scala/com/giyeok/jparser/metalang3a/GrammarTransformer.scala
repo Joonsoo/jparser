@@ -219,6 +219,9 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
     index - refCtx.slice(0, index).count(_.isInstanceOf[MetaLang3Ast.Processor]) // index 앞에 있는 processor 갯수 빼기
 
   private def valuefyProcessor(refCtx: List[MetaLang3Ast.Elem], processor: MetaLang3Ast.Processor, input: ValuefyExpr): ValuefyExpr = processor match {
+    case MetaLang3Ast.TypedPExpr(body, typ) =>
+      // TODO typ 처리
+      valuefyProcessor(refCtx, body, input)
     case MetaLang3Ast.ElvisOp(value, ifNull) =>
       val vValue = valuefyProcessor(refCtx, value, input)
       val vIfNull = valuefyProcessor(refCtx, ifNull, input)

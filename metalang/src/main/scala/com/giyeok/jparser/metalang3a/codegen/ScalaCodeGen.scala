@@ -502,7 +502,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
     val classDefsCode = classDefs(analysis.classRelations.toHierarchy)
     val enumDefsCode = enumDefs(analysis.enumValuesMap)
     // TODO nontermMatchCodes에서 AST에서 쓰이지 않는 nonterminal은 제외
-    val nontermMatchCodes = analysis.nonterminalTypes.keys.map(nonterminalMatchFunc).toList
+    val nontermMatchCodes = analysis.nonterminalTypes.keys.toList.sorted.map(nonterminalMatchFunc)
     val startMatchCode = matchStartFunc()
     val startType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName))
 

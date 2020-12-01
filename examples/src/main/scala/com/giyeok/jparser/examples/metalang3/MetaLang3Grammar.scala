@@ -302,8 +302,9 @@ object MetaLang3Grammar extends MetaLangExamples {
           |CondSymPath: [%CondSymDir{BODY, COND}] = ('<' {%BODY} | '>' {%COND})+
           |RawRef = "\\$" CondSymPath? RefIdx {RawRef(idx=$2, condSymPath=$1)}
           |
-          |PExpr: PExpr = TernaryExpr (WS ':' WS TypeDesc)? {TypedPExpr(body=$0, typ=$1)}
-          |TernaryExpr: TernaryExpr<PExpr> = BoolOrExpr WS '?' WS <TernaryExpr> WS ':' WS <TernaryExpr> {TernaryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
+          |PExpr: PExpr = TernaryExpr WS ':' WS TypeDesc {TypedPExpr(body=$0, typ=$4)}
+          |  | TernaryExpr
+          |TernaryExpr: TernaryExpr = BoolOrExpr WS '?' WS <TernaryExpr> WS ':' WS <TernaryExpr> {TernaryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
           |  | BoolOrExpr
           |BoolOrExpr: BoolOrExpr = BoolAndExpr WS "&&" WS BoolOrExpr {BinOp(op=%Op.AND, lhs=$0, rhs=$4)}
           |  | BoolAndExpr
@@ -405,8 +406,8 @@ object MetaLang3Grammar extends MetaLangExamples {
           |Id = <'a-zA-Z_' 'a-zA-Z0-9_'*> {str(\$0)}
           |IdNoKeyword = Id-Keyword {str(\$0)}
           |WS = (' \n\r\t' | LineComment)* {""}
-          |WSNL = <(' \r\t' | LineComment)* '\n' WS> {""} // newline이 최소 한 개 이상 포함된 WS
-          |LineComment = '/' '/' (.-'\n')* (EOF | '\n') {""}
+          |WSNL = <(' \r\t' | LineComment)* '\n' WS> {""}
+          |LineComment = "//" (.-'\n')* (EOF | '\n') {""}
           |EOF = !. {""}
           |""".stripMargin)
         .examples(SimpleExamples.examples.map(_.grammar))
