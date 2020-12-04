@@ -1,7 +1,5 @@
 package com.giyeok.jparser.metalang3a
 
-import java.io.{BufferedWriter, File, FileWriter}
-
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
 import com.giyeok.jparser.metalang3a.Type._
@@ -10,7 +8,7 @@ import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
 import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import com.giyeok.jparser.{Grammar, NGrammar}
 
-import scala.concurrent.{ExecutionContext, Future}
+import java.io.{BufferedWriter, File, FileWriter}
 
 object MetaLanguage3 {
 
@@ -135,20 +133,6 @@ object MetaLanguage3 {
 
   def analyzeGrammar(grammarDefinition: String, grammarName: String = "GeneratedGrammar"): ProcessedGrammar =
     analyzeGrammar(parseGrammar(grammarDefinition), grammarName)
-
-  def analyzeGrammarAsync(grammarDef: MetaLang3Ast.Grammar, grammarName: String)
-                         (implicit executor: ExecutionContext): Future[(NGrammar, Future[ProcessedGrammar])] = Future {
-    implicit val errorCollector: ErrorCollector = new ErrorCollector()
-    val (transformer, grammar, ngrammar) = transformGrammar(grammarDef, grammarName)
-
-    (ngrammar, Future {
-      analyzeGrammar(transformer, grammar, ngrammar)
-    })
-  }
-
-  def analyzeGrammarAsync(grammarDefinition: String, grammarName: String = "GeneratedGrammar")
-                         (implicit executor: ExecutionContext): Future[(NGrammar, Future[ProcessedGrammar])] =
-    analyzeGrammarAsync(parseGrammar(grammarDefinition), grammarName)
 
   def generateScalaParserCode(grammar: String, className: String, packageName: String,
                               mainFuncExamples: Option[List[String]] = None,

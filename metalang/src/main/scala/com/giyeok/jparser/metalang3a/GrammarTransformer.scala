@@ -218,17 +218,18 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
   private def symbolIndexFrom(refCtx: List[MetaLang3Ast.Elem], index: Int): Int =
     index - refCtx.slice(0, index).count(_.isInstanceOf[MetaLang3Ast.Processor]) // index 앞에 있는 processor 갯수 빼기
 
-  private def valuefyProcessor(refCtx: List[MetaLang3Ast.Elem], processor: MetaLang3Ast.Processor, input: ValuefyExpr): ValuefyExpr = processor match {
+  private def valuefyPExpr(refCtx: List[MetaLang3Ast.Elem], processor: MetaLang3Ast.PExpr, input: ValuefyExpr): ValuefyExpr = processor match {
+    // case MetaLang3Ast.ProcessorBlock(body) => valuefyPExpr(refCtx, body, input)
     case MetaLang3Ast.TypedPExpr(body, typ) =>
       // TODO typ 처리
-      valuefyProcessor(refCtx, body, input)
+      valuefyPExpr(refCtx, body, input)
     case MetaLang3Ast.ElvisOp(value, ifNull) =>
-      val vValue = valuefyProcessor(refCtx, value, input)
-      val vIfNull = valuefyProcessor(refCtx, ifNull, input)
+      val vValue = valuefyPExpr(refCtx, value, input)
+      val vIfNull = valuefyPExpr(refCtx, ifNull, input)
       ElvisOp(vValue, vIfNull)
     case MetaLang3Ast.BinOp(op, lhs, rhs) =>
-      val vLhs = valuefyProcessor(refCtx, lhs, input)
-      val vRhs = valuefyProcessor(refCtx, rhs, input)
+      val vLhs = valuefyPExpr(refCtx, lhs, input)
+      val vRhs = valuefyPExpr(refCtx, rhs, input)
       val opType = op match {
         case com.giyeok.jparser.metalang3a.generated.MetaLang3Ast.Op.ADD => BinOpType.ADD
         case com.giyeok.jparser.metalang3a.generated.MetaLang3Ast.Op.EQ => BinOpType.EQ
@@ -238,7 +239,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       }
       BinOp(opType, vLhs, vRhs)
     case MetaLang3Ast.PrefixOp(op, expr) =>
-      val vExpr = valuefyProcessor(refCtx, expr, input)
+      val vExpr = valuefyPExpr(refCtx, expr, input)
       val opType = op match {
         case com.giyeok.jparser.metalang3a.generated.MetaLang3Ast.PreOp.NOT => PreOpType.NOT
       }
@@ -271,7 +272,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
             InputNode
         }
     }
-    case MetaLang3Ast.ExprParen(body) => valuefyProcessor(refCtx, body, input)
+    case MetaLang3Ast.ExprParen(body) => valuefyPExpr(refCtx, body, input)
     case MetaLang3Ast.BindExpr(ctx, binder) =>
       val MetaLang3Ast.ValRef(idx0, condSymPath0) = ctx
       val idx = idx0.toInt
@@ -327,11 +328,11 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       val paramSpecs = params.map(p => ClassParamSpec(stringNameOf(p.name), p.typeDesc.map(typeOf)))
       _classInfoCollector = _classInfoCollector.addClassParamSpecs(className, ClassSpec(paramSpecs))
       // add className->callers
-      val vParams = params.map(p => valuefyProcessor(refCtx, p.expr, input))
+      val vParams = params.map(p => valuefyPExpr(refCtx, p.expr, input))
       _classInfoCollector = _classInfoCollector.addClassConstructCall(className, vParams)
       ConstructCall(className, vParams)
     case MetaLang3Ast.FuncCallOrConstructExpr(funcName, params) =>
-      val vParams = params.map(valuefyProcessor(refCtx, _, input))
+      val vParams = params.map(valuefyPExpr(refCtx, _, input))
       stringNameOf(funcName) match {
         case "ispresent" => FuncCall(FuncType.IsPresent, vParams)
         case "isempty" => FuncCall(FuncType.IsEmpty, vParams)
@@ -343,7 +344,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
           ConstructCall(className, vParams)
       }
     case MetaLang3Ast.ArrayExpr(elems) =>
-      val vElems = elems.map(valuefyProcessor(refCtx, _, input))
+      val vElems = elems.map(valuefyPExpr(refCtx, _, input))
       ArrayExpr(vElems)
     case literal: MetaLang3Ast.Literal => literal match {
       case MetaLang3Ast.NullLiteral() => NullLiteral
@@ -366,6 +367,12 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
         ShortenedEnumValue(shortenedEnumTypeId, enumValueName)
     }
   }
+
+  private def valuefyProcessor(refCtx: List[MetaLang3Ast.Elem], processor: MetaLang3Ast.Processor, input: ValuefyExpr) =
+    processor match {
+      case MetaLang3Ast.ProcessorBlock(body) => valuefyPExpr(refCtx, body, input)
+      case ref: MetaLang3Ast.Ref => valuefyPExpr(refCtx, ref, input)
+    }
 
   private def valuefySequence(seq: List[MetaLang3Ast.Elem], input: ValuefyExpr): (ValuefyExpr, Symbols.Symbol) = {
     val elems = seq map {

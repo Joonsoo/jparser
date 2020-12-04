@@ -30,6 +30,7 @@ object Grammars {
   }
 
   def main(args: Array[String]): Unit = {
+    generateMetaLang3Ast()
     generateMlProtoAst()
   }
 }

@@ -106,16 +106,6 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
   grammarText.control.setText(initialGrammar)
 
   grammarControlPanel.setLayout(new FillLayout)
-  val grammarAddEpsilonButton = new Button(grammarControlPanel, SWT.NONE)
-  grammarAddEpsilonButton.setText("ε")
-  grammarAddEpsilonButton.addSelectionListener(new SelectionListener {
-    def widgetDefaultSelected(e: SelectionEvent): Unit = {}
-
-    def widgetSelected(e: SelectionEvent): Unit = {
-      grammarText.control.appendTextToCurrentCursor("ε")
-      grammarText.control.setFocus()
-    }
-  })
   val grammarOpenButton = new Button(grammarControlPanel, SWT.NONE)
   grammarOpenButton.setText("Open Example Grammars")
   if (exampleGrammars.isEmpty) {
@@ -632,27 +622,6 @@ class HighlightingSymbolsViewer(parent: Composite, style: Int) extends Composite
   figureCanvas.setContents(figure)
 }
 
-class ParseTreeViewer(parent: Composite, style: Int) extends Composite(parent, style) {
-  setLayout(new FillLayout)
-
-  val figureCanvas = new FigureCanvas(this, SWT.NONE)
-
-  val figure = new org.eclipse.draw2d.Label("Parse Tree")
-  figureCanvas.setContents(figure)
-
-  val parseResultFigureGenerator = new ParseResultFigureGenerator[Figure](BasicVisualizeResources.nodeFigureGenerators.fig, BasicVisualizeResources.nodeFigureGenerators.appear)
-
-  def setParseForest(parseForest: ParseForest): Unit = {
-    // TODO figure 모양 개선(세로형으로)
-    // TODO parse tree 안에 마우스 갖다대면 testText에 표시해주기
-    figureCanvas.setContents(parseResultFigureGenerator.parseResultFigure(parseForest))
-    figureCanvas.setBackground(ColorConstants.white)
-  }
-
-  def invalidateParseForest(): Unit = {
-    figureCanvas.setBackground(ColorConstants.lightGray)
-  }
-}
 
 trait ProcessListener[T, R, P] {
   def contentModified(value: T): Unit

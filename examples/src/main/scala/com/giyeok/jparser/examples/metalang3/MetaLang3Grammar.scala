@@ -295,13 +295,14 @@ object MetaLang3Grammar extends MetaLangExamples {
           |
           |// Processor
           |Processor: Processor = Ref
-          |  | '{' WS PExpr WS '}' $2
+          |  | PExprBlock
           |
           |Ref: Ref = ValRef | RawRef
           |ValRef = '$' CondSymPath? RefIdx {ValRef(idx=$2, condSymPath=$1)}
           |CondSymPath: [%CondSymDir{BODY, COND}] = ('<' {%BODY} | '>' {%COND})+
           |RawRef = "\\$" CondSymPath? RefIdx {RawRef(idx=$2, condSymPath=$1)}
           |
+          |PExprBlock = '{' WS PExpr WS '}' {ProcessorBlock(body=$2)}
           |PExpr: PExpr = TernaryExpr WS ':' WS TypeDesc {TypedPExpr(body=$0, typ=$4)}
           |  | TernaryExpr
           |TernaryExpr: TernaryExpr = BoolOrExpr WS '?' WS <TernaryExpr> WS ':' WS <TernaryExpr> {TernaryOp(cond=$0, ifTrue=$4, ifFalse=$8)}
@@ -330,7 +331,7 @@ object MetaLang3Grammar extends MetaLangExamples {
           |BindExpr = ValRef BinderExpr {BindExpr(ctx=$0, binder=$1)}
           |BinderExpr: BinderExpr = Ref
           |  | BindExpr
-          |  | '{' WS PExpr WS '}' $2
+          |  | PExprBlock
           |NamedConstructExpr = TypeName (WS SuperTypes)? WS NamedConstructParams {NamedConstructExpr(typeName=$0, params=$3, supers=$1)}
           |NamedConstructParams = '(' WS (NamedParam (WS ',' WS NamedParam)* WS {[$0] + $1}) ')' $2
           |NamedParam = ParamName (WS ':' WS TypeDesc)? WS '=' WS PExpr {NamedParam(name=$0, typeDesc=$1, expr=$5)}

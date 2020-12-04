@@ -5,6 +5,7 @@ import com.giyeok.jparser.Symbols.ShortStringSymbols
 import com.giyeok.jparser._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.{MatchNonterminal, Unbind, UnrollChoices}
 import com.giyeok.jparser.metalang3a.ValuefyExprSimulator._
+import com.giyeok.jparser.nparser.ParseTreeUtil.expectedTermsFrom
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParseTreeUtil}
 
 import scala.annotation.tailrec
@@ -26,13 +27,7 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
         case Some(forest) =>
           Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
         case None =>
-          val expectedTerms = ctx.nextGraph.nodes.flatMap { node =>
-            node.kernel.symbol match {
-              case NGrammar.NTerminal(_, term) => Some(term)
-              case _ => None
-            }
-          }
-          Right(ParsingErrors.UnexpectedEOF(expectedTerms, sourceText.length))
+          Right(ParsingErrors.UnexpectedEOF(expectedTermsFrom(ctx), sourceText.length))
       }
     case Right(error) => Right(error)
   }

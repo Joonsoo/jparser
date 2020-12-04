@@ -26,16 +26,16 @@ object SimpleExamples extends MetaLangExamples {
       |""".stripMargin)
     .example("a b", "ClassA(\"ab\")")
   val ex4: MetaLang3Example = MetaLang3Example("Nonterm type inference",
-    """expression: Expression = term
-      |    | expression WS '+' WS term {BinOp(op=str($2), lhs:Expression=$0, rhs=$4)}
-      |term: Term = factor
-      |    | term WS '*' WS factor {BinOp(str($2), $0, $4)}
-      |factor: Factor = number
-      |    | variable
-      |    | '(' WS expression WS ')' {Paren(expr=$2)}
-      |number: Number = '0' {Integer(value=str($0))}
+    """Expression: Expression = Term
+      |    | Expression WS '+' WS Term {BinOp(op=str($2), lhs:Expression=$0, rhs=$4)}
+      |Term: Term = Factor
+      |    | Term WS '*' WS Factor {BinOp(str($2), $0, $4)}
+      |Factor: Factor = Number
+      |    | Variable
+      |    | '(' WS Expression WS ')' {Paren(expr=$2)}
+      |Number: Number = '0' {Integer(value=str($0))}
       |    | '1-9' '0-9'* {Integer(str(\$0, \$1))}
-      |variable = <'A-Za-z'+> {Variable(name=$0)}
+      |Variable = <'A-Za-z'+> {Variable(name=$0)}
       |WS = ' '*
       |""".stripMargin)
     .example("123+456", "BinOp(\"+\",Integer(\"123\"),Integer(\"456\"))")

@@ -2,7 +2,7 @@ package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.ParseResultTree.{BindNode, Node, SequenceNode}
 import com.giyeok.jparser.nparser.Parser.NaiveContext
-import com.giyeok.jparser.{NGrammar, ParseForestFunc, ParsingErrors}
+import com.giyeok.jparser.{NGrammar, ParseForest, ParseForestFunc, ParsingErrors, Symbols}
 
 object ParseTreeUtil {
   def unrollRepeat1(node: Node): List[Node] = {
@@ -29,18 +29,15 @@ object ParseTreeUtil {
     }
   }
 
+  def reconstructTree(ngrammar: NGrammar, ctx: NaiveContext): Option[ParseForest] =
+    new ParseTreeConstructor(ParseForestFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
+
   def parseAst[T](ngrammar: NGrammar, ctx: NaiveContext, matchStart: Node => T): Either[T, ParsingErrors.ParsingError] =
-    new ParseTreeConstructor(ParseForestFunc)(ngrammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct() match {
+    reconstructTree(ngrammar, ctx) match {
       case Some(forest) if forest.trees.size == 1 => Left(matchStart(forest.trees.head))
       case Some(forest) => Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
       case None =>
-        val expectedTerms = ctx.nextGraph.nodes.flatMap { node =>
-          node.kernel.symbol match {
-            case NGrammar.NTerminal(_, term) => Some(term)
-            case _ => None
-          }
-        }
-        Right(ParsingErrors.UnexpectedEOF(expectedTerms, ctx.gen))
+        Right(ParsingErrors.UnexpectedEOF(expectedTermsFrom(ctx), ctx.gen))
     }
 
   def parseAst[T](parser: NaiveParser, text: String, matchStart: Node => T): Either[T, ParsingErrors.ParsingError] =
@@ -48,4 +45,11 @@ object ParseTreeUtil {
       case Left(ctx) => parseAst(parser.grammar, ctx, matchStart)
       case Right(error) => Right(error)
     }
+
+  def expectedTermsFrom(ctx: NaiveContext): Set[Symbols.Terminal] = ctx.nextGraph.nodes.flatMap { node =>
+    node.kernel.symbol match {
+      case NGrammar.NTerminal(_, term) => Some(term)
+      case _ => None
+    }
+  }
 }
