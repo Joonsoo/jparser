@@ -19,6 +19,8 @@ import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.{FillLayout, FormLayout}
 import org.eclipse.swt.widgets.{Button, Composite, MessageBox, Shell}
 
+import java.util.concurrent.TimeUnit
+
 class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler, grammarObs: Observable[GrammarDefEditor.UpdateEvent]) {
   private val rightPanel = new HorizontalResizableSplittedComposite(parent, style, 30)
   private var testCodeEditor: CodeEditor = null
@@ -74,21 +76,22 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
     val generatedGrammarObs: Observable[NGrammar] = grammarObs
       .filter(_.isInstanceOf[GrammarDefEditor.GrammarGenerated])
       .map(_.asInstanceOf[GrammarDefEditor.GrammarGenerated].ngrammar)
-    val exampleParseResult = Observable.combineLatest(generatedGrammarObs, testCodeEditor.textObservable, (_: NGrammar, _: String))
-      .switchMap { pair: (NGrammar, String) =>
-        Observable.create[Either[ParseForest, ParsingError]] { sub =>
-          new NaiveParser(pair._1).parse(pair._2) match {
-            case Left(ctx) =>
-              ParseTreeUtil.reconstructTree(pair._1, ctx) match {
-                case Some(parseForest) => sub.onNext(Left(parseForest))
-                case None => sub.onNext(Right(ParsingErrors.UnexpectedEOF(expectedTermsFrom(ctx), pair._2.length)))
-              }
-            case Right(parsingError) =>
-              sub.onNext(Right(parsingError))
-          }
-          sub.onComplete()
-        }.observeOn(scheduler).subscribeOn(scheduler)
-      }.observeOn(scheduler).subscribeOn(scheduler).publish().refCount()
+    val exampleParseResult = Observable.combineLatest(generatedGrammarObs,
+      testCodeEditor.textObservable.debounce(250, TimeUnit.MILLISECONDS),
+      (_: NGrammar, _: String)).switchMap { pair: (NGrammar, String) =>
+      Observable.create[Either[ParseForest, ParsingError]] { sub =>
+        new NaiveParser(pair._1).parse(pair._2) match {
+          case Left(ctx) =>
+            ParseTreeUtil.reconstructTree(pair._1, ctx) match {
+              case Some(parseForest) => sub.onNext(Left(parseForest))
+              case None => sub.onNext(Right(ParsingErrors.UnexpectedEOF(expectedTermsFrom(ctx), pair._2.length)))
+            }
+          case Right(parsingError) =>
+            sub.onNext(Right(parsingError))
+        }
+        sub.onComplete()
+      }.observeOn(scheduler).subscribeOn(scheduler)
+    }.observeOn(scheduler).subscribeOn(scheduler).publish().refCount()
 
     exampleParseResult.subscribe { parseResult: Either[ParseForest, ParsingError] =>
       parseResult match {
