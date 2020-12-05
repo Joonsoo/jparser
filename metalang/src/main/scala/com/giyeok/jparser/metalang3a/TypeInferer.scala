@@ -98,7 +98,7 @@ class TypeInferer(val startNonterminalName: String, val nonterminalTypes: Map[St
       val ifTrueType = typeOfValuefyExpr(ifTrue)
       val ifFalseType = typeOfValuefyExpr(ifFalse)
       if (conditionType.isEmpty || ifTrueType.isEmpty || ifFalseType.isEmpty) None else {
-        check(conditionType.get != Type.BoolType, "Condition of ternary operator must be boolean")
+        check(conditionType.get == Type.BoolType, "Condition of ternary operator must be boolean")
         Some(unifyTypes(Set(ifTrueType.get, ifFalseType.get)))
       }
     case literal: ValuefyExpr.Literal => Some(literal match {

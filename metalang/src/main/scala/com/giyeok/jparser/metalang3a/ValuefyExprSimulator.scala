@@ -151,7 +151,9 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
     case ValuefyExpr.ElvisOp(expr, ifNull) =>
       val exprValue = valuefy(parseNode, expr)
       if (exprValue == NullValue) valuefy(parseNode, ifNull) else exprValue
-    case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) => ???
+    case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
+      val condValue = valuefy(parseNode, condition)
+      if (condValue == BoolValue(true)) valuefy(parseNode, ifTrue) else valuefy(parseNode, ifFalse)
     case literal: ValuefyExpr.Literal => literal match {
       case ValuefyExpr.NullLiteral => NullValue
       case ValuefyExpr.BoolLiteral(value) => BoolValue(value)

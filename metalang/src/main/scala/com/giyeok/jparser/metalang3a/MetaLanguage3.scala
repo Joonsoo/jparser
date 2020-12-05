@@ -1,5 +1,6 @@
 package com.giyeok.jparser.metalang3a
 
+import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
 import com.giyeok.jparser.metalang3a.Type._

@@ -53,7 +53,7 @@ object ScalaCodeGen {
 }
 
 class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Options()) {
-  private def escapeString(str: String): String = s""""$str""""
+  private def escapeString(str: String): String = "\"" + str.toCharArray.map(javaChar).mkString("") + "\""
 
   private def escapeChar(c: Char): String = s"'${javaChar(c)}'"
 
@@ -555,7 +555,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
     val mainFunc = mainFuncExamples match {
       case Some(examples) =>
         "\n\n  def main(args: Array[String]): Unit = {\n" +
-          examples.map(example => "    println(parseAst(\"" + example + "\"))").mkString("\n") +
+          examples.map(example => "    println(parseAst(" + escapeString(example) + "))").mkString("\n") +
           "\n  }"
       case None => ""
     }
