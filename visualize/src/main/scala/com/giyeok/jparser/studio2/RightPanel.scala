@@ -6,6 +6,7 @@ import com.giyeok.jparser.metalang3a.ValuefyExprSimulator
 import com.giyeok.jparser.nparser.ParseTreeUtil.expectedTermsFrom
 import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeUtil, ParsingContext}
+import com.giyeok.jparser.studio2.CodeEditor.CodeStyle
 import com.giyeok.jparser.studio2.Utils.setMainAndBottomLayout
 import com.giyeok.jparser.visualize.utils.HorizontalResizableSplittedComposite
 import com.giyeok.jparser.visualize.{NodeFigureGenerators, ParseTreeViewer, ParsingProcessVisualizer, ZestParsingContextWidget}
@@ -33,7 +34,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
     val testCodePanel = new Composite(rightPanel.upperPanel, SWT.NONE)
     testCodePanel.setLayout(new FormLayout)
 
-    testCodeEditor = new CodeEditor(testCodePanel, SWT.NONE, font)
+    testCodeEditor = new CodeEditor(testCodePanel, SWT.V_SCROLL | SWT.H_SCROLL, font)
     openProceedViewButton = new Button(testCodePanel, SWT.NONE)
     openProceedViewButton.setText("Proceed View")
     val openProceedViewButtonObs = PublishSubject.create[SelectionEvent]()
@@ -51,6 +52,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
           case GrammarDefEditor.GrammarProcessed(processedGrammar) => Some(processedGrammar.ngrammar)
           case _ => None
         }
+        testCodeEditor.clearStyles()
         gramOpt match {
           case Some(ngrammar) =>
             val display = parent.getDisplay
@@ -94,10 +96,21 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
     }.observeOn(scheduler).subscribeOn(scheduler).publish().refCount()
 
     exampleParseResult.subscribe { parseResult: Either[ParseForest, ParsingError] =>
+      testCodeEditor.clearStyles()
       parseResult match {
-        case Left(parseForest) => parseTreeViewer.setParseForest(parseForest)
-        case Right(value) =>
+        case Left(parseForest) =>
+        // parseTreeViewer.setParseForest(parseForest)
+        case Right(parsingError) =>
           parseTreeViewer.invalidateParseForest()
+          parsingError match {
+            case ParsingErrors.AmbiguousParse(msg) =>
+            case ParsingErrors.UnexpectedEOF(expected, location) =>
+              testCodeEditor.setStyle(CodeStyle.ERROR, location, location + 1)
+            case ParsingErrors.UnexpectedError =>
+            case ParsingErrors.UnexpectedInput(next, expected, location) =>
+              testCodeEditor.setStyle(CodeStyle.ERROR, location, location + 1)
+            case _ =>
+          }
         // TODO 오류 표시
       }
     }
@@ -134,6 +147,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
         astResult match {
           case Left(astValues) =>
             astViewer.setAstValues(astValues)
+            astValues.foreach(value => println(value.prettyPrint()))
           case Right(parsingError) =>
             astViewer.invalidateAstValues()
             println(parsingError) // TODO 오류 표시
