@@ -267,7 +267,9 @@ class DotGraphGenerator(ngrammar: NGrammar) {
         val startNode = Node(Kernel(ngrammar.startSymbol, 0, 0, 0)(ngrammar.nsymbols(ngrammar.startSymbol)), Always)
         val toVisit = nodesMap.keySet
         var visited = Set[Node]()
-        visited ++= depthFirstTraverse(startNode, Set(startNode))
+        if (nodesMap.contains(startNode)) {
+            visited ++= depthFirstTraverse(startNode, Set(startNode))
+        }
         while (toVisit != visited) {
             visited = depthFirstTraverse((toVisit -- visited).head, visited)
         }
