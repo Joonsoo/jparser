@@ -1,6 +1,5 @@
 package com.giyeok.jparser.parsergen.try2
 
-import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar.{NSequence, NSymbol}
 import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
@@ -11,6 +10,7 @@ import com.giyeok.jparser.nparser.{AcceptCondition, NaiveParser}
 import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, ParsingAction, PrecomputedParserData}
 import com.giyeok.jparser.parsergen.utils.TermGrouper
 import com.giyeok.jparser.visualize.DotGraphGenerator
+import com.giyeok.jparser.{Inputs, NGrammar}
 
 import scala.annotation.tailrec
 
@@ -138,6 +138,7 @@ class Try2(val parser: NaiveParser) {
       node.kernel.symbolId == endTemplate.symbol.id && node.kernel.pointer < endTemplate.pointer
     }
     // TODO 그런데 여기서 endKernelInitials의 모든 노드를 endTemplate.pointer에 맞게 업데이트하는게 맞을까?
+    // TODO endKernelInitials에서 derive task 추가
     val (baseGraph, endNodes) = endKernelInitials.foldLeft((derived, List[Node]())) { (m, node) =>
       assert(node.kernel.beginGen == 0 && node.kernel.endGen == 0)
       val newNode = Node(kernel = Kernel(endTemplate.symbol.id, endTemplate.pointer, 0, 1)(endTemplate.symbol), node.condition)
@@ -175,9 +176,9 @@ class Try2(val parser: NaiveParser) {
   }
 
   def parserData(): PrecomputedParserData = {
-    val start = KernelTemplate(parser.grammar.nsymbols(parser.grammar.startSymbol), 0)
+    val start = KernelTemplate(parser.grammar.start, 0)
 
-    createParserData(Jobs(Set(start), Set()), PrecomputedParserData(Map(), Map()))
+    createParserData(Jobs(Set(start), Set()), PrecomputedParserData(parser.grammar, Map(), Map()))
   }
 }
 
@@ -185,12 +186,16 @@ object Try2 {
 
   case class KernelTemplate(symbol: NSymbol, pointer: Int)
 
-  case class PrecomputedParserData(termActions: Map[KernelTemplate, Map[TermGroupDesc, ParsingAction]],
+  case class PrecomputedParserData(grammar: NGrammar,
+                                   termActions: Map[KernelTemplate, Map[TermGroupDesc, ParsingAction]],
                                    edgeProgressActions: Map[(KernelTemplate, KernelTemplate), ParsingAction])
 
   case class ParsingAction(appendingMilestones: List[(KernelTemplate, AcceptCondition)],
                            startNodeProgressConditions: List[AcceptCondition],
                            graphBetween: Graph)
+
+  def precomputedParserData(grammar: NGrammar): PrecomputedParserData =
+    new Try2(new NaiveParser(grammar)).parserData()
 
   def main(args: Array[String]): Unit = {
     val grammar = ArrayExprAst.ngrammar

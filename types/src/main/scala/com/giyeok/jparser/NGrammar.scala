@@ -1,9 +1,11 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.NGrammar.NSequence
+import com.giyeok.jparser.NGrammar.{NSequence, NStart}
 
 // Numbered Grammar
 class NGrammar(val nsymbols: Map[Int, NGrammar.NAtomicSymbol], val nsequences: Map[Int, NGrammar.NSequence], val startSymbol: Int) {
+    def start: NStart = nsymbols(startSymbol).asInstanceOf[NStart]
+
     def symbolOf(id: Int): NGrammar.NSymbol = {
         nsymbols get id match {
             case Some(nsymbol) => nsymbol
