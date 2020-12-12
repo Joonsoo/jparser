@@ -20,17 +20,59 @@ object Grammars {
       mainFuncExamples = Some(List("A = B C 'd' 'e'*")))
   }
 
-  def generateMlProtoAst(): Unit = generate("MlProto") {
-    val file = new File("./examples/src/main/resources/mlproto/mlproto.cdg")
+  def readFile(path: String): String = {
+    val file = new File(path)
     val source = Source.fromFile(file)
-    writeScalaParserCode(try source.mkString finally source.close(),
+    try source.mkString finally source.close()
+  }
+
+  def generateMlProtoAst(): Unit = generate("MlProto") {
+    writeScalaParserCode(readFile("./examples/src/main/resources/mlproto/mlproto.cdg"),
       "MlProtoAst",
       "com.giyeok.jparser.metalang3a.generated", new File("./metalang/src/main/scala"),
       mainFuncExamples = Some(List("module Conv2d<>(inChannels: Int) {}")))
   }
 
+  def generateAutoDbAst(): Unit = generate("AutoDbAst") {
+    writeScalaParserCode(readFile("./examples/src/main/resources/autodb/autodb.cdg"),
+      "AutoDbAst",
+      "com.giyeok.jparser.metalang3a.generated", new File("./metalang/src/main/scala"),
+      mainFuncExamples = Some(List(
+        """database DartFriends {
+          |  entity User(
+          |    userId: Long as UserId,
+          |    firebaseUid: String?,
+          |    userDetail: Ref(UserDetail),
+          |  ) key(userId), unique(loginName)
+          |
+          |  entity UserDetail(
+          |    user: Ref(User),
+          |    version: Long as UserDetailVersion,
+          |    profileImage: String?,
+          |    homeShop: Ref(Shop)?
+          |  ) key(user)
+          |
+          |  entity Following(
+          |    follower: Ref(User),
+          |    following: Ref(User),
+          |  ) key(follower, following)
+          |}""".stripMargin)))
+  }
+
+  def generateArrayExprAst(): Unit = generate("ArrayExprAst") {
+    writeScalaParserCode(
+      """E:Expr = 'a' {Literal(value=$0)} | A
+        |A = '[' WS E (WS ',' WS E)* WS ']' {Arr(elems=[$2]+$3)}
+        |WS = ' '*
+        |""".stripMargin,
+      "ArrayExprAst", "com.giyeok.jparser.metalang3a.generated", new File("./metalang/src/main/scala"),
+      mainFuncExamples = Some(List("[a]")))
+  }
+
   def main(args: Array[String]): Unit = {
-    generateMetaLang3Ast()
-    generateMlProtoAst()
+    generateArrayExprAst()
+    //    generateAutoDbAst()
+    //    generateMetaLang3Ast()
+    //    generateMlProtoAst()
   }
 }

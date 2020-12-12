@@ -13,7 +13,7 @@ trait ParsingTasks {
 
     case class Cont(graph: Graph, updatedNodesMap: Map[Node, Set[Node]]) {
         // assert((updatedNodesMap flatMap { kv => kv._2 + kv._1 }).toSet subsetOf graph.nodes)
-        assert(updatedNodesMap forall { kv => kv._2 forall { _.initial == kv._1 } })
+        // assert(updatedNodesMap forall { kv => kv._2 forall { _.initial == kv._1 } })
         // assert(updatedFinalNodesMap forall { _._2 forall { _.kernel.isFinal } })
     }
 
@@ -153,8 +153,7 @@ trait ParsingTasks {
             }
 
             // cc에 updatedNodes에 node -> updatedNode 추가
-            val initialNode = node.initial
-            val newUpdatedNodesMap = cc.updatedNodesMap + (initialNode -> (cc.updatedNodesMap.getOrElse(initialNode, Set()) + updatedNode))
+            val newUpdatedNodesMap = cc.updatedNodesMap + (node -> (cc.updatedNodesMap.getOrElse(node, Set()) + updatedNode))
 
             (Cont(newGraph, newUpdatedNodesMap), newTasks)
         } else {

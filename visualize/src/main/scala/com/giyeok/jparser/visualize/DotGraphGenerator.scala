@@ -190,9 +190,11 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             }
         }
         val startNode = Node(Kernel(ngrammar.startSymbol, 0, 0, 0)(ngrammar.nsymbols(ngrammar.startSymbol)), Always)
-        visited += startNode
-        queue +:= startNode
-        traverseNode()
+        if (graph.nodes.contains(startNode)) {
+            visited += startNode
+            queue +:= startNode
+            traverseNode()
+        }
 
         graph.nodes foreach { node =>
             addNode(node)
