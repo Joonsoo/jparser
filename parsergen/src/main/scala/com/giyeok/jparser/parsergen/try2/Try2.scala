@@ -1,16 +1,15 @@
 package com.giyeok.jparser.parsergen.try2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
-import com.giyeok.jparser.NGrammar.{NSequence, NSymbol}
+import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.NGrammar.NSequence
 import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
-import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.{AcceptCondition, NaiveParser}
 import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, ParsingAction, PrecomputedParserData}
 import com.giyeok.jparser.parsergen.utils.TermGrouper
 import com.giyeok.jparser.visualize.DotGraphGenerator
-import com.giyeok.jparser.{Inputs, NGrammar}
 
 import scala.annotation.tailrec
 
@@ -45,7 +44,7 @@ class Try2(val parser: NaiveParser) {
   }
 
   private def startingCtxFrom(template: KernelTemplate): (Node, ContWithTasks) = {
-    val startNode = Node(Kernel(template.symbol.id, template.pointer, 0, 0)(template.symbol), Always)
+    val startNode = Node(Kernel(template.symbolId, template.pointer, 0, 0)(parser.grammar.symbolOf(template.symbolId)), Always)
     val startGraph = Graph(Set(startNode), Set())
 
     val deriveTask = parser.DeriveTask(startNode)
@@ -86,7 +85,7 @@ class Try2(val parser: NaiveParser) {
     //   - kernelTemplate->milestone 으로 가는 경로가 추가되고
     //   - kernelTemplate->milestone 사이에는 trimmed가 그래프로 들어감
     ParsingAction(
-      appendingMilestones.map(node => (KernelTemplate(node.kernel.symbol, node.kernel.pointer), node.condition)),
+      appendingMilestones.map(node => (KernelTemplate(node.kernel.symbolId, node.kernel.pointer), node.condition)),
       startProgressConditions,
       trimmed)
   }
@@ -110,11 +109,13 @@ class Try2(val parser: NaiveParser) {
     val (startNode, ContWithTasks(_, parser.Cont(derived, _))) = startingCtxFrom(startTemplate)
 
     val endKernelInitials = derived.nodes.filter { node =>
-      node.kernel.symbolId == endTemplate.symbol.id && node.kernel.pointer < endTemplate.pointer
+      node.kernel.symbolId == endTemplate.symbolId && node.kernel.pointer < endTemplate.pointer
     }
 
     val fakeEnds = endKernelInitials.map { node =>
-      node -> Node(Kernel(endTemplate.symbol.id, endTemplate.pointer, 0, 1)(endTemplate.symbol), node.condition)
+      node -> Node(
+        Kernel(endTemplate.symbolId, endTemplate.pointer, 0, 1)(parser.grammar.symbolOf(endTemplate.symbolId)),
+        node.condition)
     }.toMap
     val derivedWithEnds = fakeEnds.foldLeft(derived) { (graph, end) =>
       graph.edgesByEnd(end._1).foldLeft(graph.addNode(end._2)) { (ngraph, start) =>
@@ -163,7 +164,7 @@ class Try2(val parser: NaiveParser) {
   }
 
   def parserData(): PrecomputedParserData = {
-    val start = KernelTemplate(parser.grammar.start, 0)
+    val start = KernelTemplate(parser.grammar.startSymbol, 0)
 
     createParserData(Jobs(Set(start), Set()), PrecomputedParserData(parser.grammar, Map(), Map()))
   }
@@ -171,7 +172,7 @@ class Try2(val parser: NaiveParser) {
 
 object Try2 {
 
-  case class KernelTemplate(symbol: NSymbol, pointer: Int)
+  case class KernelTemplate(symbolId: Int, pointer: Int)
 
   case class PrecomputedParserData(grammar: NGrammar,
                                    termActions: Map[KernelTemplate, Map[TermGroupDesc, ParsingAction]],
@@ -194,7 +195,7 @@ object Try2 {
     //    println(y)
     println(parserData)
 
-    val kt1 = KernelTemplate(grammar.nsequences(7), 2)
+    val kt1 = KernelTemplate(7, 2)
     try2.termActionsFrom(kt1).foreach { x =>
       println(s"Term: ${x._1.toShortString}")
       x._2.appendingMilestones.foreach { appending =>

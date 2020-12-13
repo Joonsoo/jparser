@@ -1,21 +1,20 @@
 package com.giyeok.jparser.parsergen.try2
 
 import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.NGrammar.NSymbol
-import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
+import com.giyeok.jparser.metalang2.generated.ExpressionGrammar
 import com.giyeok.jparser.nparser.AcceptCondition
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, PrecomputedParserData}
 
 object Try2Parser {
   def main(args: Array[String]): Unit = {
-    val parserData = Try2.precomputedParserData(ArrayExprAst.ngrammar)
-    new Try2Parser(parserData).parse("[   a,  [ a ]   , [ a,a  ]   ,a   ]")
+    val parserData = Try2.precomputedParserData(ExpressionGrammar.ngrammar)
+    new Try2Parser(parserData).parse("1*2+34")
   }
 }
 
 class Try2Parser(val parserData: PrecomputedParserData) {
-  def initialCtx: Try2ParserContext = Try2ParserContext(List(Milestone(None, parserData.grammar.start, 0, 0, Always)))
+  def initialCtx: Try2ParserContext = Try2ParserContext(List(Milestone(None, parserData.grammar.startSymbol, 0, 0, Always)))
 
   def parse(input: String) = {
     val inputSeq = Inputs.fromString(input)
@@ -41,7 +40,7 @@ class Try2Parser(val parserData: PrecomputedParserData) {
           val edgeAction = parserData.edgeProgressActions((parent.kernelTemplate, tip.kernelTemplate))
           // tip은 지워지고 tip.parent - edgeAction.appendingMilestones 가 추가됨
           val appended = edgeAction.appendingMilestones.map(appending =>
-            Milestone(Some(parent), appending._1.symbol, appending._1.pointer, gen,
+            Milestone(Some(parent), appending._1.symbolId, appending._1.pointer, gen,
               AcceptCondition.conjunct(tip.acceptCondition, appending._2))
           )
           // edgeAction.startNodeProgressConditions에 대해 위 과정 반복 수행
@@ -62,7 +61,7 @@ class Try2Parser(val parserData: PrecomputedParserData) {
           // action.appendingMilestones를 뒤에 덧붙인다
           val appended = action.appendingMilestones.map { appending =>
             val (kernelTemplate, acceptCondition) = appending
-            Milestone(Some(tip), kernelTemplate.symbol, kernelTemplate.pointer, gen,
+            Milestone(Some(tip), kernelTemplate.symbolId, kernelTemplate.pointer, gen,
               AcceptCondition.conjunct(tip.acceptCondition, acceptCondition))
           }
           // action.startNodeProgressConditions가 비어있지 않으면 tip을 progress 시킨다
@@ -75,10 +74,10 @@ class Try2Parser(val parserData: PrecomputedParserData) {
   }
 }
 
-case class Milestone(parent: Option[Milestone], symbol: NSymbol, pointer: Int, gen: Int, acceptCondition: AcceptCondition) {
-  def kernelTemplate: KernelTemplate = KernelTemplate(symbol, pointer)
+case class Milestone(parent: Option[Milestone], symbolId: Int, pointer: Int, gen: Int, acceptCondition: AcceptCondition) {
+  def kernelTemplate: KernelTemplate = KernelTemplate(symbolId, pointer)
 
-  private def myself = s"(${symbol.id} $pointer $gen ${acceptCondition})"
+  private def myself = s"($symbolId $pointer $gen ${acceptCondition})"
 
   def prettyString: String = parent match {
     case Some(value) => s"${value.prettyString} $myself"
