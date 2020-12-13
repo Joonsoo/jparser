@@ -36,7 +36,11 @@ class ParserStudio2(private val shell: Shell, parseExecutor: ExecutorService) {
 
     rightPanel = new RightPanel(rootPanel.rightPanel, SWT.NONE, font, scheduler, grammarDefEditor.grammarUpdateObs)
 
-    grammarDefEditor.editor.styledText.setText(SimpleExamples.ex4.grammar)
+    grammarDefEditor.editor.styledText.setText(
+      """E:Expr = 'a' {Literal(value=$0)} | A
+        |A = '[' WS E (WS ',' WS E)* WS ']' {Arr(elems=[$2]+$3)}
+        |WS = ' '*""".stripMargin)
+    rightPanel.testCodeEditor.styledText.setText("[a,a,a,a]")
     grammarDefEditor.grammarUpdateObs.subscribe { update: UpdateEvent =>
       update match {
         case GrammarDefEditor.GrammarChanged =>

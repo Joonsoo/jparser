@@ -24,17 +24,19 @@ import java.util.concurrent.TimeUnit
 
 class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler, grammarObs: Observable[GrammarDefEditor.UpdateEvent]) {
   private val rightPanel = new HorizontalResizableSplittedComposite(parent, style, 30)
-  private var testCodeEditor: CodeEditor = null
+  private var _testCodeEditor: CodeEditor = null
   private var openProceedViewButton: Button = null
   private var parseTreeViewer: ParseTreeViewer = null
   private var astViewer: AstViewer = null
+
+  def testCodeEditor: CodeEditor = _testCodeEditor
 
   def init(): Unit = {
     // 루트 -> 오른쪽 -> 상단 테스트 패널. 상단에 테스트 text editor, 하단에 "Proceed View" 버튼
     val testCodePanel = new Composite(rightPanel.upperPanel, SWT.NONE)
     testCodePanel.setLayout(new FormLayout)
 
-    testCodeEditor = new CodeEditor(testCodePanel, SWT.V_SCROLL | SWT.H_SCROLL, font)
+    _testCodeEditor = new CodeEditor(testCodePanel, SWT.V_SCROLL | SWT.H_SCROLL, font)
     openProceedViewButton = new Button(testCodePanel, SWT.NONE)
     openProceedViewButton.setText("Proceed View")
     val openProceedViewButtonObs = PublishSubject.create[SelectionEvent]()
@@ -43,7 +45,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
         openProceedViewButtonObs.onNext(e)
       }
     })
-    setMainAndBottomLayout(testCodeEditor.styledText, openProceedViewButton)
+    setMainAndBottomLayout(_testCodeEditor.styledText, openProceedViewButton)
 
     openProceedViewButtonObs.withLatestFrom(grammarObs, (_: SelectionEvent, _: GrammarDefEditor.UpdateEvent))
       .subscribe({ pair: (SelectionEvent, GrammarDefEditor.UpdateEvent) =>
@@ -52,7 +54,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
           case GrammarDefEditor.GrammarProcessed(processedGrammar) => Some(processedGrammar.ngrammar)
           case _ => None
         }
-        testCodeEditor.clearStyles()
+        _testCodeEditor.clearStyles()
         gramOpt match {
           case Some(ngrammar) =>
             val display = parent.getDisplay
@@ -60,7 +62,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
             ParsingProcessVisualizer.start[NaiveContext](
               title = "Proceed View",
               parser = new NaiveParser(ngrammar, trim = true),
-              Inputs.fromString(testCodeEditor.styledText.getText), display, newShell,
+              Inputs.fromString(_testCodeEditor.styledText.getText), display, newShell,
               (parent: Composite, style: Int, fig: NodeFigureGenerators[Figure], grammar: NGrammar, graph: ParsingContext.Graph, context: NaiveContext) =>
                 new ZestParsingContextWidget(parent, style, fig, grammar, graph, context)
             )
@@ -79,7 +81,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
       .filter(_.isInstanceOf[GrammarDefEditor.GrammarGenerated])
       .map(_.asInstanceOf[GrammarDefEditor.GrammarGenerated].ngrammar)
     val exampleParseResult = Observable.combineLatest(generatedGrammarObs,
-      testCodeEditor.textObservable.debounce(250, TimeUnit.MILLISECONDS),
+      _testCodeEditor.textObservable.debounce(250, TimeUnit.MILLISECONDS),
       (_: NGrammar, _: String)).switchMap { pair: (NGrammar, String) =>
       Observable.create[Either[ParseForest, ParsingError]] { sub =>
         new NaiveParser(pair._1).parse(pair._2) match {
@@ -96,7 +98,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
     }.observeOn(scheduler).subscribeOn(scheduler).publish().refCount()
 
     exampleParseResult.subscribe { parseResult: Either[ParseForest, ParsingError] =>
-      testCodeEditor.clearStyles()
+      _testCodeEditor.clearStyles()
       parseResult match {
         case Left(parseForest) =>
         // parseTreeViewer.setParseForest(parseForest)
@@ -105,10 +107,10 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
           parsingError match {
             case ParsingErrors.AmbiguousParse(msg) =>
             case ParsingErrors.UnexpectedEOF(expected, location) =>
-              testCodeEditor.setStyle(CodeStyle.ERROR, location, location + 1)
+              _testCodeEditor.setStyle(CodeStyle.ERROR, location, location + 1)
             case ParsingErrors.UnexpectedError =>
             case ParsingErrors.UnexpectedInput(next, expected, location) =>
-              testCodeEditor.setStyle(CodeStyle.ERROR, location, location + 1)
+              _testCodeEditor.setStyle(CodeStyle.ERROR, location, location + 1)
             case _ =>
           }
         // TODO 오류 표시

@@ -5,7 +5,7 @@ import com.giyeok.jparser.NGrammar.{NSequence, NSymbol}
 import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.nparser.Parser.NaiveContext
-import com.giyeok.jparser.nparser.ParsingContext.{Graph, Kernel, Node}
+import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.{AcceptCondition, NaiveParser}
 import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, ParsingAction, PrecomputedParserData}
 import com.giyeok.jparser.parsergen.utils.TermGrouper
@@ -44,32 +44,6 @@ class Try2(val parser: NaiveParser) {
     case List() => cc
   }
 
-  def proceed(ctx: NaiveContext, inputs: List[Inputs.Input]): NaiveContext = inputs match {
-    case head +: rest => proceed(parser.proceed(ctx, head).left.get, rest)
-    case List() => ctx
-  }
-
-  def test(): Unit = {
-    parser.initialContext.nextGraph.nodes.foreach(println)
-    println()
-    val ctx = proceed(parser.initialContext, Inputs.fromString("[a").toList)
-
-    TermGrouper.termGroupsOf(ctx.nextGraph).foreach { termGroup =>
-      val triggers = parser.finishableTermNodes(ctx.nextGraph, ctx.gen, termGroup)
-      val triggerTasks = triggers.toList.map(parser.ProgressTask(_, AcceptCondition.Always))
-      val cc0 = ContWithTasks(List(), parser.Cont(ctx.nextGraph, Map()))
-      val cc1 = runTasks(ctx.nextGen, triggerTasks, cc0)
-      println(termGroup.toShortString)
-      triggerTasks.foreach(t => println(s"Trigger $t"))
-      val trimmed1 = parser.trimGraph(cc1.cc.graph, parser.startNode, 1)
-      cc1.tasks.filter(t => t.isInstanceOf[parser.ProgressTask] || t.isInstanceOf[parser.FinishTask])
-        .filter(t => t.node.kernel.beginGen < ctx.nextGen)
-        .sortBy(_.toString).foreach(println)
-      (cc1.cc.graph.nodes -- trimmed1.nodes).foreach(println)
-      println()
-    }
-  }
-
   private def startingCtxFrom(template: KernelTemplate): (Node, ContWithTasks) = {
     val startNode = Node(Kernel(template.symbol.id, template.pointer, 0, 0)(template.symbol), Always)
     val startGraph = Graph(Set(startNode), Set())
@@ -91,16 +65,17 @@ class Try2(val parser: NaiveParser) {
       tasks.filter(_.isInstanceOf[parser.FinishTask]).map(_.asInstanceOf[parser.FinishTask])
   }
 
-  def parsingActionFrom(graph: Graph, startNode: Node, progressTasks: List[parser.ProgressTask]): ParsingAction = {
-    val termProgressResult = runTasksWithProgressBarrier(1, progressTasks, startNode,
+  def parsingActionFrom(graph: Graph, startNode: Node, progressTasks: List[parser.ProgressTask], currGen: Int): ParsingAction = {
+    val nextGen = currGen + 1
+    val termProgressResult = runTasksWithProgressBarrier(nextGen, progressTasks, startNode,
       ContWithTasks(progressTasks, parser.Cont(graph, Map())))
-    val trimmed = parser.trimGraph(termProgressResult.cc.graph, startNode, 1)
+    val trimmed = parser.trimGraph(termProgressResult.cc.graph, startNode, nextGen)
 
     val appendingMilestones = termProgressResult.tasks.deriveTasks
       .filter(task => trimmed.nodes.contains(task.node))
       .filter(_.node.kernel.symbol.isInstanceOf[NSequence])
       .map(_.node)
-      .filter(node => node.kernel.beginGen == 0 && node.kernel.endGen == 1)
+      .filter(node => node.kernel.beginGen < node.kernel.endGen && node.kernel.endGen == nextGen)
     val startProgressConditions = termProgressResult.tasks.progressTasks.filter(_.node == startNode).map(_.condition)
     println(appendingMilestones)
     println(startProgressConditions)
@@ -126,7 +101,7 @@ class Try2(val parser: NaiveParser) {
       val termNodes = parser.finishableTermNodes(derived, 0, termGroup)
       val termProgressTasks = termNodes.toList.map(parser.ProgressTask(_, AcceptCondition.Always))
 
-      termGroup -> parsingActionFrom(derived, startNode, termProgressTasks)
+      termGroup -> parsingActionFrom(derived, startNode, termProgressTasks, 0)
     }.toMap
   }
 
@@ -137,15 +112,27 @@ class Try2(val parser: NaiveParser) {
     val endKernelInitials = derived.nodes.filter { node =>
       node.kernel.symbolId == endTemplate.symbol.id && node.kernel.pointer < endTemplate.pointer
     }
-    // TODO 그런데 여기서 endKernelInitials의 모든 노드를 endTemplate.pointer에 맞게 업데이트하는게 맞을까?
-    // TODO endKernelInitials에서 derive task 추가
-    val (baseGraph, endNodes) = endKernelInitials.foldLeft((derived, List[Node]())) { (m, node) =>
-      assert(node.kernel.beginGen == 0 && node.kernel.endGen == 0)
-      val newNode = Node(kernel = Kernel(endTemplate.symbol.id, endTemplate.pointer, 0, 1)(endTemplate.symbol), node.condition)
-      (m._1.replaceNode(node, newNode), newNode +: m._2)
-    }
 
-    parsingActionFrom(baseGraph, startNode, endNodes.map(parser.ProgressTask(_, Always)))
+    val fakeEnds = endKernelInitials.map { node =>
+      node -> Node(Kernel(endTemplate.symbol.id, endTemplate.pointer, 0, 1)(endTemplate.symbol), node.condition)
+    }.toMap
+    val derivedWithEnds = fakeEnds.foldLeft(derived) { (graph, end) =>
+      graph.edgesByEnd(end._1).foldLeft(graph.addNode(end._2)) { (ngraph, start) =>
+        ngraph.addEdge(Edge(start.start, end._2, actual = false))
+      }
+    }
+    val afterDerive = parser.rec(1, fakeEnds.values.map(parser.DeriveTask).toList, derivedWithEnds)
+    val afterTrimming = parser.trimGraph(afterDerive.graph, startNode, 1)
+
+    // graphBetween은 startTemplate과 endTemplate 사이의 그래프(endTemplate에서 derive된 것도 포함해야 함)
+    //   -> 이게 유일하게 결정될까? (accept condition은?)
+    // endNodes는 graphBetween에서 endTemplate에 대응되는 노드(들)
+    val (graphBetween: Graph, endNodes: Set[Node]) = (afterTrimming, fakeEnds.values.toSet)
+
+    val progressTasks = endNodes.map(parser.ProgressTask(_, Always)).toList
+    val action = parsingActionFrom(graphBetween, startNode, progressTasks, 1)
+    println(action)
+    action
   }
 
   case class Jobs(milestones: Set[KernelTemplate], edges: Set[(KernelTemplate, KernelTemplate)])

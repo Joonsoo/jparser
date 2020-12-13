@@ -10,7 +10,7 @@ import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, PrecomputedParser
 object Try2Parser {
   def main(args: Array[String]): Unit = {
     val parserData = Try2.precomputedParserData(ArrayExprAst.ngrammar)
-    new Try2Parser(parserData).parse("[a,a,a,a  ]")
+    new Try2Parser(parserData).parse("[   a,  [ a ]   , [ a,a  ]   ,a   ]")
   }
 }
 
