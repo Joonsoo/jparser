@@ -2,14 +2,18 @@ package com.giyeok.jparser.parsergen.try2
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.metalang2.generated.ExpressionGrammar
+import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
 import com.giyeok.jparser.nparser.AcceptCondition
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, PrecomputedParserData}
 
 object Try2Parser {
   def main(args: Array[String]): Unit = {
-    val parserData = Try2.precomputedParserData(ExpressionGrammar.ngrammar)
-    new Try2Parser(parserData).parse("1*2+34")
+    //    val parserData = Try2.precomputedParserData(ExpressionGrammar.ngrammar)
+    //    new Try2Parser(parserData).parse("1*2+34")
+    val parserData = Try2.precomputedParserData(ArrayExprAst.ngrammar)
+    new Try2Parser(parserData).parse("[a,a,a]")
+    println(parserData)
   }
 }
 

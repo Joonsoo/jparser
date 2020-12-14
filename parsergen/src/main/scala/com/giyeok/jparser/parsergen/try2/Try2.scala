@@ -60,7 +60,7 @@ class Try2(val parser: NaiveParser) {
     def progressTasks: List[parser.ProgressTask] =
       tasks.filter(_.isInstanceOf[parser.ProgressTask]).map(_.asInstanceOf[parser.ProgressTask])
 
-    def finishTask: List[parser.FinishTask] =
+    def finishTasks: List[parser.FinishTask] =
       tasks.filter(_.isInstanceOf[parser.FinishTask]).map(_.asInstanceOf[parser.FinishTask])
   }
 
@@ -86,12 +86,15 @@ class Try2(val parser: NaiveParser) {
     //   - kernelTemplate->milestone 사이에는 trimmed가 그래프로 들어감
     ParsingAction(
       appendingMilestones.map(node => (KernelTemplate(node.kernel.symbolId, node.kernel.pointer), node.condition)),
+      termProgressResult.tasks.progressTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer)),
+      termProgressResult.tasks.finishTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer)),
       startProgressConditions,
       trimmed)
   }
 
   // `kernelTemplate`가 tip에 있을 때 받을 수 있는 터미널들을 찾고, 각 터미널에 대해 KernelTemplateAction 계산
-  def termActionsFrom(kernelTemplate: KernelTemplate): Map[TermGroupDesc, ParsingAction] = {
+  // 반환되는 pair에서 _1는 각각 disjoint해야 함(같은 터미널을 포함할 수 없음)
+  def termActionsFrom(kernelTemplate: KernelTemplate): List[(TermGroupDesc, ParsingAction)] = {
     val (startNode, ContWithTasks(_, parser.Cont(derived, _))) = startingCtxFrom(kernelTemplate)
 
     new DotGraphGenerator(parser.grammar).addGraph(derived).printDotGraph()
@@ -101,7 +104,7 @@ class Try2(val parser: NaiveParser) {
       val termProgressTasks = termNodes.toList.map(parser.ProgressTask(_, AcceptCondition.Always))
 
       termGroup -> parsingActionFrom(derived, startNode, termProgressTasks, 0)
-    }.toMap
+    }.toList.sortBy(_._1.toString)
   }
 
   // `simulateEdgeProgress` 바로 다음에 `endTemplate`가 붙어있고 `endTemplate`이 progress되는 경우
@@ -143,7 +146,7 @@ class Try2(val parser: NaiveParser) {
     val withTermActions = jobs.milestones.foldLeft((Jobs(Set(), Set()), cc)) { (m, i) =>
       val (jobs, wcc) = m
       val termActions = termActionsFrom(i)
-      val appendables = termActions.values.flatMap(_.appendingMilestones.map(_._1)).toSet
+      val appendables = termActions.flatMap(_._2.appendingMilestones.map(_._1)).toSet
       (Jobs(jobs.milestones ++ appendables, jobs.edges ++ appendables.map((i, _))),
         wcc.copy(termActions = wcc.termActions + (i -> termActions)))
     }
@@ -165,8 +168,11 @@ class Try2(val parser: NaiveParser) {
 
   def parserData(): PrecomputedParserData = {
     val start = KernelTemplate(parser.grammar.startSymbol, 0)
+    val (_, ContWithTasks(tasks, _)) = startingCtxFrom(start)
 
-    createParserData(Jobs(Set(start), Set()), PrecomputedParserData(parser.grammar, Map(), Map()))
+    val progressed = tasks.progressTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer))
+    val finished = tasks.finishTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer))
+    createParserData(Jobs(Set(start), Set()), PrecomputedParserData(parser.grammar, progressed, finished, Map(), Map()))
   }
 }
 
@@ -175,10 +181,16 @@ object Try2 {
   case class KernelTemplate(symbolId: Int, pointer: Int)
 
   case class PrecomputedParserData(grammar: NGrammar,
-                                   termActions: Map[KernelTemplate, Map[TermGroupDesc, ParsingAction]],
+                                   progressedKernelsByStart: List[KernelTemplate],
+                                   finishedKernelsByStart: List[KernelTemplate],
+                                   termActions: Map[KernelTemplate, List[(TermGroupDesc, ParsingAction)]],
                                    edgeProgressActions: Map[(KernelTemplate, KernelTemplate), ParsingAction])
 
+  // progressedKernels와 finishedKernels는 이 parsing action으로 인해 progress된 커널과 finish된 커널들.
+  // -> 이들은 parse tree reconstruction을 위해 사용되는 것이기 때문에 여기에는 accept condition이 필요 없음
   case class ParsingAction(appendingMilestones: List[(KernelTemplate, AcceptCondition)],
+                           progressedKernels: List[KernelTemplate],
+                           finishedKernels: List[KernelTemplate],
                            startNodeProgressConditions: List[AcceptCondition],
                            graphBetween: Graph)
 
