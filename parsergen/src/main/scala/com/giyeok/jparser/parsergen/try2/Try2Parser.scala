@@ -5,7 +5,7 @@ import com.giyeok.jparser.metalang2.generated.ExpressionGrammar
 import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
 import com.giyeok.jparser.nparser.AcceptCondition
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
-import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, PrecomputedParserData}
+import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, PrecomputedParserData, TasksSummary}
 
 object Try2Parser {
   def main(args: Array[String]): Unit = {
@@ -45,7 +45,7 @@ class Try2Parser(val parserData: PrecomputedParserData) {
           // tip은 지워지고 tip.parent - edgeAction.appendingMilestones 가 추가됨
           val appended = edgeAction.appendingMilestones.map(appending =>
             Milestone(Some(parent), appending._1.symbolId, appending._1.pointer, gen,
-              AcceptCondition.conjunct(tip.acceptCondition, appending._2))
+              AcceptCondition.conjunct(tip.acceptCondition, appending._2, condition))
           )
           // edgeAction.startNodeProgressConditions에 대해 위 과정 반복 수행
           val propagated = progressTip(parent, gen, edgeAction.startNodeProgressConditions)
@@ -88,5 +88,11 @@ case class Milestone(parent: Option[Milestone], symbolId: Int, pointer: Int, gen
     case None => myself
   }
 }
+
+sealed trait GenAction
+
+case class TermAction(tipIndex: Int, summary: TasksSummary) extends GenAction
+
+// TODO edge action - 체인 관계를 어떻게..?
 
 case class Try2ParserContext(tips: List[Milestone])

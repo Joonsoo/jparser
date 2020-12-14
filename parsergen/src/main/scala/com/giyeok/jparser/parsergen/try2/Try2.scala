@@ -7,7 +7,7 @@ import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.{AcceptCondition, NaiveParser}
-import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, ParsingAction, PrecomputedParserData}
+import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, ParsingAction, PrecomputedParserData, TasksSummary}
 import com.giyeok.jparser.parsergen.utils.TermGrouper
 import com.giyeok.jparser.visualize.DotGraphGenerator
 
@@ -86,10 +86,15 @@ class Try2(val parser: NaiveParser) {
     //   - kernelTemplate->milestone 사이에는 trimmed가 그래프로 들어감
     ParsingAction(
       appendingMilestones.map(node => (KernelTemplate(node.kernel.symbolId, node.kernel.pointer), node.condition)),
-      termProgressResult.tasks.progressTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer)),
-      termProgressResult.tasks.finishTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer)),
+      tasksSummaryFrom(termProgressResult.tasks),
       startProgressConditions,
       trimmed)
+  }
+
+  private def tasksSummaryFrom(tasks: List[parser.Task]) = {
+    val progressed = tasks.progressTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer))
+    val finished = tasks.finishTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer))
+    TasksSummary(progressed, finished)
   }
 
   // `kernelTemplate`가 tip에 있을 때 받을 수 있는 터미널들을 찾고, 각 터미널에 대해 KernelTemplateAction 계산
@@ -170,9 +175,8 @@ class Try2(val parser: NaiveParser) {
     val start = KernelTemplate(parser.grammar.startSymbol, 0)
     val (_, ContWithTasks(tasks, _)) = startingCtxFrom(start)
 
-    val progressed = tasks.progressTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer))
-    val finished = tasks.finishTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer))
-    createParserData(Jobs(Set(start), Set()), PrecomputedParserData(parser.grammar, progressed, finished, Map(), Map()))
+    createParserData(Jobs(Set(start), Set()),
+      PrecomputedParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map()))
   }
 }
 
@@ -180,17 +184,17 @@ object Try2 {
 
   case class KernelTemplate(symbolId: Int, pointer: Int)
 
+  case class TasksSummary(progressedKernels: List[KernelTemplate], finishedKernels: List[KernelTemplate])
+
   case class PrecomputedParserData(grammar: NGrammar,
-                                   progressedKernelsByStart: List[KernelTemplate],
-                                   finishedKernelsByStart: List[KernelTemplate],
+                                   byStart: TasksSummary,
                                    termActions: Map[KernelTemplate, List[(TermGroupDesc, ParsingAction)]],
                                    edgeProgressActions: Map[(KernelTemplate, KernelTemplate), ParsingAction])
 
   // progressedKernels와 finishedKernels는 이 parsing action으로 인해 progress된 커널과 finish된 커널들.
   // -> 이들은 parse tree reconstruction을 위해 사용되는 것이기 때문에 여기에는 accept condition이 필요 없음
   case class ParsingAction(appendingMilestones: List[(KernelTemplate, AcceptCondition)],
-                           progressedKernels: List[KernelTemplate],
-                           finishedKernels: List[KernelTemplate],
+                           byAppending: TasksSummary,
                            startNodeProgressConditions: List[AcceptCondition],
                            graphBetween: Graph)
 
