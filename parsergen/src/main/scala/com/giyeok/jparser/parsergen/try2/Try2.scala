@@ -67,7 +67,7 @@ class Try2(val parser: NaiveParser) {
   def parsingActionFrom(graph: Graph, startNode: Node, progressTasks: List[parser.ProgressTask], currGen: Int): ParsingAction = {
     val nextGen = currGen + 1
     val termProgressResult = runTasksWithProgressBarrier(nextGen, progressTasks, startNode,
-      ContWithTasks(progressTasks, parser.Cont(graph, Map())))
+      ContWithTasks(List(), parser.Cont(graph, Map())))
     val trimmed = parser.trimGraph(termProgressResult.cc.graph, startNode, nextGen)
 
     val appendingMilestones = termProgressResult.tasks.deriveTasks
@@ -92,8 +92,8 @@ class Try2(val parser: NaiveParser) {
   }
 
   private def tasksSummaryFrom(tasks: List[parser.Task]) = {
-    val progressed = tasks.progressTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer))
-    val finished = tasks.finishTasks.map(_.node.kernel).map(k => KernelTemplate(k.symbolId, k.pointer))
+    val progressed = tasks.progressTasks.map(t => (t.node, t.condition))
+    val finished = tasks.finishTasks.map(_.node)
     TasksSummary(progressed, finished)
   }
 
@@ -184,7 +184,7 @@ object Try2 {
 
   case class KernelTemplate(symbolId: Int, pointer: Int)
 
-  case class TasksSummary(progressedKernels: List[KernelTemplate], finishedKernels: List[KernelTemplate])
+  case class TasksSummary(progressedKernels: List[(Node, AcceptCondition)], finishedKernels: List[Node])
 
   case class PrecomputedParserData(grammar: NGrammar,
                                    byStart: TasksSummary,
@@ -194,7 +194,7 @@ object Try2 {
   // progressedKernels와 finishedKernels는 이 parsing action으로 인해 progress된 커널과 finish된 커널들.
   // -> 이들은 parse tree reconstruction을 위해 사용되는 것이기 때문에 여기에는 accept condition이 필요 없음
   case class ParsingAction(appendingMilestones: List[(KernelTemplate, AcceptCondition)],
-                           byAppending: TasksSummary,
+                           tasksSummary: TasksSummary,
                            startNodeProgressConditions: List[AcceptCondition],
                            graphBetween: Graph)
 
