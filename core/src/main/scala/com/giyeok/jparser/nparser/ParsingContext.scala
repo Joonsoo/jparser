@@ -1,5 +1,6 @@
 package com.giyeok.jparser.nparser
 
+import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.{NAtomicSymbol, NSequence, NSymbol}
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
@@ -13,17 +14,19 @@ object ParsingContext {
         }
     }
 
-    case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int)(val symbol: NSymbol) {
-        def shiftGen(gen: Int): Kernel = Kernel(symbolId, pointer, beginGen + gen, endGen + gen)(symbol)
+    case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int) {
+        def shiftGen(gen: Int): Kernel = Kernel(symbolId, pointer, beginGen + gen, endGen + gen)
 
-        def initial: Kernel = if (pointer == 0) this else Kernel(symbolId, 0, beginGen, beginGen)(symbol)
+        def initial: Kernel = if (pointer == 0) this else Kernel(symbolId, 0, beginGen, beginGen)
 
         def tuple: (Int, Int, Int, Int) = (symbolId, pointer, beginGen, endGen)
 
-        def isFinal: Boolean =
+        def isFinal(grammar: NGrammar): Boolean = {
+            val symbol = grammar.symbolOf(symbolId)
             pointer == Kernel.lastPointerOf(symbol) ensuring (0 <= pointer && pointer <= Kernel.lastPointerOf(symbol))
+        }
 
-        override def toString: String = s"Kernel($symbolId ${symbol.symbol.toShortString}, $pointer, $beginGen..$endGen)"
+        override def toString: String = s"Kernel($symbolId, $pointer, $beginGen..$endGen)"
     }
 
     case class Node(kernel: Kernel, condition: AcceptCondition) {

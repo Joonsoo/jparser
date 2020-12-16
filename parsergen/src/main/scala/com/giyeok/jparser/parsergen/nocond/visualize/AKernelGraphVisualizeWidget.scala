@@ -31,7 +31,7 @@ class AKernelGenGraphVisualizeWidget(parent: Composite, style: Int, grammar: NGr
     initialize()
 
     override def createFigure(node: AKernelGen): Figure = {
-        val kernel = ParsingContext.Kernel(node.symbolId, node.pointer, node.created, node.updated)(grammar.symbolOf(node.symbolId))
+        val kernel = ParsingContext.Kernel(node.symbolId, node.pointer, node.created, node.updated)
         val nodeFig = fig.kernelFig(grammar, kernel)
         nodeFig.setBackgroundColor(ColorConstants.buttonLightest)
         nodeFig.setOpaque(true)

@@ -17,8 +17,8 @@ object AcceptCondition {
         val symbol: NAtomicSymbol
         val beginGen: Int
 
-        lazy val node0: Node = Node(Kernel(symbolId, 0, beginGen, beginGen)(symbol), Always)
-        def kernel1(endGen: Int): Kernel = Kernel(symbolId, 1, beginGen, endGen)(symbol)
+        lazy val node0: Node = Node(Kernel(symbolId, 0, beginGen, beginGen), Always)
+        def kernel1(endGen: Int): Kernel = Kernel(symbolId, 1, beginGen, endGen)
         lazy val nodes: Set[Node] = Set(node0)
     }
     def conjunct(conditions: AcceptCondition*): AcceptCondition =

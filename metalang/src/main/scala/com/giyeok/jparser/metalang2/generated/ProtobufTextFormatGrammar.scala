@@ -1118,7 +1118,7 @@ def parseAst(text: String): Either[Message, ParsingErrors.ParsingError] =
           Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
         case None =>
           val expectedTerms = ctx.nextGraph.nodes.flatMap { node =>
-            node.kernel.symbol match {
+            ngrammar.symbolOf(node.kernel.symbolId) match {
               case NGrammar.NTerminal(_, term) => Some(term)
               case _ => None
             }

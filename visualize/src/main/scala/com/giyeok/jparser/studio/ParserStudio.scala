@@ -634,7 +634,7 @@ trait ProcessListener[T, R, P] {
 
   def expectedTerminalFrom(parser: NaiveParser, ctx: NaiveContext): Set[Symbols.Terminal] = {
     ctx.nextGraph.nodes flatMap { node =>
-      node.kernel.symbol match {
+      parser.grammar.symbolOf(node.kernel.symbolId) match {
         case NTerminal(_, terminal) => Some(terminal)
         case _ => None
       }

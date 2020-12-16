@@ -1,6 +1,7 @@
 package com.giyeok.jparser.parsergen.utils
 
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, TermGroupDesc, VirtualTermGroupDesc}
+import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.NTerminal
 import com.giyeok.jparser.Symbols.Terminal
 import com.giyeok.jparser.Symbols.Terminals.{CharacterTerminal, VirtualTerminal}
@@ -50,8 +51,8 @@ object TermGrouper {
     }
   }
 
-  def termGroupsOf(graph: ParsingContext.Graph): Set[TermGroupDesc] = {
-    val terms = graph.nodes.map { node => node.kernel.symbol }
+  def termGroupsOf(grammar: NGrammar, graph: ParsingContext.Graph): Set[TermGroupDesc] = {
+    val terms = graph.nodes.map { node => grammar.symbolOf(node.kernel.symbolId) }
       .collect { case terminal: NTerminal => terminal.symbol }
     termGroupsOf(terms)
   }

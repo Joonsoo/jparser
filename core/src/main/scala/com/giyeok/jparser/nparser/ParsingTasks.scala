@@ -27,13 +27,13 @@ trait ParsingTasks {
     private def atomicSymbolOf(symbolId: Int): NAtomicSymbol =
         symbolOf(symbolId).asInstanceOf[NAtomicSymbol]
     private def newNodeOf(symbolId: Int, beginGen: Int): Node =
-        Node(Kernel(symbolId, 0, beginGen, beginGen)(symbolOf(symbolId)), Always)
+        Node(Kernel(symbolId, 0, beginGen, beginGen), Always)
 
     private case class GraphTasksCont(graph: Graph, newTasks: List[Task])
     private def addNode(cc: GraphTasksCont, newNode: Node): GraphTasksCont = {
         if (!(cc.graph.nodes contains newNode)) {
             // 새로운 노드이면 그래프에 추가하고 task도 추가
-            val newNodeTask: Task = if (newNode.kernel.isFinal) FinishTask(newNode) else DeriveTask(newNode)
+            val newNodeTask: Task = if (newNode.kernel.isFinal(grammar)) FinishTask(newNode) else DeriveTask(newNode)
             GraphTasksCont(cc.graph.addNode(newNode), newNodeTask +: cc.newTasks)
         } else {
             // 이미 있는 노드이면 아무 일도 하지 않음
@@ -45,7 +45,7 @@ trait ParsingTasks {
         val DeriveTask(startNode) = task
 
         assert(cc.graph.nodes contains startNode)
-        assert(!startNode.kernel.isFinal)
+        assert(!startNode.kernel.isFinal(grammar))
         assert(startNode.kernel.endGen == nextGen)
 
         def nodeOf(symbolId: Int): Node = newNodeOf(symbolId, nextGen)
@@ -58,12 +58,12 @@ trait ParsingTasks {
             if (!(cc.graph.nodes contains newNode)) {
                 val ncc = addNode(cc, newNode)
                 GraphTasksCont(ncc.graph.addEdge(Edge(startNode, newNode, actual = true)), ncc.newTasks)
-            } else if (newNode.kernel.isFinal) {
+            } else if (newNode.kernel.isFinal(grammar)) {
                 GraphTasksCont(cc.graph.addEdge(Edge(startNode, newNode, actual = true)), ProgressTask(startNode, Always) +: cc.newTasks)
             } else {
                 assert(newNode.isInitial)
                 val updatedNodes = updatedNodesMap.getOrElse(newNode, Set())
-                val updatedFinalNodes = updatedNodes filter { _.kernel.isFinal }
+                val updatedFinalNodes = updatedNodes filter { _.kernel.isFinal(grammar) }
                 // TODO: final node만 저장하도록 수정, assert(updatedFinalNodes forall { _.kernel.isFinal })
                 val newTasks = updatedFinalNodes map { finalNode => ProgressTask(startNode, finalNode.condition) }
 
@@ -77,7 +77,7 @@ trait ParsingTasks {
         }
 
         val gtc0 = GraphTasksCont(cc.graph, List())
-        val GraphTasksCont(newGraph, newTasks) = startNode.kernel.symbol match {
+        val GraphTasksCont(newGraph, newTasks) = grammar.symbolOf(startNode.kernel.symbolId) match {
             case symbol: NAtomicSymbol =>
                 symbol match {
                     case _: NTerminal =>
@@ -105,7 +105,7 @@ trait ParsingTasks {
         val FinishTask(node) = task
 
         assert(cc.graph.nodes contains node)
-        assert(node.kernel.isFinal)
+        assert(node.kernel.isFinal(grammar))
         assert(node.kernel.endGen == nextGen)
 
         // 원래는 cc.graph.edgesByEnd(node.initial) 를 사용해야 하는데, trimming돼서 다 없어져버려서 그냥 둠
@@ -120,11 +120,11 @@ trait ParsingTasks {
     def progressTask(nextGen: Int, task: ProgressTask, cc: Cont): (Cont, Seq[Task]) = {
         val ProgressTask(node, incomingCondition) = task
 
-        assert(!node.kernel.isFinal)
+        assert(!node.kernel.isFinal(grammar))
         assert(cc.graph.nodes contains node)
 
         // nodeSymbolOpt에서 opt를 사용하는 것은 finish는 SequenceNode에 대해서도 실행되기 때문
-        val newCondition = node.kernel.symbol match {
+        val newCondition = grammar.symbolOf(node.kernel.symbolId) match {
             case NLongest(_, _, longest) =>
                 NotExists(node.kernel.beginGen, nextGen + 1, longest)(atomicSymbolOf(longest))
             case NExcept(_, _, _, except) =>
@@ -139,7 +139,7 @@ trait ParsingTasks {
         }
         val newKernel = {
             val kernel = node.kernel
-            Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, nextGen)(kernel.symbol)
+            Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, nextGen)
         }
         val updatedNode = Node(newKernel, conjunct(node.condition, incomingCondition, newCondition))
         if (!(cc.graph.nodes contains updatedNode)) {
@@ -206,7 +206,7 @@ trait ParsingTasks {
 
     def termNodes(graph: Graph, nextGen: Int): Set[Node] = {
         graph.nodes filter { node =>
-            val isTerminal = node.kernel.symbol.isInstanceOf[NTerminal]
+            val isTerminal = grammar.symbolOf(node.kernel.symbolId).isInstanceOf[NTerminal]
             (node.kernel.beginGen == nextGen) && isTerminal
         }
     }
@@ -248,7 +248,7 @@ trait ParsingTasks {
                             val edgeReachables: Set[Node] = graph.edgesByStart(node) map { _.end }
                             val conditionReachables: Set[Node] = {
                                 val potential = if (node.kernel.pointer != 0) Set() else
-                                    node.kernel.symbol match {
+                                    grammar.symbolOf(node.kernel.symbolId) match {
                                         case NExcept(_, _, _, except) => Set(newNodeOf(except, node.kernel.beginGen))
                                         case NJoin(_, _, _, join) => Set(newNodeOf(join, node.kernel.beginGen))
                                         // lookahead는 항상 바로 progress되므로 conditionReachables에서 처리됨
@@ -284,7 +284,7 @@ trait ParsingTasks {
         // 트리밍 - 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
         val trimmed1 = graph filterNode { node =>
             // TODO node.kernel.isFinished 인 노드도 지워도 될까?
-            (node.condition != Never) && (!node.kernel.isFinal) && (node.kernel.symbol match {
+            (node.condition != Never) && (!node.kernel.isFinal(grammar)) && (grammar.symbolOf(node.kernel.symbolId) match {
                 case NTerminal(_, _) => node.kernel.beginGen == nextGen
                 case _ => true
             })

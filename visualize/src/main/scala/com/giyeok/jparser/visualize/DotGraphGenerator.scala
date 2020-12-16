@@ -91,9 +91,9 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             case Some(name) => name
             case None =>
                 def isDigitAlpha(c: Char) = ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9')
-                val name0: String = node.kernel.symbol match {
+                val name0: String = ngrammar.symbolOf(node.kernel.symbolId) match {
                     case _: NAtomicSymbol =>
-                        node.kernel.symbol.symbol match {
+                        ngrammar.symbolOf(node.kernel.symbolId).symbol match {
                             case Nonterminal(name) if name.toSeq forall { isDigitAlpha } => s"${name}_${node.kernel.beginGen}_${node.kernel.endGen}"
                             case Repeat(Nonterminal(name), lower) if (name.toSeq forall { isDigitAlpha }) && (lower == 0 || lower == 1) =>
                                 val repeatName = lower match {
@@ -123,11 +123,11 @@ class DotGraphGenerator(ngrammar: NGrammar) {
 
     def labelOf(node: Node): String = {
         val kernelLabel = node.kernel match {
-            case kernel if kernel.symbol.isInstanceOf[NAtomicSymbol] =>
+            case kernel if ngrammar.symbolOf(kernel.symbolId).isInstanceOf[NAtomicSymbol] =>
                 if (kernel.pointer == 0) {
-                    s"&bull;${kernel.symbol.symbol.toDotLabelName},${kernel.beginGen}&#x2025;${kernel.endGen}"
+                    s"&bull;${ngrammar.symbolOf(kernel.symbolId).symbol.toDotLabelName},${kernel.beginGen}&#x2025;${kernel.endGen}"
                 } else {
-                    s"${kernel.symbol.symbol.toDotLabelName}&bull;,${kernel.beginGen}&#x2025;${kernel.endGen}"
+                    s"${ngrammar.symbolOf(kernel.symbolId).symbol.toDotLabelName}&bull;,${kernel.beginGen}&#x2025;${kernel.endGen}"
                 }
             case kernel =>
                 val Symbols.Sequence(seq) = ngrammar.nsequences(kernel.symbolId).symbol
@@ -161,7 +161,7 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             case Some(dotnode) => dotnode
             case None =>
                 val dotnode = new DotGraphNode(nodeNameOf(node)).attr("label", labelOf(node))
-                node.kernel.symbol match {
+                ngrammar.symbolOf(node.kernel.symbolId) match {
                     case _: NGrammar.NSequence =>
                         dotnode.attr("shape", "rectangle")
                     case _ =>
@@ -189,7 +189,7 @@ class DotGraphGenerator(ngrammar: NGrammar) {
                 traverseNode()
             }
         }
-        val startNode = Node(Kernel(ngrammar.startSymbol, 0, 0, 0)(ngrammar.nsymbols(ngrammar.startSymbol)), Always)
+        val startNode = Node(Kernel(ngrammar.startSymbol, 0, 0, 0), Always)
         if (graph.nodes.contains(startNode)) {
             visited += startNode
             queue +:= startNode
@@ -264,7 +264,7 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             }
             newVisited
         }
-        val startNode = Node(Kernel(ngrammar.startSymbol, 0, 0, 0)(ngrammar.nsymbols(ngrammar.startSymbol)), Always)
+        val startNode = Node(Kernel(ngrammar.startSymbol, 0, 0, 0), Always)
         val toVisit = nodesMap.keySet
         var visited = Set[Node]()
         if (nodesMap.contains(startNode)) {

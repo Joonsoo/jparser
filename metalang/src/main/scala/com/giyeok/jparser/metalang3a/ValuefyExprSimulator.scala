@@ -27,7 +27,7 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
         case Some(forest) =>
           Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
         case None =>
-          Right(ParsingErrors.UnexpectedEOF(expectedTermsFrom(ctx), sourceText.length))
+          Right(ParsingErrors.UnexpectedEOF(expectedTermsFrom(ngrammar, ctx), sourceText.length))
       }
     case Right(error) => Right(error)
   }

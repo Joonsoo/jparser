@@ -37,7 +37,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                         if (head.pointer == 0) {
                             augmentEdges(rest, edges)
                         } else {
-                            val initialKernel = Kernel(head.symbolId, 0, head.beginGen, head.beginGen)(head.symbol)
+                            val initialKernel = Kernel(head.symbolId, 0, head.beginGen, head.beginGen)
                             val newEdges = edges filter {
                                 _.end == initialKernel
                             } map { edge => KernelEdge(edge.start, head) }
@@ -55,7 +55,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
     // TODO finishes의 node set을 symbolId 기준으로 정렬해 놓으면 더 빠르게 할 수 있을듯
 
     def reconstruct(): Option[R] = {
-        reconstruct(Kernel(grammar.startSymbol, 1, 0, input.length)(grammar.nsymbols(grammar.startSymbol)), input.length)
+        reconstruct(Kernel(grammar.startSymbol, 1, 0, input.length), input.length)
     }
 
     def reconstruct(kernel: Kernel, gen: Int): Option[R] = {
@@ -74,7 +74,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
             reconstruct(child, childGen, newTraces)
         }
 
-        kernel.symbol match {
+        grammar.symbolOf(kernel.symbolId) match {
             case symbol: NAtomicSymbol if traces contains ((kernel.symbolId, kernel.pointer)) =>
                 // println("cyclicBind?")
                 resultFunc.cyclicBind(kernel.beginGen, gen, symbol)
@@ -96,9 +96,9 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                         (kern.symbolId == symbolId) && (kern.pointer == prevPointer) && (kern.beginGen == kernel.beginGen)
                     }
                     val trees = prevKernels flatMap { prevKernel =>
-                        val childKernel = Kernel(sequence(prevPointer), 1, prevKernel.endGen, gen)(grammar.nsymbols(sequence(prevPointer)))
+                        val childKernel = Kernel(sequence(prevPointer), 1, prevKernel.endGen, gen)
                         if (finishes(gen).nodes contains childKernel) {
-                            val precedingTree = reconstruct0(Kernel(kernel.symbolId, prevPointer, kernel.beginGen, prevKernel.endGen)(kernel.symbol), prevKernel.endGen)
+                            val precedingTree = reconstruct0(Kernel(kernel.symbolId, prevPointer, kernel.beginGen, prevKernel.endGen), prevKernel.endGen)
                             val childTree = reconstruct0(childKernel, gen)
                             // println(s"preceding: $precedingTree")
                             // println(s"child: $childTree")
@@ -111,8 +111,8 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
 
             case symbol@NJoin(_, _, body, join) =>
                 assert(kernel.pointer == 1)
-                val bodyKernel = Kernel(body, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(body))
-                val joinKernel = Kernel(join, 1, kernel.beginGen, kernel.endGen)(grammar.nsymbols(join))
+                val bodyKernel = Kernel(body, 1, kernel.beginGen, kernel.endGen)
+                val joinKernel = Kernel(join, 1, kernel.beginGen, kernel.endGen)
                 val bodyTree = reconstruct0(bodyKernel, kernel.endGen)
                 val joinTree = reconstruct0(joinKernel, kernel.endGen)
                 resultFunc.join(kernel.beginGen, kernel.endGen, symbol, bodyTree, joinTree)
@@ -123,10 +123,10 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
 
             case symbol: NAtomicSymbol =>
                 assert(kernel.pointer == 1)
-                val prevKernel = Kernel(kernel.symbolId, 0, kernel.beginGen, kernel.beginGen)(kernel.symbol)
+                val prevKernel = Kernel(kernel.symbolId, 0, kernel.beginGen, kernel.beginGen)
                 // assert(finishes(gen).edgesByStart(prevKernel) forall { _.isInstanceOf[SimpleKernelEdge] })
                 val bodyKernels = finishes(gen).edgesByStart(prevKernel) collect {
-                    case KernelEdge(_, end) if end.endGen == gen && end.isFinal => end
+                    case KernelEdge(_, end) if end.endGen == gen && end.isFinal(grammar) => end
                 }
                 val bodyTrees = bodyKernels map { bodyKernel =>
                     reconstruct0(bodyKernel, kernel.endGen)

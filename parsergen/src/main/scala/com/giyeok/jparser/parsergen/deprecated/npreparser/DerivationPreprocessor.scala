@@ -17,7 +17,7 @@ trait DerivationPreprocessor extends ParsingTasks {
             // base 노드가 실제로는 beginGen..endGen을 커버하고 Always가 아니라 condition 조건을 달고 있음 - symbolId, pointer는 동일
             // preprocessed의 모든 그래프는 base로부터 derive된 것이므로 다른 노드들의 accept condition에는 영향이 없고 모두 endGen으로 shift하면 됨
             // tasks
-            val base1 = Node(Kernel(base.kernel.symbolId, base.kernel.pointer, beginGen, endGen)(base.kernel.symbol), condition)
+            val base1 = Node(Kernel(base.kernel.symbolId, base.kernel.pointer, beginGen, endGen), condition)
             val nodeMapper = { (node: Node) =>
                 node match {
                     case `base` => base1
@@ -73,12 +73,12 @@ trait DerivationPreprocessor extends ParsingTasks {
             case None =>
                 // TODO base preprocessed를 구할 때는 root에 대한 Progress/Finish task만 막으면 되고
                 // TODO slice할 때는 kernel.pointer > 0인 모든 DeriveTask도 막아야 되고
-                val baseNode = Node(Kernel(symbolId, pointer, 0, 0)(grammar.symbolOf(symbolId)), Always)
+                val baseNode = Node(Kernel(symbolId, pointer, 0, 0), Always)
                 val (lifted, rootTasks) = rootBlockingRec(0, baseNode, List(DeriveTask(baseNode)), Cont(Graph(Set(baseNode), Set()), Map()), List())
                 val nextGraph = trimGraph(lifted.graph, baseNode, 0)
                 val base = Preprocessed(baseNode, lifted, rootTasks, nextGraph, Set(baseNode))
-                val termGroups = TermGrouper.termGroupsOf(termNodes(lifted.graph, 0) map {
-                    _.kernel.symbol.asInstanceOf[NTerminal].symbol
+                val termGroups = TermGrouper.termGroupsOf(termNodes(lifted.graph, 0) map { node =>
+                    grammar.symbolOf(node.kernel.symbolId).asInstanceOf[NTerminal].symbol
                 })
                 val slicedMap = (termGroups map { termGroup =>
                     val termFinishes = finishableTermNodes(nextGraph, 0, termGroup).toList map {

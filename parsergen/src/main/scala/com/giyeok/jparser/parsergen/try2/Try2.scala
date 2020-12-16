@@ -44,7 +44,7 @@ class Try2(val parser: NaiveParser) {
   }
 
   private def startingCtxFrom(template: KernelTemplate): (Node, ContWithTasks) = {
-    val startNode = Node(Kernel(template.symbolId, template.pointer, 0, 0)(parser.grammar.symbolOf(template.symbolId)), Always)
+    val startNode = Node(Kernel(template.symbolId, template.pointer, 0, 0), Always)
     val startGraph = Graph(Set(startNode), Set())
 
     val deriveTask = parser.DeriveTask(startNode)
@@ -72,7 +72,7 @@ class Try2(val parser: NaiveParser) {
 
     val appendingMilestones = termProgressResult.tasks.deriveTasks
       .filter(task => trimmed.nodes.contains(task.node))
-      .filter(_.node.kernel.symbol.isInstanceOf[NSequence])
+      .filter(task => parser.grammar.symbolOf(task.node.kernel.symbolId).isInstanceOf[NSequence])
       .map(_.node)
       .filter(node => node.kernel.beginGen < node.kernel.endGen && node.kernel.endGen == nextGen)
     val startProgressConditions = termProgressResult.tasks.progressTasks.filter(_.node == startNode).map(_.condition)
@@ -104,7 +104,7 @@ class Try2(val parser: NaiveParser) {
 
     new DotGraphGenerator(parser.grammar).addGraph(derived).printDotGraph()
 
-    TermGrouper.termGroupsOf(derived).map { termGroup =>
+    TermGrouper.termGroupsOf(parser.grammar, derived).map { termGroup =>
       val termNodes = parser.finishableTermNodes(derived, 0, termGroup)
       val termProgressTasks = termNodes.toList.map(parser.ProgressTask(_, AcceptCondition.Always))
 
@@ -121,9 +121,7 @@ class Try2(val parser: NaiveParser) {
     }
 
     val fakeEnds = endKernelInitials.map { node =>
-      node -> Node(
-        Kernel(endTemplate.symbolId, endTemplate.pointer, 0, 1)(parser.grammar.symbolOf(endTemplate.symbolId)),
-        node.condition)
+      node -> Node(Kernel(endTemplate.symbolId, endTemplate.pointer, 0, 1), node.condition)
     }.toMap
     val derivedWithEnds = fakeEnds.foldLeft(derived) { (graph, end) =>
       graph.edgesByEnd(end._1).foldLeft(graph.addNode(end._2)) { (ngraph, start) =>

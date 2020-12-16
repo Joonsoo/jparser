@@ -10,7 +10,7 @@ import Parser._
 trait Parser[T <: Context] {
     val grammar: NGrammar
 
-    val startNode = Node(Kernel(grammar.startSymbol, 0, 0, 0)(grammar.nsymbols(grammar.startSymbol)), Always)
+    val startNode = Node(Kernel(grammar.startSymbol, 0, 0, 0), Always)
 
     val initialContext: T
 

@@ -88,7 +88,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
           case Left(ctx) =>
             ParseTreeUtil.reconstructTree(pair._1, ctx) match {
               case Some(parseForest) => sub.onNext(Left(parseForest))
-              case None => sub.onNext(Right(ParsingErrors.UnexpectedEOF(expectedTermsFrom(ctx), pair._2.length)))
+              case None => sub.onNext(Right(ParsingErrors.UnexpectedEOF(expectedTermsFrom(pair._1, ctx), pair._2.length)))
             }
           case Right(parsingError) =>
             sub.onNext(Right(parsingError))

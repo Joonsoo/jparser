@@ -8,9 +8,9 @@ import com.giyeok.jparser.{NGrammar, ParseResult, ParseResultFunc}
 class ParseTreeConstructor2[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], history: Seq[ProgressedAndFinished]) {
 
   def reconstruct(): Option[R] =
-    reconstruct(Kernel(grammar.startSymbol, 1, 0, input.length)(null), input.length)
+    reconstruct(Kernel(grammar.startSymbol, 1, 0, input.length), input.length)
 
-  def reconstruct(kernel: Kernel, gen: Int) =
+  def reconstruct(kernel: Kernel, gen: Int): Option[R] =
     if (kernel.pointer > 0 && history(gen).finished.contains(kernel)) Some(reconstruct(kernel, gen, Set())) else None
 
   private def reconstruct(kernel: Kernel, gen: Int, traces: Set[(Int, Int)]): R = {

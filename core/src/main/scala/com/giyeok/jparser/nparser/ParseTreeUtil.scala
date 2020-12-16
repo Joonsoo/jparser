@@ -37,7 +37,7 @@ object ParseTreeUtil {
       case Some(forest) if forest.trees.size == 1 => Left(matchStart(forest.trees.head))
       case Some(forest) => Right(ParsingErrors.AmbiguousParse("Ambiguous Parse: " + forest.trees.size))
       case None =>
-        Right(ParsingErrors.UnexpectedEOF(expectedTermsFrom(ctx), ctx.gen))
+        Right(ParsingErrors.UnexpectedEOF(expectedTermsFrom(ngrammar, ctx), ctx.gen))
     }
 
   def parseAst[T](parser: NaiveParser, text: String, matchStart: Node => T): Either[T, ParsingErrors.ParsingError] =
@@ -46,9 +46,9 @@ object ParseTreeUtil {
       case Right(error) => Right(error)
     }
 
-  def expectedTermsFrom(ctx: NaiveContext): Set[Symbols.Terminal] = ctx.nextGraph.nodes.flatMap { node =>
-    node.kernel.symbol match {
-      case NGrammar.NTerminal(_, term) => Some(term)
+  def expectedTermsFrom(ngrammar: NGrammar, ctx: NaiveContext): Set[Symbols.Terminal] = ctx.nextGraph.nodes.flatMap { node =>
+    ngrammar.nsymbols.get(node.kernel.symbolId) match {
+      case Some(NGrammar.NTerminal(_, term)) => Some(term)
       case _ => None
     }
   }
