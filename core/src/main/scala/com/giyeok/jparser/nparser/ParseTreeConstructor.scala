@@ -95,7 +95,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                     val prevKernels = finishes(gen).nodes filter { kern =>
                         (kern.symbolId == symbolId) && (kern.pointer == prevPointer) && (kern.beginGen == kernel.beginGen)
                     }
-                    val trees = prevKernels flatMap { prevKernel =>
+                    val trees = prevKernels.sortBy(_.tuple) flatMap { prevKernel =>
                         val childKernel = Kernel(sequence(prevPointer), 1, prevKernel.endGen, gen)
                         if (finishes(gen).nodes contains childKernel) {
                             val precedingTree = reconstruct0(Kernel(kernel.symbolId, prevPointer, kernel.beginGen, prevKernel.endGen), prevKernel.endGen)
@@ -128,7 +128,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 val bodyKernels = finishes(gen).edgesByStart(prevKernel) collect {
                     case KernelEdge(_, end) if end.endGen == gen && end.isFinal(grammar) => end
                 }
-                val bodyTrees = bodyKernels map { bodyKernel =>
+                val bodyTrees = bodyKernels.sortBy(_.tuple) map { bodyKernel =>
                     reconstruct0(bodyKernel, kernel.endGen)
                 }
                 assert(bodyTrees.nonEmpty)

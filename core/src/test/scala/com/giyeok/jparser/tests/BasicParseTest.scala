@@ -3,7 +3,7 @@ package com.giyeok.jparser.tests
 import com.giyeok.jparser.NGrammar._
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.Symbols._
-import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParseTreeConstructor2}
 import com.giyeok.jparser._
 import com.giyeok.jparser.examples.{AmbiguousExamples, GrammarWithExamples}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -50,6 +50,8 @@ class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends AnyF
         nparser.parse(source) match {
             case Left(ctx) =>
                 val resultOpt = new ParseTreeConstructor(resultFunc)(nparser.grammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
+                val resultOpt2 = ParseTreeConstructor2.forestConstructor(nparser.grammar)(ctx.inputs, ctx.history, ctx.conditionFinal).reconstruct()
+                assert(resultOpt == resultOpt2)
                 resultOpt match {
                     case Some(result) => Left(result)
                     case None => Right(ParsingErrors.UnexpectedError)
