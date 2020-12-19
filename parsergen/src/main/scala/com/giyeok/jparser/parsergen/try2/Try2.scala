@@ -185,8 +185,12 @@ class Try2(val parser: NaiveParser) {
     val start = KernelTemplate(parser.grammar.startSymbol, 0)
     val (_, ContWithTasks(tasks, _)) = startingCtxFrom(start)
 
-    createParserData(Jobs(Set(start), Set()),
-      PrecomputedParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map()))
+    val result = createParserData(Jobs(Set(start), Set()),
+      PrecomputedParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map(), Map()))
+    result.copy(derivedGraph = result.termActions.keySet.map { kernelTemplate =>
+      val startNode = Node(Kernel(kernelTemplate.symbolId, kernelTemplate.pointer, 0, 0), Always)
+      kernelTemplate -> parser.rec(0, List(parser.DeriveTask(startNode)), Graph(Set(startNode), Set())).graph
+    }.toMap)
   }
 }
 
@@ -199,7 +203,8 @@ object Try2 {
   case class PrecomputedParserData(grammar: NGrammar,
                                    byStart: TasksSummary,
                                    termActions: Map[KernelTemplate, List[(TermGroupDesc, ParsingAction)]],
-                                   edgeProgressActions: Map[(KernelTemplate, KernelTemplate), ParsingAction])
+                                   edgeProgressActions: Map[(KernelTemplate, KernelTemplate), ParsingAction],
+                                   derivedGraph: Map[KernelTemplate, Graph])
 
   // progressedKernels와 finishedKernels는 이 parsing action으로 인해 progress된 커널과 finish된 커널들.
   // -> 이들은 parse tree reconstruction을 위해 사용되는 것이기 때문에 여기에는 accept condition이 필요 없음

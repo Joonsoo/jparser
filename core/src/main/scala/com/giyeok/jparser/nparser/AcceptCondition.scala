@@ -10,6 +10,7 @@ object AcceptCondition {
         def acceptable(gen: Int, graph: Graph): Boolean
         def neg: AcceptCondition
     }
+    // accept condition의 조건으로 들어오는 심볼은 모두 atomic symbol
     sealed trait SymbolCondition extends AcceptCondition {
         val symbolId: Int
         val beginGen: Int
@@ -18,6 +19,7 @@ object AcceptCondition {
         def kernel1(endGen: Int): Kernel = Kernel(symbolId, 1, beginGen, endGen)
         lazy val nodes: Set[Node] = Set(node0)
     }
+    // conjunct는 condition들을 and로 연결
     def conjunct(conditions: AcceptCondition*): AcceptCondition =
         if (conditions contains Never) Never
         else {
@@ -32,6 +34,7 @@ object AcceptCondition {
                 And(conds2)
             }
         }
+    // disjunct는 condition들을 or로 연결
     def disjunct(conditions: AcceptCondition*): AcceptCondition = {
         if (conditions contains Always) Always
         else {
@@ -49,14 +52,14 @@ object AcceptCondition {
     }
 
     case object Always extends AcceptCondition {
-        val nodes: Set[Node] = Set[Node]()
+        val nodes: Set[Node] = Set()
         def shiftGen(gen: Int): AcceptCondition = this
         def evaluate(gen: Int, graph: Graph): AcceptCondition = this
         def acceptable(gen: Int, graph: Graph) = true
         def neg: AcceptCondition = Never
     }
     case object Never extends AcceptCondition {
-        val nodes: Set[Node] = Set[Node]()
+        val nodes: Set[Node] = Set()
         def shiftGen(gen: Int): AcceptCondition = this
         def evaluate(gen: Int, graph: Graph): AcceptCondition = this
         def acceptable(gen: Int, graph: Graph) = false
