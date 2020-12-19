@@ -101,7 +101,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
       _testCodeEditor.clearStyles()
       parseResult match {
         case Left(parseForest) =>
-        // parseTreeViewer.setParseForest(parseForest)
+          parseTreeViewer.setParseForest(parseForest)
         case Right(parsingError) =>
           parseTreeViewer.invalidateParseForest()
           parsingError match {

@@ -1,7 +1,8 @@
 package com.giyeok.jparser.parsergen.try2
 
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
+import com.giyeok.jparser.examples.basics.LongestMatchGrammar1
+import com.giyeok.jparser.metalang3a.generated.{ArrayExprAst, LongestMatchAst}
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
@@ -41,15 +42,19 @@ object Try2Parser {
   def main(args: Array[String]): Unit = {
     //    val parserData = Try2.precomputedParserData(ExpressionGrammar.ngrammar)
     //    new Try2Parser(parserData).parse("1*2+34")
-    val grammar = ArrayExprAst.ngrammar
-    val valuefier = ArrayExprAst.matchStart _
-    val input = Inputs.fromString("[a,a,a]")
+    //    val grammar = ArrayExprAst.ngrammar
+    //    val valuefier = ArrayExprAst.matchStart _
+    //    val input = Inputs.fromString("[a,a,a]")
+
+    val grammar = LongestMatchAst.ngrammar
+    val input = Inputs.fromString("abcdefgh")
 
     val parserData = Try2.precomputedParserData(grammar)
     val finalCtx = new Try2Parser(parserData).parse(input)
     val parseTree = reconstructParseTree(grammar, finalCtx, input).get.trees.head
-    val ast = valuefier(parseTree)
-    println(ast)
+    parseTree.printTree()
+    //    val ast = valuefier(parseTree)
+    //    println(ast)
   }
 }
 

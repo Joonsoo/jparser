@@ -126,15 +126,15 @@ trait ParsingTasks {
         // nodeSymbolOpt에서 opt를 사용하는 것은 finish는 SequenceNode에 대해서도 실행되기 때문
         val newCondition = grammar.symbolOf(node.kernel.symbolId) match {
             case NLongest(_, _, longest) =>
-                NotExists(node.kernel.beginGen, nextGen + 1, longest)(atomicSymbolOf(longest))
+                NotExists(node.kernel.beginGen, nextGen + 1, longest)
             case NExcept(_, _, _, except) =>
-                Unless(node.kernel.beginGen, nextGen, except)(atomicSymbolOf(except))
+                Unless(node.kernel.beginGen, nextGen, except)
             case NJoin(_, _, _, join) =>
-                OnlyIf(node.kernel.beginGen, nextGen, join)(atomicSymbolOf(join))
+                OnlyIf(node.kernel.beginGen, nextGen, join)
             case NLookaheadIs(_, _, _, lookahead) =>
-                Exists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead))
+                Exists(nextGen, nextGen, lookahead)
             case NLookaheadExcept(_, _, _, lookahead) =>
-                NotExists(nextGen, nextGen, lookahead)(atomicSymbolOf(lookahead))
+                NotExists(nextGen, nextGen, lookahead)
             case _ => Always
         }
         val newKernel = {

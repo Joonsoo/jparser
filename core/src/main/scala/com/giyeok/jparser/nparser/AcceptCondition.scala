@@ -1,7 +1,5 @@
 package com.giyeok.jparser.nparser
 
-import com.giyeok.jparser.NGrammar.NAtomicSymbol
-
 object AcceptCondition {
     import ParsingContext._
 
@@ -14,7 +12,6 @@ object AcceptCondition {
     }
     sealed trait SymbolCondition extends AcceptCondition {
         val symbolId: Int
-        val symbol: NAtomicSymbol
         val beginGen: Int
 
         lazy val node0: Node = Node(Kernel(symbolId, 0, beginGen, beginGen), Always)
@@ -56,14 +53,14 @@ object AcceptCondition {
         def shiftGen(gen: Int): AcceptCondition = this
         def evaluate(gen: Int, graph: Graph): AcceptCondition = this
         def acceptable(gen: Int, graph: Graph) = true
-        def neg = Never
+        def neg: AcceptCondition = Never
     }
     case object Never extends AcceptCondition {
         val nodes: Set[Node] = Set[Node]()
         def shiftGen(gen: Int): AcceptCondition = this
         def evaluate(gen: Int, graph: Graph): AcceptCondition = this
         def acceptable(gen: Int, graph: Graph) = false
-        def neg = Always
+        def neg: AcceptCondition = Always
     }
     case class And(conditions: Set[AcceptCondition]) extends AcceptCondition {
         // assert(conditions forall { c => c != True && c != False })
@@ -93,9 +90,9 @@ object AcceptCondition {
         def neg: AcceptCondition = conjunct((conditions map { _.neg }).toSeq: _*)
     }
 
-    case class NotExists(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
+    case class NotExists(beginGen: Int, endGen: Int, symbolId: Int) extends AcceptCondition with SymbolCondition {
         def shiftGen(gen: Int): AcceptCondition =
-            NotExists(beginGen + gen, endGen + gen, symbolId)(symbol)
+            NotExists(beginGen + gen, endGen + gen, symbolId)
         def evaluate(gen: Int, graph: Graph): AcceptCondition = {
             if (gen < endGen) this else {
                 val conditions0 = graph.conditionsOf(kernel1(gen)) map { _.neg.evaluate(gen, graph) }
@@ -108,11 +105,11 @@ object AcceptCondition {
                 graph.conditionsOf(kernel1(gen)) forall { _.acceptable(gen, graph) == false }
             }
         }
-        def neg: AcceptCondition = Exists(beginGen, endGen, symbolId)(symbol)
+        def neg: AcceptCondition = Exists(beginGen, endGen, symbolId)
     }
-    case class Exists(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
+    case class Exists(beginGen: Int, endGen: Int, symbolId: Int) extends AcceptCondition with SymbolCondition {
         def shiftGen(gen: Int): AcceptCondition =
-            Exists(beginGen + gen, endGen + gen, symbolId)(symbol)
+            Exists(beginGen + gen, endGen + gen, symbolId)
         def evaluate(gen: Int, graph: Graph): AcceptCondition = {
             if (gen < endGen) this else {
                 val conditions0 = graph.conditionsOf(kernel1(gen)) map { _.evaluate(gen, graph) }
@@ -125,12 +122,12 @@ object AcceptCondition {
                 graph.conditionsOf(kernel1(gen)) exists { _.acceptable(gen, graph) }
             }
         }
-        def neg: AcceptCondition = NotExists(beginGen, endGen, symbolId)(symbol)
+        def neg: AcceptCondition = NotExists(beginGen, endGen, symbolId)
     }
 
-    case class Unless(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
+    case class Unless(beginGen: Int, endGen: Int, symbolId: Int) extends AcceptCondition with SymbolCondition {
         def shiftGen(gen: Int): AcceptCondition =
-            Unless(beginGen + gen, endGen + gen, symbolId)(symbol)
+            Unless(beginGen + gen, endGen + gen, symbolId)
         def evaluate(gen: Int, graph: Graph): AcceptCondition = {
             assert(gen >= endGen)
             if (gen > endGen) {
@@ -151,11 +148,11 @@ object AcceptCondition {
             }
         }
         def neg: AcceptCondition =
-            OnlyIf(beginGen, endGen, symbolId)(symbol)
+            OnlyIf(beginGen, endGen, symbolId)
     }
-    case class OnlyIf(beginGen: Int, endGen: Int, symbolId: Int)(val symbol: NAtomicSymbol) extends AcceptCondition with SymbolCondition {
+    case class OnlyIf(beginGen: Int, endGen: Int, symbolId: Int) extends AcceptCondition with SymbolCondition {
         def shiftGen(gen: Int): AcceptCondition =
-            OnlyIf(beginGen + gen, endGen + gen, symbolId)(symbol)
+            OnlyIf(beginGen + gen, endGen + gen, symbolId)
         def evaluate(gen: Int, graph: Graph): AcceptCondition = {
             assert(gen >= endGen)
             if (gen > endGen) {
@@ -176,6 +173,6 @@ object AcceptCondition {
             }
         }
         def neg: AcceptCondition =
-            Unless(beginGen, endGen, symbolId)(symbol)
+            Unless(beginGen, endGen, symbolId)
     }
 }
