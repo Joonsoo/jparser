@@ -1,13 +1,15 @@
 package com.giyeok.jparser.parsergen.try2
 
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.metalang3a.generated.LongestMatchAst
+import com.giyeok.jparser.metalang3a.generated.{ExceptMatchAst, LongestMatchAst}
 import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
 import com.giyeok.jparser.nparser.{AcceptCondition, ParseTreeConstructor2}
 import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, PrecomputedParserData, TasksSummary}
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForest, ParseForestFunc}
+
+import scala.annotation.tailrec
 
 object Try2Parser {
   def reconstructParseTree(grammar: NGrammar, finalCtx: Try2ParserContext, input: Seq[Input]): Option[ParseForest] = {
@@ -45,15 +47,17 @@ object Try2Parser {
     //    val valuefier = ArrayExprAst.matchStart _
     //    val input = Inputs.fromString("[a,a,a]")
 
-    val grammar = LongestMatchAst.ngrammar
-    val input = Inputs.fromString("abcdefgh   a  b c d")
+    val grammar = ExceptMatchAst.ngrammar
+    val input = Inputs.fromString("abcd if ifff hello else elseee else else")
+    val valuefier = ExceptMatchAst.matchStart _
 
     val parserData = Try2.precomputedParserData(grammar)
     val finalCtx = new Try2Parser(parserData).parse(input)
+    // TODO finalCtx.actionHistory 에서 accept condition 평가해서 unacceptable 한것들 날리기
     val parseTree = reconstructParseTree(grammar, finalCtx, input).get.trees.head
     parseTree.printTree()
-    //    val ast = valuefier(parseTree)
-    //    println(ast)
+    val ast = valuefier(parseTree)
+    println(ast)
   }
 }
 
@@ -86,13 +90,14 @@ class Try2Parser(val parserData: PrecomputedParserData) {
       }
 
       condition match {
-        case AcceptCondition.Always | AcceptCondition.Never => condition
-        case AcceptCondition.And(conditions) => conjunct(conditions.map(transformTermActionCondition(_, parentGen, beginGen, endGen)).toSeq: _*)
-        case AcceptCondition.Or(conditions) => disjunct(conditions.map(transformTermActionCondition(_, parentGen, beginGen, endGen)).toSeq: _*)
-        case AcceptCondition.NotExists(beginGen, endGen, symbolId) => AcceptCondition.NotExists(genOf(beginGen), genOf(endGen), symbolId)
-        case AcceptCondition.Exists(beginGen, endGen, symbolId) => AcceptCondition.Exists(genOf(beginGen), genOf(endGen), symbolId)
-        case AcceptCondition.Unless(beginGen, endGen, symbolId) => AcceptCondition.Unless(genOf(beginGen), genOf(endGen), symbolId)
-        case AcceptCondition.OnlyIf(beginGen, endGen, symbolId) => AcceptCondition.OnlyIf(genOf(beginGen), genOf(endGen), symbolId)
+        case Always | Never => condition
+        case And(conditions) => conjunct(conditions.map(transformTermActionCondition(_, parentGen, beginGen, endGen)).toSeq: _*)
+        case Or(conditions) => disjunct(conditions.map(transformTermActionCondition(_, parentGen, beginGen, endGen)).toSeq: _*)
+        case NotExists(beginGen, endGen, symbolId) => NotExists(genOf(beginGen), genOf(endGen), symbolId)
+        case Exists(beginGen, endGen, symbolId) => Exists(genOf(beginGen), genOf(endGen), symbolId)
+        case Unless(beginGen, endGen, symbolId) => Unless(genOf(beginGen), genOf(endGen), symbolId)
+        case OnlyIf(beginGen, endGen, symbolId) =>
+          OnlyIf(genOf(beginGen), genOf(endGen), symbolId)
       }
     }
 
@@ -107,18 +112,19 @@ class Try2Parser(val parserData: PrecomputedParserData) {
             val kernelTemplate = appending._1
             val acceptCondition = transformTermActionCondition(appending._2, parentGen, tip.gen, gen)
             Milestone(Some(tip), kernelTemplate.symbolId, kernelTemplate.pointer, gen,
-              AcceptCondition.conjunct(tip.acceptCondition, acceptCondition))
+              conjunct(tip.acceptCondition, acceptCondition))
           }
           // action.startNodeProgressConditions가 비어있지 않으면 tip을 progress 시킨다
-          val reduced = progressTip(tip, gen,
-            materializeStartProgressConditions(parentGen, tip.gen, gen, action.startNodeProgressConditions)
-              .map(conjunct(_, tip.acceptCondition)))
+          // val transformedConditions = transformStartProgressConditions(parentGen, tip.gen, gen, action.startNodeProgressConditions)
+          val transformedConditions = action.startNodeProgressConditions.map(
+            transformTermActionCondition(_, parentGen, tip.gen, gen))
+          val reduced = progressTip(tip, gen, transformedConditions.map(conjunct(_, tip.acceptCondition)))
           appended ++ reduced
         case None => List()
       }
     }
 
-    private def materializeStartProgressConditions(parentGen: Int, beginGen: Int, endGen: Int, conditions: List[AcceptCondition]): List[AcceptCondition] =
+    private def transformStartProgressConditions(parentGen: Int, beginGen: Int, endGen: Int, conditions: List[AcceptCondition]): List[AcceptCondition] =
       conditions.map(transformEdgeActionCondition(_, -1, parentGen, beginGen, endGen))
 
     private def transformEdgeActionCondition(condition: AcceptCondition, parentBeginGen: Int, parentGen: Int, beginGen: Int, endGen: Int): AcceptCondition = {
@@ -131,13 +137,14 @@ class Try2Parser(val parserData: PrecomputedParserData) {
       }
 
       condition match {
-        case AcceptCondition.Always | AcceptCondition.Never => condition
-        case AcceptCondition.And(conditions) => conjunct(conditions.map(transformEdgeActionCondition(_, parentBeginGen, parentGen, beginGen, endGen)).toSeq: _*)
-        case AcceptCondition.Or(conditions) => disjunct(conditions.map(transformEdgeActionCondition(_, parentBeginGen, parentGen, beginGen, endGen)).toSeq: _*)
-        case AcceptCondition.NotExists(beginGen, endGen, symbolId) => AcceptCondition.NotExists(genOf(beginGen), genOf(endGen), symbolId)
-        case AcceptCondition.Exists(beginGen, endGen, symbolId) => AcceptCondition.Exists(genOf(beginGen), genOf(endGen), symbolId)
-        case AcceptCondition.Unless(beginGen, endGen, symbolId) => AcceptCondition.Unless(genOf(beginGen), genOf(endGen), symbolId)
-        case AcceptCondition.OnlyIf(beginGen, endGen, symbolId) => AcceptCondition.OnlyIf(genOf(beginGen), genOf(endGen), symbolId)
+        case Always | Never => condition
+        case And(conditions) => conjunct(conditions.map(transformEdgeActionCondition(_, parentBeginGen, parentGen, beginGen, endGen)).toSeq: _*)
+        case Or(conditions) => disjunct(conditions.map(transformEdgeActionCondition(_, parentBeginGen, parentGen, beginGen, endGen)).toSeq: _*)
+        case NotExists(beginGen, endGen, symbolId) => NotExists(genOf(beginGen), genOf(endGen), symbolId)
+        case Exists(beginGen, endGen, symbolId) => Exists(genOf(beginGen), genOf(endGen), symbolId)
+        case Unless(beginGen, endGen, symbolId) => Unless(genOf(beginGen), genOf(endGen), symbolId)
+        case OnlyIf(beginGen, endGen, symbolId) =>
+          OnlyIf(genOf(beginGen), genOf(endGen), symbolId)
       }
     }
 
@@ -157,9 +164,10 @@ class Try2Parser(val parserData: PrecomputedParserData) {
                 conjunct(condition, appendingCondition))
             }
             // edgeAction.startNodeProgressConditions에 대해 위 과정 반복 수행
-            val propagated = progressTip(parent, gen,
-              materializeStartProgressConditions(parent.gen, tip.gen, gen, edgeAction.startNodeProgressConditions)
-                .map(conjunct(condition, _)))
+            // val transformedConditions = transformStartProgressConditions(parent.gen, tip.gen, gen, edgeAction.startNodeProgressConditions)
+            val transformedConditions = edgeAction.startNodeProgressConditions.map(
+              transformEdgeActionCondition(_, -1, parent.gen, tip.gen, gen))
+            val propagated = progressTip(parent, gen, transformedConditions.map(conjunct(condition, _)))
             appended ++ propagated
           case None =>
             // 파싱 종료
@@ -167,58 +175,84 @@ class Try2Parser(val parserData: PrecomputedParserData) {
             List()
         }
       }
-  }
 
-  private def evaluateAcceptCondition(milestones: List[Milestone], acceptCondition: AcceptCondition,
-                                      gen: Int, genActions: List[GenAction]): AcceptCondition =
-    acceptCondition match {
-      case AcceptCondition.Always => Always
-      case AcceptCondition.Never => Never
-      case AcceptCondition.And(conditions) =>
-        val evaluated = conditions.map(evaluateAcceptCondition(milestones, _, gen, genActions))
-        conjunct(evaluated.toSeq: _*)
-      case AcceptCondition.Or(conditions) =>
-        disjunct(conditions.map(evaluateAcceptCondition(milestones, _, gen, genActions)).toSeq: _*)
-      case AcceptCondition.NotExists(_, endGen, _) if gen < endGen => acceptCondition
-      case AcceptCondition.NotExists(beginGen, endGen, symbolId) =>
-        // genAction을 통해서 symbolId가 (beginGen..endGen+) 에서 match될 수 있으면 매치되는 조건을,
-        // genAction을 통해서는 이 accept condition을 확인할 수 없으면 그대로 반환
-        // TODO genAction을 통해서는 이 accept condition을 확인할 수 있는 경우는 전체 milestone들을 확인해야 알 수 있음..
-        // -> milestone들 중에 milestone.gen이 beginGen과 같고, 해당 milestone에서 derive돼서 이 symbolId가 나올 수 있으면 아직 미확정
-        val metaConditions0 = genActions.filter(_.endGen >= endGen).flatMap {
-          case termAction: TermAction =>
-            val metaKernel = if (termAction.beginGen == beginGen) Kernel(symbolId, 1, 0, 2) else Kernel(symbolId, 1, 1, 2)
-            // 여기서 symbol은 항상 atomic symbol이므로 progress되면 바로 finish되기 때문에 progressed는 고려할 필요 없을듯.
-            termAction.summary.finishedKernels.filter(_.kernel == metaKernel).map(_.condition)
-          case edgeAction: EdgeAction =>
-            val metaKernel = if (edgeAction.beginGen == beginGen) Kernel(symbolId, 1, 1, 3) else Kernel(symbolId, 1, 2, 3)
-            // 여기서도 마찬가지로 symbol은 항상 atomic이므로 finish만 고려하면 됨
-            edgeAction.summary.finishedKernels.filter(_.kernel == metaKernel).map(_.condition)
-        }.distinct
-          .map(_.neg)
+    class AcceptConditionEvaluator(milestones: List[Milestone], gen: Int, genActions: List[GenAction]) {
+      def evaluateAcceptCondition(acceptCondition: AcceptCondition): AcceptCondition = {
+        def symbolFinishConditions(beginGen: Int, endGen: Int, symbolId: Int): Seq[AcceptCondition] =
+          genActions.filter(_.endGen >= endGen).flatMap {
+            case termAction: TermAction =>
+              val metaKernel = if (termAction.beginGen == beginGen) Kernel(symbolId, 1, 0, 2) else Kernel(symbolId, 1, 1, 2)
+              // 여기서 symbol은 항상 atomic symbol이므로 progress되면 바로 finish되기 때문에 progressed는 고려할 필요 없을듯.
+              termAction.summary.finishedKernels.filter(_.kernel == metaKernel).map(_.condition)
+                .map(transformTermActionCondition(_, termAction.beginGen, termAction.midGen, termAction.endGen))
+            case edgeAction: EdgeAction =>
+              val metaKernel = if (edgeAction.beginGen == beginGen) Kernel(symbolId, 1, 1, 3) else Kernel(symbolId, 1, 2, 3)
+              // 여기서도 마찬가지로 symbol은 항상 atomic이므로 finish만 고려하면 됨
+              edgeAction.summary.finishedKernels.filter(_.kernel == metaKernel).map(_.condition)
+                .map(transformEdgeActionCondition(_, edgeAction.parentBeginGen, edgeAction.beginGen, edgeAction.midGen, edgeAction.endGen))
+          }.distinct
 
-        // TODO needToPreserve가 좀 이상함..
-        def needToPreserve(milestone: Milestone): Boolean = {
-          if (milestone.gen == beginGen) {
-            parserData.derivedGraph(milestone.kernelTemplate).nodes
-              .exists(_.kernel == Kernel(symbolId, 0, 0, 0))
-          } else if (milestone.gen > beginGen) {
-            milestone.parent.exists(needToPreserve)
-          } else false
+        def symbolStillPossible(symbolId: Int, beginGen: Int): Boolean = {
+          def needToPreserve(milestone: Milestone): Boolean = {
+            if (milestone.gen == beginGen) {
+              parserData.derivedGraph(milestone.kernelTemplate).nodes
+                .exists(_.kernel == Kernel(symbolId, 0, 0, 0))
+            } else if (milestone.gen > beginGen) {
+              @tailrec def findParent(child: Milestone): Boolean =
+                child.parent match {
+                  case Some(parent) =>
+                    if (parent.gen == beginGen)
+                      parserData.edgeProgressActions(parent.kernelTemplate -> child.kernelTemplate).graphBetween.nodes
+                        .exists(_.kernel == Kernel(symbolId, 0, 0, 0))
+                    else if (parent.gen < beginGen) false
+                    else findParent(parent)
+                  case None => false
+                }
+
+              findParent(milestone)
+            } else false
+          }
+
+          milestones.exists(needToPreserve)
         }
 
-        val metaConditions = if (milestones.exists(needToPreserve)) acceptCondition +: metaConditions0 else metaConditions0
-        conjunct(metaConditions: _*)
-      case AcceptCondition.Exists(beginGen, endGen, symbolId) =>
-        val effectiveActions = genActions.filter(_.endGen >= endGen)
-        ???
-      case AcceptCondition.Unless(beginGen, endGen, symbolId) =>
-        val effectiveActions = genActions.filter(_.endGen == endGen)
-        ???
-      case AcceptCondition.OnlyIf(beginGen, endGen, symbolId) =>
-        val effectiveActions = genActions.filter(_.endGen == endGen)
-        ???
+        acceptCondition match {
+          case Always => Always
+          case Never => Never
+          case And(conditions) =>
+            val evaluated = conditions.map(evaluateAcceptCondition)
+            conjunct(evaluated.toSeq: _*)
+          case Or(conditions) =>
+            disjunct(conditions.map(evaluateAcceptCondition).toSeq: _*)
+          case NotExists(_, endGen, _) if gen < endGen => acceptCondition
+          case NotExists(beginGen, endGen, symbolId) =>
+            // genAction을 통해서 symbolId가 (beginGen..endGen+) 에서 match될 수 있으면 매치되는 조건을,
+            // genAction을 통해서는 이 accept condition을 확인할 수 없으면 그대로 반환
+            // TODO genAction을 통해서는 이 accept condition을 확인할 수 있는 경우는 전체 milestone들을 확인해야 알 수 있음..
+            // -> milestone들 중에 milestone.gen이 beginGen과 같고, 해당 milestone에서 derive돼서 이 symbolId가 나올 수 있으면 아직 미확정
+            val metaConditions0 = symbolFinishConditions(beginGen, endGen, symbolId)
+            val metaConditions = if (symbolStillPossible(symbolId, beginGen)) acceptCondition +: metaConditions0 else metaConditions0
+            evaluateAcceptCondition(disjunct(metaConditions: _*).neg)
+          case Exists(_, endGen, _) if gen < endGen => acceptCondition
+          case Exists(beginGen, endGen, symbolId) =>
+            val metaConditions0 = symbolFinishConditions(beginGen, endGen, symbolId)
+            val metaConditions = if (symbolStillPossible(symbolId, beginGen)) acceptCondition +: metaConditions0 else metaConditions0
+            evaluateAcceptCondition(disjunct(metaConditions: _*))
+          case Unless(beginGen, endGen, symbolId) =>
+            if (gen > endGen) Always else {
+              assert(gen == endGen)
+              evaluateAcceptCondition(disjunct(symbolFinishConditions(beginGen, endGen, symbolId): _*).neg)
+            }
+          case OnlyIf(beginGen, endGen, symbolId) =>
+            if (gen > endGen) Never else {
+              assert(gen == endGen)
+              evaluateAcceptCondition(disjunct(symbolFinishConditions(beginGen, endGen, symbolId): _*))
+            }
+        }
+      }
     }
+
+  }
 
   def proceed(ctx: Try2ParserContext, gen: Int, input: Inputs.Input): Try2ParserContext = {
     val processor = new ProceedProcessor()
@@ -228,7 +262,8 @@ class Try2Parser(val parserData: PrecomputedParserData) {
     //    println("  ** before evaluating accept condition")
     milestones0.foreach(t => println(t.prettyString))
     val milestones = milestones0.flatMap { milestone =>
-      val newCond = evaluateAcceptCondition(milestones0, milestone.acceptCondition, gen, processor.genActions)
+      val newCond = new processor.AcceptConditionEvaluator(milestones0, gen, processor.genActions)
+        .evaluateAcceptCondition(milestone.acceptCondition)
       if (newCond == Never) None else Some(milestone.copy(acceptCondition = newCond))
     }
     println("  ** after evaluating accept condition")

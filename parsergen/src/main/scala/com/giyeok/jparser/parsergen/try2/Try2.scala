@@ -200,6 +200,7 @@ object Try2 {
 
   case class TasksSummary(progressedKernels: List[(Node, AcceptCondition)], finishedKernels: List[Node])
 
+  // TODO derivedGraph와 ParsingAction.graphBetween은 커널 그래프만 저장하면 됨.
   case class PrecomputedParserData(grammar: NGrammar,
                                    byStart: TasksSummary,
                                    termActions: Map[KernelTemplate, List[(TermGroupDesc, ParsingAction)]],

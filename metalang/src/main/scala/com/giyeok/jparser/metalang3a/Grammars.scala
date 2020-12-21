@@ -71,11 +71,22 @@ object Grammars {
       |""".stripMargin
   )
 
+  def generateExceptMatch(): Unit = generateScalaParserCode("ExceptMatchAst",
+    """S = Token*
+      |Token: Token = <Id | Kw | Num | WS>
+      |Id = Name-Kw {Id(name=str($0))}
+      |Kw = "if" {Keyword(typ:%Kw=%IF)} | "else" {Keyword(%ELSE)}
+      |Name = 'a-zA-Z'+
+      |Num = '0-9'+ {Number(value=str($0))}
+      |WS = ' \n\r\t'+ {WS()}
+      |""".stripMargin)
+
   def main(args: Array[String]): Unit = {
-    generateArrayExprAst()
+    //    generateArrayExprAst()
     //    generateAutoDbAst()
     //    generateMetaLang3Ast()
     //    generateMlProtoAst()
-    generateLongestMatch()
+    //    generateLongestMatch()
+    generateExceptMatch()
   }
 }
