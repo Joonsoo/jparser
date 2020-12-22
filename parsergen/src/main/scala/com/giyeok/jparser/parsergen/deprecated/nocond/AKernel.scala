@@ -1,8 +1,8 @@
-package com.giyeok.jparser.parsergen.nocond
+package com.giyeok.jparser.parsergen.deprecated.nocond
 
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.NAtomicSymbol
-import com.giyeok.jparser.parsergen.utils.ListOrder
+import com.giyeok.jparser.parsergen.deprecated.utils.ListOrder
 
 case class AKernel(symbolId: Int, pointer: Int) extends Ordered[AKernel] {
     def toReadableString(grammar: NGrammar, pointerString: String = "\u2022"): String = {

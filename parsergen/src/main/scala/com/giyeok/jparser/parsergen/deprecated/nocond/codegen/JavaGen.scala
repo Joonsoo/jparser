@@ -1,9 +1,9 @@
-package com.giyeok.jparser.parsergen.nocond.codegen
+package com.giyeok.jparser.parsergen.deprecated.nocond.codegen
 
 import java.io.{File, PrintWriter}
 
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup, CharsGrouping, TermGroupDesc}
-import com.giyeok.jparser.parsergen.nocond.codegen.JavaGenTemplates.MainFunc
+import JavaGenTemplates.MainFunc
 import com.google.googlejavaformat.java.Formatter
 
 trait JavaParserGenerator {

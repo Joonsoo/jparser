@@ -1,5 +1,6 @@
-package com.giyeok.jparser.parsergen.nocond.codegen
+package com.giyeok.jparser.parsergen.deprecated.nocond.codegen
 
+import com.giyeok.jparser.parsergen.deprecated.nocond.DisambigParser
 import com.giyeok.jparser.parsergen.nocond._
 
 class DisambigParserJavaGen(val parser: DisambigParser) extends JavaParserGenerator {

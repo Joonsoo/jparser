@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.nocond
+package com.giyeok.jparser.parsergen.deprecated.nocond
 
 // DisambigNodeRelInferer는 SimpleNodeRelInferer에 pop, restore 등의 추가적인 action 종류를 추가로 지원함
 class DisambigNodeRelInferer(private val termActionAppends: Map[Int, Set[DisambigParser.Append]],

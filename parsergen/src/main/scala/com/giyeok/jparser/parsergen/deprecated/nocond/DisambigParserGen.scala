@@ -1,10 +1,10 @@
-package com.giyeok.jparser.parsergen.nocond
+package com.giyeok.jparser.parsergen.deprecated.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.examples.metalang.{ExpressionGrammars, SimpleGrammars}
 import com.giyeok.jparser.metalang.MetaGrammar
-import com.giyeok.jparser.parsergen.utils.BiDirectionalMap
+import com.giyeok.jparser.parsergen.deprecated.utils.BiDirectionalMap
 
 sealed trait GenTermAction
 

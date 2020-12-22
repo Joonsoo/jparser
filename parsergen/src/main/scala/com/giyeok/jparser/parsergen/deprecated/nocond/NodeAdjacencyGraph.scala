@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.nocond
+package com.giyeok.jparser.parsergen.deprecated.nocond
 
 import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 

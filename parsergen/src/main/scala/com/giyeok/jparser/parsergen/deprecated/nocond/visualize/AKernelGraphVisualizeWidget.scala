@@ -1,10 +1,11 @@
-package com.giyeok.jparser.parsergen.nocond.visualize
+package com.giyeok.jparser.parsergen.deprecated.nocond.visualize
 
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.NSequence
 import com.giyeok.jparser.examples.metalang.SimpleGrammars
 import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.nparser.ParsingContext
+import com.giyeok.jparser.parsergen.deprecated.nocond.{AKernel, AKernelGen, AKernelGenEdge, AKernelGenGraph, GrammarAnalyzer, ParsingTaskSimulator, ProgressTask, Task}
 import com.giyeok.jparser.parsergen.nocond._
 import com.giyeok.jparser.visualize.{AbstractZestGraphWidget, BasicVisualizeResources}
 import org.eclipse.draw2d.{ColorConstants, Figure, LineBorder}

@@ -1,9 +1,9 @@
-package com.giyeok.jparser.parsergen.nocond
+package com.giyeok.jparser.parsergen.deprecated.nocond
 
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.examples.metalang.SimpleGrammars
 import com.giyeok.jparser.metalang.MetaGrammar
-import com.giyeok.jparser.parsergen.nocond.codegen.SimpleParserJavaGen
+import com.giyeok.jparser.parsergen.deprecated.nocond.codegen.SimpleParserJavaGen
 
 class SimpleParserRunner(val simpleParser: SimpleParser) {
 

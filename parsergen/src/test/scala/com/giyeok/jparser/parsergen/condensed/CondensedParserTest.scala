@@ -1,7 +1,7 @@
 package com.giyeok.jparser.parsergen.condensed
 
 import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.metalang3a.generated.{ArrayExprAst, ExceptMatchAst, ExpressionGrammarAst}
+import com.giyeok.jparser.metalang3a.generated.{ArrayExprAst, ExceptMatchAst, ExpressionGrammarAst, MetaLang3Ast}
 import com.giyeok.jparser.parsergen.condensed.CondensedParser.reconstructParseTree
 import com.giyeok.jparser.parsergen.condensed.CondensedParserGen.generatedCondensedParserData
 import org.scalatest.flatspec.AnyFlatSpec
@@ -39,6 +39,19 @@ class CondensedParserTest extends AnyFlatSpec {
     val input = Inputs.fromString("[a,a,a]")
     val parserData = generatedCondensedParserData(grammar)
     val valuefier = ArrayExprAst.matchStart _
+
+    val finalCtx = new CondensedParser(parserData).parse(input)
+    val parseTree = reconstructParseTree(grammar, finalCtx, input).get.trees.head
+    parseTree.printTree()
+    val ast = valuefier(parseTree)
+    println(ast)
+  }
+
+  it should "correctly parses MetaLang3Ast" in {
+    val grammar = MetaLang3Ast.ngrammar
+    val input = Inputs.fromString("A = B")
+    val parserData = generatedCondensedParserData(grammar)
+    val valuefier = MetaLang3Ast.matchStart _
 
     val finalCtx = new CondensedParser(parserData).parse(input)
     val parseTree = reconstructParseTree(grammar, finalCtx, input).get.trees.head
