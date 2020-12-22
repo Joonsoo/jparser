@@ -1,19 +1,18 @@
-package com.giyeok.jparser.parsergen.try2
+package com.giyeok.jparser.parsergen.condensed
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.NSequence
 import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
-import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
+import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.{AcceptCondition, NaiveParser}
-import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, ParsingAction, PrecomputedParserData, TasksSummary}
 import com.giyeok.jparser.parsergen.utils.TermGrouper
 import com.giyeok.jparser.visualize.DotGraphGenerator
 
 import scala.annotation.tailrec
 
-class Try2(val parser: NaiveParser) {
+class CondensedParserGen(val parser: NaiveParser) {
 
   case class ContWithTasks(tasks: List[parser.Task], cc: parser.Cont)
 
@@ -157,7 +156,7 @@ class Try2(val parser: NaiveParser) {
   case class Jobs(milestones: Set[KernelTemplate], edges: Set[(KernelTemplate, KernelTemplate)])
 
   @tailrec
-  private def createParserData(jobs: Jobs, cc: PrecomputedParserData): PrecomputedParserData = {
+  private def createParserData(jobs: Jobs, cc: CondensedParserData): CondensedParserData = {
     val withTermActions = jobs.milestones.foldLeft((Jobs(Set(), Set()), cc)) { (m, i) =>
       val (jobs, wcc) = m
       val termActions = termActionsFrom(i)
@@ -181,12 +180,12 @@ class Try2(val parser: NaiveParser) {
     else createParserData(newRemainingJobs, ncc)
   }
 
-  def parserData(): PrecomputedParserData = {
+  def parserData(): CondensedParserData = {
     val start = KernelTemplate(parser.grammar.startSymbol, 0)
     val (_, ContWithTasks(tasks, _)) = startingCtxFrom(start)
 
     val result = createParserData(Jobs(Set(start), Set()),
-      PrecomputedParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map(), Map()))
+      CondensedParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map(), Map()))
     result.copy(derivedGraph = result.termActions.keySet.map { kernelTemplate =>
       val startNode = Node(Kernel(kernelTemplate.symbolId, kernelTemplate.pointer, 0, 0), Always)
       kernelTemplate -> parser.rec(0, List(parser.DeriveTask(startNode)), Graph(Set(startNode), Set())).graph
@@ -194,32 +193,13 @@ class Try2(val parser: NaiveParser) {
   }
 }
 
-object Try2 {
-
-  case class KernelTemplate(symbolId: Int, pointer: Int)
-
-  case class TasksSummary(progressedKernels: List[(Node, AcceptCondition)], finishedKernels: List[Node])
-
-  // TODO derivedGraph와 ParsingAction.graphBetween은 커널 그래프만 저장하면 됨.
-  case class PrecomputedParserData(grammar: NGrammar,
-                                   byStart: TasksSummary,
-                                   termActions: Map[KernelTemplate, List[(TermGroupDesc, ParsingAction)]],
-                                   edgeProgressActions: Map[(KernelTemplate, KernelTemplate), ParsingAction],
-                                   derivedGraph: Map[KernelTemplate, Graph])
-
-  // progressedKernels와 finishedKernels는 이 parsing action으로 인해 progress된 커널과 finish된 커널들.
-  // -> 이들은 parse tree reconstruction을 위해 사용되는 것이기 때문에 여기에는 accept condition이 필요 없음
-  case class ParsingAction(appendingMilestones: List[(KernelTemplate, AcceptCondition)],
-                           tasksSummary: TasksSummary,
-                           startNodeProgressConditions: List[AcceptCondition],
-                           graphBetween: Graph)
-
-  def precomputedParserData(grammar: NGrammar): PrecomputedParserData =
-    new Try2(new NaiveParser(grammar)).parserData()
+object CondensedParserGen {
+  def generatedCondensedParserData(grammar: NGrammar): CondensedParserData =
+    new CondensedParserGen(new NaiveParser(grammar)).parserData()
 
   def main(args: Array[String]): Unit = {
     val grammar = ArrayExprAst.ngrammar
-    val try2 = new Try2(new NaiveParser(grammar))
+    val try2 = new CondensedParserGen(new NaiveParser(grammar))
 
     val parserData = try2.parserData()
 

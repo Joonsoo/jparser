@@ -1,17 +1,16 @@
-package com.giyeok.jparser.parsergen.try2
+package com.giyeok.jparser.parsergen.condensed
 
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.metalang3a.generated.{ExceptMatchAst, LongestMatchAst}
+import com.giyeok.jparser.metalang3a.generated.ExceptMatchAst
 import com.giyeok.jparser.nparser.AcceptCondition._
+import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
-import com.giyeok.jparser.nparser.{AcceptCondition, ParseTreeConstructor2}
-import com.giyeok.jparser.parsergen.try2.Try2.{KernelTemplate, PrecomputedParserData, TasksSummary}
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForest, ParseForestFunc}
 
 import scala.annotation.tailrec
 
-object Try2Parser {
+object CondensedParser {
   def reconstructParseTree(grammar: NGrammar, finalCtx: Try2ParserContext, input: Seq[Input]): Option[ParseForest] = {
     val kernels = finalCtx.actionsHistory.map(gen => Kernels(gen.flatMap {
       case TermAction(beginGen, midGen, endGen, summary) =>
@@ -51,8 +50,8 @@ object Try2Parser {
     val input = Inputs.fromString("abcd if ifff hello else elseee else else")
     val valuefier = ExceptMatchAst.matchStart _
 
-    val parserData = Try2.precomputedParserData(grammar)
-    val finalCtx = new Try2Parser(parserData).parse(input)
+    val parserData = CondensedParserGen.generatedCondensedParserData(grammar)
+    val finalCtx = new CondensedParser(parserData).parse(input)
     // TODO finalCtx.actionHistory 에서 accept condition 평가해서 unacceptable 한것들 날리기
     val parseTree = reconstructParseTree(grammar, finalCtx, input).get.trees.head
     parseTree.printTree()
@@ -61,7 +60,7 @@ object Try2Parser {
   }
 }
 
-class Try2Parser(val parserData: PrecomputedParserData) {
+class CondensedParser(val parserData: CondensedParserData) {
   def initialCtx: Try2ParserContext = Try2ParserContext(
     List(MilestonePath(Milestone(None, parserData.grammar.startSymbol, 0, 0), Always)),
     List(List(TermAction(0, 0, 0, parserData.byStart))))
@@ -124,9 +123,6 @@ class Try2Parser(val parserData: PrecomputedParserData) {
         case None => List()
       }
     }
-
-    private def transformStartProgressConditions(parentGen: Int, beginGen: Int, endGen: Int, conditions: List[AcceptCondition]): List[AcceptCondition] =
-      conditions.map(transformEdgeActionCondition(_, -1, parentGen, beginGen, endGen))
 
     private def transformEdgeActionCondition(condition: AcceptCondition, parentBeginGen: Int, parentGen: Int, beginGen: Int, endGen: Int): AcceptCondition = {
       def genOf(gen: Int) = gen match {
