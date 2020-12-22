@@ -6,7 +6,6 @@ import com.giyeok.jparser.examples.metalang.SimpleGrammars
 import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.nparser.ParsingContext
 import com.giyeok.jparser.parsergen.deprecated.nocond.{AKernel, AKernelGen, AKernelGenEdge, AKernelGenGraph, GrammarAnalyzer, ParsingTaskSimulator, ProgressTask, Task}
-import com.giyeok.jparser.parsergen.nocond._
 import com.giyeok.jparser.visualize.{AbstractZestGraphWidget, BasicVisualizeResources}
 import org.eclipse.draw2d.{ColorConstants, Figure, LineBorder}
 import org.eclipse.swt.SWT

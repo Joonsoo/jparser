@@ -1,14 +1,13 @@
 package com.giyeok.jparser.parsergen.deprecated.nocond.codegen
 
-import java.io.File
-import com.giyeok.jparser.examples.metalang.{JsonGrammar, SimpleGrammars}
-import com.giyeok.jparser.{Grammar, NGrammar}
+import com.giyeok.jparser.examples.metalang.SimpleGrammars
 import com.giyeok.jparser.metalang.MetaGrammar
-import com.giyeok.jparser.parsergen.deprecated.nocond.codegen.JavaGenTemplates.MainFunc
-import JavaGenTemplates.{InputLoop, MainFunc, TestInputs}
-import JavaGenUtils._
+import com.giyeok.jparser.parsergen.deprecated.nocond.codegen.JavaGenTemplates.{InputLoop, MainFunc}
+import com.giyeok.jparser.parsergen.deprecated.nocond.codegen.JavaGenUtils._
 import com.giyeok.jparser.parsergen.deprecated.nocond.{SimpleParser, SimpleParserGen}
-import com.giyeok.jparser.parsergen.nocond.SimpleParser
+import com.giyeok.jparser.{Grammar, NGrammar}
+
+import java.io.File
 
 class SimpleParserJavaGen(val parser: SimpleParser) extends JavaParserGenerator {
     def generateUnformattedJavaSource(pkgName: String, className: String, mainFunc: MainFunc): String = {

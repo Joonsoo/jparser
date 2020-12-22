@@ -49,7 +49,7 @@ class CondensedParserTest extends AnyFlatSpec {
 
   it should "correctly parses MetaLang3Ast" in {
     val grammar = MetaLang3Ast.ngrammar
-    val input = Inputs.fromString("A = B")
+    val input = Inputs.fromString("LhsName = RhsNonterminal 'abc'")
     val parserData = generatedCondensedParserData(grammar)
     val valuefier = MetaLang3Ast.matchStart _
 
