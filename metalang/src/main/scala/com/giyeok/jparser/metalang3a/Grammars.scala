@@ -81,12 +81,27 @@ object Grammars {
       |WS = ' \n\r\t'+ {WS()}
       |""".stripMargin)
 
+  def generateExpressionGrammar(): Unit = generateScalaParserCode("ExpressionGrammarAst",
+    """Expression: Expression = Term
+      |    | Expression WS '+' WS Term {BinOp(op=$2, lhs=$0, rhs=$4)}
+      |Term: Term = Factor
+      |    | Term WS '*' WS Factor {BinOp($2, $0, $4)}
+      |Factor: Factor = Number
+      |    | Variable
+      |    | '(' WS Expression WS ')' {Paren(expr=$2)}
+      |Number: Number = '0' {Integer(value="0")}
+      |    | '1-9' '0-9'* {Integer(str($0) + str($1))}
+      |Variable = <'A-Za-z'+> {Variable(name=$0)}
+      |WS = ' '*
+      |""".stripMargin)
+
   def main(args: Array[String]): Unit = {
     //    generateArrayExprAst()
     //    generateAutoDbAst()
     //    generateMetaLang3Ast()
     //    generateMlProtoAst()
     //    generateLongestMatch()
-    generateExceptMatch()
+    //    generateExceptMatch()
+    generateExpressionGrammar()
   }
 }

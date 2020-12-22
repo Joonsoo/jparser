@@ -12,6 +12,7 @@ import scala.annotation.tailrec
 
 object CondensedParser {
   def reconstructParseTree(grammar: NGrammar, finalCtx: Try2ParserContext, input: Seq[Input]): Option[ParseForest] = {
+    // TODO accept condition 필터링
     val kernels = finalCtx.actionsHistory.map(gen => Kernels(gen.flatMap {
       case TermAction(beginGen, midGen, endGen, summary) =>
         def genOf(gen: Int) = gen match {
@@ -24,7 +25,6 @@ object CondensedParser {
           Kernel(kernel.symbolId, kernel.pointer, genOf(kernel.beginGen), genOf(kernel.endGen))
         }
       case EdgeAction(parentBeginGen, beginGen, midGen, endGen, summary, condition) =>
-        // TODO accept condition으로 필터링
         def genOf(gen: Int) = gen match {
           case 0 => parentBeginGen
           case 1 => beginGen
@@ -37,26 +37,6 @@ object CondensedParser {
         }
     }.toSet))
     new ParseTreeConstructor2(ParseForestFunc)(grammar)(input, kernels).reconstruct()
-  }
-
-  def main(args: Array[String]): Unit = {
-    //    val parserData = Try2.precomputedParserData(ExpressionGrammar.ngrammar)
-    //    new Try2Parser(parserData).parse("1*2+34")
-    //    val grammar = ArrayExprAst.ngrammar
-    //    val valuefier = ArrayExprAst.matchStart _
-    //    val input = Inputs.fromString("[a,a,a]")
-
-    val grammar = ExceptMatchAst.ngrammar
-    val input = Inputs.fromString("abcd if ifff hello else elseee else else")
-    val valuefier = ExceptMatchAst.matchStart _
-
-    val parserData = CondensedParserGen.generatedCondensedParserData(grammar)
-    val finalCtx = new CondensedParser(parserData).parse(input)
-    // TODO finalCtx.actionHistory 에서 accept condition 평가해서 unacceptable 한것들 날리기
-    val parseTree = reconstructParseTree(grammar, finalCtx, input).get.trees.head
-    parseTree.printTree()
-    val ast = valuefier(parseTree)
-    println(ast)
   }
 }
 

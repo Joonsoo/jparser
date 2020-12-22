@@ -212,8 +212,4 @@ object ExceptMatchAst {
 
   def parseAst(text: String): Either[List[Token], ParsingErrors.ParsingError] =
     ParseTreeUtil.parseAst(naiveParser, text, matchStart)
-
-  def main(args: Array[String]): Unit = {
-    println(parseAst("abcd if ifff hello else elseee else else"))
-  }
 }

@@ -3,12 +3,10 @@ package com.giyeok.jparser.parsergen.condensed
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.NSequence
-import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
 import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.{AcceptCondition, NaiveParser}
 import com.giyeok.jparser.parsergen.utils.TermGrouper
-import com.giyeok.jparser.visualize.DotGraphGenerator
 
 import scala.annotation.tailrec
 
@@ -34,13 +32,13 @@ class CondensedParserGen(val parser: NaiveParser) {
     case List() => cc
   }
 
-  private def startingCtxFrom(template: KernelTemplate): (Node, ContWithTasks) = {
-    val startNode = Node(Kernel(template.symbolId, template.pointer, 0, 0), Always)
+  private def startingCtxFrom(template: KernelTemplate, nextGen: Int): (Node, ContWithTasks) = {
+    val startNode = Node(Kernel(template.symbolId, template.pointer, 0, nextGen), Always)
     val startGraph = Graph(Set(startNode), Set())
 
     val deriveTask = parser.DeriveTask(startNode)
 
-    (startNode, runTasksWithProgressBarrier(0, List(deriveTask), startNode,
+    (startNode, runTasksWithProgressBarrier(nextGen, List(deriveTask), startNode,
       ContWithTasks(List(deriveTask), parser.Cont(startGraph, Map()))))
   }
 
@@ -68,8 +66,6 @@ class CondensedParserGen(val parser: NaiveParser) {
       .filter(node => node.kernel.beginGen < node.kernel.endGen && node.kernel.endGen == nextGen)
     val startProgressTasks = termProgressResult.tasks.progressTasks.filter(_.node == startNode)
     val startProgressConditions = startProgressTasks.map(_.condition)
-    println(appendingMilestones)
-    println(startProgressConditions)
 
     val (_, actions) = startProgressTasks.foldLeft((termProgressResult.cc, termProgressResult.tasks)) { case ((cc, tasks), nextTask) =>
       val (ncc, newTasks) = parser.process(nextGen, nextTask, cc)
@@ -97,16 +93,9 @@ class CondensedParserGen(val parser: NaiveParser) {
   // `kernelTemplate`가 tip에 있을 때 받을 수 있는 터미널들을 찾고, 각 터미널에 대해 KernelTemplateAction 계산
   // 반환되는 pair에서 _1는 각각 disjoint해야 함(같은 터미널을 포함할 수 없음)
   def termActionsFrom(kernelTemplate: KernelTemplate): List[(TermGroupDesc, ParsingAction)] = {
-    val startNode = Node(Kernel(kernelTemplate.symbolId, kernelTemplate.pointer, 0, 1), Always)
-    val startGraph = Graph(Set(startNode), Set())
+    val (startNode, ContWithTasks(_, parser.Cont(derived, _))) = startingCtxFrom(kernelTemplate, 1)
 
-    val deriveTask = parser.DeriveTask(startNode)
-
-    val ContWithTasks(_, parser.Cont(derived, _)) = runTasksWithProgressBarrier(1, List(deriveTask), startNode,
-      ContWithTasks(List(deriveTask), parser.Cont(startGraph, Map())))
-    // val (startNode, ContWithTasks(_, parser.Cont(derived, _))) = startingCtxFrom(kernelTemplate)
-
-    new DotGraphGenerator(parser.grammar).addGraph(derived).printDotGraph()
+    // new DotGraphGenerator(parser.grammar).addGraph(derived).printDotGraph()
 
     TermGrouper.termGroupsOf(parser.grammar, derived).map { termGroup =>
       val termNodes = parser.finishableTermNodes(derived, 1, termGroup)
@@ -118,14 +107,7 @@ class CondensedParserGen(val parser: NaiveParser) {
 
   // `simulateEdgeProgress` 바로 다음에 `endTemplate`가 붙어있고 `endTemplate`이 progress되는 경우
   def edgeProgressActionsBetween(startTemplate: KernelTemplate, endTemplate: KernelTemplate): ParsingAction = {
-    val startNode = Node(Kernel(startTemplate.symbolId, startTemplate.pointer, 0, 1), Always)
-    val startGraph = Graph(Set(startNode), Set())
-
-    val deriveTask = parser.DeriveTask(startNode)
-
-    val ContWithTasks(_, parser.Cont(derived, _)) = runTasksWithProgressBarrier(1, List(deriveTask), startNode,
-      ContWithTasks(List(deriveTask), parser.Cont(startGraph, Map())))
-    // val (startNode, ContWithTasks(_, parser.Cont(derived, _))) = startingCtxFrom(startTemplate)
+    val (startNode, ContWithTasks(_, parser.Cont(derived, _))) = startingCtxFrom(startTemplate, 1)
 
     val endKernelInitials = derived.nodes.filter { node =>
       node.kernel.symbolId == endTemplate.symbolId && node.kernel.pointer < endTemplate.pointer
@@ -148,9 +130,7 @@ class CondensedParserGen(val parser: NaiveParser) {
     val (graphBetween: Graph, endNodes: Set[Node]) = (afterTrimming, fakeEnds.values.toSet)
 
     val progressTasks = endNodes.map(parser.ProgressTask(_, Always)).toList
-    val action = parsingActionFrom(graphBetween, startNode, progressTasks, 2)
-    println(action)
-    action
+    parsingActionFrom(graphBetween, startNode, progressTasks, 2)
   }
 
   case class Jobs(milestones: Set[KernelTemplate], edges: Set[(KernelTemplate, KernelTemplate)])
@@ -182,7 +162,7 @@ class CondensedParserGen(val parser: NaiveParser) {
 
   def parserData(): CondensedParserData = {
     val start = KernelTemplate(parser.grammar.startSymbol, 0)
-    val (_, ContWithTasks(tasks, _)) = startingCtxFrom(start)
+    val (_, ContWithTasks(tasks, _)) = startingCtxFrom(start, 0)
 
     val result = createParserData(Jobs(Set(start), Set()),
       CondensedParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map(), Map()))
@@ -196,24 +176,4 @@ class CondensedParserGen(val parser: NaiveParser) {
 object CondensedParserGen {
   def generatedCondensedParserData(grammar: NGrammar): CondensedParserData =
     new CondensedParserGen(new NaiveParser(grammar)).parserData()
-
-  def main(args: Array[String]): Unit = {
-    val grammar = ArrayExprAst.ngrammar
-    val try2 = new CondensedParserGen(new NaiveParser(grammar))
-
-    val parserData = try2.parserData()
-
-    //    val y = try2.termActionsFrom(KernelTemplate(grammar.nsymbols(grammar.startSymbol), 0))
-    //    println(y)
-    println(parserData)
-
-    val kt1 = KernelTemplate(7, 2)
-    try2.termActionsFrom(kt1).foreach { x =>
-      println(s"Term: ${x._1.toShortString}")
-      x._2.appendingMilestones.foreach { appending =>
-        val action = try2.edgeProgressActionsBetween(kt1, appending._1)
-        println(action)
-      }
-    }
-  }
 }
