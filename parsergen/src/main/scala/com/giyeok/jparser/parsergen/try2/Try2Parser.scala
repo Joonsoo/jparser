@@ -181,15 +181,19 @@ class Try2Parser(val parserData: PrecomputedParserData) {
         def symbolFinishConditions(beginGen: Int, endGen: Int, symbolId: Int): Seq[AcceptCondition] =
           genActions.filter(_.endGen >= endGen).flatMap {
             case termAction: TermAction =>
-              val metaKernel = if (termAction.beginGen == beginGen) Kernel(symbolId, 1, 0, 2) else Kernel(symbolId, 1, 1, 2)
-              // 여기서 symbol은 항상 atomic symbol이므로 progress되면 바로 finish되기 때문에 progressed는 고려할 필요 없을듯.
-              termAction.summary.finishedKernels.filter(_.kernel == metaKernel).map(_.condition)
-                .map(transformTermActionCondition(_, termAction.beginGen, termAction.midGen, termAction.endGen))
+              if (termAction.beginGen == beginGen || termAction.midGen == beginGen) {
+                val metaKernel = if (termAction.beginGen == beginGen) Kernel(symbolId, 1, 0, 2) else Kernel(symbolId, 1, 1, 2)
+                // 여기서 symbol은 항상 atomic symbol이므로 progress되면 바로 finish되기 때문에 progressed는 고려할 필요 없을듯.
+                termAction.summary.finishedKernels.filter(_.kernel == metaKernel).map(_.condition)
+                  .map(transformTermActionCondition(_, termAction.beginGen, termAction.midGen, termAction.endGen))
+              } else List()
             case edgeAction: EdgeAction =>
-              val metaKernel = if (edgeAction.beginGen == beginGen) Kernel(symbolId, 1, 1, 3) else Kernel(symbolId, 1, 2, 3)
-              // 여기서도 마찬가지로 symbol은 항상 atomic이므로 finish만 고려하면 됨
-              edgeAction.summary.finishedKernels.filter(_.kernel == metaKernel).map(_.condition)
-                .map(transformEdgeActionCondition(_, edgeAction.parentBeginGen, edgeAction.beginGen, edgeAction.midGen, edgeAction.endGen))
+              if (edgeAction.beginGen == beginGen || edgeAction.midGen == beginGen) {
+                val metaKernel = if (edgeAction.beginGen == beginGen) Kernel(symbolId, 1, 1, 3) else Kernel(symbolId, 1, 2, 3)
+                // 여기서도 마찬가지로 symbol은 항상 atomic이므로 finish만 고려하면 됨
+                edgeAction.summary.finishedKernels.filter(_.kernel == metaKernel).map(_.condition)
+                  .map(transformEdgeActionCondition(_, edgeAction.parentBeginGen, edgeAction.beginGen, edgeAction.midGen, edgeAction.endGen))
+              } else List()
           }.distinct
 
         def symbolStillPossible(symbolId: Int, beginGen: Int): Boolean = {
