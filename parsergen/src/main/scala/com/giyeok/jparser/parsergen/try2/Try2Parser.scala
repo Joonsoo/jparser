@@ -63,12 +63,12 @@ object Try2Parser {
 
 class Try2Parser(val parserData: PrecomputedParserData) {
   def initialCtx: Try2ParserContext = Try2ParserContext(
-    List(Milestone(None, parserData.grammar.startSymbol, 0, 0, Always)),
+    List(MilestonePath(Milestone(None, parserData.grammar.startSymbol, 0, 0), Always)),
     List(List(TermAction(0, 0, 0, parserData.byStart))))
 
   def parse(inputSeq: Seq[Inputs.Input]): Try2ParserContext = {
     println("=== initial")
-    initialCtx.tips.foreach(t => println(t.prettyString))
+    initialCtx.paths.foreach(t => println(t.prettyString))
     inputSeq.zipWithIndex.foldLeft(initialCtx) { (m, i) =>
       val (nextInput, gen0) = i
       val gen = gen0 + 1
@@ -101,7 +101,8 @@ class Try2Parser(val parserData: PrecomputedParserData) {
       }
     }
 
-    def proceed(ctx: Try2ParserContext, gen: Int, input: Inputs.Input): List[Milestone] = ctx.tips.flatMap { tip =>
+    def proceed(ctx: Try2ParserContext, gen: Int, input: Inputs.Input): List[MilestonePath] = ctx.paths.flatMap { path =>
+      val tip = path.tip
       val parentGen = tip.parent.map(_.gen).getOrElse(0)
       val termActions = parserData.termActions(tip.kernelTemplate)
       termActions.find(_._1.contains(input)) match {
@@ -111,14 +112,14 @@ class Try2Parser(val parserData: PrecomputedParserData) {
           val appended = action.appendingMilestones.map { appending =>
             val kernelTemplate = appending._1
             val acceptCondition = transformTermActionCondition(appending._2, parentGen, tip.gen, gen)
-            Milestone(Some(tip), kernelTemplate.symbolId, kernelTemplate.pointer, gen,
-              conjunct(tip.acceptCondition, acceptCondition))
+            MilestonePath(Milestone(Some(tip), kernelTemplate.symbolId, kernelTemplate.pointer, gen),
+              conjunct(path.acceptCondition, acceptCondition))
           }
           // action.startNodeProgressConditions가 비어있지 않으면 tip을 progress 시킨다
           // val transformedConditions = transformStartProgressConditions(parentGen, tip.gen, gen, action.startNodeProgressConditions)
           val transformedConditions = action.startNodeProgressConditions.map(
             transformTermActionCondition(_, parentGen, tip.gen, gen))
-          val reduced = progressTip(tip, gen, transformedConditions.map(conjunct(_, tip.acceptCondition)))
+          val reduced = progressTip(tip, gen, transformedConditions.map(conjunct(_, path.acceptCondition)))
           appended ++ reduced
         case None => List()
       }
@@ -148,7 +149,7 @@ class Try2Parser(val parserData: PrecomputedParserData) {
       }
     }
 
-    private def progressTip(tip: Milestone, gen: Int, acceptConditions: List[AcceptCondition]): List[Milestone] =
+    private def progressTip(tip: Milestone, gen: Int, acceptConditions: List[AcceptCondition]): List[MilestonePath] =
       acceptConditions.flatMap { condition =>
         // (tip.parent-tip) 사이의 엣지에 대한 edge action 실행
         tip.parent match {
@@ -160,7 +161,7 @@ class Try2Parser(val parserData: PrecomputedParserData) {
             // tip은 지워지고 tip.parent - edgeAction.appendingMilestones 가 추가됨
             val appended = edgeAction.appendingMilestones.map { appending =>
               val appendingCondition = transformEdgeActionCondition(appending._2, parentBeginGen, parent.gen, tip.gen, gen)
-              Milestone(Some(parent), appending._1.symbolId, appending._1.pointer, gen,
+              MilestonePath(Milestone(Some(parent), appending._1.symbolId, appending._1.pointer, gen),
                 conjunct(condition, appendingCondition))
             }
             // edgeAction.startNodeProgressConditions에 대해 위 과정 반복 수행
@@ -176,7 +177,7 @@ class Try2Parser(val parserData: PrecomputedParserData) {
         }
       }
 
-    class AcceptConditionEvaluator(milestones: List[Milestone], gen: Int, genActions: List[GenAction]) {
+    class AcceptConditionEvaluator(milestonePaths: List[MilestonePath], gen: Int, genActions: List[GenAction]) {
       def evaluateAcceptCondition(acceptCondition: AcceptCondition): AcceptCondition = {
         def symbolFinishConditions(beginGen: Int, endGen: Int, symbolId: Int): Seq[AcceptCondition] =
           genActions.filter(_.endGen >= endGen).flatMap {
@@ -217,7 +218,7 @@ class Try2Parser(val parserData: PrecomputedParserData) {
             } else false
           }
 
-          milestones.exists(needToPreserve)
+          milestonePaths.exists(path => needToPreserve(path.tip))
         }
 
         acceptCondition match {
@@ -276,10 +277,14 @@ class Try2Parser(val parserData: PrecomputedParserData) {
   }
 }
 
-case class Milestone(parent: Option[Milestone], symbolId: Int, pointer: Int, gen: Int, acceptCondition: AcceptCondition) {
+case class MilestonePath(tip: Milestone, acceptCondition: AcceptCondition) {
+  def prettyString: String = s"${tip.prettyString} $acceptCondition"
+}
+
+case class Milestone(parent: Option[Milestone], symbolId: Int, pointer: Int, gen: Int) {
   def kernelTemplate: KernelTemplate = KernelTemplate(symbolId, pointer)
 
-  private def myself = s"($symbolId $pointer $gen ${acceptCondition})"
+  private def myself = s"($symbolId $pointer $gen)"
 
   def prettyString: String = parent match {
     case Some(value) => s"${value.prettyString} $myself"
@@ -300,4 +305,4 @@ case class EdgeAction(parentBeginGen: Int, beginGen: Int, midGen: Int, endGen: I
 
 // TODO edge action - 체인 관계를 어떻게..?
 
-case class Try2ParserContext(tips: List[Milestone], actionsHistory: List[List[GenAction]])
+case class Try2ParserContext(paths: List[MilestonePath], actionsHistory: List[List[GenAction]])
