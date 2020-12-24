@@ -3,7 +3,7 @@ package com.giyeok.jparser.metalang2
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.{NStart, NSymbol}
 import com.giyeok.jparser.metalang2.TypeDependenceGraph.SymbolNode
-import com.giyeok.jparser.utils.ScalaCodeGenUtil.javaChar
+import com.giyeok.jparser.utils.JavaCodeGenUtil.javaChar
 import com.giyeok.jparser.{Grammar, NGrammar, Symbols}
 
 object ScalaDefGenerator {

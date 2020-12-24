@@ -1,12 +1,12 @@
 package com.giyeok.jparser.parsergen.condensed.codegen
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
-import com.giyeok.jparser.metalang3a.generated.{ArrayExprAst, MetaLang3Ast}
+import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.nparser.ParsingContext.{Graph, Kernel, Node}
+import com.giyeok.jparser.nparser.ParsingContext.Kernel
 import com.giyeok.jparser.nparser.{AcceptCondition, ParsingContext}
 import com.giyeok.jparser.parsergen.condensed._
-import com.giyeok.jparser.utils.ScalaCodeGenUtil.{ArgsCall, ArrowBlob, CharBlob, ObjectDef, PairBlob, ScalaCodeBlobNode, ScalaFile, TextBlob, ValBlob, javaChar}
+import com.giyeok.jparser.utils.ScalaCodeGenUtil._
 import com.giyeok.jparser.{Inputs, NGrammar}
 
 import java.io.{BufferedWriter, File, FileWriter}
