@@ -2,10 +2,10 @@ package com.giyeok.jparser.metalang3a.codegen
 
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
-import com.giyeok.jparser.metalang2.ScalaDefGenerator.javaChar
 import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, check}
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.{CodeBlob, ExprBlob, Options}
 import com.giyeok.jparser.metalang3a.{ClassHierarchyItem, ClassRelationCollector, Type, ValuefyExpr}
+import com.giyeok.jparser.utils.ScalaCodeGenUtil.javaChar
 import com.giyeok.jparser.{NGrammar, Symbols}
 
 import scala.annotation.tailrec

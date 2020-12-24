@@ -3,29 +3,11 @@ package com.giyeok.jparser.metalang2
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.{NStart, NSymbol}
 import com.giyeok.jparser.metalang2.TypeDependenceGraph.SymbolNode
+import com.giyeok.jparser.utils.ScalaCodeGenUtil.javaChar
 import com.giyeok.jparser.{Grammar, NGrammar, Symbols}
 
 object ScalaDefGenerator {
     private def escapeString(str: String): String = s""""$str""""
-
-    def isPrintableChar(char: Char): Boolean = {
-        val block = Character.UnicodeBlock.of(char)
-        (!Character.isISOControl(char)) && block != null && block != Character.UnicodeBlock.SPECIALS
-    }
-
-    def javaChar(char: Char): String = char match {
-        case '\n' => "\\n"
-        case '\r' => "\\r"
-        case '\t' => "\\t"
-        case '\\' => "\\\\"
-        case '\'' => "\\'"
-        case c if !isPrintableChar(c) && c.toInt < 65536 =>
-            val c1 = (c.toInt >> 8) % 256
-            val c2 = c.toInt % 256
-            val hexChars = "0123456789abcdef"
-            s"\\u${hexChars(c1 >> 4)}${hexChars(c1 & 15)}${hexChars(c2 >> 4)}${hexChars(c2 & 15)}"
-        case c => c.toString
-    }
 
     private def escapeChar(c: Char): String = s"'${javaChar(c)}'"
 

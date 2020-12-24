@@ -3,7 +3,7 @@ package com.giyeok.jparser.nparser
 object AcceptCondition {
     import ParsingContext._
 
-    sealed trait AcceptCondition {
+    sealed trait AcceptCondition extends Equals {
         def nodes: Set[Node]
         def shiftGen(gen: Int): AcceptCondition
         def evaluate(gen: Int, graph: Graph): AcceptCondition

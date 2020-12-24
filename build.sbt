@@ -44,6 +44,16 @@ lazy val metalang = (project in file("metalang")).
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(examples % "compile->test")
 
+lazy val parsergen = (project in file("parsergen")).
+  settings(
+    name := "jparser-parsergen",
+    libraryDependencies += "com.google.googlejavaformat" % "google-java-format" % "1.6",
+    libraryDependencies ++= testDeps,
+    javacOptions ++= Seq("-encoding", "UTF-8")).
+  dependsOn(core % "test->test;compile->compile").
+  dependsOn(metalang % "test->test;compile->compile").
+  dependsOn(examples % "test->test;compile->compile")
+
 lazy val visJavaOptions: Seq[String] = {
   if (sys.props("os.name") == "Mac OS X") Seq("-XstartOnFirstThread", "-d64") else Seq()
 }
@@ -63,16 +73,6 @@ lazy val visualize = (project in file("visualize")).
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile")
-
-lazy val parsergen = (project in file("parsergen")).
-  settings(
-    name := "jparser-parsergen",
-    libraryDependencies += "com.google.googlejavaformat" % "google-java-format" % "1.6",
-    libraryDependencies ++= testDeps,
-    javacOptions ++= Seq("-encoding", "UTF-8")).
-  dependsOn(core % "test->test;compile->compile").
-  dependsOn(examples % "test->test;compile->compile").
-  dependsOn(visualize % "test->test;compile->compile")
 
 lazy val study = (project in file("study")).
   settings(

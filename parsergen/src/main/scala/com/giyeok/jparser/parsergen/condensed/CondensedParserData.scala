@@ -5,7 +5,9 @@ import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.ParsingContext.{Graph, Node}
 
-case class KernelTemplate(symbolId: Int, pointer: Int)
+case class KernelTemplate(symbolId: Int, pointer: Int) extends Ordered[KernelTemplate] {
+  override def compare(that: KernelTemplate): Int = if (symbolId == that.symbolId) pointer - that.pointer else symbolId - that.symbolId
+}
 
 case class TasksSummary(progressedKernels: List[(Node, AcceptCondition)], finishedKernels: List[Node])
 
