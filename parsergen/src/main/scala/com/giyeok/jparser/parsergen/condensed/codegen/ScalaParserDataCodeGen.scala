@@ -9,9 +9,7 @@ import com.giyeok.jparser.parsergen.condensed._
 import com.giyeok.jparser.utils.ScalaCodeGenUtil._
 import com.giyeok.jparser.{Inputs, NGrammar}
 
-import java.io.{BufferedWriter, File, FileWriter}
-
-class ParserDataScalaCodeGen(parserData: CondensedParserData) {
+class ScalaParserDataCodeGen(parserData: CondensedParserData) {
   def requiredImports(): Set[String] = Set(
     "com.giyeok.jparser.Inputs",
     "com.giyeok.jparser.nparser.AcceptCondition.Always",
@@ -128,21 +126,15 @@ class ParserDataScalaCodeGen(parserData: CondensedParserData) {
     ArgsCall("Graph", List(ArgsCall("Set", List()), ArgsCall("Set", List())))
 }
 
-object ParserDataScalaCodeGen {
+object ScalaParserDataCodeGen {
   val ngrammar: NGrammar = MetaLang3Ast.ngrammar
 
   def main(args: Array[String]): Unit = {
     val parserData = new CondensedParserGen(MetaLang3Ast.naiveParser).parserData()
-    val codegen = new ParserDataScalaCodeGen(parserData)
+    val codegen = new ScalaParserDataCodeGen(parserData)
     codegen.requiredImports().foreach(i => println(s"import $i"))
     println(codegen.parserData(TextBlob("ngrammar")).generate(0))
     println("***")
-
-    val filePath = new File("MetaLang3AstParserData.scala")
-
-    val writer = new BufferedWriter(new FileWriter(filePath))
-    writer.write(codegen.parserDataFile("com.giyeok.jparser.parsergen.condensed.generated", "MetaLang3Ast").generate())
-    writer.close()
 
     //    val parser = new CondensedParser(x)
     //    val parsed = parser.parseAndReconstructToForest("[a,a,a,a]").get.trees.head
