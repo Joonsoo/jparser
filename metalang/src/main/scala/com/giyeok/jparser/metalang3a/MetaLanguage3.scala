@@ -1,6 +1,5 @@
 package com.giyeok.jparser.metalang3a
 
-import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
 import com.giyeok.jparser.metalang3a.Type._
@@ -137,7 +136,7 @@ object MetaLanguage3 {
 
   def generateScalaParserCode(grammar: String, className: String, packageName: String,
                               mainFuncExamples: Option[List[String]] = None,
-                              options: ScalaCodeGen.Options = ScalaCodeGen.Options()): String = {
+                              options: ScalaCodeGen.Options = ScalaCodeGen.Options()): (ProcessedGrammar, String) = {
     val analysis = analyzeGrammar(grammar, className)
     if (!analysis.errors.isClear) {
       throw new Exception(analysis.errors.toString)
@@ -145,19 +144,21 @@ object MetaLanguage3 {
 
     val codegen = new ScalaCodeGen(analysis, options)
 
-    s"package $packageName\n\n" + codegen.generateParser(className, mainFuncExamples)
+    (analysis, s"package $packageName\n\n" + codegen.generateParser(className, mainFuncExamples))
   }
 
   def writeScalaParserCode(grammar: String, className: String, packageName: String, targetDir: File,
                            mainFuncExamples: Option[List[String]] = None,
-                           options: ScalaCodeGen.Options = ScalaCodeGen.Options()): Unit = {
-    val generatedCode = generateScalaParserCode(grammar, className, packageName, mainFuncExamples, options)
+                           options: ScalaCodeGen.Options = ScalaCodeGen.Options()): ProcessedGrammar = {
+    val (analysis, generatedCode) = generateScalaParserCode(grammar, className, packageName, mainFuncExamples, options)
 
     val filePath = new File(targetDir, s"${packageName.split('.').mkString("/")}/$className.scala")
 
     val writer = new BufferedWriter(new FileWriter(filePath))
     writer.write(generatedCode)
     writer.close()
+
+    analysis
   }
 
   def testExample(example: MetaLang3Example): Unit = {

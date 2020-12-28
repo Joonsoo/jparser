@@ -1,20 +1,22 @@
 package com.giyeok.jparser.metalang3a
 
-import java.io.File
-
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
-import com.giyeok.jparser.metalang3a.MetaLanguage3.writeScalaParserCode
+import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, writeScalaParserCode}
+import com.giyeok.jparser.metalang3a.codegen.GrammarDefProtobufConverter
+import com.google.protobuf.CodedOutputStream
 
+import java.io.{BufferedOutputStream, File, FileOutputStream}
 import scala.io.Source
 
 object Grammars {
-  private def generateScalaParserCode(name: String, grammarDef: String, examples: List[String] = null): Unit = {
+  private def generateScalaParserCode(name: String, grammarDef: String, examples: List[String] = null): ProcessedGrammar = {
     println(s"Generating $name...")
-    writeScalaParserCode(grammarDef, name,
+    val analysis = writeScalaParserCode(grammarDef, name,
       "com.giyeok.jparser.metalang3a.generated",
       new File("./metalang/src/main/scala"),
       Option(examples))
     println(s"$name generated!")
+    analysis
   }
 
   def generateMetaLang3Ast(): Unit =
@@ -94,8 +96,16 @@ object Grammars {
       |WS = ' '*
       |""".stripMargin)
 
-  def generateProto2DefinitionAst(): Unit = generateScalaParserCode("Proto2DefinitionAst",
-    readFile("./examples/src/main/resources/proto2.cdg"))
+  def generateProto2DefinitionAst(): Unit = {
+    val analysis = generateScalaParserCode("Proto2DefinitionAst", readFile("./examples/src/main/resources/proto2.cdg"))
+    val grammarProto = GrammarDefProtobufConverter.convertNGrammarToProtobuf(analysis.ngrammar)
+    println(grammarProto)
+    println(grammarProto.getSerializedSize)
+
+    val writer = new BufferedOutputStream(new FileOutputStream("Proto2DefinitionGrammar.pb"))
+    grammarProto.writeTo(writer)
+    writer.close()
+  }
 
   def generateProto3DefinitionAst(): Unit = generateScalaParserCode("Proto3DefinitionAst",
     readFile("./examples/src/main/resources/proto3.cdg"))
@@ -108,7 +118,7 @@ object Grammars {
     //    generateLongestMatch()
     //    generateExceptMatch()
     //    generateExpressionGrammar()
-    generateProto3DefinitionAst()
+    //    generateProto3DefinitionAst()
     generateProto2DefinitionAst()
   }
 }
