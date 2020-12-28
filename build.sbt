@@ -14,6 +14,9 @@ lazy val testDeps = {
   Seq(scalatest, junit)
 }
 
+lazy val protobufDep = "com.google.protobuf" % "protobuf-java" % "3.14.0"
+lazy val javaFormatDep = "com.google.googlejavaformat" % "google-java-format" % "1.9"
+
 lazy val utils = (project in file("utils")).
   settings(
     name := "jparser-utils",
@@ -39,7 +42,8 @@ lazy val core = (project in file("core")).
 
 lazy val metalang = (project in file("metalang")).
   settings(
-    name := "jparser-metalang").
+    name := "jparser-metalang",
+    libraryDependencies += protobufDep).
   dependsOn(core % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(examples % "compile->test")
@@ -47,7 +51,8 @@ lazy val metalang = (project in file("metalang")).
 lazy val parsergen = (project in file("parsergen")).
   settings(
     name := "jparser-parsergen",
-    libraryDependencies += "com.google.googlejavaformat" % "google-java-format" % "1.6",
+    libraryDependencies += javaFormatDep,
+    libraryDependencies += protobufDep,
     libraryDependencies ++= testDeps,
     javacOptions ++= Seq("-encoding", "UTF-8")).
   dependsOn(core % "test->test;compile->compile").
