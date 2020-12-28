@@ -31,7 +31,6 @@ object Grammars {
     readFile("./examples/src/main/resources/mlproto/mlproto.cdg"),
     examples = List("module Conv2d<>(inChannels: Int) {}"))
 
-
   def generateAutoDbAst(): Unit = generateScalaParserCode("AutoDbAst",
     readFile("./examples/src/main/resources/autodb/autodb.cdg"),
     examples = List(
@@ -95,6 +94,12 @@ object Grammars {
       |WS = ' '*
       |""".stripMargin)
 
+  def generateProto2DefinitionAst(): Unit = generateScalaParserCode("Proto2DefinitionAst",
+    readFile("./examples/src/main/resources/proto2.cdg"))
+
+  def generateProto3DefinitionAst(): Unit = generateScalaParserCode("Proto3DefinitionAst",
+    readFile("./examples/src/main/resources/proto3.cdg"))
+
   def main(args: Array[String]): Unit = {
     //    generateArrayExprAst()
     //    generateAutoDbAst()
@@ -102,6 +107,8 @@ object Grammars {
     //    generateMlProtoAst()
     //    generateLongestMatch()
     //    generateExceptMatch()
-    generateExpressionGrammar()
+    //    generateExpressionGrammar()
+    generateProto3DefinitionAst()
+    generateProto2DefinitionAst()
   }
 }
