@@ -129,14 +129,14 @@ object MilestoneParser {
           // genAction을 통해서는 이 accept condition을 확인할 수 없으면 그대로 반환
           // TODO genAction을 통해서는 이 accept condition을 확인할 수 있는 경우는 전체 milestone들을 확인해야 알 수 있음..
           // -> milestone들 중에 milestone.gen이 beginGen과 같고, 해당 milestone에서 derive돼서 이 symbolId가 나올 수 있으면 아직 미확정
-          val metaConditions0 = symbolFinishConditions(beginGen, endGen, symbolId)
+          val metaConditions0 = symbolFinishConditions(beginGen, endGen, symbolId).map(evolveAcceptCondition)
           val metaConditions = if (symbolStillPossible(symbolId, beginGen)) acceptCondition +: metaConditions0 else metaConditions0
-          evolveAcceptCondition(disjunct(metaConditions: _*).neg)
+          disjunct(metaConditions: _*).neg
         case Exists(_, endGen, _) if gen < endGen => acceptCondition
         case Exists(beginGen, endGen, symbolId) =>
-          val metaConditions0 = symbolFinishConditions(beginGen, endGen, symbolId)
+          val metaConditions0 = symbolFinishConditions(beginGen, endGen, symbolId).map(evolveAcceptCondition)
           val metaConditions = if (symbolStillPossible(symbolId, beginGen)) acceptCondition +: metaConditions0 else metaConditions0
-          evolveAcceptCondition(disjunct(metaConditions: _*))
+          disjunct(metaConditions: _*)
         case Unless(beginGen, endGen, symbolId) =>
           if (gen > endGen) Always else {
             assert(gen == endGen)
@@ -200,12 +200,12 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     List(GenProgress(List(startMilestonePath), List(TermAction(0, 0, 0, parserData.byStart, Always)))))
 
   def parse(inputSeq: Seq[Inputs.Input]): MilestoneParserContext = {
-    println("=== initial")
-    initialCtx.paths.foreach(t => println(t.prettyString))
+    //    println("=== initial")
+    //    initialCtx.paths.foreach(t => println(t.prettyString))
     inputSeq.zipWithIndex.foldLeft(initialCtx) { (m, i) =>
       val (nextInput, gen0) = i
-      val gen = gen0 + 1
-      println(s"=== $gen $nextInput")
+      //      val gen = gen0 + 1
+      //      println(s"=== $gen $nextInput")
       proceed(m, nextInput)
     }
   }
@@ -281,7 +281,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     // TODO processor.genActions를 바탕으로 milestones 필터링.
     // TODO -> 그런데 milestone의 tip에 있지 않은 컨디션들은? "tip이 아닌 마일스톤의 컨디션도 고려해야 하는지" 역시 문법의 특성으로 얻어내서 별도로 처리할 수 있지 않을까
     //    println("  ** before evaluating accept condition")
-    milestones0.foreach(t => println(t.prettyString))
+    //    milestones0.foreach(t => println(t.prettyString))
     val acceptConditionEvaluator = new AcceptConditionEvaluator(parserData, milestones0, gen, processor.genActions)
     val milestones = milestones0.flatMap { milestone =>
       val newCond = acceptConditionEvaluator.evolveAcceptCondition(milestone.acceptCondition)

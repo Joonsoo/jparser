@@ -75,7 +75,7 @@ object MilestoneParserProtobufConverter {
           .build()).asJava)
       .build()
 
-  def convertProtoToParserData(proto: MilestoneParserDataProto.MilestoneParserData): MilestoneParserData =
+  def convertProtoToMilestoneParserData(proto: MilestoneParserDataProto.MilestoneParserData): MilestoneParserData =
     MilestoneParserData(
       grammar = convertProtoToNGrammar(proto.getGrammar),
       byStart = convertProtoToTasksSummary(proto.getByStart),

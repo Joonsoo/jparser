@@ -38,6 +38,8 @@ object TermGroupProtobufConverter {
   }
 
   def convertProtoToCharsGroup(proto: TermGroupProto.CharsGroup): CharsGroup = CharsGroup(
-    proto.getUnicodeCategoriesList.toSet, proto.getExcludingCharsList.toSet, proto.getCharsList.toSet
+    proto.getUnicodeCategoriesList.toSet,
+    proto.getExcludingCharsList.map(s => s.charAt(0) ensuring s.length == 1).toSet,
+    proto.getCharsList.map(s => s.charAt(0) ensuring s.length == 1).toSet
   )
 }

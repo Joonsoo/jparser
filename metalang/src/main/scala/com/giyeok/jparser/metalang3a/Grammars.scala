@@ -98,7 +98,7 @@ object Grammars {
 
   def generateProto2DefinitionAst(): Unit = {
     val analysis = generateScalaParserCode("Proto2DefinitionAst", readFile("./examples/src/main/resources/proto2.cdg"))
-    val grammarProto = GrammarProtobufConverter.convertNGrammarToProtobuf(analysis.ngrammar)
+    val grammarProto = GrammarProtobufConverter.convertNGrammarToProto(analysis.ngrammar)
     println(grammarProto)
     println(grammarProto.getSerializedSize)
 

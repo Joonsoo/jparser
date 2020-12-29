@@ -8,8 +8,8 @@ class GrammarProtobufConverterTest {
   @Test
   def testConvert(): Unit = {
     val original = MetaLang3Ast.ngrammar
-    val converted = GrammarProtobufConverter.convertNGrammarToProtobuf(original)
-    val rev = GrammarProtobufConverter.convertProtobufToNGrammar(converted)
+    val converted = GrammarProtobufConverter.convertNGrammarToProto(original)
+    val rev = GrammarProtobufConverter.convertProtoToNGrammar(converted)
 
     original.nsymbols.toList.sortBy(_._1).zip(rev.nsymbols.toList.sortBy(_._1)).filter(p => p._1 != p._2).foreach { pair =>
       println(s"${pair._1._1} ${pair._1._2} ${pair._2._2}")
