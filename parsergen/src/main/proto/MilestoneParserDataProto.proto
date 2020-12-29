@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package com.giyeok.jparser.parsergen.proto;
+
+import "GrammarProto.proto";
+import "TermGroupProto.proto";
+import "NaiveParserProto.proto";
+
+message KernelTemplate {
+  int32 symbol_id = 1;
+  int32 pointer = 2;
+}
+
+message TasksSummary {
+  message ProgressedKernelPair {
+    com.giyeok.jparser.nparser.proto.Node node = 1;
+    com.giyeok.jparser.nparser.proto.AcceptCondition condition = 2;
+  }
+  repeated ProgressedKernelPair progressed_kernels = 2;
+  repeated com.giyeok.jparser.nparser.proto.Node finished_kernels = 3;
+}
+
+message ParsingAction {
+  message AppendingMilestonePair {
+    KernelTemplate kernel_template = 1;
+    com.giyeok.jparser.nparser.proto.AcceptCondition condition = 2;
+  }
+  repeated AppendingMilestonePair appending_milestones = 1;
+  TasksSummary tasks_summary = 2;
+  repeated com.giyeok.jparser.nparser.proto.AcceptCondition start_node_progress_conditions = 3;
+  com.giyeok.jparser.nparser.proto.Graph graph_between = 4;
+}
+
+message MilestoneParserData {
+  message TermActionPair {
+    KernelTemplate kernel_template = 1;
+    com.giyeok.jparser.proto.TermGroup term_group = 2;
+    ParsingAction parsing_action = 3;
+  }
+  message EdgeProgressActionPair {
+    KernelTemplate start_kernel_template = 1;
+    KernelTemplate end_kernel_template = 2;
+    ParsingAction parsing_action = 3;
+  }
+  message DerivedGraphPair {
+    KernelTemplate kernel_template = 1;
+    com.giyeok.jparser.nparser.proto.Graph graph = 2;
+  }
+  com.giyeok.jparser.proto.NGrammar grammar = 1;
+  TasksSummary by_start = 2;
+  repeated TermActionPair term_actions = 3;
+  repeated EdgeProgressActionPair edge_progress_actions = 4;
+  repeated DerivedGraphPair derived_graphs = 5;
+}

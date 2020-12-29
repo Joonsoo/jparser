@@ -1,0 +1,1 @@
+protoc --java_out=..\java --proto_path=. .\GrammarProto.proto .\TermGroupProto.proto

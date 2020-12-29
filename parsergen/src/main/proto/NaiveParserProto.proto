@@ -1,0 +1,72 @@
+syntax ="proto3";
+
+package com.giyeok.jparser.nparser.proto;
+
+import "GrammarProto.proto";
+
+message Kernel {
+  int32 symbol_id = 1;
+  int32 pointer = 2;
+  int32 begin_gen = 3;
+  int32 end_gen = 4;
+}
+
+message AcceptCondition {
+  oneof AcceptCondition {
+    com.giyeok.jparser.proto.Empty always = 1;
+    com.giyeok.jparser.proto.Empty never = 2;
+    AllConditions all_conditions = 3;
+    OrConditions or_conditions = 4;
+    NotExists not_exists = 5;
+    Exists exists = 6;
+    Unless unless = 7;
+    OnlyIf only_if = 8;
+  }
+}
+
+message AllConditions {
+  repeated AcceptCondition conditions = 1;
+}
+
+message OrConditions {
+  repeated AcceptCondition conditions = 1;
+}
+
+message NotExists {
+  int32 symbol_id = 1;
+  int32 begin_gen = 2;
+  int32 end_gen = 3;
+}
+
+message Exists {
+  int32 symbol_id = 1;
+  int32 begin_gen = 2;
+  int32 end_gen = 3;
+}
+
+message Unless {
+  int32 symbol_id = 1;
+  int32 begin_gen = 2;
+  int32 end_gen = 3;
+}
+
+message OnlyIf {
+  int32 symbol_id = 1;
+  int32 begin_gen = 2;
+  int32 end_gen = 3;
+}
+
+message Node {
+  Kernel kernel = 1;
+  AcceptCondition condition = 2;
+}
+
+message Graph {
+  message Edge {
+    int32 start_idx = 1;
+    int32 end_idx = 2;
+    bool actual = 3;
+  }
+  repeated Node nodes = 1;
+  repeated Edge edges = 2;
+}

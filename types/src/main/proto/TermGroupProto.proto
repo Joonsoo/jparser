@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package com.giyeok.jparser.proto;
+
+message TermGroup {
+  oneof TermGroup {
+    AllCharsExcluding all_chars_excluding = 1;
+    CharsGroup chars_group = 2;
+    VirtualsGroup virtuals_group = 3;
+  }
+}
+
+message AllCharsExcluding {
+  repeated CharsGroup excluding = 1;
+}
+
+message CharsGroup {
+  repeated int32 unicode_categories = 1;
+  repeated string excluding_chars = 2;
+  repeated string chars = 3;
+}
+
+message VirtualsGroup {
+  repeated string virtual_names = 1;
+}
