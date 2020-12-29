@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.condensed
+package com.giyeok.jparser.parsergen.milestone
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
@@ -12,7 +12,7 @@ case class KernelTemplate(symbolId: Int, pointer: Int) extends Ordered[KernelTem
 case class TasksSummary(progressedKernels: List[(Node, AcceptCondition)], finishedKernels: List[Node])
 
 // TODO derivedGraph와 ParsingAction.graphBetween은 커널 그래프만 저장하면 됨.
-case class CondensedParserData(grammar: NGrammar,
+case class MilestoneParserData(grammar: NGrammar,
                                byStart: TasksSummary,
                                termActions: Map[KernelTemplate, List[(TermGroupDesc, ParsingAction)]],
                                edgeProgressActions: Map[(KernelTemplate, KernelTemplate), ParsingAction],

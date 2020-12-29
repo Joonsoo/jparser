@@ -1,20 +1,20 @@
-package com.giyeok.jparser.parsergen.condensed
+package com.giyeok.jparser.parsergen.milestone
 
 import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.{Inputs, NGrammar}
 import com.giyeok.jparser.metalang3a.generated.{ArrayExprAst, ExceptMatchAst, ExpressionGrammarAst, MetaLang3Ast}
-import com.giyeok.jparser.parsergen.condensed.CondensedParser.reconstructParseTree
-import com.giyeok.jparser.parsergen.condensed.CondensedParserGen.generatedCondensedParserData
+import com.giyeok.jparser.parsergen.milestone.MilestoneParser.reconstructParseTree
+import com.giyeok.jparser.parsergen.milestone.MilestoneParserGen.generateMilestoneParserData
 import org.scalatest.flatspec.AnyFlatSpec
 
-class CondensedParserTest extends AnyFlatSpec {
+class MilestoneParserTest extends AnyFlatSpec {
 
   class Tester[T](val grammar: NGrammar, val matchStart: Node => T) {
-    val parserData: CondensedParserData = generatedCondensedParserData(grammar)
+    val parserData: MilestoneParserData = generateMilestoneParserData(grammar)
 
     def parse(input: String): List[T] = {
       val inputSeq = Inputs.fromString(input)
-      val finalCtx = new CondensedParser(parserData).parse(inputSeq)
+      val finalCtx = new MilestoneParser(parserData).parse(inputSeq)
       // TODO finalCtx.actionHistory 에서 accept condition 평가해서 unacceptable 한것들 날리기
       val parseForest = reconstructParseTree(parserData, finalCtx, inputSeq).get
       parseForest.trees.map(matchStart).toList

@@ -1,15 +1,15 @@
-package com.giyeok.jparser.parsergen.condensed.codegen
+package com.giyeok.jparser.parsergen.milestone.codegen
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
 import com.giyeok.jparser.nparser.{AcceptCondition, ParsingContext}
-import com.giyeok.jparser.parsergen.condensed._
+import com.giyeok.jparser.parsergen.milestone._
 import com.giyeok.jparser.utils.ScalaCodeGenUtil._
 import com.giyeok.jparser.{Inputs, NGrammar}
 
-class ScalaParserDataCodeGen(parserData: CondensedParserData) {
+class ScalaParserDataCodeGen(parserData: MilestoneParserData) {
   def requiredImports(): Set[String] = Set(
     "com.giyeok.jparser.Inputs",
     "com.giyeok.jparser.nparser.AcceptCondition.Always",
@@ -23,12 +23,12 @@ class ScalaParserDataCodeGen(parserData: CondensedParserData) {
     "com.giyeok.jparser.nparser.ParsingContext.Graph",
     "com.giyeok.jparser.nparser.ParsingContext.Node",
     "com.giyeok.jparser.nparser.ParsingContext.Kernel",
-    "com.giyeok.jparser.parsergen.condensed.KernelTemplate",
-    "com.giyeok.jparser.parsergen.condensed.TasksSummary",
-    "com.giyeok.jparser.parsergen.condensed.CondensedParserData")
+    "com.giyeok.jparser.parsergen.milestone.KernelTemplate",
+    "com.giyeok.jparser.parsergen.milestone.TasksSummary",
+    "com.giyeok.jparser.parsergen.milestone.MilestoneParserData")
 
   def parserData(grammarDef: ScalaCodeBlobNode): ScalaCodeBlobNode =
-    ArgsCall("CondensedParserData", List(
+    ArgsCall("MilestoneParserData", List(
       grammarDef,
       tasksSummary(parserData.byStart),
       termActions(),
@@ -37,12 +37,12 @@ class ScalaParserDataCodeGen(parserData: CondensedParserData) {
 
   def parserDataFile(packageName: String, objectName: String): ScalaFile = {
     val ngrammarValName = "ngrammar"
-    val condensedParserDataValName = "condensedParserData"
+    val milestoneParserDataValName = "milestoneParserData"
     ScalaFile(packageName, requiredImports(), List(
       ObjectDef(objectName, List(
         TextBlob("def k(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int): Kernel = Kernel(symbolId, pointer, beginGen, endGen)"),
         TextBlob("def t(symbolId: Int, pointer: Int): KernelTemplate = KernelTemplate(symbolId, pointer)"),
-        ValBlob(condensedParserDataValName, parserData(TextBlob(ngrammarValName)))
+        ValBlob(milestoneParserDataValName, parserData(TextBlob(ngrammarValName)))
       ))))
   }
 
@@ -130,13 +130,13 @@ object ScalaParserDataCodeGen {
   val ngrammar: NGrammar = MetaLang3Ast.ngrammar
 
   def main(args: Array[String]): Unit = {
-    val parserData = new CondensedParserGen(MetaLang3Ast.naiveParser).parserData()
+    val parserData = new MilestoneParserGen(MetaLang3Ast.naiveParser).parserData()
     val codegen = new ScalaParserDataCodeGen(parserData)
     codegen.requiredImports().foreach(i => println(s"import $i"))
     println(codegen.parserData(TextBlob("ngrammar")).generate(0))
     println("***")
 
-    //    val parser = new CondensedParser(x)
+    //    val parser = new MilestoneParser(x)
     //    val parsed = parser.parseAndReconstructToForest("[a,a,a,a]").get.trees.head
     //    println(ArrayExprAst.matchStart(parsed))
   }

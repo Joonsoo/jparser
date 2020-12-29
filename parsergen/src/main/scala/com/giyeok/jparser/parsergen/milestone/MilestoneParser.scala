@@ -1,18 +1,18 @@
-package com.giyeok.jparser.parsergen.condensed
+package com.giyeok.jparser.parsergen.milestone
 
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
-import com.giyeok.jparser.parsergen.condensed.CondensedParser.{AcceptConditionEvaluator, reconstructParseTree, transformEdgeActionCondition, transformTermActionCondition}
+import com.giyeok.jparser.parsergen.milestone.MilestoneParser.{AcceptConditionEvaluator, reconstructParseTree, transformEdgeActionCondition, transformTermActionCondition}
 import com.giyeok.jparser.utils.Memoize
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForest, ParseForestFunc}
 
 import scala.annotation.tailrec
 
-object CondensedParser {
-  def reconstructParseTree(parserData: CondensedParserData, finalCtx: CondensedParserContext, input: Seq[Input]): Option[ParseForest] = {
+object MilestoneParser {
+  def reconstructParseTree(parserData: MilestoneParserData, finalCtx: MilestoneParserContext, input: Seq[Input]): Option[ParseForest] = {
     val finalAcceptancesMemo = Memoize[AcceptCondition, Boolean]()
 
     def isFinallyAccepted(gen: Int, acceptCondition: AcceptCondition): Boolean = acceptCondition match {
@@ -71,7 +71,7 @@ object CondensedParser {
     new ParseTreeConstructor2(ParseForestFunc)(parserData.grammar)(input, kernels).reconstruct()
   }
 
-  class AcceptConditionEvaluator(parserData: CondensedParserData, milestonePaths: List[MilestonePath], gen: Int, genActions: List[GenAction]) {
+  class AcceptConditionEvaluator(parserData: MilestoneParserData, milestonePaths: List[MilestonePath], gen: Int, genActions: List[GenAction]) {
     def evolveAcceptCondition(acceptCondition: AcceptCondition): AcceptCondition = {
       def symbolFinishConditions(beginGen: Int, endGen: Int, symbolId: Int): Seq[AcceptCondition] =
         genActions.filter(_.endGen >= endGen).flatMap {
@@ -193,13 +193,13 @@ object CondensedParser {
   }
 }
 
-class CondensedParser(val parserData: CondensedParserData) {
+class MilestoneParser(val parserData: MilestoneParserData) {
   val startMilestonePath: MilestonePath = MilestonePath(Milestone(None, parserData.grammar.startSymbol, 0, 0), Always)
 
-  def initialCtx: CondensedParserContext = CondensedParserContext(0, List(startMilestonePath),
+  def initialCtx: MilestoneParserContext = MilestoneParserContext(0, List(startMilestonePath),
     List(GenProgress(List(startMilestonePath), List(TermAction(0, 0, 0, parserData.byStart, Always)))))
 
-  def parse(inputSeq: Seq[Inputs.Input]): CondensedParserContext = {
+  def parse(inputSeq: Seq[Inputs.Input]): MilestoneParserContext = {
     println("=== initial")
     initialCtx.paths.foreach(t => println(t.prettyString))
     inputSeq.zipWithIndex.foldLeft(initialCtx) { (m, i) =>
@@ -210,7 +210,7 @@ class CondensedParser(val parserData: CondensedParserData) {
     }
   }
 
-  def parse(input: String): CondensedParserContext = parse(Inputs.fromString(input))
+  def parse(input: String): MilestoneParserContext = parse(Inputs.fromString(input))
 
   def parseAndReconstructToForest(inputSeq: Seq[Inputs.Input]): Option[ParseForest] = {
     val finalCtx = parse(inputSeq)
@@ -221,7 +221,7 @@ class CondensedParser(val parserData: CondensedParserData) {
     parseAndReconstructToForest(Inputs.fromString(input))
 
   private class ProceedProcessor(var genActions: List[GenAction] = List()) {
-    def proceed(ctx: CondensedParserContext, gen: Int, input: Inputs.Input): List[MilestonePath] = ctx.paths.flatMap { path =>
+    def proceed(ctx: MilestoneParserContext, gen: Int, input: Inputs.Input): List[MilestonePath] = ctx.paths.flatMap { path =>
       val tip = path.tip
       val parentGen = tip.parent.map(_.gen).getOrElse(0)
       val termActions = parserData.termActions(tip.kernelTemplate)
@@ -274,7 +274,7 @@ class CondensedParser(val parserData: CondensedParserData) {
       }
   }
 
-  def proceed(ctx: CondensedParserContext, input: Inputs.Input): CondensedParserContext = {
+  def proceed(ctx: MilestoneParserContext, input: Inputs.Input): MilestoneParserContext = {
     val gen = ctx.gen + 1
     val processor = new ProceedProcessor()
     val milestones0 = processor.proceed(ctx, gen, input)
@@ -287,9 +287,9 @@ class CondensedParser(val parserData: CondensedParserData) {
       val newCond = acceptConditionEvaluator.evolveAcceptCondition(milestone.acceptCondition)
       if (newCond == Never) None else Some(milestone.copy(acceptCondition = newCond))
     }
-//    println("  ** after evaluating accept condition")
-//    milestones.foreach(t => println(t.prettyString))
-    CondensedParserContext(gen, milestones, ctx.genProgressHistory :+ GenProgress(milestones0, processor.genActions))
+    //    println("  ** after evaluating accept condition")
+    //    milestones.foreach(t => println(t.prettyString))
+    MilestoneParserContext(gen, milestones, ctx.genProgressHistory :+ GenProgress(milestones0, processor.genActions))
   }
 }
 
@@ -321,7 +321,7 @@ case class EdgeAction(parentBeginGen: Int, beginGen: Int, midGen: Int, endGen: I
 
 // TODO edge action - 체인 관계를 어떻게..?
 
-case class CondensedParserContext(gen: Int, paths: List[MilestonePath], genProgressHistory: List[GenProgress]) {
+case class MilestoneParserContext(gen: Int, paths: List[MilestonePath], genProgressHistory: List[GenProgress]) {
   assert(genProgressHistory.size == gen + 1)
 }
 

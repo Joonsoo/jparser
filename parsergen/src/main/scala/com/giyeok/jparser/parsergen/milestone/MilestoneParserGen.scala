@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.condensed
+package com.giyeok.jparser.parsergen.milestone
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
@@ -10,7 +10,7 @@ import com.giyeok.jparser.parsergen.utils.TermGrouper
 
 import scala.annotation.tailrec
 
-class CondensedParserGen(val parser: NaiveParser) {
+class MilestoneParserGen(val parser: NaiveParser) {
 
   case class ContWithTasks(tasks: List[parser.Task], cc: parser.Cont)
 
@@ -136,7 +136,7 @@ class CondensedParserGen(val parser: NaiveParser) {
   case class Jobs(milestones: Set[KernelTemplate], edges: Set[(KernelTemplate, KernelTemplate)])
 
   @tailrec
-  private def createParserData(jobs: Jobs, cc: CondensedParserData): CondensedParserData = {
+  private def createParserData(jobs: Jobs, cc: MilestoneParserData): MilestoneParserData = {
     val withTermActions = jobs.milestones.foldLeft((Jobs(Set(), Set()), cc)) { (m, i) =>
       val (jobs, wcc) = m
       val termActions = termActionsFrom(i)
@@ -160,12 +160,12 @@ class CondensedParserGen(val parser: NaiveParser) {
     else createParserData(newRemainingJobs, ncc)
   }
 
-  def parserData(): CondensedParserData = {
+  def parserData(): MilestoneParserData = {
     val start = KernelTemplate(parser.grammar.startSymbol, 0)
     val (_, ContWithTasks(tasks, _)) = startingCtxFrom(start, 0)
 
     val result = createParserData(Jobs(Set(start), Set()),
-      CondensedParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map(), Map()))
+      MilestoneParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map(), Map()))
     result.copy(derivedGraph = result.termActions.keySet.map { kernelTemplate =>
       val startNode = Node(Kernel(kernelTemplate.symbolId, kernelTemplate.pointer, 0, 0), Always)
       kernelTemplate -> parser.rec(0, List(parser.DeriveTask(startNode)), Graph(Set(startNode), Set())).graph
@@ -173,7 +173,7 @@ class CondensedParserGen(val parser: NaiveParser) {
   }
 }
 
-object CondensedParserGen {
-  def generatedCondensedParserData(grammar: NGrammar): CondensedParserData =
-    new CondensedParserGen(new NaiveParser(grammar)).parserData()
+object MilestoneParserGen {
+  def generateMilestoneParserData(grammar: NGrammar): MilestoneParserData =
+    new MilestoneParserGen(new NaiveParser(grammar)).parserData()
 }
