@@ -34,8 +34,11 @@ message ParsingAction {
 message MilestoneParserData {
   message TermActionPair {
     KernelTemplate kernel_template = 1;
-    com.giyeok.jparser.proto.TermGroup term_group = 2;
-    ParsingAction parsing_action = 3;
+    message TermGroupAction {
+      com.giyeok.jparser.proto.TermGroup term_group = 2;
+      ParsingAction parsing_action = 3;
+    }
+    repeated TermGroupAction actions = 2;
   }
   message EdgeProgressActionPair {
     KernelTemplate start_kernel_template = 1;

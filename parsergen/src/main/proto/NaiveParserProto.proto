@@ -15,7 +15,7 @@ message AcceptCondition {
   oneof AcceptCondition {
     com.giyeok.jparser.proto.Empty always = 1;
     com.giyeok.jparser.proto.Empty never = 2;
-    AllConditions all_conditions = 3;
+    AndConditions and_conditions = 3;
     OrConditions or_conditions = 4;
     NotExists not_exists = 5;
     Exists exists = 6;
@@ -24,7 +24,7 @@ message AcceptCondition {
   }
 }
 
-message AllConditions {
+message AndConditions {
   repeated AcceptCondition conditions = 1;
 }
 

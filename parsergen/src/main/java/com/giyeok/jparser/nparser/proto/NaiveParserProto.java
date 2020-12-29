@@ -747,19 +747,19 @@ public final class NaiveParserProto {
     com.giyeok.jparser.proto.GrammarProto.EmptyOrBuilder getNeverOrBuilder();
 
     /**
-     * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
-     * @return Whether the allConditions field is set.
+     * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
+     * @return Whether the andConditions field is set.
      */
-    boolean hasAllConditions();
+    boolean hasAndConditions();
     /**
-     * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
-     * @return The allConditions.
+     * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
+     * @return The andConditions.
      */
-    com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions getAllConditions();
+    com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions getAndConditions();
     /**
-     * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
+     * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
      */
-    com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditionsOrBuilder getAllConditionsOrBuilder();
+    com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditionsOrBuilder getAndConditionsOrBuilder();
 
     /**
      * <code>.com.giyeok.jparser.nparser.proto.OrConditions or_conditions = 4;</code>
@@ -912,14 +912,14 @@ public final class NaiveParserProto {
               break;
             }
             case 26: {
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.Builder subBuilder = null;
+              com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.Builder subBuilder = null;
               if (acceptConditionCase_ == 3) {
-                subBuilder = ((com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) acceptCondition_).toBuilder();
+                subBuilder = ((com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_).toBuilder();
               }
               acceptCondition_ =
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.parser(), extensionRegistry);
+                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.parser(), extensionRegistry);
               if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) acceptCondition_);
+                subBuilder.mergeFrom((com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_);
                 acceptCondition_ = subBuilder.buildPartial();
               }
               acceptConditionCase_ = 3;
@@ -1034,7 +1034,7 @@ public final class NaiveParserProto {
             com.google.protobuf.AbstractMessage.InternalOneOfEnum {
       ALWAYS(1),
       NEVER(2),
-      ALL_CONDITIONS(3),
+      AND_CONDITIONS(3),
       OR_CONDITIONS(4),
       NOT_EXISTS(5),
       EXISTS(6),
@@ -1059,7 +1059,7 @@ public final class NaiveParserProto {
         switch (value) {
           case 1: return ALWAYS;
           case 2: return NEVER;
-          case 3: return ALL_CONDITIONS;
+          case 3: return AND_CONDITIONS;
           case 4: return OR_CONDITIONS;
           case 5: return NOT_EXISTS;
           case 6: return EXISTS;
@@ -1142,35 +1142,35 @@ public final class NaiveParserProto {
       return com.giyeok.jparser.proto.GrammarProto.Empty.getDefaultInstance();
     }
 
-    public static final int ALL_CONDITIONS_FIELD_NUMBER = 3;
+    public static final int AND_CONDITIONS_FIELD_NUMBER = 3;
     /**
-     * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
-     * @return Whether the allConditions field is set.
+     * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
+     * @return Whether the andConditions field is set.
      */
     @java.lang.Override
-    public boolean hasAllConditions() {
+    public boolean hasAndConditions() {
       return acceptConditionCase_ == 3;
     }
     /**
-     * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
-     * @return The allConditions.
+     * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
+     * @return The andConditions.
      */
     @java.lang.Override
-    public com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions getAllConditions() {
+    public com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions getAndConditions() {
       if (acceptConditionCase_ == 3) {
-         return (com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) acceptCondition_;
+         return (com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_;
       }
-      return com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.getDefaultInstance();
+      return com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.getDefaultInstance();
     }
     /**
-     * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
+     * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
      */
     @java.lang.Override
-    public com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditionsOrBuilder getAllConditionsOrBuilder() {
+    public com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditionsOrBuilder getAndConditionsOrBuilder() {
       if (acceptConditionCase_ == 3) {
-         return (com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) acceptCondition_;
+         return (com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_;
       }
-      return com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.getDefaultInstance();
+      return com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.getDefaultInstance();
     }
 
     public static final int OR_CONDITIONS_FIELD_NUMBER = 4;
@@ -1349,7 +1349,7 @@ public final class NaiveParserProto {
         output.writeMessage(2, (com.giyeok.jparser.proto.GrammarProto.Empty) acceptCondition_);
       }
       if (acceptConditionCase_ == 3) {
-        output.writeMessage(3, (com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) acceptCondition_);
+        output.writeMessage(3, (com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_);
       }
       if (acceptConditionCase_ == 4) {
         output.writeMessage(4, (com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions) acceptCondition_);
@@ -1385,7 +1385,7 @@ public final class NaiveParserProto {
       }
       if (acceptConditionCase_ == 3) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(3, (com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) acceptCondition_);
+          .computeMessageSize(3, (com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_);
       }
       if (acceptConditionCase_ == 4) {
         size += com.google.protobuf.CodedOutputStream
@@ -1433,8 +1433,8 @@ public final class NaiveParserProto {
               .equals(other.getNever())) return false;
           break;
         case 3:
-          if (!getAllConditions()
-              .equals(other.getAllConditions())) return false;
+          if (!getAndConditions()
+              .equals(other.getAndConditions())) return false;
           break;
         case 4:
           if (!getOrConditions()
@@ -1480,8 +1480,8 @@ public final class NaiveParserProto {
           hash = (53 * hash) + getNever().hashCode();
           break;
         case 3:
-          hash = (37 * hash) + ALL_CONDITIONS_FIELD_NUMBER;
-          hash = (53 * hash) + getAllConditions().hashCode();
+          hash = (37 * hash) + AND_CONDITIONS_FIELD_NUMBER;
+          hash = (53 * hash) + getAndConditions().hashCode();
           break;
         case 4:
           hash = (37 * hash) + OR_CONDITIONS_FIELD_NUMBER;
@@ -1682,10 +1682,10 @@ public final class NaiveParserProto {
           }
         }
         if (acceptConditionCase_ == 3) {
-          if (allConditionsBuilder_ == null) {
+          if (andConditionsBuilder_ == null) {
             result.acceptCondition_ = acceptCondition_;
           } else {
-            result.acceptCondition_ = allConditionsBuilder_.build();
+            result.acceptCondition_ = andConditionsBuilder_.build();
           }
         }
         if (acceptConditionCase_ == 4) {
@@ -1781,8 +1781,8 @@ public final class NaiveParserProto {
             mergeNever(other.getNever());
             break;
           }
-          case ALL_CONDITIONS: {
-            mergeAllConditions(other.getAllConditions());
+          case AND_CONDITIONS: {
+            mergeAndConditions(other.getAndConditions());
             break;
           }
           case OR_CONDITIONS: {
@@ -2136,71 +2136,71 @@ public final class NaiveParserProto {
       }
 
       private com.google.protobuf.SingleFieldBuilderV3<
-          com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions, com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditionsOrBuilder> allConditionsBuilder_;
+          com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions, com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditionsOrBuilder> andConditionsBuilder_;
       /**
-       * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
-       * @return Whether the allConditions field is set.
+       * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
+       * @return Whether the andConditions field is set.
        */
       @java.lang.Override
-      public boolean hasAllConditions() {
+      public boolean hasAndConditions() {
         return acceptConditionCase_ == 3;
       }
       /**
-       * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
-       * @return The allConditions.
+       * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
+       * @return The andConditions.
        */
       @java.lang.Override
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions getAllConditions() {
-        if (allConditionsBuilder_ == null) {
+      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions getAndConditions() {
+        if (andConditionsBuilder_ == null) {
           if (acceptConditionCase_ == 3) {
-            return (com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) acceptCondition_;
+            return (com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_;
           }
-          return com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.getDefaultInstance();
+          return com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.getDefaultInstance();
         } else {
           if (acceptConditionCase_ == 3) {
-            return allConditionsBuilder_.getMessage();
+            return andConditionsBuilder_.getMessage();
           }
-          return com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.getDefaultInstance();
+          return com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.getDefaultInstance();
         }
       }
       /**
-       * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
+       * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
        */
-      public Builder setAllConditions(com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions value) {
-        if (allConditionsBuilder_ == null) {
+      public Builder setAndConditions(com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions value) {
+        if (andConditionsBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
           }
           acceptCondition_ = value;
           onChanged();
         } else {
-          allConditionsBuilder_.setMessage(value);
+          andConditionsBuilder_.setMessage(value);
         }
         acceptConditionCase_ = 3;
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
+       * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
        */
-      public Builder setAllConditions(
-          com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.Builder builderForValue) {
-        if (allConditionsBuilder_ == null) {
+      public Builder setAndConditions(
+          com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.Builder builderForValue) {
+        if (andConditionsBuilder_ == null) {
           acceptCondition_ = builderForValue.build();
           onChanged();
         } else {
-          allConditionsBuilder_.setMessage(builderForValue.build());
+          andConditionsBuilder_.setMessage(builderForValue.build());
         }
         acceptConditionCase_ = 3;
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
+       * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
        */
-      public Builder mergeAllConditions(com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions value) {
-        if (allConditionsBuilder_ == null) {
+      public Builder mergeAndConditions(com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions value) {
+        if (andConditionsBuilder_ == null) {
           if (acceptConditionCase_ == 3 &&
-              acceptCondition_ != com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.getDefaultInstance()) {
-            acceptCondition_ = com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.newBuilder((com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) acceptCondition_)
+              acceptCondition_ != com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.getDefaultInstance()) {
+            acceptCondition_ = com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.newBuilder((com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_)
                 .mergeFrom(value).buildPartial();
           } else {
             acceptCondition_ = value;
@@ -2208,18 +2208,18 @@ public final class NaiveParserProto {
           onChanged();
         } else {
           if (acceptConditionCase_ == 3) {
-            allConditionsBuilder_.mergeFrom(value);
+            andConditionsBuilder_.mergeFrom(value);
           }
-          allConditionsBuilder_.setMessage(value);
+          andConditionsBuilder_.setMessage(value);
         }
         acceptConditionCase_ = 3;
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
+       * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
        */
-      public Builder clearAllConditions() {
-        if (allConditionsBuilder_ == null) {
+      public Builder clearAndConditions() {
+        if (andConditionsBuilder_ == null) {
           if (acceptConditionCase_ == 3) {
             acceptConditionCase_ = 0;
             acceptCondition_ = null;
@@ -2230,50 +2230,50 @@ public final class NaiveParserProto {
             acceptConditionCase_ = 0;
             acceptCondition_ = null;
           }
-          allConditionsBuilder_.clear();
+          andConditionsBuilder_.clear();
         }
         return this;
       }
       /**
-       * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
+       * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
        */
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.Builder getAllConditionsBuilder() {
-        return getAllConditionsFieldBuilder().getBuilder();
+      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.Builder getAndConditionsBuilder() {
+        return getAndConditionsFieldBuilder().getBuilder();
       }
       /**
-       * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
+       * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
        */
       @java.lang.Override
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditionsOrBuilder getAllConditionsOrBuilder() {
-        if ((acceptConditionCase_ == 3) && (allConditionsBuilder_ != null)) {
-          return allConditionsBuilder_.getMessageOrBuilder();
+      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditionsOrBuilder getAndConditionsOrBuilder() {
+        if ((acceptConditionCase_ == 3) && (andConditionsBuilder_ != null)) {
+          return andConditionsBuilder_.getMessageOrBuilder();
         } else {
           if (acceptConditionCase_ == 3) {
-            return (com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) acceptCondition_;
+            return (com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_;
           }
-          return com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.getDefaultInstance();
+          return com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.getDefaultInstance();
         }
       }
       /**
-       * <code>.com.giyeok.jparser.nparser.proto.AllConditions all_conditions = 3;</code>
+       * <code>.com.giyeok.jparser.nparser.proto.AndConditions and_conditions = 3;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
-          com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions, com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditionsOrBuilder> 
-          getAllConditionsFieldBuilder() {
-        if (allConditionsBuilder_ == null) {
+          com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions, com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditionsOrBuilder> 
+          getAndConditionsFieldBuilder() {
+        if (andConditionsBuilder_ == null) {
           if (!(acceptConditionCase_ == 3)) {
-            acceptCondition_ = com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.getDefaultInstance();
+            acceptCondition_ = com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.getDefaultInstance();
           }
-          allConditionsBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions, com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditionsOrBuilder>(
-                  (com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) acceptCondition_,
+          andConditionsBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+              com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions, com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditionsOrBuilder>(
+                  (com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_,
                   getParentForChildren(),
                   isClean());
           acceptCondition_ = null;
         }
         acceptConditionCase_ = 3;
         onChanged();;
-        return allConditionsBuilder_;
+        return andConditionsBuilder_;
       }
 
       private com.google.protobuf.SingleFieldBuilderV3<
@@ -3033,8 +3033,8 @@ public final class NaiveParserProto {
 
   }
 
-  public interface AllConditionsOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.nparser.proto.AllConditions)
+  public interface AndConditionsOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.nparser.proto.AndConditions)
       com.google.protobuf.MessageOrBuilder {
 
     /**
@@ -3062,18 +3062,18 @@ public final class NaiveParserProto {
         int index);
   }
   /**
-   * Protobuf type {@code com.giyeok.jparser.nparser.proto.AllConditions}
+   * Protobuf type {@code com.giyeok.jparser.nparser.proto.AndConditions}
    */
-  public static final class AllConditions extends
+  public static final class AndConditions extends
       com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:com.giyeok.jparser.nparser.proto.AllConditions)
-      AllConditionsOrBuilder {
+      // @@protoc_insertion_point(message_implements:com.giyeok.jparser.nparser.proto.AndConditions)
+      AndConditionsOrBuilder {
   private static final long serialVersionUID = 0L;
-    // Use AllConditions.newBuilder() to construct.
-    private AllConditions(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+    // Use AndConditions.newBuilder() to construct.
+    private AndConditions(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
-    private AllConditions() {
+    private AndConditions() {
       conditions_ = java.util.Collections.emptyList();
     }
 
@@ -3081,7 +3081,7 @@ public final class NaiveParserProto {
     @SuppressWarnings({"unused"})
     protected java.lang.Object newInstance(
         UnusedPrivateParameter unused) {
-      return new AllConditions();
+      return new AndConditions();
     }
 
     @java.lang.Override
@@ -3089,7 +3089,7 @@ public final class NaiveParserProto {
     getUnknownFields() {
       return this.unknownFields;
     }
-    private AllConditions(
+    private AndConditions(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -3141,15 +3141,15 @@ public final class NaiveParserProto {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AllConditions_descriptor;
+      return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AndConditions_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AllConditions_fieldAccessorTable
+      return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AndConditions_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.class, com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.Builder.class);
+              com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.class, com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.Builder.class);
     }
 
     public static final int CONDITIONS_FIELD_NUMBER = 1;
@@ -3232,10 +3232,10 @@ public final class NaiveParserProto {
       if (obj == this) {
        return true;
       }
-      if (!(obj instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions)) {
+      if (!(obj instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions)) {
         return super.equals(obj);
       }
-      com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions other = (com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) obj;
+      com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions other = (com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) obj;
 
       if (!getConditionsList()
           .equals(other.getConditionsList())) return false;
@@ -3259,69 +3259,69 @@ public final class NaiveParserProto {
       return hash;
     }
 
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseFrom(
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseFrom(
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseFrom(
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseFrom(
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseFrom(byte[] data)
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseFrom(
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseFrom(java.io.InputStream input)
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseFrom(
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseDelimitedFrom(java.io.InputStream input)
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseDelimitedFrom(
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseFrom(
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parseFrom(
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -3334,7 +3334,7 @@ public final class NaiveParserProto {
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
     }
-    public static Builder newBuilder(com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions prototype) {
+    public static Builder newBuilder(com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
     @java.lang.Override
@@ -3350,26 +3350,26 @@ public final class NaiveParserProto {
       return builder;
     }
     /**
-     * Protobuf type {@code com.giyeok.jparser.nparser.proto.AllConditions}
+     * Protobuf type {@code com.giyeok.jparser.nparser.proto.AndConditions}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.nparser.proto.AllConditions)
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditionsOrBuilder {
+        // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.nparser.proto.AndConditions)
+        com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditionsOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AllConditions_descriptor;
+        return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AndConditions_descriptor;
       }
 
       @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AllConditions_fieldAccessorTable
+        return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AndConditions_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.class, com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.Builder.class);
+                com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.class, com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.Builder.class);
       }
 
-      // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.newBuilder()
+      // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.newBuilder()
       private Builder() {
         maybeForceBuilderInitialization();
       }
@@ -3400,17 +3400,17 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AllConditions_descriptor;
+        return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AndConditions_descriptor;
       }
 
       @java.lang.Override
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions getDefaultInstanceForType() {
-        return com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.getDefaultInstance();
+      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions getDefaultInstanceForType() {
+        return com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.getDefaultInstance();
       }
 
       @java.lang.Override
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions build() {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions result = buildPartial();
+      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions build() {
+        com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
@@ -3418,8 +3418,8 @@ public final class NaiveParserProto {
       }
 
       @java.lang.Override
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions buildPartial() {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions(this);
+      public com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions buildPartial() {
+        com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions(this);
         int from_bitField0_ = bitField0_;
         if (conditionsBuilder_ == null) {
           if (((bitField0_ & 0x00000001) != 0)) {
@@ -3468,16 +3468,16 @@ public final class NaiveParserProto {
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) {
-          return mergeFrom((com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions)other);
+        if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) {
+          return mergeFrom((com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions other) {
-        if (other == com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions.getDefaultInstance()) return this;
+      public Builder mergeFrom(com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions other) {
+        if (other == com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.getDefaultInstance()) return this;
         if (conditionsBuilder_ == null) {
           if (!other.conditions_.isEmpty()) {
             if (conditions_.isEmpty()) {
@@ -3519,11 +3519,11 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions parsedMessage = null;
+        com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions) e.getUnfinishedMessage();
+          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
@@ -3786,41 +3786,41 @@ public final class NaiveParserProto {
       }
 
 
-      // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.nparser.proto.AllConditions)
+      // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.nparser.proto.AndConditions)
     }
 
-    // @@protoc_insertion_point(class_scope:com.giyeok.jparser.nparser.proto.AllConditions)
-    private static final com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions DEFAULT_INSTANCE;
+    // @@protoc_insertion_point(class_scope:com.giyeok.jparser.nparser.proto.AndConditions)
+    private static final com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions();
+      DEFAULT_INSTANCE = new com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions();
     }
 
-    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions getDefaultInstance() {
+    public static com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
-    private static final com.google.protobuf.Parser<AllConditions>
-        PARSER = new com.google.protobuf.AbstractParser<AllConditions>() {
+    private static final com.google.protobuf.Parser<AndConditions>
+        PARSER = new com.google.protobuf.AbstractParser<AndConditions>() {
       @java.lang.Override
-      public AllConditions parsePartialFrom(
+      public AndConditions parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new AllConditions(input, extensionRegistry);
+        return new AndConditions(input, extensionRegistry);
       }
     };
 
-    public static com.google.protobuf.Parser<AllConditions> parser() {
+    public static com.google.protobuf.Parser<AndConditions> parser() {
       return PARSER;
     }
 
     @java.lang.Override
-    public com.google.protobuf.Parser<AllConditions> getParserForType() {
+    public com.google.protobuf.Parser<AndConditions> getParserForType() {
       return PARSER;
     }
 
     @java.lang.Override
-    public com.giyeok.jparser.nparser.proto.NaiveParserProto.AllConditions getDefaultInstanceForType() {
+    public com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -9760,10 +9760,10 @@ public final class NaiveParserProto {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_nparser_proto_AcceptCondition_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_nparser_proto_AllConditions_descriptor;
+    internal_static_com_giyeok_jparser_nparser_proto_AndConditions_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_nparser_proto_AllConditions_fieldAccessorTable;
+      internal_static_com_giyeok_jparser_nparser_proto_AndConditions_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_giyeok_jparser_nparser_proto_OrConditions_descriptor;
   private static final 
@@ -9820,8 +9820,8 @@ public final class NaiveParserProto {
       "\"\225\004\n\017AcceptCondition\0221\n\006always\030\001 \001(\0132\037.c" +
       "om.giyeok.jparser.proto.EmptyH\000\0220\n\005never" +
       "\030\002 \001(\0132\037.com.giyeok.jparser.proto.EmptyH" +
-      "\000\022I\n\016all_conditions\030\003 \001(\0132/.com.giyeok.j" +
-      "parser.nparser.proto.AllConditionsH\000\022G\n\r" +
+      "\000\022I\n\016and_conditions\030\003 \001(\0132/.com.giyeok.j" +
+      "parser.nparser.proto.AndConditionsH\000\022G\n\r" +
       "or_conditions\030\004 \001(\0132..com.giyeok.jparser" +
       ".nparser.proto.OrConditionsH\000\022A\n\nnot_exi" +
       "sts\030\005 \001(\0132+.com.giyeok.jparser.nparser.p" +
@@ -9830,7 +9830,7 @@ public final class NaiveParserProto {
       "unless\030\007 \001(\0132(.com.giyeok.jparser.nparse" +
       "r.proto.UnlessH\000\022;\n\007only_if\030\010 \001(\0132(.com." +
       "giyeok.jparser.nparser.proto.OnlyIfH\000B\021\n" +
-      "\017AcceptCondition\"V\n\rAllConditions\022E\n\ncon" +
+      "\017AcceptCondition\"V\n\rAndConditions\022E\n\ncon" +
       "ditions\030\001 \003(\01321.com.giyeok.jparser.npars" +
       "er.proto.AcceptCondition\"U\n\014OrConditions" +
       "\022E\n\nconditions\030\001 \003(\01321.com.giyeok.jparse" +
@@ -9867,12 +9867,12 @@ public final class NaiveParserProto {
     internal_static_com_giyeok_jparser_nparser_proto_AcceptCondition_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_nparser_proto_AcceptCondition_descriptor,
-        new java.lang.String[] { "Always", "Never", "AllConditions", "OrConditions", "NotExists", "Exists", "Unless", "OnlyIf", "AcceptCondition", });
-    internal_static_com_giyeok_jparser_nparser_proto_AllConditions_descriptor =
+        new java.lang.String[] { "Always", "Never", "AndConditions", "OrConditions", "NotExists", "Exists", "Unless", "OnlyIf", "AcceptCondition", });
+    internal_static_com_giyeok_jparser_nparser_proto_AndConditions_descriptor =
       getDescriptor().getMessageTypes().get(2);
-    internal_static_com_giyeok_jparser_nparser_proto_AllConditions_fieldAccessorTable = new
+    internal_static_com_giyeok_jparser_nparser_proto_AndConditions_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_nparser_proto_AllConditions_descriptor,
+        internal_static_com_giyeok_jparser_nparser_proto_AndConditions_descriptor,
         new java.lang.String[] { "Conditions", });
     internal_static_com_giyeok_jparser_nparser_proto_OrConditions_descriptor =
       getDescriptor().getMessageTypes().get(3);

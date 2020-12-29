@@ -1195,28 +1195,19 @@ public final class TermGroupProto {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+     * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+     * @return Whether the excluding field is set.
      */
-    java.util.List<com.giyeok.jparser.proto.TermGroupProto.CharsGroup> 
-        getExcludingList();
+    boolean hasExcluding();
     /**
-     * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+     * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+     * @return The excluding.
      */
-    com.giyeok.jparser.proto.TermGroupProto.CharsGroup getExcluding(int index);
+    com.giyeok.jparser.proto.TermGroupProto.CharsGroup getExcluding();
     /**
-     * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+     * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
      */
-    int getExcludingCount();
-    /**
-     * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-     */
-    java.util.List<? extends com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder> 
-        getExcludingOrBuilderList();
-    /**
-     * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-     */
-    com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder getExcludingOrBuilder(
-        int index);
+    com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder getExcludingOrBuilder();
   }
   /**
    * Protobuf type {@code com.giyeok.jparser.proto.AllCharsExcluding}
@@ -1231,7 +1222,6 @@ public final class TermGroupProto {
       super(builder);
     }
     private AllCharsExcluding() {
-      excluding_ = java.util.Collections.emptyList();
     }
 
     @java.lang.Override
@@ -1254,7 +1244,6 @@ public final class TermGroupProto {
       if (extensionRegistry == null) {
         throw new java.lang.NullPointerException();
       }
-      int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -1266,12 +1255,16 @@ public final class TermGroupProto {
               done = true;
               break;
             case 10: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                excluding_ = new java.util.ArrayList<com.giyeok.jparser.proto.TermGroupProto.CharsGroup>();
-                mutable_bitField0_ |= 0x00000001;
+              com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder subBuilder = null;
+              if (excluding_ != null) {
+                subBuilder = excluding_.toBuilder();
               }
-              excluding_.add(
-                  input.readMessage(com.giyeok.jparser.proto.TermGroupProto.CharsGroup.parser(), extensionRegistry));
+              excluding_ = input.readMessage(com.giyeok.jparser.proto.TermGroupProto.CharsGroup.parser(), extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(excluding_);
+                excluding_ = subBuilder.buildPartial();
+              }
+
               break;
             }
             default: {
@@ -1289,9 +1282,6 @@ public final class TermGroupProto {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          excluding_ = java.util.Collections.unmodifiableList(excluding_);
-        }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
       }
@@ -1310,43 +1300,29 @@ public final class TermGroupProto {
     }
 
     public static final int EXCLUDING_FIELD_NUMBER = 1;
-    private java.util.List<com.giyeok.jparser.proto.TermGroupProto.CharsGroup> excluding_;
+    private com.giyeok.jparser.proto.TermGroupProto.CharsGroup excluding_;
     /**
-     * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+     * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+     * @return Whether the excluding field is set.
      */
     @java.lang.Override
-    public java.util.List<com.giyeok.jparser.proto.TermGroupProto.CharsGroup> getExcludingList() {
-      return excluding_;
+    public boolean hasExcluding() {
+      return excluding_ != null;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+     * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+     * @return The excluding.
      */
     @java.lang.Override
-    public java.util.List<? extends com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder> 
-        getExcludingOrBuilderList() {
-      return excluding_;
+    public com.giyeok.jparser.proto.TermGroupProto.CharsGroup getExcluding() {
+      return excluding_ == null ? com.giyeok.jparser.proto.TermGroupProto.CharsGroup.getDefaultInstance() : excluding_;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+     * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
      */
     @java.lang.Override
-    public int getExcludingCount() {
-      return excluding_.size();
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.proto.TermGroupProto.CharsGroup getExcluding(int index) {
-      return excluding_.get(index);
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder getExcludingOrBuilder(
-        int index) {
-      return excluding_.get(index);
+    public com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder getExcludingOrBuilder() {
+      return getExcluding();
     }
 
     private byte memoizedIsInitialized = -1;
@@ -1363,8 +1339,8 @@ public final class TermGroupProto {
     @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      for (int i = 0; i < excluding_.size(); i++) {
-        output.writeMessage(1, excluding_.get(i));
+      if (excluding_ != null) {
+        output.writeMessage(1, getExcluding());
       }
       unknownFields.writeTo(output);
     }
@@ -1375,9 +1351,9 @@ public final class TermGroupProto {
       if (size != -1) return size;
 
       size = 0;
-      for (int i = 0; i < excluding_.size(); i++) {
+      if (excluding_ != null) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(1, excluding_.get(i));
+          .computeMessageSize(1, getExcluding());
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -1394,8 +1370,11 @@ public final class TermGroupProto {
       }
       com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding other = (com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding) obj;
 
-      if (!getExcludingList()
-          .equals(other.getExcludingList())) return false;
+      if (hasExcluding() != other.hasExcluding()) return false;
+      if (hasExcluding()) {
+        if (!getExcluding()
+            .equals(other.getExcluding())) return false;
+      }
       if (!unknownFields.equals(other.unknownFields)) return false;
       return true;
     }
@@ -1407,9 +1386,9 @@ public final class TermGroupProto {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptor().hashCode();
-      if (getExcludingCount() > 0) {
+      if (hasExcluding()) {
         hash = (37 * hash) + EXCLUDING_FIELD_NUMBER;
-        hash = (53 * hash) + getExcludingList().hashCode();
+        hash = (53 * hash) + getExcluding().hashCode();
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -1539,17 +1518,16 @@ public final class TermGroupProto {
       private void maybeForceBuilderInitialization() {
         if (com.google.protobuf.GeneratedMessageV3
                 .alwaysUseFieldBuilders) {
-          getExcludingFieldBuilder();
         }
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
         if (excludingBuilder_ == null) {
-          excluding_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
+          excluding_ = null;
         } else {
-          excludingBuilder_.clear();
+          excluding_ = null;
+          excludingBuilder_ = null;
         }
         return this;
       }
@@ -1577,12 +1555,7 @@ public final class TermGroupProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding buildPartial() {
         com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding result = new com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding(this);
-        int from_bitField0_ = bitField0_;
         if (excludingBuilder_ == null) {
-          if (((bitField0_ & 0x00000001) != 0)) {
-            excluding_ = java.util.Collections.unmodifiableList(excluding_);
-            bitField0_ = (bitField0_ & ~0x00000001);
-          }
           result.excluding_ = excluding_;
         } else {
           result.excluding_ = excludingBuilder_.build();
@@ -1635,31 +1608,8 @@ public final class TermGroupProto {
 
       public Builder mergeFrom(com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding other) {
         if (other == com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding.getDefaultInstance()) return this;
-        if (excludingBuilder_ == null) {
-          if (!other.excluding_.isEmpty()) {
-            if (excluding_.isEmpty()) {
-              excluding_ = other.excluding_;
-              bitField0_ = (bitField0_ & ~0x00000001);
-            } else {
-              ensureExcludingIsMutable();
-              excluding_.addAll(other.excluding_);
-            }
-            onChanged();
-          }
-        } else {
-          if (!other.excluding_.isEmpty()) {
-            if (excludingBuilder_.isEmpty()) {
-              excludingBuilder_.dispose();
-              excludingBuilder_ = null;
-              excluding_ = other.excluding_;
-              bitField0_ = (bitField0_ & ~0x00000001);
-              excludingBuilder_ = 
-                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
-                   getExcludingFieldBuilder() : null;
-            } else {
-              excludingBuilder_.addAllMessages(other.excluding_);
-            }
-          }
+        if (other.hasExcluding()) {
+          mergeExcluding(other.getExcluding());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -1689,241 +1639,119 @@ public final class TermGroupProto {
         }
         return this;
       }
-      private int bitField0_;
 
-      private java.util.List<com.giyeok.jparser.proto.TermGroupProto.CharsGroup> excluding_ =
-        java.util.Collections.emptyList();
-      private void ensureExcludingIsMutable() {
-        if (!((bitField0_ & 0x00000001) != 0)) {
-          excluding_ = new java.util.ArrayList<com.giyeok.jparser.proto.TermGroupProto.CharsGroup>(excluding_);
-          bitField0_ |= 0x00000001;
-         }
-      }
-
-      private com.google.protobuf.RepeatedFieldBuilderV3<
+      private com.giyeok.jparser.proto.TermGroupProto.CharsGroup excluding_;
+      private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.proto.TermGroupProto.CharsGroup, com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder, com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder> excludingBuilder_;
+      /**
+       * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+       * @return Whether the excluding field is set.
+       */
+      public boolean hasExcluding() {
+        return excludingBuilder_ != null || excluding_ != null;
+      }
+      /**
+       * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+       * @return The excluding.
+       */
+      public com.giyeok.jparser.proto.TermGroupProto.CharsGroup getExcluding() {
+        if (excludingBuilder_ == null) {
+          return excluding_ == null ? com.giyeok.jparser.proto.TermGroupProto.CharsGroup.getDefaultInstance() : excluding_;
+        } else {
+          return excludingBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+       */
+      public Builder setExcluding(com.giyeok.jparser.proto.TermGroupProto.CharsGroup value) {
+        if (excludingBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          excluding_ = value;
+          onChanged();
+        } else {
+          excludingBuilder_.setMessage(value);
+        }
 
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public java.util.List<com.giyeok.jparser.proto.TermGroupProto.CharsGroup> getExcludingList() {
-        if (excludingBuilder_ == null) {
-          return java.util.Collections.unmodifiableList(excluding_);
-        } else {
-          return excludingBuilder_.getMessageList();
-        }
+        return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public int getExcludingCount() {
-        if (excludingBuilder_ == null) {
-          return excluding_.size();
-        } else {
-          return excludingBuilder_.getCount();
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public com.giyeok.jparser.proto.TermGroupProto.CharsGroup getExcluding(int index) {
-        if (excludingBuilder_ == null) {
-          return excluding_.get(index);
-        } else {
-          return excludingBuilder_.getMessage(index);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+       * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
        */
       public Builder setExcluding(
-          int index, com.giyeok.jparser.proto.TermGroupProto.CharsGroup value) {
-        if (excludingBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureExcludingIsMutable();
-          excluding_.set(index, value);
-          onChanged();
-        } else {
-          excludingBuilder_.setMessage(index, value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public Builder setExcluding(
-          int index, com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder builderForValue) {
-        if (excludingBuilder_ == null) {
-          ensureExcludingIsMutable();
-          excluding_.set(index, builderForValue.build());
-          onChanged();
-        } else {
-          excludingBuilder_.setMessage(index, builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public Builder addExcluding(com.giyeok.jparser.proto.TermGroupProto.CharsGroup value) {
-        if (excludingBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureExcludingIsMutable();
-          excluding_.add(value);
-          onChanged();
-        } else {
-          excludingBuilder_.addMessage(value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public Builder addExcluding(
-          int index, com.giyeok.jparser.proto.TermGroupProto.CharsGroup value) {
-        if (excludingBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureExcludingIsMutable();
-          excluding_.add(index, value);
-          onChanged();
-        } else {
-          excludingBuilder_.addMessage(index, value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public Builder addExcluding(
           com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder builderForValue) {
         if (excludingBuilder_ == null) {
-          ensureExcludingIsMutable();
-          excluding_.add(builderForValue.build());
+          excluding_ = builderForValue.build();
           onChanged();
         } else {
-          excludingBuilder_.addMessage(builderForValue.build());
+          excludingBuilder_.setMessage(builderForValue.build());
         }
+
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+       * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
        */
-      public Builder addExcluding(
-          int index, com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder builderForValue) {
+      public Builder mergeExcluding(com.giyeok.jparser.proto.TermGroupProto.CharsGroup value) {
         if (excludingBuilder_ == null) {
-          ensureExcludingIsMutable();
-          excluding_.add(index, builderForValue.build());
+          if (excluding_ != null) {
+            excluding_ =
+              com.giyeok.jparser.proto.TermGroupProto.CharsGroup.newBuilder(excluding_).mergeFrom(value).buildPartial();
+          } else {
+            excluding_ = value;
+          }
           onChanged();
         } else {
-          excludingBuilder_.addMessage(index, builderForValue.build());
+          excludingBuilder_.mergeFrom(value);
         }
+
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public Builder addAllExcluding(
-          java.lang.Iterable<? extends com.giyeok.jparser.proto.TermGroupProto.CharsGroup> values) {
-        if (excludingBuilder_ == null) {
-          ensureExcludingIsMutable();
-          com.google.protobuf.AbstractMessageLite.Builder.addAll(
-              values, excluding_);
-          onChanged();
-        } else {
-          excludingBuilder_.addAllMessages(values);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+       * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
        */
       public Builder clearExcluding() {
         if (excludingBuilder_ == null) {
-          excluding_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
+          excluding_ = null;
           onChanged();
         } else {
-          excludingBuilder_.clear();
+          excluding_ = null;
+          excludingBuilder_ = null;
         }
+
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+       * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
        */
-      public Builder removeExcluding(int index) {
-        if (excludingBuilder_ == null) {
-          ensureExcludingIsMutable();
-          excluding_.remove(index);
-          onChanged();
-        } else {
-          excludingBuilder_.remove(index);
-        }
-        return this;
+      public com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder getExcludingBuilder() {
+        
+        onChanged();
+        return getExcludingFieldBuilder().getBuilder();
       }
       /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+       * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
        */
-      public com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder getExcludingBuilder(
-          int index) {
-        return getExcludingFieldBuilder().getBuilder(index);
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder getExcludingOrBuilder(
-          int index) {
-        if (excludingBuilder_ == null) {
-          return excluding_.get(index);  } else {
-          return excludingBuilder_.getMessageOrBuilder(index);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public java.util.List<? extends com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder> 
-           getExcludingOrBuilderList() {
+      public com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder getExcludingOrBuilder() {
         if (excludingBuilder_ != null) {
-          return excludingBuilder_.getMessageOrBuilderList();
+          return excludingBuilder_.getMessageOrBuilder();
         } else {
-          return java.util.Collections.unmodifiableList(excluding_);
+          return excluding_ == null ?
+              com.giyeok.jparser.proto.TermGroupProto.CharsGroup.getDefaultInstance() : excluding_;
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
+       * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
        */
-      public com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder addExcludingBuilder() {
-        return getExcludingFieldBuilder().addBuilder(
-            com.giyeok.jparser.proto.TermGroupProto.CharsGroup.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder addExcludingBuilder(
-          int index) {
-        return getExcludingFieldBuilder().addBuilder(
-            index, com.giyeok.jparser.proto.TermGroupProto.CharsGroup.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
-       */
-      public java.util.List<com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder> 
-           getExcludingBuilderList() {
-        return getExcludingFieldBuilder().getBuilderList();
-      }
-      private com.google.protobuf.RepeatedFieldBuilderV3<
+      private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.proto.TermGroupProto.CharsGroup, com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder, com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder> 
           getExcludingFieldBuilder() {
         if (excludingBuilder_ == null) {
-          excludingBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+          excludingBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
               com.giyeok.jparser.proto.TermGroupProto.CharsGroup, com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder, com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder>(
-                  excluding_,
-                  ((bitField0_ & 0x00000001) != 0),
+                  getExcluding(),
                   getParentForChildren(),
                   isClean());
           excluding_ = null;
@@ -3706,7 +3534,7 @@ public final class TermGroupProto {
       "$.com.giyeok.jparser.proto.CharsGroupH\000\022" +
       "A\n\016virtuals_group\030\003 \001(\0132\'.com.giyeok.jpa" +
       "rser.proto.VirtualsGroupH\000B\013\n\tTermGroup\"" +
-      "L\n\021AllCharsExcluding\0227\n\texcluding\030\001 \003(\0132" +
+      "L\n\021AllCharsExcluding\0227\n\texcluding\030\001 \001(\0132" +
       "$.com.giyeok.jparser.proto.CharsGroup\"P\n" +
       "\nCharsGroup\022\032\n\022unicode_categories\030\001 \003(\005\022" +
       "\027\n\017excluding_chars\030\002 \003(\t\022\r\n\005chars\030\003 \003(\t\"" +

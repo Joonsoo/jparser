@@ -11,7 +11,7 @@ message TermGroup {
 }
 
 message AllCharsExcluding {
-  repeated CharsGroup excluding = 1;
+  CharsGroup excluding = 1;
 }
 
 message CharsGroup {

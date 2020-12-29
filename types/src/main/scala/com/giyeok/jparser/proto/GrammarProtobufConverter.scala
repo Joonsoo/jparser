@@ -7,18 +7,13 @@ import com.giyeok.jparser.proto.GrammarProto.Empty
 import com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol.NAtomicSymbolCase
 import com.giyeok.jparser.proto.GrammarProto.Symbol.SymbolCase
 import com.giyeok.jparser.proto.GrammarProto.Terminal.TerminalCase
+import com.giyeok.jparser.proto.ProtoConverterUtil._
 import com.giyeok.jparser.{NGrammar, Symbols}
 
 import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
 object GrammarProtobufConverter {
-  implicit def toJavaIntegerList(lst: List[Int]): java.util.List[Integer] =
-    lst.map(i => i: java.lang.Integer).asJava
-
-  implicit def toScalaIntList(lst: java.util.List[Integer]): List[Int] =
-    lst.asScala.toList.map(i => i: Int)
-
   private def convertAtomicSymbolToProtobuf(symbol: Symbols.AtomicSymbol): GrammarProto.AtomicSymbol = symbol match {
     case terminal: Symbols.Terminal =>
       GrammarProto.AtomicSymbol.newBuilder().setTerminal(convertTerminalSymbolToProto(terminal)).build()
@@ -60,7 +55,7 @@ object GrammarProtobufConverter {
       GrammarProto.Terminal.newBuilder().setExactChar(char.toString).build()
     case Terminals.Chars(chars) =>
       GrammarProto.Terminal.newBuilder().setChars(
-        GrammarProto.Terminal.Chars.newBuilder().addAllChars(chars.map(_.toString).toList.sorted.asJava)).build()
+        GrammarProto.Terminal.Chars.newBuilder().addAllChars(chars.toList.sorted)).build()
     case Terminals.Unicode(categories) =>
       GrammarProto.Terminal.newBuilder().setUnicodes(
         GrammarProto.Terminal.Unicodes.newBuilder().addAllCategories(categories.toList.sorted)).build()
@@ -189,7 +184,7 @@ object GrammarProtobufConverter {
       .setSymbol(convertSequenceSymbolToProtobuf(sequence.symbol))
       .addAllSequence(sequence.sequence.toList).build()
 
-  def convertNGrammarToProtobuf(ngrammar: NGrammar): GrammarProto.NGrammar = {
+  def convertNGrammarToProto(ngrammar: NGrammar): GrammarProto.NGrammar = {
     GrammarProto.NGrammar.newBuilder()
       .setStartSymbol(ngrammar.startSymbol)
       .putAllSymbols(ngrammar.nsymbols.map { x => (x._1: java.lang.Integer) -> convertNAtomicSymbolToProtobuf(x._2) }.asJava)
@@ -295,7 +290,7 @@ object GrammarProtobufConverter {
   def convertProtoToSequence(proto: GrammarProto.Sequence): Symbols.Sequence =
     Symbols.Sequence(proto.getSeqList.asScala.toList.map(convertProtoToAtomicSymbol))
 
-  def convertProtobufToNGrammar(protobuf: GrammarProto.NGrammar): NGrammar =
+  def convertProtoToNGrammar(protobuf: GrammarProto.NGrammar): NGrammar =
     new NGrammar(
       protobuf.getSymbolsMap.asScala.map { x => (x._1: Int) -> convertProtoToNAtomicSymbol(x._2) }.toMap,
       protobuf.getSequencesMap.asScala.map { x => (x._1: Int) -> convertProtoToNSequence(x._2) }.toMap,
