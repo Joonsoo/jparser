@@ -2,7 +2,7 @@ package com.giyeok.jparser.metalang3a
 
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, writeScalaParserCode}
-import com.giyeok.jparser.metalang3a.codegen.GrammarDefProtobufConverter
+import com.giyeok.jparser.proto.GrammarProtobufConverter
 import com.google.protobuf.CodedOutputStream
 
 import java.io.{BufferedOutputStream, File, FileOutputStream}
@@ -98,7 +98,7 @@ object Grammars {
 
   def generateProto2DefinitionAst(): Unit = {
     val analysis = generateScalaParserCode("Proto2DefinitionAst", readFile("./examples/src/main/resources/proto2.cdg"))
-    val grammarProto = GrammarDefProtobufConverter.convertNGrammarToProtobuf(analysis.ngrammar)
+    val grammarProto = GrammarProtobufConverter.convertNGrammarToProtobuf(analysis.ngrammar)
     println(grammarProto)
     println(grammarProto.getSerializedSize)
 

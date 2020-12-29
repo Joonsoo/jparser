@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package com.giyeok.jparser.metalang3a.proto;
+package com.giyeok.jparser.proto;
 
 message NGrammar {
   int32 start_symbol = 1;

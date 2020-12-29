@@ -25,7 +25,8 @@ lazy val utils = (project in file("utils")).
 lazy val types = (project in file("types")).
   settings(
     name := "jparser-types",
-    libraryDependencies ++= testDeps).
+    libraryDependencies ++= testDeps,
+    libraryDependencies += protobufDep).
   dependsOn(utils % "test->test;compile->compile")
 
 lazy val examples = (project in file("examples")).
@@ -52,7 +53,6 @@ lazy val parsergen = (project in file("parsergen")).
   settings(
     name := "jparser-parsergen",
     libraryDependencies += javaFormatDep,
-    libraryDependencies += protobufDep,
     libraryDependencies ++= testDeps,
     javacOptions ++= Seq("-encoding", "UTF-8")).
   dependsOn(core % "test->test;compile->compile").

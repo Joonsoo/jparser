@@ -1,15 +1,15 @@
 package com.giyeok.jparser.tests.metalang3a.codegen
 
-import com.giyeok.jparser.metalang3a.codegen.GrammarDefProtobufConverter
 import com.giyeok.jparser.metalang3a.generated.{ExpressionGrammarAst, MetaLang3Ast}
+import com.giyeok.jparser.proto.GrammarProtobufConverter
 import org.junit.Test
 
-class GrammarDefProtobufConverterTest {
+class GrammarProtobufConverterTest {
   @Test
   def testConvert(): Unit = {
     val original = MetaLang3Ast.ngrammar
-    val converted = GrammarDefProtobufConverter.convertNGrammarToProtobuf(original)
-    val rev = GrammarDefProtobufConverter.convertProtobufToNGrammar(converted)
+    val converted = GrammarProtobufConverter.convertNGrammarToProtobuf(original)
+    val rev = GrammarProtobufConverter.convertProtobufToNGrammar(converted)
 
     original.nsymbols.toList.sortBy(_._1).zip(rev.nsymbols.toList.sortBy(_._1)).filter(p => p._1 != p._2).foreach { pair =>
       println(s"${pair._1._1} ${pair._1._2} ${pair._2._2}")
