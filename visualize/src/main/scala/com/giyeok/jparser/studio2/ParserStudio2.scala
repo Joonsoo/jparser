@@ -1,6 +1,7 @@
 package com.giyeok.jparser.studio2
 
 import com.giyeok.jparser.examples.metalang3.SimpleExamples
+import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto
 import com.giyeok.jparser.studio2.GrammarDefEditor.UpdateEvent
 import com.giyeok.jparser.studio2.Utils.setMainAndBottomLayout
 import com.giyeok.jparser.visualize.utils.{HorizontalResizableSplittedComposite, VerticalResizableSplittedComposite}
@@ -11,7 +12,9 @@ import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout.{FillLayout, FormLayout}
 import org.eclipse.swt.widgets.{Button, Composite, Display, Shell}
 
+import java.io.{BufferedInputStream, FileInputStream}
 import java.util.concurrent.{ExecutorService, Executors}
+import scala.util.Using
 
 class ParserStudio2(private val shell: Shell, parseExecutor: ExecutorService) {
   private val font = new Font(shell.getDisplay, "JetBrains Mono", 12, SWT.NONE)

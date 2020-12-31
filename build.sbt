@@ -77,6 +77,7 @@ lazy val visualize = (project in file("visualize")).
   dependsOn(core % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
+  dependsOn(parsergen % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile")
 
 lazy val study = (project in file("study")).

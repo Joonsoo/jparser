@@ -23,3 +23,6 @@ samples
 .gitignore
 
 .idea
+
+parsergen/study
+protoc.exe

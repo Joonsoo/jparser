@@ -194,18 +194,22 @@ object MilestoneParser {
 }
 
 class MilestoneParser(val parserData: MilestoneParserData) {
+  val verbose: Boolean = true
   val startMilestonePath: MilestonePath = MilestonePath(Milestone(None, parserData.grammar.startSymbol, 0, 0), Always)
 
   def initialCtx: MilestoneParserContext = MilestoneParserContext(0, List(startMilestonePath),
     List(GenProgress(List(startMilestonePath), List(TermAction(0, 0, 0, parserData.byStart, Always)))))
 
   def parse(inputSeq: Seq[Inputs.Input]): MilestoneParserContext = {
-    //    println("=== initial")
-    //    initialCtx.paths.foreach(t => println(t.prettyString))
+    if (verbose) {
+      println("=== initial")
+      initialCtx.paths.foreach(t => println(t.prettyString))
+    }
     inputSeq.zipWithIndex.foldLeft(initialCtx) { (m, i) =>
       val (nextInput, gen0) = i
-      //      val gen = gen0 + 1
-      //      println(s"=== $gen $nextInput")
+      if (verbose) {
+        println(s"=== ${gen0 + 1} $nextInput")
+      }
       proceed(m, nextInput)
     }
   }
@@ -280,15 +284,19 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     val milestones0 = processor.proceed(ctx, gen, input)
     // TODO processor.genActions를 바탕으로 milestones 필터링.
     // TODO -> 그런데 milestone의 tip에 있지 않은 컨디션들은? "tip이 아닌 마일스톤의 컨디션도 고려해야 하는지" 역시 문법의 특성으로 얻어내서 별도로 처리할 수 있지 않을까
-    //    println("  ** before evaluating accept condition")
-    //    milestones0.foreach(t => println(t.prettyString))
+    if (verbose) {
+      println("  ** before evaluating accept condition")
+      milestones0.foreach(t => println(t.prettyString))
+    }
     val acceptConditionEvaluator = new AcceptConditionEvaluator(parserData, milestones0, gen, processor.genActions)
     val milestones = milestones0.flatMap { milestone =>
       val newCond = acceptConditionEvaluator.evolveAcceptCondition(milestone.acceptCondition)
       if (newCond == Never) None else Some(milestone.copy(acceptCondition = newCond))
     }
-    //    println("  ** after evaluating accept condition")
-    //    milestones.foreach(t => println(t.prettyString))
+    if (verbose) {
+      println("  ** after evaluating accept condition")
+      milestones.foreach(t => println(t.prettyString))
+    }
     MilestoneParserContext(gen, milestones, ctx.genProgressHistory :+ GenProgress(milestones0, processor.genActions))
   }
 }
