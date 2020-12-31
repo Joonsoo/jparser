@@ -193,7 +193,7 @@ object MetaLanguage3 {
         case Left(parsed) =>
           println(s"== Input: $input")
           AnalysisPrinter.printNodeStructure(parsed)
-          val valuefied = valuefyExprSimulator.valuefy(parsed)
+          val valuefied = valuefyExprSimulator.valuefyStart(parsed)
           println(s"Value: ${valuefied.prettyPrint()}")
           // println(valuefied.detailPrint())
           expectedResult.foreach(someExpectedResult =>

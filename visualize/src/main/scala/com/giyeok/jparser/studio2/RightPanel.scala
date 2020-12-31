@@ -130,7 +130,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
                 try {
                   val astValues = parseForest.trees.toList.map { parseTree =>
                     new ValuefyExprSimulator(processedGrammar.ngrammar, processedGrammar.startNonterminalName,
-                      processedGrammar.nonterminalValuefyExprs, processedGrammar.shortenedEnumTypesMap).valuefy(parseTree)
+                      processedGrammar.nonterminalValuefyExprs, processedGrammar.shortenedEnumTypesMap).valuefyStart(parseTree)
                   }
                   sub.onNext(Left(astValues))
                 } catch {

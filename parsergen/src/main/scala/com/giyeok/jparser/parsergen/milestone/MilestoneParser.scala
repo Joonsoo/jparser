@@ -193,8 +193,7 @@ object MilestoneParser {
   }
 }
 
-class MilestoneParser(val parserData: MilestoneParserData) {
-  val verbose: Boolean = true
+class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean = false) {
   val startMilestonePath: MilestonePath = MilestonePath(Milestone(None, parserData.grammar.startSymbol, 0, 0), Always)
 
   def initialCtx: MilestoneParserContext = MilestoneParserContext(0, List(startMilestonePath),

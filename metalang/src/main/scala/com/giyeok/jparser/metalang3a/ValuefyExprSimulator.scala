@@ -3,6 +3,7 @@ package com.giyeok.jparser.metalang3a
 import com.giyeok.jparser.ParseResultTree.{BindNode, JoinNode, Node, SequenceNode, TerminalNode}
 import com.giyeok.jparser.Symbols.ShortStringSymbols
 import com.giyeok.jparser._
+import com.giyeok.jparser.metalang3a.MetaLanguage3.ProcessedGrammar
 import com.giyeok.jparser.metalang3a.ValuefyExpr.{MatchNonterminal, Unbind, UnrollChoices}
 import com.giyeok.jparser.metalang3a.ValuefyExprSimulator._
 import com.giyeok.jparser.nparser.ParseTreeUtil.expectedTermsFrom
@@ -34,7 +35,7 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
 
   def valuefy(sourceText: String): Either[Value, ParsingErrors.ParsingError] =
     parse(sourceText) match {
-      case Left(tree) => Left(valuefy(tree))
+      case Left(tree) => Left(valuefyStart(tree))
       case Right(error) => Right(error)
     }
 
@@ -42,7 +43,7 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
     Unbind(Symbols.Nonterminal(startNonterminalName),
       MatchNonterminal(startNonterminalName)))
 
-  def valuefy(parseNode: Node): Value = valuefy(parseNode, startValuefyExpr)
+  def valuefyStart(parseNode: Node): Value = valuefy(parseNode, startValuefyExpr)
 
   def valuefy(parseNode: Node, valuefyExpr: ValuefyExpr): Value = valuefyExpr match {
     case ValuefyExpr.InputNode => NodeValue(parseNode)
@@ -171,6 +172,8 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
 }
 
 object ValuefyExprSimulator {
+  def apply(analysis: ProcessedGrammar): ValuefyExprSimulator =
+    new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
 
   abstract sealed class Value {
     def prettyPrint(): String

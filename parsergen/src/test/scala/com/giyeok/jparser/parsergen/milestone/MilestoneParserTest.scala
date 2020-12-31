@@ -2,7 +2,7 @@ package com.giyeok.jparser.parsergen.milestone
 
 import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, SimpleExamples}
-import com.giyeok.jparser.metalang3a.MetaLanguage3
+import com.giyeok.jparser.metalang3a.{MetaLanguage3, ValuefyExprSimulator}
 import com.giyeok.jparser.{Inputs, NGrammar}
 import com.giyeok.jparser.metalang3a.generated.{ArrayExprAst, ExceptMatchAst, ExpressionGrammarAst, MetaLang3Ast}
 import com.giyeok.jparser.parsergen.milestone.MilestoneParser.reconstructParseTree
@@ -118,8 +118,8 @@ class MilestoneParserTest extends AnyFlatSpec {
 
   it should "correctly parses line comment grammar" in {
     val grammar =
-      """program = WS syntax (WS syntax)* WS {[$1]+$2}
-        |syntax = "syntax"&Tk WS '=' WS ("\"proto3\"" | "'proto3'") WS ';' {str($4)}
+      """program = WS elem (WS elem)* WS {[$1]+$2}
+        |elem = "elem"&Tk
         |
         |Tk = <'a-zA-Z0-9_'*>
         |WS = (' \n\r\t' | LineComment)*
@@ -128,12 +128,13 @@ class MilestoneParserTest extends AnyFlatSpec {
     val gram = MetaLanguage3.analyzeGrammar(grammar)
     val data = MilestoneParserGen.generateMilestoneParserData(gram.ngrammar)
     val input = Inputs.fromString(
-      """syntax = "proto3";
+      """elem
         |// hello
-        |syntax = 'proto3';
+        |elem elem
         |// bye~""".stripMargin)
-    val finalCtx = new MilestoneParser(data).parse(input)
+    val finalCtx = new MilestoneParser(data, true).parse(input)
     val forest = MilestoneParser.reconstructParseTree(data, finalCtx, input).get
-    println(forest.trees.size)
+    assert(forest.trees.size == 1)
+    ValuefyExprSimulator(gram).valuefyStart(forest.trees.head)
   }
 }

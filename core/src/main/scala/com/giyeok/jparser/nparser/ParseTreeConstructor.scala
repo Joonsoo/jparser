@@ -1,7 +1,7 @@
 package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.NGrammar.{NAtomicSymbol, NExcept, NJoin, NLookaheadExcept, NLookaheadIs, NSequence, NTerminal}
+import com.giyeok.jparser.NGrammar.{NAtomicSymbol, NExcept, NJoin, NLookaheadExcept, NLookaheadIs, NSequence, NSimpleDerive, NTerminal}
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.{NGrammar, ParseResult, ParseResultFunc}
@@ -123,11 +123,21 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
 
             case symbol: NAtomicSymbol =>
                 assert(kernel.pointer == 1)
-                val prevKernel = Kernel(kernel.symbolId, 0, kernel.beginGen, kernel.beginGen)
+//                val prevKernel = Kernel(kernel.symbolId, 0, kernel.beginGen, kernel.beginGen)
                 // assert(finishes(gen).edgesByStart(prevKernel) forall { _.isInstanceOf[SimpleKernelEdge] })
-                val bodyKernels = finishes(gen).edgesByStart(prevKernel) collect {
-                    case KernelEdge(_, end) if end.endGen == gen && end.isFinal(grammar) => end
+//                val bodyKernels = finishes(gen).edgesByStart(prevKernel) collect {
+//                    case KernelEdge(_, end) if end.endGen == gen && end.isFinal(grammar) => end
+//                }
+                def lastKernel(symbolId: Int) =
+                    Kernel(symbolId, Kernel.lastPointerOf(grammar.symbolOf(symbolId)), kernel.beginGen, gen)
+                val bodyKernels0: Set[Kernel] = grammar.nsymbols(kernel.symbolId) match {
+                    case deriver: NSimpleDerive => deriver.produces.map(lastKernel)
+                    case NGrammar.NExcept(_, _, body, _) => Set(lastKernel(body))
+                    case NGrammar.NLongest(_, _, body) => Set(lastKernel(body))
+                    case symbol: NGrammar.NLookaheadSymbol => Set(lastKernel(symbol.emptySeqId))
+                    case _: NTerminal | _: NJoin => assert(false); ???
                 }
+                val bodyKernels = (bodyKernels0 intersect finishes(gen).nodes.toSet).toList
                 val bodyTrees = bodyKernels.sortBy(_.tuple) map { bodyKernel =>
                     reconstruct0(bodyKernel, kernel.endGen)
                 }

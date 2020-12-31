@@ -15,7 +15,7 @@ class AllExamplesTest extends AnyFlatSpec {
       analysis = MetaLanguage3.analyzeGrammar(example.grammar, example.name)
       assert(analysis.errors.isClear, analysis.errors)
 
-      valuefySimulator = new ValuefyExprSimulator(analysis.ngrammar, analysis.startNonterminalName, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
+      valuefySimulator = ValuefyExprSimulator(analysis)
       analysisPrinter = new AnalysisPrinter(analysis.ngrammar, valuefySimulator.startValuefyExpr, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
 
       //            val classHierarchy = analysis.classRelations.toHierarchy
@@ -36,7 +36,7 @@ class AllExamplesTest extends AnyFlatSpec {
         //        println(s"== Input: $input")
         val parsedNode = parsed.left.get
         //        AnalysisPrinter.printNodeStructure(parsedNode)
-        val valuefied = valuefySimulator.valuefy(parsedNode)
+        val valuefied = valuefySimulator.valuefyStart(parsedNode)
         //        println(valuefied.prettyPrint())
         expectedResult.foreach(someExpectedResult =>
           assert(valuefied.prettyPrint() == someExpectedResult))
