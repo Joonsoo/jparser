@@ -57,9 +57,9 @@ trait ParsingTasks {
             val newNode = nodeOf(symbolId)
             if (!(cc.graph.nodes contains newNode)) {
                 val ncc = addNode(cc, newNode)
-                GraphTasksCont(ncc.graph.addEdge(Edge(startNode, newNode, actual = true)), ncc.newTasks)
+                GraphTasksCont(ncc.graph.addEdge(Edge(startNode, newNode)), ncc.newTasks)
             } else if (newNode.kernel.isFinal(grammar)) {
-                GraphTasksCont(cc.graph.addEdge(Edge(startNode, newNode, actual = true)), ProgressTask(startNode, Always) +: cc.newTasks)
+                GraphTasksCont(cc.graph.addEdge(Edge(startNode, newNode)), ProgressTask(startNode, Always) +: cc.newTasks)
             } else {
                 assert(newNode.isInitial)
                 val updatedNodes = updatedNodesMap.getOrElse(newNode, Set())
@@ -68,9 +68,9 @@ trait ParsingTasks {
                 val newTasks = updatedFinalNodes map { finalNode => ProgressTask(startNode, finalNode.condition) }
 
                 assert(!(updatedNodes contains newNode))
-                val graph1 = cc.graph.addEdge(Edge(startNode, newNode, actual = true))
+                val graph1 = cc.graph.addEdge(Edge(startNode, newNode))
                 val newGraph = updatedNodes.foldLeft(graph1) { (graph, updatedNode) =>
-                    graph.addEdge(Edge(startNode, updatedNode, actual = false))
+                    graph.addEdge(Edge(startNode, updatedNode))
                 }
                 GraphTasksCont(newGraph, newTasks ++: cc.newTasks)
             }
@@ -148,7 +148,7 @@ trait ParsingTasks {
             // node로 들어오는 incoming edge 각각에 대해 newNode를 향하는 엣지를 추가한다
             val incomingEdges = cc.graph.edgesByEnd(node)
             val newGraph = incomingEdges.foldLeft(graph1) { (graph, edge) =>
-                val newEdge = Edge(edge.start, updatedNode, actual = false)
+                val newEdge = Edge(edge.start, updatedNode)
                 graph.addEdge(newEdge)
             }
 

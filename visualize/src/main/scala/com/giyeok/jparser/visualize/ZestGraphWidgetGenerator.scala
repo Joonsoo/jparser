@@ -106,9 +106,9 @@ trait AbstractZestParsingGraphWidget extends AbstractZestGraphWidget[Node, Edge,
     }
 
     def createConnection(edge: Edge): GraphConnection = {
-        val Edge(start, end, actual) = edge
+        val Edge(start, end) = edge
         val conn = new GraphConnection(graphCtrl, ZestStyles.CONNECTIONS_DIRECTED, nodesMap(start), nodesMap(end))
-        conn.setLineColor(if (actual) edgeColor else nonActualEdgeColor)
+        conn.setLineColor(edgeColor)
         conn.setData((Seq(start, end), Seq(conn)))
         conn
     }

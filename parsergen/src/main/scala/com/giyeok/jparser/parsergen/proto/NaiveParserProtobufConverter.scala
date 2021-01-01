@@ -84,13 +84,13 @@ object NaiveParserProtobufConverter {
       .addAllEdges(graph.edges.map(edge => NaiveParserProto.Graph.Edge.newBuilder()
         .setStartIdx(nodes.indexOf(edge.start))
         .setEndIdx(nodes.indexOf(edge.end))
-        .setActual(edge.actual).build()).asJava)
+        .build()).asJava)
       .build()
   }
 
   def convertProtoToGraph(proto: NaiveParserProto.Graph): Graph = {
     val nodes = proto.getNodesList.asScala.toList.map(convertProtoToNode)
     Graph(nodes.toSet, proto.getEdgesList.asScala.map(edge =>
-      Edge(nodes(edge.getStartIdx), nodes(edge.getEndIdx), edge.getActual)).toSet)
+      Edge(nodes(edge.getStartIdx), nodes(edge.getEndIdx))).toSet)
   }
 }

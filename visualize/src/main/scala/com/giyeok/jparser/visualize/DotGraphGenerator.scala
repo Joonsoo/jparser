@@ -180,7 +180,7 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             queue = queue.tail
             addNode(node)
             graph.edgesByStart(node).toSeq sortWith { (x, y) => x.end.kernel.symbolId < y.end.kernel.symbolId } foreach { edge =>
-                val Edge(start, end, _) = edge
+                val Edge(start, end) = edge
                 edges(edge) = new DotGraphEdge()
                 if (!(visited contains end)) queue +:= end
                 visited += end
@@ -253,9 +253,6 @@ class DotGraphGenerator(ngrammar: NGrammar) {
             edges foreach { edgePair =>
                 // actual 표현
                 val (edge, dotEdge) = edgePair
-                if (!edge.actual) {
-                    dotEdge.addStyle("invis")
-                }
                 printLine(s"    ${nodeNameOf(edge.start)} -> ${nodeNameOf(edge.end)}[${dotEdge.attrString}];")
 
                 if (!(newVisited contains edge.end)) {

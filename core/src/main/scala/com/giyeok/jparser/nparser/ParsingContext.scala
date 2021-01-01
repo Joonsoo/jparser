@@ -39,9 +39,7 @@ object ParsingContext {
         override val hashCode: Int = (kernel, condition).hashCode()
     }
 
-    case class Edge(start: Node, end: Node, actual: Boolean) extends AbstractEdge[Node] {
-        override val hashCode: Int = (start, end).hashCode()
-    }
+    case class Edge(start: Node, end: Node) extends AbstractEdge[Node]
 
     case class Graph(nodes: Set[Node], edges: Set[Edge], edgesByStart: Map[Node, Set[Edge]], edgesByEnd: Map[Node, Set[Edge]]) extends AbstractGraph[Node, Edge, Graph] {
         // assert(edgesByStart.keySet == nodes && edgesByDest.keySet == nodes)
@@ -54,7 +52,7 @@ object ParsingContext {
             val newNodesMap: Map[Node, Node] = (nodes map { node => node -> nodeFunc(node) }).toMap
             val newNodes: Set[Node] = newNodesMap.values.toSet
             val newEdgesMap: Map[Edge, Edge] = (edges map { edge =>
-                edge -> Edge(newNodesMap(edge.start), newNodesMap(edge.end), edge.actual)
+                edge -> Edge(newNodesMap(edge.start), newNodesMap(edge.end))
             }).toMap
             val newEdgesByStart = edgesByStart map { kv =>
                 newNodesMap(kv._1) -> (kv._2 map newEdgesMap)
@@ -102,7 +100,7 @@ object ParsingContext {
                 case head +: rest =>
                     val addingNodes = reachableProceedingNodesFrom(graph, List(head), Set(head), Set())
                     val cc1 = addingNodes.foldLeft(cc) { (m, i) =>
-                        m.addNode(i).addEdge(Edge(head, i, actual = true))
+                        m.addNode(i).addEdge(Edge(head, i))
                     }
                     rec(rest ++ (addingNodes -- cc.nodes).toList, cc1)
                 case List() => cc

@@ -27,7 +27,7 @@ class ParseTreeConstructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(gra
                 _.kernel
             }
             val kernelEdges0: Set[KernelEdge] = filteredGraph.edges map {
-                case Edge(start, end, _) => KernelEdge(start.kernel, end.kernel)
+                case Edge(start, end) => KernelEdge(start.kernel, end.kernel)
             }
 
             // 원래는 initial node로 가는 edge만 있기 때문에 edge들을 추가해서 고려해주어야 하는데, 우선은 non-actual edge들도 전부 고려하게 했기 때문에 필요 없음

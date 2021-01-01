@@ -53,6 +53,13 @@ class MilestoneParserGen(val parser: NaiveParser) {
       tasks.filter(_.isInstanceOf[parser.FinishTask]).map(_.asInstanceOf[parser.FinishTask])
   }
 
+  // TODO accept condition 때문에 생기는 derivation에 대한 별도 처리 필요. (MilestoneParserTest의 마지막 테스트 참고)
+  // -> 다른 milestone path에 dependent한 milestone path가 존재할 수 있음.
+  //    예를 들어 ("elem"&Tk) 커널에서는 "elem" 커널로 가는 엣지밖에 없지만 Tk 커널에 대한 파싱도 파악할 필요가 있음
+  //    Naive parser에서는 trimGraph할 때 reachablesFromStart에 의해 ("elem"&Tk)가 살아있을 때만 Tk도 살아남게 되는데
+  //    Milestone parser에서는 그런 구조를 표현할 방법이 없음.
+  //    또 이런 경우 Tk 밑에 붙는 milestone이 바로 start에서 붙는 형태가 되는데 이러면 제대로 구조 파악이 안됨.
+  //    -> 즉, Start를 거치지 않고 (Tk -> ...)의 마일스톤 path가 되어야 하므로 별도 처리가 필요
   def parsingActionFrom(graph: Graph, startNode: Node, progressTasks: List[parser.ProgressTask], currGen: Int): ParsingAction = {
     val nextGen = currGen + 1
     val termProgressResult = runTasksWithProgressBarrier(nextGen, progressTasks, startNode,
@@ -118,7 +125,7 @@ class MilestoneParserGen(val parser: NaiveParser) {
     }.toMap
     val derivedWithEnds = fakeEnds.foldLeft(derived) { (graph, end) =>
       graph.edgesByEnd(end._1).foldLeft(graph.addNode(end._2)) { (ngraph, start) =>
-        ngraph.addEdge(Edge(start.start, end._2, actual = false))
+        ngraph.addEdge(Edge(start.start, end._2))
       }
     }
     val afterDerive = parser.rec(2, fakeEnds.values.map(parser.DeriveTask).toList, derivedWithEnds)
