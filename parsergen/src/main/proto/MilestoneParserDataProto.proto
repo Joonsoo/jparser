@@ -24,6 +24,12 @@ message ParsingAction {
   message AppendingMilestonePair {
     KernelTemplate kernel_template = 1;
     com.giyeok.jparser.nparser.proto.AcceptCondition condition = 2;
+    repeated Dependent dependents = 3;
+    message Dependent {
+      KernelTemplate start_milestone = 1;
+      KernelTemplate end_milestone = 2;
+      com.giyeok.jparser.nparser.proto.AcceptCondition condition = 3;
+    }
   }
   repeated AppendingMilestonePair appending_milestones = 1;
   TasksSummary tasks_summary = 2;

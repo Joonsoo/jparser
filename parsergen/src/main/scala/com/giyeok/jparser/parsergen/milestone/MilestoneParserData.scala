@@ -20,7 +20,10 @@ case class MilestoneParserData(grammar: NGrammar,
 
 // progressedKernels와 finishedKernels는 이 parsing action으로 인해 progress된 커널과 finish된 커널들.
 // -> 이들은 parse tree reconstruction을 위해 사용되는 것이기 때문에 여기에는 accept condition이 필요 없음
-case class ParsingAction(appendingMilestones: List[(KernelTemplate, AcceptCondition)],
+case class ParsingAction(appendingMilestones: List[AppendingMilestone],
                          tasksSummary: TasksSummary,
                          startNodeProgressConditions: List[AcceptCondition],
                          graphBetween: Graph)
+
+case class AppendingMilestone(milestone: KernelTemplate, acceptCondition: AcceptCondition,
+                              dependents: List[(KernelTemplate, KernelTemplate, AcceptCondition)])

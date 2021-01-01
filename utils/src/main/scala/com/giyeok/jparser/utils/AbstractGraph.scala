@@ -129,13 +129,33 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
     def reachableBetween(start: N, end: N): Boolean = {
         var visited: Set[N] = Set(start)
 
-        def recursion(current: N): Boolean =
+        def recursion(current: N): Boolean = {
             if (current == end) true else {
                 visited += current
                 ((edgesByStart(current) map { e => e.end }) -- visited) exists recursion
             }
+        }
 
         recursion(start)
+    }
+
+    def reachableGraphBetween(start: N, end: N): Self = {
+        var visited: Set[N] = Set(start)
+
+        def recursion(path: List[E], cc: Self): Self = path match {
+            case visiting +: _ if visiting.end == end =>
+                path.foldLeft(cc) { (m, i) => m.addEdgeSafe(i) }
+            case visiting +: _ =>
+                if (visited.contains(visiting.end)) cc else {
+                    visited += visiting.end
+                    edgesByStart(visiting.end).foldLeft(cc) { (m, i) => recursion(i +: path, m) }
+                }
+        }
+
+        val initialGraph = createGraph(Set(), Set(), Map(), Map())
+        edgesByStart(start).foldLeft(initialGraph) { (m, i) =>
+            if (i.end == start) m.addNode(start).addEdge(i) else recursion(List(i), m)
+        }
     }
 }
 

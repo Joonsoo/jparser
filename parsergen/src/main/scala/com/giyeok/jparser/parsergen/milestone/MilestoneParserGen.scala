@@ -2,7 +2,7 @@ package com.giyeok.jparser.parsergen.milestone
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.NGrammar.NSequence
+import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLookaheadIs, NLookaheadSymbol, NSequence}
 import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.{AcceptCondition, NaiveParser}
@@ -64,9 +64,10 @@ class MilestoneParserGen(val parser: NaiveParser) {
     val nextGen = currGen + 1
     val termProgressResult = runTasksWithProgressBarrier(nextGen, progressTasks, startNode,
       ContWithTasks(List(), parser.Cont(graph, Map())))
-    val trimmed = parser.trimGraph(termProgressResult.cc.graph, startNode, nextGen)
+    val progressedGraph = termProgressResult.cc.graph
+    val trimmed = parser.trimGraph(progressedGraph, startNode, nextGen)
 
-    val appendingMilestones = termProgressResult.tasks.deriveTasks
+    val appendingMilestones0 = termProgressResult.tasks.deriveTasks
       .filter(task => trimmed.nodes.contains(task.node))
       .filter(task => parser.grammar.symbolOf(task.node.kernel.symbolId).isInstanceOf[NSequence])
       .map(_.node)
@@ -84,8 +85,34 @@ class MilestoneParserGen(val parser: NaiveParser) {
     // - for each milestone in appendingMilestones,
     //   - kernelTemplate->milestone 으로 가는 경로가 추가되고
     //   - kernelTemplate->milestone 사이에는 trimmed가 그래프로 들어감
+    // appendingMilestones0 중 startNode에서 직접 edge를 통해 reachable한 것들만 appendingMilestones로 픽스.
+    // -> 그 외에는 dependent로 추가될 것들
+    // TODO 각 appendingMilestones에 대해(let say AM), (startNode -> AM)으로 가는 경로들만 포함하는 subgraph를 계산하고,
+    //      그 그래프에 join, except, lookahead 심볼이 있으면 이들의 (accept condition symbol) SYM 각각에 대해,
+    //      list of dependent를 만들어 AM의 dependent로 추가하는데,
+    //      이 dependent는 ((SYM, 0, currGen, currGen), Always)에서 reachable한 milestone(in appendingMilestones0) M의 리스트에 대해,
+    //      ((SYM, 0), M.kernelTemplate, M.condition)가 된다.
+    val appendingMilestones = appendingMilestones0.filter(progressedGraph.reachableBetween(startNode, _))
+    val appendingMilestoneActions = appendingMilestones.map { node =>
+      val subgraphBetween = progressedGraph.reachableGraphBetween(startNode, node)
+      val dependentMilestoneStarts = subgraphBetween.nodes
+        .filter(_.kernel.endGen == currGen)
+        .flatMap(n => parser.grammar.symbolOf(n.kernel.symbolId) match {
+          case NJoin(_, _, _, join) => Some(join)
+          case NExcept(_, _, _, except) => Some(except)
+          case lookahead: NLookaheadSymbol => Some(lookahead.lookahead)
+          case _ => None
+        })
+        .map(symbolId => Node(Kernel(symbolId, 0, currGen, currGen), Always))
+      println(dependentMilestoneStarts)
+      val dependents = dependentMilestoneStarts.toList.sortBy(_.kernel.tuple).flatMap { start =>
+        val ends = appendingMilestones0.filter(progressedGraph.reachableBetween(start, _))
+        ends.map { end => (KernelTemplate(start.kernel.symbolId, start.kernel.pointer), KernelTemplate(end.kernel.symbolId, end.kernel.pointer), end.condition) }
+      }
+      AppendingMilestone(KernelTemplate(node.kernel.symbolId, node.kernel.pointer), node.condition, dependents)
+    }
     ParsingAction(
-      appendingMilestones.map(node => (KernelTemplate(node.kernel.symbolId, node.kernel.pointer), node.condition)),
+      appendingMilestoneActions,
       tasksSummaryFrom(actions),
       startProgressConditions,
       trimmed)
@@ -147,16 +174,24 @@ class MilestoneParserGen(val parser: NaiveParser) {
     val withTermActions = jobs.milestones.foldLeft((Jobs(Set(), Set()), cc)) { (m, i) =>
       val (jobs, wcc) = m
       val termActions = termActionsFrom(i)
-      val appendables = termActions.flatMap(_._2.appendingMilestones.map(_._1)).toSet
-      (Jobs(jobs.milestones ++ appendables, jobs.edges ++ appendables.map((i, _))),
+      val appendables = termActions.flatMap(_._2.appendingMilestones.map(_.milestone)).toSet
+      val dependents = termActions.flatMap(_._2.appendingMilestones.flatMap { appending =>
+        appending.dependents.map(dep => (dep._1, dep._2))
+      }).toSet
+      (Jobs(jobs.milestones ++ appendables ++ dependents.map(_._2),
+        jobs.edges ++ appendables.map((i, _)) ++ dependents),
         wcc.copy(termActions = wcc.termActions + (i -> termActions)))
     }
     val withEdgeActions = jobs.edges.foldLeft(withTermActions) { (m, i) =>
       val (jobs, wcc) = m
       val edgeAction = edgeProgressActionsBetween(i._1, i._2)
-      val appendables = edgeAction.appendingMilestones.map(_._1)
+      val appendables = edgeAction.appendingMilestones.map(_.milestone)
       val newEdges = appendables.map((i._1, _)).toSet
-      (Jobs(jobs.milestones ++ appendables, jobs.edges ++ newEdges),
+      val dependents = edgeAction.appendingMilestones.flatMap { appending =>
+        appending.dependents.map(dep => (dep._1, dep._2))
+      }.toSet
+      (Jobs(jobs.milestones ++ appendables ++ dependents.map(_._2),
+        jobs.edges ++ newEdges ++ dependents),
         wcc.copy(edgeProgressActions = wcc.edgeProgressActions + (i -> edgeAction)))
     }
     val (newJobs, ncc) = withEdgeActions

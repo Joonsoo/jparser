@@ -194,7 +194,7 @@ object MilestoneParser {
 }
 
 class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean = false) {
-  val startMilestonePath: MilestonePath = MilestonePath(Milestone(None, parserData.grammar.startSymbol, 0, 0), Always)
+  val startMilestonePath: MilestonePath = MilestonePath(Milestone(None, parserData.grammar.startSymbol, 0, 0), Always, None, Set())
 
   def initialCtx: MilestoneParserContext = MilestoneParserContext(0, List(startMilestonePath),
     List(GenProgress(List(startMilestonePath), List(TermAction(0, 0, 0, parserData.byStart, Always)))))
@@ -223,6 +223,13 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
   def parseAndReconstructToForest(input: String): Option[ParseForest] =
     parseAndReconstructToForest(Inputs.fromString(input))
 
+  private var _nextTrackerId = 0
+
+  private def nextTrackerId(): Int = {
+    _nextTrackerId += 1
+    _nextTrackerId
+  }
+
   private class ProceedProcessor(var genActions: List[GenAction] = List()) {
     def proceed(ctx: MilestoneParserContext, gen: Int, input: Inputs.Input): List[MilestonePath] = ctx.paths.flatMap { path =>
       val tip = path.tip
@@ -232,23 +239,31 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
         case Some((_, action)) =>
           genActions +:= TermAction(parentGen, tip.gen, gen, action.tasksSummary, path.acceptCondition)
           // action.appendingMilestones를 뒤에 덧붙인다
-          val appended = action.appendingMilestones.map { appending =>
-            val kernelTemplate = appending._1
-            val acceptCondition = transformTermActionCondition(appending._2, parentGen, tip.gen, gen)
+          val appended = action.appendingMilestones.flatMap { appending =>
+            val kernelTemplate = appending.milestone
+            val acceptCondition = transformTermActionCondition(appending.acceptCondition, parentGen, tip.gen, gen)
+            // TODO appending.dependents 처리
+            val dependents = appending.dependents.map { dependent =>
+              val parentMilestone = Milestone(None, dependent._1.symbolId, dependent._1.pointer, tip.gen)
+              val tipMilestone = Milestone(Some(parentMilestone), dependent._2.symbolId, dependent._2.pointer, gen)
+              val condition = transformTermActionCondition(dependent._3, parentGen, tip.gen, gen)
+              val trackerId = nextTrackerId()
+              MilestonePath(tipMilestone, condition, Some(trackerId), Set())
+            }
             MilestonePath(Milestone(Some(tip), kernelTemplate.symbolId, kernelTemplate.pointer, gen),
-              conjunct(path.acceptCondition, acceptCondition))
+              conjunct(path.acceptCondition, acceptCondition), path.trackerId, dependents.map(_.trackerId.get).toSet) +: dependents
           }
           // action.startNodeProgressConditions가 비어있지 않으면 tip을 progress 시킨다
           // val transformedConditions = transformStartProgressConditions(parentGen, tip.gen, gen, action.startNodeProgressConditions)
           val transformedConditions = action.startNodeProgressConditions.map(
             transformTermActionCondition(_, parentGen, tip.gen, gen))
-          val reduced = progressTip(tip, gen, transformedConditions.map(conjunct(_, path.acceptCondition)))
+          val reduced = progressTip(tip, gen, transformedConditions.map(conjunct(_, path.acceptCondition)), path.trackerId)
           appended ++ reduced
         case None => List()
       }
     }
 
-    private def progressTip(tip: Milestone, gen: Int, acceptConditions: List[AcceptCondition]): List[MilestonePath] =
+    private def progressTip(tip: Milestone, gen: Int, acceptConditions: List[AcceptCondition], trackerId: Option[Int]): List[MilestonePath] =
       acceptConditions.flatMap { condition =>
         // (tip.parent-tip) 사이의 엣지에 대한 edge action 실행
         tip.parent match {
@@ -258,16 +273,24 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
             genActions +:= EdgeAction(parentBeginGen, parent.gen, tip.gen, gen, edgeAction.tasksSummary, condition)
             // TODO tip.acceptCondition은 이미 그 뒤에 붙었던 milestone에서 처리됐으므로 무시해도 될듯?
             // tip은 지워지고 tip.parent - edgeAction.appendingMilestones 가 추가됨
-            val appended = edgeAction.appendingMilestones.map { appending =>
-              val appendingCondition = transformEdgeActionCondition(appending._2, parentBeginGen, parent.gen, tip.gen, gen)
-              MilestonePath(Milestone(Some(parent), appending._1.symbolId, appending._1.pointer, gen),
-                conjunct(condition, appendingCondition))
+            val appended = edgeAction.appendingMilestones.flatMap { appending =>
+              val appendingCondition = transformEdgeActionCondition(appending.acceptCondition, parentBeginGen, parent.gen, tip.gen, gen)
+              // TODO appending.dependents 처리
+              val dependents = appending.dependents.map { dependent =>
+                val parentMilestone = Milestone(None, dependent._1.symbolId, dependent._1.pointer, tip.gen)
+                val tipMilestone = Milestone(Some(parentMilestone), dependent._2.symbolId, dependent._2.pointer, gen)
+                val condition = transformEdgeActionCondition(dependent._3, parentBeginGen, parent.gen, tip.gen, gen)
+                val trackerId = nextTrackerId()
+                MilestonePath(tipMilestone, condition, Some(trackerId), Set())
+              }
+              MilestonePath(Milestone(Some(parent), appending.milestone.symbolId, appending.milestone.pointer, gen),
+                conjunct(condition, appendingCondition), trackerId, dependents.map(_.trackerId.get).toSet) +: dependents
             }
             // edgeAction.startNodeProgressConditions에 대해 위 과정 반복 수행
             // val transformedConditions = transformStartProgressConditions(parent.gen, tip.gen, gen, edgeAction.startNodeProgressConditions)
             val transformedConditions = edgeAction.startNodeProgressConditions.map(
               transformEdgeActionCondition(_, -1, parent.gen, tip.gen, gen))
-            val propagated = progressTip(parent, gen, transformedConditions.map(conjunct(condition, _)))
+            val propagated = progressTip(parent, gen, transformedConditions.map(conjunct(condition, _)), trackerId)
             appended ++ propagated
           case None =>
             // 파싱 종료
@@ -281,8 +304,6 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
     val gen = ctx.gen + 1
     val processor = new ProceedProcessor()
     val milestones0 = processor.proceed(ctx, gen, input)
-    // TODO processor.genActions를 바탕으로 milestones 필터링.
-    // TODO -> 그런데 milestone의 tip에 있지 않은 컨디션들은? "tip이 아닌 마일스톤의 컨디션도 고려해야 하는지" 역시 문법의 특성으로 얻어내서 별도로 처리할 수 있지 않을까
     if (verbose) {
       println("  ** before evaluating accept condition")
       milestones0.foreach(t => println(t.prettyString))
@@ -292,6 +313,7 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
       val newCond = acceptConditionEvaluator.evolveAcceptCondition(milestone.acceptCondition)
       if (newCond == Never) None else Some(milestone.copy(acceptCondition = newCond))
     }
+    // TODO milestones에서 trackerId로 불필요한 path는 제거하고, 이미 사라진 trackerId도 제거
     if (verbose) {
       println("  ** after evaluating accept condition")
       milestones.foreach(t => println(t.prettyString))
@@ -300,8 +322,8 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
   }
 }
 
-case class MilestonePath(tip: Milestone, acceptCondition: AcceptCondition) {
-  def prettyString: String = s"${tip.prettyString} $acceptCondition"
+case class MilestonePath(tip: Milestone, acceptCondition: AcceptCondition, trackerId: Option[Int], tracking: Set[Int]) {
+  def prettyString: String = s"${tip.prettyString} $acceptCondition ($trackerId)"
 }
 
 case class Milestone(parent: Option[Milestone], symbolId: Int, pointer: Int, gen: Int) {

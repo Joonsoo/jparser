@@ -1,9 +1,10 @@
 package com.giyeok.jparser.parsergen.proto
 
-import com.giyeok.jparser.parsergen.milestone.{KernelTemplate, MilestoneParserData, ParsingAction, TasksSummary}
+import com.giyeok.jparser.parsergen.milestone.{AppendingMilestone, KernelTemplate, MilestoneParserData, ParsingAction, TasksSummary}
 import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.MilestoneParserData.{DerivedGraphPair, EdgeProgressActionPair, TermActionPair}
 import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.MilestoneParserData.TermActionPair.TermGroupAction
 import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.ParsingAction.AppendingMilestonePair
+import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.ParsingAction.AppendingMilestonePair.Dependent
 import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.TasksSummary.ProgressedKernelPair
 import com.giyeok.jparser.parsergen.proto.NaiveParserProtobufConverter.{convertAcceptConditionToProto, convertGraphToProto, convertNodeToProto, convertProtoToAcceptCondition, convertProtoToGraph, convertProtoToNode}
 import com.giyeok.jparser.proto.GrammarProtobufConverter.{convertNGrammarToProto, convertProtoToNGrammar}
@@ -37,8 +38,14 @@ object MilestoneParserProtobufConverter {
     MilestoneParserDataProto.ParsingAction.newBuilder()
       .addAllAppendingMilestones(parsingAction.appendingMilestones.map(am =>
         AppendingMilestonePair.newBuilder()
-          .setKernelTemplate(convertKernelTemplateToProto(am._1))
-          .setCondition(convertAcceptConditionToProto(am._2)).build()).asJava)
+          .setKernelTemplate(convertKernelTemplateToProto(am.milestone))
+          .setCondition(convertAcceptConditionToProto(am.acceptCondition))
+          .addAllDependents(am.dependents.map { dep =>
+            Dependent.newBuilder()
+              .setStartMilestone(convertKernelTemplateToProto(dep._1))
+              .setEndMilestone(convertKernelTemplateToProto(dep._2))
+              .setCondition(convertAcceptConditionToProto(dep._3)).build()
+          }.asJava).build()).asJava)
       .setTasksSummary(convertTasksSummaryToProto(parsingAction.tasksSummary))
       .addAllStartNodeProgressConditions(parsingAction.startNodeProgressConditions.map(convertAcceptConditionToProto).asJava)
       .setGraphBetween(convertGraphToProto(parsingAction.graphBetween)).build()
@@ -46,7 +53,12 @@ object MilestoneParserProtobufConverter {
   def convertProtoToParsingAction(proto: MilestoneParserDataProto.ParsingAction): ParsingAction =
     ParsingAction(
       appendingMilestones = proto.getAppendingMilestonesList.asScala.toList.map(pair =>
-        convertProtoToKernelTemplate(pair.getKernelTemplate) -> convertProtoToAcceptCondition(pair.getCondition)),
+        AppendingMilestone(
+          convertProtoToKernelTemplate(pair.getKernelTemplate),
+          convertProtoToAcceptCondition(pair.getCondition),
+          pair.getDependentsList.asScala.map { dependent =>
+            (convertProtoToKernelTemplate(dependent.getStartMilestone), convertProtoToKernelTemplate(dependent.getEndMilestone), convertProtoToAcceptCondition(dependent.getCondition))
+          }.toList)),
       tasksSummary = convertProtoToTasksSummary(proto.getTasksSummary),
       startNodeProgressConditions = proto.getStartNodeProgressConditionsList.asScala.toList.map(convertProtoToAcceptCondition),
       graphBetween = convertProtoToGraph(proto.getGraphBetween))

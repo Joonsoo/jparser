@@ -88,7 +88,7 @@ class ScalaParserDataCodeGen(parserData: MilestoneParserData) {
 
   def parsingAction(action: ParsingAction): ScalaCodeBlobNode = ArgsCall("ParsingAction", List(
     ArgsCall("List", action.appendingMilestones.map(appending =>
-      PairBlob(kernelTemplate(appending._1), acceptCondition(appending._2)))),
+      PairBlob(kernelTemplate(appending.milestone), acceptCondition(appending.acceptCondition)))),
     tasksSummary(action.tasksSummary),
     ArgsCall("List", action.startNodeProgressConditions.map(acceptCondition)),
     graph(action.graphBetween)
