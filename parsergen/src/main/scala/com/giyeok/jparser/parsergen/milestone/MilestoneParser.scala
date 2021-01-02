@@ -129,9 +129,9 @@ object MilestoneParser {
           // genAction을 통해서는 이 accept condition을 확인할 수 없으면 그대로 반환
           // TODO genAction을 통해서는 이 accept condition을 확인할 수 있는 경우는 전체 milestone들을 확인해야 알 수 있음..
           // -> milestone들 중에 milestone.gen이 beginGen과 같고, 해당 milestone에서 derive돼서 이 symbolId가 나올 수 있으면 아직 미확정
-          val metaConditions0 = symbolFinishConditions(beginGen, endGen, symbolId).map(evolveAcceptCondition)
+          val metaConditions0 = symbolFinishConditions(beginGen, endGen, symbolId).map { c => evolveAcceptCondition(c.neg) }
           val metaConditions = if (symbolStillPossible(symbolId, beginGen)) acceptCondition +: metaConditions0 else metaConditions0
-          disjunct(metaConditions: _*).neg
+          conjunct(metaConditions: _*)
         case Exists(_, endGen, _) if gen < endGen => acceptCondition
         case Exists(beginGen, endGen, symbolId) =>
           val metaConditions0 = symbolFinishConditions(beginGen, endGen, symbolId).map(evolveAcceptCondition)
@@ -140,12 +140,14 @@ object MilestoneParser {
         case Unless(beginGen, endGen, symbolId) =>
           if (gen > endGen) Always else {
             assert(gen == endGen)
-            evolveAcceptCondition(disjunct(symbolFinishConditions(beginGen, endGen, symbolId): _*).neg)
+            val conditions0 = symbolFinishConditions(beginGen, endGen, symbolId)
+            evolveAcceptCondition(disjunct(conditions0: _*).neg)
           }
         case OnlyIf(beginGen, endGen, symbolId) =>
           if (gen > endGen) Never else {
             assert(gen == endGen)
-            evolveAcceptCondition(disjunct(symbolFinishConditions(beginGen, endGen, symbolId): _*))
+            val conditions0 = symbolFinishConditions(beginGen, endGen, symbolId)
+            evolveAcceptCondition(disjunct(conditions0: _*))
           }
       }
     }

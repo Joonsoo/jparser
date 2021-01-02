@@ -104,7 +104,7 @@ class MilestoneParserGen(val parser: NaiveParser) {
           case _ => None
         })
         .map(symbolId => Node(Kernel(symbolId, 0, currGen, currGen), Always))
-      println(dependentMilestoneStarts)
+      //      println(dependentMilestoneStarts)
       val dependents = dependentMilestoneStarts.toList.sortBy(_.kernel.tuple).flatMap { start =>
         val ends = appendingMilestones0.filter(progressedGraph.reachableBetween(start, _))
         ends.map { end => (KernelTemplate(start.kernel.symbolId, start.kernel.pointer), KernelTemplate(end.kernel.symbolId, end.kernel.pointer), end.condition) }
