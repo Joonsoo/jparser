@@ -32,15 +32,18 @@ class MilestoneParserGen(val parser: NaiveParser) {
     case List() => cc
   }
 
-  private def startingCtxFrom(template: KernelTemplate, nextGen: Int): (Node, ContWithTasks) = {
-    val startNode = Node(Kernel(template.symbolId, template.pointer, 0, nextGen), Always)
+  private def startingCtxFrom(startKernel: Kernel): (Node, ContWithTasks) = {
+    val startNode = Node(startKernel, Always)
     val startGraph = Graph(Set(startNode), Set())
 
     val deriveTask = parser.DeriveTask(startNode)
 
-    (startNode, runTasksWithProgressBarrier(nextGen, List(deriveTask), startNode,
+    (startNode, runTasksWithProgressBarrier(startKernel.endGen, List(deriveTask), startNode,
       ContWithTasks(List(deriveTask), parser.Cont(startGraph, Map()))))
   }
+
+  private def startingCtxFrom(template: KernelTemplate, nextGen: Int): (Node, ContWithTasks) =
+    startingCtxFrom(Kernel(template.symbolId, template.pointer, 0, nextGen))
 
   private implicit class ParsingTasksList(val tasks: List[parser.Task]) {
     def deriveTasks: List[parser.DeriveTask] =
@@ -141,7 +144,9 @@ class MilestoneParserGen(val parser: NaiveParser) {
 
   // `simulateEdgeProgress` 바로 다음에 `endTemplate`가 붙어있고 `endTemplate`이 progress되는 경우
   def edgeProgressActionsBetween(startTemplate: KernelTemplate, endTemplate: KernelTemplate): ParsingAction = {
-    val (startNode, ContWithTasks(_, parser.Cont(derived, _))) = startingCtxFrom(startTemplate, 1)
+    val (startNode, ContWithTasks(_, parser.Cont(derived, _))) =
+      if (startTemplate.pointer == 0) startingCtxFrom(Kernel(startTemplate.symbolId, startTemplate.pointer, 1, 1))
+      else startingCtxFrom(Kernel(startTemplate.symbolId, startTemplate.pointer, 0, 1))
 
     val endKernelInitials = derived.nodes.filter { node =>
       node.kernel.symbolId == endTemplate.symbolId && node.kernel.pointer < endTemplate.pointer
@@ -204,7 +209,7 @@ class MilestoneParserGen(val parser: NaiveParser) {
 
   def parserData(): MilestoneParserData = {
     val start = KernelTemplate(parser.grammar.startSymbol, 0)
-    val (_, ContWithTasks(tasks, _)) = startingCtxFrom(start, 0)
+    val (_, ContWithTasks(tasks, _)) = startingCtxFrom(Kernel(start.symbolId, start.pointer, 1, 1))
 
     val result = createParserData(Jobs(Set(start), Set()),
       MilestoneParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map(), Map()))

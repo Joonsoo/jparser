@@ -1,13 +1,14 @@
 package com.giyeok.jparser.parsergen.milestone
 
-import com.giyeok.jparser.Inputs.Input
+import com.giyeok.jparser.Inputs.{Input, TermGroupDesc}
+import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
 import com.giyeok.jparser.parsergen.milestone.MilestoneParser.{AcceptConditionEvaluator, reconstructParseTree, transformEdgeActionCondition, transformTermActionCondition}
 import com.giyeok.jparser.utils.Memoize
-import com.giyeok.jparser.{Inputs, NGrammar, ParseForest, ParseForestFunc}
+import com.giyeok.jparser.{Inputs, NGrammar, ParseForest, ParseForestFunc, ParsingErrors, Symbols}
 
 import scala.annotation.tailrec
 
@@ -201,28 +202,37 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
   def initialCtx: MilestoneParserContext = MilestoneParserContext(0, List(startMilestonePath),
     List(GenProgress(List(startMilestonePath), List(TermAction(0, 0, 0, parserData.byStart, Always)))))
 
-  def parse(inputSeq: Seq[Inputs.Input]): MilestoneParserContext = {
+  def parse(inputSeq: Seq[Inputs.Input]): Either[MilestoneParserContext, ParsingError] = {
     if (verbose) {
       println("=== initial")
       initialCtx.paths.foreach(t => println(t.prettyString))
     }
-    inputSeq.zipWithIndex.foldLeft(initialCtx) { (m, i) =>
+    inputSeq.zipWithIndex.foldLeft[Either[MilestoneParserContext, ParsingError]](Left(initialCtx)) { (m, i) =>
       val (nextInput, gen0) = i
       if (verbose) {
         println(s"=== ${gen0 + 1} $nextInput")
       }
-      proceed(m, nextInput)
+      m match {
+        case Left(currCtx) => proceed(currCtx, nextInput)
+        case error => error
+      }
     }
   }
 
-  def parse(input: String): MilestoneParserContext = parse(Inputs.fromString(input))
+  def parse(input: String): Either[MilestoneParserContext, ParsingError] = parse(Inputs.fromString(input))
 
-  def parseAndReconstructToForest(inputSeq: Seq[Inputs.Input]): Option[ParseForest] = {
-    val finalCtx = parse(inputSeq)
-    reconstructParseTree(parserData, finalCtx, inputSeq)
+  def parseAndReconstructToForest(inputSeq: Seq[Inputs.Input]): Either[ParseForest, ParsingError] = {
+    parse(inputSeq) match {
+      case Left(finalCtx) =>
+        reconstructParseTree(parserData, finalCtx, inputSeq) match {
+          case Some(forest) => Left(forest)
+          case None => Right(ParsingErrors.UnexpectedEOFByTermGroups(finalCtx.expectingTerminals(parserData), finalCtx.gen))
+        }
+      case Right(error) => Right(error)
+    }
   }
 
-  def parseAndReconstructToForest(input: String): Option[ParseForest] =
+  def parseAndReconstructToForest(input: String): Either[ParseForest, ParsingError] =
     parseAndReconstructToForest(Inputs.fromString(input))
 
   private var _nextTrackerId = 0
@@ -250,22 +260,24 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
               val tipMilestone = Milestone(Some(parentMilestone), dependent._2.symbolId, dependent._2.pointer, gen)
               val condition = transformTermActionCondition(dependent._3, parentGen, tip.gen, gen)
               val trackerId = nextTrackerId()
+              // TODO 여기에는.. tracking 필요 없나? 필요 없을것 같긴 한데..
               MilestonePath(tipMilestone, condition, Some(trackerId), Set())
             }
             MilestonePath(Milestone(Some(tip), kernelTemplate.symbolId, kernelTemplate.pointer, gen),
-              conjunct(path.acceptCondition, acceptCondition), path.trackerId, dependents.map(_.trackerId.get).toSet) +: dependents
+              conjunct(path.acceptCondition, acceptCondition), path.trackerId,
+              path.tracking ++ dependents.map(_.trackerId.get).toSet) +: dependents
           }
           // action.startNodeProgressConditions가 비어있지 않으면 tip을 progress 시킨다
           // val transformedConditions = transformStartProgressConditions(parentGen, tip.gen, gen, action.startNodeProgressConditions)
           val transformedConditions = action.startNodeProgressConditions.map(
             transformTermActionCondition(_, parentGen, tip.gen, gen))
-          val reduced = progressTip(tip, gen, transformedConditions.map(conjunct(_, path.acceptCondition)), path.trackerId)
+          val reduced = progressTip(tip, gen, transformedConditions.map(conjunct(_, path.acceptCondition)), path.trackerId, path.tracking)
           appended ++ reduced
         case None => List()
       }
     }
 
-    private def progressTip(tip: Milestone, gen: Int, acceptConditions: List[AcceptCondition], trackerId: Option[Int]): List[MilestonePath] =
+    private def progressTip(tip: Milestone, gen: Int, acceptConditions: List[AcceptCondition], trackerId: Option[Int], tracking: Set[Int]): List[MilestonePath] =
       acceptConditions.flatMap { condition =>
         // (tip.parent-tip) 사이의 엣지에 대한 edge action 실행
         tip.parent match {
@@ -283,16 +295,17 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
                 val tipMilestone = Milestone(Some(parentMilestone), dependent._2.symbolId, dependent._2.pointer, gen)
                 val condition = transformEdgeActionCondition(dependent._3, parentBeginGen, parent.gen, tip.gen, gen)
                 val trackerId = nextTrackerId()
+                // TODO 여기에는.. tracking 필요 없나? 필요 없을것 같긴 한데..
                 MilestonePath(tipMilestone, condition, Some(trackerId), Set())
               }
               MilestonePath(Milestone(Some(parent), appending.milestone.symbolId, appending.milestone.pointer, gen),
-                conjunct(condition, appendingCondition), trackerId, dependents.map(_.trackerId.get).toSet) +: dependents
+                conjunct(condition, appendingCondition), trackerId, tracking ++ dependents.map(_.trackerId.get).toSet) +: dependents
             }
             // edgeAction.startNodeProgressConditions에 대해 위 과정 반복 수행
             // val transformedConditions = transformStartProgressConditions(parent.gen, tip.gen, gen, edgeAction.startNodeProgressConditions)
             val transformedConditions = edgeAction.startNodeProgressConditions.map(
               transformEdgeActionCondition(_, -1, parent.gen, tip.gen, gen))
-            val propagated = progressTip(parent, gen, transformedConditions.map(conjunct(condition, _)), trackerId)
+            val propagated = progressTip(parent, gen, transformedConditions.map(conjunct(condition, _)), trackerId, tracking)
             appended ++ propagated
           case None =>
             // 파싱 종료
@@ -302,30 +315,47 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
       }
   }
 
-  def proceed(ctx: MilestoneParserContext, input: Inputs.Input): MilestoneParserContext = {
+  def proceed(ctx: MilestoneParserContext, input: Inputs.Input): Either[MilestoneParserContext, ParsingError] = {
     val gen = ctx.gen + 1
     val processor = new ProceedProcessor()
     val milestones0 = processor.proceed(ctx, gen, input)
-    if (verbose) {
-      println("  ** before evaluating accept condition")
-      milestones0.foreach(t => println(t.prettyString))
+    if (processor.genActions.isEmpty) {
+      if (verbose) {
+        println("  ** no eligible actions")
+      }
+      Right(ParsingErrors.UnexpectedInputByTermGroups(input, ctx.expectingTerminals(parserData), gen))
+    } else {
+      if (verbose) {
+        println("  ** before evaluating accept condition")
+        milestones0.foreach(t => println(t.prettyString))
+      }
+      val acceptConditionEvaluator = new AcceptConditionEvaluator(parserData, milestones0, gen, processor.genActions)
+      val milestones1 = milestones0.flatMap { milestone =>
+        val newCond = acceptConditionEvaluator.evolveAcceptCondition(milestone.acceptCondition)
+        if (newCond == Never) None else Some(milestone.copy(acceptCondition = newCond))
+      }
+      if (verbose) {
+        println("  ** after evaluating accept condition")
+        milestones1.foreach(t => println(t.prettyString))
+      }
+      // milestones에서 trackerId가 있는데 그 ID를 트래킹하는 path가 없어졌으면 제거
+      // TODO tracking하는 ID의 path가 이미 사라졌으면 그 ID도 제거
+      val pathsBeingTracked = milestones1.flatMap(_.tracking).toSet
+      val milestones = milestones1.filter(_.trackerId match {
+        case Some(trackerId) => pathsBeingTracked.contains(trackerId)
+        case None => true
+      })
+      if (verbose) {
+        println(s"  ** after removing milestones that are not tracked (tracked={${pathsBeingTracked.toList.sorted.mkString(", ")}})")
+        milestones.foreach(t => println(t.prettyString))
+      }
+      Left(MilestoneParserContext(gen, milestones, ctx.genProgressHistory :+ GenProgress(milestones0, processor.genActions)))
     }
-    val acceptConditionEvaluator = new AcceptConditionEvaluator(parserData, milestones0, gen, processor.genActions)
-    val milestones = milestones0.flatMap { milestone =>
-      val newCond = acceptConditionEvaluator.evolveAcceptCondition(milestone.acceptCondition)
-      if (newCond == Never) None else Some(milestone.copy(acceptCondition = newCond))
-    }
-    // TODO milestones에서 trackerId로 불필요한 path는 제거하고, 이미 사라진 trackerId도 제거
-    if (verbose) {
-      println("  ** after evaluating accept condition")
-      milestones.foreach(t => println(t.prettyString))
-    }
-    MilestoneParserContext(gen, milestones, ctx.genProgressHistory :+ GenProgress(milestones0, processor.genActions))
   }
 }
 
 case class MilestonePath(tip: Milestone, acceptCondition: AcceptCondition, trackerId: Option[Int], tracking: Set[Int]) {
-  def prettyString: String = s"${tip.prettyString} $acceptCondition ($trackerId)"
+  def prettyString: String = s"${tip.prettyString} $acceptCondition ($trackerId, tracking={${tracking.toList.sorted.mkString(", ")}})"
 }
 
 case class Milestone(parent: Option[Milestone], symbolId: Int, pointer: Int, gen: Int) {
@@ -350,10 +380,12 @@ case class TermAction(beginGen: Int, midGen: Int, endGen: Int, summary: TasksSum
 
 case class EdgeAction(parentBeginGen: Int, beginGen: Int, midGen: Int, endGen: Int, summary: TasksSummary, condition: AcceptCondition) extends GenAction
 
-// TODO edge action - 체인 관계를 어떻게..?
-
 case class MilestoneParserContext(gen: Int, paths: List[MilestonePath], genProgressHistory: List[GenProgress]) {
   assert(genProgressHistory.size == gen + 1)
+
+  def expectingTerminals(parserData: MilestoneParserData): Set[TermGroupDesc] = paths.flatMap { path =>
+    parserData.termActions(path.tip.kernelTemplate).map(_._1)
+  }.toSet
 }
 
 case class GenProgress(untrimmedMilestonePaths: List[MilestonePath], genActions: List[GenAction])

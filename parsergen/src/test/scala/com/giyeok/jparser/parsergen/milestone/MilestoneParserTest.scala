@@ -21,7 +21,7 @@ class MilestoneParserTest extends AnyFlatSpec {
 
     def parse(input: String): List[T] = {
       val inputSeq = Inputs.fromString(input)
-      val finalCtx = new MilestoneParser(parserData).parse(inputSeq)
+      val finalCtx = new MilestoneParser(parserData).parse(inputSeq).left.get
       // TODO finalCtx.actionHistory 에서 accept condition 평가해서 unacceptable 한것들 날리기
       val parseForest = reconstructParseTree(parserData, finalCtx, inputSeq).get
       parseForest.trees.map(matchStart).toList
@@ -89,7 +89,7 @@ class MilestoneParserTest extends AnyFlatSpec {
 
     def parse(input: String): List[MetaLang3Ast.Grammar] = {
       val inputSeq = Inputs.fromString(input)
-      val finalCtx = new MilestoneParser(parserData).parse(inputSeq)
+      val finalCtx = new MilestoneParser(parserData).parse(inputSeq).left.get
       // TODO finalCtx.actionHistory 에서 accept condition 평가해서 unacceptable 한것들 날리기
       val parseForest = reconstructParseTree(parserData, finalCtx, inputSeq).get
       parseForest.trees.map(MetaLang3Ast.matchStart).toList
@@ -132,7 +132,7 @@ class MilestoneParserTest extends AnyFlatSpec {
         |// hello
         |elem elem
         |// bye~""".stripMargin)
-    val finalCtx = new MilestoneParser(data, true).parse(input)
+    val finalCtx = new MilestoneParser(data, true).parse(input).left.get
     val forest = MilestoneParser.reconstructParseTree(data, finalCtx, input).get
     assert(forest.trees.size == 1)
     ValuefyExprSimulator(gram).valuefyStart(forest.trees.head)

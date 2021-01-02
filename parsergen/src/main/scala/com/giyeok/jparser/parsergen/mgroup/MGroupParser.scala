@@ -18,7 +18,7 @@ class MGroupParser(val parser: MilestoneParser) {
       var newRest = rest
       termGroups.flatten.map(_.asInstanceOf[CharsGroup].chars.toList.min).sorted.foreach { c =>
         println(s"***** proceeding from ${"\""}$inputSoFar${"\""} + '${javaChar(c)}'")
-        val nextCtx = parser.proceed(ctx, Inputs.Character(c))
+        val nextCtx = parser.proceed(ctx, Inputs.Character(c)).left.get
         nextCtx.paths.foreach(t => println(t.prettyString))
         if (nextCtx.gen < 5) {
           newRest :+= (nextCtx, inputSoFar + c)

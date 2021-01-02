@@ -1,6 +1,6 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.Inputs.{Character, Input, Virtual}
+import com.giyeok.jparser.Inputs.{Character, Input, TermGroupDesc, Virtual}
 
 object ParsingErrors {
 
@@ -16,7 +16,14 @@ object ParsingErrors {
     }
 
     case class UnexpectedInput(next: Input, expected: Set[Symbols.Terminal], location: Int) extends ParsingError {
-        val msg: String = next match {
+        override val msg: String = next match {
+            case Character(char) => s"Unexpected input '$char' at $location"
+            case Virtual(name) => s"Unexpected virtual input $name at $location"
+        }
+    }
+
+    case class UnexpectedInputByTermGroups(next: Input, expected: Set[TermGroupDesc], location: Int) extends ParsingError {
+        override val msg: String = next match {
             case Character(char) => s"Unexpected input '$char' at $location"
             case Virtual(name) => s"Unexpected virtual input $name at $location"
         }
@@ -24,6 +31,10 @@ object ParsingErrors {
 
     case class UnexpectedEOF(expected: Set[Symbols.Terminal], location: Int) extends ParsingError {
         override val msg: String = s"Unexpected EOF at $location"
+    }
+
+    case class UnexpectedEOFByTermGroups(expected: Set[TermGroupDesc], location: Int) extends ParsingError {
+        override val msg: String = s"Unepxected EOF at $location"
     }
 
     case object UnexpectedError extends ParsingError {
