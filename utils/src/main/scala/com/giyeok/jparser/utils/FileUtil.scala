@@ -2,6 +2,7 @@ package com.giyeok.jparser.utils
 
 import java.io._
 import scala.io.Source
+import scala.util.Using
 
 object FileUtil {
   def readFile(path: String): String = readFile(new File(path))
@@ -13,15 +14,20 @@ object FileUtil {
 
   def readFileBytes(path: String): Array[Byte] = readFileBytes(new File(path))
 
-  def readFileBytes(file: File): Array[Byte] = {
-    val input = new BufferedInputStream(new FileInputStream(file))
+  def readFileBytes(file: File): Array[Byte] = Using(new BufferedInputStream(new FileInputStream(file))) {
+    readFileBytes
+  }.get
+
+  def readFileBytes(input: InputStream): Array[Byte] = {
     val outputStream = new ByteArrayOutputStream()
 
     var reading = 1
     val result = new Array[Byte](1000)
     while (reading > 0) {
       reading = input.read(result, 0, 1000)
-      outputStream.write(result, 0, reading)
+      if (reading > 0) {
+        outputStream.write(result, 0, reading)
+      }
     }
     outputStream.toByteArray
   }

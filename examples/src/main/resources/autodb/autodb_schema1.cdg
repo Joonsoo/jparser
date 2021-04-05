@@ -1,8 +1,8 @@
 Database = (WS DatabaseElem)* WS $0
 DatabaseElem: DatabaseElem = (Entity | VersionEntity | DataTypeDef | TypeDef | IdGenDef)
 
-Entity = "entity"&Tk WS EntityName (WS EntityFields)? (WS EntityKeys)? (WS EntityBody)? {Entity(name=$2, fields=$3, keys=$4, body=$5)}
-EntityFields = '(' WS (EntityField (WS ',' WS EntityField)* (WS ',')? WS {[$0] + $1})? ')' $2
+Entity = "entity"&Tk WS EntityName (WS EntityFields)? (WS EntityKeys)? (WS EntityBody)? {Entity(name=$2, fields: [EntityField]=$3 ?: [], keys=$4, body=$5)}
+EntityFields: [EntityField] = '(' WS (EntityField (WS ',' WS EntityField)* (WS ',')? WS {[$0] + $1})? ')' {$2 ?: []}
 EntityField = (FieldAnnotations WS $0)? FieldName (WS ':' WS FieldType) {EntityField(name=$1, typ=$2, annots=$0)}
 EntityFieldOptType = FieldName (WS ':' WS FieldType)? {EntityFieldOptType(name=$0, typ=$1)}
 EntityKeys = <EntityKey (WS ',' WS EntityKey)* {[$0] + $1}>
@@ -28,8 +28,8 @@ PrimitiveType: %PrimType = ("Int" {%INT} | "Long" {%LONG} | "Timestamp" {%TIMEST
 LengthLimitedType: LengthLimitedType = "String" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {StringType(length=$1)}
   | "URI" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {URIType(length=$1)}
   | "Blob" WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' {BlobType(length=$4)}
-RefType = "Ref"&Tk WS '<' WS Type WS '>' {RefType(entity=$4)}
-ListType = "List"&Tk WS '<' WS Type WS '>' {RefType(entity=$4)}
+RefType = "Ref"&Tk WS '<' WS EntityName WS '>' {RefType(entity=$4)}
+ListType = "List"&Tk WS '<' WS Type WS '>' {ListType(elemType=$4)}
 Name = Tk-Keywords {str($0)}
 Keywords = "Int" | "Long" | "String" | "Timestamp" | "URI" | "Ref" | "List" | "veresion" | "entity"
   | "autoincrement" | "sparsegenLong"

@@ -88,7 +88,8 @@ class Main extends Runnable {
         "com.giyeok.jparser.parsergen.proto.MilestoneParserProtobufConverter",
         "com.giyeok.jparser.parsergen.milestone.MilestoneParser",
         "com.giyeok.jparser.parsergen.milestone.MilestoneParserContext",
-        "com.giyeok.jparser.ParseForest"
+        "com.giyeok.jparser.ParseForest",
+        "com.giyeok.jparser.ParsingErrors"
       ))
 
     val targetFilePath = new File(targetDir, s"${packageName.split('.').mkString("/")}/$grammarName.scala")

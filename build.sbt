@@ -1,5 +1,5 @@
 organization in ThisBuild := "com.giyeok"
-version in ThisBuild := "0.1"
+version in ThisBuild := "0.1-SNAPSHOT"
 scalaVersion in ThisBuild := "2.13.5"
 crossPaths in ThisBuild := false
 
