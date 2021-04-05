@@ -1,0 +1,182 @@
+entity User(
+    @idgen(autoincrement) id: Long,
+    createTime: Timestamp,
+    @versioned(UserDetail) identityVerification: Ref<IdentityVerification>?,
+    @versioned(UserDetail) virtualAccount: Ref<VirtualAccount>?,
+    @versioned(UserDetail) currentBan: Ref<UserBan>?,
+    @versioned(UserDetail) name: String,
+    @versioned(UserDetail) profileImage: URI,
+) key(id), table(Users) {
+    version entity UserDetail[user: Ref<User>, version: Int, createTime: Timestamp] table(UserDetails)
+}
+
+entity IdentityVerification(
+    @idgen(autoincrement) id: Long,
+    user: Ref<User>?
+) key(id), table(IdentityVerifications)
+
+entity VirtualAccount(
+    user: Ref<User>,
+    createUser: Ref<User>,
+    admins: List<Ref<User>>
+) key(user), table(VirtualAccounts)
+
+entity UserBan(
+    user: Ref<User>,
+    @idgen(autoincrement) id: Long,
+    banStart: Timestamp,
+    banEnd: Timestamp
+) key(user, id), table(UserBans)
+
+entity Press(
+    @idgen(autoincrement) id: Long,
+    @versioned(PressDetail) name: String,
+    @versioned(PressDetail) icon: URI,
+    @versioned(PressDetail) homepage: URI,
+) key(id), table(Presses) {
+    version entity PressDetail[press: Ref<Press>, version: Int, createTime: Timestamp] table(PressDetails)
+}
+
+entity Author(
+    @idgen(autoincrement) id: Long,
+    @versioned(AuthorDetail) name: String,
+    @versioned(AuthorDetail) user: Ref<User>?,
+) key(id), table(Authors) {
+    version entity AuthorDetail[author: Ref<Author>, version: Int, createTime: Timestamp] table(AuthorDetails)
+}
+
+entity AuthorAffiliation(
+    press: Ref<Press>,
+    author: Ref<Author>,
+    start: Date,
+    end: Date?
+) unique(press, author), table(AuthorAffiliations)
+entity PressBlock(user: Ref<User>, press: Ref<Press>) unique(user, press)
+entity AuthorBlock(user: Ref<User>, author: Ref<Author>) unique(user, author)
+
+entity Article(
+    @idgen(autoincrement) id: Long,
+    @versioned(ArticleDetail) deleted: @DeleteFlag,
+    @versioned(ArticleDetail) press: Ref<Press>?,
+    @versioned(ArticleDetail) authors: List<Ref<Author>>?,
+    @versioned(ArticleDetail) createTime: Timestamp,
+    @versioned(ArticleDetail) lastUpdateTime: Timestamp,
+    @versioned(ArticleDetail) sourceLink: URI?,
+    @versioned(ArticleDetail) content: ArticleContent,
+) key(id), table(Articles) {
+    version entity ArticleDetail[article: Ref<Article>, version: Int, createTime: Timestamp] table(ArticleDetails)
+}
+
+data ArticleContent(
+    @tag(1) chunks: List<ArticleContentChunk>
+) {
+    type ArticleContentChunk = oneof {
+        @tag(1) text: String,
+        @tag(2) image: String,
+    }
+}
+
+type ReactionType = enum{LIKE, DISLIKE}
+
+entity ArticleReaction(
+    article: Ref<Article>,
+    user: Ref<User>,
+    @versioned(ArticleReactionDetail) reactionType: ReactionType
+) unique(article, user), table(ArticleReactions) {
+    version entity ArticleReactionDetail[articleReaction: Ref<ArticleReaction>, version: Int, createTime: Timestamp] table(ArticleReactionDetails)
+}
+
+entity ArticleReply(
+    article: Ref<Article>,
+    @idgen(autoincrement) id: Long,
+    createUser: Ref<User>,
+    createTime: Timestamp,
+    @versioned(ArticleReplyDetail) deleted: @DeleteFlag,
+    @versioned(ArticleReplyDetail) datclub: Ref<DatClub>?,
+    @versioned(ArticleReplyDetail) parentReply: Ref<ArticleReply>,
+    @versioned(ArticleReplyDetail) content: ReplyContent
+) key(article, id), table(ArticleReplies) {
+    version entity ArticleReplyDetail[articleReply: Ref<ArticleReply>, version: Int, createTime: Timestamp]
+        table(ArticleReplyDetails)
+}
+
+data ReplyContent(
+    @tag(1) text: String,
+    @tag(2) emoji: String,
+)
+
+entity ArticleReplyMirror(
+    articleReply: Ref<ArticleReply>,
+    club: Ref<DatClub>
+) unique(articleReply, club), table(ArticleReplyMirrors)
+
+entity ArticleReplyRelation(
+    articleReply: Ref<ArticleReply>,
+    otherArticle: Ref<Article>
+) unique(articleReply, otherArticle), table(ArticleReplyRelations)
+
+entity ArticleReplyReaction(
+    articleReply: Ref<ArticleReply>,
+    user: Ref<User>,
+    reactionType: ReactionType
+) unique(articleReply, user), table(ArticleReplyReactions)
+
+
+entity DatClub(
+    @idgen(autoincrement) id: Long,
+    createUser: Ref<User>,
+    admins: Ref<User>,
+    @versioned(DatClubDetail) name: String,
+) key(id), table(Datclubs) {
+    version entity DatClubDetail[datclub: Ref<DatClub>, version: Int, createTime: Timestamp]
+        table(DatclubDetails)
+}
+
+entity DatClubMembership(
+    datclub: Ref<DatClub>,
+    user: Ref<User>,
+    createTime: Timestamp,
+    @versioned(DatClubMembershipDetail) membershipType: enum{SUBSCRIPTION, MEMBERSHIP, ADMIN, BLOCKED}
+) key(datclub, user), table(DatclubMemberships) {
+    version entity DatClubMembershipDetail[membership: Ref<DatClubMembership>, version: Int, createTime: Timestamp]
+        table(DatclubMembershipDetails)
+}
+
+entity UserSubscription(
+    user: Ref<User>,
+    subscribed: Ref<User>,
+    @versioned(UserSubscriptionDetail) deleted: @DeleteFlag,
+) key(user, subscribed), table(UserSubscriptions) {
+    version entity UserSubscriptionDetail[subscription: Ref<UserSubscription>, version: Int, createTime: Timestamp]
+        table(UserSubscriptionDetails)
+}
+
+idgen snowflakeIdgen = sparsegenLong(
+    baseTimestamp=2021-04-05 15:37:00.000 +0900,
+    timestampPrecision=Millis,
+    format=[timestamp:42, nodeId:10, seqNum:12])
+
+entity UserAction(
+    user: Ref<User>,
+    @idgen(snowflakeIdgen) id: Long,
+    actualUser: Ref<User>?,
+    createTime: Timestamp,
+    content: UserActionContent
+) key(user, id), table(UserActions)
+
+data UserActionContent(
+    @tag(1) action: oneof {
+        @tag(1) signUp: Ref<User>,
+        @tag(2) userUpdate: Ref<UserDetail>,
+        @tag(3) identityVerification: Ref<IdentityVerification>,
+        @tag(4) createVirtualAccount: Ref<VirtualAccount>,
+        @tag(5) banned: Ref<UserBan>,
+        @tag(5) articleReaction: Ref<ArticleReaction>,
+        @tag(6) articleReply: Ref<ArticleReply>,
+        @tag(7) articleReplyReaction: Ref<ArticleReplyReaction>,
+        @tag(8) createDatClub: Ref<DatClub>,
+        @tag(9) updateDatClub: Ref<DatClubDetail>,
+        @tag(10) datClubMembership: Ref<DatClubMembershipDetail>,
+        @tag(11) subscribeUser: Ref<UserSubscriptionDetail>,
+    }
+)

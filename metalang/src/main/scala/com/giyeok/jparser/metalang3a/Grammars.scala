@@ -3,10 +3,9 @@ package com.giyeok.jparser.metalang3a
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, writeScalaParserCode}
 import com.giyeok.jparser.proto.GrammarProtobufConverter
-import com.google.protobuf.CodedOutputStream
+import com.giyeok.jparser.utils.FileUtil.readFile
 
 import java.io.{BufferedOutputStream, File, FileOutputStream}
-import scala.io.Source
 
 object Grammars {
   private def generateScalaParserCode(name: String, grammarDef: String, examples: List[String] = null): ProcessedGrammar = {
@@ -22,12 +21,6 @@ object Grammars {
   def generateMetaLang3Ast(): Unit =
     generateScalaParserCode("MetaLang3Ast", MetaLang3Grammar.inMetaLang3.grammar,
       examples = List("A = B C 'd' 'e'*"))
-
-  def readFile(path: String): String = {
-    val file = new File(path)
-    val source = Source.fromFile(file)
-    try source.mkString finally source.close()
-  }
 
   def generateMlProtoAst(): Unit = generateScalaParserCode("MlProto",
     readFile("./examples/src/main/resources/mlproto/mlproto.cdg"),
@@ -119,6 +112,8 @@ object Grammars {
     //    generateExceptMatch()
     //    generateExpressionGrammar()
     //    generateProto3DefinitionAst()
-    generateProto2DefinitionAst()
+    //    generateProto2DefinitionAst()
+    generateScalaParserCode("AutodbSchema1Ast",
+      readFile("./examples/src/main/resources/autodb/autodb_schema1.cdg"))
   }
 }

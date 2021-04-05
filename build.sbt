@@ -92,4 +92,15 @@ lazy val study = (project in file("study")).
   dependsOn(visualize % "test->test;compile->compile").
   dependsOn(parsergen % "test->test;compile->compile")
 
+lazy val cli = (project in file("cli")).
+  settings(
+    name := "jparser-cli",
+    libraryDependencies ++= testDeps,
+    libraryDependencies += "info.picocli" % "picocli" % "4.6.1"
+  ).
+  dependsOn(core % "test->test;compile->compile").
+  dependsOn(utils % "test->test;compile->compile").
+  dependsOn(metalang % "test->test;compile->compile").
+  dependsOn(parsergen % "test->test;compile->compile")
+
 fork in run := true

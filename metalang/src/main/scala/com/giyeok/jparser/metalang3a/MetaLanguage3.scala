@@ -6,9 +6,10 @@ import com.giyeok.jparser.metalang3a.Type._
 import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
 import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
+import com.giyeok.jparser.utils.FileUtil.writeFile
 import com.giyeok.jparser.{Grammar, NGrammar}
 
-import java.io.{BufferedWriter, File, FileWriter}
+import java.io.File
 
 object MetaLanguage3 {
 
@@ -154,9 +155,7 @@ object MetaLanguage3 {
 
     val filePath = new File(targetDir, s"${packageName.split('.').mkString("/")}/$className.scala")
 
-    val writer = new BufferedWriter(new FileWriter(filePath))
-    writer.write(generatedCode)
-    writer.close()
+    writeFile(filePath, generatedCode)
 
     analysis
   }
