@@ -5,14 +5,12 @@ import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
 import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, check}
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.{CodeBlob, ExprBlob, Options}
 import com.giyeok.jparser.metalang3a.{ClassHierarchyItem, ClassRelationCollector, Type, ValuefyExpr}
-import com.giyeok.jparser.proto.{GrammarProto, GrammarProtobufConverter}
+import com.giyeok.jparser.proto.GrammarProtobufConverter
 import com.giyeok.jparser.utils.JavaCodeGenUtil.javaChar
 import com.giyeok.jparser.{NGrammar, Symbols}
 
-import java.io.FileInputStream
 import java.util.Base64
 import scala.annotation.tailrec
-import scala.util.Using
 
 object ScalaCodeGen {
 
@@ -28,7 +26,16 @@ object ScalaCodeGen {
                      looseSuperType: Boolean = false,
                      assertBindTypes: Boolean = true,
                      symbolComments: Boolean = true,
-                     withParseNodesInClasses: Boolean = true)
+                     withParseNodesInClasses: Boolean = true,
+                     grammarDefType: GrammarDefType = InlineSourceDef)
+
+  sealed trait GrammarDefType
+
+  object InlineSourceDef extends GrammarDefType
+
+  object InlineProtoDef extends GrammarDefType
+
+  case class FileProtoDef(filePath: String) extends GrammarDefType
 
   case class CodeBlob(code: String, required: Set[String]) {
     def indent(width: Int = 2): CodeBlob =
@@ -57,9 +64,9 @@ object ScalaCodeGen {
 }
 
 class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Options()) {
-  private def escapeString(str: String): String = "\"" + str.toCharArray.map(javaChar).mkString("") + "\""
+  def escapeString(str: String): String = "\"" + str.toCharArray.map(javaChar).mkString("") + "\""
 
-  private def escapeChar(c: Char): String = s"'${javaChar(c)}'"
+  def escapeChar(c: Char): String = s"'${javaChar(c)}'"
 
   def ngrammarDef(ngrammar: NGrammar): CodeBlob = {
     def symbolString(symbol: Symbols.Symbol): String = symbol match {
@@ -554,12 +561,14 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       nontermMatchCodes.flatMap(_.required) ++
       startMatchCode.required ++
       startType.required ++
-      mainFunc.map(_.required).toSet.flatten +
-      "com.giyeok.jparser.nparser.ParseTreeUtil").toList.sorted
+      parserDef.required ++
+      mainFunc.map(_.required).getOrElse(Set()) +
+      "com.giyeok.jparser.nparser.ParseTreeUtil" +
+      "com.giyeok.jparser.NGrammar").toList.sorted
     s"""${allImports.map(pkg => s"import $pkg").mkString("\n")}
        |
        |object $className {
-       |  val ngrammar = ${ngrammarDefCode.indent().code}
+       |  val ngrammar: NGrammar = ${ngrammarDefCode.indent().code}
        |
        |${classDefsCode.indent().code}
        |${enumDefsCode.indent().code}
@@ -569,13 +578,19 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
        |${startMatchCode.indent().code}
        |
        |${parserDef.indent().code}
-       |$mainFunc
+       |${mainFunc.map(_.indent().code).getOrElse("")}
        |}
        |""".stripMargin
   }
 
-  def generateParser(className: String, mainFuncExamples: Option[List[String]] = None): String =
-    generateParser(className, ngrammarDef(analysis.ngrammar), naiveParserDef(), mainFuncExamples.map(mainFuncBlob))
+  def generateParser(className: String, mainFuncExamples: Option[List[String]] = None): String = {
+    val grammarDef = options.grammarDefType match {
+      case ScalaCodeGen.InlineSourceDef => ngrammarDef(analysis.ngrammar)
+      case ScalaCodeGen.InlineProtoDef => inlinedProtoNGrammar()
+      case ScalaCodeGen.FileProtoDef(filePath) => fileProtoGrammar(filePath)
+    }
+    generateParser(className, grammarDef, naiveParserDef(), mainFuncExamples.map(mainFuncBlob))
+  }
 
   def inlinedProtoNGrammar(): CodeBlob = {
     val grammarProto = GrammarProtobufConverter.convertNGrammarToProto(analysis.ngrammar)
@@ -584,7 +599,9 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
     CodeBlob(
       s"""GrammarProtobufConverter.convertProtoToNGrammar(GrammarProto.NGrammar.parseFrom(Base64.getDecoder.decode(
          |  \"$grammarProtoBase64\")))""".stripMargin,
-      Set("com.giyeok.jparser.proto.GrammarProto", "com.giyeok.jparser.proto.GrammarProtobufConverter"))
+      Set("com.giyeok.jparser.proto.GrammarProto",
+        "com.giyeok.jparser.proto.GrammarProtobufConverter",
+        "java.util.Base64"))
   }
 
   def fileProtoGrammar(filePath: String): CodeBlob = CodeBlob(
@@ -607,14 +624,17 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
          |def parseAst(text: String): Either[${startType.code}, ParsingErrors.ParsingError] =
          |  ParseTreeUtil.parseAst(naiveParser, text, matchStart)
          |""".stripMargin,
-      Set("com.giyeok.jparser.nparser.ParseTreeUtil", "com.giyeok.jparser.nparser.NaiveParser")
+      Set("com.giyeok.jparser.nparser.ParseTreeUtil",
+        "com.giyeok.jparser.nparser.NaiveParser",
+        "com.giyeok.jparser.nparser.Parser",
+        "com.giyeok.jparser.ParsingErrors")
     )
   }
 
   def mainFuncBlob(examples: List[String]): CodeBlob = CodeBlob(
     s"""def main(args: Array[String]): Unit = {
        |  ${examples.map(example => "    println(parseAst(" + escapeString(example) + "))").mkString("\n")}
-       |}"""""",
+       |}""",
     Set()
   )
 }

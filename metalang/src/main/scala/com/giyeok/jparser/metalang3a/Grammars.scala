@@ -2,25 +2,29 @@ package com.giyeok.jparser.metalang3a
 
 import com.giyeok.jparser.examples.metalang3.MetaLang3Grammar
 import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, writeScalaParserCode}
+import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
+import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.InlineProtoDef
 import com.giyeok.jparser.proto.GrammarProtobufConverter
 import com.giyeok.jparser.utils.FileUtil.readFile
 
 import java.io.{BufferedOutputStream, File, FileOutputStream}
 
 object Grammars {
-  private def generateScalaParserCode(name: String, grammarDef: String, examples: List[String] = null): ProcessedGrammar = {
+  private def generateScalaParserCode(name: String, grammarDef: String, examples: List[String] = null,
+                                      options: ScalaCodeGen.Options = ScalaCodeGen.Options()): ProcessedGrammar = {
     println(s"Generating $name...")
     val analysis = writeScalaParserCode(grammarDef, name,
       "com.giyeok.jparser.metalang3a.generated",
       new File("./metalang/src/main/scala"),
-      Option(examples))
+      Option(examples), options = options)
     println(s"$name generated!")
     analysis
   }
 
   def generateMetaLang3Ast(): Unit =
     generateScalaParserCode("MetaLang3Ast", MetaLang3Grammar.inMetaLang3.grammar,
-      examples = List("A = B C 'd' 'e'*"))
+      examples = List("A = B C 'd' 'e'*"),
+      options = ScalaCodeGen.Options(grammarDefType = InlineProtoDef))
 
   def generateMlProtoAst(): Unit = generateScalaParserCode("MlProto",
     readFile("./examples/src/main/resources/mlproto/mlproto.cdg"),
@@ -106,14 +110,13 @@ object Grammars {
   def main(args: Array[String]): Unit = {
     //    generateArrayExprAst()
     //    generateAutoDbAst()
-    //    generateMetaLang3Ast()
+    generateMetaLang3Ast()
     //    generateMlProtoAst()
     //    generateLongestMatch()
     //    generateExceptMatch()
     //    generateExpressionGrammar()
     //    generateProto3DefinitionAst()
     //    generateProto2DefinitionAst()
-    generateScalaParserCode("AutodbSchema1Ast",
-      readFile("./examples/src/main/resources/autodb/autodb_schema1.cdg"))
+    //    generateScalaParserCode("AutodbSchema1Ast", readFile("./examples/src/main/resources/autodb/autodb_schema1.cdg"))
   }
 }
