@@ -24,14 +24,14 @@ WS = ' \n\r\t'*
 FieldType: FieldType = Type | "@DeleteFlag" {DeleteFlag()}
 Type = ValueType (WS '?')? {Type(valueType=$0, nullable=ispresent($1))}
 ValueType: ValueType = PrimitiveType {PrimitiveType(typ=$0)} | LengthLimitedType | RefType | ListType | Name {CustomType(name=$0)} | EnumDef | OneOfDef | DataTypeDef
-PrimitiveType: %PrimType = ("Int" {%INT} | "Long" {%LONG} | "Timestamp" {%TIMESTAMP})&Tk
+PrimitiveType: %PrimType = ("Int" {%INT} | "Long" {%LONG} | "Timestamp" {%TIMESTAMP} | "Date" {%DATE})&Tk
 LengthLimitedType: LengthLimitedType = "String" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {StringType(length=$1)}
   | "URI" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {URIType(length=$1)}
   | "Blob" WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' {BlobType(length=$4)}
 RefType = "Ref"&Tk WS '<' WS EntityName WS '>' {RefType(entity=$4)}
 ListType = "List"&Tk WS '<' WS Type WS '>' {ListType(elemType=$4)}
 Name = Tk-Keywords {str($0)}
-Keywords = "Int" | "Long" | "String" | "Timestamp" | "URI" | "Ref" | "List" | "veresion" | "entity"
+Keywords = "Int" | "Long" | "String" | "Timestamp" | "Date" | "URI" | "Ref" | "List" | "entity"
   | "autoincrement" | "sparsegenLong"
 TypeDef = "type"&Tk WS Name WS '=' WS Type {TypeDef(name=$2, typ=$6)}
 EnumDef = "enum"&Tk WS '{' WS Name (WS ',' WS Name)* WS '}' {EnumDef(values=[$4] + $5)}
@@ -40,7 +40,7 @@ IdGenSpecName = Name
 
 FieldAnnotations = FieldAnnotation (WS FieldAnnotation)*
 FieldAnnotation: FieldAnnotation = VersionedAnnotation | IdGenAnnotation
-VersionedAnnotation = '@' "versioned"&Tk WS '(' WS EntityName WS ')' {VersionedAnnotation(entity=$5)}
+VersionedAnnotation = '@' "versioned"&Tk WS '(' WS EntityName WS ',' WS FieldName WS ')' {VersionedAnnotation(entity=$5, versionFieldName=$9)}
 IdGenAnnotation = '@' "idgen"&Tk WS '(' WS IdGenSpec WS ')' {IdGenAnnotation(spec=$5)}
 
 IdGenSpec: IdGenSpec = IdGenSpecName {IdGenName(name=$0)}

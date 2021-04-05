@@ -21,7 +21,7 @@ class Main extends Runnable {
   @Option(names = Array("--targetDir"), required = true)
   var targetDir: File = new File("")
 
-  @Option(names = Array("--package"))
+  @Option(names = Array("--packageName"))
   var packageName: String = "com.giyeok.jparser"
 
   @Option(names = Array("--grammarName"))
