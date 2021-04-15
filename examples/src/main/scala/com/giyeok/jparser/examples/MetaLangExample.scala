@@ -64,7 +64,6 @@ object MetaLangExamples extends MetaLangExamples {
   val examples: List[MetaLangExample] = List(
     SimpleGrammars.examples,
     ExpressionGrammars.examples,
-    JsonGrammar.examples,
     LexicalGrammars.examples,
     MetaLangGrammar.examples,
     MetaLang3Grammar.examples).flatten

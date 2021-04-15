@@ -498,7 +498,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       literal match {
         case ValuefyExpr.NullLiteral => ExprBlob.code("None")
         case ValuefyExpr.BoolLiteral(value) => ExprBlob.code(s"$value")
-        case ValuefyExpr.CharLiteral(value) => ExprBlob.code(s"'$value'") // TODO escape
+        case ValuefyExpr.CharLiteral(value) => ExprBlob.code(s"'${javaChar(value)}'") // TODO escape
         case ValuefyExpr.CharFromTerminalLiteral =>
           ExprBlob(List(),
             s"$inputName.asInstanceOf[TerminalNode].input.asInstanceOf[Inputs.Character].char",

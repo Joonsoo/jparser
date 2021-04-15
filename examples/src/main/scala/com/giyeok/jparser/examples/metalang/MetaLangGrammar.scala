@@ -130,7 +130,6 @@ object MetaLangGrammar extends MetaLangExamples {
         metaGrammarText2) ++
         (SimpleGrammars.examples map (_.grammar)) ++
         (ExpressionGrammars.examples map (_.grammar)) ++
-        (JsonGrammar.examples map (_.grammar)) ++
         (LexicalGrammars.examples map (_.grammar))
 
     val incorrectExamples: List[String] = List("S = ()")

@@ -1,5 +1,6 @@
 package com.giyeok.jparser.metalang3a
 
+import com.giyeok.jparser.ParsingErrors.WithLocation
 import com.giyeok.jparser.examples.MetaLang3Example
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
 import com.giyeok.jparser.metalang3a.Type._
@@ -7,7 +8,7 @@ import com.giyeok.jparser.metalang3a.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
 import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import com.giyeok.jparser.utils.FileUtil.writeFile
-import com.giyeok.jparser.{Grammar, NGrammar}
+import com.giyeok.jparser.{Grammar, NGrammar, ParsingErrors}
 
 import java.io.File
 
@@ -21,7 +22,16 @@ object MetaLanguage3 {
 
   def parseGrammar(grammar: String): MetaLang3Ast.Grammar = MetaLang3Ast.parseAst(grammar) match {
     case Left(value) => value
-    case Right(value) => throw IllegalGrammar(value.msg)
+    case Right(value) =>
+      val errorMsg = value match {
+        case withLocation: WithLocation =>
+          val lines = grammar.substring(0, withLocation.location).count(_ == '\n') + 1
+          val lastNewLine = grammar.lastIndexOf('\n', withLocation.location)
+          val colNum = withLocation.location - lastNewLine + 1
+          s"${value.msg} at $lines:$colNum"
+        case _ => value.msg
+      }
+      throw IllegalGrammar(errorMsg)
   }
 
   case class ProcessedGrammar(grammar: Grammar, ngrammar: NGrammar, startNonterminalName: String,

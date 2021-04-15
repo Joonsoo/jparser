@@ -7,6 +7,7 @@ object JavaCodeGenUtil {
   }
 
   def javaChar(char: Char): String = char match {
+    case '\b' => "\\b"
     case '\n' => "\\n"
     case '\r' => "\\r"
     case '\t' => "\\t"

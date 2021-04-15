@@ -28,7 +28,6 @@ object AllExamples {
     val metalangExamples: List[MetaLangExample] = List(
         ExpressionGrammars.examples,
         TrickyLookaheadsTests1.examples,
-        JsonGrammar.examples,
         LexicalGrammars.examples,
         MetaLangGrammar.examples,
         SimpleGrammars.examples,

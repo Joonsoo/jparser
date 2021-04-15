@@ -1,0 +1,36 @@
+json = ws element ws $1
+element: Element = value
+value: Value = object
+    | array
+    | `string`
+    | number
+    | "true" {BooleanValue(value:%BooleanValueEnum = %TRUE)}
+    | "false" {BooleanValue(value = %FALSE)}
+    | "null" {NullValue()}
+object = '{' (ws members)? ws '}' {ObjectValue(members=$1 ?: [])}
+members = member (ws ',' ws member)* {[$0] + $1}
+member = `string` ws ':' ws element {Member(key=$0, value=$4)}
+array = '[' (ws elements)? ws ']' {ArrayValue(elems=$1 ?: [])}
+elements = element (ws ',' ws element)* {[$0] + $1}
+
+`string` = '"' character* '"' {StringValue(value=str($1))}
+character = .-'"\\'
+    | '\\' escape
+escape = '\\' {'\\'}
+    | '"' {'"'}
+    | '/' {'/'}
+    | 'b' {'\b'}
+    | 'n' {'\n'}
+    | 'r' {'\r'}
+    | 't' {'\t'}
+    | 'u' hex hex hex hex {'_'}
+hex = digit | 'A-Fa-f'
+`number` = int frac? exp?
+        {NumberValue(integral=$0, fractional=$1, exponent=$2)}
+int = '-'? (digit | onenine digits) {IntValue(negative=ispresent($0), value=str($1))}
+digits = digit+ {str($0)}
+digit = '0' {"0"} | onenine {str($0)}
+onenine = '1-9'
+frac = '.' '0-9'+ {str($1)}
+exp = 'Ee' (# {false} | '+' {false} | '-' {true}) '0-9'+ {ExponentPart(neg=$1, value=str($2))}
+ws = '\u0009\u000a\u000d\u0020'*
