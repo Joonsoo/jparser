@@ -51,9 +51,7 @@ case class MetaLang3Example(name: String, grammar: String,
 }
 
 object MetaLang3Example {
-
   case class CorrectExample(input: String, value: Option[String])
-
 }
 
 trait MetaLangExamples {

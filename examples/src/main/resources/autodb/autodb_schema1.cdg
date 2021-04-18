@@ -13,11 +13,22 @@ EntityKey: EntityKey = "key"&Tk WS EntityKeyFields {PrimaryKey(fields=$2)}
                      | "index"&Tk WS EntityKeyFields {IndexKey(fields=$2)}
 EntityKeyFields = '(' WS FieldName (WS ',' WS FieldName)* WS ')' {[$2] + $3}
 EntityBody = '{' (WS EntityBodyElem)* WS '}' {$1}
-EntityBodyElem = VersionEntity
+EntityBodyElem: EntityBodyElem = VersionEntity | EntityView
 VersionEntity = "version"&Tk WS "entity"&Tk WS EntityName (WS VersioningKey)? (WS EntityFields)? (WS EntityKeys)? (WS VersionEntityBody)?
-    {VersionEntity(name=$4, versioningKeys=$5, fields: [EntityField]=$6 ?: [], keys=$7 ?: [], body=$8)}
+    {VersionEntity(name=$4, versioningKeys=$5, fields: [EntityField]=$6 ?: [], keys=$7 ?: [], body=$8 ?: [])}
 VersioningKey = '[' (WS EntityFieldOptType) (WS ',' WS EntityFieldOptType) (WS ',' WS EntityFieldOptType) (WS ',')? WS ']' {VersioningKey(target=$1, version=$2, timestamp=$3)}
-VersionEntityBody = '{' WS '}'
+VersionEntityBody = '{' (WS VersionEntityElem)* WS '}' $1
+VersionEntityElem: VersionEntityElem = EntityView
+EntityView = "view"&Tk WS DataTypeName WS '(' WS EntityViewField (WS ',' WS EntityViewField)* (WS ',')? WS ')' {EntityView(name=$2, fields=[$6]+$7)}
+EntityViewField: EntityViewField = EntityViewFieldAsIs | EntityViewFieldSelect
+EntityViewFieldAsIs = DataFieldTagAnnotation WS FieldName {EntityViewFieldAsIs(tag=$0, name=$2)}
+EntityViewFieldSelect = DataFieldTagAnnotation WS FieldName (WS ':' WS Type)? WS '=' WS EntityViewFieldSelectExpr
+    {EntityViewFieldSelect(tag=$0, name=$2, typ=$3, expr=$7)}
+EntityViewFieldSelectExpr: EntityViewFieldSelectExpr = EntityViewFieldSelectTerm
+    | EntityViewFieldSelectTerm WS <"==" {%EQ} | "!=" {%NE}> WS EntityViewFieldSelectExpr {BinOp(op:%BinOpType=$2, lhs=$0, rhs=$4)}
+EntityViewFieldSelectTerm: EntityViewFieldSelectTerm = "null"&Tk {NullValue()}
+    | FieldName ((WS '?')? WS '.' WS DataFieldName {DataTypeValueSelectField(nullable=ispresent($0), fieldName=$4)})* {DataTypeValueSelect(field=$0, selectPath=$1)}
+    | '(' WS EntityViewFieldSelectExpr WS ')' {Paren(expr=$2)}
 EntityName = Name
 FieldName = Name
 DataTypeName = Name
@@ -27,15 +38,16 @@ WS = ' \n\r\t'*
 FieldType: FieldType = Type | "@DeleteFlag" {DeleteFlag()}
 Type = ValueType (WS '?')? {Type(valueType=$0, nullable=ispresent($1))}
 ValueType: ValueType = PrimitiveType {PrimitiveType(typ=$0)} | LengthLimitedType | RefType | ListType | Name {CustomType(name=$0)} | EnumDef | OneOfDef | DataTypeDef
-PrimitiveType: %PrimType = ("Int" {%INT} | "Long" {%LONG} | "Timestamp" {%TIMESTAMP} | "Date" {%DATE} | "Boolean" {%BOOLEAN})&Tk
+PrimitiveType: %PrimType = ("Int" {%INT} | "Long" {%LONG} | "Timestamp" {%TIMESTAMP} | "Duration" {%DURATION} | "Boolean" {%BOOLEAN} | "Empty" {%EMPTY})&Tk
 LengthLimitedType: LengthLimitedType = "String" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {StringType(length=$1)}
   | "URI" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {URIType(length=$1)}
   | "Blob" WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' {BlobType(length=$4)}
 RefType = "Ref"&Tk WS '<' WS EntityName WS '>' {RefType(entity=$4)}
 ListType = "List"&Tk WS '<' WS Type WS '>' {ListType(elemType=$4)}
 Name = Tk-Keywords {str($0)}
-Keywords = "Int" | "Long" | "String" | "Timestamp" | "Date" | "URI" | "Boolean" | "Ref" | "List" | "entity"
-  | "autoincrement" | "sparsegenLong"
+Keywords = "Int" | "Long" | "String" | "Timestamp" | "Duration" | "URI" | "Boolean" | "Empty" | "Ref" | "List" | "entity"
+  | "autoincrement" | "sparsegenLong" | "view" | "null"
+  | "==" | "!="
 EnumDef = "enum"&Tk WS Name WS '{' WS EnumValueDef (WS ',' WS EnumValueDef)* (WS ',')? WS '}' {EnumDef(name=$2, values=[$6] + $7)}
 EnumValueDef = DataFieldTagAnnotation WS Name {EnumValueDef(tag=$0, name=$2)}
 IdGenDef = "idgen"&Tk WS Name WS '=' WS IdGenSpec {IdGenDef(name=$2, idgen=$6)}

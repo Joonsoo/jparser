@@ -8,6 +8,9 @@ entity User(
     @versioned(UserDetail) profileImage: URI,
 ) key(id), table(Users) {
     version entity UserDetail[user: Ref<User>, version: Int, createTime: Timestamp] table(UserDetails)
+
+    view PersonalUserInfo[id, createTime, identityVerification, virtualAccount, currentBan, name, profileImage]
+    view PublicUserInfo[id, name, profileImage]
 }
 
 entity IdentityVerification(
@@ -25,7 +28,8 @@ entity UserBan(
     user: Ref<User>,
     @idgen(autoincrement) id: Long,
     banStart: Timestamp,
-    banEnd: Timestamp
+    banEnd: Timestamp,
+    reason: String,
 ) key(user, id), table(UserBans)
 
 entity Press(
