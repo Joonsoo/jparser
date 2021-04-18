@@ -77,8 +77,9 @@ TimeOffset = 'Z' {TimeOffset(sign='+', hour="00", minute:string?="00")}
 
 DataTypeDef = "data"&Tk WS DataTypeName WS '(' WS DataFields WS ')' {DataTypeDef(name=$2, fields=$6)}
 DataFields = DataField (WS ',' WS DataField)* (WS ',')? {[$0] + $1}
-DataField = DataFieldAnnotations WS DataFieldName WS ':' WS Type {DataField(annots=$0, name=$2, typ=$6)}
-DataFieldAnnotations = DataFieldTagAnnotation? (WS DataFieldAnnotation)* {DataFieldAnnotations(tag=$0, annots=$1)}
+DataField = (DataFieldAnnotations WS $0)? DataFieldName WS ':' WS Type {DataField(annots=$0, name=$1, typ=$5)}
+DataFieldAnnotations = DataFieldTagAnnotation (WS DataFieldAnnotation)* {DataFieldAnnotations(tag:TagAnnotation?=$0, annots=$1)}
+    | DataFieldAnnotation (WS DataFieldAnnotation)* {DataFieldAnnotations(tag=null, annots=[$0] + $1)}
 DataFieldTagAnnotation = '@' "tag"&Tk WS '(' WS ('0' {"0"}| '1-9' '0-9'* {str($0, $1)}) WS ')' {TagAnnotation(tagnum=$5)}
 DataFieldAnnotation = "@@" {DataFieldAnnotation()}
 
