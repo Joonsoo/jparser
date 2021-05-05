@@ -1,0 +1,342 @@
+Block = '{' (WS BlockStatements)? WS '}' {Block(stmts=$1{[$1] + $2} ?: [])}
+BlockStatements = BlockStatement (WS BlockStatement)*
+BlockStatement = LocalVariableDeclarationStatement
+  | ClassDeclaration
+  | Statement
+LocalVariableDeclarationStatement = LocalVariableDeclaration WS ';'
+LocalVariableDeclaration = (VariableModifiers WS)? UnannType WS VariableDeclaratorList
+VariableModifiers = VariableModifier (WS VariableModifier)*
+VariableModifier = Annotation | "final"&Tk
+UnannType
+VariableDeclaratorList = VariableDeclarator (WS ',' WS VariableDeclarator)
+VariableDeclarator = VariableDeclaratorId (WS '=' WS VariableInitializer)?
+VariableDeclaratorId = Identifier (WS Dims)*
+Dim = (Annotation (WS Annotation)* WS)? '[' WS ']'
+Dims = Dim (WS Dim)*
+VariableInitializer = Expression | ArrayInitializer
+
+
+Annotations = Annotation (WS Annotation)*
+
+Statement = StatementWithoutTrailingSubstatement
+  | LabeledStatement
+  | IfThenStatement
+  | IfThenElseStatement
+  | WhileStatement
+  | ForStatement
+
+StatementWithoutTrailingSubstatement = Block
+  | EmptyStatement
+  | ExpressionStatement
+  | BreakStatement
+  | ContinueStatement
+  | ReturnStatement
+  | ThrowStatement
+  | TryStatement
+
+EmptyStatement = ';'
+
+LabeledStatement = Identifier WS ':' WS Statement
+
+ExpressionStatement = StatementExpression WS ';'
+StatementExpression = Assignment
+  | MethodInvocation
+  | ClassInstanceCreationExpression
+
+IfThenStatement = "if"&Tk WS '(' WS Expression WS ')' WS Statement
+IfThenElseStatement = "if"&Tk WS '(' WS Expression WS ')' WS StatementNoShortIf WS "else"&Tk WS Statement
+IfThenElseStatementNoShortIf = "if"&Tk WS '(' WS Expression WS ')' WS StatementNoShortIf WS "else"&Tk WS StatementNoShortIf
+
+IfStatement = <IfThenStatement | IfThenElseStatement>
+
+AssertStatement = "assert"&Tk WS Expression WS ';'
+  | "assert"&Tk WS Expression WS ':' WS Expression WS ';'
+
+
+WhileStatement = "while"&Tk WS '(' WS Expression WS ')' WS Statement
+
+
+
+ForStatement = BasicForStatement
+  | EnhancedForStatement
+BasicForStatement = "for"&Tk WS '(' WS ForInit WS ';' WS Expression WS ';' WS ForUpdate WS ')' WS Statement
+ForInit = StatementExpressionList | LocalVariableDeclaration
+ForUpdate = StatementExpressionList
+StatementExpressionList = StatementExpression (WS ',' WS StatementExpression)
+
+BreakStatement = "break"&Tk (WS Identifier)? WS ';'
+ContinueStatement = "continue"&Tk (WS Identifier)? WS ';'
+
+ReturnStatement = "return"&Tk (WS Expression)? WS ';'
+ThrowStatement = "throw"&Tk (WS Expression)? WS ';'
+
+TryStatement = "try"&Tk WS Block WS Catches
+  | "try"&Tk WS Block (WS Catches)? WS Finally
+Catches = CatchClause (WS CatchClause)*
+CatchClause = "catch"&Tk WS '(' WS CatchFormalParameter WS ')' WS Block
+CatchFormalParameter = (VariableModifiers WS)? CatchType WS VariableDeclaratorId
+CatchType = UnannClassType (WS '|' WS ClassType)*
+Finally = "finally"&Tk WS Block
+
+
+
+
+Expression = LambdaExpression
+  | AssignmentExpression
+
+
+
+AssignmentExpression = ConditionalExpression
+  | Assignment
+Assignment = LeftHandSide WS AssignmentOperator WS Expression
+LeftHandSide = ExpressionName
+  | FieldAccess
+  | ArrayAccess
+AssignmentOperator =
+  ("=" | "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|=")&Tk
+
+
+ConditionalExpression = ConditionalOrExpression
+  | ConditionalOrExpression WS '?'&Tk WS Expression WS ':' WS ConditionalExpression
+  | ConditionalOrExpression WS '?'&Tk WS Expression WS ':' WS LambdaExpression
+
+ConditionalOrExpression = ConditionalAndExpression
+  | ConditionalOrExpression WS "||"&Tk WS ConditionalAndExpression
+
+
+ConditionalAndExpression = InclusiveOrExpression
+  | ConditionalAndExpression WS "&&"&Tk WS InclusiveOrExpression
+
+
+InclusiveOrExpression = ExclusiveOrExpression
+  | InclusiveOrExpression WS "|"&Tk WS ExclusiveOrExpression
+ExclusiveOrExpression = AndExpression
+  | ExclusiveOrExpression WS "^"&Tk WS AndExpression
+AndExpression = EqualityExpression
+  | AndExpression WS "&"&Tk WS EqualityExpression
+EqualityExpression = RelationalExpression
+  | EqualityExpression WS "=="&Tk WS RelationalExpression
+  | EqualityExpression WS "!="&Tk WS RelationalExpression
+RelationalExpression = ShiftExpression
+  | RelationalExpression WS "<"&Tk WS ShiftExpression
+  | RelationalExpression WS ">"&Tk WS ShiftExpression
+  | RelationalExpression WS "<="&Tk WS ShiftExpression
+  | RelationalExpression WS ">="&Tk WS ShiftExpression
+  | RelationalExpression WS "instanceof"&Tk WS ReferenceType
+ShiftExpression = AdditiveExpression
+  | ShiftExpression WS "<<"&Tk WS AdditiveExpression
+  | ShiftExpression WS ">>"&Tk WS AdditiveExpression
+  | ShiftExpression WS ">>>"&Tk WS AdditiveExpression
+AdditiveExpression = MultiplicativeExpression
+  | AdditiveExpression WS "+"&Tk WS MultiplicativeExpression
+  | AdditiveExpression WS "-"&Tk WS MultiplicativeExpression
+MultiplicativeExpression = UnaryExpression
+  | MultiplicativeExpression WS "*"&Tk WS UnaryExpression
+  | MultiplicativeExpression WS "/"&Tk WS UnaryExpression
+  | MultiplicativeExpression WS "%"&Tk WS UnaryExpression
+UnaryExpression = PreIncrementExpression
+  | PreDecrementExpression
+  | "+"&Tk UnaryExpression
+  | "-"&Tk UnaryExpression
+  | UnaryExpressionNotPlusMinus
+PreIncrementExpression = "++"&Tk WS UnaryExpression
+PreDecrementExpression = "--"&Tk WS UnaryExpression
+UnaryExpressionNotPlusMinus = PostfixExpression
+  | "~"&Tk WS UnaryExpression
+  | "!"&Tk WS UnaryExpression
+  | CastExpression
+CastExpression =
+  | '(' WS PrimitiveType WS ')' WS UnaryExpression
+  | '(' WS ReferenceType (WS AdditionalBound)* WS ')' WS UnaryExpressionNotPlusMinus
+  | '(' WS ReferenceType (WS AdditionalBound)* WS ')' WS LambdaExpression
+PostfixExpression = Primary
+  | ExpressionName
+  | PostIncrementExpression
+  | PostDecrementExpression
+PostIncrementExpression = PostfixExpression WS "++"&Tk
+PostDecrementExpression = PostfixExpression WS "--"&Tk
+
+
+
+Primary = PrimaryNoNewArray
+  | ArrayCreationExpression
+PrimaryNoNewArray = Literal
+  | ClassLiteral
+  | "this"&Tk
+  | TypeName WS '.' WS "this"&Tk
+  | '(' WS Expression WS ')'
+  | ClassInstanceCreationExpression
+  | FieldAccess
+  | ArrayAccess
+  | MethodInvocation
+  | MethodReference
+ClassLiteral = TypeName (WS '[' WS ']')* WS "."&Tk WS "class"&Tk
+  | NumericType (WS '[' WS ']')* WS "."&Tk WS "class"&Tk
+  | "boolean"&Tk (WS '[' WS ']')* WS "."&Tk WS "class"&Tk
+  | "void"&Tk WS "."&Tk WS "class"&Tk
+
+
+
+
+
+ClassInstanceCreationExpression = UnqualifiedClassInstanceCreationExpression
+  | ExpressionName WS "."&Tk WS UnqualifiedClassInstanceCreationExpression
+  | Primary WS "."&Tk WS UnqualifiedClassInstanceCreationExpression
+UnqualifiedClassInstanceCreationExpression = "new"&Tk WS TypeArguments? WS ClassOrInterfaceTypeToInstantiate WS '(' WS ArgumentList? WS ')' (WS ClassBody)?
+ClassOrInterfaceTypeToInstantiate = (Annotations WS)? Identifier (WS '.' (WS Annotations)? WS Identifier)*
+ (WS TypeArgumentsOrDiamond)?
+TypeArgumentsOrDiamond = TypeArguments
+  | '<' WS '>'
+TypeArguments = '<' WS TypeArgumentList WS '>'
+TypeArgumentList = TypeArgument (WS ',' WS TypeArgument)*
+TypeArgument = ReferenceType | Wildcard
+Wildcard = (Annotations WS)? '?' (WS WildcardBounds)?
+WildcardBounds = "extends"&Tk WS ReferenceType
+  | "super"&Tk WS ReferenceType
+
+
+
+
+
+MethodInvocation = MethodName WS '(' (WS ArgumentList)? WS ')'
+  | TypeName WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')'
+  | ExpressionName WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')'
+  | Primary WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')'
+  | "super"&Tk WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')'
+  | TypeName WS '.' WS "super"&Tk WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')'
+ArgumentList = Expression (WS ',' WS Expression)*
+
+
+
+
+MethodReference = ExpressionName WS "::"&Tk (WS TypeArguments)? WS Identifier
+  | ReferenceType WS "::"&Tk (WS TypeArguments)? WS Identifier
+  | Primary WS "::"&Tk (WS TypeArguments)? WS Identifier
+  | "super"&Tk WS "::"&Tk (WS TypeArguments)? WS Identifier
+  | TypeName WS '.' WS "super"&Tk WS "::"&Tk (WS TypeArguments)? WS Identifier
+  | ClassType WS "::"&Tk (WS TypeArguments)? WS "new"&Tk
+  | ArrayType WS "::"&Tk WS "new"&Tk
+
+
+
+
+MethodDeclaration = (MethodModifiers WS)? MethodHeader WS MethodBody
+MethodModifiers = MethodModifier (WS MethodModifier)*
+MethodModifier = Annotation
+  | ("public" | "protected" | "private" | "abstract" | "static" | "final")&Tk
+MethodHeader = Result WS MethodDeclarator (WS Throws)? TypeParameters (WS Annotations)? WS Result WS MethodDeclarator (WS Throws)?
+MethodDeclarator = Identifier WS '(' (WS FormalParameterList)? WS ')' Dims?
+Result = UnannType | "void"&Tk
+Throws = "throws"&Tk WS ExceptionTypeList
+ExceptionTypeList = ExceptionType (WS ',' WS ExceptionType)*
+ExceptionType = ClassType | TypeVariable
+MethodBody = Block | ';'
+TypeParameters = '<' WS TypeParameter (WS ',' WS TypeParameter)* WS '>'
+
+
+
+
+ClassDeclaration = NormalClassDeclaration
+  | EnumDeclaration
+NormalClassDeclaration = (ClassModifier WS)? WS "class"&Tk WS Identifier (WS TypeParameters)? (WS Superclass)? (WS Superinterfaces)? WS ClassBody
+ClassModifier = Annotation
+  | ("public" | "protected" | "private" | "abstract" | "static" | "final")&Tk
+Superclass = "extends"&Tk WS ClassType
+Superinterfaces = "implements"&Tk WS InterfaceTypeList
+InterfaceTypeList = InterfaceType (WS ',' WS InterfaceType)*
+ClassBody = '{' (WS ClassBodyDeclaration)* WS '}'
+ClassBodyDeclaration = ClassMemberDeclaration
+  | InstanceInitializer
+  | StaticInitializer
+  | ConstructorDeclaration
+ClassMemberDeclaration = FieldDeclaration
+  | MethodDeclaration
+  | ClassDeclaration
+  | InterfaceDeclaration
+  | ';'
+
+
+InstanceInitializer = Block
+StaticInitializer = "static"&Tk WS Block
+ConstructorDeclaration = (ConstructorModifier WS)? ConstructorDeclarator (WS Throws)? WS ConstructorBody
+ConstructorDeclarator = (TypeParameters WS)? SimpleTypeName '(' (WS FormalParameterList)? WS ')'
+SimpleTypeName = Identifier
+ConstructorModifier = Annotation | ("public" | "protected" | "private")&Tk
+ConstructorBody = '{' (WS ExplicitConstructorInvocation)? (WS BlockStatements)? WS '}'
+ExplicitConstructorInvocation = (TypeArguments WS)? "this"&Tk WS '(' (WS ArgumentList)? WS ')' WS ';'
+  | (TypeArguments WS)? "super"&Tk WS '(' (WS ArgumentList)? WS ')' WS ';'
+  | ExpressionName WS '.' (WS TypeArguments)? WS "super"&Tk WS '(' (WS ArgumentList)? WS ')' WS ';'
+  | Primary WS '.' (WS TypeArguments)? WS "super"&Tk WS '(' (WS ArgumentList)? WS ')' WS ';'
+
+
+
+FieldDeclaration = (FieldModifiers WS)? UnannType WS VariableDeclaratorList
+FieldModifiers = FieldModifier (WS FieldModifier)*
+FieldModifier = Annotation
+  | ("public" | "protected" | "private" | "static" | "final")&Tk
+
+
+InterfaceDeclaration = NormalInterfaceDeclaration
+  | AnnotationTypeDeclaration
+NormalInterfaceDeclaration = (InterfaceModifiers WS)? "interface"&Tk WS Identifier (WS TypeParameters)?
+ (WS ExtendsInterfaces)? WS InterfaceBody
+InterfaceModifiers = InterfaceModifier (WS InterfaceModifier)*
+InterfaceModifier = Annotation
+  | ("public" | "protected" | "private" | "abstract" | "static")&Tk
+ExtendsInterfaces = "extends"&Tk WS InterfaceTypeList
+InterfaceBody = '{' (WS InterfaceMemberDeclaration)* WS '}'
+InterfaceMemberDeclaration = ConstantDeclaration
+  | InterfaceMethodDeclaration
+  | ClassDeclaration
+  | InterfaceDeclaration
+  | ';'
+InterfaceMethodDeclaration = (InterfaceMethodModifiers WS)? MethodHeader WS MethodBody
+InterfaceMethodModifiers = InterfaceMethodModifier (WS InterfaceMethodModifier)*
+InterfaceMethodModifier = Annotation
+  | ("public" | "abstract" | "default" | "static")&Tk
+
+
+AnnotationTypeDeclaration = (InterfaceModifiers WS)? '@' WS "interface"&Tk WS Identifier WS AnnotationTypeBody
+
+AnnotationTypeBody = '{' (WS AnnotationTypeMemberDeclaration)* WS '}'
+AnnotationTypeMemberDeclaration = AnnotationTypeElementDeclaration
+  | ConstantDeclaration
+  | ClassDeclaration
+  | InterfaceDeclaration
+  | ';'
+AnnotationTypeElementDeclaration = (AnnotationTypeElementModifier WS)? UnannType WS Identifier WS '(' WS ')' (WS Dims)? (WS DefaultValue)? WS ';'
+AnnotationTypeElementModifier = Annotation | ("public" | "abstract")&Tk
+DefaultValue = "default"&Tk WS ElementValue
+
+
+ConstantDeclaration = (ConstantModifiers WS)? UnannType WS VariableDeclaratorList WS ';'
+ConstantModifiers = ConstantModifier (WS ConstantModifier)*
+ConstantModifier = Annotation
+  | ("public" | "static" | "final")&Tk
+FormalParameterList = FormalParameters WS ',' WS LastFormalParameter
+  | LastFormalParameter
+FormalParameters = FormalParameters (WS ',' WS FormalParameter)?
+FormalParameter = (VariableModifiers WS)? UnannType WS VariableDeclaratorId
+LastFormalParameter = (VariableModifiers WS)? UnannType (WS Annotations)? WS "..."&Tk WS VariableDeclaratorId WS FormalParameter
+
+
+
+
+
+Annotation = NormalAnnotation
+  | MarkerAnnotation
+  | SingleElementAnnotation
+NormalAnnotation = '@' WS TypeName WS '(' (WS ElementValuePairList)? WS ')'
+ElementValuePairList = ElementValuePair (WS ',' WS ElementValuePair)*
+ElementValuePair = Identifier WS '=' WS ElementValue
+ElementValue = ConditionalExpression
+  | ElementValueArrayInitializer
+  | Annotation
+ElementValueArrayInitializer = '{' (WS ElementValueList)? (WS ',')? WS '}'
+ElementValueList = ElementValue (WS ',' WS ElementValue)*
+
+MarkerAnnotation = '@' WS TypeName
+SingleElementAnnotation = '@' WS TypeName WS '(' WS ElementValue WS ')'
+
+
+
