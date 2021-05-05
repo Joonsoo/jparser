@@ -1,3 +1,21 @@
+CompilationUnit = (WS PackageDeclaration)? (WS ImportDeclaration)* (WS TypeDeclaration)* WS
+PackageDeclaration = (PackageModifiers WS)? "package"&Tk WS Identifier (WS '.' WS Identifier)* WS ';'
+PackageModifiers = PackageModifier (WS PackageModifier)*
+PackageModifier = Annotation
+
+ImportDeclaration = SingleTypeImportDeclaration
+
+SingleTypeImportDeclaration = "import"&Tk WS TypeName WS ';'
+
+
+TypeDeclaration = ClassDeclaration
+  | InterfaceDeclaration
+  | ';'
+
+
+
+
+
 Block = '{' (WS BlockStatements)? WS '}' {Block(stmts=$1{[$1] + $2} ?: [])}
 BlockStatements = BlockStatement (WS BlockStatement)*
 BlockStatement = LocalVariableDeclarationStatement
@@ -7,7 +25,6 @@ LocalVariableDeclarationStatement = LocalVariableDeclaration WS ';'
 LocalVariableDeclaration = (VariableModifiers WS)? UnannType WS VariableDeclaratorList
 VariableModifiers = VariableModifier (WS VariableModifier)*
 VariableModifier = Annotation | "final"&Tk
-UnannType
 VariableDeclaratorList = VariableDeclarator (WS ',' WS VariableDeclarator)
 VariableDeclarator = VariableDeclaratorId (WS '=' WS VariableInitializer)?
 VariableDeclaratorId = Identifier (WS Dims)*
@@ -238,7 +255,8 @@ TypeParameters = '<' WS TypeParameter (WS ',' WS TypeParameter)* WS '>'
 
 ClassDeclaration = NormalClassDeclaration
   | EnumDeclaration
-NormalClassDeclaration = (ClassModifier WS)? WS "class"&Tk WS Identifier (WS TypeParameters)? (WS Superclass)? (WS Superinterfaces)? WS ClassBody
+NormalClassDeclaration = (ClassModifiers WS)? WS "class"&Tk WS Identifier (WS TypeParameters)? (WS Superclass)? (WS Superinterfaces)? WS ClassBody
+ClassModifiers = ClassModifier (WS ClassModifier)*
 ClassModifier = Annotation
   | ("public" | "protected" | "private" | "abstract" | "static" | "final")&Tk
 Superclass = "extends"&Tk WS ClassType
@@ -254,6 +272,15 @@ ClassMemberDeclaration = FieldDeclaration
   | ClassDeclaration
   | InterfaceDeclaration
   | ';'
+
+
+EnumDeclaration = (ClassModifiers WS)? "enum"&Tk WS Identifier (WS Superinterfaces)? WS EnumBody
+EnumBody = '{' (WS EnumConstantList)? (WS ',')? (WS EnumBodyDeclarations)? WS }
+EnumConstantList = EnumConstant (WS ',' WS EnumConstant)*
+EnumConstant = (EnumConstantModifiers WS)? Identifier ('(' (WS ArgumentList)? WS ')')? (WS ClassBody)?
+EnumConstantModifiers = EnumConstantModifier (WS EnumConstantModifiers)*
+EnumConstantModifier = Annotation
+EnumBodyDeclarations = ';' (WS ClassBodyDeclaration)*
 
 
 InstanceInitializer = Block
@@ -338,5 +365,25 @@ ElementValueList = ElementValue (WS ',' WS ElementValue)*
 MarkerAnnotation = '@' WS TypeName
 SingleElementAnnotation = '@' WS TypeName WS '(' WS ElementValue WS ')'
 
+
+
+
+
+UnannType = UnannPrimitiveType
+  | UnannReferenceType
+UnannPrimitiveType = NumericType
+  | "boolean"&Tk
+UnannReferenceType = UnannClassOrInterfaceType
+  | UnannTypeVariable
+  | UnannArrayType
+UnannClassOrInterfaceType = UnannClassType
+  | UnannInterfaceType
+UnannClassType = Identifier (WS TypeArguments)?
+  | UnannClassOrInterfaceType WS '.' (WS Annotations)? WS Identifier (WS TypeArguments)?
+UnannInterfaceType = UnannClassType
+UnannTypeVariable = Identifier
+UnannArrayType = UnannPrimitiveType WS Dims
+  | UnannClassOrInterfaceType WS Dims
+  | UnannTypeVariable WS Dims
 
 
