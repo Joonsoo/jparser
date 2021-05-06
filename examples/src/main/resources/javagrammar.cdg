@@ -16,6 +16,11 @@ TypeName = Identifier
   | PackageOrTypeName '.' Identifier
 PackageOrTypeName = Identifier
   | PackageOrTypeName '.' Identifier
+ExpressionName = Identifier
+  | AmbiguousName '.' Identifier
+MethodName = Identifier
+AmbiguousName = Identifier
+  | AmbiguousName '.' Identifier
 
 NumericType = IntegralType
   | FloatingPointType
@@ -25,6 +30,21 @@ FloatingPointType = ("float" | "double")&Tk
 
 PrimitiveType = (Annotations WS)? NumericType
   | (Annotations WS)? "boolean"&Tk
+
+
+ReferenceType = ClassOrInterfaceType
+  | TypeVariable
+  | ArrayType
+
+ClassOrInterfaceType = ClassType | InterfaceType
+ClassType = (Annotations WS)? Identifier (WS TypeArguments)?
+  | ClassOrInterfaceType WS '.' (WS Annotation)* WS Identifier (WS TypeArguments)?
+InterfaceType = ClassType
+TypeVariable = (Annotations WS)? Identifier
+ArrayType = PrimitiveType WS Dims
+  | ClassOrInterfaceType WS Dims
+  | TypeVariable WS Dims
+
 
 
 Block = '{' (WS BlockStatements)? WS '}' {Block(stmts=$1 ?: [])}
@@ -42,6 +62,9 @@ VariableDeclaratorId = Identifier (WS Dims)* {VariableDeclaratorId(name=$0, dims
 Dim = (Annotation (WS Annotation)* WS)? '[' WS ']' {Dim(annots=$0{[$0] + $1})}
 Dims = Dim (WS Dim)* {[$0] + $1}
 VariableInitializer = Expression | ArrayInitializer
+ArrayInitializer = '{' (WS VariableInitializerList)? (WS ',')? WS '}'
+VariableInitializerList = VariableInitializer (WS ',' WS VariableInitializer)*
+
 
 
 Annotations = Annotation (WS Annotation)*
@@ -107,6 +130,15 @@ Finally = "finally"&Tk WS Block {FinallyBlock(body=$2)}
 Expression = LambdaExpression
   | AssignmentExpression
 
+
+LambdaExpression = LambdaParameters "->"&Tk LambdaBody
+
+LambdaParameters = Identifier
+  | '(' (WS FormalParameterList)? WS ')'
+  | '(' WS InferredFormalParameterList WS ')'
+InferredFormalParameterList = Identifier (WS ',' WS Identifier)*
+
+LambdaBody = Expression | Block
 
 
 AssignmentExpression = ConditionalExpression
@@ -198,8 +230,11 @@ ClassLiteral = TypeName (WS '[' WS ']')* WS "."&Tk WS "class"&Tk
   | "void"&Tk WS "."&Tk WS "class"&Tk
 
 
-
-
+FieldAccess = Primary WS '.' WS Identifier
+  | "super"&Tk WS '.' WS Identifier
+  | TypeName WS '.' WS "super"&Tk WS '.' WS Identifier
+ArrayAccess = ExpressionName WS '[' WS Expression WS ']'
+  | PrimaryNoNewArray WS '[' WS Expression WS ']'
 
 ClassInstanceCreationExpression = UnqualifiedClassInstanceCreationExpression
   | ExpressionName WS "."&Tk WS UnqualifiedClassInstanceCreationExpression
@@ -241,6 +276,14 @@ MethodReference = ExpressionName WS "::"&Tk (WS TypeArguments)? WS Identifier
 
 
 
+ArrayCreationExpression = "new"&Tk WS PrimitiveType WS DimExprs (WS Dims)?
+  | "new"&Tk WS ClassOrInterfaceType WS DimExprs (WS Dims)?
+  | "new"&Tk WS PrimitiveType WS Dims WS ArrayInitializer
+  | "new"&Tk WS ClassOrInterfaceType WS Dims WS ArrayInitializer
+DimExprs = DimExpr (WS DimExpr)*
+DimExpr = (Annotations WS)? '[' WS Expression WS ']'
+
+
 
 MethodDeclaration = (MethodModifiers WS)? MethodHeader WS MethodBody
 MethodModifiers = MethodModifier (WS MethodModifier)*
@@ -254,8 +297,12 @@ ExceptionTypeList = ExceptionType (WS ',' WS ExceptionType)*
 ExceptionType = ClassType | TypeVariable
 MethodBody = Block | ';'
 TypeParameters = '<' WS TypeParameter (WS ',' WS TypeParameter)* WS '>'
-
-
+TypeParameter = (TypeParameterModifiers WS)? Identifier (WS TypeBound)?
+TypeParameterModifiers = TypeParameterModifier (WS TypeParameterModifier)*
+TypeParameterModifier = Annotation
+TypeBound = "extends"&Tk WS TypeVariable
+  | "extends"&Tk WS ClassOrInterfaceType (WS AdditionalBound)*
+AdditionalBound = "&"&Tk WS InterfaceType
 
 
 ClassDeclaration = NormalClassDeclaration
