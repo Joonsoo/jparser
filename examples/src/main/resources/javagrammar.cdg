@@ -12,24 +12,35 @@ TypeDeclaration = ClassDeclaration
   | InterfaceDeclaration
   | ';'
 
+TypeName = Identifier
+  | PackageOrTypeName '.' Identifier
+PackageOrTypeName = Identifier
+  | PackageOrTypeName '.' Identifier
+
+NumericType = IntegralType
+  | FloatingPointType
+IntegralType = ("byte" | "short" | "int" | "long" | "char")&Tk
+FloatingPointType = ("float" | "double")&Tk
 
 
+PrimitiveType = (Annotations WS)? NumericType
+  | (Annotations WS)? "boolean"&Tk
 
 
-Block = '{' (WS BlockStatements)? WS '}' {Block(stmts=$1{[$1] + $2} ?: [])}
-BlockStatements = BlockStatement (WS BlockStatement)*
+Block = '{' (WS BlockStatements)? WS '}' {Block(stmts=$1 ?: [])}
+BlockStatements = BlockStatement (WS BlockStatement)* {[$0] + $1}
 BlockStatement = LocalVariableDeclarationStatement
   | ClassDeclaration
   | Statement
 LocalVariableDeclarationStatement = LocalVariableDeclaration WS ';'
-LocalVariableDeclaration = (VariableModifiers WS)? UnannType WS VariableDeclaratorList
-VariableModifiers = VariableModifier (WS VariableModifier)*
+LocalVariableDeclaration = (VariableModifiers WS)? UnannType WS VariableDeclaratorList {LocalVariableDeclaration(modifiers=$0 ?: [], typ=$1, decls=$3)}
+VariableModifiers = VariableModifier (WS VariableModifier)* {[$0] + $1}
 VariableModifier = Annotation | "final"&Tk
-VariableDeclaratorList = VariableDeclarator (WS ',' WS VariableDeclarator)
-VariableDeclarator = VariableDeclaratorId (WS '=' WS VariableInitializer)?
-VariableDeclaratorId = Identifier (WS Dims)*
-Dim = (Annotation (WS Annotation)* WS)? '[' WS ']'
-Dims = Dim (WS Dim)*
+VariableDeclaratorList = VariableDeclarator (WS ',' WS VariableDeclarator)* {[$0] + $1}
+VariableDeclarator = VariableDeclaratorId (WS '=' WS VariableInitializer)? {(VariableDeclarator(id=$0, init=$1))}
+VariableDeclaratorId = Identifier (WS Dims)* {VariableDeclaratorId(name=$0, dims=$1)}
+Dim = (Annotation (WS Annotation)* WS)? '[' WS ']' {Dim(annots=$0{[$0] + $1})}
+Dims = Dim (WS Dim)* {[$0] + $1}
 VariableInitializer = Expression | ArrayInitializer
 
 
@@ -51,49 +62,44 @@ StatementWithoutTrailingSubstatement = Block
   | ThrowStatement
   | TryStatement
 
-EmptyStatement = ';'
+EmptyStatement = ';' {EmptyStatement()}
 
-LabeledStatement = Identifier WS ':' WS Statement
+LabeledStatement = Identifier WS ':' WS Statement {LabeledStatement(label=$0, stmt=$4)}
 
-ExpressionStatement = StatementExpression WS ';'
+ExpressionStatement = StatementExpression WS ';' $0
 StatementExpression = Assignment
   | MethodInvocation
   | ClassInstanceCreationExpression
 
-IfThenStatement = "if"&Tk WS '(' WS Expression WS ')' WS Statement
-IfThenElseStatement = "if"&Tk WS '(' WS Expression WS ')' WS StatementNoShortIf WS "else"&Tk WS Statement
-IfThenElseStatementNoShortIf = "if"&Tk WS '(' WS Expression WS ')' WS StatementNoShortIf WS "else"&Tk WS StatementNoShortIf
+IfThenStatement = "if"&Tk WS '(' WS Expression WS ')' WS Statement {IfThenStatement(condition=$4, thenbody=$8)}
+IfThenElseStatement = "if"&Tk WS '(' WS Expression WS ')' WS Statement WS "else"&Tk WS Statement {IfThenElseStatement(condition=$4, thenbody=$8, elsebody=$12)}
 
 IfStatement = <IfThenStatement | IfThenElseStatement>
 
-AssertStatement = "assert"&Tk WS Expression WS ';'
-  | "assert"&Tk WS Expression WS ':' WS Expression WS ';'
-
-
-WhileStatement = "while"&Tk WS '(' WS Expression WS ')' WS Statement
+WhileStatement = "while"&Tk WS '(' WS Expression WS ')' WS Statement {WhileStatement(condition=$4, body=$8)}
 
 
 
 ForStatement = BasicForStatement
-  | EnhancedForStatement
 BasicForStatement = "for"&Tk WS '(' WS ForInit WS ';' WS Expression WS ';' WS ForUpdate WS ')' WS Statement
+                    {BasicForStatement(init=$4, condition=$8, update=$12, body=$16)}
 ForInit = StatementExpressionList | LocalVariableDeclaration
 ForUpdate = StatementExpressionList
-StatementExpressionList = StatementExpression (WS ',' WS StatementExpression)
+StatementExpressionList = StatementExpression (WS ',' WS StatementExpression)* {[$0] + $1}
 
-BreakStatement = "break"&Tk (WS Identifier)? WS ';'
-ContinueStatement = "continue"&Tk (WS Identifier)? WS ';'
+BreakStatement = "break"&Tk (WS Identifier)? WS ';' {BreakStatement(label=$1)}
+ContinueStatement = "continue"&Tk (WS Identifier)? WS ';' {ContinueStatement(label=$1)}
 
-ReturnStatement = "return"&Tk (WS Expression)? WS ';'
-ThrowStatement = "throw"&Tk (WS Expression)? WS ';'
+ReturnStatement = "return"&Tk (WS Expression)? WS ';' {ReturnStatement(value=$1)}
+ThrowStatement = "throw"&Tk (WS Expression)? WS ';' {ThrowStatement(exception=$1)}
 
-TryStatement = "try"&Tk WS Block WS Catches
-  | "try"&Tk WS Block (WS Catches)? WS Finally
-Catches = CatchClause (WS CatchClause)*
-CatchClause = "catch"&Tk WS '(' WS CatchFormalParameter WS ')' WS Block
+TryStatement = "try"&Tk WS Block WS Catches {TryStatement(block=$2, catches=$4, finally=null)}
+  | "try"&Tk WS Block (WS Catches)? WS Finally {TryStatement(block=$2, catches=$3, finally=$5)}
+Catches = CatchClause (WS CatchClause)* {[$0] + $1}
+CatchClause = "catch"&Tk WS '(' WS CatchFormalParameter WS ')' WS Block {CatchClause(catchingType=$4, handler=$8)}
 CatchFormalParameter = (VariableModifiers WS)? CatchType WS VariableDeclaratorId
-CatchType = UnannClassType (WS '|' WS ClassType)*
-Finally = "finally"&Tk WS Block
+CatchType = UnannClassType (WS '|' WS ClassType)* {CatchType(typ=[$0] + $1)}
+Finally = "finally"&Tk WS Block {FinallyBlock(body=$2)}
 
 
 
@@ -162,8 +168,7 @@ UnaryExpressionNotPlusMinus = PostfixExpression
   | "~"&Tk WS UnaryExpression
   | "!"&Tk WS UnaryExpression
   | CastExpression
-CastExpression =
-  | '(' WS PrimitiveType WS ')' WS UnaryExpression
+CastExpression = '(' WS PrimitiveType WS ')' WS UnaryExpression
   | '(' WS ReferenceType (WS AdditionalBound)* WS ')' WS UnaryExpressionNotPlusMinus
   | '(' WS ReferenceType (WS AdditionalBound)* WS ')' WS LambdaExpression
 PostfixExpression = Primary
@@ -275,7 +280,7 @@ ClassMemberDeclaration = FieldDeclaration
 
 
 EnumDeclaration = (ClassModifiers WS)? "enum"&Tk WS Identifier (WS Superinterfaces)? WS EnumBody
-EnumBody = '{' (WS EnumConstantList)? (WS ',')? (WS EnumBodyDeclarations)? WS }
+EnumBody = '{' (WS EnumConstantList)? (WS ',')? (WS EnumBodyDeclarations)? WS '}'
 EnumConstantList = EnumConstant (WS ',' WS EnumConstant)*
 EnumConstant = (EnumConstantModifiers WS)? Identifier ('(' (WS ArgumentList)? WS ')')? (WS ClassBody)?
 EnumConstantModifiers = EnumConstantModifier (WS EnumConstantModifiers)*
@@ -387,3 +392,69 @@ UnannArrayType = UnannPrimitiveType WS Dims
   | UnannTypeVariable WS Dims
 
 
+WS = ' \t\u000c' | LineTerminator | Comment
+LineTerminator = <'\n\r' | "\n\r">
+Comment = BlockComment | LineComment
+BlockComment = "/*" ((. !"*/")* .)? "*/"
+LineComment = "//" (.-'\n')* (EOF | '\n')
+EOF = !.
+
+Tk = Token
+Token = Identifier | Keyword | Literal | Separator | Operator
+Word = <'a-zA-Z0-9_'+>
+Identifier = Word-(Keyword | BooleanLiteral | NullLiteral)
+Keyword = ("abstract" | "continue" | "for" | "new" | "switch" | "assert" | "default" | "if" | "package" | "synchronized" | "boolean" | "do" | "goto" | "private" | "this" | "break" | "double" | "implements" | "protected" | "throw" | "byte" | "else" | "import" | "public" | "throws" | "case" | "enum" | "instanceof" | "return" | "transient" | "catch" | "extends" | "int" | "short" | "try" | "char" | "final" | "interface" | "static" | "void" | "class" | "finally" | "long" | "strictfp" | "volatile" | "const" | "float" | "native" | "super" | "while")&Word
+
+BooleanLiteral = <"true" | "false">
+
+NullLiteral = <"null">
+
+Literal = IntegerLiteral
+  | FloatingPointLiteral
+  | BooleanLiteral
+  | CharacterLiteral
+  | StringLiteral
+  | NullLiteral
+IntegerLiteral = DecimalIntegerLiteral
+  | HexIntegerLiteral
+DecimalIntegerLiteral = DecimalNumeral IntegerTypeSuffix?
+HexIntegerLiteral = HexNumeral IntegerTypeSuffix?
+
+DecimalNumeral = '0'
+  | NonZeroDigit Digits?
+  | NonZeroDigit Underscores Digits
+NonZeroDigit = '1-9'
+Digits = Digit
+  | Digit DigitsAndUnderscores? Digit
+Digit = '0-9'
+DigitsAndUnderscores = DigitOrUnderscore DigitOrUnderscore*
+DigitOrUnderscore = Digit | '_'
+Underscores = '_'+
+
+HexNumeral = '0' 'xX' HexDigits
+HexDigits = HexDigit | HexDigit HexDigitsAndUnderscores? HexDigit
+HexDigit = '0-9a-fA-F'
+HexDigitsAndUnderscores = HexDigitOrUnderscore+
+HexDigitOrUnderscore = HexDigit | '_'
+
+IntegerTypeSuffix = 'l' | 'L'
+
+FloatingPointLiteral = DecimalFloatingPointLiteral
+DecimalFloatingPointLiteral = Digits '.' Digits? ExponentPart? FloatTypeSuffix?
+  | '.' Digits ExponentPart? FloatTypeSuffix?
+  | Digits ExponentPart FloatTypeSuffix?
+  | Digits ExponentPart? FloatTypeSuffix
+ExponentPart = 'eE' '+\-' Digits
+FloatTypeSuffix = 'fFdD'
+
+CharacterLiteral = '\'' SingleCharacter '\'' | '\'' EscapeSequence '\''
+SingleCharacter = .-'\'\\'
+EscapeSequence = "\\b" | "\\t" | "\\n" | "\\f" | "\\r" | "\\\"" | "\\'" | "\\\\" | OctalEscape
+OctalEscape = '\\' '0-7' | '\\' '0-7' '0-7' | '\\' '0-3' '0-7' '0-7'
+
+
+StringLiteral = '"' StringCharacter* '"'
+StringCharacter = .-'"\\' | EscapeSequence
+
+Separator = <'(){}[];,.@' | "..." | "::">
+Operator = <"=" | ">" | "<" | "!" | "~" | "?" | ":" | "->" | "==" | ">=" | "<=" | "!=" | "&&" | "||" | "++" | "--" | "+" | "-" | "*" | "/" | "&" | "|" | "^" | "%" | "<<" | ">>" | ">>>" | "+=" | "-=" | "*=" | "/=" | "&=" | "|=" | "^=" | "%=" | "<<=" | ">>=" | ">>>=">
