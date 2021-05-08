@@ -12,24 +12,22 @@ TypeDeclaration = ClassDeclaration
   | InterfaceDeclaration
   | ';'
 
-TypeName = Identifier
-  | PackageOrTypeName '.' Identifier
-PackageOrTypeName = Identifier
-  | PackageOrTypeName '.' Identifier
-ExpressionName = Identifier
-  | AmbiguousName '.' Identifier
-MethodName = Identifier
-AmbiguousName = Identifier
-  | AmbiguousName '.' Identifier
+TypeName = Identifier {TypeName(parent=null, name=str($0))}
+  | PackageOrTypeName '.' Identifier {TypeName($0, str($2))}
+PackageOrTypeName = (Identifier '.')* Identifier {PackageOrTypeName(names=$0{str($0)} + [str($1)])}
+ExpressionName = Identifier {ExpressionName(parent=null, name=str($0))}
+  | AmbiguousName '.' Identifier {ExpressionName(parent=$0, name=str($2))}
+MethodName = Identifier {MethodName(name=str($0))}
+AmbiguousName = (Identifier '.')* Identifier {AmbiguousName(names=$0{str($0)} + [str($1)])}
 
 NumericType = IntegralType
   | FloatingPointType
-IntegralType = ("byte" | "short" | "int" | "long" | "char")&Tk
-FloatingPointType = ("float" | "double")&Tk
+IntegralType = ("byte" {%BYTE} | "short" {%SHORT} | "int" {%INT} | "long" {%LONG} | "char" {%CHAR})&Tk {IntegralType(typ: %IntegralTypes = $0)}
+FloatingPointType = ("float" {%FLOAT} | "double" {%DOUBLE})&Tk {FloatingPointType(typ:%FloatingPointTypes = $0)}
 
 
-PrimitiveType = (Annotations WS)? NumericType
-  | (Annotations WS)? "boolean"&Tk
+PrimitiveType: PrimitiveType = (Annotations WS $0)? NumericType {NumericPrimitiveType(annots=$0 ?: [], typ=$1)}
+  | (Annotations WS $0)? "boolean"&Tk {BooleanPrimitiveType(annots=$0 ?: [])}
 
 
 ReferenceType = ClassOrInterfaceType
@@ -37,10 +35,10 @@ ReferenceType = ClassOrInterfaceType
   | ArrayType
 
 ClassOrInterfaceType = ClassType | InterfaceType
-ClassType = (Annotations WS)? Identifier (WS TypeArguments)?
-  | ClassOrInterfaceType WS '.' (WS Annotation)* WS Identifier (WS TypeArguments)?
-InterfaceType = ClassType
-TypeVariable = (Annotations WS)? Identifier
+ClassType: ClassType = (Annotations WS)? Identifier (WS TypeArguments)? {ClassTypeName(annots=$0$0 ?: [], name=$1, typeArgs=$2)}
+  | ClassOrInterfaceType WS '.' (WS Annotation)* WS Identifier (WS TypeArguments)? {BindedClassTypeName(parent=$0, annots=$3, name=$5, typeArgs=$6)}
+InterfaceType: InterfaceType = ClassType
+TypeVariable = (Annotations WS)? Identifier {TypeVariable(annots=$0$0 ?: [], name=$1)}
 ArrayType = PrimitiveType WS Dims
   | ClassOrInterfaceType WS Dims
   | TypeVariable WS Dims
@@ -163,83 +161,84 @@ ConditionalAndExpression = InclusiveOrExpression
   | ConditionalAndExpression WS "&&"&Tk WS InclusiveOrExpression
 
 
-InclusiveOrExpression = ExclusiveOrExpression
-  | InclusiveOrExpression WS "|"&Tk WS ExclusiveOrExpression
-ExclusiveOrExpression = AndExpression
-  | ExclusiveOrExpression WS "^"&Tk WS AndExpression
-AndExpression = EqualityExpression
-  | AndExpression WS "&"&Tk WS EqualityExpression
-EqualityExpression = RelationalExpression
-  | EqualityExpression WS "=="&Tk WS RelationalExpression
-  | EqualityExpression WS "!="&Tk WS RelationalExpression
-RelationalExpression = ShiftExpression
-  | RelationalExpression WS "<"&Tk WS ShiftExpression
-  | RelationalExpression WS ">"&Tk WS ShiftExpression
-  | RelationalExpression WS "<="&Tk WS ShiftExpression
-  | RelationalExpression WS ">="&Tk WS ShiftExpression
-  | RelationalExpression WS "instanceof"&Tk WS ReferenceType
-ShiftExpression = AdditiveExpression
-  | ShiftExpression WS "<<"&Tk WS AdditiveExpression
-  | ShiftExpression WS ">>"&Tk WS AdditiveExpression
-  | ShiftExpression WS ">>>"&Tk WS AdditiveExpression
-AdditiveExpression = MultiplicativeExpression
-  | AdditiveExpression WS "+"&Tk WS MultiplicativeExpression
-  | AdditiveExpression WS "-"&Tk WS MultiplicativeExpression
-MultiplicativeExpression = UnaryExpression
-  | MultiplicativeExpression WS "*"&Tk WS UnaryExpression
-  | MultiplicativeExpression WS "/"&Tk WS UnaryExpression
-  | MultiplicativeExpression WS "%"&Tk WS UnaryExpression
-UnaryExpression = PreIncrementExpression
+InclusiveOrExpression: InclusiveOrExpression = ExclusiveOrExpression
+  | InclusiveOrExpression WS "|"&Tk WS ExclusiveOrExpression {BinaryBinOp(op:%BinaryBinOps=%OR, lhs=$0, rhs=$4)}
+ExclusiveOrExpression: ExclusiveOrExpression = AndExpression
+  | ExclusiveOrExpression WS "^"&Tk WS AndExpression {BinaryBinOp(%XOR, $0, $4)}
+AndExpression: AndExpression = EqualityExpression
+  | AndExpression WS "&"&Tk WS EqualityExpression {BinaryBinOp(%AND, $0, $4)}
+EqualityExpression: EqualityExpression = RelationalExpression
+  | EqualityExpression WS "=="&Tk WS RelationalExpression {RelBinOp(op:%RelBinOps=%EQ, lhs=$0, rhs=$4)}
+  | EqualityExpression WS "!="&Tk WS RelationalExpression {RelBinOp(%NE, $0, $4)}
+RelationalExpression: RelationalExpression = ShiftExpression
+  | RelationalExpression WS "<"&Tk WS ShiftExpression {RelBinOp(%LT, $0, $4)}
+  | RelationalExpression WS ">"&Tk WS ShiftExpression {RelBinOp(%GT, $0, $4)}
+  | RelationalExpression WS "<="&Tk WS ShiftExpression {RelBinOp(%LE, $0, $4)}
+  | RelationalExpression WS ">="&Tk WS ShiftExpression {RelBinOp(%GE, $0, $4)}
+  | RelationalExpression WS "instanceof"&Tk WS ReferenceType {InstanceOfOp(lhs=$0, rhs=$4)}
+ShiftExpression: ShiftExpression = AdditiveExpression
+  | ShiftExpression WS "<<"&Tk WS AdditiveExpression {ShiftBinOp(op:%ShiftBinOps=%SHL, lhs=$0, rhs=$4)}
+  | ShiftExpression WS ">>"&Tk WS AdditiveExpression {ShiftBinOp(%SHR, $0, $4)}
+  | ShiftExpression WS ">>>"&Tk WS AdditiveExpression {ShiftBinOp(%SAR, $0, $4)}
+AdditiveExpression: AdditiveExpression = MultiplicativeExpression
+  | AdditiveExpression WS "+"&Tk WS MultiplicativeExpression {ArithBinOp(op:%AdditiveOps=%ADD, lhs=$0, rhs=$4)}
+  | AdditiveExpression WS "-"&Tk WS MultiplicativeExpression {ArithBinOp(%SUB, $0, $4)}
+MultiplicativeExpression: MultiplicativeExpression = UnaryExpression
+  | MultiplicativeExpression WS "*"&Tk WS UnaryExpression {ArithBinOp(%MUL, $0, $4)}
+  | MultiplicativeExpression WS "/"&Tk WS UnaryExpression {ArithBinOp(%DIV, $0, $4)}
+  | MultiplicativeExpression WS "%"&Tk WS UnaryExpression {ArithBinOp(%REM, $0, $4)}
+UnaryExpression: UnaryExpression = PreIncrementExpression
   | PreDecrementExpression
-  | "+"&Tk UnaryExpression
-  | "-"&Tk UnaryExpression
+  | "+"&Tk WS UnaryExpression {UnaryOp(op:%UnaryOps=%PLUS, operand=$2)}
+  | "-"&Tk WS UnaryExpression {UnaryOp(%MINUS, $2)}
   | UnaryExpressionNotPlusMinus
-PreIncrementExpression = "++"&Tk WS UnaryExpression
-PreDecrementExpression = "--"&Tk WS UnaryExpression
-UnaryExpressionNotPlusMinus = PostfixExpression
-  | "~"&Tk WS UnaryExpression
-  | "!"&Tk WS UnaryExpression
+PreIncrementExpression = "++"&Tk WS UnaryExpression {UnaryOp(%INCREMENT, $2)}
+PreDecrementExpression = "--"&Tk WS UnaryExpression {UnaryOp(%DECREMENT, $2)}
+UnaryExpressionNotPlusMinus: UnaryExpressionNotPlusMinus = PostfixExpression
+  | "~"&Tk WS UnaryExpression {UnaryOp(%COMPLEMENT, $2)}
+  | "!"&Tk WS UnaryExpression {UnaryOp(%NOT, $2)}
   | CastExpression
-CastExpression = '(' WS PrimitiveType WS ')' WS UnaryExpression
-  | '(' WS ReferenceType (WS AdditionalBound)* WS ')' WS UnaryExpressionNotPlusMinus
-  | '(' WS ReferenceType (WS AdditionalBound)* WS ')' WS LambdaExpression
-PostfixExpression = Primary
+CastExpression: CastExpression = '(' WS PrimitiveType WS ')' WS UnaryExpression {PrimitiveCastExpression(targetType=$2, expr=$6)}
+  | '(' WS ReferenceType (WS AdditionalBound)* WS ')' WS UnaryExpressionNotPlusMinus {ReferenceCastExpression(targetType=$2, bound=$3, expr=$7)}
+  | '(' WS ReferenceType (WS AdditionalBound)* WS ')' WS LambdaExpression {ReferenceCastExpression($2, $3, $7)}
+PostfixExpression: PostfixExpression = Primary
   | ExpressionName
   | PostIncrementExpression
   | PostDecrementExpression
-PostIncrementExpression = PostfixExpression WS "++"&Tk
-PostDecrementExpression = PostfixExpression WS "--"&Tk
+PostIncrementExpression = PostfixExpression WS "++"&Tk {PostfixOp(op:%PostfixOps=%INCREMENT, operand=$0)}
+PostDecrementExpression = PostfixExpression WS "--"&Tk {PostfixOp(%DECREMENT, $0)}
 
 
 
-Primary = PrimaryNoNewArray
+Primary: Primary = PrimaryNoNewArray
   | ArrayCreationExpression
-PrimaryNoNewArray = Literal
+PrimaryNoNewArray: PrimaryNoNewArray = Literal
   | ClassLiteral
-  | "this"&Tk
-  | TypeName WS '.' WS "this"&Tk
-  | '(' WS Expression WS ')'
+  | "this"&Tk {This(parent=null)}
+  | TypeName WS '.' WS "this"&Tk {This(parent=$0)}
+  | '(' WS Expression WS ')' {Paren(expr=$2)}
   | ClassInstanceCreationExpression
   | FieldAccess
   | ArrayAccess
   | MethodInvocation
   | MethodReference
-ClassLiteral = TypeName (WS '[' WS ']')* WS "."&Tk WS "class"&Tk
-  | NumericType (WS '[' WS ']')* WS "."&Tk WS "class"&Tk
-  | "boolean"&Tk (WS '[' WS ']')* WS "."&Tk WS "class"&Tk
-  | "void"&Tk WS "."&Tk WS "class"&Tk
+ClassLiteral: ClassLiteral = TypeName (WS '[' WS ']')* WS "."&Tk WS "class"&Tk {ClassOfTypeName(typeName=$0, dims=$1)}
+  | NumericType (WS '[' WS ']')* WS "."&Tk WS "class"&Tk {ClassOfNumericType(typ=$0, dims=$1)}
+  | "boolean"&Tk (WS '[' WS ']')* WS "."&Tk WS "class"&Tk {ClassOfBooleanType(dims=$1)}
+  | "void"&Tk WS "."&Tk WS "class"&Tk {ClassOfVoidType(dims=[])}
 
 
-FieldAccess = Primary WS '.' WS Identifier
-  | "super"&Tk WS '.' WS Identifier
-  | TypeName WS '.' WS "super"&Tk WS '.' WS Identifier
-ArrayAccess = ExpressionName WS '[' WS Expression WS ']'
-  | PrimaryNoNewArray WS '[' WS Expression WS ']'
+FieldAccess: FieldAccess = Primary WS '.' WS Identifier {PrimaryFieldAccess(recv=$0, name=$4)}
+  | "super"&Tk WS '.' WS Identifier {SuperFieldAccess(name=$4)}
+  | TypeName WS '.' WS "super"&Tk WS '.' WS Identifier {TypeSuperFieldAccess(typeName=$0, name=$8)}
+ArrayAccess = ExpressionName WS '[' WS Expression WS ']' {ArrayAccess(array=$0, index=$4)}
+  | PrimaryNoNewArray WS '[' WS Expression WS ']' {ArrayAccess(array=$0, index=$4)}
 
 ClassInstanceCreationExpression = UnqualifiedClassInstanceCreationExpression
   | ExpressionName WS "."&Tk WS UnqualifiedClassInstanceCreationExpression
   | Primary WS "."&Tk WS UnqualifiedClassInstanceCreationExpression
-UnqualifiedClassInstanceCreationExpression = "new"&Tk WS TypeArguments? WS ClassOrInterfaceTypeToInstantiate WS '(' WS ArgumentList? WS ')' (WS ClassBody)?
+UnqualifiedClassInstanceCreationExpression = "new"&Tk WS TypeArguments? WS ClassOrInterfaceTypeToInstantiate WS '(' (WS ArgumentList)? WS ')' (WS ClassBody)?
+  {UnqualifiedClassInstanceCreationExpression(typeArgs=$2, classOrInterfaceTypeToInstantiate=$4, args=$7 ?: [], body=$10)}
 ClassOrInterfaceTypeToInstantiate = (Annotations WS)? Identifier (WS '.' (WS Annotations)? WS Identifier)*
  (WS TypeArgumentsOrDiamond)?
 TypeArgumentsOrDiamond = TypeArguments
@@ -255,66 +254,78 @@ WildcardBounds = "extends"&Tk WS ReferenceType
 
 
 
-MethodInvocation = MethodName WS '(' (WS ArgumentList)? WS ')'
-  | TypeName WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')'
-  | ExpressionName WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')'
-  | Primary WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')'
-  | "super"&Tk WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')'
-  | TypeName WS '.' WS "super"&Tk WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')'
+MethodInvocation: MethodInvocation = MethodName WS '(' (WS ArgumentList)? WS ')' {PlainMethodInvocation(target=$0, args=$3 ?: [])}
+  | TypeName WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')' {MethodInvocationWithTypeArgs(target=$0, typeArgs=$3, name=$5, args=$8 ?: [])}
+  | ExpressionName WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')' {MethodInvocationWithTypeArgs(target=$0, typeArgs=$3, name=$5, args=$8 ?: [])}
+  | Primary WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')' {MethodInvocationWithTypeArgs(target=$0, typeArgs=$3, name=$5, args=$8 ?: [])}
+  | "super"&Tk WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')' {SuperMethodInvocation(target=null, typeArgs=$3, name=$5, args=$8 ?: [])}
+  | TypeName WS '.' WS "super"&Tk WS '.' (WS TypeArguments)? WS Identifier WS '(' (WS ArgumentList)? WS ')' {SuperMethodInvocation(target=$0, typeArgs=$7, name=$9, args=$12 ?: [])}
 ArgumentList = Expression (WS ',' WS Expression)*
 
 
 
 
-MethodReference = ExpressionName WS "::"&Tk (WS TypeArguments)? WS Identifier
-  | ReferenceType WS "::"&Tk (WS TypeArguments)? WS Identifier
-  | Primary WS "::"&Tk (WS TypeArguments)? WS Identifier
-  | "super"&Tk WS "::"&Tk (WS TypeArguments)? WS Identifier
-  | TypeName WS '.' WS "super"&Tk WS "::"&Tk (WS TypeArguments)? WS Identifier
-  | ClassType WS "::"&Tk (WS TypeArguments)? WS "new"&Tk
-  | ArrayType WS "::"&Tk WS "new"&Tk
+MethodReference: MethodReference = ExpressionName WS "::"&Tk (WS TypeArguments)? WS Identifier {PlainMethodReference(cls=$0, typeArgs=$3, name=$5)}
+  | ReferenceType WS "::"&Tk (WS TypeArguments)? WS Identifier {PlainMethodReference(cls=$0, typeArgs=$3, name=$5)}
+  | Primary WS "::"&Tk (WS TypeArguments)? WS Identifier {PlainMethodReference(cls=$0, typeArgs=$3, name=$5)}
+  | "super"&Tk WS "::"&Tk (WS TypeArguments)? WS Identifier {SuperMethodReference(target=null, typeArgs=$3, name=$5)}
+  | TypeName WS '.' WS "super"&Tk WS "::"&Tk (WS TypeArguments)? WS Identifier {SuperMethodReference(target=$0, typeArgs=$7, name=$9)}
+  | ClassType WS "::"&Tk (WS TypeArguments)? WS "new"&Tk {NewMethodReference(cls=$0, typeArgs=$3)}
+  | ArrayType WS "::"&Tk WS "new"&Tk {NewArrayMethodReference(arrType=$0)}
 
 
 
-ArrayCreationExpression = "new"&Tk WS PrimitiveType WS DimExprs (WS Dims)?
-  | "new"&Tk WS ClassOrInterfaceType WS DimExprs (WS Dims)?
-  | "new"&Tk WS PrimitiveType WS Dims WS ArrayInitializer
-  | "new"&Tk WS ClassOrInterfaceType WS Dims WS ArrayInitializer
-DimExprs = DimExpr (WS DimExpr)*
-DimExpr = (Annotations WS)? '[' WS Expression WS ']'
+ArrayCreationExpression: ArrayCreationExpression =
+    "new"&Tk WS PrimitiveType WS DimExprs (WS Dims)? {PrimitiveArrayCreation(typ=$2, dimExprs=$4, dims=$5)}
+  | "new"&Tk WS ClassOrInterfaceType WS DimExprs (WS Dims)? {ClassOrInterfaceArrayCreation(typ=$2, dimExprs=$4, dims=$5)}
+  | "new"&Tk WS PrimitiveType WS Dims WS ArrayInitializer {PrimitiveArrayCreationWithInit(typ=$2, dims=$4, init=$6)}
+  | "new"&Tk WS ClassOrInterfaceType WS Dims WS ArrayInitializer {ClassOrInterfaceArrayCreationWithInit(typ=$2, dims=$4, init=$6)}
+DimExprs = DimExpr (WS DimExpr)* {[$0] + $1}
+DimExpr = (Annotations WS $0)? '[' WS Expression WS ']' {DimExpr(annots=$0 ?: [], expr=$3)}
 
 
 
-MethodDeclaration = (MethodModifiers WS)? MethodHeader WS MethodBody
-MethodModifiers = MethodModifier (WS MethodModifier)*
-MethodModifier = Annotation
-  | ("public" | "protected" | "private" | "abstract" | "static" | "final")&Tk
+MethodDeclaration = (MethodModifiers WS $0)? MethodHeader WS MethodBody {MethodDeclaration(modifiers=$0 ?: [], header=$1, body=$3)}
+MethodModifiers = MethodModifier (WS MethodModifier)* {[$0] + $1}
+MethodModifier: MethodModifier = Annotation
+  | ("public" {%PUBLIC} | 
+     "protected" {%PROTECTED} |
+     "private" {%PRIVATE} |
+     "abstract" {%ABSTRACT} |
+     "static" {%STATIC} |
+     "final" {%FINAL})&Tk {MethodModifier(modifier: %MethodModifiers = $0)}
 MethodHeader = Result WS MethodDeclarator (WS Throws)? TypeParameters (WS Annotations)? WS Result WS MethodDeclarator (WS Throws)?
 MethodDeclarator = Identifier WS '(' (WS FormalParameterList)? WS ')' Dims?
-Result = UnannType | "void"&Tk
+Result: Result = UnannType {ResultType(typ=$0)}
+  | "void"&Tk {VoidResultType()}
 Throws = "throws"&Tk WS ExceptionTypeList
-ExceptionTypeList = ExceptionType (WS ',' WS ExceptionType)*
-ExceptionType = ClassType | TypeVariable
+ExceptionTypeList = ExceptionType (WS ',' WS ExceptionType)* {[$0] + $1}
+ExceptionType: ExceptionType = ClassType | TypeVariable
 MethodBody = Block | ';'
 TypeParameters = '<' WS TypeParameter (WS ',' WS TypeParameter)* WS '>'
-TypeParameter = (TypeParameterModifiers WS)? Identifier (WS TypeBound)?
-TypeParameterModifiers = TypeParameterModifier (WS TypeParameterModifier)*
-TypeParameterModifier = Annotation
-TypeBound = "extends"&Tk WS TypeVariable
-  | "extends"&Tk WS ClassOrInterfaceType (WS AdditionalBound)*
+TypeParameter = (TypeParameterModifiers WS)? Identifier (WS TypeBound)? {TypeParameter(modifiers=$0$0 ?: [], name=$1, bounds=$2)}
+TypeParameterModifiers = TypeParameterModifier (WS TypeParameterModifier)* {[$0] + $1}
+TypeParameterModifier: TypeParameterModifier = Annotation
+TypeBound: TypeBound = "extends"&Tk WS TypeVariable {SingleTypeBound(extends=$2)}
+  | "extends"&Tk WS ClassOrInterfaceType (WS AdditionalBound)* {ClassOrInterfaceTypeBound(extends=$2, bounds=$3)}
 AdditionalBound = "&"&Tk WS InterfaceType
 
 
 ClassDeclaration = NormalClassDeclaration
   | EnumDeclaration
 NormalClassDeclaration = (ClassModifiers WS)? WS "class"&Tk WS Identifier (WS TypeParameters)? (WS Superclass)? (WS Superinterfaces)? WS ClassBody
-ClassModifiers = ClassModifier (WS ClassModifier)*
-ClassModifier = Annotation
-  | ("public" | "protected" | "private" | "abstract" | "static" | "final")&Tk
+ClassModifiers = ClassModifier (WS ClassModifier)* {[$0] + $1}
+ClassModifier: ClassModifier = Annotation
+  | ("public" {%PUBLIC} |
+     "protected" {%PROTECTED} |
+     "private" {%PRIVATE} |
+     "abstract" {%ABSTRACT} |
+     "static" {%STATIC} |
+     "final" {%FINAL})&Tk {ClassModifier(modifier:%ClassModifiers = $0)}
 Superclass = "extends"&Tk WS ClassType
 Superinterfaces = "implements"&Tk WS InterfaceTypeList
-InterfaceTypeList = InterfaceType (WS ',' WS InterfaceType)*
-ClassBody = '{' (WS ClassBodyDeclaration)* WS '}'
+InterfaceTypeList = InterfaceType (WS ',' WS InterfaceType)* {[$0] + $1}
+ClassBody = '{' (WS ClassBodyDeclaration)* WS '}' {ClassBody(decls=$1)}
 ClassBodyDeclaration = ClassMemberDeclaration
   | InstanceInitializer
   | StaticInitializer
@@ -330,7 +341,7 @@ EnumDeclaration = (ClassModifiers WS)? "enum"&Tk WS Identifier (WS Superinterfac
 EnumBody = '{' (WS EnumConstantList)? (WS ',')? (WS EnumBodyDeclarations)? WS '}'
 EnumConstantList = EnumConstant (WS ',' WS EnumConstant)*
 EnumConstant = (EnumConstantModifiers WS)? Identifier ('(' (WS ArgumentList)? WS ')')? (WS ClassBody)?
-EnumConstantModifiers = EnumConstantModifier (WS EnumConstantModifiers)*
+EnumConstantModifiers = EnumConstantModifier (WS EnumConstantModifier)*
 EnumConstantModifier = Annotation
 EnumBodyDeclarations = ';' (WS ClassBodyDeclaration)*
 
@@ -439,8 +450,8 @@ UnannArrayType = UnannPrimitiveType WS Dims
   | UnannTypeVariable WS Dims
 
 
-WS = ' \t\u000c' | LineTerminator | Comment
-LineTerminator = <'\n\r' | "\n\r">
+WS = (' \t\u000c' | LineTerminator | Comment)*
+LineTerminator = <'\n' | '\r' | "\n\r">
 Comment = BlockComment | LineComment
 BlockComment = "/*" ((. !"*/")* .)? "*/"
 LineComment = "//" (.-'\n')* (EOF | '\n')
@@ -452,9 +463,9 @@ Word = <'a-zA-Z0-9_'+>
 Identifier = Word-(Keyword | BooleanLiteral | NullLiteral)
 Keyword = ("abstract" | "continue" | "for" | "new" | "switch" | "assert" | "default" | "if" | "package" | "synchronized" | "boolean" | "do" | "goto" | "private" | "this" | "break" | "double" | "implements" | "protected" | "throw" | "byte" | "else" | "import" | "public" | "throws" | "case" | "enum" | "instanceof" | "return" | "transient" | "catch" | "extends" | "int" | "short" | "try" | "char" | "final" | "interface" | "static" | "void" | "class" | "finally" | "long" | "strictfp" | "volatile" | "const" | "float" | "native" | "super" | "while")&Word
 
-BooleanLiteral = <"true" | "false">
+BooleanLiteral = ("true" {%TRUE} | "false" {%FALSE})&Tk {BooleanLiteral(value: %BooleanLiteralEnums=$0)}
 
-NullLiteral = <"null">
+NullLiteral = "null"&Tk {NullLiteral()}
 
 Literal = IntegerLiteral
   | FloatingPointLiteral
@@ -462,14 +473,14 @@ Literal = IntegerLiteral
   | CharacterLiteral
   | StringLiteral
   | NullLiteral
-IntegerLiteral = DecimalIntegerLiteral
+IntegerLiteral: IntegerLiteral = DecimalIntegerLiteral
   | HexIntegerLiteral
-DecimalIntegerLiteral = DecimalNumeral IntegerTypeSuffix?
-HexIntegerLiteral = HexNumeral IntegerTypeSuffix?
+DecimalIntegerLiteral = DecimalNumeral IntegerTypeSuffix? {DecimalIntegerLiteral(numeral=$0, suffix=$1)}
+HexIntegerLiteral = HexNumeral IntegerTypeSuffix? {HexIntegerLiteral(numeral=$0, suffix=$1)}
 
-DecimalNumeral = '0'
-  | NonZeroDigit Digits?
-  | NonZeroDigit Underscores Digits
+DecimalNumeral = '0' {DecimalNumeral(value="0")}
+  | NonZeroDigit Digits? {DecimalNumeral(str($0, $1))}
+  | NonZeroDigit Underscores Digits {DecimalNumeral(str($0, $1, $2))}
 NonZeroDigit = '1-9'
 Digits = Digit
   | Digit DigitsAndUnderscores? Digit
@@ -487,21 +498,25 @@ HexDigitOrUnderscore = HexDigit | '_'
 IntegerTypeSuffix = 'l' | 'L'
 
 FloatingPointLiteral = DecimalFloatingPointLiteral
-DecimalFloatingPointLiteral = Digits '.' Digits? ExponentPart? FloatTypeSuffix?
-  | '.' Digits ExponentPart? FloatTypeSuffix?
-  | Digits ExponentPart FloatTypeSuffix?
-  | Digits ExponentPart? FloatTypeSuffix
-ExponentPart = 'eE' '+\-' Digits
+DecimalFloatingPointLiteral = Digits '.' Digits? ExponentPart? FloatTypeSuffix? {DecimalFloatingPointLiteral(integral=str($0), frac=str($2), exp=$3, suffix=$4)}
+  | '.' Digits ExponentPart? FloatTypeSuffix? {DecimalFloatingPointLiteral(integral="", frac=str($1), exp=$2, suffix=$3)}
+  | Digits ExponentPart FloatTypeSuffix? {DecimalFloatingPointLiteral(integral=str($0), frac="", exp=$1, suffix=$2)}
+  | Digits ExponentPart? FloatTypeSuffix {DecimalFloatingPointLiteral(integral=str($0), frac="", exp=$1, suffix=$2)}
+ExponentPart = 'eE' '+\-' Digits {ExponentPart(sign=$1, digits=str($2))}
 FloatTypeSuffix = 'fFdD'
 
 CharacterLiteral = '\'' SingleCharacter '\'' | '\'' EscapeSequence '\''
 SingleCharacter = .-'\'\\'
-EscapeSequence = "\\b" | "\\t" | "\\n" | "\\f" | "\\r" | "\\\"" | "\\'" | "\\\\" | OctalEscape
-OctalEscape = '\\' '0-7' | '\\' '0-7' '0-7' | '\\' '0-3' '0-7' '0-7'
+EscapeSequence: EscapeSequence = '\\' 'btnfr\'"\\' {EscapeChar(c=$1)}
+  | OctalEscape
+OctalEscape = '\\' '0-7' {OctalEscape(seq=str($1))}
+  | '\\' '0-7' '0-7' {OctalEscape(seq=str($1, $2))}
+  | '\\' '0-3' '0-7' '0-7' {OctalEscape(seq=str($1, $2, $3))}
 
 
-StringLiteral = '"' StringCharacter* '"'
-StringCharacter = .-'"\\' | EscapeSequence
+StringLiteral = '"' StringCharacter* '"' {StringLiteral(chars=$1)}
+StringCharacter: StringCharacter = .-'"\\' {StringChar(value=chr($0))}
+  | EscapeSequence
 
 Separator = <'(){}[];,.@' | "..." | "::">
 Operator = <"=" | ">" | "<" | "!" | "~" | "?" | ":" | "->" | "==" | ">=" | "<=" | "!=" | "&&" | "||" | "++" | "--" | "+" | "-" | "*" | "/" | "&" | "|" | "^" | "%" | "<<" | ">>" | ">>>" | "+=" | "-=" | "*=" | "/=" | "&=" | "|=" | "^=" | "%=" | "<<=" | ">>=" | ">>>=">
