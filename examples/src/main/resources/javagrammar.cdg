@@ -30,27 +30,27 @@ PrimitiveType: PrimitiveType = (Annotations WS $0)? NumericType {NumericPrimitiv
   | (Annotations WS $0)? "boolean"&Tk {BooleanPrimitiveType(annots=$0 ?: [])}
 
 
-ReferenceType = ClassOrInterfaceType
+ReferenceType: ReferenceType = ClassOrInterfaceType
   | TypeVariable
   | ArrayType
 
-ClassOrInterfaceType = ClassType | InterfaceType
+ClassOrInterfaceType: ClassOrInterfaceType = ClassType | InterfaceType
 ClassType: ClassType = (Annotations WS)? Identifier (WS TypeArguments)? {ClassTypeName(annots=$0$0 ?: [], name=$1, typeArgs=$2)}
   | ClassOrInterfaceType WS '.' (WS Annotation)* WS Identifier (WS TypeArguments)? {BindedClassTypeName(parent=$0, annots=$3, name=$5, typeArgs=$6)}
 InterfaceType: InterfaceType = ClassType
 TypeVariable = (Annotations WS)? Identifier {TypeVariable(annots=$0$0 ?: [], name=$1)}
-ArrayType = PrimitiveType WS Dims
-  | ClassOrInterfaceType WS Dims
-  | TypeVariable WS Dims
+ArrayType: ArrayType = PrimitiveType WS Dims {PrimitiveArrayType(elemType=$0, dims=$2)}
+  | ClassOrInterfaceType WS Dims {ClassOrInterfaceArrayType(elemType=$0, dims=$2)}
+  | TypeVariable WS Dims {TypeVariableArrayType(elemType=$0, dims=$2)}
 
 
 
 Block = '{' (WS BlockStatements)? WS '}' {Block(stmts=$1 ?: [])}
 BlockStatements = BlockStatement (WS BlockStatement)* {[$0] + $1}
-BlockStatement = LocalVariableDeclarationStatement
+BlockStatement: BlockStatement = LocalVariableDeclarationStatement
   | ClassDeclaration
   | Statement
-LocalVariableDeclarationStatement = LocalVariableDeclaration WS ';'
+LocalVariableDeclarationStatement = LocalVariableDeclaration WS ';' {LocalVariableDeclarationStatement(decl=$0)}
 LocalVariableDeclaration = (VariableModifiers WS)? UnannType WS VariableDeclaratorList {LocalVariableDeclaration(modifiers=$0 ?: [], typ=$1, decls=$3)}
 VariableModifiers = VariableModifier (WS VariableModifier)* {[$0] + $1}
 VariableModifier = Annotation | "final"&Tk
@@ -67,14 +67,13 @@ VariableInitializerList = VariableInitializer (WS ',' WS VariableInitializer)*
 
 Annotations = Annotation (WS Annotation)*
 
-Statement = StatementWithoutTrailingSubstatement
+Statement: Statement = StatementWithoutTrailingSubstatement
   | LabeledStatement
-  | IfThenStatement
-  | IfThenElseStatement
+  | IfStatement
   | WhileStatement
   | ForStatement
 
-StatementWithoutTrailingSubstatement = Block
+StatementWithoutTrailingSubstatement: StatementWithoutTrailingSubstatement = Block
   | EmptyStatement
   | ExpressionStatement
   | BreakStatement
@@ -87,15 +86,14 @@ EmptyStatement = ';' {EmptyStatement()}
 
 LabeledStatement = Identifier WS ':' WS Statement {LabeledStatement(label=$0, stmt=$4)}
 
-ExpressionStatement = StatementExpression WS ';' $0
+ExpressionStatement = StatementExpression WS ';' {ExpressionStatement(expr=$0)}
 StatementExpression = Assignment
   | MethodInvocation
   | ClassInstanceCreationExpression
 
+IfStatement: IfStatement = <IfThenStatement | IfThenElseStatement>
 IfThenStatement = "if"&Tk WS '(' WS Expression WS ')' WS Statement {IfThenStatement(condition=$4, thenbody=$8)}
 IfThenElseStatement = "if"&Tk WS '(' WS Expression WS ')' WS Statement WS "else"&Tk WS Statement {IfThenElseStatement(condition=$4, thenbody=$8, elsebody=$12)}
-
-IfStatement = <IfThenStatement | IfThenElseStatement>
 
 WhileStatement = "while"&Tk WS '(' WS Expression WS ')' WS Statement {WhileStatement(condition=$4, body=$8)}
 
@@ -125,40 +123,40 @@ Finally = "finally"&Tk WS Block {FinallyBlock(body=$2)}
 
 
 
-Expression = LambdaExpression
+Expression: Expression = LambdaExpression
   | AssignmentExpression
 
 
-LambdaExpression = LambdaParameters "->"&Tk LambdaBody
+LambdaExpression = LambdaParameters WS "->"&Tk WS LambdaBody {LambdaExpression(params=$0, body=$4)}
 
-LambdaParameters = Identifier
-  | '(' (WS FormalParameterList)? WS ')'
-  | '(' WS InferredFormalParameterList WS ')'
-InferredFormalParameterList = Identifier (WS ',' WS Identifier)*
+LambdaParameters: LambdaParameters = Identifier {SingleLambdaParameters(param=$0)}
+  | '(' (WS FormalParameterList)? WS ')' {$2} {FormalLambdaParameters(params=$1)}
+  | '(' WS InferredFormalParameterList WS ')' {InferredFormalParameters(params=$2)}
+InferredFormalParameterList = Identifier (WS ',' WS Identifier)* {[$0] + $1}
 
 LambdaBody = Expression | Block
 
 
-AssignmentExpression = ConditionalExpression
+AssignmentExpression: AssignmentExpression = ConditionalExpression
   | Assignment
-Assignment = LeftHandSide WS AssignmentOperator WS Expression
-LeftHandSide = ExpressionName
+Assignment = LeftHandSide WS AssignmentOperator WS Expression {Assignment(lhs=$0, operator=$2, rhs=$4)}
+LeftHandSide: LeftHandSide = ExpressionName
   | FieldAccess
   | ArrayAccess
-AssignmentOperator =
-  ("=" | "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|=")&Tk
+AssignmentOperator: %AssignmentOperators =
+  ("=" {%ASSIGN} | "*=" {%MULITPLY} | "/=" {%DIVIDE} | "%=" {%REM} | "+=" {%ADD} | "-=" {%SUB} | "<<=" {%SHL} | ">>=" {%SHR} | ">>>=" {%SAR} | "&=" {%AND} | "^=" {%XOR} | "|=" {%OR})&Tk
 
 
 ConditionalExpression = ConditionalOrExpression
-  | ConditionalOrExpression WS '?'&Tk WS Expression WS ':' WS ConditionalExpression
-  | ConditionalOrExpression WS '?'&Tk WS Expression WS ':' WS LambdaExpression
+  | ConditionalOrExpression WS '?'&Tk WS Expression WS ':' WS ConditionalExpression {ConditionalExpression(condition=$0, ifTrue=$4, ifFalse=$8)}
+  | ConditionalOrExpression WS '?'&Tk WS Expression WS ':' WS LambdaExpression {ConditionalExpression(condition=$0, ifTrue=$4, ifFalse=$8)}
 
-ConditionalOrExpression = ConditionalAndExpression
-  | ConditionalOrExpression WS "||"&Tk WS ConditionalAndExpression
+ConditionalOrExpression: ConditionalOrExpression = ConditionalAndExpression
+  | ConditionalOrExpression WS "||"&Tk WS ConditionalAndExpression {LogicalBinOp(op:%LogicalBinOps=%OR, lhs=$0, rhs=$4)}
 
 
-ConditionalAndExpression = InclusiveOrExpression
-  | ConditionalAndExpression WS "&&"&Tk WS InclusiveOrExpression
+ConditionalAndExpression: ConditionalAndExpression = InclusiveOrExpression
+  | ConditionalAndExpression WS "&&"&Tk WS InclusiveOrExpression {LogicalBinOp(op=%AND, lhs=$0, rhs=$4)}
 
 
 InclusiveOrExpression: InclusiveOrExpression = ExclusiveOrExpression
@@ -225,7 +223,7 @@ PrimaryNoNewArray: PrimaryNoNewArray = Literal
 ClassLiteral: ClassLiteral = TypeName (WS '[' WS ']')* WS "."&Tk WS "class"&Tk {ClassOfTypeName(typeName=$0, dims=$1)}
   | NumericType (WS '[' WS ']')* WS "."&Tk WS "class"&Tk {ClassOfNumericType(typ=$0, dims=$1)}
   | "boolean"&Tk (WS '[' WS ']')* WS "."&Tk WS "class"&Tk {ClassOfBooleanType(dims=$1)}
-  | "void"&Tk WS "."&Tk WS "class"&Tk {ClassOfVoidType(dims=[])}
+  | "void"&Tk WS "."&Tk WS "class"&Tk {ClassOfVoidType()}
 
 
 FieldAccess: FieldAccess = Primary WS '.' WS Identifier {PrimaryFieldAccess(recv=$0, name=$4)}
@@ -234,21 +232,20 @@ FieldAccess: FieldAccess = Primary WS '.' WS Identifier {PrimaryFieldAccess(recv
 ArrayAccess = ExpressionName WS '[' WS Expression WS ']' {ArrayAccess(array=$0, index=$4)}
   | PrimaryNoNewArray WS '[' WS Expression WS ']' {ArrayAccess(array=$0, index=$4)}
 
-ClassInstanceCreationExpression = UnqualifiedClassInstanceCreationExpression
-  | ExpressionName WS "."&Tk WS UnqualifiedClassInstanceCreationExpression
-  | Primary WS "."&Tk WS UnqualifiedClassInstanceCreationExpression
+ClassInstanceCreationExpression: ClassInstanceCreationExpression = UnqualifiedClassInstanceCreationExpression
+  | ExpressionName WS "."&Tk WS UnqualifiedClassInstanceCreationExpression {ContextClassInstanceCreationExpression(context=$0, creation=$4)}
+  | Primary WS "."&Tk WS UnqualifiedClassInstanceCreationExpression {ContextClassInstanceCreationExpression(context=$0, creation=$4)}
 UnqualifiedClassInstanceCreationExpression = "new"&Tk WS TypeArguments? WS ClassOrInterfaceTypeToInstantiate WS '(' (WS ArgumentList)? WS ')' (WS ClassBody)?
   {UnqualifiedClassInstanceCreationExpression(typeArgs=$2, classOrInterfaceTypeToInstantiate=$4, args=$7 ?: [], body=$10)}
-ClassOrInterfaceTypeToInstantiate = (Annotations WS)? Identifier (WS '.' (WS Annotations)? WS Identifier)*
- (WS TypeArgumentsOrDiamond)?
-TypeArgumentsOrDiamond = TypeArguments
-  | '<' WS '>'
-TypeArguments = '<' WS TypeArgumentList WS '>'
-TypeArgumentList = TypeArgument (WS ',' WS TypeArgument)*
-TypeArgument = ReferenceType | Wildcard
-Wildcard = (Annotations WS)? '?' (WS WildcardBounds)?
-WildcardBounds = "extends"&Tk WS ReferenceType
-  | "super"&Tk WS ReferenceType
+ClassOrInterfaceTypeToInstantiate = (Annotations WS)? Identifier (WS '.' (WS Annotations)? WS Identifier)* (WS TypeArgumentsOrDiamond)?
+TypeArgumentsOrDiamond: TypeArgumentsOrDiamond = TypeArguments
+  | '<' WS '>' {DiamondTypeArgument()}
+TypeArguments = '<' WS TypeArgumentList WS '>' {TypeArguments(typeArgs=$2)}
+TypeArgumentList = TypeArgument (WS ',' WS TypeArgument)* {[$0] + $1}
+TypeArgument: TypeArgument = ReferenceType | Wildcard
+Wildcard = (Annotations WS)? '?' (WS WildcardBounds)? {Wildcard(annots=$0$0 ?: [], bounds=$2)}
+WildcardBounds = "extends"&Tk WS ReferenceType {WildcardExtends(typ=$2)}
+  | "super"&Tk WS ReferenceType {WildcardSuper(typ=$2)}
 
 
 
@@ -285,7 +282,7 @@ DimExpr = (Annotations WS $0)? '[' WS Expression WS ']' {DimExpr(annots=$0 ?: []
 
 
 
-MethodDeclaration = (MethodModifiers WS $0)? MethodHeader WS MethodBody {MethodDeclaration(modifiers=$0 ?: [], header=$1, body=$3)}
+MethodDeclaration = (MethodModifiers WS)? MethodHeader WS MethodBody {MethodDeclaration(modifiers=$0$0 ?: [], header=$1, body=$3)}
 MethodModifiers = MethodModifier (WS MethodModifier)* {[$0] + $1}
 MethodModifier: MethodModifier = Annotation
   | ("public" {%PUBLIC} | 
@@ -295,14 +292,14 @@ MethodModifier: MethodModifier = Annotation
      "static" {%STATIC} |
      "final" {%FINAL})&Tk {MethodModifier(modifier: %MethodModifiers = $0)}
 MethodHeader = Result WS MethodDeclarator (WS Throws)? TypeParameters (WS Annotations)? WS Result WS MethodDeclarator (WS Throws)?
-MethodDeclarator = Identifier WS '(' (WS FormalParameterList)? WS ')' Dims?
+MethodDeclarator = Identifier WS '(' (WS FormalParameterList)? WS ')' Dims? {MethodDeclarator(name=$0, params=$3 ?: [], dims=$6)}
 Result: Result = UnannType {ResultType(typ=$0)}
   | "void"&Tk {VoidResultType()}
 Throws = "throws"&Tk WS ExceptionTypeList
 ExceptionTypeList = ExceptionType (WS ',' WS ExceptionType)* {[$0] + $1}
 ExceptionType: ExceptionType = ClassType | TypeVariable
 MethodBody = Block | ';'
-TypeParameters = '<' WS TypeParameter (WS ',' WS TypeParameter)* WS '>'
+TypeParameters = '<' WS TypeParameter (WS ',' WS TypeParameter)* WS '>' {[$2] + $3}
 TypeParameter = (TypeParameterModifiers WS)? Identifier (WS TypeBound)? {TypeParameter(modifiers=$0$0 ?: [], name=$1, bounds=$2)}
 TypeParameterModifiers = TypeParameterModifier (WS TypeParameterModifier)* {[$0] + $1}
 TypeParameterModifier: TypeParameterModifier = Annotation
@@ -311,9 +308,10 @@ TypeBound: TypeBound = "extends"&Tk WS TypeVariable {SingleTypeBound(extends=$2)
 AdditionalBound = "&"&Tk WS InterfaceType
 
 
-ClassDeclaration = NormalClassDeclaration
+ClassDeclaration: ClassDeclaration = NormalClassDeclaration
   | EnumDeclaration
 NormalClassDeclaration = (ClassModifiers WS)? WS "class"&Tk WS Identifier (WS TypeParameters)? (WS Superclass)? (WS Superinterfaces)? WS ClassBody
+                         {NormalClassDeclaration(modifiers=$0$0 ?: [], name=$4, typeParams=$5, supers=$6, superinterfaces=$7, body=$8)}
 ClassModifiers = ClassModifier (WS ClassModifier)* {[$0] + $1}
 ClassModifier: ClassModifier = Annotation
   | ("public" {%PUBLIC} |
@@ -326,30 +324,30 @@ Superclass = "extends"&Tk WS ClassType
 Superinterfaces = "implements"&Tk WS InterfaceTypeList
 InterfaceTypeList = InterfaceType (WS ',' WS InterfaceType)* {[$0] + $1}
 ClassBody = '{' (WS ClassBodyDeclaration)* WS '}' {ClassBody(decls=$1)}
-ClassBodyDeclaration = ClassMemberDeclaration
+ClassBodyDeclaration: ClassBodyDeclaration = ClassMemberDeclaration
   | InstanceInitializer
   | StaticInitializer
   | ConstructorDeclaration
-ClassMemberDeclaration = FieldDeclaration
+ClassMemberDeclaration: ClassMemberDeclaration = FieldDeclaration
   | MethodDeclaration
   | ClassDeclaration
   | InterfaceDeclaration
-  | ';'
+  | ';' {EmptyClassMemberDeclaration()}
 
 
-EnumDeclaration = (ClassModifiers WS)? "enum"&Tk WS Identifier (WS Superinterfaces)? WS EnumBody
+EnumDeclaration = (ClassModifiers WS)? "enum"&Tk WS Identifier (WS Superinterfaces)? WS EnumBody {EnumDeclaration(modifiers=$0$0 ?: [], name=$3, superinterfaces=$4, body=$6)}
 EnumBody = '{' (WS EnumConstantList)? (WS ',')? (WS EnumBodyDeclarations)? WS '}'
-EnumConstantList = EnumConstant (WS ',' WS EnumConstant)*
-EnumConstant = (EnumConstantModifiers WS)? Identifier ('(' (WS ArgumentList)? WS ')')? (WS ClassBody)?
-EnumConstantModifiers = EnumConstantModifier (WS EnumConstantModifier)*
+EnumConstantList = EnumConstant (WS ',' WS EnumConstant)* {[$0] + $1}
+EnumConstant = (EnumConstantModifiers WS)? Identifier ('(' (WS ArgumentList)? WS ')')? (WS ClassBody)? {EnumConstant(modifiers=$0$0 ?: [], name=$1, args=$2$1 ?: [], body=$3)}
+EnumConstantModifiers = EnumConstantModifier (WS EnumConstantModifier)* {[$0] + $1}
 EnumConstantModifier = Annotation
 EnumBodyDeclarations = ';' (WS ClassBodyDeclaration)*
 
 
-InstanceInitializer = Block
-StaticInitializer = "static"&Tk WS Block
-ConstructorDeclaration = (ConstructorModifier WS)? ConstructorDeclarator (WS Throws)? WS ConstructorBody
-ConstructorDeclarator = (TypeParameters WS)? SimpleTypeName '(' (WS FormalParameterList)? WS ')'
+InstanceInitializer = Block {InstanceInitializer(body=$0)}
+StaticInitializer = "static"&Tk WS Block {StaticInitializer(body=$2)}
+ConstructorDeclaration = (ConstructorModifier WS)? ConstructorDeclarator (WS Throws)? WS ConstructorBody {ConstructorDeclaration(modifiers=$0$0 ?: [], decl=$1, throws=$2, body=$4)}
+ConstructorDeclarator = (TypeParameters WS)? SimpleTypeName '(' (WS FormalParameterList)? WS ')' {ConstructorDeclarator(typeParams=$0$0 ?: [], name=$1, params=$3 ?: [])}
 SimpleTypeName = Identifier
 ConstructorModifier = Annotation | ("public" | "protected" | "private")&Tk
 ConstructorBody = '{' (WS ExplicitConstructorInvocation)? (WS BlockStatements)? WS '}'
@@ -360,19 +358,19 @@ ExplicitConstructorInvocation = (TypeArguments WS)? "this"&Tk WS '(' (WS Argumen
 
 
 
-FieldDeclaration = (FieldModifiers WS)? UnannType WS VariableDeclaratorList
-FieldModifiers = FieldModifier (WS FieldModifier)*
-FieldModifier = Annotation
-  | ("public" | "protected" | "private" | "static" | "final")&Tk
+FieldDeclaration = (FieldModifiers WS)? UnannType WS VariableDeclaratorList {FieldDeclaration(modifiers=$0$0 ?: [], typ=$1, varDecls=$3)}
+FieldModifiers = FieldModifier (WS FieldModifier)* {[$0] + $1}
+FieldModifier: FieldModifier = Annotation
+  | ("public" {%PUBLIC} | "protected" {%PROTECTED} | "private" {%PRIVATE} | "static" {%STATIC} | "final" {%FINAL})&Tk {KeywordFieldModifier(value:%FieldModifiers=$0)}
 
 
-InterfaceDeclaration = NormalInterfaceDeclaration
+InterfaceDeclaration: InterfaceDeclaration = NormalInterfaceDeclaration
   | AnnotationTypeDeclaration
-NormalInterfaceDeclaration = (InterfaceModifiers WS)? "interface"&Tk WS Identifier (WS TypeParameters)?
- (WS ExtendsInterfaces)? WS InterfaceBody
-InterfaceModifiers = InterfaceModifier (WS InterfaceModifier)*
-InterfaceModifier = Annotation
-  | ("public" | "protected" | "private" | "abstract" | "static")&Tk
+NormalInterfaceDeclaration = (InterfaceModifiers WS)? "interface"&Tk WS Identifier (WS TypeParameters)? (WS ExtendsInterfaces)? WS InterfaceBody
+                             {NormalInterfaceDeclaration(modifiers=$0$0 ?: [], name=$3, typeParams=$4, extends=$5, body=$7)}
+InterfaceModifiers = InterfaceModifier (WS InterfaceModifier)* {[$0] + $1}
+InterfaceModifier: InterfaceModifier = Annotation
+  | ("public" {%PUBLIC} | "protected" {%PROTECTED} | "private" {%PRIVATE} | "abstract" {%ABSTRACT} | "static" {%STATIC})&Tk {KeywordInterfaceModifier(value:%InterfaceModifiers=$0)}
 ExtendsInterfaces = "extends"&Tk WS InterfaceTypeList
 InterfaceBody = '{' (WS InterfaceMemberDeclaration)* WS '}'
 InterfaceMemberDeclaration = ConstantDeclaration
@@ -387,46 +385,51 @@ InterfaceMethodModifier = Annotation
 
 
 AnnotationTypeDeclaration = (InterfaceModifiers WS)? '@' WS "interface"&Tk WS Identifier WS AnnotationTypeBody
+                            {AnnotationTypeDeclaration(modifiers=$0$0 ?: [], name=$5, body=$7)}
 
-AnnotationTypeBody = '{' (WS AnnotationTypeMemberDeclaration)* WS '}'
-AnnotationTypeMemberDeclaration = AnnotationTypeElementDeclaration
+AnnotationTypeBody = '{' (WS AnnotationTypeMemberDeclaration)* WS '}' {AnnotationTypeBody(decls=$1)}
+AnnotationTypeMemberDeclaration: AnnotationTypeMemberDeclaration = AnnotationTypeElementDeclaration
   | ConstantDeclaration
   | ClassDeclaration
   | InterfaceDeclaration
-  | ';'
-AnnotationTypeElementDeclaration = (AnnotationTypeElementModifier WS)? UnannType WS Identifier WS '(' WS ')' (WS Dims)? (WS DefaultValue)? WS ';'
-AnnotationTypeElementModifier = Annotation | ("public" | "abstract")&Tk
+  | ';' {EmptyAnnotationTypeMemberDeclaration()}
+AnnotationTypeElementDeclaration = (AnnotationTypeElementModifiers WS)? UnannType WS Identifier WS '(' WS ')' (WS Dims)? (WS DefaultValue)? WS ';'
+                                   {AnnotationTypeElementDeclaration(modifiers=$0$0 ?: [], typ=$1, name=$3, dims=$8, defaultValue=$9)}
+AnnotationTypeElementModifiers = AnnotationTypeElementModifier (WS AnnotationTypeElementModifier)* {[$0] + $1}
+AnnotationTypeElementModifier: AnnotationTypeElementModifier = Annotation
+  | ("public" {%PUBLIC} | "abstract" {%ABSTRACT})&Tk {KeywordAnnotationTypeElementModifier(value: %AnnotationTypeElementModifiers=$0)}
 DefaultValue = "default"&Tk WS ElementValue
 
 
-ConstantDeclaration = (ConstantModifiers WS)? UnannType WS VariableDeclaratorList WS ';'
-ConstantModifiers = ConstantModifier (WS ConstantModifier)*
-ConstantModifier = Annotation
-  | ("public" | "static" | "final")&Tk
-FormalParameterList = FormalParameters WS ',' WS LastFormalParameter
-  | LastFormalParameter
-FormalParameters = FormalParameters (WS ',' WS FormalParameter)?
-FormalParameter = (VariableModifiers WS)? UnannType WS VariableDeclaratorId
-LastFormalParameter = (VariableModifiers WS)? UnannType (WS Annotations)? WS "..."&Tk WS VariableDeclaratorId WS FormalParameter
+ConstantDeclaration = (ConstantModifiers WS)? UnannType WS VariableDeclaratorList WS ';' {ConstantDeclaration(modifiers=$0$0 ?: [], typ=$1, decls=$3)}
+ConstantModifiers = ConstantModifier (WS ConstantModifier)* {[$0] + $1}
+ConstantModifier: ConstantModifier = Annotation
+  | ("public" {%PUBLIC} | "static" {%STATIC} | "final" {%FINAL})&Tk {ConstantModifier(value:%ConstantModifiersEnum=$0)}
+FormalParameterList: [FormalParametersElem] = FormalParameters WS ',' WS LastFormalParameter {$0 + [$4]}
+  | LastFormalParameter {[$0]}
+FormalParameters = <FormalParameter (WS ',' WS FormalParameter)* {[$0] + $1}>
+FormalParameter = (VariableModifiers WS)? UnannType WS VariableDeclaratorId {FormalParameter(modifiers=$0$0 ?: [], typ=$1, name=$3)}
+LastFormalParameter: LastFormalParameter = (VariableModifiers WS)? UnannType (WS Annotations)? WS "..."&Tk WS VariableDeclaratorId {VarargParameter(modifiers=$0$0 ?: [], typ=$1, annots=$2, name=$6)}
+  | FormalParameter
 
 
 
 
 
-Annotation = NormalAnnotation
+Annotation: Annotation = NormalAnnotation
   | MarkerAnnotation
   | SingleElementAnnotation
-NormalAnnotation = '@' WS TypeName WS '(' (WS ElementValuePairList)? WS ')'
-ElementValuePairList = ElementValuePair (WS ',' WS ElementValuePair)*
-ElementValuePair = Identifier WS '=' WS ElementValue
-ElementValue = ConditionalExpression
+NormalAnnotation = '@' WS TypeName WS '(' (WS ElementValuePairList)? WS ')' {NormalAnnotation(name=$2, valuePairs=$5 ?: [])}
+ElementValuePairList = ElementValuePair (WS ',' WS ElementValuePair)* {[$0] + $1}
+ElementValuePair = Identifier WS '=' WS ElementValue {ElementValuePair(name=$0, value=$4)}
+ElementValue: ElementValue = ConditionalExpression
   | ElementValueArrayInitializer
   | Annotation
-ElementValueArrayInitializer = '{' (WS ElementValueList)? (WS ',')? WS '}'
-ElementValueList = ElementValue (WS ',' WS ElementValue)*
+ElementValueArrayInitializer = '{' (WS ElementValueList)? (WS ',')? WS '}' {ElementValueArrayInitializer(valueList=$1 ?: [])}
+ElementValueList = ElementValue (WS ',' WS ElementValue)* {[$0] + $1}
 
-MarkerAnnotation = '@' WS TypeName
-SingleElementAnnotation = '@' WS TypeName WS '(' WS ElementValue WS ')'
+MarkerAnnotation = '@' WS TypeName {MarkerAnnotation(name=$2)}
+SingleElementAnnotation = '@' WS TypeName WS '(' WS ElementValue WS ')' {SingleElementAnnotation(name=$2, value=$6)}
 
 
 
@@ -505,7 +508,8 @@ DecimalFloatingPointLiteral = Digits '.' Digits? ExponentPart? FloatTypeSuffix? 
 ExponentPart = 'eE' '+\-' Digits {ExponentPart(sign=$1, digits=str($2))}
 FloatTypeSuffix = 'fFdD'
 
-CharacterLiteral = '\'' SingleCharacter '\'' | '\'' EscapeSequence '\''
+CharacterLiteral: CharacterLiteral = '\'' SingleCharacter '\'' {SingleCharacterLiteral(value=$1)}
+  | '\'' EscapeSequence '\'' {EscapeCharacterLiteral(escape=$1)}
 SingleCharacter = .-'\'\\'
 EscapeSequence: EscapeSequence = '\\' 'btnfr\'"\\' {EscapeChar(c=$1)}
   | OctalEscape
