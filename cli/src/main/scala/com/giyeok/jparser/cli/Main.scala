@@ -37,10 +37,14 @@ class Main extends Runnable {
   var milestoneParserDataPath: File = _
 
   override def run(): Unit = {
+    println("Starting...")
     val analysis = MetaLanguage3.analyzeGrammar(readFile(input), grammarName)
+    println("Analysis done")
     val codegen = new ScalaCodeGen(analysis)
 
+    println("Generating parser...")
     generateMilestoneParser(analysis, codegen)
+    println("Done")
   }
 
   def generateNaiveParser(analysis: ProcessedGrammar, codegen: ScalaCodeGen): Unit = {
@@ -48,22 +52,19 @@ class Main extends Runnable {
   }
 
   def generateMilestoneParser(analysis: ProcessedGrammar, codegen: ScalaCodeGen): Unit = {
-    val milestoneParserData = MilestoneParserGen.generateMilestoneParserData(analysis.ngrammar)
-    val milestoneParserDataProto = MilestoneParserProtobufConverter.convertMilestoneParserDataToProto(milestoneParserData).toByteArray
-
     val startType = codegen.typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName))
 
     val milestoneParserDataDef = if (milestoneParserDataPath == null) {
-      val milestoneParserDataBase64 = Base64.getEncoder.encodeToString(milestoneParserDataProto)
-      CodeBlob(
-        s"""val milestoneParserData: MilestoneParserData =
-           |  MilestoneParserProtobufConverter.convertProtoToMilestoneParserData(
-           |    MilestoneParserDataProto.MilestoneParserData.parseFrom(
-           |      Base64.getDecoder.decode("$milestoneParserDataBase64")))""".stripMargin,
-        Set("java.util.Base64",
-          "com.giyeok.jparser.parsergen.milestone.MilestoneParserData"))
+      //      val milestoneParserDataBase64 = Base64.getEncoder.encodeToString(milestoneParserDataProto)
+      //      CodeBlob(
+      //        s"""val milestoneParserData: MilestoneParserData =
+      //           |  MilestoneParserProtobufConverter.convertProtoToMilestoneParserData(
+      //           |    MilestoneParserDataProto.MilestoneParserData.parseFrom(
+      //           |      Base64.getDecoder.decode("$milestoneParserDataBase64")))""".stripMargin,
+      //        Set("java.util.Base64",
+      //          "com.giyeok.jparser.parsergen.milestone.MilestoneParserData"))
+      ???
     } else {
-      writeFile(milestoneParserDataPath, milestoneParserDataProto)
       CodeBlob(
         s"""val milestoneParserData = MilestoneParserProtobufConverter.convertProtoToMilestoneParserData(
            |  MilestoneParserDataProto.MilestoneParserData.parseFrom(readFileBytes(${codegen.escapeString(milestoneParserDataPath.getPath)})))""".stripMargin,
@@ -92,11 +93,18 @@ class Main extends Runnable {
         "com.giyeok.jparser.ParsingErrors"
       ))
 
-    val targetFilePath = new File(targetDir, s"${packageName.split('.').mkString("/")}/$grammarName.scala")
     val code = (if (packageName.isEmpty) "" else s"package $packageName\n\n") +
       codegen.generateParser(grammarName, codegen.inlinedProtoNGrammar(), milestoneParserDef, None)
 
+    val targetFilePath = new File(targetDir, s"${packageName.split('.').mkString("/")}/$grammarName.scala")
+
     writeFile(targetFilePath, code)
+    println("Code generated. Generating milestone parser data...")
+
+    val milestoneParserData = MilestoneParserGen.generateMilestoneParserData(analysis.ngrammar)
+    val milestoneParserDataProto = MilestoneParserProtobufConverter.convertMilestoneParserDataToProto(milestoneParserData).toByteArray
+
+    writeFile(milestoneParserDataPath, milestoneParserDataProto)
   }
 }
 

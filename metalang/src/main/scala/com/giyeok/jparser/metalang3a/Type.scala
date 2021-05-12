@@ -40,6 +40,18 @@ object Type {
     } else if (types.contains(Type.NullType)) {
       val exceptNull = types - Type.NullType
       Type.OptionalOf(unifyTypes(exceptNull))
+    } else if (types.contains(Type.NothingType) && types.size > 1) {
+      unifyTypes(types - Type.NothingType)
+    } else if (types.exists(typ => types.contains(Type.OptionalOf(typ)))) {
+      unifyTypes(types.filterNot(typ => types.contains(Type.OptionalOf(typ))))
+    } else if (types.exists(_.isInstanceOf[Type.UnionOf])) {
+      // UnionType을 포함하고 있으면 풀어줌
+      unifyTypes(types.flatMap {
+        case Type.UnionOf(types) => types
+        case typ => Set(typ)
+      })
+    } else if (types.forall(typ => typ.isInstanceOf[Type.ArrayOf])) {
+      Type.ArrayOf(unifyTypes(types.map(_.asInstanceOf[Type.ArrayOf].elemType)))
     } else {
       Type.UnionOf(types)
     }

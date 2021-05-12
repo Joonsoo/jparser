@@ -165,7 +165,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         if (cls.subclasses.isEmpty) {
           // concrete type
           val params = analysis.classParamTypes.getOrElse(cls.className, List()).map { param =>
-            val paramType = typeDescStringOf(param._2)
+            val paramType = typeDescStringOf(param._2, context = Some(s"parameter type of ${cls.className}.${param._1}"))
             CodeBlob(s"${param._1}: ${paramType.code}", paramType.required)
           }
           val parseNodeVal = if (options.withParseNodesInClasses) "(override val parseNode: Node)" else ""
@@ -217,7 +217,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
 
   def matchStartFunc(): CodeBlob = {
     val startSymbol = analysis.ngrammar.symbolOf(analysis.ngrammar.nsymbols(analysis.ngrammar.startSymbol).asInstanceOf[NStart].produce).asInstanceOf[NNonterminal]
-    val returnType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName))
+    val returnType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName), context = Some(s"return type of ${analysis.startNonterminalName}"))
     CodeBlob(
       s"""def matchStart(node: Node): ${returnType.code} = {
          |  val BindNode(start, BindNode(_, body)) = node
@@ -553,7 +553,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       analysis.nonterminalValuefyExprs(analysis.startNonterminalName), Set(analysis.startNonterminalName))
     val nontermMatchCodes = reachableNonterms.toList.sorted.map(nonterminalMatchFunc)
     val startMatchCode = matchStartFunc()
-    val startType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName))
+    val startType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName), context = Some(s"nonterminal type of ${analysis.startNonterminalName}"))
 
     val allImports = (ngrammarDefCode.required ++
       classDefsCode.required ++
@@ -613,7 +613,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       "com.giyeok.jparser.proto.GrammarProtobufConverter"))
 
   def naiveParserDef(): CodeBlob = {
-    val startType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName))
+    val startType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName), context = Some(s"nonterminal type of ${analysis.startNonterminalName}"))
 
     CodeBlob(
       s"""val naiveParser = new NaiveParser(ngrammar)

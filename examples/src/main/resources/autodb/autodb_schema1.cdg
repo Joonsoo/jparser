@@ -28,6 +28,7 @@ EntityViewFieldSelectExpr: EntityViewFieldSelectExpr = EntityViewFieldSelectTerm
     | EntityViewFieldSelectTerm WS <"==" {%EQ} | "!=" {%NE}> WS EntityViewFieldSelectExpr {BinOp(op:%BinOpType=$2, lhs=$0, rhs=$4)}
 EntityViewFieldSelectTerm: EntityViewFieldSelectTerm = "null"&Tk {NullValue()}
     | FieldName ((WS '?')? WS '.' WS DataFieldName {DataTypeValueSelectField(nullable=ispresent($0), fieldName=$4)})* {DataTypeValueSelect(field=$0, selectPath=$1)}
+    | "@primaryKey" {PrimaryKeySelect()}
     | '(' WS EntityViewFieldSelectExpr WS ')' {Paren(expr=$2)}
 EntityName = Name
 FieldName = Name
