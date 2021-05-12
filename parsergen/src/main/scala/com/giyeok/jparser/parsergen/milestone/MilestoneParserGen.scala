@@ -203,6 +203,7 @@ class MilestoneParserGen(val parser: NaiveParser) {
     val newRemainingJobs = Jobs(
       milestones = newJobs.milestones -- ncc.termActions.keySet,
       edges = newJobs.edges -- ncc.edgeProgressActions.keySet)
+    println(s"Remaining jobs: milestones=${newRemainingJobs.milestones.size}, edges=${newRemainingJobs.edges.size}")
     if (newRemainingJobs.milestones.isEmpty && newRemainingJobs.edges.isEmpty) ncc
     else createParserData(newRemainingJobs, ncc)
   }
