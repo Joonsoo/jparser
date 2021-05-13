@@ -40,10 +40,7 @@ object ProtoConverterUtil {
 
   implicit class JavaListToScalaCollection[T](javaList: java.util.List[T]) {
     def toScalaBuffer[T2](mapper: T => T2): mutable.Buffer[T2] = {
-      // javaList.stream().map(toJavaFunc(mapper)).collect(Collectors.toList[T2]).asScala
-      val buffer = mutable.Buffer[T2]()
-      javaList.forEach(toJavaConsumer[T](elem => buffer.append(mapper(elem))))
-      buffer
+      javaList.parallelStream().map(toJavaFunc(mapper)).collect(Collectors.toList[T2]).asScala
     }
 
     def toScalaList[T2](mapper: T => T2): List[T2] =
@@ -52,19 +49,7 @@ object ProtoConverterUtil {
     def toScalaMap[K, V](keyMapper: T => K, valueMapper: T => V): Map[K, V] = {
       val keyMapperJavaFunc = toJavaFunc(keyMapper)
       val valueMapperJavaFunc = toJavaFunc(valueMapper)
-      // javaList.stream().collect(Collectors.toMap[T, K, V](keyMapperJavaFunc, valueMapperJavaFunc)).asScala.toMap
-      val mutableMap = scala.collection.mutable.Map[K, V]()
-      javaList.forEach(toJavaConsumer[T](value => mutableMap(keyMapper(value)) = valueMapper(value)))
-      mutableMap.toMap
-    }
-
-    def toScalaMap[K, V](pairMapper: T => (K, V)): Map[K, V] = {
-      val mutableMap = scala.collection.mutable.Map[K, V]()
-      javaList.forEach(toJavaConsumer[T]({ elem =>
-        val pair = pairMapper(elem)
-        mutableMap(pair._1) = pair._2
-      }))
-      mutableMap.toMap
+      javaList.parallelStream().collect(Collectors.toMap[T, K, V](keyMapperJavaFunc, valueMapperJavaFunc)).asScala.toMap
     }
 
     def toScalaSet[V](valueMapper: T => V): Set[V] =

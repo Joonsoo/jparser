@@ -17,8 +17,9 @@ class MilestoneParserProtobufConverterTest extends AnyFlatSpec {
     println("EdgeProgressActions: " + protoData.getEdgeProgressActionsCount)
     println("DerivedGraphs: " + protoData.getDerivedGraphsCount)
     println()
+    val startTime = System.currentTimeMillis()
     val milestoneParserData: MilestoneParserData =
       MilestoneParserProtobufConverter.convertProtoToMilestoneParserData(protoData)
-    println(milestoneParserData.grammar.nsymbols.size)
+    println(System.currentTimeMillis() - startTime)
   }
 }
