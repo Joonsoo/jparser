@@ -8,9 +8,10 @@ import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.ParsingAction
 import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.TasksSummary.ProgressedKernelPair
 import com.giyeok.jparser.parsergen.proto.NaiveParserProtobufConverter.{convertAcceptConditionToProto, convertGraphToProto, convertNodeToProto, convertProtoToAcceptCondition, convertProtoToGraph, convertProtoToNode}
 import com.giyeok.jparser.proto.GrammarProtobufConverter.{convertNGrammarToProto, convertProtoToNGrammar}
+import com.giyeok.jparser.proto.ProtoConverterUtil.JavaListToScalaCollection
 import com.giyeok.jparser.proto.TermGroupProtobufConverter.{convertProtoToTermGroup, convertTermGroupToProto}
 
-import scala.jdk.CollectionConverters.{IterableHasAsJava, ListHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.{IterableHasAsJava, SeqHasAsJava}
 
 object MilestoneParserProtobufConverter {
   def convertKernelTemplateToProto(kernelTemplate: KernelTemplate): MilestoneParserDataProto.KernelTemplate =
@@ -30,9 +31,9 @@ object MilestoneParserProtobufConverter {
       .addAllFinishedKernels(tasksSummary.finishedKernels.map(convertNodeToProto).asJava).build()
 
   def convertProtoToTasksSummary(proto: MilestoneParserDataProto.TasksSummary): TasksSummary =
-    TasksSummary(proto.getProgressedKernelsList.asScala.toList.map(pk =>
+    TasksSummary(proto.getProgressedKernelsList.toScalaList(pk =>
       convertProtoToNode(pk.getNode) -> convertProtoToAcceptCondition(pk.getCondition)),
-      proto.getFinishedKernelsList.asScala.toList.map(convertProtoToNode))
+      proto.getFinishedKernelsList.toScalaList(convertProtoToNode))
 
   def convertParsingActionToProto(parsingAction: ParsingAction): MilestoneParserDataProto.ParsingAction =
     MilestoneParserDataProto.ParsingAction.newBuilder()
@@ -52,15 +53,15 @@ object MilestoneParserProtobufConverter {
 
   def convertProtoToParsingAction(proto: MilestoneParserDataProto.ParsingAction): ParsingAction =
     ParsingAction(
-      appendingMilestones = proto.getAppendingMilestonesList.asScala.toList.map(pair =>
+      appendingMilestones = proto.getAppendingMilestonesList.toScalaList(pair =>
         AppendingMilestone(
           convertProtoToKernelTemplate(pair.getKernelTemplate),
           convertProtoToAcceptCondition(pair.getCondition),
-          pair.getDependentsList.asScala.map { dependent =>
+          pair.getDependentsList.toScalaList { dependent =>
             (convertProtoToKernelTemplate(dependent.getStartMilestone), convertProtoToKernelTemplate(dependent.getEndMilestone), convertProtoToAcceptCondition(dependent.getCondition))
-          }.toList)),
+          })),
       tasksSummary = convertProtoToTasksSummary(proto.getTasksSummary),
-      startNodeProgressConditions = proto.getStartNodeProgressConditionsList.asScala.toList.map(convertProtoToAcceptCondition),
+      startNodeProgressConditions = proto.getStartNodeProgressConditionsList.toScalaList(convertProtoToAcceptCondition),
       graphBetween = convertProtoToGraph(proto.getGraphBetween))
 
   def convertMilestoneParserDataToProto(data: MilestoneParserData): MilestoneParserDataProto.MilestoneParserData =
@@ -91,16 +92,16 @@ object MilestoneParserProtobufConverter {
     MilestoneParserData(
       grammar = convertProtoToNGrammar(proto.getGrammar),
       byStart = convertProtoToTasksSummary(proto.getByStart),
-      termActions = proto.getTermActionsList.asScala.map(pair =>
-        convertProtoToKernelTemplate(pair.getKernelTemplate) -> pair.getActionsList.asScala.map { action =>
+      termActions = proto.getTermActionsList.toScalaMap(
+        pair => convertProtoToKernelTemplate(pair.getKernelTemplate),
+        pair => pair.getActionsList.toScalaList { action =>
           convertProtoToTermGroup(action.getTermGroup) -> convertProtoToParsingAction(action.getParsingAction)
-        }.toList).toMap,
-      edgeProgressActions = proto.getEdgeProgressActionsList.asScala.map { pair =>
-        (convertProtoToKernelTemplate(pair.getStartKernelTemplate) -> convertProtoToKernelTemplate(pair.getEndKernelTemplate)) ->
-          convertProtoToParsingAction(pair.getParsingAction)
-      }.toMap,
-      derivedGraph = proto.getDerivedGraphsList.asScala.map { pair =>
-        convertProtoToKernelTemplate(pair.getKernelTemplate) -> convertProtoToGraph(pair.getGraph)
-      }.toMap
+        }),
+      edgeProgressActions = proto.getEdgeProgressActionsList.toScalaMap(
+        pair => convertProtoToKernelTemplate(pair.getStartKernelTemplate) -> convertProtoToKernelTemplate(pair.getEndKernelTemplate),
+        pair => convertProtoToParsingAction(pair.getParsingAction)),
+      derivedGraph = proto.getDerivedGraphsList.toScalaMap(
+        pair => convertProtoToKernelTemplate(pair.getKernelTemplate),
+        pair => convertProtoToGraph(pair.getGraph))
     )
 }

@@ -118,7 +118,7 @@ class MilestoneParserGen(val parser: NaiveParser) {
       appendingMilestoneActions,
       tasksSummaryFrom(actions),
       startProgressConditions,
-      trimmed)
+      GraphNoIndex.fromGraph(trimmed))
   }
 
   private def tasksSummaryFrom(tasks: List[parser.Task]) = {
@@ -216,7 +216,7 @@ class MilestoneParserGen(val parser: NaiveParser) {
       MilestoneParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map(), Map()))
     result.copy(derivedGraph = result.termActions.keySet.map { kernelTemplate =>
       val startNode = Node(Kernel(kernelTemplate.symbolId, kernelTemplate.pointer, 0, 0), Always)
-      kernelTemplate -> parser.rec(0, List(parser.DeriveTask(startNode)), Graph(Set(startNode), Set())).graph
+      kernelTemplate -> GraphNoIndex.fromGraph(parser.rec(0, List(parser.DeriveTask(startNode)), Graph(Set(startNode), Set())).graph)
     }.toMap)
   }
 }

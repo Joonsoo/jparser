@@ -353,6 +353,8 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
         def toStringCode(input: String, inputType: Type): String = inputType match {
           case Type.NodeType => s"$input.sourceText"
           case Type.ArrayOf(elemType) => s"""$input.map(x => ${toStringCode("x", elemType)}).mkString("")"""
+          case Type.OptionalOf(valueType) =>
+            s"""$input.map(x => ${toStringCode("x", valueType)}).getOrElse("")"""
           case Type.BoolType => s"$input.toString"
           case Type.CharType => s"$input.toString"
           case Type.StringType => input

@@ -11,7 +11,7 @@ import com.giyeok.jparser.proto.ProtoConverterUtil._
 import com.giyeok.jparser.{NGrammar, Symbols}
 
 import scala.collection.immutable.ListSet
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SeqHasAsJava}
 
 object GrammarProtobufConverter {
   private def convertAtomicSymbolToProtobuf(symbol: Symbols.AtomicSymbol): GrammarProto.AtomicSymbol = symbol match {
@@ -223,7 +223,7 @@ object GrammarProtobufConverter {
     Symbols.Nonterminal(proto.getName)
 
   def convertProtoToOneOfSymbol(proto: GrammarProto.OneOf): Symbols.OneOf = {
-    val syms = proto.getSymbolsList.asScala.toList.map(convertProtoToAtomicSymbol)
+    val syms = proto.getSymbolsList.toScalaList(convertProtoToAtomicSymbol)
     Symbols.OneOf(ListSet(syms: _*))
   }
 
@@ -288,11 +288,11 @@ object GrammarProtobufConverter {
     NSequence(proto.getId, convertProtoToSequence(proto.getSymbol), proto.getSequenceList)
 
   def convertProtoToSequence(proto: GrammarProto.Sequence): Symbols.Sequence =
-    Symbols.Sequence(proto.getSeqList.asScala.toList.map(convertProtoToAtomicSymbol))
+    Symbols.Sequence(proto.getSeqList.toScalaList(convertProtoToAtomicSymbol))
 
   def convertProtoToNGrammar(protobuf: GrammarProto.NGrammar): NGrammar =
     new NGrammar(
-      protobuf.getSymbolsMap.asScala.map { x => (x._1: Int) -> convertProtoToNAtomicSymbol(x._2) }.toMap,
-      protobuf.getSequencesMap.asScala.map { x => (x._1: Int) -> convertProtoToNSequence(x._2) }.toMap,
+      protobuf.getSymbolsMap.toScalaMap(e => e.getKey, e => convertProtoToNAtomicSymbol(e.getValue)),
+      protobuf.getSequencesMap.toScalaMap(e => e.getKey, e => convertProtoToNSequence(e.getValue)),
       protobuf.getStartSymbol)
 }

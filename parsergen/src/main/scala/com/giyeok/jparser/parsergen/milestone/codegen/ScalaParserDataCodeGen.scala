@@ -123,7 +123,10 @@ class ScalaParserDataCodeGen(parserData: MilestoneParserData) {
   }
 
   def graph(graph: ParsingContext.Graph): ScalaCodeBlobNode =
-    ArgsCall("Graph", List(ArgsCall("Set", List()), ArgsCall("Set", List())))
+    ArgsCall("GraphNoIndex", List(ArgsCall("Set", List()), ArgsCall("Set", List())))
+
+  def graph(graph: GraphNoIndex): ScalaCodeBlobNode =
+    ArgsCall("GraphNoIndex", List(ArgsCall("Set", List()), ArgsCall("Set", List())))
 }
 
 object ScalaParserDataCodeGen {

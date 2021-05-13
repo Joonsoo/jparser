@@ -5,9 +5,11 @@ import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.proto.NaiveParserProto
 import com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.AcceptConditionCase
+import com.giyeok.jparser.parsergen.milestone.GraphNoIndex
 import com.giyeok.jparser.proto.GrammarProto.Empty
+import com.giyeok.jparser.proto.ProtoConverterUtil.JavaListToScalaCollection
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava, SetHasAsJava}
+import scala.jdk.CollectionConverters.{SeqHasAsJava, SetHasAsJava}
 
 object NaiveParserProtobufConverter {
   def convertKernelToProto(kernel: Kernel): NaiveParserProto.Kernel =
@@ -52,9 +54,9 @@ object NaiveParserProtobufConverter {
     case AcceptConditionCase.ALWAYS => Always
     case AcceptConditionCase.NEVER => Never
     case AcceptConditionCase.AND_CONDITIONS =>
-      And(proto.getAndConditions().getConditionsList.asScala.map(convertProtoToAcceptCondition).toSet)
+      And(proto.getAndConditions().getConditionsList.toScalaSet(convertProtoToAcceptCondition))
     case AcceptConditionCase.OR_CONDITIONS =>
-      Or(proto.getAndConditions().getConditionsList.asScala.map(convertProtoToAcceptCondition).toSet)
+      Or(proto.getOrConditions().getConditionsList.toScalaSet(convertProtoToAcceptCondition))
     case AcceptConditionCase.NOT_EXISTS =>
       val notExists = proto.getNotExists
       NotExists(notExists.getBeginGen, notExists.getEndGen, notExists.getSymbolId)
@@ -77,7 +79,7 @@ object NaiveParserProtobufConverter {
   def convertProtoToNode(proto: NaiveParserProto.Node): Node =
     Node(convertProtoToKernel(proto.getKernel), convertProtoToAcceptCondition(proto.getCondition))
 
-  def convertGraphToProto(graph: Graph): NaiveParserProto.Graph = {
+  def convertGraphToProto(graph: GraphNoIndex): NaiveParserProto.Graph = {
     val nodes = graph.nodes.toList.sortBy(_.kernel.tuple)
     NaiveParserProto.Graph.newBuilder()
       .addAllNodes(nodes.map(convertNodeToProto).asJava)
@@ -88,9 +90,9 @@ object NaiveParserProtobufConverter {
       .build()
   }
 
-  def convertProtoToGraph(proto: NaiveParserProto.Graph): Graph = {
-    val nodes = proto.getNodesList.asScala.toList.map(convertProtoToNode)
-    Graph(nodes.toSet, proto.getEdgesList.asScala.map(edge =>
-      Edge(nodes(edge.getStartIdx), nodes(edge.getEndIdx))).toSet)
+  def convertProtoToGraph(proto: NaiveParserProto.Graph): GraphNoIndex = {
+    val nodes = proto.getNodesList.toScalaList(convertProtoToNode)
+    GraphNoIndex(nodes.toSet, proto.getEdgesList.toScalaSet(edge =>
+      Edge(nodes(edge.getStartIdx), nodes(edge.getEndIdx))))
   }
 }

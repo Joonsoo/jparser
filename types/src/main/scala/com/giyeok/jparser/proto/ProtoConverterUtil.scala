@@ -2,7 +2,9 @@ package com.giyeok.jparser.proto
 
 import com.google.protobuf.ProtocolStringList
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
+import java.util.stream.Collectors
+import scala.collection.mutable
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala, SeqHasAsJava}
 
 object ProtoConverterUtil {
   implicit def toJavaIntegerList(lst: List[Int]): java.util.List[Integer] =
@@ -19,4 +21,53 @@ object ProtoConverterUtil {
 
   implicit def toScalaStringList(lst: ProtocolStringList): List[String] =
     lst.asScala.toList
+
+  implicit class JavaMapToScalaCollection[K, V](javaMap: java.util.Map[K, V]) {
+    def toScalaMap[K2, V2](keyMapper: java.util.Map.Entry[K, V] => K2, valueMapper: java.util.Map.Entry[K, V] => V2): Map[K2, V2] = {
+      val keyMapperJavaFunc = toJavaFunc(keyMapper)
+      val valueMapperJavaFunc = toJavaFunc(valueMapper)
+      javaMap.entrySet().stream().collect(Collectors.toMap[java.util.Map.Entry[K, V], K2, V2](keyMapperJavaFunc, valueMapperJavaFunc)).asScala.toMap
+    }
+  }
+
+  def toJavaFunc[A, B](func: A => B): java.util.function.Function[A, B] = new java.util.function.Function[A, B] {
+    override def apply(v: A): B = func(v)
+  }
+
+  def toJavaConsumer[A](func: A => Unit): java.util.function.Consumer[A] = new java.util.function.Consumer[A] {
+    override def accept(v: A): Unit = func(v)
+  }
+
+  implicit class JavaListToScalaCollection[T](javaList: java.util.List[T]) {
+    def toScalaBuffer[T2](mapper: T => T2): mutable.Buffer[T2] = {
+      // javaList.stream().map(toJavaFunc(mapper)).collect(Collectors.toList[T2]).asScala
+      val buffer = mutable.Buffer[T2]()
+      javaList.forEach(toJavaConsumer[T](elem => buffer.append(mapper(elem))))
+      buffer
+    }
+
+    def toScalaList[T2](mapper: T => T2): List[T2] =
+      toScalaBuffer(mapper).toList
+
+    def toScalaMap[K, V](keyMapper: T => K, valueMapper: T => V): Map[K, V] = {
+      val keyMapperJavaFunc = toJavaFunc(keyMapper)
+      val valueMapperJavaFunc = toJavaFunc(valueMapper)
+      // javaList.stream().collect(Collectors.toMap[T, K, V](keyMapperJavaFunc, valueMapperJavaFunc)).asScala.toMap
+      val mutableMap = scala.collection.mutable.Map[K, V]()
+      javaList.forEach(toJavaConsumer[T](value => mutableMap(keyMapper(value)) = valueMapper(value)))
+      mutableMap.toMap
+    }
+
+    def toScalaMap[K, V](pairMapper: T => (K, V)): Map[K, V] = {
+      val mutableMap = scala.collection.mutable.Map[K, V]()
+      javaList.forEach(toJavaConsumer[T]({ elem =>
+        val pair = pairMapper(elem)
+        mutableMap(pair._1) = pair._2
+      }))
+      mutableMap.toMap
+    }
+
+    def toScalaSet[V](valueMapper: T => V): Set[V] =
+      toScalaBuffer(valueMapper).toSet
+  }
 }
