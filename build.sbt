@@ -22,9 +22,9 @@ lazy val utils = (project in file("utils")).
     name := "jparser-utils",
     libraryDependencies ++= testDeps)
 
-lazy val types = (project in file("types")).
+lazy val base = (project in file("base")).
   settings(
-    name := "jparser-types",
+    name := "jparser-base",
     libraryDependencies ++= testDeps,
     libraryDependencies += protobufDep).
   dependsOn(utils % "test->test;compile->compile")
@@ -32,30 +32,30 @@ lazy val types = (project in file("types")).
 lazy val examples = (project in file("examples")).
   settings(
     name := "jparser-examples").
-  dependsOn(types % "test->test;compile->compile")
+  dependsOn(base % "test->test;compile->compile")
 
-lazy val core = (project in file("core")).
+lazy val naive = (project in file("naive")).
   settings(
-    name := "jparser-core",
+    name := "jparser-naive",
     libraryDependencies ++= testDeps).
-  dependsOn(types % "test->test;compile->compile").
+  dependsOn(base % "test->test;compile->compile").
   dependsOn(examples % "compile->test")
 
 lazy val metalang = (project in file("metalang")).
   settings(
     name := "jparser-metalang",
     libraryDependencies += protobufDep).
-  dependsOn(core % "test->test;compile->compile").
+  dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(examples % "compile->test")
 
-lazy val parsergen = (project in file("parsergen")).
+lazy val milestone = (project in file("milestone")).
   settings(
-    name := "jparser-parsergen",
+    name := "jparser-milestone",
     libraryDependencies += javaFormatDep,
     libraryDependencies ++= testDeps,
     javacOptions ++= Seq("-encoding", "UTF-8")).
-  dependsOn(core % "test->test;compile->compile").
+  dependsOn(naive % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile")
 
@@ -74,10 +74,10 @@ lazy val visualize = (project in file("visualize")).
     libraryDependencies ++= testDeps,
     libraryDependencies += "io.reactivex.rxjava3" % "rxjava" % "3.0.8",
     javaOptions := visJavaOptions).
-  dependsOn(core % "test->test;compile->compile").
+  dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
-  dependsOn(parsergen % "test->test;compile->compile").
+  dependsOn(milestone % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile")
 
 lazy val study = (project in file("study")).
@@ -85,12 +85,12 @@ lazy val study = (project in file("study")).
     name := "jparser-study",
     libraryDependencies ++= testDeps,
     javaOptions := visJavaOptions).
-  dependsOn(core % "test->test;compile->compile").
+  dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile").
   dependsOn(visualize % "test->test;compile->compile").
-  dependsOn(parsergen % "test->test;compile->compile")
+  dependsOn(milestone % "test->test;compile->compile")
 
 lazy val cli = (project in file("cli")).
   settings(
@@ -98,9 +98,9 @@ lazy val cli = (project in file("cli")).
     libraryDependencies ++= testDeps,
     libraryDependencies += "info.picocli" % "picocli" % "4.6.1"
   ).
-  dependsOn(core % "test->test;compile->compile").
+  dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
-  dependsOn(parsergen % "test->test;compile->compile")
+  dependsOn(milestone % "test->test;compile->compile")
 
 fork in run := true
