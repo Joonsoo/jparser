@@ -59,6 +59,26 @@ lazy val milestone = (project in file("milestone")).
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile")
 
+lazy val mgroup = (project in file("mgroup")).
+  settings(
+    name := "jparser-mgroup",
+    libraryDependencies += javaFormatDep,
+    libraryDependencies ++= testDeps,
+    javacOptions ++= Seq("-encoding", "UTF-8")).
+  dependsOn(naive % "test->test;compile->compile").
+  dependsOn(metalang % "test->test;compile->compile").
+  dependsOn(examples % "test->test;compile->compile")
+
+lazy val mmgroup = (project in file("mmgroup")).
+  settings(
+    name := "jparser-mmgroup",
+    libraryDependencies += javaFormatDep,
+    libraryDependencies ++= testDeps,
+    javacOptions ++= Seq("-encoding", "UTF-8")).
+  dependsOn(naive % "test->test;compile->compile").
+  dependsOn(metalang % "test->test;compile->compile").
+  dependsOn(examples % "test->test;compile->compile")
+
 lazy val visJavaOptions: Seq[String] = {
   if (sys.props("os.name") == "Mac OS X") Seq("-XstartOnFirstThread", "-d64") else Seq()
 }

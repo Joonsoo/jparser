@@ -40,6 +40,9 @@ class Main extends Runnable {
     println("Starting...")
     val analysis = MetaLanguage3.analyzeGrammar(readFile(input), grammarName)
     println("Analysis done")
+    if (!analysis.errors.isClear) {
+      throw new Exception(s"Grammar error: ${analysis.errors}")
+    }
     val codegen = new ScalaCodeGen(analysis)
 
     println("Generating parser...")

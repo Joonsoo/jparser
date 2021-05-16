@@ -39,7 +39,10 @@ object Type {
       types.head
     } else if (types.contains(Type.NullType)) {
       val exceptNull = types - Type.NullType
-      Type.OptionalOf(unifyTypes(exceptNull))
+      unifyTypes(exceptNull) match {
+        case opt: OptionalOf => opt
+        case e => Type.OptionalOf(e)
+      }
     } else if (types.contains(Type.NothingType) && types.size > 1) {
       unifyTypes(types - Type.NothingType)
     } else if (types.exists(typ => types.contains(Type.OptionalOf(typ)))) {
