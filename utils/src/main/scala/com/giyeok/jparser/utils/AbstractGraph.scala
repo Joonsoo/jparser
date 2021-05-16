@@ -139,11 +139,13 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
         recursion(start)
     }
 
-    def reachableGraphBetween(start: N, end: N): Self = {
+    def reachableGraphBetween(start: N, end: N): Self = reachableGraphBetween(start, Set(end))
+
+    def reachableGraphBetween(start: N, ends: Set[N]):Self = {
         var visited: Set[N] = Set(start)
 
         def recursion(path: List[E], cc: Self): Self = path match {
-            case visiting +: _ if visiting.end == end =>
+            case visiting +: _ if ends.contains(visiting.end) =>
                 path.foldLeft(cc) { (m, i) => m.addEdgeSafe(i) }
             case visiting +: _ =>
                 if (visited.contains(visiting.end)) cc else {

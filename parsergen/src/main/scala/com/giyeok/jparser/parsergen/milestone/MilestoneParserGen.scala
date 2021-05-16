@@ -97,20 +97,36 @@ class MilestoneParserGen(val parser: NaiveParser) {
     //      ((SYM, 0), M.kernelTemplate, M.condition)가 된다.
     val appendingMilestones = appendingMilestones0.filter(progressedGraph.reachableBetween(startNode, _))
     val appendingMilestoneActions = appendingMilestones.map { node =>
-      val subgraphBetween = progressedGraph.reachableGraphBetween(startNode, node)
-      val dependentMilestoneStarts = subgraphBetween.nodes
-        .filter(_.kernel.endGen == currGen)
-        .flatMap(n => parser.grammar.symbolOf(n.kernel.symbolId) match {
-          case NJoin(_, _, _, join) => Some(join)
-          case NExcept(_, _, _, except) => Some(except)
-          case lookahead: NLookaheadSymbol => Some(lookahead.lookahead)
-          case _ => None
-        })
-        .map(symbolId => Node(Kernel(symbolId, 0, currGen, currGen), Always))
-      //      println(dependentMilestoneStarts)
-      val dependents = dependentMilestoneStarts.toList.sortBy(_.kernel.tuple).flatMap { start =>
+      def dependentStartsBetween(from: Node, ends: Set[Node]): Set[Node] = {
+        val subgraphBetween = progressedGraph.reachableGraphBetween(from, ends)
+        subgraphBetween.nodes
+          .filter(_.kernel.endGen == currGen)
+          .flatMap(n => parser.grammar.symbolOf(n.kernel.symbolId) match {
+            case NJoin(_, _, _, join) => Some(join)
+            case NExcept(_, _, _, except) => Some(except)
+            case lookahead: NLookaheadSymbol => Some(lookahead.lookahead)
+            case _ => None
+          })
+          .map(symbolId => Node(Kernel(symbolId, 0, currGen, currGen), Always))
+      }
+
+      val starts0 = dependentStartsBetween(startNode, Set(node)).toList.sortBy(_.kernel.tuple)
+
+      @tailrec
+      def allDependents(newStarts: Set[Node], allStarts: Set[Node]): List[Node] = {
+        val nextStarts = newStarts.flatMap { start =>
+          val ends = appendingMilestones0.filter(progressedGraph.reachableBetween(start, _))
+          dependentStartsBetween(start, ends.toSet)
+        } -- allStarts
+        if (nextStarts.nonEmpty) allDependents(nextStarts, allStarts ++ nextStarts)
+        else (allStarts ++ nextStarts).toList.sortBy(_.kernel.tuple)
+      }
+
+      val dependents = allDependents(starts0.toSet, starts0.toSet).flatMap { start =>
         val ends = appendingMilestones0.filter(progressedGraph.reachableBetween(start, _))
-        ends.map { end => (KernelTemplate(start.kernel.symbolId, start.kernel.pointer), KernelTemplate(end.kernel.symbolId, end.kernel.pointer), end.condition) }
+        ends map { end =>
+          (KernelTemplate(start.kernel.symbolId, start.kernel.pointer), KernelTemplate(end.kernel.symbolId, end.kernel.pointer), end.condition)
+        }
       }
       AppendingMilestone(KernelTemplate(node.kernel.symbolId, node.kernel.pointer), node.condition, dependents)
     }

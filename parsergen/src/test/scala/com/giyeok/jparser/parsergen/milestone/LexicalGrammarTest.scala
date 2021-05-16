@@ -14,7 +14,7 @@ class LexicalGrammarTest extends AnyFlatSpec {
     }
     val valuefier = ValuefyExprSimulator(gram)
 
-    val sourceText = "public static void main() {}"
+    val sourceText = "void"
     val naiveParser = new NaiveParser(gram.ngrammar)
     val ctx = naiveParser.parse(sourceText).left.get
     val reconstructor = new ParseTreeConstructor(ParseForestFunc)(gram.ngrammar)(ctx.inputs, ctx.history, ctx.conditionFinal)
