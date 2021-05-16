@@ -85,7 +85,7 @@ object GrammarHelper {
     implicit class GrammarMergeable(rules: Grammar#RuleMap) {
         def merge(other: Grammar#RuleMap): Grammar#RuleMap = {
             // Merge or replace items of `rules` to items of `other`
-            val mutableRules = scala.collection.mutable.ListMap[String, ListSet[Symbols.Symbol]](rules.toSeq: _*)
+            val mutableRules = scala.collection.mutable.ListMap[String, List[Symbols.Symbol]](rules.toSeq: _*)
             other foreach { item => mutableRules += item }
             ListMap(mutableRules.toSeq: _*)
         }

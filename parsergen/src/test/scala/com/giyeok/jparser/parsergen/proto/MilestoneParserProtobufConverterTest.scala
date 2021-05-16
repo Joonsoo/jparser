@@ -12,8 +12,8 @@ class MilestoneParserProtobufConverterTest extends AnyFlatSpec {
     val protoData = MilestoneParserDataProto.MilestoneParserData.parseFrom(CodedInputStream.newInstance(
       new FileInputStream("C:\\Users\\Joonsoo\\workspace\\javazero\\src\\main\\resources\\javaparserdata.pb")))
     println("TermActions: " + protoData.getTermActionsCount)
-    println("TermActionsCount.actionsCount" + protoData.getTermActionsList.toScalaList(x => x.getActionsCount))
-    println("TermActionsCount.actionsCountSum" + protoData.getTermActionsList.toScalaList(x => x.getActionsCount).sum)
+    println("TermActionsCount.actionsCount: " + protoData.getTermActionsList.toScalaList(x => x.getActionsCount))
+    println("TermActionsCount.actionsCountSum: " + protoData.getTermActionsList.toScalaList(x => x.getActionsCount).sum)
     println("EdgeProgressActions: " + protoData.getEdgeProgressActionsCount)
     println("DerivedGraphs: " + protoData.getDerivedGraphsCount)
     println()

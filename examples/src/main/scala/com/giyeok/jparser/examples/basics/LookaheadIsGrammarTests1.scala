@@ -9,8 +9,8 @@ import scala.collection.immutable.{ListMap, ListSet}
 object LookaheadIsGrammar1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadIsGrammar 1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("A").star),
-        "A" -> ListSet(
+        "S" -> List(n("A").star),
+        "A" -> List(
             seq(longest(chars('a' to 'z').plus), lookahead_is(c(' '))),
             chars(" ")
         )
@@ -25,10 +25,10 @@ object LookaheadIsGrammar1 extends Grammar with GrammarWithExamples with StringE
 object LookaheadIsGrammar2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadIsGrammar 2"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("B"), chars('a' to 'z').star)
         ),
-        "B" -> ListSet(
+        "B" -> List(
             seq(i("abc"), lookahead_is(i("def")))
         )
     )
@@ -42,10 +42,10 @@ object LookaheadIsGrammar2 extends Grammar with GrammarWithExamples with StringE
 object LookaheadIsGrammar2_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadIsGrammar 2_1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("B"), chars('a' to 'z').star)
         ),
-        "B" -> ListSet(
+        "B" -> List(
             seq(i("a"), lookahead_is(i("a")))
         )
     )
@@ -67,17 +67,17 @@ object FollowedByGrammar3 extends Grammar with GrammarWithExamples with StringEx
           |""".stripMargin('|')
 
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(lookahead_is(n("P")), c('a').star, n("B"))
         ),
-        "P" -> ListSet(
+        "P" -> List(
             seq(n("A"), c('c'))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             seq(c('a'), n("A"), c('b')),
             i("ab")
         ),
-        "B" -> ListSet(
+        "B" -> List(
             seq(c('b'), n("B"), c('c')),
             i("bc")
         )

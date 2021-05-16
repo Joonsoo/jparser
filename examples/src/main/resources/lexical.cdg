@@ -1,0 +1,20 @@
+MethodDeclaration = (MethodModifiers WS)? MethodHeader WS MethodBody
+                    {MethodDeclaration(modifiers=$0, header=$1, body=$3)}
+MethodModifiers = MethodModifier (WS MethodModifier)* {[$0] + $1}
+MethodModifier: %MethodModifier = ("public" {%PUBLIC} | "static" {%STATIC})&Tk
+MethodHeader = Result WS MethodDeclarator {MethodHeader(result=$0, decl=$2)}
+Result: Result = Identifier {ResultType(typ=$0)} | "void"&Tk {VoidResultType()}
+MethodDeclarator = Identifier WS '(' WS ')' {MethodDeclarator(name=$0)}
+MethodBody = '{' WS '}' {EmptyMethodBody()}
+
+Tk = Token
+Token = Identifier | Keyword | Separator
+Word = <'a-zA-Z0-9_'+>
+Identifier = <JavaLetter JavaLetterOrDigit* {str($0, $1)}>-Keyword {Identifier(name=str($0))}
+JavaLetter = 'a-zA-Z_'
+JavaLetterOrDigit = JavaLetter | '0-9'
+Keyword: %Keyword = ("public" {%PUBLIC} | "static" {%STATIC} | "void" {%VOID})&Word
+Separator: %Separator = '(' {%LPAREN} | ')' {%RPAREN} | '{' {%LCPAREN} | '}' {%RCPAREN}
+
+WS = (' \t\u000c' | LineTerminator)*
+LineTerminator = <'\n' | '\r' | "\n\r">

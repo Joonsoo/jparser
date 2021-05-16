@@ -13,77 +13,77 @@ import scala.collection.immutable.{ListMap, ListSet}
 object MetaGrammar extends Grammar {
     val name = "Meta Grammar"
     val rules: RuleMap = ListMap(
-        "Grammar" -> ListSet(
+        "Grammar" -> List(
             Sequence(Seq(n("ws"), n("Rules"), n("ws")))
         ),
-        "Rules" -> ListSet(
+        "Rules" -> List(
             Sequence(Seq(n("Rules"), longest(n("ws0").star), c('\n'), n("ws"), n("Rule"))),
             n("Rule")
         ),
-        "Rule" -> ListSet(
+        "Rule" -> List(
             seqWS(n("ws"), n("Nonterminal"), c('='), n("RHSs"))
         ),
-        "RHSs" -> ListSet(
+        "RHSs" -> List(
             seqWS(n("ws"), n("RHSs"), c('|'), n("Sequence")),
             n("Sequence")
         ),
-        "EmptySequence" -> ListSet(
+        "EmptySequence" -> List(
             c('#'),
             c('ε')
         ),
-        "Sequence" -> ListSet(
+        "Sequence" -> List(
             n("EmptySequence"),
             n("Symbol"),
             n("SymbolSeq")
         ),
-        "SymbolSeq" -> ListSet(
+        "SymbolSeq" -> List(
             // Symbol 2개 이상
             seqWS(n("ws1").plus, n("SymbolSeq"), n("Symbol")),
             seqWS(n("ws1").plus, n("Symbol"), n("Symbol"))
         ),
-        "Symbol" -> ListSet(
+        "Symbol" -> List(
             n("Exclusion").except(n("Symbol4")),
             n("Symbol4")
         ),
-        "Exclusion" -> ListSet(
+        "Exclusion" -> List(
             n("Symbol4"),
             seqWS(n("ws"), n("Exclusion"), c('-'), n("Symbol4"))
         ),
-        "Symbol4" -> ListSet(
+        "Symbol4" -> List(
             n("Intersection").except(n("Symbol3")),
             n("Symbol3")
         ),
-        "Intersection" -> ListSet(
+        "Intersection" -> List(
             n("Symbol3"),
             seqWS(n("ws"), n("Intersection"), c('&'), n("Symbol3"))
         ),
-        "Symbol3" -> ListSet(
+        "Symbol3" -> List(
             n("Repeat0"),
             n("Repeat1"),
             n("Optional"),
             n("Symbol2")
         ),
-        "Repeat0" -> ListSet(
+        "Repeat0" -> List(
             seqWS(n("ws"), n("Symbol3"), c('*'))
         ),
-        "Repeat1" -> ListSet(
+        "Repeat1" -> List(
             seqWS(n("ws"), n("Symbol3"), c('+'))
         ),
-        "Optional" -> ListSet(
+        "Optional" -> List(
             seqWS(n("ws"), n("Symbol3"), c('?'))
         ),
-        "Symbol2" -> ListSet(
+        "Symbol2" -> List(
             n("FollowedBy"),
             n("NotFollowedBy"),
             n("Symbol1")
         ),
-        "FollowedBy" -> ListSet(
+        "FollowedBy" -> List(
             seqWS(n("ws"), c('$'), n("Symbol2"))
         ),
-        "NotFollowedBy" -> ListSet(
+        "NotFollowedBy" -> List(
             seqWS(n("ws"), c('!'), n("Symbol2"))
         ),
-        "Symbol1" -> ListSet(
+        "Symbol1" -> List(
             n("Terminal"),
             n("String"),
             n("Nonterminal"),
@@ -92,84 +92,84 @@ object MetaGrammar extends Grammar {
             seqWS(n("ws"), c('('), n("Symbol"), c(')')),
             seqWS(n("ws"), c('('), n("Either"), c(')'))
         ),
-        "Terminal" -> ListSet(
+        "Terminal" -> List(
             n("anychar"),
             seq(c('\''), n("char"), c('\'')),
             n("TerminalCharSet")
         ),
-        "TerminalCharSet" -> ListSet(
+        "TerminalCharSet" -> List(
             seq(c('{'), n("TerminalCharRange").plus, c('}'))
         ),
-        "TerminalCharRange" -> ListSet(
+        "TerminalCharRange" -> List(
             n("charSetChar"),
             seq(n("charSetChar"), c('-'), n("charSetChar"))
         ),
-        "String" -> ListSet(
+        "String" -> List(
             seq(c('\"'), n("stringChar").star, c('\"'))
         ),
-        "Nonterminal" -> ListSet(
+        "Nonterminal" -> List(
             n("PlainNonterminalName"),
             n("QuoteNonterminalName")
         ),
-        "PlainNonterminalName" -> ListSet(
+        "PlainNonterminalName" -> List(
             c(('a' to 'z').toSet ++ ('A' to 'Z').toSet ++ ('0' to '9').toSet + '_').plus
         ),
-        "QuoteNonterminalName" -> ListSet(
+        "QuoteNonterminalName" -> List(
             seq(c('`'), n("nontermNameChar").star, c('`'))
         ),
-        "Proxy" -> ListSet(
+        "Proxy" -> List(
             seqWS(n("ws"), c('['), n("Sequence"), c(']'))
         ),
-        "Either" -> ListSet(
+        "Either" -> List(
             seqWS(n("ws"), n("Symbol"), c('|'), n("Symbol")),
             seqWS(n("ws"), n("Either"), c('|'), n("Symbol"))
         ),
-        "Longest" -> ListSet(
+        "Longest" -> List(
             seqWS(n("ws"), c('<'), n("Symbol"), c('>'))
         ),
-        "anychar" -> ListSet(
+        "anychar" -> List(
             c('.')
         ),
-        "char" -> ListSet(
+        "char" -> List(
             anychar.except(c('\\')),
             seq(c('\\'), c("nrbt\"\'\\".toSet)),
             n("unicodeChar")
         ),
-        "charSetChar" -> ListSet(
+        "charSetChar" -> List(
             anychar.except(c("\\}-".toSet)),
             seq(c('\\'), c("}-nrbt\"\'\\".toSet)),
             n("unicodeChar")
         ),
-        "stringChar" -> ListSet(
+        "stringChar" -> List(
             anychar.except(c("\\\"".toSet)),
             seq(c('\\'), c("nrbt\"\'\\".toSet)),
             n("unicodeChar")
         ),
-        "nontermNameChar" -> ListSet(
+        "nontermNameChar" -> List(
             anychar.except(c("\\`".toSet)),
             seq(c('\\'), c("nrbt`\\".toSet)),
             n("unicodeChar")
         ),
-        "unicodeChar" -> ListSet(
+        "unicodeChar" -> List(
             seq(c('\\'), c('u'), c("0123456789abcdefABCDEF".toSet), c("0123456789abcdefABCDEF".toSet), c("0123456789abcdefABCDEF".toSet), c("0123456789abcdefABCDEF".toSet))
         ),
-        "ws0" -> ListSet(
+        "ws0" -> List(
             c("\t\r ".toSet)
         ),
-        "ws1" -> ListSet(
+        "ws1" -> List(
             c("\t\n\r ".toSet)
         ),
-        "ws" -> ListSet(
+        "ws" -> List(
             oneof(chars(" \t\n\r"), n("LineComment")).star,
         ),
-        "LineComment" -> ListSet(
+        "LineComment" -> List(
             // LineComment = "//" .* (!. | '\n')
             seq(c('/'), c('/'), anychar.except(c('\n')).star, oneof(lookahead_except(anychar), c('\n')))
         )
     )
     val startSymbol: Nonterminal = n("Grammar")
 
-    class NewGrammar(val name: String, val rules: ListMap[String, ListSet[Symbols.Symbol]], val startSymbol: Symbols.Nonterminal) extends Grammar
+    class NewGrammar(val name: String, val rules: ListMap[String, List[Symbols.Symbol]], val startSymbol: Symbols.Nonterminal) extends Grammar
 
     def childrenOf(node: Node, sym: Symbol): Seq[Node] = node match {
         case BindNode(s, _) if s.symbol == sym => Seq(node)
@@ -342,7 +342,7 @@ object MetaGrammar extends Grammar {
         assert(nontermDefs.nonEmpty)
 
         val startSymbol = Nonterminal(nontermDefs.head._1)
-        val rulesMap = nontermDefs map { kv => kv._1 -> ListSet(kv._2: _*) }
+        val rulesMap = nontermDefs map { kv => kv._1 -> kv._2.toList }
         new NewGrammar(name, ListMap(rulesMap: _*), startSymbol)
     }
 
@@ -457,7 +457,7 @@ object MetaGrammar extends Grammar {
             if (outerPrecedence < precedence) "(" + string + ")" else string
         }
 
-        def ruleStringOf(lhs: String, rhs: ListSet[Symbols.Symbol]): String = {
+        def ruleStringOf(lhs: String, rhs: List[Symbols.Symbol]): String = {
             nonterminalNameOf(lhs) + " = " + ((rhs map { symbol => symbolStringOf(symbol, 6) }) mkString "\n    | ")
         }
 

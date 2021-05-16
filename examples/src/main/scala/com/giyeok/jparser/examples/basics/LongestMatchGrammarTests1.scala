@@ -11,17 +11,17 @@ object LongestMatchGrammar1 extends Grammar with GrammarWithExamples with String
     def longest(c: Symbol) = seq(c.plus, lookahead_except(c))
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Token").star
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             n("Id"),
             n("WS"),
             n("Num")
         ),
-        "Id" -> ListSet(longest(chars('a' to 'z', 'A' to 'Z'))),
-        "WS" -> ListSet(longest(chars("\n\r\t "))),
-        "Num" -> ListSet(longest(chars('0' to '9')))
+        "Id" -> List(longest(chars('a' to 'z', 'A' to 'Z'))),
+        "WS" -> List(longest(chars("\n\r\t "))),
+        "Num" -> List(longest(chars('0' to '9')))
     )
 
     val startSymbol = n("S")
@@ -36,19 +36,19 @@ object LongestMatchGrammar1_1 extends Grammar with GrammarWithExamples with Stri
     def longest(c: Symbol) = seq(c.plus, lookahead_except(c))
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Token").star
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             n("Id"),
             n("WS"),
             n("Num"),
             n("Punc")
         ),
-        "Id" -> ListSet(longest(chars('a' to 'z', 'A' to 'Z'))),
-        "WS" -> ListSet(longest(chars("\n\r\t "))),
-        "Num" -> ListSet(longest(chars('0' to '9'))),
-        "Punc" -> ListSet(chars(";:[]()."))
+        "Id" -> List(longest(chars('a' to 'z', 'A' to 'Z'))),
+        "WS" -> List(longest(chars("\n\r\t "))),
+        "Num" -> List(longest(chars('0' to '9'))),
+        "Punc" -> List(chars(";:[]()."))
     )
 
     val startSymbol = n("S")
@@ -62,19 +62,19 @@ object LongestMatchGrammar2 extends Grammar with GrammarWithExamples with String
     val name = "LongestMatchGrammar2"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Token").star
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             n("IdName"),
             n("Whitespace")
         ),
-        "IdName" -> ListSet(
+        "IdName" -> List(
             seq(n("IdStart"), n("IdPart").star, lookahead_except(n("IdPart")))
         ),
-        "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
-        "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
-        "Whitespace" -> ListSet(seq(wsChars, lookahead_except(wsChars)))
+        "IdStart" -> List(chars('a' to 'z', 'A' to 'Z')),
+        "IdPart" -> List(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
+        "Whitespace" -> List(seq(wsChars, lookahead_except(wsChars)))
     )
     val startSymbol = n("S")
 
@@ -87,18 +87,18 @@ object LongestMatchGrammar2_0 extends Grammar with GrammarWithExamples with Stri
     val name = "LongestMatchGrammar2_0"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("IdName").star
         ),
-        "IdName" -> ListSet(
+        "IdName" -> List(
             seq(n("_IdName"), lookahead_except(n("IdPart")))
         ),
-        "_IdName" -> ListSet(
+        "_IdName" -> List(
             n("IdStart"),
             seq(n("_IdName"), n("IdPart"))
         ),
-        "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
-        "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9'))
+        "IdStart" -> List(chars('a' to 'z', 'A' to 'Z')),
+        "IdPart" -> List(chars('a' to 'z', 'A' to 'Z', '0' to '9'))
     )
     val startSymbol = n("S")
 
@@ -111,23 +111,23 @@ object LongestMatchGrammar2_1 extends Grammar with GrammarWithExamples with Stri
     val name = "LongestMatchGrammar2_1"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Token").star
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             n("IdName"),
             n("Whitespace")
         ),
-        "IdName" -> ListSet(
+        "IdName" -> List(
             seq(n("_IdName"), lookahead_except(n("IdPart")))
         ),
-        "_IdName" -> ListSet(
+        "_IdName" -> List(
             n("IdStart"),
             seq(n("_IdName"), n("IdPart"))
         ),
-        "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
-        "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
-        "Whitespace" -> ListSet(seq(wsChars.plus, lookahead_except(wsChars)))
+        "IdStart" -> List(chars('a' to 'z', 'A' to 'Z')),
+        "IdPart" -> List(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
+        "Whitespace" -> List(seq(wsChars.plus, lookahead_except(wsChars)))
     )
     val startSymbol = n("S")
 
@@ -143,30 +143,30 @@ object LongestMatchGrammar2_2 extends Grammar with GrammarWithExamples with Stri
     val name = "LongestMatchGrammar2_2"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Token").star
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             longest(n("IdName")),
             n("Number"),
             n("Punc"),
             n("Whitespace")
         ),
-        "IdName" -> ListSet(
+        "IdName" -> List(
             oneof(n("IdStart"), seq(n("IdName"), n("IdPart")))
         ),
-        "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
-        "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
-        "Number" -> ListSet(longest(seq(
+        "IdStart" -> List(chars('a' to 'z', 'A' to 'Z')),
+        "IdPart" -> List(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
+        "Number" -> List(longest(seq(
             i("-").opt,
             seq(chars('1' to '9'), chars('0' to '9').star),
             seq(i("."), seq(chars('0' to '9').plus)).opt,
             seq(chars("eE"), seq(chars('1' to '9'), chars('0' to '9').star)).opt
         ))),
-        "Punc" -> ListSet(
+        "Punc" -> List(
             chars(".,;[](){}")
         ),
-        "Whitespace" -> ListSet(longest(seq(wsChars.plus)))
+        "Whitespace" -> List(longest(seq(wsChars.plus)))
     )
     val startSymbol = n("S")
 
@@ -192,31 +192,31 @@ object LongestMatchGrammar2_3 extends Grammar with GrammarWithExamples with Stri
     val name = "LongestMatchGrammar2_3"
     val wsChars = chars("\n\r\t ")
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Token").star
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             longest(n("IdName")),
             n("Number"),
             n("Punc"),
             n("Whitespace")
         ),
-        "IdName" -> ListSet(
+        "IdName" -> List(
             n("IdStart"),
             seq(n("IdName"), n("IdPart"))
         ),
-        "IdStart" -> ListSet(chars('a' to 'z', 'A' to 'Z')),
-        "IdPart" -> ListSet(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
-        "Number" -> ListSet(longest(seq(
+        "IdStart" -> List(chars('a' to 'z', 'A' to 'Z')),
+        "IdPart" -> List(chars('a' to 'z', 'A' to 'Z', '0' to '9')),
+        "Number" -> List(longest(seq(
             i("-").opt,
             seq(chars('1' to '9'), chars('0' to '9').star),
             seq(i("."), seq(chars('0' to '9').plus)).opt,
             seq(chars("eE"), seq(chars('1' to '9'), chars('0' to '9').star)).opt
         ))),
-        "Punc" -> ListSet(
+        "Punc" -> List(
             chars(".,;[](){}")
         ),
-        "Whitespace" -> ListSet(longest(seq(wsChars.plus)))
+        "Whitespace" -> List(longest(seq(wsChars.plus)))
     )
     val startSymbol = n("S")
 
@@ -242,20 +242,20 @@ object LongestMatchGrammar2_3 extends Grammar with GrammarWithExamples with Stri
 object LongestMatchGrammar2_4 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar2_4"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Token").star
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             longest(n("Number")),
             n("Punc")
         ),
-        "Number" -> ListSet(seq(
+        "Number" -> List(seq(
             i("-").opt,
             seq(chars('1' to '9'), chars('0' to '9').star),
             seq(i("."), seq(chars('0' to '9').plus)).opt,
             seq(chars("eE"), seq(chars('1' to '9'), chars('0' to '9').star)).opt
         )),
-        "Punc" -> ListSet(
+        "Punc" -> List(
             chars(".,;[](){}")
         )
     )
@@ -273,17 +273,17 @@ object LongestMatchGrammar2_4 extends Grammar with GrammarWithExamples with Stri
 object LongestMatchGrammar3_1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "LongestMatchGrammar3_1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             oneof(n("Number"), n("Punc"), n("Id")).star
         ),
-        "Number" -> ListSet(
+        "Number" -> List(
             // eager longest로 바꿔서도 해보기
             longest(seq(chars('1' to '9'), chars('0' to '9').star, seq(i("."), chars('0' to '9').plus).opt))
         ),
-        "Punc" -> ListSet(
+        "Punc" -> List(
             chars(".,;[](){}")
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             longest(chars('a' to 'z', 'A' to 'Z').plus)
         )
     )
@@ -302,20 +302,20 @@ object LongestMatchGrammar3_1 extends Grammar with GrammarWithExamples with Stri
 object LongestMatchGrammar3_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar3_2"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             oneof(n("Number"), n("Punc"), n("Id")).star
         ),
-        "Number" -> ListSet(
+        "Number" -> List(
             // eager longest로 바꿔서도 해보기
             n("Float")
         ),
-        "Float" -> ListSet(
+        "Float" -> List(
             longest(seq(chars('1' to '9'), chars('0' to '9').star, i("."), chars('0' to '9').plus))
         ),
-        "Punc" -> ListSet(
+        "Punc" -> List(
             chars(".,;[](){}")
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             longest(chars('a' to 'z', 'A' to 'Z').plus)
         )
     )
@@ -331,25 +331,25 @@ object LongestMatchGrammar3_2 extends Grammar with GrammarWithExamples with Stri
 object LongestMatchGrammar3_3 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar3_3"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             oneof(longest(n("Number")), n("Punc"), n("Id")).star
         ),
-        "Number" -> ListSet(
+        "Number" -> List(
             // eager longest로 바꿔서도 해보기
             n("Float"),
             n("Int")
         ),
-        "Float" -> ListSet(
+        "Float" -> List(
             seq(oneof(i("0"), seq(chars('1' to '9'), chars('0' to '9').star)), i("."), chars('0' to '9').plus)
         ),
-        "Int" -> ListSet(
+        "Int" -> List(
             i("0"),
             seq(chars('1' to '9'), chars('0' to '9').star)
         ),
-        "Punc" -> ListSet(
+        "Punc" -> List(
             chars(".,;[](){}")
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             chars('a' to 'z', 'A' to 'Z').plus
         )
     )
@@ -368,17 +368,17 @@ object LongestMatchGrammar3_3 extends Grammar with GrammarWithExamples with Stri
 object LongestMatchGrammar4 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LongestMatchGrammar4"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("A").star
         ),
-        "A" -> ListSet(
+        "A" -> List(
             n("N"),
             n("M")
         ),
-        "N" -> ListSet(
+        "N" -> List(
             longest(chars('0' to '9').plus)
         ),
-        "M" -> ListSet(
+        "M" -> List(
             longest(chars('a' to 'z').plus)
         )
     )
@@ -397,20 +397,20 @@ object LongestMatchGrammar5 extends Grammar with GrammarWithExamples with String
     def expr(syms: Symbol*) = seqWS(n("WS").star, syms: _*)
     val name = "LongestMatchGrammar5 (dangling else solution)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Stmt").star
         ),
-        "WS" -> ListSet(
+        "WS" -> List(
             chars(" \r\n\t")
         ),
-        "Stmt" -> ListSet(
+        "Stmt" -> List(
             n("IfStmt"),
             seq(i("{"), n("Stmt").star, i("}"))
         ),
-        "IfStmt" -> ListSet(
+        "IfStmt" -> List(
             longest(expr(i("if"), i("("), n("Cond"), i(")"), n("Stmt"), expr(i("else"), n("Stmt")).opt))
         ),
-        "Cond" -> ListSet(
+        "Cond" -> List(
             i("true"),
             i("false")
         )
@@ -430,20 +430,20 @@ object LongestMatchGrammar5_1 extends Grammar with GrammarWithExamples with Stri
     def expr(syms: Symbol*) = seqWS(n("WS").star, syms: _*)
     val name = "LongestMatchGrammar5-1 (ambiguous, dangling else)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Stmt").star
         ),
-        "WS" -> ListSet(
+        "WS" -> List(
             chars(" \r\n\t")
         ),
-        "Stmt" -> ListSet(
+        "Stmt" -> List(
             n("IfStmt"),
             seq(i("{"), n("Stmt").star, i("}"))
         ),
-        "IfStmt" -> ListSet(
+        "IfStmt" -> List(
             expr(i("if"), i("("), n("Cond"), i(")"), n("Stmt"), expr(i("else"), n("Stmt")).opt)
         ),
-        "Cond" -> ListSet(
+        "Cond" -> List(
             i("true"),
             i("false")
         )

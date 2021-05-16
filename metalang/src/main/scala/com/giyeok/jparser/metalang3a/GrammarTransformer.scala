@@ -38,7 +38,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
 
   def grammar(grammarName: String): Grammar = new Grammar {
     val name: String = grammarName
-    val rules: RuleMap = ListMap.from(_nonterminalSymbols.map(rule => rule._1 -> ListSet.from(rule._2)))
+    val rules: RuleMap = ListMap.from(_nonterminalSymbols.map(rule => rule._1 -> rule._2))
     val startSymbol: Symbols.Nonterminal = Symbols.Nonterminal(startNonterminalName())
   }
 

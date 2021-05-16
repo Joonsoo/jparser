@@ -12,10 +12,9 @@ object TestUtil {
     grammarFrom(grammarRules.toList)
 
   def grammarFrom(grammarRules: List[(String, List[Symbols.Symbol])]): Grammar = {
-    val rulesWithListSetRhs = grammarRules.map(pair => pair._1 -> ListSet(pair._2: _*))
     new Grammar {
       override val name: String = "Testing Grammar"
-      override val rules: this.RuleMap = ListMap(rulesWithListSetRhs: _*)
+      override val rules: this.RuleMap = ListMap(grammarRules: _*)
       override val startSymbol: Nonterminal = Nonterminal(grammarRules.head._1)
     }
   }

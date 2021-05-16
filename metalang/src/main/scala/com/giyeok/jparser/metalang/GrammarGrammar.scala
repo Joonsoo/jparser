@@ -13,36 +13,36 @@ object GrammarGrammar extends Grammar {
     val inlineWS = chars(" \t").star
     val name = "Grammar Notation"
     val rules: RuleMap = ListMap(
-        "Grammar" -> ListSet(
+        "Grammar" -> List(
             seq(
                 whitespace,
                 n("Rules"),
                 whitespace
             )
         ),
-        "Rules" -> ListSet(
+        "Rules" -> List(
             seqWS(whitespace, n("Rules"), n("NontermDef")),
             n("NontermDef")
         ),
-        "NontermDef" -> ListSet(
+        "NontermDef" -> List(
             seqWS(inlineWS, n("NontermName"), c('='), n("Productions"))
         ),
-        "Productions" -> ListSet(
+        "Productions" -> List(
             n("Production"),
             seq(n("Productions"), whitespace, c('|'), inlineWS, n("Production"))
         ),
-        "Production" -> ListSet(
+        "Production" -> List(
             n("Empty"),
             n("Symbols")
         ),
-        "Empty" -> ListSet(
+        "Empty" -> List(
             i("<empty>")
         ),
-        "Symbols" -> ListSet(
+        "Symbols" -> List(
             n("Symbol"),
             seqWS(inlineWS, n("Symbols"), n("Symbol"))
         ),
-        "Symbol" -> ListSet(
+        "Symbol" -> List(
             n("NontermName"),
             n("LongestName"),
             n("LookaheadName"),
@@ -51,45 +51,45 @@ object GrammarGrammar extends Grammar {
             n("ExclusionName"),
             n("Terminal")
         ),
-        "NontermName" -> ListSet(
+        "NontermName" -> List(
             longest(oneof(
                 oneof(chars('a' to 'z', 'A' to 'Z', '0' to '9')).plus,
                 seq(c('`'), oneof(chars('a' to 'z', 'A' to 'Z', '0' to '9'), chars("+*[]-")).plus)
             ))
         ),
-        "LongestName" -> ListSet(
+        "LongestName" -> List(
             longest(seqWS(inlineWS, c('L'), c('('), n("Symbol"), c(')')))
         ),
-        "LookaheadName" -> ListSet(
+        "LookaheadName" -> List(
             longest(seqWS(inlineWS, i("la"), c('('), n("Symbol"), c(')')))
         ),
-        "LookaheadExName" -> ListSet(
+        "LookaheadExName" -> List(
             longest(seqWS(inlineWS, i("lx"), c('('), n("Symbol"), c(')')))
         ),
-        "IntersectionName" -> ListSet(
+        "IntersectionName" -> List(
             longest(seqWS(inlineWS, n("Symbol"), c('&'), n("Symbol")))
         ),
-        "ExclusionName" -> ListSet(
+        "ExclusionName" -> List(
             longest(seqWS(inlineWS, n("Symbol"), c('-'), n("Symbol")))
         ),
-        "Terminal" -> ListSet(
+        "Terminal" -> List(
             n("TerminalExactChar"),
             n("TerminalRanges"),
             n("TerminalSet")
         ),
-        "TerminalExactChar" -> ListSet(
+        "TerminalExactChar" -> List(
             seq(c('\''), anychar, c('\''))
         ),
-        "TerminalRanges" -> ListSet(
+        "TerminalRanges" -> List(
             seq(c('['), n("TerminalRange").plus, c(']'))
         ),
-        "TerminalRange" -> ListSet(
+        "TerminalRange" -> List(
             seq(anychar, c('-'), anychar)
         ),
-        "TerminalSet" -> ListSet(
+        "TerminalSet" -> List(
             seq(c('{'), n("TerminalAnyChar").plus, c('}'))
         ),
-        "TerminalAnyChar" -> ListSet(
+        "TerminalAnyChar" -> List(
             anychar.except(c('}'))
         )
     )
@@ -109,7 +109,7 @@ object GrammarGrammar extends Grammar {
         case _ => ???
     }
 
-    class NewGrammar(val name: String, val rules: ListMap[String, ListSet[Symbols.Symbol]], val startSymbol: Symbols.Nonterminal) extends Grammar
+    class NewGrammar(val name: String, val rules: ListMap[String, List[Symbols.Symbol]], val startSymbol: Symbols.Nonterminal) extends Grammar
 
     def translate(tree: ParseResultTree.Node): Option[Grammar] = {
         val BindNode(_: NStart, BindNode(NNonterminal(_, Nonterminal("Grammar"), _), seq: SequenceNode)) = tree
@@ -163,7 +163,7 @@ object GrammarGrammar extends Grammar {
         }
         if (nontermDefs.isEmpty) None else {
             val startSymbolName = nontermDefs.head._1
-            Some(new NewGrammar("New Grammar", ListMap((nontermDefs map { kv => (kv._1, ListSet(kv._2: _*)) }): _*), Nonterminal(startSymbolName)))
+            Some(new NewGrammar("New Grammar", ListMap((nontermDefs map { kv => (kv._1, List(kv._2: _*)) }): _*), Nonterminal(startSymbolName)))
         }
     }
 }

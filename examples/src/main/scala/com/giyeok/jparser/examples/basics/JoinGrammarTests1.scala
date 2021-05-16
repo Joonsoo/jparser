@@ -13,31 +13,31 @@ object JoinGrammar1 extends Grammar with GrammarWithExamples with StringExamples
     val name = "JoinGrammar1"
 
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             expr(token(i("var")), n("Id"), token(i("=")), n("Expr"))
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             token(chars('a' to 'z', 'A' to 'Z').plus)
         ),
-        "Expr" -> ListSet(
+        "Expr" -> List(
             n("Number"),
             expr(n("Number"), token(chars("+-*/")), n("Expr")),
             expr(token(i("(")), n("Expr"), token(i(")")))
         ),
-        "Number" -> ListSet(
+        "Number" -> List(
             token(seq(chars('1' to '9'), chars('0' to '9').plus))
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             seq(n("NumChar").plus, lookahead_except(n("NumChar"))),
             seq(n("ChChar").plus, lookahead_except(n("ChChar"))),
             n("PuncChar"),
             seq(n("WsChar").plus, lookahead_except(n("WsChar")))
         ),
-        "NumChar" -> ListSet(chars('0' to '9')),
-        "ChChar" -> ListSet(chars('A' to 'Z', 'a' to 'z')),
-        "PuncChar" -> ListSet(chars("=+-*/()")),
-        "WsChar" -> ListSet(chars(" \t\n")),
-        "Whitespace" -> ListSet(chars(" \t\n").plus)
+        "NumChar" -> List(chars('0' to '9')),
+        "ChChar" -> List(chars('A' to 'Z', 'a' to 'z')),
+        "PuncChar" -> List(chars("=+-*/()")),
+        "WsChar" -> List(chars(" \t\n")),
+        "Whitespace" -> List(chars(" \t\n").plus)
     )
     val startSymbol = n("S")
 
@@ -52,13 +52,13 @@ object JoinGrammar2 extends Grammar with GrammarWithExamples with StringExamples
     val name = "JoinGrammar2 (nullable case)"
 
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("A").join(n("B"))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             chars('a' to 'z').star
         ),
-        "B" -> ListSet(
+        "B" -> List(
             chars('b' to 'y').star
         )
     )
@@ -77,28 +77,28 @@ object JoinGrammar3 extends Grammar with GrammarWithExamples with StringExamples
     val name = "JoinGrammar3 (a^n b^n c^n)"
 
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("L1").join(n("L2"))
         ),
-        "L1" -> ListSet(
+        "L1" -> List(
             seq(n("A"), n("P"))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             seq(c('a'), n("A"), c('b')),
             empty
         ),
-        "P" -> ListSet(
+        "P" -> List(
             seq(c('c'), n("P")),
             empty
         ),
-        "L2" -> ListSet(
+        "L2" -> List(
             seq(n("Q"), n("C"))
         ),
-        "Q" -> ListSet(
+        "Q" -> List(
             seq(c('a'), n("Q")),
             empty
         ),
-        "C" -> ListSet(
+        "C" -> List(
             seq(c('b'), n("C"), c('c')),
             empty
         )
@@ -118,20 +118,20 @@ object JoinGrammar3_1 extends Grammar with GrammarWithExamples with StringExampl
     val name = "JoinGrammar3_1 (a^n b^n c^n)"
 
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("P").join(n("Q"))
         ),
-        "P" -> ListSet(
+        "P" -> List(
             seq(n("A"), c('c').plus)
         ),
-        "A" -> ListSet(
+        "A" -> List(
             i("ab"),
             seq(c('a'), n("A"), c('b'))
         ),
-        "Q" -> ListSet(
+        "Q" -> List(
             seq(c('a').plus, n("B"))
         ),
-        "B" -> ListSet(
+        "B" -> List(
             i("bc"),
             seq(c('b'), n("B"), c('c'))
         )

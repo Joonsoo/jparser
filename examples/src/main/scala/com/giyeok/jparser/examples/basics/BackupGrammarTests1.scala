@@ -16,7 +16,7 @@ object BackupGrammar1 extends Grammar with GrammarWithExamples with StringExampl
         oneof(semicolon, seq(lookahead_except(semicolon), alternative))
     }
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(seq(c('a').plus), lineend).star))
+        "S" -> List(seq(seq(c('a').plus), lineend).star))
     val startSymbol = n("S")
 
     val grammar = this
@@ -40,21 +40,21 @@ object BackupGrammar2 extends Grammar with GrammarWithExamples with StringExampl
         oneof(semicolon, seq(lookahead_except(semicolon), alternative))
     }
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seqWS(n("WS").star, n("Stmt"), n("S")),
             empty),
-        "Stmt" -> ListSet(
+        "Stmt" -> List(
             seq(longest(n("Expr")), lineend),
             expr(c('{'), n("S"), c('}'))),
-        "Expr" -> ListSet(
+        "Expr" -> List(
             n("Term"),
             expr(chars("+-"), n("Term")),
             expr(n("Term"), chars("+-*/"), n("Expr"))),
-        "Term" -> ListSet(
+        "Term" -> List(
             c('a').plus,
             expr(c('('), n("Expr"), c(')'))),
-        "WS" -> ListSet(chars(" \n\r\t")),
-        "LT" -> ListSet(chars("\n\r")))
+        "WS" -> List(chars(" \n\r\t")),
+        "LT" -> List(chars("\n\r")))
     val startSymbol = n("S")
 
     val grammar = this

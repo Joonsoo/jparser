@@ -70,7 +70,7 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
   val emptyGrammarParser = new ParseProcessor[ParseForest](
     NGrammar.fromGrammar(new Grammar() {
       val name: String = ""
-      val rules: RuleMap = ListMap("S" -> ListSet(Sequence(Seq())))
+      val rules: RuleMap = ListMap("S" -> List(Sequence(Seq())))
       val startSymbol: Nonterminal = Nonterminal("S")
     }), (x: ParseForest) => x
   )

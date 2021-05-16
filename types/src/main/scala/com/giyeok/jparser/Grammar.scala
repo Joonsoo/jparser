@@ -3,7 +3,7 @@ package com.giyeok.jparser
 import scala.collection.immutable.{ListMap, ListSet}
 
 trait Grammar {
-    type RuleMap = ListMap[String, ListSet[Symbols.Symbol]]
+    type RuleMap = ListMap[String, List[Symbols.Symbol]]
 
     type Symbol = Symbols.Symbol
 

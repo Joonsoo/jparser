@@ -9,17 +9,17 @@ import scala.collection.immutable.{ListMap, ListSet}
 object SimpleGrammar2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 2"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Decimal"),
             n("HexDecimal")),
-        "Decimal" -> ListSet(
+        "Decimal" -> List(
             seq(c('-').opt, oneof(c('0'), seq(n("D1"), n("D0").star)), seq(c('.'), n("D0").star).opt, seq(chars("eE"), c('-').opt, n("D0").plus).opt)),
-        "D0" -> ListSet(chars('0' to '9')),
-        "D1" -> ListSet(chars('1' to '9')),
-        "HexDecimal" -> ListSet(
+        "D0" -> List(chars('0' to '9')),
+        "D1" -> List(chars('1' to '9')),
+        "HexDecimal" -> List(
             seq(c('-').opt, c('0'), chars("xX"), n("HD1"), n("HD0").star)),
-        "HD0" -> ListSet(chars('0' to '9', 'a' to 'f', 'A' to 'F')),
-        "HD1" -> ListSet(chars('1' to '9', 'a' to 'f', 'A' to 'F')))
+        "HD0" -> List(chars('0' to '9', 'a' to 'f', 'A' to 'F')),
+        "HD1" -> List(chars('1' to '9', 'a' to 'f', 'A' to 'F')))
     val startSymbol = n("S")
 
     val grammar = this
@@ -30,12 +30,12 @@ object SimpleGrammar2 extends Grammar with GrammarWithExamples with StringExampl
 object SimpleGrammar3 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 3 - Donald Knuth 63"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(n("A"), n("D"))),
-        "A" -> ListSet(seq(c('a'), n("C"))),
-        "B" -> ListSet(i("bcd")),
-        "C" -> ListSet(seq(n("B"), n("E"))),
-        "D" -> ListSet(empty),
-        "E" -> ListSet(i("e")))
+        "S" -> List(seq(n("A"), n("D"))),
+        "A" -> List(seq(c('a'), n("C"))),
+        "B" -> List(i("bcd")),
+        "C" -> List(seq(n("B"), n("E"))),
+        "D" -> List(empty),
+        "E" -> List(i("e")))
     val startSymbol = n("S")
 
     val grammar = this
@@ -46,7 +46,7 @@ object SimpleGrammar3 extends Grammar with GrammarWithExamples with StringExampl
 object SimpleGrammar4 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 4 - StackOverflow"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(chars("ab").star, c('a'), chars("ab").star)))
+        "S" -> List(seq(chars("ab").star, c('a'), chars("ab").star)))
     val startSymbol = n("S")
 
     val grammar = this

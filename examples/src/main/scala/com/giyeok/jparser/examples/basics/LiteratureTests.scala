@@ -9,15 +9,15 @@ import scala.collection.immutable.{ListMap, ListSet}
 object Earley1970AE extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Earley 1970 Grammar AE"
     val rules: RuleMap = ListMap(
-        "E" -> ListSet(
+        "E" -> List(
             n("T"),
             seq(n("E"), c('+'), n("T"))
         ),
-        "T" -> ListSet(
+        "T" -> List(
             n("P"),
             seq(n("T"), c('*'), n("P"))
         ),
-        "P" -> ListSet(
+        "P" -> List(
             c('a')
         )
     )
@@ -33,16 +33,16 @@ object Earley1970AE extends Grammar with GrammarWithExamples with StringExamples
 object Knuth1965_24 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Knuth 1965 Grammar 24"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             empty,
             seq(c('a'), n("A"), c('b'), n("S")),
             seq(c('b'), n("B"), c('a'), n("S"))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             empty,
             seq(c('a'), n("A"), c('b'), n("A"))
         ),
-        "B" -> ListSet(
+        "B" -> List(
             empty,
             seq(c('b'), n("B"), c('a'), n("B"))
         )
@@ -63,17 +63,17 @@ object Knuth1965_24 extends Grammar with GrammarWithExamples with StringExamples
 object MyPaper1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("N").plus
         ),
-        "N" -> ListSet(
+        "N" -> List(
             n("A"),
             n("B")
         ),
-        "A" -> ListSet(
+        "A" -> List(
             c('a').plus
         ),
-        "B" -> ListSet(
+        "B" -> List(
             c('b')
         )
     )
@@ -88,13 +88,13 @@ object MyPaper1 extends Grammar with GrammarWithExamples with StringExamples wit
 object MyPaper2 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 2"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             oneof(n("A"), n("Z")).plus
         ),
-        "A" -> ListSet(
+        "A" -> List(
             chars('a' to 'b').plus
         ),
-        "Z" -> ListSet(
+        "Z" -> List(
             c('z')
         )
     )
@@ -109,13 +109,13 @@ object MyPaper2 extends Grammar with GrammarWithExamples with StringExamples wit
 object MyPaper2_1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 2_1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             oneof(n("A"), n("Z")).plus
         ),
-        "A" -> ListSet(
+        "A" -> List(
             seq(chars('a' to 'b').plus, lookahead_is(n("Z")))
         ),
-        "Z" -> ListSet(
+        "Z" -> List(
             c('z')
         )
     )
@@ -130,19 +130,19 @@ object MyPaper2_1 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper3 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 3"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("T"),
             seq(n("S"), n("T"))
         ),
-        "T" -> ListSet(
+        "T" -> List(
             longest(n("N")),
             longest(n("P"))
         ),
-        "N" -> ListSet(
+        "N" -> List(
             chars('0' to '9'),
             seq(n("N"), chars('0' to '9'))
         ),
-        "P" -> ListSet(
+        "P" -> List(
             i("+"),
             i("++")
         )
@@ -158,7 +158,7 @@ object MyPaper3 extends Grammar with GrammarWithExamples with StringExamples wit
 object MyPaper4 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 4"
     val rules: RuleMap = ListMap(
-        "A" -> ListSet(
+        "A" -> List(
             seq(n("A"), chars('a' to 'z')),
             chars('a' to 'z')
         )
@@ -174,21 +174,21 @@ object MyPaper4 extends Grammar with GrammarWithExamples with StringExamples wit
 object MyPaper5 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 5"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("T").star
         ),
-        "T" -> ListSet(
+        "T" -> List(
             n("N"),
             n("W")
         ),
-        "N" -> ListSet(
+        "N" -> List(
             seq(n("A"), lookahead_except(n("A")))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             seq(chars('a' to 'z'), n("A")),
             chars('a' to 'z')
         ),
-        "W" -> ListSet(
+        "W" -> List(
             seq(c(' ').plus, lookahead_except(c(' ')))
         )
     )
@@ -203,50 +203,50 @@ object MyPaper5 extends Grammar with GrammarWithExamples with StringExamples wit
 object MyPaper6_1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 6_1"
     val rules: RuleMap = ListMap(
-        "Name" -> ListSet(
+        "Name" -> List(
             longest(chars('a' to 'z').plus)
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             n("Name").except(n("Kw"))
         ),
-        "Kw" -> ListSet(
+        "Kw" -> List(
             n("If"),
             n("Boolean")
         ),
-        "If" -> ListSet(
+        "If" -> List(
             i("if").join(n("Name"))
         ),
-        "Boolean" -> ListSet(
+        "Boolean" -> List(
             i("true").join(n("Name")),
             i("false").join(n("Name"))
         ),
-        "Stmt" -> ListSet(
+        "Stmt" -> List(
             n("IfStmt"),
             n("FuncCall")
         ),
-        "IfStmt" -> ListSet(
+        "IfStmt" -> List(
             seq(n("If"), c('('), n("Expr"), c(')'), n("Stmt"), n("ElseOpt"))
         ),
-        "ElseOpt" -> ListSet(
+        "ElseOpt" -> List(
             empty,
             seq(i("else").join(n("Name")), n("Stmt"))
         ),
-        "FuncCall" -> ListSet(
+        "FuncCall" -> List(
             seq(n("Id"), c('('), n("ParamsOpt"), c(')'))
         ),
-        "ParamsOpt" -> ListSet(
+        "ParamsOpt" -> List(
             empty,
             n("Params")
         ),
-        "Params" -> ListSet(
+        "Params" -> List(
             n("Expr"),
             seq(n("Params"), c(','), n("Expr"))
         ),
-        "Expr" -> ListSet(
+        "Expr" -> List(
             n("Boolean"),
             n("Id")
         ),
-        "S" -> ListSet(
+        "S" -> List(
             n("Stmt").star
         )
     )
@@ -261,34 +261,34 @@ object MyPaper6_1 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper6_2 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 6_2"
     val rules: RuleMap = ListMap(
-        "Name" -> ListSet(
+        "Name" -> List(
             longest(chars('a' to 'z').plus)
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             n("Name").except(n("Kw"))
         ),
-        "Kw" -> ListSet(
+        "Kw" -> List(
             i("if").join(n("Name"))
         ),
-        "Stmt" -> ListSet(
+        "Stmt" -> List(
             n("Assign"),
             n("FuncCall")
         ),
-        "Assign" -> ListSet(
+        "Assign" -> List(
             seq(n("Id"), c('='), n("Expr"), c(';'))
         ),
-        "FuncCall" -> ListSet(
+        "FuncCall" -> List(
             seq(n("Id"), c('('), c(')'), c(';')),
             seq(n("Id"), c('('), n("Params"), c(')'), c(';'))
         ),
-        "Params" -> ListSet(
+        "Params" -> List(
             n("Expr"),
             seq(n("Params"), c(','), n("Expr"))
         ),
-        "Expr" -> ListSet(
+        "Expr" -> List(
             n("Id")
         ),
-        "S" -> ListSet(
+        "S" -> List(
             n("Stmt").star
         )
     )
@@ -303,32 +303,32 @@ object MyPaper6_2 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper6_3 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 6_3"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Stmt").plus
         ),
-        "Stmt" -> ListSet(
+        "Stmt" -> List(
             n("LetStmt"),
             n("ExprStmt")
         ),
-        "LetStmt" -> ListSet(
+        "LetStmt" -> List(
             seq(n("Let"), c(' '), n("Id"), c(' '), n("Expr"), c(';'))
         ),
-        "ExprStmt" -> ListSet(
+        "ExprStmt" -> List(
             seq(n("Expr"), c(';'), lookahead_is(n("LetStmt")))
         ),
-        "Let" -> ListSet(
+        "Let" -> List(
             n("Let0").join(n("Name"))
         ),
-        "Let0" -> ListSet(
+        "Let0" -> List(
             i("let")
         ),
-        "Name" -> ListSet(
+        "Name" -> List(
             longest(chars('a' to 'z').plus)
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             n("Name").except(n("Let"))
         ),
-        "Expr" -> ListSet(
+        "Expr" -> List(
             seq(n("Expr"), c(' '), n("Id")),
             n("Id")
         )
@@ -358,36 +358,36 @@ object MyPaper6_3 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper6_4 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 6_4"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Stmt").plus
         ),
-        "Stmt" -> ListSet(
+        "Stmt" -> List(
             n("LetStmt"),
             n("ExprStmt")
         ),
-        "LetStmt" -> ListSet(
+        "LetStmt" -> List(
             seq(n("Let"), c(' '), n("Id"), c(' '), n("Expr"), c(';'))
         ),
-        "ExprStmt" -> ListSet(
+        "ExprStmt" -> List(
             seq(n("Expr"), c(';'), lookahead_is(n("LetStmt")))
         ),
-        "Let" -> ListSet(
+        "Let" -> List(
             n("Let0").join(n("Name"))
         ),
-        "Let0" -> ListSet(
+        "Let0" -> List(
             i("let")
         ),
-        "Name" -> ListSet(
+        "Name" -> List(
             longest(chars('a' to 'z').plus)
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             n("Name").except(n("Let"))
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             n("Id"),
             c('+')
         ),
-        "Expr" -> ListSet(
+        "Expr" -> List(
             n("Token").plus
         )
     )
@@ -417,39 +417,39 @@ object MyPaper6_4 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper6_5 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 6_5"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Stmt").plus
         ),
-        "Stmt" -> ListSet(
+        "Stmt" -> List(
             n("LetStmt"),
             n("ExprStmt")
         ),
-        "LetStmt" -> ListSet(
+        "LetStmt" -> List(
             seq(n("Let"), c(' '), n("Id"), c(' '), n("Expr"), c(';'))
         ),
-        "ExprStmt" -> ListSet(
+        "ExprStmt" -> List(
             seq(n("Expr"), c(';'), lookahead_is(n("LetStmt")))
         ),
-        "Let" -> ListSet(
+        "Let" -> List(
             n("Let0").join(n("Name"))
         ),
-        "Let0" -> ListSet(
+        "Let0" -> List(
             i("let")
         ),
-        "Name" -> ListSet(
+        "Name" -> List(
             longest(n("[a-z]").plus)
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             n("Name").except(n("Let"))
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             n("Id"),
             c('+')
         ),
-        "Expr" -> ListSet(
+        "Expr" -> List(
             n("Token").plus
         ),
-        "[a-z]" -> ListSet(
+        "[a-z]" -> List(
             c('l'),
             chars('a' to 'k'),
             chars('m' to 'z')
@@ -481,36 +481,36 @@ object MyPaper6_5 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper6_6 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 6_6"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Stmt").plus
         ),
-        "Stmt" -> ListSet(
+        "Stmt" -> List(
             n("LetStmt"),
             n("ExprStmt")
         ),
-        "LetStmt" -> ListSet(
+        "LetStmt" -> List(
             seq(n("Let0"), c(' '), n("Id"), c(' '), n("Expr"), c(';'))
         ),
-        "ExprStmt" -> ListSet(
+        "ExprStmt" -> List(
             seq(n("Expr"), c(';'), lookahead_is(n("LetStmt")))
         ),
-        "Let0" -> ListSet(
+        "Let0" -> List(
             i("let")
         ),
-        "Name" -> ListSet(
+        "Name" -> List(
             longest(n("[a-z]").plus)
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             n("Name").except(n("Let0"))
         ),
-        "Token" -> ListSet(
+        "Token" -> List(
             n("Id"),
             c('+')
         ),
-        "Expr" -> ListSet(
+        "Expr" -> List(
             n("Token").plus
         ),
-        "[a-z]" -> ListSet(
+        "[a-z]" -> List(
             c('l'),
             chars('a' to 'k'),
             chars('m' to 'z')
@@ -542,16 +542,16 @@ object MyPaper6_6 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper7_1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 7_1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("A").except(n("B")).except(n("C"))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             chars("abc")
         ),
-        "B" -> ListSet(
+        "B" -> List(
             chars("ac")
         ),
-        "C" -> ListSet(
+        "C" -> List(
             chars("bc")
         )
     )
@@ -570,16 +570,16 @@ object MyPaper7_1 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper7_2 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 7_2"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("A").except(n("B").except(n("C")))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             chars("abc")
         ),
-        "B" -> ListSet(
+        "B" -> List(
             chars("ac")
         ),
-        "C" -> ListSet(
+        "C" -> List(
             chars("bc")
         )
     )
@@ -599,11 +599,11 @@ object MyPaper7_2 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper8_1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 8_1 (ambiguous)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("N"),
             seq(n("S"), n("N"))
         ),
-        "N" -> ListSet(
+        "N" -> List(
             chars('a' to 'z'),
             seq(n("N"), chars('a' to 'z'))
         )
@@ -625,14 +625,14 @@ object MyPaper8_1 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper8_2 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 8_2"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("L"),
             seq(n("S"), n("L"))
         ),
-        "L" -> ListSet(
+        "L" -> List(
             seq(n("N"), lookahead_except(n("N")))
         ),
-        "N" -> ListSet(
+        "N" -> List(
             chars('a' to 'z'),
             seq(n("N"), chars('a' to 'z'))
         )
@@ -654,11 +654,11 @@ object MyPaper8_2 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper8_3 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 8_3"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             longest(n("N")),
             seq(n("S"), longest(n("N")))
         ),
-        "N" -> ListSet(
+        "N" -> List(
             chars('a' to 'z'),
             seq(n("N"), chars('a' to 'z'))
         )
@@ -680,11 +680,11 @@ object MyPaper8_3 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper9_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 9_1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(c('a'), longest(n("A"))),
             seq(c('a'), c('a'), longest(n("A")))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             i("aaaaa").plus
         )
     )
@@ -711,15 +711,15 @@ object MyPaper9_1 extends Grammar with GrammarWithExamples with StringExamples {
 object MyPaper9_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 9_2"
     val rules: RuleMap = ListMap(
-        "K" -> ListSet(
+        "K" -> List(
             n("S"),
             seq(c('a'), c('a'), c('a'), n("S"))
         ),
-        "S" -> ListSet(
+        "S" -> List(
             seq(c('a'), longest(n("A"))),
             seq(c('a'), c('a'), longest(n("A")))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             i("aaaaa").plus
         )
     )
@@ -746,10 +746,10 @@ object MyPaper9_2 extends Grammar with GrammarWithExamples with StringExamples {
 object MyPaper9_3 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 9_3"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("A"), longest(n("A")))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             c('a').plus
         )
     )
@@ -763,13 +763,13 @@ object MyPaper9_3 extends Grammar with GrammarWithExamples with StringExamples {
 object MyPaper9_4 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 9_4"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("A"), longest(n("B")))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             c('a').plus
         ),
-        "B" -> ListSet(
+        "B" -> List(
             c('b').plus
         )
     )
@@ -783,14 +783,14 @@ object MyPaper9_4 extends Grammar with GrammarWithExamples with StringExamples {
 object MyPaper9_5 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 9_5"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("T+")
         ),
-        "T+" -> ListSet(
+        "T+" -> List(
             seq(n("T+"), n("T")),
             n("T")
         ),
-        "T" -> ListSet(
+        "T" -> List(
             longest(c('a').plus),
             longest(c('b').plus),
             longest(c('c').plus)
@@ -806,17 +806,17 @@ object MyPaper9_5 extends Grammar with GrammarWithExamples with StringExamples {
 object MyPaper9_6 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 9_6"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("A"), n("B"))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             i("aa"),
             i("aaaa")
         ),
-        "B" -> ListSet(
+        "B" -> List(
             n("C").plus
         ),
-        "C" -> ListSet(
+        "C" -> List(
             i("aaaaa")
         )
     )
@@ -833,17 +833,17 @@ object MyPaper9_6 extends Grammar with GrammarWithExamples with StringExamples {
 object MyPaper9_7 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 9_7"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("A"), longest(n("B")))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             i("aa"),
             i("aaaa")
         ),
-        "B" -> ListSet(
+        "B" -> List(
             n("C").plus
         ),
-        "C" -> ListSet(
+        "C" -> List(
             i("aaaaa")
         )
     )
@@ -860,10 +860,10 @@ object MyPaper9_7 extends Grammar with GrammarWithExamples with StringExamples {
 object MyPaper10 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 10"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             longest(longest(n("A")).plus)
         ),
-        "A" -> ListSet(
+        "A" -> List(
             c('a').plus,
             c('b').plus
         )
@@ -881,10 +881,10 @@ object MyPaper10 extends Grammar with GrammarWithExamples with StringExamples {
 object MyPaper10_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 10_1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(longest(longest(longest(n("A"))).plus))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             c('a').plus,
             c('b').plus
         )
@@ -902,20 +902,20 @@ object MyPaper10_1 extends Grammar with GrammarWithExamples with StringExamples 
 object MyPaper11_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 11_1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("A"), n("Gamma"))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             n("X"),
             n("Y")
         ),
-        "X" -> ListSet(
+        "X" -> List(
             longest(seq(i("ab"), i("cd").star))
         ),
-        "Y" -> ListSet(
+        "Y" -> List(
             i("ab")
         ),
-        "Gamma" -> ListSet(
+        "Gamma" -> List(
             i("cdefg"),
             i("efghi")
         )
@@ -933,20 +933,20 @@ object MyPaper11_1 extends Grammar with GrammarWithExamples with StringExamples 
 object MyPaper11_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 11_2"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("A"), n("Gamma"))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             n("X"),
             n("Y")
         ),
-        "X" -> ListSet(
+        "X" -> List(
             longest(seq(c('a'), c('b').star))
         ),
-        "Y" -> ListSet(
+        "Y" -> List(
             i("ab")
         ),
-        "Gamma" -> ListSet(
+        "Gamma" -> List(
             i("bcd"),
             i("cde")
         )
@@ -965,7 +965,7 @@ object MyPaper11_2 extends Grammar with GrammarWithExamples with StringExamples 
 object MyPaper12_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 12_1"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             longest(seq(c('a'), longest(c('a').plus)))
         )
     )
@@ -981,7 +981,7 @@ object MyPaper12_1 extends Grammar with GrammarWithExamples with StringExamples 
 object MyPaper12_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "MyPaper Grammar 12_2"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(longest(c('a').plus), c('a'))
         )
     )
@@ -1036,23 +1036,23 @@ object PaperTests {
 object Fig6_6 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "Parsing Techniques Grammar in Figure 6.6"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("D"), n("C")),
             seq(n("A"), n("B"))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             c('a'),
             seq(c('a'), n("A"))
         ),
-        "B" -> ListSet(
+        "B" -> List(
             i("bc"),
             seq(c('b'), n("B"), c('c'))
         ),
-        "D" -> ListSet(
+        "D" -> List(
             i("ab"),
             seq(c('a'), n("D"), c('b'))
         ),
-        "C" -> ListSet(
+        "C" -> List(
             c('c'),
             seq(c('c'), n("C"))
         )
@@ -1068,7 +1068,7 @@ object Fig6_6 extends Grammar with GrammarWithExamples with StringExamples with 
 object Fig7_4 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "Parsing Techniques Grammar in Figure 7.4"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(c('a'), n("S"), c('b')),
             seq(n("S"), c('a'), c('b')),
             seq(i("aaa"))
@@ -1085,17 +1085,17 @@ object Fig7_4 extends Grammar with GrammarWithExamples with StringExamples with 
 object Fig7_8 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Parsing Techniques Grammar in Figure 7.8"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("E")
         ),
-        "E" -> ListSet(
+        "E" -> List(
             seq(n("E"), n("Q"), n("F")),
             n("F")
         ),
-        "F" -> ListSet(
+        "F" -> List(
             c('a')
         ),
-        "Q" -> ListSet(
+        "Q" -> List(
             c('+'),
             c('-')
         )
@@ -1113,17 +1113,17 @@ object Fig7_8 extends Grammar with GrammarWithExamples with StringExamples {
 object Fig7_17 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Parsing Techniques Grammar in Figure 7.17"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("E")
         ),
-        "E" -> ListSet(
+        "E" -> List(
             seq(n("E"), n("Q"), n("F")),
             n("F")
         ),
-        "F" -> ListSet(
+        "F" -> List(
             c('a')
         ),
-        "Q" -> ListSet(
+        "Q" -> List(
             c('*'),
             c('/'),
             seq()
@@ -1142,21 +1142,21 @@ object Fig7_17 extends Grammar with GrammarWithExamples with StringExamples {
 object Fig7_19 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Parsing Techniques Grammar in Figure 7.19"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("A"),
             seq(n("A"), n("B")),
             n("B")
         ),
-        "A" -> ListSet(
+        "A" -> List(
             n("C")
         ),
-        "B" -> ListSet(
+        "B" -> List(
             n("D")
         ),
-        "C" -> ListSet(
+        "C" -> List(
             c('p')
         ),
-        "D" -> ListSet(
+        "D" -> List(
             c('q')
         )
     )

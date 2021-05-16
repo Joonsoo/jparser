@@ -16,44 +16,44 @@ object VarDecGrammar1 extends Grammar0 with GrammarWithExamples with StringExamp
 
     val startSymbol = n("Start")
     val _rules: RuleMap = ListMap(
-        "Start" -> ListSet(
+        "Start" -> List(
             expr(n("Stmt"), n("Start")),
             n("Stmt")),
-        "Stmt" -> ListSet(
+        "Stmt" -> List(
             n("VarStmt")),
-        "VarStmt" -> ListSet(
+        "VarStmt" -> List(
             expr(token(i("var")), n("VarDecList"), i(";"))),
-        "VarDecList" -> ListSet(
+        "VarDecList" -> List(
             n("VarDec"),
             expr(n("VarDecList"), i(","), n("VarDec"))),
-        "VarDec" -> ListSet(
+        "VarDec" -> List(
             expr(token(n("_IdName")), n("Init").opt)),
-        "Init" -> ListSet(
+        "Init" -> List(
             expr(i("="), n("TestExpr"))),
-        "TestExpr" -> ListSet(
+        "TestExpr" -> List(
             token(chars('0' to '9').plus)),
 
-        "_IdName" -> ListSet(
+        "_IdName" -> List(
             n("IdStart"),
             seq(n("_IdName"), n("IdPart"))),
-        "IdStart" -> ListSet(
+        "IdStart" -> List(
             unicode("Lu", "Ll", "Lt", "Lm", "Lo", "Nl"),
             i("$"),
             i("_")),
-        "IdPart" -> ListSet(
+        "IdPart" -> List(
             n("IdStart"),
             unicode("Nd")),
-        "Number" -> ListSet(
+        "Number" -> List(
             chars('0' to '9').plus),
-        "Token" -> ListSet(
+        "Token" -> List(
             n("_IdName"),
             n("Number")),
 
-        "WhiteSpace" -> ListSet(
+        "WhiteSpace" -> List(
             chars("\t\u000B\u000C\uFEFF"), unicode("Zs")), // \u0020\u00A0  ->  already in Zs
-        "LineTerminator" -> ListSet(
+        "LineTerminator" -> List(
             chars("\n\r")),
-        "Comment" -> ListSet(
+        "Comment" -> List(
             seq(i("/*"), chars(" abcdefghijklmnopqrstuvwxyz\n\r\t").plus, i("*/"))))
     val rules = _rules
 
@@ -68,7 +68,7 @@ object VarDecGrammar1_1 extends Grammar0 with GrammarWithExamples with StringExa
     val name = "JS VarDec Test 1_1"
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
-        "Token" -> ListSet(
+        "Token" -> List(
             seq(n("_IdName"), lookahead_except(n("_IdName"))),
             n("Number"))))
 
@@ -83,7 +83,7 @@ object VarDecGrammar1_2 extends Grammar0 with GrammarWithExamples with StringExa
     val name = "JS VarDec Test 1_2"
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
-        "TestExpr" -> ListSet(
+        "TestExpr" -> List(
             n("Number"),
             expr(n("TestExpr"), i("+"), n("TestExpr")),
             expr(n("TestExpr"), i("-"), n("TestExpr")),
@@ -102,21 +102,21 @@ object VarDecGrammar2 extends Grammar0 with GrammarWithExamples with StringExamp
     val name = "VarDecGrammar2"
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
-        "VarDec" -> ListSet(
+        "VarDec" -> List(
             expr(token(n("Id")), n("Init").opt)),
 
-        "Id" -> ListSet(
+        "Id" -> List(
             n("IdName").butnot(n("Kw"))),
-        "IdName" -> ListSet(
+        "IdName" -> List(
             token(n("_IdName"))),
-        "Kw" -> ListSet(
+        "Kw" -> List(
             token(i("if")),
             token(i("var"))),
 
-        "_IdName" -> ListSet(
+        "_IdName" -> List(
             n("IdStart"),
             seq(n("_IdName"), n("IdPart"), lookahead_except(n("IdPart")))),
-        "Token" -> ListSet(
+        "Token" -> List(
             n("Id"))))
 
     val grammar = this
@@ -136,7 +136,7 @@ object VarDecGrammar3 extends Grammar0 with GrammarWithExamples with StringExamp
 
     val startSymbol = n("Start")
     val rules: RuleMap = VarDecGrammar1._rules.merge(ListMap(
-        "VarStmt" -> ListSet(
+        "VarStmt" -> List(
             seq(expr(token(i("var")), n("VarDecList")), lineend))))
 
     val grammar = this

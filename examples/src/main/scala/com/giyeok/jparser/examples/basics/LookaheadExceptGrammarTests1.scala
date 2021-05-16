@@ -9,8 +9,8 @@ import scala.collection.immutable.{ListMap, ListSet}
 object LookaheadExceptGrammar1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadExceptGrammar1 - longest match"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("A").star),
-        "A" -> ListSet(
+        "S" -> List(n("A").star),
+        "A" -> List(
             seq(chars('a' to 'z').star, lookahead_except(chars('a' to 'z'))),
             chars(" ")))
     val startSymbol = n("S")
@@ -23,8 +23,8 @@ object LookaheadExceptGrammar1 extends Grammar with GrammarWithExamples with Str
 object LookaheadExceptGrammar2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadExceptGrammar2 - longest match"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("A").star),
-        "A" -> ListSet(
+        "S" -> List(n("A").star),
+        "A" -> List(
             seq(chars('a' to 'z').star, lookahead_except(seq(chars('a' to 'z')))),
             chars(" ")))
     val startSymbol = n("S")
@@ -37,8 +37,8 @@ object LookaheadExceptGrammar2 extends Grammar with GrammarWithExamples with Str
 object LookaheadExceptGrammar3 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadExceptGrammar3 - longest match"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("A").star),
-        "A" -> ListSet(seq(chars('a' to 'z').plus, lookahead_except(chars('a' to 'z'))), chars(" ")))
+        "S" -> List(n("A").star),
+        "A" -> List(seq(chars('a' to 'z').plus, lookahead_except(chars('a' to 'z'))), chars(" ")))
     val startSymbol = n("S")
 
     val grammar = this
@@ -49,11 +49,11 @@ object LookaheadExceptGrammar3 extends Grammar with GrammarWithExamples with Str
 object LookaheadExceptGrammar3_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadExceptGrammar3_1 - longest match"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("T").star),
-        "T" -> ListSet(seq(oneof(n("I").except(n("K")), n("K")), lookahead_except(chars('a' to 'z'))), n("WS")),
-        "I" -> ListSet(chars('a' to 'z').plus),
-        "K" -> ListSet(i("if"), i("for")),
-        "WS" -> ListSet(chars(" ")))
+        "S" -> List(n("T").star),
+        "T" -> List(seq(oneof(n("I").except(n("K")), n("K")), lookahead_except(chars('a' to 'z'))), n("WS")),
+        "I" -> List(chars('a' to 'z').plus),
+        "K" -> List(i("if"), i("for")),
+        "WS" -> List(chars(" ")))
     val startSymbol = n("S")
 
     val grammar = this
@@ -64,11 +64,11 @@ object LookaheadExceptGrammar3_1 extends Grammar with GrammarWithExamples with S
 object LookaheadExceptGrammar3_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadExceptGrammar3_2 - longest match"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("T").star),
-        "T" -> ListSet(seq(oneof(n("I"), n("K")), lookahead_except(chars('a' to 'z'))), n("WS")),
-        "I" -> ListSet(chars('a' to 'z').plus.except(n("K"))),
-        "K" -> ListSet(i("if"), i("for")),
-        "WS" -> ListSet(chars(" ")))
+        "S" -> List(n("T").star),
+        "T" -> List(seq(oneof(n("I"), n("K")), lookahead_except(chars('a' to 'z'))), n("WS")),
+        "I" -> List(chars('a' to 'z').plus.except(n("K"))),
+        "K" -> List(i("if"), i("for")),
+        "WS" -> List(chars(" ")))
     val startSymbol = n("S")
 
     val grammar = this
@@ -79,20 +79,20 @@ object LookaheadExceptGrammar3_2 extends Grammar with GrammarWithExamples with S
 object LookaheadExceptGrammar4 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadExceptGrammar4 - longest match"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("A").star),
-        "A" -> ListSet(
+        "S" -> List(n("A").star),
+        "A" -> List(
             n("Id"),
             n("Num"),
             n("WS"),
             n("Str"),
             chars("()+-*/.,")),
-        "Id" -> ListSet(
+        "Id" -> List(
             seq(chars('a' to 'z'), chars('a' to 'z', '0' to '9').star, lookahead_except(chars('a' to 'z', '0' to '9')))),
-        "Num" -> ListSet(
+        "Num" -> List(
             seq(chars('0' to '9'), lookahead_except(chars('0' to '9')))),
-        "WS" -> ListSet(
+        "WS" -> List(
             chars(" \t\n")),
-        "Str" -> ListSet(
+        "Str" -> List(
             seq(c('"'), chars('a' to 'z', 'A' to 'Z', '0' to '9', ' ' to ' ').star, c('"'))))
     val startSymbol = n("S")
 
@@ -104,20 +104,20 @@ object LookaheadExceptGrammar4 extends Grammar with GrammarWithExamples with Str
 object LookaheadExceptGrammar5 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadExceptGrammar5 - longest match"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("A").star),
-        "A" -> ListSet(
+        "S" -> List(n("A").star),
+        "A" -> List(
             n("Id"),
             n("Num"),
             n("WS"),
             n("Str"),
             chars("()+-*/.,")),
-        "Id" -> ListSet(
+        "Id" -> List(
             seq(chars('a' to 'z'), chars('a' to 'z').star, lookahead_except(chars('a' to 'z')))),
-        "Num" -> ListSet(
+        "Num" -> List(
             seq(chars('0' to '9'), lookahead_except(chars('0' to '9')))),
-        "WS" -> ListSet(
+        "WS" -> List(
             chars(" \t\n")),
-        "Str" -> ListSet(
+        "Str" -> List(
             seq(c('"'), chars('a' to 'z', 'A' to 'Z', '0' to '9', ' ' to ' ').star, c('"'))))
     val startSymbol = n("S")
 
@@ -129,20 +129,20 @@ object LookaheadExceptGrammar5 extends Grammar with GrammarWithExamples with Str
 object LookaheadExceptGrammar6 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadExceptGrammar6 - longest match"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("A").star),
-        "A" -> ListSet(
+        "S" -> List(n("A").star),
+        "A" -> List(
             n("Id"),
             n("Num"),
             n("WS"),
             n("Str"),
             chars("()+-*/.,")),
-        "Id" -> ListSet(
+        "Id" -> List(
             seq(chars('a' to 'z').star, chars('a' to 'z'), lookahead_except(chars('a' to 'z')))),
-        "Num" -> ListSet(
+        "Num" -> List(
             seq(chars('0' to '9'), lookahead_except(chars('0' to '9')))),
-        "WS" -> ListSet(
+        "WS" -> List(
             chars(" \t\n")),
-        "Str" -> ListSet(
+        "Str" -> List(
             seq(c('"'), chars('a' to 'z', 'A' to 'Z', '0' to '9', ' ' to ' ').star, c('"'))))
     val startSymbol = n("S")
 
@@ -154,8 +154,8 @@ object LookaheadExceptGrammar6 extends Grammar with GrammarWithExamples with Str
 object LookaheadExceptGrammar7 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadExceptGrammar7"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("A").star),
-        "A" -> ListSet(
+        "S" -> List(n("A").star),
+        "A" -> List(
             seq(chars('a' to 'z').star, lookahead_except(c(' '))),
             c(' ')))
     val startSymbol = n("S")
@@ -168,21 +168,21 @@ object LookaheadExceptGrammar7 extends Grammar with GrammarWithExamples with Str
 object LookaheadExceptGrammar9 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "LookaheadExceptGrammar9"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(n("Token").star),
-        "Token" -> ListSet(
+        "S" -> List(n("Token").star),
+        "Token" -> List(
             n("Name"),
             n("Keyword"),
             chars(" ()")),
-        "Word" -> ListSet(
+        "Word" -> List(
             seq(n("FirstChar"), n("SecondChar").star, lookahead_except(n("SecondChar")))),
-        "Name" -> ListSet(
+        "Name" -> List(
             n("Word").except(n("Keyword"))),
-        "Keyword" -> ListSet(
+        "Keyword" -> List(
             i("var"),
             i("if")),
-        "FirstChar" -> ListSet(
+        "FirstChar" -> List(
             chars('a' to 'z', 'A' to 'Z')),
-        "SecondChar" -> ListSet(
+        "SecondChar" -> List(
             chars('a' to 'z', 'A' to 'Z', '0' to '9')))
     val startSymbol = n("S")
 

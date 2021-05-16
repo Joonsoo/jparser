@@ -87,7 +87,7 @@ object NGrammar {
                                 case symbol: Symbols.Terminal => NTerminal(myId, symbol)
 
                                 case Symbols.Start => NStart(myId, numberOf(grammar.startSymbol))
-                                case symbol: Symbols.Nonterminal => NNonterminal(myId, symbol, grammar.rules(symbol.name) map { numberOf })
+                                case symbol: Symbols.Nonterminal => NNonterminal(myId, symbol, (grammar.rules(symbol.name) map { numberOf }).toSet)
                                 case symbol: Symbols.OneOf => NOneOf(myId, symbol, symbol.syms map { numberOf })
                                 case symbol: Symbols.Proxy => NProxy(myId, symbol, numberOf(symbol.sym))
                                 case symbol: Symbols.Repeat => NRepeat(myId, symbol, baseSeq = numberOf(symbol.baseSeq), repeatSeq = numberOf(symbol.repeatSeq))

@@ -12,8 +12,8 @@ class AstAnalysis(val astifiers: List[(String, List[(Symbols.Symbol, AstifierExp
     def grammar(grammarName: String): Grammar = new Grammar {
         val name: String = grammarName
         val startSymbol: Nonterminal = Symbols.Nonterminal(astifiers.head._1)
-        val rules: RuleMap = ListMap[String, ListSet[Symbols.Symbol]](
-            astifierMap.toList.map { p => p._1 -> ListSet(p._2 map (_._1): _*) }: _*
+        val rules: RuleMap = ListMap[String, List[Symbols.Symbol]](
+            astifierMap.toList.map { p => p._1 -> (p._2 map (_._1)) }: _*
         )
     }
 

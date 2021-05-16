@@ -9,9 +9,9 @@ import scala.collection.immutable.{ListMap, ListSet}
 object SimpleGrammar5 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 5"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(n("A"), n("B"))),
-        "A" -> ListSet(i("a"), empty),
-        "B" -> ListSet(i("b"), empty)
+        "S" -> List(seq(n("A"), n("B"))),
+        "A" -> List(i("a"), empty),
+        "B" -> List(i("b"), empty)
     )
     val startSymbol = n("S")
 
@@ -23,10 +23,10 @@ object SimpleGrammar5 extends Grammar with GrammarWithExamples with StringExampl
 object SimpleGrammar6 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 6"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(seq(n("A"), n("C"))),
-        "A" -> ListSet(seq(n("B"), i("a").star)),
-        "B" -> ListSet(i("b"), empty),
-        "C" -> ListSet(seq(n("B"), i("c").star))
+        "S" -> List(seq(n("A"), n("C"))),
+        "A" -> List(seq(n("B"), i("a").star)),
+        "B" -> List(i("b"), empty),
+        "C" -> List(seq(n("B"), i("c").star))
     )
     val startSymbol = n("S")
 
@@ -38,29 +38,29 @@ object SimpleGrammar6 extends Grammar with GrammarWithExamples with StringExampl
 object SimpleGrammar7_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 7-1 (right associative)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Exp")
         ),
-        "Exp0" -> ListSet(
+        "Exp0" -> List(
             n("Id"),
             n("Num"),
             seq(i("("), n("Num"), i(")"))
         ),
-        "Exp1" -> ListSet(
+        "Exp1" -> List(
             n("Exp0"),
             seq(n("Exp0"), i("*"), n("Exp1"))
         ),
-        "Exp2" -> ListSet(
+        "Exp2" -> List(
             n("Exp1"),
             seq(n("Exp1"), i("+"), n("Exp2"))
         ),
-        "Exp" -> ListSet(
+        "Exp" -> List(
             n("Exp2")
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             longest(chars('a' to 'z').plus)
         ),
-        "Num" -> ListSet(
+        "Num" -> List(
             longest(chars('0' to '9').plus)
         )
     )
@@ -79,29 +79,29 @@ object SimpleGrammar7_1 extends Grammar with GrammarWithExamples with StringExam
 object SimpleGrammar7_2 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 7-2 (left associative)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("Exp")
         ),
-        "Exp0" -> ListSet(
+        "Exp0" -> List(
             n("Id"),
             n("Num"),
             seq(i("("), n("Num"), i(")"))
         ),
-        "Exp1" -> ListSet(
+        "Exp1" -> List(
             n("Exp0"),
             seq(n("Exp1"), i("*"), n("Exp0"))
         ),
-        "Exp2" -> ListSet(
+        "Exp2" -> List(
             n("Exp1"),
             seq(n("Exp2"), i("+"), n("Exp1"))
         ),
-        "Exp" -> ListSet(
+        "Exp" -> List(
             n("Exp2")
         ),
-        "Id" -> ListSet(
+        "Id" -> List(
             longest(chars('a' to 'z').plus)
         ),
-        "Num" -> ListSet(
+        "Num" -> List(
             longest(chars('0' to '9').plus)
         )
     )
@@ -120,10 +120,10 @@ object SimpleGrammar7_2 extends Grammar with GrammarWithExamples with StringExam
 object SimpleGrammar8 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 8"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("A").star
         ),
-        "A" -> ListSet(
+        "A" -> List(
             seq(c('('), n("A"), c(')')),
             c('0')
         )
@@ -142,7 +142,7 @@ object SimpleGrammar8 extends Grammar with GrammarWithExamples with StringExampl
 object SimpleGrammar8_1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 8-1 (ambiguous)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(c('('), n("S"), c(')')),
             seq(i("("), n("S"), i(")")),
             c('0')
@@ -158,7 +158,7 @@ object SimpleGrammar8_1 extends Grammar with GrammarWithExamples with StringExam
 object SimpleGrammar8_2 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "Simple Grammar 8-2 (ambiguous)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(c('a').opt, c('a').opt, c('a').opt, c('a').opt)
         )
     )
@@ -175,11 +175,11 @@ object SimpleGrammar8_2 extends Grammar with GrammarWithExamples with StringExam
 object SimpleGrammar9 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 9 (Infinitely ambiguous)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             empty,
             seq(n("S"), n("A"))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             empty,
             seq(n("A"), c('a'))
         )
@@ -194,11 +194,11 @@ object SimpleGrammar9 extends Grammar with GrammarWithExamples with StringExampl
 object SimpleGrammar9_1 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "Simple Grammar 9_1 (ambiguous)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             n("A"),
             seq(n("S"), n("A"))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             c('a'),
             seq(n("A"), c('a'))
         )
@@ -214,7 +214,7 @@ object SimpleGrammar9_1 extends Grammar with GrammarWithExamples with StringExam
 object SimpleGrammar9_2 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "Simple Grammar 9_2 (ambiguous)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("S"), n("S")),
             c('a')
         )
@@ -230,10 +230,10 @@ object SimpleGrammar9_2 extends Grammar with GrammarWithExamples with StringExam
 object SimpleGrammar10 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Simple Grammar 10 (Ambiguous Reverter)"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(
+        "S" -> List(
             seq(n("A"), c('0'))
         ),
-        "A" -> ListSet(
+        "A" -> List(
             longest(chars('a' to 'z').star),
             longest(chars('b' to 'z').star)
         )
@@ -248,7 +248,7 @@ object SimpleGrammar10 extends Grammar with GrammarWithExamples with StringExamp
 object AsteriskNullable extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "*-nullable"
     val rules: RuleMap = ListMap(
-        "S" -> ListSet(c('a').opt.star)
+        "S" -> List(c('a').opt.star)
     )
     val startSymbol = n("S")
 
