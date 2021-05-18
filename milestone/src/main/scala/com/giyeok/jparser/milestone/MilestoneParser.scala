@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.milestone
+package com.giyeok.jparser.milestone
 
 import com.giyeok.jparser.Inputs.{Input, TermGroupDesc}
 import com.giyeok.jparser.ParsingErrors.ParsingError
@@ -6,7 +6,7 @@ import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
-import com.giyeok.jparser.parsergen.milestone.MilestoneParser.{AcceptConditionEvaluator, reconstructParseTree, transformEdgeActionCondition, transformTermActionCondition}
+import MilestoneParser.{AcceptConditionEvaluator, reconstructParseTree, transformEdgeActionCondition, transformTermActionCondition}
 import com.giyeok.jparser.utils.Memoize
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForest, ParseForestFunc, ParsingErrors, Symbols}
 

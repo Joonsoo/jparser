@@ -60,6 +60,7 @@ object MetaLanguage3 {
     // TODO UnionOf(UnspecifiedEnumType(1), UnspecifiedEnumType(2))가 들어왔는데 UnspecifiedEnumType(1)과 2가 같은 enum인 경우 Nothing이 반환됨. 고쳐야 함
     def reduceUnionType(unionType: UnionOf): Type = {
       val types = unionType.types
+      // TODO types가 모두 class type인 경우 공통 supertype이면서 그 supertype의 모든 subtype이 types와 일치하면 그 supertype을 반환
       val reducedTypes = types.filterNot { subType =>
         // (types - subType)에 subType보다 super type인 타입이 존재하면 subType은 없어도 됨
         (types - subType).exists { superType => isSubtypeOf(superType, subType) }

@@ -3,7 +3,7 @@ package com.giyeok.jparser.study.parsergen
 import com.giyeok.jparser.{NGrammar, Symbols}
 import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.parsergen.deprecated.{AKernel, GrammarAnalyzer}
-import com.giyeok.jparser.parsergen.utils.TermGrouper
+import com.giyeok.jparser.utils.TermGrouper
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 import com.giyeok.jparser.visualize.{BasicVisualizeResources, FigureGenerator}
 import org.eclipse.draw2d.{Figure, FigureCanvas, LineBorder}

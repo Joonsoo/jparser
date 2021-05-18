@@ -3,7 +3,7 @@ package com.giyeok.jparser.parsergen.deprecated.nocond
 import com.giyeok.jparser.Inputs.CharacterTermGroupDesc
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar._
-import com.giyeok.jparser.parsergen.utils.TermGrouper
+import com.giyeok.jparser.utils.TermGrouper
 import com.giyeok.jparser.utils.Memoize
 
 // 현재 stack top이 replace로 바뀐 다음 following이 그 뒤에 붙음

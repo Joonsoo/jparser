@@ -4,8 +4,8 @@ import com.giyeok.jparser.metalang3a.MetaLanguage3
 import com.giyeok.jparser.metalang3a.MetaLanguage3.ProcessedGrammar
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
 import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.CodeBlob
-import com.giyeok.jparser.parsergen.milestone.MilestoneParserGen
-import com.giyeok.jparser.parsergen.proto.MilestoneParserProtobufConverter
+import com.giyeok.jparser.milestone.MilestoneParserGen
+import com.giyeok.jparser.proto.MilestoneParserProtobufConverter
 import com.giyeok.jparser.utils.FileUtil.{readFile, writeFile}
 import picocli.CommandLine
 import picocli.CommandLine.{Command, Option}

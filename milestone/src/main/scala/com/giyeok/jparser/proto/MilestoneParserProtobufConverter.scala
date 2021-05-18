@@ -1,13 +1,14 @@
-package com.giyeok.jparser.parsergen.proto
+package com.giyeok.jparser.proto
 
-import com.giyeok.jparser.parsergen.milestone.{AppendingMilestone, KernelTemplate, MilestoneParserData, ParsingAction, TasksSummary}
-import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.MilestoneParserData.{DerivedGraphPair, EdgeProgressActionPair, TermActionPair}
-import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.MilestoneParserData.TermActionPair.TermGroupAction
-import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.ParsingAction.AppendingMilestonePair
-import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.ParsingAction.AppendingMilestonePair.Dependent
-import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto.TasksSummary.ProgressedKernelPair
-import com.giyeok.jparser.parsergen.proto.NaiveParserProtobufConverter.{convertAcceptConditionToProto, convertGraphToProto, convertNodeToProto, convertProtoToAcceptCondition, convertProtoToGraph, convertProtoToNode}
+import com.giyeok.jparser.milestone
+import com.giyeok.jparser.milestone._
 import com.giyeok.jparser.proto.GrammarProtobufConverter.{convertNGrammarToProto, convertProtoToNGrammar}
+import com.giyeok.jparser.proto.MilestoneParserDataProto.MilestoneParserData.TermActionPair.TermGroupAction
+import com.giyeok.jparser.proto.MilestoneParserDataProto.MilestoneParserData.{DerivedGraphPair, EdgeProgressActionPair, TermActionPair}
+import com.giyeok.jparser.proto.MilestoneParserDataProto.ParsingAction.AppendingMilestonePair
+import com.giyeok.jparser.proto.MilestoneParserDataProto.ParsingAction.AppendingMilestonePair.Dependent
+import com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary.ProgressedKernelPair
+import com.giyeok.jparser.proto.NaiveParserProtobufConverter._
 import com.giyeok.jparser.proto.ProtoConverterUtil.JavaListToScalaCollection
 import com.giyeok.jparser.proto.TermGroupProtobufConverter.{convertProtoToTermGroup, convertTermGroupToProto}
 
@@ -52,7 +53,7 @@ object MilestoneParserProtobufConverter {
       .setGraphBetween(convertGraphToProto(parsingAction.graphBetween)).build()
 
   def convertProtoToParsingAction(proto: MilestoneParserDataProto.ParsingAction): ParsingAction =
-    ParsingAction(
+    milestone.ParsingAction(
       appendingMilestones = proto.getAppendingMilestonesList.toScalaList(pair =>
         AppendingMilestone(
           convertProtoToKernelTemplate(pair.getKernelTemplate),
@@ -89,7 +90,7 @@ object MilestoneParserProtobufConverter {
       .build()
 
   def convertProtoToMilestoneParserData(proto: MilestoneParserDataProto.MilestoneParserData): MilestoneParserData =
-    MilestoneParserData(
+    milestone.MilestoneParserData(
       grammar = convertProtoToNGrammar(proto.getGrammar),
       byStart = convertProtoToTasksSummary(proto.getByStart),
       termActions = proto.getTermActionsList.toScalaMap(

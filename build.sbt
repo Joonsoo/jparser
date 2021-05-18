@@ -66,6 +66,7 @@ lazy val mgroup = (project in file("mgroup")).
     libraryDependencies ++= testDeps,
     javacOptions ++= Seq("-encoding", "UTF-8")).
   dependsOn(naive % "test->test;compile->compile").
+  dependsOn(milestone % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile")
 
@@ -76,6 +77,7 @@ lazy val mmgroup = (project in file("mmgroup")).
     libraryDependencies ++= testDeps,
     javacOptions ++= Seq("-encoding", "UTF-8")).
   dependsOn(naive % "test->test;compile->compile").
+  dependsOn(milestone % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile")
 

@@ -4,9 +4,9 @@ import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, analyzeGrammar, transformGrammar}
 import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import com.giyeok.jparser.metalang3a.{CollectedErrors, ErrorCollector, ErrorMessage}
-import com.giyeok.jparser.parsergen.milestone.MilestoneParser
-import com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto
-import com.giyeok.jparser.parsergen.proto.MilestoneParserProtobufConverter.convertProtoToMilestoneParserData
+import com.giyeok.jparser.milestone.MilestoneParser
+import com.giyeok.jparser.proto.MilestoneParserProtobufConverter.convertProtoToMilestoneParserData
+import com.giyeok.jparser.proto.MilestoneParserDataProto
 import com.giyeok.jparser.studio2.CodeEditor.CodeStyle
 import com.giyeok.jparser.studio2.GrammarDefEditor._
 import com.giyeok.jparser.{Inputs, NGrammar, ParsingErrors}

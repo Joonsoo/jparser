@@ -161,7 +161,7 @@ AssignmentOperator: %AssignmentOperators =
 
 ConditionalExpression: ConditionalExpression<ValueExpression> = ConditionalOrExpression
   | ConditionalOrExpression WS '?'&Tk WS Expression WS ':' WS ConditionalExpression
-    {TernaryOp(condition=$0, ifTrue=$4, ifFalse=$8)}
+    {TernaryOp(condition=$0, ifTrue=$4, ifFalse: ValueExpression=$8)}
   | ConditionalOrExpression WS '?'&Tk WS Expression WS ':' WS LambdaExpression
     {TernaryOp(condition=$0, ifTrue=$4, ifFalse=$8)}
 
@@ -620,7 +620,7 @@ OctalEscape = '\\' '0-7' {OctalEscape(seq=str($1))}
 StringLiteral = '"' StringCharacter* '"' {StringLiteral(chars=$1)}
 StringCharacter: StringCharacter = <.-'"\\$' {StringChar(value=chr($0))} | EscapeSequence | ExpressionCharacter>
 ExpressionCharacter: ExpressionCharacter = "${" WS ConditionalExpression WS "}" {ExpressionCharacterByExpr(expr=$2)}
-  | "${" WS ExpressionName WS "}" {ExpressionCharacterByName(expr=$2)}
+  | '$' WS Identifier {ExpressionCharacterByName(expr=$2)}
 
 Separator = <'(){}[];,.@' | "..." | "::">
 Operator = <"=" | ">" | "<" | "!" | "~" | "?" | ":" | "->" | "==" | ">=" | "<=" | "!=" | "&&" | "||" | "++" | "--" |

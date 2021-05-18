@@ -9,7 +9,7 @@ import com.giyeok.jparser.examples.metalang.{ExpressionGrammars, SimpleGrammars}
 import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.parsergen.deprecated.SimpleGen.{Action, ExistEdge, ExistGraph}
 import com.giyeok.jparser.parsergen.deprecated.SimpleGenGen.KAction
-import com.giyeok.jparser.parsergen.utils.TermGrouper
+import com.giyeok.jparser.utils.TermGrouper
 import com.giyeok.jparser.{Grammar, NGrammar}
 
 object SimpleGenGen {

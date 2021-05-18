@@ -1,13 +1,12 @@
-package com.giyeok.jparser.parsergen.mgroup
+package com.giyeok.jparser.mgroup
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, CharsGroup}
-import com.giyeok.jparser.metalang3a.generated.{ArrayExprAst, ExpressionGrammarAst}
-import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.parsergen.milestone.{KernelTemplate, Milestone, MilestoneParser, MilestoneParserContext, MilestoneParserGen, MilestonePath}
+import com.giyeok.jparser.metalang3a.generated.ArrayExprAst
+import com.giyeok.jparser.milestone._
 import com.giyeok.jparser.utils.JavaCodeGenUtil.javaChar
 
-class MGroupParser(val parser: MilestoneParser) {
+class MilestoneGroupParser(val parser: MilestoneParser) {
 
   case class MilestoneGroup(commonAncestor: Milestone, children: List[MilestonePath], dependentPaths: List[MilestonePath])
 
@@ -58,10 +57,10 @@ class MGroupParser(val parser: MilestoneParser) {
   }
 }
 
-object MGroupParser {
+object MilestoneGroupParser {
   def main(args: Array[String]): Unit = {
     val milestoneParserData = MilestoneParserGen.generateMilestoneParserData(ArrayExprAst.ngrammar)
-    val mgroupParser = new MGroupParser(new MilestoneParser(milestoneParserData))
+    val mgroupParser = new MilestoneGroupParser(new MilestoneParser(milestoneParserData))
     mgroupParser.test()
   }
 }

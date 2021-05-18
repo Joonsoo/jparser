@@ -1,6 +1,6 @@
-package com.giyeok.jparser.parsergen.proto
+package com.giyeok.jparser.proto
 
-import com.giyeok.jparser.parsergen.milestone.MilestoneParserData
+import com.giyeok.jparser.milestone.MilestoneParserData
 import com.giyeok.jparser.proto.ProtoConverterUtil.JavaListToScalaCollection
 import com.google.protobuf.CodedInputStream
 import org.scalatest.flatspec.AnyFlatSpec

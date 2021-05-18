@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.milestone
+package com.giyeok.jparser.milestone
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar

@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.milestone
+package com.giyeok.jparser.milestone
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
@@ -6,7 +6,7 @@ import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLookaheadIs, NLookaheadSymb
 import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.{AcceptCondition, NaiveParser}
-import com.giyeok.jparser.parsergen.utils.TermGrouper
+import com.giyeok.jparser.utils.TermGrouper
 
 import scala.annotation.tailrec
 

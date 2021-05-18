@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.utils
+package com.giyeok.jparser.utils
 
 import com.giyeok.jparser.Inputs.{CharacterTermGroupDesc, TermGroupDesc, VirtualTermGroupDesc}
 import com.giyeok.jparser.NGrammar

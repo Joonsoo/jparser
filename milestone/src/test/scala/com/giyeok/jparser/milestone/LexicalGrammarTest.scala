@@ -1,4 +1,4 @@
-package com.giyeok.jparser.parsergen.milestone
+package com.giyeok.jparser.milestone
 
 import com.giyeok.jparser.ParseForestFunc
 import com.giyeok.jparser.metalang3a.{MetaLanguage3, ValuefyExprSimulator}
