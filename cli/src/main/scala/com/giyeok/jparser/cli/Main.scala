@@ -88,10 +88,10 @@ class Main extends Runnable {
          |  }
          |""",
       milestoneParserDataDef.required ++ Set(
-        "com.giyeok.jparser.parsergen.proto.MilestoneParserDataProto",
-        "com.giyeok.jparser.parsergen.proto.MilestoneParserProtobufConverter",
-        "com.giyeok.jparser.parsergen.milestone.MilestoneParser",
-        "com.giyeok.jparser.parsergen.milestone.MilestoneParserContext",
+        "com.giyeok.jparser.proto.MilestoneParserDataProto",
+        "com.giyeok.jparser.proto.MilestoneParserProtobufConverter",
+        "com.giyeok.jparser.milestone.MilestoneParser",
+        "com.giyeok.jparser.milestone.MilestoneParserContext",
         "com.giyeok.jparser.ParseForest",
         "com.giyeok.jparser.ParsingErrors"
       ))
