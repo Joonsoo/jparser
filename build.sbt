@@ -49,35 +49,13 @@ lazy val metalang = (project in file("metalang")).
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(examples % "compile->test")
 
-lazy val milestone = (project in file("milestone")).
+lazy val fast = (project in file("fast")).
   settings(
-    name := "jparser-milestone",
+    name := "jparser-fast",
     libraryDependencies += javaFormatDep,
     libraryDependencies ++= testDeps,
     javacOptions ++= Seq("-encoding", "UTF-8")).
   dependsOn(naive % "test->test;compile->compile").
-  dependsOn(metalang % "test->test;compile->compile").
-  dependsOn(examples % "test->test;compile->compile")
-
-lazy val mgroup = (project in file("mgroup")).
-  settings(
-    name := "jparser-mgroup",
-    libraryDependencies += javaFormatDep,
-    libraryDependencies ++= testDeps,
-    javacOptions ++= Seq("-encoding", "UTF-8")).
-  dependsOn(naive % "test->test;compile->compile").
-  dependsOn(milestone % "test->test;compile->compile").
-  dependsOn(metalang % "test->test;compile->compile").
-  dependsOn(examples % "test->test;compile->compile")
-
-lazy val mmgroup = (project in file("mmgroup")).
-  settings(
-    name := "jparser-mmgroup",
-    libraryDependencies += javaFormatDep,
-    libraryDependencies ++= testDeps,
-    javacOptions ++= Seq("-encoding", "UTF-8")).
-  dependsOn(naive % "test->test;compile->compile").
-  dependsOn(milestone % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile")
 
@@ -99,7 +77,7 @@ lazy val visualize = (project in file("visualize")).
   dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
-  dependsOn(milestone % "test->test;compile->compile").
+  dependsOn(fast % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile")
 
 lazy val study = (project in file("study")).
@@ -112,7 +90,7 @@ lazy val study = (project in file("study")).
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile").
   dependsOn(visualize % "test->test;compile->compile").
-  dependsOn(milestone % "test->test;compile->compile")
+  dependsOn(fast % "test->test;compile->compile")
 
 lazy val cli = (project in file("cli")).
   settings(
@@ -123,6 +101,6 @@ lazy val cli = (project in file("cli")).
   dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
-  dependsOn(milestone % "test->test;compile->compile")
+  dependsOn(fast % "test->test;compile->compile")
 
 fork in run := true
