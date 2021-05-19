@@ -2,13 +2,14 @@ package com.giyeok.jparser.milestone
 
 import com.giyeok.jparser.Inputs.{Input, TermGroupDesc}
 import com.giyeok.jparser.ParsingErrors.ParsingError
+import com.giyeok.jparser.fast.{KernelTemplate, TasksSummary}
+import com.giyeok.jparser.milestone.MilestoneParser.{AcceptConditionEvaluator, reconstructParseTree, transformEdgeActionCondition, transformTermActionCondition}
 import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
-import MilestoneParser.{AcceptConditionEvaluator, reconstructParseTree, transformEdgeActionCondition, transformTermActionCondition}
 import com.giyeok.jparser.utils.Memoize
-import com.giyeok.jparser.{Inputs, NGrammar, ParseForest, ParseForestFunc, ParsingErrors, Symbols}
+import com.giyeok.jparser.{Inputs, ParseForest, ParseForestFunc, ParsingErrors}
 
 import scala.annotation.tailrec
 

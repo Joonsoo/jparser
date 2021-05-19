@@ -2,14 +2,8 @@ package com.giyeok.jparser.milestone
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.fast.{GraphNoIndex, KernelTemplate, TasksSummary}
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Node}
-
-case class KernelTemplate(symbolId: Int, pointer: Int) extends Ordered[KernelTemplate] {
-  override def compare(that: KernelTemplate): Int = if (symbolId == that.symbolId) pointer - that.pointer else symbolId - that.symbolId
-}
-
-case class TasksSummary(progressedKernels: List[(Node, AcceptCondition)], finishedKernels: List[Node])
 
 // TODO derivedGraph와 ParsingAction.graphBetween은 커널 그래프만 저장하면 됨.
 case class MilestoneParserData(grammar: NGrammar,
@@ -27,9 +21,3 @@ case class ParsingAction(appendingMilestones: List[AppendingMilestone],
 
 case class AppendingMilestone(milestone: KernelTemplate, acceptCondition: AcceptCondition,
                               dependents: List[(KernelTemplate, KernelTemplate, AcceptCondition)])
-
-case class GraphNoIndex(nodes: Set[Node], edges: Set[Edge])
-
-object GraphNoIndex {
-  def fromGraph(graph: Graph): GraphNoIndex = GraphNoIndex(graph.nodes, graph.edges)
-}

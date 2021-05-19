@@ -1,55 +1,20 @@
 package com.giyeok.jparser.mgroup
 
+import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.metalang3a.MetaLanguage3
-import com.giyeok.jparser.milestone.{KernelTemplate, TasksSummary}
-import com.giyeok.jparser.nparser.AcceptCondition.Always
+import com.giyeok.jparser.fast.{KernelTemplate, ParserGenBase}
+import com.giyeok.jparser.metalang3a.{MetaLanguage3, ValuefyExprSimulator}
+import com.giyeok.jparser.milestone.{MilestoneParser, MilestoneParserGen}
 import com.giyeok.jparser.nparser.NaiveParser
-import com.giyeok.jparser.nparser.ParsingContext.{Graph, Kernel, Node}
+import com.giyeok.jparser.nparser.ParsingContext.Kernel
 
 import scala.annotation.tailrec
 
-class MilestoneGroupParserGen(val parser: NaiveParser) {
-  case class ContWithTasks(tasks: List[parser.Task], cc: parser.Cont)
-
-  def runTasksWithProgressBarrier(nextGen: Int, tasks: List[parser.Task], barrierNode: Node, cc: ContWithTasks): ContWithTasks = tasks match {
-    case task +: rest =>
-      if (task.isInstanceOf[parser.ProgressTask] && task.node == barrierNode) {
-        runTasksWithProgressBarrier(nextGen, rest, barrierNode, cc)
-      } else {
-        val (ncc, newTasks) = parser.process(nextGen, task, cc.cc)
-        runTasksWithProgressBarrier(nextGen, newTasks ++: rest, barrierNode, ContWithTasks(cc.tasks ++ newTasks, ncc))
-      }
-    case List() => cc
-  }
-
-  private def startingCtxFrom(startKernel: Kernel): (Node, ContWithTasks) = {
-    val startNode = Node(startKernel, Always)
-    val startGraph = Graph(Set(startNode), Set())
-
-    val deriveTask = parser.DeriveTask(startNode)
-
-    (startNode, runTasksWithProgressBarrier(startKernel.endGen, List(deriveTask), startNode,
-      ContWithTasks(List(deriveTask), parser.Cont(startGraph, Map()))))
-  }
-
+class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
   case class Jobs(milestoneGroups: Set[MilestoneGroup], edges: Set[(MilestoneGroup, MilestoneGroup)])
 
-  private implicit class ParsingTasksList(val tasks: List[parser.Task]) {
-    def deriveTasks: List[parser.DeriveTask] =
-      tasks.filter(_.isInstanceOf[parser.DeriveTask]).map(_.asInstanceOf[parser.DeriveTask])
-
-    def progressTasks: List[parser.ProgressTask] =
-      tasks.filter(_.isInstanceOf[parser.ProgressTask]).map(_.asInstanceOf[parser.ProgressTask])
-
-    def finishTasks: List[parser.FinishTask] =
-      tasks.filter(_.isInstanceOf[parser.FinishTask]).map(_.asInstanceOf[parser.FinishTask])
-  }
-
-  private def tasksSummaryFrom(tasks: List[parser.Task]) = {
-    val progressed = tasks.progressTasks.map(t => (t.node, t.condition))
-    val finished = tasks.finishTasks.map(_.node)
-    TasksSummary(progressed, finished)
+  def termActionsFrom(start: MilestoneGroup): List[(TermGroupDesc, ParsingAction)] = {
+    ???
   }
 
   @tailrec
@@ -79,9 +44,22 @@ object MilestoneGroupParserGen {
   def main(args: Array[String]): Unit = {
     val grammar = MetaLanguage3.analyzeGrammar(
       """E:Expr = 'a' {Literal(value=$0)} | A
-        |A = '[' WS E (WS ',' WS E)* WS ']' {Arr(elems=[$2]+$3)}
+        |A = '[' (WS E (WS ',' WS E)*)? WS ']' {Arr(elems=$1{[$1]+$2} ?: [])}
         |WS = ' '*
         |""".stripMargin)
-    generateMilestoneGroupParserData(grammar.ngrammar)
+    val sourceText = "[]"
+    val valuefySimulator = ValuefyExprSimulator(grammar)
+
+    val milestoneParserData = MilestoneParserGen.generateMilestoneParserData(grammar.ngrammar)
+    val milestoneParser = new MilestoneParser(milestoneParserData)
+    val milestoneParseForest = milestoneParser.parseAndReconstructToForest(sourceText).left.get
+    val milestoneAst = milestoneParseForest.trees.map(valuefySimulator.valuefyStart)
+    println(milestoneAst)
+
+    val mgroupParserData = MilestoneGroupParserGen.generateMilestoneGroupParserData(grammar.ngrammar)
+    val mgroupParser = new MilestoneGroupParser(mgroupParserData)
+    val mgroupParseForest = mgroupParser.parseAndReconstructToForest(sourceText).left.get
+    val mgroupAst = mgroupParseForest.trees.map(valuefySimulator.valuefyStart)
+    println(mgroupAst)
   }
 }

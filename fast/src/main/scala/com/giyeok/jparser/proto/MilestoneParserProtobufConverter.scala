@@ -1,5 +1,6 @@
 package com.giyeok.jparser.proto
 
+import com.giyeok.jparser.fast.{KernelTemplate, TasksSummary}
 import com.giyeok.jparser.milestone
 import com.giyeok.jparser.milestone._
 import com.giyeok.jparser.proto.GrammarProtobufConverter.{convertNGrammarToProto, convertProtoToNGrammar}

@@ -1,6 +1,7 @@
 package com.giyeok.jparser.milestone.codegen
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
+import com.giyeok.jparser.fast.{GraphNoIndex, KernelTemplate, TasksSummary}
 import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
 import com.giyeok.jparser.milestone._
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
@@ -23,9 +24,9 @@ class ScalaParserDataCodeGen(parserData: MilestoneParserData) {
     "com.giyeok.jparser.nparser.ParsingContext.Graph",
     "com.giyeok.jparser.nparser.ParsingContext.Node",
     "com.giyeok.jparser.nparser.ParsingContext.Kernel",
-    "com.giyeok.jparser.parsergen.milestone.KernelTemplate",
-    "com.giyeok.jparser.parsergen.milestone.TasksSummary",
-    "com.giyeok.jparser.parsergen.milestone.MilestoneParserData")
+    "com.giyeok.jparser.fast.KernelTemplate",
+    "com.giyeok.jparser.fast.TasksSummary",
+    "com.giyeok.jparser.milestone.MilestoneParserData")
 
   def parserData(grammarDef: ScalaCodeBlobNode): ScalaCodeBlobNode =
     ArgsCall("MilestoneParserData", List(

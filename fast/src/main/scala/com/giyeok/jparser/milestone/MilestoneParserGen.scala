@@ -2,7 +2,8 @@ package com.giyeok.jparser.milestone
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLookaheadIs, NLookaheadSymbol, NSequence}
+import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLookaheadSymbol, NSequence}
+import com.giyeok.jparser.fast.{GraphNoIndex, KernelTemplate, ParserGenBase}
 import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
 import com.giyeok.jparser.nparser.{AcceptCondition, NaiveParser}
@@ -10,52 +11,7 @@ import com.giyeok.jparser.utils.TermGrouper
 
 import scala.annotation.tailrec
 
-class MilestoneParserGen(val parser: NaiveParser) {
-
-  case class ContWithTasks(tasks: List[parser.Task], cc: parser.Cont)
-
-  def runTasks(nextGen: Int, tasks: List[parser.Task], cc: ContWithTasks): ContWithTasks = tasks match {
-    case task +: rest =>
-      val (ncc, newTasks) = parser.process(nextGen, task, cc.cc)
-      runTasks(nextGen, newTasks ++: rest, ContWithTasks(cc.tasks ++ newTasks, ncc))
-    case List() => cc
-  }
-
-  def runTasksWithProgressBarrier(nextGen: Int, tasks: List[parser.Task], barrierNode: Node, cc: ContWithTasks): ContWithTasks = tasks match {
-    case task +: rest =>
-      if (task.isInstanceOf[parser.ProgressTask] && task.node == barrierNode) {
-        runTasksWithProgressBarrier(nextGen, rest, barrierNode, cc)
-      } else {
-        val (ncc, newTasks) = parser.process(nextGen, task, cc.cc)
-        runTasksWithProgressBarrier(nextGen, newTasks ++: rest, barrierNode, ContWithTasks(cc.tasks ++ newTasks, ncc))
-      }
-    case List() => cc
-  }
-
-  private def startingCtxFrom(startKernel: Kernel): (Node, ContWithTasks) = {
-    val startNode = Node(startKernel, Always)
-    val startGraph = Graph(Set(startNode), Set())
-
-    val deriveTask = parser.DeriveTask(startNode)
-
-    (startNode, runTasksWithProgressBarrier(startKernel.endGen, List(deriveTask), startNode,
-      ContWithTasks(List(deriveTask), parser.Cont(startGraph, Map()))))
-  }
-
-  private def startingCtxFrom(template: KernelTemplate, nextGen: Int): (Node, ContWithTasks) =
-    startingCtxFrom(Kernel(template.symbolId, template.pointer, 0, nextGen))
-
-  private implicit class ParsingTasksList(val tasks: List[parser.Task]) {
-    def deriveTasks: List[parser.DeriveTask] =
-      tasks.filter(_.isInstanceOf[parser.DeriveTask]).map(_.asInstanceOf[parser.DeriveTask])
-
-    def progressTasks: List[parser.ProgressTask] =
-      tasks.filter(_.isInstanceOf[parser.ProgressTask]).map(_.asInstanceOf[parser.ProgressTask])
-
-    def finishTasks: List[parser.FinishTask] =
-      tasks.filter(_.isInstanceOf[parser.FinishTask]).map(_.asInstanceOf[parser.FinishTask])
-  }
-
+class MilestoneParserGen(val parser: NaiveParser) extends ParserGenBase {
   // TODO accept condition 때문에 생기는 derivation에 대한 별도 처리 필요. (MilestoneParserTest의 마지막 테스트 참고)
   // -> 다른 milestone path에 dependent한 milestone path가 존재할 수 있음.
   //    예를 들어 ("elem"&Tk) 커널에서는 "elem" 커널로 가는 엣지밖에 없지만 Tk 커널에 대한 파싱도 파악할 필요가 있음
@@ -135,12 +91,6 @@ class MilestoneParserGen(val parser: NaiveParser) {
       tasksSummaryFrom(actions),
       startProgressConditions,
       GraphNoIndex.fromGraph(trimmed))
-  }
-
-  private def tasksSummaryFrom(tasks: List[parser.Task]) = {
-    val progressed = tasks.progressTasks.map(t => (t.node, t.condition))
-    val finished = tasks.finishTasks.map(_.node)
-    TasksSummary(progressed, finished)
   }
 
   // `kernelTemplate`가 tip에 있을 때 받을 수 있는 터미널들을 찾고, 각 터미널에 대해 KernelTemplateAction 계산
