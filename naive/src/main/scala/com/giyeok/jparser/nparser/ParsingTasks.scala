@@ -236,59 +236,67 @@ trait ParsingTasks {
         (nextConditionAccumulate, conditionUpdatedGraph, conditionFilteredGraph)
     }
 
+    def reachableNodesFrom(graph: Graph, start: Node): Set[Node] = {
+        @tailrec
+        def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
+            queue match {
+                case node +: rest =>
+                    val edgeReachables: Set[Node] = graph.edgesByStart(node) map { _.end }
+                    val conditionReachables: Set[Node] = {
+                        val potential = if (node.kernel.pointer != 0) Set() else
+                            grammar.symbolOf(node.kernel.symbolId) match {
+                                case NExcept(_, _, _, except) => Set(newNodeOf(except, node.kernel.beginGen))
+                                case NJoin(_, _, _, join) => Set(newNodeOf(join, node.kernel.beginGen))
+                                // lookahead는 항상 바로 progress되므로 conditionReachables에서 처리됨
+                                case _ => Set()
+                            }
+                        (node.condition.nodes ++ potential) intersect graph.nodes
+                    }
+                    val reachables: Set[Node] = edgeReachables ++ conditionReachables
+                    val newReachables = reachables -- cc
+                    assert(newReachables subsetOf graph.nodes)
+                    visit(newReachables.toSeq ++: rest, cc ++ newReachables)
+                case List() => cc
+            }
+        visit(List(start), Set(start))
+    }
+
+    def reachableNodesTo(graph: Graph, ends: Set[Node]): Set[Node] = {
+        @tailrec
+        def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
+            queue match {
+                case node +: rest =>
+                    val reachables = graph.edgesByEnd(node) map { _.start }
+                    val newReachables = reachables -- cc
+                    visit(newReachables.toSeq ++: rest, cc ++ newReachables)
+                case List() => cc
+            }
+        visit(ends.toList, ends)
+    }
+
     def trimUnreachables(graph: Graph, start: Node, ends: Set[Node]): Graph = {
         if (!(graph.nodes contains start)) {
             Graph(Set(), Set())
         } else {
             assert(ends subsetOf graph.nodes)
-            val reachableFromStart = {
-                def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
-                    queue match {
-                        case node +: rest =>
-                            val edgeReachables: Set[Node] = graph.edgesByStart(node) map { _.end }
-                            val conditionReachables: Set[Node] = {
-                                val potential = if (node.kernel.pointer != 0) Set() else
-                                    grammar.symbolOf(node.kernel.symbolId) match {
-                                        case NExcept(_, _, _, except) => Set(newNodeOf(except, node.kernel.beginGen))
-                                        case NJoin(_, _, _, join) => Set(newNodeOf(join, node.kernel.beginGen))
-                                        // lookahead는 항상 바로 progress되므로 conditionReachables에서 처리됨
-                                        case _ => Set()
-                                    }
-                                (node.condition.nodes ++ potential) intersect graph.nodes
-                            }
-                            val reachables: Set[Node] = edgeReachables ++ conditionReachables
-                            val newReachables = reachables -- cc
-                            assert(newReachables subsetOf graph.nodes)
-                            visit(newReachables.toSeq ++: rest, cc ++ newReachables)
-                        case List() => cc
-                    }
-                visit(List(start), Set(start))
-            }
-            val reachableToEnds = {
-                def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
-                    queue match {
-                        case node +: rest =>
-                            val reachables = graph.edgesByEnd(node) map { _.start }
-                            val newReachables = reachables -- cc
-                            visit(newReachables.toSeq ++: rest, cc ++ newReachables)
-                        case List() => cc
-                    }
-                visit(ends.toList, ends)
-            }
+            val reachableFromStart = reachableNodesFrom(graph, start)
+            val reachableToEnds = reachableNodesTo(graph, ends)
             val removing = graph.nodes -- (reachableFromStart intersect reachableToEnds)
             graph.removeNodes(removing)
         }
     }
 
+    def trimFinishedTerminalNodes(graph: Graph, nextGen: Int): Graph = graph filterNode { node =>
+        // TODO node.kernel.isFinished 인 노드도 지워도 될까?
+        (node.condition != Never) && (!node.kernel.isFinal(grammar)) && (grammar.symbolOf(node.kernel.symbolId) match {
+            case NTerminal(_, _) => node.kernel.beginGen == nextGen
+            case _ => true
+        })
+    }
+
     def trimGraph(graph: Graph, startNode: Node, nextGen: Int): Graph = {
         // 트리밍 - 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
-        val trimmed1 = graph filterNode { node =>
-            // TODO node.kernel.isFinished 인 노드도 지워도 될까?
-            (node.condition != Never) && (!node.kernel.isFinal(grammar)) && (grammar.symbolOf(node.kernel.symbolId) match {
-                case NTerminal(_, _) => node.kernel.beginGen == nextGen
-                case _ => true
-            })
-        }
+        val trimmed1 = trimFinishedTerminalNodes(graph, nextGen)
         // 2차 트리밍 - startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
         trimUnreachables(trimmed1, startNode, termNodes(trimmed1, nextGen))
     }

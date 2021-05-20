@@ -15,11 +15,11 @@ case class MilestoneGroupParserData(grammar: NGrammar,
                                     derivedGraph: Map[Int, GraphNoIndex])
 
 case class ParsingAction(replaceTo: Int,
-                         appendingMilestones: List[AppendingMilestone],
+                         appendingMilestoneGroups: List[AppendingMilestoneGroup],
                          tasksSummary: TasksSummary,
                          startNodeProgressConditions: Map[KernelTemplate, AcceptCondition],
                          graphBetween: GraphNoIndex)
 
-case class AppendingMilestone(appendingGroup: Int,
-                              acceptCondition: AcceptCondition,
-                              dependents: List[(Int, Int, AcceptCondition)])
+case class AppendingMilestoneGroup(appendingMilestoneGroup: Int,
+                                   acceptCondition: AcceptCondition,
+                                   dependents: List[(Int, Int, AcceptCondition)])

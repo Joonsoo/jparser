@@ -12,6 +12,10 @@ import com.giyeok.jparser.utils.TermGrouper
 import scala.annotation.tailrec
 
 class MilestoneParserGen(val parser: NaiveParser) extends ParserGenBase {
+
+  def startingCtxFrom(template: KernelTemplate, nextGen: Int): (Node, ContWithTasks) =
+    startingCtxFrom(Kernel(template.symbolId, template.pointer, 0, nextGen))
+
   // TODO accept condition 때문에 생기는 derivation에 대한 별도 처리 필요. (MilestoneParserTest의 마지막 테스트 참고)
   // -> 다른 milestone path에 dependent한 milestone path가 존재할 수 있음.
   //    예를 들어 ("elem"&Tk) 커널에서는 "elem" 커널로 가는 엣지밖에 없지만 Tk 커널에 대한 파싱도 파악할 필요가 있음
@@ -26,11 +30,7 @@ class MilestoneParserGen(val parser: NaiveParser) extends ParserGenBase {
     val progressedGraph = termProgressResult.cc.graph
     val trimmed = parser.trimGraph(progressedGraph, startNode, nextGen)
 
-    val appendingMilestones0 = termProgressResult.tasks.deriveTasks
-      .filter(task => trimmed.nodes.contains(task.node))
-      .filter(task => parser.grammar.symbolOf(task.node.kernel.symbolId).isInstanceOf[NSequence])
-      .map(_.node)
-      .filter(node => node.kernel.beginGen < node.kernel.endGen && node.kernel.endGen == nextGen)
+    val appendingMilestones0 = termProgressResult.tasks.deriveTasks.appendingMilestoneCandidates(trimmed, nextGen)
     val startProgressTasks = termProgressResult.tasks.progressTasks.filter(_.node == startNode)
     val startProgressConditions = startProgressTasks.map(_.condition)
 
@@ -100,7 +100,9 @@ class MilestoneParserGen(val parser: NaiveParser) extends ParserGenBase {
 
     // new DotGraphGenerator(parser.grammar).addGraph(derived).printDotGraph()
 
-    TermGrouper.termGroupsOf(parser.grammar, derived).map { termGroup =>
+    val termGroups = TermGrouper.termGroupsOf(parser.grammar, derived)
+
+    termGroups.map { termGroup =>
       val termNodes = parser.finishableTermNodes(derived, 1, termGroup)
       val termProgressTasks = termNodes.toList.map(parser.ProgressTask(_, AcceptCondition.Always))
 
