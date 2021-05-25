@@ -104,3 +104,4 @@ lazy val cli = (project in file("cli")).
   dependsOn(fast % "test->test;compile->compile")
 
 fork in run := true
+fork in Test := true

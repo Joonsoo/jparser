@@ -39,7 +39,8 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
       newId
   }
 
-  private def milestoneGroupIdOfNoTip(milestones: Set[KernelTemplate]): Int = milestoneGroupIdOfNoTip(MilestoneGroup(milestones))
+  private def milestoneGroupIdOfNoTip(milestones: Set[KernelTemplate]): Int =
+    milestoneGroupIdOfNoTip(MilestoneGroup(milestones))
 
   case class Jobs(milestoneGroups: Set[Int], edges: Set[(Int, Int)])
 
@@ -144,7 +145,14 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
     // start에서 각 milestone으로 가면서 만날 수 있는 모든 dependent들을 추가한 것
     val startingMilestoneGroup = milestoneGroupIdOf(startingMilestoneGroup0)
     val result = createParserData(Jobs(Set(startingMilestoneGroup), Set()),
-      MilestoneGroupParserData(parser.grammar, tasksSummaryFrom(tasks), Map(), Map(), Map(), Map()))
+      MilestoneGroupParserData(
+        grammar = parser.grammar,
+        startMilestoneGroup = startingMilestoneGroup,
+        byStart = tasksSummaryFrom(tasks),
+        milestoneGroups = Map(),
+        termActions = Map(),
+        edgeProgressActions = Map(),
+        derivedGraph = Map()))
     result.copy(
       milestoneGroups = milestoneGroupsById,
       // derivedGraph = ???
@@ -157,27 +165,37 @@ object MilestoneGroupParserGen {
     new MilestoneGroupParserGen(new NaiveParser(grammar)).parserData()
 
   def main(args: Array[String]): Unit = {
-    val grammar = MetaLanguage3.analyzeGrammar(
-      """E:Expr = 'a' {Literal(value=$0)} | A
-        |A = '[' (WS E (WS ',' WS E)*)? WS ']' {Arr(elems=$1{[$1]+$2} ?: [])}
+    val grammar1 =
+      """Elem = 'a' {Literal()} | Array
+        |Array = '[' WS Elem (WS ',' WS Elem)* WS ']' {Array(elems=[$2] + $3)}
+        |      | '[' WS ']' {Array(elems=[])}
         |WS = ' '*
-        |""".stripMargin)
-    val sourceText = "[]"
+        |""".stripMargin
+    val grammar2 =
+      """Tokens = Tk (WS Tk)* {[$0] + $1}
+        |Tk = Id | Kw
+        |Id = Word-Kw {Identifier(name=$0)}
+        |Kw = ("if" {%IF} | "int" {%INT})&Word {Keyword(value:%Keywords=$0)}
+        |Word = <'a-zA-Z0-9_'+> {str($0)}
+        |WS = ' '*
+        |""".stripMargin
+    val grammar = MetaLanguage3.analyzeGrammar(grammar2)
+    val sourceText = "[[[a]]]"
     val valuefySimulator = ValuefyExprSimulator(grammar)
 
     val milestoneParserData = MilestoneParserGen.generateMilestoneParserData(grammar.ngrammar)
-    val milestoneParser = new MilestoneParser(milestoneParserData)
+    val milestoneParser = new MilestoneParser(milestoneParserData, verbose = true)
     val milestoneParseForest = milestoneParser.parseAndReconstructToForest(sourceText).left.get
     val milestoneAst = milestoneParseForest.trees.map(valuefySimulator.valuefyStart)
-    println(milestoneAst)
+    println(milestoneAst.map(_.prettyPrint()))
 
     val mgroupParserData = MilestoneGroupParserGen.generateMilestoneGroupParserData(grammar.ngrammar)
-    //    val mgroupParser = new MilestoneGroupParser(mgroupParserData)
+    val mgroupParser = new MilestoneGroupParser(mgroupParserData)
     //    val mgroupParseForest = mgroupParser.parseAndReconstructToForest(sourceText).left.get
     //    val mgroupAst = mgroupParseForest.trees.map(valuefySimulator.valuefyStart)
     //    println(mgroupAst)
 
-    println(milestoneParserData)
-    println(mgroupParserData)
+//    println(milestoneParserData)
+//    println(mgroupParserData)
   }
 }

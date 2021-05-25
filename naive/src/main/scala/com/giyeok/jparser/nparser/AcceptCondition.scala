@@ -19,34 +19,43 @@ object AcceptCondition {
         def kernel1(endGen: Int): Kernel = Kernel(symbolId, 1, beginGen, endGen)
         lazy val nodes: Set[Node] = Set(node0)
     }
+    private def containsConflictingConditions(conditions: Set[AcceptCondition]): Boolean = conditions exists {
+        case NotExists(beginGen, endGen, symbolId) => conditions contains Exists(beginGen, endGen, symbolId)
+        case Exists(beginGen, endGen, symbolId) => conditions contains NotExists(beginGen, endGen, symbolId)
+        case Unless(beginGen, endGen, symbolId) => conditions contains OnlyIf(beginGen, endGen, symbolId)
+        case OnlyIf(beginGen, endGen, symbolId) => conditions contains Unless(beginGen, endGen, symbolId)
+        case _ => false
+    }
     // conjunct는 condition들을 and로 연결
     def conjunct(conditions: AcceptCondition*): AcceptCondition =
         if (conditions contains Never) Never
         else {
-            val conds1 = conditions.toSet filter { _ != Always }
-            if (conds1.isEmpty) Always
-            else if (conds1.size == 1) conds1.head
+            val conds1 = conditions flatMap {
+                case And(set) => set
+                case item => Set(item)
+            }
+            val conds2 = conds1.toSet filter { _ != Always }
+            if (conds2.isEmpty) Always
+            else if (conds2.size == 1) conds2.head
             else {
-                val conds2 = conds1 flatMap {
-                    case And(set) => set
-                    case item => Set(item)
-                }
-                And(conds2)
+                // 상충되는 두 조건(e.g. Exist(a, b, c)와 NotExists(a, b, c))이 함께 들어 있으면 Never 반환
+                if (containsConflictingConditions(conds2)) Never else And(conds2)
             }
         }
     // disjunct는 condition들을 or로 연결
     def disjunct(conditions: AcceptCondition*): AcceptCondition = {
         if (conditions contains Always) Always
         else {
-            val conds1 = conditions.toSet filter { _ != Never }
-            if (conds1.isEmpty) Never
-            else if (conds1.size == 1) conds1.head
+            val conds1 = conditions flatMap {
+                case Or(set) => set
+                case item => Set(item)
+            }
+            val conds2 = conds1.toSet filter { _ != Never }
+            if (conds2.isEmpty) Never
+            else if (conds2.size == 1) conds2.head
             else {
-                val conds2 = conds1 flatMap {
-                    case Or(set) => set
-                    case item => Set(item)
-                }
-                Or(conds2)
+                // 상충되는 두 조건(e.g. Exist(a, b, c)와 NotExists(a, b, c))이 함께 들어 있으면 Always 반환
+                if (containsConflictingConditions(conds2)) Always else Or(conds2)
             }
         }
     }

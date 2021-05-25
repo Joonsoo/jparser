@@ -8,6 +8,7 @@ import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 case class MilestoneGroup(milestones: Set[KernelTemplate])
 
 case class MilestoneGroupParserData(grammar: NGrammar,
+                                    startMilestoneGroup: Int,
                                     byStart: TasksSummary,
                                     milestoneGroups: Map[Int, MilestoneGroup],
                                     termActions: Map[Int, List[(TermGroupDesc, ParsingAction)]],
