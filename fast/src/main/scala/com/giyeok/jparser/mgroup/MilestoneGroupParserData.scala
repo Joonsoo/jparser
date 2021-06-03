@@ -3,7 +3,7 @@ package com.giyeok.jparser.mgroup
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.fast.{GraphNoIndex, TasksSummary}
-import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, SlotableCondition}
+import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 
 case class MilestoneGroupParserData(grammar: NGrammar,
                                     // mgroup 파서에서 startMgroup은 {(Start, 0, 0..0)}의 mgroup이 아니라
@@ -55,13 +55,9 @@ case class StepReplacement(mgroup: Int,
                            // replaceTipTo를 적용할 때 기존의 accept condition slot 중 어떤 것을 가져올지
                            succeedingAcceptConditionSlots: List[Int])
 
+// tip progress의 acceptConditions는 slot succession이 들어갈 수가 없을듯?
 case class TipProgress(tipReplacement: Int,
-                       acceptConditions: List[AcceptConditionSuccession])
-
-// slot number가 0이면 Always로 간주?
-// succedingSlot과 newCondition은 OR(disjunct)로 연결
-case class AcceptConditionSuccession(succeedingSlot: SlotableCondition,
-                                     newCondition: AcceptCondition)
+                       acceptConditions: List[AcceptCondition])
 
 // (group M) -> (group N) 엣지에 EdgeAction이 적용되면
 // (gruop M)에서 일부 millestone이 탈락한 (group M')과 (group N)에서 일부 milestone이 탈락한 (group M') -> (group N')으로 치환되고
@@ -96,6 +92,11 @@ case class EdgeActionAppendingAction(
                                       appendingMGroup: Int,
                                       // `acceptConditions`가 가리키는 succeedingSlot은 N'에서의 slot index
                                       acceptConditions: List[AcceptConditionSuccession])
+
+// slot number가 0이면 Always로 간주?
+// succedingSlot과 newCondition은 OR(disjunct)로 연결
+case class AcceptConditionSuccession(successionExpr: AcceptCondition)
+// succeedingSlot: AcceptCondition, newCondition: AcceptCondition
 
 // MGroup 중에서 accept condition slot의 evaluation 결과 Never가 된 경우 어떻게 해야하는지 처리
 // -> Never가 된 accept condition slot을 가리키는 모든 마일스톤을 제거한 다른 mgroup으로 치환

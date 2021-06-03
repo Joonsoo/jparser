@@ -5,7 +5,6 @@ object AcceptCondition {
 
     sealed trait AcceptCondition extends Equals {
         def nodes: Set[Node]
-        def shiftGen(gen: Int): AcceptCondition
         def evaluate(gen: Int, graph: Graph): AcceptCondition
         def acceptable(gen: Int, graph: Graph): Boolean
         def neg: AcceptCondition
@@ -62,14 +61,12 @@ object AcceptCondition {
 
     case object Always extends AcceptCondition {
         val nodes: Set[Node] = Set()
-        def shiftGen(gen: Int): AcceptCondition = this
         def evaluate(gen: Int, graph: Graph): AcceptCondition = this
         def acceptable(gen: Int, graph: Graph) = true
         def neg: AcceptCondition = Never
     }
     case object Never extends AcceptCondition {
         val nodes: Set[Node] = Set()
-        def shiftGen(gen: Int): AcceptCondition = this
         def evaluate(gen: Int, graph: Graph): AcceptCondition = this
         def acceptable(gen: Int, graph: Graph) = false
         def neg: AcceptCondition = Always
@@ -78,8 +75,6 @@ object AcceptCondition {
         // assert(conditions forall { c => c != True && c != False })
 
         def nodes: Set[Node] = conditions flatMap { _.nodes }
-        def shiftGen(gen: Int): AcceptCondition =
-            And(conditions map { _.shiftGen(gen) })
         def evaluate(gen: Int, graph: Graph): AcceptCondition =
             conditions.foldLeft[AcceptCondition](Always) { (cc, condition) =>
                 conjunct(condition.evaluate(gen, graph), cc)
@@ -92,7 +87,6 @@ object AcceptCondition {
         // assert(conditions forall { c => c != True && c != False })
 
         def nodes: Set[Node] = conditions flatMap { _.nodes }
-        def shiftGen(gen: Int): AcceptCondition = Or(conditions map { _.shiftGen(gen) })
         def evaluate(gen: Int, graph: Graph): AcceptCondition =
             conditions.foldLeft[AcceptCondition](Never) { (cc, condition) =>
                 disjunct(condition.evaluate(gen, graph), cc)
@@ -103,8 +97,6 @@ object AcceptCondition {
     }
 
     case class NotExists(beginGen: Int, endGen: Int, symbolId: Int) extends AcceptCondition with SymbolCondition {
-        def shiftGen(gen: Int): AcceptCondition =
-            NotExists(beginGen + gen, endGen + gen, symbolId)
         def evaluate(gen: Int, graph: Graph): AcceptCondition = {
             if (gen < endGen) this else {
                 val conditions0 = graph.conditionsOf(kernel1(gen)) map { _.neg.evaluate(gen, graph) }
@@ -120,8 +112,6 @@ object AcceptCondition {
         def neg: AcceptCondition = Exists(beginGen, endGen, symbolId)
     }
     case class Exists(beginGen: Int, endGen: Int, symbolId: Int) extends AcceptCondition with SymbolCondition {
-        def shiftGen(gen: Int): AcceptCondition =
-            Exists(beginGen + gen, endGen + gen, symbolId)
         def evaluate(gen: Int, graph: Graph): AcceptCondition = {
             if (gen < endGen) this else {
                 val conditions0 = graph.conditionsOf(kernel1(gen)) map { _.evaluate(gen, graph) }
@@ -138,8 +128,6 @@ object AcceptCondition {
     }
 
     case class Unless(beginGen: Int, endGen: Int, symbolId: Int) extends AcceptCondition with SymbolCondition {
-        def shiftGen(gen: Int): AcceptCondition =
-            Unless(beginGen + gen, endGen + gen, symbolId)
         def evaluate(gen: Int, graph: Graph): AcceptCondition = {
             assert(gen >= endGen)
             if (gen > endGen) {
@@ -159,8 +147,6 @@ object AcceptCondition {
             OnlyIf(beginGen, endGen, symbolId)
     }
     case class OnlyIf(beginGen: Int, endGen: Int, symbolId: Int) extends AcceptCondition with SymbolCondition {
-        def shiftGen(gen: Int): AcceptCondition =
-            OnlyIf(beginGen + gen, endGen + gen, symbolId)
         def evaluate(gen: Int, graph: Graph): AcceptCondition = {
             assert(gen >= endGen)
             if (gen > endGen) {
@@ -178,5 +164,11 @@ object AcceptCondition {
         }
         def neg: AcceptCondition =
             Unless(beginGen, endGen, symbolId)
+    }
+    case class AcceptConditionSlot(slotIdx: Int) extends AcceptCondition {
+        override def nodes: Set[Node] = ???
+        override def evaluate(gen: Int, graph: Graph): AcceptCondition = ???
+        override def acceptable(gen: Int, graph: Graph): Boolean = ???
+        override def neg: AcceptCondition = ???
     }
 }

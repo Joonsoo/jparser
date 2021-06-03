@@ -38,7 +38,7 @@ class SimpleGenGen(val grammar: NGrammar) {
         val termGroups = TermGrouper.termGroupsOf(zeroReachableTerms) map {
             _.asInstanceOf[CharacterTermGroupDesc]
         }
-        (zeroReachableTermNodes, termGroups)
+        (zeroReachableTermNodes, termGroups.toSet)
     }
 
     // TODO 어떤 노드가 progress되었을 때 그로 인해 progress되는(여파가 미치는) akernel들

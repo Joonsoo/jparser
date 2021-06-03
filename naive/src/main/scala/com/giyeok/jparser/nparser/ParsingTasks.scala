@@ -261,6 +261,9 @@ trait ParsingTasks {
         visit(List(start), Set(start))
     }
 
+    def reachableNodesFrom(graph: Graph, starts: Set[Node]): Set[Node] =
+        starts flatMap { reachableNodesFrom(graph, _) }
+
     def reachableNodesTo(graph: Graph, ends: Set[Node]): Set[Node] = {
         @tailrec
         def visit(queue: List[Node], cc: Set[Node]): Set[Node] =
@@ -286,6 +289,14 @@ trait ParsingTasks {
         }
     }
 
+    def trimUnreachables(graph: Graph, starts: Set[Node], ends: Set[Node]): Graph = {
+        assert(ends subsetOf graph.nodes)
+        val reachableFromStart = reachableNodesFrom(graph, starts)
+        val reachableToEnds = reachableNodesTo(graph, ends)
+        val removing = graph.nodes -- (reachableFromStart intersect reachableToEnds)
+        graph.removeNodes(removing)
+    }
+
     def trimFinishedTerminalNodes(graph: Graph, nextGen: Int): Graph = graph filterNode { node =>
         // TODO node.kernel.isFinished 인 노드도 지워도 될까?
         (node.condition != Never) && (!node.kernel.isFinal(grammar)) && (grammar.symbolOf(node.kernel.symbolId) match {
@@ -299,5 +310,12 @@ trait ParsingTasks {
         val trimmed1 = trimFinishedTerminalNodes(graph, nextGen)
         // 2차 트리밍 - startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
         trimUnreachables(trimmed1, startNode, termNodes(trimmed1, nextGen))
+    }
+
+    def trimGraph(graph: Graph, startNodes: Set[Node], nextGen: Int): Graph = {
+        // 트리밍 - 사용이 완료된 터미널 노드/acceptCondition이 never인 지우기
+        val trimmed1 = trimFinishedTerminalNodes(graph, nextGen)
+        // 2차 트리밍 - startNode와 accept condition에서 사용되는 노드에서 도달 불가능한 노드/새로운 terminal node로 도달 불가능한 노드 지우기
+        trimUnreachables(trimmed1, startNodes, termNodes(trimmed1, nextGen))
     }
 }

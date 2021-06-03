@@ -68,7 +68,7 @@ class GrammarAnalyzer(val grammar: NGrammar) {
 
     def acceptableTerms(kernelSet: AKernelSet): Set[CharacterTermGroupDesc] = {
         val termSymbols = termSymbolsFrom(kernelSet) map (_.symbol)
-        TermGrouper.termGroupsOf(termSymbols) map (_.asInstanceOf[CharacterTermGroupDesc])
+        TermGrouper.termGroupsOf(termSymbols).map(_.asInstanceOf[CharacterTermGroupDesc]).toSet
     }
 
     private val termChangesMemo = Memoize[(AKernelSet, CharacterTermGroupDesc), GraphChange]()

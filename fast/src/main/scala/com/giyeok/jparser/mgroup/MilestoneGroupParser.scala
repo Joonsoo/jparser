@@ -39,14 +39,17 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
 
     def succeedAcceptConditions(prevSlots: List[AcceptCondition], successions: List[AcceptConditionSuccession]): List[AcceptCondition] = {
       successions.map { succ =>
-        disjunct(prevSlots(succ.succeedingSlot),
-          materializeEdgeActionAcceptCondition(succ.newCondition, ???, ???, ???, ???))
+        ???
+        //        disjunct(prevSlots(succ.succeedingSlot),
+        //          materializeEdgeActionAcceptCondition(succ.newCondition, ???, ???, ???, ???))
       }
     }
 
     def applyTipProgress(path: MilestoneGroupPath, tipProgress: TipProgress): MilestoneGroupPath =
-      MilestoneGroupPath(parent = path.parent, milestoneGroup = tipProgress.tipReplacement, gen = path.gen,
-        acceptConditionSlots = succeedAcceptConditions(path.acceptConditionSlots, tipProgress.acceptConditions))
+      MilestoneGroupPath(parent = path.parent,
+        milestoneGroup = tipProgress.tipReplacement, gen = path.gen,
+        // materialize accept condition
+        acceptConditionSlots = tipProgress.acceptConditions)
 
     def proceed(input: Inputs.Input): Either[MilestoneGroupParserContext, ParsingError] = {
       val newPaths = ctx.paths.flatMap { path =>
