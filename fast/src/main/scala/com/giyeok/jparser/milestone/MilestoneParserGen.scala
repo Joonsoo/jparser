@@ -107,7 +107,7 @@ class MilestoneParserGen(val parser: NaiveParser) extends ParserGenBase {
       val termProgressTasks = termNodes.toList.map(parser.ProgressTask(_, AcceptCondition.Always))
 
       termGroup -> parsingActionFrom(derived, startNode, termProgressTasks, 1)
-    }.toList.sortBy(_._1.toString)
+    }
   }
 
   // `simulateEdgeProgress` 바로 다음에 `endTemplate`가 붙어있고 `endTemplate`이 progress되는 경우

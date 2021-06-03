@@ -139,8 +139,11 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
         recursion(start)
     }
 
-    def reachableBetween(start: Set[N], end: N): Boolean =
-        start.exists(reachableBetween(_, end))
+    def reachableBetween(starts: Set[N], end: N): Boolean =
+        starts.exists(reachableBetween(_, end))
+
+    def reachableBetween(start: N, ends: Set[N]): Boolean =
+        ends.exists(reachableBetween(start, _))
 
     def reachableGraphBetween(start: N, end: N): Self = reachableGraphBetween(start, Set(end))
 

@@ -30,8 +30,6 @@ object ParsingContext {
     }
 
     case class Node(kernel: Kernel, condition: AcceptCondition) {
-        def shiftGen(gen: Int) = Node(kernel.shiftGen(gen), condition.shiftGen(gen))
-
         def isInitial = kernel.pointer == 0
 
         def initial: Node = if (isInitial) this else Node(kernel.initial, Always)

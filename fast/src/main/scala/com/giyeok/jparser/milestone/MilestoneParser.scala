@@ -208,13 +208,13 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
       println("=== initial")
       initialCtx.paths.foreach(t => println(t.prettyString))
     }
-    inputSeq.zipWithIndex.foldLeft[Either[MilestoneParserContext, ParsingError]](Left(initialCtx)) { (m, i) =>
-      val (nextInput, gen0) = i
-      if (verbose) {
-        println(s"=== ${gen0 + 1} $nextInput")
-      }
+    inputSeq.foldLeft[Either[MilestoneParserContext, ParsingError]](Left(initialCtx)) { (m, nextInput) =>
       m match {
-        case Left(currCtx) => proceed(currCtx, nextInput)
+        case Left(currCtx) =>
+          if (verbose) {
+            println(s"=== ${currCtx.gen} $nextInput")
+          }
+          proceed(currCtx, nextInput)
         case error => error
       }
     }

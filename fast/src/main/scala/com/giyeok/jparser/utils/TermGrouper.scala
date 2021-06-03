@@ -8,7 +8,7 @@ import com.giyeok.jparser.Symbols.Terminals.{CharacterTerminal, VirtualTerminal}
 import com.giyeok.jparser.nparser.ParsingContext
 
 object TermGrouper {
-  def termGroupsOf(terminals: Set[Terminal]): Set[TermGroupDesc] = {
+  def termGroupsOf(terminals: Set[Terminal]): List[TermGroupDesc] = {
     val charTerms: Set[CharacterTermGroupDesc] = terminals collect { case x: CharacterTerminal => TermGroupDesc.descOf(x) }
     val virtTerms: Set[VirtualTermGroupDesc] = terminals collect { case x: VirtualTerminal => TermGroupDesc.descOf(x) }
 
@@ -46,12 +46,12 @@ object TermGrouper {
       }
     }) ++ virtIntersects
 
-    (charTermGroups ++ virtTermGroups) filterNot {
+    ((charTermGroups ++ virtTermGroups) filterNot {
       _.isEmpty
-    }
+    }).toList.sortBy(_.toString)
   }
 
-  def termGroupsOf(grammar: NGrammar, graph: ParsingContext.Graph): Set[TermGroupDesc] = {
+  def termGroupsOf(grammar: NGrammar, graph: ParsingContext.Graph): List[TermGroupDesc] = {
     val terms = graph.nodes.map { node => grammar.symbolOf(node.kernel.symbolId) }
       .collect { case terminal: NTerminal => terminal.symbol }
     termGroupsOf(terms)

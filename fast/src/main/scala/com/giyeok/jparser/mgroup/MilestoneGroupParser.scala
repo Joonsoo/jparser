@@ -7,99 +7,92 @@ import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always, And,
 import com.giyeok.jparser.{Inputs, ParseForest, ParsingErrors}
 
 class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose: Boolean = false) {
-  val startMilestoneGroupPath: MilestoneGroupPath = MilestoneGroupPath(MilestoneGroupStep(None, parserData.startMilestoneGroup, 0), Always)
+  def initialCtx: MilestoneGroupParserContext = MilestoneGroupParserContext(0,
+    List(MilestoneGroupPath(None, parserData.startMilestoneGroup, 0, List(Always))), List())
+
+  def materializeEdgeActionAcceptCondition(acceptCondition: AcceptCondition,
+                                           grandParentGen: Int, parentGen: Int, tipGen: Int, nextGen: Int): AcceptCondition = acceptCondition
+
+  class Proceeder(ctx: MilestoneGroupParserContext) {
+    private val nextGen = ctx.gen + 1
+
+    def applyEdgeAction(path: MilestoneGroupPath): List[MilestoneGroupPath] = path.parent match {
+      case Some(parent) =>
+        val edgeAction = parserData.edgeActions(parent.milestoneGroup -> path.milestoneGroup)
+        val appending = edgeAction.appending.map { appending =>
+          val newParent = replaceTip(parent, appending.parentReplacement)
+          MilestoneGroupPath(Some(newParent), appending.appendingMGroup, nextGen,
+            succeedAcceptConditions(path.acceptConditionSlots, appending.acceptConditions))
+        }
+        val chaining = edgeAction.parentProgress.toList.flatMap { parentProgress =>
+          applyEdgeAction(applyTipProgress(parent, parentProgress))
+        }
+        appending.toList ++ chaining
+      case None => List()
+    }
+
+    def replaceTip(path: MilestoneGroupPath, replacementOpt: Option[StepReplacement]): MilestoneGroupPath = replacementOpt match {
+      case Some(replacement) => MilestoneGroupPath(parent = path.parent, milestoneGroup = replacement.mgroup,
+        gen = path.gen, acceptConditionSlots = replacement.succeedingAcceptConditionSlots.map(path.acceptConditionSlots))
+      case None => path
+    }
+
+    def succeedAcceptConditions(prevSlots: List[AcceptCondition], successions: List[AcceptConditionSuccession]): List[AcceptCondition] = {
+      successions.map { succ =>
+        disjunct(prevSlots(succ.succeedingSlot),
+          materializeEdgeActionAcceptCondition(succ.newCondition, ???, ???, ???, ???))
+      }
+    }
+
+    def applyTipProgress(path: MilestoneGroupPath, tipProgress: TipProgress): MilestoneGroupPath =
+      MilestoneGroupPath(parent = path.parent, milestoneGroup = tipProgress.tipReplacement, gen = path.gen,
+        acceptConditionSlots = succeedAcceptConditions(path.acceptConditionSlots, tipProgress.acceptConditions))
+
+    def proceed(input: Inputs.Input): Either[MilestoneGroupParserContext, ParsingError] = {
+      val newPaths = ctx.paths.flatMap { path =>
+        // TODO path에 drop action 적용(parserData.milestoneDropActions(path.milestoneGroup))
+        val termActions = parserData.termActions(path.milestoneGroup)
+        termActions.find(_._1.contains(input)) match {
+          case Some((_, termAction)) =>
+            val appended = termAction.appendAction.map { appending =>
+              // appending이 있으면
+              val newTip = replaceTip(path, appending.tipReplacement)
+              MilestoneGroupPath(Some(newTip), appending.appendingMGroup, nextGen, appending.acceptConditions)
+            }
+            // (path.parent->newTip) 엣지에 대해서 edgeAction 적용 시작
+            val progressed = termAction.tipProgress.toList.flatMap { tipProgress =>
+              applyEdgeAction(applyTipProgress(path, tipProgress))
+            }
+            appended.toList ++ progressed
+          case None => List()
+        }
+      }
+      if (newPaths.isEmpty) Right(ParsingErrors.UnexpectedInputByTermGroups(input, ctx.expectingTerminals(parserData), ctx.gen))
+      else Left(MilestoneGroupParserContext(nextGen, newPaths, List()))
+    }
+  }
+
+  def proceed(ctx: MilestoneGroupParserContext, input: Inputs.Input): Either[MilestoneGroupParserContext, ParsingError] =
+    new Proceeder(ctx).proceed(input)
 
   def parse(inputSeq: Seq[Inputs.Input]): Either[MilestoneGroupParserContext, ParsingError] = {
     if (verbose) {
       println("=== initial")
-      ???
+      initialCtx.paths.foreach(t => println(t.prettyString))
     }
-    ???
+    inputSeq.foldLeft[Either[MilestoneGroupParserContext, ParsingError]](Left(initialCtx)) { (m, nextInput) =>
+      m match {
+        case Left(currCtx) =>
+          if (verbose) {
+            println(s"=== ${currCtx.gen} $nextInput")
+          }
+          proceed(currCtx, nextInput)
+        case error => error
+      }
+    }
   }
 
   def parse(input: String): Either[MilestoneGroupParserContext, ParsingError] = parse(Inputs.fromString(input))
-
-  private def transformTermActionCondition(condition: AcceptCondition, parentGen: Int, beginGen: Int, endGen: Int): AcceptCondition = {
-    def genOf(gen: Int) = gen match {
-      case 0 => parentGen
-      case 1 => beginGen
-      case 2 => endGen
-      case 3 => endGen + 1
-    }
-
-    condition match {
-      case Always | Never => condition
-      case And(conditions) => conjunct(conditions.map(transformTermActionCondition(_, parentGen, beginGen, endGen)).toSeq: _*)
-      case Or(conditions) => disjunct(conditions.map(transformTermActionCondition(_, parentGen, beginGen, endGen)).toSeq: _*)
-      case NotExists(beginGen, endGen, symbolId) => NotExists(genOf(beginGen), genOf(endGen), symbolId)
-      case Exists(beginGen, endGen, symbolId) => Exists(genOf(beginGen), genOf(endGen), symbolId)
-      case Unless(beginGen, endGen, symbolId) => Unless(genOf(beginGen), genOf(endGen), symbolId)
-      case OnlyIf(beginGen, endGen, symbolId) =>
-        OnlyIf(genOf(beginGen), genOf(endGen), symbolId)
-    }
-  }
-
-  private def transformEdgeActionCondition(condition: AcceptCondition, parentBeginGen: Int, parentGen: Int, beginGen: Int, endGen: Int): AcceptCondition = {
-    def genOf(gen: Int) = gen match {
-      case 0 => parentBeginGen
-      case 1 => parentGen
-      case 2 => beginGen
-      case 3 => endGen
-      case 4 => endGen + 1
-    }
-
-    condition match {
-      case Always | Never => condition
-      case And(conditions) => conjunct(conditions.map(transformEdgeActionCondition(_, parentBeginGen, parentGen, beginGen, endGen)).toSeq: _*)
-      case Or(conditions) => disjunct(conditions.map(transformEdgeActionCondition(_, parentBeginGen, parentGen, beginGen, endGen)).toSeq: _*)
-      case NotExists(beginGen, endGen, symbolId) => NotExists(genOf(beginGen), genOf(endGen), symbolId)
-      case Exists(beginGen, endGen, symbolId) => Exists(genOf(beginGen), genOf(endGen), symbolId)
-      case Unless(beginGen, endGen, symbolId) => Unless(genOf(beginGen), genOf(endGen), symbolId)
-      case OnlyIf(beginGen, endGen, symbolId) =>
-        OnlyIf(genOf(beginGen), genOf(endGen), symbolId)
-    }
-  }
-
-  private class ProceedProcessor() {
-    def proceed(ctx: MilestoneGroupParserContext, gen: Int, input: Inputs.Input): List[MilestoneGroupPath] = ctx.paths.flatMap { path =>
-      val tip = path.tip
-      val parentGen = tip.parent.map(_.gen).getOrElse(0)
-      val termActions = parserData.termActions(tip.milestoneGroup)
-      termActions.find(_._1.contains(input)) match {
-        case Some((_, action)) =>
-          val appended = action.appendingMilestoneGroups.map { appending =>
-            MilestoneGroupPath(MilestoneGroupStep(Some(tip), appending.appendingMilestoneGroup, gen),
-              Always)
-          }
-          val reduced = progressTip(tip, gen, List())
-          appended ++ reduced
-        case None => List()
-      }
-    }
-
-    def progressTip(tip: MilestoneGroupStep, gen: Int, acceptConditions: List[AcceptCondition]): List[MilestoneGroupPath] = {
-      acceptConditions flatMap { condition =>
-        tip.parent match {
-          case Some(parent) =>
-            val parentBeginGen = parent.parent.map(_.gen).getOrElse(0)
-            val edgeAction = parserData.edgeProgressActions((parent.milestoneGroup, tip.milestoneGroup))
-            val appended = edgeAction.appendingMilestoneGroups.map { appending =>
-              MilestoneGroupPath(MilestoneGroupStep(Some(parent), appending.appendingMilestoneGroup, gen),
-                conjunct(condition, appending.acceptCondition))
-            }
-            val transformedConditions = edgeAction.startNodeProgressConditions.values.map(
-              transformEdgeActionCondition(_, -1, parent.gen, tip.gen, gen)
-            ).toList
-            val propagated = progressTip(parent, gen, transformedConditions)
-            appended ++ propagated
-          case None =>
-            // 파싱 종료
-            // TODO
-            List()
-        }
-      }
-    }
-  }
 
   def parseAndReconstructToForest(inputSeq: Seq[Inputs.Input]): Either[ParseForest, ParsingError] = {
     parse(inputSeq) match {
@@ -126,9 +119,7 @@ case class MilestoneGroupParserContext(gen: Int, paths: List[MilestoneGroupPath]
   def expectingTerminals(parserData: MilestoneGroupParserData): Set[TermGroupDesc] = ???
 }
 
-case class MilestoneGroupPath(tip: MilestoneGroupStep, acceptCondition: AcceptCondition)
-
-case class MilestoneGroupStep(parent: Option[MilestoneGroupStep], milestoneGroup: Int, gen: Int) {
+case class MilestoneGroupPath(parent: Option[MilestoneGroupPath], milestoneGroup: Int, gen: Int, acceptConditionSlots: List[AcceptCondition]) {
   private def myself: String = s"($milestoneGroup $gen)"
 
   def prettyString: String = parent match {

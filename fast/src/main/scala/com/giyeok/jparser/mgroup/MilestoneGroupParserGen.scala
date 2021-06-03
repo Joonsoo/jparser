@@ -2,161 +2,102 @@ package com.giyeok.jparser.mgroup
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.fast.{GraphNoIndex, KernelTemplate, ParserGenBase}
+import com.giyeok.jparser.fast.ParserGenBase
 import com.giyeok.jparser.metalang3a.{MetaLanguage3, ValuefyExprSimulator}
 import com.giyeok.jparser.milestone.{MilestoneParser, MilestoneParserGen}
-import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always, conjunct}
+import com.giyeok.jparser.nparser.AcceptCondition.{AcceptConditionSlot, Always}
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParsingContext.{Graph, Kernel, Node}
 import com.giyeok.jparser.utils.TermGrouper
 
-import scala.annotation.tailrec
-
 class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
-  private var milestoneGroups = Map[MilestoneGroup, Int]()
-  private var milestoneGroupsById = Map[Int, MilestoneGroup]()
-  private var newMilestoneGroups = List[Int]()
+  // 처음에는 accept condition slot의 수를 milestone의 수와 동일하게 하고
+  // 나중에 slot 수를 줄이는 알고리즘을 별도로 실행
+  private var milestoneGroups: Map[List[Milestone], Int] = Map()
+  private var milestoneGroupsById: Map[Int, List[Milestone]] = Map()
 
-  private def milestoneGroupIdOf(milestoneGroup: MilestoneGroup): Int = milestoneGroups get milestoneGroup match {
-    case Some(existingId) => existingId
+  private def mgroupIdOf(milestones: List[Milestone]): Int = milestoneGroups.get(milestones.sorted) match {
+    case Some(mgroupId) => mgroupId
     case None =>
       val newId = milestoneGroups.size + 1
-      milestoneGroups += milestoneGroup -> newId
-      milestoneGroupsById += newId -> milestoneGroup
-      newMilestoneGroups +:= newId
+      milestoneGroups += milestones -> newId
+      milestoneGroupsById += newId -> milestones
       newId
   }
 
-  private def milestoneGroupIdOf(milestones: Set[KernelTemplate]): Int = milestoneGroupIdOf(MilestoneGroup(milestones))
+  private def mgroupIdOf(milestones: Iterable[Milestone]): Int = mgroupIdOf(milestones.toList)
 
-  // milestoneGroupIdOf와 동일하지만 newMilestoneGroups에 추가하지 않는다.
-  private def milestoneGroupIdOfNoTip(milestoneGroup: MilestoneGroup): Int = milestoneGroups get milestoneGroup match {
-    case Some(existingId) => existingId
-    case None =>
-      val newId = milestoneGroups.size + 1
-      milestoneGroups += milestoneGroup -> newId
-      milestoneGroupsById += newId -> milestoneGroup
-      newId
+  private def milestonesFromNodes(nodes: Iterable[Node]): (List[Milestone], List[Node]) = {
+    val pairs = nodes.toList.zipWithIndex
+      .map(p => Milestone(p._1.kernel.symbolId, p._1.kernel.pointer, p._2) -> p._1)
+      .sortBy(_._1)
+    (pairs.map(_._1), pairs.map(_._2))
   }
 
-  private def milestoneGroupIdOfNoTip(milestones: Set[KernelTemplate]): Int =
-    milestoneGroupIdOfNoTip(MilestoneGroup(milestones))
+  private def derivedFrom(milestones: List[Milestone], nextGen: Int): (List[Node], ContWithTasks) = {
+    val startNodes = milestones.map(m => Node(Kernel(m.symbolId, m.pointer, 0, nextGen), Always))
+    val startGraph = Graph(startNodes.toSet, Set())
+    val deriveTasks = startNodes.map(parser.DeriveTask)
 
-  case class Jobs(milestoneGroups: Set[Int], edges: Set[(Int, Int)])
-
-  def startingCtxFrom(startKernels: Set[KernelTemplate], nextGen: Int): (Map[KernelTemplate, Node], ContWithTasks) = {
-    val startNodesMap = startKernels.map(k => k -> Node(Kernel(k.symbolId, k.pointer, 0, nextGen), Always)).toMap
-    val startNodes = startNodesMap.values.toSet
-    val startGraph = Graph(startNodes, Set())
-    val deriveTasks = startNodes.map(parser.DeriveTask).toList
-
-    (startNodesMap, runTasksWithProgressBarriers(nextGen, deriveTasks, startNodes,
-      ContWithTasks(deriveTasks, parser.Cont(startGraph, Map()))))
+    val result = runTasksWithProgressBarriers(nextGen, deriveTasks, startNodes.toSet,
+      ContWithTasks(deriveTasks, parser.Cont(startGraph, Map())))
+    (startNodes, result)
   }
 
-  def trimGraph(graph: Graph, startNodes: Set[Node], nextGen: Int): Graph = {
-    val trim1 = parser.trimFinishedTerminalNodes(graph, nextGen)
-    val termNodes = parser.termNodes(graph, nextGen)
-    // trim1에서 startNodes에서 reachable(accept condition의 ref도 포함)하고 termNodes로 reachable한
-    val fromStarts = startNodes.flatMap(parser.reachableNodesFrom(trim1, _))
-    val toEnds = parser.reachableNodesTo(trim1, termNodes)
-    val removing = trim1.nodes -- (fromStarts intersect toEnds)
-    trim1.removeNodes(removing)
+  private def stepReplacement(from: List[Milestone], to: List[Milestone]): StepReplacement = {
+    assert(to.toSet.subsetOf(from.toSet))
+    val sortedFrom = from.sorted.zipWithIndex.map(f => f._1 -> f._2).toMap
+    val sortedTo = to.sorted
+    StepReplacement(mgroupIdOf(to), sortedTo.map(sortedFrom))
   }
 
-  def parsingActionFrom(graph: Graph, startNodes: Set[Node], progressTasks: List[parser.ProgressTask], currGen: Int): ParsingAction = {
-    val nextGen = currGen + 1
-    val termProgressResult = runTasksWithProgressBarriers(nextGen, progressTasks, startNodes,
-      ContWithTasks(List(), parser.Cont(graph, Map())))
-    val progressedGraph = termProgressResult.cc.graph
-    val trimmed = trimGraph(progressedGraph, startNodes, nextGen)
-    val survivingStartNodes = startNodes.intersect(trimmed.nodes)
-
-    val appendingMilestones0 = termProgressResult.tasks.deriveTasks.appendingMilestoneCandidates(trimmed, nextGen)
-    val startProgressTasks = termProgressResult.tasks.progressTasks.filter(t => startNodes.contains(t.node))
-    val startProgressConditions = startProgressTasks.map(_.condition)
-
-    val (_, actions) = startProgressTasks.foldLeft((termProgressResult.cc, termProgressResult.tasks)) { case ((cc, tasks), nextTask) =>
-      val (ncc, newTasks) = parser.process(nextGen, nextTask, cc)
-      (ncc, tasks ++ newTasks)
-    }
-
-    val appendingMilestones = appendingMilestones0.filter(progressedGraph.reachableBetween(startNodes, _))
-    val appendingMilestoneGroup = milestoneGroupIdOf(
-      appendingMilestones.map(n => KernelTemplate(n.kernel.symbolId, n.kernel.pointer)).toSet)
-
-    ParsingAction(
-      replaceTo = milestoneGroupIdOfNoTip(survivingStartNodes.map(KernelTemplate.fromNode)),
-      appendingMilestoneGroups = List(
-        AppendingMilestoneGroup(appendingMilestoneGroup,
-          // TODO condition, dependent 제대로 반환
-          appendingMilestones.map(_.condition).foldLeft[AcceptCondition](Always) { (m, i) => conjunct(m, i) },
-          List())),
-      tasksSummary = tasksSummaryFrom(actions),
-      // TODO startNodeProgressConditions 제대로 반환
-      startNodeProgressConditions = Map(),
-      // TODO graphBetween 제대로 반환
-      graphBetween = GraphNoIndex(Set(), Set()))
-  }
-
-  def termActionsFrom(start: MilestoneGroup): List[(TermGroupDesc, ParsingAction)] = {
-    val (startNodesMap, ContWithTasks(_, parser.Cont(derived, _))) = startingCtxFrom(start.milestones, 1)
-    val startNodes = startNodesMap.values.toSet
-
+  private def termActionsOf(mgroupId: Int): List[(TermGroupDesc, TermAction)] = {
+    val milestones = milestoneGroupsById(mgroupId)
+    val (startNodes, ContWithTasks(_, parser.Cont(derived, _))) = derivedFrom(milestones, 1)
     val termGroups = TermGrouper.termGroupsOf(parser.grammar, derived)
 
     termGroups.map { termGroup =>
       val termNodes = parser.finishableTermNodes(derived, 1, termGroup)
-      val termProgressTasks = termNodes.toList.map(parser.ProgressTask(_, Always))
+      val progressTasks = termNodes.toList.zipWithIndex.map(n => parser.ProgressTask(n._1, AcceptConditionSlot(n._2)))
 
-      termGroup -> parsingActionFrom(derived, startNodes, termProgressTasks, 1)
-    }.toList.sortBy(_._1.toString)
-  }
+      val progressResults = runTasksWithProgressBarriers(2, progressTasks, startNodes.toSet,
+        ContWithTasks(List(), parser.Cont(derived, Map())))
+      val progressedGraph = progressResults.cc.graph
 
-  def edgeActionFrom(start: MilestoneGroup, end: MilestoneGroup): ParsingAction = {
-    // TODO
-    ParsingAction(1, List(), tasksSummaryFrom(List()), Map(), GraphNoIndex(Set(), Set()))
-  }
+      val trimmed = parser.trimGraph(progressedGraph, startNodes.toSet, 2)
 
-  @tailrec
-  private def createParserData(jobs: Jobs, cc: MilestoneGroupParserData): MilestoneGroupParserData = {
-    val newTermActions = jobs.milestoneGroups.map(g => g -> termActionsFrom(milestoneGroupsById(g)))
-    val ncc0 = cc.copy(termActions = cc.termActions ++ newTermActions)
-    val possibleEdgesFromTermActions = newTermActions.flatMap(_._2.map(_._2)).flatMap { action =>
-      action.appendingMilestoneGroups.map(appending => action.replaceTo -> appending.appendingMilestoneGroup)
+      // milestone이 될 조건을 만족하는 것들을 우선 추리고
+      val appendingMilestones0 = progressResults.tasks.deriveTasks.appendingMilestoneCandidates(trimmed, 2)
+      // startNodes 중 한 개 이상에서 도달 가능한 milestone만 추리면 appending milestones
+      val appendingMilestones1 = appendingMilestones0.filter(progressedGraph.reachableBetween(startNodes.toSet, _))
+      val appendAction = if (appendingMilestones1.isEmpty) None else {
+        val survivingMilestones = milestones.zip(startNodes)
+          .filter(pair => progressedGraph.reachableBetween(pair._2, appendingMilestones1.toSet))
+          .map(_._1)
+        val (appendingMilestones, appendingConditions) = milestonesFromNodes(appendingMilestones1)
+        Some(TermActionAppendingAction(
+          if (survivingMilestones.size == startNodes.size) None else Some(stepReplacement(milestones, survivingMilestones)),
+          mgroupIdOf(appendingMilestones),
+          appendingConditions.map(_.condition)
+        ))
+      }
+
+      val startProgressTasks = progressResults.tasks.progressTasks.filter(t => startNodes.contains(t.node))
+        .groupBy(_.node)
+      val tipProgress = if (startProgressTasks.isEmpty) None else {
+        val (progressingMilestones, progressingConditions) = milestonesFromNodes(startProgressTasks.keySet)
+        // TODO progressingConditions로부터 TipProgress.acceptConditions 얻어내기
+        Some(TipProgress(mgroupIdOf(progressingMilestones), ???))
+      }
+
+      termGroup -> TermAction(appendAction, tipProgress)
     }
-    val newEdgeActions = jobs.edges.map { e =>
-      e -> edgeActionFrom(milestoneGroupsById(e._1), milestoneGroupsById(e._2))
-    }
-    val ncc = ncc0.copy(edgeProgressActions = ncc0.edgeProgressActions ++ newEdgeActions)
-    val milestoneGroupsToProcess = newMilestoneGroups.toSet -- cc.termActions.keySet
-    newMilestoneGroups = List()
-    val newRemainingEdges: Set[(Int, Int)] = possibleEdgesFromTermActions -- cc.edgeProgressActions.keySet
-    println(s"Remaining jobs: mgroups=${milestoneGroupsToProcess.size}, edges=${newRemainingEdges.size}")
-    if (milestoneGroupsToProcess.isEmpty && newRemainingEdges.isEmpty) ncc
-    else createParserData(Jobs(milestoneGroupsToProcess, newRemainingEdges), ncc)
   }
 
   def parserData(): MilestoneGroupParserData = {
-    val start = KernelTemplate(parser.grammar.startSymbol, 0)
-    val (_, ContWithTasks(tasks, _)) = startingCtxFrom(Set(KernelTemplate(start.symbolId, start.pointer)), 1)
-    val startingMilestoneGroup0 = MilestoneGroup(Set(start))
-    // startingMilestoneGroup은 startingMilestoneGroup0에서 derive된 노드들 중 milestone이 될 수 있는 것들을 모두 찾고,
-    // start에서 각 milestone으로 가면서 만날 수 있는 모든 dependent들을 추가한 것
-    val startingMilestoneGroup = milestoneGroupIdOf(startingMilestoneGroup0)
-    val result = createParserData(Jobs(Set(startingMilestoneGroup), Set()),
-      MilestoneGroupParserData(
-        grammar = parser.grammar,
-        startMilestoneGroup = startingMilestoneGroup,
-        byStart = tasksSummaryFrom(tasks),
-        milestoneGroups = Map(),
-        termActions = Map(),
-        edgeProgressActions = Map(),
-        derivedGraph = Map()))
-    result.copy(
-      milestoneGroups = milestoneGroupsById,
-      // derivedGraph = ???
-    )
+    // TODO start에 대해서 Start 에서 도달 가능한 accept condition generating symbol들이 가리키는 symbol도 추가해야할 수도
+    val startMgroup = mgroupIdOf(Set(Milestone(parser.grammar.startSymbol, 0, 1)))
+    termActionsOf(startMgroup)
   }
 }
 
@@ -195,7 +136,7 @@ object MilestoneGroupParserGen {
     //    val mgroupAst = mgroupParseForest.trees.map(valuefySimulator.valuefyStart)
     //    println(mgroupAst)
 
-//    println(milestoneParserData)
-//    println(mgroupParserData)
+    //    println(milestoneParserData)
+    //    println(mgroupParserData)
   }
 }
