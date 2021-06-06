@@ -19,12 +19,12 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
     def applyEdgeAction(path: MilestoneGroupPath): List[MilestoneGroupPath] = path.parent match {
       case Some(parent) =>
         val edgeAction = parserData.edgeActions(parent.milestoneGroup -> path.milestoneGroup)
-        val appending = edgeAction.appending.map { appending =>
-          val newParent = replaceTip(parent, appending.parentReplacement)
+        val appending = edgeAction.appendingAction.map { appending =>
+          val newParent = replaceTip(parent, appending.replacement)
           MilestoneGroupPath(Some(newParent), appending.appendingMGroup, nextGen,
             succeedAcceptConditions(path.acceptConditionSlots, appending.acceptConditions))
         }
-        val chaining = edgeAction.parentProgress.toList.flatMap { parentProgress =>
+        val chaining = edgeAction.progress.toList.flatMap { parentProgress =>
           applyEdgeAction(applyTipProgress(parent, parentProgress))
         }
         appending.toList ++ chaining
@@ -37,7 +37,8 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
       case None => path
     }
 
-    def succeedAcceptConditions(prevSlots: List[AcceptCondition], successions: List[AcceptConditionSuccession]): List[AcceptCondition] = {
+    // successions에는 SlotCondition이 들어가 있을 수 있음
+    def succeedAcceptConditions(prevSlots: List[AcceptCondition], successions: List[AcceptCondition]): List[AcceptCondition] = {
       successions.map { succ =>
         ???
         //        disjunct(prevSlots(succ.succeedingSlot),
@@ -45,7 +46,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
       }
     }
 
-    def applyTipProgress(path: MilestoneGroupPath, tipProgress: TipProgress): MilestoneGroupPath =
+    def applyTipProgress(path: MilestoneGroupPath, tipProgress: StepProgress): MilestoneGroupPath =
       MilestoneGroupPath(parent = path.parent,
         milestoneGroup = tipProgress.tipReplacement, gen = path.gen,
         // materialize accept condition
@@ -57,13 +58,13 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
         val termActions = parserData.termActions(path.milestoneGroup)
         termActions.find(_._1.contains(input)) match {
           case Some((_, termAction)) =>
-            val appended = termAction.appendAction.map { appending =>
+            val appended = termAction.appendingAction.map { appending =>
               // appending이 있으면
-              val newTip = replaceTip(path, appending.tipReplacement)
+              val newTip = replaceTip(path, appending.replacement)
               MilestoneGroupPath(Some(newTip), appending.appendingMGroup, nextGen, appending.acceptConditions)
             }
             // (path.parent->newTip) 엣지에 대해서 edgeAction 적용 시작
-            val progressed = termAction.tipProgress.toList.flatMap { tipProgress =>
+            val progressed = termAction.progress.toList.flatMap { tipProgress =>
               applyEdgeAction(applyTipProgress(path, tipProgress))
             }
             appended.toList ++ progressed

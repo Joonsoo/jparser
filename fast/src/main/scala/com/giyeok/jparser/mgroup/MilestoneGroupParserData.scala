@@ -15,9 +15,9 @@ case class MilestoneGroupParserData(grammar: NGrammar,
                                     // mgroup ID -> mgroup definition
                                     milestoneGroups: Map[Int, MilestoneGroup],
                                     // mgroup ID -> term group desc -> term action
-                                    termActions: Map[Int, List[(TermGroupDesc, TermAction)]],
+                                    termActions: Map[Int, List[(TermGroupDesc, ParsingAction)]],
                                     // (edge start mgroup ID -> edge end mgroup ID) -> edge action
-                                    edgeActions: Map[(Int, Int), EdgeAction],
+                                    edgeActions: Map[(Int, Int), ParsingAction],
                                     // mgroup ID -> milestone drop action
                                     milestoneDropActions: Map[Int, MilestoneDropActions],
                                     derivedGraph: Map[Int, GraphNoIndex])
@@ -29,6 +29,13 @@ case class Milestone(symbolId: Int, pointer: Int, acceptConditionSlot: Int) exte
     else this.acceptConditionSlot - that.acceptConditionSlot
   }
 }
+
+case class ParsingAction(appendingAction: Option[AppendingAction],
+                         progress: Option[StepProgress])
+
+case class AppendingAction(replacement: Option[StepReplacement],
+                           appendingMGroup: Int,
+                           acceptConditions: List[AcceptCondition])
 
 // MilestoneGroup은 milestone들의 set과 accept condition slot들로 정의된다
 // 각 milestone은 특정 accept condition slot에 지정된 accept condition을 따라간다.
@@ -42,7 +49,7 @@ case class MilestoneGroup(/* 이 MGruop에 속하는 milestone 집합. Milestone
 // condition이 관련이 없는 새로운 group N이 뒤에 붙는다.
 case class TermAction(appendAction: Option[TermActionAppendingAction],
                       // tipProgress가 Some이면 tip에 StepReplacement을 적용한 다음 (tip.parent -> tip) 엣지에 대해 edge action 적용
-                      tipProgress: Option[TipProgress])
+                      tipProgress: Option[StepProgress])
 
 // TermActionAppendingAction은 EdgeAction과 달리 accept condition을 승계받지 않기 때문에 succedingSlot은 없음
 case class TermActionAppendingAction(tipReplacement: Option[StepReplacement],
@@ -56,8 +63,8 @@ case class StepReplacement(mgroup: Int,
                            succeedingAcceptConditionSlots: List[Int])
 
 // tip progress의 acceptConditions는 slot succession이 들어갈 수가 없을듯?
-case class TipProgress(tipReplacement: Int,
-                       acceptConditions: List[AcceptCondition])
+case class StepProgress(tipReplacement: Int,
+                        acceptConditions: List[AcceptCondition])
 
 // (group M) -> (group N) 엣지에 EdgeAction이 적용되면
 // (gruop M)에서 일부 millestone이 탈락한 (group M')과 (group N)에서 일부 milestone이 탈락한 (group M') -> (group N')으로 치환되고
@@ -82,7 +89,7 @@ case class EdgeAction(
                         * ParentProgress의 parentReplacement는 parent의 milestone 중에서,
                         * child가 progress됨으로 해서 finish되는 milestone들만 포함.
                         */
-                       parentProgress: Option[TipProgress])
+                       parentProgress: Option[StepProgress])
 
 case class EdgeActionAppendingAction(
                                       // AppendingAction의 parentReplacement는 parent의 milestone 중에서,
