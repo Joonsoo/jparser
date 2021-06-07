@@ -3,6 +3,7 @@ package com.giyeok.jparser.mgroup
 import com.giyeok.jparser.Inputs.{Input, TermGroupDesc}
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.mgroup.MilestoneGroupParser.reconstructParseTree
+import com.giyeok.jparser.nparser.AcceptCondition
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always, And, Exists, Never, NotExists, OnlyIf, Or, Unless, conjunct, disjunct}
 import com.giyeok.jparser.{Inputs, ParseForest, ParsingErrors}
 
@@ -39,11 +40,15 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
 
     // successions에는 SlotCondition이 들어가 있을 수 있음
     def succeedAcceptConditions(prevSlots: List[AcceptCondition], successions: List[AcceptCondition]): List[AcceptCondition] = {
-      successions.map { succ =>
-        ???
-        //        disjunct(prevSlots(succ.succeedingSlot),
-        //          materializeEdgeActionAcceptCondition(succ.newCondition, ???, ???, ???, ???))
+      def traverseSuccessionCondition(cond: AcceptCondition): AcceptCondition = cond match {
+        case AcceptCondition.AcceptConditionSlot(slotIdx) => prevSlots(slotIdx)
+        case _ => ???
       }
+
+      val result = successions.map(traverseSuccessionCondition)
+      result
+      //        disjunct(prevSlots(succ.succeedingSlot),
+      //          materializeEdgeActionAcceptCondition(succ.newCondition, ???, ???, ???, ???))
     }
 
     def applyTipProgress(path: MilestoneGroupPath, tipProgress: StepProgress): MilestoneGroupPath =
@@ -71,8 +76,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
           case None => List()
         }
       }
-      if (newPaths.isEmpty) Right(ParsingErrors.UnexpectedInputByTermGroups(input, ctx.expectingTerminals(parserData), ctx.gen))
-      else Left(MilestoneGroupParserContext(nextGen, newPaths, List()))
+      Left(MilestoneGroupParserContext(nextGen, newPaths, List()))
     }
   }
 
@@ -82,15 +86,26 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
   def parse(inputSeq: Seq[Inputs.Input]): Either[MilestoneGroupParserContext, ParsingError] = {
     if (verbose) {
       println("=== initial")
-      initialCtx.paths.foreach(t => println(t.prettyString))
+      new MilestoneGroupParserPrinter(parserData).printMilestoneGroupPaths(initialCtx.paths)
     }
     inputSeq.foldLeft[Either[MilestoneGroupParserContext, ParsingError]](Left(initialCtx)) { (m, nextInput) =>
       m match {
+        case Left(currCtx) if currCtx.paths.isEmpty =>
+          Right(ParsingErrors.UnexpectedInput(nextInput, Set(), currCtx.gen))
         case Left(currCtx) =>
           if (verbose) {
-            println(s"=== ${currCtx.gen} $nextInput")
+            println(s"=== ${currCtx.gen} -> ${currCtx.gen + 1} $nextInput")
           }
-          proceed(currCtx, nextInput)
+          val result = proceed(currCtx, nextInput)
+          if (verbose) {
+            result match {
+              case Left(nextCtx) =>
+                new MilestoneGroupParserPrinter(parserData).printMilestoneGroupPaths(nextCtx.paths)
+              case Right(value) =>
+                println(s"Error: $value")
+            }
+          }
+          result
         case error => error
       }
     }
@@ -119,8 +134,10 @@ object MilestoneGroupParser {
   }
 }
 
+// Main path와 dependent path로 나눠야 할듯?
 case class MilestoneGroupParserContext(gen: Int, paths: List[MilestoneGroupPath], genProgressHistory: List[GenProgress]) {
-  def expectingTerminals(parserData: MilestoneGroupParserData): Set[TermGroupDesc] = ???
+  def expectingTerminals(parserData: MilestoneGroupParserData): Set[TermGroupDesc] =
+    parserData.termActions(paths.head.milestoneGroup).map(_._1).toSet
 }
 
 case class MilestoneGroupPath(parent: Option[MilestoneGroupPath], milestoneGroup: Int, gen: Int, acceptConditionSlots: List[AcceptCondition]) {

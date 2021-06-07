@@ -59,7 +59,8 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
     assert(to.toSet.subsetOf(from.toSet))
     val sortedFrom = from.sorted.zipWithIndex.map(f => f._1 -> f._2).toMap
     val sortedTo = to.sorted
-    StepReplacement(mgroupIdOf(to), sortedTo.map(sortedFrom))
+    val newTo = sortedTo.zipWithIndex.map(p => p._1.copy(acceptConditionSlot = p._2))
+    StepReplacement(mgroupIdOf(newTo), sortedTo.map(sortedFrom))
   }
 
   private def parsingAction(graph: Graph, startGroupId: Int, startMilestoneAndNodes: List[(Milestone, Node)], progressTasks: List[parser.ProgressTask], currGen: Int): ParsingAction = {
@@ -206,17 +207,17 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
         MilestoneGroupParserData(parser.grammar,
           startMGroup,
           emptyMGroup,
-          ???,
-          ???,
+          tasksSummaryFrom(List()),
+          /* TODO */ milestoneGroupsById.view.mapValues(list => MilestoneGroup(list, list.size)).toMap,
           termActions,
           edgeActions,
-          ???,
-          ???)
+          /* TODO */ Map(),
+          /* TODO */ Map())
       } else {
-        jobs.tips.foreach { tip =>
+        jobs.tips.toList.sorted.foreach { tip =>
           termActions += tip -> termActionsOf(tip)
         }
-        jobs.edges.foreach { edge =>
+        jobs.edges.toList.sorted.foreach { edge =>
           edgeActions += edge -> edgeActionBetween(edge._1, edge._2)
         }
         generateData()
@@ -254,8 +255,17 @@ object MilestoneGroupParserGen {
         |Word = <'a-zA-Z0-9_'+> {str($0)}
         |WS = ' '*
         |""".stripMargin
-    val grammar = MetaLanguage3.analyzeGrammar(grammar1)
-    val sourceText = "[[[a]]]"
+    val grammar3 =
+      """expression = term
+        |    | expression WS '+' WS term
+        |term = factor
+        |    | term WS '*' WS factor
+        |factor = 'a-z'+ | '1-9'+
+        |    | '(' WS expression WS ')'
+        |WS = ' '*
+        |""".stripMargin
+    val grammar = MetaLanguage3.analyzeGrammar(grammar3)
+    val sourceText = """abc + 123 * 456 * 789 + bcd"""
     val valuefySimulator = ValuefyExprSimulator(grammar)
 
     //    val milestoneParserData = MilestoneParserGen.generateMilestoneParserData(grammar.ngrammar)
@@ -265,7 +275,9 @@ object MilestoneGroupParserGen {
     //    println(milestoneAst.map(_.prettyPrint()))
 
     val mgroupParserData = MilestoneGroupParserGen.generateMilestoneGroupParserData(grammar.ngrammar)
-    val mgroupParser = new MilestoneGroupParser(mgroupParserData)
+    val mgroupParser = new MilestoneGroupParser(mgroupParserData, verbose = true)
+    val ctx = mgroupParser.parse(sourceText)
+    println(ctx)
     //    val mgroupParseForest = mgroupParser.parseAndReconstructToForest(sourceText).left.get
     //    val mgroupAst = mgroupParseForest.trees.map(valuefySimulator.valuefyStart)
     //    println(mgroupAst)
