@@ -4,7 +4,8 @@ import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.fast.ParserGenBase
 import com.giyeok.jparser.metalang3a.{MetaLanguage3, ValuefyExprSimulator}
-import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, AcceptConditionSlot, Always, disjunct}
+import com.giyeok.jparser.mgroup.MilestoneGroupParserData.{EDGE_CURRENT_GEN, EDGE_END_GEN, EDGE_NEXT_GEN, EDGE_PARENT_GEN, EDGE_START_GEN, TERM_CURRENT_GEN, TERM_END_GEN, TERM_START_GEN}
+import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, AcceptConditionSlot, Always, conjunct, disjunct}
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
 import com.giyeok.jparser.utils.TermGrouper
@@ -42,24 +43,26 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
   /**
    *
    * @param milestones
-   * @param nextGen
+   * @param endGen
    * @return (startNodes, Cont)
    */
-  private def derivedFrom(milestones: List[Milestone], nextGen: Int): (List[Node], ContWithTasks) = {
-    val startNodes = milestones.map(m => Node(Kernel(m.symbolId, m.pointer, 0, nextGen), Always))
+  private def derivedFrom(milestones: List[Milestone], startGen: Int, endGen: Int): (List[Node], ContWithTasks) = {
+    val startNodes = milestones.map(m => Node(Kernel(m.symbolId, m.pointer, startGen, endGen), Always))
     val startGraph = Graph(startNodes.toSet, Set())
     val deriveTasks = startNodes.map(parser.DeriveTask)
 
-    val result = runTasksWithProgressBarriers(nextGen, deriveTasks, startNodes.toSet,
+    val result = runTasksWithProgressBarriers(endGen, deriveTasks, startNodes.toSet,
       ContWithTasks(deriveTasks, parser.Cont(startGraph, Map())))
     (startNodes, result)
   }
 
-  private def stepReplacement(from: List[Milestone], to: List[Milestone]): StepReplacement = {
+  private def stepReplacement(fromMilestones: List[Milestone], toMilestones: List[Milestone]): StepReplacement = {
+    val from = fromMilestones.map(_.tmpl)
+    val to = toMilestones.map(_.tmpl)
     assert(to.toSet.subsetOf(from.toSet))
     val sortedFrom = from.sorted.zipWithIndex.map(f => f._1 -> f._2).toMap
     val sortedTo = to.sorted
-    val newTo = sortedTo.zipWithIndex.map(p => p._1.copy(acceptConditionSlot = p._2))
+    val newTo = sortedTo.zipWithIndex.map(p => Milestone(p._1.symbolId, p._1.pointer, p._2))
     StepReplacement(mgroupIdOf(newTo), sortedTo.map(sortedFrom))
   }
 
@@ -76,6 +79,7 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
     val appendingMilestones0 = progressResults.tasks.deriveTasks.appendingMilestoneCandidates(trimmed, nextGen)
     // startNodes 중 한 개 이상에서 도달 가능한 milestone만 추리면 appending milestones
     val appendingMilestones1 = appendingMilestones0.filter(progressedGraph.reachableBetween(startNodes, _))
+    val startMilestones = startMilestoneAndNodes.map(_._1)
     val appendAction = if (appendingMilestones1.isEmpty) None else {
       val survivingMilestones = startMilestoneAndNodes
         .filter(pair => progressedGraph.reachableBetween(pair._2, appendingMilestones1.toSet))
@@ -83,7 +87,6 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
       val (appendingMilestones, appendingConditions) = milestonesFromNodes(appendingMilestones1)
       // appendingConditions.map(_.condition)에는 AcceptConditionSlot이 없어야 함
       // TODO 위 조건 assert 추가?
-      val startMilestones = startMilestoneAndNodes.map(_._1)
 
       val replace = if (survivingMilestones.size == startNodes.size) None else Some(stepReplacement(startMilestones, survivingMilestones))
       val appendingGroup = mgroupIdOf(appendingMilestones)
@@ -96,16 +99,20 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
     }
 
     val startProgressTasks = progressResults.tasks.progressTasks.filter(t => startNodes.contains(t.node))
-      .groupBy(_.node)
-    val tipProgress = if (startProgressTasks.isEmpty) None else {
-      val (progressingMilestones, progressingConditions) = milestonesFromNodes(startProgressTasks.keySet)
+    val tipProgress = if (progressResults.tasks.progressTasks.isEmpty) None else {
+      val tasks = startProgressTasks.map(task =>
+        Milestone(task.node.kernel.symbolId, task.node.kernel.pointer, -1) -> conjunct(task.node.condition, task.condition)
+      )
+      val milestoneTmpls = tasks.groupBy(_._1).view.mapValues(g => disjunct(g.map(_._2): _*)).toList.sortBy(_._1)
+      val progressingMilestones = milestoneTmpls.map(_._1)
+      val progressingConditions = milestoneTmpls.map(_._2)
+      val replacement = stepReplacement(startMilestones, progressingMilestones)
       // Tip Progress는 새로 생기는 accept condition밖에 없어서 succession이 필요 없을듯
-      val edgeTriggerGroup = mgroupIdOf(progressingMilestones)
-      if (startGroupId != edgeTriggerGroup) {
-        positionsGraph = positionsGraph.addEdgeSafe(ReplacedBy(edgeTriggerGroup, startGroupId))
+      if (startGroupId != replacement.mgroup) {
+        positionsGraph = positionsGraph.addEdgeSafe(ReplacedBy(replacement.mgroup, startGroupId))
       }
-      edgeTriggerGroups += edgeTriggerGroup
-      Some(StepProgress(edgeTriggerGroup, progressingConditions))
+      edgeTriggerGroups += replacement.mgroup
+      Some(StepProgress(replacement, progressingConditions))
     }
 
     // TODO milestone parser의 dependent 처리
@@ -115,15 +122,15 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
 
   private def termActionsOf(mgroupId: Int): List[(TermGroupDesc, ParsingAction)] = {
     val milestones = milestoneGroupsById(mgroupId)
-    val (startNodes, ContWithTasks(_, parser.Cont(derived, _))) = derivedFrom(milestones, 1)
+    val (startNodes, ContWithTasks(_, parser.Cont(derived, _))) = derivedFrom(milestones, TERM_START_GEN, TERM_END_GEN)
     val termGroups = TermGrouper.termGroupsOf(parser.grammar, derived)
 
     termGroups.map { termGroup =>
-      val termNodes = parser.finishableTermNodes(derived, 1, termGroup)
+      val termNodes = parser.finishableTermNodes(derived, TERM_END_GEN, termGroup)
       // terminal node는 항상 Always로 progress됨
       val progressTasks = termNodes.toList.map(parser.ProgressTask(_, Always))
 
-      termGroup -> parsingAction(derived, mgroupId, milestones.zip(startNodes), progressTasks, 1)
+      termGroup -> parsingAction(derived, mgroupId, milestones.zip(startNodes), progressTasks, TERM_CURRENT_GEN)
     }
   }
 
@@ -132,8 +139,9 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
     // - tip의 milestone은 모두 parent에서 도달 가능해야 함
     val originalParentMilestones = milestoneGroupsById(parentMGroupId)
     val tipMilestones = milestoneGroupsById(tipMGroupId)
-    val tipNodes = tipMilestones.map(m => Node(Kernel(m.symbolId, 0, 1, 1), Always)).toSet
-    val (startNodes, ContWithTasks(_, parser.Cont(derivedGraph, _))) = derivedFrom(originalParentMilestones, 1)
+    val (startNodes, ContWithTasks(_, parser.Cont(derivedGraph, _))) =
+      derivedFrom(originalParentMilestones, EDGE_PARENT_GEN, EDGE_START_GEN)
+    val tipNodes = tipMilestones.map(m => Node(Kernel(m.symbolId, 0, EDGE_START_GEN, EDGE_START_GEN), Always)).toSet
     assert(tipNodes.forall(derivedGraph.reachableBetween(startNodes.toSet, _)))
     val survivingParentMilestones = startNodes.zip(originalParentMilestones).collect {
       case (startNode, parentMilestone) if derivedGraph.reachableBetween(startNode, tipNodes) =>
@@ -144,8 +152,8 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
     // - 다음 gen에 살아남는 노드로 추려서 사용
     val fakeEnds = tipMilestones.zipWithIndex.map { pair =>
       val (milestone, slotIdx) = pair
-      val prevNode = Node(Kernel(milestone.symbolId, 0, 1, 1), Always)
-      val newNode = Node(Kernel(milestone.symbolId, milestone.pointer, 1, 2), AcceptConditionSlot(slotIdx))
+      val prevNode = Node(Kernel(milestone.symbolId, 0, EDGE_START_GEN, EDGE_START_GEN), Always)
+      val newNode = Node(Kernel(milestone.symbolId, milestone.pointer, EDGE_START_GEN, EDGE_END_GEN), AcceptConditionSlot(slotIdx))
       prevNode -> newNode
     }
     val graphWithFakeEnds = fakeEnds.foldLeft(derivedGraph) { (graph, fakeEnd) =>
@@ -154,15 +162,15 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
         ngraph.addEdge(Edge(edge.start, newNode))
       }
     }
-    val afterDerive = parser.rec(2, fakeEnds.map(e => parser.DeriveTask(e._2)), graphWithFakeEnds)
-    val afterTrimming = parser.trimGraph(afterDerive.graph, startNodes.toSet, 2)
+    val afterDerive = parser.rec(EDGE_END_GEN, fakeEnds.map(e => parser.DeriveTask(e._2)), graphWithFakeEnds)
+    val afterTrimming = parser.trimGraph(afterDerive.graph, startNodes.toSet, EDGE_END_GEN)
 
     // parent에서 도달 가능한 milestone들이 있으면 parentReplacement + appending으로 설정하고
     // parent 중 progress되는 것들이 있으면 parentProgress
     // - 전 단계에서 만들어진 AC들은 이미 slot에 반영되어 있으므로 여기서는 Always로 progress하면 될듯
     val progressTasks = fakeEnds.map(_._2).toSet.intersect(afterTrimming.nodes).toList.map(parser.ProgressTask(_, Always))
 
-    parsingAction(afterTrimming, parentMGroupId, survivingParentMilestones, progressTasks, 2)
+    parsingAction(afterTrimming, parentMGroupId, survivingParentMilestones, progressTasks, EDGE_CURRENT_GEN)
   }
 
   private var termActions = Map[Int, List[(TermGroupDesc, ParsingAction)]]()
@@ -264,8 +272,9 @@ object MilestoneGroupParserGen {
         |    | '(' WS expression WS ')'
         |WS = ' '*
         |""".stripMargin
-    val grammar = MetaLanguage3.analyzeGrammar(grammar3)
-    val sourceText = """abc + 123 * 456 * 789 + bcd"""
+    val (grammarDef, sourceText) = (grammar2, """if  int""")
+    //    val (grammarDef, sourceText) = (grammar3, """1 + 234  * abc""")
+    val grammar = MetaLanguage3.analyzeGrammar(grammarDef)
     val valuefySimulator = ValuefyExprSimulator(grammar)
 
     //    val milestoneParserData = MilestoneParserGen.generateMilestoneParserData(grammar.ngrammar)

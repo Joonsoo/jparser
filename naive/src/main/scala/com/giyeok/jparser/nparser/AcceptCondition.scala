@@ -169,6 +169,12 @@ object AcceptCondition {
         override def nodes: Set[Node] = Set()
         override def evaluate(gen: Int, graph: Graph): AcceptCondition = ???
         override def acceptable(gen: Int, graph: Graph): Boolean = ???
-        override def neg: AcceptCondition = ???
+        override def neg: AcceptCondition = AcceptConditionSlotNeg(slotIdx)
+    }
+    case class AcceptConditionSlotNeg(slotIdx: Int) extends AcceptCondition {
+        override def nodes: Set[Node] = Set()
+        override def evaluate(gen: Int, graph: Graph): AcceptCondition = ???
+        override def acceptable(gen: Int, graph: Graph): Boolean = ???
+        override def neg: AcceptCondition = AcceptConditionSlot(slotIdx)
     }
 }

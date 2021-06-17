@@ -17,7 +17,7 @@ class MilestoneGroupParserPrinter(val parserData: MilestoneGroupParserData) {
 
     def pathToText(path: MilestoneGroupPath): List[MilestoneGroupText] = {
       val thisGroup = MilestoneGroupText(parserData.milestoneGroups(path.milestoneGroup).milestones.map { milestone =>
-        s"${milestone.symbolId} ${milestone.pointer} ${path.acceptConditionSlots(milestone.acceptConditionSlot)}"
+        s"${milestone.symbolId} ${milestone.pointer} [${milestone.acceptConditionSlot}]${path.acceptConditionSlots(milestone.acceptConditionSlot)}"
       }, s"[[ ${path.gen} ]]")
       path.parent match {
         case Some(parent) => pathToText(parent) :+ thisGroup

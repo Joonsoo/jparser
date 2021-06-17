@@ -21,13 +21,36 @@ case class MilestoneGroupParserData(grammar: NGrammar,
                                     // mgroup ID -> milestone drop action
                                     milestoneDropActions: Map[Int, MilestoneDropActions],
                                     derivedGraph: Map[Int, GraphNoIndex])
+// TODO accept condition atom별로, 그 atom의 evaluation에 필요한 정보 저장. e.g. accept condition atom이 성사될 수 있는 edge action, term action 등..
+
+object MilestoneGroupParserData {
+  val TERM_START_GEN = 1100
+  val TERM_END_GEN = 1200
+  val TERM_CURRENT_GEN = 1300
+  val TERM_NEXT_GEN = 1301
+  val TERM_NEXT_PLUS_GEN = 1302
+
+  val EDGE_PARENT_GEN = 2100
+  val EDGE_START_GEN = 2200
+  val EDGE_END_GEN = 2300
+  val EDGE_CURRENT_GEN = 2400
+  val EDGE_NEXT_GEN = 2401
+  val EDGE_NEXT_PLUS_GEN = 2402
+}
 
 case class Milestone(symbolId: Int, pointer: Int, acceptConditionSlot: Int) extends Ordered[Milestone] {
+  def tmpl: MilestoneTmpl = MilestoneTmpl(symbolId, pointer)
+
   override def compare(that: Milestone): Int = {
     if (this.symbolId != that.symbolId) this.symbolId - that.symbolId
     else if (this.pointer != that.pointer) this.pointer - that.pointer
     else this.acceptConditionSlot - that.acceptConditionSlot
   }
+}
+
+case class MilestoneTmpl(symbolId: Int, pointer: Int) extends Ordered[MilestoneTmpl] {
+  override def compare(that: MilestoneTmpl): Int =
+    if (this.symbolId != that.symbolId) this.symbolId - that.symbolId else this.pointer - that.pointer
 }
 
 case class ParsingAction(appendingAction: Option[AppendingAction],
@@ -63,7 +86,7 @@ case class StepReplacement(mgroup: Int,
                            succeedingAcceptConditionSlots: List[Int])
 
 // tip progress의 acceptConditions는 slot succession이 들어갈 수가 없을듯?
-case class StepProgress(tipReplacement: Int,
+case class StepProgress(tipReplacement: StepReplacement,
                         acceptConditions: List[AcceptCondition])
 
 // (group M) -> (group N) 엣지에 EdgeAction이 적용되면
