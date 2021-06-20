@@ -22,12 +22,12 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
         val appending = edgeAction.appendingAction.map { appending =>
           val newParent = replaceTip(parent, appending.replacement)
           MilestoneGroupPath(Some(newParent), appending.appendingMGroup, nextGen,
-            succeedAcceptConditions(path, path.acceptConditionSlots, appending.acceptConditions))
+            succeedEdgeActionACs(path, path.acceptConditionSlots, appending.acceptConditions))
         }
         val chaining = edgeAction.progress.toList.flatMap { parentProgress =>
           val parentAcceptConditions = parentProgress.tipReplacement.succeedingAcceptConditionSlots.map(parent.acceptConditionSlots)
           val succeededAcceptConditions =
-            succeedAcceptConditions(parent, path.acceptConditionSlots, parentProgress.acceptConditions)
+            succeedEdgeActionACs(parent, path.acceptConditionSlots, parentProgress.acceptConditions)
           assert(parentAcceptConditions.size == succeededAcceptConditions.size)
           assert(parserData.milestoneGroups(parentProgress.tipReplacement.mgroup).acceptConditionSlots == succeededAcceptConditions.size)
           val newParent = MilestoneGroupPath(parent = parent.parent,
@@ -48,7 +48,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
       MilestoneGroupPath(parent = path.parent, milestoneGroup = replacement.mgroup,
         gen = path.gen, acceptConditionSlots = replacement.succeedingAcceptConditionSlots.map(path.acceptConditionSlots))
 
-    def materializeEdgeActionAcceptCondition(acceptCondition: AcceptCondition, path: MilestoneGroupPath): AcceptCondition = {
+    def materializeEdgeActionAC(acceptCondition: AcceptCondition, path: MilestoneGroupPath): AcceptCondition = {
       //      new MilestoneGroupParserPrinter(parserData).printMilestoneGroupPath(path)
       //      println(acceptCondition)
 
@@ -82,7 +82,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
       materialize(acceptCondition)
     }
 
-    def materializeTermActionAcceptCondition(acceptCondition: AcceptCondition, path: MilestoneGroupPath): AcceptCondition = {
+    def materializeTermActionAC(acceptCondition: AcceptCondition, path: MilestoneGroupPath): AcceptCondition = {
       def mapGen(gen: Int) = gen match {
         case TERM_START_GEN => ???
         case TERM_END_GEN => path.gen
@@ -112,7 +112,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
       materialize(acceptCondition)
     }
 
-    def succeedAcceptConditions(path: MilestoneGroupPath, prevSlots: List[AcceptCondition], successions: List[AcceptCondition]): List[AcceptCondition] = {
+    def succeedEdgeActionACs(path: MilestoneGroupPath, prevSlots: List[AcceptCondition], successions: List[AcceptCondition]): List[AcceptCondition] = {
       def traverseSuccessionCondition(cond: AcceptCondition): AcceptCondition = cond match {
         case Always | Never => cond
         case AcceptCondition.AcceptConditionSlot(slotIdx) => prevSlots(slotIdx)
@@ -120,7 +120,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
         case And(conditions) => conjunct(conditions.toSeq.map(traverseSuccessionCondition): _*)
         case Or(conditions) => disjunct(conditions.toSeq.map(traverseSuccessionCondition): _*)
         case _: NotExists | _: Exists | _: Unless | _: OnlyIf =>
-          materializeEdgeActionAcceptCondition(cond, path)
+          materializeEdgeActionAC(cond, path)
       }
 
       val result = successions.map(traverseSuccessionCondition)
@@ -129,10 +129,25 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
       //          materializeEdgeActionAcceptCondition(succ.newCondition, ???, ???, ???, ???))
     }
 
+    def succeedTermActionACs(path: MilestoneGroupPath, prevSlots: List[AcceptCondition], successions: List[AcceptCondition]): List[AcceptCondition] = {
+      def traverseSuccessionCondition(cond: AcceptCondition): AcceptCondition = cond match {
+        case Always | Never => cond
+        case AcceptCondition.AcceptConditionSlot(slotIdx) => prevSlots(slotIdx)
+        case AcceptCondition.AcceptConditionSlotNeg(slotIdx) => prevSlots(slotIdx).neg
+        case And(conditions) => conjunct(conditions.toSeq.map(traverseSuccessionCondition): _*)
+        case Or(conditions) => disjunct(conditions.toSeq.map(traverseSuccessionCondition): _*)
+        case _: NotExists | _: Exists | _: Unless | _: OnlyIf =>
+          materializeTermActionAC(cond, path)
+      }
+
+      val result = successions.map(traverseSuccessionCondition)
+      result
+    }
+
     def applyTipProgress(path: MilestoneGroupPath, tipProgress: StepProgress): MilestoneGroupPath = {
       val replacedTipAcceptConditions = tipProgress.tipReplacement.succeedingAcceptConditionSlots.map(path.acceptConditionSlots)
       assert(replacedTipAcceptConditions.size == tipProgress.acceptConditions.size)
-      val succeededAcceptConditions = succeedAcceptConditions(path, path.acceptConditionSlots, tipProgress.acceptConditions)
+      val succeededAcceptConditions = succeedEdgeActionACs(path, path.acceptConditionSlots, tipProgress.acceptConditions)
       assert(replacedTipAcceptConditions.size == succeededAcceptConditions.size)
       MilestoneGroupPath(parent = path.parent,
         milestoneGroup = tipProgress.tipReplacement.mgroup, gen = path.gen,
@@ -151,7 +166,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData, val verbose
               val newTip = replaceTip(path, appending.replacement)
               // appending.acceptConditions는 모두 새로 생긴 AC들이므로 AcceptConditionSlot이 없음
               MilestoneGroupPath(Some(newTip), appending.appendingMGroup, nextGen,
-                appending.acceptConditions.map(materializeTermActionAcceptCondition(_, path)))
+                succeedTermActionACs(path, path.acceptConditionSlots, appending.acceptConditions))
             }
             // (path.parent->newTip) 엣지에 대해서 edgeAction 적용 시작
             val progressed = termAction.progress.toList.flatMap { tipProgress =>
