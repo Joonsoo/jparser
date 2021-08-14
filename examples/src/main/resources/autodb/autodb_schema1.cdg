@@ -14,9 +14,10 @@ EntityKey: EntityKey = "key"&Tk WS EntityKeyFields {PrimaryKey(fields=$2)}
 EntityKeyFields = '(' WS FieldName (WS ',' WS FieldName)* WS ')' {[$2] + $3}
 EntityBody = '{' (WS EntityBodyElem)* WS '}' {$1}
 EntityBodyElem: EntityBodyElem = VersionEntity | EntityView
-VersionEntity = "version"&Tk WS "entity"&Tk WS EntityName (WS VersioningKey)? (WS EntityFields)? (WS EntityKeys)? (WS VersionEntityBody)?
-    {VersionEntity(name=$4, versioningKeys=$5, fields: [EntityField]=$6 ?: [], keys=$7 ?: [], body=$8 ?: [])}
-VersioningKey = '[' (WS EntityFieldOptType) (WS ',' WS EntityFieldOptType) (WS ',' WS EntityFieldOptType) (WS ',')? WS ']' {VersioningKey(target=$1, version=$2, timestamp=$3)}
+VersionEntity = "version"&Tk WS "entity"&Tk WS EntityName (WS VersioningInfo)? (WS EntityFields)? (WS EntityKeys)? (WS VersionEntityBody)?
+    {VersionEntity(name=$4, versioningInfo=$5, fields: [EntityField]=$6 ?: [], keys=$7 ?: [], body=$8 ?: [])}
+VersioningInfo = '[' (WS FieldName) (WS ',' WS FieldName) (WS ',' WS FieldName) (WS ',' WS FieldName) (WS ',')? WS ']'
+                {VersioningInfo(keyFieldName=$1, versionFieldName=$2, timestampFieldName=$3, deletedFlagFieldName=$4)}
 VersionEntityBody = '{' (WS VersionEntityElem)* WS '}' $1
 VersionEntityElem: VersionEntityElem = EntityView
 EntityView = "view"&Tk WS DataTypeName WS '(' WS EntityViewField (WS ',' WS EntityViewField)* (WS ',')? WS ')' {EntityView(name=$2, fields=[$6]+$7)}
@@ -35,8 +36,11 @@ FieldName = Name
 DataTypeName = Name
 DataFieldName = Name
 Tk = <'a-zA-Z0-9_'+>
-WS = ' \n\r\t'*
-FieldType: FieldType = Type | "@DeleteFlag" {DeleteFlag()}
+WS = (' \n\r\t' | LineComment)*
+LineComment = "//" (.-'\n')* (EOF | '\n')
+EOF = !.
+
+FieldType: FieldType = Type
 Type = ValueType (WS '?')? {Type(valueType=$0, nullable=ispresent($1))}
 ValueType: ValueType = PrimitiveType {PrimitiveType(typ=$0)} | LengthLimitedType | RefType | ListType | Name {CustomType(name=$0)} | EnumDef | OneOfDef | DataTypeDef
 PrimitiveType: %PrimType = ("Int" {%INT} | "Long" {%LONG} | "Timestamp" {%TIMESTAMP} | "Duration" {%DURATION} | "Boolean" {%BOOLEAN} | "Empty" {%EMPTY})&Tk
@@ -56,7 +60,7 @@ IdGenSpecName = Name
 
 FieldAnnotations = FieldAnnotation (WS FieldAnnotation)* {[$0] + $1}
 FieldAnnotation: FieldAnnotation = VersionedAnnotation | IdGenAnnotation
-VersionedAnnotation = '@' "versioned"&Tk WS '(' WS EntityName WS ',' WS FieldName WS ')' {VersionedAnnotation(entity=$5, versionFieldName=$9)}
+VersionedAnnotation = '@' "versioned"&Tk {VersionedAnnotation()}
 IdGenAnnotation = '@' "idgen"&Tk WS '(' WS IdGenSpec WS ')' {IdGenAnnotation(spec=$5)}
 
 IdGenSpec: IdGenSpec = IdGenSpecName {IdGenName(name=$0)}
