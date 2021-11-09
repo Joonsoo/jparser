@@ -13,7 +13,7 @@ EntityKey: EntityKey = "key"&Tk WS EntityKeyFields {PrimaryKey(fields=$2)}
                      | "index"&Tk WS EntityKeyFields {IndexKey(fields=$2)}
 EntityKeyFields = '(' WS FieldName (WS ',' WS FieldName)* WS ')' {[$2] + $3}
 EntityBody = '{' (WS EntityBodyElem)* WS '}' {$1}
-EntityBodyElem: EntityBodyElem = VersionEntity | EntityView
+EntityBodyElem: EntityBodyElem = VersionEntity | EntityView | PreDefinedEntityView
 VersionEntity = "version"&Tk WS "entity"&Tk WS EntityName (WS VersioningInfo)? (WS EntityFields)? (WS EntityKeys)? (WS VersionEntityBody)?
     {VersionEntity(name=$4, versioningInfo=$5, fields: [EntityField]=$6 ?: [], keys=$7 ?: [], body=$8 ?: [])}
 VersioningInfo = '[' (WS FieldName) (WS ',' WS FieldName) (WS ',' WS FieldName) (WS ',' WS FieldName) (WS ',')? WS ']'
@@ -31,6 +31,10 @@ EntityViewFieldSelectTerm: EntityViewFieldSelectTerm = "null"&Tk {NullValue()}
     | FieldName ((WS '?')? WS '.' WS DataFieldName {DataTypeValueSelectField(nullable=ispresent($0), fieldName=$4)})* {DataTypeValueSelect(field=$0, selectPath=$1)}
     | "@primaryKey" {PrimaryKeySelect()}
     | '(' WS EntityViewFieldSelectExpr WS ')' {Paren(expr=$2)}
+PreDefinedEntityView = "view"&Tk WS FieldRef WS '(' WS PreDefinedEntityViewField (WS ',' WS PreDefinedEntityViewField)* (WS ',')? WS ')'
+    {PreDefinedEntityView(definition=$2, fields=[$6]+$7)}
+PreDefinedEntityViewField = FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$0)}
+    | FieldName WS '=' WS FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$4)}
 EntityName = Name
 FieldName = Name
 DataTypeName = Name
@@ -42,7 +46,7 @@ EOF = !.
 
 FieldType: FieldType = Type
 Type = ValueType (WS '?')? {Type(valueType=$0, nullable=ispresent($1))}
-ValueType: ValueType = PrimitiveType {PrimitiveType(typ=$0)} | LengthLimitedType | RefType | ListType | Name {CustomType(name=$0)} | EnumDef | OneOfDef | DataTypeDef
+ValueType: ValueType = PrimitiveType {PrimitiveType(typ=$0)} | LengthLimitedType | RefType | ListType | Name {CustomType(name=$0)} | OneOfCaseType | EnumDef | OneOfDef | DataTypeDef
 PrimitiveType: %PrimType = ("Int" {%INT} | "Long" {%LONG} | "Timestamp" {%TIMESTAMP} | "Duration" {%DURATION} | "Boolean" {%BOOLEAN} | "Empty" {%EMPTY})&Tk
 LengthLimitedType: LengthLimitedType = "String" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {StringType(length=$1)}
   | "URI" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {URIType(length=$1)}
@@ -50,6 +54,8 @@ LengthLimitedType: LengthLimitedType = "String" (WS '(' WS ('1-9' '0-9'* {str($0
 RefType = "Ref"&Tk WS '<' WS EntityName WS '>' {RefType(entity=$4)}
 ListType = "List"&Tk WS '<' WS Type WS '>' {ListType(elemType=$4)}
 Name = Tk-Keywords {str($0)}
+OneOfCaseType = "OneOfCase"&Tk WS '<' WS FieldRef WS '>' {OneOfCaseType(field=$4)}
+FieldRef = Name (WS '.' WS Name)+ {FieldRef(names=[$0] + $1)}
 Keywords = "Int" | "Long" | "String" | "Timestamp" | "Duration" | "URI" | "Boolean" | "Empty" | "Ref" | "List" | "entity"
   | "autoincrement" | "sparsegenLong" | "view" | "null"
   | "==" | "!="
