@@ -52,7 +52,7 @@ QueryDef = "query"&Tk WS Name WS '(' (WS MethodParams)? WS ')' (WS ':' WS Type)?
 UpdateDef = "update"&Tk WS Name WS '(' (WS MethodParams)? WS ')' WS UpdateBody {UpdateDef(name=$2, params=$5 ?: [], body=$9)}
 UpdateBody = '{' (WS UpdateStmt)+ WS '}' {UpdateBody(stmts=$1)}
 MethodParams = MethodParam (WS ',' WS MethodParam)* (WS ',')? {[$0] + $1}
-MethodParam = Name WS ':' WS Type {MethodParam(name=$0, type=$4)}
+MethodParam = Name WS ':' WS Type {MethodParam(name=$0, paramType=$4)}
 
 EntityName = Name
 FieldName = Name
@@ -192,7 +192,7 @@ FilterEqualityExpr: FilterEqualityExpr = FilterRelationalExpr
   | FilterEqualityExpr WS ("==" {%EQ} | "!=" {%NE}) WS FilterRelationalExpr {FilterBinOp($0, $4, $2)}
 FilterRelationalExpr: FilterRelationalExpr = FilterFactor
   | FilterRelationalExpr WS FilterRelationalOp WS FilterFactor {FilterBinOp($0, $4, $2)}
-FilterRelationalOp = ("<" {%LT} | ">" {%GT} | "<=" {%LE} | ">=" {%GE} | "in" {%IN})&Tk
+FilterRelationalOp: %FilterBinOps = ("<" {%LT} | ">" {%GT} | "<=" {%LE} | ">=" {%GE} | "in" {%IN})&Tk
 FilterFactor: FilterFactor = ValueExpr
   | QueryExpr {NestedQuery(expr=$0)}
   | '(' WS FilterExpr WS ')' {ParenFilterExpr(expr=$2)}

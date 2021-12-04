@@ -27,7 +27,8 @@ object ScalaCodeGen {
                      assertBindTypes: Boolean = true,
                      symbolComments: Boolean = true,
                      withParseNodesInClasses: Boolean = true,
-                     grammarDefType: GrammarDefType = InlineSourceDef)
+                     grammarDefType: GrammarDefType = InlineSourceDef,
+                     emitNGrammar: Boolean = false)
 
   sealed trait GrammarDefType
 
@@ -567,11 +568,12 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       mainFunc.map(_.required).getOrElse(Set()) +
       "com.giyeok.jparser.nparser.ParseTreeUtil" +
       "com.giyeok.jparser.NGrammar").toList.sorted
+    val ngrammarDefString =
+      if (options.emitNGrammar) s"  val ngrammar: NGrammar = ${ngrammarDefCode.indent().code}\n" else ""
     s"""${allImports.map(pkg => s"import $pkg").mkString("\n")}
        |
        |object $className {
-       |  val ngrammar: NGrammar = ${ngrammarDefCode.indent().code}
-       |
+       |$ngrammarDefString
        |${classDefsCode.indent().code}
        |${enumDefsCode.indent().code}
        |
