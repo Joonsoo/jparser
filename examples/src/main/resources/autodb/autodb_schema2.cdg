@@ -47,8 +47,11 @@ PreDefinedEntityView = "view"&Tk WS FieldRef WS '(' WS PreDefinedEntityViewField
 PreDefinedEntityViewField = FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$0)}
     | FieldName WS '=' WS FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$4)}
 
-QueryDef = "query"&Tk WS Name WS '(' (WS MethodParams)? WS ')' (WS ':' WS Type)? WS QueryBody
+QueryDef = "query"&Tk WS Name WS '(' (WS MethodParams)? WS ')' (WS ':' WS ReturnType)? WS QueryBody
            {QueryDef(name=$2, params=$5 ?: [], returnType=$8, body=$10)}
+ReturnType: ReturnType = Type | ExtListType
+ExtListType = ("ListWithMore" {%LIST_WITH_MORE} | "ListWithCount" {%LIST_WITH_COUNT})&Tk WS '<' WS Type WS '>'
+              {ExtListType(listType:%ExtListType=$0, elemType=$4)}
 UpdateDef = "update"&Tk WS Name WS '(' (WS MethodParams)? WS ')' WS UpdateBody {UpdateDef(name=$2, params=$5 ?: [], body=$9)}
 UpdateBody = '{' (WS UpdateStmt)+ WS '}' {UpdateBody(stmts=$1)}
 MethodParams = MethodParam (WS ',' WS MethodParam)* (WS ',')? {[$0] + $1}
