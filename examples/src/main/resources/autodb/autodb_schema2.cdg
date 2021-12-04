@@ -47,31 +47,35 @@ PreDefinedEntityView = "view"&Tk WS FieldRef WS '(' WS PreDefinedEntityViewField
 PreDefinedEntityViewField = FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$0)}
     | FieldName WS '=' WS FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$4)}
 
-QueryDef = "query"&Tk WS Name WS '(' (WS MethodParams)? WS ')' WS QueryBody {QueryDef(name=$2, params=$5 ?: [], body=$9)}
+QueryDef = "query"&Tk WS Name WS '(' (WS MethodParams)? WS ')' (WS ':' WS Type)? WS QueryBody
+           {QueryDef(name=$2, params=$5 ?: [], returnType=$8, body=$10)}
 UpdateDef = "update"&Tk WS Name WS '(' (WS MethodParams)? WS ')' WS UpdateBody {UpdateDef(name=$2, params=$5 ?: [], body=$9)}
 UpdateBody = '{' (WS UpdateStmt)+ WS '}' {UpdateBody(stmts=$1)}
 MethodParams = MethodParam (WS ',' WS MethodParam)* (WS ',')? {[$0] + $1}
-MethodParam = Name WS ':' WS FieldType {MethodParam(name=$0, type=$4)}
+MethodParam = Name WS ':' WS Type {MethodParam(name=$0, type=$4)}
 
 EntityName = Name
 FieldName = Name
 DataTypeName = Name
 DataFieldName = Name
 StorageName = Name
-Tk = <'a-zA-Z0-9_'+>
+Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
 WS = (' \n\r\t' | LineComment)*
 LineComment = "//" (.-'\n')* (EOF | '\n')
 EOF = !.
 
 FieldType: FieldType = Type
 Type = ValueType (WS '?')? {Type(valueType=$0, nullable=ispresent($1))}
-ValueType: ValueType = PrimitiveType {PrimitiveType(typ=$0)} | LengthLimitedType | RefType | ListType | Name {CustomType(name=$0)} | OneOfCaseType | EnumDef | OneOfDef | DataTypeDef
+ValueType: ValueType = PrimitiveType {PrimitiveType(typ=$0)} | LengthLimitedType | RefType
+  | ListType | CollectionType
+  | Name {CustomType(name=$0)} | OneOfCaseType | EnumDef | OneOfDef | DataTypeDef
 PrimitiveType: %PrimType = ("Int" {%INT} | "Long" {%LONG} | "Timestamp" {%TIMESTAMP} | "Duration" {%DURATION} | "Boolean" {%BOOLEAN} | "Empty" {%EMPTY})&Tk
 LengthLimitedType: LengthLimitedType = "String" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {StringType(length=$1)}
   | "URI" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {URIType(length=$1)}
   | "Blob" WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' {BlobType(length=$4)}
 RefType = "Ref"&Tk WS '<' WS EntityName WS '>' {RefType(entity=$4)}
 ListType = "List"&Tk WS '<' WS Type WS '>' {ListType(elemType=$4)}
+CollectionType = "Collection"&Tk WS '<' WS Type WS '>' {CollectionType(elemType=$4)}
 Name = Tk-Keywords {str($0)}
 OneOfCaseType = "OneOfCase"&Tk WS '<' WS FieldRef WS '>' {OneOfCaseType(field=$4)}
 FieldRef = Name (WS '.' WS Name)+ {FieldRef(names=[$0] + $1)}
@@ -164,7 +168,7 @@ PartialFunc: PartialFunc = PartialByValues | PartialForClass
 PartialByValues = '.' WS "partial"&Tk WS '(' WS PartialByValuesBody WS ')' {PartialByValues(body=$6)}
 PartialByValuesBody = ValueExpr (WS ',' WS ValueExpr)* {PartialBodyByValues(values=[$0]+$1)}
 PartialForClass = '.' WS "partialFor"&Tk WS '(' WS PartialForClassBody WS ')' {PartialForClass(body=$6)}
-PartialForClassBody = Name {PartialForClassAuto(className=$0)}
+PartialForClassBody: PartialForClassBody = Name {PartialForClassAuto(className=$0)}
   | Name WS '(' (WS ValueExpr (WS ',' WS ValueExpr)* {[$1]+$2})? WS ')' {PartialForClassWithArgs(className=$0, args=$3 ?: [])}
 
 GroupByPhrase = GroupByPart (WS HavingPart)* WS AggregateToPart {GroupByPhrase(groupBy=$0, havings=$1, aggregate=$3)}
@@ -199,7 +203,7 @@ ValueAddExpr: ValueAddExpr = ValueMulExpr
   | ValueAddExpr WS ("+" {%ADD} | "-" {%SUB}) WS ValueMulExpr {ValueBinOp(lhs=$0, rhs=$4, op:%ValueBinOps=$2)}
 ValueMulExpr: ValueMulExpr = ValueUnaryExpr
   | ValueMulExpr WS ("*" {%MUL} | "/" {%DIV} | "%" {%REM})&Tk WS ValueUnaryExpr {ValueBinOp($0, $4, $2)}
-ValueUnaryExpr = ValuePrimary
+ValueUnaryExpr: ValueUnaryExpr = ValuePrimary
   | ("+" {%PLUS} | "-" {%MINUS})&Tk WS ValuePrimary {ValueUnOp(op:%ValueUnOps=$0, operand=$2)}
 ValuePrimary: ValuePrimary = '(' WS ValueExpr WS ')' {ParenValueExpr(expr=$2)}
   | ValueList
@@ -217,13 +221,14 @@ AggregateFuncName: %AggregateFuncName = ("count" {%COUNT} | "min" {%MIN} | "max"
 
 
 // sql에서 쿼리해온 뒤에 서버에서 수행하는 코드
-FinalRefinementExpr = SingleRowRefinementExpr
+FinalRefinementExpr: FinalRefinementExpr = SingleRowRefinementExpr
   | MapPhrase
   | OrderByKeysPhrase
 SingleRowRefinementExpr = SingleRowFieldAccess
 SingleRowFieldAccess = (('?' WS)? '.' WS Name {FieldAccess(prevIsOpt=ispresent($0), name=$3)})+ {SingleRowFieldAccess(access=$0)}
-MapPhrase = '.' WS "map"&Tk WS '{' WS MapFuncBody WS '}' WS
-MapFuncBody = MapExpr | Name WS "->"&Tk WS MapExpr
+MapPhrase = '.' WS "map"&Tk WS '{' WS MapFuncBody WS '}' WS {MapPhrase(body=$6)}
+MapFuncBody: MapFuncBody = MapExpr
+  | Name WS "->"&Tk WS MapExpr {NamedParamMapFuncBody(name=$0, body=$4)}
 MapExpr = FilterExpr
 OrderByKeysPhrase = '.' WS "orderByKeys" WS '(' WS ValueExpr WS ')' {OrderByKeys(param=$6)}
 
