@@ -110,13 +110,13 @@ object Grammars {
   def main(args: Array[String]): Unit = {
     //    generateArrayExprAst()
     //    generateAutoDbAst()
-    generateMetaLang3Ast()
+    //    generateMetaLang3Ast()
     //    generateMlProtoAst()
     //    generateLongestMatch()
     //    generateExceptMatch()
     //    generateExpressionGrammar()
     //    generateProto3DefinitionAst()
     //    generateProto2DefinitionAst()
-    //    generateScalaParserCode("AutodbSchema1Ast", readFile("./examples/src/main/resources/autodb/autodb_schema1.cdg"))
+    generateScalaParserCode("AutodbSchema1Ast", readFile("./examples/src/main/resources/autodb/autodb_schema1.cdg"))
   }
 }

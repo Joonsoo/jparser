@@ -13,6 +13,7 @@ import picocli.CommandLine.{Command, Option}
 import java.io.File
 import java.util.Base64
 
+// example args: --input ./examples/src/main/resources/autodb/autodb_schema1.cdg --targetDir /home/joonsoo/Documents/workspace/autodb/autodb-ast/src/main/scala --milestoneParserDataPath /home/joonsoo/Documents/workspace/autodb/autodb-ast/src/main/resources/autodbschemadata.pb --grammarName AutodbSchema1Grammar --packageName com.giyeok.autodb
 @Command(name = "jparser", version = Array("1.0.0"))
 class Main extends Runnable {
   @Option(names = Array("--input"), required = true)

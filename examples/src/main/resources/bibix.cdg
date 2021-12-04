@@ -1,0 +1,128 @@
+// ObjectExpr에서만 ObjectExpr을 포함할 수 있음
+
+BuildScript = WS (UsingDef WS)* (CustomArgDef WS)* ((Def|RuleTmpl) WS)*
+
+UsingDef = MultiName WS '=' WS Using
+Using = "using" WS '(' WS Uri WS ')'
+Uri = StringLiteral
+
+CustomArgDef = MultiName WS '=' WS CustomArg
+CustomArg = "arg" WS ['?' WS]? '(' WS BasicType WS [',' WS ArgDefaultValue WS]? ')'
+ArgType = BasicType
+ArgDefaultValue = Literal
+
+Literal = BoolLiteral | IntLiteral | StringLiteral | ListLiteral
+ListLiteral = '[' WS ']' | '[' WS Literal WS [',' WS Literal WS]* [',' WS]? ']'
+
+Def = MultiName WS '=' WS DefExpr
+DefExpr = Subproject | ObjectExpr | Expr
+
+Subproject = "project" WS '(' WS Path WS ')'
+Path = StringLiteral
+
+ObjectExpr = '{' WS '}'
+  | '{' WS ObjectPair WS [',' WS ObjectPair WS]* [',' WS]? '}'
+ObjectPair = MultiName WS ':' WS Expr
+  | MultiName WS ':' WS ObjectExpr
+
+Expr = [Annotations WS_ WS]? (RuleExpr | ValueExpr)
+
+RuleExpr = MultiName WS RuleParams
+RuleParams = '(' WS ')'
+  | '(' WS RuleParam WS [',' WS RuleParam WS]* [',' WS]? ')'
+RuleParam = Name WS '=' WS Expr
+
+Annotations = Annotation [WS_ WS Annotation]*
+Annotation = FlagAnnotation
+  | SingleArgumentAnnotation
+  | MultiArgumentsAnnotation
+FlagAnnotation = '@' WS Name
+SingleArgumentAnnotation = '@' WS Name WS '=' WS Expr
+MultiArgumentsAnnotation = '@' WS Name WS '(' WS [RuleParam WS [',' WS RuleParam WS]* [',' WS]?]? ')'
+
+ValueExpr = AddExpr
+AddExpr = Term WS '+' WS AddExpr | Term
+Term = BoolLiteral | IntLiteral | StringLiteral | ListExpr | Ref | Glob
+BoolLiteral = "true" | "false"
+IntLiteral = '0' | {1-9} {0-9}* | "0x" {0-9a-fA-F}+
+ListExpr = '[' WS ']' | '[' WS Expr WS [',' WS Expr WS]* [',' WS]? ']'
+Ref = MultiName
+// | Subproject WS '.' WS MultiName
+Glob = "glob" WS '(' WS GlobPattern WS [',' WS GlobPattern WS]* [',' WS]? ')'
+
+RuleTmpl = MultiName WS '=' WS RuleTmplExpr
+RuleTmplExpr = "rule" WS RuleParamDecls WS ":" WS RuleReturnType WS '=' WS RuleImplPointer
+  | "rule" WS RuleParamDecls WS ":" WS RuleReturnType WS '=' WS RuleImplPointer
+RuleParamDecls = '(' WS ')'
+  | '(' WS RuleParamDecl WS [',' WS RuleParamDecl WS]* [',' WS]? ')'
+RuleParamDecl = Name WS ':' WS ["indep" WS]? RuleParamType
+  | Name WS '?' WS ':' WS ["indep" WS]? RuleParamType [WS '=' WS Expr]?
+RuleImplPointer = ["nocache" WS]? Ref ':' JavaClassName
+JavaClassName = MultiName
+
+RuleReturnType = ObjType | CmdType
+RuleParamType = PUnionType
+
+// BasicType은 Literal로 표현 가능한 값들의 타입
+BasicType = "bool" | "int" | "string" | EnumLiteralType | BasicListType | BasicSetType
+EnumLiteralType = StringEnumLiteralType | IntEnumLiteralType
+StringEnumLiteralType = "string" WS '{' WS StringLiteral WS [',' WS StringLiteral WS]* [',' WS]? '}'
+IntEnumLiteralType = "int" WS '{' WS IntLiteral WS [',' WS IntLiteral WS]* [',' WS]? '}'
+BasicListType = "list" WS1 BasicType
+BasicSetType = "set" WS1 BasicType
+
+
+ObjType = "obj" WS Tags
+Tags = '{' WS '}' | '{' WS Name WS [',' WS Name WS]* '}'
+
+CmdType = "cmd" WS Tags
+
+PUnionType = PAnnotatedCompType
+  | PUnionType WS '|' WS PAnnotatedCompType
+PAnnotatedCompType = [AnnotationDecls WS]? PCompType
+PCompType = "bool" | "int" | "string" | EnumLiteralType | "file" | "source"
+  | PListType | PSetType | ObjType
+  | '(' WS PUnionType WS ')'
+PListType = "list" WS1 PCompType
+PSetType = "set" WS1 PCompType
+
+AnnotationDecls = AnnotationDecl | AnnotationDecls WS AnnotationDecl
+AnnotationDecl = '@' Name
+  | SingleArgumentAnnotationDecl
+  | MultiArgumentsAnnotationDecl
+SingleArgumentAnnotationDecl = '@' Name WS ['*' WS]? ':' WS NUnionType
+  | '@' Name WS '?' ':' WS NUnionType [WS '=' WS Expr]?
+MultiArgumentsAnnotationDecl = '@' Name WS [('?' | '*') WS]? AnnotationParamDecls
+AnnotationParamDecls = '(' WS AnnotationParamDecl WS [',' WS AnnotationParamDecl WS]* [',' WS]? ')'
+AnnotationParamDecl = Name WS ':' WS NUnionType
+  | Name WS '?' WS ':' WS NUnionType [WS '=' WS Expr]?
+
+NUnionType = NAnnotatedCompType
+  | NUnionType WS '|' WS NAnnotatedCompType
+NAnnotatedCompType = [AnnotationDecls WS]? NCompType
+NCompType = "bool" | "int" | "string" | EnumLiteralType | "file"
+  | NListType | NSetType | ObjType
+  | '(' WS NUnionType WS ')'
+NListType = "list" WS1 NCompType
+NSetType = "set" WS1 NCompType
+
+
+Version = StringLiteral
+GlobPattern = StringLiteral
+Name = <[{a-zA-Z_} {a-zA-Z0-9_}*]>
+MultiName = MultiName '.' Name | Name
+StringLiteral = '"' String '"'
+String = {a-zA-Z0-9_. /*\-:}*
+WS = (WS_|LineComment)*
+WS1 = WS_+
+WS_ = { \n\r\t}
+LineComment = "//" (.-'\n')* (!. | '\n')
+
+
+
+// Struct = '(' WS ')' | '(' WS StructField WS [',' WS StructField WS]* [',' WS]? ')'
+// StructField = Name WS '=' WS Expr
+
+// StructType = '(' WS ')' | '(' WS StructFieldDecl WS [',' WS StructFieldDecl WS]* [',' WS]? ')'
+// StructFieldDecl = Name WS ':' WS PType
+//  | Name WS '?' WS ':' WS PType [WS '=' WS DefaultValue]?
