@@ -1,0 +1,234 @@
+Database = (WS DatabaseElem)* WS $0
+DatabaseElem: DatabaseElem = (Entity | DataTypeDef | IdGenDef | EnumDef)
+
+Entity = "entity"&Tk WS EntityName (WS EntityFields)? (WS EntityKeys)? (WS EntityBody)?
+    {Entity(name=$2, fields: [EntityField]=$3 ?: [], keys=$4 ?: [], body=$5 ?: [])}
+EntityFields: [EntityField] = '(' WS (EntityField (WS ',' WS EntityField)* (WS ',')? WS {[$0] + $1})? ')' {$2 ?: []}
+EntityField = (FieldAnnotations WS $0)? FieldName (WS EntityFieldActualNamesParen)? (WS ':' WS FieldType)
+                {EntityField(name=$1, typ=$3, annots=$0 ?: [], actualName=$2)}
+EntityFieldActualNamesParen = '(' WS EntityFieldActualNames WS ')' $2
+EntityFieldActualNames = EntityFieldActualName (WS ',' WS EntityFieldActualName)* {EntityFieldActualNames(names=[$0] + $1)}
+EntityFieldActualName: EntityFieldActualName = '1-9' '0-9'* {EntityFieldId(id=str($0, $1))}
+                // or shorthand name
+EntityKeys = <EntityKey (WS ',' WS EntityKey)* {[$0] + $1}>
+EntityKey: EntityKey = "key"&Tk WS EntityKeyFields {PrimaryKey(fields=$2)}
+                     | "unique"&Tk WS EntityKeyFields {UniqueKey(fields=$2)}
+                     | "table"&Tk WS '(' WS EntityName WS ')' {TableName(name=$4)}
+                     | "index"&Tk WS EntityKeyFields {IndexKey(fields=$2)}
+EntityKeyFields = '(' WS FieldName (WS ',' WS FieldName)* WS ')' {[$2] + $3}
+EntityBody = '{' (WS EntityBodyElem)* WS '}' {$1}
+EntityBodyElem: EntityBodyElem = VersionEntity | EntityView | PreDefinedEntityView | QueryDef | UpdateDef
+VersionEntity = "version"&Tk WS "entity"&Tk WS EntityName (WS VersioningInfo)? (WS EntityFields)? (WS EntityKeys)? (WS VersionEntityBody)?
+    {VersionEntity(name=$4, versioningInfo=$5, fields: [EntityField]=$6 ?: [], keys=$7 ?: [], body=$8 ?: [])}
+VersioningInfo = '[' (WS FieldName) (WS EntityFieldActualNamesParen)?
+                     (WS ',' WS FieldName) (WS EntityFieldActualNamesParen)?
+                     (WS ',' WS FieldName) (WS EntityFieldActualNamesParen)?
+                     (WS ',' WS FieldName) (WS EntityFieldActualNamesParen)?
+                     (WS ',')? WS ']'
+                {VersioningInfo(keyFieldName=$1, keyFieldActual=$2,
+                                versionFieldName=$3, versionFieldActual=$4,
+                                timestampFieldName=$5, timestampFieldActual=$6,
+                                deletedFlagFieldName=$7, deletedFlagFieldActual=$8)}
+VersionEntityBody = '{' (WS VersionEntityElem)* WS '}' $1
+VersionEntityElem: VersionEntityElem = EntityView
+EntityView = "view"&Tk WS DataTypeName WS '(' WS EntityViewField (WS ',' WS EntityViewField)* (WS ',')? WS ')' {EntityView(name=$2, fields=[$6]+$7)}
+EntityViewField: EntityViewField = EntityViewFieldAsIs | EntityViewFieldSelect
+EntityViewFieldAsIs = DataFieldTagAnnotation WS FieldName {EntityViewFieldAsIs(tag=$0, name=$2)}
+EntityViewFieldSelect = DataFieldTagAnnotation WS FieldName (WS ':' WS Type)? WS '=' WS EntityViewFieldSelectExpr
+    {EntityViewFieldSelect(tag=$0, name=$2, typ=$3, expr=$7)}
+EntityViewFieldSelectExpr: EntityViewFieldSelectExpr = EntityViewFieldSelectTerm
+    | EntityViewFieldSelectTerm WS <"==" {%EQ} | "!=" {%NE}> WS EntityViewFieldSelectExpr {BinOp(op:%BinOpType=$2, lhs=$0, rhs=$4)}
+EntityViewFieldSelectTerm: EntityViewFieldSelectTerm = "null"&Tk {NullValue()}
+    | FieldName ((WS '?')? WS '.' WS DataFieldName {DataTypeValueSelectField(nullable=ispresent($0), fieldName=$4)})* {DataTypeValueSelect(field=$0, selectPath=$1)}
+    | "@primaryKey" {PrimaryKeySelect()}
+    | '(' WS EntityViewFieldSelectExpr WS ')' {Paren(expr=$2)}
+PreDefinedEntityView = "view"&Tk WS FieldRef WS '(' WS PreDefinedEntityViewField (WS ',' WS PreDefinedEntityViewField)* (WS ',')? WS ')'
+    {PreDefinedEntityView(definition=$2, fields=[$6]+$7)}
+PreDefinedEntityViewField = FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$0)}
+    | FieldName WS '=' WS FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$4)}
+
+QueryDef = "query"&Tk WS Name WS '(' (WS MethodParams)? WS ')' WS QueryBody {QueryDef(name=$2, params=$5 ?: [], body=$9)}
+UpdateDef = "update"&Tk WS Name WS '(' (WS MethodParams)? WS ')' WS UpdateBody {UpdateDef(name=$2, params=$5 ?: [], body=$9)}
+UpdateBody = '{' (WS UpdateStmt)+ WS '}' {UpdateBody(stmts=$1)}
+MethodParams = MethodParam (WS ',' WS MethodParam)* (WS ',')? {[$0] + $1}
+MethodParam = Name WS ':' WS FieldType {MethodParam(name=$0, type=$4)}
+
+EntityName = Name
+FieldName = Name
+DataTypeName = Name
+DataFieldName = Name
+StorageName = Name
+Tk = <'a-zA-Z0-9_'+>
+WS = (' \n\r\t' | LineComment)*
+LineComment = "//" (.-'\n')* (EOF | '\n')
+EOF = !.
+
+FieldType: FieldType = Type
+Type = ValueType (WS '?')? {Type(valueType=$0, nullable=ispresent($1))}
+ValueType: ValueType = PrimitiveType {PrimitiveType(typ=$0)} | LengthLimitedType | RefType | ListType | Name {CustomType(name=$0)} | OneOfCaseType | EnumDef | OneOfDef | DataTypeDef
+PrimitiveType: %PrimType = ("Int" {%INT} | "Long" {%LONG} | "Timestamp" {%TIMESTAMP} | "Duration" {%DURATION} | "Boolean" {%BOOLEAN} | "Empty" {%EMPTY})&Tk
+LengthLimitedType: LengthLimitedType = "String" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {StringType(length=$1)}
+  | "URI" (WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' $3)? {URIType(length=$1)}
+  | "Blob" WS '(' WS ('1-9' '0-9'* {str($0, $1)}) WS ')' {BlobType(length=$4)}
+RefType = "Ref"&Tk WS '<' WS EntityName WS '>' {RefType(entity=$4)}
+ListType = "List"&Tk WS '<' WS Type WS '>' {ListType(elemType=$4)}
+Name = Tk-Keywords {str($0)}
+OneOfCaseType = "OneOfCase"&Tk WS '<' WS FieldRef WS '>' {OneOfCaseType(field=$4)}
+FieldRef = Name (WS '.' WS Name)+ {FieldRef(names=[$0] + $1)}
+Keywords = "Int" | "Long" | "String" | "Timestamp" | "Duration" | "URI" | "Boolean" | "Empty" | "Ref" | "List" | "entity"
+  | "autoincrement" | "sparsegenLong" | "view" | "null"
+  | "==" | "!="
+EnumDef = "enum"&Tk WS Name WS '{' WS EnumValueDef (WS ',' WS EnumValueDef)* (WS ',')? WS '}' {EnumDef(name=$2, values=[$6] + $7)}
+EnumValueDef = DataFieldTagAnnotation WS Name {EnumValueDef(tag=$0, name=$2)}
+IdGenDef = "idgen"&Tk WS Name WS '=' WS IdGenSpec {IdGenDef(name=$2, idgen=$6)}
+IdGenSpecName = Name
+
+FieldAnnotations = FieldAnnotation (WS FieldAnnotation)* {[$0] + $1}
+FieldAnnotation: FieldAnnotation = VersionedAnnotation | IdGenAnnotation
+VersionedAnnotation = '@' "versioned"&Tk {VersionedAnnotation()}
+IdGenAnnotation = '@' "idgen"&Tk WS '(' WS IdGenSpec WS ')' {IdGenAnnotation(spec=$5)}
+
+IdGenSpec: IdGenSpec = IdGenSpecName {IdGenName(name=$0)}
+  | "autoincrement"&Tk (WS '(' WS Name WS ')' $3)? {AutoIncrementIdGen(seqName = $1)}
+  | "sparsegenLong"&Tk WS '(' WS SparseGenParam (WS ',' WS SparseGenParam)* WS ')' {SparseGenLongSpec(params=[$4] + $5)}
+SparseGenParam: SparseGenParam = "baseTimestamp"&Tk WS '=' WS TimestampDef {BaseTimestamp(timestamp=$4)}
+  | "timestampPrecision"&Tk WS '=' WS ("Seconds" {%SECONDS} | "Millis" {%MILLIS}) {TimestampPrecision(precision:%TimestampPrecisionType=$4)}
+  | "format"&Tk WS '=' WS '[' SparseGenFormatElem (WS ',' WS SparseGenFormatElem)* ']' {SparseGenFormat(elems=[$5] + $6)}
+SparseGenFormatElem = ("timestamp" {%TIMESTAMP} | "nodeId" {%NODE_ID} | "seqNum" {%SEQ_NUMBER})&Tk WS ':' WS ('0' {"0"} | <'1-9' '0-9'* {str($0, $1)}>) {SparseGenFormatElem(elemType:%SparseGenFormatElemType=$0, bitLen=$4)}
+TimestampDef = DateDef ' '+ TimeDef (' '* TimeOffset)? {TimestampDef(date=$0, time=$2, offset=$3)}
+DateDef = ('0-9' '0-9' '0-9' '0-9' {str($0, $1, $2, $3)}) '-' ('0-9' '0-9' {str($0, $1)}) '-' ('0-9' '0-9' {str($0, $1)}) {DateDef(year=$0, month=$2, day=$4)}
+TimeDef = ('0-9' '0-9' {str($0, $1)}) ':' ('0-9' '0-9' {str($0, $1)})
+          (':' ('0-9' '0-9' {str($0, $1)})
+            ('.' ('0-9' '0-9' '0-9' {str($0, $1, $2)} |
+                  '0-9' '0-9' '0-9' '0-9' '0-9' '0-9' '0-9' '0-9' '0-9' {str($0, $1, $2, $3, $4, $5, $6, $7, $8)})
+            )? {Second(second=$1, fraction=$2)})? {TimeDef(hour=$0, minute=$2, second=$3)}
+TimeOffset = 'Z' {TimeOffset(sign='+', hour="00", minute:string?="00")}
+  | <'+\-' ('0-9' '0-9' {str($0, $1)}) (':'? ('0-5' '0-9' {str($0, $1)}))? {TimeOffset(sign=$0, hour=$1, minute=$2)}>
+
+DataTypeDef = "data"&Tk WS DataTypeName WS '(' WS DataFields WS ')' {DataTypeDef(name=$2, fields=$6)}
+DataFields = DataField (WS ',' WS DataField)* (WS ',')? {[$0] + $1}
+DataField = (DataFieldAnnotations WS $0)? DataFieldName WS ':' WS Type {DataField(annots=$0, name=$1, typ=$5)}
+DataFieldAnnotations = DataFieldTagAnnotation (WS DataFieldAnnotation)* {DataFieldAnnotations(tag:TagAnnotation?=$0, annots=$1)}
+    | DataFieldAnnotation (WS DataFieldAnnotation)* {DataFieldAnnotations(tag=null, annots=[$0] + $1)}
+DataFieldTagAnnotation = '@' "tag"&Tk WS '(' WS ('0' {"0"}| '1-9' '0-9'* {str($0, $1)}) WS ')' {TagAnnotation(tagnum=$5)}
+DataFieldAnnotation = "@@" {DataFieldAnnotation()}
+
+OneOfDef = "oneof"&Tk WS '{' WS DataFields WS '}' {OneOfDef(fields=$4)}
+
+
+
+
+
+UpdateStmt: UpdateStmt = UpdateByFilter | UpdateByFind
+
+UpdateByFilter = RowsFunc (WS FilterFunc)* '.' WS "forEach"&Tk WS UpdateFunc {UpdateByFilter(rows=$0, filters=$1, body=$6)}
+UpdateByFind: UpdateByFind = RowsFunc WS FindFunc WS RefRest WS UpdateOp WS ValueExpr {UpdateByFindSingleField(rows=$0, find=$2, refRest=$4, updateOp=$6, rhs=$8)}
+  | RowsFunc WS FindFunc (WS '?')? WS '.' WS "let"&Tk WS UpdateFunc {UpdateByFindMultiFields(rows=$0, find=$2, optional=ispresent($3), body=$9)}
+
+UpdateFunc = '{' (WS Name WS "->"&Tk)? (WS UpdateRowStmt)+ WS '}' {UpdateFunc(paramName=$1, stmts=$2)}
+
+UpdateRowStmt = Ref WS UpdateOp WS ValueExpr {UpdateRowStmt(lhs=$0, rhs=$4, op=$2)}
+UpdateOp: %UpdateOps = ("=" {%ASSIGN} | "+=" {%INC} | "-=" {%DEC})&Tk
+
+QueryBody: QueryBody = '=' WS QueryExpr
+  | '{' (WS QueryStmt)* WS QueryExpr WS '}' {QueryBlock(stmts=$1, expr=$3)}
+QueryStmt: QueryStmt = ValStmt
+ValStmt = "val"&Tk WS Name WS '=' WS ValBody { ValStmt(name=$2, body=$6)}
+ValBody: ValBody = QueryExpr | ValueExpr
+
+QueryExpr: QueryExpr = RowsFunc (WS FilterFunc)* AfterFilter {Select(rowsFunc=$0, filters=$1, afterFilter=$2)}
+  | RowsFunc WS FindFunc (WS SingleRowRefinementExpr)? {Find(rowsFunc=$0, filter=$2, finalRefine=$3)}
+  | RowsFunc WS CountFuncWithCondition {Count(rowsFunc=$0, filter=$2)}
+
+RowsFunc = "rows"&Tk WS '(' (WS StorageName)? WS ')' {RowsFunc(storage=$3)}
+
+FilterFunc = '.' WS "filter"&Tk WS '{' WS FilterFuncBody WS '}' {FilterFunc(body=$6)}
+AfterFilter: AfterFilter = OrderByPhrase
+  | WS GroupByPhrase AfterGroupBy {AfterGroupBy(groupBy=$1, afterGroupBy=$2)}
+
+OrderByPhrase = (WS OrderByPart)? (WS DropExpr)? (WS TakeExpr)? (WS FinalOpExpr)? (WS FinalRefinementExpr)* {OrderByPhrase(orderBy=$0, drop=$1, take=$2, finalOp=$3, finalRefine=$4)}
+OrderByPart = '.' WS "orderBy"&Tk WS '(' WS OrderByExpr (WS ',' WS OrderByExpr)* WS ')' {OrderBy(cols=[$6]+$7)}
+OrderByExpr = ValueExpr WS ("asc" {%OrderBySortOrder.ASC}|"desc" {%OrderBySortOrder.DESC})&Tk {OrderByExpr(value=$0, sortOrder=$2)}
+
+DropExpr = '.' WS "drop"&Tk WS '(' WS ValueExpr WS ')' {Drop(countExpr=$6)}
+TakeExpr = '.' WS TakeFuncType WS '(' WS ValueExpr WS ')' {Take(takeFunc=$2, countExpr=$6)}
+TakeFuncType: %TakeFuncTypes = ("take" {%TAKE} | "takeWithMore" {%TAKE_WITH_MORE} | "takeWithCount" {%TAKE_WITH_COUNT})&Tk
+
+FinalOpExpr: FinalOpExpr = CountFunc
+  | PartialFunc
+  | FirstFunc
+  | PartialFunc WS FirstFunc {PartialFirst(partial=$0, firstFunc=$2)}
+CountFunc = '.' WS "count" WS '(' WS ')' {CountFunc()}
+FirstFunc = '.' WS ("first" {%FIRST} | "firstOrNull" {%FIRST_OR_NULL})&Tk WS '(' WS ')' {FirstFunc(funcType:%FirstFuncs=$2)}
+PartialFunc: PartialFunc = PartialByValues | PartialForClass
+PartialByValues = '.' WS "partial"&Tk WS '(' WS PartialByValuesBody WS ')' {PartialByValues(body=$6)}
+PartialByValuesBody = ValueExpr (WS ',' WS ValueExpr)* {PartialBodyByValues(values=[$0]+$1)}
+PartialForClass = '.' WS "partialFor"&Tk WS '(' WS PartialForClassBody WS ')' {PartialForClass(body=$6)}
+PartialForClassBody = Name {PartialForClassAuto(className=$0)}
+  | Name WS '(' (WS ValueExpr (WS ',' WS ValueExpr)* {[$1]+$2})? WS ')' {PartialForClassWithArgs(className=$0, args=$3 ?: [])}
+
+GroupByPhrase = GroupByPart (WS HavingPart)* WS AggregateToPart {GroupByPhrase(groupBy=$0, havings=$1, aggregate=$3)}
+GroupByPart = '.' WS "groupBy"&Tk WS '(' WS ValueExpr (WS ',' WS ValueExpr)* WS ')' {GroupBy(exprs=[$6]+$7)}
+HavingPart = '.' WS "having"&Tk WS '(' WS FilterExpr (WS ',' WS FilterExpr)* WS ')' {Having(exprs=[$6]+$7)}
+AggregateToPart = '.' WS "aggregateTo"&Tk WS '(' WS ValueExpr (WS ',' WS ValueExpr)* WS ')' {AggregateTo(exprs=[$6]+$7)}
+AfterGroupBy = OrderByPhrase
+
+FindFunc = '.' WS "find"&Tk WS '{' WS FilterFuncBody WS '}' {FindFunc(funcBody=$6)}
+CountFuncWithCondition = '.' WS "count"&Tk WS '{' WS FilterFuncBody WS '}' {CountWithCondition(funcBody=$6)}
+
+FilterFuncBody: FilterFuncBody = FilterExpr
+  | Name WS "->"&Tk WS FilterExpr {NamedParamFunc(paramName=$0, body=$4)}
+
+FilterExpr: FilterExpr = FilterOrExpr
+FilterOrExpr: FilterOrExpr = FilterAndExpr
+  | FilterOrExpr WS "||"&Tk WS FilterAndExpr {FilterBinOp(lhs=$0, rhs=$4, op:%FilterBinOps=%OR)}
+FilterAndExpr: FilterAndExpr = FilterEqualityExpr
+  | FilterAndExpr WS "&&"&Tk WS FilterEqualityExpr {FilterBinOp($0, $4, %AND)}
+FilterEqualityExpr: FilterEqualityExpr = FilterRelationalExpr
+  | FilterEqualityExpr WS ("==" {%EQ} | "!=" {%NE}) WS FilterRelationalExpr {FilterBinOp($0, $4, $2)}
+FilterRelationalExpr: FilterRelationalExpr = FilterFactor
+  | FilterRelationalExpr WS FilterRelationalOp WS FilterFactor {FilterBinOp($0, $4, $2)}
+FilterRelationalOp = ("<" {%LT} | ">" {%GT} | "<=" {%LE} | ">=" {%GE} | "in" {%IN})&Tk
+FilterFactor: FilterFactor = ValueExpr
+  | QueryExpr {NestedQuery(expr=$0)}
+  | '(' WS FilterExpr WS ')' {ParenFilterExpr(expr=$2)}
+  | '!'&Tk WS FilterExpr {FilterUnOp(op=%FilterUnOps.NEG, expr=$2)}
+
+ValueExpr = ValueAddExpr (WS "as"&Tk WS Name)? {ValueExpr(expr=$0, alias=$1)}
+ValueAddExpr: ValueAddExpr = ValueMulExpr
+  | ValueAddExpr WS ("+" {%ADD} | "-" {%SUB}) WS ValueMulExpr {ValueBinOp(lhs=$0, rhs=$4, op:%ValueBinOps=$2)}
+ValueMulExpr: ValueMulExpr = ValueUnaryExpr
+  | ValueMulExpr WS ("*" {%MUL} | "/" {%DIV} | "%" {%REM})&Tk WS ValueUnaryExpr {ValueBinOp($0, $4, $2)}
+ValueUnaryExpr = ValuePrimary
+  | ("+" {%PLUS} | "-" {%MINUS})&Tk WS ValuePrimary {ValueUnOp(op:%ValueUnOps=$0, operand=$2)}
+ValuePrimary: ValuePrimary = '(' WS ValueExpr WS ')' {ParenValueExpr(expr=$2)}
+  | ValueList
+  | ValueTuple
+  | Ref
+  | Literal
+  | AggregateFuncCall
+ValueList = '[' (WS ValueExpr (WS ',' WS ValueExpr)* (WS ',')? {[$1] + $2})? WS ']' {ValueList(elems=$1 ?: [])}
+ValueTuple = '(' (WS ValueExpr (WS ',' WS ValueExpr)* (WS ',')? {[$1] + $2})? WS ')' {ValueTuple(elems=$1 ?: [])}
+Ref = <Name (WS RefRest)?> {Ref(first=$0$0, rest=$0$1)}
+RefRest = <(('?' WS)? '.' Name {RefToken(opt=ispresent($0), name=$2)})+> {RefRest(tokens=$0)}
+Literal: Literal = IntLiteral | RealLiteral | StringLiteral
+AggregateFuncCall = AggregateFuncName WS '(' (WS ValueExpr (WS ',' WS ValueExpr)* {[$1] + $2})? WS ')' {AggregateFuncCall(funcName=$0, values=$3)}
+AggregateFuncName: %AggregateFuncName = ("count" {%COUNT} | "min" {%MIN} | "max" {%MAX} | "sum" {%SUM})&Tk
+
+
+// sql에서 쿼리해온 뒤에 서버에서 수행하는 코드
+FinalRefinementExpr = SingleRowRefinementExpr
+  | MapPhrase
+  | OrderByKeysPhrase
+SingleRowRefinementExpr = SingleRowFieldAccess
+SingleRowFieldAccess = (('?' WS)? '.' WS Name {FieldAccess(prevIsOpt=ispresent($0), name=$3)})+ {SingleRowFieldAccess(access=$0)}
+MapPhrase = '.' WS "map"&Tk WS '{' WS MapFuncBody WS '}' WS
+MapFuncBody = MapExpr | Name WS "->"&Tk WS MapExpr
+MapExpr = FilterExpr
+OrderByKeysPhrase = '.' WS "orderByKeys" WS '(' WS ValueExpr WS ')' {OrderByKeys(param=$6)}
+
+IntLiteral = '0' {IntLiteral(value="0")} | <'1-9' '0-9'*> {IntLiteral(value=$0{str($0, $1)})}
+RealLiteral = <IntLiteral '.' '0-9'*> {RealLiteral(intPart=$0$0, fracPart=$0$2)}
+StringLiteral = '"' StringCharacter* '"' {StringLiteral(chars=$1)}
+StringCharacter: StringCharacter = <.-'"\\$' {StringChar(value=chr($0))} | EscapeSequence>
+EscapeSequence = '\\' ('b' {%B} | 't' {%T} | 'n' {%N} | 'f' {%F} | 'r' {%R} | '\'' {%SQUOTE} | '"' {%DQUOTE} | '\\' {%BACKSLASH} | '$' {%DOLLAR}) {EscapeChar(c: %EscapeChars=$1)}
