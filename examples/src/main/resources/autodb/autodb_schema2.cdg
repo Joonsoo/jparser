@@ -79,7 +79,7 @@ LengthLimitedType: LengthLimitedType = "String" (WS '(' WS ('1-9' '0-9'* {str($0
 RefType = "Ref"&Tk WS '<' WS EntityName WS '>' {RefType(entity=$4)}
 ListType = "List"&Tk WS '<' WS Type WS '>' {ListType(elemType=$4)}
 CollectionType = "Collection"&Tk WS '<' WS Type WS '>' {CollectionType(elemType=$4)}
-Name = Tk-Keywords {str($0)}
+Name = <'a-zA-Z_' 'a-zA-Z0-9_'* {str($0, $1)}>-Keywords
 OneOfCaseType = "OneOfCase"&Tk WS '<' WS FieldRef WS '>' {OneOfCaseType(field=$4)}
 FieldRef = Name (WS '.' WS Name)+ {FieldRef(names=[$0] + $1)}
 Keywords = "Int" | "Long" | "String" | "Timestamp" | "Duration" | "URI" | "Boolean" | "Empty" | "Ref" | "List" | "entity"
@@ -144,8 +144,9 @@ ValStmt = "val"&Tk WS Name WS '=' WS ValBody { ValStmt(name=$2, body=$6)}
 ValBody: ValBody = QueryExpr | ValueExpr
 
 QueryExpr: QueryExpr = RowsFunc (WS FilterFunc)* AfterFilter {Select(rowsFunc=$0, filters=$1, afterFilter=$2)}
-  | RowsFunc WS FindFunc (WS SingleRowRefinementExpr)? {Find(rowsFunc=$0, filter=$2, finalRefine=$3)}
-  | RowsFunc WS CountFuncWithCondition {Count(rowsFunc=$0, filter=$2)}
+  | RowsFunc WS FindFunc (WS PartialFunc)? (WS SingleRowRefinementExpr)? {Find(rowsFunc=$0, filter=$2, partial=$3, finalRefine=$4)}
+  | RowsFunc WS CountFuncWithCondition {CountFuncWithConditionExpr(rowsFunc=$0, filter=$2)}
+  | RowsFunc WS "count"&Tk WS '(' WS ')' {CountAllExpr(rowsFunc=$0)}
 
 RowsFunc = "rows"&Tk WS '(' (WS StorageName)? WS ')' {RowsFunc(storage=$3)}
 
@@ -180,7 +181,7 @@ HavingPart = '.' WS "having"&Tk WS '(' WS FilterExpr (WS ',' WS FilterExpr)* WS 
 AggregateToPart = '.' WS "aggregateTo"&Tk WS '(' WS ValueExpr (WS ',' WS ValueExpr)* WS ')' {AggregateTo(exprs=[$6]+$7)}
 AfterGroupBy = OrderByPhrase
 
-FindFunc = '.' WS "find"&Tk WS '{' WS FilterFuncBody WS '}' {FindFunc(funcBody=$6)}
+FindFunc = '.' WS ("find" {true} | "anyOrNull" {true} | "any" {false})&Tk WS '{' WS FilterFuncBody WS '}' {FindFunc(nullAllowed=$2, funcBody=$6)}
 CountFuncWithCondition = '.' WS "count"&Tk WS '{' WS FilterFuncBody WS '}' {CountWithCondition(funcBody=$6)}
 
 FilterFuncBody: FilterFuncBody = FilterExpr
@@ -213,14 +214,14 @@ ValuePrimary: ValuePrimary = '(' WS ValueExpr WS ')' {ParenValueExpr(expr=$2)}
   | ValueTuple
   | Ref
   | Literal
-  | AggregateFuncCall
+  | FuncCall
 ValueList = '[' (WS ValueExpr (WS ',' WS ValueExpr)* (WS ',')? {[$1] + $2})? WS ']' {ValueList(elems=$1 ?: [])}
 ValueTuple = '(' (WS ValueExpr (WS ',' WS ValueExpr)* (WS ',')? {[$1] + $2})? WS ')' {ValueTuple(elems=$1 ?: [])}
-Ref = <Name (WS RefRest)?> {Ref(first=$0$0, rest=$0$1)}
-RefRest = <(('?' WS)? '.' Name {RefToken(opt=ispresent($0), name=$2)})+> {RefRest(tokens=$0)}
+Ref = <Name (WS RefRest)?> {Ref(first=$0$0, rest=$0$1 ?: [])}
+RefRest = <(('?' WS)? '.' Name {RefToken(opt=ispresent($0), name=$2)})+>
 Literal: Literal = IntLiteral | RealLiteral | StringLiteral
-AggregateFuncCall = AggregateFuncName WS '(' (WS ValueExpr (WS ',' WS ValueExpr)* {[$1] + $2})? WS ')' {AggregateFuncCall(funcName=$0, values=$3)}
-AggregateFuncName: %AggregateFuncName = ("count" {%COUNT} | "min" {%MIN} | "max" {%MAX} | "sum" {%SUM})&Tk
+FuncCall = FuncName WS '(' (WS ValueExpr (WS ',' WS ValueExpr)* {[$1] + $2})? WS ')' {FuncCall(funcName=$0, params=$3 ?: [])}
+FuncName = Name
 
 
 // sql에서 쿼리해온 뒤에 서버에서 수행하는 코드
@@ -235,7 +236,7 @@ MapFuncBody: MapFuncBody = MapExpr
 MapExpr = FilterExpr
 OrderByKeysPhrase = '.' WS "orderByKeys" WS '(' WS ValueExpr WS ')' {OrderByKeys(param=$6)}
 
-IntLiteral = '0' {IntLiteral(value="0")} | <'1-9' '0-9'*> {IntLiteral(value=$0{str($0, $1)})}
+IntLiteral = '0' {IntLiteral(value="0")} | <'1-9' '0-9'* {str($0, $1)}> {IntLiteral(value=$0)}
 RealLiteral = <IntLiteral '.' '0-9'*> {RealLiteral(intPart=$0$0, fracPart=$0$2)}
 StringLiteral = '"' StringCharacter* '"' {StringLiteral(chars=$1)}
 StringCharacter: StringCharacter = <.-'"\\$' {StringChar(value=chr($0))} | EscapeSequence>
