@@ -228,7 +228,7 @@ SelectPrimary: SelectPrimary = QueryExpr {NestedQuery(query=$0)}
 ListLiteral = '[' (WS SelectExpr (WS ',' WS SelectExpr)* (WS ',')? {[$1] + $2})? WS ']' {ListLiteral(elems=$1 ?: [])}
 TupleLiteral = '(' (WS SelectExpr (WS ',' WS SelectExpr)+ (WS ',')? {[$1] + $2})? WS ')' {TupleLiteral(elems=$1 ?: [])}
 MemberAccess = SelectPrimary WS '.' WS Name {MemberAccess(expr=$0, name=$4)}
-Literal: Literal = IntLiteral | RealLiteral | StringLiteral
+Literal: Literal = IntLiteral | RealLiteral | StringLiteral | "null"&Tk {NullLiteral()}
 FuncName = Name
 MethodCall = SelectPrimary WS SelectExprParams {MethodCall(target=$0, params=$2)}
 NameRef = Name {NameRef(name=$0)}
