@@ -67,7 +67,7 @@ WS = (' \n\r\t' | LineComment)*
 LineComment = "//" (.-'\n')* (EOF | '\n')
 EOF = !.
 
-FieldType: FieldType = Type
+FieldType = Type
 Type = ValueType (WS '?')? {Type(valueType=$0, nullable=ispresent($1))}
 ValueType: ValueType = PrimitiveType {PrimitiveType(typ=$0)} | LengthLimitedType | RefType
   | ListType | CollectionType
@@ -85,6 +85,7 @@ FieldRef = Name (WS '.' WS Name)+ {FieldRef(names=[$0] + $1)}
 Keywords = "Int" | "Long" | "String" | "Timestamp" | "Duration" | "URI" | "Boolean" | "Empty" | "Ref" | "List" | "entity"
   | "autoincrement" | "sparsegenLong" | "view" | "null"
   | "==" | "!="
+  | "query" | "rows" | "update"
 EnumDef = "enum"&Tk WS Name WS '{' WS EnumValueDef (WS ',' WS EnumValueDef)* (WS ',')? WS '}' {EnumDef(name=$2, values=[$6] + $7)}
 EnumValueDef = DataFieldTagAnnotation WS Name {EnumValueDef(tag=$0, name=$2)}
 IdGenDef = "idgen"&Tk WS Name WS '=' WS IdGenSpec {IdGenDef(name=$2, idgen=$6)}
@@ -128,104 +129,113 @@ OneOfDef = "oneof"&Tk WS '{' WS DataFields WS '}' {OneOfDef(fields=$4)}
 
 UpdateStmt: UpdateStmt = UpdateByFilter | UpdateByFind
 
-UpdateByFilter = RowsFunc (WS FilterFunc)* '.' WS "forEach"&Tk WS UpdateFunc {UpdateByFilter(rows=$0, filters=$1, body=$6)}
-UpdateByFind: UpdateByFind = RowsFunc WS FindFunc WS RefRest WS UpdateOp WS ValueExpr {UpdateByFindSingleField(rows=$0, find=$2, refRest=$4, updateOp=$6, rhs=$8)}
+UpdateByFilter = RowsFunc (WS FilterPart)* '.' WS "forEach"&Tk WS UpdateFunc {UpdateByFilter(rows=$0, filters=$1, body=$6)}
+UpdateByFind: UpdateByFind = RowsFunc WS FindFunc (WS '.' WS Name)* WS UpdateOp WS SelectExpr {UpdateByFindSingleField(rows=$0, find=$2, refRest=$3, updateOp=$5, rhs=$7)}
   | RowsFunc WS FindFunc (WS '?')? WS '.' WS "let"&Tk WS UpdateFunc {UpdateByFindMultiFields(rows=$0, find=$2, optional=ispresent($3), body=$9)}
 
 UpdateFunc = '{' (WS Name WS "->"&Tk)? (WS UpdateRowStmt)+ WS '}' {UpdateFunc(paramName=$1, stmts=$2)}
 
-UpdateRowStmt = Ref WS UpdateOp WS ValueExpr {UpdateRowStmt(lhs=$0, rhs=$4, op=$2)}
+UpdateRowStmt = FieldRef WS UpdateOp WS SelectExpr {UpdateRowStmt(lhs=$0, rhs=$4, op=$2)}
 UpdateOp: %UpdateOps = ("=" {%ASSIGN} | "+=" {%INC} | "-=" {%DEC})&Tk
+FieldRef = <Name (WS '.' WS Name)* {FieldRef(names=[$0] + $1)}>
 
 QueryBody: QueryBody = '=' WS QueryExpr
   | '{' (WS QueryStmt)* WS QueryExpr WS '}' {QueryBlock(stmts=$1, expr=$3)}
 QueryStmt: QueryStmt = ValStmt
-ValStmt = "val"&Tk WS Name WS '=' WS ValBody { ValStmt(name=$2, body=$6)}
-ValBody: ValBody = QueryExpr | ValueExpr
+ValStmt = "val"&Tk WS Name WS '=' WS ValBody {ValStmt(name=$2, body=$6)}
+ValBody: ValBody = QueryExpr | SelectExpr
 
-QueryExpr: QueryExpr = RowsFunc (WS FilterFunc)* AfterFilter {Select(rowsFunc=$0, filters=$1, afterFilter=$2)}
-  | RowsFunc WS FindFunc (WS PartialFunc)? (WS SingleRowRefinementExpr)? {Find(rowsFunc=$0, filter=$2, partial=$3, finalRefine=$4)}
-  | RowsFunc WS CountFuncWithCondition {CountFuncWithConditionExpr(rowsFunc=$0, filter=$2)}
+
+
+
+QueryExpr: QueryExpr = RowsFunc (WS FilterPart)* AfterFilter {Select(rowsFunc=$0, filters=$1, afterFilter=$2)}
+  | RowsFunc WS FindFunc (WS ViewPhrase)? (WS SingleRowRefinementExpr)? {Find(rowsFunc=$0, findFunc=$2, view=$3, finalRefine=$4)}
+  | RowsFunc WS '.' WS AggregateFunc WS SelectExprParams {AggregateExpr(rowsFunc=$0, aggregateFunc=$4, params=$6)}
   | RowsFunc WS "count"&Tk WS '(' WS ')' {CountAllExpr(rowsFunc=$0)}
 
 RowsFunc = "rows"&Tk WS '(' (WS StorageName)? WS ')' {RowsFunc(storage=$3)}
 
-FilterFunc = '.' WS "filter"&Tk WS '{' WS FilterFuncBody WS '}' {FilterFunc(body=$6)}
+FilterPart = '.' WS "filter"&Tk WS SelectExprParams {FilterPart(condition=$4)}
+
+SelectExprParams: SelectExprParams = '(' (WS SelectExprOrFunc (WS ',' WS SelectExprOrFunc)* {[$1]+$2})? WS ')' {MultiFuncParams(parts=$1 ?: [])}
+  | SelectFunc {SingleFuncParam(condition=$0)}
+SelectFunc: SelectFunc = '{' WS SelectExpr WS '}' {SelectFuncNoParamName(body=$2)}
+  | '{' WS Name WS "->"&Tk WS SelectExpr WS '}' {SelectFuncWithParamName(paramName=$2, body=$6)}
+SelectExprOrFunc: SelectExprOrFunc = SelectExpr | SelectFunc
+
 AfterFilter: AfterFilter = OrderByPhrase
-  | WS GroupByPhrase AfterGroupBy {AfterGroupBy(groupBy=$1, afterGroupBy=$2)}
+  | WS GroupByPhrase OrderByPhrase {GroupByAndOrderBy(groupBy=$1, orderBy=$2)}
 
-OrderByPhrase = (WS OrderByPart)? (WS DropExpr)? (WS TakeExpr)? (WS FinalOpExpr)? (WS FinalRefinementExpr)* {OrderByPhrase(orderBy=$0, drop=$1, take=$2, finalOp=$3, finalRefine=$4)}
-OrderByPart = '.' WS "orderBy"&Tk WS '(' WS OrderByExpr (WS ',' WS OrderByExpr)* WS ')' {OrderBy(cols=[$6]+$7)}
-OrderByExpr = ValueExpr WS ("asc" {%OrderBySortOrder.ASC}|"desc" {%OrderBySortOrder.DESC})&Tk {OrderByExpr(value=$0, sortOrder=$2)}
+OrderByPhrase = (WS OrderByPart)? (WS DropPart)? (WS TakePart)? (WS FinalOpPart)? (WS FinalRefinementPart)*
+                {OrderByPhrase(orderBy=$0, drop=$1, take=$2, finalOp=$3, finalRefine=$4)}
+OrderByPart = '.' WS "orderBy"&Tk WS '(' WS OrderByToken (WS ',' WS OrderByToken)* WS ')' {OrderBy(tokens=[$6]+$7)}
+OrderByToken = SelectExprOrFunc WS ("asc" {%ASC}|"desc" {%DESC})&Tk {OrderByToken(value=$0, sortOrder: %OrderBySortOrders=$2)}
 
-DropExpr = '.' WS "drop"&Tk WS '(' WS ValueExpr WS ')' {Drop(countExpr=$6)}
-TakeExpr = '.' WS TakeFuncType WS '(' WS ValueExpr WS ')' {Take(takeFunc=$2, countExpr=$6)}
+DropPart = '.' WS "drop"&Tk WS '(' WS SelectExpr WS ')' {Drop(countExpr=$6)}
+TakePart = '.' WS TakeFuncType WS '(' WS SelectExpr WS ')' {Take(takeFunc=$2, countExpr=$6)}
 TakeFuncType: %TakeFuncTypes = ("take" {%TAKE} | "takeWithMore" {%TAKE_WITH_MORE} | "takeWithCount" {%TAKE_WITH_COUNT})&Tk
 
-FinalOpExpr: FinalOpExpr = CountFunc
-  | PartialFunc
-  | FirstFunc
-  | PartialFunc WS FirstFunc {PartialFirst(partial=$0, firstFunc=$2)}
+FinalOpPart: FinalOpPart = CountFunc
+  | ViewPhrase
+  | FirstPhrase
+  | ViewPhrase WS FirstPhrase {ViewFirst(view=$0, firstPhrase=$2)}
 CountFunc = '.' WS "count" WS '(' WS ')' {CountFunc()}
-FirstFunc = '.' WS ("first" {%FIRST} | "firstOrNull" {%FIRST_OR_NULL})&Tk WS '(' WS ')' {FirstFunc(funcType:%FirstFuncs=$2)}
-PartialFunc: PartialFunc = PartialByValues | PartialForClass
-PartialByValues = '.' WS "partial"&Tk WS '(' WS PartialByValuesBody WS ')' {PartialByValues(body=$6)}
-PartialByValuesBody = ValueExpr (WS ',' WS ValueExpr)* {PartialBodyByValues(values=[$0]+$1)}
-PartialForClass = '.' WS "partialFor"&Tk WS '(' WS PartialForClassBody WS ')' {PartialForClass(body=$6)}
-PartialForClassBody: PartialForClassBody = Name {PartialForClassAuto(className=$0)}
-  | Name WS '(' (WS ValueExpr (WS ',' WS ValueExpr)* {[$1]+$2})? WS ')' {PartialForClassWithArgs(className=$0, args=$3 ?: [])}
+FirstPhrase = '.' WS ("first" {%FIRST} | "firstOrNull" {%FIRST_OR_NULL})&Tk WS '(' WS ')' {FirstPhrase(funcType:%FirstFuncs=$2)}
+ViewPhrase: ViewPhrase = ViewByValues | ViewAsClass
+ViewByValues = '.' WS "view"&Tk WS SelectExprParams {ViewByValues(body=$4)}
+ViewAsClass = '.' WS "viewAs"&Tk WS '(' WS ViewAsClassBody WS ')' {ViewAsClass(body=$6)}
+ViewAsClassBody: ViewAsClassBody = Name WS '(' (WS SelectExpr (WS ',' WS SelectExpr)* {[$1]+$2})? WS ')' {ViewAsClassWithArgs(className=$0, args=$3 ?: [])}
+  // | Name {ViewAsClassAuto(className=$0)}
 
-GroupByPhrase = GroupByPart (WS HavingPart)* WS AggregateToPart {GroupByPhrase(groupBy=$0, havings=$1, aggregate=$3)}
-GroupByPart = '.' WS "groupBy"&Tk WS '(' WS ValueExpr (WS ',' WS ValueExpr)* WS ')' {GroupBy(exprs=[$6]+$7)}
-HavingPart = '.' WS "having"&Tk WS '(' WS FilterExpr (WS ',' WS FilterExpr)* WS ')' {Having(exprs=[$6]+$7)}
-AggregateToPart = '.' WS "aggregateTo"&Tk WS '(' WS ValueExpr (WS ',' WS ValueExpr)* WS ')' {AggregateTo(exprs=[$6]+$7)}
-AfterGroupBy = OrderByPhrase
+GroupByPhrase = GroupByPart (WS HavingPart)? (WS AggregateToPart)? {GroupByPhrase(groupBy=$0, having=$1, aggregate=$2)}
+GroupByPart = '.' WS "groupBy"&Tk WS '(' WS SelectExprOrFunc (WS ',' WS SelectExprOrFunc)* WS ')' {GroupBy(exprs=[$6]+$7)}
+HavingPart = '.' WS "having"&Tk WS '(' WS SelectExpr (WS ',' WS SelectExpr)* WS ')' {Having(exprs=[$6]+$7)}
+AggregateToPart = '.' WS "aggregateTo"&Tk WS '(' WS AggregateToView WS ')' {AggregateTo(view=$6)}
+AggregateToView: AggregateToView = AggregateToClass | AggregateToValues
+AggregateToClass = Name WS '(' (WS SelectExpr (WS ',' WS SelectExpr)* {[$1]+$2})? WS ')' {AggregateToClass(className=$0, args=$3 ?: [])}
+AggregateToValues = SelectExpr (WS ',' WS SelectExpr)* {AggregateToValues(values=[$0] + $1)}
 
-FindFunc = '.' WS ("find" {true} | "anyOrNull" {true} | "any" {false})&Tk WS '{' WS FilterFuncBody WS '}' {FindFunc(nullAllowed=$2, funcBody=$6)}
-CountFuncWithCondition = '.' WS "count"&Tk WS '{' WS FilterFuncBody WS '}' {CountWithCondition(funcBody=$6)}
+FindFunc = '.' WS ("find" {true} | "anyOrNull" {true} | "any" {false})&Tk WS SelectExprParams {FindFunc(nullAllowed=$2, funcBody=$4)}
+AggregateFunc: %AggregateFuncs = ("count" {%COUNT} | "sum" {%SUM})&Tk
 
-FilterFuncBody: FilterFuncBody = FilterExpr
-  | Name WS "->"&Tk WS FilterExpr {NamedParamFunc(paramName=$0, body=$4)}
+SelectExpr: SelectExpr = SelectOrExpr
+  | SelectOrExpr WS "as"&Tk WS Name {AliasedSelectExpr(expr=$0, alias=$4)}
+SelectOrExpr: SelectOrExpr = SelectAndExpr
+  | SelectOrExpr WS "||"&Tk WS SelectAndExpr {SelectBinOp(lhs=$0, rhs=$4, op:%SelectBinOps=%OR)}
+SelectAndExpr: SelectAndExpr = SelectEqExpr
+  | SelectAndExpr WS "&&"&Tk WS SelectEqExpr {SelectBinOp($0, $4, %AND)}
+SelectEqExpr: SelectEqExpr = SelectRelExpr
+  | SelectEqExpr WS ("==" {%EQ} | "!=" {%NE}) WS SelectRelExpr {SelectBinOp($0, $4, $2)}
+SelectRelExpr: SelectRelExpr = SelectAddExpr
+  | SelectRelExpr WS SelectRelOp WS SelectAddExpr {SelectBinOp($0, $4, $2)}
+SelectRelOp: %SelectBinOps = ("<" {%LT} | ">" {%GT} | "<=" {%LE} | ">=" {%GE} | "in" {%IN} | "!in" {%NOT_IN})&Tk
 
-FilterExpr: FilterExpr = FilterOrExpr
-FilterOrExpr: FilterOrExpr = FilterAndExpr
-  | FilterOrExpr WS "||"&Tk WS FilterAndExpr {FilterBinOp(lhs=$0, rhs=$4, op:%FilterBinOps=%OR)}
-FilterAndExpr: FilterAndExpr = FilterEqualityExpr
-  | FilterAndExpr WS "&&"&Tk WS FilterEqualityExpr {FilterBinOp($0, $4, %AND)}
-FilterEqualityExpr: FilterEqualityExpr = FilterRelationalExpr
-  | FilterEqualityExpr WS ("==" {%EQ} | "!=" {%NE}) WS FilterRelationalExpr {FilterBinOp($0, $4, $2)}
-FilterRelationalExpr: FilterRelationalExpr = FilterFactor
-  | FilterRelationalExpr WS FilterRelationalOp WS FilterFactor {FilterBinOp($0, $4, $2)}
-FilterRelationalOp: %FilterBinOps = ("<" {%LT} | ">" {%GT} | "<=" {%LE} | ">=" {%GE} | "in" {%IN})&Tk
-FilterFactor: FilterFactor = ValueExpr
-  | QueryExpr {NestedQuery(expr=$0)}
-  | '(' WS FilterExpr WS ')' {ParenFilterExpr(expr=$2)}
-  | '!'&Tk WS FilterExpr {FilterUnOp(op=%FilterUnOps.NEG, expr=$2)}
-
-ValueExpr = ValueAddExpr (WS "as"&Tk WS Name)? {ValueExpr(expr=$0, alias=$1)}
-ValueAddExpr: ValueAddExpr = ValueMulExpr
-  | ValueAddExpr WS ("+" {%ADD} | "-" {%SUB}) WS ValueMulExpr {ValueBinOp(lhs=$0, rhs=$4, op:%ValueBinOps=$2)}
-ValueMulExpr: ValueMulExpr = ValueUnaryExpr
-  | ValueMulExpr WS ("*" {%MUL} | "/" {%DIV} | "%" {%REM})&Tk WS ValueUnaryExpr {ValueBinOp($0, $4, $2)}
-ValueUnaryExpr: ValueUnaryExpr = ValuePrimary
-  | ("+" {%PLUS} | "-" {%MINUS})&Tk WS ValuePrimary {ValueUnOp(op:%ValueUnOps=$0, operand=$2)}
-ValuePrimary: ValuePrimary = '(' WS ValueExpr WS ')' {ParenValueExpr(expr=$2)}
-  | ValueList
-  | ValueTuple
-  | Ref
+SelectAddExpr: SelectAddExpr = SelectMulExpr
+  | SelectAddExpr WS ("+" {%ADD} | "-" {%SUB}) WS SelectMulExpr {SelectBinOp(lhs=$0, rhs=$4, op:%SelectBinOps=$2)}
+SelectMulExpr: SelectMulExpr = SelectUnaryExpr
+  | SelectMulExpr WS ("*" {%MUL} | "/" {%DIV} | "%" {%REM})&Tk WS SelectUnaryExpr {SelectBinOp($0, $4, $2)}
+SelectUnaryExpr: SelectUnaryExpr = SelectPrimary
+  | ("+" {%PLUS} | "-" {%MINUS})&Tk WS SelectPrimary {SelectUnOp(op:%SelectUnOps=$0, operand=$2)}
+SelectPrimary: SelectPrimary = QueryExpr {NestedQuery(query=$0)}
+  | '(' WS SelectExpr WS ')' {ParenSelectExpr(expr=$2)}
+  | '!'&Tk WS SelectExpr {SelectUnOp(%NEG, $2)}
+  | ListLiteral
+  | TupleLiteral
+  | MemberAccess
   | Literal
-  | FuncCall
-ValueList = '[' (WS ValueExpr (WS ',' WS ValueExpr)* (WS ',')? {[$1] + $2})? WS ']' {ValueList(elems=$1 ?: [])}
-ValueTuple = '(' (WS ValueExpr (WS ',' WS ValueExpr)* (WS ',')? {[$1] + $2})? WS ')' {ValueTuple(elems=$1 ?: [])}
-Ref = <Name (WS RefRest)?> {Ref(first=$0$0, rest=$0$1 ?: [])}
-RefRest = <(('?' WS)? '.' Name {RefToken(opt=ispresent($0), name=$2)})+>
+  | MethodCall
+  | NameRef
+ListLiteral = '[' (WS SelectExpr (WS ',' WS SelectExpr)* (WS ',')? {[$1] + $2})? WS ']' {ListLiteral(elems=$1 ?: [])}
+TupleLiteral = '(' (WS SelectExpr (WS ',' WS SelectExpr)+ (WS ',')? {[$1] + $2})? WS ')' {TupleLiteral(elems=$1 ?: [])}
+MemberAccess = SelectPrimary WS '.' WS Name {MemberAccess(expr=$0, name=$4)}
 Literal: Literal = IntLiteral | RealLiteral | StringLiteral
-FuncCall = FuncName WS '(' (WS ValueExpr (WS ',' WS ValueExpr)* {[$1] + $2})? WS ')' {FuncCall(funcName=$0, params=$3 ?: [])}
 FuncName = Name
+MethodCall = SelectPrimary WS SelectExprParams {MethodCall(target=$0, params=$2)}
+NameRef = Name {NameRef(name=$0)}
 
 
 // sql에서 쿼리해온 뒤에 서버에서 수행하는 코드
-FinalRefinementExpr: FinalRefinementExpr = SingleRowRefinementExpr
+FinalRefinementPart: FinalRefinementPart = SingleRowRefinementExpr
   | MapPhrase
   | OrderByKeysPhrase
 SingleRowRefinementExpr = SingleRowFieldAccess
@@ -233,8 +243,8 @@ SingleRowFieldAccess = (('?' WS)? '.' WS Name {FieldAccess(prevIsOpt=ispresent($
 MapPhrase = '.' WS "map"&Tk WS '{' WS MapFuncBody WS '}' WS {MapPhrase(body=$6)}
 MapFuncBody: MapFuncBody = MapExpr
   | Name WS "->"&Tk WS MapExpr {NamedParamMapFuncBody(name=$0, body=$4)}
-MapExpr = FilterExpr
-OrderByKeysPhrase = '.' WS "orderByKeys" WS '(' WS ValueExpr WS ')' {OrderByKeys(param=$6)}
+MapExpr = SelectExpr
+OrderByKeysPhrase = '.' WS "orderByKeys" WS '(' WS SelectExpr WS ')' {OrderByKeys(param=$6)}
 
 IntLiteral = '0' {IntLiteral(value="0")} | <'1-9' '0-9'* {str($0, $1)}> {IntLiteral(value=$0)}
 RealLiteral = <IntLiteral '.' '0-9'*> {RealLiteral(intPart=$0$0, fracPart=$0$2)}
