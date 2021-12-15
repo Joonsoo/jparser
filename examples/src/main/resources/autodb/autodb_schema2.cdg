@@ -18,8 +18,8 @@ EntityKey: EntityKey = "key"&Tk WS EntityKeyFields {PrimaryKey(fields=$2)}
 EntityKeyFields = '(' WS FieldName (WS ',' WS FieldName)* WS ')' {[$2] + $3}
 EntityBody = '{' (WS EntityBodyElem)* WS '}' {$1}
 EntityBodyElem: EntityBodyElem = VersionEntity | EntityView | PreDefinedEntityView | QueryDef | UpdateDef
-VersionEntity = "version"&Tk WS "entity"&Tk WS EntityName (WS VersioningInfo)? (WS EntityFields)? (WS EntityKeys)? (WS VersionEntityBody)?
-    {VersionEntity(name=$4, versioningInfo=$5, fields: [EntityField]=$6 ?: [], keys=$7 ?: [], body=$8 ?: [])}
+VersionEntity = "version"&Tk WS "entity"&Tk WS EntityName (WS VersioningInfo)? (WS EntityKeys)? (WS VersionEntityBody)?
+    {VersionEntity(name=$4, versioningInfo=$5, keys=$6 ?: [], body=$7 ?: [])}
 VersioningInfo = '[' (WS FieldName) (WS EntityFieldActualNamesParen)?
                      (WS ',' WS FieldName) (WS EntityFieldActualNamesParen)?
                      (WS ',' WS FieldName) (WS EntityFieldActualNamesParen)?
@@ -81,11 +81,12 @@ ListType = "List"&Tk WS '<' WS Type WS '>' {ListType(elemType=$4)}
 CollectionType = "Collection"&Tk WS '<' WS Type WS '>' {CollectionType(elemType=$4)}
 Name = <'a-zA-Z_' 'a-zA-Z0-9_'* {str($0, $1)}>-Keywords
 OneOfCaseType = "OneOfCase"&Tk WS '<' WS FieldRef WS '>' {OneOfCaseType(field=$4)}
-FieldRef = Name (WS '.' WS Name)+ {FieldRef(names=[$0] + $1)}
+FieldRef = <Name (WS '.' WS Name)* {FieldRef(names=[$0] + $1)}>
 Keywords = "Int" | "Long" | "String" | "Timestamp" | "Duration" | "URI" | "Boolean" | "Empty" | "Ref" | "List" | "entity"
   | "autoincrement" | "sparsegenLong" | "view" | "null"
   | "==" | "!="
   | "query" | "rows" | "update"
+  | "true" | "false"
 EnumDef = "enum"&Tk WS Name WS '{' WS EnumValueDef (WS ',' WS EnumValueDef)* (WS ',')? WS '}' {EnumDef(name=$2, values=[$6] + $7)}
 EnumValueDef = DataFieldTagAnnotation WS Name {EnumValueDef(tag=$0, name=$2)}
 IdGenDef = "idgen"&Tk WS Name WS '=' WS IdGenSpec {IdGenDef(name=$2, idgen=$6)}
@@ -129,15 +130,18 @@ OneOfDef = "oneof"&Tk WS '{' WS DataFields WS '}' {OneOfDef(fields=$4)}
 
 UpdateStmt: UpdateStmt = UpdateByFilter | UpdateByFind
 
-UpdateByFilter = RowsFunc (WS FilterPart)* '.' WS "forEach"&Tk WS UpdateFunc {UpdateByFilter(rows=$0, filters=$1, body=$6)}
-UpdateByFind: UpdateByFind = RowsFunc WS FindFunc (WS '.' WS Name)* WS UpdateOp WS SelectExpr {UpdateByFindSingleField(rows=$0, find=$2, refRest=$3, updateOp=$5, rhs=$7)}
-  | RowsFunc WS FindFunc (WS '?')? WS '.' WS "let"&Tk WS UpdateFunc {UpdateByFindMultiFields(rows=$0, find=$2, optional=ispresent($3), body=$9)}
+UpdateByFilter = RowsFunc (WS FilterPart)* '.' WS "forEach"&Tk WS UpdateFunc
+                 {UpdateByFilter(rows=$0, filters=$1, body=$6)}
+UpdateByFind: UpdateByFind =
+    RowsFunc WS FindFunc (WS '?')? (WS '.' WS Name)* WS UpdateOp WS SelectExpr
+    {UpdateByFindSingleField(rows=$0, find=$2, optional=ispresent($3), refRest=$4, updateOp=$6, rhs=$8)}
+  | RowsFunc WS FindFunc (WS '?')? WS '.' WS "let"&Tk WS UpdateFunc
+    {UpdateByFindMultiFields(rows=$0, find=$2, optional=ispresent($3), body=$9)}
 
-UpdateFunc = '{' (WS Name WS "->"&Tk)? (WS UpdateRowStmt)+ WS '}' {UpdateFunc(paramName=$1, stmts=$2)}
+UpdateFunc = '{' (WS Name WS "->"&Tk)? (WS UpdateRowStmt)+ WS '}' {UpdateFunc(paramName=$1$1, stmts=$2)}
 
 UpdateRowStmt = FieldRef WS UpdateOp WS SelectExpr {UpdateRowStmt(lhs=$0, rhs=$4, op=$2)}
 UpdateOp: %UpdateOps = ("=" {%ASSIGN} | "+=" {%INC} | "-=" {%DEC})&Tk
-FieldRef = <Name (WS '.' WS Name)* {FieldRef(names=[$0] + $1)}>
 
 QueryBody: QueryBody = '=' WS QueryExpr
   | '{' (WS QueryStmt)* WS QueryExpr WS '}' {QueryBlock(stmts=$1, expr=$3)}
@@ -228,7 +232,7 @@ SelectPrimary: SelectPrimary = QueryExpr {NestedQuery(query=$0)}
 ListLiteral = '[' (WS SelectExpr (WS ',' WS SelectExpr)* (WS ',')? {[$1] + $2})? WS ']' {ListLiteral(elems=$1 ?: [])}
 TupleLiteral = '(' (WS SelectExpr (WS ',' WS SelectExpr)+ (WS ',')? {[$1] + $2})? WS ')' {TupleLiteral(elems=$1 ?: [])}
 MemberAccess = SelectPrimary WS '.' WS Name {MemberAccess(expr=$0, name=$4)}
-Literal: Literal = IntLiteral | RealLiteral | StringLiteral | "null"&Tk {NullLiteral()}
+Literal: Literal = IntLiteral | RealLiteral | StringLiteral | "null"&Tk {NullLiteral()} | "true"&Tk {BooleanLiteral(value=true)} | "false"&Tk {BooleanLiteral(value=false)}
 FuncName = Name
 MethodCall = SelectPrimary WS SelectExprParams {MethodCall(target=$0, params=$2)}
 NameRef = Name {NameRef(name=$0)}
