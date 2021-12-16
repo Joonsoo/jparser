@@ -189,7 +189,7 @@ ViewPhrase: ViewPhrase = ViewByValues | ViewAsClass
 ViewByValues = '.' WS "view"&Tk WS SelectExprParams {ViewByValues(body=$4)}
 ViewAsClass = '.' WS "viewAs"&Tk WS '(' WS ViewAsClassBody WS ')' {ViewAsClass(body=$6)}
 ViewAsClassBody: ViewAsClassBody = Name WS '(' (WS SelectExpr (WS ',' WS SelectExpr)* {[$1]+$2})? WS ')' {ViewAsClassWithArgs(className=$0, args=$3 ?: [])}
-  // | Name {ViewAsClassAuto(className=$0)}
+  | Name {ViewAsClassAuto(className=$0)}
 
 GroupByPhrase = GroupByPart (WS HavingPart)? (WS AggregateToPart)? {GroupByPhrase(groupBy=$0, having=$1, aggregate=$2)}
 GroupByPart = '.' WS "groupBy"&Tk WS '(' WS SelectExprOrFunc (WS ',' WS SelectExprOrFunc)* WS ')' {GroupBy(exprs=[$6]+$7)}
