@@ -1,7 +1,7 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.utils.UnicodeUtil
 import com.giyeok.jparser.Inputs.CharsGrouping
+import com.giyeok.jparser.unicode.UnicodeUtil
 
 import scala.collection.immutable.ListSet
 

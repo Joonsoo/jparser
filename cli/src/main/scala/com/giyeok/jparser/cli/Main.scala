@@ -1,17 +1,16 @@
 package com.giyeok.jparser.cli
 
-import com.giyeok.jparser.metalang3a.MetaLanguage3
-import com.giyeok.jparser.metalang3a.MetaLanguage3.ProcessedGrammar
-import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen
-import com.giyeok.jparser.metalang3a.codegen.ScalaCodeGen.CodeBlob
-import com.giyeok.jparser.milestone.MilestoneParserGen
+import com.giyeok.jparser.metalang3.MetaLanguage3
+import com.giyeok.jparser.metalang3.MetaLanguage3.ProcessedGrammar
+import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen
+import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen.CodeBlob
+import com.giyeok.jparser.milestone.{MilestoneParser, MilestoneParserData, MilestoneParserGen}
 import com.giyeok.jparser.proto.MilestoneParserProtobufConverter
 import com.giyeok.jparser.utils.FileUtil.{readFile, writeFile}
 import picocli.CommandLine
 import picocli.CommandLine.{Command, Option}
 
 import java.io.File
-import java.util.Base64
 
 // example args: --input ./examples/src/main/resources/autodb/autodb_schema1.cdg --targetDir /home/joonsoo/Documents/workspace/autodb/autodb-ast/src/main/scala --milestoneParserDataPath /home/joonsoo/Documents/workspace/autodb/autodb-ast/src/main/resources/autodbschemadata.pb --grammarName AutodbSchema1Grammar --packageName com.giyeok.autodb
 @Command(name = "jparser", version = Array("1.0.0"))

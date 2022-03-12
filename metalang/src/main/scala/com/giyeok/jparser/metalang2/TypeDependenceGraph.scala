@@ -1,6 +1,7 @@
 package com.giyeok.jparser.metalang2
 
 import com.giyeok.jparser.Symbols
+import com.giyeok.jparser.graph.{AbstractEdge, AbstractGraph}
 import com.giyeok.jparser.utils._
 
 object TypeDependenceGraph {

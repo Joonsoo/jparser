@@ -2,7 +2,7 @@ package com.giyeok.jparser.milestone.codegen
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.fast.{GraphNoIndex, KernelTemplate, TasksSummary}
-import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
+import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
 import com.giyeok.jparser.milestone._
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.ParsingContext.Kernel

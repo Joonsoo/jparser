@@ -2,8 +2,8 @@ package com.giyeok.jparser.tests.metalang3
 
 import com.giyeok.jparser.examples.MetaLang3Example.CorrectExample
 import com.giyeok.jparser.examples.metalang3.AllMetaLang3Examples
-import com.giyeok.jparser.metalang3a.MetaLanguage3.ProcessedGrammar
-import com.giyeok.jparser.metalang3a.{AnalysisPrinter, MetaLanguage3, ValuefyExprSimulator}
+import com.giyeok.jparser.metalang3.MetaLanguage3.ProcessedGrammar
+import com.giyeok.jparser.metalang3.{AnalysisPrinter, MetaLanguage3, ValuefyExprSimulator}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class AllExamplesTest extends AnyFlatSpec {

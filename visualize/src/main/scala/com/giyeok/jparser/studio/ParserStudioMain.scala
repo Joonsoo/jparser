@@ -1,7 +1,7 @@
 package com.giyeok.jparser.studio
 
-import com.giyeok.jparser.examples.metalang3.SimpleExamples
 import com.giyeok.jparser.examples.{AllExamples, AmbiguousExamples, GrammarWithExamples, StringExamples}
+import com.giyeok.jparser.examples.metalang3.SimpleExamples
 
 object ParserStudioMain {
   def main(args: Array[String]): Unit = {

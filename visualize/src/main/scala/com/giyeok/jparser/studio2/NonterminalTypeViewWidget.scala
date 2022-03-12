@@ -1,6 +1,6 @@
 package com.giyeok.jparser.studio2
 
-import com.giyeok.jparser.metalang3a.Type
+import com.giyeok.jparser.metalang3.Type
 import com.giyeok.jparser.studio2.Utils.readableType
 import org.eclipse.swt.widgets.{Composite, Text}
 

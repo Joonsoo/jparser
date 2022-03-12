@@ -1,7 +1,7 @@
 package com.giyeok.jparser.tests.metalang3a
 
 import com.giyeok.jparser.Symbols.{ExactChar, Nonterminal, OneOf, Proxy, Repeat, Sequence, Start}
-import com.giyeok.jparser.metalang3a.MetaLanguage3
+import com.giyeok.jparser.metalang3.MetaLanguage3
 import com.giyeok.jparser.nparser.NaiveParser
 import com.giyeok.jparser.nparser.ParseTreeMatchers._
 import com.giyeok.jparser.nparser.TestUtil.{NaiveParserParseToTree, grammarFrom, parseToTree}

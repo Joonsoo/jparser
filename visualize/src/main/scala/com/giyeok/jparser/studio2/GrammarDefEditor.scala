@@ -1,9 +1,9 @@
 package com.giyeok.jparser.studio2
 
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.metalang3a.MetaLanguage3.{ProcessedGrammar, analyzeGrammar, transformGrammar}
-import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
-import com.giyeok.jparser.metalang3a.{CollectedErrors, ErrorCollector, ErrorMessage}
+import com.giyeok.jparser.metalang3.MetaLanguage3.{ProcessedGrammar, analyzeGrammar, transformGrammar}
+import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
+import com.giyeok.jparser.metalang3.{CollectedErrors, ErrorCollector, ErrorMessage}
 import com.giyeok.jparser.milestone.MilestoneParser
 import com.giyeok.jparser.proto.MilestoneParserProtobufConverter.convertProtoToMilestoneParserData
 import com.giyeok.jparser.proto.MilestoneParserDataProto

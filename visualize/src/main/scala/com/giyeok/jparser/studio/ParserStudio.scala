@@ -10,8 +10,8 @@ import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParsingCon
 import com.giyeok.jparser.visualize._
 import com.giyeok.jparser.visualize.utils.{HorizontalResizableSplittedComposite, VerticalResizableSplittedComposite}
 import com.giyeok.jparser._
-import com.giyeok.jparser.metalang3a.{ErrorCollector, MetaLanguage3}
-import com.giyeok.jparser.metalang3a.generated.MetaLang3Ast
+import com.giyeok.jparser.metalang3.{ErrorCollector, MetaLanguage3}
+import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
 import org.eclipse.draw2d.{ColorConstants, Figure, FigureCanvas}
 import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.{ExtendedModifyListener, StyleRange, StyledText}

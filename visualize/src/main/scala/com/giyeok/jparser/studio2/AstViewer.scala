@@ -1,6 +1,6 @@
 package com.giyeok.jparser.studio2
 
-import com.giyeok.jparser.metalang3a.ValuefyExprSimulator
+import com.giyeok.jparser.metalang3.ValuefyExprSimulator
 import com.giyeok.jparser.visualize.FigureGenerator.Spacing
 import com.giyeok.jparser.visualize.{BasicVisualizeResources, FigureGenerator, ParseResultFigureGenerator, SymbolFigureGenerator}
 import org.eclipse.draw2d.{ColorConstants, Figure, FigureCanvas}

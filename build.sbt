@@ -1,9 +1,9 @@
-ThisBuild/organization := "com.giyeok"
-ThisBuild/version := "0.2.3"
-ThisBuild/scalaVersion := "2.13.5"
-ThisBuild/crossPaths := false
+ThisBuild / organization := "com.giyeok"
+ThisBuild / version := "0.2.3"
+ThisBuild / scalaVersion := "2.13.5"
+ThisBuild / crossPaths := false
 
-ThisBuild/javacOptions ++= Seq("-encoding", "UTF-8")
+ThisBuild / javacOptions ++= Seq("-encoding", "UTF-8")
 
 lazy val testDeps = {
   // val scalactic: ModuleID = "org.scalactic" %% "scalactic" % "3.0.1" % "test"
@@ -17,37 +17,31 @@ lazy val testDeps = {
 lazy val protobufDep = "com.google.protobuf" % "protobuf-java" % "3.14.0"
 lazy val javaFormatDep = "com.google.googlejavaformat" % "google-java-format" % "1.9"
 
-lazy val utils = (project in file("utils")).
-  settings(
-    name := "jparser-utils",
-    libraryDependencies ++= testDeps)
-
 lazy val base = (project in file("base")).
   settings(
     name := "jparser-base",
     libraryDependencies ++= testDeps,
-    libraryDependencies += protobufDep).
-  dependsOn(utils % "test->test;compile->compile")
+    libraryDependencies += protobufDep)
 
-lazy val examples = (project in file("examples")).
+lazy val utils = (project in file("utils")).
   settings(
-    name := "jparser-examples").
+    name := "jparser-utils",
+    libraryDependencies ++= testDeps).
   dependsOn(base % "test->test;compile->compile")
 
 lazy val naive = (project in file("naive")).
   settings(
     name := "jparser-naive",
     libraryDependencies ++= testDeps).
-  dependsOn(base % "test->test;compile->compile").
-  dependsOn(examples % "compile->test")
+  dependsOn(base % "test->test;compile->compile")
 
 lazy val metalang = (project in file("metalang")).
   settings(
     name := "jparser-metalang",
-    libraryDependencies += protobufDep).
+    libraryDependencies += protobufDep,
+  ).
   dependsOn(naive % "test->test;compile->compile").
-  dependsOn(utils % "test->test;compile->compile").
-  dependsOn(examples % "compile->test")
+  dependsOn(utils % "test->test;compile->compile")
 
 lazy val fast = (project in file("fast")).
   settings(
@@ -56,8 +50,16 @@ lazy val fast = (project in file("fast")).
     libraryDependencies ++= testDeps,
     javacOptions ++= Seq("-encoding", "UTF-8")).
   dependsOn(naive % "test->test;compile->compile").
-  dependsOn(metalang % "test->test;compile->compile").
-  dependsOn(examples % "test->test;compile->compile")
+  dependsOn(metalang % "test->test;compile->compile")
+
+lazy val examples = (project in file("examples")).
+  settings(
+    name := "jparser-examples").
+  dependsOn(base % "compile->test;compile->compile").
+  dependsOn(naive % "compile->test").
+  dependsOn(metalang % "compile->test")
+
+// TODO naive_test, fast_test -> naive와 fast의 test에 들어있지 않은 metalang으로 정의된 테스트 돌리기
 
 lazy val visJavaOptions: Seq[String] = {
   if (sys.props("os.name") == "Mac OS X") Seq("-XstartOnFirstThread", "-d64") else Seq()
@@ -109,12 +111,14 @@ lazy val cli = (project in file("cli")).
   settings(
     name := "jparser-cli",
     libraryDependencies ++= testDeps,
-    libraryDependencies += "info.picocli" % "picocli" % "4.6.1"
+    libraryDependencies += "info.picocli" % "picocli" % "4.6.1",
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "generated" / "scala",
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "generated" / "resources",
   ).
   dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(fast % "test->test;compile->compile")
 
-run/fork := true
-Test/fork := true
+run / fork := true
+Test / fork := true

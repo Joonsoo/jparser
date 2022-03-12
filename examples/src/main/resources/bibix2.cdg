@@ -1,0 +1,99 @@
+BuildDef = WS (Imports WS)? Defs WS {BuildDef(imports=$1$0, defs=$2)}
+
+Imports = Import (WS Import)* {[$0] + $1}
+
+Import = "from"&Tk WS ImportSource WS "import"&Tk WS Name (WS "as"&Tk WS SimpleName)?
+         {Import(source=$2, name=$6, rename=$7)}
+
+ImportSource: ImportSource = ImportGitSource
+
+ImportGitSource = CallExpr
+
+Defs = Def (WS Def)* {[$0] + $1}
+
+Def = PluginDef
+  | NameDef
+  | ArtifactTypeDef
+  | ArgDef
+  | TargetDef
+  | ActionDef
+  | ActionImplDef
+  | EnumDef
+
+PluginDef = "plugin"&Tk WS Name WS '{' (WS Def)* WS '}' {PluginDef(name=$2, elems=$5)}
+
+NameDef = Name WS '=' WS Expr {NameDef(name=$0, value=$4)}
+
+ArtifactTypeDef = "artifact"&Tk WS Name (WS NamedTypeParams)? WS ArtifactBodyDef (WS ArtifactTypeActionsBody)?
+                  {ArtifactTypeDef(name=$2, typeParams=$3, body=$5, actions=$6)}
+ArtifactBodyDef = "extends"&Tk WS Name (WS TypeParams)?
+  | '=' WS SimpleName
+  | '=' WS NamedTupleType
+ArtifactTypeActionsBody = '{' (WS ActionImplDef)* WS '}'
+NamedTypeParams = '<' WS NamedTypeParam (WS ',' WS NamedTypeParam)* WS '>' {NamedTypeParams(params=[$2] + $3)}
+NamedTypeParam = SimpleName WS ':' WS TypeExpr
+TypeParams = '<' WS TypeExpr (WS ',' WS TypeExpr)* WS '>' {TypeParams(params=[$2] + $3)}
+
+ArgDef = "arg"&Tk WS SimpleName (WS ':' WS TypeExpr)? (WS '=' WS Expr)?
+         {ArgDef(name=$2, type=$3, defaultValue=$4)}
+
+TargetDef = "def"&Tk WS SimpleName WS ParamsDef WS ':' WS TypeExpr WS '=' WS ClassRef
+            {TargetDef(name=$2, params=$4, returnType=$8, impl=$12)}
+ActionDef = "action"&Tk WS SimpleName WS '=' WS Expr {ActionDef(name=$2, expr=$6)}
+ActionImplDef = "action"&Tk WS SimpleName WS ParamsDef WS '=' WS ClassRef {ActionImplDef(name=$2, params=$4, impl=$8)}
+
+ClassRef = Name WS ':' WS Name {ClassRef(targetName=$0, className=$4)}
+
+ParamsDef = '(' (WS ParamDef (WS ',' WS ParamDef)*)? (WS ',')? WS ')' {$1{[$1] + $2} ?: []}
+ParamDef = SimpleName WS ':' WS TypeExpr (WS '=' WS Expr)? {ParamDef(name=$0, typ=$4, defaultValue=$5)}
+  | SimpleName WS '=' WS Expr {ParamDef(name=$0, typ=null, defaultValue=$4)}
+
+EnumDef = "enum"&Tk WS Name WS '{' WS SimpleName (WS ',' WS SimpleName)* (WS ',')? WS '}' {EnumDef(name=$2, values=[$6] + $7)}
+
+Expr: Expr = Expr WS '+' WS Primary {MergeOp(lhs=$0, rhs=$4)}
+  | Primary
+
+Primary: Primary = CallExpr
+  | Name {Ref(name=$0)}
+  | '[' (WS Expr (WS ',' WS Expr)* (WS ',')?)? WS ']' {List(elems=$1{[$1] + $2} ?: [])}
+  | Literal
+
+CallExpr = Name WS '(' WS ')' {CallExpr(name=$0, posParams=[], namedParams=[])}
+  | Name WS '(' WS PositionalParams (WS ',')? WS ')' {CallExpr($0, $4, [])}
+  | Name WS '(' WS NamedParams (WS ',')? WS ')' {CallExpr($0, [], $4)}
+  | Name WS '(' WS PositionalParams WS ',' WS NamedParams (WS ',')? WS ')' {CallExpr($0, $4, $6)}
+PositionalParams = Expr (WS ',' WS Expr)* {[$0] + $1}
+NamedParams = NamedParam (WS ',' WS NamedParam)* {[$0] + $1}
+NamedParam = SimpleName WS '=' WS Expr {NamedParam(name=$0, value=$4)}
+
+Literal: Literal = StringLiteral
+
+StringLiteral = '"' <StringElem>* '"' {StringLiteral(elems=$1)}
+StringElem = .-'\\"' {JustChar(chr=$0)}
+  | EscapeChar
+  | StringExpr
+EscapeChar = '\\' 'nbrt$\\"' {EscapeChar(code=$1)}
+StringExpr: StringExpr = <'$' SimpleName> {SimpleExpr(name=$0)}
+  | '$' '{' WS Expr WS '}' {ComplexExpr(expr=$3)}
+
+TypeExpr: TypeExpr = Name // String, File, Directory
+  | Name WS TypeParams {ParameterizedType(name=$0, typeParams=$2)}
+  | TupleType
+  | NamedTupleType
+  | UnionType
+TupleType = '(' WS TypeExpr (WS ',' WS TypeExpr)* WS ')' {TupleType(elems=[$2] + $3)}
+NamedTupleType = '(' WS NamedType (WS ',' WS NamedType)* WS ')' {NamedTupleType(elems=[$2] + $3)}
+NamedType = SimpleName WS ':' WS TypeExpr {NamedType(name=$0, typ=$4)}
+UnionType = '{' WS TypeExpr (WS ',' WS TypeExpr)* WS '}' {UnionType(elems=[$2] + $3)}
+
+SimpleName = <('a-zA-z' 'a-zA-Z0-9_'* {str($0, $1)})&Tk> {$0}
+Name = SimpleName (WS '.' WS SimpleName)* {Name(names=[$0] + $1)}
+
+Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
+
+WS = (WS_|Comment)*
+WS_ = ' \n\r\t'
+Comment = LineComment | BlockComment
+LineComment = "//" (.-'\n')* (EOF | '\n')
+BlockComment = "/*" (. !"*/")* . "*/"
+EOF = !.

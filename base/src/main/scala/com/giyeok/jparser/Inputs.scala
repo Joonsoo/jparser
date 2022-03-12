@@ -1,6 +1,6 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.utils.UnicodeUtil
+import com.giyeok.jparser.unicode.UnicodeUtil
 
 object Inputs {
     type Location = Int

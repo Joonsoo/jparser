@@ -39,6 +39,7 @@ object MilestoneParser {
       }
     }
 
+    val startTime = System.currentTimeMillis()
     val kernels = finalCtx.genProgressHistory.map(gen => Kernels(gen.genActions.flatMap {
       case TermAction(beginGen, midGen, endGen, summary, condition) =>
         if (isFinallyAccepted(endGen, condition)) {
@@ -70,6 +71,7 @@ object MilestoneParser {
           }
         } else List()
     }.toSet))
+    println(s"Filtering kernels: ${System.currentTimeMillis() - startTime} ms")
     new ParseTreeConstructor2(ParseForestFunc)(parserData.grammar)(input, kernels).reconstruct()
   }
 
@@ -223,10 +225,16 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
   def parse(input: String): Either[MilestoneParserContext, ParsingError] = parse(Inputs.fromString(input))
 
   def parseAndReconstructToForest(inputSeq: Seq[Inputs.Input]): Either[ParseForest, ParsingError] = {
+    val startTime = System.currentTimeMillis()
     parse(inputSeq) match {
       case Left(finalCtx) =>
+        val afterParse = System.currentTimeMillis()
+        println(s"Parsing: ${afterParse - startTime} ms")
         reconstructParseTree(parserData, finalCtx, inputSeq) match {
-          case Some(forest) => Left(forest)
+          case Some(forest) =>
+            val afterReconst = System.currentTimeMillis()
+            println(s"Parse tree reconstruction: ${afterReconst - afterParse} ms")
+            Left(forest)
           case None => Right(ParsingErrors.UnexpectedEOFByTermGroups(finalCtx.expectingTerminals(parserData), finalCtx.gen))
         }
       case Right(error) => Right(error)

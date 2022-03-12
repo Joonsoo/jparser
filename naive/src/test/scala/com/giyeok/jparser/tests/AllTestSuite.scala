@@ -1,6 +1,6 @@
 package com.giyeok.jparser.tests
 
-import com.giyeok.jparser.examples.basics._
+import com.giyeok.jparser.examples.basics.{BackupGrammars, GrammarWithExcept, GrammarWithLookaheadExcept, GrammarWithLookaheadIs, JoinGrammars, LongestMatchGrammars, PaperTests, ParsingTechniquesTests, RecursiveGrammarSet1, SimpleGrammarSet1, SimpleGrammarSet2, SimpleGrammarSet3, TrickyLookaheadsTests1}
 import com.giyeok.jparser.examples.javascript.{JavaScriptGrammarExamples1, JavaScriptVarDecTestSuite1}
 
 class BackupGrammarTestSuite1 extends BasicParseTest(BackupGrammars.tests)
@@ -32,3 +32,5 @@ class SimpleGrammarTestSuite3 extends BasicParseTest(SimpleGrammarSet3.tests)
 class JavaScriptVarDecTestSuite1 extends BasicParseTest(JavaScriptVarDecTestSuite1.tests)
 
 class JavaScriptTestSuite1 extends BasicParseTest(List(JavaScriptGrammarExamples1))
+
+class TrickyLookaheadsTestSuite1 extends BasicParseTest(TrickyLookaheadsTests1.tests)

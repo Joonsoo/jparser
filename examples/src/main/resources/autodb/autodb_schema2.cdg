@@ -130,13 +130,21 @@ OneOfDef = "oneof"&Tk WS '{' WS DataFields WS '}' {OneOfDef(fields=$4)}
 
 UpdateStmt: UpdateStmt = UpdateByFilter | UpdateByFind
 
-UpdateByFilter = RowsFunc (WS FilterPart)* '.' WS "forEach"&Tk WS UpdateFunc
-                 {UpdateByFilter(rows=$0, filters=$1, body=$6)}
-UpdateByFind: UpdateByFind =
-    RowsFunc WS FindFunc (WS '?')? (WS '.' WS Name)* WS UpdateOp WS SelectExpr
-    {UpdateByFindSingleField(rows=$0, find=$2, optional=ispresent($3), refRest=$4, updateOp=$6, rhs=$8)}
-  | RowsFunc WS FindFunc (WS '?')? WS '.' WS "let"&Tk WS UpdateFunc
-    {UpdateByFindMultiFields(rows=$0, find=$2, optional=ispresent($3), body=$9)}
+UpdateByFilter: UpdateByFilter =
+    RowsFunc (WS FilterPart)* AfterFilter '.' WS "forEach"&Tk WS UpdateFunc
+    {UpdateMultiRowsByFilter(rows=$0, filters=$1, afterFilter=$2, body=$7)}
+  | RowsFunc (WS FilterPart)* AfterFilter '.' WS "deleteAll"&Tk WS '(' WS ')'
+    {DeleteMultiRowsByFilter(rows=$0, filters=$1, afterFilter=$2)}
+  | RowsFunc (WS FilterPart)* AfterFilter UpdateRowInstPart
+    {UpdateSingleRowByFilter(rows=$0, filters=$1, afterFilter=$2, body=$3)}
+UpdateByFind = RowsFunc WS FindFunc UpdateRowInstPart {UpdateByFind(rows=$0, find=$2, instruction=$3)}
+UpdateRowInstPart: UpdateRowInstPart =
+    (WS '?')? (WS '.' WS Name)* WS UpdateOp WS SelectExpr
+    {UpdateSingleField(optional=ispresent($0), refRest=$1, updateOp=$3, rhs=$5)}
+  | (WS '?')? WS '.' WS "let"&Tk WS UpdateFunc
+    {UpdateMultiFields(optional=ispresent($0), body=$6)}
+  | (WS '?')? WS '.' WS "delete"&Tk WS '(' WS ')'
+    {DeleteRow(optional=ispresent($0))}
 
 UpdateFunc = '{' (WS Name WS "->"&Tk)? (WS UpdateRowStmt)+ WS '}' {UpdateFunc(paramName=$1$1, stmts=$2)}
 
@@ -226,12 +234,14 @@ SelectPrimary: SelectPrimary = QueryExpr {NestedQuery(query=$0)}
   | ListLiteral
   | TupleLiteral
   | MemberAccess
+  | MemberFieldRef
   | Literal
   | MethodCall
   | NameRef
 ListLiteral = '[' (WS SelectExpr (WS ',' WS SelectExpr)* (WS ',')? {[$1] + $2})? WS ']' {ListLiteral(elems=$1 ?: [])}
 TupleLiteral = '(' (WS SelectExpr (WS ',' WS SelectExpr)+ (WS ',')? {[$1] + $2})? WS ')' {TupleLiteral(elems=$1 ?: [])}
 MemberAccess = SelectPrimary WS '.' WS Name {MemberAccess(expr=$0, name=$4)}
+MemberFieldRef = SelectPrimary WS "::" WS Name {MemberFieldRef(expr=$0, name=$4)}
 Literal: Literal = IntLiteral | RealLiteral | StringLiteral | "null"&Tk {NullLiteral()} | "true"&Tk {BooleanLiteral(value=true)} | "false"&Tk {BooleanLiteral(value=false)}
 FuncName = Name
 MethodCall = SelectPrimary WS SelectExprParams {MethodCall(target=$0, params=$2)}

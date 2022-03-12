@@ -1,7 +1,7 @@
 package com.giyeok.jparser.mgroup
 
+import com.giyeok.jparser.graph.{AbstractEdge, AbstractGraph}
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Node}
-import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 
 case class MilestoneGroupPositionGraph(nodes: Set[Int], edges: Set[PositionEdge], edgesByStart: Map[Int, Set[PositionEdge]], edgesByEnd: Map[Int, Set[PositionEdge]]) extends AbstractGraph[Int, PositionEdge, MilestoneGroupPositionGraph] {
   override def createGraph(nodes: Set[Int], edges: Set[PositionEdge], edgesByStart: Map[Int, Set[PositionEdge]], edgesByEnd: Map[Int, Set[PositionEdge]]): MilestoneGroupPositionGraph =

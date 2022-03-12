@@ -1,14 +1,14 @@
 package com.giyeok.jparser.milestone
 
 import com.giyeok.jparser.ParseResultTree.Node
-import com.giyeok.jparser.examples.metalang3.{MetaLang3Grammar, SimpleExamples}
-import com.giyeok.jparser.metalang3a.{MetaLanguage3, ValuefyExprSimulator}
-import com.giyeok.jparser.{Inputs, NGrammar}
-import com.giyeok.jparser.metalang3a.generated.{ArrayExprAst, ExceptMatchAst, ExpressionGrammarAst, MetaLang3Ast}
-import MilestoneParser.reconstructParseTree
-import MilestoneParserGen.generateMilestoneParserData
-import com.giyeok.jparser.proto.MilestoneParserProtobufConverter.{convertMilestoneParserDataToProto, convertProtoToMilestoneParserData}
+import com.giyeok.jparser.examples.metalang3.SimpleExamples
+import com.giyeok.jparser.metalang3.generated.{ArrayExprAst, ExceptMatchAst, ExpressionGrammarAst, MetaLang3Ast}
+import com.giyeok.jparser.metalang3.{MetaLanguage3, ValuefyExprSimulator}
+import com.giyeok.jparser.milestone.MilestoneParser.reconstructParseTree
+import com.giyeok.jparser.milestone.MilestoneParserGen.generateMilestoneParserData
 import com.giyeok.jparser.proto.MilestoneParserDataProto
+import com.giyeok.jparser.proto.MilestoneParserProtobufConverter.{convertMilestoneParserDataToProto, convertProtoToMilestoneParserData}
+import com.giyeok.jparser.{Inputs, NGrammar}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.io.{BufferedInputStream, FileInputStream, FileOutputStream}

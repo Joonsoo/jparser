@@ -1,9 +1,9 @@
 package com.giyeok.jparser.nparser
 
-import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.{NAtomicSymbol, NSequence, NSymbol}
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
-import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
+import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.graph.{AbstractEdge, AbstractGraph}
 
 object ParsingContext {
 

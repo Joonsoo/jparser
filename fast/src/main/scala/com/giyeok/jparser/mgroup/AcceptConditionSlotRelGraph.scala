@@ -1,7 +1,7 @@
 package com.giyeok.jparser.mgroup
 
+import com.giyeok.jparser.graph.{AbstractEdge, AbstractGraph}
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.utils.{AbstractEdge, AbstractGraph}
 
 case class AcceptConditionSlotRelGraph(nodes: Set[AcceptConditionRelEntity], edges: Set[AcceptConditionRelEdge],
                                        edgesByStart: Map[AcceptConditionRelEntity, Set[AcceptConditionRelEdge]],

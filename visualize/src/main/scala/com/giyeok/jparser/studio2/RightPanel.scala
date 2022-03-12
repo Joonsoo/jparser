@@ -1,8 +1,8 @@
 package com.giyeok.jparser.studio2
 
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.metalang3a.MetaLanguage3.ProcessedGrammar
-import com.giyeok.jparser.metalang3a.ValuefyExprSimulator
+import com.giyeok.jparser.metalang3.MetaLanguage3.ProcessedGrammar
+import com.giyeok.jparser.metalang3.ValuefyExprSimulator
 import com.giyeok.jparser.nparser.ParseTreeUtil.expectedTermsFrom
 import com.giyeok.jparser.nparser.Parser.NaiveContext
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeUtil, ParsingContext}

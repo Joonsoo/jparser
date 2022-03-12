@@ -9,7 +9,7 @@ import com.giyeok.jparser.{NGrammar, Symbols}
 
 class DotGraphGenerator(ngrammar: NGrammar) {
     implicit class DotGraphSymbols(sym: Symbol) {
-        import com.giyeok.jparser.utils.UnicodeUtil.{categoryCodeToName, toReadable}
+        import com.giyeok.jparser.unicode.UnicodeUtil.{categoryCodeToName, toReadable}
 
         def toDotSymbolName: String = ???
         def toDotLabelName: String = sym match {
