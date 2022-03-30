@@ -1,0 +1,14 @@
+import ktjvm
+
+class JParserData = (astFile: file, dataFile: file)
+
+parsergenImpl = ktjvm.library(
+  srcs=[""]
+)
+
+def parsergen(
+  src: file,
+  objectName: string,
+  parserDataFileName: string,
+): JParserData = parsergenImpl:com.giyeok.jparser.bibix.ParserGen
+
