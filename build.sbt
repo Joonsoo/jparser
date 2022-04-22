@@ -9,7 +9,7 @@ lazy val testDeps = {
   // val scalactic: ModuleID = "org.scalactic" %% "scalactic" % "3.0.1" % "test"
   val scalatest: ModuleID = "org.scalatest" %% "scalatest" % "3.2.2" % "test"
 
-  val junit: ModuleID = "junit" % "junit" % "4.12" % "test"
+  val junit: ModuleID = "org.junit.jupiter" % "junit-jupiter-api" % "5.8.2" % "test"
 
   Seq(scalatest, junit)
 }

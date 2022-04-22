@@ -1,4 +1,4 @@
-package com.giyeok.jparser.utils
+package com.giyeok.jparser.metalang2
 
 import com.giyeok.jparser.graph.{AbstractEdge, AbstractGraph}
 

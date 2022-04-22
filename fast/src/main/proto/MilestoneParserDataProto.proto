@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package com.giyeok.jparser.parsergen.proto;
+package com.giyeok.jparser.proto;
 
 import "GrammarProto.proto";
 import "TermGroupProto.proto";

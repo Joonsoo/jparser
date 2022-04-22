@@ -228,10 +228,28 @@ class TypeHierarchyGraph(val nodes: Set[TypeSpec], val edges: Set[Extends],
         unrolled
     }
 
+    // start에서 시작해서 end로 도착 가능한 모든 path에 속한 노드/엣지로 이루어진 sub graph
+    def pathsBetween(graph: TypeHierarchyGraph, start: TypeSpec, end: TypeSpec): TypeHierarchyGraph = {
+        val builder = graph.newBuilder
+
+        def recursion(path: Set[Extends], last: TypeSpec): Unit = {
+            if (last == end) {
+                path foreach { edge => builder.addEdgeAndNode(edge) }
+            } else {
+                graph.edgesByStart(last) -- path foreach { edge =>
+                    recursion(path + edge, edge.end)
+                }
+            }
+        }
+
+        recursion(Set(), start)
+        builder.result()
+    }
+
     def pruneRedundantEdges: TypeHierarchyGraph = {
         var cleaned = this
         edges foreach { edge =>
-            val paths = GraphUtil.pathsBetween[TypeSpec, Extends, TypeHierarchyGraph](cleaned, edge.start, edge.end)
+            val paths = pathsBetween(cleaned, edge.start, edge.end)
             if (paths.edges.size > 1) {
                 cleaned = cleaned.removeEdge(edge)
             }

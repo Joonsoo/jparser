@@ -1,8 +1,10 @@
 package com.giyeok.jparser.visualize
 
 import com.giyeok.jparser.ParseForest
+import com.giyeok.jparser.utils.ParseResultTreePrinters.TreeDotGraph
 import org.eclipse.draw2d.{ColorConstants, Figure, FigureCanvas}
 import org.eclipse.swt.SWT
+import org.eclipse.swt.events.{MouseEvent, MouseListener}
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.swt.widgets.Composite
 
@@ -21,6 +23,17 @@ class ParseTreeViewer(parent: Composite, style: Int) extends Composite(parent, s
     // TODO parse tree 안에 마우스 갖다대면 testText에 표시해주기
     figureCanvas.setContents(parseResultFigureGenerator.parseResultFigure(parseForest))
     figureCanvas.setBackground(ColorConstants.white)
+    figureCanvas.addMouseListener(new MouseListener {
+      override def mouseDoubleClick(e: MouseEvent): Unit = {
+        parseForest.trees.foreach { tree =>
+          tree.printDotGraph()
+        }
+      }
+
+      override def mouseDown(e: MouseEvent): Unit = {}
+
+      override def mouseUp(e: MouseEvent): Unit = {}
+    })
   }
 
   def invalidateParseForest(): Unit = getDisplay.asyncExec { () =>

@@ -2,7 +2,7 @@ package com.giyeok.jparser.tests.metalang3a.codegen
 
 import com.giyeok.jparser.metalang3.generated.{ExpressionGrammarAst, MetaLang3Ast}
 import com.giyeok.jparser.proto.GrammarProtobufConverter
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class GrammarProtobufConverterTest {
   @Test
