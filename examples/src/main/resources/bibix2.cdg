@@ -22,18 +22,15 @@ ImportSourceExpr: ImportSourceExpr = StringLiteral | CallExpr
 
 NameDef = SimpleName WS '=' WS Expr {NameDef(name=$0, value=$4)}
 
-ClassDef = "class"&Tk WS SimpleName (WS NamedTypeParams)? (WS ClassExtendings)? WS ClassRealityDef (WS ClassBody)?
-           {ClassDef(name=$2, typeParams=$3 ?: [], extendings=$4 ?: [], reality=$6, body=$7 ?: [])}
-NamedTypeParams = '(' WS NamedTypeParam (WS ',' WS NamedTypeParam)* WS ')' {[$2] + $3}
-NamedTypeParam = SimpleName WS ':' WS TypeExpr {NamedTypeParam(name=$0, typ=$4)}
+ClassDef = "class"&Tk WS SimpleName (WS ClassExtendings)? WS ClassRealityDef (WS ClassBody)?
+           {ClassDef(name=$2, extendings=$3 ?: [], reality=$5, body=$6 ?: [])}
 ClassExtendings = "extends"&Tk WS ClassExtending (WS ',' WS ClassExtending)* {[$2]+$3}
 ClassExtending = Name {ClassExtending(name=$0)}
-ClassTypeParams = '(' WS Expr (WS ',' WS Expr)* WS ')' {[$2] + $3}
 ClassRealityDef = '=' WS TypeExpr
 ClassBody = '{' (WS ClassBodyElem)* WS '}' {$1}
 ClassBodyElem: ClassBodyElem = ActionRuleDef | ClassCastDef
 // casting하는 대상 타입의 type parameter?
-ClassCastDef = "as"&Tk WS Name WS '=' WS Expr {ClassCastDef(castTo=$2, expr=$6)}
+ClassCastDef = "as"&Tk WS TypeExpr WS '=' WS Expr {ClassCastDef(castTo=$2, expr=$6)}
 
 ArgDef = "arg"&Tk (WS Name WS "as"&Tk)? WS SimpleName (WS ':' WS TypeExpr)? (WS '=' WS Expr)?
          {ArgDef(replacing=$1$1, name=$3, typ=$4, defaultValue=$5)}
@@ -53,7 +50,9 @@ ParamDef = SimpleName (WS '?')? WS ':' WS TypeExpr (WS '=' WS Expr)? {ParamDef(n
 
 EnumDef = "enum"&Tk WS SimpleName WS '{' WS SimpleName (WS ',' WS SimpleName)* (WS ',')? WS '}' {EnumDef(name=$2, values=[$6] + $7)}
 
-Expr: Expr = Expr WS '+' WS Primary {MergeOp(lhs=$0, rhs=$4)}
+Expr: Expr = Expr WS "as"&Tk WS TypeExpr {CastExpr(expr=$0, castTo=$4)}
+  | MergeOpOrPrimary
+MergeOpOrPrimary: MergeOpOrPrimary = Expr WS '+' WS Primary {MergeOp(lhs=$0, rhs=$4)}
   | Primary
 
 ActionExpr = CallExpr
@@ -62,9 +61,10 @@ Primary: Primary = CallExpr
   | Primary WS '.' WS SimpleName {MemberAccess(target=$0, name=$4)}
   | SimpleName {NameRef(name=$0)}
   | '[' (WS Expr (WS ',' WS Expr)* (WS ',')?)? WS ']' {ListExpr(elems=$1{[$1] + $2} ?: [])}
-  | '(' (WS Expr (WS ',' WS Expr)* (WS ',')?)? WS ')' {TupleExpr(elems=$1{[$1] + $2} ?: [])}
+  | '(' WS Expr WS ',' (WS Expr (WS ',' WS Expr)* (WS ',')? {[$1] + $2})? WS ')' {TupleExpr(elems=[$2] + ($5 ?: []))}
   | '(' (WS NamedExpr (WS ',' WS NamedExpr)* (WS ',')?)? WS ')' {NamedTupleExpr(elems=$1{[$1] + $2} ?: [])}
   | Literal
+  | '(' WS Expr WS ')' {Paren(expr=$2)}
 NamedExpr = SimpleName WS ':' WS Expr {NamedExpr(name=$0, expr=$4)}
 
 CallExpr = Name WS CallParams {CallExpr(name=$0, params=$2)}
