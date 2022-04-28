@@ -68,26 +68,14 @@ lazy val visJavaOptions: Seq[String] = {
 lazy val visualize = (project in file("visualize")).
   settings(
     name := "jparser-visualize",
-    resolvers += "swt-repo" at "https://maven-eclipse.github.io/maven",
     libraryDependencies ++= Seq(
-      "org.scala-lang.modules" %% "scala-xml" % "1.2.0",
-      "swt" % "jface" % "3.0.1"
+      "org.scala-lang.modules" %% "scala-xml" % "2.1.0",
+      "swt" % "jface" % "3.0.1",
+      "org.graphstream" % "gs-core" % "2.0",
+      "org.graphstream" % "gs-ui-swing" % "2.0",
     ),
-    libraryDependencies += {
-      val os = (sys.props("os.name"), sys.props("os.arch")) match {
-        case ("Linux", "amd64" | "x86_64") => "gtk.linux.x86_64"
-        case ("Linux", _) => "gtk.linux.x86"
-        case ("Mac OS X", "amd64" | "x86_64") => "cocoa.macosx.x86_64"
-        case ("Mac OS X", _) => "cocoa.macosx.x86"
-        case (os, "amd64") if os.startsWith("Windows") => "win32.win32.x86_64"
-        case (os, _) if os.startsWith("Windows") => "win32.win32.x86"
-        case (os, arch) => sys.error("Cannot obtain lib for OS '" + os + "' and architecture '" + arch + "'")
-      }
-      val artifact = "org.eclipse.swt." + os
-      "org.eclipse.swt" % artifact % "4.6.1"
-    },
     libraryDependencies ++= testDeps,
-    libraryDependencies += "io.reactivex.rxjava3" % "rxjava" % "3.0.8",
+    libraryDependencies += "io.reactivex.rxjava3" % "rxjava" % "3.1.4",
     javaOptions := visJavaOptions).
   dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
@@ -119,6 +107,9 @@ lazy val cli = (project in file("cli")).
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(fast % "test->test;compile->compile")
+
+lazy val bibix = (project in file("bibix")).
+  settings(name := "jparser-bibix")
 
 run / fork := true
 Test / fork := true

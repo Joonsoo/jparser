@@ -50,7 +50,7 @@ ParamDef = SimpleName (WS '?')? WS ':' WS TypeExpr (WS '=' WS Expr)? {ParamDef(n
 
 EnumDef = "enum"&Tk WS SimpleName WS '{' WS SimpleName (WS ',' WS SimpleName)* (WS ',')? WS '}' {EnumDef(name=$2, values=[$6] + $7)}
 
-Expr: Expr = Expr WS "as"&Tk WS TypeExpr {CastExpr(expr=$0, castTo=$4)}
+Expr: Expr = Expr WS "as"&Tk WS NoUnionType {CastExpr(expr=$0, castTo=$4)}
   | MergeOpOrPrimary
 MergeOpOrPrimary: MergeOpOrPrimary = Expr WS '+' WS Primary {MergeOp(lhs=$0, rhs=$4)}
   | Primary

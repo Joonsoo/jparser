@@ -29,7 +29,7 @@ object ClassRelExamples extends MetaLangExamples {
       |  },
       |  DirectSubConcreteClass<>()
       |}
-      |A = 'a'
+      |A = 'a' {IndirectSubConcreteClass("asdf")}
       |""".stripMargin)
     .example("a")
 

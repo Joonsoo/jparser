@@ -1,11 +1,11 @@
 import maven
 import java
 import jvm
-from git("https://github.com/Joonsoo/bibix.git", branch="develop", path="bibix-plugins") import scala
-from git("https://github.com/Joonsoo/bibix.git", branch="develop", path="bibix-plugins") import protobuf
-from git("https://github.com/Joonsoo/bibix.git", branch="develop", path="bibix-plugins") import scalatest
-from git("https://github.com/Joonsoo/bibix.git", branch="main", path="bibix-plugins") import ktjvm
-import git("https://github.com/Joonsoo/bibix-swt.git", branch="main") as swt
+import bibix
+from bibix.plugins() import scala
+from bibix.plugins() import protobuf
+from bibix.plugins() import scalatest
+from bibix.plugins() import ktjvm
 
 scalaVersion = "2.13"
 scalaDep = maven.dep("org.scala-lang", "scala-library", "2.13.8")
@@ -108,7 +108,7 @@ namespace tests {
 
   examples = scala.library(
     srcs = glob("examples/src/main/scala/**/*.scala"),
-    resources = glob("examples/src/main/resources/**"),
+    // resources = glob("examples/src/main/resources/**"),
     deps = [baseTests, naiveTests, metalangTests],
   )
 }
@@ -116,6 +116,7 @@ namespace tests {
 all = [base, naive, utils, metalang, fast, tests.examples]
 
 visualize = scala.library(
+  // TODO 해시를 모든 argument를 합쳐서 하지 말고 세분화할 방법을 고안해야함
   srcs = glob("visualize/src/main/scala/**/*.scala"),
   deps = [
     base,
@@ -125,15 +126,14 @@ visualize = scala.library(
     fast,
     tests.examples,
 
-    maven.dep("org.scala-lang.modules", "scala-xml_$scalaVersion", "1.2.0"),
-    maven.dep("swt", "jface", "3.0.1"),
     maven.dep("io.reactivex.rxjava3", "rxjava", "3.1.4"),
-    swt.dep(),
+    maven.dep("org.scala-lang.modules", "scala-xml_$scalaVersion", "1.2.0"),
 
-    jvm.lib("visualize/lib/org.eclipse.draw2d.source_3.10.1.201508170204.jar"),
+    // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
+    jvm.lib("visualize/lib/swt-4.6.2-gtk-linux-x86_64-4.6.2.jar"),
+    maven.dep("org.eclipse", "jface", "3.3.0-I20070606-0010"),
     jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
     jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
-    jvm.lib("visualize/lib/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"),
     jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
   ],
 )
