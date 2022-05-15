@@ -68,15 +68,10 @@ lazy val visJavaOptions: Seq[String] = {
 lazy val visualize = (project in file("visualize")).
   settings(
     name := "jparser-visualize",
-    libraryDependencies ++= Seq(
-      "org.scala-lang.modules" %% "scala-xml" % "2.1.0",
-      "swt" % "jface" % "3.0.1",
-      "org.graphstream" % "gs-core" % "2.0",
-      "org.graphstream" % "gs-ui-swing" % "2.0",
-    ),
     libraryDependencies ++= testDeps,
     libraryDependencies += "io.reactivex.rxjava3" % "rxjava" % "3.1.4",
     javaOptions := visJavaOptions).
+  dependsOn(base % "test->test;compile->compile").
   dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile").

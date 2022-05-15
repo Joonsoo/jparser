@@ -1,7 +1,6 @@
 package com.giyeok.jparser.visualize
 
 import org.eclipse.swt.graphics.Font
-import org.eclipse.jface.resource.JFaceResources
 import org.eclipse.swt.SWT
 import org.eclipse.draw2d.MarginBorder
 import org.eclipse.draw2d.Figure
@@ -20,7 +19,7 @@ trait VisualizeResources[Fig] {
 }
 
 object BasicVisualizeResources extends VisualizeResources[Figure] {
-    val defaultFontName = JFaceResources.getTextFont.getFontData.head.getName
+    val defaultFontName = "Monospaced"
     val default12Font = new Font(null, defaultFontName, 12, SWT.NONE)
     val fixedWidth12Font = new Font(null, defaultFontName, 12, SWT.NONE)
     val italic14Font = new Font(null, defaultFontName, 14, SWT.ITALIC)

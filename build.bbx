@@ -135,12 +135,18 @@ visualize = scala.library(
     jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
     jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
     jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
+    jvm.lib("visualize/lib/gviz-0.0.1.jar"),
   ],
+)
+
+action parserStudio2 = jvm.run(
+  deps = [visualize],
+  mainClass = "com.giyeok.jparser.studio2.ParserStudio2",
 )
 
 action parserStudio = jvm.run(
   deps = [visualize],
-  mainClass = "com.giyeok.jparser.studio2.ParserStudio2",
+  mainClass = "com.giyeok.jparser.studio3.ParserStudio3",
 )
 
 study = scala.library(
