@@ -11,7 +11,7 @@ import com.giyeok.jparser.{ParseResultTree, Symbols}
 class FigureGen(val renderJoin: Boolean = false, val renderLookaheadExcept: Boolean = true) {
   def parseNodeFigure(node: ParseResultTree.Node): Figure = node match {
     case ParseResultTree.TerminalNode(start, input) =>
-      text(input.toShortString, "terminal")
+      container(text(input.toShortString, "input"), "input")
     case ParseResultTree.BindNode(symbol: Repeat, body) =>
       // TODO 이거 고쳐야하나? 없애야 하나?
       def childrenOf(node: Node, sym: Symbol): List[Figure] = node match {

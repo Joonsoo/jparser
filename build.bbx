@@ -80,6 +80,12 @@ cli = scala.library(
   // resources = ["cli/src/generated/resources/cdglang3.pb"],
 )
 
+cliUberJar = jvm.executableUberJar(
+  deps = [cli],
+  mainClass = "com.giyeok.jparser.cli.Main",
+  jarFileName = "jparser-cli.jar"
+)
+
 namespace tests {
   testDeps = [
     maven.dep("org.scalatest", "scalatest_$scalaVersion", "3.2.11"),
@@ -139,13 +145,24 @@ visualize = scala.library(
   ],
 )
 
+parserStudio3 = ktjvm.library(
+  srcs = glob("visualize/src/main/kotlin/**/*.kt"),
+  deps = [
+    visualize,
+    maven.dep("org.jetbrains.kotlin", "kotlin-stdlib-jdk8", "1.6.20"),
+    maven.dep("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.6.1"),
+    maven.dep("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8", "1.6.1"),
+    maven.dep("org.jetbrains.kotlinx", "kotlinx-coroutines-swing", "1.6.1"),
+  ],
+)
+
 action parserStudio2 = jvm.run(
   deps = [visualize],
   mainClass = "com.giyeok.jparser.studio2.ParserStudio2",
 )
 
 action parserStudio = jvm.run(
-  deps = [visualize],
+  deps = [parserStudio3],
   mainClass = "com.giyeok.jparser.studio3.ParserStudio3",
 )
 

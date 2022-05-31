@@ -78,6 +78,7 @@ NamedParam = SimpleName WS '=' WS Expr {NamedParam(name=$0, value=$4)}
 
 Literal: Literal = StringLiteral
   | BooleanLiteral
+  | NoneLiteral
 
 StringLiteral = '"' <StringElem>* '"' {StringLiteral(elems=$1)}
 StringElem: StringElem = .-'\\"' {JustChar(chr=$0)}
@@ -88,10 +89,11 @@ StringExpr: StringExpr = <'$' SimpleName> {SimpleExpr(name=$0)}
   | '$' '{' WS Expr WS '}' {ComplexExpr(expr=$3)}
 
 BooleanLiteral = ("true" {BooleanLiteral(value=true)} | "false" {BooleanLiteral(false)})&Tk
+NoneLiteral = "none"&Tk {NoneLiteral()}
 
 TypeExpr: TypeExpr = NoUnionType
   | UnionType
-NoUnionType: NoUnionType = Name // Boolean, String, File, Directory, artifact, enum
+NoUnionType: NoUnionType = Name // Boolean, String, File, Directory, artifact, enum, none
   | CollectionType
   | TupleType
   | NamedTupleType
@@ -106,7 +108,7 @@ SimpleName = <('a-zA-z' 'a-zA-Z0-9_'* {str($0, $1)})&Tk>-Keyword {$0}
 Name = SimpleName (WS '.' WS SimpleName)* {Name(tokens=[$0] + $1)}
 
 // literal에서 사용되면 ambiguous해지는 것만 막으면 될듯?
-Keyword = "true" | "false"
+Keyword = "true" | "false" | "none"
 
 Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
 

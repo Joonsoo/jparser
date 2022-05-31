@@ -70,6 +70,9 @@ lazy val visualize = (project in file("visualize")).
     name := "jparser-visualize",
     libraryDependencies ++= testDeps,
     libraryDependencies += "io.reactivex.rxjava3" % "rxjava" % "3.1.4",
+    libraryDependencies += "org.jetbrains.kotlin" % "kotlin-stdlib-jdk8" % "1.6.20",
+    libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-core" % "1.6.1",
+    libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-jdk8" % "1.6.1",
     javaOptions := visJavaOptions).
   dependsOn(base % "test->test;compile->compile").
   dependsOn(naive % "test->test;compile->compile").
