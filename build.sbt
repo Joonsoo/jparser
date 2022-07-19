@@ -7,15 +7,15 @@ ThisBuild / javacOptions ++= Seq("-encoding", "UTF-8")
 
 lazy val testDeps = {
   // val scalactic: ModuleID = "org.scalactic" %% "scalactic" % "3.0.1" % "test"
-  val scalatest: ModuleID = "org.scalatest" %% "scalatest" % "3.2.2" % "test"
+  val scalatest: ModuleID = "org.scalatest" %% "scalatest" % "3.2.12" % "test"
 
   val junit: ModuleID = "org.junit.jupiter" % "junit-jupiter-api" % "5.8.2" % "test"
 
   Seq(scalatest, junit)
 }
 
-lazy val protobufDep = "com.google.protobuf" % "protobuf-java" % "3.14.0"
-lazy val javaFormatDep = "com.google.googlejavaformat" % "google-java-format" % "1.9"
+lazy val protobufDep = "com.google.protobuf" % "protobuf-java" % "3.21.1"
+lazy val javaFormatDep = "com.google.googlejavaformat" % "google-java-format" % "1.15.0"
 
 lazy val base = (project in file("base")).
   settings(
@@ -52,12 +52,25 @@ lazy val fast = (project in file("fast")).
   dependsOn(naive % "test->test;compile->compile").
   dependsOn(metalang % "test->test;compile->compile")
 
+lazy val cli = (project in file("cli")).
+  settings(
+      name := "jparser-cli",
+      libraryDependencies ++= testDeps,
+      libraryDependencies += "info.picocli" % "picocli" % "4.6.3",
+      Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "generated" / "scala",
+      Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "generated" / "resources",
+  ).
+  dependsOn(naive % "test->test;compile->compile").
+  dependsOn(utils % "test->test;compile->compile").
+  dependsOn(metalang % "test->test;compile->compile").
+  dependsOn(fast % "test->test;compile->compile")
+
 lazy val examples = (project in file("examples")).
   settings(
     name := "jparser-examples").
-  dependsOn(base % "compile->test;compile->compile").
-  dependsOn(naive % "compile->test").
-  dependsOn(metalang % "compile->test")
+  dependsOn(base % "compile->compile;compile->compile").
+  dependsOn(naive % "compile->compile").
+  dependsOn(metalang % "compile->compile")
 
 // TODO naive_test, fast_test -> naive와 fast의 test에 들어있지 않은 metalang으로 정의된 테스트 돌리기
 
@@ -69,11 +82,12 @@ lazy val visualize = (project in file("visualize")).
   settings(
     name := "jparser-visualize",
     libraryDependencies ++= testDeps,
-    libraryDependencies += "io.reactivex.rxjava3" % "rxjava" % "3.1.4",
-    libraryDependencies += "org.jetbrains.kotlin" % "kotlin-stdlib-jdk8" % "1.6.20",
-    libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-core" % "1.6.1",
-    libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-jdk8" % "1.6.1",
-    javaOptions := visJavaOptions).
+    libraryDependencies += "io.reactivex.rxjava3" % "rxjava" % "3.1.5",
+    libraryDependencies += "org.jetbrains.kotlin" % "kotlin-stdlib-jdk8" % "1.7.10",
+    libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-core" % "1.6.2",
+    libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-jdk8" % "1.6.2",
+    javaOptions := visJavaOptions,
+    unmanagedBase := baseDirectory.value / "lib").
   dependsOn(base % "test->test;compile->compile").
   dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
@@ -91,19 +105,6 @@ lazy val study = (project in file("study")).
   dependsOn(metalang % "test->test;compile->compile").
   dependsOn(examples % "test->test;compile->compile").
   dependsOn(visualize % "test->test;compile->compile").
-  dependsOn(fast % "test->test;compile->compile")
-
-lazy val cli = (project in file("cli")).
-  settings(
-    name := "jparser-cli",
-    libraryDependencies ++= testDeps,
-    libraryDependencies += "info.picocli" % "picocli" % "4.6.1",
-    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "generated" / "scala",
-    Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "generated" / "resources",
-  ).
-  dependsOn(naive % "test->test;compile->compile").
-  dependsOn(utils % "test->test;compile->compile").
-  dependsOn(metalang % "test->test;compile->compile").
   dependsOn(fast % "test->test;compile->compile")
 
 lazy val bibix = (project in file("bibix")).

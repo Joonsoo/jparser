@@ -22,11 +22,13 @@ ImportSourceExpr: ImportSourceExpr = StringLiteral | CallExpr
 
 NameDef = SimpleName WS '=' WS Expr {NameDef(name=$0, value=$4)}
 
-ClassDef = "class"&Tk WS SimpleName (WS ClassExtendings)? WS ClassRealityDef (WS ClassBody)?
-           {ClassDef(name=$2, extendings=$3 ?: [], reality=$5, body=$6 ?: [])}
-ClassExtendings = "extends"&Tk WS ClassExtending (WS ',' WS ClassExtending)* {[$2]+$3}
-ClassExtending = Name {ClassExtending(name=$0)}
-ClassRealityDef = '=' WS TypeExpr
+ClassDef: ClassDef = DataClassDef | SuperClassDef
+DataClassDef = "class"&Tk WS SimpleName WS '(' (WS ClassFields)? WS ')' (WS ClassBody)?
+               {DataClassDef(name=$2, fields=$5 ?: [], body=$8 ?: [])}
+ClassFields = ClassFieldDef (WS ',' WS ClassFieldDef)* {[$0] + $1}
+ClassFieldDef = SimpleName (WS '?')? WS ':' WS TypeExpr {ClassField(name=$0, optional=ispresent($1), typ=$5)}
+SuperClassDef = "super"&Tk WS "class"&Tk WS SimpleName WS '{' WS SimpleName (WS ',' WS SimpleName)* WS '}'
+                {SuperClassDef(name=$4, subs=[$8] + $9)}
 ClassBody = '{' (WS ClassBodyElem)* WS '}' {$1}
 ClassBodyElem: ClassBodyElem = ActionRuleDef | ClassCastDef
 // casting하는 대상 타입의 type parameter?
@@ -93,7 +95,8 @@ NoneLiteral = "none"&Tk {NoneLiteral()}
 
 TypeExpr: TypeExpr = NoUnionType
   | UnionType
-NoUnionType: NoUnionType = Name // Boolean, String, File, Directory, artifact, enum, none
+NoUnionType: NoUnionType = Name // Boolean, String, File, Directory, class name, enum name
+  | "none"&Tk {NoneType()}
   | CollectionType
   | TupleType
   | NamedTupleType

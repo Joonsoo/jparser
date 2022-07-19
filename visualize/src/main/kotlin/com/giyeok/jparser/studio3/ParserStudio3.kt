@@ -1,27 +1,25 @@
 package com.giyeok.jparser.studio3
 
 import com.giyeok.gviz.render.swing.*
+import com.giyeok.jparser.`ParseForestFunc$`
+import com.giyeok.jparser.ParseResultTree
+import com.giyeok.jparser.ParsingErrors.ParsingError
+import com.giyeok.jparser.metalang3.MetaLanguage3.ProcessedGrammar
+import com.giyeok.jparser.metalang3.ValuefyExprSimulator
 import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
+import com.giyeok.jparser.nparser.NaiveParser
+import com.giyeok.jparser.nparser.ParseTreeConstructor
 import com.giyeok.jparser.swingvis.FigureGen
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Font
 import java.awt.GridLayout
-import javax.swing.JFrame
-import javax.swing.JScrollPane
-import javax.swing.JTextPane
-import javax.swing.text.DefaultStyledDocument
-import javax.swing.text.SimpleAttributeSet
-import javax.swing.text.StyleConstants
-import javax.swing.text.StyleContext
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.*
 import java.util.concurrent.Executors
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
+import javax.swing.*
 
-class ParserStudio3 {
+class ParserStudio3(val workerDispatcher: CoroutineDispatcher) {
   val figureGen = FigureGen(false, true)
 
   val defaultFont = Font(Font.MONOSPACED, Font.PLAIN, 15)
@@ -53,84 +51,184 @@ class ParserStudio3 {
     GridStyle(0.0, 0.0)
   )
 
+  val grammarPane = GrammarEditorPane(workerDispatcher)
+  val examplePane = ExampleEditorPane()
+
+  init {
+    grammarPane.font = defaultFont
+    examplePane.font = defaultFont
+  }
+
+  data class State(
+    val ast: DataUpdateEvent<MetaLang3Ast.Grammar>,
+    val grammar: DataUpdateEvent<ProcessedGrammar>,
+    val example: DataUpdateEvent<String>
+  )
+
+  sealed class ExampleParseResult {
+    object GrammarNotReady : ExampleParseResult()
+    object ProcessingGrammar : ExampleParseResult()
+    object ExampleWaiting : ExampleParseResult()
+    data class ExampleParseError(val parsingError: ParsingError) : ExampleParseResult()
+    data class ExampleParseException(val exception: Throwable) : ExampleParseResult()
+    data class ExampleParseSucceeded(
+      val grammar: ProcessedGrammar,
+      val results: List<Pair<ParseResultTree.Node, ValuefyExprSimulator.Value>>,
+    ) : ExampleParseResult()
+  }
+
+  val parseResultFlow: Flow<ExampleParseResult> = combine(
+    grammarPane.parsedAstFlow,
+    grammarPane.grammarFlow,
+    examplePane.textFlow,
+    ::State
+  ).map { (ast, grammar, example) ->
+    if (ast !is DataUpdateEvent.NewDataAvailable || grammar !is DataUpdateEvent.NewDataAvailable) {
+      if (grammar is DataUpdateEvent.InvalidateLatestData) {
+        ExampleParseResult.ProcessingGrammar
+      } else {
+        ExampleParseResult.GrammarNotReady
+      }
+    } else {
+      when (example) {
+        is DataUpdateEvent.ExceptionThrown -> TODO()
+        is DataUpdateEvent.NoDataAvailable, is DataUpdateEvent.InvalidateLatestData ->
+          ExampleParseResult.ExampleWaiting
+        is DataUpdateEvent.NewDataAvailable -> {
+          val ngrammar = grammar.data.ngrammar()
+          val parsed = NaiveParser(ngrammar, true).parse(example.data)
+
+          if (parsed.isLeft) {
+            val ctx = parsed.left().get()
+            withContext(workerDispatcher + currentCoroutineContext()) {
+              val reconstructor = ParseTreeConstructor(
+                `ParseForestFunc$`.`MODULE$`,
+                ngrammar,
+                ctx.inputs(),
+                ctx.history(),
+                ctx.conditionFinal()
+              )
+              val reconstructionResult = reconstructor.reconstruct()
+              if (reconstructionResult.isEmpty) {
+                ExampleParseResult.ExampleParseException(IllegalStateException("??"))
+              } else {
+                val astSimulator = ValuefyExprSimulator(
+                  grammar.data.ngrammar(),
+                  grammar.data.startNonterminalName(),
+                  grammar.data.nonterminalValuefyExprs(),
+                  grammar.data.shortenedEnumTypesMap()
+                )
+                val parseForest = reconstructionResult.get()
+                val parseTrees = parseForest.trees().toKtList()
+                ExampleParseResult.ExampleParseSucceeded(
+                  grammar.data,
+                  parseTrees.map { Pair(it, astSimulator.valuefyStart(it)) }
+                )
+              }
+            }
+          } else {
+            ExampleParseResult.ExampleParseError(parsed.right().get())
+          }
+        }
+      }
+    }
+  }
+
   fun run() {
+    println("Starting Parser Studio...")
+
     val frame = JFrame()
-    frame.layout = GridLayout(1, 2)
+    frame.layout = GridLayout(1, 1)
 
-    val textPane = JTextPane()
-    val sc = StyleContext()
+    val leftPanel = JPanel()
+    leftPanel.layout = GridLayout(2, 1)
 
-    var default =
-      sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, Color.black)
-    default = sc.addAttribute(default, StyleConstants.FontFamily, Font.MONOSPACED)
-    default = sc.addAttribute(default, StyleConstants.FontSize, 15)
-    default = sc.addAttribute(default, StyleConstants.Alignment, StyleConstants.ALIGN_JUSTIFIED)
-    val red = sc.addAttribute(default, StyleConstants.Foreground, Color.red)
-    var blue = sc.addAttribute(default, StyleConstants.Foreground, Color.blue)
-    blue = sc.addAttribute(blue, StyleConstants.Underline, true)
-    blue = sc.addAttribute(blue, StyleConstants.Background, Color.yellow)
+    leftPanel.add(
+      JScrollPane(
+        grammarPane,
+        JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+        JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS
+      )
+    )
 
-    val doc = DefaultStyledDocument(sc)
-    doc.insertString(0, "Hello ", default)
-    doc.insertString(doc.length, "World!", red)
+    val rightPanel = JPanel()
+    rightPanel.layout = GridLayout(3, 1)
 
-    doc.setCharacterAttributes(3, 6, blue, true)
+    rightPanel.add(
+      JScrollPane(
+        examplePane,
+        JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+        JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS,
+      )
+    )
 
-    textPane.document = doc
+    val parseTreeView = JScrollPane()
+    val astValueView = JScrollPane()
 
-    frame.add(textPane)
-
-    val figureView = JScrollPane()
-
-    val figure =
-      figureGen.parseNodeFigure(MetaLang3Ast.parseAst("A = '0-9a-f'*").left().get().parseNode())
-    figureView.setViewportView(FigureView(figure, styles))
-
-    frame.add(figureView)
-
-    val docFlow = callbackFlow {
-      doc.addDocumentListener(object : DocumentListener {
-        override fun insertUpdate(e: DocumentEvent) {
-          runBlocking { send(e) }
+    CoroutineScope(workerDispatcher).launch {
+      launch {
+        grammarPane.parsedAstFlow.mapNotNull { (it as? DataUpdateEvent.NewDataAvailable)?.data }
+          .collect { ast ->
+            println("AST: $ast")
+          }
+      }
+      launch {
+        grammarPane.grammarFlow.collect {
+          println("Grammar: $it")
         }
-
-        override fun removeUpdate(e: DocumentEvent) {
-          runBlocking { send(e) }
-        }
-
-        override fun changedUpdate(e: DocumentEvent) {
-          runBlocking { send(e) }
-        }
-      })
-      awaitClose { }
-    }
-
-    val parseFlow = docFlow.debounce(500).map {
-      val text = doc.getText(0, doc.length)
-      MetaLang3Ast.parseAst(text)
-    }
-
-    CoroutineScope(Executors.newFixedThreadPool(1).asCoroutineDispatcher()).async {
-      parseFlow.collect { parseResult ->
-        println(parseResult)
-        if (parseResult.isLeft) {
-          val parsed = parseResult.left().get()
-          val figure = figureGen.parseNodeFigure(parsed.parseNode())
-          CoroutineScope(Dispatchers.Main).launch {
-            figureView.setViewportView(FigureView(figure, styles))
+      }
+      launch {
+        parseResultFlow.collect { result ->
+          when (result) {
+            ExampleParseResult.ExampleWaiting -> {
+              parseTreeView.setViewportView(JLabel("Finish typing the example"))
+            }
+            ExampleParseResult.GrammarNotReady -> {
+              parseTreeView.setViewportView(JLabel("Finish the grammar first"))
+            }
+            is ExampleParseResult.ExampleParseError -> {
+              parseTreeView.setViewportView(JLabel(result.parsingError.msg()))
+            }
+            is ExampleParseResult.ExampleParseException -> {
+              parseTreeView.setViewportView(JLabel(result.exception.message))
+            }
+            is ExampleParseResult.ExampleParseSucceeded -> {
+              println("# of trees: ${result.results.size}")
+              val (parseTree, astValue) = result.results.first()
+              CoroutineScope(workerDispatcher + currentCoroutineContext()).launch {
+                val parseTreeFigureAsync = async {
+                  figureGen.parseNodeFigure(parseTree)
+                }
+                val astValueFigureAsync = async {
+                  figureGen.astValueFigure(astValue)
+                }
+                val parseTreeFigure = parseTreeFigureAsync.await()
+                val astValueFigure = astValueFigureAsync.await()
+                parseTreeView.setViewportView(FigureView(parseTreeFigure, styles))
+                astValueView.setViewportView(FigureView(astValueFigure, styles))
+              }
+            }
           }
         }
       }
     }
 
+    rightPanel.add(parseTreeView)
+    rightPanel.add(astValueView)
+
+    val rootPanel = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel)
+    frame.add(rootPanel)
+
     frame.setSize(800, 600)
     frame.isVisible = true
+
+    rootPanel.setDividerLocation(0.5)
   }
 
   companion object {
     @JvmStatic
     fun main(args: Array<String>) {
-      ParserStudio3().run()
+      ParserStudio3(Executors.newFixedThreadPool(4).asCoroutineDispatcher()).run()
     }
   }
 }
