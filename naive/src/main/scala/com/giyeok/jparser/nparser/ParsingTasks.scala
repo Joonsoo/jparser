@@ -137,10 +137,8 @@ trait ParsingTasks {
                 NotExists(nextGen, nextGen, lookahead)
             case _ => Always
         }
-        val newKernel = {
-            val kernel = node.kernel
-            Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, nextGen)
-        }
+        val kernel = node.kernel
+        val newKernel = Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, nextGen)
         val updatedNode = Node(newKernel, conjunct(node.condition, incomingCondition, newCondition))
         if (!(cc.graph.nodes contains updatedNode)) {
             val GraphTasksCont(graph1, newTasks) = addNode(GraphTasksCont(cc.graph, List()), updatedNode)
@@ -188,6 +186,11 @@ trait ParsingTasks {
                 case Some(NTerminal(_, terminal)) => terminal accept input
                 case _ => false
             }
+//        graph.nodes filter { node =>
+//          node.kernel.pointer == 0 &&
+//            node.kernel.beginGen == nextGen &&
+//            acceptable(node.kernel.symbolId)
+//        }
         graph.nodes collect {
             case node @ Node(Kernel(symbolId, 0, `nextGen`, `nextGen`), _) if acceptable(symbolId) => node
         }

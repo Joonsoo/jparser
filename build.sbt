@@ -31,8 +31,8 @@ lazy val utils = (project in file("utils")).
 
 lazy val naive = (project in file("naive")).
   settings(
-    name := "jparser-naive",
-    libraryDependencies ++= testDeps).
+      name := "jparser-naive",
+      libraryDependencies ++= testDeps).
   dependsOn(base % "test->test;compile->compile")
 
 lazy val metalang = (project in file("metalang")).
@@ -54,11 +54,11 @@ lazy val fast = (project in file("fast")).
 
 lazy val cli = (project in file("cli")).
   settings(
-      name := "jparser-cli",
-      libraryDependencies ++= testDeps,
-      libraryDependencies += "info.picocli" % "picocli" % "4.6.3",
-      Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "generated" / "scala",
-      Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "generated" / "resources",
+    name := "jparser-cli",
+    libraryDependencies ++= testDeps,
+    libraryDependencies += "info.picocli" % "picocli" % "4.6.3",
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "generated" / "scala",
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "generated" / "resources",
   ).
   dependsOn(naive % "test->test;compile->compile").
   dependsOn(utils % "test->test;compile->compile").
@@ -83,6 +83,8 @@ lazy val visualize = (project in file("visualize")).
     name := "jparser-visualize",
     libraryDependencies ++= testDeps,
     libraryDependencies += "io.reactivex.rxjava3" % "rxjava" % "3.1.5",
+    libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "2.1.0",
+    // libraryDependencies += "org.eclipse" % "jface" % "3.3.0-I20070606-0010",
     libraryDependencies += "org.jetbrains.kotlin" % "kotlin-stdlib-jdk8" % "1.7.10",
     libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-core" % "1.6.2",
     libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-jdk8" % "1.6.2",

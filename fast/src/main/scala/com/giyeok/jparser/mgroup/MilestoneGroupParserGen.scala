@@ -68,7 +68,7 @@ class MilestoneGroupParserGen(val parser: NaiveParser) extends ParserGenBase {
   }
 
   private def parsingAction(graph: Graph, startGroupId: Int, startMilestoneAndNodes: List[(Milestone, Node)], progressTasks: List[parser.ProgressTask], currGen: Int,
-                            isTermAction: Boolean): ParsingAction = {
+    isTermAction: Boolean): ParsingAction = {
     val nextGen = currGen + 1
     val startNodes = startMilestoneAndNodes.map(_._2).toSet
     val progressResults = runTasksWithProgressBarriers(nextGen, progressTasks, startNodes,
@@ -295,8 +295,8 @@ object MilestoneGroupParserGen {
         |    | '(' WS expression WS ')'
         |WS = ' '*
         |""".stripMargin
-    //    val (grammarDef, sourceText) = (grammar1, """[a, a, a]""")
-    val (grammarDef, sourceText) = (grammar2, """if  int""")
+    val (grammarDef, sourceText) = (grammar1, """[a, a, a]""")
+    //    val (grammarDef, sourceText) = (grammar2, """if  int""")
     //    val (grammarDef, sourceText) = (grammar3, """1 + 234  * abc""")
     val grammar = MetaLanguage3.analyzeGrammar(grammarDef)
     val valuefySimulator = ValuefyExprSimulator(grammar)

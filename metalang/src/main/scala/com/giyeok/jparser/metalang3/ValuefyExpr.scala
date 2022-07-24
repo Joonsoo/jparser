@@ -2,10 +2,9 @@ package com.giyeok.jparser.metalang3
 
 import com.giyeok.jparser.Symbols
 
-sealed abstract class ValuefyExpr
+sealed class ValuefyExpr
 
 object ValuefyExpr {
-
   case object InputNode extends ValuefyExpr
 
   // input ParseNode를 nonterminal의 RHS로 보고 valuefy
@@ -84,5 +83,4 @@ object ValuefyExpr {
   case class CanonicalEnumValue(enumName: String, enumValue: String) extends EnumValue
 
   case class ShortenedEnumValue(unspecifiedEnumTypeId: Int, enumValue: String) extends EnumValue
-
 }

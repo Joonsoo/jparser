@@ -257,6 +257,6 @@ object Inputs {
         }).mkString
     }
 
-    def fromString(source: String): Seq[ConcreteInput] =
-        source.toCharArray map Character
+    def fromString(source: String): List[ConcreteInput] =
+        source.toCharArray.toList map Character
 }
