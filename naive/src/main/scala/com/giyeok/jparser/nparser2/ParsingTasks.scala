@@ -32,16 +32,37 @@ class ParsingTaskImpl(val grammar: NGrammar) {
 
     def derive0(cc: (ParsingContext, List[ParsingTask]), symbolId: Int): (ParsingContext, List[ParsingTask]) = {
       val newNode = Kernel(symbolId, 0, nextGen, nextGen)
-      // 그래프에 newNode가 이미 포함된 경우에도, 새로운 엣지가 추가되기 때문에 FinishTask와 DeriveTask를 다시 수행한다
-      // 이전 버젼에서는 updatedNodesMap을 써서 중복된 태스크를 돌리지 않게 했었는데, 코드가 복잡해져서 이런식으로 바꿈
-      val newCtx = addNode(cc._1, newNode)
-      val newEdge = Edge(task.kernel, newNode)
-      // 새로 추가하려던 엣지도 이미 그래프에 있으면 아무것도 하지 않음
-      if (!(newCtx.graph.edges contains newEdge)) {
+      if (!(cc._1.graph.nodes contains newNode)) {
+        val newCtx = ParsingContext(
+          cc._1.graph.addNode(newNode).addEdge(Edge(task.kernel, newNode)),
+          cc._1.acceptConditions + (newNode -> Always))
         val newTask = if (isFinal(newNode)) FinishTask(newNode) else DeriveTask(newNode)
-        (newCtx.copy(graph = newCtx.graph.addEdge(newEdge)), newTask +: cc._2)
+        (newCtx, newTask +: cc._2)
       } else {
-        (newCtx, cc._2)
+        // newNode가 그래프에 이미 들어있는 경우
+
+        // 1. task.kernel -> newNode 엣지를 추가해야 하고,
+        // 2. newNode가 Progress된 경우 task.kernel -> newNode의 다음 kernel로 가는 엣지도 추가해야 하고,
+        // 3. 그렇게 추가한 노드들 중 (task.kernel에서부터) 종료된 노드로 가는 엣지가 생기면 task.kernel에 대한 ProgressTask 추가
+        // -> 기존의 updatedNodesMap을 대체
+
+        @tailrec
+        def addNext(cc: (ParsingContext, List[ParsingTask]), newNode: Kernel): (ParsingContext, List[ParsingTask]) = {
+          val newCtx = ParsingContext(cc._1.graph.addEdge(Edge(task.kernel, newNode)), cc._1.acceptConditions)
+          if (isFinal(newNode)) {
+            val newTask = ProgressTask(task.kernel, cc._1.acceptConditions(newNode))
+            (newCtx, newTask +: cc._2)
+          } else {
+            val nextNode = newNode.copy(pointer = newNode.pointer + 1)
+            if (cc._1.graph.nodes contains nextNode) {
+              addNext((newCtx, cc._2), nextNode)
+            } else {
+              (newCtx, cc._2)
+            }
+          }
+        }
+
+        addNext(cc, newNode)
       }
     }
 

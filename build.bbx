@@ -145,8 +145,9 @@ visualize = scala.library(
     maven.dep("org.scala-lang.modules", "scala-xml_$scalaVersion", "2.1.0"),
 
     // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
-    jvm.lib("visualize/lib/swt-4.6.2-gtk-linux-x86_64-4.6.2.jar"),
-    maven.dep("org.eclipse", "jface", "3.3.0-I20070606-0010"),
+    jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64.source_3.120.0.v20220530-1036.jar"),
+    jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64_3.120.0.v20220530-1036.jar"),
+    jvm.lib("visualize/lib/org.eclipse.jface_3.26.0.v20220513-0449.jar"),
     jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
     jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
     jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),

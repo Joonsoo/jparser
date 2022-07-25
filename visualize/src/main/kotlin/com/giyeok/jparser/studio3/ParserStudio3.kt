@@ -1,17 +1,20 @@
 package com.giyeok.jparser.studio3
 
 import com.giyeok.gviz.render.swing.*
+import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.`ParseForestFunc$`
 import com.giyeok.jparser.ParseResultTree
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.metalang3.MetaLanguage3.ProcessedGrammar
 import com.giyeok.jparser.metalang3.ValuefyExprSimulator
 import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
-import com.giyeok.jparser.nparser.NaiveParser
-import com.giyeok.jparser.nparser.ParseTreeConstructor
+import com.giyeok.jparser.nparser2.NaiveParser2
 import com.giyeok.jparser.swingvis.FigureGen
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Font
@@ -96,18 +99,15 @@ class ParserStudio3(val workerDispatcher: CoroutineDispatcher) {
           ExampleParseResult.ExampleWaiting
         is DataUpdateEvent.NewDataAvailable -> {
           val ngrammar = grammar.data.ngrammar()
-          val parsed = NaiveParser(ngrammar, true).parse(example.data)
+          val inputs = Inputs.fromString(example.data)
+          val parsed = NaiveParser2(ngrammar).parse(inputs)
 
-          if (parsed.isLeft) {
-            val ctx = parsed.left().get()
+          if (parsed.isRight) {
+            val ctx = parsed.right().get()
+
+            val reconstructor = ctx.parseTreeReconstructor2(`ParseForestFunc$`.`MODULE$`, ngrammar)
+
             withContext(workerDispatcher + currentCoroutineContext()) {
-              val reconstructor = ParseTreeConstructor(
-                `ParseForestFunc$`.`MODULE$`,
-                ngrammar,
-                ctx.inputs(),
-                ctx.history(),
-                ctx.conditionFinal()
-              )
               val reconstructionResult = reconstructor.reconstruct()
               if (reconstructionResult.isEmpty) {
                 ExampleParseResult.ExampleParseException(IllegalStateException("??"))
@@ -127,7 +127,7 @@ class ParserStudio3(val workerDispatcher: CoroutineDispatcher) {
               }
             }
           } else {
-            ExampleParseResult.ExampleParseError(parsed.right().get())
+            ExampleParseResult.ExampleParseError(parsed.left().get())
           }
         }
       }
@@ -180,11 +180,14 @@ class ParserStudio3(val workerDispatcher: CoroutineDispatcher) {
       launch {
         parseResultFlow.collect { result ->
           when (result) {
-            ExampleParseResult.ExampleWaiting -> {
-              parseTreeView.setViewportView(JLabel("Finish typing the example"))
-            }
             ExampleParseResult.GrammarNotReady -> {
               parseTreeView.setViewportView(JLabel("Finish the grammar first"))
+            }
+            ExampleParseResult.ProcessingGrammar -> {
+              parseTreeView.setViewportView(JLabel("Processing the grammar..."))
+            }
+            ExampleParseResult.ExampleWaiting -> {
+              parseTreeView.setViewportView(JLabel("Finish typing the example"))
             }
             is ExampleParseResult.ExampleParseError -> {
               parseTreeView.setViewportView(JLabel(result.parsingError.msg()))

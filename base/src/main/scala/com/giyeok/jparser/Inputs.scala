@@ -7,11 +7,9 @@ object Inputs {
 
     sealed trait Input
 
-    sealed trait ConcreteInput extends Input
+    case class Character(char: Char) extends Input
 
-    case class Character(char: Char) extends ConcreteInput
-
-    case class Virtual(name: String) extends ConcreteInput
+    case class Virtual(name: String) extends Input
 
     sealed trait TermGroupDesc {
         def toShortString: String
@@ -220,7 +218,7 @@ object Inputs {
     }
 
     type Source = Iterable[Input]
-    type ConcreteSource = Iterable[ConcreteInput]
+    type ConcreteSource = Iterable[Input]
 
     implicit class InputToShortString(input: Input) {
         def toRawString: String = input match {
@@ -257,6 +255,6 @@ object Inputs {
         }).mkString
     }
 
-    def fromString(source: String): List[ConcreteInput] =
+    def fromString(source: String): List[Input] =
         source.toCharArray.toList map Character
 }

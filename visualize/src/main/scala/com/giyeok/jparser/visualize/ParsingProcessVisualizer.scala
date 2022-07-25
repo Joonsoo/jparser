@@ -1,6 +1,6 @@
 package com.giyeok.jparser.visualize
 
-import com.giyeok.jparser.Inputs.ConcreteInput
+import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.nparser.{Parser, ParsingContext}
@@ -33,7 +33,7 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.Shell
 
-class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFactory: ParsingContextWidgetFactory[C]) {
+class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], source: Seq[Input], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFactory: ParsingContextWidgetFactory[C]) {
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -199,7 +199,7 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
                     def mouseReleased(e: draw2d.MouseEvent): Unit = {}
                     def mouseDoubleClicked(e: draw2d.MouseEvent): Unit = {}
                 }
-                def terminalFig(s: ConcreteInput): Figure = {
+                def terminalFig(s: Input): Figure = {
                     val term = new draw2d.Label(s.toCleanString)
                     term.setForegroundColor(ColorConstants.red)
                     term.setFont(resources.fixedWidth12Font)
@@ -470,7 +470,7 @@ trait ParsingContextWidgetFactory[C <: Context] {
 }
 
 object ParsingProcessVisualizer {
-    def start[C <: Context](title: String, parser: Parser[C], source: Seq[ConcreteInput], display: Display, shell: Shell, parsingContextWidgetFactory: ParsingContextWidgetFactory[C]): Unit = {
+    def start[C <: Context](title: String, parser: Parser[C], source: Seq[Input], display: Display, shell: Shell, parsingContextWidgetFactory: ParsingContextWidgetFactory[C]): Unit = {
         new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources, parsingContextWidgetFactory).start()
     }
 }

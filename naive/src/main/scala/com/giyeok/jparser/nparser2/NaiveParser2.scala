@@ -1,10 +1,13 @@
 package com.giyeok.jparser.nparser2
 
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.{NGrammar, ParseResult, ParseResultFunc}
 import com.giyeok.jparser.NGrammar.NTerminal
 import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInput}
+import com.giyeok.jparser.nparser.ParsingContext.{Kernel => Kernel1}
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always, Never}
+import com.giyeok.jparser.nparser.ParseTreeConstructor2
+import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser2.NaiveParser2.{AcceptConditionsTracker, ParsingHistoryContext}
 
 class NaiveParser2(val grammar: NGrammar) {
@@ -104,5 +107,21 @@ object NaiveParser2 {
     parsingContext: ParsingContext,
     inputs: List[Input],
     history: List[ParsingContext],
-    acceptConditionsTracker: AcceptConditionsTracker)
+    acceptConditionsTracker: AcceptConditionsTracker) {
+
+    lazy val conditionsFinal: Map[AcceptCondition, Boolean] = acceptConditionsTracker.evolves.map { p =>
+      p._1 -> p._2.accepted(gen, parsingContext)
+    }
+
+    lazy val historyKernels: List[Set[Kernel]] = {
+      history.map { ctx =>
+        ctx.acceptConditions.filter(p => conditionsFinal(p._2)).keys
+      }.map(_.toSet)
+    }
+
+    def parseTreeReconstructor2[R <: ParseResult](resultFunc: ParseResultFunc[R], grammar: NGrammar): ParseTreeConstructor2[R] =
+      new ParseTreeConstructor2[R](resultFunc)(grammar)(inputs, historyKernels.map { kernels =>
+        Kernels(kernels.map { k => Kernel1(k.symbolId, k.pointer, k.beginGen, k.endGen) })
+      })
+  }
 }

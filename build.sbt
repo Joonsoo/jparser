@@ -31,8 +31,8 @@ lazy val utils = (project in file("utils")).
 
 lazy val naive = (project in file("naive")).
   settings(
-      name := "jparser-naive",
-      libraryDependencies ++= testDeps).
+    name := "jparser-naive",
+    libraryDependencies ++= testDeps).
   dependsOn(base % "test->test;compile->compile")
 
 lazy val metalang = (project in file("metalang")).
@@ -88,6 +88,7 @@ lazy val visualize = (project in file("visualize")).
     libraryDependencies += "org.jetbrains.kotlin" % "kotlin-stdlib-jdk8" % "1.7.10",
     libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-core" % "1.6.2",
     libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-jdk8" % "1.6.2",
+    libraryDependencies += "org.eclipse.platform" % "org.eclipse.equinox.common" % "3.16.100",
     javaOptions := visJavaOptions,
     unmanagedBase := baseDirectory.value / "lib").
   dependsOn(base % "test->test;compile->compile").
