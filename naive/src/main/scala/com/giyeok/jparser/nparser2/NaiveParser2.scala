@@ -51,11 +51,11 @@ class NaiveParser2(val grammar: NGrammar) {
   }
 
   def updateAcceptConditions(nextGen: Int, ctx: ParsingContext, tracker: AcceptConditionsTracker): (ParsingContext, AcceptConditionsTracker) = {
-    val acceptConditions = ctx.acceptConditions.view.mapValues(_.evolve(nextGen, ctx))
+    val acceptConditions = ctx.acceptConditions.view.mapValues(_.evolve(nextGen, ctx)).toMap
     val droppedKernels = acceptConditions.filter(_._2 == Never)
     val survivingAcceptConditions = acceptConditions.filter(_._2 != Never)
 
-    val evolves = tracker.evolves.view.mapValues(_.evolve(nextGen, ctx))
+    val evolves = tracker.evolves.view.mapValues(_.evolve(nextGen, ctx)).toMap
     val newTracker = AcceptConditionsTracker(survivingAcceptConditions.values.map(c => c -> c).toMap ++ evolves)
     (ParsingContext(ctx.graph.removeNodes(droppedKernels.keys.toSet), survivingAcceptConditions.toMap), newTracker)
   }

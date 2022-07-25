@@ -2,7 +2,7 @@ package com.giyeok.jparser.nparser2
 
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLongest, NLookaheadExcept, NLookaheadIs, NLookaheadSymbol, NSequence, NSimpleDerive, NTerminal}
-import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always, Exists, Never, NotExists, OnlyIf, Unless, disjunct}
+import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always, Exists, Never, NotExists, OnlyIf, Unless, conjunct, disjunct}
 
 import scala.annotation.tailrec
 
@@ -26,9 +26,6 @@ class ParsingTaskImpl(val grammar: NGrammar) {
     assert(ctx.graph.nodes contains task.kernel)
     assert(!isFinal(task.kernel))
     assert(task.kernel.endGen == nextGen)
-
-    def addNode(ctx: ParsingContext, newNode: Kernel): ParsingContext =
-      ParsingContext(ctx.graph.addNode(newNode), ctx.acceptConditions + (newNode -> Always))
 
     def derive0(cc: (ParsingContext, List[ParsingTask]), symbolId: Int): (ParsingContext, List[ParsingTask]) = {
       val newNode = Kernel(symbolId, 0, nextGen, nextGen)
@@ -66,13 +63,17 @@ class ParsingTaskImpl(val grammar: NGrammar) {
       }
     }
 
-    def addNode0(cc: (ParsingContext, List[ParsingTask]), symbolId: Int): (ParsingContext, List[ParsingTask]) =
-      (addNode(cc._1, Kernel(symbolId, 0, nextGen, nextGen)), cc._2)
+    def addNode0(cc: (ParsingContext, List[ParsingTask]), symbolId: Int): (ParsingContext, List[ParsingTask]) = {
+      val newNode = Kernel(symbolId, 0, nextGen, nextGen)
+      val newTask = if (isFinal(newNode)) FinishTask(newNode) else DeriveTask(newNode)
+      (ParsingContext(cc._1.graph.addNode(newNode), cc._1.acceptConditions + (newNode -> Always)), newTask +: cc._2)
+    }
 
     grammar.symbolOf(task.kernel.symbolId) match {
       case _: NTerminal => (ctx, List()) // do nothing
       case derives: NSimpleDerive =>
-        derives.produces.foldLeft((ctx, List[ParsingTask]())) { (cc, symbolId) => derive0(cc, symbolId) }
+        val result = derives.produces.foldLeft((ctx, List[ParsingTask]())) { (cc, symbolId) => derive0(cc, symbolId) }
+        result
       case NExcept(_, _, body, except) =>
         val cc1 = derive0((ctx, List()), body)
         addNode0(cc1, except)
@@ -109,7 +110,7 @@ class ParsingTaskImpl(val grammar: NGrammar) {
     val incomingEdges = ctx.graph.edgesByEnd(task.kernel)
     val newEdges = incomingEdges map { edge => Edge(edge.start, newKernel) }
 
-    val incomingCondition = grammar.symbolOf(task.kernel.symbolId) match {
+    val addingCondition = grammar.symbolOf(task.kernel.symbolId) match {
       case NLongest(_, _, longest) =>
         NotExists(task.kernel.beginGen, nextGen + 1, longest)
       case NExcept(_, _, _, except) =>
@@ -122,7 +123,9 @@ class ParsingTaskImpl(val grammar: NGrammar) {
         NotExists(nextGen, nextGen, lookahead)
       case _ => Always
     }
-    val newCondition = disjunct(ctx.acceptConditions.getOrElse(newKernel, Never), incomingCondition)
+    val newCondition = disjunct(
+      ctx.acceptConditions.getOrElse(newKernel, Never),
+      conjunct(task.condition, addingCondition))
 
     // ctx.graph에 newKernel, newEdges를 모두 추가하고, newKernel의 조건으로 newCondition을 disjunct로 추가한다.
     val newCtx = ParsingContext(

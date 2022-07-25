@@ -169,8 +169,14 @@ object AcceptCondition {
 
     override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = {
       if (gen < endGen) this else {
-        val condition = ctx.acceptConditions(finalKernel(gen)).neg.evolve(gen, ctx)
-        if (ctx.graph.nodes contains initKernel) conjunct(condition, this) else condition
+        val moreTrackingNeeded = ctx.graph.nodes contains initKernel
+        ctx.acceptConditions get finalKernel(gen) match {
+          case Some(condition) =>
+            val evolvedCondition = condition.neg.evolve(gen, ctx)
+            if (moreTrackingNeeded) conjunct(evolvedCondition, this) else evolvedCondition
+          case None =>
+            if (moreTrackingNeeded) this else Always
+        }
       }
     }
 
@@ -184,7 +190,10 @@ object AcceptCondition {
 
     override def accepted(gen: Int, ctx: ParsingContext2): Boolean = {
       if (gen < endGen) true else {
-        !ctx.acceptConditions(finalKernel(gen)).accepted(gen, ctx)
+        ctx.acceptConditions get finalKernel(gen) match {
+          case Some(condition) => !condition.accepted(gen, ctx)
+          case None => true
+        }
       }
     }
 
@@ -205,8 +214,14 @@ object AcceptCondition {
 
     override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = {
       if (gen < endGen) this else {
-        val condition = ctx.acceptConditions(finalKernel(gen)).evolve(gen, ctx)
-        if (ctx.graph.nodes contains initKernel) disjunct(condition, this) else condition
+        val moreTrackingNeeded = ctx.graph.nodes contains initKernel
+        ctx.acceptConditions get finalKernel(gen) match {
+          case Some(condition) =>
+            val evolvedCondition = condition.evolve(gen, ctx)
+            if (moreTrackingNeeded) disjunct(evolvedCondition, this) else evolvedCondition
+          case None =>
+            if (moreTrackingNeeded) this else Never
+        }
       }
     }
 
@@ -220,7 +235,10 @@ object AcceptCondition {
 
     override def accepted(gen: Int, ctx: ParsingContext2): Boolean = {
       if (gen < endGen) false else {
-        ctx.acceptConditions(finalKernel(gen)).accepted(gen, ctx)
+        ctx.acceptConditions get finalKernel(gen) match {
+          case Some(condition) => condition.accepted(gen, ctx)
+          case None => false
+        }
       }
     }
 
@@ -240,11 +258,16 @@ object AcceptCondition {
     }
 
     override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = {
-      assert(gen >= endGen)
       if (gen > endGen) {
         Always
       } else {
-        ctx.acceptConditions(finalKernel(gen)).neg.evolve(gen, ctx)
+        assert(gen == endGen)
+        ctx.acceptConditions get finalKernel(gen) match {
+          case Some(condition) => condition.neg.evolve(gen, ctx)
+          case None =>
+            // 대상 심볼이 아예 매치되지 않았다는 의미
+            Always
+        }
       }
     }
 
@@ -260,7 +283,10 @@ object AcceptCondition {
     override def accepted(gen: Int, ctx: ParsingContext2): Boolean = {
       assert(gen >= endGen)
       if (gen != endGen) true else {
-        !ctx.acceptConditions(finalKernel(gen)).accepted(gen, ctx)
+        ctx.acceptConditions get finalKernel(gen) match {
+          case Some(condition) => !condition.accepted(gen, ctx)
+          case None => true
+        }
       }
     }
 
@@ -280,11 +306,16 @@ object AcceptCondition {
     }
 
     override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = {
-      assert(gen >= endGen)
       if (gen > endGen) {
         Never
       } else {
-        ctx.acceptConditions(finalKernel(gen)).evolve(gen, ctx)
+        assert(gen == endGen)
+        ctx.acceptConditions get finalKernel(gen) match {
+          case Some(condition) => condition.evolve(gen, ctx)
+          case None =>
+            // 대상 심볼이 아예 매치되지 않았다는 의미
+            Never
+        }
       }
     }
 
@@ -300,7 +331,10 @@ object AcceptCondition {
     override def accepted(gen: Int, ctx: ParsingContext2): Boolean = {
       assert(gen >= endGen)
       if (gen != endGen) false else {
-        ctx.acceptConditions(finalKernel(gen)).accepted(gen, ctx)
+        ctx.acceptConditions get finalKernel(gen) match {
+          case Some(condition) => condition.accepted(gen, ctx)
+          case None => false
+        }
       }
     }
 
