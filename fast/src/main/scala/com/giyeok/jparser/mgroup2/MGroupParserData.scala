@@ -2,6 +2,7 @@ package com.giyeok.jparser.mgroup2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.nparser2.Kernel
 
 case class MGroupParserData(
@@ -12,9 +13,12 @@ case class MGroupParserData(
   mgroups: Map[Int, MilestoneGroup],
 )
 
-case class MilestoneGroup(milestones: Set[Kernel])
+// shadowMilestones는 accept condition을 위해 추가되는 마일스톤들.
+// 기본적으로는 동일하게 처리되지만 처리 가능한 terminal 종류가 바뀜
+case class MilestoneGroup(milestones: Set[KernelTemplate], shadowMilestones: Set[KernelTemplate])
 
 case class ParsingAction(
-  hingeReplacingId: Int,
+  prevReplacingId: Int,
+  // prev가 replace된 다음 적용할 progress action들(각 슬롯에 대한 accept condition들)
   appendingId: Int,
 )

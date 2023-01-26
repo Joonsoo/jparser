@@ -1,32 +1,30 @@
-BuildScript = WS Defs WS {BuildScript(defs=$1)}
+BuildScript = (WS PackageName)? WS Defs WS {BuildScript(packageName=$0, defs=$2)}
+
+PackageName = "package"&Tk WS Name
 
 Defs = Def (WS Def)* {[$0] + $1}
 
-Def: Def = NamespaceDef
-  | ImportDef
-  | NameDef
-  | ClassDef
-  | ArgDef
-  | BuildRuleDef
+Def: Def = ImportDef
+  | NamespaceDef
+  | TargetDef
   | ActionDef
-  | ActionRuleDef
+  | ClassDef
   | EnumDef
+  | VarDef
+  | VarRedef
+  | BuildRuleDef
+  | ActionRuleDef
 
 NamespaceDef = "namespace"&Tk WS SimpleName WS '{' BuildScript '}' {NamespaceDef(name=$2, body=$5)}
 
-ImportDef: ImportDef = "import"&Tk WS Name (WS "as"&Tk WS SimpleName)? {ImportName(name=$2, rename=$3)}
-  | "import"&Tk WS ImportSourceExpr WS "as"&Tk WS SimpleName {ImportAll(source=$2, rename=$6)}
-  | "from"&Tk WS ImportSourceExpr WS "import"&Tk WS Name (WS "as"&Tk WS SimpleName)?
-    {ImportFrom(source=$2, importing=$6, rename=$7)}
-ImportSourceExpr: ImportSourceExpr = StringLiteral | CallExpr
+ImportDef: ImportDef = "import"&Tk WS Primary (WS "as"&Tk WS SimpleName)? {ImportAll(source=$2, rename=$3)}
+  | "from"&Tk WS Expr WS "import"&Tk WS Name (WS "as"&Tk WS SimpleName)? {ImportFrom(source=$2, importing=$6, rename=$7)}
 
-NameDef = SimpleName WS '=' WS Expr {NameDef(name=$0, value=$4)}
+TargetDef = SimpleName WS '=' WS Expr {TargetDef(name=$0, value=$4)}
 
 ClassDef: ClassDef = DataClassDef | SuperClassDef
-DataClassDef = "class"&Tk WS SimpleName WS '(' (WS ClassFields)? WS ')' (WS ClassBody)?
-               {DataClassDef(name=$2, fields=$5 ?: [], body=$8 ?: [])}
-ClassFields = ClassFieldDef (WS ',' WS ClassFieldDef)* {[$0] + $1}
-ClassFieldDef = SimpleName (WS '?')? WS ':' WS TypeExpr {ClassField(name=$0, optional=ispresent($1), typ=$5)}
+DataClassDef = "class"&Tk WS SimpleName WS ParamsDef (WS ClassBody)?
+               {DataClassDef(name=$2, fields=$4, body=$5 ?: [])}
 SuperClassDef = "super"&Tk WS "class"&Tk WS SimpleName WS '{' WS SimpleName (WS ',' WS SimpleName)* WS '}'
                 {SuperClassDef(name=$4, subs=[$8] + $9)}
 ClassBody = '{' (WS ClassBodyElem)* WS '}' {$1}
@@ -34,8 +32,10 @@ ClassBodyElem: ClassBodyElem = ActionRuleDef | ClassCastDef
 // casting하는 대상 타입의 type parameter?
 ClassCastDef = "as"&Tk WS TypeExpr WS '=' WS Expr {ClassCastDef(castTo=$2, expr=$6)}
 
-ArgDef = "arg"&Tk (WS Name WS "as"&Tk)? WS SimpleName (WS ':' WS TypeExpr)? (WS '=' WS Expr)?
-         {ArgDef(replacing=$1$1, name=$3, typ=$4, defaultValue=$5)}
+VarDef = "var"&Tk WS SimpleName (WS ':' WS TypeExpr)? (WS '=' WS Expr)?
+         {VarDef(name=$2, typ=$3, defaultValue=$4)}
+VarRedef = "var"&Tk WS SimpleName (WS '.' WS SimpleName)+ WS '=' WS Expr
+           {VarRedef(nameTokens=[$2] + $3, redefValue=$7)}
 
 BuildRuleDef = "def"&Tk WS SimpleName WS ParamsDef WS ':' WS TypeExpr WS '=' WS MethodRef
                {BuildRuleDef(name=$2, params=$4, returnType=$8, impl=$12)}
@@ -62,11 +62,13 @@ ActionExpr = CallExpr
 Primary: Primary = CallExpr
   | Primary WS '.' WS SimpleName {MemberAccess(target=$0, name=$4)}
   | SimpleName {NameRef(name=$0)}
-  | '[' (WS Expr (WS ',' WS Expr)* (WS ',')?)? WS ']' {ListExpr(elems=$1{[$1] + $2} ?: [])}
+  | '[' (WS ListElem (WS ',' WS ListElem)* (WS ',')?)? WS ']' {ListExpr(elems=$1{[$1] + $2} ?: [])}
   | '(' WS Expr WS ',' (WS Expr (WS ',' WS Expr)* (WS ',')? {[$1] + $2})? WS ')' {TupleExpr(elems=[$2] + ($5 ?: []))}
   | '(' (WS NamedExpr (WS ',' WS NamedExpr)* (WS ',')?)? WS ')' {NamedTupleExpr(elems=$1{[$1] + $2} ?: [])}
   | Literal
+  | "this"&Tk {This()}
   | '(' WS Expr WS ')' {Paren(expr=$2)}
+ListElem: ListElem = Expr | "..." WS Expr {EllipsisElem(value=$2)}
 NamedExpr = SimpleName WS ':' WS Expr {NamedExpr(name=$0, expr=$4)}
 
 CallExpr = Name WS CallParams {CallExpr(name=$0, params=$2)}
@@ -111,7 +113,7 @@ SimpleName = <('a-zA-z' 'a-zA-Z0-9_'* {str($0, $1)})&Tk>-Keyword {$0}
 Name = SimpleName (WS '.' WS SimpleName)* {Name(tokens=[$0] + $1)}
 
 // literal에서 사용되면 ambiguous해지는 것만 막으면 될듯?
-Keyword = "true" | "false" | "none"
+Keyword = "true" | "false" | "none" | "this"
 
 Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
 

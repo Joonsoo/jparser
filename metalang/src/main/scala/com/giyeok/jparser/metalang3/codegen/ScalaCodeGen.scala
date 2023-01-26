@@ -3,7 +3,7 @@ package com.giyeok.jparser.metalang3.codegen
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
 import com.giyeok.jparser.metalang3.MetaLanguage3.{ProcessedGrammar, check}
-import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen.{CodeBlob, ExprBlob, Options}
+import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen.{AuxTrait, CodeBlob, ExprBlob, Options}
 import com.giyeok.jparser.metalang3.{ClassHierarchyItem, ClassRelationCollector, Type, ValuefyExpr}
 import com.giyeok.jparser.proto.GrammarProtobufConverter
 import com.giyeok.jparser.utils.JavaCodeGenUtil.javaChar
@@ -14,21 +14,27 @@ import scala.annotation.tailrec
 
 object ScalaCodeGen {
 
+  object AuxTrait extends Enumeration {
+    // WithParseNode가 설정되면 모든 ast node 클래스가 WithParseNode trait을 상속받고 parse node 정보를 저장한다
+    // WithIdAndParseNode가 설정되면 모든 ast node 클래스에 unique id가 배정된다
+    val NoAuxTrait, WithParseNode, WithIdAndParseNode = Value
+  }
+
   /**
    *
-   * @param useNull                 (미구현) true이면 Option 대신 그냥 값+null을 사용한다.
-   * @param looseSuperType          TODO 기본 false
-   * @param assertBindTypes         Unbind할 때 unbind된 심볼의 타입을 체크한다. 기본 true
-   * @param symbolComments          human readable한 심볼 설명 코멘트를 추가한다. 기본 true
-   * @param withParseNodesInClasses 모든 클래스를 WithParseNode trait를 상속받게 하고 모든 클래스를 생성할 때 parseNode를 설정한다. 기본 true
+   * @param useNull         (미구현) true이면 Option 대신 그냥 값+null을 사용한다.
+   * @param looseSuperType  TODO 기본 false
+   * @param assertBindTypes Unbind할 때 unbind된 심볼의 타입을 체크한다. 기본 true
+   * @param symbolComments  human readable한 심볼 설명 코멘트를 추가한다. 기본 true
+   * @param auxTrait        어떤 aux trait을 사용할 지. 기본 WithParseNode
    */
   case class Options(useNull: Boolean = false,
-                     looseSuperType: Boolean = false,
-                     assertBindTypes: Boolean = true,
-                     symbolComments: Boolean = true,
-                     withParseNodesInClasses: Boolean = true,
-                     grammarDefType: GrammarDefType = InlineSourceDef,
-                     emitNGrammar: Boolean = false)
+    looseSuperType: Boolean = false,
+    assertBindTypes: Boolean = true,
+    symbolComments: Boolean = true,
+    auxTrait: AuxTrait.Value = AuxTrait.WithIdAndParseNode,
+    grammarDefType: GrammarDefType = InlineSourceDef,
+    emitNGrammar: Boolean = false)
 
   sealed trait GrammarDefType
 
@@ -152,15 +158,26 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
 
   def classDefs(classRelation: ClassRelationCollector): CodeBlob = {
     val classHierarchy = classRelation.toHierarchy
-    val baseCodeBlob = if (!options.withParseNodesInClasses) CodeBlob("", Set())
-    else CodeBlob("sealed trait WithParseNode { val parseNode: Node }", Set())
+
+    val baseCodeBlob = options.auxTrait match {
+      case AuxTrait.NoAuxTrait => CodeBlob("", Set())
+      case AuxTrait.WithParseNode => CodeBlob("sealed trait WithParseNode { val parseNode: Node }", Set())
+      case AuxTrait.WithIdAndParseNode => CodeBlob("sealed trait WithIdAndParseNode { val id: Int; val parseNode: Node }", Set())
+    }
     if (classHierarchy.allTypes.isEmpty) baseCodeBlob else {
       def classDefinitionCode(cls: ClassHierarchyItem): CodeBlob = {
         val supers = if (cls.superclasses.isEmpty) {
-          if (options.withParseNodesInClasses) " extends WithParseNode" else ""
+          options.auxTrait match {
+            case AuxTrait.NoAuxTrait => ""
+            case AuxTrait.WithParseNode => " extends WithParseNode"
+            case AuxTrait.WithIdAndParseNode => " extends WithIdAndParseNode"
+          }
         } else {
-          val superclasses = if (options.withParseNodesInClasses) cls.superclasses.toList.sorted :+ "WithParseNode"
-          else cls.superclasses.toList.sorted
+          val superclasses = cls.superclasses.toList.sorted ++ (options.auxTrait match {
+            case AuxTrait.NoAuxTrait => List()
+            case AuxTrait.WithParseNode => List("WithParseNode")
+            case AuxTrait.WithIdAndParseNode => List("WithIdAndParseNode")
+          })
           s" extends ${superclasses.mkString(" with ")}"
         }
         if (cls.subclasses.isEmpty) {
@@ -169,7 +186,11 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
             val paramType = typeDescStringOf(param._2, context = Some(s"parameter type of ${cls.className}.${param._1}"))
             CodeBlob(s"${param._1}: ${paramType.code}", paramType.required)
           }
-          val parseNodeVal = if (options.withParseNodesInClasses) "(override val parseNode: Node)" else ""
+          val parseNodeVal = options.auxTrait match {
+            case AuxTrait.NoAuxTrait => ""
+            case AuxTrait.WithParseNode => "(override val parseNode: Node)"
+            case AuxTrait.WithIdAndParseNode => "(override val id: Int, override val parseNode: Node)"
+          }
           CodeBlob(s"case class ${cls.className}(${params.map(_.code).mkString(", ")})$parseNodeVal$supers",
             params.flatMap(_.required).toSet)
         } else {
@@ -432,7 +453,12 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       val paramCodes = params.zipWithIndex.map { case (param, index) =>
         valuefyExprToCodeWithCoercion(param, inputName, analysis.classParamTypes(className)(index)._2)
       }
-      val constructorExpr = s"$className(${paramCodes.map(_.result).mkString(", ")})" + (if (options.withParseNodesInClasses) s"($inputName)" else "")
+      val constructorExpr = s"$className(${paramCodes.map(_.result).mkString(", ")})" + (
+        options.auxTrait match {
+          case AuxTrait.NoAuxTrait => ""
+          case AuxTrait.WithParseNode => s"($inputName)"
+          case AuxTrait.WithIdAndParseNode => s"(nextId(), $inputName)"
+        })
       ExprBlob(paramCodes.flatMap(_.prepares), constructorExpr, paramCodes.flatMap(_.required).toSet)
     case funcCall: ValuefyExpr.FuncCall =>
       funcCallToCode(funcCall, inputName)
@@ -571,18 +597,27 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
     val ngrammarDefString =
       if (options.emitNGrammar) s"  val ngrammar: NGrammar = ${ngrammarDefCode.indent().code}\n" else ""
     s"""${allImports.map(pkg => s"import $pkg").mkString("\n")}
+       |import $className._
        |
        |object $className {
        |$ngrammarDefString
        |${classDefsCode.indent().code}
        |${enumDefsCode.indent().code}
        |
-       |${nontermMatchCodes.map(_.indent().code).mkString("\n\n")}
-       |
-       |${startMatchCode.indent().code}
-       |
        |${parserDef.indent().code}
        |${mainFunc.map(_.indent().code).getOrElse("")}
+       |}
+       |
+       |class $className {
+       |  private var idCounter = 0
+       |
+       |  def nextId(): Int = {
+       |    idCounter += 1
+       |    idCounter
+       |  }
+       |
+       |${startMatchCode.indent().code}
+       |${nontermMatchCodes.map(_.indent().code).mkString("\n\n")}
        |}
        |""".stripMargin
   }

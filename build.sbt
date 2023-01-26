@@ -1,6 +1,6 @@
-ThisBuild / organization := "com.giyeok"
-ThisBuild / version := "0.2.3"
-ThisBuild / scalaVersion := "2.13.5"
+ThisBuild / organization := "com.giyeok.jparser"
+ThisBuild / version := "0.2.4"
+ThisBuild / scalaVersion := "2.13.8"
 ThisBuild / crossPaths := false
 
 ThisBuild / javacOptions ++= Seq("-encoding", "UTF-8")
@@ -9,12 +9,12 @@ lazy val testDeps = {
   // val scalactic: ModuleID = "org.scalactic" %% "scalactic" % "3.0.1" % "test"
   val scalatest: ModuleID = "org.scalatest" %% "scalatest" % "3.2.12" % "test"
 
-  val junit: ModuleID = "org.junit.jupiter" % "junit-jupiter-api" % "5.8.2" % "test"
+  val junit: ModuleID = "org.junit.jupiter" % "junit-jupiter-api" % "5.9.0" % "test"
 
   Seq(scalatest, junit)
 }
 
-lazy val protobufDep = "com.google.protobuf" % "protobuf-java" % "3.21.1"
+lazy val protobufDep = "com.google.protobuf" % "protobuf-java" % "3.21.5"
 lazy val javaFormatDep = "com.google.googlejavaformat" % "google-java-format" % "1.15.0"
 
 lazy val base = (project in file("base")).
@@ -86,8 +86,8 @@ lazy val visualize = (project in file("visualize")).
     libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "2.1.0",
     // libraryDependencies += "org.eclipse" % "jface" % "3.3.0-I20070606-0010",
     libraryDependencies += "org.jetbrains.kotlin" % "kotlin-stdlib-jdk8" % "1.7.10",
-    libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-core" % "1.6.2",
-    libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-jdk8" % "1.6.2",
+    libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-core" % "1.6.4",
+    libraryDependencies += "org.jetbrains.kotlinx" % "kotlinx-coroutines-jdk8" % "1.6.4",
     libraryDependencies += "org.eclipse.platform" % "org.eclipse.equinox.common" % "3.16.100",
     javaOptions := visJavaOptions,
     unmanagedBase := baseDirectory.value / "lib").
@@ -115,3 +115,12 @@ lazy val bibix = (project in file("bibix")).
 
 run / fork := true
 Test / fork := true
+
+ThisBuild / publishTo := Some("Github Joonsoo Apache Maven Packages" at "https://maven.pkg.github.com/joonsoo/giyeok-maven-repo")
+ThisBuild / publishMavenStyle := true
+ThisBuild / credentials += Credentials(
+  "GitHub Package Registry",
+  "maven.pkg.github.com",
+  "Joonsoo",
+  "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"
+)

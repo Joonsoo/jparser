@@ -57,6 +57,8 @@ class Main extends Runnable {
   def generateMilestoneParser(analysis: ProcessedGrammar, codegen: ScalaCodeGen): Unit = {
     val startType = codegen.typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName))
 
+    val parserDataLoader = s"getClass.getResourceAsStream(\"/${milestoneParserDataPath.getName}\")"
+    // s"readFileBytes(${codegen.escapeString(milestoneParserDataPath.getPath)})"
     val milestoneParserDataDef = if (milestoneParserDataPath == null) {
       //      val milestoneParserDataBase64 = Base64.getEncoder.encodeToString(milestoneParserDataProto)
       //      CodeBlob(
@@ -70,7 +72,7 @@ class Main extends Runnable {
     } else {
       CodeBlob(
         s"""val milestoneParserData = MilestoneParserProtobufConverter.convertProtoToMilestoneParserData(
-           |  MilestoneParserDataProto.MilestoneParserData.parseFrom(readFileBytes(${codegen.escapeString(milestoneParserDataPath.getPath)})))""".stripMargin,
+           |  MilestoneParserDataProto.MilestoneParserData.parseFrom($parserDataLoader))""".stripMargin,
         Set("com.giyeok.jparser.utils.FileUtil.readFileBytes"))
     }
     val milestoneParserDef = CodeBlob(
@@ -83,7 +85,7 @@ class Main extends Runnable {
          |
          |def parseAst(text: String): Either[${startType.code}, ParsingErrors.ParsingError] =
          |  parse(text) match {
-         |    case Left(forest) => Left(matchStart(forest.trees.head))
+         |    case Left(forest) => Left(new $grammarName().matchStart(forest.trees.head))
          |    case Right(error) => Right(error)
          |  }
          |""",
