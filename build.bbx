@@ -2,10 +2,10 @@ import maven
 import java
 import jvm
 import bibix
-from bibix.plugins() import scala
-from bibix.plugins() import protobuf
-from bibix.plugins() import scalatest
-from bibix.plugins() import ktjvm
+from bibix.plugins import scala
+from bibix.plugins import protobuf
+from bibix.plugins import scalatest
+from bibix.plugins import ktjvm
 
 arg ktjvm.kotlinVersion as kotlinVersion: string = "1.7.10"
 
@@ -97,22 +97,22 @@ namespace tests {
 
   baseTests = scala.library(
     srcs = glob("base/src/test/scala/**/*.scala"),
-    deps = testDeps + [base],
+    deps = [...testDeps, base],
   )
 
   naiveTests = scala.library(
     srcs = glob("naive/src/test/scala/**/*.scala"),
-    deps = testDeps + [baseTests, naive],
+    deps = [...testDeps, baseTests, naive],
   )
 
   metalangTests = scala.library(
     srcs = glob("metalang/src/test/scala/**/*.scala"),
-    deps = testDeps + [baseTests, naiveTests, metalang],
+    deps = [...testDeps, baseTests, naiveTests, metalang],
   )
 
   fastTests = scala.library(
     srcs = glob("fast/src/test/scala/**/*.scala"),
-    deps = testDeps + [baseTests, metalangTests, fast],
+    deps = [...testDeps + baseTests, metalangTests, fast],
   )
 
   action run = scalatest.run(
@@ -184,7 +184,7 @@ study = scala.library(
 
 class JParserData(astFile: file, dataFile: file)
 
-parsergenImpl = ktjvm.library(
+parsergenPluginImpl = ktjvm.library(
   srcs=glob("bibix/src/main/kotlin/**/*.kt"),
   deps=[fast],
 )
@@ -193,7 +193,7 @@ def parsergen(
   src: file,
   objectName: string,
   parserDataFileName: string,
-): JParserData = parsergenImpl:com.giyeok.jparser.bibix.ParserGen
+): JParserData = parsergenPluginImpl:com.giyeok.jparser.bibix.ParserGen
 
 action testRun = jvm.run(
   deps = [tests.fastTests],
