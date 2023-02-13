@@ -218,163 +218,172 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
   private def symbolIndexFrom(refCtx: List[MetaLang3Ast.Elem], index: Int): Int =
     index - refCtx.slice(0, index).count(_.isInstanceOf[MetaLang3Ast.Processor]) // index 앞에 있는 processor 갯수 빼기
 
-  private def valuefyPExpr(refCtx: List[MetaLang3Ast.Elem], processor: MetaLang3Ast.PExpr, input: ValuefyExpr): ValuefyExpr = processor match {
-    case MetaLang3Ast.TypedPExpr(body, typ) =>
-      // TODO typ 처리
-      valuefyPExpr(refCtx, body, input)
-    case MetaLang3Ast.TernaryOp(cond, ifTrue, ifFalse) =>
-      TernaryOp(valuefyPExpr(refCtx, cond, input),
-        ifTrue = valuefyPExpr(refCtx, ifTrue, input),
-        ifFalse = valuefyPExpr(refCtx, ifFalse, input))
-    case MetaLang3Ast.ElvisOp(value, ifNull) =>
-      val vValue = valuefyPExpr(refCtx, value, input)
-      val vIfNull = valuefyPExpr(refCtx, ifNull, input)
-      ElvisOp(vValue, vIfNull)
-    case MetaLang3Ast.BinOp(op, lhs, rhs) =>
-      val vLhs = valuefyPExpr(refCtx, lhs, input)
-      val vRhs = valuefyPExpr(refCtx, rhs, input)
-      val opType = op match {
-        case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.ADD => BinOpType.ADD
-        case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.EQ => BinOpType.EQ
-        case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.NE => BinOpType.NE
-        case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.AND => BinOpType.BOOL_AND
-        case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.OR => BinOpType.BOOL_OR
+  // callCtx is for debugging purpose. StackOverflow가 어디서 나는지 알아야..
+  private def valuefyPExpr(refCtx: List[MetaLang3Ast.Elem], processor: MetaLang3Ast.PExpr, input: ValuefyExpr, callCtx: List[MetaLang3Ast.PExpr]): ValuefyExpr = {
+    if (callCtx.tail.contains(callCtx.head)) {
+      throw new IllegalStateException(s"Recursive reference - $callCtx")
+    }
+    if (callCtx.size > 200) {
+      throw new IllegalStateException(s"Too deep calls - $callCtx")
+    }
+    processor match {
+      case MetaLang3Ast.TypedPExpr(body, typ) =>
+        // TODO typ 처리
+        valuefyPExpr(refCtx, body, input, body +: callCtx)
+      case MetaLang3Ast.TernaryOp(cond, ifTrue, ifFalse) =>
+        TernaryOp(valuefyPExpr(refCtx, cond, input, cond +: callCtx),
+          ifTrue = valuefyPExpr(refCtx, ifTrue, input, ifTrue +: callCtx),
+          ifFalse = valuefyPExpr(refCtx, ifFalse, input, ifFalse +: callCtx))
+      case MetaLang3Ast.ElvisOp(value, ifNull) =>
+        val vValue = valuefyPExpr(refCtx, value, input, value +: callCtx)
+        val vIfNull = valuefyPExpr(refCtx, ifNull, input, ifNull +: callCtx)
+        ElvisOp(vValue, vIfNull)
+      case MetaLang3Ast.BinOp(op, lhs, rhs) =>
+        val vLhs = valuefyPExpr(refCtx, lhs, input, lhs +: callCtx)
+        val vRhs = valuefyPExpr(refCtx, rhs, input, rhs +: callCtx)
+        val opType = op match {
+          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.ADD => BinOpType.ADD
+          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.EQ => BinOpType.EQ
+          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.NE => BinOpType.NE
+          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.AND => BinOpType.BOOL_AND
+          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.OR => BinOpType.BOOL_OR
+        }
+        BinOp(opType, vLhs, vRhs)
+      case MetaLang3Ast.PrefixOp(op, expr) =>
+        val vExpr = valuefyPExpr(refCtx, expr, input, expr +: callCtx)
+        val opType = op match {
+          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.PreOp.NOT => PreOpType.NOT
+        }
+        PreOp(opType, vExpr)
+      case ref: MetaLang3Ast.Ref => ref match {
+        case MetaLang3Ast.ValRef(idx0, condSymPath0) =>
+          val idx = idx0.toInt
+          check(idx < refCtx.size, s"reference index out of range around ${ref.parseNode.start}")
+          val condSymPath = condSymPath0.getOrElse(List())
+          refCtx(idx) match {
+            case symbol: MetaLang3Ast.Symbol =>
+              val symbolIdx = symbolIndexFrom(refCtx, idx)
+              SeqElemAt(symbolIdx, valuefySymbol(symbol, condSymPath, input)._1)
+            case processor: MetaLang3Ast.Processor =>
+              check(condSymPath.isEmpty, "Ref to processor cannot have cond sym path")
+              valuefyProcessor(refCtx, processor, input, callCtx)
+          }
+        case MetaLang3Ast.RawRef(idx0, condSymPath0) =>
+          val idx = idx0.toInt
+          check(idx < refCtx.size, "reference index out of range")
+          val condSymPath = condSymPath0.getOrElse(List())
+          refCtx(idx) match {
+            case _: MetaLang3Ast.Symbol =>
+              val symbolIdx = symbolIndexFrom(refCtx, idx)
+              check(condSymPath.isEmpty, "RawRef with cond sym path not implemented")
+              SeqElemAt(symbolIdx, input)
+            case _: MetaLang3Ast.Processor =>
+              errorCollector.addError("RawRef cannot refer to processor", ref.parseNode)
+              // throw IllegalGrammar("RawRef cannot refer to processor")
+              InputNode
+          }
       }
-      BinOp(opType, vLhs, vRhs)
-    case MetaLang3Ast.PrefixOp(op, expr) =>
-      val vExpr = valuefyPExpr(refCtx, expr, input)
-      val opType = op match {
-        case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.PreOp.NOT => PreOpType.NOT
-      }
-      PreOp(opType, vExpr)
-    case ref: MetaLang3Ast.Ref => ref match {
-      case MetaLang3Ast.ValRef(idx0, condSymPath0) =>
+      case MetaLang3Ast.ExprParen(body) => valuefyPExpr(refCtx, body, input, body +: callCtx)
+      case MetaLang3Ast.BindExpr(ctx, binder) =>
+        val MetaLang3Ast.ValRef(idx0, condSymPath0) = ctx
         val idx = idx0.toInt
         check(idx < refCtx.size, "reference index out of range")
         val condSymPath = condSymPath0.getOrElse(List())
+        check(condSymPath.isEmpty, "BindExpr with cond sym path not implemented")
         refCtx(idx) match {
           case symbol: MetaLang3Ast.Symbol =>
-            val symbolIdx = symbolIndexFrom(refCtx, idx)
-            SeqElemAt(symbolIdx, valuefySymbol(symbol, condSymPath, input)._1)
-          case processor: MetaLang3Ast.Processor =>
-            check(condSymPath.isEmpty, "Ref to processor cannot have cond sym path")
-            valuefyProcessor(refCtx, processor, input)
-        }
-      case MetaLang3Ast.RawRef(idx0, condSymPath0) =>
-        val idx = idx0.toInt
-        check(idx < refCtx.size, "reference index out of range")
-        val condSymPath = condSymPath0.getOrElse(List())
-        refCtx(idx) match {
-          case _: MetaLang3Ast.Symbol =>
-            val symbolIdx = symbolIndexFrom(refCtx, idx)
-            check(condSymPath.isEmpty, "RawRef with cond sym path not implemented")
-            SeqElemAt(symbolIdx, input)
+            // 이 부분은 valuefySequence에서 마지막 elem의 종류에 따라 SeqElem을 넣는 것 때문에
+            // valuefySymbol을 재사용하지 못하고 valuefySymbol과 거의 같은 코드가 중복돼서 들어갔음
+            // TODO 고칠 수 있으면 좋을텐데..
+            def processBindExpr(symbol: MetaLang3Ast.Symbol): ValuefyExpr =
+              symbol match {
+                case MetaLang3Ast.Optional(body) =>
+                  val vBody = proxy(valuefySymbol(body, List(), input))
+                  val emptySeq = Symbols.Proxy(Symbols.Sequence(Seq()))
+                  val oneofSymbol = Symbols.OneOf(ListSet(vBody._2, emptySeq))
+                  Unbind(oneofSymbol, UnrollChoices(Map(emptySeq -> NullLiteral,
+                    vBody._2 -> processBindExpr(body))))
+                case MetaLang3Ast.RepeatFromZero(body) =>
+                  UnrollRepeatFromZero(processBindExpr(body))
+                case MetaLang3Ast.RepeatFromOne(body) =>
+                  UnrollRepeatFromOne(processBindExpr(body))
+                case MetaLang3Ast.InPlaceChoices(choices) if choices.size == 1 =>
+                  // 어차피 choice가 하나이므로 UnrollChoices 대신 Unbind만 해도 됨
+                  Unbind(valuefySymbol(symbol, List(), InputNode)._2, processBindExpr(choices.head))
+                case MetaLang3Ast.Longest(choices) =>
+                  Unbind(valuefySymbol(symbol, List(), InputNode)._2, processBindExpr(choices))
+                case MetaLang3Ast.Sequence(seq) =>
+                  val (processor, seqSymbol) = valuefySequence(seq :+ binder.asInstanceOf[MetaLang3Ast.Processor], input)
+                  proxy(Unbind(seqSymbol, processor), seqSymbol)._1
+                case _ =>
+                  // throw IllegalGrammar("Unsupported binding context")
+                  errorCollector.addError("Unsupported binding context", processor.parseNode)
+                  InputNode
+              }
+
+            SeqElemAt(symbolIndexFrom(refCtx, idx), processBindExpr(symbol))
           case _: MetaLang3Ast.Processor =>
-            errorCollector.addError("RawRef cannot refer to processor", ref.parseNode)
-            // throw IllegalGrammar("RawRef cannot refer to processor")
+            // throw IllegalGrammar("BindExpr cannot refer to processor")
+            errorCollector.addError("BindExpr cannot refer to processor", processor.parseNode)
             InputNode
         }
-    }
-    case MetaLang3Ast.ExprParen(body) => valuefyPExpr(refCtx, body, input)
-    case MetaLang3Ast.BindExpr(ctx, binder) =>
-      val MetaLang3Ast.ValRef(idx0, condSymPath0) = ctx
-      val idx = idx0.toInt
-      check(idx < refCtx.size, "reference index out of range")
-      val condSymPath = condSymPath0.getOrElse(List())
-      check(condSymPath.isEmpty, "BindExpr with cond sym path not implemented")
-      refCtx(idx) match {
-        case symbol: MetaLang3Ast.Symbol =>
-          // 이 부분은 valuefySequence에서 마지막 elem의 종류에 따라 SeqElem을 넣는 것 때문에
-          // valuefySymbol을 재사용하지 못하고 valuefySymbol과 거의 같은 코드가 중복돼서 들어갔음
-          // TODO 고칠 수 있으면 좋을텐데..
-          def processBindExpr(symbol: MetaLang3Ast.Symbol): ValuefyExpr =
-            symbol match {
-              case MetaLang3Ast.Optional(body) =>
-                val vBody = proxy(valuefySymbol(body, List(), input))
-                val emptySeq = Symbols.Proxy(Symbols.Sequence(Seq()))
-                val oneofSymbol = Symbols.OneOf(ListSet(vBody._2, emptySeq))
-                Unbind(oneofSymbol, UnrollChoices(Map(emptySeq -> NullLiteral,
-                  vBody._2 -> processBindExpr(body))))
-              case MetaLang3Ast.RepeatFromZero(body) =>
-                UnrollRepeatFromZero(processBindExpr(body))
-              case MetaLang3Ast.RepeatFromOne(body) =>
-                UnrollRepeatFromOne(processBindExpr(body))
-              case MetaLang3Ast.InPlaceChoices(choices) if choices.size == 1 =>
-                // 어차피 choice가 하나이므로 UnrollChoices 대신 Unbind만 해도 됨
-                Unbind(valuefySymbol(symbol, List(), InputNode)._2, processBindExpr(choices.head))
-              case MetaLang3Ast.Longest(choices) =>
-                Unbind(valuefySymbol(symbol, List(), InputNode)._2, processBindExpr(choices))
-              case MetaLang3Ast.Sequence(seq) =>
-                val (processor, seqSymbol) = valuefySequence(seq :+ binder.asInstanceOf[MetaLang3Ast.Processor], input)
-                proxy(Unbind(seqSymbol, processor), seqSymbol)._1
-              case _ =>
-                // throw IllegalGrammar("Unsupported binding context")
-                errorCollector.addError("Unsupported binding context", processor.parseNode)
-                InputNode
-            }
-
-          SeqElemAt(symbolIndexFrom(refCtx, idx), processBindExpr(symbol))
-        case _: MetaLang3Ast.Processor =>
-          // throw IllegalGrammar("BindExpr cannot refer to processor")
-          errorCollector.addError("BindExpr cannot refer to processor", processor.parseNode)
-          InputNode
+      case MetaLang3Ast.NamedConstructExpr(typeName, params, supers0) =>
+        val className = stringNameOf(typeName)
+        // add className->supers
+        supers0 match {
+          case Some(supers) =>
+            _classInfoCollector = _classInfoCollector.addClassSuperTypes(className, supers.map(stringNameOf))
+          case None =>
+        }
+        // add className->params
+        val paramSpecs = params.map(p => ClassParamSpec(stringNameOf(p.name), p.typeDesc.map(typeOf)))
+        _classInfoCollector = _classInfoCollector.addClassParamSpecs(className, ClassSpec(paramSpecs))
+        // add className->callers
+        val vParams = params.map(p => valuefyPExpr(refCtx, p.expr, input, p.expr +: callCtx))
+        _classInfoCollector = _classInfoCollector.addClassConstructCall(className, vParams)
+        ConstructCall(className, vParams)
+      case MetaLang3Ast.FuncCallOrConstructExpr(funcName, params) =>
+        val vParams = params.map(param => valuefyPExpr(refCtx, param, input, param +: callCtx))
+        stringNameOf(funcName) match {
+          case "ispresent" => FuncCall(FuncType.IsPresent, vParams)
+          case "isempty" => FuncCall(FuncType.IsEmpty, vParams)
+          case "chr" => FuncCall(FuncType.Chr, vParams)
+          case "str" => FuncCall(FuncType.Str, vParams)
+          case className =>
+            // construct이면 add className->params
+            _classInfoCollector = _classInfoCollector.addClassConstructCall(className, vParams)
+            ConstructCall(className, vParams)
+        }
+      case MetaLang3Ast.ArrayExpr(elems) =>
+        val vElems = elems.map(elem => valuefyPExpr(refCtx, elem, input, elem +: callCtx))
+        ArrayExpr(vElems)
+      case literal: MetaLang3Ast.Literal => literal match {
+        case MetaLang3Ast.NullLiteral() => NullLiteral
+        case MetaLang3Ast.BoolLiteral(value) => BoolLiteral(value)
+        case MetaLang3Ast.CharLiteral(value) => CharLiteral(TerminalUtil.terminalCharToChar(value))
+        case MetaLang3Ast.StrLiteral(value) => StringLiteral(TerminalUtil.stringCharsToString(value))
       }
-    case MetaLang3Ast.NamedConstructExpr(typeName, params, supers0) =>
-      val className = stringNameOf(typeName)
-      // add className->supers
-      supers0 match {
-        case Some(supers) =>
-          _classInfoCollector = _classInfoCollector.addClassSuperTypes(className, supers.map(stringNameOf))
-        case None =>
+      case enumValue: MetaLang3Ast.AbstractEnumValue => enumValue match {
+        case MetaLang3Ast.CanonicalEnumValue(enumName, valueName) =>
+          val enumTypeName = stringNameOf(enumName)
+          val enumValueName = stringNameOf(valueName)
+          // enumTypeName의 value로 enumValueName 추가
+          _classInfoCollector = _classInfoCollector.addCanonicalEnumValue(enumTypeName, enumValueName)
+          CanonicalEnumValue(enumTypeName, enumValueName)
+        case MetaLang3Ast.ShortenedEnumValue(valueName) =>
+          val shortenedEnumTypeId = nextId()
+          val enumValueName = stringNameOf(valueName)
+          // enumId의 value로 enumValueName 추가
+          _classInfoCollector = _classInfoCollector.addShortenedEnumValue(shortenedEnumTypeId, enumValueName)
+          ShortenedEnumValue(shortenedEnumTypeId, enumValueName)
       }
-      // add className->params
-      val paramSpecs = params.map(p => ClassParamSpec(stringNameOf(p.name), p.typeDesc.map(typeOf)))
-      _classInfoCollector = _classInfoCollector.addClassParamSpecs(className, ClassSpec(paramSpecs))
-      // add className->callers
-      val vParams = params.map(p => valuefyPExpr(refCtx, p.expr, input))
-      _classInfoCollector = _classInfoCollector.addClassConstructCall(className, vParams)
-      ConstructCall(className, vParams)
-    case MetaLang3Ast.FuncCallOrConstructExpr(funcName, params) =>
-      val vParams = params.map(valuefyPExpr(refCtx, _, input))
-      stringNameOf(funcName) match {
-        case "ispresent" => FuncCall(FuncType.IsPresent, vParams)
-        case "isempty" => FuncCall(FuncType.IsEmpty, vParams)
-        case "chr" => FuncCall(FuncType.Chr, vParams)
-        case "str" => FuncCall(FuncType.Str, vParams)
-        case className =>
-          // construct이면 add className->params
-          _classInfoCollector = _classInfoCollector.addClassConstructCall(className, vParams)
-          ConstructCall(className, vParams)
-      }
-    case MetaLang3Ast.ArrayExpr(elems) =>
-      val vElems = elems.map(valuefyPExpr(refCtx, _, input))
-      ArrayExpr(vElems)
-    case literal: MetaLang3Ast.Literal => literal match {
-      case MetaLang3Ast.NullLiteral() => NullLiteral
-      case MetaLang3Ast.BoolLiteral(value) => BoolLiteral(value)
-      case MetaLang3Ast.CharLiteral(value) => CharLiteral(TerminalUtil.terminalCharToChar(value))
-      case MetaLang3Ast.StrLiteral(value) => StringLiteral(TerminalUtil.stringCharsToString(value))
-    }
-    case enumValue: MetaLang3Ast.AbstractEnumValue => enumValue match {
-      case MetaLang3Ast.CanonicalEnumValue(enumName, valueName) =>
-        val enumTypeName = stringNameOf(enumName)
-        val enumValueName = stringNameOf(valueName)
-        // enumTypeName의 value로 enumValueName 추가
-        _classInfoCollector = _classInfoCollector.addCanonicalEnumValue(enumTypeName, enumValueName)
-        CanonicalEnumValue(enumTypeName, enumValueName)
-      case MetaLang3Ast.ShortenedEnumValue(valueName) =>
-        val shortenedEnumTypeId = nextId()
-        val enumValueName = stringNameOf(valueName)
-        // enumId의 value로 enumValueName 추가
-        _classInfoCollector = _classInfoCollector.addShortenedEnumValue(shortenedEnumTypeId, enumValueName)
-        ShortenedEnumValue(shortenedEnumTypeId, enumValueName)
     }
   }
 
-  private def valuefyProcessor(refCtx: List[MetaLang3Ast.Elem], processor: MetaLang3Ast.Processor, input: ValuefyExpr) =
+  private def valuefyProcessor(refCtx: List[MetaLang3Ast.Elem], processor: MetaLang3Ast.Processor, input: ValuefyExpr, callCtx: List[MetaLang3Ast.PExpr]) =
     processor match {
-      case MetaLang3Ast.ProcessorBlock(body) => valuefyPExpr(refCtx, body, input)
-      case ref: MetaLang3Ast.Ref => valuefyPExpr(refCtx, ref, input)
+      case MetaLang3Ast.ProcessorBlock(body) => valuefyPExpr(refCtx, body, input, body +: callCtx)
+      case ref: MetaLang3Ast.Ref => valuefyPExpr(refCtx, ref, input, ref +: callCtx)
     }
 
   private def valuefySequence(seq: List[MetaLang3Ast.Elem], input: ValuefyExpr): (ValuefyExpr, Symbols.Symbol) = {
@@ -383,7 +392,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
         val p = proxy(valuefySymbol(symbol, List(), input))
         (p._1, Some(p._2))
       case processor: MetaLang3Ast.Processor =>
-        (valuefyProcessor(seq, processor, input), None)
+        (valuefyProcessor(seq, processor, input, List()), None)
     }
     val symbols = elems.flatMap(_._2)
     val lastProcessor = elems.last._1
