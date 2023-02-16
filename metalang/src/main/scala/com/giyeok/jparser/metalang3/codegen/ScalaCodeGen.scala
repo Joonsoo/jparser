@@ -3,7 +3,7 @@ package com.giyeok.jparser.metalang3.codegen
 import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.{NNonterminal, NStart}
 import com.giyeok.jparser.metalang3.MetaLanguage3.{ProcessedGrammar, check}
-import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen.{AuxTrait, CodeBlob, ExprBlob, Options}
+import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen.{AuxTrait, Options}
 import com.giyeok.jparser.metalang3.{ClassHierarchyItem, ClassRelationCollector, Type, ValuefyExpr}
 import com.giyeok.jparser.proto.GrammarProtobufConverter
 import com.giyeok.jparser.utils.JavaCodeGenUtil.javaChar
@@ -43,31 +43,6 @@ object ScalaCodeGen {
   object InlineProtoDef extends GrammarDefType
 
   case class FileProtoDef(filePath: String) extends GrammarDefType
-
-  case class CodeBlob(code: String, required: Set[String]) {
-    def indent(width: Int = 2): CodeBlob =
-      copy(code.linesIterator.toList.map(line => (" " * width) + line).mkString("\n"))
-
-    def +(other: CodeBlob): CodeBlob = CodeBlob(code + "\n" + other.code, required ++ other.required)
-
-    def wrap(pre: CodeBlob, post: CodeBlob, requiredImports: Set[String]): CodeBlob =
-      CodeBlob(pre.code + "\n" + indent().code + "\n" + post.code,
-        requiredImports ++ pre.required ++ post.required)
-
-    def wrap(pre: String, post: String): CodeBlob = copy(pre + "\n" + indent().code + "\n" + post)
-
-    def wrapBrace(): CodeBlob = wrap(CodeBlob("{", Set()), CodeBlob("}", Set()), Set())
-  }
-
-  case class ExprBlob(prepares: List[String], result: String, required: Set[String]) {
-    def withBraceIfNeeded: String =
-      if (prepares.isEmpty) result else "{\n" + prepares.map("  " + _).mkString("\n") + "\n}"
-  }
-
-  object ExprBlob {
-    def code(code: String) = ExprBlob(List(), code, Set())
-  }
-
 }
 
 class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Options()) {
