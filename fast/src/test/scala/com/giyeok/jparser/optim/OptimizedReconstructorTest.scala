@@ -25,9 +25,10 @@ class OptimizedReconstructorTest extends AnyFlatSpec {
     println(codegen.nonterminalMatchFunc("ListValue")._1.code)
     println(codegen.nonterminalMatchFunc("TupleValue")._1.code)
     println(codegen.nonterminalMatchFunc("BoolValue")._1.code)
+    println(codegen.nonterminalMatchFunc("StrChar")._1.code)
 
     val parser = new NaiveParser(grammar.ngrammar)
-    val inputs = Inputs.fromString("{\"hello\": 1, \"world\": 2, \"foo\": \"bar\"}")
+    val inputs = Inputs.fromString("{\"hello\": 1, \"world\": (234,345,456,567), \"foo\": \"bar\"}")
     val parsed = parser.parse(inputs).left.get
 
     val history = parsed.history.map(g => new KernelSet(g.nodes.map(_.kernel).asJava))

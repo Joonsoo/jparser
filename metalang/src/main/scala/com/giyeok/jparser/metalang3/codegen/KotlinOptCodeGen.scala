@@ -4,7 +4,9 @@ import com.giyeok.jparser.NGrammar.{NNonterminal, NRepeat, NStart}
 import com.giyeok.jparser.Symbols
 import com.giyeok.jparser.metalang3.MetaLanguage3.{ProcessedGrammar, check}
 import com.giyeok.jparser.metalang3.{ClassHierarchyItem, ClassRelationCollector, Type, ValuefyExpr}
-import com.giyeok.jparser.utils.JavaCodeGenUtil.javaChar
+import com.giyeok.jparser.utils.JavaCodeGenUtil.{isPrintableChar, javaChar}
+
+import scala.annotation.tailrec
 
 // Kernel set list -> AST 변환하는 코드 생성 코드
 // ScalaCodeGen은 parse tree를 받아서 AST로 변환
@@ -16,6 +18,24 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     varId += 1
     s"var$varId"
   }
+
+  def escapeChar(c: Char): String = c match {
+    case '\b' => "\\b"
+    case '\n' => "\\n"
+    case '\r' => "\\r"
+    case '\t' => "\\t"
+    case '\\' => "\\\\"
+    case '\'' => "\\'"
+    case '$' => "\\$"
+    case c if !isPrintableChar(c) && c.toInt < 65536 =>
+      val c1 = (c.toInt >> 8) % 256
+      val c2 = c.toInt % 256
+      val hexChars = "0123456789abcdef"
+      s"\\u${hexChars(c1 >> 4)}${hexChars(c1 & 15)}${hexChars(c2 >> 4)}${hexChars(c2 & 15)}"
+    case c => c.toString
+  }
+
+  def escapeString(s: String): String = s.flatMap(escapeChar)
 
   def typeDescStringOf(typ: Type, context: Option[String] = None): CodeBlob = typ match {
     case Type.NodeType => CodeBlob("Node", Set("com.giyeok.jparser.ParseResultTree.Node"))
@@ -114,7 +134,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     // choices가 하나인 경우 체크 없이 바로 다음 단계로
     if (choicesMap.size == 1) {
       val (choiceSymbol, choiceExpr) = choicesMap.head
-      valuefyExprToCode(choiceExpr, beginGen, endGen, choiceSymbol)
+      valuefyExprToCode(choiceExpr, beginGen, endGen, choiceSymbol, SequenceVarName(None))
     } else {
       val choiceSymbols = choicesMap.keys.toList.sortBy(analysis.ngrammar.idOf)
       val choiceVars = choiceSymbols.map(_ => newVar())
@@ -134,7 +154,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       val choiceCodes = choices.zipWithIndex.flatMap { pair =>
         val ((varName, choiceSymbol), index) = pair
         val choiceExpr = choicesMap(choiceSymbol)
-        val exprCode = valuefyExprToCode(choiceExpr, beginGen, endGen, choiceSymbol)
+        val exprCode = valuefyExprToCode(choiceExpr, beginGen, endGen, choiceSymbol, SequenceVarName(None))
         val isLast = choices.size - 1 == index
         val condition = if (isLast) "else" else s"$varName != null"
         if (exprCode.prepares.isEmpty) {
@@ -151,7 +171,11 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
 
   private def typeOf(expr: ValuefyExpr): Type = analysis.typeInferer.typeOfValuefyExpr(expr).get
 
-  def valuefyExprToCode(valuefyExpr: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol): ExprBlob = valuefyExpr match {
+  case class SequenceVarName(var name: Option[String])
+
+  // symbol은 현재 처리중인 심볼
+  // sequenceVar는 현재 처리중인 심볼이 sequence인 경우 혹시 앞에서 getSequenceElems를 한 결과를 가진게 있으면 재사용할 수 있게 그 이름을 전달
+  def valuefyExprToCode(valuefyExpr: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol, sequenceVarName: SequenceVarName): ExprBlob = valuefyExpr match {
     case ValuefyExpr.InputNode =>
       // 부분적으로 parse tree reconstruct해서 반환
       ???
@@ -159,31 +183,33 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       val v = newVar()
       ExprBlob(List(s"val $v = ${nonterminalMatchFuncName(nonterminalName)}($beginGen, $endGen)"), v, Set())
     case ValuefyExpr.Unbind(symbol, expr) =>
-      // 불필요한 체크는 스킵 - 다 스킵해버려도 되나?
-      //      val v = newVar()
-      //      val symbolId = analysis.ngrammar.idOf(symbol)
-      //      val lastPointer = analysis.ngrammar.lastPointerOf(symbolId)
-      //      val afterCheck = valuefyExprToCode(expr, beginGen, endGen, symbol)
-      //      ExprBlob(List(s"val $v = history[$endGen]",
-      //        s"  .filter { it.symbolId() == $symbolId && it.pointer == $lastPointer && it.beginGen == $beginGen }",
-      //        "  .checkSingle()"
-      //      ) ++ afterCheck.prepares, afterCheck.result, afterCheck.required)
-      valuefyExprToCode(expr, beginGen, endGen, symbol)
-    case ValuefyExpr.JoinBody(bodyProcessor) => ???
-    case ValuefyExpr.JoinCond(condProcessor) => ???
+      // Unbind 체크는 파싱이 잘 됐으면 불필요하므로 여기서는 스킵
+      valuefyExprToCode(expr, beginGen, endGen, symbol, sequenceVarName)
+    case ValuefyExpr.JoinBody(bodyProcessor) =>
+      val joinSymbol = symbol.asInstanceOf[Symbols.Join]
+      valuefyExprToCode(bodyProcessor, beginGen, endGen, joinSymbol.sym, SequenceVarName(None))
+    case ValuefyExpr.JoinCond(condProcessor) =>
+      val joinSymbol = symbol.asInstanceOf[Symbols.Join]
+      valuefyExprToCode(condProcessor, beginGen, endGen, joinSymbol.join, SequenceVarName(None))
     case ValuefyExpr.SeqElemAt(index, expr) =>
       val sequenceId = analysis.ngrammar.idOf(symbol)
       val sequence = analysis.ngrammar.nsequences(sequenceId)
-      val seqVar = newVar()
-      val getSequenceElems = s"val $seqVar = getSequenceElems(history, $sequenceId, listOf(${sequence.sequence.mkString(",")}), $beginGen, $endGen)"
-      val elemValuefy = valuefyExprToCode(expr, s"$seqVar[$index].first", s"$seqVar[$index].second", sequence.symbol.seq(index))
-      ExprBlob(getSequenceElems +: elemValuefy.prepares, elemValuefy.result, elemValuefy.required)
+      sequenceVarName.name match {
+        case Some(seqVar) =>
+          valuefyExprToCode(expr, s"$seqVar[$index].first", s"$seqVar[$index].second", sequence.symbol.seq(index), sequenceVarName)
+        case None =>
+          val seqVar = newVar()
+          val getSequenceElems = s"val $seqVar = getSequenceElems(history, $sequenceId, listOf(${sequence.sequence.mkString(",")}), $beginGen, $endGen)"
+          sequenceVarName.name = Some(seqVar)
+          val elemValuefy = valuefyExprToCode(expr, s"$seqVar[$index].first", s"$seqVar[$index].second", sequence.symbol.seq(index), sequenceVarName)
+          ExprBlob(getSequenceElems +: elemValuefy.prepares, elemValuefy.result, elemValuefy.required)
+      }
     case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) =>
       val v = newVar()
       val symbolId = analysis.ngrammar.idOf(symbol)
       val repeat = analysis.ngrammar.symbolOf(symbolId).asInstanceOf[NRepeat]
       val itemSymId = analysis.ngrammar.idOf(repeat.symbol.sym)
-      val elemProcessorCode = valuefyExprToCode(elemProcessor, "k.first", "k.second", repeat.symbol.sym)
+      val elemProcessorCode = valuefyExprToCode(elemProcessor, "k.first", "k.second", repeat.symbol.sym, SequenceVarName(None))
       ExprBlob(
         List(s"val $v = unrollRepeat0(history, $symbolId, $itemSymId, ${repeat.baseSeq}, ${repeat.repeatSeq}, $beginGen, $endGen).map { k ->") ++
           elemProcessorCode.prepares ++
@@ -195,7 +221,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       val symbolId = analysis.ngrammar.idOf(symbol)
       val repeat = analysis.ngrammar.symbolOf(symbolId).asInstanceOf[NRepeat]
       val itemSymId = analysis.ngrammar.idOf(repeat.symbol.sym)
-      val elemProcessorCode = valuefyExprToCode(elemProcessor, "k.first", "k.second", repeat.symbol.sym)
+      val elemProcessorCode = valuefyExprToCode(elemProcessor, "k.first", "k.second", repeat.symbol.sym, SequenceVarName(None))
       ExprBlob(
         List(s"val $v = unrollRepeat1(history, $symbolId, $itemSymId, ${repeat.baseSeq}, ${repeat.repeatSeq}, $beginGen, $endGen).map { k ->") ++
           elemProcessorCode.prepares ++
@@ -206,22 +232,22 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       unrollChoicesExpr(choices, beginGen, endGen)
     case ValuefyExpr.ConstructCall(className, params) =>
       val paramCodes = params.zipWithIndex.map { case (param, index) =>
-        valuefyExprToCode(param, beginGen, endGen, symbol)
+        valuefyExprToCode(param, beginGen, endGen, symbol, sequenceVarName)
       }
       val v = newVar()
       val construct = s"val $v = $className(${paramCodes.map(_.result).mkString(", ")}, nextId(), $beginGen, $endGen)"
       ExprBlob(paramCodes.flatMap(_.prepares) :+ construct, v, paramCodes.flatMap(_.required).toSet)
     case ValuefyExpr.FuncCall(funcType, params) =>
-      ExprBlob(List(), s"TODO_funccall($funcType)", Set())
+      funcCallToCode(funcType, params, beginGen, endGen, symbol, sequenceVarName)
     case ValuefyExpr.ArrayExpr(elems) =>
       val elemType = typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType
-      val elemCodes = elems.map(valuefyExprToCode(_, beginGen, endGen, symbol))
+      val elemCodes = elems.map(valuefyExprToCode(_, beginGen, endGen, symbol, sequenceVarName))
       ExprBlob(elemCodes.flatMap(_.prepares),
         s"listOf(${elemCodes.map(_.result).mkString(", ")})",
         elemCodes.flatMap(_.required).toSet)
     case ValuefyExpr.BinOp(op, lhs, rhs) =>
-      val lhsCode = valuefyExprToCode(lhs, beginGen, endGen, symbol)
-      val rhsCode = valuefyExprToCode(rhs, beginGen, endGen, symbol)
+      val lhsCode = valuefyExprToCode(lhs, beginGen, endGen, symbol, sequenceVarName)
+      val rhsCode = valuefyExprToCode(rhs, beginGen, endGen, symbol, sequenceVarName)
       val opExpr = op match {
         case com.giyeok.jparser.metalang3.ValuefyExpr.BinOpType.ADD =>
           (typeOf(lhs), typeOf(rhs)) match {
@@ -244,17 +270,43 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
           }
       }
       ExprBlob(lhsCode.prepares ++ rhsCode.prepares, opExpr, lhsCode.required ++ rhsCode.required)
-    case ValuefyExpr.PreOp(op, expr) => ???
-    case ValuefyExpr.ElvisOp(expr, ifNull) => ???
-    case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) => ???
+    case ValuefyExpr.PreOp(op, expr) =>
+      op match {
+        case com.giyeok.jparser.metalang3.ValuefyExpr.PreOpType.NOT =>
+          check(typeOf(expr) == Type.BoolType, "not can be applied only to boolean expression")
+          val exprCode = valuefyExprToCode(expr, beginGen, endGen, symbol, sequenceVarName)
+          val resultVar = newVar()
+          ExprBlob(exprCode.prepares :+ s"val $resultVar = !${exprCode.result}", resultVar, exprCode.required)
+      }
+    case ValuefyExpr.ElvisOp(expr, ifNull) =>
+      val exprVar = newVar()
+      val exprCode = valuefyExprToCode(expr, beginGen, endGen, symbol, sequenceVarName)
+      val ifNullCode = valuefyExprToCode(ifNull, beginGen, endGen, symbol, sequenceVarName)
+      ExprBlob(
+        exprCode.prepares :+ s"val $exprVar = ${exprCode.result}",
+        s"$exprVar ?: ${ifNullCode.withBraceIfNeeded}",
+        exprCode.required ++ ifNullCode.required)
+    case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
+      val conditionCode = valuefyExprToCode(condition, beginGen, endGen, symbol, sequenceVarName)
+      val resultType = typeOf(valuefyExpr)
+      val thenCode = valuefyExprToCode(ifTrue, beginGen, endGen, symbol, sequenceVarName)
+      val elseCode = valuefyExprToCode(ifFalse, beginGen, endGen, symbol, sequenceVarName)
+      val resultVar = newVar()
+      ExprBlob(conditionCode.prepares ++
+        List(s"val $resultVar = if (${conditionCode.result}) {") ++
+        thenCode.prepares ++
+        List(thenCode.result, "} else {") ++
+        elseCode.prepares ++ List(elseCode.result, "}"),
+        resultVar,
+        conditionCode.required ++ thenCode.required ++ elseCode.required)
     case literal: ValuefyExpr.Literal =>
       literal match {
         case ValuefyExpr.NullLiteral => ExprBlob.code("null")
         case ValuefyExpr.BoolLiteral(value) => ExprBlob.code(s"$value")
-        case ValuefyExpr.CharLiteral(value) => ExprBlob.code(s"'${javaChar(value)}'") // TODO escape
+        case ValuefyExpr.CharLiteral(value) => ExprBlob.code(s"'${escapeChar(value)}'") // TODO escape
         case ValuefyExpr.CharFromTerminalLiteral =>
-          ExprBlob(List(), "TODO(char)", Set())
-        case ValuefyExpr.StringLiteral(value) => ExprBlob.code("\"" + value + "\"") // TODO escape
+          ExprBlob(List(), s"(inputs[$beginGen] as Inputs.Character).char()", Set())
+        case ValuefyExpr.StringLiteral(value) => ExprBlob.code("\"" + escapeString(value) + "\"") // TODO escape
       }
     case enumValue: ValuefyExpr.EnumValue =>
       enumValue match {
@@ -263,6 +315,81 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
           val enumName = analysis.shortenedEnumTypesMap(unspecifiedEnumTypeId)
           ExprBlob.code(s"$enumName.$enumValue")
       }
-    case _ => ???
+  }
+
+  def funcCallToCode(funcType: ValuefyExpr.FuncType.Value, params: List[ValuefyExpr], beginGen: String, endGen: String, symbol: Symbols.Symbol, sequenceVarName: SequenceVarName): ExprBlob = {
+    funcType match {
+      case com.giyeok.jparser.metalang3.ValuefyExpr.FuncType.IsPresent =>
+        check(params.size == 1, "ispresent function only can have exactly one parameter")
+        val param = valuefyExprToCode(params.head, beginGen, endGen, symbol, sequenceVarName)
+
+        @tailrec def isPresentCode(paramType: Type): String = paramType match {
+          // case Type.NodeType => s"${param.result}.sourceText.nonEmpty"
+          case Type.ArrayOf(_) => s"${param.result}.isNotEmpty()"
+          case Type.OptionalOf(_) => s"${param.result} != null"
+          case Type.StringType => s"${param.result}.isNotEmpty()"
+          case unionType: Type.UnionOf =>
+            val reducedType = analysis.reduceUnionType(unionType)
+            check(!reducedType.isInstanceOf[Type.UnionOf], "union type not supported in ispresent function")
+            isPresentCode(reducedType)
+          // 그 외 타입은 지원하지 않음
+        }
+
+        ExprBlob(param.prepares, isPresentCode(typeOf(params.head)), param.required)
+      case com.giyeok.jparser.metalang3.ValuefyExpr.FuncType.IsEmpty =>
+        check(params.size == 1, "isempty function only can have exactly one parameter")
+        val param = valuefyExprToCode(params.head, beginGen, endGen, symbol, sequenceVarName)
+
+        @tailrec def isEmptyCode(paramType: Type): String = paramType match {
+          // case Type.NodeType => s"${param.result}.TODO"
+          case Type.ArrayOf(_) => s"${param.result}.isEmpty()"
+          case Type.OptionalOf(_) => s"${param.result} == null"
+          case Type.StringType => s"${param.result}.isEmpty()"
+          case unionType: Type.UnionOf =>
+            val reducedType = analysis.reduceUnionType(unionType)
+            check(!reducedType.isInstanceOf[Type.UnionOf], "union type not supported in isempty function")
+            isEmptyCode(reducedType)
+          // 그 외 타입은 지원하지 않음
+        }
+
+        ExprBlob(param.prepares, isEmptyCode(typeOf(params.head)), param.required)
+      case com.giyeok.jparser.metalang3.ValuefyExpr.FuncType.Chr =>
+        check(params.size == 1, "chr function only can have exactly one parameter")
+        val paramCode = valuefyExprToCode(params.head, beginGen, endGen, symbol, sequenceVarName)
+        val result = typeOf(params.head) match {
+          // case Type.NodeType => s"${paramCode.result}.TODO()"
+          case Type.CharType => paramCode.result
+        }
+        ExprBlob(paramCode.prepares, result, paramCode.required)
+      case com.giyeok.jparser.metalang3.ValuefyExpr.FuncType.Str =>
+        val paramCodes = params.map(valuefyExprToCode(_, beginGen, endGen, symbol, sequenceVarName))
+
+        def toStringCode(input: String, inputType: Type): String = inputType match {
+          // case Type.NodeType => s"$input.TODO()"
+          case Type.ArrayOf(elemType) => s"""$input.joinToString("") { ${toStringCode("it", elemType)} }"""
+          case Type.OptionalOf(valueType) =>
+            s"""($input?.let { ${toStringCode("it", valueType)} } ?: "")"""
+          case Type.BoolType => s"$input.toString()"
+          case Type.CharType => s"$input.toString()"
+          case Type.StringType => input
+          case unionType: Type.UnionOf =>
+            val reducedType = analysis.reduceUnionType(unionType)
+            check(!reducedType.isInstanceOf[Type.UnionOf], "union type not supported in str function")
+            toStringCode(input, reducedType)
+        }
+
+        ExprBlob(paramCodes.flatMap(_.prepares),
+          paramCodes.zip(params).map { case (paramCode, param) =>
+            val paramType = typeOf(param)
+            toStringCode(paramCode.result, paramType)
+          }.mkString(" + "),
+          paramCodes.flatMap(_.required).toSet)
+    }
+  }
+
+  def generateAstifier(pkgName: Option[String]): String = {
+    """import com.giyeok.jparser.Inputs
+      |
+      |""".stripMargin
   }
 }

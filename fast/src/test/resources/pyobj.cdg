@@ -1,0 +1,17 @@
+PyObj = '{' WS (ObjField (WS ',' WS ObjField)* (WS ',')? WS)? '}' {PyObj(fields=$2{[$0] + $1})}
+ObjField = StrLiteral WS ':' WS Value {ObjField(name=$0, value=$4)}
+StrLiteral = '"' StrChar* '"' {StrLiteral(value=str($1))}
+  | '\'' StrChar* '\'' {StrLiteral(str($1))}
+Value: Value = BoolValue {BoolValue(value=$0)}
+  | IntLiteral {IntValue(value=$0)}
+  | StrLiteral {StrValue(value=$0)}
+  | ListValue
+  | TupleValue
+BoolValue: %BoolEnum = "True" {%True} | "False" {%False}
+ListValue = '[' WS (Value (WS ',' WS Value)* (WS ',')? WS)? ']' {ListValue(elems=$2{[$0] + $1} ?: [])}
+TupleValue = '(' WS Value WS ',' WS ')' {TupleValue(elems=[$2])}
+  | '(' WS Value (WS ',' WS Value)+ (WS ',')? WS ')' {TupleValue([$2] + $3)}
+WS = ' \n\t'*
+IntLiteral = '0' {IntLiteral(value="0")}
+  | '1-9' '0-9'* {IntLiteral(str($0, $1) + (isempty($1) ? "hello":"world"))}
+StrChar = 'a-zA-Z0-9 _<>|='

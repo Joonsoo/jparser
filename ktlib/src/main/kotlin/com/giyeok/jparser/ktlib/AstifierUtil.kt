@@ -1,4 +1,4 @@
-package com.giyeok.jparser.test
+package com.giyeok.jparser.ktlib
 
 import com.giyeok.jparser.nparser.ParsingContext.Kernel
 
@@ -68,7 +68,6 @@ fun unrollRepeat0(
     listOf()
   } else {
     val seq = getSequenceElems(history, repeatSeq, listOf(symbolId, itemSymId), beginGen, endGen)
-    println(seq)
     val repeating = seq.first()
     val item = seq[1]
     unrollRepeat0(
@@ -86,10 +85,31 @@ fun unrollRepeat0(
 fun unrollRepeat1(
   history: List<KernelSet>,
   symbolId: Int,
+  itemSymId: Int,
   baseSeq: Int,
   repeatSeq: Int,
   beginGen: Int,
   endGen: Int
 ): List<Pair<Int, Int>> {
-  TODO()
+  val base = history[endGen].findByBeginGenOpt(baseSeq, 1, beginGen)
+  val repeat = history[endGen].findByBeginGenOpt(repeatSeq, 2, beginGen)
+  check(hasSingleTrue(base != null, repeat != null))
+  return if (base != null) {
+    val baseItem = history[endGen].findByBeginGen(itemSymId, 1, beginGen)
+    listOf(baseItem.beginGen() to baseItem.endGen())
+  } else {
+    val seq = getSequenceElems(history, repeatSeq, listOf(symbolId, itemSymId), beginGen, endGen)
+    println(seq)
+    val repeating = seq.first()
+    val item = seq[1]
+    unrollRepeat1(
+      history,
+      symbolId,
+      itemSymId,
+      baseSeq,
+      repeatSeq,
+      repeating.first,
+      repeating.second
+    ) + item
+  }
 }

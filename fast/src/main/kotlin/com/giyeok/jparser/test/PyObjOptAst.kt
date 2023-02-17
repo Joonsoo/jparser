@@ -35,28 +35,40 @@ class PyObjKtOptAst(
     override val symbolId: Int,
     override val start: Int,
     override val end: Int
-  ) : Value, AstNode
+  ) : Value, AstNode {
+    override fun toString(): String =
+      "BoolValue(value=$value)"
+  }
 
   data class IntLiteral(
     val value: String,
     override val symbolId: Int,
     override val start: Int,
     override val end: Int
-  ) : AstNode
+  ) : AstNode {
+    override fun toString(): String =
+      "IntLiteral(value=$value)"
+  }
 
   data class IntValue(
     val value: IntLiteral,
     override val symbolId: Int,
     override val start: Int,
     override val end: Int
-  ) : Value, AstNode
+  ) : Value, AstNode {
+    override fun toString(): String =
+      "IntValue(value=$value)"
+  }
 
   data class ListValue(
     val elems: List<Value>?,
     override val symbolId: Int,
     override val start: Int,
     override val end: Int
-  ) : Value, AstNode
+  ) : Value, AstNode {
+    override fun toString(): String =
+      "ListValue(elems=$elems)"
+  }
 
   data class ObjField(
     val name: StrLiteral,
@@ -64,35 +76,50 @@ class PyObjKtOptAst(
     override val symbolId: Int,
     override val start: Int,
     override val end: Int
-  ) : Value, AstNode
+  ) : Value, AstNode {
+    override fun toString(): String =
+      "ObjField(name=$name, value=$value)"
+  }
 
   data class PyObj(
     val fields: List<ObjField>?,
     override val symbolId: Int,
     override val start: Int,
     override val end: Int
-  ) : AstNode
+  ) : AstNode {
+    override fun toString(): String =
+      "PyObj(fields=$fields)"
+  }
 
   data class StrLiteral(
     val value: String,
     override val symbolId: Int,
     override val start: Int,
     override val end: Int
-  ) : AstNode
+  ) : AstNode {
+    override fun toString(): String =
+      "StrLiteral(value=$value)"
+  }
 
   data class StrValue(
     val value: StrLiteral,
     override val symbolId: Int,
     override val start: Int,
     override val end: Int
-  ) : Value, AstNode
+  ) : Value, AstNode {
+    override fun toString(): String =
+      "StrValue(value=$value)"
+  }
 
   data class TupleValue(
     val elems: List<Value>,
     override val symbolId: Int,
     override val start: Int,
     override val end: Int
-  ) : Value, AstNode
+  ) : Value, AstNode {
+    override fun toString(): String =
+      "TupleValue(elems=$elems)"
+  }
 
   enum class BoolEnum {
     False, True
@@ -116,178 +143,210 @@ class PyObjKtOptAst(
         val var5 =
           getSequenceElems(history, 14, listOf(15, 83, 69, 5), var1[2].first, var1[2].second)
         val var6 = matchObjField(var5[0].first, var5[0].second)
-        val var7 =
-          getSequenceElems(history, 14, listOf(15, 83, 69, 5), var1[2].first, var1[2].second)
-        val var8 = unrollRepeat0(history, 83, 85, 8, 84, var7[1].first, var7[1].second).map { k ->
-          val var9 = getSequenceElems(history, 87, listOf(5, 68, 5, 15), k.first, k.second)
-          val var10 = matchObjField(var9[3].first, var9[3].second)
-          var10
+        val var7 = unrollRepeat0(history, 83, 85, 8, 84, var5[1].first, var5[1].second).map { k ->
+          val var8 = getSequenceElems(history, 87, listOf(5, 68, 5, 15), k.first, k.second)
+          val var9 = matchObjField(var8[3].first, var8[3].second)
+          var9
         }
-        listOf(var6) + var8
+        listOf(var6) + var7
       }
 
       else -> null
     }
-    val var11 = PyObj(var4, nextId(), beginGen, endGen)
-    return var11
+    val var10 = PyObj(var4, nextId(), beginGen, endGen)
+    return var10
   }
 
   fun matchObjField(beginGen: Int, endGen: Int): ObjField {
-    val var12 = getSequenceElems(history, 16, listOf(17, 5, 27, 5, 28), beginGen, endGen)
-    val var13 = matchStrLiteral(var12[0].first, var12[0].second)
-    val var14 = getSequenceElems(history, 16, listOf(17, 5, 27, 5, 28), beginGen, endGen)
-    val var15 = matchValue(var14[4].first, var14[4].second)
-    val var16 = ObjField(var13, var15, nextId(), beginGen, endGen)
-    return var16
+    val var11 = getSequenceElems(history, 16, listOf(17, 5, 27, 5, 28), beginGen, endGen)
+    val var12 = matchStrLiteral(var11[0].first, var11[0].second)
+    val var13 = matchValue(var11[4].first, var11[4].second)
+    val var14 = ObjField(var12, var13, nextId(), beginGen, endGen)
+    return var14
   }
 
   fun matchStrLiteral(beginGen: Int, endGen: Int): StrLiteral {
-    val var17 = history[endGen].findByBeginGenOpt(18, 3, beginGen)
-    val var18 = history[endGen].findByBeginGenOpt(25, 3, beginGen)
-    check(hasSingleTrue(var17 != null, var18 != null))
-    val var19 = when {
-      var17 != null -> {
-        val var20 = StrLiteral("TODO_funccall(Str)", nextId(), beginGen, endGen)
-        var20
+    val var15 = history[endGen].findByBeginGenOpt(18, 3, beginGen)
+    val var16 = history[endGen].findByBeginGenOpt(25, 3, beginGen)
+    check(hasSingleTrue(var15 != null, var16 != null))
+    val var17 = when {
+      var15 != null -> {
+        val var18 = getSequenceElems(history, 18, listOf(19, 20, 19), beginGen, endGen)
+        val var19 =
+          unrollRepeat0(history, 20, 22, 8, 21, var18[1].first, var18[1].second).map { k ->
+            val var20 = matchStrChar(k.first, k.second)
+            var20
+          }
+        val var21 = StrLiteral(var19.joinToString("") { it.toString() }, nextId(), beginGen, endGen)
+        var21
       }
 
       else -> {
-        val var21 = StrLiteral("TODO_funccall(Str)", nextId(), beginGen, endGen)
-        var21
+        val var22 = getSequenceElems(history, 25, listOf(26, 20, 26), beginGen, endGen)
+        val var23 =
+          unrollRepeat0(history, 20, 22, 8, 21, var22[1].first, var22[1].second).map { k ->
+            val var24 = matchStrChar(k.first, k.second)
+            var24
+          }
+        val var25 = StrLiteral(var23.joinToString("") { it.toString() }, nextId(), beginGen, endGen)
+        var25
       }
     }
-    return var19
+    return var17
   }
 
   fun matchValue(beginGen: Int, endGen: Int): Value {
-    val var22 = history[endGen].findByBeginGenOpt(29, 1, beginGen)
-    val var23 = history[endGen].findByBeginGenOpt(45, 1, beginGen)
-    val var24 = history[endGen].findByBeginGenOpt(54, 1, beginGen)
-    val var25 = history[endGen].findByBeginGenOpt(55, 1, beginGen)
-    val var26 = history[endGen].findByBeginGenOpt(75, 1, beginGen)
-    check(hasSingleTrue(var22 != null, var23 != null, var24 != null, var25 != null, var26 != null))
-    val var27 = when {
-      var22 != null -> {
-        val var28 = getSequenceElems(history, 29, listOf(30), beginGen, endGen)
-        val var29 = matchBoolValue(var28[0].first, var28[0].second)
-        val var30 = BoolValue(var29, nextId(), beginGen, endGen)
-        var30
+    val var26 = history[endGen].findByBeginGenOpt(29, 1, beginGen)
+    val var27 = history[endGen].findByBeginGenOpt(45, 1, beginGen)
+    val var28 = history[endGen].findByBeginGenOpt(54, 1, beginGen)
+    val var29 = history[endGen].findByBeginGenOpt(55, 1, beginGen)
+    val var30 = history[endGen].findByBeginGenOpt(75, 1, beginGen)
+    check(hasSingleTrue(var26 != null, var27 != null, var28 != null, var29 != null, var30 != null))
+    val var31 = when {
+      var26 != null -> {
+        val var32 = getSequenceElems(history, 29, listOf(30), beginGen, endGen)
+        val var33 = matchBoolValue(var32[0].first, var32[0].second)
+        val var34 = BoolValue(var33, nextId(), beginGen, endGen)
+        var34
       }
 
-      var23 != null -> {
-        val var31 = getSequenceElems(history, 45, listOf(46), beginGen, endGen)
-        val var32 = matchIntLiteral(var31[0].first, var31[0].second)
-        val var33 = IntValue(var32, nextId(), beginGen, endGen)
-        var33
+      var27 != null -> {
+        val var35 = getSequenceElems(history, 45, listOf(46), beginGen, endGen)
+        val var36 = matchIntLiteral(var35[0].first, var35[0].second)
+        val var37 = IntValue(var36, nextId(), beginGen, endGen)
+        var37
       }
 
-      var24 != null -> {
-        val var34 = getSequenceElems(history, 54, listOf(17), beginGen, endGen)
-        val var35 = matchStrLiteral(var34[0].first, var34[0].second)
-        val var36 = StrValue(var35, nextId(), beginGen, endGen)
-        var36
+      var28 != null -> {
+        val var38 = getSequenceElems(history, 54, listOf(17), beginGen, endGen)
+        val var39 = matchStrLiteral(var38[0].first, var38[0].second)
+        val var40 = StrValue(var39, nextId(), beginGen, endGen)
+        var40
       }
 
-      var25 != null -> {
-        val var37 = getSequenceElems(history, 55, listOf(56), beginGen, endGen)
-        val var38 = matchListValue(var37[0].first, var37[0].second)
-        var38
+      var29 != null -> {
+        val var41 = getSequenceElems(history, 55, listOf(56), beginGen, endGen)
+        val var42 = matchListValue(var41[0].first, var41[0].second)
+        var42
       }
 
       else -> {
-        val var39 = getSequenceElems(history, 75, listOf(76), beginGen, endGen)
-        val var40 = matchTupleValue(var39[0].first, var39[0].second)
-        var40
+        val var43 = getSequenceElems(history, 75, listOf(76), beginGen, endGen)
+        val var44 = matchTupleValue(var43[0].first, var43[0].second)
+        var44
       }
     }
-    return var27
+    return var31
   }
 
   fun matchIntLiteral(beginGen: Int, endGen: Int): IntLiteral {
-    val var41 = history[endGen].findByBeginGenOpt(47, 1, beginGen)
-    val var42 = history[endGen].findByBeginGenOpt(49, 2, beginGen)
-    check(hasSingleTrue(var41 != null, var42 != null))
-    val var43 = when {
-      var41 != null -> {
-        val var44 = IntLiteral("0", nextId(), beginGen, endGen)
-        var44
+    val var45 = history[endGen].findByBeginGenOpt(47, 1, beginGen)
+    val var46 = history[endGen].findByBeginGenOpt(49, 2, beginGen)
+    check(hasSingleTrue(var45 != null, var46 != null))
+    val var47 = when {
+      var45 != null -> {
+        val var48 = IntLiteral("0", nextId(), beginGen, endGen)
+        var48
       }
 
       else -> {
-        val var45 = IntLiteral("TODO_funccall(Str)", nextId(), beginGen, endGen)
-        var45
+        val var49 = getSequenceElems(history, 49, listOf(50, 51), beginGen, endGen)
+        val var50 =
+          unrollRepeat0(history, 51, 53, 8, 52, var49[1].first, var49[1].second).map { k ->
+            (inputs[k.first] as Inputs.Character).char()
+          }
+        val var51 =
+          unrollRepeat0(history, 51, 53, 8, 52, var49[1].first, var49[1].second).map { k ->
+            (inputs[k.first] as Inputs.Character).char()
+          }
+        val var52 = if (var51.isEmpty()) {
+          "hello"
+        } else {
+          "world"
+        }
+        val var53 = IntLiteral(
+          (inputs[var49[0].first] as Inputs.Character).char()
+            .toString() + var50.joinToString("") { it.toString() } + var52,
+          nextId(),
+          beginGen,
+          endGen)
+        var53
       }
     }
-    return var43
+    return var47
   }
 
   fun matchListValue(beginGen: Int, endGen: Int): ListValue {
-    val var46 = getSequenceElems(history, 57, listOf(58, 5, 59, 74), beginGen, endGen)
-    val var47 = history[var46[2].second].findByBeginGenOpt(60, 1, var46[2].first)
-    val var48 = history[var46[2].second].findByBeginGenOpt(73, 1, var46[2].first)
-    check(hasSingleTrue(var47 != null, var48 != null))
-    val var49 = when {
-      var47 != null -> {
-        val var50 =
-          getSequenceElems(history, 62, listOf(28, 63, 69, 5), var46[2].first, var46[2].second)
-        val var51 = matchValue(var50[0].first, var50[0].second)
-        val var52 =
-          getSequenceElems(history, 62, listOf(28, 63, 69, 5), var46[2].first, var46[2].second)
-        val var53 =
-          unrollRepeat0(history, 63, 65, 8, 64, var52[1].first, var52[1].second).map { k ->
-            val var54 = getSequenceElems(history, 67, listOf(5, 68, 5, 28), k.first, k.second)
-            val var55 = matchValue(var54[3].first, var54[3].second)
-            var55
+    val var55 = getSequenceElems(history, 57, listOf(58, 5, 59, 74), beginGen, endGen)
+    val var56 = history[var55[2].second].findByBeginGenOpt(60, 1, var55[2].first)
+    val var57 = history[var55[2].second].findByBeginGenOpt(73, 1, var55[2].first)
+    check(hasSingleTrue(var56 != null, var57 != null))
+    val var58 = when {
+      var56 != null -> {
+        val var59 =
+          getSequenceElems(history, 62, listOf(28, 63, 69, 5), var55[2].first, var55[2].second)
+        val var60 = matchValue(var59[0].first, var59[0].second)
+        val var61 =
+          unrollRepeat0(history, 63, 65, 8, 64, var59[1].first, var59[1].second).map { k ->
+            val var62 = getSequenceElems(history, 67, listOf(5, 68, 5, 28), k.first, k.second)
+            val var63 = matchValue(var62[3].first, var62[3].second)
+            var63
           }
-        listOf(var51) + var53
+        listOf(var60) + var61
       }
 
       else -> null
     }
-    val var56 = ListValue(var49, nextId(), beginGen, endGen)
-    return var56
+    val var54 = var58
+    val var64 = ListValue(var54 ?: listOf(), nextId(), beginGen, endGen)
+    return var64
   }
 
   fun matchTupleValue(beginGen: Int, endGen: Int): TupleValue {
-    val var57 = history[endGen].findByBeginGenOpt(77, 7, beginGen)
-    val var58 = history[endGen].findByBeginGenOpt(80, 7, beginGen)
-    check(hasSingleTrue(var57 != null, var58 != null))
-    val var59 = when {
-      var57 != null -> {
-        val var60 = getSequenceElems(history, 77, listOf(78, 5, 28, 5, 68, 5, 79), beginGen, endGen)
-        val var61 = matchValue(var60[2].first, var60[2].second)
-        val var62 = TupleValue(listOf(var61), nextId(), beginGen, endGen)
-        var62
+    val var65 = history[endGen].findByBeginGenOpt(77, 7, beginGen)
+    val var66 = history[endGen].findByBeginGenOpt(80, 7, beginGen)
+    check(hasSingleTrue(var65 != null, var66 != null))
+    val var67 = when {
+      var65 != null -> {
+        val var68 = getSequenceElems(history, 77, listOf(78, 5, 28, 5, 68, 5, 79), beginGen, endGen)
+        val var69 = matchValue(var68[2].first, var68[2].second)
+        val var70 = TupleValue(listOf(var69), nextId(), beginGen, endGen)
+        var70
       }
 
       else -> {
-        val var63 =
+        val var71 =
           getSequenceElems(history, 80, listOf(78, 5, 28, 81, 69, 5, 79), beginGen, endGen)
-        val var64 = matchValue(var63[2].first, var63[2].second)
-        val var65 =
-          getSequenceElems(history, 80, listOf(78, 5, 28, 81, 69, 5, 79), beginGen, endGen)
-        val var66 = unrollRepeat1(history, 81, 65, 82, var65[3].first, var65[3].second).map { k ->
-          val var67 = getSequenceElems(history, 67, listOf(5, 68, 5, 28), k.first, k.second)
-          val var68 = matchValue(var67[3].first, var67[3].second)
-          var68
-        }
-        val var69 = TupleValue(listOf(var64) + var66, nextId(), beginGen, endGen)
-        var69
+        val var72 = matchValue(var71[2].first, var71[2].second)
+        val var73 =
+          unrollRepeat1(history, 81, 65, 65, 82, var71[3].first, var71[3].second).map { k ->
+            val var74 = getSequenceElems(history, 67, listOf(5, 68, 5, 28), k.first, k.second)
+            val var75 = matchValue(var74[3].first, var74[3].second)
+            var75
+          }
+        val var76 = TupleValue(listOf(var72) + var73, nextId(), beginGen, endGen)
+        var76
       }
     }
-    return var59
+    return var67
   }
 
   fun matchBoolValue(beginGen: Int, endGen: Int): BoolEnum {
-    val var70 = history[endGen].findByBeginGenOpt(31, 1, beginGen)
-    val var71 = history[endGen].findByBeginGenOpt(38, 1, beginGen)
-    check(hasSingleTrue(var70 != null, var71 != null))
-    val var72 = when {
-      var70 != null -> BoolEnum.True
+    val var77 = history[endGen].findByBeginGenOpt(31, 1, beginGen)
+    val var78 = history[endGen].findByBeginGenOpt(38, 1, beginGen)
+    check(hasSingleTrue(var77 != null, var78 != null))
+    val var79 = when {
+      var77 != null -> BoolEnum.True
       else -> BoolEnum.False
     }
-    return var72
+    return var79
   }
+
+  fun matchStrChar(beginGen: Int, endGen: Int): Char {
+    val var80 = getSequenceElems(history, 23, listOf(24), beginGen, endGen)
+    return (inputs[var80[0].first] as Inputs.Character).char()
+  }
+
 //
 //  fun matchPyObj1(beginGen: Int, endGen: Int): PyObj {
 //    // find body candidate (unroll choice)

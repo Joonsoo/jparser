@@ -7,10 +7,10 @@ from bibix.plugins import protobuf
 from bibix.plugins import scalatest
 from bibix.plugins import ktjvm
 
-arg ktjvm.kotlinVersion as kotlinVersion: string = "1.7.10"
+arg ktjvm.kotlinVersion as kotlinVersion: string = "1.8.10"
 
 scalaVersion = "2.13"
-scalaDep = maven.dep("org.scala-lang", "scala-library", "2.13.8")
+scalaDep = maven.dep("org.scala-lang", "scala-library", "2.13.10")
 
 protobufVersion = "3.19.4"
 protobufDep = maven.dep("com.google.protobuf", "protobuf-java", protobufVersion)
@@ -180,6 +180,11 @@ action parserStudio = jvm.run(
 study = scala.library(
   srcs = glob("study/src/main/scala/**/*.scala"),
   deps = [naive, utils, metalang, visualize, fast, tests.examples],
+)
+
+ktlib = ktjvm.library(
+  srcs = glob("ktlib/src/main/kotlin/**/*.kt"),
+  deps = [base]
 )
 
 class JParserData(astFile: file, dataFile: file)
