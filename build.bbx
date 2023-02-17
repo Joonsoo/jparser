@@ -1,32 +1,36 @@
-import maven
-import java
 import jvm
-import bibix
+import maven
+from bibix.plugins import java
 from bibix.plugins import scala
 from bibix.plugins import protobuf
 from bibix.plugins import scalatest
 from bibix.plugins import ktjvm
 
-arg ktjvm.kotlinVersion as kotlinVersion: string = "1.8.10"
+var kotlinVersion: string = "1.8.10"
+var ktjvm.kotlinVersion = kotlinVersion
 
 scalaVersion = "2.13"
-scalaDep = maven.dep("org.scala-lang", "scala-library", "2.13.10")
+scalaDep = maven.artifact("org.scala-lang", "scala-library", "2.13.10")
 
 protobufVersion = "3.19.4"
-protobufDep = maven.dep("com.google.protobuf", "protobuf-java", protobufVersion)
+protobufDep = maven.artifact("com.google.protobuf", "protobuf-java", protobufVersion)
 
 namespace grammarProto {
-  schema = protobuf.schema(
-    srcs = [
-      "base/src/main/proto/GrammarProto.proto",
-      "base/src/main/proto/TermGroupProto.proto",
-    ]
-  )
-
-  javacode = protobuf.java(schema=schema)
+//  schema = protobuf.schema(
+//    srcs = [
+//      "base/src/main/proto/GrammarProto.proto",
+//      "base/src/main/proto/TermGroupProto.proto",
+//    ]
+//  )
+//
+//  javacode = protobuf.java(schema=schema)
+//  javalib = java.library(
+//    srcs = javacode,
+//    deps = [protobufDep]
+//  )
   javalib = java.library(
-    srcs = javacode,
-    deps = [protobufDep]
+    srcs = glob("base/src/main/java/**/*.java"),
+    deps = [protobufDep],
   )
 }
 
@@ -51,17 +55,21 @@ metalang = scala.library(
 )
 
 namespace fastProto {
-  schema = protobuf.schema(
-    srcs = [
-      "fast/src/main/proto/MilestoneParserDataProto.proto",
-      "fast/src/main/proto/NaiveParserProto.proto",
-    ],
-    deps = [grammarProto.schema]
-  )
-
-  javacode = protobuf.java(schema=schema)
+//  schema = protobuf.schema(
+//    srcs = [
+//      "fast/src/main/proto/MilestoneParserDataProto.proto",
+//      "fast/src/main/proto/NaiveParserProto.proto",
+//    ],
+//    deps = [grammarProto.schema]
+//  )
+//
+//  javacode = protobuf.java(schema=schema)
+//  javalib = java.library(
+//    srcs = javacode,
+//    deps = [grammarProto.javalib]
+//  )
   javalib = java.library(
-    srcs = javacode,
+    srcs = glob("fast/src/main/java/**/*.java"),
     deps = [grammarProto.javalib]
   )
 }
@@ -77,7 +85,7 @@ cli = scala.library(
   ],
   deps = [
     naive, utils, metalang, fast,
-    maven.dep("info.picocli", "picocli", "4.6.1"),
+    maven.artifact("info.picocli", "picocli", "4.6.1"),
   ],
   // resources = ["cli/src/generated/resources/cdglang3.pb"],
 )
@@ -90,9 +98,9 @@ cliUberJar = jvm.executableUberJar(
 
 namespace tests {
   testDeps = [
-    maven.dep("org.scalatest", "scalatest_$scalaVersion", "3.2.11"),
-    // maven.dep("junit", "junit", "4.12"),
-    maven.dep("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
+    maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.11"),
+    // maven.artifact("junit", "junit", "4.12"),
+    maven.artifact("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
   ]
 
   baseTests = scala.library(
@@ -112,7 +120,7 @@ namespace tests {
 
   fastTests = scala.library(
     srcs = glob("fast/src/test/scala/**/*.scala"),
-    deps = [...testDeps + baseTests, metalangTests, fast],
+    deps = [...testDeps, baseTests, metalangTests, fast],
   )
 
   action run = scalatest.run(
@@ -141,8 +149,8 @@ visualize = scala.library(
     fast,
     tests.examples,
 
-    maven.dep("io.reactivex.rxjava3", "rxjava", "3.1.4"),
-    maven.dep("org.scala-lang.modules", "scala-xml_$scalaVersion", "2.1.0"),
+    maven.artifact("io.reactivex.rxjava3", "rxjava", "3.1.4"),
+    maven.artifact("org.scala-lang.modules", "scala-xml_$scalaVersion", "2.1.0"),
 
     // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
     jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64.source_3.120.0.v20220530-1036.jar"),
@@ -152,7 +160,7 @@ visualize = scala.library(
     jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
     jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
     jvm.lib("visualize/lib/gviz-0.0.1.jar"),
-    maven.dep("org.eclipse.platform", "org.eclipse.equinox.common", "3.16.100")
+    maven.artifact("org.eclipse.platform", "org.eclipse.equinox.common", "3.16.100")
   ],
 )
 
@@ -160,10 +168,10 @@ parserStudio3 = ktjvm.library(
   srcs = glob("visualize/src/main/kotlin/**/*.kt"),
   deps = [
     visualize,
-    maven.dep("org.jetbrains.kotlin", "kotlin-stdlib-jdk8", "1.6.20"),
-    maven.dep("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.6.1"),
-    maven.dep("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8", "1.6.1"),
-    maven.dep("org.jetbrains.kotlinx", "kotlinx-coroutines-swing", "1.6.1"),
+    maven.artifact("org.jetbrains.kotlin", "kotlin-stdlib-jdk8", "1.6.20"),
+    maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.6.1"),
+    maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8", "1.6.1"),
+    maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-swing", "1.6.1"),
   ],
 )
 
