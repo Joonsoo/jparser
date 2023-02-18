@@ -7,11 +7,11 @@ from bibix.plugins import protobuf
 from bibix.plugins import scalatest
 from bibix.plugins import ktjvm
 
-kotlinVersion: string = "1.8.10"
+kotlinVersion = "1.8.10"
 var ktjvm.sdkVersion = kotlinVersion
 
 scalaVersion = "2.13"
-var scala.sdkVersion = scalaVersion
+var scala.sdkVersion = "2.13.10"
 
 ktxCoroutinesVersion = "1.6.1"
 ktxCoroutinesDeps = [
@@ -32,8 +32,8 @@ scalaTestDeps = [
   maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.11"),
 ]
 
-namespace base {
-  namespace proto {
+base {
+  proto {
 //    schema = protobuf.schema(
 //      srcs = [
 //        "base/proto/GrammarProto.proto",
@@ -43,7 +43,9 @@ namespace base {
 //
 //    javacode = protobuf.java(schema=schema)
 //
-//    action gen = file.copy(javacode, "base/generated/java")
+    action gen {
+      file.copy(javacode, "base/generated/java")
+    }
 
     javalib = java.library(
       srcs = glob("base/generated/java/**/*.java"),
@@ -62,7 +64,7 @@ namespace base {
   )
 }
 
-namespace naive {
+naive {
   main = scala.library(
     srcs = glob("naive/main/scala/**/*.scala"),
     deps = [base.main],
@@ -74,14 +76,14 @@ namespace naive {
   )
 }
 
-namespace utils {
+utils {
   main = scala.library(
     srcs = glob("utils/main/scala/**/*.scala"),
     deps = [base.main],
   )
 }
 
-namespace metalang {
+metalang {
   main = scala.library(
     srcs = glob("metalang/main/scala/**/*.scala"),
     deps = [naive.main, utils.main],
@@ -93,8 +95,8 @@ namespace metalang {
   )
 }
 
-namespace fast {
-  namespace proto {
+fast {
+  proto {
 //    schema = protobuf.schema(
 //      srcs = [
 //        "fast/proto/MilestoneParserDataProto.proto",
@@ -105,7 +107,9 @@ namespace fast {
 //
 //    javacode = protobuf.java(schema=schema)
 //
-//    action gen = file.copy(javacode, "fast/generated/java")
+    action gen {
+      file.copy(javacode, "fast/generated/java")
+    }
 
     javalib = java.library(
       srcs = glob("fast/generated/java/**/*.java"),
@@ -124,7 +128,7 @@ namespace fast {
   )
 }
 
-namespace cli {
+cli {
   generated = scala.library(
     srcs = glob("cli/generated/scala/**/*.scala"),
     resources = ["cli/generated/resources/cdglang3.pb"],
@@ -165,7 +169,7 @@ action runTest = scalatest.run(
 // all은 bibix 기능으로 만드는게 나을까? *, base.*, utils.* 같은 식으로?
 all = [base.main, naive.main, utils.main, metalang.main, fast.main, cli.main, visualize.main, examples]
 
-namespace visualize {
+visualize {
   main = scala.library(
     // TODO 해시를 모든 argument를 합쳐서 하지 말고 세분화할 방법을 고안해야함
     srcs = glob("visualize/main/scala/**/*.scala"),
@@ -181,6 +185,7 @@ namespace visualize {
       maven.artifact("org.scala-lang.modules", "scala-xml_$scalaVersion", "2.1.0"),
 
       // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
+      // ...[jvm.lib(jar) for glob("visualize/lib/*.jar")],
       jvm.lib("visualize/lib/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"),
       jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
       jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
@@ -216,7 +221,7 @@ namespace visualize {
   )
 }
 
-namespace study {
+study {
   main = scala.library(
     srcs = glob("study/main/scala/**/*.scala"),
     deps = [naive.main, utils.main, metalang.main, visualize.main, fast.main, examples],
@@ -228,14 +233,14 @@ namespace study {
   )
 }
 
-namespace ktlib {
+ktlib {
   main = ktjvm.library(
     srcs = glob("ktlib/main/kotlin/**/*.kt"),
     deps = [base.main, naive.main],
   )
 
   test = scala.library(
-    srcs = glob("ktlib/test/kotlin/**/*.scala"),
+    srcs = glob("ktlib/test/scala/**/*.scala"),
     resources = glob("ktlib/test/resources/pyobj.cdg"),
     deps = [...scalaTestDeps, metalang.main, ktlib.main],
   )
