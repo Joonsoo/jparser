@@ -1,0 +1,390 @@
+File = Statements? ENDMARKER
+
+Statements = Statement (WS Statement)* {[$0] + $1}
+Statement = CompoundStmt | SimpleStmt
+StatementNl = CompoundStmt NEWLINE
+  | SimpleStmts
+  | NEWLINE
+  | ENDMARKER
+SimpleStmts = SimpleStmt !(WS ';') NEWLINE
+  | SimpleStmt (WS ';' WS SimpleStmt)* (WS ';')? NEWLINE
+SimpleStmt = Assignment
+  | StarExpressions
+  | ReturnStmt
+  | ImportStmt
+  | RaiseStmt
+  | "pass"&Tk {PassStmt()}
+  | DelStmt
+  | YieldStmt
+  | AssertStmt
+  | "break"&Tk {BreakStmt()}
+  | "continue"&Tk {ContinueStmt()}
+  | GlobalStmt
+  | NonlocalStmt
+CompoundStmt = FunctionDef
+  | IfStmt
+  | ClassDef
+  | WithStmt
+  | ForStmt
+  | TryStmt
+  | WhileStmt
+  | MatchStmt
+
+Assignment = NAME WS ':' WS Expression (WS '=' WS AnnotatedRhs)?
+  | ('(' WS SingleTarget WS ')' | SingleSubscriptAttributeTarget) WS ':' WS Expression (WS '=' WS AnnotatedRhs)?
+  | (StarTargets WS '=' WS)+ (YieldExpr | StarExpressions) WS !'=' (WS TYPE_COMMENT)?
+  | SingleTarget WS AugAssign (YieldExpr | StarExpressions)? // ~가 뭐여 대체
+
+AugAssign = ("+=" | "-=" | "*=" | "@=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" | "**=" | "//=")&Tk
+
+GlobalStmt = "global"&Tk WS NAME (WS ',' WS NAME)*
+NonlocalStmt = "nonlocal"&Tk WS NAME (WS ',' WS NAME)*
+
+YieldStmt = YieldExpr
+
+AssertStmt = "assert"&Tk WS Expression (WS ',' WS Expression)*
+
+DelStmt = "del"&Tk WS DelTargets $(';' | NEWLINE)
+
+ImportStmt = ImportName | ImportFrom
+ImportName = "import"&Tk WS DottedAsNames
+ImportFrom = "from"&Tk WS <("." | "...")&Tk>* WS DottedName WS "import"&Tk WS ImportFromTargets
+  | "from"&Tk WS <("." | "...")&Tk>+ WS "import"&Tk WS ImportFromTargets
+ImportFromTargets = '(' WS ImportFromAsNames (WS ',')? WS ')'
+  | ImportFromAsNames !(WS ',')
+  | '*'
+ImportFromAsNames = ImportFromAsName (WS ',' WS ImportFromAsName)*
+ImportFromAsName = NAME (WS "as"&Tk WS NAME)?
+DottedAsNames = DottedAsName (WS ',' WS DottedAsName)*
+DottedAsName = DottedName (WS "as"&Tk WS NAME)?
+DottedName = NAME
+  | DottedName WS '.' WS NAME
+
+IfStmt = "if"&Tk WS NamedExpression WS ':' WS Block WS ElifStmt
+  | "if"&Tk WS NamedExpression WS ':' WS Block (WS ElseBlock)?
+ElifStmt = "elif"&Tk WS NamedExpression WS ':' WS Block WS ElifStmt
+  | "elif"&Tk WS NamedExpression WS ':' WS Block (WS ElseBlock)?
+ElseBlock = "else"&Tk WS ':' WS Block
+
+WhileStmt = "while"&Tk WS NamedExpression WS ':' WS Block (WS ElseBlock)?
+
+ForStmt = ("async"&Tk WS)? "for"&Tk WS StarTargets WS "in"&Tk WS StarExpressions WS ':' (WS TYPE_COMMENT)? WS Block (WS ElseBlock)?
+
+WithStmt = ("async"&Tk WS)? "with"&Tk WS '(' WS WithItem (WS ',' WS WithItem)* (WS ',')? WS ')' WS ':' WS Block
+  | ("async"&Tk WS)? "with"&Tk WS WithItem (WS ',' WS WithItem)* WS ':' (WS TYPE_COMMENT)? WS Block
+
+WithItem = Expression WS "as"&Tk WS StarTarget $(WS ',):')
+  | Expression
+
+TryStmt = "try"&Tk WS ':' WS Block WS FinallyBlock
+  | "try"&Tk WS ':' WS Block (WS ExceptBlock)+ (WS ElseBlock)? (WS FinallyBlock)?
+ExceptBlock = "except"&Tk WS Expression (WS "as"&Tk WS NAME)? WS ':' WS Block
+  | "except"&Tk WS ':' WS Block
+FinallyBlock = "finally"&Tk WS ':' WS Block
+
+MatchStmt = "match"&Tk WS SubjctExpr WS ':' WS NEWLINE IDENT (WS CaseBlock)+ WS DEDENT
+SubjectExpr = StarNamedExpression WS ',' (WS StarNamedExpressions)?
+  | NamedExpression
+CaseBlock = "case"&Tk WS Patterns (WS Guard)? WS ':' WS Block
+Guard = "if"&Tk WS NamedExpression
+
+Patterns = OpenSequencePattern | Pattern
+Pattern = AsPattern | OrPattern
+AsPattern = OrPattern WS "as"&Tk WS PatternCaptureTarget
+OrPattern = ClosedPattern (WS '|' WS ClosedPattern)*
+
+ClosedPattern = LiteralPattern
+  | CapturePattern
+  | WildcardPattern
+  | ValuePattern
+  | GroupPattern
+  | SequencePattern
+  | MappingPattern
+  | ClassPattern
+
+LiteralPattern = SignedNumber !(WS '+\-')
+  | ComplexNumber
+  | Strings
+  | "None"&Tk
+  | "True"&Tk
+  | "False"&Tk
+
+LiteralExpr = SignedNumber !(WS '+\-')
+  | ComplexNumber
+  | Strings
+  | "None"&Tk
+  | "True"&Tk
+  | "False"&Tk
+
+ComplexNumber = SignedRealNumber WS '+\-' WS ImaginaryNumber
+
+SingedNumber = '-'? NUMBER
+SignedRealNumber = '-'? NUMBER
+ImaginaryNumber = NUMBER
+
+CapturePattern = PatternCaptureTarget
+
+PatternCaptureTarget = (NAME-"_") !(WS '.(=')
+WildcardPattern = "_"&Tk
+
+ValuePattern = Attr !(WS '.(=')
+Attr = NameOrAttr WS '.' WS NAME
+NameOrAttr = Attr | NAME
+
+GroupPattern = '(' WS Pattern WS ')'
+
+SequencePattern = '[' (WS MaybeSequencePattern)? WS ']'
+  | '[' (WS OpenSequencePattern)? WS ']'
+OpenSequencePattern = MaybeStarPattern WS ',' (WS MaybeSequencePattern)?
+MaybeSequencePattern = MaybeStarPattern (WS ',' WS MaybeStarPattern)* (WS ',')?
+MaybeStarPattern = StarPattern | Pattern
+
+StarPattern = '*' WS PatternCaptureTarget
+  | '*' WS WildcardPattern
+
+MappingPattern = '{' WS '}'
+  | '{' WS DoubleStarPattern (WS ',')? WS '}'
+  | '{' WS ItemsPattern WS ',' WS DoubleStarPattern (WS ',')? WS '}'
+  | '{' WS ItemsPattern (WS ',')? WS '}'
+ItemsPattern = KeyValuePattern (WS ',' WS KeyValuePattern)*
+KeyValuePattern = (LiteralExpr | Attr) WS ':' WS Pattern
+DoubleStarPattern = "**" WS PatternCaptureTarget
+
+ClassPattern = NameOrAttr WS '(' WS ')'
+  | NameOrAttr WS '(' WS PositionalPatterns (WS ',')? WS ')'
+  | NameOrAttr WS '(' WS KeywordPatterns (WS ',')? WS ')'
+  | NameOrAttr WS '(' WS PositionalPatterns WS ',' WS KeywordPatterns (WS ',')? WS ')'
+PositionalPatterns = Pattern (WS ',' WS Pattern)*
+KeywordPatterns = KeywordPattern (WS ',' WS KeywordPattern)*
+KeywordPattern = NAME WS '=' WS Pattern
+
+ReturnStmt = "return"&Tk (WS StarExpressions)?
+
+RaiseStmt = "raise"&Tk (WS Expression (WS "from"&Tk WS Expression)?)?
+
+FunctionDef = (Decorators WS)? FunctionDefRaw
+
+FunctionDefRaw = ("async"&Tk WS)? "def"&Tk WS NAME WS '(' (WS Params)? WS ')' (WS "->"&Tk WS Expression)? WS ':' (WS FuncTypeComment)? WS Block
+FuncTypeComment = NEWLINE WS TYPE_COMMENT $(WS NEWLINE INDENT)
+  | TYPE_COMMENT
+
+Params = SlashNoDefault (WS ParamNoDefault)* (WS ParamWithDefault)* (WS StarEtc)?
+  | SlashWithDefault (WS ParamWithDefault)* (WS StarEtc)?
+  | ParamNoDefault (WS ParamNoDefault)* (WS ParamWithDefault)* (WS StarEtc)?
+  | ParamWithDefault (WS ParamWithDefault)* (WS StarEtc)?
+  | StarEtc
+
+SlashNoDefault = ParamNoDefault (WS ParamNoDefault)* WS '/' (WS ',' | $(WS ')'))
+SlashWithDefault = (ParamNoDefault (WS ParamNoDefault)*)? ParamWithDefault (WS ParamWithDefault)* WS '/' (WS ',' | $(WS ')'))
+StarEtc = '*' WS ParamNoDefault WS ParamMaybeDefault (WS ParamMaybeDefault)* (WS kwds)?
+  | '*' WS ',' WS ParamMaybeDefault (WS ParamMaybeDefault)* (WS kwds)?
+  | kwds
+
+kwds = "**" WS ParamNoDefault
+
+ParamNoDefault = Param WS ',' (WS TYPE_COMMENT)?
+  | Param (WS TYPE_COMMENT)? $')'
+ParamWithDefault = Param WS Default WS ',' (WS TYPE_COMMENT)?
+  | Param WS Default (WS TYPE_COMMENT)? $(WS ')')
+ParamMaybeDefault = Param (WS Default)? WS ',' (WS TYPE_COMMENT)?
+  | Param (WS Default)? (WS TYPE_COMMENT)? $(WS ')')
+Param = NAME (WS Annotation)?
+
+Annotation = ':' WS Expression
+Default = '=' WS Expression
+
+Decorators = ('@' WS NamedExpression WS NEWLINE)+
+
+ClassDef = (Decorators WS)? ClassDefRaw
+ClassDefRaw = "class"&Tk WS NAME (WS '(' (WS Arguments)? WS ')')? WS ':' WS Block
+
+Block = NEWLINE INDENT WS Statements WS DEDENT
+  | SimpleStmts
+
+StarExpressions = StarExpression (WS ',' WS StarExpression)* (WS ',')?
+StarExpression = '*' WS BitwiseOr | Expression
+
+StarNamedExpressions = StarNamedExpression (WS ',' WS StarNamedExpression)* (WS ',')?
+StarNamedExpression = '*' WS BitwiseOr | NamedExpression
+
+AssignmentExpression = NAME WS ":="&Tk WS Expression // ~??
+
+NamedExpression = AssignmentExpression
+  | Expression !(WS "!=")
+
+AnnotatedRhs = YieldExpr
+  | StarExpressions
+
+Expressions = Expression (WS ',' WS Expression)* (WS ',')?
+Expression = Disjunction WS "if"&Tk WS Disjunction WS "else"&Tk WS Expression
+  | Disjunction
+  | LambDef
+
+LambDef = "lambda"&Tk (WS LambdaParams)? WS ':' WS Expression
+LambdaParams = LabmdaParameters
+
+LabmdaParameters = LambdaSlashNoDefault (WS LambdaParamNoDefault)* (WS LambdaParamWithDefault)* (WS LambdaStarEtc)?
+  | LambdaSlashWithDefault (WS LambdaParamWithDefault)* (WS LambdaStarEtc)?
+  | LambdaParamNoDefault (WS LambdaParamNoDefault)* (WS LambdaParamWithDefault)* (WS LambdaStarEtc)?
+  | LambdaParamWithDefault (WS LambdaParamWithDefault)* (WS LambdaStarEtc)?
+  | LambdaStarEtc
+
+LambdaSlashNoDefault = LambdaParamNoDefault (WS LambdaParamNoDefault)* WS '/' (WS ',' | $(WS ')'))
+LambdaSlashWithDefault = (LambdaParamNoDefault (WS LambdaParamNoDefault)*)? LambdaParamWithDefault (WS LambdaParamWithDefault)* WS '/' (WS ',' | $(WS ')'))
+LambdaStarEtc = '*' WS LambdaParamNoDefault WS LambdaParamMaybeDefault (WS LambdaParamMaybeDefault)* (WS LambdaKwds)?
+  | '*' WS ',' WS LambdaParamMaybeDefault (WS LambdaParamMaybeDefault)* (WS LambdaKwds)?
+  | LambdaKwds
+
+LambdaKwds = "**" WS LambdaParamNoDefault
+
+LambdaParamNoDefault = LambdaParam WS ','
+  | LambdaParam $')'
+LambdaParamWithDefault = LambdaParam WS Default WS ','
+  | LambdaParam WS Default $(WS ')')
+LambdaParamMaybeDefault = LambdaParam (WS Default)? WS ','
+  | LambdaParam (WS Default)? $(WS ')')
+LambdaParam = NAME
+
+Disjunction = Conjunction (WS "or"&Tk WS Conjunction)*
+Conjunction = Inversion (WS "and"&Tk WS Inversion)*
+Inversion = "not"&Tk WS Inversion
+  | Comparison
+Comparison = BitwiseOr (WS CompareOrBitwiseOrPair)*
+CompareOrBitwiseOrPair = EqBitwiseOr
+  | NotEqBitwiseOr
+  | LteBitwiseOr
+  | LtBitwsiseOr
+  | GteBitwiseOr
+  | GtBitwiseOr
+  | NotInBitwiseOr
+  | InBitwiseOr
+  | IsNotBitwiseOr
+  | IsBitwiseOr
+EqBitwiseOr = "=="&Tk WS BitwiseOr
+NotEqBitwiseOr = "!="&Tk WS BitwiseOr
+LteBitwiseOr = "<="&Tk WS BitwiseOr
+LtBitwiseOr = "<"&Tk WS BitwiseOr
+GteBitwiseOr = ">="&Tk WS BitwiseOr
+GtBitwiseOr = ">"&Tk WS BitwiseOr
+NotInBitwiseOr = "not"&Tk WS "in"&Tk WS BitwiseOr
+InBitwiseOr = "in"&Tk WS BitwiseOr
+IsNotBitwiseOr = "is"&Tk WS "not"&Tk WS BitwiseOr
+IsBitwiseOr = "is"&Tk WS BitwiseOr
+
+BitwiseOr = BitwiseOr WS "|"&Tk WS BitwiseXor
+  | BitwiseXor
+BitwiseXor = BitwiseXor WS "^"&Tk WS BitwiseAnd
+  | BitwiseAnd
+BitwiseAnd = BitwiseAnd WS "&"&Tk WS ShiftExpr
+  | ShiftExpr
+ShiftExpr = ShiftExpr ("<<" | ">>")&Tk WS Sum
+  | Sum
+
+Sum = Sum WS ("+" | "-")&Tk WS Term
+  | Term
+Term = Term WS ("*" | "/" | "//" | "%" | "@")^Tk WS Factor
+  | Factor
+Factor = ("+" | "-" | "~")^Tk WS Factor
+  | Power
+Power = AwaitPrimary (WS "**" WS Factor)*
+AwaitPrimary = ("await"&Tk WS)? Primary
+Primary = Primary WS '.' WS NAME
+  | Primary GenExp
+  | Primary WS '(' (WS Arguments)? WS ')'
+  | Primary WS '[' WS Slices WS ']'
+  | Atom
+
+Slices = Slice !(WS ',')
+  | Slice (WS ',' WS Slice)* (WS ',')?
+Slice = (Expression WS)? ':' (WS Expression)? (WS ':' (WS Expression)?)?
+  | NamedExpression
+Atom = NAME
+  | "True"&Tk
+  | "False"&Tk
+  | "None"&Tk
+  | Strings
+  | NUMBER
+  | Tuple
+  | Group
+  | GenExp
+  | List
+  | ListComp
+  | Dict
+  | Set
+  | DictComp
+  | SetComp
+  | "..."&Tk
+
+Strings = STRING (WS STRING)*
+List = '[' (WS StarNamedExpressions)? WS ']'
+ListComp = '[' WS NamedExpression WS ForIfClauses WS ']'
+Tuple = '(' (WS StarNamedExpression WS ',' (WS StarNamedExpressions)?)? WS ')'
+Group = '(' WS (YieldExpr | NamedExpression) WS ')'
+GenExp = '(' (AssignmentExpression | Expression !(WS ":=")) WS ForIfClauses WS ')'
+Set = '{' WS StarNamedExpressions WS '}'
+SetComp = '{' WS NamedExpression WS ForIfClauses WS '}'
+Dict = '{' (WS DoubleStarredKvPairs)? WS '}'
+
+DictComp = '{' WS KvPair WS ForIfClauses WS '}'
+DoubleStarredKvPairs = DoubleStarredKvPair (WS ',' WS DoubleStarredKvPair)* (WS ',')?
+DoubleStarredKvPair = "**" WS BitwiseOr
+  | KvPair
+KvPair = Expression WS ':' WS Expression
+ForIfClauses = ForIfClause (WS ForIfClause)*
+ForIfClause = ("async"&Tk WS)? "for"&Tk WS StarTargets WS "in"&Tk WS Disjunction (WS "if"&Tk WS Disjunction)*
+
+YieldExpr = "yield"&Tk WS "from"&Tk WS Expression
+  | "yield"&Tk (WS StarExpressions)?
+
+Arguments = Args (WS ',')? $(WS ')')
+Args = Arg (WS ',' WS Arg)* (WS ',' WS Kwargs)?
+  | Kwargs
+Arg = StarredExpression
+  | (AssignmentExpression | Expression !(WS ":=")) !(WS "=")
+Kwargs = KwargOrStarred (WS ',' WS KwargOrStarred)* WS ',' WS KwArgOrDoubleStarred (WS ',' WS KwArgOrDoubleStarred)*
+  | KwargOrStarred (WS ',' WS KwargOrStarred)*
+  | KwArgOrDoubleStarred (WS ',' WS KwArgOrDoubleStarred)*
+StarredExpression = '*' WS Expression
+KwargOrStarred = NAME WS '=' WS Expression
+  | StarredExpression
+KwArgOrDoubleStarred = NAME WS '=' WS Expression
+  | "**" WS Expression
+
+StarTargets = StarTarget !(WS ',')
+  | StarTarget (WS ',' WS StarTarget)* (WS ',')?
+StarTargetsListSeq = StarTarget (WS ',' WS StarTarget)* (WS ',')?
+StarTargetsTupleSeq = StarTarget (WS ',' WS StarTarget)* (WS ',')?
+  | StarTarget WS ','
+StarTarget = '*' !(WS '*') WS StarTarget
+  | TargetWithStarAtom
+TargetWithStarAtom = TPrimary WS '.' WS Name !(WS TLookahead)
+  | TPrimary WS '[' WS Slices WS ']' !(WS TLookahead)
+  | StarAtom
+StarAtom = NAME
+  | '(' WS TargetWithStarAtom WS ')'
+  | '(' (WS StarTargetsTupleSeq)? WS ')'
+  | '[' (WS StarTargetsListSeq)? WS ']'
+
+SingleTarget = SingleSubscriptAttributeTarget
+  | NAME
+  | '(' WS SingleTarget WS ')'
+SingleSubscriptAttributeTarget = TPrimary WS '.' WS Name !(WS TLookahead)
+  | TPrimary WS '[' WS Slices WS ']' !(WS TLookahead)
+
+DelTargets = DelTarget (WS ',' WS DelTarget)* (WS ',')?
+DelTarget = TPrimary WS '.' WS NAME !(WS TLookahead)
+  | TPrimary WS '[' WS Slices WS ']' !(WS TLookahead)
+  | DelTAtom
+DelTarget = NAME
+  | '(' WS DelTarget WS ')'
+  | '(' (WS DelTargets)? WS ')'
+  | '[' (WS DelTargets)? WS ']'
+
+TPrimary = TPrimary WS '.' WS NAME $(WS TLookahead)
+  | TPrimary WS '[' WS Slices WS ']' $(WS TLookahead)
+  | TPrimary WS GenExp $(WS TLookahead)
+  | TPrimary WS '(' (WS Arguments)? WS ')' $(WS TLookahead)
+  | Atom $(WS TLookahead)
+TLookahead = '([.'
+
+ENDMARKER = !.

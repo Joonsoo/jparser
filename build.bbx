@@ -42,7 +42,7 @@ base {
 //    )
 //
 //    javacode = protobuf.java(schema=schema)
-//
+
     action gen {
       file.copy(javacode, "base/generated/java")
     }
@@ -106,7 +106,7 @@ fast {
 //    )
 //
 //    javacode = protobuf.java(schema=schema)
-//
+
     action gen {
       file.copy(javacode, "fast/generated/java")
     }
@@ -124,6 +124,7 @@ fast {
 
   test = scala.library(
     srcs = glob("fast/test/scala/**/*.scala"),
+    resources = glob("fast/test/resources/**"),
     deps = [...scalaTestDeps, base.test, metalang.test, fast.main],
   )
 }
@@ -146,9 +147,9 @@ cli {
 
   test = scala.library(
     srcs = glob("cli/test/scala/**/*.scala"),
-    deps = [cli.main],
+    deps = [...scalaTestDeps, cli.main],
   )
-  
+
   uberJar = jvm.executableUberJar(
     deps = [main],
     mainClass = "com.giyeok.jparser.cli.Main",
@@ -186,17 +187,21 @@ visualize {
 
       // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
       // ...[jvm.lib(jar) for glob("visualize/lib/*.jar")],
-      jvm.lib("visualize/lib/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"),
-      jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
-      jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
-      jvm.lib("visualize/lib/org.eclipse.jface.text_3.21.0.v20220817-1340.jar"),
-      jvm.lib("visualize/lib/org.eclipse.jface.notifications_0.5.0.v20220401-0716.jar"),
-      jvm.lib("visualize/lib/org.eclipse.jface.databinding_1.13.0.v20210619-1146.jar"),
-      jvm.lib("visualize/lib/org.eclipse.jface_3.27.0.v20220817-1444.jar"),
+      jvm.lib("visualize/lib/gviz-0.0.1.jar"),
       jvm.lib("visualize/lib/org.eclipse.draw2d.source_3.10.1.201508170204.jar"),
       jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
-      jvm.lib("visualize/lib/gviz-0.0.1.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.databinding_1.13.0.v20210619-1146.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.notifications_0.5.0.v20220401-0716.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.text_3.21.0.v20220817-1340.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface_3.26.0.v20220513-0449.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface_3.27.0.v20220817-1444.jar"),
+      jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64.source_3.120.0.v20220530-1036.jar"),
+      jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64_3.120.0.v20220530-1036.jar"),
+      jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
+      jvm.lib("visualize/lib/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"),
+      jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
       jvm.lib("visualize/lib/swt-mac.jar"),
+
       maven.artifact("org.eclipse.platform", "org.eclipse.equinox.common", "3.16.100")
     ],
   )
@@ -246,11 +251,11 @@ ktlib {
   )
 }
 
-class JParserData(astFile: file, dataFile: file)
+class JParserData(astFile: file, parserData: file)
 
 parsergenPluginImpl = ktjvm.library(
-  srcs = glob("bibix/kotlin/**/*.kt"),
-  deps = [fast.main],
+  srcs = glob("bibix/main/kotlin/**/*.kt"),
+  deps = [bibix.base, fast.main],
 )
 
 def parsergen(
@@ -258,8 +263,3 @@ def parsergen(
   objectName: string,
   parserDataFileName: string,
 ): JParserData = parsergenPluginImpl:com.giyeok.jparser.bibix.ParserGen
-
-action testRun = jvm.run(
-  deps = [fast.test],
-  mainClass = "com.giyeok.jparser.milestone.TestExprGrammar",
-)
