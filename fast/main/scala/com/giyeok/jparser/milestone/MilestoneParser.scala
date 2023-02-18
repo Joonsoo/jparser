@@ -214,7 +214,7 @@ class MilestoneParser(val parserData: MilestoneParserData, val verbose: Boolean 
       m match {
         case Left(currCtx) =>
           if (verbose) {
-            println(s"=== ${currCtx.gen} $nextInput")
+            println(s"=== ${currCtx.gen} $nextInput ${currCtx.paths.size}")
           }
           proceed(currCtx, nextInput)
         case error => error
