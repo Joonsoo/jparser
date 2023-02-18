@@ -15,7 +15,7 @@ Def: Def = ImportDef
   | BuildRuleDef
   | ActionRuleDef
 
-NamespaceDef = "namespace"&Tk WS SimpleName WS '{' BuildScript '}' {NamespaceDef(name=$2, body=$5)}
+NamespaceDef = SimpleName WS '{' BuildScript '}' {NamespaceDef(name=$0, body=$3)}
 
 ImportDef: ImportDef = "import"&Tk WS Primary (WS "as"&Tk WS SimpleName)? {ImportAll(source=$2, rename=$3)}
   | "from"&Tk WS Expr WS "import"&Tk WS Name (WS "as"&Tk WS SimpleName)? {ImportFrom(source=$2, importing=$6, rename=$7)}

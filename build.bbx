@@ -28,8 +28,8 @@ testDeps = [
   maven.artifact("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
 ]
 
-namespace base {
-  namespace proto {
+base {
+  proto {
 //  schema = protobuf.schema(
 //    srcs = [
 //      "base/proto/GrammarProto.proto",
@@ -60,7 +60,7 @@ namespace base {
   )
 }
 
-namespace naive {
+naive {
   main = scala.library(
     srcs = glob("naive/main/scala/**/*.scala"),
     deps = [scalaDep, base.main],
@@ -72,14 +72,14 @@ namespace naive {
   )
 }
 
-namespace utils {
+utils {
   main = scala.library(
     srcs = glob("utils/main/scala/**/*.scala"),
     deps = [scalaDep, base.main],
   )
 }
 
-namespace metalang {
+metalang {
   main = scala.library(
     srcs = glob("metalang/main/scala/**/*.scala"),
     deps = [scalaDep, naive.main, utils.main],
@@ -91,8 +91,8 @@ namespace metalang {
   )
 }
 
-namespace fast {
-  namespace proto {
+fast {
+  proto {
   //  schema = protobuf.schema(
   //    srcs = [
   //      "fast/proto/MilestoneParserDataProto.proto",
@@ -123,7 +123,7 @@ namespace fast {
   )
 }
 
-namespace cli {
+cli {
   generated = scala.library(
     srcs = glob("cli/generated/scala/**/*.scala"),
     resources = ["cli/generated/resources/cdglang3.pb"],
@@ -165,7 +165,7 @@ action runTest = scalatest.run(
 // all은 bibix 기능으로 만드는게 나을까? *, base.*, utils.* 같은 식으로?
 all = [base.main, naive.main, utils.main, metalang.main, fast.main, cli.main, visualize.main, examples]
 
-namespace visualize {
+visualize {
   main = scala.library(
     // TODO 해시를 모든 argument를 합쳐서 하지 말고 세분화할 방법을 고안해야함
     srcs = glob("visualize/main/scala/**/*.scala"),
@@ -206,19 +206,19 @@ namespace visualize {
       maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-swing", ktxCoroutinesVersion)
     ],
   )
+
+  action oldParserStudio = jvm.run(
+    deps = [visualize.main],
+    mainClass = "com.giyeok.jparser.studio2.ParserStudio2",
+  )
+
+  action parserStudio = jvm.run(
+    deps = [parserStudio3],
+    mainClass = "com.giyeok.jparser.studio3.ParserStudio3",
+  )
 }
 
-action parserStudio2 = jvm.run(
-  deps = [visualize.main],
-  mainClass = "com.giyeok.jparser.studio2.ParserStudio2",
-)
-
-action parserStudio = jvm.run(
-  deps = [parserStudio3],
-  mainClass = "com.giyeok.jparser.studio3.ParserStudio3",
-)
-
-namespace study {
+study {
   main = scala.library(
     srcs = glob("study/main/scala/**/*.scala"),
     deps = [scalaDep, naive.main, utils.main, metalang.main, visualize.main, fast.main, examples],
@@ -230,7 +230,7 @@ namespace study {
   )
 }
 
-namespace ktlib {
+ktlib {
   main = ktjvm.library(
     srcs = glob("ktlib/main/kotlin/**/*.kt"),
     deps = [...ktDeps, base.main, naive.main],
