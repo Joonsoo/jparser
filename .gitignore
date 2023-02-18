@@ -31,4 +31,5 @@ protoc.exe
 
 /bbxbuild/
 
+visualize/lib/
 

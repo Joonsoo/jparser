@@ -15,11 +15,17 @@ scalaDep = maven.artifact("org.scala-lang", "scala-library", "2.13.10")
 protobufVersion = "3.19.4"
 protobufDep = maven.artifact("com.google.protobuf", "protobuf-java", protobufVersion)
 
-namespace grammarProto {
+testDeps = [
+  maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.11"),
+  // maven.artifact("junit", "junit", "4.12"),
+  maven.artifact("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
+]
+
+namespace baseProto {
 //  schema = protobuf.schema(
 //    srcs = [
-//      "base/src/main/proto/GrammarProto.proto",
-//      "base/src/main/proto/TermGroupProto.proto",
+//      "base/proto/GrammarProto.proto",
+//      "base/proto/TermGroupProto.proto",
 //    ]
 //  )
 //
@@ -29,65 +35,83 @@ namespace grammarProto {
 //    deps = [protobufDep]
 //  )
   javalib = java.library(
-    srcs = glob("base/src/main/java/**/*.java"),
+    srcs = glob("base/generated/java/**/*.java"),
     deps = [protobufDep],
   )
 }
 
 base = scala.library(
-  srcs = glob("base/src/main/scala/**/*.scala"),
-  deps = [scalaDep, grammarProto.javalib],
+  srcs = glob("base/main/scala/**/*.scala"),
+  deps = [scalaDep, baseProto.javalib],
+)
+
+baseTest = scala.library(
+  srcs = glob("base/test/scala/**/*.scala"),
+  deps = [...testDeps, base],
 )
 
 naive = scala.library(
-  srcs = glob("naive/src/main/scala/**/*.scala"),
+  srcs = glob("naive/main/scala/**/*.scala"),
   deps = [base],
 )
 
+naiveTest = scala.library(
+  srcs = glob("naive/test/scala/**/*.scala"),
+  deps = [...testDeps, baseTest, naive],
+)
+
 utils = scala.library(
-  srcs = glob("utils/src/main/scala/**/*.scala"),
+  srcs = glob("utils/main/scala/**/*.scala"),
   deps = [base],
 )
 
 metalang = scala.library(
-  srcs = glob("metalang/src/main/scala/**/*.scala"),
+  srcs = glob("metalang/main/scala/**/*.scala"),
   deps = [naive, utils],
+)
+
+metalangTest = scala.library(
+  srcs = glob("metalang/test/scala/**/*.scala"),
+  deps = [...testDeps, baseTest, naiveTest, metalang],
 )
 
 namespace fastProto {
 //  schema = protobuf.schema(
 //    srcs = [
-//      "fast/src/main/proto/MilestoneParserDataProto.proto",
-//      "fast/src/main/proto/NaiveParserProto.proto",
+//      "fast/proto/MilestoneParserDataProto.proto",
+//      "fast/proto/NaiveParserProto.proto",
 //    ],
-//    deps = [grammarProto.schema]
+//    deps = [baseProto.schema]
 //  )
 //
 //  javacode = protobuf.java(schema=schema)
 //  javalib = java.library(
 //    srcs = javacode,
-//    deps = [grammarProto.javalib]
+//    deps = [baseProto.javalib]
 //  )
   javalib = java.library(
-    srcs = glob("fast/src/main/java/**/*.java"),
-    deps = [grammarProto.javalib]
+    srcs = glob("fast/generated/java/**/*.java"),
+    deps = [baseProto.javalib]
   )
 }
 
 fast = scala.library(
-  srcs = glob("fast/src/main/scala/**/*.scala"),
+  srcs = glob("fast/main/scala/**/*.scala"),
   deps = [naive, metalang, fastProto.javalib],
 )
 
+fastTest = scala.library(
+  srcs = glob("fast/test/scala/**/*.scala"),
+  deps = [...testDeps, baseTest, metalangTest, fast],
+)
+
 cli = scala.library(
-  srcs = glob("cli/src/main/scala/**/*.scala") + [
-    "cli/src/generated/scala/com/giyeok/jparser/cli/MetaLang3Ast.scala"
-  ],
+  srcs = glob("cli/main/scala/**/*.scala") + glob("cli/generated/scala/**/*.scala"),
+  // resources = ["cli/generated/resources/cdglang3.pb"],
   deps = [
     naive, utils, metalang, fast,
     maven.artifact("info.picocli", "picocli", "4.6.1"),
   ],
-  // resources = ["cli/src/generated/resources/cdglang3.pb"],
 )
 
 cliUberJar = jvm.executableUberJar(
@@ -96,76 +120,51 @@ cliUberJar = jvm.executableUberJar(
   jarFileName = "jparser-cli.jar"
 )
 
-namespace tests {
-  testDeps = [
-    maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.11"),
-    // maven.artifact("junit", "junit", "4.12"),
-    maven.artifact("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
-  ]
+examples = scala.library(
+  srcs = glob("examples/main/scala/**/*.scala"),
+  // resources = glob("examples/main/resources/**"),
+  deps = [baseTest, naiveTest, metalangTest],
+)
 
-  baseTests = scala.library(
-    srcs = glob("base/src/test/scala/**/*.scala"),
-    deps = [...testDeps, base],
-  )
+action runTest = scalatest.run(
+  deps = [baseTest, naiveTest, metalangTest, fastTest]
+)
 
-  naiveTests = scala.library(
-    srcs = glob("naive/src/test/scala/**/*.scala"),
-    deps = [...testDeps, baseTests, naive],
-  )
-
-  metalangTests = scala.library(
-    srcs = glob("metalang/src/test/scala/**/*.scala"),
-    deps = [...testDeps, baseTests, naiveTests, metalang],
-  )
-
-  fastTests = scala.library(
-    srcs = glob("fast/src/test/scala/**/*.scala"),
-    deps = [...testDeps, baseTests, metalangTests, fast],
-  )
-
-  action run = scalatest.run(
-    deps = [baseTests, naiveTests, metalangTests, fastTests]
-  )
-
-  examples = scala.library(
-    srcs = glob("examples/src/main/scala/**/*.scala"),
-    // resources = glob("examples/src/main/resources/**"),
-    deps = [baseTests, naiveTests, metalangTests],
-  )
-
-  // metalangExamples = scala.library()
-}
-
-all = [base, naive, utils, metalang, fast, tests.examples]
+// all은 bibix 기능으로 만드는게 나을까?
+all = [base, naive, utils, metalang, fast, cli, examples, visualize]
 
 visualize = scala.library(
   // TODO 해시를 모든 argument를 합쳐서 하지 말고 세분화할 방법을 고안해야함
-  srcs = glob("visualize/src/main/scala/**/*.scala"),
+  srcs = glob("visualize/main/scala/**/*.scala"),
   deps = [
     base,
     naive,
     utils,
     metalang,
     fast,
-    tests.examples,
+    examples,
 
     maven.artifact("io.reactivex.rxjava3", "rxjava", "3.1.4"),
     maven.artifact("org.scala-lang.modules", "scala-xml_$scalaVersion", "2.1.0"),
 
     // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
-    jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64.source_3.120.0.v20220530-1036.jar"),
-    jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64_3.120.0.v20220530-1036.jar"),
-    jvm.lib("visualize/lib/org.eclipse.jface_3.26.0.v20220513-0449.jar"),
-    jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
-    jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
+    jvm.lib("visualize/lib/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"),
     jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
+    jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
+    jvm.lib("visualize/lib/org.eclipse.jface.text_3.21.0.v20220817-1340.jar"),
+    jvm.lib("visualize/lib/org.eclipse.jface.notifications_0.5.0.v20220401-0716.jar"),
+    jvm.lib("visualize/lib/org.eclipse.jface.databinding_1.13.0.v20210619-1146.jar"),
+    jvm.lib("visualize/lib/org.eclipse.jface_3.27.0.v20220817-1444.jar"),
+    jvm.lib("visualize/lib/org.eclipse.draw2d.source_3.10.1.201508170204.jar"),
+    jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
     jvm.lib("visualize/lib/gviz-0.0.1.jar"),
+    jvm.lib("visualize/lib/swt-mac.jar"),
     maven.artifact("org.eclipse.platform", "org.eclipse.equinox.common", "3.16.100")
   ],
 )
 
 parserStudio3 = ktjvm.library(
-  srcs = glob("visualize/src/main/kotlin/**/*.kt"),
+  srcs = glob("visualize/main/kotlin/**/*.kt"),
   deps = [
     visualize,
     maven.artifact("org.jetbrains.kotlin", "kotlin-stdlib-jdk8", "1.6.20"),
@@ -186,19 +185,24 @@ action parserStudio = jvm.run(
 )
 
 study = scala.library(
-  srcs = glob("study/src/main/scala/**/*.scala"),
-  deps = [naive, utils, metalang, visualize, fast, tests.examples],
+  srcs = glob("study/main/scala/**/*.scala"),
+  deps = [naive, utils, metalang, visualize, fast, examples],
+)
+
+studyTests = scala.library(
+  srcs = glob("study/test/scala/**/*.scala"),
+  deps = [...testDeps, study]
 )
 
 ktlib = ktjvm.library(
-  srcs = glob("ktlib/src/main/kotlin/**/*.kt"),
+  srcs = glob("ktlib/main/kotlin/**/*.kt"),
   deps = [base]
 )
 
 class JParserData(astFile: file, dataFile: file)
 
 parsergenPluginImpl = ktjvm.library(
-  srcs=glob("bibix/src/main/kotlin/**/*.kt"),
+  srcs=glob("bibix/kotlin/**/*.kt"),
   deps=[fast],
 )
 
@@ -209,6 +213,6 @@ def parsergen(
 ): JParserData = parsergenPluginImpl:com.giyeok.jparser.bibix.ParserGen
 
 action testRun = jvm.run(
-  deps = [tests.fastTests],
+  deps = [fastTest],
   mainClass = "com.giyeok.jparser.milestone.TestExprGrammar",
 )
