@@ -7,15 +7,14 @@ from bibix.plugins import protobuf
 from bibix.plugins import scalatest
 from bibix.plugins import ktjvm
 
-var kotlinVersion: string = "1.8.10"
-var ktjvm.kotlinVersion = kotlinVersion
+kotlinVersion: string = "1.8.10"
+var ktjvm.sdkVersion = kotlinVersion
 
 scalaVersion = "2.13"
-scalaDep = maven.artifact("org.scala-lang", "scala-library", "2.13.10")
+var scala.sdkVersion = scalaVersion
 
 ktxCoroutinesVersion = "1.6.1"
-ktDeps = [
-  maven.artifact("org.jetbrains.kotlin", "kotlin-stdlib", kotlinVersion),
+ktxCoroutinesDeps = [
   maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-core", ktxCoroutinesVersion),
   maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8", ktxCoroutinesVersion),
 ]
@@ -35,16 +34,16 @@ scalaTestDeps = [
 
 namespace base {
   namespace proto {
-    schema = protobuf.schema(
-      srcs = [
-        "base/proto/GrammarProto.proto",
-        "base/proto/TermGroupProto.proto",
-      ]
-    )
-
-    javacode = protobuf.java(schema=schema)
-
-    action gen = file.copy(javacode, "base/generated/java")
+//    schema = protobuf.schema(
+//      srcs = [
+//        "base/proto/GrammarProto.proto",
+//        "base/proto/TermGroupProto.proto",
+//      ]
+//    )
+//
+//    javacode = protobuf.java(schema=schema)
+//
+//    action gen = file.copy(javacode, "base/generated/java")
 
     javalib = java.library(
       srcs = glob("base/generated/java/**/*.java"),
@@ -54,59 +53,59 @@ namespace base {
 
   main = scala.library(
     srcs = glob("base/main/scala/**/*.scala"),
-    deps = [scalaDep, proto.javalib],
+    deps = [proto.javalib],
   )
 
   test = scala.library(
     srcs = glob("base/test/scala/**/*.scala"),
-    deps = [scalaDep, ...scalaTestDeps, base.main],
+    deps = [...scalaTestDeps, base.main],
   )
 }
 
 namespace naive {
   main = scala.library(
     srcs = glob("naive/main/scala/**/*.scala"),
-    deps = [scalaDep, base.main],
+    deps = [base.main],
   )
 
   test = scala.library(
     srcs = glob("naive/test/scala/**/*.scala"),
-    deps = [scalaDep, ...scalaTestDeps, base.test, naive.main],
+    deps = [...scalaTestDeps, base.test, naive.main],
   )
 }
 
 namespace utils {
   main = scala.library(
     srcs = glob("utils/main/scala/**/*.scala"),
-    deps = [scalaDep, base.main],
+    deps = [base.main],
   )
 }
 
 namespace metalang {
   main = scala.library(
     srcs = glob("metalang/main/scala/**/*.scala"),
-    deps = [scalaDep, naive.main, utils.main],
+    deps = [naive.main, utils.main],
   )
 
   test = scala.library(
     srcs = glob("metalang/test/scala/**/*.scala"),
-    deps = [scalaDep, ...scalaTestDeps, base.test, naive.test, metalang.main],
+    deps = [...scalaTestDeps, base.test, naive.test, metalang.main],
   )
 }
 
 namespace fast {
   namespace proto {
-    schema = protobuf.schema(
-      srcs = [
-        "fast/proto/MilestoneParserDataProto.proto",
-        "fast/proto/NaiveParserProto.proto",
-      ],
-      deps = [baseProto.schema]
-    )
-  
-    javacode = protobuf.java(schema=schema)
-
-    action gen = file.copy(javacode, "fast/generated/java")
+//    schema = protobuf.schema(
+//      srcs = [
+//        "fast/proto/MilestoneParserDataProto.proto",
+//        "fast/proto/NaiveParserProto.proto",
+//      ],
+//      deps = [baseProto.schema]
+//    )
+//
+//    javacode = protobuf.java(schema=schema)
+//
+//    action gen = file.copy(javacode, "fast/generated/java")
 
     javalib = java.library(
       srcs = glob("fast/generated/java/**/*.java"),
@@ -116,12 +115,12 @@ namespace fast {
 
   main = scala.library(
     srcs = glob("fast/main/scala/**/*.scala"),
-    deps = [scalaDep, naive.main, metalang.main, fast.proto.javalib],
+    deps = [naive.main, metalang.main, fast.proto.javalib],
   )
 
   test = scala.library(
     srcs = glob("fast/test/scala/**/*.scala"),
-    deps = [scalaDep, ...scalaTestDeps, base.test, metalang.test, fast.main],
+    deps = [...scalaTestDeps, base.test, metalang.test, fast.main],
   )
 }
 
@@ -129,13 +128,12 @@ namespace cli {
   generated = scala.library(
     srcs = glob("cli/generated/scala/**/*.scala"),
     resources = ["cli/generated/resources/cdglang3.pb"],
-    deps = [scalaDep, base.main, fast.main],
+    deps = [base.main, fast.main],
   )
 
   main = scala.library(
     srcs = glob("cli/main/scala/**/*.scala"),
     deps = [
-      scalaDep,
       naive.main, utils.main, metalang.main, fast.main,
       cli.generated,
       maven.artifact("info.picocli", "picocli", "4.6.1"),
@@ -144,7 +142,7 @@ namespace cli {
 
   test = scala.library(
     srcs = glob("cli/test/scala/**/*.scala"),
-    deps = [scalaDep, cli.main],
+    deps = [cli.main],
   )
   
   uberJar = jvm.executableUberJar(
@@ -157,7 +155,7 @@ namespace cli {
 examples = scala.library(
   srcs = glob("examples/main/scala/**/*.scala"),
   resources = glob("examples/main/resources/**"),
-  deps = [scalaDep, base.test, naive.test, metalang.test],
+  deps = [base.test, naive.test, metalang.test],
 )
 
 action runTest = scalatest.run(
@@ -167,13 +165,11 @@ action runTest = scalatest.run(
 // all은 bibix 기능으로 만드는게 나을까? *, base.*, utils.* 같은 식으로?
 all = [base.main, naive.main, utils.main, metalang.main, fast.main, cli.main, visualize.main, examples]
 
-visualize {
+namespace visualize {
   main = scala.library(
     // TODO 해시를 모든 argument를 합쳐서 하지 말고 세분화할 방법을 고안해야함
     srcs = glob("visualize/main/scala/**/*.scala"),
     deps = [
-      scalaDep,
-
       base.main,
       naive.main,
       utils.main,
@@ -203,7 +199,7 @@ visualize {
   parserStudio3 = ktjvm.library(
     srcs = glob("visualize/main/kotlin/**/*.kt"),
     deps = [
-      ...ktDeps,
+      ...ktxCoroutinesDeps,
       visualize.main,
       maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-swing", ktxCoroutinesVersion)
     ],
@@ -223,7 +219,7 @@ visualize {
 namespace study {
   main = scala.library(
     srcs = glob("study/main/scala/**/*.scala"),
-    deps = [scalaDep, naive.main, utils.main, metalang.main, visualize.main, fast.main, examples],
+    deps = [naive.main, utils.main, metalang.main, visualize.main, fast.main, examples],
   )
 
   test = scala.library(
@@ -235,13 +231,13 @@ namespace study {
 namespace ktlib {
   main = ktjvm.library(
     srcs = glob("ktlib/main/kotlin/**/*.kt"),
-    deps = [...ktDeps, base.main, naive.main],
+    deps = [base.main, naive.main],
   )
 
   test = scala.library(
     srcs = glob("ktlib/test/kotlin/**/*.scala"),
     resources = glob("ktlib/test/resources/pyobj.cdg"),
-    deps = [...ktDeps, ...scalaTestDeps, metalang.main, ktlib.main],
+    deps = [...scalaTestDeps, metalang.main, ktlib.main],
   )
 }
 
@@ -249,7 +245,7 @@ class JParserData(astFile: file, dataFile: file)
 
 parsergenPluginImpl = ktjvm.library(
   srcs = glob("bibix/kotlin/**/*.kt"),
-  deps = [...ktDeps, fast.main],
+  deps = [fast.main],
 )
 
 def parsergen(
