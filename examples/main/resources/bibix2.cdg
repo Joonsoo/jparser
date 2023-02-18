@@ -39,7 +39,9 @@ VarRedef = "var"&Tk WS SimpleName (WS '.' WS SimpleName)+ WS '=' WS Expr
 
 BuildRuleDef = "def"&Tk WS SimpleName WS ParamsDef WS ':' WS TypeExpr WS '=' WS MethodRef
                {BuildRuleDef(name=$2, params=$4, returnType=$8, impl=$12)}
-ActionDef = "action"&Tk WS SimpleName (WS ActionParams)? WS '=' WS ActionExpr {ActionDef(name=$2, argsName=$3, expr=$7)}
+ActionDef = "action"&Tk WS SimpleName (WS ActionParams)? WS ActionBody {ActionDef(name=$2, argsName=$3, body=$5)}
+ActionBody: ActionBody = '=' WS ActionExpr {SingleCallAction(expr=$2)}
+  | '{' (WS ActionExpr)+ WS '}' {MultiCallActions(exprs=$1)}
 ActionParams = '(' WS SimpleName WS ')' $2
 ActionRuleDef = "action"&Tk WS "def"&Tk WS SimpleName WS ParamsDef WS '=' WS MethodRef
                 {ActionRuleDef(name=$4, params=$6, impl=$10)}

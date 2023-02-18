@@ -1,5 +1,6 @@
 import jvm
 import maven
+import file
 from bibix.plugins import java
 from bibix.plugins import scala
 from bibix.plugins import protobuf
@@ -23,25 +24,29 @@ protobufVersion = "3.22.0"
 protobufDep = maven.artifact("com.google.protobuf", "protobuf-java", protobufVersion)
 
 testDeps = [
-  maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.11"),
   // maven.artifact("junit", "junit", "4.12"),
   maven.artifact("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
 ]
 
+scalaTestDeps = [
+  ...testDeps,
+  maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.11"),
+]
+
 base {
   proto {
-//  schema = protobuf.schema(
-//    srcs = [
-//      "base/proto/GrammarProto.proto",
-//      "base/proto/TermGroupProto.proto",
-//    ]
-//  )
-//
-//  javacode = protobuf.java(schema=schema)
-//  javalib = java.library(
-//    srcs = javacode,
-//    deps = [protobufDep]
-//  )
+    schema = protobuf.schema(
+      srcs = [
+        "base/proto/GrammarProto.proto",
+        "base/proto/TermGroupProto.proto",
+      ]
+    )
+
+    javacode = protobuf.java(schema=schema)
+
+    action gen {
+      file.copy(javacode, "base/generated/java")
+    }
 
     javalib = java.library(
       srcs = glob("base/generated/java/**/*.java"),
@@ -56,7 +61,7 @@ base {
 
   test = scala.library(
     srcs = glob("base/test/scala/**/*.scala"),
-    deps = [scalaDep, ...testDeps, base.main],
+    deps = [scalaDep, ...scalaTestDeps, base.main],
   )
 }
 
@@ -68,7 +73,7 @@ naive {
 
   test = scala.library(
     srcs = glob("naive/test/scala/**/*.scala"),
-    deps = [scalaDep, ...testDeps, base.test, naive.main],
+    deps = [scalaDep, ...scalaTestDeps, base.test, naive.main],
   )
 }
 
@@ -87,25 +92,26 @@ metalang {
 
   test = scala.library(
     srcs = glob("metalang/test/scala/**/*.scala"),
-    deps = [scalaDep, ...testDeps, base.test, naive.test, metalang.main],
+    deps = [scalaDep, ...scalaTestDeps, base.test, naive.test, metalang.main],
   )
 }
 
 fast {
   proto {
-  //  schema = protobuf.schema(
-  //    srcs = [
-  //      "fast/proto/MilestoneParserDataProto.proto",
-  //      "fast/proto/NaiveParserProto.proto",
-  //    ],
-  //    deps = [baseProto.schema]
-  //  )
-  //
-  //  javacode = protobuf.java(schema=schema)
-  //  javalib = java.library(
-  //    srcs = javacode,
-  //    deps = [baseProto.javalib]
-  //  )
+    schema = protobuf.schema(
+      srcs = [
+        "fast/proto/MilestoneParserDataProto.proto",
+        "fast/proto/NaiveParserProto.proto",
+      ],
+      deps = [baseProto.schema]
+    )
+  
+    javacode = protobuf.java(schema=schema)
+
+    action gen {
+      file.copy(javacode, "fast/generated/java")
+    }
+
     javalib = java.library(
       srcs = glob("fast/generated/java/**/*.java"),
       deps = [base.proto.javalib, protobufDep]
@@ -119,7 +125,7 @@ fast {
 
   test = scala.library(
     srcs = glob("fast/test/scala/**/*.scala"),
-    deps = [scalaDep, ...testDeps, base.test, metalang.test, fast.main],
+    deps = [scalaDep, ...scalaTestDeps, base.test, metalang.test, fast.main],
   )
 }
 
@@ -226,7 +232,7 @@ study {
 
   test = scala.library(
     srcs = glob("study/test/scala/**/*.scala"),
-    deps = [...testDeps, study.main]
+    deps = [...scalaTestDeps, study.main]
   )
 }
 
@@ -239,7 +245,7 @@ ktlib {
   test = scala.library(
     srcs = glob("ktlib/test/kotlin/**/*.scala"),
     resources = glob("ktlib/test/resources/pyobj.cdg"),
-    deps = [...ktDeps, ...testDeps, metalang.main, ktlib.main],
+    deps = [...ktDeps, ...scalaTestDeps, metalang.main, ktlib.main],
   )
 }
 
