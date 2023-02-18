@@ -29,7 +29,7 @@ fun Collection<Kernel>.checkSingleOrNone(): Kernel? {
   return this.firstOrNull()
 }
 
-inline fun getSequenceElems(
+fun getSequenceElems(
   history: List<KernelSet>,
   sequenceId: Int,
   elems: List<Int>,

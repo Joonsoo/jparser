@@ -1,12 +1,11 @@
 package com.giyeok.jparser.optim
 
 import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.ktlib.KernelSet
 import com.giyeok.jparser.metalang3.MetaLanguage3
-import com.giyeok.jparser.metalang3.codegen.{KotlinOptCodeGen, ScalaCodeGen}
-import com.giyeok.jparser.milestone.MilestoneParserGen
+import com.giyeok.jparser.metalang3.codegen.KotlinOptCodeGen
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor2}
-import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
-import com.giyeok.jparser.test.{IdIssuerImpl, KernelSet, PyObjAst, PyObjKtOptAst, PyObjOptAst}
+import com.giyeok.jparser.test.{IdIssuerImpl, PyObjKtOptAst}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.jdk.CollectionConverters.{SeqHasAsJava, SetHasAsJava}

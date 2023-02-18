@@ -12,7 +12,14 @@ var ktjvm.kotlinVersion = kotlinVersion
 scalaVersion = "2.13"
 scalaDep = maven.artifact("org.scala-lang", "scala-library", "2.13.10")
 
-protobufVersion = "3.19.4"
+ktxCoroutinesVersion = "1.6.1"
+ktDeps = [
+  maven.artifact("org.jetbrains.kotlin", "kotlin-stdlib", kotlinVersion),
+  maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-core", ktxCoroutinesVersion),
+  maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8", ktxCoroutinesVersion),
+]
+
+protobufVersion = "3.22.0"
 protobufDep = maven.artifact("com.google.protobuf", "protobuf-java", protobufVersion)
 
 testDeps = [
@@ -21,7 +28,8 @@ testDeps = [
   maven.artifact("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
 ]
 
-namespace baseProto {
+namespace base {
+  namespace proto {
 //  schema = protobuf.schema(
 //    srcs = [
 //      "base/proto/GrammarProto.proto",
@@ -34,148 +42,174 @@ namespace baseProto {
 //    srcs = javacode,
 //    deps = [protobufDep]
 //  )
-  javalib = java.library(
-    srcs = glob("base/generated/java/**/*.java"),
-    deps = [protobufDep],
+
+    javalib = java.library(
+      srcs = glob("base/generated/java/**/*.java"),
+      deps = [protobufDep],
+    )
+  }
+
+  main = scala.library(
+    srcs = glob("base/main/scala/**/*.scala"),
+    deps = [scalaDep, proto.javalib],
+  )
+
+  test = scala.library(
+    srcs = glob("base/test/scala/**/*.scala"),
+    deps = [scalaDep, ...testDeps, base.main],
   )
 }
 
-base = scala.library(
-  srcs = glob("base/main/scala/**/*.scala"),
-  deps = [scalaDep, baseProto.javalib],
-)
+namespace naive {
+  main = scala.library(
+    srcs = glob("naive/main/scala/**/*.scala"),
+    deps = [scalaDep, base.main],
+  )
 
-baseTest = scala.library(
-  srcs = glob("base/test/scala/**/*.scala"),
-  deps = [...testDeps, base],
-)
-
-naive = scala.library(
-  srcs = glob("naive/main/scala/**/*.scala"),
-  deps = [base],
-)
-
-naiveTest = scala.library(
-  srcs = glob("naive/test/scala/**/*.scala"),
-  deps = [...testDeps, baseTest, naive],
-)
-
-utils = scala.library(
-  srcs = glob("utils/main/scala/**/*.scala"),
-  deps = [base],
-)
-
-metalang = scala.library(
-  srcs = glob("metalang/main/scala/**/*.scala"),
-  deps = [naive, utils],
-)
-
-metalangTest = scala.library(
-  srcs = glob("metalang/test/scala/**/*.scala"),
-  deps = [...testDeps, baseTest, naiveTest, metalang],
-)
-
-namespace fastProto {
-//  schema = protobuf.schema(
-//    srcs = [
-//      "fast/proto/MilestoneParserDataProto.proto",
-//      "fast/proto/NaiveParserProto.proto",
-//    ],
-//    deps = [baseProto.schema]
-//  )
-//
-//  javacode = protobuf.java(schema=schema)
-//  javalib = java.library(
-//    srcs = javacode,
-//    deps = [baseProto.javalib]
-//  )
-  javalib = java.library(
-    srcs = glob("fast/generated/java/**/*.java"),
-    deps = [baseProto.javalib]
+  test = scala.library(
+    srcs = glob("naive/test/scala/**/*.scala"),
+    deps = [scalaDep, ...testDeps, base.test, naive.main],
   )
 }
 
-fast = scala.library(
-  srcs = glob("fast/main/scala/**/*.scala"),
-  deps = [naive, metalang, fastProto.javalib],
-)
+namespace utils {
+  main = scala.library(
+    srcs = glob("utils/main/scala/**/*.scala"),
+    deps = [scalaDep, base.main],
+  )
+}
 
-fastTest = scala.library(
-  srcs = glob("fast/test/scala/**/*.scala"),
-  deps = [...testDeps, baseTest, metalangTest, fast],
-)
+namespace metalang {
+  main = scala.library(
+    srcs = glob("metalang/main/scala/**/*.scala"),
+    deps = [scalaDep, naive.main, utils.main],
+  )
 
-cli = scala.library(
-  srcs = glob("cli/main/scala/**/*.scala") + glob("cli/generated/scala/**/*.scala"),
-  // resources = ["cli/generated/resources/cdglang3.pb"],
-  deps = [
-    naive, utils, metalang, fast,
-    maven.artifact("info.picocli", "picocli", "4.6.1"),
-  ],
-)
+  test = scala.library(
+    srcs = glob("metalang/test/scala/**/*.scala"),
+    deps = [scalaDep, ...testDeps, base.test, naive.test, metalang.main],
+  )
+}
 
-cliUberJar = jvm.executableUberJar(
-  deps = [cli],
-  mainClass = "com.giyeok.jparser.cli.Main",
-  jarFileName = "jparser-cli.jar"
-)
+namespace fast {
+  namespace proto {
+  //  schema = protobuf.schema(
+  //    srcs = [
+  //      "fast/proto/MilestoneParserDataProto.proto",
+  //      "fast/proto/NaiveParserProto.proto",
+  //    ],
+  //    deps = [baseProto.schema]
+  //  )
+  //
+  //  javacode = protobuf.java(schema=schema)
+  //  javalib = java.library(
+  //    srcs = javacode,
+  //    deps = [baseProto.javalib]
+  //  )
+    javalib = java.library(
+      srcs = glob("fast/generated/java/**/*.java"),
+      deps = [base.proto.javalib, protobufDep]
+    )
+  }
+
+  main = scala.library(
+    srcs = glob("fast/main/scala/**/*.scala"),
+    deps = [scalaDep, naive.main, metalang.main, fast.proto.javalib],
+  )
+
+  test = scala.library(
+    srcs = glob("fast/test/scala/**/*.scala"),
+    deps = [scalaDep, ...testDeps, base.test, metalang.test, fast.main],
+  )
+}
+
+namespace cli {
+  generated = scala.library(
+    srcs = glob("cli/generated/scala/**/*.scala"),
+    resources = ["cli/generated/resources/cdglang3.pb"],
+    deps = [scalaDep, base.main, fast.main],
+  )
+
+  main = scala.library(
+    srcs = glob("cli/main/scala/**/*.scala"),
+    deps = [
+      scalaDep,
+      naive.main, utils.main, metalang.main, fast.main,
+      cli.generated,
+      maven.artifact("info.picocli", "picocli", "4.6.1"),
+    ],
+  )
+
+  test = scala.library(
+    srcs = glob("cli/test/scala/**/*.scala"),
+    deps = [scalaDep, cli.main],
+  )
+  
+  uberJar = jvm.executableUberJar(
+    deps = [main],
+    mainClass = "com.giyeok.jparser.cli.Main",
+    jarFileName = "jparser-cli.jar"
+  )
+}
 
 examples = scala.library(
   srcs = glob("examples/main/scala/**/*.scala"),
-  // resources = glob("examples/main/resources/**"),
-  deps = [baseTest, naiveTest, metalangTest],
+  resources = glob("examples/main/resources/**"),
+  deps = [scalaDep, base.test, naive.test, metalang.test],
 )
 
 action runTest = scalatest.run(
-  deps = [baseTest, naiveTest, metalangTest, fastTest]
+  deps = [base.test, naive.test, metalang.test, fast.test]
 )
 
-// all은 bibix 기능으로 만드는게 나을까?
-all = [base, naive, utils, metalang, fast, cli, examples, visualize]
+// all은 bibix 기능으로 만드는게 나을까? *, base.*, utils.* 같은 식으로?
+all = [base.main, naive.main, utils.main, metalang.main, fast.main, cli.main, visualize.main, examples]
 
-visualize = scala.library(
-  // TODO 해시를 모든 argument를 합쳐서 하지 말고 세분화할 방법을 고안해야함
-  srcs = glob("visualize/main/scala/**/*.scala"),
-  deps = [
-    base,
-    naive,
-    utils,
-    metalang,
-    fast,
-    examples,
+namespace visualize {
+  main = scala.library(
+    // TODO 해시를 모든 argument를 합쳐서 하지 말고 세분화할 방법을 고안해야함
+    srcs = glob("visualize/main/scala/**/*.scala"),
+    deps = [
+      scalaDep,
 
-    maven.artifact("io.reactivex.rxjava3", "rxjava", "3.1.4"),
-    maven.artifact("org.scala-lang.modules", "scala-xml_$scalaVersion", "2.1.0"),
+      base.main,
+      naive.main,
+      utils.main,
+      metalang.main,
+      fast.main,
+      examples,
 
-    // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
-    jvm.lib("visualize/lib/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"),
-    jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
-    jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
-    jvm.lib("visualize/lib/org.eclipse.jface.text_3.21.0.v20220817-1340.jar"),
-    jvm.lib("visualize/lib/org.eclipse.jface.notifications_0.5.0.v20220401-0716.jar"),
-    jvm.lib("visualize/lib/org.eclipse.jface.databinding_1.13.0.v20210619-1146.jar"),
-    jvm.lib("visualize/lib/org.eclipse.jface_3.27.0.v20220817-1444.jar"),
-    jvm.lib("visualize/lib/org.eclipse.draw2d.source_3.10.1.201508170204.jar"),
-    jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
-    jvm.lib("visualize/lib/gviz-0.0.1.jar"),
-    jvm.lib("visualize/lib/swt-mac.jar"),
-    maven.artifact("org.eclipse.platform", "org.eclipse.equinox.common", "3.16.100")
-  ],
-)
+      maven.artifact("io.reactivex.rxjava3", "rxjava", "3.1.4"),
+      maven.artifact("org.scala-lang.modules", "scala-xml_$scalaVersion", "2.1.0"),
 
-parserStudio3 = ktjvm.library(
-  srcs = glob("visualize/main/kotlin/**/*.kt"),
-  deps = [
-    visualize,
-    maven.artifact("org.jetbrains.kotlin", "kotlin-stdlib-jdk8", "1.6.20"),
-    maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.6.1"),
-    maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8", "1.6.1"),
-    maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-swing", "1.6.1"),
-  ],
-)
+      // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
+      jvm.lib("visualize/lib/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"),
+      jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
+      jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.text_3.21.0.v20220817-1340.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.notifications_0.5.0.v20220401-0716.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.databinding_1.13.0.v20210619-1146.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface_3.27.0.v20220817-1444.jar"),
+      jvm.lib("visualize/lib/org.eclipse.draw2d.source_3.10.1.201508170204.jar"),
+      jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
+      jvm.lib("visualize/lib/gviz-0.0.1.jar"),
+      jvm.lib("visualize/lib/swt-mac.jar"),
+      maven.artifact("org.eclipse.platform", "org.eclipse.equinox.common", "3.16.100")
+    ],
+  )
+  
+  parserStudio3 = ktjvm.library(
+    srcs = glob("visualize/main/kotlin/**/*.kt"),
+    deps = [
+      ...ktDeps,
+      visualize.main,
+      maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-swing", ktxCoroutinesVersion)
+    ],
+  )
+}
 
 action parserStudio2 = jvm.run(
-  deps = [visualize],
+  deps = [visualize.main],
   mainClass = "com.giyeok.jparser.studio2.ParserStudio2",
 )
 
@@ -184,26 +218,36 @@ action parserStudio = jvm.run(
   mainClass = "com.giyeok.jparser.studio3.ParserStudio3",
 )
 
-study = scala.library(
-  srcs = glob("study/main/scala/**/*.scala"),
-  deps = [naive, utils, metalang, visualize, fast, examples],
-)
+namespace study {
+  main = scala.library(
+    srcs = glob("study/main/scala/**/*.scala"),
+    deps = [scalaDep, naive.main, utils.main, metalang.main, visualize.main, fast.main, examples],
+  )
 
-studyTests = scala.library(
-  srcs = glob("study/test/scala/**/*.scala"),
-  deps = [...testDeps, study]
-)
+  test = scala.library(
+    srcs = glob("study/test/scala/**/*.scala"),
+    deps = [...testDeps, study.main]
+  )
+}
 
-ktlib = ktjvm.library(
-  srcs = glob("ktlib/main/kotlin/**/*.kt"),
-  deps = [base]
-)
+namespace ktlib {
+  main = ktjvm.library(
+    srcs = glob("ktlib/main/kotlin/**/*.kt"),
+    deps = [...ktDeps, base.main, naive.main],
+  )
+
+  test = scala.library(
+    srcs = glob("ktlib/test/kotlin/**/*.scala"),
+    resources = glob("ktlib/test/resources/pyobj.cdg"),
+    deps = [...ktDeps, ...testDeps, metalang.main, ktlib.main],
+  )
+}
 
 class JParserData(astFile: file, dataFile: file)
 
 parsergenPluginImpl = ktjvm.library(
-  srcs=glob("bibix/kotlin/**/*.kt"),
-  deps=[fast],
+  srcs = glob("bibix/kotlin/**/*.kt"),
+  deps = [...ktDeps, fast.main],
 )
 
 def parsergen(
@@ -213,6 +257,6 @@ def parsergen(
 ): JParserData = parsergenPluginImpl:com.giyeok.jparser.bibix.ParserGen
 
 action testRun = jvm.run(
-  deps = [fastTest],
+  deps = [fast.test],
   mainClass = "com.giyeok.jparser.milestone.TestExprGrammar",
 )

@@ -2,9 +2,8 @@ package com.giyeok.jparser.cli
 
 import com.giyeok.jparser.metalang3.MetaLanguage3
 import com.giyeok.jparser.metalang3.MetaLanguage3.ProcessedGrammar
-import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen
-import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen.CodeBlob
-import com.giyeok.jparser.milestone.{MilestoneParser, MilestoneParserData, MilestoneParserGen}
+import com.giyeok.jparser.metalang3.codegen.{CodeBlob, ScalaCodeGen}
+import com.giyeok.jparser.milestone.MilestoneParserGen
 import com.giyeok.jparser.proto.MilestoneParserProtobufConverter
 import com.giyeok.jparser.utils.FileUtil.{readFile, writeFile}
 import picocli.CommandLine

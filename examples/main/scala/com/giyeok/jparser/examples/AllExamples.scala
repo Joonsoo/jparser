@@ -1,4 +1,4 @@
-//package com.giyeok.jparser.examples
+package com.giyeok.jparser.examples
 //
 //import com.giyeok.jparser.Grammar
 //import com.giyeok.jparser.examples.GrammarWithExamples
