@@ -13,6 +13,13 @@ var ktjvm.sdkVersion = kotlinVersion
 scalaVersion = "2.13"
 var scala.sdkVersion = "2.13.10"
 
+var jdkVersion: string = "19"
+var java.jdkVersion = jdkVersion
+var java.srcVersion = jdkVersion
+var java.outVersion = jdkVersion
+var ktjvm.outVersion = jdkVersion
+var scala.outVersion = jdkVersion
+
 ktxCoroutinesVersion = "1.6.1"
 ktxCoroutinesDeps = [
   maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-core", ktxCoroutinesVersion),
@@ -127,6 +134,8 @@ fast {
     resources = glob("fast/test/resources/**"),
     deps = [...scalaTestDeps, base.test, metalang.test, fast.main],
   )
+
+//  action deploy = maven.
 }
 
 cli {

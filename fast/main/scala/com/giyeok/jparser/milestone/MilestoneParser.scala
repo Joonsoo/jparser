@@ -14,7 +14,7 @@ import com.giyeok.jparser.{Inputs, ParseForest, ParseForestFunc, ParsingErrors}
 import scala.annotation.tailrec
 
 object MilestoneParser {
-  def reconstructParseTree(parserData: MilestoneParserData, finalCtx: MilestoneParserContext, input: Seq[Input]): Option[ParseForest] = {
+  def getKernelsHistory(parserData: MilestoneParserData, finalCtx: MilestoneParserContext): List[List[Kernel]] = {
     val finalAcceptancesMemo = Memoize[AcceptCondition, Boolean]()
 
     def isFinallyAccepted(gen: Int, acceptCondition: AcceptCondition): Boolean = acceptCondition match {
@@ -39,8 +39,7 @@ object MilestoneParser {
       }
     }
 
-    val startTime = System.currentTimeMillis()
-    val kernels = finalCtx.genProgressHistory.map(gen => Kernels(gen.genActions.flatMap {
+    finalCtx.genProgressHistory.map(gen => gen.genActions.flatMap {
       case TermAction(beginGen, midGen, endGen, summary, condition) =>
         if (isFinallyAccepted(endGen, condition)) {
           def genOf(gen: Int) = gen match {
@@ -70,7 +69,12 @@ object MilestoneParser {
             Kernel(kernel.symbolId, kernel.pointer, genOf(kernel.beginGen), genOf(kernel.endGen))
           }
         } else List()
-    }.toSet))
+    })
+  }
+
+  def reconstructParseTree(parserData: MilestoneParserData, finalCtx: MilestoneParserContext, input: Seq[Input]): Option[ParseForest] = {
+    val startTime = System.currentTimeMillis()
+    val kernels = getKernelsHistory(parserData, finalCtx).map(ks => Kernels(ks.toSet))
     println(s"Filtering kernels: ${System.currentTimeMillis() - startTime} ms")
     new ParseTreeConstructor2(ParseForestFunc)(parserData.grammar)(input, kernels).reconstruct()
   }

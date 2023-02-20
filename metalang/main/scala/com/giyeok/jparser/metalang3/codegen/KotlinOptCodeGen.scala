@@ -19,6 +19,8 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     s"var$varId"
   }
 
+  var _requiredNonterms: Set[String] = Set()
+
   def escapeChar(c: Char): String = c match {
     case '\b' => "\\b"
     case '\n' => "\\n"
@@ -73,16 +75,16 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     val supers = (cls.superclasses.toList.sorted :+ "AstNode").mkString(", ")
     val params = analysis.classParamTypes.getOrElse(cls.className, List()).map { param =>
       val paramType = typeDescStringOf(param._2, context = Some(s"parameter type of ${cls.className}.${param._1}"))
-      CodeBlob(s"  val ${param._1}: ${paramType.code},\n", paramType.required)
+      CodeBlob(s"  val ${param._1}: ${paramType.code}", paramType.required)
     }
     if (cls.subclasses.isEmpty) {
       // Concrete type
       CodeBlob(
         s"""data class ${cls.className}(
-           |${params.map(_.code).mkString("\n")},
-           |override val symbolId: Int,
-           |override val start: Int,
-           |override val end: Int,
+           |${params.map(_.code + ",").mkString("\n")}
+           |  override val nodeId: Int,
+           |  override val start: Int,
+           |  override val end: Int,
            |): $supers""".stripMargin,
         params.flatMap(_.required).toSet)
     } else {
@@ -106,19 +108,20 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
   def matchStartFunc(): CodeBlob = {
     val startSymbol = analysis.ngrammar.symbolOf(analysis.ngrammar.nsymbols(analysis.ngrammar.startSymbol).asInstanceOf[NStart].produce).asInstanceOf[NNonterminal]
     val returnType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName), context = Some(s"return type of ${analysis.startNonterminalName}"))
+    _requiredNonterms += startSymbol.symbol.name
     CodeBlob(
       s"""fun matchStart(): ${returnType.code} {
          |  val lastGen = inputs.size
          |  val kernel = history[lastGen]
-         |    .filter { it.symbolId() == $startSymbol && it.endGen() == lastGen }
+         |    .filter { it.symbolId() == ${startSymbol.id} && it.pointer() == 1 && it.endGen() == lastGen }
          |    .checkSingle()
-         |  return ${nonterminalMatchFuncName(startSymbol.symbol.name)}(kernel)
+         |  return ${nonterminalMatchFuncName(startSymbol.symbol.name)}(kernel.beginGen, kernel.endGen)
          |}""".stripMargin,
       returnType.required)
   }
 
   // returns: (Generated CodeBlob, Set of nonterminals required)
-  def nonterminalMatchFunc(nonterminal: String): (CodeBlob, Set[String]) = {
+  def nonterminalMatchFunc(nonterminal: String): CodeBlob = {
     val valuefyExpr = analysis.nonterminalValuefyExprs(nonterminal)
     val body = unrollChoicesExpr(valuefyExpr.choices, "beginGen", "endGen")
     val returnType = typeDescStringOf(analysis.nonterminalTypes(nonterminal), Some(s"return type of nonterminal $nonterminal"))
@@ -127,7 +130,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
          |${(body.prepares :+ s"return ${body.result}").mkString("\n")}
          |}""".stripMargin,
       body.required ++ returnType.required ++ body.required)
-    (codeBlob, Set())
+    codeBlob
   }
 
   def unrollChoicesExpr(choicesMap: Map[Symbols.Symbol, ValuefyExpr], beginGen: String, endGen: String): ExprBlob = {
@@ -181,6 +184,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       ???
     case ValuefyExpr.MatchNonterminal(nonterminalName) =>
       val v = newVar()
+      _requiredNonterms += nonterminalName
       ExprBlob(List(s"val $v = ${nonterminalMatchFuncName(nonterminalName)}($beginGen, $endGen)"), v, Set())
     case ValuefyExpr.Unbind(symbol, expr) =>
       // Unbind 체크는 파싱이 잘 됐으면 불필요하므로 여기서는 스킵
@@ -235,7 +239,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         valuefyExprToCode(param, beginGen, endGen, symbol, sequenceVarName)
       }
       val v = newVar()
-      val construct = s"val $v = $className(${paramCodes.map(_.result).mkString(", ")}, nextId(), $beginGen, $endGen)"
+      val construct = s"val $v = $className(${paramCodes.map(_.result + ", ").mkString("")}nextId(), $beginGen, $endGen)"
       ExprBlob(paramCodes.flatMap(_.prepares) :+ construct, v, paramCodes.flatMap(_.required).toSet)
     case ValuefyExpr.FuncCall(funcType, params) =>
       funcCallToCode(funcType, params, beginGen, endGen, symbol, sequenceVarName)
@@ -284,7 +288,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       val ifNullCode = valuefyExprToCode(ifNull, beginGen, endGen, symbol, sequenceVarName)
       ExprBlob(
         exprCode.prepares :+ s"val $exprVar = ${exprCode.result}",
-        s"$exprVar ?: ${ifNullCode.withBraceIfNeeded}",
+        s"($exprVar ?: ${ifNullCode.withBraceIfNeeded})",
         exprCode.required ++ ifNullCode.required)
     case ValuefyExpr.TernaryOp(condition, ifTrue, ifFalse) =>
       val conditionCode = valuefyExprToCode(condition, beginGen, endGen, symbol, sequenceVarName)
