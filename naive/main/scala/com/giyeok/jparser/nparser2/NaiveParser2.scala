@@ -67,6 +67,7 @@ class NaiveParser2(val grammar: NGrammar) {
     }
 
     def traverse(pointer: Kernel, path: List[Edge], cc: Set[Kernel]): Set[Kernel] = {
+      // TODO except, join 심볼에서 사용하는 심볼은?
       if (destKernels.contains(pointer)) {
         cc ++ path.flatMap(e => List(e.start, e.end))
       } else {

@@ -21,35 +21,50 @@ case class MilestoneParserData(
 
 case class ParsingAction(
   appendingMilestones: List[AppendingMilestone],
+  startNodeProgressCondition: Option[AcceptConditionTemplate],
   forAcceptConditions: Map[KernelTemplate, List[AppendingMilestone]],
   tasksSummary: TasksSummary,
-  startNodeProgressCondition: Option[AcceptConditionTemplate],
   graphBetween: KernelGraph,
 )
 
 case class AppendingMilestone(
   milestone: KernelTemplate,
   acceptCondition: AcceptConditionTemplate,
-)
+) extends Ordered[AppendingMilestone] {
+  override def compare(that: AppendingMilestone): Int = milestone.compare(that.milestone)
+}
 
 case class TasksSummary(
   progressedKernels: List[Kernel],
   finishedKernels: List[Kernel],
 )
 
-sealed class AcceptConditionTemplate
+sealed class AcceptConditionTemplate {
+  def symbolIds: Set[Int] = this match {
+    case AndTemplate(conditions) => conditions.flatMap(_.symbolIds).toSet
+    case OrTemplate(conditions) => conditions.flatMap(_.symbolIds).toSet
+    case ExistsTemplate(symbolId) => Set(symbolId)
+    case NotExistsTemplate(symbolId) => Set(symbolId)
+    case LongestTemplate(symbolId) => Set(symbolId)
+    case OnlyIfTemplate(symbolId) => Set(symbolId)
+    case UnlessTemplate(symbolId) => Set(symbolId)
+    case _ => Set()
+  }
+}
 
 case object AlwaysTemplate extends AcceptConditionTemplate
 
 case object NeverTemplate extends AcceptConditionTemplate
 
-case class AndTemplate(conditions: Set[AcceptConditionTemplate]) extends AcceptConditionTemplate
+case class AndTemplate(conditions: List[AcceptConditionTemplate]) extends AcceptConditionTemplate
 
-case class OrTemplate(conditions: Set[AcceptConditionTemplate]) extends AcceptConditionTemplate
+case class OrTemplate(conditions: List[AcceptConditionTemplate]) extends AcceptConditionTemplate
 
-case class ExistsTemplate(symbolId: Int, beginGenFromNow: Boolean) extends AcceptConditionTemplate
+case class ExistsTemplate(symbolId: Int) extends AcceptConditionTemplate
 
-case class NotExistsTemplate(symbolId: Int, beginGenFromNow: Boolean, checkFromNextGen: Boolean) extends AcceptConditionTemplate
+case class NotExistsTemplate(symbolId: Int) extends AcceptConditionTemplate
+
+case class LongestTemplate(symbolId: Int) extends AcceptConditionTemplate
 
 case class OnlyIfTemplate(symbolId: Int) extends AcceptConditionTemplate
 

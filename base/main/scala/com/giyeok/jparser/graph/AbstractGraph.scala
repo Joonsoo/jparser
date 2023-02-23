@@ -171,6 +171,10 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
       if (i.end == start) m.addNode(start).addEdge(i) else recursion(List(i), m)
     }
   }
+
+  def reachableNodesFrom(start: N): Set[N] = {
+    ???
+  }
 }
 
 object AbstractGraph {
