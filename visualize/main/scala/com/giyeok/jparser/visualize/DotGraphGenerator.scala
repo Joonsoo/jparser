@@ -4,6 +4,7 @@ import com.giyeok.jparser.Inputs.CharsGrouping
 import com.giyeok.jparser.NGrammar.NAtomicSymbol
 import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.nparser.AcceptCondition._
+import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.nparser.ParsingContext._
 import com.giyeok.jparser.{NGrammar, Symbols}
 

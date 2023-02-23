@@ -2,9 +2,8 @@ package com.giyeok.jparser.nparser2
 
 import com.giyeok.jparser.GrammarHelper._
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.nparser.ParseTreeConstructor2
+import com.giyeok.jparser.nparser.{Kernel, ParseTreeConstructor2}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
-import com.giyeok.jparser.nparser.ParsingContext.{Kernel => Kernel1}
 import com.giyeok.jparser._
 import com.giyeok.jparser.examples.basics.MyPaper6_4
 import com.giyeok.jparser.nparser2.NaiveParser2.ParsingHistoryContext
@@ -84,7 +83,7 @@ class ParsingTasks2Test extends AnyFlatSpec {
     // println(nn)
 
     val kernels = x.historyKernels.map { kernels =>
-      Kernels(kernels.map(k => Kernel1(k.symbolId, k.pointer, k.beginGen, k.endGen)))
+      Kernels(kernels.map(k => Kernel(k.symbolId, k.pointer, k.beginGen, k.endGen)))
     }
 
     val forest = new ParseTreeConstructor2(ParseForestFunc)(grammar)(inputs, kernels).reconstruct()

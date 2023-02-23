@@ -1,11 +1,11 @@
 package com.giyeok.jparser.proto
 
 import com.giyeok.jparser.fast.GraphNoIndex
-import com.giyeok.jparser.nparser.AcceptCondition
 import com.giyeok.jparser.nparser.AcceptCondition._
-import com.giyeok.jparser.nparser.ParsingContext.{Edge, Kernel, Node}
+import com.giyeok.jparser.nparser.ParsingContext.{Edge, Node}
 import com.giyeok.jparser.nparser.proto.NaiveParserProto
 import com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.AcceptConditionCase
+import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
 import com.giyeok.jparser.proto.GrammarProto.Empty
 import com.giyeok.jparser.proto.ProtoConverterUtil.JavaListToScalaCollection
 

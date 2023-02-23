@@ -2,8 +2,8 @@ package com.giyeok.jparser.fast
 
 import com.giyeok.jparser.NGrammar.NSequence
 import com.giyeok.jparser.nparser.AcceptCondition.Always
-import com.giyeok.jparser.nparser.NaiveParser
-import com.giyeok.jparser.nparser.ParsingContext.{Graph, Kernel, Node}
+import com.giyeok.jparser.nparser.ParsingContext.{Graph, Node}
+import com.giyeok.jparser.nparser.{Kernel, NaiveParser}
 
 trait ParserGenBase {
   val parser: NaiveParser
@@ -27,7 +27,6 @@ trait ParserGenBase {
         .filter(task => parser.grammar.symbolOf(task.node.kernel.symbolId).isInstanceOf[NSequence])
         .map(_.node)
         .filter(node => node.kernel.beginGen < node.kernel.endGen && node.kernel.endGen == nextGen)
-
   }
 
   def runTasksWithProgressBarrier(nextGen: Int, tasks: List[parser.Task], barrierNode: Node, cc: ContWithTasks): ContWithTasks =

@@ -1,0 +1,21 @@
+TargetDef = SimpleName WS '=' WS Expr {TargetDef(name=$0, value=$4)}
+
+Expr: Expr = StringLiteral
+
+StringLiteral = '"' <StringElem>* '"' {StringLiteral(elems=$1)}
+StringElem: StringElem = .-'\\"' {JustChar(chr=$0)}
+  | StringExpr
+StringExpr: StringExpr = <'$' SimpleName> {SimpleExpr(name=$0)}
+  | '$' '{' WS Expr WS '}' {ComplexExpr(expr=$3)}
+
+SimpleName = <('a-zA-Z' 'a-zA-Z0-9_'* {str($0, $1)})&Tk>-Keyword {$0}
+Name = SimpleName (WS '.' WS SimpleName)* {Name(tokens=[$0] + $1)}
+
+// literal에서 사용되면 ambiguous해지는 것만 막으면 될듯?
+Keyword = "true" | "false" | "none" | "this"
+
+Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
+
+WS = WS_*
+WS_ = ' \n\r\t'
+EOF = !.

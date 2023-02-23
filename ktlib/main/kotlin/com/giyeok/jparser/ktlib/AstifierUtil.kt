@@ -1,6 +1,6 @@
 package com.giyeok.jparser.ktlib
 
-import com.giyeok.jparser.nparser.ParsingContext.Kernel
+import com.giyeok.jparser.nparser.Kernel
 
 class KernelSet(val kernels: Set<Kernel>) {
   fun filter(pred: (Kernel) -> Boolean) = kernels.filter(pred)

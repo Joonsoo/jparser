@@ -2,11 +2,11 @@ package com.giyeok.jparser.milestone
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLookaheadSymbol, NSequence}
+import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLookaheadSymbol}
 import com.giyeok.jparser.fast.{GraphNoIndex, KernelTemplate, ParserGenBase}
 import com.giyeok.jparser.nparser.AcceptCondition.Always
-import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
-import com.giyeok.jparser.nparser.{AcceptCondition, NaiveParser}
+import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Node}
+import com.giyeok.jparser.nparser.{AcceptCondition, Kernel, NaiveParser}
 import com.giyeok.jparser.utils.TermGrouper
 
 import scala.annotation.tailrec

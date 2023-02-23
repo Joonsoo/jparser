@@ -1,7 +1,8 @@
 package com.giyeok.jparser.nparser2.utils
 
+import com.giyeok.jparser.nparser.Kernel
+import com.giyeok.jparser.nparser2.KernelGraph
 import com.giyeok.jparser.{NGrammar, Symbols}
-import com.giyeok.jparser.nparser2.{Kernel, KernelGraph}
 
 object Utils {
   def kernelString(grammar: NGrammar, kernel: Kernel): String = {

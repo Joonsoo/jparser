@@ -5,8 +5,7 @@ import com.giyeok.jparser.fast.{GraphNoIndex, KernelTemplate, TasksSummary}
 import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
 import com.giyeok.jparser.milestone._
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-import com.giyeok.jparser.nparser.ParsingContext.Kernel
-import com.giyeok.jparser.nparser.{AcceptCondition, ParsingContext}
+import com.giyeok.jparser.nparser.{AcceptCondition, Kernel, ParsingContext}
 import com.giyeok.jparser.utils.ScalaCodeGenUtil._
 import com.giyeok.jparser.{Inputs, NGrammar}
 

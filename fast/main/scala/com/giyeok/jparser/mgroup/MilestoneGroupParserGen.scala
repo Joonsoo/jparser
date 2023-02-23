@@ -7,8 +7,8 @@ import com.giyeok.jparser.metalang3.{MetaLanguage3, ValuefyExprSimulator}
 import com.giyeok.jparser.mgroup.MilestoneGroupParserData.{EDGE_CURRENT_GEN, EDGE_END_GEN, EDGE_NEXT_GEN, EDGE_PARENT_GEN, EDGE_START_GEN, TERM_CURRENT_GEN, TERM_END_GEN, TERM_START_GEN}
 import com.giyeok.jparser.milestone.{MilestoneParser, MilestoneParserGen}
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, AcceptConditionSlot, Always, conjunct, disjunct}
-import com.giyeok.jparser.nparser.NaiveParser
-import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Kernel, Node}
+import com.giyeok.jparser.nparser.{Kernel, NaiveParser}
+import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Node}
 import com.giyeok.jparser.utils.TermGrouper
 
 import scala.annotation.tailrec

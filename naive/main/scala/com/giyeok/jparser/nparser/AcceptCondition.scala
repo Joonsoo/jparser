@@ -1,7 +1,6 @@
 package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.nparser2.{ParsingContext => ParsingContext2}
-import com.giyeok.jparser.nparser2.{Kernel => Kernel2}
 
 object AcceptCondition {
 
@@ -30,9 +29,9 @@ object AcceptCondition {
 
     def kernel1(endGen: Int): Kernel = Kernel(symbolId, 1, beginGen, endGen)
 
-    def initKernel: Kernel2 = Kernel2(symbolId, 0, beginGen, beginGen)
+    def initKernel: Kernel = Kernel(symbolId, 0, beginGen, beginGen)
 
-    def finalKernel(endGen: Int): Kernel2 = Kernel2(symbolId, 1, beginGen, endGen)
+    def finalKernel(endGen: Int): Kernel = Kernel(symbolId, 1, beginGen, endGen)
 
     lazy val nodes: Set[Node] = Set(node0)
   }

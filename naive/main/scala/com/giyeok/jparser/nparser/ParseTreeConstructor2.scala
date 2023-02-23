@@ -2,10 +2,10 @@ package com.giyeok.jparser.nparser
 
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.NGrammar._
+import com.giyeok.jparser._
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.{KernelCore, Kernels}
-import com.giyeok.jparser.nparser.ParsingContext.{Graph, Kernel}
-import com.giyeok.jparser._
+import com.giyeok.jparser.nparser.ParsingContext.Graph
 
 // Accept condition을 모두 통과한 node들의 커널들만. 커널사이의 관계는 grammar를 통해 유추하고 생략함.
 class ParseTreeConstructor2[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)(input: Seq[Input], history: Seq[Kernels]) {

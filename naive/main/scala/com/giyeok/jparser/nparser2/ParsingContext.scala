@@ -2,8 +2,7 @@ package com.giyeok.jparser.nparser2
 
 import com.giyeok.jparser.graph.{AbstractEdge, AbstractGraph}
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
-
-case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int)
+import com.giyeok.jparser.nparser.Kernel
 
 case class Edge(start: Kernel, end: Kernel) extends AbstractEdge[Kernel]
 

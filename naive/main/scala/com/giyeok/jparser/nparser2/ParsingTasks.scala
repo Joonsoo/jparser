@@ -3,6 +3,7 @@ package com.giyeok.jparser.nparser2
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLongest, NLookaheadExcept, NLookaheadIs, NLookaheadSymbol, NSequence, NSimpleDerive, NTerminal}
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always, Exists, Never, NotExists, OnlyIf, Unless, conjunct, disjunct}
+import com.giyeok.jparser.nparser.Kernel
 
 import scala.annotation.tailrec
 

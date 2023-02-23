@@ -3,7 +3,7 @@ package com.giyeok.jparser.test
 import com.giyeok.jparser.{Inputs, NGrammar, Symbols}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import PyObjOptAst._
-import com.giyeok.jparser.nparser.ParsingContext.Kernel
+import com.giyeok.jparser.nparser.Kernel
 
 import scala.collection.immutable.{ListSet, Seq}
 
