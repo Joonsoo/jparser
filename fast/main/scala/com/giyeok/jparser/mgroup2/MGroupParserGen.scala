@@ -14,7 +14,7 @@ import scala.annotation.tailrec
 // mgroup의 수가 너무 많아지는 경우도 생길 수 있을듯..
 // 그래서 milestone 파서를 그냥 쓰게 되는 경우가 생길것 같음
 class MGroupParserGen(val grammar: NGrammar) {
-  val parsingTaskImpl: ParsingTaskImpl = new ParsingTaskImpl(grammar)
+  val naiveParser: NaiveParser2 = new NaiveParser2(grammar)
   val startKernelTmpl: KernelTemplate = KernelTemplate(grammar.startSymbol, 0)
 
   def deriveMGroup(nextGen: Int, milestones: Set[KernelTemplate]): (ParsingContext, MilestoneGroup) = {
@@ -22,7 +22,7 @@ class MGroupParserGen(val grammar: NGrammar) {
     def rec(cc: (ParsingContext, Set[KernelTemplate]), tasks: List[ParsingTask]): (ParsingContext, Set[KernelTemplate]) = tasks match {
       case List() => cc
       case head +: rest =>
-        val (newCtx, newTasks) = parsingTaskImpl.process(nextGen, head, cc._1)
+        val (newCtx, newTasks) = naiveParser.process(nextGen, head, cc._1)
         val newShadowKernel: Set[KernelTemplate] = head match {
           case DeriveTask(kernel) =>
             grammar.symbolOf(kernel.symbolId) match {
@@ -78,7 +78,7 @@ class MGroupParserGen(val grammar: NGrammar) {
         case _ => false
       }
       // TODO mgroup.milestones에서 도달 가능한지 확인 - mgroup.milestones에서 도달 가능한게 하나도 없으면
-      val nextCtx = parsingTaskImpl.rec(2, terminalNodes.toList.map(ProgressTask(_, Always)), parsingCtx)
+      val nextCtx = naiveParser.recursivelyRunTasks(2, terminalNodes.toList.map(ProgressTask(_, Always)), parsingCtx)
       println(nextCtx)
       // TODO
       termGroup -> ParsingAction0(MilestoneGroup(Set(), Set()), MilestoneGroup(Set(), Set()))

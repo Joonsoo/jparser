@@ -2,13 +2,12 @@ package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.fast.KernelTemplate
-import com.giyeok.jparser.nparser.Kernel
+import com.giyeok.jparser.fast.{KernelTemplate, TasksSummary2}
 import com.giyeok.jparser.nparser2.KernelGraph
 
 case class MilestoneParserData(
   grammar: NGrammar,
-  initialTasksSummary: TasksSummary,
+  initialTasksSummary: TasksSummary2,
   termActions: Map[KernelTemplate, List[(TermGroupDesc, ParsingAction)]],
   edgeProgressActions: Map[(KernelTemplate, KernelTemplate), ParsingAction],
   // 엣지 사이에서 필요할 수도 있는 심볼 ID. except, join, (lookahead?)
@@ -23,7 +22,7 @@ case class ParsingAction(
   appendingMilestones: List[AppendingMilestone],
   startNodeProgressCondition: Option[AcceptConditionTemplate],
   forAcceptConditions: Map[KernelTemplate, List[AppendingMilestone]],
-  tasksSummary: TasksSummary,
+  tasksSummary: TasksSummary2,
   graphBetween: KernelGraph,
 )
 
@@ -33,11 +32,6 @@ case class AppendingMilestone(
 ) extends Ordered[AppendingMilestone] {
   override def compare(that: AppendingMilestone): Int = milestone.compare(that.milestone)
 }
-
-case class TasksSummary(
-  progressedKernels: List[Kernel],
-  finishedKernels: List[Kernel],
-)
 
 sealed class AcceptConditionTemplate {
   def symbolIds: Set[Int] = this match {

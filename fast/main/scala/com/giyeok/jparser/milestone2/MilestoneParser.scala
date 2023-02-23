@@ -21,12 +21,16 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     template match {
       case AlwaysTemplate => Always
       case NeverTemplate => Never
-      case AndTemplate(conditions) => And(conditions.map(reifyCondition(_, beginGen, gen)))
-      case OrTemplate(conditions) => Or(conditions.map(reifyCondition(_, beginGen, gen)))
-      case ExistsTemplate(symbolId, beginGenFromNow) =>
-        Exists(Milestone(symbolId, 0, if (beginGenFromNow) gen else beginGen))
-      case NotExistsTemplate(symbolId, beginGenFromNow, checkFromNextGen) =>
-        NotExists(Milestone(symbolId, 0, if (beginGenFromNow) gen else beginGen), checkFromNextGen)
+      case AndTemplate(conditions) =>
+        And(conditions.map(reifyCondition(_, beginGen, gen)).distinct)
+      case OrTemplate(conditions) =>
+        Or(conditions.map(reifyCondition(_, beginGen, gen)).distinct)
+      case ExistsTemplate(symbolId) =>
+        Exists(Milestone(symbolId, 0, gen))
+      case NotExistsTemplate(symbolId) =>
+        NotExists(Milestone(symbolId, 0, gen), checkFromNextGen = false)
+      case LongestTemplate(symbolId) =>
+        NotExists(Milestone(symbolId, 0, beginGen), checkFromNextGen = false)
       case OnlyIfTemplate(symbolId) =>
         OnlyIf(Milestone(symbolId, 0, beginGen))
       case UnlessTemplate(symbolId) =>
@@ -138,9 +142,9 @@ case object Always extends MilestoneAcceptCondition
 
 case object Never extends MilestoneAcceptCondition
 
-case class And(conditions: Set[MilestoneAcceptCondition]) extends MilestoneAcceptCondition
+case class And(conditions: List[MilestoneAcceptCondition]) extends MilestoneAcceptCondition
 
-case class Or(conditions: Set[MilestoneAcceptCondition]) extends MilestoneAcceptCondition
+case class Or(conditions: List[MilestoneAcceptCondition]) extends MilestoneAcceptCondition
 
 case class Exists(milestone: Milestone) extends MilestoneAcceptCondition
 
