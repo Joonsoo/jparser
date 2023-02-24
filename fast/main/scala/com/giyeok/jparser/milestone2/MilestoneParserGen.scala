@@ -90,7 +90,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     forAcceptConditions: mutable.Map[KernelTemplate, List[AppendingMilestone]],
     condition: AcceptCondition
   ): AcceptConditionTemplate = {
-    def trimmedCtx() = parser.trimParsingContext(start, 2, result.ctx)
+    def trimmedCtx() = result.ctx // parser.trimParsingContext(start, 2, result.ctx)
 
     condition match {
       case AcceptCondition.Always => AlwaysTemplate

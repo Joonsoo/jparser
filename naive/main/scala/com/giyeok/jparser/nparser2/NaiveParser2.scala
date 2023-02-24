@@ -7,6 +7,7 @@ import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always, Exis
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser.{Kernel, ParseTreeConstructor2}
 import com.giyeok.jparser.nparser2.NaiveParser2.{AcceptConditionsTracker, ParsingHistoryContext}
+import com.giyeok.jparser.nparser2.utils.Utils
 import com.giyeok.jparser.{NGrammar, ParseResult, ParseResultFunc}
 
 import scala.annotation.tailrec
@@ -189,6 +190,7 @@ class NaiveParser2(val grammar: NGrammar) {
   }
 
   def updateAcceptConditions(nextGen: Int, ctx: ParsingContext, tracker: AcceptConditionsTracker): (ParsingContext, AcceptConditionsTracker) = {
+    // TODO 버그가 있음
     val acceptConditions = ctx.acceptConditions.view.mapValues(_.evolve(nextGen, ctx)).toMap
     val droppedKernels = acceptConditions.filter(_._2 == Never)
     val survivingAcceptConditions = acceptConditions.filter(_._2 != Never)
@@ -221,20 +223,24 @@ class NaiveParser2(val grammar: NGrammar) {
     ParsingContext(ctx.graph.removeNodes(droppedNodes), ctx.acceptConditions.filter(p => reachableNodes.contains(p._1)))
   }
 
-  def parseStep(gen: Int, hctx: ParsingHistoryContext, input: Input): Either[ParsingError, ParsingHistoryContext] = {
-    val initialsProgressed = progressTerminalsForInput(gen, hctx.parsingContext, input)
+  def parseStep(hctx: ParsingHistoryContext, input: Input): Either[ParsingError, ParsingHistoryContext] = {
+    val initialsProgressed = progressTerminalsForInput(hctx.gen, hctx.parsingContext, input)
 
     initialsProgressed map { ctx =>
-      val nextGen = gen + 1
+      val nextGen = hctx.gen + 1
       val (updated, newTracker) = updateAcceptConditions(nextGen, ctx, hctx.acceptConditionsTracker)
+      println(s"=== $nextGen, before trimming")
+      Utils.printDotGraph(grammar, updated)
       val trimmed = trimParsingContext(startKernel, nextGen, updated)
+      println(s"=== $nextGen, after trimming")
+      Utils.printDotGraph(grammar, trimmed)
       ParsingHistoryContext(nextGen, trimmed, hctx.inputs :+ input, hctx.history :+ updated, newTracker)
     }
   }
 
   def parse(inputSeq: List[Input]): Either[ParsingError, ParsingHistoryContext] =
-    inputSeq.zipWithIndex.foldLeft[Either[ParsingError, ParsingHistoryContext]](Right(initialParsingHistoryContext)) { (cc, i) =>
-      cc flatMap (parseStep(i._2, _, i._1))
+    inputSeq.foldLeft[Either[ParsingError, ParsingHistoryContext]](Right(initialParsingHistoryContext)) { (cc, i) =>
+      cc flatMap (parseStep(_, i))
     }
 }
 

@@ -48,17 +48,17 @@ class ParsingTasks2Test extends AnyFlatSpec {
     val inputs = Inputs.fromString("let a b+c;")
 
 
-    inputs.zipWithIndex.foldLeft[Either[ParsingError, ParsingHistoryContext]](Right(parser.initialParsingHistoryContext)) { (cc, i) =>
+    inputs.foldLeft[Either[ParsingError, ParsingHistoryContext]](Right(parser.initialParsingHistoryContext)) { (cc, i) =>
       val ccc = cc.getOrElse(throw new IllegalStateException())
-      println(s"Generation ${i._2}")
-      printDotGraph(grammar, ccc.parsingContext.graph)
+      println(s"Generation ${ccc.gen}")
+      printDotGraph(grammar, ccc.parsingContext)
       ccc.parsingContext.acceptConditions.foreach { c =>
         println(s"${kernelString(grammar, c._1)} -> ${c._2}")
       }
       ccc.acceptConditionsTracker.evolves.foreach { e =>
         println(s"${e._1} -> ${e._2}")
       }
-      cc flatMap (parser.parseStep(i._2, _, i._1))
+      cc flatMap (parser.parseStep(_, i))
     }
 
     //    val ctx1 = parser.parseStep(0, parser.initialParsingHistoryContext, Inputs.Character('1'))
@@ -77,9 +77,9 @@ class ParsingTasks2Test extends AnyFlatSpec {
 
     println(x.gen)
     // printDotGraph(grammar, x.history.last.graph)
-    printDotGraph(grammar, x.parsingContext.graph)
+    printDotGraph(grammar, x.parsingContext)
 
-    val nn = parser.parseStep(x.gen, x, Inputs.Character('*'))
+    val nn = parser.parseStep(x, Inputs.Character('*'))
     // println(nn)
 
     val kernels = x.historyKernels.map { kernels =>

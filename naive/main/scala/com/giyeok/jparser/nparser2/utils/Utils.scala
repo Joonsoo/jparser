@@ -1,7 +1,7 @@
 package com.giyeok.jparser.nparser2.utils
 
 import com.giyeok.jparser.nparser.Kernel
-import com.giyeok.jparser.nparser2.KernelGraph
+import com.giyeok.jparser.nparser2.{KernelGraph, ParsingContext}
 import com.giyeok.jparser.{NGrammar, Symbols}
 
 object Utils {
@@ -16,16 +16,17 @@ object Utils {
     s"(${kernel.symbolId} ${kernelPointerString.mkString(" ")}, ${kernel.beginGen}..${kernel.endGen})"
   }
 
-  def printDotGraph(grammar: NGrammar, graph: KernelGraph): Unit = {
-    val nodeIds = graph.nodes.zipWithIndex.toMap
+  def printDotGraph(grammar: NGrammar, ctx: ParsingContext): Unit = {
+    val nodeIds = ctx.graph.nodes.zipWithIndex.toMap
     println("digraph X {")
-    graph.nodes.foreach { node =>
+    ctx.graph.nodes.foreach { node =>
       val nodeId = nodeIds(node)
       val label = kernelString(grammar, node)
-      val labelString = "\"" + label + "\""
+      val condition = ctx.acceptConditions(node)
+      val labelString = s"\"$label $condition\""
       println(s"  ${nodeId} [label=$labelString];")
     }
-    graph.edges.foreach { edge =>
+    ctx.graph.edges.foreach { edge =>
       println(s"  ${nodeIds(edge.start)} -> ${nodeIds(edge.end)};")
     }
     println("}")

@@ -14,7 +14,7 @@ class DeriveMGroupTest extends AnyFlatSpec {
     val (initialCtx, initialMGroup) = parserGen.deriveMGroup(0, Set(parserGen.startKernelTmpl))
     println(initialMGroup)
 
-    printDotGraph(grammar, initialCtx.graph)
+    printDotGraph(grammar, initialCtx)
 
     val x = parserGen.termActionsFrom(0, initialMGroup, initialCtx)
     println(x)
