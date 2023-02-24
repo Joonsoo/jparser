@@ -14,7 +14,7 @@ case class MilestoneParserData(
   // termAction에서는 forAcceptConditions가 이 정보를 대체한다고 볼 수 있음
   // edgeProgressActions에서도 2 이상 떨어진 gen에 대해서 forAcceptConditions가 생기면 안 될 것 같은데.. 맞나?
   // -> 이런 경우엔 미리 이전에 path가 만들어지고 edgeMayRequire 정보로 인해서 유지되고 있었어야 할것 같은데..
-  edgeMayRequire: Map[(KernelTemplate, KernelTemplate), Set[Int]],
+  edgeRequire: Map[(KernelTemplate, KernelTemplate), Set[Int]],
   kernelDeriveGraphs: Map[KernelTemplate, KernelGraph]
 )
 

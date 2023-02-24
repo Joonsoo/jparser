@@ -32,7 +32,7 @@ case class ParserGenBase2(val parser: NaiveParser2) {
   def runTasksWithProgressBarriers(nextGen: Int, tasks: List[ParsingTask], barrierNodes: Set[Kernel], cc: CtxWithTasks): CtxWithTasks = tasks match {
     case task +: rest =>
       if (task.isInstanceOf[ProgressTask] && barrierNodes.contains(task.asInstanceOf[ProgressTask].kernel)) {
-        runTasksWithProgressBarriers(nextGen, task +: rest, barrierNodes, cc)
+        runTasksWithProgressBarriers(nextGen, rest, barrierNodes, cc)
       } else {
         val (ncc, newTasks) = parser.process(nextGen, task, cc.ctx)
         runTasksWithProgressBarriers(nextGen, newTasks ++: rest, barrierNodes, CtxWithTasks(ncc, cc.tasks ++ newTasks))

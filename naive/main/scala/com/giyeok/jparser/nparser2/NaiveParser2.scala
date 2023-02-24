@@ -135,7 +135,10 @@ class NaiveParser2(val grammar: NGrammar) {
     }
     val newCondition = disjunct(
       ctx.acceptConditions.getOrElse(newKernel, Never),
-      conjunct(task.condition, addingCondition))
+      conjunct(
+        ctx.acceptConditions.getOrElse(task.kernel, Never),
+        task.condition,
+        addingCondition))
 
     // ctx.graph에 newKernel, newEdges를 모두 추가하고, newKernel의 조건으로 newCondition을 disjunct로 추가한다.
     val newCtx = ParsingContext(
@@ -207,18 +210,46 @@ class NaiveParser2(val grammar: NGrammar) {
         kernel.beginGen == nextGen
     }
 
-    def traverse(pointer: Kernel, path: List[Edge], cc: Set[Kernel]): Set[Kernel] = {
-      // TODO except, join 심볼에서 사용하는 심볼은?
-      if (destKernels.contains(pointer)) {
-        cc ++ path.flatMap(e => List(e.start, e.end))
+    def traverse(pointer: Kernel, path: List[Edge]): Set[Kernel] = {
+      val condition = ctx.acceptConditions(pointer)
+      if (condition == Never) {
+        Set()
+      } else if (destKernels.contains(pointer)) {
+        path.flatMap(p => Set(p.start, p.end)).toSet
       } else {
-        ctx.graph.edgesByStart(pointer).filterNot(path.contains(_)).flatMap { next =>
-          traverse(next.end, next +: path, cc)
+        val outEdges = ctx.graph.edgesByStart(pointer)
+        outEdges.flatMap { outEdge =>
+          if (path.contains(outEdge)) {
+            Set()
+          } else {
+            val next = outEdge.end
+            grammar.symbolOf(next.symbolId) match {
+              case NExcept(_, _, body, except) =>
+                val bodyKernel = Kernel(body, 0, next.beginGen, next.beginGen)
+                val bodyResult = traverse(bodyKernel, outEdge +: path)
+                val exceptKernel = Kernel(except, 0, next.beginGen, next.beginGen)
+                if (ctx.graph.nodes.contains(exceptKernel)) {
+                  bodyResult ++ traverse(exceptKernel, outEdge +: path)
+                } else {
+                  bodyResult
+                }
+              case NJoin(_, _, body, join) =>
+                val bodyKernel = Kernel(body, 0, next.beginGen, next.beginGen)
+                val bodyResult = traverse(bodyKernel, outEdge +: path)
+                val joinKernel = Kernel(join, 0, next.beginGen, next.beginGen)
+                if (ctx.graph.nodes.contains(joinKernel)) {
+                  bodyResult ++ traverse(joinKernel, outEdge +: path)
+                } else {
+                  bodyResult
+                }
+              case _ => traverse(next, outEdge +: path)
+            }
+          }
         }
       }
     }
 
-    val reachableNodes = traverse(start, List(), Set())
+    val reachableNodes = traverse(start, List())
     val droppedNodes = ctx.graph.nodes -- reachableNodes
     ParsingContext(ctx.graph.removeNodes(droppedNodes), ctx.acceptConditions.filter(p => reachableNodes.contains(p._1)))
   }
@@ -229,11 +260,7 @@ class NaiveParser2(val grammar: NGrammar) {
     initialsProgressed map { ctx =>
       val nextGen = hctx.gen + 1
       val (updated, newTracker) = updateAcceptConditions(nextGen, ctx, hctx.acceptConditionsTracker)
-      println(s"=== $nextGen, before trimming")
-      Utils.printDotGraph(grammar, updated)
       val trimmed = trimParsingContext(startKernel, nextGen, updated)
-      println(s"=== $nextGen, after trimming")
-      Utils.printDotGraph(grammar, trimmed)
       ParsingHistoryContext(nextGen, trimmed, hctx.inputs :+ input, hctx.history :+ updated, newTracker)
     }
   }

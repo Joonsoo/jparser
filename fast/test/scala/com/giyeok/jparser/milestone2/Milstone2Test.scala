@@ -12,11 +12,11 @@ class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
     val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
 
-//    val naiveParser = new NaiveParser2(analysis.ngrammar)
-//    val ctx1 = naiveParser.parseStep(naiveParser.initialParsingHistoryContext, Inputs.Character('a')).right.get
-//    val ctx2 = naiveParser.parseStep(ctx1, Inputs.Character('b')).right.get
-//    val ctx3 = naiveParser.parseStep(ctx2, Inputs.Character('c')).right.get
-//    Utils.printDotGraph(analysis.ngrammar, ctx3.parsingContext)
+    val naiveParser = new NaiveParser2(analysis.ngrammar)
+    val ctx1 = naiveParser.parseStep(naiveParser.initialParsingHistoryContext, Inputs.Character('a')).right.get
+    val ctx2 = naiveParser.parseStep(ctx1, Inputs.Character('b')).right.get
+    val ctx3 = naiveParser.parseStep(ctx2, Inputs.Character('c')).right.get
+    Utils.printDotGraph(analysis.ngrammar, ctx3.parsingContext)
 
     val parserData = MilestoneParserGen.generateMilestoneParserData(analysis.ngrammar)
     //    val parserData = MilestoneParserData(

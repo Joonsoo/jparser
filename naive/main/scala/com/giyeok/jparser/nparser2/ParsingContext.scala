@@ -7,6 +7,8 @@ import com.giyeok.jparser.nparser.Kernel
 case class Edge(start: Kernel, end: Kernel) extends AbstractEdge[Kernel]
 
 case class KernelGraph(nodes: Set[Kernel], edges: Set[Edge], edgesByStart: Map[Kernel, Set[Edge]], edgesByEnd: Map[Kernel, Set[Edge]]) extends AbstractGraph[Kernel, Edge, KernelGraph] {
+  assert(edges.flatMap(e => Set(e.start, e.end)).subsetOf(nodes))
+
   override def createGraph(nodes: Set[Kernel], edges: Set[Edge], edgesByStart: Map[Kernel, Set[Edge]], edgesByEnd: Map[Kernel, Set[Edge]]): KernelGraph =
     KernelGraph(nodes, edges, edgesByStart, edgesByEnd)
 }
@@ -16,4 +18,6 @@ object KernelGraph {
     AbstractGraph(nodes, edges, KernelGraph.apply)
 }
 
-case class ParsingContext(graph: KernelGraph, acceptConditions: Map[Kernel, AcceptCondition])
+case class ParsingContext(graph: KernelGraph, acceptConditions: Map[Kernel, AcceptCondition]) {
+  assert(acceptConditions.keys == graph.nodes)
+}
