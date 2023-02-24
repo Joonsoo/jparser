@@ -4,6 +4,8 @@ import com.giyeok.jparser.{Inputs, Symbols}
 import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInput}
 import com.giyeok.jparser.fast.KernelTemplate
 
+import scala.collection.mutable
+
 class MilestoneParser(val parserData: MilestoneParserData) {
   private var verbose = false
 
@@ -37,7 +39,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         Unless(Milestone(symbolId, 0, beginGen))
     }
 
-  def applyParsingAction(path: MilestonePath, gen: Int, action: ParsingAction): List[MilestonePath] = {
+  def applyParsingAction(path: MilestonePath, gen: Int, action: ParsingAction, actionsCollector: GenActionsBuilder): List[MilestonePath] = {
     val tip = path.tip
     val appended = action.appendingMilestones.map { appending =>
       val newCondition = reifyCondition(appending.acceptCondition, tip.gen, gen)
@@ -52,7 +54,9 @@ class MilestoneParser(val parserData: MilestoneParserData) {
             val newCondition = reifyCondition(startNodeProgressCondition, tip.gen, gen)
             val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
             val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
-            applyParsingAction(path.pop(condition), gen, edgeAction.parsingAction)
+            // TODO add parse action (tipParent -> tip, edgeAction)
+            actionsCollector.edgeActions += ((tipParent -> tip, edgeAction))
+            applyParsingAction(path.pop(condition), gen, edgeAction.parsingAction, actionsCollector)
           case None => List()
         }
       case None => List()
@@ -78,20 +82,44 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     Set()
   }
 
+  def evolveAcceptCondition(
+    paths: List[MilestonePath],
+    genActions: GenActions,
+    condition: MilestoneAcceptCondition
+  ): MilestoneAcceptCondition = {
+    // TODO implement
+    condition match {
+      case Always => Always
+      case Never => Never
+      case And(conditions) =>
+        MilestoneAcceptCondition.conjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
+      case Or(conditions) =>
+        MilestoneAcceptCondition.disjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
+      case Exists(milestone) => ???
+      case NotExists(milestone, true) => NotExists(milestone, false)
+      case NotExists(milestone, false) => ???
+      case OnlyIf(milestone) => ???
+      case Unless(milestone) => ???
+    }
+  }
+
   def parseStep(ctx: ParsingContext, input: Inputs.Input): Either[ParsingError, ParsingContext] = {
     val gen = ctx.gen + 1
+    val actionsCollector = new GenActionsBuilder()
     val newPaths: List[MilestonePath] = ctx.paths.flatMap { path =>
       val termAction = parserData.termActions(KernelTemplate(path.tip.symbolId, path.tip.pointer))
         .find(_._1.contains(input))
       termAction match {
         case Some((_, action)) =>
+          // TODO add parse action (path.tip, action)
+          actionsCollector.termActions += ((path.tip, action))
           val fac = action.forAcceptConditions.flatMap { case (first, appendings) =>
             appendings.map { appending =>
               val condition = reifyCondition(appending.acceptCondition, ctx.gen, gen)
               MilestonePath(Milestone(first, ctx.gen)).append(Milestone(appending.milestone, gen), condition)
             }
           }
-          applyParsingAction(path, gen, action.parsingAction) ++ fac
+          applyParsingAction(path, gen, action.parsingAction, actionsCollector) ++ fac
         case None => List()
       }
     }
@@ -102,22 +130,29 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       // start symbol에 의한 path가 없으면 해당 input이 invalid하다는 뜻
       Left(UnexpectedInput(input, expectedInputsOf(ctx), gen))
     } else {
+      val genActions = actionsCollector.build()
       // first가 (start symbol, 0, 0)이거나 현재 존재하는 엣지의 trackingMilestones인 경우만 제외하고 모두 제거
       val trackings = collectTrackings(newPaths)
       if (verbose) {
         println(s"trackings: $trackings")
       }
-      val newPathsFiltered = newPaths.filter(path => path.first == initialMilestone || trackings.contains(path.first))
+
+      // newPaths와 수행된 액션을 바탕으로 condition evaluate
+      // TODO 반복이 필요할까?
+      val newPathsUpdated = newPaths
+        .map(path => path.copy(acceptCondition = evolveAcceptCondition(newPaths, genActions, path.acceptCondition)))
+        .filter(_.acceptCondition != Never)
+
+      val newPathsFiltered = newPathsUpdated
+        .filter(path => path.first == initialMilestone || trackings.contains(path.first))
       if (verbose) {
         newPathsFiltered.foreach(path => println(path.prettyString))
       }
 
-      // TODO newPathsFiltered와 수행된 액션을 바탕으로 condition evaluate, 필요하면 반복
-
       if (!newPathsFiltered.exists(_.first == initialMilestone)) {
         Left(UnexpectedInput(input, expectedInputsOf(ctx), gen))
       } else {
-        Right(ParsingContext(gen, newPathsFiltered, List()))
+        Right(ParsingContext(gen, newPathsFiltered, genActions +: ctx.actionsHistory))
       }
     }
   }
@@ -140,7 +175,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
   }
 }
 
-case class ParsingContext(gen: Int, paths: List[MilestonePath], actionsHistory: List[GenAction])
+case class ParsingContext(gen: Int, paths: List[MilestonePath], actionsHistory: List[GenActions])
 
 // path는 가장 뒤에 것이 가장 앞에 옴. first는 언제나 path.last와 동일
 case class MilestonePath(first: Milestone, path: List[Milestone], acceptCondition: MilestoneAcceptCondition) {
@@ -174,5 +209,15 @@ object Milestone {
     Milestone(template.symbolId, template.pointer, gen)
 }
 
-// TODO
-case class GenAction()
+// TODO TermAction하고 EdgeAction에 ID를 붙이는게 좋을까?
+case class GenActions(
+  termActions: List[(Milestone, TermAction)],
+  edgeActions: List[((Milestone, Milestone), EdgeAction)],
+)
+
+class GenActionsBuilder {
+  val termActions: mutable.ListBuffer[(Milestone, TermAction)] = mutable.ListBuffer()
+  val edgeActions: mutable.ListBuffer[((Milestone, Milestone), EdgeAction)] = mutable.ListBuffer()
+
+  def build() = GenActions(termActions.toList, edgeActions.toList)
+}
