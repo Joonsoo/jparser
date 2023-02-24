@@ -63,16 +63,21 @@ case class AndTemplate(conditions: List[AcceptConditionTemplate]) extends Accept
 case class OrTemplate(conditions: List[AcceptConditionTemplate]) extends AcceptConditionTemplate
 
 // Exists(currGen, currGen, symbolId)
+// Exists(Milestone(symbolId, 0, currGen))
 case class ExistsTemplate(symbolId: Int) extends AcceptConditionTemplate
 
 // NotExists(currGen, currGen, symbolId)
+// NotExists(Milestone(symbolId, 0, currGen), false)
 case class NotExistsTemplate(symbolId: Int) extends AcceptConditionTemplate
 
 // NotExists(parentGen, currGen + 1, symbolId)
+// NotExists(Milestone(symbolId, 0, parentGen), true)
 case class LongestTemplate(symbolId: Int) extends AcceptConditionTemplate
 
 // OnlyIf(parentGen, currGen, symbolId)
+// OnlyIf(Milestone(symbolId, 0, parentGen))
 case class OnlyIfTemplate(symbolId: Int) extends AcceptConditionTemplate
 
 // Unless(parentGen, currGen, symbolId)
+// Unless(Milestone(symbolId, 0, parentGen))
 case class UnlessTemplate(symbolId: Int) extends AcceptConditionTemplate
