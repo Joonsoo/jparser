@@ -29,31 +29,39 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     parsingActionFromProgressResult(result, beginGen, startKernel)
   }
 
+  def appendingMilestonesFrom(
+    result: CtxWithTasks,
+    beginGen: Int,
+    start: Kernel,
+    forAcceptConditions: mutable.Map[KernelTemplate, List[AppendingMilestone]]
+  ): List[AppendingMilestone] = {
+    assert(result.ctx.graph.nodes.contains(start))
+    val appendingMilestoneCandidates = result.deriveTasks.map(_.kernel)
+      .filter(kernel => parser.grammar.symbolOf(kernel.symbolId).isInstanceOf[NSequence])
+      .filter(kernel => kernel.pointer > 0 && kernel.beginGen < kernel.endGen)
+      .filter(result.ctx.graph.reachableBetween(start, _))
+    assert(appendingMilestoneCandidates.forall(kernel => kernel.beginGen == beginGen && kernel.endGen == 2))
+    appendingMilestoneCandidates.map { kernel =>
+      val condition = conditionToTemplate(result, beginGen, start, forAcceptConditions, result.ctx.acceptConditions(kernel))
+      AppendingMilestone(KernelTemplate(kernel.symbolId, kernel.pointer), condition)
+    }
+  }
+
   // beginGen은 assertion용
   def parsingActionFromProgressResult(result: CtxWithTasks, beginGen: Int, start: Kernel): ParsingAction = {
-    val CtxWithTasks(ctx, _) = result
     // start는 0..1, currGen은 2
     // graph에서 start로부터 reachable한 node들 중 milestone들을 찾아서 appendingMilestone
     // appendingMilestone의 accept condition과 startNodeProgressCondition에 등장하는 accept condition들을 template화
     // -> 여기서 등장하는 심볼들로부터 reachable한 milestone들을 찾아서 forAcceptConditions 만들기
     // -> 반복해서 새로 등장하는 accept condition template이 없을 때까지
     // 추가로 edgeMayRequire 계산
-    assert(ctx.graph.nodes.contains(start))
-    val appendingMilestoneCandidates = result.deriveTasks.map(_.kernel)
-      .filter(kernel => parser.grammar.symbolOf(kernel.symbolId).isInstanceOf[NSequence])
-      .filter(kernel => kernel.pointer > 0 && kernel.beginGen < kernel.endGen)
-      .filter(ctx.graph.reachableBetween(start, _))
-    assert(appendingMilestoneCandidates.forall(kernel => kernel.beginGen == beginGen && kernel.endGen == 2))
     val forAcceptConditions = mutable.Map[KernelTemplate, List[AppendingMilestone]]()
-    val appendingMilestones = appendingMilestoneCandidates.map { kernel =>
-      val condition = conditionToTemplate(ctx, beginGen, forAcceptConditions, ctx.acceptConditions(kernel))
-      AppendingMilestone(KernelTemplate(kernel.symbolId, kernel.pointer), condition)
-    }
+    val appendingMilestones = appendingMilestonesFrom(result, beginGen, start, forAcceptConditions)
     val startNodeProgressTasks = result.progressTasks.filter(_.kernel == start)
     val startNodeProgressCondition = startNodeProgressTasks match {
       case List() => None
       case progressTasks =>
-        val conditions = progressTasks.map(_.condition).map(conditionToTemplate(ctx, beginGen, forAcceptConditions, _))
+        val conditions = progressTasks.map(_.condition).map(conditionToTemplate(result, beginGen, start, forAcceptConditions, _))
         Some(disjunctConditions(conditions.toSet))
     }
     ParsingAction(
@@ -76,43 +84,71 @@ class MilestoneParserGen(val parser: NaiveParser2) {
 
   // beginGen은 assertion용
   private def conditionToTemplate(
-    ctx: NaiveParsingContext,
+    result: CtxWithTasks,
     beginGen: Int,
+    start: Kernel,
     forAcceptConditions: mutable.Map[KernelTemplate, List[AppendingMilestone]],
     condition: AcceptCondition
-  ): AcceptConditionTemplate = condition match {
-    case AcceptCondition.Always => AlwaysTemplate
-    case AcceptCondition.Never => NeverTemplate
-    case AcceptCondition.And(conditions) =>
-      conjunctConditions(conditions.map(conditionToTemplate(ctx, beginGen, forAcceptConditions, _)))
-    case AcceptCondition.Or(conditions) =>
-      disjunctConditions(conditions.map(conditionToTemplate(ctx, beginGen, forAcceptConditions, _)))
-    case AcceptCondition.NotExists(`beginGen`, 3, symbolId) =>
-      // longest
-      // longest는 일단 다음 gen부터 체크되므로 반환값이 달라질 일은 없음
-      // TODO 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-      LongestTemplate(symbolId)
-    case AcceptCondition.Unless(`beginGen`, 2, symbolId) =>
-      // except
-      // TODO ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(Unless이기 때문) 반환
-      // TODO 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-      UnlessTemplate(symbolId)
-    case AcceptCondition.OnlyIf(`beginGen`, 2, symbolId) =>
-      // join
-      // TODO ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
-      // TODO 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-      OnlyIfTemplate(symbolId)
-    case AcceptCondition.NotExists(2, 2, symbolId) =>
-      // lookahead except
-      // TODO ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
-      // - lookahead 심볼은 이미 가망이 없어진 경우가 아니라면 앞으로의 상황만 보니까.. start만 있고 appending milestone은 없는(길이가 1인) path가 추가돼야하나?
-      ???
-      NotExistsTemplate(symbolId)
-    case AcceptCondition.Exists(2, 2, symbolId) =>
-      // lookahead is
-      // TODO ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
-      ???
-      ExistsTemplate(symbolId)
+  ): AcceptConditionTemplate = {
+    def trimmedCtx() = parser.trimParsingContext(start, 2, result.ctx)
+
+    condition match {
+      case AcceptCondition.Always => AlwaysTemplate
+      case AcceptCondition.Never => NeverTemplate
+      case AcceptCondition.And(conditions) =>
+        conjunctConditions(conditions.map(conditionToTemplate(result, beginGen, start, forAcceptConditions, _)))
+      case AcceptCondition.Or(conditions) =>
+        disjunctConditions(conditions.map(conditionToTemplate(result, beginGen, start, forAcceptConditions, _)))
+      case AcceptCondition.NotExists(`beginGen`, 3, symbolId) =>
+        // longest
+        // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
+        // forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
+        forAcceptConditions(KernelTemplate(symbolId, 0)) =
+          appendingMilestonesFrom(result, beginGen, Kernel(symbolId, 0, beginGen, beginGen), forAcceptConditions)
+        LongestTemplate(symbolId)
+      case AcceptCondition.Unless(`beginGen`, 2, symbolId) =>
+        // except
+        if (!trimmedCtx().graph.nodes.contains(Kernel(symbolId, 0, beginGen, beginGen))) {
+          // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(Unless이기 때문) 반환
+          AlwaysTemplate
+        } else {
+          // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
+          forAcceptConditions(KernelTemplate(symbolId, 0)) =
+            appendingMilestonesFrom(result, beginGen, Kernel(symbolId, 0, beginGen, beginGen), forAcceptConditions)
+          UnlessTemplate(symbolId)
+        }
+      case AcceptCondition.OnlyIf(`beginGen`, 2, symbolId) =>
+        // join
+        if (!trimmedCtx().graph.nodes.contains(Kernel(symbolId, 0, beginGen, beginGen))) {
+          // ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
+          NeverTemplate
+        } else {
+          // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
+          forAcceptConditions(KernelTemplate(symbolId, 0)) =
+            appendingMilestonesFrom(result, beginGen, Kernel(symbolId, 0, beginGen, beginGen), forAcceptConditions)
+          OnlyIfTemplate(symbolId)
+        }
+      case AcceptCondition.NotExists(2, 2, symbolId) =>
+        // lookahead except
+        // - lookahead 심볼은 이미 가망이 없어진 경우가 아니라면 앞으로의 상황만 보기 때문에
+        //   start만 있고 appending milestone은 없는(길이가 1인) path를 추가해야 할듯?
+        //   즉, forAcceptConditions는 건드릴 필요 없을듯
+        if (!trimmedCtx().graph.nodes.contains(Kernel(symbolId, 0, 2, 2))) {
+          // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
+          AlwaysTemplate
+        } else {
+          NotExistsTemplate(symbolId)
+        }
+      case AcceptCondition.Exists(2, 2, symbolId) =>
+        // lookahead is
+        if (!trimmedCtx().graph.nodes.contains(Kernel(symbolId, 0, 2, 2))) {
+          // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
+          NeverTemplate
+        } else {
+          // NotExists와 같은 이유로 forAcceptConditions는 건드릴 필요 없음
+          ExistsTemplate(symbolId)
+        }
+    }
   }
 
   def termActionsFrom(start: KernelTemplate): List[(TermGroupDesc, ParsingAction)] = {
@@ -149,9 +185,10 @@ class MilestoneParserGen(val parser: NaiveParser2) {
         ngraph.addEdge(Edge(start.start, end._2))
       }
     }
+    val acceptConditionsWithEnds = startingCtx.ctx.acceptConditions ++ fakeEnds.values.map(_ -> AcceptCondition.Always)
     val afterDerive = parser.recursivelyRunTasks(1,
       fakeEnds.values.map(DeriveTask).toList,
-      NaiveParsingContext(derivedWithEnds, startingCtx.ctx.acceptConditions))
+      NaiveParsingContext(derivedWithEnds, acceptConditionsWithEnds))
     val afterTrimming = parser.trimParsingContext(startKernel, 1, afterDerive)
 
     val progressTasks = fakeEnds.values.map(ProgressTask(_, AcceptCondition.Always)).toList
