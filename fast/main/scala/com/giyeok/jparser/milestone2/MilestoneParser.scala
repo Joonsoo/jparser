@@ -49,15 +49,17 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     // apply edge actions to path
     val reduced: List[MilestonePath] = action.startNodeProgressCondition match {
       case Some(startNodeProgressCondition) =>
+        val newCondition = reifyCondition(startNodeProgressCondition, tip.gen, gen)
+        val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
+        actionsCollector.progressedMilestones += tip -> newCondition // TODO newCondition? condition?
         path.tipParent match {
           case Some(tipParent) =>
-            val newCondition = reifyCondition(startNodeProgressCondition, tip.gen, gen)
-            val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
             val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
             // TODO add parse action (tipParent -> tip, edgeAction)
             actionsCollector.edgeActions += ((tipParent -> tip, edgeAction))
             applyParsingAction(path.pop(condition), gen, edgeAction.parsingAction, actionsCollector)
-          case None => List()
+          case None =>
+            List()
         }
       case None => List()
     }
@@ -95,11 +97,32 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         MilestoneAcceptCondition.conjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
       case Or(conditions) =>
         MilestoneAcceptCondition.disjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
-      case Exists(milestone) => ???
-      case NotExists(milestone, true) => NotExists(milestone, false)
-      case NotExists(milestone, false) => ???
-      case OnlyIf(milestone) => ???
-      case Unless(milestone) => ???
+      case Exists(milestone) =>
+        if (!paths.exists(_.first == milestone)) {
+          Never
+        } else {
+          // TODO genActions 사용?
+          condition
+        }
+      case NotExists(milestone, true) =>
+        NotExists(milestone, false)
+      case NotExists(milestone, false) =>
+        if (!paths.exists(_.first == milestone)) {
+          Always
+        } else {
+          // TODO genActions 사용?
+          condition
+        }
+      case OnlyIf(milestone) =>
+        genActions.progressedMilestones.get(milestone) match {
+          case Some(progressCondition) => progressCondition
+          case None => Never
+        }
+      case Unless(milestone) =>
+        genActions.progressedMilestones.get(milestone) match {
+          case Some(progressCondition) => ??? // progressCondition.negation
+          case None => Always
+        }
     }
   }
 
@@ -113,10 +136,16 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         case Some((_, action)) =>
           // TODO add parse action (path.tip, action)
           actionsCollector.termActions += ((path.tip, action))
-          val fac = action.forAcceptConditions.flatMap { case (first, appendings) =>
+          val fac = action.pendedAcceptConditionKernels.flatMap { case (first, (appendings, progressCondition)) =>
+            val firstMilestone = Milestone(first, ctx.gen)
+            progressCondition match {
+              case Some(progressCondition) =>
+                actionsCollector.progressedMilestones += (firstMilestone -> reifyCondition(progressCondition, ctx.gen, gen))
+              case None =>
+            }
             appendings.map { appending =>
               val condition = reifyCondition(appending.acceptCondition, ctx.gen, gen)
-              MilestonePath(Milestone(first, ctx.gen)).append(Milestone(appending.milestone, gen), condition)
+              MilestonePath(firstMilestone).append(Milestone(appending.milestone, gen), condition)
             }
           }
           applyParsingAction(path, gen, action.parsingAction, actionsCollector) ++ fac
@@ -131,21 +160,23 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       Left(UnexpectedInput(input, expectedInputsOf(ctx), gen))
     } else {
       val genActions = actionsCollector.build()
-      // first가 (start symbol, 0, 0)이거나 현재 존재하는 엣지의 trackingMilestones인 경우만 제외하고 모두 제거
-      val trackings = collectTrackings(newPaths)
-      if (verbose) {
-        println(s"trackings: $trackings")
-      }
 
       // newPaths와 수행된 액션을 바탕으로 condition evaluate
       // TODO 반복이 필요할까?
       val newPathsUpdated = newPaths
         .map(path => path.copy(acceptCondition = evolveAcceptCondition(newPaths, genActions, path.acceptCondition)))
         .filter(_.acceptCondition != Never)
+      if (verbose) {
+        println("=== condition updated")
+        newPathsUpdated.foreach(path => println(path.prettyString))
+      }
 
+      // first가 (start symbol, 0, 0)이거나 현재 존재하는 엣지의 trackingMilestones인 경우만 제외하고 모두 제거
+      val trackings = collectTrackings(newPaths)
       val newPathsFiltered = newPathsUpdated
         .filter(path => path.first == initialMilestone || trackings.contains(path.first))
       if (verbose) {
+        println(s"=== filtered, trackings: $trackings")
         newPathsFiltered.foreach(path => println(path.prettyString))
       }
 
@@ -213,11 +244,14 @@ object Milestone {
 case class GenActions(
   termActions: List[(Milestone, TermAction)],
   edgeActions: List[((Milestone, Milestone), EdgeAction)],
+  progressedMilestones: Map[Milestone, MilestoneAcceptCondition],
 )
 
 class GenActionsBuilder {
   val termActions: mutable.ListBuffer[(Milestone, TermAction)] = mutable.ListBuffer()
   val edgeActions: mutable.ListBuffer[((Milestone, Milestone), EdgeAction)] = mutable.ListBuffer()
 
-  def build() = GenActions(termActions.toList, edgeActions.toList)
+  val progressedMilestones: mutable.Map[Milestone, MilestoneAcceptCondition] = mutable.Map()
+
+  def build(): GenActions = GenActions(termActions.toList, edgeActions.toList, progressedMilestones.toMap)
 }

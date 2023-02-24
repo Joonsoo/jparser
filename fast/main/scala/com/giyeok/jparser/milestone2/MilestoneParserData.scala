@@ -38,7 +38,7 @@ case class ParsingAction(
 
 case class TermAction(
   parsingAction: ParsingAction,
-  forAcceptConditions: Map[KernelTemplate, List[AppendingMilestone]],
+  pendedAcceptConditionKernels: Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
 )
 
 case class EdgeAction(

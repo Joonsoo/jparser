@@ -4,7 +4,7 @@ import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.{NSequence, NTerminal}
 import com.giyeok.jparser.fast.{CtxWithTasks, KernelTemplate, ParserGenBase2}
-import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
+import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, conjunct, disjunct}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
 import com.giyeok.jparser.nparser2.utils.Utils
 import com.giyeok.jparser.nparser2.{DeriveTask, Edge, KernelGraph, NaiveParser2, ProgressTask, ParsingContext => NaiveParsingContext}
@@ -64,7 +64,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
   def appendingMilestonesForTermAction(
     result: CtxWithTasks,
     start: Kernel,
-    forAcceptConditions: mutable.Map[KernelTemplate, List[AppendingMilestone]]
+    forAcceptConditions: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])]
   ): List[AppendingMilestone] = {
     appendingMilestoneCandidatesOf(result, 1, start).map { kernel =>
       val condition = conditionToTemplateForTermAction(result, start, forAcceptConditions, result.ctx.acceptConditions(kernel))
@@ -80,7 +80,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     // -> 여기서 등장하는 심볼들로부터 reachable한 milestone들을 찾아서 forAcceptConditions 만들기
     // -> 반복해서 새로 등장하는 accept condition template이 없을 때까지
     // 추가로 edgeMayRequire 계산
-    val forAcceptConditions = mutable.Map[KernelTemplate, List[AppendingMilestone]]()
+    val forAcceptConditions = mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])]()
     val appendingMilestones = appendingMilestonesForTermAction(result, start, forAcceptConditions)
     val startNodeProgressTasks = result.progressTasks.filter(_.kernel == start)
     val startNodeProgressCondition = startNodeProgressTasks match {
@@ -103,9 +103,20 @@ class MilestoneParserGen(val parser: NaiveParser2) {
   private def conditionToTemplateForTermAction(
     result: CtxWithTasks,
     start: Kernel,
-    forAcceptConditions: mutable.Map[KernelTemplate, List[AppendingMilestone]],
+    forAcceptConditions: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
     condition: AcceptCondition
   ): AcceptConditionTemplate = {
+    def addForAcceptConditionTemplate(symbolId: Int): Unit = {
+      val symbolStart = Kernel(symbolId, 0, 1, 1)
+      val appendingMilestones = appendingMilestonesForTermAction(result, symbolStart, forAcceptConditions)
+      val progresses = result.progressTasks.filter(_.kernel == symbolStart)
+      val progressCondition = disjunct(progresses.map(_.condition): _*)
+      val progressConditionTemplate = if (progressCondition == Never) None else {
+        Some(conditionToTemplateForTermAction(result, symbolStart, forAcceptConditions, progressCondition))
+      }
+      forAcceptConditions(KernelTemplate(symbolId, 0)) = (appendingMilestones, progressConditionTemplate)
+    }
+
     condition match {
       case AcceptCondition.Always => AlwaysTemplate
       case AcceptCondition.Never => NeverTemplate
@@ -117,8 +128,8 @@ class MilestoneParserGen(val parser: NaiveParser2) {
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
         // TODO forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-        forAcceptConditions(KernelTemplate(symbolId, 0)) =
-          appendingMilestonesForTermAction(result, Kernel(symbolId, 0, 1, 1), forAcceptConditions)
+        // TODO result.progressTasks.filter(_.kernel == Kernel(symbolId, 0, 1, 1)) 에 대한 정보 추가
+        addForAcceptConditionTemplate(symbolId)
         LongestTemplate(symbolId)
       case AcceptCondition.Unless(1, 2, symbolId) =>
         // except
@@ -127,8 +138,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
           AlwaysTemplate
         } else {
           // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-          forAcceptConditions(KernelTemplate(symbolId, 0)) =
-            appendingMilestonesForTermAction(result, Kernel(symbolId, 0, 1, 1), forAcceptConditions)
+          addForAcceptConditionTemplate(symbolId)
           UnlessTemplate(symbolId)
         }
       case AcceptCondition.OnlyIf(1, 2, symbolId) =>
@@ -138,8 +148,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
           NeverTemplate
         } else {
           // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-          forAcceptConditions(KernelTemplate(symbolId, 0)) =
-            appendingMilestonesForTermAction(result, Kernel(symbolId, 0, 1, 1), forAcceptConditions)
+          addForAcceptConditionTemplate(symbolId)
           OnlyIfTemplate(symbolId)
         }
       case AcceptCondition.NotExists(2, 2, symbolId) =>
@@ -327,8 +336,8 @@ class MilestoneParserGen(val parser: NaiveParser2) {
 
       termActions.foreach { case (_, action) =>
         addAppendingMilestones(milestone, action.parsingAction.appendingMilestones)
-        action.forAcceptConditions.foreach { fac =>
-          addAppendingMilestones(fac._1, fac._2)
+        action.pendedAcceptConditionKernels.foreach { fac =>
+          addAppendingMilestones(fac._1, fac._2._1)
         }
       }
     }

@@ -4,35 +4,43 @@ sealed class MilestoneAcceptCondition
 
 object MilestoneAcceptCondition {
   def conjunct(conditions: Set[MilestoneAcceptCondition]): MilestoneAcceptCondition = {
-    val filtered = conditions.filter(_ != Always)
-    if (filtered.isEmpty) {
-      Always
+    if (conditions.contains(Never)) {
+      Never
     } else {
-      if (filtered.size == 1) {
-        filtered.head
+      val filtered = conditions.filter(_ != Always)
+      if (filtered.isEmpty) {
+        Always
       } else {
-        val elems = filtered.collect {
-          case And(andElems) => andElems
-          case els => List(els)
-        }.flatten
-        And(elems.toList)
+        if (filtered.size == 1) {
+          filtered.head
+        } else {
+          val elems = filtered.collect {
+            case And(andElems) => andElems
+            case els => List(els)
+          }.flatten
+          And(elems.toList)
+        }
       }
     }
   }
 
   def disjunct(conditions: Set[MilestoneAcceptCondition]): MilestoneAcceptCondition = {
-    val filtered = conditions.filter(_ != Never)
-    if (filtered.isEmpty) {
-      Never
+    if (conditions.contains(Always)) {
+      Always
     } else {
-      if (filtered.size == 1) {
-        filtered.head
+      val filtered = conditions.filter(_ != Never)
+      if (filtered.isEmpty) {
+        Never
       } else {
-        val elems = filtered.collect {
-          case Or(orElems) => orElems
-          case els => List(els)
-        }.flatten
-        Or(elems.toList)
+        if (filtered.size == 1) {
+          filtered.head
+        } else {
+          val elems = filtered.collect {
+            case Or(orElems) => orElems
+            case els => List(els)
+          }.flatten
+          Or(elems.toList)
+        }
       }
     }
   }
