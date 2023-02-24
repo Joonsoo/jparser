@@ -44,14 +44,14 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       path.append(Milestone(appending.milestone, gen), condition)
     }
     // TODO 혹시 다른 path에서 forAcceptConditions의 key에 해당하는 path들을 이미 만든게 있으면 재사용
-    val forAcceptConditions = action.forAcceptConditions.flatMap { case (root, nexts) =>
-      val parent = Milestone(root.symbolId, root.pointer, tip.gen)
-      nexts.map { case AppendingMilestone(nextTemplate, conditionTemplate) =>
-        val next = Milestone(nextTemplate.symbolId, nextTemplate.pointer, gen)
-        val condition = reifyCondition(conditionTemplate, tip.gen, gen)
-        MilestonePath(parent, List(next, parent), condition)
-      }
-    }
+    //    val forAcceptConditions = action.forAcceptConditions.flatMap { case (root, nexts) =>
+    //      val parent = Milestone(root.symbolId, root.pointer, tip.gen)
+    //      nexts.map { case AppendingMilestone(nextTemplate, conditionTemplate) =>
+    //        val next = Milestone(nextTemplate.symbolId, nextTemplate.pointer, gen)
+    //        val condition = reifyCondition(conditionTemplate, tip.gen, gen)
+    //        MilestonePath(parent, List(next, parent), condition)
+    //      }
+    //    }
     // apply edge actions to path
     val reduced: List[MilestonePath] = action.startNodeProgressCondition match {
       case Some(startNodeProgressCondition) =>
@@ -59,12 +59,12 @@ class MilestoneParser(val parserData: MilestoneParserData) {
           case Some(tipParent) =>
             val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
             val condition = reifyCondition(startNodeProgressCondition, tipParent.gen, gen)
-            applyParsingAction(path.pop(condition), gen, edgeAction)
+            applyParsingAction(path.pop(condition), gen, edgeAction.parsingAction)
           case None => List()
         }
       case None => List()
     }
-    appended ++ forAcceptConditions ++ reduced
+    appended ++ reduced
   }
 
   def parseStep(ctx: ParsingContext, gen: Int, input: Inputs.Input): Either[ParsingError, ParsingContext] = {
@@ -73,7 +73,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         .find(_._1.contains(input))
       termAction match {
         case Some((_, action)) =>
-          applyParsingAction(path, gen, action)
+          applyParsingAction(path, gen, action.parsingAction)
         case None => List()
       }
     }
