@@ -210,12 +210,12 @@ class NaiveParser2(val grammar: NGrammar) {
         kernel.beginGen == nextGen
     }
 
-    def traverse(pointer: Kernel, path: List[Edge]): Set[Kernel] = {
+    def traverse(pointer: Kernel, path: List[Edge], nodes: Set[Kernel]): Set[Kernel] = {
       val condition = ctx.acceptConditions(pointer)
       if (condition == Never) {
         Set()
       } else if (destKernels.contains(pointer)) {
-        path.flatMap(p => Set(p.start, p.end)).toSet
+        nodes
       } else {
         val outEdges = ctx.graph.edgesByStart(pointer)
         outEdges.flatMap { outEdge =>
@@ -226,30 +226,30 @@ class NaiveParser2(val grammar: NGrammar) {
             grammar.symbolOf(next.symbolId) match {
               case NExcept(_, _, body, except) =>
                 val bodyKernel = Kernel(body, 0, next.beginGen, next.beginGen)
-                val bodyResult = traverse(bodyKernel, outEdge +: path)
+                val bodyResult = traverse(bodyKernel, outEdge +: path, nodes + next + bodyKernel)
                 val exceptKernel = Kernel(except, 0, next.beginGen, next.beginGen)
-                if (ctx.graph.nodes.contains(exceptKernel)) {
-                  bodyResult ++ traverse(exceptKernel, outEdge +: path)
+                if (bodyResult.nonEmpty && ctx.graph.nodes.contains(exceptKernel)) {
+                  bodyResult ++ traverse(exceptKernel, outEdge +: path, nodes + next + exceptKernel)
                 } else {
                   bodyResult
                 }
               case NJoin(_, _, body, join) =>
                 val bodyKernel = Kernel(body, 0, next.beginGen, next.beginGen)
-                val bodyResult = traverse(bodyKernel, outEdge +: path)
+                val bodyResult = traverse(bodyKernel, outEdge +: path, nodes + next + bodyKernel)
                 val joinKernel = Kernel(join, 0, next.beginGen, next.beginGen)
-                if (ctx.graph.nodes.contains(joinKernel)) {
-                  bodyResult ++ traverse(joinKernel, outEdge +: path)
+                if (bodyResult.nonEmpty && ctx.graph.nodes.contains(joinKernel)) {
+                  bodyResult ++ traverse(joinKernel, outEdge +: path, nodes + next + joinKernel)
                 } else {
                   bodyResult
                 }
-              case _ => traverse(next, outEdge +: path)
+              case _ => traverse(next, outEdge +: path, nodes + next)
             }
           }
         }
       }
     }
 
-    val reachableNodes = traverse(start, List())
+    val reachableNodes = traverse(start, List(), Set(start))
     val droppedNodes = ctx.graph.nodes -- reachableNodes
     ParsingContext(ctx.graph.removeNodes(droppedNodes), ctx.acceptConditions.filter(p => reachableNodes.contains(p._1)))
   }

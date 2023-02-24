@@ -1,6 +1,6 @@
 package com.giyeok.jparser.milestone2
 
-import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.{Inputs, Symbols}
 import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInput}
 import com.giyeok.jparser.fast.KernelTemplate
 
@@ -30,7 +30,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       case NotExistsTemplate(symbolId) =>
         NotExists(Milestone(symbolId, 0, gen), checkFromNextGen = false)
       case LongestTemplate(symbolId) =>
-        NotExists(Milestone(symbolId, 0, beginGen), checkFromNextGen = false)
+        NotExists(Milestone(symbolId, 0, beginGen), checkFromNextGen = true)
       case OnlyIfTemplate(symbolId) =>
         OnlyIf(Milestone(symbolId, 0, beginGen))
       case UnlessTemplate(symbolId) =>
@@ -40,25 +40,18 @@ class MilestoneParser(val parserData: MilestoneParserData) {
   def applyParsingAction(path: MilestonePath, gen: Int, action: ParsingAction): List[MilestonePath] = {
     val tip = path.tip
     val appended = action.appendingMilestones.map { appending =>
-      val condition = reifyCondition(appending.acceptCondition, tip.gen, gen)
+      val newCondition = reifyCondition(appending.acceptCondition, tip.gen, gen)
+      val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
       path.append(Milestone(appending.milestone, gen), condition)
     }
-    // TODO 혹시 다른 path에서 forAcceptConditions의 key에 해당하는 path들을 이미 만든게 있으면 재사용
-    //    val forAcceptConditions = action.forAcceptConditions.flatMap { case (root, nexts) =>
-    //      val parent = Milestone(root.symbolId, root.pointer, tip.gen)
-    //      nexts.map { case AppendingMilestone(nextTemplate, conditionTemplate) =>
-    //        val next = Milestone(nextTemplate.symbolId, nextTemplate.pointer, gen)
-    //        val condition = reifyCondition(conditionTemplate, tip.gen, gen)
-    //        MilestonePath(parent, List(next, parent), condition)
-    //      }
-    //    }
     // apply edge actions to path
     val reduced: List[MilestonePath] = action.startNodeProgressCondition match {
       case Some(startNodeProgressCondition) =>
         path.tipParent match {
           case Some(tipParent) =>
+            val newCondition = reifyCondition(startNodeProgressCondition, tip.gen, gen)
+            val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
             val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
-            val condition = reifyCondition(startNodeProgressCondition, tipParent.gen, gen)
             applyParsingAction(path.pop(condition), gen, edgeAction.parsingAction)
           case None => List()
         }
@@ -67,23 +60,65 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     appended ++ reduced
   }
 
-  def parseStep(ctx: ParsingContext, gen: Int, input: Inputs.Input): Either[ParsingError, ParsingContext] = {
+  def collectTrackings(paths: List[MilestonePath]): Set[Milestone] =
+    paths.flatMap { path =>
+      def traverse(tip: Milestone, rest: List[Milestone]): Set[Milestone] =
+        rest match {
+          case Nil => Set()
+          case parent +: next =>
+            val action = parserData.edgeProgressActions(parent.kernelTemplate -> tip.kernelTemplate)
+            action.requiredSymbols.map(Milestone(_, 0, parent.gen)) ++ traverse(parent, next)
+        }
+
+      traverse(path.path.head, path.path.tail)
+    }.toSet
+
+  def expectedInputsOf(ctx: ParsingContext): Set[Symbols.Terminal] = {
+    // TODO
+    Set()
+  }
+
+  def parseStep(ctx: ParsingContext, input: Inputs.Input): Either[ParsingError, ParsingContext] = {
+    val gen = ctx.gen + 1
     val newPaths: List[MilestonePath] = ctx.paths.flatMap { path =>
       val termAction = parserData.termActions(KernelTemplate(path.tip.symbolId, path.tip.pointer))
         .find(_._1.contains(input))
       termAction match {
         case Some((_, action)) =>
-          applyParsingAction(path, gen, action.parsingAction)
+          val fac = action.forAcceptConditions.flatMap { case (first, appendings) =>
+            appendings.map { appending =>
+              val condition = reifyCondition(appending.acceptCondition, ctx.gen, gen)
+              MilestonePath(Milestone(first, ctx.gen)).append(Milestone(appending.milestone, gen), condition)
+            }
+          }
+          applyParsingAction(path, gen, action.parsingAction) ++ fac
         case None => List()
       }
     }
+    if (verbose) {
+      newPaths.foreach(path => println(path.prettyString))
+    }
     if (!newPaths.exists(_.first == initialMilestone)) {
       // start symbol에 의한 path가 없으면 해당 input이 invalid하다는 뜻
-      val expectedInputs = ???
-      Left(UnexpectedInput(input, expectedInputs, gen))
+      Left(UnexpectedInput(input, expectedInputsOf(ctx), gen))
     } else {
-      // TODO start symbol에서 시작한 path가 아닌데 다른 path에서 accept condition으로 참조하지 않고 있으면 삭제
-      Right(ParsingContext(gen, newPaths, List()))
+      // first가 (start symbol, 0, 0)이거나 현재 존재하는 엣지의 trackingMilestones인 경우만 제외하고 모두 제거
+      val trackings = collectTrackings(newPaths)
+      if (verbose) {
+        println(s"trackings: $trackings")
+      }
+      val newPathsFiltered = newPaths.filter(path => path.first == initialMilestone || trackings.contains(path.first))
+      if (verbose) {
+        newPathsFiltered.foreach(path => println(path.prettyString))
+      }
+
+      // TODO newPathsFiltered와 수행된 액션을 바탕으로 condition evaluate, 필요하면 반복
+
+      if (!newPathsFiltered.exists(_.first == initialMilestone)) {
+        Left(UnexpectedInput(input, expectedInputsOf(ctx), gen))
+      } else {
+        Right(ParsingContext(gen, newPathsFiltered, List()))
+      }
     }
   }
 
@@ -98,7 +133,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
           if (verbose) {
             println(s"=== ${currCtx.gen} $nextInput ${currCtx.paths.size}")
           }
-          parseStep(currCtx, currCtx.gen + 1, nextInput)
+          parseStep(currCtx, nextInput)
         case error => error
       }
     }
@@ -109,7 +144,10 @@ case class ParsingContext(gen: Int, paths: List[MilestonePath], actionsHistory: 
 
 // path는 가장 뒤에 것이 가장 앞에 옴. first는 언제나 path.last와 동일
 case class MilestonePath(first: Milestone, path: List[Milestone], acceptCondition: MilestoneAcceptCondition) {
-  def prettyString: String = s"${path.reverse} ($acceptCondition)"
+  def prettyString: String = {
+    val milestones = path.reverse.map(milestone => s"${milestone.symbolId} ${milestone.pointer} ${milestone.gen}")
+    s"${milestones.mkString(" -> ")} ($acceptCondition)"
+  }
 
   def tip: Milestone = path.head
 
@@ -135,24 +173,6 @@ object Milestone {
   def apply(template: KernelTemplate, gen: Int): Milestone =
     Milestone(template.symbolId, template.pointer, gen)
 }
-
-sealed class MilestoneAcceptCondition
-
-case object Always extends MilestoneAcceptCondition
-
-case object Never extends MilestoneAcceptCondition
-
-case class And(conditions: List[MilestoneAcceptCondition]) extends MilestoneAcceptCondition
-
-case class Or(conditions: List[MilestoneAcceptCondition]) extends MilestoneAcceptCondition
-
-case class Exists(milestone: Milestone) extends MilestoneAcceptCondition
-
-case class NotExists(milestone: Milestone, checkFromNextGen: Boolean) extends MilestoneAcceptCondition
-
-case class OnlyIf(milestone: Milestone) extends MilestoneAcceptCondition
-
-case class Unless(milestone: Milestone) extends MilestoneAcceptCondition
 
 // TODO
 case class GenAction()

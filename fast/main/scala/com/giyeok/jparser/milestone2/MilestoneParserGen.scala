@@ -6,6 +6,7 @@ import com.giyeok.jparser.NGrammar.{NSequence, NTerminal}
 import com.giyeok.jparser.fast.{CtxWithTasks, KernelTemplate, ParserGenBase2}
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
+import com.giyeok.jparser.nparser2.utils.Utils
 import com.giyeok.jparser.nparser2.{DeriveTask, Edge, KernelGraph, NaiveParser2, ProgressTask, ParsingContext => NaiveParsingContext}
 import com.giyeok.jparser.utils.TermGrouper
 
@@ -21,7 +22,10 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     startKernel: Kernel,
     progressTasks: List[ProgressTask],
   ): CtxWithTasks = {
-    val result = base.runTasksWithProgressBarrier(2, progressTasks, startKernel, CtxWithTasks(ctx, List()))
+    val result = base.runTasksWithProgressBarrier(2,
+      tasks = progressTasks,
+      barrierNode = startKernel,
+      cc = CtxWithTasks(ctx, List()))
     val trimmedCtx = parser.trimParsingContext(startKernel, 2, result.ctx)
 
     CtxWithTasks(trimmedCtx, result.tasks)
@@ -34,21 +38,28 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     beginGen: Int,
     start: Kernel,
   ): List[Kernel] = {
-    assert(result.ctx.graph.nodes.contains(start))
-    val appendingMilestoneCandidates = result.deriveTasks.map(_.kernel)
-      .filter(kernel => parser.grammar.symbolOf(kernel.symbolId).isInstanceOf[NSequence])
-      .filter(kernel => kernel.pointer > 0 && kernel.beginGen < kernel.endGen)
-      .filter(result.ctx.graph.reachableBetween(start, _))
-    assert(appendingMilestoneCandidates.forall(kernel => kernel.beginGen == beginGen && kernel.endGen == 2))
-    appendingMilestoneCandidates
+    if (!result.ctx.graph.nodes.contains(start)) {
+      // start가 progress되면서 종료되는 경우엔 그래프에 start가 없을 수 있음
+      List()
+    } else {
+      val appendingMilestoneCandidates = result.deriveTasks
+        .map(_.kernel)
+        .filter(result.ctx.graph.nodes.contains)
+        .filter(kernel => parser.grammar.symbolOf(kernel.symbolId).isInstanceOf[NSequence])
+        .filter(kernel => kernel.pointer > 0 && kernel.beginGen < kernel.endGen)
+        .filter(kernel => result.ctx.graph.reachableBetween(start, kernel))
+      assert(appendingMilestoneCandidates.forall(kernel => kernel.beginGen == beginGen && kernel.endGen == 2))
+      appendingMilestoneCandidates
+    }
   }
 
   def termAction(
     ctx: NaiveParsingContext,
     startKernel: Kernel,
     progressTasks: List[ProgressTask],
-  ): TermAction = parsingActionFromProgressResultForTermAction(
-    applyProgressTasks(ctx, startKernel, progressTasks), startKernel)
+  ): TermAction =
+    parsingActionFromProgressResultForTermAction(
+      applyProgressTasks(ctx, startKernel, progressTasks), startKernel)
 
   def appendingMilestonesForTermAction(
     result: CtxWithTasks,
@@ -77,7 +88,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
       case progressTasks =>
         val conditions = progressTasks.map(_.condition)
           .map(conditionToTemplateForTermAction(result, start, forAcceptConditions, _))
-        Some(disjunctConditions(conditions.toSet))
+        Some(AcceptConditionTemplate.disjunct(conditions.toSet))
     }
     val parsingAction = ParsingAction(
       appendingMilestones = appendingMilestones,
@@ -86,32 +97,6 @@ class MilestoneParserGen(val parser: NaiveParser2) {
       graphBetween = KernelGraph(Set(), Set())
     )
     TermAction(parsingAction, forAcceptConditions.toMap)
-  }
-
-  private def conjunctConditions(conditions: Set[AcceptConditionTemplate]): AcceptConditionTemplate = {
-    val filtered = conditions.filter(_ != AlwaysTemplate)
-    if (filtered.isEmpty) {
-      AlwaysTemplate
-    } else {
-      if (filtered.size == 1) {
-        filtered.head
-      } else {
-        AndTemplate(filtered.toList)
-      }
-    }
-  }
-
-  private def disjunctConditions(conditions: Set[AcceptConditionTemplate]): AcceptConditionTemplate = {
-    val filtered = conditions.filter(_ != NeverTemplate)
-    if (filtered.isEmpty) {
-      NeverTemplate
-    } else {
-      if (filtered.size == 1) {
-        filtered.head
-      } else {
-        OrTemplate(filtered.toList)
-      }
-    }
   }
 
   // beginGen은 assertion용
@@ -125,9 +110,9 @@ class MilestoneParserGen(val parser: NaiveParser2) {
       case AcceptCondition.Always => AlwaysTemplate
       case AcceptCondition.Never => NeverTemplate
       case AcceptCondition.And(conditions) =>
-        conjunctConditions(conditions.map(conditionToTemplateForTermAction(result, start, forAcceptConditions, _)))
+        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplateForTermAction(result, start, forAcceptConditions, _)))
       case AcceptCondition.Or(conditions) =>
-        disjunctConditions(conditions.map(conditionToTemplateForTermAction(result, start, forAcceptConditions, _)))
+        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplateForTermAction(result, start, forAcceptConditions, _)))
       case AcceptCondition.NotExists(1, 3, symbolId) =>
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
@@ -240,7 +225,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
       case progressTasks =>
         val conditions = progressTasks.map(_.condition)
           .map(conditionToTemplateForEdgeAction(result, start, edgeRequires, _))
-        Some(disjunctConditions(conditions.toSet))
+        Some(AcceptConditionTemplate.disjunct(conditions.toSet))
     }
     val parsingAction = ParsingAction(
       appendingMilestones = appendingMilestones,
@@ -263,9 +248,9 @@ class MilestoneParserGen(val parser: NaiveParser2) {
       case AcceptCondition.Always => AlwaysTemplate
       case AcceptCondition.Never => NeverTemplate
       case AcceptCondition.And(conditions) =>
-        conjunctConditions(conditions.map(conditionToTemplateForEdgeAction(result, start, needsToKeep, _)))
+        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplateForEdgeAction(result, start, needsToKeep, _)))
       case AcceptCondition.Or(conditions) =>
-        disjunctConditions(conditions.map(conditionToTemplateForEdgeAction(result, start, needsToKeep, _)))
+        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplateForEdgeAction(result, start, needsToKeep, _)))
       case AcceptCondition.NotExists(0, 3, symbolId) =>
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
@@ -291,7 +276,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     }
   }
 
-  def edgeProgressActionsBetween(start: KernelTemplate, end: KernelTemplate): EdgeAction = {
+  def edgeProgressActionBetween(start: KernelTemplate, end: KernelTemplate): EdgeAction = {
     val (startKernel, startingCtx) = base.startingCtxFrom(start, -1)
 
     val derived = startingCtx.ctx.graph
@@ -316,12 +301,55 @@ class MilestoneParserGen(val parser: NaiveParser2) {
 
   case class Jobs(milestones: Set[KernelTemplate], edges: Set[(KernelTemplate, KernelTemplate)])
 
-  private def createParserData(jobs: Jobs, cc: MilestoneParserData): MilestoneParserData = {
-    ???
+  private def createParserData(jobs: Jobs, builder: MilestoneParserDataBuilder): Unit = {
+    val milestones = mutable.Set[KernelTemplate]()
+    val edges = mutable.Set[(KernelTemplate, KernelTemplate)]()
+
+    def tippableSymbolsOf(condition: AcceptConditionTemplate): Set[Int] =
+      condition match {
+        case ExistsTemplate(symbolId) => Set(symbolId)
+        case NotExistsTemplate(symbolId) => Set(symbolId)
+        case _ => Set()
+      }
+
+    def addAppendingMilestones(parent: KernelTemplate, appendings: List[AppendingMilestone]): Unit = {
+      appendings.foreach { appending =>
+        milestones.add(appending.milestone)
+        edges.add(parent -> appending.milestone)
+        milestones.addAll(tippableSymbolsOf(appending.acceptCondition).map(KernelTemplate(_, 0)))
+        // TODO action.parsingAction.startNodeProgressCondition??
+      }
+    }
+
+    jobs.milestones.foreach { milestone =>
+      val termActions = termActionsFrom(milestone)
+      builder.termActions(milestone) = termActions
+
+      termActions.foreach { case (_, action) =>
+        addAppendingMilestones(milestone, action.parsingAction.appendingMilestones)
+        action.forAcceptConditions.foreach { fac =>
+          addAppendingMilestones(fac._1, fac._2)
+        }
+      }
+    }
+    jobs.edges.foreach { edge =>
+      val edgeAction = edgeProgressActionBetween(edge._1, edge._2)
+      builder.edgeProgressActions(edge) = edgeAction
+
+      addAppendingMilestones(edge._1, edgeAction.parsingAction.appendingMilestones)
+    }
+    val remainingJobs = Jobs(
+      (milestones -- builder.termActions.keySet).toSet,
+      (edges -- builder.edgeProgressActions.keySet).toSet)
+    if (remainingJobs.milestones.nonEmpty || remainingJobs.edges.nonEmpty) {
+      println(s"Remaining jobs: milestones=${remainingJobs.milestones.size}, edges=${remainingJobs.edges.size}")
+      createParserData(remainingJobs, builder)
+    }
   }
 
   def parserData(): MilestoneParserData = {
     val start = KernelTemplate(parser.grammar.startSymbol, 0)
+    val startingCtx = base.startingCtxFrom(start, 0)
 
     val termActions = termActionsFrom(start)
     println(termActions)
@@ -329,10 +357,13 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     val termActions2 = termActionsFrom(KernelTemplate(14, 1))
     println(termActions2)
 
-    val edgeAction = edgeProgressActionsBetween(KernelTemplate(1, 0), KernelTemplate(14, 1))
+    val edgeAction = edgeProgressActionBetween(KernelTemplate(1, 0), KernelTemplate(14, 1))
     println(edgeAction.parsingAction)
     println(edgeAction.requiredSymbols)
-    ???
+
+    val builder = new MilestoneParserDataBuilder(parser.grammar, startingCtx._2.tasksSummary)
+    createParserData(Jobs(Set(start), Set()), builder)
+    builder.build()
   }
 }
 

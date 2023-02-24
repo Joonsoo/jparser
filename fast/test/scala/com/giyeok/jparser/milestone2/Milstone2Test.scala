@@ -12,13 +12,18 @@ class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
     val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
 
-    val naiveParser = new NaiveParser2(analysis.ngrammar)
-    val ctx1 = naiveParser.parseStep(naiveParser.initialParsingHistoryContext, Inputs.Character('a')).right.get
-    val ctx2 = naiveParser.parseStep(ctx1, Inputs.Character('b')).right.get
-    val ctx3 = naiveParser.parseStep(ctx2, Inputs.Character('c')).right.get
-    Utils.printDotGraph(analysis.ngrammar, ctx3.parsingContext)
+    //    val naiveParser = new NaiveParser2(analysis.ngrammar)
+    //    val ctx1 = naiveParser.parseStep(naiveParser.initialParsingHistoryContext, Inputs.Character('a')).right.get
+    //    val ctx2 = naiveParser.parseStep(ctx1, Inputs.Character('b')).right.get
+    //    val ctx3 = naiveParser.parseStep(ctx2, Inputs.Character('c')).right.get
+    //    Utils.printDotGraph(analysis.ngrammar, ctx3.parsingContext)
 
+    val gen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
+    val edgeAction = gen.edgeProgressActionBetween(KernelTemplate(3, 4), KernelTemplate(72, 1))
+    println(edgeAction)
     val parserData = MilestoneParserGen.generateMilestoneParserData(analysis.ngrammar)
+    println(s"milestones: ${parserData.termActions.size}, edges=${parserData.edgeProgressActions.keySet.size}")
+    println(parserData.edgeProgressActions.keySet)
     //    val parserData = MilestoneParserData(
     //      analysis.ngrammar,
     //      TasksSummary(List(), List()),
@@ -43,11 +48,10 @@ class Milstone2Test extends AnyFlatSpec {
     //      Map(),
     //      Map(),
     //    )
-    val parser = new MilestoneParser(parserData)
+    val parser = new MilestoneParser(parserData).setVerbose()
     println(parser.initialCtx)
-    //    val ctx1 = parser.parseStep(parser.initialCtx, 1, Inputs.Character('s'))
-    //    ctx1.toOption.get.paths.foreach { path =>
-    //      println(path.prettyString)
-    //    }
+
+    val result = parser.parse(Inputs.fromString("abc = \"$def\""))
+    println(result)
   }
 }

@@ -5,6 +5,8 @@ import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.fast.{KernelTemplate, TasksSummary2}
 import com.giyeok.jparser.nparser2.KernelGraph
 
+import scala.collection.mutable
+
 case class MilestoneParserData(
   grammar: NGrammar,
   initialTasksSummary: TasksSummary2,
@@ -12,6 +14,20 @@ case class MilestoneParserData(
   edgeProgressActions: Map[(KernelTemplate, KernelTemplate), EdgeAction],
   kernelDeriveGraphs: Map[KernelTemplate, KernelGraph]
 )
+
+class MilestoneParserDataBuilder(val grammar: NGrammar, val initialTasksSummary: TasksSummary2) {
+  val termActions: mutable.Map[KernelTemplate, List[(TermGroupDesc, TermAction)]] = mutable.Map()
+  val edgeProgressActions: mutable.Map[(KernelTemplate, KernelTemplate), EdgeAction] = mutable.Map()
+  val kernelDeriveGraphs: mutable.Map[KernelTemplate, KernelGraph] = mutable.Map()
+
+  def build(): MilestoneParserData = MilestoneParserData(
+    grammar,
+    initialTasksSummary,
+    termActions.toMap,
+    edgeProgressActions.toMap,
+    kernelDeriveGraphs.toMap
+  )
+}
 
 case class ParsingAction(
   appendingMilestones: List[AppendingMilestone],
@@ -51,6 +67,42 @@ sealed class AcceptConditionTemplate {
     case OnlyIfTemplate(symbolId) => Set(symbolId)
     case UnlessTemplate(symbolId) => Set(symbolId)
     case _ => Set()
+  }
+}
+
+object AcceptConditionTemplate {
+  def conjunct(conditions: Set[AcceptConditionTemplate]): AcceptConditionTemplate = {
+    val filtered = conditions.filter(_ != AlwaysTemplate)
+    if (filtered.isEmpty) {
+      AlwaysTemplate
+    } else {
+      if (filtered.size == 1) {
+        filtered.head
+      } else {
+        val elems = filtered.collect {
+          case AndTemplate(andElems) => andElems
+          case els => List(els)
+        }.flatten
+        AndTemplate(elems.toList)
+      }
+    }
+  }
+
+  def disjunct(conditions: Set[AcceptConditionTemplate]): AcceptConditionTemplate = {
+    val filtered = conditions.filter(_ != NeverTemplate)
+    if (filtered.isEmpty) {
+      NeverTemplate
+    } else {
+      if (filtered.size == 1) {
+        filtered.head
+      } else {
+        val elems = filtered.collect {
+          case OrTemplate(orElems) => orElems
+          case els => List(els)
+        }.flatten
+        OrTemplate(elems.toList)
+      }
+    }
   }
 }
 
