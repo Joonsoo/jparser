@@ -1,3 +1,5 @@
+package com.giyeok.jparser
+
 import jvm
 import maven
 import file
@@ -262,13 +264,15 @@ ktlib {
 
 class JParserData(astFile: file, parserData: file)
 
-parsergenPluginImpl = ktjvm.library(
-  srcs = glob("bibix/main/kotlin/**/*.kt"),
-  deps = [bibix.base, fast.main],
-)
+plugin {
+  impl = ktjvm.library(
+    srcs = glob("bibix/main/kotlin/**/*.kt"),
+    deps = [bibix.base, fast.main],
+  )
+}
 
 def parsergen(
   src: file,
   objectName: string,
   parserDataFileName: string,
-): JParserData = parsergenPluginImpl:com.giyeok.jparser.bibix.ParserGen
+): JParserData = plugin.impl:com.giyeok.jparser.bibix.ParserGen

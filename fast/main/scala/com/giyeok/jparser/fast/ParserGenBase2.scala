@@ -4,7 +4,7 @@ import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.nparser2.{DeriveTask, FinishTask, KernelGraph, NaiveParser2, ParsingContext, ParsingTask, ProgressTask}
 
-case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask]) {
+case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKernelProgressTasks: List[ProgressTask]) {
   def deriveTasks: List[DeriveTask] =
     tasks.filter(_.isInstanceOf[DeriveTask]).map(_.asInstanceOf[DeriveTask])
 
@@ -15,26 +15,31 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask]) {
     tasks.filter(_.isInstanceOf[FinishTask]).map(_.asInstanceOf[FinishTask])
 
   def tasksSummary: TasksSummary2 = {
-    TasksSummary2(progressTasks.map(_.kernel), finishTasks.map(_.kernel))
+    val progressedStartKernel = startKernelProgressTasks.map(_.kernel).distinct
+    assert(progressedStartKernel.size <= 1)
+    TasksSummary2(
+      progressedKernels = progressTasks.map(_.kernel).toSet,
+      finishedKernels = finishTasks.map(_.kernel).toSet,
+      progressedStartKernel = progressedStartKernel.headOption)
   }
 }
 
 case class TasksSummary2(
-  progressedKernels: List[Kernel],
-  finishedKernels: List[Kernel],
+  progressedKernels: Set[Kernel],
+  finishedKernels: Set[Kernel],
+  progressedStartKernel: Option[Kernel],
 )
 
 case class ParserGenBase2(parser: NaiveParser2) {
-  def runTasksWithProgressBarrier(nextGen: Int, tasks: List[ParsingTask], barrierNode: Kernel, cc: CtxWithTasks): CtxWithTasks =
-    runTasksWithProgressBarriers(nextGen, tasks, Set(barrierNode), cc)
-
-  def runTasksWithProgressBarriers(nextGen: Int, tasks: List[ParsingTask], barrierNodes: Set[Kernel], cc: CtxWithTasks): CtxWithTasks = tasks match {
+  def runTasksWithProgressBarrier(nextGen: Int, tasks: List[ParsingTask], barrierNode: Kernel, cc: CtxWithTasks): CtxWithTasks = tasks match {
     case task +: rest =>
-      if (task.isInstanceOf[ProgressTask] && barrierNodes.contains(task.asInstanceOf[ProgressTask].kernel)) {
-        runTasksWithProgressBarriers(nextGen, rest, barrierNodes, cc)
+      if (task.isInstanceOf[ProgressTask] && barrierNode == task.asInstanceOf[ProgressTask].kernel) {
+        val ncc = cc.copy(startKernelProgressTasks = task.asInstanceOf[ProgressTask] +: cc.startKernelProgressTasks)
+        runTasksWithProgressBarrier(nextGen, rest, barrierNode, ncc)
       } else {
-        val (ncc, newTasks) = parser.process(nextGen, task, cc.ctx)
-        runTasksWithProgressBarriers(nextGen, newTasks ++: rest, barrierNodes, CtxWithTasks(ncc, cc.tasks ++ newTasks))
+        val (nextCtx, newTasks) = parser.process(nextGen, task, cc.ctx)
+        val ncc = CtxWithTasks(nextCtx, cc.tasks ++ newTasks, cc.startKernelProgressTasks)
+        runTasksWithProgressBarrier(nextGen, newTasks ++: rest, barrierNode, ncc)
       }
     case List() => cc
   }
@@ -50,7 +55,7 @@ case class ParserGenBase2(parser: NaiveParser2) {
       startKernel.endGen,
       List(deriveTask),
       startKernel,
-      CtxWithTasks(startCtx, List(deriveTask)))
+      CtxWithTasks(startCtx, List(deriveTask), List()))
     (startKernel, ctx)
   }
 }

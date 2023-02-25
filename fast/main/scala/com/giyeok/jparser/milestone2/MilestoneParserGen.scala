@@ -25,10 +25,10 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     val result = base.runTasksWithProgressBarrier(2,
       tasks = progressTasks,
       barrierNode = startKernel,
-      cc = CtxWithTasks(ctx, List()))
+      cc = CtxWithTasks(ctx, List(), List()))
     val trimmedCtx = parser.trimParsingContext(startKernel, 2, result.ctx)
 
-    CtxWithTasks(trimmedCtx, result.tasks)
+    CtxWithTasks(trimmedCtx, result.tasks, result.startKernelProgressTasks)
   }
 
   // beginGen은 assertion용
@@ -328,7 +328,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     }
 
     jobs.milestones.foreach { milestone =>
-      val (_, CtxWithTasks(derived, _)) = base.startingCtxFrom(milestone, 0)
+      val (_, CtxWithTasks(derived, _, _)) = base.startingCtxFrom(milestone, 0)
       builder.kernelDerives(milestone) = derived.graph.nodes.map(k => KernelTemplate(k.symbolId, k.pointer))
 
       val termActions = termActionsFrom(milestone)

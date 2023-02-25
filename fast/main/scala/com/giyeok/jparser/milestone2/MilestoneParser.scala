@@ -3,6 +3,7 @@ package com.giyeok.jparser.milestone2
 import com.giyeok.jparser.{Inputs, Symbols}
 import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInput}
 import com.giyeok.jparser.fast.KernelTemplate
+import com.giyeok.jparser.nparser.Kernel
 
 import scala.collection.mutable
 
@@ -55,7 +56,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         path.tipParent match {
           case Some(tipParent) =>
             val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
-            // TODO add parse action (tipParent -> tip, edgeAction)
+            // record parse action
             actionsCollector.edgeActions += ((tipParent -> tip, edgeAction))
             applyParsingAction(path.pop(condition), gen, edgeAction.parsingAction, actionsCollector)
           case None =>
@@ -89,7 +90,6 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     genActions: GenActions,
     condition: MilestoneAcceptCondition
   ): MilestoneAcceptCondition = {
-    // TODO implement
     condition match {
       case Always => Always
       case Never => Never
@@ -136,6 +136,46 @@ class MilestoneParser(val parserData: MilestoneParserData) {
           case Some(progressCondition) =>
             evolveAcceptCondition(paths, genActions, progressCondition).negation
           case None => Always
+        }
+    }
+  }
+
+  def evaluateAcceptCondition(
+    paths: List[MilestonePath],
+    genActions: GenActions,
+    condition: MilestoneAcceptCondition
+  ): Boolean = {
+    condition match {
+      case Always => true
+      case Never => false
+      case And(conditions) =>
+        conditions.forall(evaluateAcceptCondition(paths, genActions, _))
+      case Or(conditions) =>
+        conditions.exists(evaluateAcceptCondition(paths, genActions, _))
+      case Exists(milestone) =>
+        genActions.progressedMilestones.get(milestone) match {
+          case Some(progressCondition) =>
+            evaluateAcceptCondition(paths, genActions, progressCondition)
+          case None => false
+        }
+      case NotExists(milestone, true) => true
+      case NotExists(milestone, false) =>
+        genActions.progressedMilestones.get(milestone) match {
+          case Some(progressCondition) =>
+            !evaluateAcceptCondition(paths, genActions, progressCondition)
+          case None => true
+        }
+      case OnlyIf(milestone) =>
+        genActions.progressedMilestones.get(milestone) match {
+          case Some(progressCondition) =>
+            evaluateAcceptCondition(paths, genActions, progressCondition)
+          case None => false
+        }
+      case Unless(milestone) =>
+        genActions.progressedMilestones.get(milestone) match {
+          case Some(progressCondition) =>
+            !evaluateAcceptCondition(paths, genActions, progressCondition)
+          case None => true
         }
     }
   }
@@ -220,48 +260,46 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }
     }
   }
-}
 
-case class ParsingContext(gen: Int, paths: List[MilestonePath], actionsHistory: List[GenActions])
+  // progress되면서 추가된 커널들을 반환한다. finish는 progress 되면서 자연스럽게 따라오는 것이기 때문에 처리할 필요 없음
+  def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
+    val initialNodes = parserData.kernelDeriveGraphs(KernelTemplate(parserData.grammar.startSymbol, 0))
+      .map(kt => Kernel(kt.symbolId, kt.pointer, 0, 0))
 
-// path는 가장 뒤에 것이 가장 앞에 옴. first는 언제나 path.last와 동일
-case class MilestonePath(first: Milestone, path: List[Milestone], acceptCondition: MilestoneAcceptCondition) {
-  def prettyString: String = {
-    val milestones = path.reverse.map(milestone => s"${milestone.symbolId} ${milestone.pointer} ${milestone.gen}")
-    s"${milestones.mkString(" -> ")} ($acceptCondition)"
+    def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
+      Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
+
+    def kernelsFrom(parsingAction: ParsingAction, gen: Int, genMap: Map[Int, Int]): Set[Kernel] = {
+      val tasksSummary = parsingAction.tasksSummary
+      tasksSummary.progressedKernels.map(progressAndMapGen(_, gen, genMap))
+    }
+
+    val actionsHistory = parsingContext.actionsHistory.reverse
+    val kernelsHistory = actionsHistory.zipWithIndex.map { case (genActions, gen_) =>
+      val gen = gen_ + 1
+      val nodesByTermActions = genActions.termActions.flatMap { case (milestone, termAction) =>
+        val startKernel = termAction.parsingAction.tasksSummary.progressedStartKernel
+          .map(progressAndMapGen(_, gen, Map(0 -> milestone.gen, 1 -> gen)))
+        println(s"$gen term ${termAction.parsingAction.tasksSummary.progressedStartKernel}")
+        kernelsFrom(termAction.parsingAction,
+          gen,
+          Map(0 -> milestone.gen, 1 -> gen, 2 -> gen)) ++ startKernel
+      }
+      val nodesByEdgeActions = genActions.edgeActions.flatMap { case ((start, end), edgeAction) =>
+        val startKernel = edgeAction.parsingAction.tasksSummary.progressedStartKernel
+          .map(progressAndMapGen(_, gen, Map(-1 -> start.gen, 0 -> end.gen)))
+        println(s"$gen edge ${edgeAction.parsingAction.tasksSummary.progressedStartKernel}")
+        kernelsFrom(edgeAction.parsingAction,
+          gen,
+          Map(0 -> start.gen, 1 -> end.gen, 2 -> gen)) ++ startKernel
+      }
+      (nodesByTermActions ++ nodesByEdgeActions).toSet
+    }
+    // TODO kernelsHistory의 마지막은 evaluate 결과가 true인 것만 남겨야..
+    // TODO 마지막 gen 외의 것들도 그런가?
+    initialNodes +: kernelsHistory
   }
-
-  def tip: Milestone = path.head
-
-  def tipParent: Option[Milestone] = path.drop(1).headOption
-
-  def append(newTip: Milestone, newAcceptCondition: MilestoneAcceptCondition): MilestonePath =
-    MilestonePath(first, newTip +: path, newAcceptCondition)
-
-  def pop(newAcceptCondition: MilestoneAcceptCondition): MilestonePath =
-    MilestonePath(first, path.drop(1), newAcceptCondition)
 }
-
-object MilestonePath {
-  def apply(milestone: Milestone): MilestonePath =
-    MilestonePath(milestone, List(milestone), Always)
-}
-
-case class Milestone(symbolId: Int, pointer: Int, gen: Int) {
-  def kernelTemplate = KernelTemplate(symbolId, pointer)
-}
-
-object Milestone {
-  def apply(template: KernelTemplate, gen: Int): Milestone =
-    Milestone(template.symbolId, template.pointer, gen)
-}
-
-// TODO TermAction하고 EdgeAction에 ID를 붙이는게 좋을까?
-case class GenActions(
-  termActions: List[(Milestone, TermAction)],
-  edgeActions: List[((Milestone, Milestone), EdgeAction)],
-  progressedMilestones: Map[Milestone, MilestoneAcceptCondition],
-)
 
 class GenActionsBuilder {
   val termActions: mutable.ListBuffer[(Milestone, TermAction)] = mutable.ListBuffer()
