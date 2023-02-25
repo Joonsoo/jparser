@@ -94,7 +94,6 @@ class MilestoneParserGen(val parser: NaiveParser2) {
       appendingMilestones = appendingMilestones,
       startNodeProgressCondition = startNodeProgressCondition,
       tasksSummary = result.tasksSummary,
-      graphBetween = KernelGraph(Set(), Set())
     )
     TermAction(parsingAction, forAcceptConditions.toMap)
   }
@@ -239,9 +238,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     val parsingAction = ParsingAction(
       appendingMilestones = appendingMilestones,
       startNodeProgressCondition = startNodeProgressCondition,
-      // TODO tasksSummary and graphBetween
       tasksSummary = result.tasksSummary,
-      graphBetween = KernelGraph(Set(), Set())
     )
     EdgeAction(parsingAction, edgeRequires.toSet)
   }
@@ -331,6 +328,9 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     }
 
     jobs.milestones.foreach { milestone =>
+      val (_, CtxWithTasks(derived, _)) = base.startingCtxFrom(milestone, 0)
+      builder.kernelDerives(milestone) = derived.graph.nodes.map(k => KernelTemplate(k.symbolId, k.pointer))
+
       val termActions = termActionsFrom(milestone)
       builder.termActions(milestone) = termActions
 
@@ -359,16 +359,6 @@ class MilestoneParserGen(val parser: NaiveParser2) {
   def parserData(): MilestoneParserData = {
     val start = KernelTemplate(parser.grammar.startSymbol, 0)
     val startingCtx = base.startingCtxFrom(start, 0)
-
-    val termActions = termActionsFrom(start)
-    println(termActions)
-
-    val termActions2 = termActionsFrom(KernelTemplate(14, 1))
-    println(termActions2)
-
-    val edgeAction = edgeProgressActionBetween(KernelTemplate(1, 0), KernelTemplate(14, 1))
-    println(edgeAction.parsingAction)
-    println(edgeAction.requiredSymbols)
 
     val builder = new MilestoneParserDataBuilder(parser.grammar, startingCtx._2.tasksSummary)
     createParserData(Jobs(Set(start), Set()), builder)

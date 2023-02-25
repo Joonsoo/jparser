@@ -3,7 +3,6 @@ package com.giyeok.jparser.milestone2
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.fast.{KernelTemplate, TasksSummary2}
-import com.giyeok.jparser.nparser2.KernelGraph
 
 import scala.collection.mutable
 
@@ -12,20 +11,20 @@ case class MilestoneParserData(
   initialTasksSummary: TasksSummary2,
   termActions: Map[KernelTemplate, List[(TermGroupDesc, TermAction)]],
   edgeProgressActions: Map[(KernelTemplate, KernelTemplate), EdgeAction],
-  kernelDeriveGraphs: Map[KernelTemplate, KernelGraph]
+  kernelDeriveGraphs: Map[KernelTemplate, Set[KernelTemplate]]
 )
 
 class MilestoneParserDataBuilder(val grammar: NGrammar, val initialTasksSummary: TasksSummary2) {
   val termActions: mutable.Map[KernelTemplate, List[(TermGroupDesc, TermAction)]] = mutable.Map()
   val edgeProgressActions: mutable.Map[(KernelTemplate, KernelTemplate), EdgeAction] = mutable.Map()
-  val kernelDeriveGraphs: mutable.Map[KernelTemplate, KernelGraph] = mutable.Map()
+  val kernelDerives: mutable.Map[KernelTemplate, Set[KernelTemplate]] = mutable.Map()
 
   def build(): MilestoneParserData = MilestoneParserData(
     grammar,
     initialTasksSummary,
     termActions.toMap,
     edgeProgressActions.toMap,
-    kernelDeriveGraphs.toMap
+    kernelDerives.toMap
   )
 }
 
@@ -33,7 +32,6 @@ case class ParsingAction(
   appendingMilestones: List[AppendingMilestone],
   startNodeProgressCondition: Option[AcceptConditionTemplate],
   tasksSummary: TasksSummary2,
-  graphBetween: KernelGraph,
 )
 
 case class TermAction(

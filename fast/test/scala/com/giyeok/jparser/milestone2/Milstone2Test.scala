@@ -2,11 +2,16 @@ package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.Inputs.CharsGroup
+import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.metalang3.MetaLanguage3
 import com.giyeok.jparser.nparser2.utils.Utils
 import com.giyeok.jparser.nparser2.{KernelGraph, NaiveParser2}
 import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.must.Matchers.not
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.matchers.should.Matchers.be
 
 class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
@@ -21,6 +26,7 @@ class Milstone2Test extends AnyFlatSpec {
     val gen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
     val edgeAction = gen.edgeProgressActionBetween(KernelTemplate(3, 4), KernelTemplate(72, 1))
     println(edgeAction)
+
     val parserData = MilestoneParserGen.generateMilestoneParserData(analysis.ngrammar)
     println(s"milestones: ${parserData.termActions.size}, edges=${parserData.edgeProgressActions.keySet.size}")
     println(parserData.edgeProgressActions.keySet)
@@ -48,10 +54,22 @@ class Milstone2Test extends AnyFlatSpec {
     //      Map(),
     //      Map(),
     //    )
-    val parser = new MilestoneParser(parserData).setVerbose()
+    val parser = new MilestoneParser(parserData)
     println(parser.initialCtx)
 
-    val result = parser.parse(Inputs.fromString("abc = \"$def\""))
-    println(result)
+    val failed = parser.parse(Inputs.fromString("this = \"$def\""))
+    failed should be(Symbol("left"))
+    failed should not be (Symbol("right"))
+
+    val parsed = parser.parse(Inputs.fromString("thisx = \"$def\""))
+      .getOrElse(throw new IllegalStateException(""))
+
+    val actionsHistory = parsed.actionsHistory.reverse
+    actionsHistory.zipWithIndex.foreach { p =>
+      println(s"${p._2}: ${p._1}")
+    }
+    println("??")
+    println(actionsHistory)
+    // result.getOrElse(throw new IllegalStateException("")).actionsHistory
   }
 }

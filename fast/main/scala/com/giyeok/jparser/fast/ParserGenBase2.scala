@@ -15,8 +15,7 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask]) {
     tasks.filter(_.isInstanceOf[FinishTask]).map(_.asInstanceOf[FinishTask])
 
   def tasksSummary: TasksSummary2 = {
-    // TODO
-    TasksSummary2(List(), List())
+    TasksSummary2(progressTasks.map(_.kernel), finishTasks.map(_.kernel))
   }
 }
 
@@ -25,7 +24,7 @@ case class TasksSummary2(
   finishedKernels: List[Kernel],
 )
 
-case class ParserGenBase2(val parser: NaiveParser2) {
+case class ParserGenBase2(parser: NaiveParser2) {
   def runTasksWithProgressBarrier(nextGen: Int, tasks: List[ParsingTask], barrierNode: Kernel, cc: CtxWithTasks): CtxWithTasks =
     runTasksWithProgressBarriers(nextGen, tasks, Set(barrierNode), cc)
 

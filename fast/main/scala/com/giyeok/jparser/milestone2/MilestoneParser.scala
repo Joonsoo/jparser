@@ -143,29 +143,32 @@ class MilestoneParser(val parserData: MilestoneParserData) {
   def parseStep(ctx: ParsingContext, input: Inputs.Input): Either[ParsingError, ParsingContext] = {
     val gen = ctx.gen + 1
     val actionsCollector = new GenActionsBuilder()
-    val newPaths: List[MilestonePath] = ctx.paths.flatMap { path =>
+    val pendedCollection = mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])]()
+    val termActionApplied = ctx.paths.flatMap { path =>
       val termAction = parserData.termActions(KernelTemplate(path.tip.symbolId, path.tip.pointer))
         .find(_._1.contains(input))
       termAction match {
         case Some((_, action)) =>
           // TODO add parse action (path.tip, action)
           actionsCollector.termActions += ((path.tip, action))
-          val fac = action.pendedAcceptConditionKernels.flatMap { case (first, (appendings, progressCondition)) =>
-            val firstMilestone = Milestone(first, ctx.gen)
-            progressCondition match {
-              case Some(progressCondition) =>
-                actionsCollector.progressedMilestones += (firstMilestone -> reifyCondition(progressCondition, ctx.gen, gen))
-              case None =>
-            }
-            appendings.map { appending =>
-              val condition = reifyCondition(appending.acceptCondition, ctx.gen, gen)
-              MilestonePath(firstMilestone).append(Milestone(appending.milestone, gen), condition)
-            }
-          }
-          applyParsingAction(path, gen, action.parsingAction, actionsCollector) ++ fac
+          pendedCollection ++= action.pendedAcceptConditionKernels
+          applyParsingAction(path, gen, action.parsingAction, actionsCollector)
         case None => List()
       }
     }
+    val pended = pendedCollection.flatMap { case (first, (appendings, progressCondition)) =>
+      val firstMilestone = Milestone(first, ctx.gen)
+      progressCondition match {
+        case Some(progressCondition) =>
+          actionsCollector.progressedMilestones += (firstMilestone -> reifyCondition(progressCondition, ctx.gen, gen))
+        case None =>
+      }
+      appendings.map { appending =>
+        val condition = reifyCondition(appending.acceptCondition, ctx.gen, gen)
+        MilestonePath(firstMilestone).append(Milestone(appending.milestone, gen), condition)
+      }
+    }
+    val newPaths: List[MilestonePath] = termActionApplied ++ pended
     if (verbose) {
       newPaths.foreach(path => println(path.prettyString))
     }
@@ -176,12 +179,11 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       val genActions = actionsCollector.build()
 
       // newPaths와 수행된 액션을 바탕으로 condition evaluate
-      // TODO 반복이 필요할까?
       val newPathsUpdated = newPaths
         .map(path => path.copy(acceptCondition = evolveAcceptCondition(newPaths, genActions, path.acceptCondition)))
         .filter(_.acceptCondition != Never)
       if (verbose) {
-        println("=== condition updated")
+        println("  ===== condition updated")
         newPathsUpdated.foreach(path => println(path.prettyString))
       }
 
@@ -190,7 +192,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       val newPathsFiltered = newPathsUpdated
         .filter(path => path.first == initialMilestone || trackings.contains(path.first))
       if (verbose) {
-        println(s"=== filtered, trackings: $trackings")
+        println(s"  ===== filtered, trackings: $trackings")
         newPathsFiltered.foreach(path => println(path.prettyString))
       }
 
@@ -204,14 +206,14 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
   def parse(inputSeq: Seq[Inputs.Input]): Either[ParsingError, ParsingContext] = {
     if (verbose) {
-      println("=== initial")
+      println("  === initial")
       initialCtx.paths.foreach(t => println(s"${t.prettyString}"))
     }
     inputSeq.foldLeft[Either[ParsingError, ParsingContext]](Right(initialCtx)) { (m, nextInput) =>
       m match {
         case Right(currCtx) =>
           if (verbose) {
-            println(s"=== ${currCtx.gen} $nextInput ${currCtx.paths.size}")
+            println(s"  === ${currCtx.gen} $nextInput ${currCtx.paths.size}")
           }
           parseStep(currCtx, nextInput)
         case error => error
