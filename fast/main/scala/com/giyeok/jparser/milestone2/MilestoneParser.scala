@@ -263,16 +263,21 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
   // progress되면서 추가된 커널들을 반환한다. finish는 progress 되면서 자연스럽게 따라오는 것이기 때문에 처리할 필요 없음
   def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
-    val initialNodes = parserData.kernelDeriveGraphs(KernelTemplate(parserData.grammar.startSymbol, 0))
-      .map(kt => Kernel(kt.symbolId, kt.pointer, 0, 0))
-
     def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
       Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
 
+    def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel =
+      Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
+
     def kernelsFrom(parsingAction: ParsingAction, gen: Int, genMap: Map[Int, Int]): Set[Kernel] = {
       val tasksSummary = parsingAction.tasksSummary
-      tasksSummary.progressedKernels.map(progressAndMapGen(_, gen, genMap))
+      tasksSummary.derivedKernels.map(mapGen(_, genMap)) ++
+        tasksSummary.progressedKernels.map(mapGen(_, genMap)) ++
+        tasksSummary.finishedKernels.map(mapGen(_, genMap))
     }
+
+    val initialNodes = parserData.initialTasksSummary.progressedKernels.map(progressAndMapGen(_, 0, Map(-1 -> 0, 0 -> 0))) ++
+      parserData.initialTasksSummary.progressedStartKernel.map(progressAndMapGen(_, 0, Map(0 -> 0, 1 -> 0)))
 
     val actionsHistory = parsingContext.actionsHistory.reverse
     val kernelsHistory = actionsHistory.zipWithIndex.map { case (genActions, gen_) =>
@@ -280,15 +285,13 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       val nodesByTermActions = genActions.termActions.flatMap { case (milestone, termAction) =>
         val startKernel = termAction.parsingAction.tasksSummary.progressedStartKernel
           .map(progressAndMapGen(_, gen, Map(0 -> milestone.gen, 1 -> gen)))
-        println(s"$gen term ${termAction.parsingAction.tasksSummary.progressedStartKernel}")
         kernelsFrom(termAction.parsingAction,
           gen,
-          Map(0 -> milestone.gen, 1 -> gen, 2 -> gen)) ++ startKernel
+          Map(0 -> milestone.gen, 1 -> gen_, 2 -> gen)) ++ startKernel
       }
       val nodesByEdgeActions = genActions.edgeActions.flatMap { case ((start, end), edgeAction) =>
         val startKernel = edgeAction.parsingAction.tasksSummary.progressedStartKernel
           .map(progressAndMapGen(_, gen, Map(-1 -> start.gen, 0 -> end.gen)))
-        println(s"$gen edge ${edgeAction.parsingAction.tasksSummary.progressedStartKernel}")
         kernelsFrom(edgeAction.parsingAction,
           gen,
           Map(0 -> start.gen, 1 -> end.gen, 2 -> gen)) ++ startKernel

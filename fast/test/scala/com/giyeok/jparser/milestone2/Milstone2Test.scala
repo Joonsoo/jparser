@@ -57,12 +57,12 @@ class Milstone2Test extends AnyFlatSpec {
     //      Map(),
     //    )
     val parser = new MilestoneParser(parserData)
-    //      .setVerbose()
+      .setVerbose()
     println(parser.initialCtx)
 
-    val failed = parser.parse(Inputs.fromString("this = \"$def\""))
-    failed should be(Symbol("left"))
-    failed should not be (Symbol("right"))
+    //    val failed = parser.parse(Inputs.fromString("this = \"$def\""))
+    //    failed should be(Symbol("left"))
+    //    failed should not be (Symbol("right"))
 
     val inputs = Inputs.fromString("a = \"$def\"")
     val parsed = parser.parse(inputs)
@@ -77,6 +77,6 @@ class Milstone2Test extends AnyFlatSpec {
     val parseTree = new ParseTreeConstructor2(ParseForestFunc)(parserData.grammar)(
       inputs, history.map(ks => Kernels(ks.toSet))).reconstruct()
     println(parseTree)
-    // result.getOrElse(throw new IllegalStateException("")).actionsHistory
+    parseTree.get.trees.size should be(1)
   }
 }

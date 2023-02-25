@@ -19,6 +19,7 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
     assert(progressedStartKernel.size <= 1)
     TasksSummary2(
       progressedKernels = progressTasks.map(_.kernel).toSet,
+      derivedKernels = deriveTasks.map(_.kernel).toSet,
       finishedKernels = finishTasks.map(_.kernel).toSet,
       progressedStartKernel = progressedStartKernel.headOption)
   }
@@ -26,21 +27,20 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
 
 case class TasksSummary2(
   progressedKernels: Set[Kernel],
+  derivedKernels: Set[Kernel],
   finishedKernels: Set[Kernel],
   progressedStartKernel: Option[Kernel],
 )
 
 case class ParserGenBase2(parser: NaiveParser2) {
   def runTasksWithProgressBarrier(nextGen: Int, tasks: List[ParsingTask], barrierNode: Kernel, cc: CtxWithTasks): CtxWithTasks = tasks match {
+    case (barrierTask@ProgressTask(`barrierNode`, _)) +: rest =>
+      val ncc = cc.copy(startKernelProgressTasks = barrierTask +: cc.startKernelProgressTasks)
+      runTasksWithProgressBarrier(nextGen, rest, barrierNode, ncc)
     case task +: rest =>
-      if (task.isInstanceOf[ProgressTask] && barrierNode == task.asInstanceOf[ProgressTask].kernel) {
-        val ncc = cc.copy(startKernelProgressTasks = task.asInstanceOf[ProgressTask] +: cc.startKernelProgressTasks)
-        runTasksWithProgressBarrier(nextGen, rest, barrierNode, ncc)
-      } else {
-        val (nextCtx, newTasks) = parser.process(nextGen, task, cc.ctx)
-        val ncc = CtxWithTasks(nextCtx, cc.tasks ++ newTasks, cc.startKernelProgressTasks)
-        runTasksWithProgressBarrier(nextGen, newTasks ++: rest, barrierNode, ncc)
-      }
+      val (nextCtx, newTasks) = parser.process(nextGen, task, cc.ctx)
+      val ncc = CtxWithTasks(nextCtx, task +: cc.tasks, cc.startKernelProgressTasks)
+      runTasksWithProgressBarrier(nextGen, rest ++ newTasks, barrierNode, ncc)
     case List() => cc
   }
 
@@ -52,10 +52,10 @@ case class ParserGenBase2(parser: NaiveParser2) {
     val deriveTask = DeriveTask(startKernel)
 
     val ctx = runTasksWithProgressBarrier(
-      startKernel.endGen,
+      baseGen + 1,
       List(deriveTask),
       startKernel,
-      CtxWithTasks(startCtx, List(deriveTask), List()))
+      CtxWithTasks(startCtx, List(), List()))
     (startKernel, ctx)
   }
 }

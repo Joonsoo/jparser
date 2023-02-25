@@ -82,8 +82,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     // 추가로 edgeMayRequire 계산
     val forAcceptConditions = mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])]()
     val appendingMilestones = appendingMilestonesForTermAction(result, start, forAcceptConditions)
-    val startNodeProgressTasks = result.progressTasks.filter(_.kernel == start)
-    val startNodeProgressCondition = startNodeProgressTasks match {
+    val startNodeProgressCondition = result.startKernelProgressTasks match {
       case List() => None
       case progressTasks =>
         val conditions = progressTasks.map(_.condition)
@@ -227,8 +226,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     // 추가로 edgeMayRequire 계산
     val edgeRequires = mutable.Set[Int]()
     val appendingMilestones = appendingMilestonesForEdgeAction(result, start, edgeRequires)
-    val startNodeProgressTasks = result.progressTasks.filter(_.kernel == start)
-    val startNodeProgressCondition = startNodeProgressTasks match {
+    val startNodeProgressCondition = result.startKernelProgressTasks match {
       case List() => None
       case progressTasks =>
         val conditions = progressTasks.map(_.condition)
