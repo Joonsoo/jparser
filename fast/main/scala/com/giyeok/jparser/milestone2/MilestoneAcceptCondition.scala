@@ -1,7 +1,5 @@
 package com.giyeok.jparser.milestone2
 
-sealed class MilestoneAcceptCondition
-
 object MilestoneAcceptCondition {
   def conjunct(conditions: Set[MilestoneAcceptCondition]): MilestoneAcceptCondition = {
     if (conditions.contains(Never)) {
@@ -46,18 +44,43 @@ object MilestoneAcceptCondition {
   }
 }
 
-case object Always extends MilestoneAcceptCondition
+sealed abstract class MilestoneAcceptCondition {
+  def negation: MilestoneAcceptCondition
+}
 
-case object Never extends MilestoneAcceptCondition
+case object Always extends MilestoneAcceptCondition {
+  override def negation: MilestoneAcceptCondition = Never
+}
 
-case class And(conditions: List[MilestoneAcceptCondition]) extends MilestoneAcceptCondition
+case object Never extends MilestoneAcceptCondition {
+  override def negation: MilestoneAcceptCondition = Always
+}
 
-case class Or(conditions: List[MilestoneAcceptCondition]) extends MilestoneAcceptCondition
+case class And(conditions: List[MilestoneAcceptCondition]) extends MilestoneAcceptCondition {
+  override def negation: MilestoneAcceptCondition =
+    MilestoneAcceptCondition.disjunct(conditions.map(_.negation).toSet)
+}
 
-case class Exists(milestone: Milestone) extends MilestoneAcceptCondition
+case class Or(conditions: List[MilestoneAcceptCondition]) extends MilestoneAcceptCondition {
+  override def negation: MilestoneAcceptCondition =
+    MilestoneAcceptCondition.conjunct(conditions.map(_.negation).toSet)
+}
 
-case class NotExists(milestone: Milestone, checkFromNextGen: Boolean) extends MilestoneAcceptCondition
+case class Exists(milestone: Milestone) extends MilestoneAcceptCondition {
+  override def negation: MilestoneAcceptCondition = NotExists(milestone, false)
+}
 
-case class OnlyIf(milestone: Milestone) extends MilestoneAcceptCondition
+case class NotExists(milestone: Milestone, checkFromNextGen: Boolean) extends MilestoneAcceptCondition {
+  override def negation: MilestoneAcceptCondition = {
+    assert(!checkFromNextGen)
+    Exists(milestone)
+  }
+}
 
-case class Unless(milestone: Milestone) extends MilestoneAcceptCondition
+case class OnlyIf(milestone: Milestone) extends MilestoneAcceptCondition {
+  override def negation: MilestoneAcceptCondition = Unless(milestone)
+}
+
+case class Unless(milestone: Milestone) extends MilestoneAcceptCondition {
+  override def negation: MilestoneAcceptCondition = OnlyIf(milestone)
+}

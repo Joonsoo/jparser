@@ -98,29 +98,43 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       case Or(conditions) =>
         MilestoneAcceptCondition.disjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
       case Exists(milestone) =>
-        if (!paths.exists(_.first == milestone)) {
-          Never
-        } else {
-          // TODO genActions 사용?
-          condition
+        val moreTrackingNeeded = paths.exists(_.first == milestone)
+        genActions.progressedMilestones.get(milestone) match {
+          case Some(progressCondition) =>
+            val evolvedCondition = evolveAcceptCondition(paths, genActions, progressCondition)
+            if (moreTrackingNeeded) {
+              MilestoneAcceptCondition.disjunct(Set(condition, evolvedCondition))
+            } else {
+              evolvedCondition
+            }
+          case None =>
+            if (moreTrackingNeeded) condition else Never
         }
       case NotExists(milestone, true) =>
         NotExists(milestone, false)
       case NotExists(milestone, false) =>
-        if (!paths.exists(_.first == milestone)) {
-          Always
-        } else {
-          // TODO genActions 사용?
-          condition
+        val moreTrackingNeeded = paths.exists(_.first == milestone)
+        genActions.progressedMilestones.get(milestone) match {
+          case Some(progressCondition) =>
+            val evolvedCondition = evolveAcceptCondition(paths, genActions, progressCondition).negation
+            if (moreTrackingNeeded) {
+              MilestoneAcceptCondition.conjunct(Set(condition, evolvedCondition))
+            } else {
+              evolvedCondition
+            }
+          case None =>
+            if (moreTrackingNeeded) condition else Always
         }
       case OnlyIf(milestone) =>
         genActions.progressedMilestones.get(milestone) match {
-          case Some(progressCondition) => progressCondition
+          case Some(progressCondition) =>
+            evolveAcceptCondition(paths, genActions, progressCondition)
           case None => Never
         }
       case Unless(milestone) =>
         genActions.progressedMilestones.get(milestone) match {
-          case Some(progressCondition) => ??? // progressCondition.negation
+          case Some(progressCondition) =>
+            evolveAcceptCondition(paths, genActions, progressCondition).negation
           case None => Always
         }
     }
