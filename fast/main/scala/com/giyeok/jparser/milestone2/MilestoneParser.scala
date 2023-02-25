@@ -236,11 +236,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         newPathsFiltered.foreach(path => println(path.prettyString))
       }
 
-      if (!newPathsFiltered.exists(_.first == initialMilestone)) {
-        Left(UnexpectedInput(input, expectedInputsOf(ctx), gen))
-      } else {
-        Right(ParsingContext(gen, newPathsFiltered, genActions +: ctx.actionsHistory))
-      }
+      Right(ParsingContext(gen, newPathsFiltered, genActions +: ctx.actionsHistory))
     }
   }
 
@@ -263,13 +259,14 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
   // progress되면서 추가된 커널들을 반환한다. finish는 progress 되면서 자연스럽게 따라오는 것이기 때문에 처리할 필요 없음
   def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
+    // TODO accept condition 처리
     def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
       Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
 
     def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel =
       Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
 
-    def kernelsFrom(parsingAction: ParsingAction, gen: Int, genMap: Map[Int, Int]): Set[Kernel] = {
+    def kernelsFrom(parsingAction: ParsingAction, genMap: Map[Int, Int]): Set[Kernel] = {
       val tasksSummary = parsingAction.tasksSummary
       tasksSummary.derivedKernels.map(mapGen(_, genMap)) ++
         tasksSummary.progressedKernels.map(mapGen(_, genMap)) ++
@@ -286,20 +283,16 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         val startKernel = termAction.parsingAction.tasksSummary.progressedStartKernel
           .map(progressAndMapGen(_, gen, Map(0 -> milestone.gen, 1 -> gen)))
         kernelsFrom(termAction.parsingAction,
-          gen,
           Map(0 -> milestone.gen, 1 -> gen_, 2 -> gen)) ++ startKernel
       }
       val nodesByEdgeActions = genActions.edgeActions.flatMap { case ((start, end), edgeAction) =>
         val startKernel = edgeAction.parsingAction.tasksSummary.progressedStartKernel
           .map(progressAndMapGen(_, gen, Map(-1 -> start.gen, 0 -> end.gen)))
         kernelsFrom(edgeAction.parsingAction,
-          gen,
           Map(0 -> start.gen, 1 -> end.gen, 2 -> gen)) ++ startKernel
       }
       (nodesByTermActions ++ nodesByEdgeActions).toSet
     }
-    // TODO kernelsHistory의 마지막은 evaluate 결과가 true인 것만 남겨야..
-    // TODO 마지막 gen 외의 것들도 그런가?
     initialNodes +: kernelsHistory
   }
 }

@@ -1,6 +1,6 @@
 package com.giyeok.jparser.fast
 
-import com.giyeok.jparser.nparser.AcceptCondition.Always
+import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.nparser2.{DeriveTask, FinishTask, KernelGraph, NaiveParser2, ParsingContext, ParsingTask, ProgressTask}
 
@@ -10,6 +10,9 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
 
   def progressTasks: List[ProgressTask] =
     tasks.filter(_.isInstanceOf[ProgressTask]).map(_.asInstanceOf[ProgressTask])
+
+  def progressConditionsFor(kernel: Kernel): List[AcceptCondition] =
+    progressTasks.filter(_.kernel == kernel).map(_.condition)
 
   def finishTasks: List[FinishTask] =
     tasks.filter(_.isInstanceOf[FinishTask]).map(_.asInstanceOf[FinishTask])

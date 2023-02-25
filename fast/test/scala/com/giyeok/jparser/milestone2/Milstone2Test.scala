@@ -4,7 +4,7 @@ import com.giyeok.jparser.{Inputs, ParseForestFunc}
 import com.giyeok.jparser.Inputs.CharsGroup
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.fast.KernelTemplate
-import com.giyeok.jparser.metalang3.MetaLanguage3
+import com.giyeok.jparser.metalang3.{MetaLanguage3, ValuefyExprSimulator}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser2.utils.Utils
@@ -26,8 +26,14 @@ class Milstone2Test extends AnyFlatSpec {
     //    Utils.printDotGraph(analysis.ngrammar, ctx3.parsingContext)
 
     val gen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
-    val edgeAction = gen.edgeProgressActionBetween(KernelTemplate(3, 4), KernelTemplate(72, 1))
-    println(edgeAction)
+    val s75 = gen.termActionsFrom(KernelTemplate(75, 1))
+    val s72 = gen.termActionsFrom(KernelTemplate(72, 2))
+    println(s75)
+    println(s72)
+    val s1 = gen.edgeProgressActionBetween(KernelTemplate(3, 4), KernelTemplate(72, 1))
+    val s2 = gen.edgeProgressActionBetween(KernelTemplate(72, 1), KernelTemplate(75, 1))
+    println(s1)
+    println(s2)
 
     val parserData = MilestoneParserGen.generateMilestoneParserData(analysis.ngrammar)
     println(s"milestones: ${parserData.termActions.size}, edges=${parserData.edgeProgressActions.keySet.size}")
@@ -77,6 +83,10 @@ class Milstone2Test extends AnyFlatSpec {
     val parseTree = new ParseTreeConstructor2(ParseForestFunc)(parserData.grammar)(
       inputs, history.map(ks => Kernels(ks.toSet))).reconstruct()
     println(parseTree)
+    val valuefier = new ValuefyExprSimulator(analysis.ngrammar, analysis.grammar.startSymbol.name, analysis.nonterminalValuefyExprs, analysis.shortenedEnumTypesMap)
+    parseTree.get.trees.foreach { tree =>
+      println(valuefier.valuefyStart(tree))
+    }
     parseTree.get.trees.size should be(1)
   }
 }

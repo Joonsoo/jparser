@@ -104,6 +104,9 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     forAcceptConditions: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
     condition: AcceptCondition
   ): AcceptConditionTemplate = {
+    def cannotExist(kernel: Kernel) =
+      result.progressConditionsFor(kernel).isEmpty && !result.ctx.graph.nodes.contains(kernel)
+
     def addForAcceptConditionTemplate(symbolId: Int): Unit = {
       val symbolStart = Kernel(symbolId, 0, 1, 1)
       val appendingMilestones = appendingMilestonesForTermAction(result, symbolStart, forAcceptConditions)
@@ -131,8 +134,8 @@ class MilestoneParserGen(val parser: NaiveParser2) {
         LongestTemplate(symbolId)
       case AcceptCondition.Unless(1, 2, symbolId) =>
         // except
-        if (!result.ctx.graph.nodes.contains(Kernel(symbolId, 0, 1, 1))) {
-          // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(Unless이기 때문) 반환
+        if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
+          // 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(Unless이기 때문) 반환
           AlwaysTemplate
         } else {
           // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
@@ -141,7 +144,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
         }
       case AcceptCondition.OnlyIf(1, 2, symbolId) =>
         // join
-        if (!result.ctx.graph.nodes.contains(Kernel(symbolId, 0, 1, 1))) {
+        if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
           // ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
           NeverTemplate
         } else {
@@ -154,7 +157,8 @@ class MilestoneParserGen(val parser: NaiveParser2) {
         // - lookahead 심볼은 이미 가망이 없어진 경우가 아니라면 앞으로의 상황만 보기 때문에
         //   start만 있고 appending milestone은 없는(길이가 1인) path를 추가해야 할듯?
         //   즉, forAcceptConditions는 건드릴 필요 없을듯
-        if (!result.ctx.graph.nodes.contains(Kernel(symbolId, 0, 2, 2))) {
+        // TODO 파서쪽, createParserData에서 처리
+        if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
           // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
           AlwaysTemplate
         } else {
@@ -162,7 +166,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
         }
       case AcceptCondition.Exists(2, 2, symbolId) =>
         // lookahead is
-        if (!result.ctx.graph.nodes.contains(Kernel(symbolId, 0, 2, 2))) {
+        if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
           // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
           NeverTemplate
         } else {
@@ -178,24 +182,22 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     // new DotGraphGenerator(parser.grammar).addGraph(derived).printDotGraph()
 
     val derived = startingCtx.ctx.graph.nodes
-    val terms = derived.map { node => parser.grammar.symbolOf(node.symbolId) }
-      .collect { case terminal: NTerminal => terminal.symbol }
+    val termNodes = derived.filter { node => parser.grammar.symbolOf(node.symbolId).isInstanceOf[NTerminal] }
+      .filter { node => node.pointer == 0 && node.beginGen == 1 }
+    val terms = termNodes.map { node => parser.grammar.symbolOf(node.symbolId) }
+      .map { case terminal: NTerminal => terminal.symbol }
     val termGroups = TermGrouper.termGroupsOf(terms)
 
     termGroups.map { termGroup =>
-      val termNodes = startingCtx.ctx.graph.nodes.filter { kernel =>
-        val symbol = parser.grammar.symbolOf(kernel.symbolId)
-        symbol.isInstanceOf[NTerminal] && kernel.pointer == 0 && kernel.beginGen == 1
-      }.filter { kernel =>
+      val applicableTermNodes = termNodes.filter { kernel =>
         val symbol = parser.grammar.symbolOf(kernel.symbolId)
         symbol.asInstanceOf[NTerminal].symbol.acceptTermGroup(termGroup)
       }
-      val termProgressTasks = termNodes.toList.map(ProgressTask(_, AcceptCondition.Always))
+      val termProgressTasks = applicableTermNodes.toList.map(ProgressTask(_, AcceptCondition.Always))
 
       termGroup -> termAction(startingCtx.ctx, startKernel, termProgressTasks)
     }
   }
-
 
   def parsingActionForEdgeAction(
     ctx: NaiveParsingContext,
