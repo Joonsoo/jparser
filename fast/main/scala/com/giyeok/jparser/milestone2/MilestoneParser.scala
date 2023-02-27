@@ -1,7 +1,7 @@
 package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.{Inputs, Symbols}
-import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInput}
+import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInput, UnexpectedInputByTermGroups}
 import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.nparser.Kernel
 
@@ -80,10 +80,9 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       traverse(path.path.head, path.path.tail)
     }.toSet
 
-  def expectedInputsOf(ctx: ParsingContext): Set[Symbols.Terminal] = {
-    // TODO
-    Set()
-  }
+  def expectedInputsOf(ctx: ParsingContext): Set[Inputs.TermGroupDesc] =
+    ctx.paths.filter(_.first == initialMilestone)
+      .flatMap(path => parserData.termActions(path.tip.kernelTemplate).map(_._1)).toSet
 
   def evolveAcceptCondition(
     paths: List[MilestonePath],
@@ -214,7 +213,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     }
     if (!newPaths.exists(_.first == initialMilestone)) {
       // start symbol에 의한 path가 없으면 해당 input이 invalid하다는 뜻
-      Left(UnexpectedInput(input, expectedInputsOf(ctx), gen))
+      Left(UnexpectedInputByTermGroups(input, expectedInputsOf(ctx), gen))
     } else {
       val genActions = actionsCollector.build()
 
