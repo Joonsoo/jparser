@@ -28,8 +28,8 @@ object ParsingErrors {
 
   case class UnexpectedInputByTermGroups(next: Input, expected: Set[TermGroupDesc], location: Int) extends ParsingError with WithLocation {
     override val msg: String = next match {
-      case Character(char) => s"Unexpected input '$char' at $location"
-      case Virtual(name) => s"Unexpected virtual input $name at $location"
+      case Character(char) => s"Unexpected input '$char' at $location, expected=$expected"
+      case Virtual(name) => s"Unexpected virtual input $name at $location, expected=$expected"
     }
   }
 

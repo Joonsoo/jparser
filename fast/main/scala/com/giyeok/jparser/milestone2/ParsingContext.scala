@@ -2,7 +2,11 @@ package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.fast.KernelTemplate
 
-case class ParsingContext(gen: Int, paths: List[MilestonePath], actionsHistory: List[GenActions])
+case class ParsingContext(
+  gen: Int,
+  paths: List[MilestonePath],
+  actionsHistory: List[GenActions],
+  conditionsUpdates: Map[(Int, MilestoneAcceptCondition), MilestoneAcceptCondition])
 
 // path는 가장 뒤에 것이 가장 앞에 옴. first는 언제나 path.last와 동일
 case class MilestonePath(first: Milestone, path: List[Milestone], acceptCondition: MilestoneAcceptCondition) {
@@ -41,4 +45,5 @@ case class GenActions(
   termActions: List[(Milestone, TermAction)],
   edgeActions: List[((Milestone, Milestone), EdgeAction)],
   progressedMilestones: Map[Milestone, MilestoneAcceptCondition],
+  progressedMilestoneParentGens: Map[Milestone, Int],
 )

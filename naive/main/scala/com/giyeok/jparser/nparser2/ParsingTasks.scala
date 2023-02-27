@@ -3,7 +3,9 @@ package com.giyeok.jparser.nparser2
 import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.Kernel
 
-sealed trait ParsingTask
+sealed trait ParsingTask {
+  val kernel: Kernel
+}
 
 case class DeriveTask(kernel: Kernel) extends ParsingTask
 

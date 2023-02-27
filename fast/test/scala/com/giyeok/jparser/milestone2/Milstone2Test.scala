@@ -26,8 +26,8 @@ class Milstone2Test extends AnyFlatSpec {
     //    Utils.printDotGraph(analysis.ngrammar, ctx3.parsingContext)
 
     val gen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
-    val s75 = gen.termActionsFrom(KernelTemplate(75, 1))
-    val s72 = gen.termActionsFrom(KernelTemplate(72, 2))
+    val s75 = gen.termActionsFor(KernelTemplate(75, 1))
+    val s72 = gen.termActionsFor(KernelTemplate(72, 2))
     println(s75)
     println(s72)
     val s1 = gen.edgeProgressActionBetween(KernelTemplate(3, 4), KernelTemplate(72, 1))
@@ -70,9 +70,11 @@ class Milstone2Test extends AnyFlatSpec {
     //    failed should be(Symbol("left"))
     //    failed should not be (Symbol("right"))
 
-    val inputs = Inputs.fromString("a = \"$def\"")
-    val parsed = parser.parse(inputs)
-      .getOrElse(throw new IllegalStateException(""))
+    val inputs = Inputs.fromString("a = \"$bcdefg\"")
+    val parsed = parser.parse(inputs) match {
+      case Right(value) => value
+      case Left(err) => throw new IllegalStateException(err.msg)
+    }
 
     val history = parser.kernelsHistory(parsed)
       .map(_.toList.sortWith((k1, k2) =>
