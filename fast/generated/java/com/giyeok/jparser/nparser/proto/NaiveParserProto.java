@@ -118,6 +118,8 @@ public final class NaiveParserProto {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -1006,6 +1008,8 @@ public final class NaiveParserProto {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -1927,8 +1931,9 @@ public final class NaiveParserProto {
         } else {
           if (acceptConditionCase_ == 1) {
             alwaysBuilder_.mergeFrom(value);
+          } else {
+            alwaysBuilder_.setMessage(value);
           }
-          alwaysBuilder_.setMessage(value);
         }
         acceptConditionCase_ = 1;
         return this;
@@ -2068,8 +2073,9 @@ public final class NaiveParserProto {
         } else {
           if (acceptConditionCase_ == 2) {
             neverBuilder_.mergeFrom(value);
+          } else {
+            neverBuilder_.setMessage(value);
           }
-          neverBuilder_.setMessage(value);
         }
         acceptConditionCase_ = 2;
         return this;
@@ -2209,8 +2215,9 @@ public final class NaiveParserProto {
         } else {
           if (acceptConditionCase_ == 3) {
             andConditionsBuilder_.mergeFrom(value);
+          } else {
+            andConditionsBuilder_.setMessage(value);
           }
-          andConditionsBuilder_.setMessage(value);
         }
         acceptConditionCase_ = 3;
         return this;
@@ -2350,8 +2357,9 @@ public final class NaiveParserProto {
         } else {
           if (acceptConditionCase_ == 4) {
             orConditionsBuilder_.mergeFrom(value);
+          } else {
+            orConditionsBuilder_.setMessage(value);
           }
-          orConditionsBuilder_.setMessage(value);
         }
         acceptConditionCase_ = 4;
         return this;
@@ -2491,8 +2499,9 @@ public final class NaiveParserProto {
         } else {
           if (acceptConditionCase_ == 5) {
             notExistsBuilder_.mergeFrom(value);
+          } else {
+            notExistsBuilder_.setMessage(value);
           }
-          notExistsBuilder_.setMessage(value);
         }
         acceptConditionCase_ = 5;
         return this;
@@ -2632,8 +2641,9 @@ public final class NaiveParserProto {
         } else {
           if (acceptConditionCase_ == 6) {
             existsBuilder_.mergeFrom(value);
+          } else {
+            existsBuilder_.setMessage(value);
           }
-          existsBuilder_.setMessage(value);
         }
         acceptConditionCase_ = 6;
         return this;
@@ -2773,8 +2783,9 @@ public final class NaiveParserProto {
         } else {
           if (acceptConditionCase_ == 7) {
             unlessBuilder_.mergeFrom(value);
+          } else {
+            unlessBuilder_.setMessage(value);
           }
-          unlessBuilder_.setMessage(value);
         }
         acceptConditionCase_ = 7;
         return this;
@@ -2914,8 +2925,9 @@ public final class NaiveParserProto {
         } else {
           if (acceptConditionCase_ == 8) {
             onlyIfBuilder_.mergeFrom(value);
+          } else {
+            onlyIfBuilder_.setMessage(value);
           }
-          onlyIfBuilder_.setMessage(value);
         }
         acceptConditionCase_ = 8;
         return this;
@@ -3128,6 +3140,8 @@ public final class NaiveParserProto {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -3921,6 +3935,8 @@ public final class NaiveParserProto {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -4712,6 +4728,8 @@ public final class NaiveParserProto {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -5340,6 +5358,8 @@ public final class NaiveParserProto {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -5968,6 +5988,8 @@ public final class NaiveParserProto {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -6596,6 +6618,8 @@ public final class NaiveParserProto {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -7247,6 +7271,8 @@ public final class NaiveParserProto {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -8084,6 +8110,8 @@ public final class NaiveParserProto {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -8204,6 +8232,8 @@ public final class NaiveParserProto {
           }
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           throw e.setUnfinishedMessage(this);
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
         } catch (java.io.IOException e) {
           throw new com.google.protobuf.InvalidProtocolBufferException(
               e).setUnfinishedMessage(this);

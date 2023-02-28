@@ -1,25 +1,38 @@
 package com.giyeok.jparser.milestone2
 
+import com.giyeok.jparser.metalang3.codegen.KotlinOptCodeGen
 import com.giyeok.jparser.metalang3.{MetaLanguage3, ValuefyExprSimulator}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
+import com.giyeok.jparser.proto.MilestoneParser2ProtobufConverter.toProto
 import com.giyeok.jparser.{Inputs, ParseForestFunc}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers.{be, convertToAnyShouldWrapper}
 
+import java.io.{BufferedOutputStream, BufferedWriter, File, FileOutputStream, FileWriter}
+
 class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
-    val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/simple-bibixlike.cdg").readAllBytes()))
+    val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
 
     val parserData = MilestoneParserGen.generateMilestoneParserData(analysis.ngrammar)
     println(s"milestones: ${parserData.termActions.size}, edges=${parserData.edgeProgressActions.keySet.size}")
     println(parserData.edgeProgressActions.keySet)
 
+    val codeWriter = new BufferedWriter(new FileWriter(new File("BibixAst.kt")))
+    val codegen = new KotlinOptCodeGen(analysis)
+    codeWriter.write(codegen.generate())
+    codeWriter.close()
+
+    val writer = new BufferedOutputStream(new FileOutputStream(new File("bibix2-parserdata.pb")))
+    toProto(parserData).writeTo(writer)
+    writer.close()
+
     val parser = new MilestoneParser(parserData)
       .setVerbose()
     println(parser.initialCtx)
 
-    val inputs = Inputs.fromString("abc124")
+    val inputs = Inputs.fromString("a = \"hello $world!\"")
     val parsed = parser.parse(inputs) match {
       case Right(value) => value
       case Left(err) => throw new IllegalStateException(err.msg)

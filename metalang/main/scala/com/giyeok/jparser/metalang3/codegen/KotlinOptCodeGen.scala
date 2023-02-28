@@ -6,6 +6,7 @@ import com.giyeok.jparser.metalang3.MetaLanguage3.{ProcessedGrammar, check}
 import com.giyeok.jparser.metalang3.{ClassHierarchyItem, ClassRelationCollector, Type, ValuefyExpr}
 import com.giyeok.jparser.utils.JavaCodeGenUtil.{isPrintableChar, javaChar}
 
+import java.io.StringWriter
 import scala.annotation.tailrec
 
 // Kernel set list -> AST 변환하는 코드 생성 코드
@@ -391,9 +392,22 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     }
   }
 
-  def generateAstifier(pkgName: Option[String]): String = {
-    """import com.giyeok.jparser.Inputs
-      |
-      |""".stripMargin
+  def generate(pkgName: Option[String] = None): String = {
+    val writer = new StringWriter()
+
+    writer.write(classDefs(analysis.classRelations).code)
+    writer.write("\n\n")
+
+    var visitedNonterms = Set[String]()
+    writer.write(matchStartFunc().code)
+    writer.write("\n\n")
+    while ((_requiredNonterms -- visitedNonterms).nonEmpty) {
+      val next = (_requiredNonterms -- visitedNonterms).head
+      writer.write(nonterminalMatchFunc(next).code)
+      writer.write("\n\n")
+      visitedNonterms += next
+    }
+
+    writer.toString
   }
 }

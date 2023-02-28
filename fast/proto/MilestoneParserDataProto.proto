@@ -63,12 +63,6 @@ message MilestoneParserData {
   repeated DerivedGraphPair derived_graphs = 5;
 }
 
-message TasksSummary2 {
-  repeated com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;
-  repeated com.giyeok.jparser.nparser.proto.Kernel progressed_kernels = 2;
-  optional com.giyeok.jparser.nparser.proto.Kernel progressed_start_kernels = 3;
-}
-
 message Milestone2ParserData {
   com.giyeok.jparser.proto.NGrammar grammar = 1;
   TasksSummary2 initial_tasks_summary = 2;
@@ -95,6 +89,12 @@ message Milestone2ParserData {
     repeated int32 required_symbol_ids = 4;
   }
   repeated EdgeActionPair edge_actions = 4;
+}
+
+message TasksSummary2 {
+  repeated com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;
+  repeated com.giyeok.jparser.nparser.proto.Kernel progressed_kernels = 2;
+  optional com.giyeok.jparser.nparser.proto.Kernel progressed_start_kernel = 3;
 }
 
 message ParsingAction2 {
