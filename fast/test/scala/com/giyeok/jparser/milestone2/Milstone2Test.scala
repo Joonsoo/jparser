@@ -17,7 +17,7 @@ import org.scalatest.matchers.should.Matchers.be
 
 class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
-    val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/simple-bibix.cdg").readAllBytes()))
+    val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/simple-lookahead.cdg").readAllBytes()))
 
     //    val naiveParser = new NaiveParser2(analysis.ngrammar)
     //    val ctx1 = naiveParser.parseStep(naiveParser.initialParsingHistoryContext, Inputs.Character('a')).right.get
@@ -63,14 +63,10 @@ class Milstone2Test extends AnyFlatSpec {
     //      Map(),
     //    )
     val parser = new MilestoneParser(parserData)
-    //      .setVerbose()
+      .setVerbose()
     println(parser.initialCtx)
 
-    //    val failed = parser.parse(Inputs.fromString("this = \"$def\""))
-    //    failed should be(Symbol("left"))
-    //    failed should not be (Symbol("right"))
-
-    val inputs = Inputs.fromString("a = \"$def\"")
+    val inputs = Inputs.fromString("abc123")
     val parsed = parser.parse(inputs) match {
       case Right(value) => value
       case Left(err) => throw new IllegalStateException(err.msg)
