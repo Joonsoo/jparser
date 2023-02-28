@@ -35,7 +35,7 @@ class IsomorphismTest extends AnyFlatSpec {
 
   it should "gentest" in {
     println("Analyzing...")
-    val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/simple-bibix.cdg").readAllBytes()))
+    val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/simple-bibixlike.cdg").readAllBytes()))
     println("ParserGen...")
     val parserData = MilestoneParserGen.generateMilestoneParserData(analysis.ngrammar)
 

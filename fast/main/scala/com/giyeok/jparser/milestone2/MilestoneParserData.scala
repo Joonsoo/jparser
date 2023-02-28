@@ -11,20 +11,17 @@ case class MilestoneParserData(
   initialTasksSummary: TasksSummary2,
   termActions: Map[KernelTemplate, List[(TermGroupDesc, TermAction)]],
   edgeProgressActions: Map[(KernelTemplate, KernelTemplate), EdgeAction],
-  kernelDeriveGraphs: Map[KernelTemplate, Set[KernelTemplate]]
 )
 
 class MilestoneParserDataBuilder(val grammar: NGrammar, val initialTasksSummary: TasksSummary2) {
   val termActions: mutable.Map[KernelTemplate, List[(TermGroupDesc, TermAction)]] = mutable.Map()
   val edgeProgressActions: mutable.Map[(KernelTemplate, KernelTemplate), EdgeAction] = mutable.Map()
-  val kernelDerives: mutable.Map[KernelTemplate, Set[KernelTemplate]] = mutable.Map()
 
   def build(): MilestoneParserData = MilestoneParserData(
     grammar,
     initialTasksSummary,
     termActions.toMap,
     edgeProgressActions.toMap,
-    kernelDerives.toMap
   )
 }
 

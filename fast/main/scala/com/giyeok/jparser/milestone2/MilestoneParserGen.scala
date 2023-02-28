@@ -369,7 +369,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
 
     jobs.milestones.foreach { milestone =>
       val (_, CtxWithTasks(derived, _, _)) = base.startingCtxFrom(milestone, 0)
-      builder.kernelDerives(milestone) = derived.graph.nodes.map(k => KernelTemplate(k.symbolId, k.pointer))
+      // builder.kernelDerives(milestone) = derived.graph.nodes.map(k => KernelTemplate(k.symbolId, k.pointer))
 
       val termActions = termActionsFor(milestone)
       builder.termActions(milestone) = termActions
