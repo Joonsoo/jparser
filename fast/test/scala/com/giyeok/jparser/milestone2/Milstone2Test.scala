@@ -17,7 +17,7 @@ import org.scalatest.matchers.should.Matchers.be
 
 class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
-    val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
+    val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/simple-bibix.cdg").readAllBytes()))
 
     //    val naiveParser = new NaiveParser2(analysis.ngrammar)
     //    val ctx1 = naiveParser.parseStep(naiveParser.initialParsingHistoryContext, Inputs.Character('a')).right.get
@@ -25,15 +25,15 @@ class Milstone2Test extends AnyFlatSpec {
     //    val ctx3 = naiveParser.parseStep(ctx2, Inputs.Character('c')).right.get
     //    Utils.printDotGraph(analysis.ngrammar, ctx3.parsingContext)
 
-    val gen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
-    val s75 = gen.termActionsFor(KernelTemplate(75, 1))
-    val s72 = gen.termActionsFor(KernelTemplate(72, 2))
-    println(s75)
-    println(s72)
-    val s1 = gen.edgeProgressActionBetween(KernelTemplate(3, 4), KernelTemplate(72, 1))
-    val s2 = gen.edgeProgressActionBetween(KernelTemplate(72, 1), KernelTemplate(75, 1))
-    println(s1)
-    println(s2)
+    //    val gen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
+    //    val s75 = gen.termActionsFor(KernelTemplate(75, 1))
+    //    val s72 = gen.termActionsFor(KernelTemplate(72, 2))
+    //    println(s75)
+    //    println(s72)
+    //    val s1 = gen.edgeProgressActionBetween(KernelTemplate(3, 4), KernelTemplate(72, 1))
+    //    val s2 = gen.edgeProgressActionBetween(KernelTemplate(72, 1), KernelTemplate(75, 1))
+    //    println(s1)
+    //    println(s2)
 
     val parserData = MilestoneParserGen.generateMilestoneParserData(analysis.ngrammar)
     println(s"milestones: ${parserData.termActions.size}, edges=${parserData.edgeProgressActions.keySet.size}")
@@ -63,14 +63,14 @@ class Milstone2Test extends AnyFlatSpec {
     //      Map(),
     //    )
     val parser = new MilestoneParser(parserData)
-      .setVerbose()
+    //      .setVerbose()
     println(parser.initialCtx)
 
     //    val failed = parser.parse(Inputs.fromString("this = \"$def\""))
     //    failed should be(Symbol("left"))
     //    failed should not be (Symbol("right"))
 
-    val inputs = Inputs.fromString("a = \"$bcdefg\"")
+    val inputs = Inputs.fromString("a = \"$def\"")
     val parsed = parser.parse(inputs) match {
       case Right(value) => value
       case Left(err) => throw new IllegalStateException(err.msg)
@@ -79,8 +79,6 @@ class Milstone2Test extends AnyFlatSpec {
     val history = parser.kernelsHistory(parsed)
       .map(_.toList.sortWith((k1, k2) =>
         if (k1.symbolId == k2.symbolId) k1.pointer < k2.pointer else k1.symbolId < k2.symbolId))
-    println(history)
-    println()
 
     val parseTree = new ParseTreeConstructor2(ParseForestFunc)(parserData.grammar)(
       inputs, history.map(ks => Kernels(ks.toSet))).reconstruct()

@@ -74,7 +74,7 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
     assert(progressedStartKernel.size <= 1)
     val addedKernels = progressTasks.map(_.kernel).toSet[Kernel].map { kernel =>
       Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, 2)
-    } ++ finishTasks.filter(_.kernel.pointer == 0).map(_.kernel)
+    } ++ deriveTasks.map(_.kernel) ++ finishTasks.map(_.kernel).filter(_.pointer == 0)
     TasksSummary2(
       addedKernels = addedKernels,
       progressedKernels = progressTasks.map(_.kernel).toSet,

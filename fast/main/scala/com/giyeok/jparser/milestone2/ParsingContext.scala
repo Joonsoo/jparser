@@ -6,7 +6,8 @@ case class ParsingContext(
   gen: Int,
   paths: List[MilestonePath],
   actionsHistory: List[GenActions],
-  conditionsUpdates: Map[(Int, MilestoneAcceptCondition), MilestoneAcceptCondition])
+  conditionsUpdates: Map[(Int, MilestoneAcceptCondition), MilestoneAcceptCondition],
+  nextConditionsUpdates: Map[(Int, MilestoneAcceptCondition), MilestoneAcceptCondition])
 
 // path는 가장 뒤에 것이 가장 앞에 옴. first는 언제나 path.last와 동일
 case class MilestonePath(first: Milestone, path: List[Milestone], acceptCondition: MilestoneAcceptCondition) {

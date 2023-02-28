@@ -1,0 +1,3 @@
+Tokens = <Token|WS>*
+Token = 'a-z'+
+WS = ' '+
