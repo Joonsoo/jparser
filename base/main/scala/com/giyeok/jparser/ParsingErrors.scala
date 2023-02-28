@@ -4,7 +4,7 @@ import com.giyeok.jparser.Inputs.{Character, Input, TermGroupDesc, Virtual}
 
 object ParsingErrors {
 
-  abstract class ParsingError {
+  abstract class ParsingError extends Exception {
     val msg: String
   }
 

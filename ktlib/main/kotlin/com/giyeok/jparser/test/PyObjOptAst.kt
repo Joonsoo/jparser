@@ -3,19 +3,6 @@ package com.giyeok.jparser.test
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ktlib.*
 
-interface IdIssuer {
-  fun nextId(): Int
-}
-
-class IdIssuerImpl(startId: Int = 0) : IdIssuer {
-  private var idCounter = startId
-
-  override fun nextId(): Int {
-    idCounter += 1
-    return idCounter
-  }
-}
-
 class PyObjKtOptAst(
         val inputs: List<Inputs.Input>,
         val history: List<KernelSet>,

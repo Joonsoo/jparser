@@ -272,6 +272,13 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     }
   }
 
+  def parseOrThrow(inputSeq: Seq[Inputs.Input]): ParsingContext = {
+    parse(inputSeq) match {
+      case Right(result) => result
+      case Left(parseError) => throw parseError
+    }
+  }
+
   // progress되면서 추가된 커널들을 반환한다. finish는 progress 되면서 자연스럽게 따라오는 것이기 때문에 처리할 필요 없음
   def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
     // TODO accept condition 처리
