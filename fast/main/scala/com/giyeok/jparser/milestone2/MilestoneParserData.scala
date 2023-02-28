@@ -31,6 +31,7 @@ class MilestoneParserDataBuilder(val grammar: NGrammar, val initialTasksSummary:
 case class ParsingAction(
   appendingMilestones: List[AppendingMilestone],
   startNodeProgressCondition: Option[AcceptConditionTemplate],
+  lookaheadRequiringSymbols: Set[Int],
   tasksSummary: TasksSummary2,
 )
 
@@ -59,8 +60,8 @@ sealed class AcceptConditionTemplate {
   def symbolIds: Set[Int] = this match {
     case AndTemplate(conditions) => conditions.flatMap(_.symbolIds).toSet
     case OrTemplate(conditions) => conditions.flatMap(_.symbolIds).toSet
-    case ExistsTemplate(symbolId) => Set(symbolId)
-    case NotExistsTemplate(symbolId) => Set(symbolId)
+    case LookaheadIsTemplate(symbolId, _) => Set(symbolId)
+    case LookaheadNotTemplate(symbolId, _) => Set(symbolId)
     case LongestTemplate(symbolId) => Set(symbolId)
     case OnlyIfTemplate(symbolId) => Set(symbolId)
     case UnlessTemplate(symbolId) => Set(symbolId)
@@ -112,13 +113,13 @@ case class AndTemplate(conditions: List[AcceptConditionTemplate]) extends Accept
 
 case class OrTemplate(conditions: List[AcceptConditionTemplate]) extends AcceptConditionTemplate
 
-// Exists(currGen, currGen, symbolId)
-// Exists(Milestone(symbolId, 0, currGen))
-case class ExistsTemplate(symbolId: Int) extends AcceptConditionTemplate
+// Exists(currGen, currGen, symbolId) or from nextGen
+// Exists(Milestone(symbolId, 0, currGen)) or from nextGen
+case class LookaheadIsTemplate(symbolId: Int, fromNextGen: Boolean) extends AcceptConditionTemplate
 
-// NotExists(currGen, currGen, symbolId)
-// NotExists(Milestone(symbolId, 0, currGen), false)
-case class NotExistsTemplate(symbolId: Int) extends AcceptConditionTemplate
+// NotExists(currGen, currGen, symbolId) or from nextGen
+// NotExists(Milestone(symbolId, 0, currGen), false) or from nextGen
+case class LookaheadNotTemplate(symbolId: Int, fromNextGen: Boolean) extends AcceptConditionTemplate
 
 // NotExists(parentGen, currGen + 1, symbolId)
 // NotExists(Milestone(symbolId, 0, parentGen), true)

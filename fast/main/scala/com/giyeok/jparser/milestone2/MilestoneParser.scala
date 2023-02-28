@@ -28,10 +28,10 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         And(conditions.map(reifyCondition(_, beginGen, gen)).distinct)
       case OrTemplate(conditions) =>
         Or(conditions.map(reifyCondition(_, beginGen, gen)).distinct)
-      case ExistsTemplate(symbolId) =>
-        Exists(Milestone(symbolId, 0, gen))
-      case NotExistsTemplate(symbolId) =>
-        NotExists(Milestone(symbolId, 0, gen), checkFromNextGen = false)
+      case LookaheadIsTemplate(symbolId, fromNextGen) =>
+        Exists(Milestone(symbolId, 0, gen), fromNextGen)
+      case LookaheadNotTemplate(symbolId, fromNextGen) =>
+        NotExists(Milestone(symbolId, 0, gen), checkFromNextGen = fromNextGen)
       case LongestTemplate(symbolId) =>
         NotExists(Milestone(symbolId, 0, beginGen), checkFromNextGen = true)
       case OnlyIfTemplate(symbolId) =>
@@ -65,7 +65,8 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         }
       case None => List()
     }
-    appended ++ reduced
+    val lookaheadPaths = action.lookaheadRequiringSymbols.map(symbolId => MilestonePath(Milestone(symbolId, 0, gen)))
+    appended ++ reduced ++ lookaheadPaths
   }
 
   def collectTrackings(paths: List[MilestonePath]): Set[Milestone] =
@@ -78,7 +79,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
             action.requiredSymbols.map(Milestone(_, 0, parent.gen)) ++ traverse(parent, next)
         }
 
-      traverse(path.path.head, path.path.tail)
+      path.acceptCondition.milestones ++ traverse(path.path.head, path.path.tail)
     }.toSet
 
   def expectedInputsOf(ctx: ParsingContext): Set[Inputs.TermGroupDesc] =
@@ -97,7 +98,9 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         MilestoneAcceptCondition.conjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
       case Or(conditions) =>
         MilestoneAcceptCondition.disjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
-      case Exists(milestone) =>
+      case Exists(milestone, true) =>
+        Exists(milestone, false)
+      case Exists(milestone, false) =>
         val moreTrackingNeeded = paths.exists(_.first == milestone)
         genActions.progressedMilestones.get(milestone) match {
           case Some(progressCondition) =>
@@ -152,7 +155,8 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         conditions.forall(evaluateAcceptCondition(paths, genActions, _))
       case Or(conditions) =>
         conditions.exists(evaluateAcceptCondition(paths, genActions, _))
-      case Exists(milestone) =>
+      case Exists(milestone, true) => false
+      case Exists(milestone, false) =>
         genActions.progressedMilestones.get(milestone) match {
           case Some(progressCondition) =>
             evaluateAcceptCondition(paths, genActions, progressCondition)

@@ -1,9 +1,9 @@
 package com.giyeok.jparser.fast
 
-import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AlwaysTemplate, ExistsTemplate, LongestTemplate, NeverTemplate, NotExistsTemplate, OnlyIfTemplate, UnlessTemplate}
-import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always, disjunct}
+import com.giyeok.jparser.milestone2._
+import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
-import com.giyeok.jparser.nparser2.{DeriveTask, FinishTask, KernelGraph, NaiveParser2, ParsingContext, ParsingTask, ProgressTask}
+import com.giyeok.jparser.nparser2.{ParsingContext, _}
 
 case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKernelProgressTasks: List[ProgressTask]) {
   def deriveTasks: List[DeriveTask] =
@@ -17,57 +17,6 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
 
   def finishTasks: List[FinishTask] =
     tasks.filter(_.isInstanceOf[FinishTask]).map(_.asInstanceOf[FinishTask])
-
-  def conditionToTemplate(condition: AcceptCondition): AcceptConditionTemplate = {
-    def cannotExist(kernel: Kernel) =
-      progressConditionsFor(kernel).isEmpty && !ctx.graph.nodes.contains(kernel)
-
-    condition match {
-      case AcceptCondition.Always => AlwaysTemplate
-      case AcceptCondition.Never => NeverTemplate
-      case AcceptCondition.And(conditions) =>
-        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplate))
-      case AcceptCondition.Or(conditions) =>
-        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplate))
-      case AcceptCondition.NotExists(0 | 1, 3, symbolId) =>
-        // longest
-        // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
-        LongestTemplate(symbolId)
-      case AcceptCondition.Unless(0 | 1, 2, symbolId) =>
-        // except
-        if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
-          // 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(Unless이기 때문) 반환
-          AlwaysTemplate
-        } else {
-          UnlessTemplate(symbolId)
-        }
-      case AcceptCondition.OnlyIf(0 | 1, 2, symbolId) =>
-        // join
-        if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
-          // ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
-          NeverTemplate
-        } else {
-          // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-          OnlyIfTemplate(symbolId)
-        }
-      case AcceptCondition.NotExists(2, 2, symbolId) =>
-        // lookahead except
-        if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
-          // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
-          AlwaysTemplate
-        } else {
-          NotExistsTemplate(symbolId)
-        }
-      case AcceptCondition.Exists(2, 2, symbolId) =>
-        // lookahead is
-        if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
-          // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
-          NeverTemplate
-        } else {
-          ExistsTemplate(symbolId)
-        }
-    }
-  }
 
   def tasksSummary: TasksSummary2 = {
     val progressedStartKernel = startKernelProgressTasks.map(_.kernel).distinct

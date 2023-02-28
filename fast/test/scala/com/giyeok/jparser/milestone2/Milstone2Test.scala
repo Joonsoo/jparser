@@ -1,19 +1,11 @@
 package com.giyeok.jparser.milestone2
 
-import com.giyeok.jparser.{Inputs, ParseForestFunc}
-import com.giyeok.jparser.Inputs.CharsGroup
-import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.metalang3.{MetaLanguage3, ValuefyExprSimulator}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
-import com.giyeok.jparser.nparser2.utils.Utils
-import com.giyeok.jparser.nparser2.{KernelGraph, NaiveParser2}
+import com.giyeok.jparser.{Inputs, ParseForestFunc}
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.must.Matchers.not
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
-import org.scalatest.matchers.should.Matchers.be
+import org.scalatest.matchers.should.Matchers.{be, convertToAnyShouldWrapper}
 
 class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
@@ -66,7 +58,7 @@ class Milstone2Test extends AnyFlatSpec {
       .setVerbose()
     println(parser.initialCtx)
 
-    val inputs = Inputs.fromString("abc123")
+    val inputs = Inputs.fromString("abc124")
     val parsed = parser.parse(inputs) match {
       case Right(value) => value
       case Left(err) => throw new IllegalStateException(err.msg)

@@ -63,10 +63,11 @@ class MilestoneParserGen(val parser: NaiveParser2) {
   def appendingMilestonesForTermAction(
     result: CtxWithTasks,
     start: Kernel,
-    forAcceptConditions: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])]
+    forAcceptConditions: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
+    lookaheadCollector: mutable.Set[Int],
   ): List[AppendingMilestone] = {
     appendingMilestoneCandidatesOf(result, 1, start).map { kernel =>
-      val condition = conditionToTemplateForTermAction(result, forAcceptConditions, result.ctx.acceptConditions(kernel))
+      val condition = conditionToTemplateForTermAction(result, result.ctx.acceptConditions(kernel), forAcceptConditions, lookaheadCollector)
       AppendingMilestone(KernelTemplate(kernel.symbolId, kernel.pointer), condition)
     }
   }
@@ -79,55 +80,58 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     // -> 여기서 등장하는 심볼들로부터 reachable한 milestone들을 찾아서 forAcceptConditions 만들기
     // -> 반복해서 새로 등장하는 accept condition template이 없을 때까지
     // 추가로 edgeMayRequire 계산
-    val forAcceptConditions = mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])]()
-    val appendingMilestones = appendingMilestonesForTermAction(result, start, forAcceptConditions)
+    val pendedCollector = mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])]()
+    val lookaheadCollector = mutable.Set[Int]()
+    val appendingMilestones = appendingMilestonesForTermAction(result, start, pendedCollector, lookaheadCollector)
     val startNodeProgressCondition = result.startKernelProgressTasks match {
       case List() => None
       case progressTasks =>
         val conditions = progressTasks.map(_.condition)
-          .map(conditionToTemplateForTermAction(result, forAcceptConditions, _))
+          .map(conditionToTemplateForTermAction(result, _, pendedCollector, lookaheadCollector))
         Some(AcceptConditionTemplate.disjunct(conditions.toSet))
     }
     val parsingAction = ParsingAction(
       appendingMilestones = appendingMilestones,
       startNodeProgressCondition = startNodeProgressCondition,
+      lookaheadRequiringSymbols = lookaheadCollector.toSet,
       tasksSummary = result.tasksSummary,
     )
-    TermAction(parsingAction, forAcceptConditions.toMap)
+    TermAction(parsingAction, pendedCollector.toMap)
   }
 
   private def conditionToTemplateForTermAction(
     result: CtxWithTasks,
-    forAcceptConditions: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
-    condition: AcceptCondition
+    condition: AcceptCondition,
+    pendedCollector: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
+    lookaheadCollector: mutable.Set[Int],
   ): AcceptConditionTemplate = {
     def cannotExist(kernel: Kernel) =
       result.progressConditionsFor(kernel).isEmpty && !result.ctx.graph.nodes.contains(kernel)
 
-    def addForAcceptConditionTemplate(symbolId: Int): Unit = {
+    def addPended(symbolId: Int): Unit = {
       val symbolStart = Kernel(symbolId, 0, 1, 1)
-      val appendingMilestones = appendingMilestonesForTermAction(result, symbolStart, forAcceptConditions)
+      val appendingMilestones = appendingMilestonesForTermAction(result, symbolStart, pendedCollector, lookaheadCollector)
       val progresses = result.progressTasks.filter(_.kernel == symbolStart)
       val progressCondition = disjunct(progresses.map(_.condition): _*)
       val progressConditionTemplate = if (progressCondition == Never) None else {
-        Some(conditionToTemplateForTermAction(result, forAcceptConditions, progressCondition))
+        Some(conditionToTemplateForTermAction(result, progressCondition, pendedCollector, lookaheadCollector))
       }
-      forAcceptConditions(KernelTemplate(symbolId, 0)) = (appendingMilestones, progressConditionTemplate)
+      pendedCollector(KernelTemplate(symbolId, 0)) = (appendingMilestones, progressConditionTemplate)
     }
 
     condition match {
       case AcceptCondition.Always => AlwaysTemplate
       case AcceptCondition.Never => NeverTemplate
       case AcceptCondition.And(conditions) =>
-        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplateForTermAction(result, forAcceptConditions, _)))
+        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplateForTermAction(result, _, pendedCollector, lookaheadCollector)))
       case AcceptCondition.Or(conditions) =>
-        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplateForTermAction(result, forAcceptConditions, _)))
+        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplateForTermAction(result, _, pendedCollector, lookaheadCollector)))
       case AcceptCondition.NotExists(1, 3, symbolId) =>
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
         // TODO forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
         // TODO result.progressTasks.filter(_.kernel == Kernel(symbolId, 0, 1, 1)) 에 대한 정보 추가
-        addForAcceptConditionTemplate(symbolId)
+        addPended(symbolId)
         LongestTemplate(symbolId)
       case AcceptCondition.Unless(1, 2, symbolId) =>
         // except
@@ -136,7 +140,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
           AlwaysTemplate
         } else {
           // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-          addForAcceptConditionTemplate(symbolId)
+          addPended(symbolId)
           UnlessTemplate(symbolId)
         }
       case AcceptCondition.OnlyIf(1, 2, symbolId) =>
@@ -146,29 +150,51 @@ class MilestoneParserGen(val parser: NaiveParser2) {
           NeverTemplate
         } else {
           // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-          addForAcceptConditionTemplate(symbolId)
+          addPended(symbolId)
           OnlyIfTemplate(symbolId)
         }
+      case AcceptCondition.NotExists(1, 1, symbolId) =>
+        // TODO
+        if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
+          // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
+          AlwaysTemplate
+        } else {
+          addPended(symbolId)
+          LookaheadNotTemplate(symbolId, fromNextGen = false)
+        }
       case AcceptCondition.NotExists(2, 2, symbolId) =>
+        // TODO
         // lookahead except
         // - lookahead 심볼은 이미 가망이 없어진 경우가 아니라면 앞으로의 상황만 보기 때문에
         //   start만 있고 appending milestone은 없는(길이가 1인) path를 추가해야 할듯?
         //   즉, forAcceptConditions는 건드릴 필요 없을듯
-        // TODO 파서쪽, createParserData에서 처리
         if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
           // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
           AlwaysTemplate
         } else {
-          NotExistsTemplate(symbolId)
+          lookaheadCollector += symbolId
+          LookaheadNotTemplate(symbolId, fromNextGen = true)
+        }
+      case AcceptCondition.Exists(1, 1, symbolId) =>
+        // TODO
+        // lookahead is
+        if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
+          // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
+          NeverTemplate
+        } else {
+          addPended(symbolId)
+          LookaheadIsTemplate(symbolId, fromNextGen = false)
         }
       case AcceptCondition.Exists(2, 2, symbolId) =>
+        // TODO
         // lookahead is
         if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
           // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
           NeverTemplate
         } else {
           // NotExists와 같은 이유로 forAcceptConditions는 건드릴 필요 없음
-          ExistsTemplate(symbolId)
+          lookaheadCollector += symbolId
+          LookaheadIsTemplate(symbolId, fromNextGen = true)
         }
     }
   }
@@ -213,10 +239,11 @@ class MilestoneParserGen(val parser: NaiveParser2) {
   def appendingMilestonesForEdgeAction(
     result: CtxWithTasks,
     start: Kernel,
-    edgeRequires: mutable.Set[Int]
+    edgeRequires: mutable.Set[Int],
+    lookaheadCollector: mutable.Set[Int],
   ): List[AppendingMilestone] = {
     appendingMilestoneCandidatesOf(result, 0, start).map { kernel =>
-      val condition = conditionToTemplateForEdgeAction(result, edgeRequires, result.ctx.acceptConditions(kernel))
+      val condition = conditionToTemplateForEdgeAction(result, result.ctx.acceptConditions(kernel), edgeRequires, lookaheadCollector)
       AppendingMilestone(KernelTemplate(kernel.symbolId, kernel.pointer), condition)
     }
   }
@@ -229,17 +256,19 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     // -> 반복해서 새로 등장하는 accept condition template이 없을 때까지
     // 추가로 edgeMayRequire 계산
     val edgeRequires = mutable.Set[Int]()
-    val appendingMilestones = appendingMilestonesForEdgeAction(result, start, edgeRequires)
+    val lookaheadCollector = mutable.Set[Int]()
+    val appendingMilestones = appendingMilestonesForEdgeAction(result, start, edgeRequires, lookaheadCollector)
     val startNodeProgressCondition = result.startKernelProgressTasks match {
       case List() => None
       case progressTasks =>
         val conditions = progressTasks.map(_.condition)
-          .map(conditionToTemplateForEdgeAction(result, edgeRequires, _))
+          .map(conditionToTemplateForEdgeAction(result, _, edgeRequires, lookaheadCollector))
         Some(AcceptConditionTemplate.disjunct(conditions.toSet))
     }
     val parsingAction = ParsingAction(
       appendingMilestones = appendingMilestones,
       startNodeProgressCondition = startNodeProgressCondition,
+      lookaheadRequiringSymbols = lookaheadCollector.toSet,
       tasksSummary = result.tasksSummary,
     )
     EdgeAction(parsingAction, edgeRequires.toSet)
@@ -248,20 +277,20 @@ class MilestoneParserGen(val parser: NaiveParser2) {
   // beginGen은 assertion용
   private def conditionToTemplateForEdgeAction(
     result: CtxWithTasks,
+    condition: AcceptCondition,
     needsToKeep: mutable.Set[Int],
-    condition: AcceptCondition
+    lookaheadCollector: mutable.Set[Int],
   ): AcceptConditionTemplate = {
     condition match {
       case AcceptCondition.Always => AlwaysTemplate
       case AcceptCondition.Never => NeverTemplate
       case AcceptCondition.And(conditions) =>
-        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplateForEdgeAction(result, needsToKeep, _)))
+        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplateForEdgeAction(result, _, needsToKeep, lookaheadCollector)))
       case AcceptCondition.Or(conditions) =>
-        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplateForEdgeAction(result, needsToKeep, _)))
+        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplateForEdgeAction(result, _, needsToKeep, lookaheadCollector)))
       case AcceptCondition.NotExists(0, 3, symbolId) =>
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
-        // TODO forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
         needsToKeep += symbolId
         LongestTemplate(symbolId)
       case AcceptCondition.Unless(0, 2, symbolId) =>
@@ -272,14 +301,24 @@ class MilestoneParserGen(val parser: NaiveParser2) {
         // join
         needsToKeep += symbolId
         OnlyIfTemplate(symbolId)
+      case AcceptCondition.NotExists(0, 0, symbolId) =>
+        // TODO
+        needsToKeep += symbolId
+        LookaheadNotTemplate(symbolId, fromNextGen = false)
       case AcceptCondition.NotExists(2, 2, symbolId) =>
+        // TODO
         // lookahead except
+        lookaheadCollector += symbolId
+        LookaheadNotTemplate(symbolId, fromNextGen = true)
+      case AcceptCondition.Exists(0, 0, symbolId) =>
+        // TODO
         needsToKeep += symbolId
-        NotExistsTemplate(symbolId)
+        LookaheadIsTemplate(symbolId, fromNextGen = false)
       case AcceptCondition.Exists(2, 2, symbolId) =>
+        // TODO
         // lookahead is
-        needsToKeep += symbolId
-        ExistsTemplate(symbolId)
+        lookaheadCollector += symbolId
+        LookaheadIsTemplate(symbolId, fromNextGen = true)
     }
   }
 
@@ -314,8 +353,8 @@ class MilestoneParserGen(val parser: NaiveParser2) {
 
     def tippableSymbolsOf(condition: AcceptConditionTemplate): Set[Int] =
       condition match {
-        case ExistsTemplate(symbolId) => Set(symbolId)
-        case NotExistsTemplate(symbolId) => Set(symbolId)
+        case LookaheadIsTemplate(symbolId, _) => Set(symbolId)
+        case LookaheadNotTemplate(symbolId, _) => Set(symbolId)
         case _ => Set()
       }
 

@@ -223,7 +223,8 @@ class NaiveParser2(val grammar: NGrammar) {
             Set()
           } else {
             val next = outEdge.end
-            grammar.symbolOf(next.symbolId) match {
+            val sym = grammar.symbolOf(next.symbolId)
+            sym match {
               case NExcept(_, _, body, except) =>
                 val bodyKernel = Kernel(body, 0, next.beginGen, next.beginGen)
                 val bodyResult = traverse(bodyKernel, outEdge +: path, nodes + next + bodyKernel)
@@ -242,6 +243,34 @@ class NaiveParser2(val grammar: NGrammar) {
                 } else {
                   bodyResult
                 }
+              case NLookaheadIs(_, _, emptySeqId, lookaheadId) =>
+                val emptySeqKernel = Kernel(emptySeqId, 0, next.beginGen, next.beginGen)
+                val emptySeqResult = if (ctx.graph.nodes.contains(emptySeqKernel)) {
+                  traverse(emptySeqKernel, outEdge +: path, nodes + next + emptySeqKernel)
+                } else {
+                  Set()
+                }
+                val lookaheadKernel = Kernel(lookaheadId, 0, next.beginGen, next.beginGen)
+                val lookaheadResult = if (ctx.graph.nodes.contains(lookaheadKernel)) {
+                  traverse(lookaheadKernel, outEdge +: path, nodes + next + lookaheadKernel)
+                } else {
+                  Set()
+                }
+                emptySeqResult ++ lookaheadResult
+              case NLookaheadExcept(_, _, emptySeqId, lookaheadId) =>
+                val emptySeqKernel = Kernel(emptySeqId, 0, next.beginGen, next.beginGen)
+                val emptySeqResult = if (ctx.graph.nodes.contains(emptySeqKernel)) {
+                  traverse(emptySeqKernel, outEdge +: path, nodes + next + emptySeqKernel)
+                } else {
+                  Set()
+                }
+                val lookaheadKernel = Kernel(lookaheadId, 0, next.beginGen, next.beginGen)
+                val lookaheadResult = if (ctx.graph.nodes.contains(lookaheadKernel)) {
+                  traverse(lookaheadKernel, outEdge +: path, nodes + next + lookaheadKernel)
+                } else {
+                  Set()
+                }
+                emptySeqResult ++ lookaheadResult
               case _ => traverse(next, outEdge +: path, nodes + next)
             }
           }
