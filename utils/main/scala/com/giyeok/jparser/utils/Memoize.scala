@@ -2,7 +2,7 @@ package com.giyeok.jparser.utils
 
 import scala.collection.mutable
 
-case class Memoize[T, U]()(implicit ev$1: T => Equals) {
+case class Memoize[T, U]() {
   private val _memoMap = mutable.Map[T, U]()
 
   def memoMap: Map[T, U] = _memoMap.toMap

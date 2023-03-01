@@ -25,7 +25,7 @@ object BibixAstTest {
 
     val parser = MilestoneParser(parserData) //.setVerbose()
     val inputText = File("build.bbx").readText()
-//    val inputText = "a = \"b\$cd\""
+//    val inputText = "a=\"bcd\""
     val startTime = System.currentTimeMillis()
     val inputs = Inputs.fromString(inputText)
     val parseResult = parser.parseOrThrow(inputs)
