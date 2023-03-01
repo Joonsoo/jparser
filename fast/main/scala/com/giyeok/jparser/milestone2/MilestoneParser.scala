@@ -318,8 +318,10 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       genMap: Map[Int, Int],
       conditionMemos: Memoize[MilestoneAcceptCondition, Boolean],
     ): Set[Kernel] = {
-      val filtered = tasksSummary.addedKernels
-        .filter(pair => isFinallyAccepted(history, gen, reifyCondition(pair._1, beginGen, gen), conditionMemos))
+      val filtered = tasksSummary.addedKernels.filter { pair =>
+        val condition = reifyCondition(pair._1, beginGen, gen)
+        isFinallyAccepted(history, gen, condition, conditionMemos)
+      }
       val addedKernels = filtered.values.flatMap(_.map(mapGen(_, genMap)))
       addedKernels.toSet ++ tasksSummary.progressedKernels.map(mapGen(_, genMap))
     }
@@ -328,7 +330,8 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     val initialHistoryEntry = HistoryEntry(List(MilestonePath(initialMilestone)), GenActions(List(), List(), Map(), Map()))
     val history = initialHistoryEntry +: parsingContext.history.reverse
 
-    history.zipWithIndex.map { case (entry, gen) =>
+    val initialKernels = kernelsFrom(history, 0, 0, parserData.initialTasksSummary, Map(-1 -> 0, 0 -> 0, 1 -> 0, 2 -> 0), Memoize())
+    val kernelsHistory = history.zipWithIndex.drop(1).map { case (entry, gen) =>
       val conditionMemos = Memoize[MilestoneAcceptCondition, Boolean]()
       val genActions = entry.genActions
       val nodesByTermActions = genActions.termActions.flatMap { case (milestone, termAction) =>
@@ -338,7 +341,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       val nodesByEdgeActions = genActions.edgeActions.flatMap { case ((start, end), edgeAction) =>
         if (isFinallyAccepted(history, gen, genActions.progressedMilestones(end), conditionMemos)) {
           // edgeAction.parsingAction.tasksSummary.progressedStartKernel은 progressedMilestones에서 처리
-          kernelsFrom(history, end.gen, gen, edgeAction.parsingAction.tasksSummary, Map(0 -> start.gen, 1 -> end.gen, 2 -> gen), conditionMemos)
+          kernelsFrom(history, start.gen, gen, edgeAction.parsingAction.tasksSummary, Map(0 -> start.gen, 1 -> end.gen, 2 -> gen), conditionMemos)
         } else {
           List()
         }
@@ -354,6 +357,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }.flatten
       (nodesByTermActions ++ nodesByEdgeActions ++ progressed).toSet
     }
+    initialKernels +: kernelsHistory
   }
 }
 
