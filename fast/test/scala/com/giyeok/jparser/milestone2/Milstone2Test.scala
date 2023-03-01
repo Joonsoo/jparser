@@ -17,9 +17,10 @@ class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
     val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
 
-    val parserData = MilestoneParserGen.generateMilestoneParserData(analysis.ngrammar)
+    val parserGen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
+    val parserData = parserGen.parserData()
     println(s"milestones: ${parserData.termActions.size}, edges=${parserData.edgeProgressActions.keySet.size}")
-    println(parserData.edgeProgressActions.keySet)
+    // println(parserData.edgeProgressActions.keySet)
 
     val codeWriter = new BufferedWriter(new FileWriter(new File("BibixAst.kt")))
     val codegen = new KotlinOptCodeGen(analysis)
@@ -32,9 +33,9 @@ class Milstone2Test extends AnyFlatSpec {
 
     val parser = new MilestoneParser(parserData)
       .setVerbose()
-    println(parser.initialCtx)
+    // println(parser.initialCtx)
 
-    val inputs = Inputs.fromString("from bibix.plugins import ktjvm")
+    val inputs = Inputs.fromString("a = this")
     val parsed = parser.parse(inputs) match {
       case Right(value) => value
       case Left(err) => throw new IllegalStateException(err.msg)

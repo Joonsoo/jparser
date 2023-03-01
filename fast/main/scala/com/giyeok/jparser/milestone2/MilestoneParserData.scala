@@ -68,35 +68,43 @@ sealed class AcceptConditionTemplate {
 
 object AcceptConditionTemplate {
   def conjunct(conditions: Set[AcceptConditionTemplate]): AcceptConditionTemplate = {
-    val filtered = conditions.filter(_ != AlwaysTemplate)
-    if (filtered.isEmpty) {
-      AlwaysTemplate
+    if (conditions.contains(NeverTemplate)) {
+      NeverTemplate
     } else {
-      if (filtered.size == 1) {
-        filtered.head
+      val filtered = conditions.filter(_ != AlwaysTemplate)
+      if (filtered.isEmpty) {
+        AlwaysTemplate
       } else {
-        val elems = filtered.collect {
-          case AndTemplate(andElems) => andElems
-          case els => List(els)
-        }.flatten
-        AndTemplate(elems.toList)
+        if (filtered.size == 1) {
+          filtered.head
+        } else {
+          val elems = filtered.collect {
+            case AndTemplate(andElems) => andElems
+            case els => List(els)
+          }.flatten
+          AndTemplate(elems.toList)
+        }
       }
     }
   }
 
   def disjunct(conditions: Set[AcceptConditionTemplate]): AcceptConditionTemplate = {
-    val filtered = conditions.filter(_ != NeverTemplate)
-    if (filtered.isEmpty) {
-      NeverTemplate
+    if (conditions.contains(AlwaysTemplate)) {
+      AlwaysTemplate
     } else {
-      if (filtered.size == 1) {
-        filtered.head
+      val filtered = conditions.filter(_ != NeverTemplate)
+      if (filtered.isEmpty) {
+        NeverTemplate
       } else {
-        val elems = filtered.collect {
-          case OrTemplate(orElems) => orElems
-          case els => List(els)
-        }.flatten
-        OrTemplate(elems.toList)
+        if (filtered.size == 1) {
+          filtered.head
+        } else {
+          val elems = filtered.collect {
+            case OrTemplate(orElems) => orElems
+            case els => List(els)
+          }.flatten
+          OrTemplate(elems.toList)
+        }
       }
     }
   }

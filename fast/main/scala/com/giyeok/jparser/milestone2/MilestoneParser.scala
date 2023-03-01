@@ -1,7 +1,7 @@
 package com.giyeok.jparser.milestone2
 
-import com.giyeok.jparser.{Inputs, Symbols}
-import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInput, UnexpectedInputByTermGroups}
+import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInputByTermGroups}
 import com.giyeok.jparser.fast.{KernelTemplate, TasksSummary2}
 import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.utils.Memoize
@@ -224,6 +224,12 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     } else {
       val genActions = actionsCollector.build()
 
+      if (verbose) {
+        println("  ===== genActions")
+        genActions.edgeActions.map(_._1).foreach(println)
+        genActions.progressedMilestones.foreach(println)
+      }
+
       val newConditions = (newPaths.map(_.acceptCondition) ++ genActions.progressedMilestones.values).distinct
       val newConditionUpdates = newConditions
         .map(cond => cond -> evolveAcceptCondition(newPaths, genActions, cond)).toMap
@@ -261,7 +267,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       m match {
         case Right(currCtx) =>
           if (verbose) {
-            println(s"  === ${currCtx.gen} $nextInput ${currCtx.paths.size}")
+            println(s"  === ${currCtx.gen + 1} $nextInput ${currCtx.paths.size}")
           }
           parseStep(currCtx, nextInput)
         case error => error
@@ -284,22 +290,18 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel =
       Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
 
-    def kernelsFrom(tasksSummary: TasksSummary2, genMap: Map[Int, Int]): Set[Kernel] = {
-      tasksSummary.addedKernels.map(mapGen(_, genMap)) ++ tasksSummary.progressedKernels.map(mapGen(_, genMap))
-    }
-
     def isFinallyAccepted(
       history: Seq[HistoryEntry],
       gen: Int,
       condition: MilestoneAcceptCondition,
       conditionMemos: Memoize[MilestoneAcceptCondition, Boolean]
     ): Boolean = conditionMemos(condition) {
-      val entry = history(gen - 1)
+      val entry = history(gen)
       condition match {
         case Always => true
         case Never => false
         case _ =>
-          if (gen == history.length) {
+          if (gen + 1 == history.length) {
             evaluateAcceptCondition(entry.untrimmedPaths, entry.genActions, condition)
           } else {
             val evolved = evolveAcceptCondition(entry.untrimmedPaths, entry.genActions, condition)
@@ -308,25 +310,35 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }
     }
 
-    val initialNodes = kernelsFrom(parserData.initialTasksSummary, Map(-1 -> 0, 0 -> 0, 1 -> 0, 2 -> 0)) ++
-      parserData.initialTasksSummary.progressedStartKernel.toList.flatMap(start => List(
-        mapGen(start, Map(-1 -> 0, 0 -> 0, 1 -> 0, 2 -> 0)),
-        progressAndMapGen(start, 0, Map(-1 -> 0, 0 -> 0, 1 -> 0, 2 -> 0)),
-      ))
+    def kernelsFrom(
+      history: Seq[HistoryEntry],
+      beginGen: Int,
+      gen: Int,
+      tasksSummary: TasksSummary2,
+      genMap: Map[Int, Int],
+      conditionMemos: Memoize[MilestoneAcceptCondition, Boolean],
+    ): Set[Kernel] = {
+      val filtered = tasksSummary.addedKernels
+        .filter(pair => isFinallyAccepted(history, gen, reifyCondition(pair._1, beginGen, gen), conditionMemos))
+      val addedKernels = filtered.values.flatMap(_.map(mapGen(_, genMap)))
+      addedKernels.toSet ++ tasksSummary.progressedKernels.map(mapGen(_, genMap))
+    }
 
-    val history = parsingContext.history.reverse
-    val kernelsHistory = history.zipWithIndex.map { case (entry, gen_) =>
-      val gen = gen_ + 1
+    // TODO initialHistoryEntry의 progressedMilestones와 progressedMilestoneParentGens 추가
+    val initialHistoryEntry = HistoryEntry(List(MilestonePath(initialMilestone)), GenActions(List(), List(), Map(), Map()))
+    val history = initialHistoryEntry +: parsingContext.history.reverse
+
+    history.zipWithIndex.map { case (entry, gen) =>
       val conditionMemos = Memoize[MilestoneAcceptCondition, Boolean]()
       val genActions = entry.genActions
       val nodesByTermActions = genActions.termActions.flatMap { case (milestone, termAction) =>
         // termAction.parsingAction.tasksSummary.progressedStartKernel은 progressedStartKernel에서 처리
-        kernelsFrom(termAction.parsingAction.tasksSummary, Map(0 -> milestone.gen, 1 -> gen_, 2 -> gen))
+        kernelsFrom(history, gen - 1, gen, termAction.parsingAction.tasksSummary, Map(0 -> milestone.gen, 1 -> (gen - 1), 2 -> gen), conditionMemos)
       }
       val nodesByEdgeActions = genActions.edgeActions.flatMap { case ((start, end), edgeAction) =>
         if (isFinallyAccepted(history, gen, genActions.progressedMilestones(end), conditionMemos)) {
           // edgeAction.parsingAction.tasksSummary.progressedStartKernel은 progressedMilestones에서 처리
-          kernelsFrom(edgeAction.parsingAction.tasksSummary, Map(0 -> start.gen, 1 -> end.gen, 2 -> gen))
+          kernelsFrom(history, end.gen, gen, edgeAction.parsingAction.tasksSummary, Map(0 -> start.gen, 1 -> end.gen, 2 -> gen), conditionMemos)
         } else {
           List()
         }
@@ -342,7 +354,6 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }.flatten
       (nodesByTermActions ++ nodesByEdgeActions ++ progressed).toSet
     }
-    initialNodes +: kernelsHistory
   }
 }
 

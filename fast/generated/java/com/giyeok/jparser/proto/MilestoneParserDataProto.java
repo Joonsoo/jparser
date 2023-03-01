@@ -18206,27 +18206,27 @@ public final class MilestoneParserDataProto {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+     * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
      */
-    java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> 
+    java.util.List<com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair> 
         getAddedKernelsList();
     /**
-     * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+     * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
      */
-    com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel getAddedKernels(int index);
+    com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair getAddedKernels(int index);
     /**
-     * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+     * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
      */
     int getAddedKernelsCount();
     /**
-     * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+     * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
      */
-    java.util.List<? extends com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder> 
+    java.util.List<? extends com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPairOrBuilder> 
         getAddedKernelsOrBuilderList();
     /**
-     * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+     * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
      */
-    com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder getAddedKernelsOrBuilder(
+    com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPairOrBuilder getAddedKernelsOrBuilder(
         int index);
 
     /**
@@ -18318,11 +18318,11 @@ public final class MilestoneParserDataProto {
               break;
             case 10: {
               if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                addedKernels_ = new java.util.ArrayList<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel>();
+                addedKernels_ = new java.util.ArrayList<com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair>();
                 mutable_bitField0_ |= 0x00000001;
               }
               addedKernels_.add(
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.parser(), extensionRegistry));
+                  input.readMessage(com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.parser(), extensionRegistry));
               break;
             }
             case 18: {
@@ -18387,43 +18387,1041 @@ public final class MilestoneParserDataProto {
               com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.class, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.Builder.class);
     }
 
+    public interface AddedKernelPairOrBuilder extends
+        // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair)
+        com.google.protobuf.MessageOrBuilder {
+
+      /**
+       * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+       * @return Whether the acceptCondition field is set.
+       */
+      boolean hasAcceptCondition();
+      /**
+       * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+       * @return The acceptCondition.
+       */
+      com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate getAcceptCondition();
+      /**
+       * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+       */
+      com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder getAcceptConditionOrBuilder();
+
+      /**
+       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+       */
+      java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> 
+          getKernelsList();
+      /**
+       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+       */
+      com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel getKernels(int index);
+      /**
+       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+       */
+      int getKernelsCount();
+      /**
+       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+       */
+      java.util.List<? extends com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder> 
+          getKernelsOrBuilderList();
+      /**
+       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+       */
+      com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder getKernelsOrBuilder(
+          int index);
+    }
+    /**
+     * Protobuf type {@code com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair}
+     */
+    public static final class AddedKernelPair extends
+        com.google.protobuf.GeneratedMessageV3 implements
+        // @@protoc_insertion_point(message_implements:com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair)
+        AddedKernelPairOrBuilder {
+    private static final long serialVersionUID = 0L;
+      // Use AddedKernelPair.newBuilder() to construct.
+      private AddedKernelPair(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+        super(builder);
+      }
+      private AddedKernelPair() {
+        kernels_ = java.util.Collections.emptyList();
+      }
+
+      @java.lang.Override
+      @SuppressWarnings({"unused"})
+      protected java.lang.Object newInstance(
+          UnusedPrivateParameter unused) {
+        return new AddedKernelPair();
+      }
+
+      @java.lang.Override
+      public final com.google.protobuf.UnknownFieldSet
+      getUnknownFields() {
+        return this.unknownFields;
+      }
+      private AddedKernelPair(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        this();
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
+        int mutable_bitField0_ = 0;
+        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+            com.google.protobuf.UnknownFieldSet.newBuilder();
+        try {
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder subBuilder = null;
+                if (acceptCondition_ != null) {
+                  subBuilder = acceptCondition_.toBuilder();
+                }
+                acceptCondition_ = input.readMessage(com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.parser(), extensionRegistry);
+                if (subBuilder != null) {
+                  subBuilder.mergeFrom(acceptCondition_);
+                  acceptCondition_ = subBuilder.buildPartial();
+                }
+
+                break;
+              }
+              case 18: {
+                if (!((mutable_bitField0_ & 0x00000001) != 0)) {
+                  kernels_ = new java.util.ArrayList<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel>();
+                  mutable_bitField0_ |= 0x00000001;
+                }
+                kernels_.add(
+                    input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.parser(), extensionRegistry));
+                break;
+              }
+              default: {
+                if (!parseUnknownField(
+                    input, unknownFields, extensionRegistry, tag)) {
+                  done = true;
+                }
+                break;
+              }
+            }
+          }
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(this);
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(
+              e).setUnfinishedMessage(this);
+        } finally {
+          if (((mutable_bitField0_ & 0x00000001) != 0)) {
+            kernels_ = java.util.Collections.unmodifiableList(kernels_);
+          }
+          this.unknownFields = unknownFields.build();
+          makeExtensionsImmutable();
+        }
+      }
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.giyeok.jparser.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_proto_TasksSummary2_AddedKernelPair_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.giyeok.jparser.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_proto_TasksSummary2_AddedKernelPair_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.class, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder.class);
+      }
+
+      public static final int ACCEPT_CONDITION_FIELD_NUMBER = 1;
+      private com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate acceptCondition_;
+      /**
+       * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+       * @return Whether the acceptCondition field is set.
+       */
+      @java.lang.Override
+      public boolean hasAcceptCondition() {
+        return acceptCondition_ != null;
+      }
+      /**
+       * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+       * @return The acceptCondition.
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate getAcceptCondition() {
+        return acceptCondition_ == null ? com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.getDefaultInstance() : acceptCondition_;
+      }
+      /**
+       * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder getAcceptConditionOrBuilder() {
+        return getAcceptCondition();
+      }
+
+      public static final int KERNELS_FIELD_NUMBER = 2;
+      private java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> kernels_;
+      /**
+       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+       */
+      @java.lang.Override
+      public java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> getKernelsList() {
+        return kernels_;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+       */
+      @java.lang.Override
+      public java.util.List<? extends com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder> 
+          getKernelsOrBuilderList() {
+        return kernels_;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+       */
+      @java.lang.Override
+      public int getKernelsCount() {
+        return kernels_.size();
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel getKernels(int index) {
+        return kernels_.get(index);
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder getKernelsOrBuilder(
+          int index) {
+        return kernels_.get(index);
+      }
+
+      private byte memoizedIsInitialized = -1;
+      @java.lang.Override
+      public final boolean isInitialized() {
+        byte isInitialized = memoizedIsInitialized;
+        if (isInitialized == 1) return true;
+        if (isInitialized == 0) return false;
+
+        memoizedIsInitialized = 1;
+        return true;
+      }
+
+      @java.lang.Override
+      public void writeTo(com.google.protobuf.CodedOutputStream output)
+                          throws java.io.IOException {
+        if (acceptCondition_ != null) {
+          output.writeMessage(1, getAcceptCondition());
+        }
+        for (int i = 0; i < kernels_.size(); i++) {
+          output.writeMessage(2, kernels_.get(i));
+        }
+        unknownFields.writeTo(output);
+      }
+
+      @java.lang.Override
+      public int getSerializedSize() {
+        int size = memoizedSize;
+        if (size != -1) return size;
+
+        size = 0;
+        if (acceptCondition_ != null) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeMessageSize(1, getAcceptCondition());
+        }
+        for (int i = 0; i < kernels_.size(); i++) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeMessageSize(2, kernels_.get(i));
+        }
+        size += unknownFields.getSerializedSize();
+        memoizedSize = size;
+        return size;
+      }
+
+      @java.lang.Override
+      public boolean equals(final java.lang.Object obj) {
+        if (obj == this) {
+         return true;
+        }
+        if (!(obj instanceof com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair)) {
+          return super.equals(obj);
+        }
+        com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair other = (com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair) obj;
+
+        if (hasAcceptCondition() != other.hasAcceptCondition()) return false;
+        if (hasAcceptCondition()) {
+          if (!getAcceptCondition()
+              .equals(other.getAcceptCondition())) return false;
+        }
+        if (!getKernelsList()
+            .equals(other.getKernelsList())) return false;
+        if (!unknownFields.equals(other.unknownFields)) return false;
+        return true;
+      }
+
+      @java.lang.Override
+      public int hashCode() {
+        if (memoizedHashCode != 0) {
+          return memoizedHashCode;
+        }
+        int hash = 41;
+        hash = (19 * hash) + getDescriptor().hashCode();
+        if (hasAcceptCondition()) {
+          hash = (37 * hash) + ACCEPT_CONDITION_FIELD_NUMBER;
+          hash = (53 * hash) + getAcceptCondition().hashCode();
+        }
+        if (getKernelsCount() > 0) {
+          hash = (37 * hash) + KERNELS_FIELD_NUMBER;
+          hash = (53 * hash) + getKernelsList().hashCode();
+        }
+        hash = (29 * hash) + unknownFields.hashCode();
+        memoizedHashCode = hash;
+        return hash;
+      }
+
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseFrom(
+          java.nio.ByteBuffer data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseFrom(
+          java.nio.ByteBuffer data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseFrom(
+          com.google.protobuf.ByteString data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseFrom(
+          com.google.protobuf.ByteString data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseFrom(byte[] data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseFrom(
+          byte[] data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseDelimitedFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseDelimitedFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseFrom(
+          com.google.protobuf.CodedInputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parseFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+
+      @java.lang.Override
+      public Builder newBuilderForType() { return newBuilder(); }
+      public static Builder newBuilder() {
+        return DEFAULT_INSTANCE.toBuilder();
+      }
+      public static Builder newBuilder(com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair prototype) {
+        return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+      }
+      @java.lang.Override
+      public Builder toBuilder() {
+        return this == DEFAULT_INSTANCE
+            ? new Builder() : new Builder().mergeFrom(this);
+      }
+
+      @java.lang.Override
+      protected Builder newBuilderForType(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        Builder builder = new Builder(parent);
+        return builder;
+      }
+      /**
+       * Protobuf type {@code com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair}
+       */
+      public static final class Builder extends
+          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+          // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair)
+          com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPairOrBuilder {
+        public static final com.google.protobuf.Descriptors.Descriptor
+            getDescriptor() {
+          return com.giyeok.jparser.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_proto_TasksSummary2_AddedKernelPair_descriptor;
+        }
+
+        @java.lang.Override
+        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+            internalGetFieldAccessorTable() {
+          return com.giyeok.jparser.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_proto_TasksSummary2_AddedKernelPair_fieldAccessorTable
+              .ensureFieldAccessorsInitialized(
+                  com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.class, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder.class);
+        }
+
+        // Construct using com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.newBuilder()
+        private Builder() {
+          maybeForceBuilderInitialization();
+        }
+
+        private Builder(
+            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+          super(parent);
+          maybeForceBuilderInitialization();
+        }
+        private void maybeForceBuilderInitialization() {
+          if (com.google.protobuf.GeneratedMessageV3
+                  .alwaysUseFieldBuilders) {
+            getKernelsFieldBuilder();
+          }
+        }
+        @java.lang.Override
+        public Builder clear() {
+          super.clear();
+          if (acceptConditionBuilder_ == null) {
+            acceptCondition_ = null;
+          } else {
+            acceptCondition_ = null;
+            acceptConditionBuilder_ = null;
+          }
+          if (kernelsBuilder_ == null) {
+            kernels_ = java.util.Collections.emptyList();
+            bitField0_ = (bitField0_ & ~0x00000001);
+          } else {
+            kernelsBuilder_.clear();
+          }
+          return this;
+        }
+
+        @java.lang.Override
+        public com.google.protobuf.Descriptors.Descriptor
+            getDescriptorForType() {
+          return com.giyeok.jparser.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_proto_TasksSummary2_AddedKernelPair_descriptor;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair getDefaultInstanceForType() {
+          return com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.getDefaultInstance();
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair build() {
+          com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair result = buildPartial();
+          if (!result.isInitialized()) {
+            throw newUninitializedMessageException(result);
+          }
+          return result;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair buildPartial() {
+          com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair result = new com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair(this);
+          int from_bitField0_ = bitField0_;
+          if (acceptConditionBuilder_ == null) {
+            result.acceptCondition_ = acceptCondition_;
+          } else {
+            result.acceptCondition_ = acceptConditionBuilder_.build();
+          }
+          if (kernelsBuilder_ == null) {
+            if (((bitField0_ & 0x00000001) != 0)) {
+              kernels_ = java.util.Collections.unmodifiableList(kernels_);
+              bitField0_ = (bitField0_ & ~0x00000001);
+            }
+            result.kernels_ = kernels_;
+          } else {
+            result.kernels_ = kernelsBuilder_.build();
+          }
+          onBuilt();
+          return result;
+        }
+
+        @java.lang.Override
+        public Builder clone() {
+          return super.clone();
+        }
+        @java.lang.Override
+        public Builder setField(
+            com.google.protobuf.Descriptors.FieldDescriptor field,
+            java.lang.Object value) {
+          return super.setField(field, value);
+        }
+        @java.lang.Override
+        public Builder clearField(
+            com.google.protobuf.Descriptors.FieldDescriptor field) {
+          return super.clearField(field);
+        }
+        @java.lang.Override
+        public Builder clearOneof(
+            com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+          return super.clearOneof(oneof);
+        }
+        @java.lang.Override
+        public Builder setRepeatedField(
+            com.google.protobuf.Descriptors.FieldDescriptor field,
+            int index, java.lang.Object value) {
+          return super.setRepeatedField(field, index, value);
+        }
+        @java.lang.Override
+        public Builder addRepeatedField(
+            com.google.protobuf.Descriptors.FieldDescriptor field,
+            java.lang.Object value) {
+          return super.addRepeatedField(field, value);
+        }
+        @java.lang.Override
+        public Builder mergeFrom(com.google.protobuf.Message other) {
+          if (other instanceof com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair) {
+            return mergeFrom((com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair)other);
+          } else {
+            super.mergeFrom(other);
+            return this;
+          }
+        }
+
+        public Builder mergeFrom(com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair other) {
+          if (other == com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.getDefaultInstance()) return this;
+          if (other.hasAcceptCondition()) {
+            mergeAcceptCondition(other.getAcceptCondition());
+          }
+          if (kernelsBuilder_ == null) {
+            if (!other.kernels_.isEmpty()) {
+              if (kernels_.isEmpty()) {
+                kernels_ = other.kernels_;
+                bitField0_ = (bitField0_ & ~0x00000001);
+              } else {
+                ensureKernelsIsMutable();
+                kernels_.addAll(other.kernels_);
+              }
+              onChanged();
+            }
+          } else {
+            if (!other.kernels_.isEmpty()) {
+              if (kernelsBuilder_.isEmpty()) {
+                kernelsBuilder_.dispose();
+                kernelsBuilder_ = null;
+                kernels_ = other.kernels_;
+                bitField0_ = (bitField0_ & ~0x00000001);
+                kernelsBuilder_ = 
+                  com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                     getKernelsFieldBuilder() : null;
+              } else {
+                kernelsBuilder_.addAllMessages(other.kernels_);
+              }
+            }
+          }
+          this.mergeUnknownFields(other.unknownFields);
+          onChanged();
+          return this;
+        }
+
+        @java.lang.Override
+        public final boolean isInitialized() {
+          return true;
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws java.io.IOException {
+          com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair parsedMessage = null;
+          try {
+            parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            parsedMessage = (com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair) e.getUnfinishedMessage();
+            throw e.unwrapIOException();
+          } finally {
+            if (parsedMessage != null) {
+              mergeFrom(parsedMessage);
+            }
+          }
+          return this;
+        }
+        private int bitField0_;
+
+        private com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate acceptCondition_;
+        private com.google.protobuf.SingleFieldBuilderV3<
+            com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate, com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder, com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder> acceptConditionBuilder_;
+        /**
+         * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+         * @return Whether the acceptCondition field is set.
+         */
+        public boolean hasAcceptCondition() {
+          return acceptConditionBuilder_ != null || acceptCondition_ != null;
+        }
+        /**
+         * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+         * @return The acceptCondition.
+         */
+        public com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate getAcceptCondition() {
+          if (acceptConditionBuilder_ == null) {
+            return acceptCondition_ == null ? com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.getDefaultInstance() : acceptCondition_;
+          } else {
+            return acceptConditionBuilder_.getMessage();
+          }
+        }
+        /**
+         * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+         */
+        public Builder setAcceptCondition(com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate value) {
+          if (acceptConditionBuilder_ == null) {
+            if (value == null) {
+              throw new NullPointerException();
+            }
+            acceptCondition_ = value;
+            onChanged();
+          } else {
+            acceptConditionBuilder_.setMessage(value);
+          }
+
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+         */
+        public Builder setAcceptCondition(
+            com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder builderForValue) {
+          if (acceptConditionBuilder_ == null) {
+            acceptCondition_ = builderForValue.build();
+            onChanged();
+          } else {
+            acceptConditionBuilder_.setMessage(builderForValue.build());
+          }
+
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+         */
+        public Builder mergeAcceptCondition(com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate value) {
+          if (acceptConditionBuilder_ == null) {
+            if (acceptCondition_ != null) {
+              acceptCondition_ =
+                com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.newBuilder(acceptCondition_).mergeFrom(value).buildPartial();
+            } else {
+              acceptCondition_ = value;
+            }
+            onChanged();
+          } else {
+            acceptConditionBuilder_.mergeFrom(value);
+          }
+
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+         */
+        public Builder clearAcceptCondition() {
+          if (acceptConditionBuilder_ == null) {
+            acceptCondition_ = null;
+            onChanged();
+          } else {
+            acceptCondition_ = null;
+            acceptConditionBuilder_ = null;
+          }
+
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+         */
+        public com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder getAcceptConditionBuilder() {
+          
+          onChanged();
+          return getAcceptConditionFieldBuilder().getBuilder();
+        }
+        /**
+         * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+         */
+        public com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder getAcceptConditionOrBuilder() {
+          if (acceptConditionBuilder_ != null) {
+            return acceptConditionBuilder_.getMessageOrBuilder();
+          } else {
+            return acceptCondition_ == null ?
+                com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.getDefaultInstance() : acceptCondition_;
+          }
+        }
+        /**
+         * <code>.com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 1;</code>
+         */
+        private com.google.protobuf.SingleFieldBuilderV3<
+            com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate, com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder, com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder> 
+            getAcceptConditionFieldBuilder() {
+          if (acceptConditionBuilder_ == null) {
+            acceptConditionBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+                com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate, com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder, com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder>(
+                    getAcceptCondition(),
+                    getParentForChildren(),
+                    isClean());
+            acceptCondition_ = null;
+          }
+          return acceptConditionBuilder_;
+        }
+
+        private java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> kernels_ =
+          java.util.Collections.emptyList();
+        private void ensureKernelsIsMutable() {
+          if (!((bitField0_ & 0x00000001) != 0)) {
+            kernels_ = new java.util.ArrayList<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel>(kernels_);
+            bitField0_ |= 0x00000001;
+           }
+        }
+
+        private com.google.protobuf.RepeatedFieldBuilderV3<
+            com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder> kernelsBuilder_;
+
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> getKernelsList() {
+          if (kernelsBuilder_ == null) {
+            return java.util.Collections.unmodifiableList(kernels_);
+          } else {
+            return kernelsBuilder_.getMessageList();
+          }
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public int getKernelsCount() {
+          if (kernelsBuilder_ == null) {
+            return kernels_.size();
+          } else {
+            return kernelsBuilder_.getCount();
+          }
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel getKernels(int index) {
+          if (kernelsBuilder_ == null) {
+            return kernels_.get(index);
+          } else {
+            return kernelsBuilder_.getMessage(index);
+          }
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public Builder setKernels(
+            int index, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel value) {
+          if (kernelsBuilder_ == null) {
+            if (value == null) {
+              throw new NullPointerException();
+            }
+            ensureKernelsIsMutable();
+            kernels_.set(index, value);
+            onChanged();
+          } else {
+            kernelsBuilder_.setMessage(index, value);
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public Builder setKernels(
+            int index, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder builderForValue) {
+          if (kernelsBuilder_ == null) {
+            ensureKernelsIsMutable();
+            kernels_.set(index, builderForValue.build());
+            onChanged();
+          } else {
+            kernelsBuilder_.setMessage(index, builderForValue.build());
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public Builder addKernels(com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel value) {
+          if (kernelsBuilder_ == null) {
+            if (value == null) {
+              throw new NullPointerException();
+            }
+            ensureKernelsIsMutable();
+            kernels_.add(value);
+            onChanged();
+          } else {
+            kernelsBuilder_.addMessage(value);
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public Builder addKernels(
+            int index, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel value) {
+          if (kernelsBuilder_ == null) {
+            if (value == null) {
+              throw new NullPointerException();
+            }
+            ensureKernelsIsMutable();
+            kernels_.add(index, value);
+            onChanged();
+          } else {
+            kernelsBuilder_.addMessage(index, value);
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public Builder addKernels(
+            com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder builderForValue) {
+          if (kernelsBuilder_ == null) {
+            ensureKernelsIsMutable();
+            kernels_.add(builderForValue.build());
+            onChanged();
+          } else {
+            kernelsBuilder_.addMessage(builderForValue.build());
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public Builder addKernels(
+            int index, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder builderForValue) {
+          if (kernelsBuilder_ == null) {
+            ensureKernelsIsMutable();
+            kernels_.add(index, builderForValue.build());
+            onChanged();
+          } else {
+            kernelsBuilder_.addMessage(index, builderForValue.build());
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public Builder addAllKernels(
+            java.lang.Iterable<? extends com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> values) {
+          if (kernelsBuilder_ == null) {
+            ensureKernelsIsMutable();
+            com.google.protobuf.AbstractMessageLite.Builder.addAll(
+                values, kernels_);
+            onChanged();
+          } else {
+            kernelsBuilder_.addAllMessages(values);
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public Builder clearKernels() {
+          if (kernelsBuilder_ == null) {
+            kernels_ = java.util.Collections.emptyList();
+            bitField0_ = (bitField0_ & ~0x00000001);
+            onChanged();
+          } else {
+            kernelsBuilder_.clear();
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public Builder removeKernels(int index) {
+          if (kernelsBuilder_ == null) {
+            ensureKernelsIsMutable();
+            kernels_.remove(index);
+            onChanged();
+          } else {
+            kernelsBuilder_.remove(index);
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder getKernelsBuilder(
+            int index) {
+          return getKernelsFieldBuilder().getBuilder(index);
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder getKernelsOrBuilder(
+            int index) {
+          if (kernelsBuilder_ == null) {
+            return kernels_.get(index);  } else {
+            return kernelsBuilder_.getMessageOrBuilder(index);
+          }
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public java.util.List<? extends com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder> 
+             getKernelsOrBuilderList() {
+          if (kernelsBuilder_ != null) {
+            return kernelsBuilder_.getMessageOrBuilderList();
+          } else {
+            return java.util.Collections.unmodifiableList(kernels_);
+          }
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder addKernelsBuilder() {
+          return getKernelsFieldBuilder().addBuilder(
+              com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.getDefaultInstance());
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder addKernelsBuilder(
+            int index) {
+          return getKernelsFieldBuilder().addBuilder(
+              index, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.getDefaultInstance());
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel kernels = 2;</code>
+         */
+        public java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder> 
+             getKernelsBuilderList() {
+          return getKernelsFieldBuilder().getBuilderList();
+        }
+        private com.google.protobuf.RepeatedFieldBuilderV3<
+            com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder> 
+            getKernelsFieldBuilder() {
+          if (kernelsBuilder_ == null) {
+            kernelsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+                com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder>(
+                    kernels_,
+                    ((bitField0_ & 0x00000001) != 0),
+                    getParentForChildren(),
+                    isClean());
+            kernels_ = null;
+          }
+          return kernelsBuilder_;
+        }
+        @java.lang.Override
+        public final Builder setUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.setUnknownFields(unknownFields);
+        }
+
+        @java.lang.Override
+        public final Builder mergeUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.mergeUnknownFields(unknownFields);
+        }
+
+
+        // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair)
+      }
+
+      // @@protoc_insertion_point(class_scope:com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair)
+      private static final com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair DEFAULT_INSTANCE;
+      static {
+        DEFAULT_INSTANCE = new com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair();
+      }
+
+      public static com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair getDefaultInstance() {
+        return DEFAULT_INSTANCE;
+      }
+
+      private static final com.google.protobuf.Parser<AddedKernelPair>
+          PARSER = new com.google.protobuf.AbstractParser<AddedKernelPair>() {
+        @java.lang.Override
+        public AddedKernelPair parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          return new AddedKernelPair(input, extensionRegistry);
+        }
+      };
+
+      public static com.google.protobuf.Parser<AddedKernelPair> parser() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<AddedKernelPair> getParserForType() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair getDefaultInstanceForType() {
+        return DEFAULT_INSTANCE;
+      }
+
+    }
+
     private int bitField0_;
     public static final int ADDED_KERNELS_FIELD_NUMBER = 1;
-    private java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> addedKernels_;
+    private java.util.List<com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair> addedKernels_;
     /**
-     * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+     * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
      */
     @java.lang.Override
-    public java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> getAddedKernelsList() {
+    public java.util.List<com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair> getAddedKernelsList() {
       return addedKernels_;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+     * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
      */
     @java.lang.Override
-    public java.util.List<? extends com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder> 
+    public java.util.List<? extends com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPairOrBuilder> 
         getAddedKernelsOrBuilderList() {
       return addedKernels_;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+     * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
      */
     @java.lang.Override
     public int getAddedKernelsCount() {
       return addedKernels_.size();
     }
     /**
-     * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+     * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
      */
     @java.lang.Override
-    public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel getAddedKernels(int index) {
+    public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair getAddedKernels(int index) {
       return addedKernels_.get(index);
     }
     /**
-     * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+     * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
      */
     @java.lang.Override
-    public com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder getAddedKernelsOrBuilder(
+    public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPairOrBuilder getAddedKernelsOrBuilder(
         int index) {
       return addedKernels_.get(index);
     }
@@ -18927,22 +19925,22 @@ public final class MilestoneParserDataProto {
       }
       private int bitField0_;
 
-      private java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> addedKernels_ =
+      private java.util.List<com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair> addedKernels_ =
         java.util.Collections.emptyList();
       private void ensureAddedKernelsIsMutable() {
         if (!((bitField0_ & 0x00000001) != 0)) {
-          addedKernels_ = new java.util.ArrayList<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel>(addedKernels_);
+          addedKernels_ = new java.util.ArrayList<com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair>(addedKernels_);
           bitField0_ |= 0x00000001;
          }
       }
 
       private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder> addedKernelsBuilder_;
+          com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPairOrBuilder> addedKernelsBuilder_;
 
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
-      public java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> getAddedKernelsList() {
+      public java.util.List<com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair> getAddedKernelsList() {
         if (addedKernelsBuilder_ == null) {
           return java.util.Collections.unmodifiableList(addedKernels_);
         } else {
@@ -18950,7 +19948,7 @@ public final class MilestoneParserDataProto {
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
       public int getAddedKernelsCount() {
         if (addedKernelsBuilder_ == null) {
@@ -18960,9 +19958,9 @@ public final class MilestoneParserDataProto {
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel getAddedKernels(int index) {
+      public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair getAddedKernels(int index) {
         if (addedKernelsBuilder_ == null) {
           return addedKernels_.get(index);
         } else {
@@ -18970,10 +19968,10 @@ public final class MilestoneParserDataProto {
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
       public Builder setAddedKernels(
-          int index, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel value) {
+          int index, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair value) {
         if (addedKernelsBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -18987,10 +19985,10 @@ public final class MilestoneParserDataProto {
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
       public Builder setAddedKernels(
-          int index, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder builderForValue) {
+          int index, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder builderForValue) {
         if (addedKernelsBuilder_ == null) {
           ensureAddedKernelsIsMutable();
           addedKernels_.set(index, builderForValue.build());
@@ -19001,9 +19999,9 @@ public final class MilestoneParserDataProto {
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
-      public Builder addAddedKernels(com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel value) {
+      public Builder addAddedKernels(com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair value) {
         if (addedKernelsBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -19017,10 +20015,10 @@ public final class MilestoneParserDataProto {
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
       public Builder addAddedKernels(
-          int index, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel value) {
+          int index, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair value) {
         if (addedKernelsBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -19034,10 +20032,10 @@ public final class MilestoneParserDataProto {
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
       public Builder addAddedKernels(
-          com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder builderForValue) {
+          com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder builderForValue) {
         if (addedKernelsBuilder_ == null) {
           ensureAddedKernelsIsMutable();
           addedKernels_.add(builderForValue.build());
@@ -19048,10 +20046,10 @@ public final class MilestoneParserDataProto {
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
       public Builder addAddedKernels(
-          int index, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder builderForValue) {
+          int index, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder builderForValue) {
         if (addedKernelsBuilder_ == null) {
           ensureAddedKernelsIsMutable();
           addedKernels_.add(index, builderForValue.build());
@@ -19062,10 +20060,10 @@ public final class MilestoneParserDataProto {
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
       public Builder addAllAddedKernels(
-          java.lang.Iterable<? extends com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel> values) {
+          java.lang.Iterable<? extends com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair> values) {
         if (addedKernelsBuilder_ == null) {
           ensureAddedKernelsIsMutable();
           com.google.protobuf.AbstractMessageLite.Builder.addAll(
@@ -19077,7 +20075,7 @@ public final class MilestoneParserDataProto {
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
       public Builder clearAddedKernels() {
         if (addedKernelsBuilder_ == null) {
@@ -19090,7 +20088,7 @@ public final class MilestoneParserDataProto {
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
       public Builder removeAddedKernels(int index) {
         if (addedKernelsBuilder_ == null) {
@@ -19103,16 +20101,16 @@ public final class MilestoneParserDataProto {
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder getAddedKernelsBuilder(
+      public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder getAddedKernelsBuilder(
           int index) {
         return getAddedKernelsFieldBuilder().getBuilder(index);
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder getAddedKernelsOrBuilder(
+      public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPairOrBuilder getAddedKernelsOrBuilder(
           int index) {
         if (addedKernelsBuilder_ == null) {
           return addedKernels_.get(index);  } else {
@@ -19120,9 +20118,9 @@ public final class MilestoneParserDataProto {
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
-      public java.util.List<? extends com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder> 
+      public java.util.List<? extends com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPairOrBuilder> 
            getAddedKernelsOrBuilderList() {
         if (addedKernelsBuilder_ != null) {
           return addedKernelsBuilder_.getMessageOrBuilderList();
@@ -19131,33 +20129,33 @@ public final class MilestoneParserDataProto {
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder addAddedKernelsBuilder() {
+      public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder addAddedKernelsBuilder() {
         return getAddedKernelsFieldBuilder().addBuilder(
-            com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.getDefaultInstance());
+            com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.getDefaultInstance());
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
-      public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder addAddedKernelsBuilder(
+      public com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder addAddedKernelsBuilder(
           int index) {
         return getAddedKernelsFieldBuilder().addBuilder(
-            index, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.getDefaultInstance());
+            index, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.getDefaultInstance());
       }
       /**
-       * <code>repeated .com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;</code>
+       * <code>repeated .com.giyeok.jparser.proto.TasksSummary2.AddedKernelPair added_kernels = 1;</code>
        */
-      public java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder> 
+      public java.util.List<com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder> 
            getAddedKernelsBuilderList() {
         return getAddedKernelsFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder> 
+          com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPairOrBuilder> 
           getAddedKernelsFieldBuilder() {
         if (addedKernelsBuilder_ == null) {
           addedKernelsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel, com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder, com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder>(
+              com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPair.Builder, com.giyeok.jparser.proto.MilestoneParserDataProto.TasksSummary2.AddedKernelPairOrBuilder>(
                   addedKernels_,
                   ((bitField0_ & 0x00000001) != 0),
                   getParentForChildren(),
@@ -26228,6 +27226,11 @@ public final class MilestoneParserDataProto {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_proto_TasksSummary2_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_giyeok_jparser_proto_TasksSummary2_AddedKernelPair_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_com_giyeok_jparser_proto_TasksSummary2_AddedKernelPair_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_giyeok_jparser_proto_ParsingAction2_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -26360,45 +27363,49 @@ public final class MilestoneParserDataProto {
       "\001(\0132(.com.giyeok.jparser.proto.KernelTem" +
       "plate\022@\n\016parsing_action\030\003 \001(\0132(.com.giye" +
       "ok.jparser.proto.ParsingAction2\022\033\n\023requi" +
-      "red_symbol_ids\030\004 \003(\005\"\202\002\n\rTasksSummary2\022?" +
-      "\n\radded_kernels\030\001 \003(\0132(.com.giyeok.jpars" +
-      "er.nparser.proto.Kernel\022D\n\022progressed_ke" +
-      "rnels\030\002 \003(\0132(.com.giyeok.jparser.nparser" +
-      ".proto.Kernel\022N\n\027progressed_start_kernel" +
-      "\030\003 \001(\0132(.com.giyeok.jparser.nparser.prot" +
-      "o.KernelH\000\210\001\001B\032\n\030_progressed_start_kerne" +
-      "l\"\306\002\n\016ParsingAction2\022K\n\024appending_milest" +
-      "ones\030\001 \003(\0132-.com.giyeok.jparser.proto.Ap" +
-      "pendingMilestone2\022]\n\035start_node_progress" +
-      "_condition\030\002 \001(\01321.com.giyeok.jparser.pr" +
-      "oto.AcceptConditionTemplateH\000\210\001\001\022&\n\036look" +
-      "ahead_requiring_symbol_ids\030\003 \003(\005\022>\n\rtask" +
-      "s_summary\030\004 \001(\0132\'.com.giyeok.jparser.pro" +
-      "to.TasksSummary2B \n\036_start_node_progress" +
-      "_condition\"\237\001\n\023AppendingMilestone2\022;\n\tmi" +
-      "lestone\030\001 \001(\0132(.com.giyeok.jparser.proto" +
-      ".KernelTemplate\022K\n\020accept_condition\030\002 \001(" +
-      "\01321.com.giyeok.jparser.proto.AcceptCondi" +
-      "tionTemplate\"\360\005\n\027AcceptConditionTemplate" +
-      "\022(\n\006always\030\001 \001(\0132\026.google.protobuf.Empty" +
-      "H\000\022\'\n\005never\030\002 \001(\0132\026.google.protobuf.Empt" +
-      "yH\000\022L\n\003and\030\003 \001(\0132=.com.giyeok.jparser.pr" +
-      "oto.AcceptConditionTemplate.AndTemplateH" +
-      "\000\022J\n\002or\030\004 \001(\0132<.com.giyeok.jparser.proto" +
-      ".AcceptConditionTemplate.OrTemplateH\000\022[\n" +
-      "\014lookahead_is\030\005 \001(\0132C.com.giyeok.jparser" +
-      ".proto.AcceptConditionTemplate.Lookahead" +
-      "TemplateH\000\022\\\n\rlookahead_not\030\006 \001(\0132C.com." +
-      "giyeok.jparser.proto.AcceptConditionTemp" +
-      "late.LookaheadTemplateH\000\022\021\n\007longest\030\007 \001(" +
-      "\005H\000\022\021\n\007only_if\030\010 \001(\005H\000\022\020\n\006unless\030\t \001(\005H\000" +
-      "\032T\n\013AndTemplate\022E\n\nconditions\030\001 \003(\01321.co" +
-      "m.giyeok.jparser.proto.AcceptConditionTe" +
-      "mplate\032S\n\nOrTemplate\022E\n\nconditions\030\001 \003(\013" +
-      "21.com.giyeok.jparser.proto.AcceptCondit" +
-      "ionTemplate\032=\n\021LookaheadTemplate\022\021\n\tsymb" +
-      "ol_id\030\001 \001(\005\022\025\n\rfrom_next_gen\030\002 \001(\010B\013\n\tco" +
-      "nditionb\006proto3"
+      "red_symbol_ids\030\004 \003(\005\"\255\003\n\rTasksSummary2\022N" +
+      "\n\radded_kernels\030\001 \003(\01327.com.giyeok.jpars" +
+      "er.proto.TasksSummary2.AddedKernelPair\022D" +
+      "\n\022progressed_kernels\030\002 \003(\0132(.com.giyeok." +
+      "jparser.nparser.proto.Kernel\022N\n\027progress" +
+      "ed_start_kernel\030\003 \001(\0132(.com.giyeok.jpars" +
+      "er.nparser.proto.KernelH\000\210\001\001\032\231\001\n\017AddedKe" +
+      "rnelPair\022K\n\020accept_condition\030\001 \001(\01321.com" +
+      ".giyeok.jparser.proto.AcceptConditionTem" +
+      "plate\0229\n\007kernels\030\002 \003(\0132(.com.giyeok.jpar" +
+      "ser.nparser.proto.KernelB\032\n\030_progressed_" +
+      "start_kernel\"\306\002\n\016ParsingAction2\022K\n\024appen" +
+      "ding_milestones\030\001 \003(\0132-.com.giyeok.jpars" +
+      "er.proto.AppendingMilestone2\022]\n\035start_no" +
+      "de_progress_condition\030\002 \001(\01321.com.giyeok" +
+      ".jparser.proto.AcceptConditionTemplateH\000" +
+      "\210\001\001\022&\n\036lookahead_requiring_symbol_ids\030\003 " +
+      "\003(\005\022>\n\rtasks_summary\030\004 \001(\0132\'.com.giyeok." +
+      "jparser.proto.TasksSummary2B \n\036_start_no" +
+      "de_progress_condition\"\237\001\n\023AppendingMiles" +
+      "tone2\022;\n\tmilestone\030\001 \001(\0132(.com.giyeok.jp" +
+      "arser.proto.KernelTemplate\022K\n\020accept_con" +
+      "dition\030\002 \001(\01321.com.giyeok.jparser.proto." +
+      "AcceptConditionTemplate\"\360\005\n\027AcceptCondit" +
+      "ionTemplate\022(\n\006always\030\001 \001(\0132\026.google.pro" +
+      "tobuf.EmptyH\000\022\'\n\005never\030\002 \001(\0132\026.google.pr" +
+      "otobuf.EmptyH\000\022L\n\003and\030\003 \001(\0132=.com.giyeok" +
+      ".jparser.proto.AcceptConditionTemplate.A" +
+      "ndTemplateH\000\022J\n\002or\030\004 \001(\0132<.com.giyeok.jp" +
+      "arser.proto.AcceptConditionTemplate.OrTe" +
+      "mplateH\000\022[\n\014lookahead_is\030\005 \001(\0132C.com.giy" +
+      "eok.jparser.proto.AcceptConditionTemplat" +
+      "e.LookaheadTemplateH\000\022\\\n\rlookahead_not\030\006" +
+      " \001(\0132C.com.giyeok.jparser.proto.AcceptCo" +
+      "nditionTemplate.LookaheadTemplateH\000\022\021\n\007l" +
+      "ongest\030\007 \001(\005H\000\022\021\n\007only_if\030\010 \001(\005H\000\022\020\n\006unl" +
+      "ess\030\t \001(\005H\000\032T\n\013AndTemplate\022E\n\nconditions" +
+      "\030\001 \003(\01321.com.giyeok.jparser.proto.Accept" +
+      "ConditionTemplate\032S\n\nOrTemplate\022E\n\ncondi" +
+      "tions\030\001 \003(\01321.com.giyeok.jparser.proto.A" +
+      "cceptConditionTemplate\032=\n\021LookaheadTempl" +
+      "ate\022\021\n\tsymbol_id\030\001 \001(\005\022\025\n\rfrom_next_gen\030" +
+      "\002 \001(\010B\013\n\tconditionb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -26510,6 +27517,12 @@ public final class MilestoneParserDataProto {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_proto_TasksSummary2_descriptor,
         new java.lang.String[] { "AddedKernels", "ProgressedKernels", "ProgressedStartKernel", "ProgressedStartKernel", });
+    internal_static_com_giyeok_jparser_proto_TasksSummary2_AddedKernelPair_descriptor =
+      internal_static_com_giyeok_jparser_proto_TasksSummary2_descriptor.getNestedTypes().get(0);
+    internal_static_com_giyeok_jparser_proto_TasksSummary2_AddedKernelPair_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_com_giyeok_jparser_proto_TasksSummary2_AddedKernelPair_descriptor,
+        new java.lang.String[] { "AcceptCondition", "Kernels", });
     internal_static_com_giyeok_jparser_proto_ParsingAction2_descriptor =
       getDescriptor().getMessageTypes().get(6);
     internal_static_com_giyeok_jparser_proto_ParsingAction2_fieldAccessorTable = new

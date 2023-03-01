@@ -51,8 +51,12 @@ object MilestoneParser2ProtobufConverter {
 
   def toProto(tasksSummary: TasksSummary2): MilestoneParserDataProto.TasksSummary2 = {
     val builder = MilestoneParserDataProto.TasksSummary2.newBuilder()
-    tasksSummary.addedKernels.foreach { kernel =>
-      builder.addAddedKernels(convertKernelToProto(kernel))
+    tasksSummary.addedKernels.foreach { pair =>
+      val pairBuilder = builder.addAddedKernelsBuilder()
+      pairBuilder.setAcceptCondition(toProto(pair._1))
+      pair._2.foreach { kernel =>
+        pairBuilder.addKernels(convertKernelToProto(kernel))
+      }
     }
     tasksSummary.progressedKernels.foreach { kernel =>
       builder.addProgressedKernels(convertKernelToProto(kernel))
@@ -141,7 +145,10 @@ object MilestoneParser2ProtobufConverter {
 
   def fromProto(proto: MilestoneParserDataProto.TasksSummary2): TasksSummary2 = {
     TasksSummary2(
-      proto.getAddedKernelsList.toScalaSet(convertProtoToKernel),
+      proto.getAddedKernelsList.toScalaMap(
+        { pair => fromProto(pair.getAcceptCondition) },
+        { pair => pair.getKernelsList.toScalaSet(convertProtoToKernel) }
+      ),
       proto.getProgressedKernelsList.toScalaSet(convertProtoToKernel),
       if (proto.hasProgressedStartKernel) Some(convertProtoToKernel(proto.getProgressedStartKernel)) else None,
     )

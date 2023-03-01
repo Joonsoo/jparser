@@ -23,9 +23,9 @@ object BibixAstTest {
     }
     val parserData = MilestoneParser2ProtobufConverter.fromProto(parserDataProto)
 
-    val parser = MilestoneParser(parserData) //.setVerbose()
-    val inputText = File("build.bbx").readText()
-//    val inputText = "a=\"bcd\""
+    val parser = MilestoneParser(parserData).setVerbose()
+//    val inputText = File("build.bbx").readText()
+    val inputText = "a = this"
     val startTime = System.currentTimeMillis()
     val inputs = Inputs.fromString(inputText)
     val parseResult = parser.parseOrThrow(inputs)

@@ -94,9 +94,6 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     pendedCollector: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
     lookaheadCollector: mutable.Set[Int],
   ): List[AppendingMilestone] = {
-    // TODO start 커널의 다음 심볼에서 사용되는 accept condition 때문에 필요한 노드들이 있으면 pendedCollector에 추가
-    // -> conditionToTemplate에서 pended에 추가하는게 맞나?
-    // -> 비슷하게 edge action에도 requiredSymbol에 추가해야 할듯?
     val conditionSymbolIds = reachableExceptOrJoinsOf(result.ctx.graph, start)
     if (conditionSymbolIds.nonEmpty) {
       conditionSymbolIds.foreach(addPendedForTermAction(result, _, pendedCollector, lookaheadCollector))
@@ -160,7 +157,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
       case AcceptCondition.NotExists(1, 3, symbolId) =>
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
-        // TODO forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
+        // forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
         // TODO result.progressTasks.filter(_.kernel == Kernel(symbolId, 0, 1, 1)) 에 대한 정보 추가
         addPended(symbolId)
         LongestTemplate(symbolId)
@@ -185,7 +182,6 @@ class MilestoneParserGen(val parser: NaiveParser2) {
           OnlyIfTemplate(symbolId)
         }
       case AcceptCondition.NotExists(1, 1, symbolId) =>
-        // TODO
         if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
           // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
           AlwaysTemplate
@@ -194,7 +190,6 @@ class MilestoneParserGen(val parser: NaiveParser2) {
           LookaheadNotTemplate(symbolId, fromNextGen = false)
         }
       case AcceptCondition.NotExists(2, 2, symbolId) =>
-        // TODO
         // lookahead except
         // - lookahead 심볼은 이미 가망이 없어진 경우가 아니라면 앞으로의 상황만 보기 때문에
         //   start만 있고 appending milestone은 없는(길이가 1인) path를 추가해야 할듯?
@@ -207,7 +202,6 @@ class MilestoneParserGen(val parser: NaiveParser2) {
           LookaheadNotTemplate(symbolId, fromNextGen = true)
         }
       case AcceptCondition.Exists(1, 1, symbolId) =>
-        // TODO
         // lookahead is
         if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
           // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
@@ -217,7 +211,6 @@ class MilestoneParserGen(val parser: NaiveParser2) {
           LookaheadIsTemplate(symbolId, fromNextGen = false)
         }
       case AcceptCondition.Exists(2, 2, symbolId) =>
-        // TODO
         // lookahead is
         if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
           // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환

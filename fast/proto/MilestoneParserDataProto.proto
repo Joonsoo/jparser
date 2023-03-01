@@ -92,7 +92,11 @@ message Milestone2ParserData {
 }
 
 message TasksSummary2 {
-  repeated com.giyeok.jparser.nparser.proto.Kernel added_kernels = 1;
+  message AddedKernelPair {
+    AcceptConditionTemplate accept_condition = 1;
+    repeated com.giyeok.jparser.nparser.proto.Kernel kernels = 2;
+  }
+  repeated AddedKernelPair added_kernels = 1;
   repeated com.giyeok.jparser.nparser.proto.Kernel progressed_kernels = 2;
   optional com.giyeok.jparser.nparser.proto.Kernel progressed_start_kernel = 3;
 }
