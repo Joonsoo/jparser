@@ -6,8 +6,61 @@ case class ParsingContext(
   gen: Int,
   paths: List[MilestonePath],
   actionsHistory: List[GenActions],
-  conditionsUpdates: Map[(Int, MilestoneAcceptCondition), MilestoneAcceptCondition],
-  nextConditionsUpdates: Map[(Int, MilestoneAcceptCondition), MilestoneAcceptCondition])
+  conditionsUpdates: ConditionUpdates,
+  nextConditionsUpdates: ConditionUpdates)
+
+case class ConditionUpdates(
+  becameAlways: Set[(Int, MilestoneAcceptCondition)],
+  becameNever: Set[(Int, MilestoneAcceptCondition)],
+  tracking: Map[(Int, MilestoneAcceptCondition), MilestoneAcceptCondition],
+) {
+  def apply(gen: Int, condition: MilestoneAcceptCondition): MilestoneAcceptCondition = {
+    if (condition == Always) {
+      Always
+    } else if (condition == Never) {
+      Never
+    } else {
+      val key = gen -> condition
+      if (becameAlways.contains(key)) {
+        Always
+      } else if (becameNever.contains(key)) {
+        Never
+      } else {
+        tracking(key)
+      }
+    }
+  }
+
+  // val currConditionUpdates = ctx.nextConditionsUpdates ++ (newConditions.map(cond => (gen, cond) -> cond))
+  def addNewConditions(gen: Int, newConditions: List[MilestoneAcceptCondition]): ConditionUpdates = {
+    ConditionUpdates(becameAlways, becameNever, tracking ++ newConditions.filter(c => c != Always && c != Never).map(cond => (gen, cond) -> cond))
+  }
+
+  // val nextConditionUpdates = ctx.nextConditionsUpdates.view
+  //   .mapValues(evolveAcceptCondition(newPaths, genActions, _)).toMap ++
+  //     newConditionUpdates.map(cond => (gen, cond._1) -> cond._2)
+  def evolveConditions(evolver: MilestoneAcceptCondition => MilestoneAcceptCondition): ConditionUpdates = {
+    val evolved = tracking.view.mapValues(evolver)
+    ConditionUpdates(
+      becameAlways ++ evolved.filter(_._2 == Always).keySet,
+      becameNever ++ evolved.filter(_._2 == Never).keySet,
+      tracking ++ evolved.filter(p => p._2 != Always && p._2 != Never)
+    )
+  }
+
+  def addNewUpdatedConditions(gen: Int, conditionUpdates: Map[MilestoneAcceptCondition, MilestoneAcceptCondition]): ConditionUpdates = {
+    val updates = (conditionUpdates - Always - Never).view
+    ConditionUpdates(
+      becameAlways ++ updates.filter(_._2 == Always).keys.map(gen -> _),
+      becameNever ++ updates.filter(_._2 == Never).keys.map(gen -> _),
+      tracking ++ updates.filter(p => p._2 != Always && p._2 != Never).map(p => (gen, p._1) -> p._2)
+    )
+  }
+}
+
+object ConditionUpdates {
+  def apply(): ConditionUpdates = ConditionUpdates(Set(), Set(), Map())
+}
 
 // path는 가장 뒤에 것이 가장 앞에 옴. first는 언제나 path.last와 동일
 case class MilestonePath(first: Milestone, path: List[Milestone], acceptCondition: MilestoneAcceptCondition) {

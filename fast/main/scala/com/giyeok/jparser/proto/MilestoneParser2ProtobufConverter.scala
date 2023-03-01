@@ -193,7 +193,7 @@ object MilestoneParser2ProtobufConverter {
       case ConditionCase.LOOKAHEAD_IS =>
         LookaheadIsTemplate(proto.getLookaheadIs.getSymbolId, proto.getLookaheadIs.getFromNextGen)
       case ConditionCase.LOOKAHEAD_NOT =>
-        LookaheadNotTemplate(proto.getLookaheadIs.getSymbolId, proto.getLookaheadIs.getFromNextGen)
+        LookaheadNotTemplate(proto.getLookaheadNot.getSymbolId, proto.getLookaheadNot.getFromNextGen)
       case ConditionCase.LONGEST => LongestTemplate(proto.getLongest)
       case ConditionCase.ONLY_IF => OnlyIfTemplate(proto.getOnlyIf)
       case ConditionCase.UNLESS => UnlessTemplate(proto.getUnless)

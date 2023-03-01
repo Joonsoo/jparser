@@ -20,7 +20,9 @@ class KernelSet(val kernels: Set<Kernel>) {
 }
 
 fun Collection<Kernel>.checkSingle(): Kernel {
-  check(this.size == 1) { "Kernel size was expected to be 1, but it was ${this.size}" }
+  check(this.size == 1) {
+    "Kernel size was expected to be 1, but it was ${this.size}"
+  }
   return this.first()
 }
 

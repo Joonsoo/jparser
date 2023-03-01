@@ -1,13 +1,12 @@
 package com.giyeok.jparser.nparser2
 
 import com.giyeok.jparser.Inputs.Input
-import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLongest, NLookaheadExcept, NLookaheadIs, NLookaheadSymbol, NSequence, NSimpleDerive, NTerminal}
+import com.giyeok.jparser.NGrammar._
 import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInput}
-import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always, Exists, Never, NotExists, OnlyIf, Unless, conjunct, disjunct}
+import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser.{Kernel, ParseTreeConstructor2}
 import com.giyeok.jparser.nparser2.NaiveParser2.{AcceptConditionsTracker, ParsingHistoryContext}
-import com.giyeok.jparser.nparser2.utils.Utils
 import com.giyeok.jparser.{NGrammar, ParseResult, ParseResultFunc}
 
 import scala.annotation.tailrec

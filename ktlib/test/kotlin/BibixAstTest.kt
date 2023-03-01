@@ -4,6 +4,7 @@ import com.giyeok.jparser.milestone2.MilestoneParser
 import com.giyeok.jparser.proto.MilestoneParser2ProtobufConverter
 import com.giyeok.jparser.proto.MilestoneParserDataProto
 import com.giyeok.jparser.test.BibixAst
+import java.io.File
 
 object BibixAstTest {
   fun <T> scala.collection.immutable.List<T>.toKtList(): List<T> =
@@ -22,13 +23,23 @@ object BibixAstTest {
     }
     val parserData = MilestoneParser2ProtobufConverter.fromProto(parserDataProto)
 
-    val parser = MilestoneParser(parserData)
-    val inputs = Inputs.fromString("a = \"\$def\"")
+    val parser = MilestoneParser(parserData) //.setVerbose()
+    val inputText = File("build.bbx").readText()
+//    val inputText = "a = \"b\$cd\""
+    val startTime = System.currentTimeMillis()
+    val inputs = Inputs.fromString(inputText)
     val parseResult = parser.parseOrThrow(inputs)
+    println("Parsing: ${System.currentTimeMillis() - startTime}")
+    val startTime2 = System.currentTimeMillis()
     val history = parser.kernelsHistory(parseResult).toKtList().map {
       KernelSet(it.toKtSet())
     }
+    println("History: ${System.currentTimeMillis() - startTime2}")
+    val startTime3 = System.currentTimeMillis()
     val buildScript = BibixAst(inputs.toKtList(), history).matchStart()
     println(buildScript)
+    println("Astifier: ${System.currentTimeMillis() - startTime3}")
   }
 }
+
+// gen 18의 314, 4, 19에서 'i'에 대한 term action이 실행될 때 pended path로 (69, 0) -> (77, 1)이 들어가야 하는데 왜 빠져있을까?

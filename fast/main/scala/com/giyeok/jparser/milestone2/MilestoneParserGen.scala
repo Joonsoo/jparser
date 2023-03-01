@@ -6,10 +6,11 @@ import com.giyeok.jparser.NGrammar.{NSequence, NTerminal}
 import com.giyeok.jparser.fast.{CtxWithTasks, KernelTemplate, ParserGenBase2}
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, disjunct}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
-import com.giyeok.jparser.nparser2.{DeriveTask, Edge, NaiveParser2, ProgressTask, ParsingContext => NaiveParsingContext}
+import com.giyeok.jparser.nparser2.{DeriveTask, Edge, KernelGraph, NaiveParser2, ProgressTask, ParsingContext => NaiveParsingContext}
 import com.giyeok.jparser.utils.TermGrouper
 
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 // naive parser 1과 2의 차이점은 accept condition이 그래프 안에 있냐 밖에 있냐의 차이
 // milestone parser 1과 2의 차이점도 비슷
@@ -60,18 +61,6 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     parsingActionFromProgressResultForTermAction(
       applyProgressTasks(ctx, startKernel, progressTasks), startKernel)
 
-  def appendingMilestonesForTermAction(
-    result: CtxWithTasks,
-    start: Kernel,
-    forAcceptConditions: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
-    lookaheadCollector: mutable.Set[Int],
-  ): List[AppendingMilestone] = {
-    appendingMilestoneCandidatesOf(result, 1, start).map { kernel =>
-      val condition = conditionToTemplateForTermAction(result, result.ctx.acceptConditions(kernel), forAcceptConditions, lookaheadCollector)
-      AppendingMilestone(KernelTemplate(kernel.symbolId, kernel.pointer), condition)
-    }
-  }
-
   // beginGen은 assertion용
   def parsingActionFromProgressResultForTermAction(result: CtxWithTasks, start: Kernel): TermAction = {
     // start는 0..1, currGen은 2
@@ -99,6 +88,56 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     TermAction(parsingAction, pendedCollector.toMap)
   }
 
+  def appendingMilestonesForTermAction(
+    result: CtxWithTasks,
+    start: Kernel,
+    pendedCollector: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
+    lookaheadCollector: mutable.Set[Int],
+  ): List[AppendingMilestone] = {
+    // TODO start 커널의 다음 심볼에서 사용되는 accept condition 때문에 필요한 노드들이 있으면 pendedCollector에 추가
+    // -> conditionToTemplate에서 pended에 추가하는게 맞나?
+    // -> 비슷하게 edge action에도 requiredSymbol에 추가해야 할듯?
+    val conditionSymbolIds = reachableExceptOrJoinsOf(result.ctx.graph, start)
+    if (conditionSymbolIds.nonEmpty) {
+      conditionSymbolIds.foreach(addPendedForTermAction(result, _, pendedCollector, lookaheadCollector))
+    }
+    appendingMilestoneCandidatesOf(result, 1, start).map { kernel =>
+      val condition = conditionToTemplateForTermAction(result, result.ctx.acceptConditions(kernel), pendedCollector, lookaheadCollector)
+      AppendingMilestone(KernelTemplate(kernel.symbolId, kernel.pointer), condition)
+    }
+  }
+
+  private def reachableExceptOrJoinsOf(graph: KernelGraph, start: Kernel): Set[Int] = {
+    val reachables = graph.reachableNodesFrom(start)
+    val conditionSymbolIds = reachables.map(_.symbolId).flatMap { symbolId =>
+      parser.grammar.symbolOf(symbolId) match {
+        case NGrammar.NExcept(_, _, _, except) => Some(except)
+        case NGrammar.NJoin(_, _, _, join) => Some(join)
+        case _ => None
+      }
+    }
+    assert(!conditionSymbolIds.contains(start.symbolId))
+    conditionSymbolIds
+  }
+
+  private def addPendedForTermAction(
+    result: CtxWithTasks,
+    symbolId: Int,
+    pendedCollector: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
+    lookaheadCollector: mutable.Set[Int],
+  ): Unit = {
+    if (!pendedCollector.contains(KernelTemplate(symbolId, 0))) {
+      val symbolStart = Kernel(symbolId, 0, 1, 1)
+      val appendingMilestones = appendingMilestonesForTermAction(result, symbolStart, pendedCollector, lookaheadCollector)
+      val progresses = result.progressTasks.filter(_.kernel == symbolStart)
+      val progressCondition = disjunct(progresses.map(_.condition): _*)
+      val progressConditionTemplate = if (progressCondition == AcceptCondition.Never) None else {
+        Some(conditionToTemplateForTermAction(result, progressCondition, pendedCollector, lookaheadCollector))
+      }
+      pendedCollector(KernelTemplate(symbolId, 0)) = (appendingMilestones, progressConditionTemplate)
+    }
+  }
+
   private def conditionToTemplateForTermAction(
     result: CtxWithTasks,
     condition: AcceptCondition,
@@ -108,16 +147,8 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     def cannotExist(kernel: Kernel) =
       result.progressConditionsFor(kernel).isEmpty && !result.ctx.graph.nodes.contains(kernel)
 
-    def addPended(symbolId: Int): Unit = {
-      val symbolStart = Kernel(symbolId, 0, 1, 1)
-      val appendingMilestones = appendingMilestonesForTermAction(result, symbolStart, pendedCollector, lookaheadCollector)
-      val progresses = result.progressTasks.filter(_.kernel == symbolStart)
-      val progressCondition = disjunct(progresses.map(_.condition): _*)
-      val progressConditionTemplate = if (progressCondition == Never) None else {
-        Some(conditionToTemplateForTermAction(result, progressCondition, pendedCollector, lookaheadCollector))
-      }
-      pendedCollector(KernelTemplate(symbolId, 0)) = (appendingMilestones, progressConditionTemplate)
-    }
+    def addPended(symbolId: Int) =
+      addPendedForTermAction(result, symbolId, pendedCollector, lookaheadCollector)
 
     condition match {
       case AcceptCondition.Always => AlwaysTemplate
@@ -206,10 +237,11 @@ class MilestoneParserGen(val parser: NaiveParser2) {
 
     val derived = startingCtx.ctx.graph.nodes
     val termNodes = derived.filter { node => parser.grammar.symbolOf(node.symbolId).isInstanceOf[NTerminal] }
-      .filter { node => node.pointer == 0 && node.beginGen == 1 }
+      .filter { node => node.pointer == 0 }
+    assert(termNodes.forall { kernel => kernel.symbolId == start.symbolId || kernel.beginGen == 1 })
     val terms = termNodes.map { node => parser.grammar.symbolOf(node.symbolId) }
       .map { case terminal: NTerminal => terminal.symbol }
-    val termGroups = TermGrouper.termGroupsOf(terms)
+    val termGroups: List[TermGroupDesc] = TermGrouper.termGroupsOf(terms)
 
     termGroups.flatMap { termGroup =>
       val applicableTermNodes = termNodes.filter { kernel =>
@@ -242,6 +274,10 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     edgeRequires: mutable.Set[Int],
     lookaheadCollector: mutable.Set[Int],
   ): List[AppendingMilestone] = {
+    val conditionSymbolIds = reachableExceptOrJoinsOf(result.ctx.graph, start)
+    if (conditionSymbolIds.nonEmpty) {
+      edgeRequires.addAll(conditionSymbolIds)
+    }
     appendingMilestoneCandidatesOf(result, 0, start).map { kernel =>
       val condition = conditionToTemplateForEdgeAction(result, result.ctx.acceptConditions(kernel), edgeRequires, lookaheadCollector)
       AppendingMilestone(KernelTemplate(kernel.symbolId, kernel.pointer), condition)

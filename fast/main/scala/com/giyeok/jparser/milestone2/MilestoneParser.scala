@@ -18,7 +18,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
   val initialMilestone: Milestone = Milestone(parserData.grammar.startSymbol, 0, 0)
 
   def initialCtx: ParsingContext =
-    ParsingContext(0, List(MilestonePath(initialMilestone)), List(), Map(), Map())
+    ParsingContext(0, List(MilestonePath(initialMilestone)), List(), ConditionUpdates(), ConditionUpdates())
 
   def reifyCondition(template: AcceptConditionTemplate, beginGen: Int, gen: Int): MilestoneAcceptCondition =
     template match {
@@ -117,7 +117,8 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         NotExists(milestone, false)
       case NotExists(milestone, false) =>
         val moreTrackingNeeded = paths.exists(_.first == milestone)
-        genActions.progressedMilestones.get(milestone) match {
+        val progressCondition = genActions.progressedMilestones.get(milestone)
+        progressCondition match {
           case Some(progressCondition) =>
             val evolvedCondition = evolveAcceptCondition(paths, genActions, progressCondition).negation
             if (moreTrackingNeeded) {
@@ -235,10 +236,10 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         newPathsUpdated.foreach(path => println(path.prettyString))
       }
 
-      val currConditionUpdates = ctx.nextConditionsUpdates ++ (newConditions.map(cond => (gen, cond) -> cond))
-      val nextConditionUpdates = ctx.nextConditionsUpdates.view
-        .mapValues(evolveAcceptCondition(newPaths, genActions, _)).toMap ++
-        newConditionUpdates.map(cond => (gen, cond._1) -> cond._2)
+      val currConditionUpdates = ctx.nextConditionsUpdates.addNewConditions(gen, newConditions)
+      val nextConditionUpdates = ctx.nextConditionsUpdates
+        .evolveConditions(evolveAcceptCondition(newPaths, genActions, _))
+        .addNewUpdatedConditions(gen, newConditionUpdates)
 
       // first가 (start symbol, 0, 0)이거나 현재 존재하는 엣지의 trackingMilestones인 경우만 제외하고 모두 제거
       val trackings = collectTrackings(newPaths)
@@ -247,8 +248,8 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       if (verbose) {
         println(s"  ===== filtered, trackings: $trackings")
         newPathsFiltered.foreach(path => println(path.prettyString))
-        println(s"  ===== conditions:")
-        nextConditionUpdates.toList.sortBy(_._1._1).foreach(pair => println(s"${pair._1} -> ${pair._2}"))
+        //        println(s"  ===== conditions:")
+        //        nextConditionUpdates.toList.sortBy(_._1._1).foreach(pair => println(s"${pair._1} -> ${pair._2}"))
       }
 
       Right(ParsingContext(gen, newPathsFiltered, genActions +: ctx.actionsHistory, currConditionUpdates, nextConditionUpdates))
@@ -281,7 +282,6 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
   // progress되면서 추가된 커널들을 반환한다. finish는 progress 되면서 자연스럽게 따라오는 것이기 때문에 처리할 필요 없음
   def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
-    // TODO accept condition 처리
     def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
       Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
 

@@ -25,6 +25,7 @@ class BibixAst(
   ) : AstNode
 
   data class This(
+
     override val nodeId: Int,
     override val start: Int,
     override val end: Int,
@@ -281,9 +282,7 @@ class BibixAst(
   ) : Def, AstNode
 
   sealed interface TypeExpr : AstNode
-
   sealed interface ListElem : AstNode
-
   data class ParamDef(
     val name: String,
     val optional: Boolean,
@@ -334,7 +333,6 @@ class BibixAst(
   ) : ActionBody, AstNode
 
   sealed interface ActionBody : AstNode
-
   sealed interface Def : AstNode
   data class NamedParam(
     val name: String,
@@ -375,6 +373,7 @@ class BibixAst(
   ) : StringExpr, AstNode
 
   data class NoneLiteral(
+
     override val nodeId: Int,
     override val start: Int,
     override val end: Int,
@@ -906,8 +905,7 @@ class BibixAst(
       }
     }
     val var189 = var192
-    val var195 =
-      DataClassDef(var187, var188, (var189 ?: listOf()), nextId(), beginGen, endGen)
+    val var195 = DataClassDef(var187, var188, (var189 ?: listOf()), nextId(), beginGen, endGen)
     return var195
   }
 
@@ -1151,8 +1149,7 @@ class BibixAst(
           }
         }
         val var276 = var279
-        val var285 =
-          TupleExpr(listOf(var275) + (var276 ?: listOf()), nextId(), beginGen, endGen)
+        val var285 = TupleExpr(listOf(var275) + (var276 ?: listOf()), nextId(), beginGen, endGen)
         var285
       }
 
@@ -1269,12 +1266,7 @@ class BibixAst(
       var319 != null -> {
         val var323 = getSequenceElems(history, 286, listOf(287), beginGen, endGen)
         val var324 =
-          JustChar(
-            (inputs[var323[0].first] as Inputs.Character).char(),
-            nextId(),
-            beginGen,
-            endGen
-          )
+          JustChar((inputs[var323[0].first] as Inputs.Character).char(), nextId(), beginGen, endGen)
         var324
       }
 
@@ -1296,12 +1288,7 @@ class BibixAst(
   fun matchEscapeChar(beginGen: Int, endGen: Int): EscapeChar {
     val var329 = getSequenceElems(history, 291, listOf(292, 293), beginGen, endGen)
     val var330 =
-      EscapeChar(
-        (inputs[var329[1].first] as Inputs.Character).char(),
-        nextId(),
-        beginGen,
-        endGen
-      )
+      EscapeChar((inputs[var329[1].first] as Inputs.Character).char(), nextId(), beginGen, endGen)
     return var330
   }
 
@@ -1452,8 +1439,7 @@ class BibixAst(
             var391
           }
         }
-        val var392 =
-          ParamDef(var381, var384 != null, var386, var389, nextId(), beginGen, endGen)
+        val var392 = ParamDef(var381, var384 != null, var386, var389, nextId(), beginGen, endGen)
         var392
       }
     }
@@ -1497,8 +1483,7 @@ class BibixAst(
         val var408 = matchSimpleName(var407[3].first, var407[3].second)
         var408
       }
-    val var409 =
-      SuperClassDef(var404, listOf(var405) + var406, nextId(), beginGen, endGen)
+    val var409 = SuperClassDef(var404, listOf(var405) + var406, nextId(), beginGen, endGen)
     return var409
   }
 
@@ -1612,8 +1597,7 @@ class BibixAst(
       }
 
       else -> {
-        val var455 =
-          BooleanLiteral(false, nextId(), var450[0].first, var450[0].second)
+        val var455 = BooleanLiteral(false, nextId(), var450[0].first, var450[0].second)
         var455
       }
     }
