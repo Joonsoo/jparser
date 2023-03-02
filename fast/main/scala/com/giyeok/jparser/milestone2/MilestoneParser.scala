@@ -332,6 +332,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
     val initialKernels = kernelsFrom(history, 0, 0, parserData.initialTasksSummary, Map(-1 -> 0, 0 -> 0, 1 -> 0, 2 -> 0), Memoize())
     val kernelsHistory = history.zipWithIndex.drop(1).map { case (entry, gen) =>
+      // TODO 현재는 memo를 각 generation마다 초기화하고 있는데, 실제로는 NotExists나 Exists같은 경우는 한번 생성되면 그 뒤로는 계속 재사용이 가능할 듯 함
       val conditionMemos = Memoize[MilestoneAcceptCondition, Boolean]()
       val genActions = entry.genActions
       val nodesByTermActions = genActions.termActions.flatMap { case (milestone, termAction) =>

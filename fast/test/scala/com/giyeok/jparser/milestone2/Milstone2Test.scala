@@ -3,19 +3,27 @@ package com.giyeok.jparser.milestone2
 import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.metalang3.codegen.KotlinOptCodeGen
 import com.giyeok.jparser.metalang3.{MetaLanguage3, ValuefyExprSimulator}
-import com.giyeok.jparser.nparser.ParseTreeConstructor2
+import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor2}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser2.NaiveParser2
 import com.giyeok.jparser.proto.MilestoneParser2ProtobufConverter.toProto
 import com.giyeok.jparser.{Inputs, ParseForestFunc}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers.{be, convertToAnyShouldWrapper}
+import com.giyeok.jparser.milestone.{MilestoneParserGen => OldMilestoneParserGen}
+import com.giyeok.jparser.proto.MilestoneParserProtobufConverter
 
 import java.io._
 
 class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
     val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
+
+    val oldParserGen = new OldMilestoneParserGen(new NaiveParser(analysis.ngrammar))
+    val oldParserData = oldParserGen.parserData()
+    val w = new BufferedOutputStream(new FileOutputStream(new File("bibix2-oldparserdata.pb")))
+    MilestoneParserProtobufConverter.convertMilestoneParserDataToProto(oldParserData).writeTo(w)
+    w.close()
 
     val parserGen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
     val parserData = parserGen.parserData()
