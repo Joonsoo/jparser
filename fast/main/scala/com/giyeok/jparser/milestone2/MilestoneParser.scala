@@ -6,6 +6,7 @@ import com.giyeok.jparser.fast.{KernelTemplate, TasksSummary2}
 import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.utils.Memoize
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 class MilestoneParser(val parserData: MilestoneParserData) {
@@ -347,7 +348,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
     // TODO initialHistoryEntry의 progressedMilestones와 progressedMilestoneParentGens 추가
     val initialHistoryEntry = HistoryEntry(List(MilestonePath(initialMilestone)), GenActions(List(), List(), Map(), Map()))
-    val history = initialHistoryEntry +: parsingContext.history.reverse
+    val history = (initialHistoryEntry +: parsingContext.history.reverse).toVector
 
     val initialKernels = kernelsFrom(history, 0, 0, parserData.initialTasksSummary, Map(-1 -> 0, 0 -> 0, 1 -> 0, 2 -> 0), Memoize())
     val kernelsHistory = history.zipWithIndex.drop(1).map { case (entry, gen) =>
@@ -395,7 +396,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }
       kernels.toSet
     }
-    initialKernels +: kernelsHistory
+    (initialKernels +: kernelsHistory).toList
   }
 }
 
