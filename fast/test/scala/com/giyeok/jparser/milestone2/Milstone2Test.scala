@@ -19,21 +19,26 @@ class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
     val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
 
-    val oldParserGen = new OldMilestoneParserGen(new NaiveParser(analysis.ngrammar))
-    val oldParserData = oldParserGen.parserData()
-    val w = new BufferedOutputStream(new FileOutputStream(new File("bibix2-oldparserdata.pb")))
-    MilestoneParserProtobufConverter.convertMilestoneParserDataToProto(oldParserData).writeTo(w)
-    w.close()
-
-    val parserGen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
-    val parserData = parserGen.parserData()
-    println(s"milestones: ${parserData.termActions.size}, edges=${parserData.edgeProgressActions.keySet.size}")
-    // println(parserData.edgeProgressActions.keySet)
+    //    val oldParserGen = new OldMilestoneParserGen(new NaiveParser(analysis.ngrammar))
+    //    val oldParserData = oldParserGen.parserData()
+    //    val w = new BufferedOutputStream(new FileOutputStream(new File("bibix2-oldparserdata.pb")))
+    //    MilestoneParserProtobufConverter.convertMilestoneParserDataToProto(oldParserData).writeTo(w)
+    //    w.close()
 
     val codeWriter = new BufferedWriter(new FileWriter(new File("BibixAst.kt")))
     val codegen = new KotlinOptCodeGen(analysis)
     codeWriter.write(codegen.generate())
     codeWriter.close()
+
+    println(s"interest: ${codegen.symbolsOfInterest.toList.sorted}")
+    val diff = (analysis.ngrammar.nsymbols.keySet ++ analysis.ngrammar.nsequences.keySet) -- codegen.symbolsOfInterest
+    println(s"diff: ${diff.size} ${diff.toList.size}")
+
+    val parserGen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
+    val parserData0 = parserGen.parserData()
+    val parserData = parserData0.trimTasksSummariesForSymbols(codegen.symbolsOfInterest)
+    println(s"milestones: ${parserData.termActions.size}, edges=${parserData.edgeProgressActions.keySet.size}")
+    // println(parserData.edgeProgressActions.keySet)
 
     val writer = new BufferedOutputStream(new FileOutputStream(new File("bibix2-parserdata.pb")))
     toProto(parserData).writeTo(writer)

@@ -318,12 +318,31 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       genMap: Map[Int, Int],
       conditionMemos: Memoize[MilestoneAcceptCondition, Boolean],
     ): Set[Kernel] = {
-      val filtered = tasksSummary.addedKernels.filter { pair =>
+      val collector = mutable.Set[Kernel]()
+      addKernelsFrom(collector, history, beginGen, gen, tasksSummary, genMap, conditionMemos)
+      collector.toSet
+    }
+
+    def addKernelsFrom(
+      kernelsCollector: mutable.Set[Kernel],
+      history: Seq[HistoryEntry],
+      beginGen: Int,
+      gen: Int,
+      tasksSummary: TasksSummary2,
+      genMap: Map[Int, Int],
+      conditionMemos: Memoize[MilestoneAcceptCondition, Boolean],
+    ): Unit = {
+      tasksSummary.addedKernels.foreach { pair =>
         val condition = reifyCondition(pair._1, beginGen, gen)
-        isFinallyAccepted(history, gen, condition, conditionMemos)
+        if (isFinallyAccepted(history, gen, condition, conditionMemos)) {
+          pair._2.foreach { added =>
+            kernelsCollector += mapGen(added, genMap)
+          }
+        }
       }
-      val addedKernels = filtered.values.flatMap(_.map(mapGen(_, genMap)))
-      addedKernels.toSet ++ tasksSummary.progressedKernels.map(mapGen(_, genMap))
+      tasksSummary.progressedKernels.foreach { kernel =>
+        kernelsCollector += mapGen(kernel, genMap)
+      }
     }
 
     // TODO initialHistoryEntry의 progressedMilestones와 progressedMilestoneParentGens 추가
@@ -332,31 +351,49 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
     val initialKernels = kernelsFrom(history, 0, 0, parserData.initialTasksSummary, Map(-1 -> 0, 0 -> 0, 1 -> 0, 2 -> 0), Memoize())
     val kernelsHistory = history.zipWithIndex.drop(1).map { case (entry, gen) =>
-      // TODO 현재는 memo를 각 generation마다 초기화하고 있는데, 실제로는 NotExists나 Exists같은 경우는 한번 생성되면 그 뒤로는 계속 재사용이 가능할 듯 함
-      val conditionMemos = Memoize[MilestoneAcceptCondition, Boolean]()
       val genActions = entry.genActions
-      val nodesByTermActions = genActions.termActions.flatMap { case (milestone, termAction) =>
+      // TODO conditionMemos를 generation마다 초기화하지 않게 할 수 있을 것 같은데..
+      // - conditionMemos는 반드시 앞쪽 generation에서 뒤쪽 generation으로 진행하면서 사용하도록 하고
+      // - Unless나 OnlyIf가 포함되어 있으면 generation마다 삭제하는 식으로?
+      val conditionMemos = Memoize[MilestoneAcceptCondition, Boolean]()
+
+      val kernels = mutable.Set[Kernel]()
+
+      // kernels by term actions
+      genActions.termActions.foreach { case (milestone, termAction) =>
         // termAction.parsingAction.tasksSummary.progressedStartKernel은 progressedStartKernel에서 처리
-        kernelsFrom(history, gen - 1, gen, termAction.parsingAction.tasksSummary, Map(0 -> milestone.gen, 1 -> (gen - 1), 2 -> gen), conditionMemos)
+        addKernelsFrom(
+          kernels,
+          history,
+          gen - 1,
+          gen,
+          termAction.parsingAction.tasksSummary,
+          Map(0 -> milestone.gen, 1 -> (gen - 1), 2 -> gen),
+          conditionMemos)
       }
-      val nodesByEdgeActions = genActions.edgeActions.flatMap { case ((start, end), edgeAction) =>
+      genActions.edgeActions.foreach { case ((start, end), edgeAction) =>
         if (isFinallyAccepted(history, gen, genActions.progressedMilestones(end), conditionMemos)) {
           // edgeAction.parsingAction.tasksSummary.progressedStartKernel은 progressedMilestones에서 처리
-          kernelsFrom(history, start.gen, gen, edgeAction.parsingAction.tasksSummary, Map(0 -> start.gen, 1 -> end.gen, 2 -> gen), conditionMemos)
-        } else {
-          List()
+          addKernelsFrom(
+            kernels,
+            history,
+            start.gen,
+            gen,
+            edgeAction.parsingAction.tasksSummary,
+            Map(0 -> start.gen, 1 -> end.gen, 2 -> gen),
+            conditionMemos)
         }
       }
-      val progressed = genActions.progressedMilestones.collect {
+      genActions.progressedMilestones.foreach {
         case (milestone, condition) if isFinallyAccepted(history, gen, condition, conditionMemos) =>
           val parentGens = genActions.progressedMilestoneParentGens.getOrElse(milestone, Set(milestone.gen))
-          parentGens.flatMap { parentGen =>
-            List(
-              Kernel(milestone.symbolId, milestone.pointer, parentGen, milestone.gen),
-              Kernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen))
+          parentGens.foreach { parentGen =>
+            kernels += Kernel(milestone.symbolId, milestone.pointer, parentGen, milestone.gen)
+            kernels += Kernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
           }
-      }.flatten
-      (nodesByTermActions ++ nodesByEdgeActions ++ progressed).toSet
+        case _ => // do nothing
+      }
+      kernels.toSet
     }
     initialKernels +: kernelsHistory
   }

@@ -22,6 +22,10 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
 
   var _requiredNonterms: Set[String] = Set()
 
+  var _symbolsOfInterest: Set[Int] = Set()
+
+  def symbolsOfInterest: Set[Int] = _symbolsOfInterest
+
   def escapeChar(c: Char): String = c match {
     case '\b' => "\\b"
     case '\n' => "\\n"
@@ -116,7 +120,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
          |  val kernel = history[lastGen]
          |    .filter { it.symbolId() == ${startSymbol.id} && it.pointer() == 1 && it.endGen() == lastGen }
          |    .checkSingle()
-         |  return ${nonterminalMatchFuncName(startSymbol.symbol.name)}(kernel.beginGen, kernel.endGen)
+         |  return ${nonterminalMatchFuncName(startSymbol.symbol.name)}(kernel.beginGen(), kernel.endGen())
          |}""".stripMargin,
       returnType.required)
   }
@@ -148,6 +152,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         val (varName, choiceSymbol) = pair
         val symbolId = analysis.ngrammar.idOf(choiceSymbol)
         val lastPointer = analysis.ngrammar.lastPointerOf(symbolId)
+        _symbolsOfInterest += symbolId
         s"val $varName = history[$endGen].findByBeginGenOpt($symbolId, $lastPointer, $beginGen)"
       }
 
@@ -201,9 +206,12 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       val sequence = analysis.ngrammar.nsequences(sequenceId)
       sequenceVarName.name match {
         case Some(seqVar) =>
+          _symbolsOfInterest += sequence.sequence(index)
           valuefyExprToCode(expr, s"$seqVar[$index].first", s"$seqVar[$index].second", sequence.symbol.seq(index), sequenceVarName)
         case None =>
           val seqVar = newVar()
+          _symbolsOfInterest += sequenceId
+          _symbolsOfInterest ++= sequence.sequence
           val getSequenceElems = s"val $seqVar = getSequenceElems(history, $sequenceId, listOf(${sequence.sequence.mkString(",")}), $beginGen, $endGen)"
           sequenceVarName.name = Some(seqVar)
           val elemValuefy = valuefyExprToCode(expr, s"$seqVar[$index].first", s"$seqVar[$index].second", sequence.symbol.seq(index), sequenceVarName)
@@ -215,6 +223,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       val repeat = analysis.ngrammar.symbolOf(symbolId).asInstanceOf[NRepeat]
       val itemSymId = analysis.ngrammar.idOf(repeat.symbol.sym)
       val elemProcessorCode = valuefyExprToCode(elemProcessor, "k.first", "k.second", repeat.symbol.sym, SequenceVarName(None))
+      _symbolsOfInterest ++= Set(symbolId, itemSymId, repeat.baseSeq, repeat.repeatSeq)
       ExprBlob(
         List(s"val $v = unrollRepeat0(history, $symbolId, $itemSymId, ${repeat.baseSeq}, ${repeat.repeatSeq}, $beginGen, $endGen).map { k ->") ++
           elemProcessorCode.prepares ++
@@ -227,6 +236,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       val repeat = analysis.ngrammar.symbolOf(symbolId).asInstanceOf[NRepeat]
       val itemSymId = analysis.ngrammar.idOf(repeat.symbol.sym)
       val elemProcessorCode = valuefyExprToCode(elemProcessor, "k.first", "k.second", repeat.symbol.sym, SequenceVarName(None))
+      _symbolsOfInterest ++= Set(symbolId, itemSymId, repeat.baseSeq, repeat.repeatSeq)
       ExprBlob(
         List(s"val $v = unrollRepeat1(history, $symbolId, $itemSymId, ${repeat.baseSeq}, ${repeat.repeatSeq}, $beginGen, $endGen).map { k ->") ++
           elemProcessorCode.prepares ++

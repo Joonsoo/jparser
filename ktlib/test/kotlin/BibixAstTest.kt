@@ -57,10 +57,10 @@ object BibixAstTest {
 
   @JvmStatic
   fun main(args: Array<String>) {
-    println("=== old ===")
-    testOld()
     println("=== new ===")
     testNew()
+    println("=== old ===")
+    testOld()
   }
 }
 

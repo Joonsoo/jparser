@@ -11,7 +11,24 @@ case class MilestoneParserData(
   initialTasksSummary: TasksSummary2,
   termActions: Map[KernelTemplate, List[(TermGroupDesc, TermAction)]],
   edgeProgressActions: Map[(KernelTemplate, KernelTemplate), EdgeAction],
-)
+) {
+  def trimTasksSummariesForSymbols(symbolsOfInterest: Set[Int]): MilestoneParserData = {
+    MilestoneParserData(
+      grammar,
+      initialTasksSummary.trimForSymbols(symbolsOfInterest),
+      termActions.view.mapValues { termActions =>
+        termActions.map { case (termGroup, termAction) =>
+          termGroup -> termAction.copy(
+            parsingAction = termAction.parsingAction.trimForSymbols(symbolsOfInterest)
+          )
+        }
+      }.toMap,
+      edgeProgressActions.view.mapValues { edgeAction =>
+        edgeAction.copy(parsingAction = edgeAction.parsingAction.trimForSymbols(symbolsOfInterest))
+      }.toMap,
+    )
+  }
+}
 
 class MilestoneParserDataBuilder(val grammar: NGrammar, val initialTasksSummary: TasksSummary2) {
   val termActions: mutable.Map[KernelTemplate, List[(TermGroupDesc, TermAction)]] = mutable.Map()
@@ -30,7 +47,10 @@ case class ParsingAction(
   startNodeProgressCondition: Option[AcceptConditionTemplate],
   lookaheadRequiringSymbols: Set[Int],
   tasksSummary: TasksSummary2,
-)
+) {
+  def trimForSymbols(symbolIds: Set[Int]): ParsingAction =
+    copy(tasksSummary = tasksSummary.trimForSymbols(symbolIds))
+}
 
 case class TermAction(
   parsingAction: ParsingAction,

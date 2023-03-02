@@ -14,4 +14,9 @@ case class Memoize[T, U]() {
       _memoMap(param) = newValue
       newValue
   }
+
+  def removeIf(pred: T => Boolean): Unit = {
+    val removingKeys = _memoMap.keySet.filter(pred)
+    _memoMap --= removingKeys
+  }
 }

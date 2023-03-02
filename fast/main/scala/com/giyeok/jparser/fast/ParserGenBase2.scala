@@ -111,7 +111,16 @@ case class TasksSummary2(
   addedKernels: Map[AcceptConditionTemplate, Set[Kernel]],
   progressedKernels: Set[Kernel],
   progressedStartKernel: Option[Kernel],
-)
+) {
+  def trimForSymbols(symbolIds: Set[Int]): TasksSummary2 = {
+    TasksSummary2(
+      addedKernels.view.mapValues(_.filter(kernel => symbolIds.contains(kernel.symbolId)))
+        .filter(_._2.nonEmpty).toMap,
+      progressedKernels.filter(kernel => symbolIds.contains(kernel.symbolId)),
+      progressedStartKernel
+    )
+  }
+}
 
 case class ParserGenBase2(parser: NaiveParser2) {
   def runTasksWithProgressBarrier(nextGen: Int, tasks: List[ParsingTask], barrierNode: Kernel, cc: CtxWithTasks): CtxWithTasks = tasks match {

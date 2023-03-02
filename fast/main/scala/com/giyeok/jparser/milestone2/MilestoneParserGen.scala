@@ -141,10 +141,10 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     pendedCollector: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
     lookaheadCollector: mutable.Set[Int],
   ): AcceptConditionTemplate = {
-    def cannotExist(kernel: Kernel) =
+    def cannotExist(kernel: Kernel): Boolean =
       result.progressConditionsFor(kernel).isEmpty && !result.ctx.graph.nodes.contains(kernel)
 
-    def addPended(symbolId: Int) =
+    def addPended(symbolId: Int): Unit =
       addPendedForTermAction(result, symbolId, pendedCollector, lookaheadCollector)
 
     condition match {
