@@ -1,10 +1,11 @@
+package com.giyeok.jparser.ktlib.test
+
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ktlib.KernelSet
 import com.giyeok.jparser.milestone2.MilestoneParser
 import com.giyeok.jparser.proto.MilestoneParser2ProtobufConverter
 import com.giyeok.jparser.proto.MilestoneParserDataProto
 import com.giyeok.jparser.proto.MilestoneParserProtobufConverter
-import com.giyeok.jparser.test.BibixAst
 import java.io.File
 
 object BibixAstTest {
@@ -23,9 +24,17 @@ object BibixAstTest {
     }
     val parserData = MilestoneParser2ProtobufConverter.fromProto(parserDataProto)
 
-    val parser = MilestoneParser(parserData) //.setVerbose()
-    val inputText = File("build.bbx").readText()
-//    val inputText = "a = this"
+    val parser = MilestoneParser(parserData).setVerbose()
+//    val inputText = File("build.bbx").readText()
+    val inputText = """
+      aaa = "hello" + " world!"
+      bbb = ["hello", "world"] + ["everyone"]
+      ccc = ["hello"] + "world"
+      ddd = [] + "hello"
+      eee = [("hello", "world")] + ["good"]
+      fff = ["hello", "world"] as set<string> + ["everyone"]
+      ggg = ["hello", "world"] + (["everyone"] as set<string>)
+    """.trimIndent()
     val startTime = System.currentTimeMillis()
     val inputs = Inputs.fromString(inputText)
     val parseResult = parser.parseOrThrow(inputs)
@@ -59,8 +68,8 @@ object BibixAstTest {
   fun main(args: Array<String>) {
     println("=== new ===")
     testNew()
-    println("=== old ===")
-    testOld()
+//    println("=== old ===")
+//    testOld()
   }
 }
 

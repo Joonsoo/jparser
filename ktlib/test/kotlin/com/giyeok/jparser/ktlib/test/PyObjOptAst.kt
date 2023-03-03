@@ -1,4 +1,4 @@
-package com.giyeok.jparser.test
+package com.giyeok.jparser.ktlib.test
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ktlib.*
@@ -19,10 +19,10 @@ class PyObjKtOptAst(
   sealed interface Value
 
   data class BoolValue(
-          val value: BoolEnum,
-          override val symbolId: Int,
-          override val start: Int,
-          override val end: Int
+    val value: BoolEnum,
+    override val symbolId: Int,
+    override val start: Int,
+    override val end: Int
   ) : Value, AstNode {
     override fun toString(): String =
       "BoolValue(value=$value)"
@@ -39,41 +39,41 @@ class PyObjKtOptAst(
   }
 
   data class IntValue(
-          val value: IntLiteral,
-          override val symbolId: Int,
-          override val start: Int,
-          override val end: Int
+    val value: IntLiteral,
+    override val symbolId: Int,
+    override val start: Int,
+    override val end: Int
   ) : Value, AstNode {
     override fun toString(): String =
       "IntValue(value=$value)"
   }
 
   data class ListValue(
-          val elems: List<Value>?,
-          override val symbolId: Int,
-          override val start: Int,
-          override val end: Int
+    val elems: List<Value>?,
+    override val symbolId: Int,
+    override val start: Int,
+    override val end: Int
   ) : Value, AstNode {
     override fun toString(): String =
       "ListValue(elems=$elems)"
   }
 
   data class ObjField(
-          val name: StrLiteral,
-          val value: Value,
-          override val symbolId: Int,
-          override val start: Int,
-          override val end: Int
+    val name: StrLiteral,
+    val value: Value,
+    override val symbolId: Int,
+    override val start: Int,
+    override val end: Int
   ) : Value, AstNode {
     override fun toString(): String =
       "ObjField(name=$name, value=$value)"
   }
 
   data class PyObj(
-          val fields: List<ObjField>?,
-          override val symbolId: Int,
-          override val start: Int,
-          override val end: Int
+    val fields: List<ObjField>?,
+    override val symbolId: Int,
+    override val start: Int,
+    override val end: Int
   ) : AstNode {
     override fun toString(): String =
       "PyObj(fields=$fields)"
@@ -90,20 +90,20 @@ class PyObjKtOptAst(
   }
 
   data class StrValue(
-          val value: StrLiteral,
-          override val symbolId: Int,
-          override val start: Int,
-          override val end: Int
+    val value: StrLiteral,
+    override val symbolId: Int,
+    override val start: Int,
+    override val end: Int
   ) : Value, AstNode {
     override fun toString(): String =
       "StrValue(value=$value)"
   }
 
   data class TupleValue(
-          val elems: List<Value>,
-          override val symbolId: Int,
-          override val start: Int,
-          override val end: Int
+    val elems: List<Value>,
+    override val symbolId: Int,
+    override val start: Int,
+    override val end: Int
   ) : Value, AstNode {
     override fun toString(): String =
       "TupleValue(elems=$elems)"

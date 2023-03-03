@@ -192,7 +192,7 @@ class NaiveParser2(val grammar: NGrammar) {
   }
 
   def updateAcceptConditions(nextGen: Int, ctx: ParsingContext, tracker: AcceptConditionsTracker): (ParsingContext, AcceptConditionsTracker) = {
-    // TODO 버그가 있음
+    // TODO 버그가 있음 - 무슨 버그지..?
     val acceptConditions = ctx.acceptConditions.view.mapValues(_.evolve(nextGen, ctx)).toMap
     val droppedKernels = acceptConditions.filter(_._2 == Never)
     val survivingAcceptConditions = acceptConditions.filter(_._2 != Never)
@@ -209,75 +209,64 @@ class NaiveParser2(val grammar: NGrammar) {
         kernel.beginGen == nextGen
     }
 
-    def traverse(pointer: Kernel, path: List[Edge], nodes: Set[Kernel]): Set[Kernel] = {
-      val condition = ctx.acceptConditions(pointer)
-      if (condition == Never) {
-        Set()
-      } else if (destKernels.contains(pointer)) {
-        nodes
+    def reachableFrom(curr: Kernel, cc: Set[Kernel]): Set[Kernel] = {
+      if (!ctx.graph.nodes.contains(curr) || ctx.acceptConditions(curr) == Never) {
+        cc
+      } else if (destKernels.contains(curr)) {
+        cc + curr
       } else {
-        val outEdges = ctx.graph.edgesByStart(pointer)
-        outEdges.flatMap { outEdge =>
-          if (path.contains(outEdge)) {
-            Set()
+        val outEdges = ctx.graph.edgesByStart(curr)
+        outEdges.foldLeft(cc + curr) { (cc1, outEdge) =>
+          val outNode = outEdge.end
+          if (cc1.contains(outNode)) {
+            cc1
           } else {
-            val next = outEdge.end
-            val sym = grammar.symbolOf(next.symbolId)
+            val sym = grammar.symbolOf(outNode.symbolId)
             sym match {
               case NExcept(_, _, body, except) =>
-                val bodyKernel = Kernel(body, 0, next.beginGen, next.beginGen)
-                val bodyResult = traverse(bodyKernel, outEdge +: path, nodes + next + bodyKernel)
-                val exceptKernel = Kernel(except, 0, next.beginGen, next.beginGen)
-                if (bodyResult.nonEmpty && ctx.graph.nodes.contains(exceptKernel)) {
-                  bodyResult ++ traverse(exceptKernel, outEdge +: path, nodes + next + exceptKernel)
-                } else {
-                  bodyResult
-                }
+                val bodyKernel = Kernel(body, 0, outNode.beginGen, outNode.beginGen)
+                val cc2 = reachableFrom(bodyKernel, cc1 + outNode)
+                val exceptKernel = Kernel(except, 0, outNode.beginGen, outNode.beginGen)
+                reachableFrom(exceptKernel, cc2)
               case NJoin(_, _, body, join) =>
-                val bodyKernel = Kernel(body, 0, next.beginGen, next.beginGen)
-                val bodyResult = traverse(bodyKernel, outEdge +: path, nodes + next + bodyKernel)
-                val joinKernel = Kernel(join, 0, next.beginGen, next.beginGen)
-                if (bodyResult.nonEmpty && ctx.graph.nodes.contains(joinKernel)) {
-                  bodyResult ++ traverse(joinKernel, outEdge +: path, nodes + next + joinKernel)
-                } else {
-                  bodyResult
-                }
+                val bodyKernel = Kernel(body, 0, outNode.beginGen, outNode.beginGen)
+                val cc2 = reachableFrom(bodyKernel, cc1 + outNode)
+                val joinKernel = Kernel(join, 0, outNode.beginGen, outNode.beginGen)
+                reachableFrom(joinKernel, cc2)
               case NLookaheadIs(_, _, emptySeqId, lookaheadId) =>
-                val emptySeqKernel = Kernel(emptySeqId, 0, next.beginGen, next.beginGen)
-                val emptySeqResult = if (ctx.graph.nodes.contains(emptySeqKernel)) {
-                  traverse(emptySeqKernel, outEdge +: path, nodes + next + emptySeqKernel)
-                } else {
-                  Set()
-                }
-                val lookaheadKernel = Kernel(lookaheadId, 0, next.beginGen, next.beginGen)
-                val lookaheadResult = if (ctx.graph.nodes.contains(lookaheadKernel)) {
-                  traverse(lookaheadKernel, outEdge +: path, nodes + next + lookaheadKernel)
-                } else {
-                  Set()
-                }
-                emptySeqResult ++ lookaheadResult
+                val emptySeqKernel = Kernel(emptySeqId, 0, outNode.beginGen, outNode.beginGen)
+                val cc2 = reachableFrom(emptySeqKernel, cc1 + outNode)
+                val lookaheadKernel = Kernel(lookaheadId, 0, outNode.beginGen, outNode.beginGen)
+                reachableFrom(lookaheadKernel, cc2)
               case NLookaheadExcept(_, _, emptySeqId, lookaheadId) =>
-                val emptySeqKernel = Kernel(emptySeqId, 0, next.beginGen, next.beginGen)
-                val emptySeqResult = if (ctx.graph.nodes.contains(emptySeqKernel)) {
-                  traverse(emptySeqKernel, outEdge +: path, nodes + next + emptySeqKernel)
-                } else {
-                  Set()
-                }
-                val lookaheadKernel = Kernel(lookaheadId, 0, next.beginGen, next.beginGen)
-                val lookaheadResult = if (ctx.graph.nodes.contains(lookaheadKernel)) {
-                  traverse(lookaheadKernel, outEdge +: path, nodes + next + lookaheadKernel)
-                } else {
-                  Set()
-                }
-                emptySeqResult ++ lookaheadResult
-              case _ => traverse(next, outEdge +: path, nodes + next)
+                val emptySeqKernel = Kernel(emptySeqId, 0, outNode.beginGen, outNode.beginGen)
+                val cc2 = reachableFrom(emptySeqKernel, cc1 + outNode)
+                val lookaheadKernel = Kernel(lookaheadId, 0, outNode.beginGen, outNode.beginGen)
+                reachableFrom(lookaheadKernel, cc2)
+              case _ => reachableFrom(outNode, cc1)
             }
           }
         }
       }
     }
 
-    val reachableNodes = traverse(start, List(), Set(start))
+    def reachableTo(curr: Kernel, cc: Set[Kernel]): Set[Kernel] = {
+      if (cc.contains(curr)) {
+        cc
+      } else {
+        ctx.graph.edgesByEnd.get(curr) match {
+          case Some(inEdges) =>
+            inEdges.foldLeft(cc + curr) { (cc1, inEdge) =>
+              reachableTo(inEdge.start, cc1)
+            }
+          case None => cc
+        }
+      }
+    }
+
+    val reachableFromStart = reachableFrom(start, Set())
+    val reachableToTerms = destKernels.flatMap(reachableTo(_, Set()))
+    val reachableNodes = reachableFromStart.intersect(reachableToTerms)
     val droppedNodes = ctx.graph.nodes -- reachableNodes
     ParsingContext(ctx.graph.removeNodes(droppedNodes), ctx.acceptConditions.filter(p => reachableNodes.contains(p._1)))
   }

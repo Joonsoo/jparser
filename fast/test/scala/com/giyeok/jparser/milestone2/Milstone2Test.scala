@@ -25,6 +25,13 @@ class Milstone2Test extends AnyFlatSpec {
     //    MilestoneParserProtobufConverter.convertMilestoneParserDataToProto(oldParserData).writeTo(w)
     //    w.close()
 
+    val parserGen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
+    val termActions = parserGen.termActionsFor(KernelTemplate(1, 0))
+    println(termActions)
+    val edgeAction = parserGen.edgeProgressActionBetween(KernelTemplate(229, 4), KernelTemplate(277, 2))
+    println(edgeAction)
+    //    ???
+
     val codeWriter = new BufferedWriter(new FileWriter(new File("BibixAst.kt")))
     val codegen = new KotlinOptCodeGen(analysis)
     codeWriter.write(codegen.generate())
@@ -34,7 +41,6 @@ class Milstone2Test extends AnyFlatSpec {
     val diff = (analysis.ngrammar.nsymbols.keySet ++ analysis.ngrammar.nsequences.keySet) -- codegen.symbolsOfInterest
     println(s"diff: ${diff.size} ${diff.toList.size}")
 
-    val parserGen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
     val parserData0 = parserGen.parserData()
     val parserData = parserData0.trimTasksSummariesForSymbols(codegen.symbolsOfInterest)
     println(s"milestones: ${parserData.termActions.size}, edges=${parserData.edgeProgressActions.keySet.size}")
@@ -44,7 +50,7 @@ class Milstone2Test extends AnyFlatSpec {
     toProto(parserData).writeTo(writer)
     writer.close()
 
-    val parser = new MilestoneParser(parserData)
+    val parser = new MilestoneParser(parserData0)
       .setVerbose()
     // println(parser.initialCtx)
 

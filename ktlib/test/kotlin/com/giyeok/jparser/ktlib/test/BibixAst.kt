@@ -1,4 +1,4 @@
-package com.giyeok.jparser.test
+package com.giyeok.jparser.ktlib.test
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ktlib.*
