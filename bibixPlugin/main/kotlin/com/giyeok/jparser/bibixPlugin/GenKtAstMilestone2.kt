@@ -36,7 +36,7 @@ class GenKtAstMilestone2 {
     astFile.writeText(codegen.generate(className, packageName.joinToString(".")))
 
     context.progressLogger.logInfo("Starting parsergen...")
-    val milestoneParserGen = MilestoneParserGen(NaiveParser2(grammarAnalysis.ngrammar()))
+    val milestoneParserGen = MilestoneParserGen(grammarAnalysis.ngrammar())
     val parserData0 = milestoneParserGen.parserData()
     val parserData = if (trimParserData) {
       parserData0.trimTasksSummariesForSymbols(codegen.symbolsOfInterest())

@@ -16,20 +16,9 @@ import java.io._
 
 class Milstone2Test extends AnyFlatSpec {
   it should "work" in {
-    val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
+    val analysis = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/cdglang3.cdg").readAllBytes()))
 
-    //    val oldParserGen = new OldMilestoneParserGen(new NaiveParser(analysis.ngrammar))
-    //    val oldParserData = oldParserGen.parserData()
-    //    val w = new BufferedOutputStream(new FileOutputStream(new File("bibix2-oldparserdata.pb")))
-    //    MilestoneParserProtobufConverter.convertMilestoneParserDataToProto(oldParserData).writeTo(w)
-    //    w.close()
-
-    val parserGen = new MilestoneParserGen(new NaiveParser2(analysis.ngrammar))
-    val termActions = parserGen.termActionsFor(KernelTemplate(1, 0))
-    println(termActions)
-    val edgeAction = parserGen.edgeProgressActionBetween(KernelTemplate(229, 4), KernelTemplate(277, 2))
-    println(edgeAction)
-    //    ???
+    val parserGen = new MilestoneParserGen(analysis.ngrammar)
 
     val codeWriter = new BufferedWriter(new FileWriter(new File("BibixAst.kt")))
     val codegen = new KotlinOptCodeGen(analysis)

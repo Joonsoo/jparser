@@ -78,7 +78,7 @@ class MGroupParserGen(val grammar: NGrammar) {
         case _ => false
       }
       // TODO mgroup.milestones에서 도달 가능한지 확인 - mgroup.milestones에서 도달 가능한게 하나도 없으면
-      val nextCtx = naiveParser.recursivelyRunTasks(2, terminalNodes.toList.map(ProgressTask(_, Always)), parsingCtx)
+      val nextCtx = naiveParser.runTasks(2, terminalNodes.toList.map(ProgressTask(_, Always)), parsingCtx)
       println(nextCtx)
       // TODO
       termGroup -> ParsingAction0(MilestoneGroup(Set(), Set()), MilestoneGroup(Set(), Set()))

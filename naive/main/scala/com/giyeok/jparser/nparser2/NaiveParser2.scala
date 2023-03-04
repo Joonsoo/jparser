@@ -16,7 +16,7 @@ class NaiveParser2(val grammar: NGrammar) {
 
   val initialParsingContext: ParsingContext = {
     val startCtx = ParsingContext(KernelGraph(Set(startKernel), Set()), Map(startKernel -> Always))
-    recursivelyRunTasks(0, List(DeriveTask(startKernel)), startCtx)
+    runTasks(0, List(DeriveTask(startKernel)), startCtx)
     // TODO initialContext도 conditions update, filtering, trimming이 필요한가?
   }
 
@@ -158,10 +158,10 @@ class NaiveParser2(val grammar: NGrammar) {
     case task: FinishTask => finishTask(nextGen, task, ctx)
   }
 
-  @tailrec final def recursivelyRunTasks(nextGen: Int, tasks: List[ParsingTask], ctx: ParsingContext): ParsingContext = tasks match {
+  @tailrec final def runTasks(nextGen: Int, tasks: List[ParsingTask], ctx: ParsingContext): ParsingContext = tasks match {
     case task +: rest =>
       val (ncc, newTasks) = process(nextGen, task, ctx)
-      recursivelyRunTasks(nextGen, newTasks ++: rest, ncc)
+      runTasks(nextGen, newTasks ++: rest, ncc)
     case List() => ctx
   }
 
@@ -187,7 +187,7 @@ class NaiveParser2(val grammar: NGrammar) {
       }
       Left(UnexpectedInput(input, eligibleTerminals, gen))
     } else {
-      Right(recursivelyRunTasks(gen + 1, initialProgressTasks.toList, ctx))
+      Right(runTasks(gen + 1, initialProgressTasks.toList, ctx))
     }
   }
 

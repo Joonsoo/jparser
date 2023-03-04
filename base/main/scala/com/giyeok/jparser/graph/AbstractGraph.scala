@@ -75,7 +75,11 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
     newEdges.foldLeft(this) { (cc, e) => cc.addEdge(e) }.asInstanceOf[Self]
 
   def removeNodes(removingNodes: Set[N]): Self = {
-    val removingEdges = removingNodes.foldLeft(Set[E]()) { (cc, node) => cc ++ edgesByStart(node) ++ edgesByEnd(node) }
+    val removingEdges = mutable.Set[E]()
+    removingNodes.foreach { node =>
+      removingEdges ++= edgesByStart(node)
+      removingEdges ++= edgesByEnd(node)
+    }
     val newEdgesByStart = (edgesByStart -- removingNodes).view.mapValues {
       _ -- removingEdges
     }
@@ -133,7 +137,7 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
     if (!nodes.contains(start)) {
       Set()
     } else {
-      var visited: Set[N] = Set()
+      val visited = mutable.Set[N]()
 
       def recursion(current: N): Unit = {
         if (!visited.contains(current)) {
@@ -143,12 +147,12 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
       }
 
       recursion(start)
-      visited
+      visited.toSet
     }
   }
 
   def reachableBetween(start: N, end: N): Boolean = {
-    var visited: Set[N] = Set(start)
+    val visited = mutable.Set(start)
 
     def recursion(current: N): Boolean = {
       if (current == end) true else {

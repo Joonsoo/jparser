@@ -6,6 +6,7 @@ import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.{NSequence, NTerminal}
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, disjunct}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
+import com.giyeok.jparser.nparser2.opt.OptNaiveParser2
 import com.giyeok.jparser.nparser2.{DeriveTask, Edge, KernelGraph, NaiveParser2, ProgressTask, ParsingContext => NaiveParsingContext}
 import com.giyeok.jparser.utils.TermGrouper
 
@@ -13,18 +14,17 @@ import scala.collection.mutable
 
 // naive parser 1과 2의 차이점은 accept condition이 그래프 안에 있냐 밖에 있냐의 차이
 // milestone parser 1과 2의 차이점도 비슷
-class MilestoneParserGen(val parser: NaiveParser2) {
-  private val base = ParserGenBase2(parser)
+class MilestoneParserGen(val grammar: NGrammar) {
+  private val parser = new NaiveParser2(grammar)
+  private val optParser = new OptNaiveParser2(grammar)
+  private val base = new ParserGenBase2(optParser)
 
   def applyProgressTasks(
     ctx: NaiveParsingContext,
     startKernel: Kernel,
     progressTasks: List[ProgressTask],
   ): CtxWithTasks = {
-    val result = base.runTasksWithProgressBarrier(2,
-      tasks = progressTasks,
-      barrierNode = startKernel,
-      cc = CtxWithTasks(ctx, List(), List()))
+    val result = base.runTasksWithProgressBarrier(2, progressTasks, startKernel, ctx)
     val trimmedCtx = parser.trimParsingContext(startKernel, 2, result.ctx)
 
     CtxWithTasks(trimmedCtx, result.tasks, result.startKernelProgressTasks)
@@ -41,12 +41,13 @@ class MilestoneParserGen(val parser: NaiveParser2) {
       // start가 progress되면서 종료되는 경우엔 그래프에 start가 없을 수 있음
       List()
     } else {
+      val reachableFromStart = result.ctx.graph.reachableNodesFrom(start)
       val appendingMilestoneCandidates = result.deriveTasks
         .map(_.kernel)
         .filter(result.ctx.graph.nodes.contains)
-        .filter(kernel => parser.grammar.symbolOf(kernel.symbolId).isInstanceOf[NSequence])
+        .filter(kernel => grammar.symbolOf(kernel.symbolId).isInstanceOf[NSequence])
         .filter(kernel => kernel.pointer > 0 && kernel.beginGen < kernel.endGen)
-        .filter(kernel => result.ctx.graph.reachableBetween(start, kernel))
+        .filter(kernel => reachableFromStart.contains(kernel))
       assert(appendingMilestoneCandidates.forall(kernel => kernel.beginGen == beginGen && kernel.endGen == 2))
       appendingMilestoneCandidates
     }
@@ -106,7 +107,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
   private def reachableExceptOrJoinsOf(graph: KernelGraph, start: Kernel): Set[Int] = {
     val reachables = graph.reachableNodesFrom(start)
     val conditionSymbolIds = reachables.map(_.symbolId).flatMap { symbolId =>
-      parser.grammar.symbolOf(symbolId) match {
+      grammar.symbolOf(symbolId) match {
         case NGrammar.NExcept(_, _, _, except) => Some(except)
         case NGrammar.NJoin(_, _, _, join) => Some(join)
         case _ => None
@@ -228,16 +229,16 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     // new DotGraphGenerator(parser.grammar).addGraph(derived).printDotGraph()
 
     val derived = startingCtx.ctx.graph.nodes
-    val termNodes = derived.filter { node => parser.grammar.symbolOf(node.symbolId).isInstanceOf[NTerminal] }
+    val termNodes = derived.filter { node => grammar.symbolOf(node.symbolId).isInstanceOf[NTerminal] }
       .filter { node => node.pointer == 0 }
     assert(termNodes.forall { kernel => kernel.symbolId == start.symbolId || kernel.beginGen == 1 })
-    val terms = termNodes.map { node => parser.grammar.symbolOf(node.symbolId) }
+    val terms = termNodes.map { node => grammar.symbolOf(node.symbolId) }
       .map { case terminal: NTerminal => terminal.symbol }
     val termGroups: List[TermGroupDesc] = TermGrouper.termGroupsOf(terms)
 
     termGroups.flatMap { termGroup =>
       val applicableTermNodes = termNodes.filter { kernel =>
-        val symbol = parser.grammar.symbolOf(kernel.symbolId)
+        val symbol = grammar.symbolOf(kernel.symbolId)
         symbol.asInstanceOf[NTerminal].symbol.acceptTermGroup(termGroup)
       }
       val termProgressTasks = applicableTermNodes.toList.map(ProgressTask(_, AcceptCondition.Always))
@@ -255,10 +256,10 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     ctx: NaiveParsingContext,
     startKernel: Kernel,
     progressTasks: List[ProgressTask],
-  ): EdgeAction =
-    edgeActionFor(
-      applyProgressTasks(ctx, startKernel, progressTasks),
-      startKernel)
+  ): EdgeAction = {
+    val nextCtx = applyProgressTasks(ctx, startKernel, progressTasks)
+    edgeActionFor(nextCtx, startKernel)
+  }
 
   def appendingMilestonesForEdgeAction(
     result: CtxWithTasks,
@@ -352,7 +353,10 @@ class MilestoneParserGen(val parser: NaiveParser2) {
 
   def edgeProgressActionBetween(start: KernelTemplate, end: KernelTemplate): EdgeAction = {
     val (startKernel, startingCtx) = base.startingCtxFrom(start, -1)
+    edgeProgressActionBetween(startKernel, end, startingCtx)
+  }
 
+  def edgeProgressActionBetween(startKernel: Kernel, end: KernelTemplate, startingCtx: CtxWithTasks): EdgeAction = {
     val derived = startingCtx.ctx.graph
     val endKernelInitials = derived.nodes.filter { kernel =>
       kernel.symbolId == end.symbolId && kernel.pointer < end.pointer
@@ -364,7 +368,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
       }
     }
     val acceptConditionsWithEnds = startingCtx.ctx.acceptConditions ++ fakeEnds.values.map(_ -> AcceptCondition.Always)
-    val afterDerive = parser.recursivelyRunTasks(1,
+    val afterDerive = optParser.runTasks(1,
       fakeEnds.values.map(DeriveTask).toList,
       NaiveParsingContext(derivedWithEnds, acceptConditionsWithEnds))
     val afterTrimming = parser.trimParsingContext(startKernel, 1, afterDerive)
@@ -396,7 +400,7 @@ class MilestoneParserGen(val parser: NaiveParser2) {
     }
 
     jobs.milestones.foreach { milestone =>
-      val (_, CtxWithTasks(derived, _, _)) = base.startingCtxFrom(milestone, 0)
+      // val (_, CtxWithTasks(derived, _, _)) = base.startingCtxFrom(milestone, 0)
       // builder.kernelDerives(milestone) = derived.graph.nodes.map(k => KernelTemplate(k.symbolId, k.pointer))
 
       val termActions = termActionsFor(milestone)
@@ -409,11 +413,15 @@ class MilestoneParserGen(val parser: NaiveParser2) {
         }
       }
     }
-    jobs.edges.foreach { edge =>
-      val edgeAction = edgeProgressActionBetween(edge._1, edge._2)
-      builder.edgeProgressActions(edge) = edgeAction
+    jobs.edges.groupBy(_._1).foreach { edgeGroup =>
+      val (start, edges) = edgeGroup
+      val (startKernel, startingCtx) = base.startingCtxFrom(start, -1)
+      edges.foreach { edge =>
+        val edgeAction = edgeProgressActionBetween(startKernel, edge._2, startingCtx)
+        builder.edgeProgressActions(edge) = edgeAction
 
-      addAppendingMilestones(edge._1, edgeAction.parsingAction.appendingMilestones)
+        addAppendingMilestones(start, edgeAction.parsingAction.appendingMilestones)
+      }
     }
     val remainingJobs = Jobs(
       (milestones -- builder.termActions.keySet).toSet,
@@ -425,16 +433,11 @@ class MilestoneParserGen(val parser: NaiveParser2) {
   }
 
   def parserData(): MilestoneParserData = {
-    val start = KernelTemplate(parser.grammar.startSymbol, 0)
+    val start = KernelTemplate(grammar.startSymbol, 0)
     val startingCtx = base.startingCtxFrom(start, 0)
 
-    val builder = new MilestoneParserDataBuilder(parser.grammar, startingCtx._2.tasksSummary)
+    val builder = new MilestoneParserDataBuilder(grammar, startingCtx._2.tasksSummary)
     createParserData(Jobs(Set(start), Set()), builder)
     builder.build()
   }
-}
-
-object MilestoneParserGen {
-  def generateMilestoneParserData(grammar: NGrammar): MilestoneParserData =
-    new MilestoneParserGen(new NaiveParser2(grammar)).parserData()
 }

@@ -126,8 +126,6 @@ fast {
     action generate {
       file.clearDirectory("fast/generated/java")
       file.copy(protobuf.java(schema=schema), "fast/generated/java")
-      file.clearDirectory("fast/generated/kotlin")
-      file.copy(protobuf.kotlin(schema=schema), "fast/generated/kotlin")
     }
 
     javalib = java.library(
