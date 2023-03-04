@@ -73,7 +73,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
 
   def classDefs(classRelations: ClassRelationCollector): CodeBlob = {
     val classHierarchy = classRelations.toHierarchy
-    classHierarchy.allTypes.values.map(classDef(_)).fold(CodeBlob("", Set()))(_ + _)
+    classHierarchy.allTypes.values.map(classDef).fold(CodeBlob("", Set()))(_ + _)
   }
 
   def classDef(cls: ClassHierarchyItem): CodeBlob = {
@@ -90,11 +90,12 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
            |  override val nodeId: Int,
            |  override val start: Int,
            |  override val end: Int,
-           |): $supers""".stripMargin,
+           |): $supers
+           |""".stripMargin,
         params.flatMap(_.required).toSet)
     } else {
       // Abstract type
-      CodeBlob(s"sealed interface ${cls.className}: $supers", Set())
+      CodeBlob(s"sealed interface ${cls.className}: $supers\n", Set())
     }
   }
 
@@ -114,6 +115,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     val startSymbol = analysis.ngrammar.symbolOf(analysis.ngrammar.nsymbols(analysis.ngrammar.startSymbol).asInstanceOf[NStart].produce).asInstanceOf[NNonterminal]
     val returnType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName), context = Some(s"return type of ${analysis.startNonterminalName}"))
     _requiredNonterms += startSymbol.symbol.name
+    _symbolsOfInterest += startSymbol.id
     CodeBlob(
       s"""fun matchStart(): ${returnType.code} {
          |  val lastGen = inputs.size
@@ -402,10 +404,32 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     }
   }
 
-  def generate(pkgName: Option[String] = None): String = {
+  def generate(className: String, pkgName: String = ""): String = {
     val writer = new StringWriter()
 
+    if (pkgName.nonEmpty) {
+      writer.write(s"package $pkgName\n\n")
+    }
+
+    writer.write("import com.giyeok.jparser.Inputs\n")
+    writer.write("import com.giyeok.jparser.ktlib.*\n\n")
+    writer.write(s"class $className(\n")
+    writer.write("  val inputs: List<Inputs.Input>,\n")
+    writer.write("  val history: List<KernelSet>,\n")
+    writer.write("  val idIssuer: IdIssuer = IdIssuerImpl(0)\n")
+    writer.write(") {\n")
+
+    writer.write("  private fun nextId(): Int = idIssuer.nextId()\n\n")
+    writer.write(
+      """  sealed interface AstNode {
+        |    val nodeId: Int
+        |    val start: Int
+        |    val end: Int
+        |  }
+        |""".stripMargin)
+
     writer.write(classDefs(analysis.classRelations).code)
+    writer.write(enumDefs(analysis.enumValuesMap).code)
     writer.write("\n\n")
 
     var visitedNonterms = Set[String]()
@@ -417,6 +441,8 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       writer.write("\n\n")
       visitedNonterms += next
     }
+
+    writer.write("}\n")
 
     writer.toString
   }

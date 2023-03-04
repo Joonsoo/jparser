@@ -2,6 +2,8 @@ package com.giyeok.jparser.ktlib.test
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ktlib.KernelSet
+import com.giyeok.jparser.ktlib.toKtList
+import com.giyeok.jparser.ktlib.toKtSet
 import com.giyeok.jparser.milestone2.MilestoneParser
 import com.giyeok.jparser.proto.MilestoneParser2ProtobufConverter
 import com.giyeok.jparser.proto.MilestoneParserDataProto
@@ -9,15 +11,6 @@ import com.giyeok.jparser.proto.MilestoneParserProtobufConverter
 import java.io.File
 
 object BibixAstTest {
-  fun <T> scala.collection.immutable.List<T>.toKtList(): List<T> =
-    List<T>(this.size()) { idx -> this.apply(idx) }
-
-  fun <T> scala.collection.immutable.Seq<T>.toKtList(): List<T> =
-    List<T>(this.size()) { idx -> this.apply(idx) }
-
-  fun <T> scala.collection.immutable.Set<T>.toKtSet(): Set<T> =
-    this.toList().toKtList().toSet()
-
   fun testNew() {
     val parserDataProto = this::class.java.getResourceAsStream("/bibix2-parserdata.pb").use {
       MilestoneParserDataProto.Milestone2ParserData.parseFrom(it)

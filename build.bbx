@@ -29,6 +29,7 @@ ktxCoroutinesDeps = [
 ]
 
 protobufVersion = "3.22.0"
+var protobuf.protobufVersion = protobufVersion
 protobufDep = maven.artifact("com.google.protobuf", "protobuf-java", protobufVersion)
 
 testDeps = [
@@ -43,16 +44,16 @@ scalaTestDeps = [
 
 base {
   proto {
-//    schema = protobuf.schema(
-//      srcs = [
-//        "base/proto/GrammarProto.proto",
-//        "base/proto/TermGroupProto.proto",
-//      ]
-//    )
-//
-//    javacode = protobuf.java(schema=schema)
+    schema = protobuf.schema(
+      srcs = [
+        "base/proto/GrammarProto.proto",
+        "base/proto/TermGroupProto.proto",
+      ]
+    )
 
-    action gen {
+    javacode = protobuf.java(schema=schema)
+
+    action generate {
       file.copy(javacode, "base/generated/java")
     }
 
@@ -106,18 +107,21 @@ metalang {
 
 fast {
   proto {
-//    schema = protobuf.schema(
-//      srcs = [
-//        "fast/proto/MilestoneParserDataProto.proto",
-//        "fast/proto/NaiveParserProto.proto",
-//      ],
-//      deps = [baseProto.schema]
-//    )
-//
-//    javacode = protobuf.java(schema=schema)
+    schema = protobuf.schema(
+      srcs = [
+        "fast/proto/MilestoneParserDataProto.proto",
+        "fast/proto/NaiveParserProto.proto",
+      ],
+      deps = [base.proto.schema]
+    )
 
-    action gen {
-      file.copy(javacode, "fast/generated/java")
+    javacode = protobuf.java(schema)
+
+    action generate {
+      file.clearDirectory("fast/generated/java")
+      file.copy(protobuf.java(schema=schema), "fast/generated/java")
+      file.clearDirectory("fast/generated/kotlin")
+      file.copy(protobuf.kotlin(schema=schema), "fast/generated/kotlin")
     }
 
     javalib = java.library(
@@ -252,7 +256,7 @@ study {
 ktlib {
   main = ktjvm.library(
     srcs = glob("ktlib/main/kotlin/**/*.kt"),
-    deps = [base.main, naive.main],
+    deps = [base.main, naive.main, fast.main],
   )
 
   test = scala.library(
@@ -262,17 +266,24 @@ ktlib {
   )
 }
 
-class JParserData(astFile: file, parserData: file)
+class JParserData(astifier: file, parserData: file)
 
-plugin {
+bibixPlugin {
   impl = ktjvm.library(
-    srcs = glob("bibix/main/kotlin/**/*.kt"),
-    deps = [bibix.base, fast.main],
+    srcs = glob("bibixPlugin/main/kotlin/**/*.kt"),
+    deps = [bibix.base, fast.main, metalang.main],
+  )
+
+  def genKtAstMilestone2(
+    cdgFile: file,
+    astifierClassName: string,
+    parserDataFileName: string = "milestone2-parserdata.pb",
+    trimParserData: boolean = true,
+  ): JParserData = impl:com.giyeok.jparser.bibixPlugin.GenKtAstMilestone2
+
+  test = genKtAstMilestone2(
+    cdgFile = "examples/main/resources/asdl.cdg",
+    astifierClassName = "com.giyeok.jparser.test.Asdl",
+    parserDataFileName = "asdl-parserdata.pb",
   )
 }
-
-def parsergen(
-  src: file,
-  objectName: string,
-  parserDataFileName: string,
-): JParserData = plugin.impl:com.giyeok.jparser.bibix.ParserGen

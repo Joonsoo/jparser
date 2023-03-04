@@ -2,7 +2,18 @@ package com.giyeok.jparser.ktlib
 
 import com.giyeok.jparser.nparser.Kernel
 
+fun <T> scala.collection.immutable.List<T>.toKtList(): List<T> =
+  List<T>(this.size()) { idx -> this.apply(idx) }
+
+fun <T> scala.collection.immutable.Seq<T>.toKtList(): List<T> =
+  List<T>(this.size()) { idx -> this.apply(idx) }
+
+fun <T> scala.collection.immutable.Set<T>.toKtSet(): Set<T> =
+  this.toList().toKtList().toSet()
+
 class KernelSet(val kernels: Set<Kernel>) {
+  constructor(kernels: scala.collection.immutable.Set<Kernel>) : this(kernels.toKtSet())
+
   fun filter(pred: (Kernel) -> Boolean) = kernels.filter(pred)
 
   fun filterByBeginGen(symbolId: Int, pointer: Int, beginGen: Int): Set<Kernel> = kernels
@@ -20,9 +31,7 @@ class KernelSet(val kernels: Set<Kernel>) {
 }
 
 fun Collection<Kernel>.checkSingle(): Kernel {
-  check(this.size == 1) {
-    "Kernel size was expected to be 1, but it was ${this.size}"
-  }
+  check(this.size == 1) { "Kernel size was expected to be 1, but it was ${this.size}" }
   return this.first()
 }
 
@@ -101,7 +110,6 @@ fun unrollRepeat1(
     listOf(baseItem.beginGen() to baseItem.endGen())
   } else {
     val seq = getSequenceElems(history, repeatSeq, listOf(symbolId, itemSymId), beginGen, endGen)
-    println(seq)
     val repeating = seq.first()
     val item = seq[1]
     unrollRepeat1(
