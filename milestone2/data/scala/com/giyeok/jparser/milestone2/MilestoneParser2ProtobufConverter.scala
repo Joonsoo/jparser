@@ -1,12 +1,12 @@
-package com.giyeok.jparser.proto
+package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
-import com.giyeok.jparser.fast.{KernelTemplate, TasksSummary2}
-import com.giyeok.jparser.milestone2._
+import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.proto.GrammarProtobufConverter.{convertNGrammarToProto, convertProtoToNGrammar}
+import com.giyeok.jparser.proto.MilestoneParserDataProto
 import com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase
 import com.giyeok.jparser.proto.MilestoneParserDataProto.{AppendingMilestone2, Milestone2ParserData, ParsingAction2}
-import com.giyeok.jparser.proto.NaiveParserProtobufConverter.{convertKernelToProto, convertProtoToKernel}
+import com.giyeok.jparser.proto.ProtobufConverter.{convertKernelToProto, convertProtoToKernel}
 import com.giyeok.jparser.proto.ProtoConverterUtil.{JavaListToScalaCollection, toScalaIntList}
 import com.giyeok.jparser.proto.TermGroupProtobufConverter.{convertProtoToTermGroup, convertTermGroupToProto}
 import com.google.protobuf.Empty

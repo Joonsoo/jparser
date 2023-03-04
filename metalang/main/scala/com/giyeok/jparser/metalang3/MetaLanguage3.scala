@@ -3,10 +3,13 @@ package com.giyeok.jparser.metalang3
 import com.giyeok.jparser.ParsingErrors.WithLocation
 import com.giyeok.jparser.metalang3.Type._
 import com.giyeok.jparser.metalang3.ValuefyExpr.UnrollChoices
+import com.giyeok.jparser.metalang3.ast.MetaLang3Parser
 import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen
 import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
+import com.giyeok.jparser.nparser.ParseTreeConstructor2
+import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.utils.FileUtil.writeFile
-import com.giyeok.jparser.{Grammar, NGrammar}
+import com.giyeok.jparser.{Grammar, Inputs, NGrammar, ParseForestFunc}
 
 import java.io.File
 
@@ -18,25 +21,38 @@ object MetaLanguage3 {
     if (!cond) throw IllegalGrammar(errorMessage)
   }
 
-  def parseGrammar(grammar: String): MetaLang3Ast.Grammar = MetaLang3Ast.parseAst(grammar) match {
-    case Left(value) => value
-    case Right(value) =>
-      val errorMsg = value match {
-        case withLocation: WithLocation =>
-          val lines = grammar.substring(0, withLocation.location).count(_ == '\n') + 1
-          val lastNewLine = grammar.lastIndexOf('\n', withLocation.location)
-          val colNum = withLocation.location - lastNewLine + 1
-          s"${value.msg} at $lines:$colNum"
-        case _ => value.msg
-      }
-      throw IllegalGrammar(errorMsg)
+  def parseGrammar(grammar: String): MetaLang3Ast.Grammar = {
+    //    MetaLang3Ast.parseAst(grammar) match {
+    //      case Left(value) => value
+    //      case Right(value) =>
+    //        val errorMsg = value match {
+    //          case withLocation: WithLocation =>
+    //            val lines = grammar.substring(0, withLocation.location).count(_ == '\n') + 1
+    //            val lastNewLine = grammar.lastIndexOf('\n', withLocation.location)
+    //            val colNum = withLocation.location - lastNewLine + 1
+    //            s"${value.msg} at $lines:$colNum"
+    //          case _ => value.msg
+    //        }
+    //        throw IllegalGrammar(errorMsg)
+    //    }
+    val parser = MetaLang3Parser.INSTANCE.getParser
+    val inputs = Inputs.fromString(grammar)
+    val parseResult = parser.parseOrThrow(inputs)
+    val history = parser.kernelsHistory(parseResult)
+    val reconstructor = new ParseTreeConstructor2(ParseForestFunc)(parser.parserData.grammar)(inputs, history.map(Kernels))
+    reconstructor.reconstruct() match {
+      case Some(forest) if forest.trees.size == 1 =>
+        MetaLang3Ast.matchStart(forest.trees.head)
+      case None =>
+        throw IllegalGrammar("??")
+    }
   }
 
   case class ProcessedGrammar(grammar: Grammar, ngrammar: NGrammar, startNonterminalName: String,
-                              nonterminalTypes: Map[String, Type], nonterminalValuefyExprs: Map[String, UnrollChoices],
-                              rawClassRelations: ClassRelationCollector, classParamTypes: Map[String, List[(String, Type)]],
-                              shortenedEnumTypesMap: Map[Int, String], enumValuesMap: Map[String, Set[String]],
-                              errors: CollectedErrors) {
+    nonterminalTypes: Map[String, Type], nonterminalValuefyExprs: Map[String, UnrollChoices],
+    rawClassRelations: ClassRelationCollector, classParamTypes: Map[String, List[(String, Type)]],
+    shortenedEnumTypesMap: Map[Int, String], enumValuesMap: Map[String, Set[String]],
+    errors: CollectedErrors) {
     val typeInferer = new TypeInferer(startNonterminalName, nonterminalTypes)
     val classRelations: ClassRelationCollector =
       if (errors.isClear) rawClassRelations.removeDuplicateEdges() else null
@@ -85,7 +101,7 @@ object MetaLanguage3 {
   }
 
   def analyzeGrammar(transformer: GrammarTransformer, grammar: Grammar, ngrammar: NGrammar)
-                    (implicit errorCollector: ErrorCollector): ProcessedGrammar = {
+    (implicit errorCollector: ErrorCollector): ProcessedGrammar = {
     val inferredTypeCollector = new InferredTypeCollector(
       transformer.startNonterminalName(), transformer.classInfo, grammar.rules.keySet, transformer.nonterminalInfo)
 
@@ -126,7 +142,7 @@ object MetaLanguage3 {
   }
 
   def transformGrammar(grammarDef: MetaLang3Ast.Grammar, grammarName: String)
-                      (implicit errorCollector: ErrorCollector): (GrammarTransformer, Grammar, NGrammar) = {
+    (implicit errorCollector: ErrorCollector): (GrammarTransformer, Grammar, NGrammar) = {
     val transformer = new GrammarTransformer(grammarDef, errorCollector)
     val grammar = transformer.grammar(grammarName)
     val ngrammar = NGrammar.fromGrammar(grammar)
@@ -145,8 +161,8 @@ object MetaLanguage3 {
     analyzeGrammar(parseGrammar(grammarDefinition), grammarName)
 
   def generateScalaParserCode(grammar: String, className: String, packageName: String,
-                              mainFuncExamples: Option[List[String]] = None,
-                              options: ScalaCodeGen.Options = ScalaCodeGen.Options()): (ProcessedGrammar, String) = {
+    mainFuncExamples: Option[List[String]] = None,
+    options: ScalaCodeGen.Options = ScalaCodeGen.Options()): (ProcessedGrammar, String) = {
     val analysis = analyzeGrammar(grammar, className)
     if (!analysis.errors.isClear) {
       throw new Exception(analysis.errors.toString)
@@ -158,8 +174,8 @@ object MetaLanguage3 {
   }
 
   def writeScalaParserCode(grammar: String, className: String, packageName: String, targetDir: File,
-                           mainFuncExamples: Option[List[String]] = None,
-                           options: ScalaCodeGen.Options = ScalaCodeGen.Options()): ProcessedGrammar = {
+    mainFuncExamples: Option[List[String]] = None,
+    options: ScalaCodeGen.Options = ScalaCodeGen.Options()): ProcessedGrammar = {
     val (analysis, generatedCode) = generateScalaParserCode(grammar, className, packageName, mainFuncExamples, options)
 
     val filePath = new File(targetDir, s"${packageName.split('.').mkString("/")}/$className.scala")

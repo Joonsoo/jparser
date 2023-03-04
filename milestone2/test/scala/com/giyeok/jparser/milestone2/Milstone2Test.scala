@@ -3,15 +3,14 @@ package com.giyeok.jparser.milestone2
 import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.metalang3.codegen.KotlinOptCodeGen
 import com.giyeok.jparser.metalang3.{MetaLanguage3, ValuefyExprSimulator}
-import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor2}
+import com.giyeok.jparser.milestone2.MilestoneParser2ProtobufConverter.toProto
+import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.nparser2.NaiveParser2
-import com.giyeok.jparser.proto.MilestoneParser2ProtobufConverter.toProto
 import com.giyeok.jparser.{Inputs, ParseForestFunc}
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers.{be, convertToAnyShouldWrapper}
-import com.giyeok.jparser.milestone.{MilestoneParserGen => OldMilestoneParserGen}
-import com.giyeok.jparser.proto.MilestoneParserProtobufConverter
+import org.scalatest.matchers.must.Matchers.be
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import java.io._
 
@@ -34,7 +33,7 @@ class Milstone2Test extends AnyFlatSpec {
 
     val codeWriter = new BufferedWriter(new FileWriter(new File("BibixAst.kt")))
     val codegen = new KotlinOptCodeGen(analysis)
-    codeWriter.write(codegen.generate())
+    codeWriter.write(codegen.generate("BibixAst", ""))
     codeWriter.close()
 
     println(s"interest: ${codegen.symbolsOfInterest.toList.sorted}")

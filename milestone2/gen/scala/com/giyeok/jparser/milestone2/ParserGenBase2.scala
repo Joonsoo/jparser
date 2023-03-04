@@ -1,9 +1,9 @@
-package com.giyeok.jparser.fast
+package com.giyeok.jparser.milestone2
 
-import com.giyeok.jparser.milestone2._
+import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
-import com.giyeok.jparser.nparser2.{ParsingContext, _}
+import com.giyeok.jparser.nparser2._
 
 case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKernelProgressTasks: List[ProgressTask]) {
   def deriveTasks: List[DeriveTask] =
@@ -104,21 +104,6 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
       addedKernels = addedKernels,
       progressedKernels = progressTasks.map(_.kernel).toSet,
       progressedStartKernel = progressedStartKernel.headOption)
-  }
-}
-
-case class TasksSummary2(
-  addedKernels: Map[AcceptConditionTemplate, Set[Kernel]],
-  progressedKernels: Set[Kernel],
-  progressedStartKernel: Option[Kernel],
-) {
-  def trimForSymbols(symbolIds: Set[Int]): TasksSummary2 = {
-    TasksSummary2(
-      addedKernels.view.mapValues(_.filter(kernel => symbolIds.contains(kernel.symbolId)))
-        .filter(_._2.nonEmpty).toMap,
-      progressedKernels.filter(kernel => symbolIds.contains(kernel.symbolId)),
-      progressedStartKernel
-    )
   }
 }
 

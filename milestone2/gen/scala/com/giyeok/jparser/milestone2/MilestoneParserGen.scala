@@ -1,21 +1,20 @@
 package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
+import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.{NSequence, NTerminal}
-import com.giyeok.jparser.fast.{CtxWithTasks, KernelTemplate, ParserGenBase2}
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, disjunct}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
 import com.giyeok.jparser.nparser2.{DeriveTask, Edge, KernelGraph, NaiveParser2, ProgressTask, ParsingContext => NaiveParsingContext}
 import com.giyeok.jparser.utils.TermGrouper
 
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
 
 // naive parser 1과 2의 차이점은 accept condition이 그래프 안에 있냐 밖에 있냐의 차이
 // milestone parser 1과 2의 차이점도 비슷
 class MilestoneParserGen(val parser: NaiveParser2) {
-  val base = ParserGenBase2(parser)
+  private val base = ParserGenBase2(parser)
 
   def applyProgressTasks(
     ctx: NaiveParsingContext,

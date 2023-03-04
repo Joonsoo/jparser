@@ -162,9 +162,9 @@ Keyword: %KeyWord = "boolean" {%BOOLEAN}
 StrChar = StringChar
 CharChar = TerminalChar
 
-RefIdx = <'0' | '1-9' '0-9'*> {str(\$0)}
-Id = <'a-zA-Z_' 'a-zA-Z0-9_'*> {str(\$0)}
-IdNoKeyword = Id-Keyword {str(\$0)}
+RefIdx = <'0' {str($0)} | '1-9' '0-9'* {str($0, $1)}>
+Id = <'a-zA-Z_' 'a-zA-Z0-9_'* {str($0, $1)}>
+IdNoKeyword = Id-Keyword {str($0)}
 WS = (' \n\r\t' | Comment)*
 WSNL = <(' \r\t' | Comment)* '\n' WS>
 Comment = LineComment | BlockComment

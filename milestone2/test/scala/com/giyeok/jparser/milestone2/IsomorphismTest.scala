@@ -1,15 +1,15 @@
 package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.nparser2.{ParsingContext => NaiveParsingContext}
+import com.giyeok.jparser.nparser2.NaiveParser2
 import com.giyeok.jparser.milestone2.{ParsingContext => MilestoneParsingContext}
-import com.giyeok.jparser.nparser2.{NaiveParser2, ParsingContext => NaiveParsingContext}
-import com.giyeok.jparser.proto.MilestoneParser2ProtobufConverter
 import com.giyeok.jparser.proto.MilestoneParserDataProto.Milestone2ParserData
 import org.scalatest.flatspec.AnyFlatSpec
 
 class IsomorphismTest extends AnyFlatSpec {
   def checkIsomorphic(naive: NaiveParsingContext, milestone: MilestoneParsingContext): Unit = {
-    println(s"paths: ${milestone.paths.size} ${milestone.paths.filter(_.first == Milestone(1, 0, 0)).size}")
+    println(s"paths: ${milestone.paths.size} ${milestone.paths.count(_.first == Milestone(1, 0, 0))}")
   }
 
   it should "isomorphic" in {

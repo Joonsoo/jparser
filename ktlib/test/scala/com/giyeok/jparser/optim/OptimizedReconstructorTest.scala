@@ -1,14 +1,8 @@
 package com.giyeok.jparser.optim
 
-import com.giyeok.jparser.ktlib.test.PyObjKtOptAst
-import com.giyeok.jparser.{Inputs, Symbols}
-import com.giyeok.jparser.ktlib.{IdIssuerImpl, KernelSet}
 import com.giyeok.jparser.metalang3.MetaLanguage3
 import com.giyeok.jparser.metalang3.codegen.KotlinOptCodeGen
-import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor2}
 import org.scalatest.flatspec.AnyFlatSpec
-
-import scala.jdk.CollectionConverters.{SeqHasAsJava, SetHasAsJava}
 
 class OptimizedReconstructorTest extends AnyFlatSpec {
   it should "work" in {

@@ -94,9 +94,15 @@ utils {
 }
 
 metalang {
+  ast = ktjvm.library(
+    srcs = glob("metalang/ast/kotlin/**/*.kt"),
+    resources = glob("metalang/ast/resources/**"),
+    deps = [ktlib.main, milestone2.parser],
+  )
+
   main = scala.library(
     srcs = glob("metalang/main/scala/**/*.scala"),
-    deps = [naive.main, utils.main],
+    deps = [naive.main, utils.main, ast],
   )
 
   test = scala.library(
@@ -130,9 +136,14 @@ fast {
     )
   }
 
+  fastBase = scala.library(
+    srcs = glob("fast/base/scala/**/*.scala"),
+    deps = [fast.proto.javalib, naive.main],
+  )
+
   main = scala.library(
     srcs = glob("fast/main/scala/**/*.scala"),
-    deps = [naive.main, metalang.main, fast.proto.javalib],
+    deps = [fastBase, naive.main, metalang.main, fast.proto.javalib],
   )
 
   test = scala.library(
@@ -142,6 +153,29 @@ fast {
   )
 
 //  action deploy = maven.
+}
+
+milestone2 {
+  data = scala.library(
+    srcs = glob("milestone2/data/scala/**/*.scala"),
+    deps = [naive.main, fast.fastBase],
+  )
+
+  gen = scala.library(
+    srcs = glob("milestone2/gen/scala/**/*.scala"),
+    deps = [naive.main, metalang.main, fast.main, fast.proto.javalib, data],
+  )
+
+  parser = scala.library(
+    srcs = glob("milestone2/parser/scala/**/*.scala"),
+    deps = [base.main, data, utils.main],
+  )
+
+  test = scala.library(
+    srcs = glob("milestone2/test/scala/**/*.scala"),
+    resources = glob("milestone2/test/resources/**"),
+    deps = [data, gen, parser, naive.main, ...scalaTestDeps],
+  )
 }
 
 cli {
@@ -256,7 +290,7 @@ study {
 ktlib {
   main = ktjvm.library(
     srcs = glob("ktlib/main/kotlin/**/*.kt"),
-    deps = [base.main, naive.main, fast.main],
+    deps = [base.main, naive.main, milestone2.parser],
   )
 
   test = scala.library(
@@ -271,7 +305,7 @@ class JParserData(astifier: file, parserData: file)
 bibixPlugin {
   impl = ktjvm.library(
     srcs = glob("bibixPlugin/main/kotlin/**/*.kt"),
-    deps = [bibix.base, fast.main, metalang.main],
+    deps = [bibix.base, milestone2.gen, metalang.main],
   )
 
   def genKtAstMilestone2(
@@ -286,4 +320,17 @@ bibixPlugin {
     astifierClassName = "com.giyeok.jparser.test.Asdl",
     parserDataFileName = "asdl-parserdata.pb",
   )
+
+  test = genKtAstMilestone2(
+    cdgFile = "examples/main/resources/asdl.cdg",
+    astifierClassName = "com.giyeok.jparser.test.Asdl",
+    parserDataFileName = "asdl-parserdata.pb",
+  )
+
+//  test2 = genKtAstMilestone2(
+//    cdgFile = "../j1/grammar/grammar.cdg",
+//    astifierClassName = "com.giyeok.j1.J1Ast",
+//    parserDataFileName = "j1-parserdata.pb",
+//    trimParserData = false,
+//  )
 }

@@ -2,11 +2,10 @@ package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInputByTermGroups}
-import com.giyeok.jparser.fast.{KernelTemplate, TasksSummary2}
+import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.utils.Memoize
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 
 class MilestoneParser(val parserData: MilestoneParserData) {
