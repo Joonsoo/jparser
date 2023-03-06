@@ -54,7 +54,8 @@ base {
     javacode = protobuf.java(schema=schema)
 
     action generate {
-      file.copy(javacode, "base/generated/java")
+      file.clearDirectory("base/generated/java")
+      file.copyDirectory(javacode.rootDir, "base/generated/java")
     }
 
     javalib = java.library(
@@ -125,7 +126,7 @@ fast {
 
     action generate {
       file.clearDirectory("fast/generated/java")
-      file.copy(protobuf.java(schema=schema), "fast/generated/java")
+      file.copyDirectory(javacode.rootDir, "fast/generated/java")
     }
 
     javalib = java.library(
