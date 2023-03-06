@@ -49,7 +49,10 @@ object ProtoConverterUtil {
     def toScalaMap[K, V](keyMapper: T => K, valueMapper: T => V): Map[K, V] = {
       val keyMapperJavaFunc = toJavaFunc(keyMapper)
       val valueMapperJavaFunc = toJavaFunc(valueMapper)
-      javaList.parallelStream().collect(Collectors.toMap[T, K, V](keyMapperJavaFunc, valueMapperJavaFunc)).asScala.toMap
+      javaList.parallelStream()
+        .collect(Collectors.toMap[T, K, V](keyMapperJavaFunc, valueMapperJavaFunc))
+        .asScala
+        .toMap
     }
 
     def toScalaSet[V](valueMapper: T => V): Set[V] =

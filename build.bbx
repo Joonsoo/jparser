@@ -3,7 +3,7 @@ package com.giyeok.jparser
 import jvm
 import maven
 import file
-from bibix.plugins import java
+import java
 from bibix.plugins import scala
 from bibix.plugins import protobuf
 from bibix.plugins import scalatest
@@ -298,7 +298,7 @@ ktlib {
   )
 }
 
-class JParserData(astifier: file, parserData: file)
+class JParserData(srcsRoot: directory, astifier: file, parserData: file)
 
 bibixPlugin {
   impl = ktjvm.library(
@@ -313,22 +313,33 @@ bibixPlugin {
     trimParserData: boolean = true,
   ): JParserData = impl:com.giyeok.jparser.bibixPlugin.GenKtAstMilestone2
 
-  test = genKtAstMilestone2(
+  test1 = genKtAstMilestone2(
     cdgFile = "examples/main/resources/asdl.cdg",
-    astifierClassName = "com.giyeok.jparser.test.Asdl",
+    astifierClassName = "com.giyeok.jparser.test.AsdlAst",
     parserDataFileName = "asdl-parserdata.pb",
   )
 
-  test = genKtAstMilestone2(
-    cdgFile = "examples/main/resources/asdl.cdg",
-    astifierClassName = "com.giyeok.jparser.test.Asdl",
-    parserDataFileName = "asdl-parserdata.pb",
+  action genTest1 {
+    file.copyFile(test1.parserData, "milestone2/test")
+    file.copyDirectory(test1.srcsRoot, "milestone2/test/kotlin", createDirectories=true)
+  }
+
+  test2 = genKtAstMilestone2(
+    cdgFile = "examples/main/resources/bibix2.cdg",
+    astifierClassName = "com.giyeok.jparser.test.BibixAst",
+    parserDataFileName = "bibix-parserdata.pb",
   )
 
-//  test2 = genKtAstMilestone2(
-//    cdgFile = "../j1/grammar/grammar.cdg",
-//    astifierClassName = "com.giyeok.j1.J1Ast",
-//    parserDataFileName = "j1-parserdata.pb",
-//    trimParserData = false,
-//  )
+  test3 = genKtAstMilestone2(
+    cdgFile = "examples/main/resources/cdglang3.cdg",
+    astifierClassName = "com.giyeok.jparser.test.MetaLang3Ast",
+    parserDataFileName = "cdglang3-parserdata.pb",
+  )
+
+  test4 = genKtAstMilestone2(
+    cdgFile = "../j1/grammar/grammar.cdg",
+    astifierClassName = "com.giyeok.j1.J1Ast",
+    parserDataFileName = "j1-parserdata.pb",
+    trimParserData = false,
+  )
 }

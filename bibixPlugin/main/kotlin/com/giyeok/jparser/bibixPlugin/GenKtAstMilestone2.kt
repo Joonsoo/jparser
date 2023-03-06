@@ -1,14 +1,59 @@
 package com.giyeok.jparser.bibixPlugin
 
 import com.giyeok.bibix.base.*
+import com.giyeok.bibix.targetIdData
 import com.giyeok.jparser.metalang3.`MetaLanguage3$`
 import com.giyeok.jparser.metalang3.codegen.KotlinOptCodeGen
-import com.giyeok.jparser.milestone2.MilestoneParserGen
-import com.giyeok.jparser.nparser2.NaiveParser2
 import com.giyeok.jparser.milestone2.`MilestoneParser2ProtobufConverter$`
+import com.giyeok.jparser.milestone2.MilestoneParserGen
+import java.nio.file.FileSystems
+import java.nio.file.Path
 import kotlin.io.path.*
 
 class GenKtAstMilestone2 {
+  companion object {
+    @JvmStatic
+    fun main(args: Array<String>) {
+      val ctx = BuildContext(
+        BuildEnv(OS.MacOSX("", ""), Architecture.Aarch_64),
+        FileSystems.getDefault(),
+        Path("."),
+        null,
+        null,
+//      mapOf(
+//        "cdgFile" to FileValue(Path("../j1/grammar/grammar.cdg")),
+//        "astifierClassName" to StringValue("J1Ast"),
+//        "parserDataFileName" to StringValue("j1-parserdata.pb"),
+//        "trimParserData" to BooleanValue(true),
+//      ),
+        mapOf(
+          "cdgFile" to FileValue(Path("examples/main/resources/cdglang3.cdg")),
+          "astifierClassName" to StringValue("MetaLang3Ast"),
+          "parserDataFileName" to StringValue("cdglang3-parserdata.pb"),
+          "trimParserData" to BooleanValue(false),
+        ),
+        true,
+        targetIdData { },
+        "",
+        Path("bbxbuild/objects/abc"),
+        object : ProgressLogger {
+          override fun logError(message: String) {
+          }
+
+          override fun logInfo(message: String) {
+            println(message)
+          }
+        },
+        object : BaseRepo {
+          override fun prepareSharedDirectory(sharedRepoName: String): Path {
+            TODO("Not yet implemented")
+          }
+        }
+      )
+      println(GenKtAstMilestone2().build(ctx))
+    }
+  }
+
   fun build(context: BuildContext): BibixValue {
     context.progressLogger.logInfo("GenKtAstMilestone2 started (dest=${context.destDirectory})")
     val cdgDef = (context.arguments.getValue("cdgFile") as FileValue).file.readText()
@@ -60,6 +105,7 @@ class GenKtAstMilestone2 {
       "com.giyeok.jparser",
       "JParserData",
       mapOf(
+        "srcsRoot" to DirectoryValue(srcsDir),
         "astifier" to FileValue(astFile),
         "parserData" to FileValue(parserDataFile)
       )

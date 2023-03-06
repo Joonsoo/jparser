@@ -1,7 +1,7 @@
 package com.giyeok.jparser.bibixPlugin
 
 import com.giyeok.bibix.base.*
-import com.giyeok.bibix.objectId
+import com.giyeok.bibix.targetIdData
 import org.junit.jupiter.api.Test
 import java.nio.file.FileSystems
 import java.nio.file.Path
@@ -16,21 +16,21 @@ class J1GrammarGen {
       Path("."),
       null,
       null,
-      mapOf(
-        "cdgFile" to FileValue(Path("../j1/grammar/grammar.cdg")),
-        "astifierClassName" to StringValue("J1Ast"),
-        "parserDataFileName" to StringValue("j1-parserdata.pb"),
-        "trimParserData" to BooleanValue(true),
-      ),
 //      mapOf(
-//        "cdgFile" to FileValue(Path("examples/main/resources/cdglang3.cdg")),
-//        "astifierClassName" to StringValue("MetaLang3Ast"),
-//        "parserDataFileName" to StringValue("cdglang3-parserdata.pb"),
-//        "trimParserData" to BooleanValue(false),
+//        "cdgFile" to FileValue(Path("../j1/grammar/grammar.cdg")),
+//        "astifierClassName" to StringValue("J1Ast"),
+//        "parserDataFileName" to StringValue("j1-parserdata.pb"),
+//        "trimParserData" to BooleanValue(true),
 //      ),
+      mapOf(
+        "cdgFile" to FileValue(Path("examples/main/resources/cdglang3.cdg")),
+        "astifierClassName" to StringValue("MetaLang3Ast"),
+        "parserDataFileName" to StringValue("cdglang3-parserdata.pb"),
+        "trimParserData" to BooleanValue(false),
+      ),
       true,
-      objectId {},
-      "asdf",
+      targetIdData { },
+      "",
       Path("bbxbuild/objects/abc"),
       object : ProgressLogger {
         override fun logError(message: String) {
