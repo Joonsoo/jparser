@@ -20,14 +20,17 @@ object MilestoneParser2ProtobufConverter {
     parserData.termActions.foreach { termAction =>
       val termActionBuilder = builder.addTermActionsBuilder()
       termActionBuilder.setKernelTemplate(toProto(termAction._1))
+      // TODO termAction._2 순서 고정
       termAction._2.foreach { action =>
         val actionBuilder = termActionBuilder.addActionsBuilder()
         actionBuilder
           .setTermGroup(convertTermGroupToProto(action._1))
           .setParsingAction(toProto(action._2.parsingAction))
+        // TODO action._2.pendedAcceptConditionKernels 순서 고정
         action._2.pendedAcceptConditionKernels.foreach { pair =>
           val pendedBuilder = actionBuilder.addPendedAcceptConditionKernelsBuilder()
           pendedBuilder.setKernelTemplate(toProto(pair._1))
+          // TODO pair._2._1 순서 고정
           pair._2._1.foreach { appending =>
             pendedBuilder.addAppendingMilestones(toProto(appending))
           }
@@ -38,6 +41,7 @@ object MilestoneParser2ProtobufConverter {
       }
     }
 
+    // TODO parserData.edgeProgressActions 순서 고정
     parserData.edgeProgressActions.foreach { edgeProgressAction =>
       val edgeActionBuilder = builder.addEdgeActionsBuilder()
       edgeActionBuilder.setStart(toProto(edgeProgressAction._1._1))
@@ -51,6 +55,7 @@ object MilestoneParser2ProtobufConverter {
 
   def toProto(tasksSummary: TasksSummary2): MilestoneParserDataProto.TasksSummary2 = {
     val builder = MilestoneParserDataProto.TasksSummary2.newBuilder()
+    // TODO tasksSummary.addedKernels 순서 고정
     tasksSummary.addedKernels.foreach { pair =>
       val pairBuilder = builder.addAddedKernelsBuilder()
       pairBuilder.setAcceptCondition(toProto(pair._1))
@@ -58,6 +63,7 @@ object MilestoneParser2ProtobufConverter {
         pairBuilder.addKernels(convertKernelToProto(kernel))
       }
     }
+    // TODO tasksSummary.progressedKernels 순서 고정
     tasksSummary.progressedKernels.foreach { kernel =>
       builder.addProgressedKernels(convertKernelToProto(kernel))
     }
@@ -75,12 +81,14 @@ object MilestoneParser2ProtobufConverter {
 
   def toProto(parsingAction: ParsingAction): MilestoneParserDataProto.ParsingAction2 = {
     val builder = MilestoneParserDataProto.ParsingAction2.newBuilder()
+    // TODO parsingAction.appendingMilestones 순서 고정
     parsingAction.appendingMilestones.foreach { appending =>
       builder.addAppendingMilestones(toProto(appending))
     }
     parsingAction.startNodeProgressCondition.foreach { startProgress =>
       builder.setStartNodeProgressCondition(toProto(startProgress))
     }
+    // TODO parsingAction.lookaheadRequiringSymbols 순서 고정
     parsingAction.lookaheadRequiringSymbols.foreach { symbolId =>
       builder.addLookaheadRequiringSymbolIds(symbolId)
     }
@@ -103,10 +111,12 @@ object MilestoneParser2ProtobufConverter {
       case NeverTemplate =>
         builder.setNever(Empty.getDefaultInstance)
       case AndTemplate(conditions) =>
+        // TODO conditions 순서 고정
         conditions.foreach { cond =>
           builder.getAndBuilder().addConditions(toProto(cond))
         }
       case OrTemplate(conditions) =>
+        // TODO conditions 순서 고정
         conditions.foreach { cond =>
           builder.getOrBuilder().addConditions(toProto(cond))
         }
