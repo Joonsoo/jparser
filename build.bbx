@@ -332,11 +332,6 @@ bibixPlugin {
     parserDataFileName = "asdl-parserdata.pb",
   )
 
-  action genTest1 {
-    file.copyFile(test1.parserData, "milestone2/test")
-    file.copyDirectory(test1.srcsRoot, "milestone2/test/kotlin", createDirectories=true)
-  }
-
   test2 = genKtAstMilestone2(
     cdgFile = "examples/main/resources/bibix2.cdg",
     astifierClassName = "com.giyeok.jparser.test.BibixAst",
