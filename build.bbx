@@ -101,6 +101,18 @@ metalang {
     deps = [ktlib.main, milestone2.parser],
   )
 
+  astGen = bibixPlugin.genKtAstMilestone2(
+    cdgFile = "examples/main/resources/cdglang3.cdg",
+    astifierClassName = "com.giyeok.jparser.metalang3.ast.MetaLang3Ast",
+    parserDataFileName = "cdglang3-parserdata.pb",
+    trimParserData = false,
+  )
+
+  action generateAst {
+    file.copyFile(astGen.parserData, "metalang/ast/resources")
+    file.copyDirectory(astGen.srcsRoot, "metalang/ast/kotlin")
+  }
+
   main = scala.library(
     srcs = glob("metalang/main/scala/**/*.scala"),
     deps = [naive.main, utils.main, ast],
