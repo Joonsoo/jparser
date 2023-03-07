@@ -185,11 +185,15 @@ object GrammarProtobufConverter {
       .addAllSequence(sequence.sequence.toList).build()
 
   def convertNGrammarToProto(ngrammar: NGrammar): GrammarProto.NGrammar = {
-    GrammarProto.NGrammar.newBuilder()
+    val builder = GrammarProto.NGrammar.newBuilder()
       .setStartSymbol(ngrammar.startSymbol)
-      .putAllSymbols(ngrammar.nsymbols.map { x => (x._1: java.lang.Integer) -> convertNAtomicSymbolToProtobuf(x._2) }.asJava)
-      .putAllSequences(ngrammar.nsequences.map { x => (x._1: java.lang.Integer) -> convertNSequenceSymbolToProtobuf(x._2) }.asJava)
-      .build()
+    ngrammar.nsymbols.toList.sortBy(_._1).foreach { symbol =>
+      builder.putSymbols(symbol._1, convertNAtomicSymbolToProtobuf(symbol._2))
+    }
+    ngrammar.nsequences.toList.sortBy(_._1).foreach { sequence =>
+      builder.putSequences(sequence._1, convertNSequenceSymbolToProtobuf(sequence._2))
+    }
+    builder.build()
   }
 
   def convertProtoToSymbol(symbol: GrammarProto.Symbol): Symbols.Symbol = symbol.getSymbolCase match {

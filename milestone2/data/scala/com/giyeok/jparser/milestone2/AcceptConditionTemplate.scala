@@ -61,9 +61,13 @@ case object AlwaysTemplate extends AcceptConditionTemplate
 
 case object NeverTemplate extends AcceptConditionTemplate
 
-case class AndTemplate(conditions: List[AcceptConditionTemplate]) extends AcceptConditionTemplate
+case class AndTemplate(conditions: List[AcceptConditionTemplate]) extends AcceptConditionTemplate {
+  override def toString: String = s"AndTemplate(${conditions.map(_.toString).sorted.mkString(",")})"
+}
 
-case class OrTemplate(conditions: List[AcceptConditionTemplate]) extends AcceptConditionTemplate
+case class OrTemplate(conditions: List[AcceptConditionTemplate]) extends AcceptConditionTemplate {
+  override def toString: String = s"OrTemplate(${conditions.map(_.toString).sorted.mkString(",")})"
+}
 
 // Exists(currGen, currGen, symbolId) or from nextGen
 // Exists(Milestone(symbolId, 0, currGen)) or from nextGen

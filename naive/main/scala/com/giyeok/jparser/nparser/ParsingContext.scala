@@ -5,7 +5,7 @@ import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.graph.{AbstractEdge, AbstractGraph}
 
-case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int) {
+case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int) extends Ordered[Kernel] {
   def shiftGen(gen: Int): Kernel = Kernel(symbolId, pointer, beginGen + gen, endGen + gen)
 
   def initial: Kernel = if (pointer == 0) this else Kernel(symbolId, 0, beginGen, beginGen)
@@ -18,6 +18,12 @@ case class Kernel(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int) {
   }
 
   override def toString: String = s"Kernel($symbolId, $pointer, $beginGen..$endGen)"
+
+  def compare(that: Kernel): Int =
+    if (this.symbolId != that.symbolId) this.symbolId - that.symbolId
+    else if (this.pointer != that.pointer) this.pointer - that.pointer
+    else if (this.beginGen != that.beginGen) this.beginGen - that.beginGen
+    else this.endGen - that.endGen
 }
 
 object Kernel {

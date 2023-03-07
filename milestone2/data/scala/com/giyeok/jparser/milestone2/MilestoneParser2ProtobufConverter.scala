@@ -2,36 +2,55 @@ package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.fast.KernelTemplate
+import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.proto.GrammarProtobufConverter.{convertNGrammarToProto, convertProtoToNGrammar}
 import com.giyeok.jparser.proto.MilestoneParserDataProto
 import com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase
 import com.giyeok.jparser.proto.MilestoneParserDataProto.{AppendingMilestone2, Milestone2ParserData, ParsingAction2}
-import com.giyeok.jparser.proto.ProtobufConverter.{convertKernelToProto, convertProtoToKernel}
 import com.giyeok.jparser.proto.ProtoConverterUtil.{JavaListToScalaCollection, toScalaIntList}
+import com.giyeok.jparser.proto.ProtobufConverter.{convertKernelToProto, convertProtoToKernel}
 import com.giyeok.jparser.proto.TermGroupProtobufConverter.{convertProtoToTermGroup, convertTermGroupToProto}
 import com.google.protobuf.Empty
 
+import scala.math.Ordering.comparatorToOrdering
+
 object MilestoneParser2ProtobufConverter {
+  implicit val kernelTemplateEdgeOrdering: Ordering[(KernelTemplate, KernelTemplate)] = comparatorToOrdering {
+    (o1: (KernelTemplate, KernelTemplate), o2: (KernelTemplate, KernelTemplate)) =>
+      if (o1._1 != o2._1) o1._1.compareTo(o2._1) else o1._2.compareTo(o2._2)
+  }
+
+  implicit val termGroupOrdering: Ordering[TermGroupDesc] = comparatorToOrdering {
+    (o1: TermGroupDesc, o2: TermGroupDesc) =>
+      o1.toShortString.compareTo(o2.toShortString)
+  }
+
+  implicit val acceptConditionTemplateOrdering: Ordering[AcceptConditionTemplate] = comparatorToOrdering {
+    (o1: AcceptConditionTemplate, o2: AcceptConditionTemplate) =>
+      o1.toString.compareTo(o2.toString)
+  }
+
   def toProto(parserData: MilestoneParserData): MilestoneParserDataProto.Milestone2ParserData = {
     val builder = MilestoneParserDataProto.Milestone2ParserData.newBuilder()
       .setGrammar(convertNGrammarToProto(parserData.grammar))
       .setInitialTasksSummary(toProto(parserData.initialTasksSummary))
 
-    parserData.termActions.foreach { termAction =>
+    // parserData.termActions 순서 고정
+    parserData.termActions.toList.sortBy(_._1).foreach { termAction =>
       val termActionBuilder = builder.addTermActionsBuilder()
       termActionBuilder.setKernelTemplate(toProto(termAction._1))
-      // TODO termAction._2 순서 고정
-      termAction._2.foreach { action =>
+      // termAction._2 순서 고정
+      termAction._2.sortBy(p => p._1).foreach { action =>
         val actionBuilder = termActionBuilder.addActionsBuilder()
         actionBuilder
           .setTermGroup(convertTermGroupToProto(action._1))
           .setParsingAction(toProto(action._2.parsingAction))
-        // TODO action._2.pendedAcceptConditionKernels 순서 고정
-        action._2.pendedAcceptConditionKernels.foreach { pair =>
+        // action._2.pendedAcceptConditionKernels 순서 고정
+        action._2.pendedAcceptConditionKernels.toList.sortBy(_._1).foreach { pair =>
           val pendedBuilder = actionBuilder.addPendedAcceptConditionKernelsBuilder()
           pendedBuilder.setKernelTemplate(toProto(pair._1))
-          // TODO pair._2._1 순서 고정
-          pair._2._1.foreach { appending =>
+          // pair._2._1 순서 고정
+          pair._2._1.sortBy(_.milestone).foreach { appending =>
             pendedBuilder.addAppendingMilestones(toProto(appending))
           }
           pair._2._2.foreach { firstKernelProgressCondition =>
@@ -41,8 +60,8 @@ object MilestoneParser2ProtobufConverter {
       }
     }
 
-    // TODO parserData.edgeProgressActions 순서 고정
-    parserData.edgeProgressActions.foreach { edgeProgressAction =>
+    // parserData.edgeProgressActions 순서 고정
+    parserData.edgeProgressActions.toList.sortBy(_._1).foreach { edgeProgressAction =>
       val edgeActionBuilder = builder.addEdgeActionsBuilder()
       edgeActionBuilder.setStart(toProto(edgeProgressAction._1._1))
       edgeActionBuilder.setEnd(toProto(edgeProgressAction._1._2))
@@ -55,16 +74,16 @@ object MilestoneParser2ProtobufConverter {
 
   def toProto(tasksSummary: TasksSummary2): MilestoneParserDataProto.TasksSummary2 = {
     val builder = MilestoneParserDataProto.TasksSummary2.newBuilder()
-    // TODO tasksSummary.addedKernels 순서 고정
-    tasksSummary.addedKernels.foreach { pair =>
+    // tasksSummary.addedKernels 순서 고정
+    tasksSummary.addedKernels.toList.sortBy(_._1).foreach { pair =>
       val pairBuilder = builder.addAddedKernelsBuilder()
       pairBuilder.setAcceptCondition(toProto(pair._1))
       pair._2.foreach { kernel =>
         pairBuilder.addKernels(convertKernelToProto(kernel))
       }
     }
-    // TODO tasksSummary.progressedKernels 순서 고정
-    tasksSummary.progressedKernels.foreach { kernel =>
+    // tasksSummary.progressedKernels 순서 고정
+    tasksSummary.progressedKernels.toList.sorted.foreach { kernel =>
       builder.addProgressedKernels(convertKernelToProto(kernel))
     }
     tasksSummary.progressedStartKernel.foreach { kernel =>
@@ -81,15 +100,15 @@ object MilestoneParser2ProtobufConverter {
 
   def toProto(parsingAction: ParsingAction): MilestoneParserDataProto.ParsingAction2 = {
     val builder = MilestoneParserDataProto.ParsingAction2.newBuilder()
-    // TODO parsingAction.appendingMilestones 순서 고정
-    parsingAction.appendingMilestones.foreach { appending =>
+    // parsingAction.appendingMilestones 순서 고정
+    parsingAction.appendingMilestones.sortBy(_.milestone).foreach { appending =>
       builder.addAppendingMilestones(toProto(appending))
     }
     parsingAction.startNodeProgressCondition.foreach { startProgress =>
       builder.setStartNodeProgressCondition(toProto(startProgress))
     }
-    // TODO parsingAction.lookaheadRequiringSymbols 순서 고정
-    parsingAction.lookaheadRequiringSymbols.foreach { symbolId =>
+    // parsingAction.lookaheadRequiringSymbols 순서 고정
+    parsingAction.lookaheadRequiringSymbols.toList.sorted.foreach { symbolId =>
       builder.addLookaheadRequiringSymbolIds(symbolId)
     }
     builder.setTasksSummary(toProto(parsingAction.tasksSummary))
@@ -111,13 +130,13 @@ object MilestoneParser2ProtobufConverter {
       case NeverTemplate =>
         builder.setNever(Empty.getDefaultInstance)
       case AndTemplate(conditions) =>
-        // TODO conditions 순서 고정
-        conditions.foreach { cond =>
+        // conditions 순서 고정
+        conditions.sortBy(_.toString).foreach { cond =>
           builder.getAndBuilder().addConditions(toProto(cond))
         }
       case OrTemplate(conditions) =>
-        // TODO conditions 순서 고정
-        conditions.foreach { cond =>
+        // conditions 순서 고정
+        conditions.sortBy(_.toString).foreach { cond =>
           builder.getOrBuilder().addConditions(toProto(cond))
         }
       case LookaheadIsTemplate(symbolId, fromNextGen) =>
