@@ -101,7 +101,7 @@ metalang {
     deps = [ktlib.main, milestone2.parser],
   )
 
-  astGen = bibixPlugin.genKtAstMilestone2(
+  astGen = genKtAstMilestone2(
     cdgFile = "examples/main/resources/cdglang3.cdg",
     astifierClassName = "com.giyeok.jparser.metalang3.ast.MetaLang3Ast",
     parserDataFileName = "cdglang3-parserdata.pb",
@@ -319,13 +319,6 @@ bibixPlugin {
     deps = [bibix.base, milestone2.gen, metalang.main],
   )
 
-  def genKtAstMilestone2(
-    cdgFile: file,
-    astifierClassName: string,
-    parserDataFileName: string = "milestone2-parserdata.pb",
-    trimParserData: boolean = true,
-  ): JParserData = impl:com.giyeok.jparser.bibixPlugin.GenKtAstMilestone2
-
   test1 = genKtAstMilestone2(
     cdgFile = "examples/main/resources/asdl.cdg",
     astifierClassName = "com.giyeok.jparser.test.AsdlAst",
@@ -351,3 +344,10 @@ bibixPlugin {
     trimParserData = false,
   )
 }
+
+def genKtAstMilestone2(
+  cdgFile: file,
+  astifierClassName: string,
+  parserDataFileName: string = "milestone2-parserdata.pb",
+  trimParserData: boolean = true,
+): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenKtAstMilestone2
