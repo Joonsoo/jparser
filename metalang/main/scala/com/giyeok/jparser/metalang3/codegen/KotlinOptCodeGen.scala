@@ -63,7 +63,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       }
     case Type.EnumType(enumName) => CodeBlob(s"$enumName", Set())
     case Type.UnspecifiedEnumType(uniqueId) => CodeBlob(s"${analysis.shortenedEnumTypesMap(uniqueId)}", Set())
-    case Type.NullType => CodeBlob("Unit?", Set())
+    case Type.NullType => CodeBlob("Nothing?", Set())
     case Type.AnyType => CodeBlob("Any", Set())
     case Type.BoolType => CodeBlob("Boolean", Set())
     case Type.CharType => CodeBlob("Char", Set())

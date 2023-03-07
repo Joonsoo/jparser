@@ -110,7 +110,8 @@ metalang {
 
   action generateAst {
     file.copyFile(astGen.parserData, "metalang/ast/resources")
-    file.copyDirectory(astGen.srcsRoot, "metalang/ast/kotlin")
+    // kotlin ast 파일은 사용 안함
+    // file.copyDirectory(astGen.srcsRoot, "metalang/ast/kotlin")
   }
 
   main = scala.library(
