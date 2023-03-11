@@ -43,7 +43,8 @@ class GenScalaAstMilestone2 {
         false
       )
     )
-    val code = codegen.generateParser(className)
+    val code = (if (packageName.isEmpty()) "" else "package ${packageName.joinToString(".")}\n\n") +
+      codegen.generateParser(className)
     astFile.writeText(code)
 
     context.progressLogger.logInfo("Starting parsergen...")
