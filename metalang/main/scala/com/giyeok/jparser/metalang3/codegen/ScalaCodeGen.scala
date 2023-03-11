@@ -606,6 +606,10 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
     generateParser(className, grammarDef, naiveParserDef(), mainFuncExamples.map(mainFuncBlob))
   }
 
+  def generateParser(className: String): String = {
+    generateParser(className, CodeBlob("", Set()), CodeBlob("", Set()), None)
+  }
+
   def inlinedProtoNGrammar(): CodeBlob = {
     val grammarProto = GrammarProtobufConverter.convertNGrammarToProto(analysis.ngrammar)
     val grammarProtoBase64 = Base64.getEncoder.encodeToString(grammarProto.toByteArray)
