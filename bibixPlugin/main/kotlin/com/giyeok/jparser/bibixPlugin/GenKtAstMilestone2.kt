@@ -1,13 +1,10 @@
 package com.giyeok.jparser.bibixPlugin
 
 import com.giyeok.bibix.base.*
-import com.giyeok.bibix.targetIdData
 import com.giyeok.jparser.metalang3.`MetaLanguage3$`
 import com.giyeok.jparser.metalang3.codegen.KotlinOptCodeGen
 import com.giyeok.jparser.milestone2.`MilestoneParser2ProtobufConverter$`
 import com.giyeok.jparser.milestone2.MilestoneParserGen
-import java.nio.file.FileSystems
-import java.nio.file.Path
 import kotlin.io.path.*
 
 class GenKtAstMilestone2 {
