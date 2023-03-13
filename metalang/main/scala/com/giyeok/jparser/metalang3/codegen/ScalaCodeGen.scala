@@ -242,7 +242,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
   private def unrollChoicesExpr(choices: Map[Symbols.Symbol, ValuefyExpr], inputName: String, requiredType: Type, useOriginalInput: Boolean): ExprBlob = {
     val bindedVar = newVar()
     val bodyVar = newVar()
-    val casesExpr = choices.map { choice =>
+    val casesExpr = choices.toList.sortBy(choice => analysis.ngrammar.idOf(choice._1)).map { choice =>
       val choiceId = analysis.ngrammar.idOf(choice._1)
       /**
        * UnrollChoices가 사용되는 경우는 1. Nonterminal match function 2. Optional이나 InPlaceChoices에서 사용되는 경우
