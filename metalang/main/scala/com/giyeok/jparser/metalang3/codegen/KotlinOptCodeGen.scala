@@ -120,7 +120,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       s"""fun matchStart(): ${returnType.code} {
          |  val lastGen = inputs.size
          |  val kernel = history[lastGen]
-         |    .filter { it.symbolId() == ${startSymbol.id} && it.pointer() == 1 && it.endGen() == lastGen }
+         |    .filter { it.symbolId() == ${startSymbol.id} && it.pointer() == 1 && it.beginGen() == 0 && it.endGen() == lastGen }
          |    .checkSingle()
          |  return ${nonterminalMatchFuncName(startSymbol.symbol.name)}(kernel.beginGen(), kernel.endGen())
          |}""".stripMargin,

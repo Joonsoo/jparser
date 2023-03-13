@@ -96,7 +96,9 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
     assert(progressedStartKernel.size <= 1)
     val addedByProgresses = progressTasks.groupBy(_.kernel).view.map { pair =>
       val kernel = pair._1
-      val condition = AcceptConditionTemplate.disjunct(pair._2.map(_.condition).map(conditionToTemplate).toSet)
+      val baseCondition = conditionToTemplate(ctx.acceptConditions.getOrElse(kernel, Always))
+      val addedCondition = AcceptConditionTemplate.disjunct(pair._2.map(_.condition).map(conditionToTemplate).toSet)
+      val condition = AcceptConditionTemplate.conjunct(Set(baseCondition, addedCondition))
       Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, 2) -> condition
     }.toMap.groupMap(_._2)(_._1).view.mapValues(_.toSet).toMap
     val addedByOthers = (deriveTasks.map(_.kernel) ++ finishTasks.map(_.kernel).filter(_.pointer == 0)).toSet
