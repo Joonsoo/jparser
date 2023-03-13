@@ -2,13 +2,10 @@ package com.giyeok.jparser.bibixPlugin
 
 import com.giyeok.bibix.base.*
 import com.giyeok.jparser.metalang3.`MetaLanguage3$`
-import com.giyeok.jparser.metalang3.codegen.CodeBlob
 import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen
 import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen.`InlineSourceDef$`
 import com.giyeok.jparser.milestone2.`MilestoneParser2ProtobufConverter$`
 import com.giyeok.jparser.milestone2.MilestoneParserGen
-import scala.Some
-import scala.collection.immutable.Set
 import kotlin.io.path.*
 
 class GenScalaAstMilestone2 {

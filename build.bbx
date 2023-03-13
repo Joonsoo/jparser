@@ -8,6 +8,7 @@ from bibix.plugins import scala
 from bibix.plugins import protobuf
 from bibix.plugins import scalatest
 from bibix.plugins import ktjvm
+from bibix.plugins import jar
 
 kotlinVersion = "1.8.10"
 var ktjvm.sdkVersion = kotlinVersion
@@ -211,7 +212,7 @@ cli {
     deps = [...scalaTestDeps, cli.main],
   )
 
-  uberJar = jvm.executableUberJar(
+  uberJar = jar.executableUberJar(
     deps = [main],
     mainClass = "com.giyeok.jparser.cli.Main",
     jarFileName = "jparser-cli.jar"
