@@ -94,6 +94,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
     pendedCollector: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
     lookaheadCollector: mutable.Set[Int],
   ): List[AppendingMilestone] = {
+    // TODO 여기서 longest에 대한 처리도 해야되지 않나..? accept condition를 각 milestone path의 first로만 보기 때문에 별도 관리가 필요한듯 한데
     val conditionSymbolIds = reachableExceptOrJoinsOf(result.ctx.graph, start)
     if (conditionSymbolIds.nonEmpty) {
       conditionSymbolIds.foreach(addPendedForTermAction(result, _, pendedCollector, lookaheadCollector))
@@ -110,6 +111,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
       grammar.symbolOf(symbolId) match {
         case NGrammar.NExcept(_, _, _, except) => Some(except)
         case NGrammar.NJoin(_, _, _, join) => Some(join)
+        case NGrammar.NLongest(_, _, body) => Some(body)
         case _ => None
       }
     }
