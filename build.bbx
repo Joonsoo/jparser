@@ -40,7 +40,10 @@ testDeps = [
 
 scalaTestDeps = [
   ...testDeps,
-  maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.11"),
+  maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.15", excludes=[
+    ("xerces", "xerces-impl", none),
+    ("xml-apis", "xml-apis", none)
+  ]),
 ]
 
 base {
@@ -191,6 +194,29 @@ milestone2 {
   )
 }
 
+mgroup {
+  data = scala.library(
+    srcs = glob("mgroup/data/scala/**/*.scala"),
+    deps = [milestone2.data],
+  )
+
+  gen = scala.library(
+    srcs = glob("mgroup/gen/scala/**/*.scala"),
+    deps = [milestone2.gen, data],
+  )
+
+  parser = scala.library(
+    srcs = glob("mgroup/parser/scala/**/*.scala"),
+    deps = [milestone2.parser, base.main, data, utils.main],
+  )
+
+  test = scala.library(
+    srcs = glob("mgroup/test/scala/**/*.scala"),
+    resources = glob("mgroup/test/resources/**"),
+    deps = [data, gen, parser, naive.main, ...scalaTestDeps],
+  )
+}
+
 cli {
   generated = scala.library(
     srcs = glob("cli/generated/scala/**/*.scala"),
@@ -318,7 +344,7 @@ class JParserData(srcsRoot: directory, astifier: file, parserData: file)
 bibixPlugin {
   impl = ktjvm.library(
     srcs = glob("bibixPlugin/main/kotlin/**/*.kt"),
-    deps = [bibix.base, milestone2.gen, metalang.main],
+    deps = [bibix.base, milestone2.gen, mgroup.gen, metalang.main],
   )
 
   test1 = genKtAstMilestone2(
@@ -365,3 +391,10 @@ def genScalaAstMilestone2(
   astifierClassName: string,
   parserDataFileName: string = "milestone2-parserdata.pb",
 ): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenScalaAstMilestone2
+
+def genKtAstMgroup(
+  cdgFile: file,
+  astifierClassName: string,
+  parserDataFileName: string = "mgroup-parserdata.pb",
+  trimParserData: boolean = true,
+): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenKtAstMgroup
