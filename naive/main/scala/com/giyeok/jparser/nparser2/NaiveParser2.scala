@@ -203,6 +203,10 @@ class NaiveParser2(val grammar: NGrammar) {
   }
 
   def trimParsingContext(start: Kernel, nextGen: Int, ctx: ParsingContext): ParsingContext = {
+    trimParsingContext(Set(start), nextGen, ctx)
+  }
+
+  def trimParsingContext(starts: Set[Kernel], nextGen: Int, ctx: ParsingContext): ParsingContext = {
     val destKernels = ctx.graph.nodes.filter { kernel =>
       grammar.symbolOf(kernel.symbolId).isInstanceOf[NTerminal] &&
         kernel.pointer == 0 &&
@@ -264,7 +268,7 @@ class NaiveParser2(val grammar: NGrammar) {
       }
     }
 
-    val reachableFromStart = reachableFrom(start, Set())
+    val reachableFromStart = starts.flatMap { start => reachableFrom(start, Set()) }
     val reachableToTerms = destKernels.flatMap(reachableTo(_, Set()))
     val reachableNodes = reachableFromStart.intersect(reachableToTerms)
     val droppedNodes = ctx.graph.nodes -- reachableNodes

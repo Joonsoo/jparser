@@ -9,6 +9,7 @@ import com.giyeok.jparser.nparser2.{DeriveTask, Edge, FinishTask, KernelGraph, P
 
 import scala.annotation.tailrec
 
+// mutable data structure를 사용해서 조금 더 빠른 naive parser
 class OptNaiveParser2(val grammar: NGrammar) {
   val startKernel: Kernel = Kernel(grammar.startSymbol, 0, 0, 0)
 

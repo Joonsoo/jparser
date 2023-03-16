@@ -1,4 +1,4 @@
-package com.giyeok.jparser.mgroup2
+package com.giyeok.jparser.mgroup1
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar

@@ -1,4 +1,4 @@
-package com.giyeok.jparser.mgroup2
+package com.giyeok.jparser.mgroup1
 
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.examples.basics.MyPaper6_4

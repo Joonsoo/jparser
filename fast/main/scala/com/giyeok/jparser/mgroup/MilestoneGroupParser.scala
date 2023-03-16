@@ -3,7 +3,7 @@ package com.giyeok.jparser.mgroup
 import com.giyeok.jparser.Inputs.{Input, TermGroupDesc}
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.mgroup.MilestoneGroupParser.reconstructParseTree
-import com.giyeok.jparser.mgroup.MilestoneGroupParserData.{EDGE_CURRENT_GEN, EDGE_END_GEN, EDGE_NEXT_GEN, EDGE_NEXT_PLUS_GEN, EDGE_PARENT_GEN, EDGE_START_GEN, TERM_CURRENT_GEN, TERM_END_GEN, TERM_NEXT_GEN, TERM_NEXT_PLUS_GEN, TERM_START_GEN}
+import com.giyeok.jparser.mgroup.MilestoneGroupParserData._
 import com.giyeok.jparser.nparser.AcceptCondition
 import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.{Inputs, ParseForest, ParsingErrors}

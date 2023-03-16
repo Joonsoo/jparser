@@ -42,6 +42,26 @@ object MilestoneAcceptCondition {
       }
     }
   }
+
+  def reify(template: AcceptConditionTemplate, beginGen: Int, gen: Int): MilestoneAcceptCondition =
+    template match {
+      case AlwaysTemplate => Always
+      case NeverTemplate => Never
+      case AndTemplate(conditions) =>
+        And(conditions.map(reify(_, beginGen, gen)).distinct)
+      case OrTemplate(conditions) =>
+        Or(conditions.map(reify(_, beginGen, gen)).distinct)
+      case LookaheadIsTemplate(symbolId, fromNextGen) =>
+        Exists(Milestone(symbolId, 0, gen), fromNextGen)
+      case LookaheadNotTemplate(symbolId, fromNextGen) =>
+        NotExists(Milestone(symbolId, 0, gen), checkFromNextGen = fromNextGen)
+      case LongestTemplate(symbolId) =>
+        NotExists(Milestone(symbolId, 0, beginGen), checkFromNextGen = true)
+      case OnlyIfTemplate(symbolId) =>
+        OnlyIf(Milestone(symbolId, 0, beginGen))
+      case UnlessTemplate(symbolId) =>
+        Unless(Milestone(symbolId, 0, beginGen))
+    }
 }
 
 sealed abstract class MilestoneAcceptCondition {

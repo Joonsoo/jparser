@@ -194,7 +194,7 @@ milestone2 {
   )
 }
 
-mgroup {
+mgroup2 {
   data = scala.library(
     srcs = glob("mgroup/data/scala/**/*.scala"),
     deps = [milestone2.data],
@@ -392,9 +392,9 @@ def genScalaAstMilestone2(
   parserDataFileName: string = "milestone2-parserdata.pb",
 ): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenScalaAstMilestone2
 
-def genKtAstMgroup(
+def genKtAstMgroup2(
   cdgFile: file,
   astifierClassName: string,
   parserDataFileName: string = "mgroup-parserdata.pb",
   trimParserData: boolean = true,
-): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenKtAstMgroup
+): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenKtAstMgroup2

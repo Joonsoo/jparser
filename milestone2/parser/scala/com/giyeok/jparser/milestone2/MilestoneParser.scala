@@ -21,37 +21,17 @@ class MilestoneParser(val parserData: MilestoneParserData) {
   def initialCtx: ParsingContext =
     ParsingContext(0, List(MilestonePath(initialMilestone)), List())
 
-  def reifyCondition(template: AcceptConditionTemplate, beginGen: Int, gen: Int): MilestoneAcceptCondition =
-    template match {
-      case AlwaysTemplate => Always
-      case NeverTemplate => Never
-      case AndTemplate(conditions) =>
-        And(conditions.map(reifyCondition(_, beginGen, gen)).distinct)
-      case OrTemplate(conditions) =>
-        Or(conditions.map(reifyCondition(_, beginGen, gen)).distinct)
-      case LookaheadIsTemplate(symbolId, fromNextGen) =>
-        Exists(Milestone(symbolId, 0, gen), fromNextGen)
-      case LookaheadNotTemplate(symbolId, fromNextGen) =>
-        NotExists(Milestone(symbolId, 0, gen), checkFromNextGen = fromNextGen)
-      case LongestTemplate(symbolId) =>
-        NotExists(Milestone(symbolId, 0, beginGen), checkFromNextGen = true)
-      case OnlyIfTemplate(symbolId) =>
-        OnlyIf(Milestone(symbolId, 0, beginGen))
-      case UnlessTemplate(symbolId) =>
-        Unless(Milestone(symbolId, 0, beginGen))
-    }
-
   def applyParsingAction(path: MilestonePath, gen: Int, action: ParsingAction, actionsCollector: GenActionsBuilder): List[MilestonePath] = {
     val tip = path.tip
     val appended = action.appendingMilestones.map { appending =>
-      val newCondition = reifyCondition(appending.acceptCondition, tip.gen, gen)
+      val newCondition = MilestoneAcceptCondition.reify(appending.acceptCondition, tip.gen, gen)
       val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
       path.append(Milestone(appending.milestone, gen), condition)
     }
     // apply edge actions to path
     val reduced: List[MilestonePath] = action.startNodeProgressCondition match {
       case Some(startNodeProgressCondition) =>
-        val newCondition = reifyCondition(startNodeProgressCondition, tip.gen, gen)
+        val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tip.gen, gen)
         val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
         actionsCollector.addProgressedMilestone(tip, condition)
         path.tipParent match {
@@ -188,6 +168,9 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
   def parseStep(ctx: ParsingContext, input: Inputs.Input): Either[ParsingError, ParsingContext] = {
     val gen = ctx.gen + 1
+    if (verbose) {
+      println(s"  === $gen $input ${ctx.paths.size}")
+    }
     val actionsCollector = new GenActionsBuilder()
     val pendedCollection = mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])]()
     val termActionApplied = ctx.paths.flatMap { path =>
@@ -206,11 +189,11 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       val firstMilestone = Milestone(first, ctx.gen)
       progressCondition match {
         case Some(progressCondition) =>
-          actionsCollector.addProgressedMilestone(firstMilestone, reifyCondition(progressCondition, ctx.gen, gen))
+          actionsCollector.addProgressedMilestone(firstMilestone, MilestoneAcceptCondition.reify(progressCondition, ctx.gen, gen))
         case None =>
       }
       appendings.map { appending =>
-        val condition = reifyCondition(appending.acceptCondition, ctx.gen, gen)
+        val condition = MilestoneAcceptCondition.reify(appending.acceptCondition, ctx.gen, gen)
         MilestonePath(firstMilestone).append(Milestone(appending.milestone, gen), condition)
       }
     }
@@ -266,9 +249,6 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     inputSeq.foldLeft[Either[ParsingError, ParsingContext]](Right(initialCtx)) { (m, nextInput) =>
       m match {
         case Right(currCtx) =>
-          if (verbose) {
-            println(s"  === ${currCtx.gen + 1} $nextInput ${currCtx.paths.size}")
-          }
           parseStep(currCtx, nextInput)
         case error => error
       }
@@ -335,7 +315,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       conditionMemos: Memoize[MilestoneAcceptCondition, Boolean],
     ): Unit = {
       tasksSummary.addedKernels.foreach { pair =>
-        val condition = reifyCondition(pair._1, beginGen, gen)
+        val condition = MilestoneAcceptCondition.reify(pair._1, beginGen, gen)
         if (isFinallyAccepted(history, gen, condition, conditionMemos)) {
           pair._2.foreach { added =>
             kernelsCollector += mapGen(added, genMap)

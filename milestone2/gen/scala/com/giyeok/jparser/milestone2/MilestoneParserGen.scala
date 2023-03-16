@@ -94,8 +94,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
     pendedCollector: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
     lookaheadCollector: mutable.Set[Int],
   ): List[AppendingMilestone] = {
-    // TODO 여기서 longest에 대한 처리도 해야되지 않나..? accept condition를 각 milestone path의 first로만 보기 때문에 별도 관리가 필요한듯 한데
-    val conditionSymbolIds = reachableExceptOrJoinsOf(result.ctx.graph, start)
+    val conditionSymbolIds = reachableConditionSymbols(result.ctx.graph, start)
     if (conditionSymbolIds.nonEmpty) {
       conditionSymbolIds.foreach(addPendedForTermAction(result, _, pendedCollector, lookaheadCollector))
     }
@@ -105,7 +104,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
     }
   }
 
-  private def reachableExceptOrJoinsOf(graph: KernelGraph, start: Kernel): Set[Int] = {
+  def reachableConditionSymbols(graph: KernelGraph, start: Kernel): Set[Int] = {
     val reachables = graph.reachableNodesFrom(start)
     val conditionSymbolIds = reachables.map(_.symbolId).flatMap { symbolId =>
       grammar.symbolOf(symbolId) match {
@@ -137,7 +136,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
     }
   }
 
-  private def conditionToTemplateForTermAction(
+  def conditionToTemplateForTermAction(
     result: CtxWithTasks,
     condition: AcceptCondition,
     pendedCollector: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
@@ -233,6 +232,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
     val derived = startingCtx.ctx.graph.nodes
     val termNodes = derived.filter { node => grammar.symbolOf(node.symbolId).isInstanceOf[NTerminal] }
       .filter { node => node.pointer == 0 }
+    // TODO kernel.symbolId == start.symbolId 가 무슨 의미지..?
     assert(termNodes.forall { kernel => kernel.symbolId == start.symbolId || kernel.beginGen == 1 })
     val terms = termNodes.map { node => grammar.symbolOf(node.symbolId) }
       .map { case terminal: NTerminal => terminal.symbol }
@@ -269,7 +269,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
     edgeRequires: mutable.Set[Int],
     lookaheadCollector: mutable.Set[Int],
   ): List[AppendingMilestone] = {
-    val conditionSymbolIds = reachableExceptOrJoinsOf(result.ctx.graph, start)
+    val conditionSymbolIds = reachableConditionSymbols(result.ctx.graph, start)
     if (conditionSymbolIds.nonEmpty) {
       edgeRequires.addAll(conditionSymbolIds)
     }

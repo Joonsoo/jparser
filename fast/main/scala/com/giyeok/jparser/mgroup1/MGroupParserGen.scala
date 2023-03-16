@@ -1,12 +1,12 @@
-package com.giyeok.jparser.mgroup2
+package com.giyeok.jparser.mgroup1
 
+import com.giyeok.jparser.{Inputs, NGrammar}
 import com.giyeok.jparser.NGrammar.{NExcept, NJoin, NLookaheadSymbol, NTerminal}
 import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.nparser2._
 import com.giyeok.jparser.utils.TermGrouper
-import com.giyeok.jparser.{Inputs, NGrammar}
 
 import scala.annotation.tailrec
 

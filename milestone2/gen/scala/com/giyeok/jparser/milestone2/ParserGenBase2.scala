@@ -151,6 +151,32 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
     CtxWithTasks(mutCtx.toParsingContext, mutTasks.toList, mutStartKernelProgressTasks.toList)
   }
 
+  def runTasksWithProgressBarriers(
+    nextGen: Int,
+    tasks: List[ParsingTask],
+    barrierNodes: Set[Kernel],
+    ctx: ParsingContext
+  ): CtxWithTasks = {
+    val mutCtx = MutableParsingContext(ctx)
+    val mutTasks = mutable.Buffer[ParsingTask]()
+    val mutStartKernelProgressTasks = mutable.Buffer[ProgressTask]()
+
+    @tailrec def recursion(tasks: List[ParsingTask]): Unit =
+      tasks match {
+        case (barrierTask@ProgressTask(progressNode, _)) +: rest if barrierNodes.contains(progressNode) =>
+          mutStartKernelProgressTasks += barrierTask
+          recursion(rest)
+        case task +: rest =>
+          mutTasks += task
+          val newTasks = parser.process(nextGen, task, mutCtx)
+          recursion(newTasks ++ rest)
+        case List() =>
+      }
+
+    recursion(tasks)
+    CtxWithTasks(mutCtx.toParsingContext, mutTasks.toList, mutStartKernelProgressTasks.toList)
+  }
+
   def startingCtxFrom(start: KernelTemplate, baseGen: Int): (Kernel, CtxWithTasks) = {
     val startKernel = Kernel(start.symbolId, start.pointer, baseGen, baseGen + 1)
     val startGraph = KernelGraph(Set(startKernel), Set())
@@ -164,5 +190,23 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
       startKernel,
       startCtx)
     (startKernel, ctx)
+  }
+
+  def startingCtxFrom(starts: Set[KernelTemplate], baseGen: Int): (Map[KernelTemplate, Kernel], CtxWithTasks) = {
+    val startKernelsMap = starts.map(start =>
+      start -> Kernel(start.symbolId, start.pointer, baseGen, baseGen + 1)).toMap
+    val startKernels = startKernelsMap.values.toSet
+    val startGraph = KernelGraph(startKernels, Set())
+    val startCtx = ParsingContext(startGraph, startKernels.map(_ -> Always).toMap)
+
+    val deriveTasks = startKernels.map(DeriveTask)
+
+    val ctx = runTasksWithProgressBarriers(
+      baseGen + 1,
+      deriveTasks.toList,
+      startKernels,
+      startCtx
+    )
+    (startKernelsMap, ctx)
   }
 }

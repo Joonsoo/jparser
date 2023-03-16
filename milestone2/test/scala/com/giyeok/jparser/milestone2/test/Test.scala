@@ -32,8 +32,6 @@ class Test extends AnyFlatSpec {
     val parserGen = new MilestoneParserGen(analysis.ngrammar)
     val edgeAction = parserGen.edgeProgressActionBetween(KernelTemplate(1, 0), KernelTemplate(38, 1))
 
-    // 29, 2, 0..2 가 Always이면 안될듯한데..
-
     println(edgeAction)
   }
 }
