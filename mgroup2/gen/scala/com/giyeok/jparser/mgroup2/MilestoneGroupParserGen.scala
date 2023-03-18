@@ -21,7 +21,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
   val start: KernelTemplate = KernelTemplate(grammar.startSymbol, 0)
   val startingCtx: (Kernel, CtxWithTasks) = base.startingCtxFrom(start, 0)
 
-  private val builder = new MilestoneGroupParserDataBuilder(grammar, startingCtx._2.tasksSummary)
+  val builder = new MilestoneGroupParserDataBuilder(grammar, startingCtx._2.tasksSummary)
 
   def termActionsFor(groupId: Int): List[(TermGroupDesc, TermAction)] = {
     val starts = builder.milestonesOfGroup(groupId)
@@ -146,18 +146,63 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
 
   case class Jobs(milestoneGroupIds: Set[Int], edges: Set[(KernelTemplate, Int)])
 
-  private def createParserData(jobs: Jobs): Unit = {
-    val tips = mutable.Set[Int]()
-    val edges = mutable.Set[(KernelTemplate, Int)]()
+  // key groupId 앞에 올 수 있는 milestone들
+  private val precedings = mutable.Map[Int, mutable.Set[KernelTemplate]]()
+  // key가 value로 replace돼서 reduce 실행 가능
+  private val edgeActionTriggers = mutable.Map[Int, mutable.Set[Int]]()
+  // key가 value의 milestone으로 치환 가능
+  private val mgroupReplaced = mutable.Map[Int, mutable.Set[KernelTemplate]]()
 
+  private def addParsingAction(mgroupId: Int, parsingAction: ParsingAction): Unit = {
+    parsingAction.appendingMilestoneGroups.foreach { appending =>
+      // milestoneGroupId 앞에 올 수 있는 mileestone들 -> appending._1가 뒤에 올 수 있고
+      // milestone -> appending._1 (KernelTemplate)
+      mgroupReplaced.getOrElseUpdate(mgroupId, mutable.Set()) += appending._1
+      // appending._1 -> appending._2.groupId 뒤에 올 수 있음
+      precedings.getOrElseUpdate(appending._2.groupId, mutable.Set()) += appending._1
+    }
+    parsingAction.startNodeProgress.foreach { progress =>
+      // milestoneGroupId 앞에 올 수 있는 milestone들 -> progress._1 사이에 edge action 발생 가능
+      // milestone -> mgroupId reduce trigger
+      edgeActionTriggers.getOrElseUpdate(mgroupId, mutable.Set()) += progress._1
+    }
+  }
+
+  private def possibleTips(): Set[Int] = {
+    precedings.keySet.toSet
+  }
+
+  private def precedingMilestonesOf(groupId: Int): Set[KernelTemplate] = {
+    precedings.get(groupId) match {
+      case Some(value) => value.toSet
+      case None => Set()
+    }
+  }
+
+  private def possibleEdges(): Set[(KernelTemplate, Int)] = {
+    val x = mutable.Set[(KernelTemplate, Int)]()
+    edgeActionTriggers.foreach { pair =>
+      // pair._1 앞에 올 수 있는 milestone들 -> pair._2
+      precedingMilestonesOf(pair._1).foreach { preceding =>
+        pair._2.foreach { following =>
+          x += preceding -> following
+        }
+      }
+    }
+    x.toSet
+  }
+
+  private def createParserData(jobs: Jobs): Unit = {
     jobs.milestoneGroupIds.foreach { milestoneGroupId =>
       val termActions = termActionsFor(milestoneGroupId)
       builder.termActions(milestoneGroupId) = termActions
 
       termActions.foreach { case (_, termAction) =>
-        termAction.parsingAction.appendingMilestoneGroups.foreach { appending =>
-          tips += appending._2.groupId
-          edges += appending._1 -> appending._2.groupId
+        addParsingAction(milestoneGroupId, termAction.parsingAction)
+        termAction.pendedAcceptConditionKernels.foreach { pended =>
+          pended._2._1.foreach { appending =>
+            precedings.getOrElseUpdate(appending.groupId, mutable.Set()) += pended._1
+          }
         }
       }
     }
@@ -166,15 +211,14 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
       val edgeAction = edgeProgressActionBetween(edge._1, edge._2)
       builder.edgeProgressActions(edge) = edgeAction
 
-      edgeAction.parsingAction.appendingMilestoneGroups.foreach { appending =>
-        tips += appending._2.groupId
-        edges += appending._1 -> appending._2.groupId
-      }
+      addParsingAction(edge._2, edgeAction.parsingAction)
     }
 
+    val allTips = possibleTips()
+    val allEdges = possibleEdges()
     val remainingJobs = Jobs(
-      (tips -- builder.termActions.keySet).toSet,
-      (edges -- builder.edgeProgressActions.keySet).toSet,
+      allTips -- builder.termActions.keySet,
+      allEdges -- builder.edgeProgressActions.keySet,
     )
     if (remainingJobs.milestoneGroupIds.nonEmpty || remainingJobs.edges.nonEmpty) {
       println(s"Remaining jobs: milestones=${remainingJobs.milestoneGroupIds.size}, edges=${remainingJobs.edges.size}")
@@ -183,15 +227,6 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
   }
 
   def parserData(): MilestoneGroupParserData = {
-    //    val initGroup = builder.milestoneGroupId(Set(start))
-    //    val initTermActions = termActionsFor(builder, initGroup)
-    //    println(initTermActions)
-    //
-    //    val termActions2 = termActionsFor(builder, 2)
-    //    println(termActions2)
-    //
-    //    val edgeAction1 = edgeProgressActionBetween(builder, KernelTemplate(1, 0), 4)
-    //    println(edgeAction1)
     val startGroupId = builder.milestoneGroupId(Set(start))
     createParserData(Jobs(Set(startGroupId), Set()))
     builder.build(startGroupId)

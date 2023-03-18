@@ -33,6 +33,7 @@ TerminalChoice: TerminalChoice = '\'' TerminalChoiceElem TerminalChoiceElem+ '\'
   | '\'' TerminalChoiceRange '\'' {TerminalChoice(choices=[$1])}
 TerminalChoiceElem: TerminalChoiceElem = TerminalChoiceChar
   | TerminalChoiceRange
+  | TerminalUnicodeCategory
 TerminalChoiceRange = TerminalChoiceChar '-' TerminalChoiceChar {TerminalChoiceRange(start=$0, end=$2)}
 StringSymbol = '"' StringChar* '"' {StringSymbol(value=$1)}
 Nonterminal = NonterminalName {Nonterminal(name=$0)}
@@ -46,6 +47,7 @@ TerminalChar: TerminalChar = .-'\\' {CharAsIs(value=$0)}
 TerminalChoiceChar: TerminalChoiceChar = .-'\'\-\\' {CharAsIs(value=$0)}
   | '\\' '\'\-\\bnrt' {CharEscaped(escapeCode=$1)}
   | UnicodeChar
+TerminalUnicodeCategory = '\\' 'U' 'A-Z' 'a-z' {TerminalUnicodeCategory(categoryName=str($1, $2))}
 StringChar: StringChar = .-'"\\' {CharAsIs(value=$0)}
   | '\\' '"\\bnrt' {CharEscaped(escapeCode=$1)}
   | UnicodeChar

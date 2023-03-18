@@ -36,7 +36,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
 
       path.tipParent match {
         case Some(tipParent) =>
-          val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> tip.groupId)
+          val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> replaceGroupId)
           val newPath = MilestoneGroupPath(path.first, path.path.drop(1), MilestoneGroup(replaceGroupId, tip.gen), condition)
           applyParsingAction(newPath, gen, edgeAction.parsingAction, actionsCollector)
         case None => List()

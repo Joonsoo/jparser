@@ -45,6 +45,7 @@ object TerminalUtil {
         terminalChoiceCharToChar(start) to terminalChoiceCharToChar(end)
       case char: MetaLang3Ast.TerminalChoiceChar =>
         Set(terminalChoiceCharToChar(char))
+      // TODO unicode category
     }.toSet
     Symbols.Chars(chars)
   }

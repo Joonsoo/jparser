@@ -23,11 +23,14 @@ class Test extends AnyFlatSpec {
 
     val parserData = parserGen.parserData()
 
-    val edgeAction = parserGen.edgeProgressActionBetween(KernelTemplate(1, 0), 2)
-    println(edgeAction)
+    val termActions = parserGen.termActionsFor(2)
+    termActions.foreach { termAction =>
+      println(termAction._1)
+      println(termAction._2)
+    }
 
     val parser = new MilestoneGroupParser(parserData).setVerbose()
-    val inputs = Inputs.fromString("1+2")
+    val inputs = Inputs.fromString("1+(2*3)*4")
     val result = parser.parse(inputs)
     println(result)
   }
