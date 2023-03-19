@@ -89,7 +89,9 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
       val termAction = TermAction(
         appendingMilestoneGroups = appendings.toList,
         startNodeProgress = startProgresses,
-        lookaheadRequiringSymbols = lookaheadCollector.toSet,
+        lookaheadRequiringSymbols = lookaheadCollector.toSet.map { symbolId =>
+          LookaheadRequires(symbolId, builder.milestoneGroupId(Set(KernelTemplate(symbolId, 0))))
+        },
         // TODO
         tasksSummary2 = TasksSummary2(Map(), Set(), None),
         pendedAcceptConditionKernels = pendedCollector.toMap,
@@ -130,7 +132,9 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
     EdgeAction(
       appendingMilestoneGroups = appendingMilestoneGroups,
       startNodeProgress = startNodeProgresses.toList,
-      lookaheadRequiringSymbols = lookaheadCollector.toSet,
+      lookaheadRequiringSymbols = lookaheadCollector.toSet.map { symbolId =>
+        LookaheadRequires(symbolId, builder.milestoneGroupId(Set(KernelTemplate(symbolId, 0))))
+      },
       // TODO
       tasksSummary2 = TasksSummary2(Map(), Set(), None),
       requiredSymbols = edgeRequiresCollector.toSet
@@ -147,7 +151,9 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
     EdgeAction(
       appendingMilestoneGroups = appendingMilestoneGroups,
       startNodeProgress = edgeAction.parsingAction.startNodeProgressCondition.toList,
-      lookaheadRequiringSymbols = edgeAction.parsingAction.lookaheadRequiringSymbols,
+      lookaheadRequiringSymbols = edgeAction.parsingAction.lookaheadRequiringSymbols.map { symbolId =>
+        LookaheadRequires(symbolId, builder.milestoneGroupId(Set(KernelTemplate(symbolId, 0))))
+      },
       tasksSummary2 = edgeAction.parsingAction.tasksSummary,
       requiredSymbols = edgeAction.requiredSymbols
     )
@@ -162,6 +168,8 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
 
   // key groupId 앞에 올 수 있는 milestone들
   private val precedingOfGroups = mutable.Map[Int, mutable.Set[KernelTemplate]]()
+  // lookaheadRequires 때문에 tip에 올 수 있는 mgroup id들
+  private val lookaheadRequires = mutable.Set[Int]()
   // key가 value로 replace돼서 reduce 실행 가능
   private val edgeActionTriggers = mutable.Map[Int, mutable.Set[Int]]()
   // key가 value의 milestone으로 치환 가능
@@ -185,12 +193,14 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
         precedingOfGroups.getOrElseUpdate(appending.groupId, mutable.Set()) += pended._1
       }
     }
+    lookaheadRequires ++= termAction.lookaheadRequiringSymbols.map(_.groupId)
   }
 
   private def addEdgeAction(edgeStart: KernelTemplate, edgeAction: EdgeAction): Unit = {
     edgeAction.appendingMilestoneGroups.foreach { appending =>
       precedingOfGroups.getOrElseUpdate(appending.groupId, mutable.Set()) += edgeStart
     }
+    lookaheadRequires ++= edgeAction.lookaheadRequiringSymbols.map(_.groupId)
   }
 
   private def possibleTips(): Set[Int] = {

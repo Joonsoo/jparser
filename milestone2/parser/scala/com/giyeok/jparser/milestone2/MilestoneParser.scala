@@ -126,7 +126,6 @@ class MilestoneParser(val parserData: MilestoneParserData) {
   }
 
   def evaluateAcceptCondition(
-    paths: List[MilestonePath],
     genActions: GenActions,
     condition: MilestoneAcceptCondition
   ): Boolean = {
@@ -134,33 +133,33 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       case Always => true
       case Never => false
       case And(conditions) =>
-        conditions.forall(evaluateAcceptCondition(paths, genActions, _))
+        conditions.forall(evaluateAcceptCondition(genActions, _))
       case Or(conditions) =>
-        conditions.exists(evaluateAcceptCondition(paths, genActions, _))
+        conditions.exists(evaluateAcceptCondition(genActions, _))
       case Exists(milestone, true) => false
       case Exists(milestone, false) =>
         genActions.progressedMilestones.get(milestone) match {
           case Some(progressCondition) =>
-            evaluateAcceptCondition(paths, genActions, progressCondition)
+            evaluateAcceptCondition(genActions, progressCondition)
           case None => false
         }
       case NotExists(milestone, true) => true
       case NotExists(milestone, false) =>
         genActions.progressedMilestones.get(milestone) match {
           case Some(progressCondition) =>
-            !evaluateAcceptCondition(paths, genActions, progressCondition)
+            !evaluateAcceptCondition(genActions, progressCondition)
           case None => true
         }
       case OnlyIf(milestone) =>
         genActions.progressedMilestones.get(milestone) match {
           case Some(progressCondition) =>
-            evaluateAcceptCondition(paths, genActions, progressCondition)
+            evaluateAcceptCondition(genActions, progressCondition)
           case None => false
         }
       case Unless(milestone) =>
         genActions.progressedMilestones.get(milestone) match {
           case Some(progressCondition) =>
-            !evaluateAcceptCondition(paths, genActions, progressCondition)
+            !evaluateAcceptCondition(genActions, progressCondition)
           case None => true
         }
     }
@@ -227,6 +226,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }
 
       // first가 (start symbol, 0, 0)이거나 현재 존재하는 엣지의 trackingMilestones인 경우만 제외하고 모두 제거
+      // 경우에 따라선 필터링을 함에 따라서 trackings가 달라져서 불필요한 경로가 남는 경우가 있을 수 있는데, 다음 gen에 어차피 제거될 것이므로 큰 문제 없을듯
       val trackings = collectTrackings(newPaths)
       val newPathsFiltered = newPathsUpdated
         .filter(path => path.first == initialMilestone || trackings.contains(path.first))
@@ -284,7 +284,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         case Never => false
         case _ =>
           if (gen + 1 == history.length) {
-            evaluateAcceptCondition(entry.untrimmedPaths, entry.genActions, condition)
+            evaluateAcceptCondition(entry.genActions, condition)
           } else {
             val evolved = evolveAcceptCondition(entry.untrimmedPaths, entry.genActions, condition)
             isFinallyAccepted(history, gen + 1, evolved, conditionMemos)
