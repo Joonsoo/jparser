@@ -15,8 +15,9 @@ case class MilestoneGroupParserData(
   // group id -> actions
   termActions: Map[Int, List[(TermGroupDesc, TermAction)]],
   // (milestone -> group id) -> actions
-  edgeProgressActions: Map[(KernelTemplate, Int), EdgeAction],
-  edgeRequiringSymbols: Map[(KernelTemplate, KernelTemplate), Set[Int]],
+  tipEdgeProgressActions: Map[(KernelTemplate, Int), EdgeAction],
+  // (milestone -> milestone) -> actions
+  midEdgeProgressActions: Map[(KernelTemplate, KernelTemplate), EdgeAction],
 )
 
 class MilestoneGroupParserDataBuilder(val grammar: NGrammar, val initialTasksSummary: TasksSummary2) {
@@ -24,8 +25,8 @@ class MilestoneGroupParserDataBuilder(val grammar: NGrammar, val initialTasksSum
   private val milestoneGroupsInverse = mutable.Map[Set[KernelTemplate], Int]()
 
   val termActions: mutable.Map[Int, List[(TermGroupDesc, TermAction)]] = mutable.Map()
-  val edgeProgressActions: mutable.Map[(KernelTemplate, Int), EdgeAction] = mutable.Map()
-  val edgeRequiringSymbols: mutable.Map[(KernelTemplate, KernelTemplate), Set[Int]] = mutable.Map()
+  val tipEdgeProgressActions: mutable.Map[(KernelTemplate, Int), EdgeAction] = mutable.Map()
+  val midEdgeProgressActions: mutable.Map[(KernelTemplate, KernelTemplate), EdgeAction] = mutable.Map()
 
   def milestoneGroupId(milestones: Set[KernelTemplate]): Int = {
     milestoneGroupsInverse.get(milestones) match {
@@ -50,29 +51,29 @@ class MilestoneGroupParserDataBuilder(val grammar: NGrammar, val initialTasksSum
       initialTasksSummary,
       milestoneGroups.toMap,
       termActions.toMap,
-      edgeProgressActions.toMap,
-      edgeRequiringSymbols.toMap
+      tipEdgeProgressActions.toMap,
+      midEdgeProgressActions.toMap
     )
   }
 }
 
-// ParsingAction은 항상 milestone group에 적용됨
-case class ParsingAction(
+case class TermAction(
   // 현재 path는 appendingMilestoneGroups만큼 분화되고, 현재 group은 _1로 치환되고 뒤에 _2(appendingMilestones)가 붙음
   appendingMilestoneGroups: List[(KernelTemplate, AppendingMilestoneGroup)],
   // 현재 group 중 _1(groupId)가 _2의 조건을 갖고 progress된다
   startNodeProgress: List[(Int, AcceptConditionTemplate)],
   lookaheadRequiringSymbols: Set[Int],
   tasksSummary2: TasksSummary2,
-)
-
-case class TermAction(
-  parsingAction: ParsingAction,
   pendedAcceptConditionKernels: Map[KernelTemplate, (List[AppendingMilestoneGroup], Option[AcceptConditionTemplate])],
 )
 
 case class EdgeAction(
-  parsingAction: ParsingAction,
+  // 현재 path는 appendingMilestoneGroups만큼 분화되고, 현재 group은 _1로 치환되고 뒤에 _2(appendingMilestones)가 붙음
+  appendingMilestoneGroups: List[AppendingMilestoneGroup],
+  // 현재 group 중 _1(groupId)가 _2의 조건을 갖고 progress된다
+  startNodeProgress: List[AcceptConditionTemplate],
+  lookaheadRequiringSymbols: Set[Int],
+  tasksSummary2: TasksSummary2,
   requiredSymbols: Set[Int],
 )
 

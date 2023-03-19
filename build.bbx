@@ -196,23 +196,23 @@ milestone2 {
 
 mgroup2 {
   data = scala.library(
-    srcs = glob("mgroup/data/scala/**/*.scala"),
+    srcs = glob("mgroup2/data/scala/**/*.scala"),
     deps = [milestone2.data],
   )
 
   gen = scala.library(
-    srcs = glob("mgroup/gen/scala/**/*.scala"),
+    srcs = glob("mgroup2/gen/scala/**/*.scala"),
     deps = [milestone2.gen, data],
   )
 
   parser = scala.library(
-    srcs = glob("mgroup/parser/scala/**/*.scala"),
+    srcs = glob("mgroup2/parser/scala/**/*.scala"),
     deps = [milestone2.parser, base.main, data, utils.main],
   )
 
   test = scala.library(
-    srcs = glob("mgroup/test/scala/**/*.scala"),
-    resources = glob("mgroup/test/resources/**"),
+    srcs = glob("mgroup2/test/scala/**/*.scala"),
+    resources = glob("mgroup2/test/resources/**"),
     deps = [data, gen, parser, naive.main, ...scalaTestDeps],
   )
 }
@@ -344,7 +344,7 @@ class JParserData(srcsRoot: directory, astifier: file, parserData: file)
 bibixPlugin {
   impl = ktjvm.library(
     srcs = glob("bibixPlugin/main/kotlin/**/*.kt"),
-    deps = [bibix.base, milestone2.gen, mgroup.gen, metalang.main],
+    deps = [bibix.base, milestone2.gen, mgroup2.gen, metalang.main],
   )
 
   test1 = genKtAstMilestone2(
@@ -395,6 +395,6 @@ def genScalaAstMilestone2(
 def genKtAstMgroup2(
   cdgFile: file,
   astifierClassName: string,
-  parserDataFileName: string = "mgroup-parserdata.pb",
+  parserDataFileName: string = "mgroup2-parserdata.pb",
   trimParserData: boolean = true,
 ): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenKtAstMgroup2

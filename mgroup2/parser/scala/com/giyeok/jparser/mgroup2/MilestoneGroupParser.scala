@@ -3,7 +3,7 @@ package com.giyeok.jparser.mgroup2
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.fast.KernelTemplate
-import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, Always, GenActionsBuilder, Milestone, MilestoneAcceptCondition, Never}
+import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, Always, GenActionsBuilder, Milestone, MilestoneAcceptCondition, MilestonePath, Never}
 
 import scala.collection.mutable
 
@@ -21,7 +21,29 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
     List(MilestoneGroupPath(initialMilestone, List(), MilestoneGroup(parserData.startGroupId, 0), Always)),
     List())
 
-  def applyParsingAction(path: MilestoneGroupPath, gen: Int, action: ParsingAction, actionsCollector: GenActionsBuilder): List[MilestoneGroupPath] = {
+  def progressTip(path: MilestonePath, gen: Int, action: EdgeAction, actionsCollector: GenActionsBuilder): List[MilestoneGroupPath] = {
+    val tip = path.tip
+
+    val appended = action.appendingMilestoneGroups.map { appending =>
+      val newCondition = MilestoneAcceptCondition.reify(appending.acceptCondition, tip.gen, gen)
+      val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
+      MilestoneGroupPath(path.first, path.path, MilestoneGroup(appending.groupId, gen), condition)
+    }
+    val reduced = action.startNodeProgress.flatMap { startNodeProgressCondition =>
+      path.tipParent match {
+        case Some(tipParent) =>
+          val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tip.gen, gen)
+          val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
+
+          val edgeAction = parserData.midEdgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
+          progressTip(path.pop(condition), gen, edgeAction, actionsCollector)
+        case None => List()
+      }
+    }
+    appended ++ reduced
+  }
+
+  def applyTermAction(path: MilestoneGroupPath, gen: Int, action: TermAction, actionsCollector: GenActionsBuilder): List[MilestoneGroupPath] = {
     val tip = path.tip
 
     val appended = action.appendingMilestoneGroups.map { appending =>
@@ -36,9 +58,8 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
 
       path.tipParent match {
         case Some(tipParent) =>
-          val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> replaceGroupId)
-          val newPath = MilestoneGroupPath(path.first, path.path.drop(1), MilestoneGroup(replaceGroupId, tip.gen), condition)
-          applyParsingAction(newPath, gen, edgeAction.parsingAction, actionsCollector)
+          val edgeAction = parserData.tipEdgeProgressActions(tipParent.kernelTemplate -> replaceGroupId)
+          progressTip(MilestonePath(path.first, path.path, condition), gen, edgeAction, actionsCollector)
         case None => List()
       }
     }
@@ -60,7 +81,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       termAction match {
         case Some((_, action)) =>
           pendedCollection ++= action.pendedAcceptConditionKernels
-          applyParsingAction(path, gen, action.parsingAction, actionsCollector)
+          applyTermAction(path, gen, action, actionsCollector)
         case None => List()
       }
     }

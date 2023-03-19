@@ -1,7 +1,6 @@
 package com.giyeok.jparser.mgroup2
 
 import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.metalang3.MetaLanguage3
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -22,12 +21,6 @@ class Test extends AnyFlatSpec {
     val parserGen = new MilestoneGroupParserGen(analysis.ngrammar)
 
     val parserData = parserGen.parserData()
-
-    val termActions = parserGen.termActionsFor(2)
-    termActions.foreach { termAction =>
-      println(termAction._1)
-      println(termAction._2)
-    }
 
     val parser = new MilestoneGroupParser(parserData).setVerbose()
     val inputs = Inputs.fromString("1+(2*3)*4")
