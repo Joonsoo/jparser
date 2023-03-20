@@ -1,0 +1,382 @@
+KotlinFile = ShebangLine? WS_ NL (WS FileAnnotation)* WS <PackageHeader> .* {$5}
+
+
+LF = '\n'
+CR = '\r'
+ShebangLine = "#!" .-(CR | LF)*
+Comment = LineComment | BlockComment
+LineComment = "//" (.-(CR | LF))* (EOF | CR | LF)
+BlockComment = "/*" (. !"*/")* . "*/"
+WS = ('\n\r\t ' | Comment)*
+WS_ = '\t '*
+NL = LF | CR LF?
+EOF = !.
+
+
+PackageHeader = "package"&Tk WS Identifier (WS ';')?
+Identifier = SimpleIdentifier (WS '.' WS SimpleIdentifier)*
+
+FileAnnotation = '@' WS "file" WS ':' WS (('[' UnescapedAnnotation (WS UnescapedAnnotation)* ']') | UnescapedAnnotation)
+UnescapedAnnotation = ConstructorInvocation | UserType
+ConstructorInvocation = UserType WS ValueArguments
+UserType = SimpleUserType (WS '.' WS SimpleUserType)*
+ValueArguments = '(' (WS ValueArgument (WS ',' WS ValueArgument)* (WS ',')?)? WS ')'
+
+ValueArgument = (Annotation WS)? (SimpleIdentifier WS '=' WS)? ('*' WS)? Expression
+
+Annotation = SingleAnnotation | MultiAnnotation
+SingleAnnotation = (AnnotationUseSiteTarget WS | '@' WS) UnescapedAnnotation
+MultiAnnotation = (AnnotationUseSiteTarget WS | '@' WS) '[' UnescapedAnnotation (WS UnescapedAnnotation)* ']'
+AnnotationUseSiteTarget = '@' WS ("field" | "property" | "get" | "set" | "receiver" | "param" | "setparam" | "delegate") WS ':'
+
+
+SimpleUserType = SimpleIdentifier (WS TypeArguments)?
+TypeArguments = '<' WS TypeProjection (WS ',' WS TypeProjection)* (WS ',')? WS '>'
+TypeProjection = (TypeProjectionModifiers WS)? Type | '*'
+TypeProjectionModifiers = TypeProjectionModifier (WS TypeProjectionModifier)*
+TypeProjectionModifier = VarianceModifier | Annotation
+VarianceModifier = ("in" | "out")&Tk
+
+Type = (TypeModifiers WS)? (FunctionType | ParenthesizedType | NullableType | TypeReference | DefinitelyNonNullableType)
+TypeModifiers = TypeModifier (WS TypeModifier)*
+TypeModifier = Annotation | "suspend"&Tk
+
+FunctionType = (ReceiverType WS '.' WS)? FunctionTypeParameters WS "->" WS Type
+FunctionTypeParameters = '(' WS (Parameter | Type)? (WS ',' WS (Parameter | Type))* (WS ',')? WS ')'
+ParenthesizedType = '(' WS Type WS ')'
+NullableType = (TypeReference | ParenthesizedType) WS ('?' WS)+
+TypeReference = UserType | "dynamic"&Tk
+DefinitelyNonNullableType =
+  (TypeModifiers WS)? (UserType | ParenthesizedUserType) WS '&' WS (TypeModifiers WS)? (UserType | ParenthesizedUserType)
+ParenthesizedUserType = '(' WS (UserType | ParenthesizedUserType) WS ')'
+
+ReceiverType = (TypeModifiers WS)? (ParenthesizedType | NullableType | TypeReference)
+
+
+Parameter = SimpleIdentifier WS ':' WS Type
+
+
+
+SimpleIdentifier = Name
+  | "abstract" | "annotation" | "by" | "catch" | "companion" | "constructor" | "crossinline"
+  | "data" | "dynamic" | "enum" | "external" | "final" | "finally" | "get" | "import" | "infix"
+  | "init" | "inline" | "inner" | "internal" | "lateinit" | "noinline" | "open" | "operator"
+  | "out" | "override" | "private" | "protected" | "public" | "reified" | "sealed" | "tailrec"
+  | "set" | "vararg" | "where" | "field" | "property" | "receiver" | "param" | "setparam"
+  | "delegate" | "file" | "expect" | "actual" | "const" | "suspend" | "value" 
+
+
+
+
+
+Expression = Disjunction
+Disjunction = Conjunction (WS "||" WS Conjunction)*
+Conjunction = Equality (WS "&&" WS Equality)*
+Equality = Comparison (WS EqualityOperator WS Comparison)*
+Comparison = GenericCallLikeComparison (WS ComparisonOperator WS GenericCallLikeComparison)*
+GenericCallLikeComparison = InfixOperation (WS CallSuffix)*
+InfixOperation = ElvisExpression (WS InOperator WS ElvisExpression | WS IsOperator WS Type)*
+ElvisExpression = InfixFunctionCall (WS Elvis WS InfixFunctionCall)*
+Elvis = "?:"
+InfixFunctionCall = RangeExpression (WS SimpleIdentifier WS RangeExpression)*
+RangeExpression = AdditiveExpression (WS '..' WS AdditiveExpression)*
+AdditiveExpression = MultiplicativeExpression (WS AdditiveOperator WS MultiplicativeExpression)*
+MultiplicativeExpression = AsExpression (WS MultiplicativeOperator WS AsExpression)*
+AsExpression = PrefixUnaryExpression (WS AsOperator WS Type)*
+PrefixUnaryExpression = (UnaryPrefix WS)* PostfixUnaryExpression
+UnaryPrefix = Annotation | Label | PrefixUnaryOperator
+PostfixUnaryExpression = PrimaryExpression (WS PostfixUnarySuffix)*
+PostfixUnarySuffix = PostfixUnaryOperator
+  | TypeArguments
+  | CallSuffix
+  | IndexingSuffix
+  | NavigationSuffix
+PrimaryExpression = ParenthesizedExpression
+  | SimpleIdentifier
+  | LiteralConstant
+  | StringLiteral
+  | CallableReference
+  | FunctionLiteral
+  | ObjectLiteral
+  | CollectionLiteral
+  | ThisExpression
+  | SuperExpression
+  | IfExpression
+  | WhenExpression
+  | TryExpression
+  | JumpExpression
+ParenthesizedExpression = '(' WS Expression WS ')'
+LiteralConstant = BooleanLiteral
+  | IntegerLiteral
+  | HexLiteral
+  | BinLiteral
+  | CharacterLiteral
+  | RealLiteral
+  | "null"&Tk
+  | LongLiteral
+  | UnsignedLiteral
+BooleanLiteral = ("true" | "false")&Tk
+IntegerLiteral = '1-9' '0-9_'* '0-9'
+  | '0-9'
+HexLiteral = '0' 'xX' HexDigit (HexDigit | '_')* HexDigit
+  | '0' 'xX' HexDigit
+HexDigit = '0-9a-fA-F'
+BinLiteral = '0' 'bB' '01' '01_'* '01'
+  | '0' 'bB' '01'
+CharacterLiteral = '\'' (EscapeSeq | '.'-(CR | LF | '\'' | '\\')) '\''
+EscapeSeq = '\'' ('t' | 'b' | 'r' | 'n' | '\'' | '"' | '\\' | '$')
+RealLiteral = FloatLiteral | DoubleLiteral
+FloatLiteral = DoubleLiteral ('f' | 'F')
+  | DecDigits ('f' | 'F')
+DoubleLiteral = DecDigits? '.' DecDigits DoubleExponent?
+  | DecDigits DoubleExponent?
+  | DoubleExponent
+DecDigits = '0-9' '0-9_'* '0-9'
+  | '0-9'
+DoubleExponent = 'eE' '+\-'? DecDigits
+LongLiteral = (IntegerLiteral | HexLiteral | BinLiteral) 'L'
+UnsignedLiteral = (IntegerLiteral | HexLiteral | BinLiteral) 'uU' 'L'?
+
+StringLiteral: StringLiteral = LineStringLiteral | MultiLineStringLiteral
+LineStringLiteral = '"' (LineStringContent | LineStringExpression)* '"' {LineStringLiteral(elems=$1)}
+LineStringContent = <LineStrText | LineStrEscapedChar | LineStrRef>
+LineStrText = .-'\\"$' {LineStrText(value=$0)}
+  | '$' !'{' {LineStrText(value=$0)}
+LineStrEscapedChar = EscapedIdentifier | UniCharacterLiteral
+EscapedIdentifier = '\\' ('t' | 'b' | 'r' | 'n' | '\'' | '"' | '\\' | '$')
+UniCharacterLiteral = "\\u" HexDigit HexDigit HexDigit HexDigit
+LineStrRef = FieldIdentifier {LineStrRef(name=$0)}
+FieldIdentifier = '$' IdentifierOrSoftKey
+
+LineStringExpression = "${" WS Expression WS '}' {LineStringExpression(expr=$2)}
+
+MultiLineStringLiteral = 
+  "\"\"\"" (MultiLineStringContent | MultiLineStringExpression)* <'"'* "\"\"\""> {MultiLineStringLiteral(elems=$1, trailing=$2$0)}
+MultiLineStringContent = <MultiLineStrText | MultiLineStrRef>
+MultiLineStrText = .-'"$' {MultiLineStrText(value=$0)}
+  | '$' !'{' {MultiLineStrText(value=$0)}
+  | '"' !"\"\"\"" {MultiLineStrText(value=$0)}
+MultiLineStrRef = FieldIdentifier {MultiLineStrRef(name=$0)}
+
+MultiLineStringExpression = "${" WS Expression WS '}' {MultiLineStringExpression(expr=$2)}
+
+
+FunctionLiteral = LambdaLiteral | AnonymousFunction
+LambdaLiteral = '{' WS ((LambdaParameters WS)? "->" WS)? Statements WS '}'
+LambdaParameters = LambdaParameter (WS ',' WS LambdaParameter)* (WS ',')?
+LambdaParameter = VariableDeclaration | MultiVariableDeclaration (WS ':' WS Type)?
+AnonymousFunction = "fun"&Tk (WS Type WS '.')? WS ParametersWithOptionalType (WS ':' WS Type)? (WS TypeConstraints)? (WS FunctionBody)?
+ParametersWithOptionalType = '(' WS (FunctionValueParameterWithOptionalType (WS ',' WS FunctionValueParameterWithOptionalType)* (WS ',')? WS)? ')'
+FunctionValueParameterWithOptionalType = (ParameterModifiers WS)? ParameterWithOptionalType (WS '=' WS Expression)?
+ParameterWithOptionalType = SimpleIdentifier (WS ':' WS Type)?
+ParameterModifiers = Annotation | ParameterModifier (WS Annotation | WS ParameterModifier)*
+ParameterModifier = ("vararg" | "noinline" | "crossinline")&Tk
+
+
+FunctionDeclaration = (Modifiers WS)? "fun"&Tk (WS TypeParameters)? (WS ReceiverType WS '.')? WS SimpleIdentifier WS FunctionValueParameters (WS ':' WS Type)? (WS TypeConstraints)? (WS FunctionBody)?
+
+FunctionBody = Block | '=' WS Expression
+
+
+
+
+ObjectLiteral = "object"&Tk (WS ':' WS DelegationSpecifiers)? (WS ClassBody)?
+CollectionLiteral = '[' (WS Expression (WS ',' WS Expression)*)? (WS ',')? WS ']'
+
+ThisExpression = "this"&Tk | "this@" Identifier
+SuperExpression = "super"&Tk (WS '<' WS Type WS '>')? '@' SimpleIdentifier | "super@" Identifier
+IfExpression = "if"&Tk WS '(' WS Expression WS ')' WS
+    (ControlStructureBody | ((WS ControlStructureBody)? (WS ';')? "else"&Tk WS (ControlStructureBody | ';')) | ';')
+WhenSubject = '(' (WS (Annotation WS)* "val"&Tk WS VariableDeclaration WS '=')? WS Expression WS ')'
+WhenExpression = "when"&Tk (WS WhenSubject)? WS '{' (WS WhenEntry)* WS '}'
+WhenEntry =
+    WhenCondition (WS ',' WS WhenCondition)* (WS ',')? WS "->" WS ControlStructureBody (WS ';')*
+  | "else"&Tk WS "->" WS ControlStructureBody (WS ';')*
+WhenCondition = Expression | RangeTest | TypeTest
+RangeTest = InOperator WS Expression
+TypeTest = IsOperator WS Type
+TryExpression = "try"&Tk WS Block WS (CatchBlock (WS CatchBlock)* (WS FinallyBlock)? | FinallyBlock)
+CatchBlock = "catch"&Tk WS '(' (WS Annotation)* WS SimpleIdentifier WS ':' WS Type (WS ',')? WS ')' WS Block
+FinallyBlock = "finally"&Tk WS Block
+JumpExpression =
+  "throw"&Tk WS Expression
+| ("return"&Tk | "return@" SimpleIdentifier) WS Expression
+| "continue"&Tk
+| "continue@" SimpleIdentifier
+| "break"&Tk
+| "break@" SimpleIdentifier
+
+
+
+CallSuffix = (TypeArguments WS)? (((ValueArguments WS)? AnnotatedLambda) | ValueArguments)
+AnnotatedLambda = (Annotation WS)* (Label WS)? LambdaLiteral
+
+
+VariableDeclaration = (Annotation WS)? SimpleIdentifier (WS ':' WS Type)?
+MultiVariableDeclaration = '(' WS VariableDeclaration (WS ',' WS VariableDeclaration)* (WS ',')? WS ')'
+
+
+PropertyDeclaration = (Modifiers WS)? ("val" | "var")&Tk (WS TypeParameters)? (WS ReceiverType WS '.')?
+  (WS (MultiVariableDeclaration | VariableDeclaration)) (WS TypeConstraints)? (WS ('=' WS Expression | PropertyDelegate))?
+  (WS ';')? (WS Getter (WS Setter) | WS Setter (WS Getter))?
+PropertyDelegate = "by"&Tk WS Expression
+Getter = (Modifiers WS)? "get"&Tk (WS '(' WS ')' (WS ':' WS Type)? WS FunctionBody)
+Setter = (Modifiers WS)? "set"&Tk (WS '(' WS FunctionValueParameterWithOptionalType (WS ',')? WS ')' (WS ':' WS Type)? WS FunctionBody)?
+
+
+TypeAlias = (Modifiers WS)? "typealias"&Tk WS SimpleIdentifier (WS TypeParameters)? WS '=' WS Type
+
+
+Statements = (Statement ((WS ';')* WS Statement)*)? (WS ';')*
+Statement = (Label WS | Annotation WS)* (Declaration | Assignment | LoopStatement | Expression)
+
+Assignment = ((DirectlyAssignableExpression WS '=') | (AssignableExpression WS AssignmentAndOperator)) WS Expression
+DirectlyAssignableExpression = PostfixUnaryExpression WS AssignableSuffix
+  | SimpleIdentifier
+  | ParenthesizedDirectlyAssignableExpression
+
+
+AssignableSuffix = TypeArguments
+  | IndexingSuffix
+  | NavigationSuffix
+
+ParenthesizedDirectlyAssignableExpression = '(' WS DirectlyAssignableExpression WS ')'
+
+
+AssignableExpression = PrefixUnaryExpression
+  | ParenthesizedAssignableExpression
+ParenthesizedAssignableExpression = '(' WS AssignableExpression WS ')'
+
+AssignmentAndOperator = "+=" | "-=" | "*=" | "/=" | "%="
+
+
+LoopStatement = ForStatement
+| WhileStatement
+| DoWhileStatement
+ForStatement = "for"&Tk WS '(' (WS Annotation)* WS (VariableDeclaration | MultiVariableDeclaration) WS "in"&Tk WS Expression WS ')'
+  (WS ControlStructureBody)?
+
+
+WhileStatement = "while"&Tk WS '(' WS Expression WS ')' WS (ControlStructureBody | ';')
+DoWhileStatement = "do"&Tk (WS ControlStructureBody)? WS "while"&Tk WS '(' WS Expression WS ')'
+
+
+ControlStructureBody = Block | Statement
+
+
+
+
+Declaration = ClassDeclaration
+  | ObjectDeclaration
+  | FunctionDeclaration
+  | PropertyDeclaration
+  | TypeAlias
+
+
+ClassDeclaration = (Modifiers WS)? ("class"&Tk | (("fun"&Tk WS)? "interface"&Tk)) WS SimpleIdentifier
+  (WS TypeParameters)? (WS PrimaryConstructor)? (WS ':' WS DelegationSpecifiers)? (WS TypeConstraints)?
+  (WS ClassBody | WS EnumClassBody)?
+TypeParameters = '<' WS TypeParameter (WS ',' WS TypeParameter)* (WS ',')? WS '>'
+TypeParameter = (TypeParameterModifiers WS)? SimpleIdentifier (WS ':' WS Type)?
+TypeConstraints = "where"&Tk WS TypeConstraint (WS ',' WS TypeConstraint)*
+TypeConstraint = (Annotation WS)* SimpleIdentifier WS ':' WS Type
+
+TypeParameterModifiers = TypeParameterModifier (WS TypeParameterModifier)*
+TypeParameterModifier = ReificationModifier | VarianceModifier | Annotation
+
+PrimaryConstructor = ((Modifiers WS)? "constructor"&Tk WS)? ClassParameters
+ClassParameters = '(' (WS ClassParameter (WS ',' WS ClassParameter)* (WS ',')?) WS ')'
+ClassParameter = (Modifiers WS)? ("val" | "var")&Tk WS SimpleIdentifier WS ':' WS Type (WS '=' WS Expression)?
+
+
+DelegationSpecifiers = AnnotatedDelegationSpecifier (WS ',' WS AnnotatedDelegationSpecifier)*
+DelegationSpecifier = ConstructorInvocation
+  | ExplicitDelegation
+  | UserType
+  | FunctionType
+  | "suspend"&Tk WS FunctionType
+ConstructorInvocation = UserType WS ValueArguments
+AnnotatedDelegationSpecifier = (Annotation WS)* DelegationSpecifier
+
+ExplicitDelegation = (UserType | FunctionType) WS "by"&Tk WS Expression
+
+
+ClassBody = '{' WS ClassMemberDeclarations WS '}'
+
+ClassMemberDeclarations = (ClassMemberDeclaration (WS ';')*)*
+ClassMemberDeclaration = Declaration
+  | CompanionObject
+  | AnonymousInitializer
+  | SecondaryConstructor
+CompanionObject = (Modifiers WS)? "companion"&Tk WS "object"&Tk (WS SimpleIdentifier)? (WS ':' WS DelegationSpecifiers)? (WS ClassBody)?
+AnonymousInitializer = "init"&Tk WS Block
+
+ObjectDeclaration = (Modifiers WS)? "object"&Tk WS SimpleIdentifier (WS ':' WS DelegationSpecifiers)? (WS ClassBody)?
+
+
+SecondaryConstructor = (Modifiers WS)? "constructor"&Tk WS FunctionValueParameters (WS ':' WS ConstructorDelegationCall)? (WS Block)?
+
+Block = '{' WS Statements WS '}'
+
+
+FunctionValueParameters = '(' (WS FunctionValueParameter (WS ',' WS FunctionValueParameter)* (WS ',')?)? WS ')'
+FunctionValueParameter = (ParameterModifiers WS)? Parameter (WS '=' WS Expression)*
+
+ConstructorDelegationCall = ("this" | "super")&Tk WS ValueArguments
+
+
+EnumClassBody = '{' (WS EnumEntries)? (WS ';' WS ClassMemberDeclarations)? WS '}'
+EnumEntries = EnumEntry (WS ',' WS EnumEntry) (WS ',')?
+EnumEntry = (Modifiers WS)? SimpleIdentifier (WS ValueArguments)? (WS ClassBody)?
+
+
+
+
+Modifiers = Annotation | Modifier (WS Annotation | WS Modifier)*
+
+Modifier = ClassModifier | MemberModifier | VisibilityModifier | FunctionModifier | PropertyModifier | InheritanceModifier | ParameterModifier | PlatformModifier
+
+ClassModifier = ("enum" | "sealed" | "annotation" | "data" | "inner" | "value")&Tk
+MemberModifier = ("override" | "lateinit")&Tk
+VisibilityModifier = ("public" | "private" | "internal" | "protected")&Tk
+FunctionModifier = ("tailrec" | "operator" | "infix" | "inline" | "external" | "suspend")&Tk
+PropertyModifier = "const"&Tk
+InheritanceModifier = ("abstract" | "final" | "open")&Tk
+ParameterModifier = ("vararg"| "noinline"| "crossinline")&Tk
+ReificationModifier = "reified"&Tk
+PlatformModifier = ("expect" | "actual")&Tk
+
+
+
+
+IdentifierOrSoftKey = Identifier // TODO
+
+
+CallableReference = (ReceiverType WS)? "::" WS (SimpleIdentifier | "class"&Tk)
+
+EqualityOperator = "!=" | "!==" | "==" | "==="
+ComparisonOperator = "<" | ">" | "<=" | ">="
+InOperator = "in" | "!in"
+IsOperator = "is" | "!is"
+AdditiveOperator = '+' | '-'
+MultiplicativeOperator = '*' | '/' | '%'
+AsOperator = <"as" | "as?">
+PrefixUnaryOperator = "++" | "--" | "-" | "+" | Excl
+PostfixUnaryOperator =  "++" | "--" | ('!' Excl)
+Excl = '!'
+MemberAccessOperator = '.' | "?." | "::"
+
+Label = SimpleIdentifier WS '@'
+
+IndexingSuffix = '[' WS Expression (WS ',' WS Expression)* (WS ',')? WS ']'
+NavigationSuffix = MemberAccessOperator WS (SimpleIdentifier | ParenthesizedExpression | "class"&Tk)
+
+
+
+Name = (Letter | '_') (Letter | '_' | UnicodeDigit)* {Name(name=str($0, $1))}
+  | '`' QuotedSymbol+ '`' {Name(str($1))}
+Letter = 'a-zA-Z0-9'
+QuotedSymbol = .-(CR | LF | '`')
+UnicodeDigit = '0-9'
+
+Tk = <'a-z'+>
