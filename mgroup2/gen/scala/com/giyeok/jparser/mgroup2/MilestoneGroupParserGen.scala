@@ -49,6 +49,9 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
       val lookaheadCollector = mutable.Set[Int]()
       val pendedCollector = mutable.Map[KernelTemplate, (List[AppendingMilestoneGroup], Option[AcceptConditionTemplate])]()
 
+      val addedKernels = mutable.Map[AcceptConditionTemplate, mutable.Set[Kernel]]()
+      val progressedKernels = mutable.Set[Kernel]()
+
       startKernelsMap.toList.foreach { startPair =>
         val (start, startKernel) = startPair
         assert(starts.contains(start))
@@ -69,7 +72,6 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
 
         lookaheadCollector ++= termAction.parsingAction.lookaheadRequiringSymbols
         termAction.pendedAcceptConditionKernels.foreach { pended =>
-          // TODO
           val progressCondition = pended._2._2
           val appendings = pended._2._1.groupBy(_.acceptCondition).map { pair =>
             val condition = pair._1
@@ -78,6 +80,11 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
           }
           pendedCollector += pended._1 -> (appendings.toList, progressCondition)
         }
+
+        termAction.parsingAction.tasksSummary.addedKernels.foreach { case (condition, added) =>
+          addedKernels.getOrElseUpdate(condition, mutable.Set()) ++= added
+        }
+        progressedKernels ++= termAction.parsingAction.tasksSummary.progressedKernels
       }
 
       val startProgresses = startNodeProgresses.groupBy(_._2).toList.map { pair =>
@@ -92,8 +99,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
         lookaheadRequiringSymbols = lookaheadCollector.toSet.map { symbolId =>
           LookaheadRequires(symbolId, builder.milestoneGroupId(Set(KernelTemplate(symbolId, 0))))
         },
-        // TODO
-        tasksSummary2 = TasksSummary2(Map(), Set(), None),
+        tasksSummary = TasksSummary2(addedKernels.view.mapValues(_.toSet).toMap, progressedKernels.toSet),
         pendedAcceptConditionKernels = pendedCollector.toMap,
       )
       Some(termGroup -> termAction)
@@ -110,6 +116,9 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
     val lookaheadCollector = mutable.Set[Int]()
     val edgeRequiresCollector = mutable.Set[Int]()
 
+    val addedKernels = mutable.Map[AcceptConditionTemplate, mutable.Set[Kernel]]()
+    val progressedKernels = mutable.Set[Kernel]()
+
     endKernels.foreach { endKernel =>
       val edgeAction = milestoneGen.edgeProgressActionBetween(startKernel, endKernel, startingCtx)
 
@@ -123,6 +132,11 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
 
       lookaheadCollector ++= edgeAction.parsingAction.lookaheadRequiringSymbols
       edgeRequiresCollector ++= edgeAction.requiredSymbols
+
+      edgeAction.parsingAction.tasksSummary.addedKernels.foreach { case (condition, added) =>
+        addedKernels.getOrElseUpdate(condition, mutable.Set()) ++= added
+      }
+      progressedKernels ++= edgeAction.parsingAction.tasksSummary.progressedKernels
     }
 
     val appendingMilestoneGroups = appendings.groupBy(_.acceptCondition).toList.map { pair =>
@@ -135,8 +149,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
       lookaheadRequiringSymbols = lookaheadCollector.toSet.map { symbolId =>
         LookaheadRequires(symbolId, builder.milestoneGroupId(Set(KernelTemplate(symbolId, 0))))
       },
-      // TODO
-      tasksSummary2 = TasksSummary2(Map(), Set(), None),
+      tasksSummary = TasksSummary2(addedKernels.view.mapValues(_.toSet).toMap, progressedKernels.toSet),
       requiredSymbols = edgeRequiresCollector.toSet
     )
   }
@@ -154,7 +167,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
       lookaheadRequiringSymbols = edgeAction.parsingAction.lookaheadRequiringSymbols.map { symbolId =>
         LookaheadRequires(symbolId, builder.milestoneGroupId(Set(KernelTemplate(symbolId, 0))))
       },
-      tasksSummary2 = edgeAction.parsingAction.tasksSummary,
+      tasksSummary = edgeAction.parsingAction.tasksSummary,
       requiredSymbols = edgeAction.requiredSymbols
     )
   }

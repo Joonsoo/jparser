@@ -63,7 +63,7 @@ case class TermAction(
   // 현재 group 중 _1(groupId)가 _2의 조건을 갖고 progress된다
   startNodeProgress: List[(Int, AcceptConditionTemplate)],
   lookaheadRequiringSymbols: Set[LookaheadRequires],
-  tasksSummary2: TasksSummary2,
+  tasksSummary: TasksSummary2,
   pendedAcceptConditionKernels: Map[KernelTemplate, (List[AppendingMilestoneGroup], Option[AcceptConditionTemplate])],
 )
 
@@ -73,7 +73,7 @@ case class EdgeAction(
   // 현재 group 중 _1(groupId)가 _2의 조건을 갖고 progress된다
   startNodeProgress: List[AcceptConditionTemplate],
   lookaheadRequiringSymbols: Set[LookaheadRequires],
-  tasksSummary2: TasksSummary2,
+  tasksSummary: TasksSummary2,
   requiredSymbols: Set[Int],
 )
 

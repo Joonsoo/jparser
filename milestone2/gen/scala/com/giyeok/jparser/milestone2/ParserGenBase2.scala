@@ -109,7 +109,8 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
     TasksSummary2(
       addedKernels = addedKernels,
       progressedKernels = progressTasks.map(_.kernel).toSet,
-      progressedStartKernel = progressedStartKernel.headOption)
+      // progressedStartKernel = progressedStartKernel.headOption,
+    )
   }
 }
 

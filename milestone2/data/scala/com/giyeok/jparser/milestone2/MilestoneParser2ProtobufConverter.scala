@@ -86,9 +86,9 @@ object MilestoneParser2ProtobufConverter {
     tasksSummary.progressedKernels.toList.sorted.foreach { kernel =>
       builder.addProgressedKernels(convertKernelToProto(kernel))
     }
-    tasksSummary.progressedStartKernel.foreach { kernel =>
-      builder.setProgressedStartKernel(convertKernelToProto(kernel))
-    }
+//    tasksSummary.progressedStartKernel.foreach { kernel =>
+//      builder.setProgressedStartKernel(convertKernelToProto(kernel))
+//    }
     builder.build()
   }
 
@@ -179,7 +179,7 @@ object MilestoneParser2ProtobufConverter {
         { pair => pair.getKernelsList.toScalaSet(convertProtoToKernel) }
       ),
       proto.getProgressedKernelsList.toScalaSet(convertProtoToKernel),
-      if (proto.hasProgressedStartKernel) Some(convertProtoToKernel(proto.getProgressedStartKernel)) else None,
+      // if (proto.hasProgressedStartKernel) Some(convertProtoToKernel(proto.getProgressedStartKernel)) else None,
     )
   }
 
