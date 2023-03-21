@@ -301,14 +301,23 @@ study {
     )
   }
 
-  main = scala.library(
-    srcs = glob("study/main/scala/**/*.scala"),
+  fast = scala.library(
+    srcs = glob("study/fast/scala/**/*.scala"),
+    deps = [naive.main, utils.main, metalang.main, proto.javalib],
+  )
+
+  parsergen = java.library(
+    srcs = glob("study/parsergen/java/**/*.java"),
+  )
+
+  cfg = scala.library(
+    srcs = glob("study/cfg/scala/**/*.scala"),
     deps = [naive.main, utils.main, metalang.main, visualize.main, examples],
   )
 
   test = scala.library(
     srcs = glob("study/test/scala/**/*.scala"),
-    deps = [...scalaTestDeps, study.main]
+    deps = [...scalaTestDeps, fast, parsergen, cfg]
   )
 }
 
