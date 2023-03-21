@@ -129,48 +129,6 @@ metalang {
   )
 }
 
-fast {
-  proto {
-    schema = protobuf.schema(
-      srcs = [
-        "fast/proto/MilestoneParserDataProto.proto",
-        "fast/proto/NaiveParserProto.proto",
-      ],
-      deps = [base.proto.schema]
-    )
-
-    javacode = protobuf.java(schema)
-
-    action generate {
-      file.clearDirectory("fast/generated/java")
-      file.copyDirectory(javacode.rootDir, "fast/generated/java")
-    }
-
-    javalib = java.library(
-      srcs = glob("fast/generated/java/**/*.java"),
-      deps = [base.proto.javalib, protobufDep]
-    )
-  }
-
-  fastBase = scala.library(
-    srcs = glob("fast/base/scala/**/*.scala"),
-    deps = [fast.proto.javalib, naive.main],
-  )
-
-  main = scala.library(
-    srcs = glob("fast/main/scala/**/*.scala"),
-    deps = [fastBase, naive.main, metalang.main, fast.proto.javalib],
-  )
-
-  test = scala.library(
-    srcs = glob("fast/test/scala/**/*.scala"),
-    resources = glob("fast/test/resources/**"),
-    deps = [...scalaTestDeps, base.test, metalang.test, fast.main],
-  )
-
-//  action deploy = maven.
-}
-
 milestone2 {
   proto {
     schema = protobuf.schema(
@@ -321,6 +279,28 @@ visualize {
 }
 
 study {
+  proto {
+    schema = protobuf.schema(
+      srcs = [
+        "study/proto/MilestoneParserDataProto.proto",
+        "study/proto/NaiveParserProto.proto",
+      ],
+      deps = [base.proto.schema]
+    )
+
+    javacode = protobuf.java(schema)
+
+    action generate {
+      file.clearDirectory("study/generated/java")
+      file.copyDirectory(javacode.rootDir, "study/generated/java")
+    }
+
+    javalib = java.library(
+      srcs = glob("study/generated/java/**/*.java"),
+      deps = [base.proto.javalib, protobufDep]
+    )
+  }
+
   main = scala.library(
     srcs = glob("study/main/scala/**/*.scala"),
     deps = [naive.main, utils.main, metalang.main, visualize.main, examples],
