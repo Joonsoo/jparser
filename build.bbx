@@ -195,9 +195,28 @@ milestone2 {
 }
 
 mgroup2 {
+  proto {
+    schema = protobuf.schema(
+      srcs = ["mgroup2/data/proto/MilestoneGroupParserData.proto"],
+      deps = [fast.proto.schema],
+    )
+
+    javacode = protobuf.java(schema)
+
+    action generate {
+      file.clearDirectory("mgroup2/data/generated/java")
+      file.copyDirectory(javacode.rootDir, "mgroup2/data/generated/java")
+    }
+
+    javalib = java.library(
+      srcs = glob("mgroup2/data/generated/java/**/*.java"),
+      deps = [fast.proto.javalib]
+    )
+  }
+
   data = scala.library(
     srcs = glob("mgroup2/data/scala/**/*.scala"),
-    deps = [milestone2.data],
+    deps = [milestone2.data, proto.javalib],
   )
 
   gen = scala.library(
@@ -213,7 +232,7 @@ mgroup2 {
   test = scala.library(
     srcs = glob("mgroup2/test/scala/**/*.scala"),
     resources = glob("mgroup2/test/resources/**"),
-    deps = [data, gen, parser, naive.main, ...scalaTestDeps],
+    deps = [data, gen, parser, naive.main, milestone2.gen, milestone2.parser, ...scalaTestDeps],
   )
 }
 
