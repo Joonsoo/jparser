@@ -312,9 +312,6 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
   }
 
   def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
-    def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
-      Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
-
     def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel =
       Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
 
@@ -389,7 +386,6 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
 
       // kernels by term actions
       genActions.termActions.foreach { case (milestone, termAction) =>
-        // termAction.parsingAction.tasksSummary.progressedStartKernel은 progressedStartKernel에서 처리
         addKernelsFrom(
           kernels,
           history,
@@ -400,18 +396,19 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
           conditionMemos)
       }
       genActions.tipEdgeActions.foreach { case ((start, end), edgeAction) =>
-        addKernelsFrom(
-          kernels,
-          history,
-          start.gen,
-          gen,
-          edgeAction.tasksSummary,
-          Map(0 -> start.gen, 1 -> end.gen, 2 -> gen),
-          conditionMemos)
+        if (isFinallyAccepted(history, gen, genActions.progressedMgroups(end), conditionMemos)) {
+          addKernelsFrom(
+            kernels,
+            history,
+            start.gen,
+            gen,
+            edgeAction.tasksSummary,
+            Map(0 -> start.gen, 1 -> end.gen, 2 -> gen),
+            conditionMemos)
+        }
       }
       genActions.midEdgeActions.foreach { case ((start, end), edgeAction) =>
         if (isFinallyAccepted(history, gen, genActions.progressedMilestones(end), conditionMemos)) {
-          // edgeAction.parsingAction.tasksSummary.progressedStartKernel은 progressedMilestones에서 처리
           addKernelsFrom(
             kernels,
             history,
@@ -428,6 +425,17 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
           parentGens.foreach { parentGen =>
             kernels += Kernel(milestone.symbolId, milestone.pointer, parentGen, milestone.gen)
             kernels += Kernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
+          }
+        case _ => // do nothing
+      }
+      genActions.progressedMgroups.foreach {
+        case (mgroup, condition) if isFinallyAccepted(history, gen, condition, conditionMemos) =>
+          val parentGens = genActions.progressedMgroupParentGens.getOrElse(mgroup, Set(mgroup.gen))
+          parentGens.foreach { parentGen =>
+            parserData.milestoneGroups(mgroup.groupId).foreach { milestone =>
+              kernels += Kernel(milestone.symbolId, milestone.pointer, parentGen, mgroup.gen)
+              kernels += Kernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
+            }
           }
         case _ => // do nothing
       }

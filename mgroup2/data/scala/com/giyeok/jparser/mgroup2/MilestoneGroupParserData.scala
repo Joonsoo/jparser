@@ -60,7 +60,7 @@ class MilestoneGroupParserDataBuilder(val grammar: NGrammar, val initialTasksSum
 case class TermAction(
   // 현재 path는 appendingMilestoneGroups만큼 분화되고, 현재 group은 _1로 치환되고 뒤에 _2(appendingMilestones)가 붙음
   appendingMilestoneGroups: List[(KernelTemplate, AppendingMilestoneGroup)],
-  // 현재 group 중 _1(groupId)가 _2의 조건을 갖고 progress된다
+  // 현재 group의 subset인 _1(groupId)가 _2의 조건을 갖고 progress된다
   startNodeProgress: List[(Int, AcceptConditionTemplate)],
   lookaheadRequiringSymbols: Set[LookaheadRequires],
   tasksSummary: TasksSummary2,
