@@ -2,8 +2,7 @@ package com.giyeok.jparser.mgroup2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.fast.KernelTemplate
-import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, TasksSummary2}
+import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, KernelTemplate, TasksSummary2}
 
 import scala.collection.mutable
 
@@ -18,7 +17,31 @@ case class MilestoneGroupParserData(
   tipEdgeProgressActions: Map[(KernelTemplate, Int), EdgeAction],
   // (milestone -> milestone) -> actions
   midEdgeProgressActions: Map[(KernelTemplate, KernelTemplate), EdgeAction],
-)
+) {
+  def trimTasksSummariesForSymbols(symbolsOfInterest: Set[Int]): MilestoneGroupParserData = {
+    MilestoneGroupParserData(
+      grammar,
+      startGroupId,
+      initialTasksSummary.trimForSymbols(symbolsOfInterest),
+      milestoneGroups.view.mapValues { group =>
+        group.filter(kernel => symbolsOfInterest.contains(kernel.symbolId))
+      }.toMap,
+      termActions.view.mapValues { termActions =>
+        termActions.map { case (termGroup, termAction) =>
+          termGroup -> termAction.copy(
+            tasksSummary = termAction.tasksSummary.trimForSymbols(symbolsOfInterest)
+          )
+        }
+      }.toMap,
+      tipEdgeProgressActions.view.mapValues { edgeAction =>
+        edgeAction.copy(tasksSummary = edgeAction.tasksSummary.trimForSymbols(symbolsOfInterest))
+      }.toMap,
+      midEdgeProgressActions.view.mapValues { edgeAction =>
+        edgeAction.copy(tasksSummary = edgeAction.tasksSummary.trimForSymbols(symbolsOfInterest))
+      }.toMap,
+    )
+  }
+}
 
 class MilestoneGroupParserDataBuilder(val grammar: NGrammar, val initialTasksSummary: TasksSummary2) {
   private val milestoneGroups = mutable.Map[Int, Set[KernelTemplate]]()

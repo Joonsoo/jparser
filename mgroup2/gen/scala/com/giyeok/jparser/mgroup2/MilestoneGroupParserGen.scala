@@ -3,8 +3,7 @@ package com.giyeok.jparser.mgroup2
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.NTerminal
-import com.giyeok.jparser.fast.KernelTemplate
-import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AppendingMilestone, CtxWithTasks, MilestoneParserGen, ParserGenBase2, TasksSummary2}
+import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AppendingMilestone, CtxWithTasks, KernelTemplate, MilestoneParserGen, ParserGenBase2, TasksSummary2}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
 import com.giyeok.jparser.nparser2.opt.OptNaiveParser2
 import com.giyeok.jparser.nparser2.{NaiveParser2, ProgressTask}

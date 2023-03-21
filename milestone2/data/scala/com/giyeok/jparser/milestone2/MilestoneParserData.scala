@@ -2,7 +2,6 @@ package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.fast.KernelTemplate
 
 import scala.collection.mutable
 

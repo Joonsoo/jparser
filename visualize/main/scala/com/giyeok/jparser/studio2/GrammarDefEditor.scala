@@ -2,11 +2,10 @@ package com.giyeok.jparser.studio2
 
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.metalang3.MetaLanguage3.{ProcessedGrammar, analyzeGrammar, transformGrammar}
+import com.giyeok.jparser.metalang3.ast.MetaLang3Parser
 import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
-import com.giyeok.jparser.metalang3.{CollectedErrors, ErrorCollector, ErrorMessage}
-import com.giyeok.jparser.milestone.MilestoneParser
-import com.giyeok.jparser.proto.MilestoneParserProtobufConverter.convertProtoToMilestoneParserData
-import com.giyeok.jparser.proto.MilestoneParserDataProto
+import com.giyeok.jparser.metalang3.{CollectedErrors, ErrorCollector, ErrorMessage, MetaLanguage3}
+import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.studio2.CodeEditor.CodeStyle
 import com.giyeok.jparser.studio2.GrammarDefEditor._
 import com.giyeok.jparser.{Inputs, NGrammar, ParsingErrors}
@@ -22,12 +21,6 @@ import scala.util.Using
 class GrammarDefEditor(val parent: Composite, val style: Int, val font: Font, val scheduler: Scheduler) {
   val editor = new CodeEditor(parent, style, font)
   val highlighter = new MetaLang3Highlighter(editor)
-
-  private val milestoneParserData = convertProtoToMilestoneParserData(Using(
-    new BufferedInputStream(new FileInputStream("MetaLang3AstMilestoneParser.pb"))) { inputStream =>
-    MilestoneParserDataProto.MilestoneParserData.parseFrom(inputStream)
-  }.get)
-  private val milestoneParser = new MilestoneParser(milestoneParserData)
 
   private def grammarUpdateEventsFrom(observable: Observable[String]): Observable[UpdateEvent] =
     observable.switchMap({ text: String =>
@@ -70,18 +63,12 @@ class GrammarDefEditor(val parent: Composite, val style: Int, val font: Font, va
         }
 
         println(s"${text.length} : Starting")
-        val input = Inputs.fromString(text)
-        milestoneParser.parse(input) match {
-          case Left(finalCtx) =>
-            MilestoneParser.reconstructParseTree(milestoneParserData, finalCtx, input) match {
-              case Some(forest) =>
-                println(forest.trees.size)
-                assert(forest.trees.size == 1)
-                val grammarDef = MetaLang3Ast.matchStart(forest.trees.head)
-                onGrammarParsed(grammarDef)
-              case None =>
-            }
-          case Right(parsingError) => sub.onNext(GrammarDefError(parsingError)(duration()))
+        try {
+          val grammarDef = MetaLanguage3.parseGrammar(text)
+          onGrammarParsed(grammarDef)
+        } catch {
+          case parsingError: ParsingError =>
+            sub.onNext(GrammarDefError(parsingError)(duration()))
         }
         //        MetaLang3Ast.parseAst(text) match {
         //          case Left(grammarDef) => onGrammarParsed(grammarDef)

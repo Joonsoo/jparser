@@ -1,14 +1,10 @@
 package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
-import com.giyeok.jparser.fast.KernelTemplate
+import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto
 import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.proto.GrammarProtobufConverter.{convertNGrammarToProto, convertProtoToNGrammar}
-import com.giyeok.jparser.proto.MilestoneParserDataProto
-import com.giyeok.jparser.proto.MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase
-import com.giyeok.jparser.proto.MilestoneParserDataProto.{AppendingMilestone2, Milestone2ParserData, ParsingAction2}
 import com.giyeok.jparser.proto.ProtoConverterUtil.{JavaListToScalaCollection, toScalaIntList}
-import com.giyeok.jparser.proto.ProtobufConverter.{convertKernelToProto, convertProtoToKernel}
 import com.giyeok.jparser.proto.TermGroupProtobufConverter.{convertProtoToTermGroup, convertTermGroupToProto}
 import com.google.protobuf.Empty
 
@@ -79,18 +75,26 @@ object MilestoneParser2ProtobufConverter {
       val pairBuilder = builder.addAddedKernelsBuilder()
       pairBuilder.setAcceptCondition(toProto(pair._1))
       pair._2.foreach { kernel =>
-        pairBuilder.addKernels(convertKernelToProto(kernel))
+        pairBuilder.addKernels(toProto(kernel))
       }
     }
     // tasksSummary.progressedKernels 순서 고정
     tasksSummary.progressedKernels.toList.sorted.foreach { kernel =>
-      builder.addProgressedKernels(convertKernelToProto(kernel))
+      builder.addProgressedKernels(toProto(kernel))
     }
-//    tasksSummary.progressedStartKernel.foreach { kernel =>
-//      builder.setProgressedStartKernel(convertKernelToProto(kernel))
-//    }
+    //    tasksSummary.progressedStartKernel.foreach { kernel =>
+    //      builder.setProgressedStartKernel(convertKernelToProto(kernel))
+    //    }
     builder.build()
   }
+
+  def toProto(kernel: Kernel): MilestoneParserDataProto.Kernel =
+    MilestoneParserDataProto.Kernel.newBuilder()
+      .setSymbolId(kernel.symbolId)
+      .setPointer(kernel.pointer)
+      .setBeginGen(kernel.beginGen)
+      .setEndGen(kernel.endGen)
+      .build()
 
   def toProto(kernelTemplate: KernelTemplate): MilestoneParserDataProto.KernelTemplate =
     MilestoneParserDataProto.KernelTemplate.newBuilder()
@@ -116,7 +120,7 @@ object MilestoneParser2ProtobufConverter {
   }
 
   def toProto(appendingMilestone: AppendingMilestone): MilestoneParserDataProto.AppendingMilestone2 = {
-    AppendingMilestone2.newBuilder()
+    MilestoneParserDataProto.AppendingMilestone2.newBuilder()
       .setMilestone(toProto(appendingMilestone.milestone))
       .setAcceptCondition(toProto(appendingMilestone.acceptCondition))
       .build()
@@ -176,18 +180,22 @@ object MilestoneParser2ProtobufConverter {
     TasksSummary2(
       proto.getAddedKernelsList.toScalaMap(
         { pair => fromProto(pair.getAcceptCondition) },
-        { pair => pair.getKernelsList.toScalaSet(convertProtoToKernel) }
+        { pair => pair.getKernelsList.toScalaSet(fromProto) }
       ),
-      proto.getProgressedKernelsList.toScalaSet(convertProtoToKernel),
+      proto.getProgressedKernelsList.toScalaSet(fromProto),
       // if (proto.hasProgressedStartKernel) Some(convertProtoToKernel(proto.getProgressedStartKernel)) else None,
     )
+  }
+
+  def fromProto(proto: MilestoneParserDataProto.Kernel): Kernel = {
+    Kernel(proto.getSymbolId, proto.getPointer, proto.getBeginGen, proto.getEndGen)
   }
 
   def fromProto(kernelTemplate: MilestoneParserDataProto.KernelTemplate): KernelTemplate = {
     KernelTemplate(kernelTemplate.getSymbolId, kernelTemplate.getPointer)
   }
 
-  def fromProto(proto: Milestone2ParserData.TermActionPair.TermGroupAction): (TermGroupDesc, TermAction) = {
+  def fromProto(proto: MilestoneParserDataProto.Milestone2ParserData.TermActionPair.TermGroupAction): (TermGroupDesc, TermAction) = {
     val termGroupDesc = convertProtoToTermGroup(proto.getTermGroup)
     val termAction = TermAction(
       fromProto(proto.getParsingAction),
@@ -204,14 +212,14 @@ object MilestoneParser2ProtobufConverter {
     termGroupDesc -> termAction
   }
 
-  def fromProto(proto: AppendingMilestone2): AppendingMilestone = {
+  def fromProto(proto: MilestoneParserDataProto.AppendingMilestone2): AppendingMilestone = {
     AppendingMilestone(
       fromProto(proto.getMilestone),
       fromProto(proto.getAcceptCondition)
     )
   }
 
-  def fromProto(proto: ParsingAction2): ParsingAction = {
+  def fromProto(proto: MilestoneParserDataProto.ParsingAction2): ParsingAction = {
     ParsingAction(
       proto.getAppendingMilestonesList.toScalaList(fromProto),
       if (proto.hasStartNodeProgressCondition) Some(fromProto(proto.getStartNodeProgressCondition)) else None,
@@ -222,17 +230,22 @@ object MilestoneParser2ProtobufConverter {
 
   def fromProto(proto: MilestoneParserDataProto.AcceptConditionTemplate): AcceptConditionTemplate = {
     proto.getConditionCase match {
-      case ConditionCase.ALWAYS => AlwaysTemplate
-      case ConditionCase.NEVER => NeverTemplate
-      case ConditionCase.AND => AndTemplate(proto.getAnd.getConditionsList.toScalaList(fromProto))
-      case ConditionCase.OR => OrTemplate(proto.getAnd.getConditionsList.toScalaList(fromProto))
-      case ConditionCase.LOOKAHEAD_IS =>
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.ALWAYS => AlwaysTemplate
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.NEVER => NeverTemplate
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.AND =>
+        AndTemplate(proto.getAnd.getConditionsList.toScalaList(fromProto))
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.OR =>
+        OrTemplate(proto.getAnd.getConditionsList.toScalaList(fromProto))
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_IS =>
         LookaheadIsTemplate(proto.getLookaheadIs.getSymbolId, proto.getLookaheadIs.getFromNextGen)
-      case ConditionCase.LOOKAHEAD_NOT =>
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_NOT =>
         LookaheadNotTemplate(proto.getLookaheadNot.getSymbolId, proto.getLookaheadNot.getFromNextGen)
-      case ConditionCase.LONGEST => LongestTemplate(proto.getLongest)
-      case ConditionCase.ONLY_IF => OnlyIfTemplate(proto.getOnlyIf)
-      case ConditionCase.UNLESS => UnlessTemplate(proto.getUnless)
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LONGEST =>
+        LongestTemplate(proto.getLongest)
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.ONLY_IF =>
+        OnlyIfTemplate(proto.getOnlyIf)
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.UNLESS =>
+        UnlessTemplate(proto.getUnless)
     }
   }
 }

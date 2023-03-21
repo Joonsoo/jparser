@@ -1,7 +1,5 @@
 package com.giyeok.jparser.milestone2
 
-import com.giyeok.jparser.fast.KernelTemplate
-
 case class ParsingContext(
   gen: Int,
   paths: List[MilestonePath],

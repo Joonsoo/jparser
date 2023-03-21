@@ -2,8 +2,7 @@ package com.giyeok.jparser.mgroup2
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInputByTermGroups}
-import com.giyeok.jparser.fast.KernelTemplate
-import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, Always, And, Exists, Milestone, MilestoneAcceptCondition, MilestonePath, Never, NotExists, OnlyIf, Or, TasksSummary2, Unless}
+import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, Always, And, Exists, KernelTemplate, Milestone, MilestoneAcceptCondition, MilestonePath, Never, NotExists, OnlyIf, Or, TasksSummary2, Unless}
 import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.utils.Memoize
 

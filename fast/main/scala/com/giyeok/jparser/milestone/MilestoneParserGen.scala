@@ -7,7 +7,7 @@ import com.giyeok.jparser.fast.{GraphNoIndex, KernelTemplate, ParserGenBase}
 import com.giyeok.jparser.nparser.AcceptCondition.Always
 import com.giyeok.jparser.nparser.ParsingContext.{Edge, Graph, Node}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel, NaiveParser}
-import com.giyeok.jparser.utils.TermGrouper
+import com.giyeok.jparser.utils.TermGrouperUtil
 
 import scala.annotation.tailrec
 
@@ -100,7 +100,7 @@ class MilestoneParserGen(val parser: NaiveParser) extends ParserGenBase {
 
     // new DotGraphGenerator(parser.grammar).addGraph(derived).printDotGraph()
 
-    val termGroups = TermGrouper.termGroupsOf(parser.grammar, derived)
+    val termGroups = TermGrouperUtil.termGroupsOf(parser.grammar, derived)
 
     termGroups.map { termGroup =>
       val termNodes = parser.finishableTermNodes(derived, 1, termGroup)

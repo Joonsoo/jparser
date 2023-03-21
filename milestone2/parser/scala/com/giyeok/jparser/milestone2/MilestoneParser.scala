@@ -2,7 +2,6 @@ package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInputByTermGroups}
-import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.utils.Memoize
 
@@ -266,8 +265,8 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
   // progress되면서 추가된 커널들을 반환한다. finish는 progress 되면서 자연스럽게 따라오는 것이기 때문에 처리할 필요 없음
   def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
-    def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
-      Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
+//    def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
+//      Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
 
     def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel =
       Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))

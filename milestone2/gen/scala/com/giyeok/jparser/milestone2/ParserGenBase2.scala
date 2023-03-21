@@ -1,6 +1,5 @@
 package com.giyeok.jparser.milestone2
 
-import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, Always}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
 import com.giyeok.jparser.nparser2._

@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package com.giyeok.jparser.milestone2.proto;
+
+import "google/protobuf/empty.proto";
+import "GrammarProto.proto";
+import "TermGroupProto.proto";
+
+option java_outer_classname = "MilestoneParserDataProto";
+
+message Milestone2ParserData {
+  com.giyeok.jparser.proto.NGrammar grammar = 1;
+  TasksSummary2 initial_tasks_summary = 2;
+  message TermActionPair {
+    KernelTemplate kernel_template = 1;
+    message TermGroupAction {
+      com.giyeok.jparser.proto.TermGroup term_group = 1;
+      ParsingAction2 parsing_action = 2;
+
+      message PendedAcceptConditionKernelPair {
+        KernelTemplate kernel_template = 1;
+        repeated AppendingMilestone2 appending_milestones = 2;
+        optional AcceptConditionTemplate first_kernel_progress_condition = 3;
+      }
+      repeated PendedAcceptConditionKernelPair pended_accept_condition_kernels = 3;
+    }
+    repeated TermGroupAction actions = 2;
+  }
+  repeated TermActionPair term_actions = 3;
+  message EdgeActionPair {
+    KernelTemplate start = 1;
+    KernelTemplate end = 2;
+    ParsingAction2 parsing_action = 3;
+    repeated int32 required_symbol_ids = 4;
+  }
+  repeated EdgeActionPair edge_actions = 4;
+}
+
+message KernelTemplate {
+  int32 symbol_id = 1;
+  int32 pointer = 2;
+}
+
+message TasksSummary2 {
+  message AddedKernelPair {
+    AcceptConditionTemplate accept_condition = 1;
+    repeated Kernel kernels = 2;
+  }
+  repeated AddedKernelPair added_kernels = 1;
+  repeated Kernel progressed_kernels = 2;
+}
+
+message Kernel {
+  int32 symbol_id = 1;
+  int32 pointer = 2;
+  int32 begin_gen = 3;
+  int32 end_gen = 4;
+}
+
+message ParsingAction2 {
+  repeated AppendingMilestone2 appending_milestones = 1;
+  optional AcceptConditionTemplate start_node_progress_condition = 2;
+  repeated int32 lookahead_requiring_symbol_ids = 3;
+  TasksSummary2 tasks_summary = 4;
+}
+
+message AppendingMilestone2 {
+  KernelTemplate milestone = 1;
+  AcceptConditionTemplate accept_condition = 2;
+}
+
+message AcceptConditionTemplate {
+  message AndTemplate {
+    repeated AcceptConditionTemplate conditions = 1;
+  }
+  message OrTemplate {
+    repeated AcceptConditionTemplate conditions = 1;
+  }
+  message LookaheadTemplate {
+    int32 symbol_id = 1;
+    bool from_next_gen = 2;
+  }
+  oneof condition {
+    google.protobuf.Empty always = 1;
+    google.protobuf.Empty never = 2;
+    AndTemplate and = 3;
+    OrTemplate or = 4;
+    LookaheadTemplate lookahead_is = 5;
+    LookaheadTemplate lookahead_not = 6;
+    int32 longest = 7;
+    int32 only_if = 8;
+    int32 unless = 9;
+  }
+}

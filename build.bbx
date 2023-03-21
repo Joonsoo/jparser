@@ -172,14 +172,33 @@ fast {
 }
 
 milestone2 {
+  proto {
+    schema = protobuf.schema(
+      srcs = ["milestone2/data/proto/MilestoneParserData.proto"],
+      deps = [base.proto.schema],
+    )
+
+    javacode = protobuf.java(schema)
+
+    action generate {
+      file.clearDirectory("milestone2/data/generated/java")
+      file.copyDirectory(javacode.rootDir, "milestone2/data/generated/java")
+    }
+
+    javalib = java.library(
+      srcs = glob("milestone2/data/generated/java/**/*.java"),
+      deps = [base.proto.javalib]
+    )
+  }
+
   data = scala.library(
     srcs = glob("milestone2/data/scala/**/*.scala"),
-    deps = [naive.main, fast.fastBase],
+    deps = [naive.main, proto.javalib],
   )
 
   gen = scala.library(
     srcs = glob("milestone2/gen/scala/**/*.scala"),
-    deps = [naive.main, metalang.main, fast.main, fast.proto.javalib, data],
+    deps = [naive.main, metalang.main, data, utils.main],
   )
 
   parser = scala.library(
@@ -198,7 +217,7 @@ mgroup2 {
   proto {
     schema = protobuf.schema(
       srcs = ["mgroup2/data/proto/MilestoneGroupParserData.proto"],
-      deps = [fast.proto.schema],
+      deps = [milestone2.proto.schema],
     )
 
     javacode = protobuf.java(schema)
@@ -210,7 +229,7 @@ mgroup2 {
 
     javalib = java.library(
       srcs = glob("mgroup2/data/generated/java/**/*.java"),
-      deps = [fast.proto.javalib]
+      deps = [milestone2.proto.javalib]
     )
   }
 
@@ -236,34 +255,6 @@ mgroup2 {
   )
 }
 
-cli {
-  generated = scala.library(
-    srcs = glob("cli/generated/scala/**/*.scala"),
-    resources = ["cli/generated/resources/cdglang3.pb"],
-    deps = [base.main, fast.main],
-  )
-
-  main = scala.library(
-    srcs = glob("cli/main/scala/**/*.scala"),
-    deps = [
-      naive.main, utils.main, metalang.main, fast.main,
-      cli.generated,
-      maven.artifact("info.picocli", "picocli", "4.6.1"),
-    ],
-  )
-
-  test = scala.library(
-    srcs = glob("cli/test/scala/**/*.scala"),
-    deps = [...scalaTestDeps, cli.main],
-  )
-
-  uberJar = jar.executableUberJar(
-    deps = [main],
-    mainClass = "com.giyeok.jparser.cli.Main",
-    jarFileName = "jparser-cli.jar"
-  )
-}
-
 examples = scala.library(
   srcs = glob("examples/main/scala/**/*.scala"),
   resources = glob("examples/main/resources/**"),
@@ -271,11 +262,8 @@ examples = scala.library(
 )
 
 action runTest = scalatest.run(
-  deps = [base.test, naive.test, metalang.test, fast.test]
+  deps = [base.test, naive.test, metalang.test, milestone2.test, mgroup2.test]
 )
-
-// all은 bibix 기능으로 만드는게 나을까? *, base.*, utils.* 같은 식으로?
-all = [base.main, naive.main, utils.main, metalang.main, fast.main, cli.main, visualize.main, examples]
 
 visualize {
   main = scala.library(
@@ -286,7 +274,6 @@ visualize {
       naive.main,
       utils.main,
       metalang.main,
-      fast.main,
       examples,
 
       maven.artifact("io.reactivex.rxjava3", "rxjava", "3.1.4"),
@@ -336,7 +323,7 @@ visualize {
 study {
   main = scala.library(
     srcs = glob("study/main/scala/**/*.scala"),
-    deps = [naive.main, utils.main, metalang.main, visualize.main, fast.main, examples],
+    deps = [naive.main, utils.main, metalang.main, visualize.main, examples],
   )
 
   test = scala.library(
@@ -348,7 +335,7 @@ study {
 ktlib {
   main = ktjvm.library(
     srcs = glob("ktlib/main/kotlin/**/*.kt"),
-    deps = [base.main, naive.main, milestone2.parser],
+    deps = [base.main, naive.main, milestone2.parser, mgroup2.parser],
   )
 
   test = scala.library(

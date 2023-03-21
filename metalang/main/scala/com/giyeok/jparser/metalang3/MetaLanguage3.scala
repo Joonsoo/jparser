@@ -1,6 +1,5 @@
 package com.giyeok.jparser.metalang3
 
-import com.giyeok.jparser.ParsingErrors.WithLocation
 import com.giyeok.jparser.metalang3.Type._
 import com.giyeok.jparser.metalang3.ValuefyExpr.UnrollChoices
 import com.giyeok.jparser.metalang3.ast.MetaLang3Parser

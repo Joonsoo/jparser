@@ -1,8 +1,7 @@
 package com.giyeok.jparser.milestone2.test
 
-import com.giyeok.jparser.fast.KernelTemplate
 import com.giyeok.jparser.metalang3.MetaLanguage3
-import com.giyeok.jparser.milestone2.MilestoneParserGen
+import com.giyeok.jparser.milestone2.{KernelTemplate, MilestoneParserGen}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class Test extends AnyFlatSpec {

@@ -1,7 +1,6 @@
 package com.giyeok.jparser.mgroup2
 
-import com.giyeok.jparser.fast.KernelTemplate
-import com.giyeok.jparser.milestone2.{Always, Milestone, MilestoneAcceptCondition}
+import com.giyeok.jparser.milestone2.{Always, KernelTemplate, Milestone, MilestoneAcceptCondition}
 
 import scala.collection.mutable
 

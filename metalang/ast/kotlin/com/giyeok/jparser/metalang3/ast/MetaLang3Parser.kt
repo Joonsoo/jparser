@@ -9,7 +9,7 @@ import com.giyeok.jparser.ktlib.toKtSet
 object MetaLang3Parser {
   val parser = Milestone2ParserLoader.loadParserFromResource("/cdglang3-parserdata.pb")
 
-  fun parse(source: String): MetaLang3Ast.Grammar {
+  fun parseOrThrow(source: String): MetaLang3Ast.Grammar {
     val inputs = Inputs.fromString(source)
     val parseResult = parser.parseOrThrow(inputs)
     val history = parser.kernelsHistory(parseResult).toKtList()
