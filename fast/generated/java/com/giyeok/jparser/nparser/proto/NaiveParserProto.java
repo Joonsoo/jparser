@@ -64,70 +64,6 @@ public final class NaiveParserProto {
       return new Kernel();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Kernel(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              symbolId_ = input.readInt32();
-              break;
-            }
-            case 16: {
-
-              pointer_ = input.readInt32();
-              break;
-            }
-            case 24: {
-
-              beginGen_ = input.readInt32();
-              break;
-            }
-            case 32: {
-
-              endGen_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (com.google.protobuf.UninitializedMessageException e) {
-        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_Kernel_descriptor;
@@ -142,7 +78,7 @@ public final class NaiveParserProto {
     }
 
     public static final int SYMBOL_ID_FIELD_NUMBER = 1;
-    private int symbolId_;
+    private int symbolId_ = 0;
     /**
      * <code>int32 symbol_id = 1;</code>
      * @return The symbolId.
@@ -153,7 +89,7 @@ public final class NaiveParserProto {
     }
 
     public static final int POINTER_FIELD_NUMBER = 2;
-    private int pointer_;
+    private int pointer_ = 0;
     /**
      * <code>int32 pointer = 2;</code>
      * @return The pointer.
@@ -164,7 +100,7 @@ public final class NaiveParserProto {
     }
 
     public static final int BEGIN_GEN_FIELD_NUMBER = 3;
-    private int beginGen_;
+    private int beginGen_ = 0;
     /**
      * <code>int32 begin_gen = 3;</code>
      * @return The beginGen.
@@ -175,7 +111,7 @@ public final class NaiveParserProto {
     }
 
     public static final int END_GEN_FIELD_NUMBER = 4;
-    private int endGen_;
+    private int endGen_ = 0;
     /**
      * <code>int32 end_gen = 4;</code>
      * @return The endGen.
@@ -211,7 +147,7 @@ public final class NaiveParserProto {
       if (endGen_ != 0) {
         output.writeInt32(4, endGen_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -236,7 +172,7 @@ public final class NaiveParserProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(4, endGen_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -259,7 +195,7 @@ public final class NaiveParserProto {
           != other.getBeginGen()) return false;
       if (getEndGen()
           != other.getEndGen()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -278,7 +214,7 @@ public final class NaiveParserProto {
       hash = (53 * hash) + getBeginGen();
       hash = (37 * hash) + END_GEN_FIELD_NUMBER;
       hash = (53 * hash) + getEndGen();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -395,30 +331,22 @@ public final class NaiveParserProto {
 
       // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         symbolId_ = 0;
-
         pointer_ = 0;
-
         beginGen_ = 0;
-
         endGen_ = 0;
-
         return this;
       }
 
@@ -445,46 +373,27 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel buildPartial() {
         com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel(this);
-        result.symbolId_ = symbolId_;
-        result.pointer_ = pointer_;
-        result.beginGen_ = beginGen_;
-        result.endGen_ = endGen_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.symbolId_ = symbolId_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.pointer_ = pointer_;
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.beginGen_ = beginGen_;
+        }
+        if (((from_bitField0_ & 0x00000008) != 0)) {
+          result.endGen_ = endGen_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel) {
@@ -509,7 +418,7 @@ public final class NaiveParserProto {
         if (other.getEndGen() != 0) {
           setEndGen(other.getEndGen());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -524,19 +433,53 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                symbolId_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 16: {
+                pointer_ = input.readInt32();
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 16
+              case 24: {
+                beginGen_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              case 32: {
+                endGen_ = input.readInt32();
+                bitField0_ |= 0x00000008;
+                break;
+              } // case 32
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int symbolId_ ;
       /**
@@ -553,8 +496,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setSymbolId(int value) {
-        
+
         symbolId_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -563,7 +507,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearSymbolId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         symbolId_ = 0;
         onChanged();
         return this;
@@ -584,8 +528,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setPointer(int value) {
-        
+
         pointer_ = value;
+        bitField0_ |= 0x00000002;
         onChanged();
         return this;
       }
@@ -594,7 +539,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearPointer() {
-        
+        bitField0_ = (bitField0_ & ~0x00000002);
         pointer_ = 0;
         onChanged();
         return this;
@@ -615,8 +560,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setBeginGen(int value) {
-        
+
         beginGen_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -625,7 +571,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearBeginGen() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         beginGen_ = 0;
         onChanged();
         return this;
@@ -646,8 +592,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setEndGen(int value) {
-        
+
         endGen_ = value;
+        bitField0_ |= 0x00000008;
         onChanged();
         return this;
       }
@@ -656,7 +603,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearEndGen() {
-        
+        bitField0_ = (bitField0_ & ~0x00000008);
         endGen_ = 0;
         onChanged();
         return this;
@@ -694,7 +641,18 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Kernel(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -838,7 +796,7 @@ public final class NaiveParserProto {
      */
     com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIfOrBuilder getOnlyIfOrBuilder();
 
-    public com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.AcceptConditionCase getAcceptConditionCase();
+    com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.AcceptConditionCase getAcceptConditionCase();
   }
   /**
    * Protobuf type {@code com.giyeok.jparser.nparser.proto.AcceptCondition}
@@ -862,162 +820,6 @@ public final class NaiveParserProto {
       return new AcceptCondition();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private AcceptCondition(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.Empty.Builder subBuilder = null;
-              if (acceptConditionCase_ == 1) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Empty) acceptCondition_).toBuilder();
-              }
-              acceptCondition_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Empty.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Empty) acceptCondition_);
-                acceptCondition_ = subBuilder.buildPartial();
-              }
-              acceptConditionCase_ = 1;
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Empty.Builder subBuilder = null;
-              if (acceptConditionCase_ == 2) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Empty) acceptCondition_).toBuilder();
-              }
-              acceptCondition_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Empty.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Empty) acceptCondition_);
-                acceptCondition_ = subBuilder.buildPartial();
-              }
-              acceptConditionCase_ = 2;
-              break;
-            }
-            case 26: {
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.Builder subBuilder = null;
-              if (acceptConditionCase_ == 3) {
-                subBuilder = ((com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_).toBuilder();
-              }
-              acceptCondition_ =
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) acceptCondition_);
-                acceptCondition_ = subBuilder.buildPartial();
-              }
-              acceptConditionCase_ = 3;
-              break;
-            }
-            case 34: {
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions.Builder subBuilder = null;
-              if (acceptConditionCase_ == 4) {
-                subBuilder = ((com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions) acceptCondition_).toBuilder();
-              }
-              acceptCondition_ =
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions) acceptCondition_);
-                acceptCondition_ = subBuilder.buildPartial();
-              }
-              acceptConditionCase_ = 4;
-              break;
-            }
-            case 42: {
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists.Builder subBuilder = null;
-              if (acceptConditionCase_ == 5) {
-                subBuilder = ((com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists) acceptCondition_).toBuilder();
-              }
-              acceptCondition_ =
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists) acceptCondition_);
-                acceptCondition_ = subBuilder.buildPartial();
-              }
-              acceptConditionCase_ = 5;
-              break;
-            }
-            case 50: {
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists.Builder subBuilder = null;
-              if (acceptConditionCase_ == 6) {
-                subBuilder = ((com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists) acceptCondition_).toBuilder();
-              }
-              acceptCondition_ =
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists) acceptCondition_);
-                acceptCondition_ = subBuilder.buildPartial();
-              }
-              acceptConditionCase_ = 6;
-              break;
-            }
-            case 58: {
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless.Builder subBuilder = null;
-              if (acceptConditionCase_ == 7) {
-                subBuilder = ((com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless) acceptCondition_).toBuilder();
-              }
-              acceptCondition_ =
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless) acceptCondition_);
-                acceptCondition_ = subBuilder.buildPartial();
-              }
-              acceptConditionCase_ = 7;
-              break;
-            }
-            case 66: {
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf.Builder subBuilder = null;
-              if (acceptConditionCase_ == 8) {
-                subBuilder = ((com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf) acceptCondition_).toBuilder();
-              }
-              acceptCondition_ =
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf) acceptCondition_);
-                acceptCondition_ = subBuilder.buildPartial();
-              }
-              acceptConditionCase_ = 8;
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (com.google.protobuf.UninitializedMessageException e) {
-        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AcceptCondition_descriptor;
@@ -1032,6 +834,7 @@ public final class NaiveParserProto {
     }
 
     private int acceptConditionCase_ = 0;
+    @SuppressWarnings("serial")
     private java.lang.Object acceptCondition_;
     public enum AcceptConditionCase
         implements com.google.protobuf.Internal.EnumLite,
@@ -1370,7 +1173,7 @@ public final class NaiveParserProto {
       if (acceptConditionCase_ == 8) {
         output.writeMessage(8, (com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf) acceptCondition_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -1411,7 +1214,7 @@ public final class NaiveParserProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(8, (com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf) acceptCondition_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -1463,7 +1266,7 @@ public final class NaiveParserProto {
         case 0:
         default:
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -1510,7 +1313,7 @@ public final class NaiveParserProto {
         case 0:
         default:
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -1627,22 +1430,42 @@ public final class NaiveParserProto {
 
       // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
+        if (alwaysBuilder_ != null) {
+          alwaysBuilder_.clear();
+        }
+        if (neverBuilder_ != null) {
+          neverBuilder_.clear();
+        }
+        if (andConditionsBuilder_ != null) {
+          andConditionsBuilder_.clear();
+        }
+        if (orConditionsBuilder_ != null) {
+          orConditionsBuilder_.clear();
+        }
+        if (notExistsBuilder_ != null) {
+          notExistsBuilder_.clear();
+        }
+        if (existsBuilder_ != null) {
+          existsBuilder_.clear();
+        }
+        if (unlessBuilder_ != null) {
+          unlessBuilder_.clear();
+        }
+        if (onlyIfBuilder_ != null) {
+          onlyIfBuilder_.clear();
+        }
         acceptConditionCase_ = 0;
         acceptCondition_ = null;
         return this;
@@ -1671,99 +1494,53 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition buildPartial() {
         com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition(this);
-        if (acceptConditionCase_ == 1) {
-          if (alwaysBuilder_ == null) {
-            result.acceptCondition_ = acceptCondition_;
-          } else {
-            result.acceptCondition_ = alwaysBuilder_.build();
-          }
-        }
-        if (acceptConditionCase_ == 2) {
-          if (neverBuilder_ == null) {
-            result.acceptCondition_ = acceptCondition_;
-          } else {
-            result.acceptCondition_ = neverBuilder_.build();
-          }
-        }
-        if (acceptConditionCase_ == 3) {
-          if (andConditionsBuilder_ == null) {
-            result.acceptCondition_ = acceptCondition_;
-          } else {
-            result.acceptCondition_ = andConditionsBuilder_.build();
-          }
-        }
-        if (acceptConditionCase_ == 4) {
-          if (orConditionsBuilder_ == null) {
-            result.acceptCondition_ = acceptCondition_;
-          } else {
-            result.acceptCondition_ = orConditionsBuilder_.build();
-          }
-        }
-        if (acceptConditionCase_ == 5) {
-          if (notExistsBuilder_ == null) {
-            result.acceptCondition_ = acceptCondition_;
-          } else {
-            result.acceptCondition_ = notExistsBuilder_.build();
-          }
-        }
-        if (acceptConditionCase_ == 6) {
-          if (existsBuilder_ == null) {
-            result.acceptCondition_ = acceptCondition_;
-          } else {
-            result.acceptCondition_ = existsBuilder_.build();
-          }
-        }
-        if (acceptConditionCase_ == 7) {
-          if (unlessBuilder_ == null) {
-            result.acceptCondition_ = acceptCondition_;
-          } else {
-            result.acceptCondition_ = unlessBuilder_.build();
-          }
-        }
-        if (acceptConditionCase_ == 8) {
-          if (onlyIfBuilder_ == null) {
-            result.acceptCondition_ = acceptCondition_;
-          } else {
-            result.acceptCondition_ = onlyIfBuilder_.build();
-          }
-        }
-        result.acceptConditionCase_ = acceptConditionCase_;
+        if (bitField0_ != 0) { buildPartial0(result); }
+        buildPartialOneofs(result);
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
+
+      private void buildPartialOneofs(com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition result) {
+        result.acceptConditionCase_ = acceptConditionCase_;
+        result.acceptCondition_ = this.acceptCondition_;
+        if (acceptConditionCase_ == 1 &&
+            alwaysBuilder_ != null) {
+          result.acceptCondition_ = alwaysBuilder_.build();
+        }
+        if (acceptConditionCase_ == 2 &&
+            neverBuilder_ != null) {
+          result.acceptCondition_ = neverBuilder_.build();
+        }
+        if (acceptConditionCase_ == 3 &&
+            andConditionsBuilder_ != null) {
+          result.acceptCondition_ = andConditionsBuilder_.build();
+        }
+        if (acceptConditionCase_ == 4 &&
+            orConditionsBuilder_ != null) {
+          result.acceptCondition_ = orConditionsBuilder_.build();
+        }
+        if (acceptConditionCase_ == 5 &&
+            notExistsBuilder_ != null) {
+          result.acceptCondition_ = notExistsBuilder_.build();
+        }
+        if (acceptConditionCase_ == 6 &&
+            existsBuilder_ != null) {
+          result.acceptCondition_ = existsBuilder_.build();
+        }
+        if (acceptConditionCase_ == 7 &&
+            unlessBuilder_ != null) {
+          result.acceptCondition_ = unlessBuilder_.build();
+        }
+        if (acceptConditionCase_ == 8 &&
+            onlyIfBuilder_ != null) {
+          result.acceptCondition_ = onlyIfBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition) {
@@ -1813,7 +1590,7 @@ public final class NaiveParserProto {
             break;
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -1828,17 +1605,86 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getAlwaysFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                acceptConditionCase_ = 1;
+                break;
+              } // case 10
+              case 18: {
+                input.readMessage(
+                    getNeverFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                acceptConditionCase_ = 2;
+                break;
+              } // case 18
+              case 26: {
+                input.readMessage(
+                    getAndConditionsFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                acceptConditionCase_ = 3;
+                break;
+              } // case 26
+              case 34: {
+                input.readMessage(
+                    getOrConditionsFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                acceptConditionCase_ = 4;
+                break;
+              } // case 34
+              case 42: {
+                input.readMessage(
+                    getNotExistsFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                acceptConditionCase_ = 5;
+                break;
+              } // case 42
+              case 50: {
+                input.readMessage(
+                    getExistsFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                acceptConditionCase_ = 6;
+                break;
+              } // case 50
+              case 58: {
+                input.readMessage(
+                    getUnlessFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                acceptConditionCase_ = 7;
+                break;
+              } // case 58
+              case 66: {
+                input.readMessage(
+                    getOnlyIfFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                acceptConditionCase_ = 8;
+                break;
+              } // case 66
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int acceptConditionCase_ = 0;
@@ -1856,6 +1702,7 @@ public final class NaiveParserProto {
         return this;
       }
 
+      private int bitField0_;
 
       private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.proto.GrammarProto.Empty, com.giyeok.jparser.proto.GrammarProto.Empty.Builder, com.giyeok.jparser.proto.GrammarProto.EmptyOrBuilder> alwaysBuilder_;
@@ -1995,7 +1842,7 @@ public final class NaiveParserProto {
           acceptCondition_ = null;
         }
         acceptConditionCase_ = 1;
-        onChanged();;
+        onChanged();
         return alwaysBuilder_;
       }
 
@@ -2137,7 +1984,7 @@ public final class NaiveParserProto {
           acceptCondition_ = null;
         }
         acceptConditionCase_ = 2;
-        onChanged();;
+        onChanged();
         return neverBuilder_;
       }
 
@@ -2279,7 +2126,7 @@ public final class NaiveParserProto {
           acceptCondition_ = null;
         }
         acceptConditionCase_ = 3;
-        onChanged();;
+        onChanged();
         return andConditionsBuilder_;
       }
 
@@ -2421,7 +2268,7 @@ public final class NaiveParserProto {
           acceptCondition_ = null;
         }
         acceptConditionCase_ = 4;
-        onChanged();;
+        onChanged();
         return orConditionsBuilder_;
       }
 
@@ -2563,7 +2410,7 @@ public final class NaiveParserProto {
           acceptCondition_ = null;
         }
         acceptConditionCase_ = 5;
-        onChanged();;
+        onChanged();
         return notExistsBuilder_;
       }
 
@@ -2705,7 +2552,7 @@ public final class NaiveParserProto {
           acceptCondition_ = null;
         }
         acceptConditionCase_ = 6;
-        onChanged();;
+        onChanged();
         return existsBuilder_;
       }
 
@@ -2847,7 +2694,7 @@ public final class NaiveParserProto {
           acceptCondition_ = null;
         }
         acceptConditionCase_ = 7;
-        onChanged();;
+        onChanged();
         return unlessBuilder_;
       }
 
@@ -2989,7 +2836,7 @@ public final class NaiveParserProto {
           acceptCondition_ = null;
         }
         acceptConditionCase_ = 8;
-        onChanged();;
+        onChanged();
         return onlyIfBuilder_;
       }
       @java.lang.Override
@@ -3025,7 +2872,18 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new AcceptCondition(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -3096,63 +2954,6 @@ public final class NaiveParserProto {
       return new AndConditions();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private AndConditions(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                conditions_ = new java.util.ArrayList<com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition>();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              conditions_.add(
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.parser(), extensionRegistry));
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (com.google.protobuf.UninitializedMessageException e) {
-        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          conditions_ = java.util.Collections.unmodifiableList(conditions_);
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_AndConditions_descriptor;
@@ -3167,6 +2968,7 @@ public final class NaiveParserProto {
     }
 
     public static final int CONDITIONS_FIELD_NUMBER = 1;
+    @SuppressWarnings("serial")
     private java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition> conditions_;
     /**
      * <code>repeated .com.giyeok.jparser.nparser.proto.AcceptCondition conditions = 1;</code>
@@ -3223,7 +3025,7 @@ public final class NaiveParserProto {
       for (int i = 0; i < conditions_.size(); i++) {
         output.writeMessage(1, conditions_.get(i));
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -3236,7 +3038,7 @@ public final class NaiveParserProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, conditions_.get(i));
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -3253,7 +3055,7 @@ public final class NaiveParserProto {
 
       if (!getConditionsList()
           .equals(other.getConditionsList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -3268,7 +3070,7 @@ public final class NaiveParserProto {
         hash = (37 * hash) + CONDITIONS_FIELD_NUMBER;
         hash = (53 * hash) + getConditionsList().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -3385,29 +3187,25 @@ public final class NaiveParserProto {
 
       // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-          getConditionsFieldBuilder();
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         if (conditionsBuilder_ == null) {
           conditions_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
         } else {
+          conditions_ = null;
           conditionsBuilder_.clear();
         }
+        bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
 
@@ -3434,7 +3232,13 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions buildPartial() {
         com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions(this);
-        int from_bitField0_ = bitField0_;
+        buildPartialRepeatedFields(result);
+        if (bitField0_ != 0) { buildPartial0(result); }
+        onBuilt();
+        return result;
+      }
+
+      private void buildPartialRepeatedFields(com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions result) {
         if (conditionsBuilder_ == null) {
           if (((bitField0_ & 0x00000001) != 0)) {
             conditions_ = java.util.Collections.unmodifiableList(conditions_);
@@ -3444,42 +3248,12 @@ public final class NaiveParserProto {
         } else {
           result.conditions_ = conditionsBuilder_.build();
         }
-        onBuilt();
-        return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) {
@@ -3518,7 +3292,7 @@ public final class NaiveParserProto {
             }
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -3533,17 +3307,43 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition m =
+                    input.readMessage(
+                        com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.parser(),
+                        extensionRegistry);
+                if (conditionsBuilder_ == null) {
+                  ensureConditionsIsMutable();
+                  conditions_.add(m);
+                } else {
+                  conditionsBuilder_.addMessage(m);
+                }
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.AndConditions) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -3820,7 +3620,18 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new AndConditions(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -3891,63 +3702,6 @@ public final class NaiveParserProto {
       return new OrConditions();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private OrConditions(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                conditions_ = new java.util.ArrayList<com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition>();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              conditions_.add(
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.parser(), extensionRegistry));
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (com.google.protobuf.UninitializedMessageException e) {
-        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          conditions_ = java.util.Collections.unmodifiableList(conditions_);
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_OrConditions_descriptor;
@@ -3962,6 +3716,7 @@ public final class NaiveParserProto {
     }
 
     public static final int CONDITIONS_FIELD_NUMBER = 1;
+    @SuppressWarnings("serial")
     private java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition> conditions_;
     /**
      * <code>repeated .com.giyeok.jparser.nparser.proto.AcceptCondition conditions = 1;</code>
@@ -4018,7 +3773,7 @@ public final class NaiveParserProto {
       for (int i = 0; i < conditions_.size(); i++) {
         output.writeMessage(1, conditions_.get(i));
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -4031,7 +3786,7 @@ public final class NaiveParserProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, conditions_.get(i));
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -4048,7 +3803,7 @@ public final class NaiveParserProto {
 
       if (!getConditionsList()
           .equals(other.getConditionsList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -4063,7 +3818,7 @@ public final class NaiveParserProto {
         hash = (37 * hash) + CONDITIONS_FIELD_NUMBER;
         hash = (53 * hash) + getConditionsList().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -4180,29 +3935,25 @@ public final class NaiveParserProto {
 
       // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-          getConditionsFieldBuilder();
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         if (conditionsBuilder_ == null) {
           conditions_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
         } else {
+          conditions_ = null;
           conditionsBuilder_.clear();
         }
+        bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
 
@@ -4229,7 +3980,13 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions buildPartial() {
         com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions(this);
-        int from_bitField0_ = bitField0_;
+        buildPartialRepeatedFields(result);
+        if (bitField0_ != 0) { buildPartial0(result); }
+        onBuilt();
+        return result;
+      }
+
+      private void buildPartialRepeatedFields(com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions result) {
         if (conditionsBuilder_ == null) {
           if (((bitField0_ & 0x00000001) != 0)) {
             conditions_ = java.util.Collections.unmodifiableList(conditions_);
@@ -4239,42 +3996,12 @@ public final class NaiveParserProto {
         } else {
           result.conditions_ = conditionsBuilder_.build();
         }
-        onBuilt();
-        return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions) {
@@ -4313,7 +4040,7 @@ public final class NaiveParserProto {
             }
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -4328,17 +4055,43 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition m =
+                    input.readMessage(
+                        com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.parser(),
+                        extensionRegistry);
+                if (conditionsBuilder_ == null) {
+                  ensureConditionsIsMutable();
+                  conditions_.add(m);
+                } else {
+                  conditionsBuilder_.addMessage(m);
+                }
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.OrConditions) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -4615,7 +4368,18 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new OrConditions(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -4679,65 +4443,6 @@ public final class NaiveParserProto {
       return new NotExists();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NotExists(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              symbolId_ = input.readInt32();
-              break;
-            }
-            case 16: {
-
-              beginGen_ = input.readInt32();
-              break;
-            }
-            case 24: {
-
-              endGen_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (com.google.protobuf.UninitializedMessageException e) {
-        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_NotExists_descriptor;
@@ -4752,7 +4457,7 @@ public final class NaiveParserProto {
     }
 
     public static final int SYMBOL_ID_FIELD_NUMBER = 1;
-    private int symbolId_;
+    private int symbolId_ = 0;
     /**
      * <code>int32 symbol_id = 1;</code>
      * @return The symbolId.
@@ -4763,7 +4468,7 @@ public final class NaiveParserProto {
     }
 
     public static final int BEGIN_GEN_FIELD_NUMBER = 2;
-    private int beginGen_;
+    private int beginGen_ = 0;
     /**
      * <code>int32 begin_gen = 2;</code>
      * @return The beginGen.
@@ -4774,7 +4479,7 @@ public final class NaiveParserProto {
     }
 
     public static final int END_GEN_FIELD_NUMBER = 3;
-    private int endGen_;
+    private int endGen_ = 0;
     /**
      * <code>int32 end_gen = 3;</code>
      * @return The endGen.
@@ -4807,7 +4512,7 @@ public final class NaiveParserProto {
       if (endGen_ != 0) {
         output.writeInt32(3, endGen_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -4828,7 +4533,7 @@ public final class NaiveParserProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(3, endGen_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -4849,7 +4554,7 @@ public final class NaiveParserProto {
           != other.getBeginGen()) return false;
       if (getEndGen()
           != other.getEndGen()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -4866,7 +4571,7 @@ public final class NaiveParserProto {
       hash = (53 * hash) + getBeginGen();
       hash = (37 * hash) + END_GEN_FIELD_NUMBER;
       hash = (53 * hash) + getEndGen();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -4983,28 +4688,21 @@ public final class NaiveParserProto {
 
       // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         symbolId_ = 0;
-
         beginGen_ = 0;
-
         endGen_ = 0;
-
         return this;
       }
 
@@ -5031,45 +4729,24 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists buildPartial() {
         com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists(this);
-        result.symbolId_ = symbolId_;
-        result.beginGen_ = beginGen_;
-        result.endGen_ = endGen_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.symbolId_ = symbolId_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.beginGen_ = beginGen_;
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.endGen_ = endGen_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists) {
@@ -5091,7 +4768,7 @@ public final class NaiveParserProto {
         if (other.getEndGen() != 0) {
           setEndGen(other.getEndGen());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -5106,19 +4783,48 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                symbolId_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 16: {
+                beginGen_ = input.readInt32();
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 16
+              case 24: {
+                endGen_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.NotExists) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int symbolId_ ;
       /**
@@ -5135,8 +4841,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setSymbolId(int value) {
-        
+
         symbolId_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -5145,7 +4852,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearSymbolId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         symbolId_ = 0;
         onChanged();
         return this;
@@ -5166,8 +4873,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setBeginGen(int value) {
-        
+
         beginGen_ = value;
+        bitField0_ |= 0x00000002;
         onChanged();
         return this;
       }
@@ -5176,7 +4884,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearBeginGen() {
-        
+        bitField0_ = (bitField0_ & ~0x00000002);
         beginGen_ = 0;
         onChanged();
         return this;
@@ -5197,8 +4905,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setEndGen(int value) {
-        
+
         endGen_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -5207,7 +4916,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearEndGen() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         endGen_ = 0;
         onChanged();
         return this;
@@ -5245,7 +4954,18 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NotExists(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -5309,65 +5029,6 @@ public final class NaiveParserProto {
       return new Exists();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Exists(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              symbolId_ = input.readInt32();
-              break;
-            }
-            case 16: {
-
-              beginGen_ = input.readInt32();
-              break;
-            }
-            case 24: {
-
-              endGen_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (com.google.protobuf.UninitializedMessageException e) {
-        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_Exists_descriptor;
@@ -5382,7 +5043,7 @@ public final class NaiveParserProto {
     }
 
     public static final int SYMBOL_ID_FIELD_NUMBER = 1;
-    private int symbolId_;
+    private int symbolId_ = 0;
     /**
      * <code>int32 symbol_id = 1;</code>
      * @return The symbolId.
@@ -5393,7 +5054,7 @@ public final class NaiveParserProto {
     }
 
     public static final int BEGIN_GEN_FIELD_NUMBER = 2;
-    private int beginGen_;
+    private int beginGen_ = 0;
     /**
      * <code>int32 begin_gen = 2;</code>
      * @return The beginGen.
@@ -5404,7 +5065,7 @@ public final class NaiveParserProto {
     }
 
     public static final int END_GEN_FIELD_NUMBER = 3;
-    private int endGen_;
+    private int endGen_ = 0;
     /**
      * <code>int32 end_gen = 3;</code>
      * @return The endGen.
@@ -5437,7 +5098,7 @@ public final class NaiveParserProto {
       if (endGen_ != 0) {
         output.writeInt32(3, endGen_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -5458,7 +5119,7 @@ public final class NaiveParserProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(3, endGen_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -5479,7 +5140,7 @@ public final class NaiveParserProto {
           != other.getBeginGen()) return false;
       if (getEndGen()
           != other.getEndGen()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -5496,7 +5157,7 @@ public final class NaiveParserProto {
       hash = (53 * hash) + getBeginGen();
       hash = (37 * hash) + END_GEN_FIELD_NUMBER;
       hash = (53 * hash) + getEndGen();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -5613,28 +5274,21 @@ public final class NaiveParserProto {
 
       // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         symbolId_ = 0;
-
         beginGen_ = 0;
-
         endGen_ = 0;
-
         return this;
       }
 
@@ -5661,45 +5315,24 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists buildPartial() {
         com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists(this);
-        result.symbolId_ = symbolId_;
-        result.beginGen_ = beginGen_;
-        result.endGen_ = endGen_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.symbolId_ = symbolId_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.beginGen_ = beginGen_;
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.endGen_ = endGen_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists) {
@@ -5721,7 +5354,7 @@ public final class NaiveParserProto {
         if (other.getEndGen() != 0) {
           setEndGen(other.getEndGen());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -5736,19 +5369,48 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                symbolId_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 16: {
+                beginGen_ = input.readInt32();
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 16
+              case 24: {
+                endGen_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.Exists) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int symbolId_ ;
       /**
@@ -5765,8 +5427,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setSymbolId(int value) {
-        
+
         symbolId_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -5775,7 +5438,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearSymbolId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         symbolId_ = 0;
         onChanged();
         return this;
@@ -5796,8 +5459,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setBeginGen(int value) {
-        
+
         beginGen_ = value;
+        bitField0_ |= 0x00000002;
         onChanged();
         return this;
       }
@@ -5806,7 +5470,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearBeginGen() {
-        
+        bitField0_ = (bitField0_ & ~0x00000002);
         beginGen_ = 0;
         onChanged();
         return this;
@@ -5827,8 +5491,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setEndGen(int value) {
-        
+
         endGen_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -5837,7 +5502,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearEndGen() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         endGen_ = 0;
         onChanged();
         return this;
@@ -5875,7 +5540,18 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Exists(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -5939,65 +5615,6 @@ public final class NaiveParserProto {
       return new Unless();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Unless(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              symbolId_ = input.readInt32();
-              break;
-            }
-            case 16: {
-
-              beginGen_ = input.readInt32();
-              break;
-            }
-            case 24: {
-
-              endGen_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (com.google.protobuf.UninitializedMessageException e) {
-        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_Unless_descriptor;
@@ -6012,7 +5629,7 @@ public final class NaiveParserProto {
     }
 
     public static final int SYMBOL_ID_FIELD_NUMBER = 1;
-    private int symbolId_;
+    private int symbolId_ = 0;
     /**
      * <code>int32 symbol_id = 1;</code>
      * @return The symbolId.
@@ -6023,7 +5640,7 @@ public final class NaiveParserProto {
     }
 
     public static final int BEGIN_GEN_FIELD_NUMBER = 2;
-    private int beginGen_;
+    private int beginGen_ = 0;
     /**
      * <code>int32 begin_gen = 2;</code>
      * @return The beginGen.
@@ -6034,7 +5651,7 @@ public final class NaiveParserProto {
     }
 
     public static final int END_GEN_FIELD_NUMBER = 3;
-    private int endGen_;
+    private int endGen_ = 0;
     /**
      * <code>int32 end_gen = 3;</code>
      * @return The endGen.
@@ -6067,7 +5684,7 @@ public final class NaiveParserProto {
       if (endGen_ != 0) {
         output.writeInt32(3, endGen_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -6088,7 +5705,7 @@ public final class NaiveParserProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(3, endGen_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -6109,7 +5726,7 @@ public final class NaiveParserProto {
           != other.getBeginGen()) return false;
       if (getEndGen()
           != other.getEndGen()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -6126,7 +5743,7 @@ public final class NaiveParserProto {
       hash = (53 * hash) + getBeginGen();
       hash = (37 * hash) + END_GEN_FIELD_NUMBER;
       hash = (53 * hash) + getEndGen();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -6243,28 +5860,21 @@ public final class NaiveParserProto {
 
       // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         symbolId_ = 0;
-
         beginGen_ = 0;
-
         endGen_ = 0;
-
         return this;
       }
 
@@ -6291,45 +5901,24 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless buildPartial() {
         com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless(this);
-        result.symbolId_ = symbolId_;
-        result.beginGen_ = beginGen_;
-        result.endGen_ = endGen_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.symbolId_ = symbolId_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.beginGen_ = beginGen_;
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.endGen_ = endGen_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless) {
@@ -6351,7 +5940,7 @@ public final class NaiveParserProto {
         if (other.getEndGen() != 0) {
           setEndGen(other.getEndGen());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -6366,19 +5955,48 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                symbolId_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 16: {
+                beginGen_ = input.readInt32();
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 16
+              case 24: {
+                endGen_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.Unless) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int symbolId_ ;
       /**
@@ -6395,8 +6013,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setSymbolId(int value) {
-        
+
         symbolId_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -6405,7 +6024,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearSymbolId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         symbolId_ = 0;
         onChanged();
         return this;
@@ -6426,8 +6045,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setBeginGen(int value) {
-        
+
         beginGen_ = value;
+        bitField0_ |= 0x00000002;
         onChanged();
         return this;
       }
@@ -6436,7 +6056,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearBeginGen() {
-        
+        bitField0_ = (bitField0_ & ~0x00000002);
         beginGen_ = 0;
         onChanged();
         return this;
@@ -6457,8 +6077,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setEndGen(int value) {
-        
+
         endGen_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -6467,7 +6088,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearEndGen() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         endGen_ = 0;
         onChanged();
         return this;
@@ -6505,7 +6126,18 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Unless(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -6569,65 +6201,6 @@ public final class NaiveParserProto {
       return new OnlyIf();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private OnlyIf(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              symbolId_ = input.readInt32();
-              break;
-            }
-            case 16: {
-
-              beginGen_ = input.readInt32();
-              break;
-            }
-            case 24: {
-
-              endGen_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (com.google.protobuf.UninitializedMessageException e) {
-        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_OnlyIf_descriptor;
@@ -6642,7 +6215,7 @@ public final class NaiveParserProto {
     }
 
     public static final int SYMBOL_ID_FIELD_NUMBER = 1;
-    private int symbolId_;
+    private int symbolId_ = 0;
     /**
      * <code>int32 symbol_id = 1;</code>
      * @return The symbolId.
@@ -6653,7 +6226,7 @@ public final class NaiveParserProto {
     }
 
     public static final int BEGIN_GEN_FIELD_NUMBER = 2;
-    private int beginGen_;
+    private int beginGen_ = 0;
     /**
      * <code>int32 begin_gen = 2;</code>
      * @return The beginGen.
@@ -6664,7 +6237,7 @@ public final class NaiveParserProto {
     }
 
     public static final int END_GEN_FIELD_NUMBER = 3;
-    private int endGen_;
+    private int endGen_ = 0;
     /**
      * <code>int32 end_gen = 3;</code>
      * @return The endGen.
@@ -6697,7 +6270,7 @@ public final class NaiveParserProto {
       if (endGen_ != 0) {
         output.writeInt32(3, endGen_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -6718,7 +6291,7 @@ public final class NaiveParserProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(3, endGen_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -6739,7 +6312,7 @@ public final class NaiveParserProto {
           != other.getBeginGen()) return false;
       if (getEndGen()
           != other.getEndGen()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -6756,7 +6329,7 @@ public final class NaiveParserProto {
       hash = (53 * hash) + getBeginGen();
       hash = (37 * hash) + END_GEN_FIELD_NUMBER;
       hash = (53 * hash) + getEndGen();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -6873,28 +6446,21 @@ public final class NaiveParserProto {
 
       // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         symbolId_ = 0;
-
         beginGen_ = 0;
-
         endGen_ = 0;
-
         return this;
       }
 
@@ -6921,45 +6487,24 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf buildPartial() {
         com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf(this);
-        result.symbolId_ = symbolId_;
-        result.beginGen_ = beginGen_;
-        result.endGen_ = endGen_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.symbolId_ = symbolId_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.beginGen_ = beginGen_;
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.endGen_ = endGen_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf) {
@@ -6981,7 +6526,7 @@ public final class NaiveParserProto {
         if (other.getEndGen() != 0) {
           setEndGen(other.getEndGen());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -6996,19 +6541,48 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                symbolId_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 16: {
+                beginGen_ = input.readInt32();
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 16
+              case 24: {
+                endGen_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.OnlyIf) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int symbolId_ ;
       /**
@@ -7025,8 +6599,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setSymbolId(int value) {
-        
+
         symbolId_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -7035,7 +6610,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearSymbolId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         symbolId_ = 0;
         onChanged();
         return this;
@@ -7056,8 +6631,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setBeginGen(int value) {
-        
+
         beginGen_ = value;
+        bitField0_ |= 0x00000002;
         onChanged();
         return this;
       }
@@ -7066,7 +6642,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearBeginGen() {
-        
+        bitField0_ = (bitField0_ & ~0x00000002);
         beginGen_ = 0;
         onChanged();
         return this;
@@ -7087,8 +6663,9 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder setEndGen(int value) {
-        
+
         endGen_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -7097,7 +6674,7 @@ public final class NaiveParserProto {
        * @return This builder for chaining.
        */
       public Builder clearEndGen() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         endGen_ = 0;
         onChanged();
         return this;
@@ -7135,7 +6712,18 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new OnlyIf(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -7211,76 +6799,6 @@ public final class NaiveParserProto {
       return new Node();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Node(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder subBuilder = null;
-              if (kernel_ != null) {
-                subBuilder = kernel_.toBuilder();
-              }
-              kernel_ = input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(kernel_);
-                kernel_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.Builder subBuilder = null;
-              if (condition_ != null) {
-                subBuilder = condition_.toBuilder();
-              }
-              condition_ = input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(condition_);
-                condition_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (com.google.protobuf.UninitializedMessageException e) {
-        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_Node_descriptor;
@@ -7317,7 +6835,7 @@ public final class NaiveParserProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.nparser.proto.NaiveParserProto.KernelOrBuilder getKernelOrBuilder() {
-      return getKernel();
+      return kernel_ == null ? com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.getDefaultInstance() : kernel_;
     }
 
     public static final int CONDITION_FIELD_NUMBER = 2;
@@ -7343,7 +6861,7 @@ public final class NaiveParserProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptConditionOrBuilder getConditionOrBuilder() {
-      return getCondition();
+      return condition_ == null ? com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.getDefaultInstance() : condition_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -7366,7 +6884,7 @@ public final class NaiveParserProto {
       if (condition_ != null) {
         output.writeMessage(2, getCondition());
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -7383,7 +6901,7 @@ public final class NaiveParserProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, getCondition());
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -7408,7 +6926,7 @@ public final class NaiveParserProto {
         if (!getCondition()
             .equals(other.getCondition())) return false;
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -7427,7 +6945,7 @@ public final class NaiveParserProto {
         hash = (37 * hash) + CONDITION_FIELD_NUMBER;
         hash = (53 * hash) + getCondition().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -7544,32 +7062,26 @@ public final class NaiveParserProto {
 
       // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.Node.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        if (kernelBuilder_ == null) {
-          kernel_ = null;
-        } else {
-          kernel_ = null;
+        bitField0_ = 0;
+        kernel_ = null;
+        if (kernelBuilder_ != null) {
+          kernelBuilder_.dispose();
           kernelBuilder_ = null;
         }
-        if (conditionBuilder_ == null) {
-          condition_ = null;
-        } else {
-          condition_ = null;
+        condition_ = null;
+        if (conditionBuilder_ != null) {
+          conditionBuilder_.dispose();
           conditionBuilder_ = null;
         }
         return this;
@@ -7598,52 +7110,25 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.Node buildPartial() {
         com.giyeok.jparser.nparser.proto.NaiveParserProto.Node result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.Node(this);
-        if (kernelBuilder_ == null) {
-          result.kernel_ = kernel_;
-        } else {
-          result.kernel_ = kernelBuilder_.build();
-        }
-        if (conditionBuilder_ == null) {
-          result.condition_ = condition_;
-        } else {
-          result.condition_ = conditionBuilder_.build();
-        }
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.Node result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.kernel_ = kernelBuilder_ == null
+              ? kernel_
+              : kernelBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.condition_ = conditionBuilder_ == null
+              ? condition_
+              : conditionBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.Node) {
@@ -7662,7 +7147,7 @@ public final class NaiveParserProto {
         if (other.hasCondition()) {
           mergeCondition(other.getCondition());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -7677,19 +7162,47 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.Node parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getKernelFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              case 18: {
+                input.readMessage(
+                    getConditionFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.Node) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel kernel_;
       private com.google.protobuf.SingleFieldBuilderV3<
@@ -7699,7 +7212,7 @@ public final class NaiveParserProto {
        * @return Whether the kernel field is set.
        */
       public boolean hasKernel() {
-        return kernelBuilder_ != null || kernel_ != null;
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.nparser.proto.Kernel kernel = 1;</code>
@@ -7721,11 +7234,11 @@ public final class NaiveParserProto {
             throw new NullPointerException();
           }
           kernel_ = value;
-          onChanged();
         } else {
           kernelBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -7735,11 +7248,11 @@ public final class NaiveParserProto {
           com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder builderForValue) {
         if (kernelBuilder_ == null) {
           kernel_ = builderForValue.build();
-          onChanged();
         } else {
           kernelBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -7747,38 +7260,38 @@ public final class NaiveParserProto {
        */
       public Builder mergeKernel(com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel value) {
         if (kernelBuilder_ == null) {
-          if (kernel_ != null) {
-            kernel_ =
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.newBuilder(kernel_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000001) != 0) &&
+            kernel_ != null &&
+            kernel_ != com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.getDefaultInstance()) {
+            getKernelBuilder().mergeFrom(value);
           } else {
             kernel_ = value;
           }
-          onChanged();
         } else {
           kernelBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.nparser.proto.Kernel kernel = 1;</code>
        */
       public Builder clearKernel() {
-        if (kernelBuilder_ == null) {
-          kernel_ = null;
-          onChanged();
-        } else {
-          kernel_ = null;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        kernel_ = null;
+        if (kernelBuilder_ != null) {
+          kernelBuilder_.dispose();
           kernelBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.nparser.proto.Kernel kernel = 1;</code>
        */
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.Kernel.Builder getKernelBuilder() {
-        
+        bitField0_ |= 0x00000001;
         onChanged();
         return getKernelFieldBuilder().getBuilder();
       }
@@ -7818,7 +7331,7 @@ public final class NaiveParserProto {
        * @return Whether the condition field is set.
        */
       public boolean hasCondition() {
-        return conditionBuilder_ != null || condition_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.nparser.proto.AcceptCondition condition = 2;</code>
@@ -7840,11 +7353,11 @@ public final class NaiveParserProto {
             throw new NullPointerException();
           }
           condition_ = value;
-          onChanged();
         } else {
           conditionBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -7854,11 +7367,11 @@ public final class NaiveParserProto {
           com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.Builder builderForValue) {
         if (conditionBuilder_ == null) {
           condition_ = builderForValue.build();
-          onChanged();
         } else {
           conditionBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -7866,38 +7379,38 @@ public final class NaiveParserProto {
        */
       public Builder mergeCondition(com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition value) {
         if (conditionBuilder_ == null) {
-          if (condition_ != null) {
-            condition_ =
-              com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.newBuilder(condition_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            condition_ != null &&
+            condition_ != com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.getDefaultInstance()) {
+            getConditionBuilder().mergeFrom(value);
           } else {
             condition_ = value;
           }
-          onChanged();
         } else {
           conditionBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.nparser.proto.AcceptCondition condition = 2;</code>
        */
       public Builder clearCondition() {
-        if (conditionBuilder_ == null) {
-          condition_ = null;
-          onChanged();
-        } else {
-          condition_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        condition_ = null;
+        if (conditionBuilder_ != null) {
+          conditionBuilder_.dispose();
           conditionBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.nparser.proto.AcceptCondition condition = 2;</code>
        */
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.AcceptCondition.Builder getConditionBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getConditionFieldBuilder().getBuilder();
       }
@@ -7961,7 +7474,18 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Node(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -8057,75 +7581,6 @@ public final class NaiveParserProto {
       return new Graph();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Graph(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                nodes_ = new java.util.ArrayList<com.giyeok.jparser.nparser.proto.NaiveParserProto.Node>();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              nodes_.add(
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.Node.parser(), extensionRegistry));
-              break;
-            }
-            case 18: {
-              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
-                edges_ = new java.util.ArrayList<com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge>();
-                mutable_bitField0_ |= 0x00000002;
-              }
-              edges_.add(
-                  input.readMessage(com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge.parser(), extensionRegistry));
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (com.google.protobuf.UninitializedMessageException e) {
-        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          nodes_ = java.util.Collections.unmodifiableList(nodes_);
-        }
-        if (((mutable_bitField0_ & 0x00000002) != 0)) {
-          edges_ = java.util.Collections.unmodifiableList(edges_);
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_Graph_descriptor;
@@ -8183,65 +7638,6 @@ public final class NaiveParserProto {
         return new Edge();
       }
 
-      @java.lang.Override
-      public final com.google.protobuf.UnknownFieldSet
-      getUnknownFields() {
-        return this.unknownFields;
-      }
-      private Edge(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        this();
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-            com.google.protobuf.UnknownFieldSet.newBuilder();
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              case 8: {
-
-                startIdx_ = input.readInt32();
-                break;
-              }
-              case 16: {
-
-                endIdx_ = input.readInt32();
-                break;
-              }
-              case 24: {
-
-                actual_ = input.readBool();
-                break;
-              }
-              default: {
-                if (!parseUnknownField(
-                    input, unknownFields, extensionRegistry, tag)) {
-                  done = true;
-                }
-                break;
-              }
-            }
-          }
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(this);
-        } catch (com.google.protobuf.UninitializedMessageException e) {
-          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(
-              e).setUnfinishedMessage(this);
-        } finally {
-          this.unknownFields = unknownFields.build();
-          makeExtensionsImmutable();
-        }
-      }
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
         return com.giyeok.jparser.nparser.proto.NaiveParserProto.internal_static_com_giyeok_jparser_nparser_proto_Graph_Edge_descriptor;
@@ -8256,7 +7652,7 @@ public final class NaiveParserProto {
       }
 
       public static final int START_IDX_FIELD_NUMBER = 1;
-      private int startIdx_;
+      private int startIdx_ = 0;
       /**
        * <code>int32 start_idx = 1;</code>
        * @return The startIdx.
@@ -8267,7 +7663,7 @@ public final class NaiveParserProto {
       }
 
       public static final int END_IDX_FIELD_NUMBER = 2;
-      private int endIdx_;
+      private int endIdx_ = 0;
       /**
        * <code>int32 end_idx = 2;</code>
        * @return The endIdx.
@@ -8278,7 +7674,7 @@ public final class NaiveParserProto {
       }
 
       public static final int ACTUAL_FIELD_NUMBER = 3;
-      private boolean actual_;
+      private boolean actual_ = false;
       /**
        * <code>bool actual = 3;</code>
        * @return The actual.
@@ -8311,7 +7707,7 @@ public final class NaiveParserProto {
         if (actual_ != false) {
           output.writeBool(3, actual_);
         }
-        unknownFields.writeTo(output);
+        getUnknownFields().writeTo(output);
       }
 
       @java.lang.Override
@@ -8332,7 +7728,7 @@ public final class NaiveParserProto {
           size += com.google.protobuf.CodedOutputStream
             .computeBoolSize(3, actual_);
         }
-        size += unknownFields.getSerializedSize();
+        size += getUnknownFields().getSerializedSize();
         memoizedSize = size;
         return size;
       }
@@ -8353,7 +7749,7 @@ public final class NaiveParserProto {
             != other.getEndIdx()) return false;
         if (getActual()
             != other.getActual()) return false;
-        if (!unknownFields.equals(other.unknownFields)) return false;
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
         return true;
       }
 
@@ -8371,7 +7767,7 @@ public final class NaiveParserProto {
         hash = (37 * hash) + ACTUAL_FIELD_NUMBER;
         hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
             getActual());
-        hash = (29 * hash) + unknownFields.hashCode();
+        hash = (29 * hash) + getUnknownFields().hashCode();
         memoizedHashCode = hash;
         return hash;
       }
@@ -8488,28 +7884,21 @@ public final class NaiveParserProto {
 
         // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge.newBuilder()
         private Builder() {
-          maybeForceBuilderInitialization();
+
         }
 
         private Builder(
             com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
           super(parent);
-          maybeForceBuilderInitialization();
-        }
-        private void maybeForceBuilderInitialization() {
-          if (com.google.protobuf.GeneratedMessageV3
-                  .alwaysUseFieldBuilders) {
-          }
+
         }
         @java.lang.Override
         public Builder clear() {
           super.clear();
+          bitField0_ = 0;
           startIdx_ = 0;
-
           endIdx_ = 0;
-
           actual_ = false;
-
           return this;
         }
 
@@ -8536,45 +7925,24 @@ public final class NaiveParserProto {
         @java.lang.Override
         public com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge buildPartial() {
           com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge(this);
-          result.startIdx_ = startIdx_;
-          result.endIdx_ = endIdx_;
-          result.actual_ = actual_;
+          if (bitField0_ != 0) { buildPartial0(result); }
           onBuilt();
           return result;
         }
 
-        @java.lang.Override
-        public Builder clone() {
-          return super.clone();
+        private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge result) {
+          int from_bitField0_ = bitField0_;
+          if (((from_bitField0_ & 0x00000001) != 0)) {
+            result.startIdx_ = startIdx_;
+          }
+          if (((from_bitField0_ & 0x00000002) != 0)) {
+            result.endIdx_ = endIdx_;
+          }
+          if (((from_bitField0_ & 0x00000004) != 0)) {
+            result.actual_ = actual_;
+          }
         }
-        @java.lang.Override
-        public Builder setField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            java.lang.Object value) {
-          return super.setField(field, value);
-        }
-        @java.lang.Override
-        public Builder clearField(
-            com.google.protobuf.Descriptors.FieldDescriptor field) {
-          return super.clearField(field);
-        }
-        @java.lang.Override
-        public Builder clearOneof(
-            com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-          return super.clearOneof(oneof);
-        }
-        @java.lang.Override
-        public Builder setRepeatedField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            int index, java.lang.Object value) {
-          return super.setRepeatedField(field, index, value);
-        }
-        @java.lang.Override
-        public Builder addRepeatedField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            java.lang.Object value) {
-          return super.addRepeatedField(field, value);
-        }
+
         @java.lang.Override
         public Builder mergeFrom(com.google.protobuf.Message other) {
           if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge) {
@@ -8596,7 +7964,7 @@ public final class NaiveParserProto {
           if (other.getActual() != false) {
             setActual(other.getActual());
           }
-          this.mergeUnknownFields(other.unknownFields);
+          this.mergeUnknownFields(other.getUnknownFields());
           onChanged();
           return this;
         }
@@ -8611,19 +7979,48 @@ public final class NaiveParserProto {
             com.google.protobuf.CodedInputStream input,
             com.google.protobuf.ExtensionRegistryLite extensionRegistry)
             throws java.io.IOException {
-          com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge parsedMessage = null;
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
+          }
           try {
-            parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 8: {
+                  startIdx_ = input.readInt32();
+                  bitField0_ |= 0x00000001;
+                  break;
+                } // case 8
+                case 16: {
+                  endIdx_ = input.readInt32();
+                  bitField0_ |= 0x00000002;
+                  break;
+                } // case 16
+                case 24: {
+                  actual_ = input.readBool();
+                  bitField0_ |= 0x00000004;
+                  break;
+                } // case 24
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
           } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-            parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge) e.getUnfinishedMessage();
             throw e.unwrapIOException();
           } finally {
-            if (parsedMessage != null) {
-              mergeFrom(parsedMessage);
-            }
-          }
+            onChanged();
+          } // finally
           return this;
         }
+        private int bitField0_;
 
         private int startIdx_ ;
         /**
@@ -8640,8 +8037,9 @@ public final class NaiveParserProto {
          * @return This builder for chaining.
          */
         public Builder setStartIdx(int value) {
-          
+
           startIdx_ = value;
+          bitField0_ |= 0x00000001;
           onChanged();
           return this;
         }
@@ -8650,7 +8048,7 @@ public final class NaiveParserProto {
          * @return This builder for chaining.
          */
         public Builder clearStartIdx() {
-          
+          bitField0_ = (bitField0_ & ~0x00000001);
           startIdx_ = 0;
           onChanged();
           return this;
@@ -8671,8 +8069,9 @@ public final class NaiveParserProto {
          * @return This builder for chaining.
          */
         public Builder setEndIdx(int value) {
-          
+
           endIdx_ = value;
+          bitField0_ |= 0x00000002;
           onChanged();
           return this;
         }
@@ -8681,7 +8080,7 @@ public final class NaiveParserProto {
          * @return This builder for chaining.
          */
         public Builder clearEndIdx() {
-          
+          bitField0_ = (bitField0_ & ~0x00000002);
           endIdx_ = 0;
           onChanged();
           return this;
@@ -8702,8 +8101,9 @@ public final class NaiveParserProto {
          * @return This builder for chaining.
          */
         public Builder setActual(boolean value) {
-          
+
           actual_ = value;
+          bitField0_ |= 0x00000004;
           onChanged();
           return this;
         }
@@ -8712,7 +8112,7 @@ public final class NaiveParserProto {
          * @return This builder for chaining.
          */
         public Builder clearActual() {
-          
+          bitField0_ = (bitField0_ & ~0x00000004);
           actual_ = false;
           onChanged();
           return this;
@@ -8750,7 +8150,18 @@ public final class NaiveParserProto {
             com.google.protobuf.CodedInputStream input,
             com.google.protobuf.ExtensionRegistryLite extensionRegistry)
             throws com.google.protobuf.InvalidProtocolBufferException {
-          return new Edge(input, extensionRegistry);
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
         }
       };
 
@@ -8771,6 +8182,7 @@ public final class NaiveParserProto {
     }
 
     public static final int NODES_FIELD_NUMBER = 1;
+    @SuppressWarnings("serial")
     private java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Node> nodes_;
     /**
      * <code>repeated .com.giyeok.jparser.nparser.proto.Node nodes = 1;</code>
@@ -8811,6 +8223,7 @@ public final class NaiveParserProto {
     }
 
     public static final int EDGES_FIELD_NUMBER = 2;
+    @SuppressWarnings("serial")
     private java.util.List<com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge> edges_;
     /**
      * <code>repeated .com.giyeok.jparser.nparser.proto.Graph.Edge edges = 2;</code>
@@ -8870,7 +8283,7 @@ public final class NaiveParserProto {
       for (int i = 0; i < edges_.size(); i++) {
         output.writeMessage(2, edges_.get(i));
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -8887,7 +8300,7 @@ public final class NaiveParserProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, edges_.get(i));
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -8906,7 +8319,7 @@ public final class NaiveParserProto {
           .equals(other.getNodesList())) return false;
       if (!getEdgesList()
           .equals(other.getEdgesList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -8925,7 +8338,7 @@ public final class NaiveParserProto {
         hash = (37 * hash) + EDGES_FIELD_NUMBER;
         hash = (53 * hash) + getEdgesList().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -9042,36 +8455,32 @@ public final class NaiveParserProto {
 
       // Construct using com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-          getNodesFieldBuilder();
-          getEdgesFieldBuilder();
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         if (nodesBuilder_ == null) {
           nodes_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
         } else {
+          nodes_ = null;
           nodesBuilder_.clear();
         }
+        bitField0_ = (bitField0_ & ~0x00000001);
         if (edgesBuilder_ == null) {
           edges_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000002);
         } else {
+          edges_ = null;
           edgesBuilder_.clear();
         }
+        bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
 
@@ -9098,7 +8507,13 @@ public final class NaiveParserProto {
       @java.lang.Override
       public com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph buildPartial() {
         com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph result = new com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph(this);
-        int from_bitField0_ = bitField0_;
+        buildPartialRepeatedFields(result);
+        if (bitField0_ != 0) { buildPartial0(result); }
+        onBuilt();
+        return result;
+      }
+
+      private void buildPartialRepeatedFields(com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph result) {
         if (nodesBuilder_ == null) {
           if (((bitField0_ & 0x00000001) != 0)) {
             nodes_ = java.util.Collections.unmodifiableList(nodes_);
@@ -9117,42 +8532,12 @@ public final class NaiveParserProto {
         } else {
           result.edges_ = edgesBuilder_.build();
         }
-        onBuilt();
-        return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph) {
@@ -9217,7 +8602,7 @@ public final class NaiveParserProto {
             }
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -9232,17 +8617,56 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                com.giyeok.jparser.nparser.proto.NaiveParserProto.Node m =
+                    input.readMessage(
+                        com.giyeok.jparser.nparser.proto.NaiveParserProto.Node.parser(),
+                        extensionRegistry);
+                if (nodesBuilder_ == null) {
+                  ensureNodesIsMutable();
+                  nodes_.add(m);
+                } else {
+                  nodesBuilder_.addMessage(m);
+                }
+                break;
+              } // case 10
+              case 18: {
+                com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge m =
+                    input.readMessage(
+                        com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph.Edge.parser(),
+                        extensionRegistry);
+                if (edgesBuilder_ == null) {
+                  ensureEdgesIsMutable();
+                  edges_.add(m);
+                } else {
+                  edgesBuilder_.addMessage(m);
+                }
+                break;
+              } // case 18
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.nparser.proto.NaiveParserProto.Graph) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -9759,7 +9183,18 @@ public final class NaiveParserProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Graph(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 

@@ -98,7 +98,6 @@ message TasksSummary2 {
   }
   repeated AddedKernelPair added_kernels = 1;
   repeated com.giyeok.jparser.nparser.proto.Kernel progressed_kernels = 2;
-  optional com.giyeok.jparser.nparser.proto.Kernel progressed_start_kernel = 3;
 }
 
 message ParsingAction2 {

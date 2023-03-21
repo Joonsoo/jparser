@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package com.giyeok.jparser.mgroup2.proto;
+
+import "google/protobuf/empty.proto";
+import "GrammarProto.proto";
+import "TermGroupProto.proto";
+import "NaiveParserProto.proto";
+import "MilestoneParserDataProto.proto";
+
+message MilestoneGroupParserDataProto {
+  com.giyeok.jparser.proto.NGrammar grammar = 1;
+  int32 start_group_id = 2;
+  com.giyeok.jparser.proto.TasksSummary2 initial_tasks_summary = 3;
+  map<int32, MilestoneGroup> milestone_groups = 4;
+
+  message TermActionPair {
+    int32 group_id = 1;
+    message TermGroupAction {
+      com.giyeok.jparser.proto.TermGroup term_group = 1;
+      TermAction term_action = 2;
+    }
+    repeated TermGroupAction actions = 2;
+  }
+  repeated TermActionPair term_actions = 5;
+
+  message TipEdgeActionPair {
+    com.giyeok.jparser.proto.KernelTemplate start = 1;
+    int32 end = 2;
+    EdgeAction edge_action = 3;
+  }
+  repeated TipEdgeActionPair tip_edge_actions = 6;
+
+  message MidEdgeActionPair {
+    com.giyeok.jparser.proto.KernelTemplate start = 1;
+    com.giyeok.jparser.proto.KernelTemplate end = 2;
+    EdgeAction edge_action = 3;
+  }
+  repeated MidEdgeActionPair mid_edge_actions = 7;
+}
+
+message MilestoneGroup {
+  repeated com.giyeok.jparser.proto.KernelTemplate milestones = 1;
+}
+
+message TermAction {
+  message ReplaceAndAppendMilestoneGroup {
+    com.giyeok.jparser.proto.KernelTemplate replace = 1;
+    AppendingMilestoneGroup append = 2;
+  }
+  repeated ReplaceAndAppendMilestoneGroup appending_milestone_groups = 1;
+
+  message ReplaceAndProgress {
+    int32 replace_group_id = 1;
+    com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 2;
+  }
+  repeated ReplaceAndProgress start_node_progresses = 2;
+
+  repeated LookaheadRequires lookahead_requiring_symbols = 3;
+  com.giyeok.jparser.proto.TasksSummary2 tasks_summary = 4;
+
+  message PendedAcceptConditionKernel {
+    com.giyeok.jparser.proto.KernelTemplate kernel_template = 1;
+    repeated AppendingMilestoneGroup appendings = 2;
+    optional com.giyeok.jparser.proto.AcceptConditionTemplate first_kernel_progress_condition = 3;
+  }
+  repeated PendedAcceptConditionKernel pended_accept_condition_kernels = 5;
+}
+
+message AppendingMilestoneGroup {
+  int32 group_id = 1;
+  com.giyeok.jparser.proto.AcceptConditionTemplate accept_condition = 2;
+}
+
+message LookaheadRequires {
+  int32 symbol_id = 1;
+  int32 group_id = 2;
+}
+
+message EdgeAction {
+  repeated AppendingMilestoneGroup appending_milestone_groups = 1;
+  repeated com.giyeok.jparser.proto.AcceptConditionTemplate start_node_progresses = 2;
+  repeated LookaheadRequires lookahead_requiring_symbols = 3;
+  com.giyeok.jparser.proto.TasksSummary2 tasks_summary = 4;
+  repeated int32 required_symbol_ids = 5;
+}
