@@ -1,9 +1,9 @@
-KotlinFile = ShebangLine? WS_ NL (WS FileAnnotation)* WS <PackageHeader> .* {$5}
-
+KotlinFile = (WS ShebangLine)? WS_ NL (WS FileAnnotation)* WS <PackageHeader> (WS ImportList)? (WS TopLevelObject)* WS EOF
+             {KotlinFile(shebang=$0, fileAnnot=$3, pkgHeader=$5, imports=$6, decls=$7)}
 
 LF = '\n'
 CR = '\r'
-ShebangLine = "#!" .-(CR | LF)*
+ShebangLine = "#!" .-(CR | LF)* {ShebangLine(command=str($1))}
 Comment = LineComment | BlockComment
 LineComment = "//" (.-(CR | LF))* (EOF | CR | LF)
 BlockComment = "/*" (. !"*/")* . "*/"
@@ -13,32 +13,46 @@ NL = LF | CR LF?
 EOF = !.
 
 
-PackageHeader = "package"&Tk WS Identifier (WS ';')?
-Identifier = SimpleIdentifier (WS '.' WS SimpleIdentifier)*
+PackageHeader = "package"&Tk WS Identifier (WS ';')? {PackageHeader(name=$2)}
+Identifier = SimpleIdentifier (WS '.' WS SimpleIdentifier)* {Identifier(tokens=[$0] + $1)}
 
-FileAnnotation = '@' WS "file" WS ':' WS (('[' UnescapedAnnotation (WS UnescapedAnnotation)* ']') | UnescapedAnnotation)
+
+ImportList = ImportHeader
+ImportHeader = "import"&Tk WS Identifier (WS '.' '*' | WS ImportAlias)? (WS ';')*
+ImportAlias = "as"&Tk WS SimpleIdentifier
+
+TopLevelObject = Declaration (WS ';')* $0
+
+
+FileAnnotation = "@file" WS ':' WS ('[' WS UnescapedAnnotation (WS UnescapedAnnotation)* WS ']' {[$2] + $3} | UnescapedAnnotation {[$0]})
+                 {FileAnnotation(annots=$4)}
 UnescapedAnnotation = ConstructorInvocation | UserType
-ConstructorInvocation = UserType WS ValueArguments
-UserType = SimpleUserType (WS '.' WS SimpleUserType)*
-ValueArguments = '(' (WS ValueArgument (WS ',' WS ValueArgument)* (WS ',')?)? WS ')'
+ConstructorInvocation = UserType WS ValueArguments {ConstructorInvocation(userType=$0, args=$2)}
+UserType = SimpleUserType (WS '.' WS SimpleUserType)* {UserType(types=[$0] + $1)}
+ValueArguments = '(' (WS ValueArgument (WS ',' WS ValueArgument)* (WS ',')?)? WS ')' {ValueArguments(args=$1{[$1] + $2} ?: [])}
 
 ValueArgument = (Annotation WS)? (SimpleIdentifier WS '=' WS)? ('*' WS)? Expression
+                {ValueArgument(annot=$0$0, argName=$1$0, star=ispresent($2), expr=$3)}
 
 Annotation = SingleAnnotation | MultiAnnotation
-SingleAnnotation = (AnnotationUseSiteTarget WS | '@' WS) UnescapedAnnotation
-MultiAnnotation = (AnnotationUseSiteTarget WS | '@' WS) '[' UnescapedAnnotation (WS UnescapedAnnotation)* ']'
-AnnotationUseSiteTarget = '@' WS ("field" | "property" | "get" | "set" | "receiver" | "param" | "setparam" | "delegate") WS ':'
+SingleAnnotation = '@' (WS AnnotationUseSiteTarget WS ':' $1)? WS UnescapedAnnotation
+                   {SingleAnnotation(useSite=$2, annot=$4)}
+MultiAnnotation = '@' (WS AnnotationUseSiteTarget WS ':' $1)? WS '[' UnescapedAnnotation (WS UnescapedAnnotation)* ']'
+                  {MultiAnnotation(useSite=$2, annots=[$5] + $6)}
+AnnotationUseSiteTarget: %AnnotationUseSiteTarget = 
+    "field" {%FIELD} | "property" {%PROPERTY} | "get" {%GET} | "set" {%SET} |
+    "receiver" {%RECEIVER} | "param" {%PARAM} | "setparam" {%SETPARAM} | "delegate" {%DELEGATE}
 
 
-SimpleUserType = SimpleIdentifier (WS TypeArguments)?
-TypeArguments = '<' WS TypeProjection (WS ',' WS TypeProjection)* (WS ',')? WS '>'
-TypeProjection = (TypeProjectionModifiers WS)? Type | '*'
-TypeProjectionModifiers = TypeProjectionModifier (WS TypeProjectionModifier)*
-TypeProjectionModifier = VarianceModifier | Annotation
-VarianceModifier = ("in" | "out")&Tk
+SimpleUserType = SimpleIdentifier (WS TypeArguments)? {SimpleUserType(name=$0, typeArgs=$1)}
+TypeArguments = '<' WS TypeProjection (WS ',' WS TypeProjection)* (WS ',')? WS '>' {TypeArguments(args=[$2] + $3)}
+TypeProjection = (TypeProjectionModifiers WS)? Type {ConcTypeProjection(modis=$0$0, typ=$1)} | '*' {AllTypeProjection()}
+TypeProjectionModifiers = TypeProjectionModifier (WS TypeProjectionModifier)* {TypeProjectionModifiers(modis=[$0] + $1)}
+TypeProjectionModifier: TypeProjectionModifier = VarianceModifier | Annotation
+VarianceModifier: %VarianceModifier = ("in" {%IN} | "out" {%OUT})&Tk
 
 Type = (TypeModifiers WS)? (FunctionType | ParenthesizedType | NullableType | TypeReference | DefinitelyNonNullableType)
-TypeModifiers = TypeModifier (WS TypeModifier)*
+TypeModifiers = TypeModifier (WS TypeModifier)* {TypeModifiers(modis=[$0] + $1)}
 TypeModifier = Annotation | "suspend"&Tk
 
 FunctionType = (ReceiverType WS '.' WS)? FunctionTypeParameters WS "->" WS Type
@@ -373,8 +387,8 @@ NavigationSuffix = MemberAccessOperator WS (SimpleIdentifier | ParenthesizedExpr
 
 
 
-Name = (Letter | '_') (Letter | '_' | UnicodeDigit)* {Name(name=str($0, $1))}
-  | '`' QuotedSymbol+ '`' {Name(str($1))}
+Name = (Letter | '_') (Letter | '_' | UnicodeDigit)* {str($0, $1)}
+  | '`' QuotedSymbol+ '`' {str($1)}
 Letter = 'a-zA-Z0-9'
 QuotedSymbol = .-(CR | LF | '`')
 UnicodeDigit = '0-9'
