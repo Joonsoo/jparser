@@ -106,6 +106,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
 
   def getProgressConditionOf(genActions: GenActions, milestone: Milestone): Option[MilestoneAcceptCondition] = {
     val groups = genActions.progressedMgroups
+      .filter { pair => pair._1.gen == milestone.gen }
       .filter { pair => parserData.milestoneGroups(pair._1.groupId).contains(milestone.kernelTemplate) }.values.toSet
     genActions.progressedMilestones.get(milestone) match {
       case Some(progressCondition) =>
@@ -128,7 +129,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       case Or(conditions) =>
         MilestoneAcceptCondition.disjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
       case Exists(milestone, true) =>
-        Exists(milestone, false)
+        Exists(milestone, checkFromNextGen = false)
       case Exists(milestone, false) =>
         val moreTrackingNeeded = paths.exists(_.first == milestone)
         getProgressConditionOf(genActions, milestone) match {
@@ -143,7 +144,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
             if (moreTrackingNeeded) condition else Never
         }
       case NotExists(milestone, true) =>
-        NotExists(milestone, false)
+        NotExists(milestone, checkFromNextGen = false)
       case NotExists(milestone, false) =>
         val moreTrackingNeeded = paths.exists(_.first == milestone)
         getProgressConditionOf(genActions, milestone) match {
@@ -185,26 +186,26 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         conditions.exists(evaluateAcceptCondition(genActions, _))
       case Exists(milestone, true) => false
       case Exists(milestone, false) =>
-        genActions.progressedMilestones.get(milestone) match {
+        getProgressConditionOf(genActions, milestone) match {
           case Some(progressCondition) =>
             evaluateAcceptCondition(genActions, progressCondition)
           case None => false
         }
       case NotExists(milestone, true) => true
       case NotExists(milestone, false) =>
-        genActions.progressedMilestones.get(milestone) match {
+        getProgressConditionOf(genActions, milestone) match {
           case Some(progressCondition) =>
             !evaluateAcceptCondition(genActions, progressCondition)
           case None => true
         }
       case OnlyIf(milestone) =>
-        genActions.progressedMilestones.get(milestone) match {
+        getProgressConditionOf(genActions, milestone) match {
           case Some(progressCondition) =>
             evaluateAcceptCondition(genActions, progressCondition)
           case None => false
         }
       case Unless(milestone) =>
-        genActions.progressedMilestones.get(milestone) match {
+        getProgressConditionOf(genActions, milestone) match {
           case Some(progressCondition) =>
             !evaluateAcceptCondition(genActions, progressCondition)
           case None => true
@@ -248,7 +249,8 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
     if (verbose) {
       newPaths.foreach(path => println(path.prettyString))
       newPaths.map(_.tip.groupId).distinct.sorted.foreach { groupId =>
-        println(s"$groupId => ${parserData.milestoneGroups(groupId)}")
+        val milestones = parserData.milestoneGroups(groupId)
+        println(s"$groupId => (${milestones.size}) ${milestones.toList.sorted}")
       }
     }
 
@@ -313,10 +315,12 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
   }
 
   def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
-    def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel =
-      Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
+    def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel = {
+      val mapped = Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
+      mapped
+    }
 
-    def isFinallyAccepted(
+    def isEventuallyAccepted(
       history: Seq[HistoryEntry],
       gen: Int,
       condition: MilestoneAcceptCondition,
@@ -327,12 +331,14 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         case Always => true
         case Never => false
         case _ =>
-          if (gen + 1 == history.length) {
+          val result = if (gen + 1 == history.length) {
             evaluateAcceptCondition(entry.genActions, condition)
           } else {
             val evolved = evolveAcceptCondition(entry.untrimmedPaths, entry.genActions, condition)
-            isFinallyAccepted(history, gen + 1, evolved, conditionMemos)
+            isEventuallyAccepted(history, gen + 1, evolved, conditionMemos)
           }
+          // println(s"isEventuallyAccepted $gen $condition => $result")
+          result
       }
     }
 
@@ -360,7 +366,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
     ): Unit = {
       tasksSummary.addedKernels.foreach { pair =>
         val condition = MilestoneAcceptCondition.reify(pair._1, beginGen, gen)
-        if (isFinallyAccepted(history, gen, condition, conditionMemos)) {
+        if (isEventuallyAccepted(history, gen, condition, conditionMemos)) {
           pair._2.foreach { added =>
             kernelsCollector += mapGen(added, genMap)
           }
@@ -397,7 +403,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
           conditionMemos)
       }
       genActions.tipEdgeActions.foreach { case ((start, end), edgeAction) =>
-        if (isFinallyAccepted(history, gen, genActions.progressedMgroups(end), conditionMemos)) {
+        if (isEventuallyAccepted(history, gen, genActions.progressedMgroups(end), conditionMemos)) {
           addKernelsFrom(
             kernels,
             history,
@@ -409,7 +415,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         }
       }
       genActions.midEdgeActions.foreach { case ((start, end), edgeAction) =>
-        if (isFinallyAccepted(history, gen, genActions.progressedMilestones(end), conditionMemos)) {
+        if (isEventuallyAccepted(history, gen, genActions.progressedMilestones(end), conditionMemos)) {
           addKernelsFrom(
             kernels,
             history,
@@ -421,7 +427,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         }
       }
       genActions.progressedMilestones.foreach {
-        case (milestone, condition) if isFinallyAccepted(history, gen, condition, conditionMemos) =>
+        case (milestone, condition) if isEventuallyAccepted(history, gen, condition, conditionMemos) =>
           val parentGens = genActions.progressedMilestoneParentGens.getOrElse(milestone, Set(milestone.gen))
           parentGens.foreach { parentGen =>
             kernels += Kernel(milestone.symbolId, milestone.pointer, parentGen, milestone.gen)
@@ -430,10 +436,10 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         case _ => // do nothing
       }
       genActions.progressedMgroups.foreach {
-        case (mgroup, condition) if isFinallyAccepted(history, gen, condition, conditionMemos) =>
+        case (mgroup, condition) if isEventuallyAccepted(history, gen, condition, conditionMemos) =>
           val parentGens = genActions.progressedMgroupParentGens.getOrElse(mgroup, Set(mgroup.gen))
-          parentGens.foreach { parentGen =>
-            parserData.milestoneGroups(mgroup.groupId).foreach { milestone =>
+          parserData.milestoneGroups(mgroup.groupId).foreach { milestone =>
+            parentGens.foreach { parentGen =>
               kernels += Kernel(milestone.symbolId, milestone.pointer, parentGen, mgroup.gen)
               kernels += Kernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
             }

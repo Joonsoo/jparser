@@ -32,7 +32,9 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       case Some(startNodeProgressCondition) =>
         val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tip.gen, gen)
         val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
+
         actionsCollector.addProgressedMilestone(tip, condition)
+
         path.tipParent match {
           case Some(tipParent) =>
             val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
@@ -79,7 +81,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       case Or(conditions) =>
         MilestoneAcceptCondition.disjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
       case Exists(milestone, true) =>
-        Exists(milestone, false)
+        Exists(milestone, checkFromNextGen = false)
       case Exists(milestone, false) =>
         val moreTrackingNeeded = paths.exists(_.first == milestone)
         genActions.progressedMilestones.get(milestone) match {
@@ -94,7 +96,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
             if (moreTrackingNeeded) condition else Never
         }
       case NotExists(milestone, true) =>
-        NotExists(milestone, false)
+        NotExists(milestone, checkFromNextGen = false)
       case NotExists(milestone, false) =>
         val moreTrackingNeeded = paths.exists(_.first == milestone)
         val progressCondition = genActions.progressedMilestones.get(milestone)
@@ -265,13 +267,13 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
   // progress되면서 추가된 커널들을 반환한다. finish는 progress 되면서 자연스럽게 따라오는 것이기 때문에 처리할 필요 없음
   def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
-//    def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
-//      Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
+    //    def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
+    //      Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
 
     def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel =
       Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
 
-    def isFinallyAccepted(
+    def isEventuallyAccepted(
       history: Seq[HistoryEntry],
       gen: Int,
       condition: MilestoneAcceptCondition,
@@ -282,12 +284,14 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         case Always => true
         case Never => false
         case _ =>
-          if (gen + 1 == history.length) {
+          val result = if (gen + 1 == history.length) {
             evaluateAcceptCondition(entry.genActions, condition)
           } else {
             val evolved = evolveAcceptCondition(entry.untrimmedPaths, entry.genActions, condition)
-            isFinallyAccepted(history, gen + 1, evolved, conditionMemos)
+            isEventuallyAccepted(history, gen + 1, evolved, conditionMemos)
           }
+          // println(s"isEventuallyAccepted $gen $condition => $result")
+          result
       }
     }
 
@@ -315,7 +319,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     ): Unit = {
       tasksSummary.addedKernels.foreach { pair =>
         val condition = MilestoneAcceptCondition.reify(pair._1, beginGen, gen)
-        if (isFinallyAccepted(history, gen, condition, conditionMemos)) {
+        if (isEventuallyAccepted(history, gen, condition, conditionMemos)) {
           pair._2.foreach { added =>
             kernelsCollector += mapGen(added, genMap)
           }
@@ -353,7 +357,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
           conditionMemos)
       }
       genActions.edgeActions.foreach { case ((start, end), edgeAction) =>
-        if (isFinallyAccepted(history, gen, genActions.progressedMilestones(end), conditionMemos)) {
+        if (isEventuallyAccepted(history, gen, genActions.progressedMilestones(end), conditionMemos)) {
           // edgeAction.parsingAction.tasksSummary.progressedStartKernel은 progressedMilestones에서 처리
           addKernelsFrom(
             kernels,
@@ -366,7 +370,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         }
       }
       genActions.progressedMilestones.foreach {
-        case (milestone, condition) if isFinallyAccepted(history, gen, condition, conditionMemos) =>
+        case (milestone, condition) if isEventuallyAccepted(history, gen, condition, conditionMemos) =>
           val parentGens = genActions.progressedMilestoneParentGens.getOrElse(milestone, Set(milestone.gen))
           parentGens.foreach { parentGen =>
             kernels += Kernel(milestone.symbolId, milestone.pointer, parentGen, milestone.gen)
