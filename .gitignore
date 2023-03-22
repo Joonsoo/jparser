@@ -27,7 +27,7 @@ samples
 
 milestone/study
 protoc.exe
-
+*.iml
 
 /bbxbuild/
 
