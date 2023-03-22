@@ -15,8 +15,13 @@ case class MilestoneGroupParserData(
   termActions: Map[Int, List[(TermGroupDesc, TermAction)]],
   // (milestone -> group id) -> actions
   tipEdgeProgressActions: Map[(KernelTemplate, Int), EdgeAction],
+  // milestone parser에서는 EdgeAction에 있던 requiredSymbols를 이동
+  // 이렇게 한 이유는 tip edge는 progress되지 않는 조합이 있을 수 있는데, 이 때도 required symbols는 필요하기 때문
+  tipEdgeRequiredSymbols: Map[(KernelTemplate, Int), Set[Int]],
   // (milestone -> milestone) -> actions
   midEdgeProgressActions: Map[(KernelTemplate, KernelTemplate), EdgeAction],
+  // midEdgeProgressActions에서는 EdgeAction에 required symbols를 넣어놔도 문제가 없긴 하지만, tipEdge와의 일관성을 위해서 밖으로 뺐음
+  midEdgeRequiredSymbols: Map[(KernelTemplate, KernelTemplate), Set[Int]],
 ) {
   def trimTasksSummariesForSymbols(symbolsOfInterest: Set[Int]): MilestoneGroupParserData = {
     MilestoneGroupParserData(
@@ -36,9 +41,11 @@ case class MilestoneGroupParserData(
       tipEdgeProgressActions.view.mapValues { edgeAction =>
         edgeAction.copy(tasksSummary = edgeAction.tasksSummary.trimForSymbols(symbolsOfInterest))
       }.toMap,
+      tipEdgeRequiredSymbols,
       midEdgeProgressActions.view.mapValues { edgeAction =>
         edgeAction.copy(tasksSummary = edgeAction.tasksSummary.trimForSymbols(symbolsOfInterest))
       }.toMap,
+      midEdgeRequiredSymbols,
     )
   }
 }
@@ -49,7 +56,9 @@ class MilestoneGroupParserDataBuilder(val grammar: NGrammar, val initialTasksSum
 
   val termActions: mutable.Map[Int, List[(TermGroupDesc, TermAction)]] = mutable.Map()
   val tipEdgeProgressActions: mutable.Map[(KernelTemplate, Int), EdgeAction] = mutable.Map()
+  val tipEdgeRequiredSymbols: mutable.Map[(KernelTemplate, Int), Set[Int]] = mutable.Map()
   val midEdgeProgressActions: mutable.Map[(KernelTemplate, KernelTemplate), EdgeAction] = mutable.Map()
+  val midEdgeRequiredSymbols: mutable.Map[(KernelTemplate, KernelTemplate), Set[Int]] = mutable.Map()
 
   def milestoneGroupId(milestones: Set[KernelTemplate]): Int = {
     milestoneGroupsInverse.get(milestones) match {
@@ -75,7 +84,9 @@ class MilestoneGroupParserDataBuilder(val grammar: NGrammar, val initialTasksSum
       milestoneGroups.toMap,
       termActions.toMap,
       tipEdgeProgressActions.toMap,
-      midEdgeProgressActions.toMap
+      tipEdgeRequiredSymbols.toMap,
+      midEdgeProgressActions.toMap,
+      midEdgeRequiredSymbols.toMap,
     )
   }
 }
@@ -94,10 +105,10 @@ case class EdgeAction(
   // 현재 path는 appendingMilestoneGroups만큼 분화되고, 현재 group은 _1로 치환되고 뒤에 _2(appendingMilestones)가 붙음
   appendingMilestoneGroups: List[AppendingMilestoneGroup],
   // 현재 group 중 _1(groupId)가 _2의 조건을 갖고 progress된다
-  startNodeProgress: List[AcceptConditionTemplate],
+  startNodeProgress: Option[AcceptConditionTemplate],
   lookaheadRequiringSymbols: Set[LookaheadRequires],
   tasksSummary: TasksSummary2,
-  requiredSymbols: Set[Int],
+  // requiredSymbols: Set[Int],
 )
 
 case class LookaheadRequires(symbolId: Int, groupId: Int)

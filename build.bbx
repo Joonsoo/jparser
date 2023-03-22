@@ -145,7 +145,7 @@ milestone2 {
 
     javalib = java.library(
       srcs = glob("milestone2/data/generated/java/**/*.java"),
-      deps = [base.proto.javalib]
+      deps = [base.proto.javalib],
     )
   }
 
@@ -209,7 +209,7 @@ mgroup2 {
   test = scala.library(
     srcs = glob("mgroup2/test/scala/**/*.scala"),
     resources = glob("mgroup2/test/resources/**"),
-    deps = [data, gen, parser, naive.main, milestone2.gen, milestone2.parser, ...scalaTestDeps],
+    deps = [data, gen, parser, naive.main, milestone2.gen, examples, milestone2.parser, ...scalaTestDeps],
   )
 }
 
@@ -372,6 +372,14 @@ bibixPlugin {
     astifierClassName = "com.giyeok.jparser.test.Autodb2Ast",
     parserDataFileName = "autodb2-parserdata.pb",
   )
+
+  mgroupTests {
+    test1 = genKtAstMgroup2(
+      cdgFile = "examples/main/resources/asdl.cdg",
+      astifierClassName = "com.giyeok.jparser.test.AsdlAst",
+      parserDataFileName = "asdl-parserdata.pb",
+    )
+  }
 }
 
 def genKtAstMilestone2(

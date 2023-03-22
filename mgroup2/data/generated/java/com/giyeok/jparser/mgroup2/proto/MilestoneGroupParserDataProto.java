@@ -55,38 +55,28 @@ public final class MilestoneGroupParserDataProto {
     com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.TasksSummary2OrBuilder getInitialTasksSummaryOrBuilder();
 
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+     */
+    java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair> 
+        getMilestoneGroupsList();
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+     */
+    com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair getMilestoneGroups(int index);
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
      */
     int getMilestoneGroupsCount();
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
      */
-    boolean containsMilestoneGroups(
-        int key);
+    java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPairOrBuilder> 
+        getMilestoneGroupsOrBuilderList();
     /**
-     * Use {@link #getMilestoneGroupsMap()} instead.
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
      */
-    @java.lang.Deprecated
-    java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup>
-    getMilestoneGroups();
-    /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
-     */
-    java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup>
-    getMilestoneGroupsMap();
-    /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
-     */
-    /* nullable */
-com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup getMilestoneGroupsOrDefault(
-        int key,
-        /* nullable */
-com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup defaultValue);
-    /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
-     */
-    com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup getMilestoneGroupsOrThrow(
-        int key);
+    com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPairOrBuilder getMilestoneGroupsOrBuilder(
+        int index);
 
     /**
      * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TermActionPair term_actions = 5;</code>
@@ -137,27 +127,75 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         int index);
 
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+     */
+    java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair> 
+        getTipEdgeRequiredSymbolsList();
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+     */
+    com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair getTipEdgeRequiredSymbols(int index);
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+     */
+    int getTipEdgeRequiredSymbolsCount();
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+     */
+    java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPairOrBuilder> 
+        getTipEdgeRequiredSymbolsOrBuilderList();
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+     */
+    com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPairOrBuilder getTipEdgeRequiredSymbolsOrBuilder(
+        int index);
+
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair> 
         getMidEdgeActionsList();
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair getMidEdgeActions(int index);
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     int getMidEdgeActionsCount();
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPairOrBuilder> 
         getMidEdgeActionsOrBuilderList();
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPairOrBuilder getMidEdgeActionsOrBuilder(
+        int index);
+
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+     */
+    java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair> 
+        getMidEdgeRequiredSymbolsList();
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+     */
+    com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair getMidEdgeRequiredSymbols(int index);
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+     */
+    int getMidEdgeRequiredSymbolsCount();
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+     */
+    java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPairOrBuilder> 
+        getMidEdgeRequiredSymbolsOrBuilderList();
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+     */
+    com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPairOrBuilder getMidEdgeRequiredSymbolsOrBuilder(
         int index);
   }
   /**
@@ -173,9 +211,12 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       super(builder);
     }
     private MilestoneGroupParserData() {
+      milestoneGroups_ = java.util.Collections.emptyList();
       termActions_ = java.util.Collections.emptyList();
       tipEdgeActions_ = java.util.Collections.emptyList();
+      tipEdgeRequiredSymbols_ = java.util.Collections.emptyList();
       midEdgeActions_ = java.util.Collections.emptyList();
+      midEdgeRequiredSymbols_ = java.util.Collections.emptyList();
     }
 
     @java.lang.Override
@@ -190,24 +231,832 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_descriptor;
     }
 
-    @SuppressWarnings({"rawtypes"})
-    @java.lang.Override
-    protected com.google.protobuf.MapField internalGetMapField(
-        int number) {
-      switch (number) {
-        case 4:
-          return internalGetMilestoneGroups();
-        default:
-          throw new RuntimeException(
-              "Invalid map field number: " + number);
-      }
-    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
               com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.class, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.Builder.class);
+    }
+
+    public interface MilestoneGroupPairOrBuilder extends
+        // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair)
+        com.google.protobuf.MessageOrBuilder {
+
+      /**
+       * <code>int32 group_id = 1;</code>
+       * @return The groupId.
+       */
+      int getGroupId();
+
+      /**
+       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+       */
+      java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> 
+          getMilestonesList();
+      /**
+       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+       */
+      com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getMilestones(int index);
+      /**
+       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+       */
+      int getMilestonesCount();
+      /**
+       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+       */
+      java.util.List<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
+          getMilestonesOrBuilderList();
+      /**
+       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+       */
+      com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getMilestonesOrBuilder(
+          int index);
+    }
+    /**
+     * Protobuf type {@code com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair}
+     */
+    public static final class MilestoneGroupPair extends
+        com.google.protobuf.GeneratedMessageV3 implements
+        // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair)
+        MilestoneGroupPairOrBuilder {
+    private static final long serialVersionUID = 0L;
+      // Use MilestoneGroupPair.newBuilder() to construct.
+      private MilestoneGroupPair(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+        super(builder);
+      }
+      private MilestoneGroupPair() {
+        milestones_ = java.util.Collections.emptyList();
+      }
+
+      @java.lang.Override
+      @SuppressWarnings({"unused"})
+      protected java.lang.Object newInstance(
+          UnusedPrivateParameter unused) {
+        return new MilestoneGroupPair();
+      }
+
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupPair_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupPair_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.class, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder.class);
+      }
+
+      public static final int GROUP_ID_FIELD_NUMBER = 1;
+      private int groupId_ = 0;
+      /**
+       * <code>int32 group_id = 1;</code>
+       * @return The groupId.
+       */
+      @java.lang.Override
+      public int getGroupId() {
+        return groupId_;
+      }
+
+      public static final int MILESTONES_FIELD_NUMBER = 2;
+      @SuppressWarnings("serial")
+      private java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> milestones_;
+      /**
+       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+       */
+      @java.lang.Override
+      public java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> getMilestonesList() {
+        return milestones_;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+       */
+      @java.lang.Override
+      public java.util.List<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
+          getMilestonesOrBuilderList() {
+        return milestones_;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+       */
+      @java.lang.Override
+      public int getMilestonesCount() {
+        return milestones_.size();
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getMilestones(int index) {
+        return milestones_.get(index);
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getMilestonesOrBuilder(
+          int index) {
+        return milestones_.get(index);
+      }
+
+      private byte memoizedIsInitialized = -1;
+      @java.lang.Override
+      public final boolean isInitialized() {
+        byte isInitialized = memoizedIsInitialized;
+        if (isInitialized == 1) return true;
+        if (isInitialized == 0) return false;
+
+        memoizedIsInitialized = 1;
+        return true;
+      }
+
+      @java.lang.Override
+      public void writeTo(com.google.protobuf.CodedOutputStream output)
+                          throws java.io.IOException {
+        if (groupId_ != 0) {
+          output.writeInt32(1, groupId_);
+        }
+        for (int i = 0; i < milestones_.size(); i++) {
+          output.writeMessage(2, milestones_.get(i));
+        }
+        getUnknownFields().writeTo(output);
+      }
+
+      @java.lang.Override
+      public int getSerializedSize() {
+        int size = memoizedSize;
+        if (size != -1) return size;
+
+        size = 0;
+        if (groupId_ != 0) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeInt32Size(1, groupId_);
+        }
+        for (int i = 0; i < milestones_.size(); i++) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeMessageSize(2, milestones_.get(i));
+        }
+        size += getUnknownFields().getSerializedSize();
+        memoizedSize = size;
+        return size;
+      }
+
+      @java.lang.Override
+      public boolean equals(final java.lang.Object obj) {
+        if (obj == this) {
+         return true;
+        }
+        if (!(obj instanceof com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair)) {
+          return super.equals(obj);
+        }
+        com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair other = (com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair) obj;
+
+        if (getGroupId()
+            != other.getGroupId()) return false;
+        if (!getMilestonesList()
+            .equals(other.getMilestonesList())) return false;
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
+        return true;
+      }
+
+      @java.lang.Override
+      public int hashCode() {
+        if (memoizedHashCode != 0) {
+          return memoizedHashCode;
+        }
+        int hash = 41;
+        hash = (19 * hash) + getDescriptor().hashCode();
+        hash = (37 * hash) + GROUP_ID_FIELD_NUMBER;
+        hash = (53 * hash) + getGroupId();
+        if (getMilestonesCount() > 0) {
+          hash = (37 * hash) + MILESTONES_FIELD_NUMBER;
+          hash = (53 * hash) + getMilestonesList().hashCode();
+        }
+        hash = (29 * hash) + getUnknownFields().hashCode();
+        memoizedHashCode = hash;
+        return hash;
+      }
+
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseFrom(
+          java.nio.ByteBuffer data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseFrom(
+          java.nio.ByteBuffer data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseFrom(
+          com.google.protobuf.ByteString data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseFrom(
+          com.google.protobuf.ByteString data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseFrom(byte[] data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseFrom(
+          byte[] data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseDelimitedFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseDelimitedFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseFrom(
+          com.google.protobuf.CodedInputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair parseFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+
+      @java.lang.Override
+      public Builder newBuilderForType() { return newBuilder(); }
+      public static Builder newBuilder() {
+        return DEFAULT_INSTANCE.toBuilder();
+      }
+      public static Builder newBuilder(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair prototype) {
+        return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+      }
+      @java.lang.Override
+      public Builder toBuilder() {
+        return this == DEFAULT_INSTANCE
+            ? new Builder() : new Builder().mergeFrom(this);
+      }
+
+      @java.lang.Override
+      protected Builder newBuilderForType(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        Builder builder = new Builder(parent);
+        return builder;
+      }
+      /**
+       * Protobuf type {@code com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair}
+       */
+      public static final class Builder extends
+          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+          // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair)
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPairOrBuilder {
+        public static final com.google.protobuf.Descriptors.Descriptor
+            getDescriptor() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupPair_descriptor;
+        }
+
+        @java.lang.Override
+        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+            internalGetFieldAccessorTable() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupPair_fieldAccessorTable
+              .ensureFieldAccessorsInitialized(
+                  com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.class, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder.class);
+        }
+
+        // Construct using com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.newBuilder()
+        private Builder() {
+
+        }
+
+        private Builder(
+            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+          super(parent);
+
+        }
+        @java.lang.Override
+        public Builder clear() {
+          super.clear();
+          bitField0_ = 0;
+          groupId_ = 0;
+          if (milestonesBuilder_ == null) {
+            milestones_ = java.util.Collections.emptyList();
+          } else {
+            milestones_ = null;
+            milestonesBuilder_.clear();
+          }
+          bitField0_ = (bitField0_ & ~0x00000002);
+          return this;
+        }
+
+        @java.lang.Override
+        public com.google.protobuf.Descriptors.Descriptor
+            getDescriptorForType() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupPair_descriptor;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair getDefaultInstanceForType() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.getDefaultInstance();
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair build() {
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair result = buildPartial();
+          if (!result.isInitialized()) {
+            throw newUninitializedMessageException(result);
+          }
+          return result;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair buildPartial() {
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair result = new com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair(this);
+          buildPartialRepeatedFields(result);
+          if (bitField0_ != 0) { buildPartial0(result); }
+          onBuilt();
+          return result;
+        }
+
+        private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair result) {
+          if (milestonesBuilder_ == null) {
+            if (((bitField0_ & 0x00000002) != 0)) {
+              milestones_ = java.util.Collections.unmodifiableList(milestones_);
+              bitField0_ = (bitField0_ & ~0x00000002);
+            }
+            result.milestones_ = milestones_;
+          } else {
+            result.milestones_ = milestonesBuilder_.build();
+          }
+        }
+
+        private void buildPartial0(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair result) {
+          int from_bitField0_ = bitField0_;
+          if (((from_bitField0_ & 0x00000001) != 0)) {
+            result.groupId_ = groupId_;
+          }
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(com.google.protobuf.Message other) {
+          if (other instanceof com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair) {
+            return mergeFrom((com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair)other);
+          } else {
+            super.mergeFrom(other);
+            return this;
+          }
+        }
+
+        public Builder mergeFrom(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair other) {
+          if (other == com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.getDefaultInstance()) return this;
+          if (other.getGroupId() != 0) {
+            setGroupId(other.getGroupId());
+          }
+          if (milestonesBuilder_ == null) {
+            if (!other.milestones_.isEmpty()) {
+              if (milestones_.isEmpty()) {
+                milestones_ = other.milestones_;
+                bitField0_ = (bitField0_ & ~0x00000002);
+              } else {
+                ensureMilestonesIsMutable();
+                milestones_.addAll(other.milestones_);
+              }
+              onChanged();
+            }
+          } else {
+            if (!other.milestones_.isEmpty()) {
+              if (milestonesBuilder_.isEmpty()) {
+                milestonesBuilder_.dispose();
+                milestonesBuilder_ = null;
+                milestones_ = other.milestones_;
+                bitField0_ = (bitField0_ & ~0x00000002);
+                milestonesBuilder_ = 
+                  com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                     getMilestonesFieldBuilder() : null;
+              } else {
+                milestonesBuilder_.addAllMessages(other.milestones_);
+              }
+            }
+          }
+          this.mergeUnknownFields(other.getUnknownFields());
+          onChanged();
+          return this;
+        }
+
+        @java.lang.Override
+        public final boolean isInitialized() {
+          return true;
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws java.io.IOException {
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
+          }
+          try {
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 8: {
+                  groupId_ = input.readInt32();
+                  bitField0_ |= 0x00000001;
+                  break;
+                } // case 8
+                case 18: {
+                  com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate m =
+                      input.readMessage(
+                          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.parser(),
+                          extensionRegistry);
+                  if (milestonesBuilder_ == null) {
+                    ensureMilestonesIsMutable();
+                    milestones_.add(m);
+                  } else {
+                    milestonesBuilder_.addMessage(m);
+                  }
+                  break;
+                } // case 18
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.unwrapIOException();
+          } finally {
+            onChanged();
+          } // finally
+          return this;
+        }
+        private int bitField0_;
+
+        private int groupId_ ;
+        /**
+         * <code>int32 group_id = 1;</code>
+         * @return The groupId.
+         */
+        @java.lang.Override
+        public int getGroupId() {
+          return groupId_;
+        }
+        /**
+         * <code>int32 group_id = 1;</code>
+         * @param value The groupId to set.
+         * @return This builder for chaining.
+         */
+        public Builder setGroupId(int value) {
+
+          groupId_ = value;
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>int32 group_id = 1;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearGroupId() {
+          bitField0_ = (bitField0_ & ~0x00000001);
+          groupId_ = 0;
+          onChanged();
+          return this;
+        }
+
+        private java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> milestones_ =
+          java.util.Collections.emptyList();
+        private void ensureMilestonesIsMutable() {
+          if (!((bitField0_ & 0x00000002) != 0)) {
+            milestones_ = new java.util.ArrayList<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate>(milestones_);
+            bitField0_ |= 0x00000002;
+           }
+        }
+
+        private com.google.protobuf.RepeatedFieldBuilderV3<
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> milestonesBuilder_;
+
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> getMilestonesList() {
+          if (milestonesBuilder_ == null) {
+            return java.util.Collections.unmodifiableList(milestones_);
+          } else {
+            return milestonesBuilder_.getMessageList();
+          }
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public int getMilestonesCount() {
+          if (milestonesBuilder_ == null) {
+            return milestones_.size();
+          } else {
+            return milestonesBuilder_.getCount();
+          }
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getMilestones(int index) {
+          if (milestonesBuilder_ == null) {
+            return milestones_.get(index);
+          } else {
+            return milestonesBuilder_.getMessage(index);
+          }
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public Builder setMilestones(
+            int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
+          if (milestonesBuilder_ == null) {
+            if (value == null) {
+              throw new NullPointerException();
+            }
+            ensureMilestonesIsMutable();
+            milestones_.set(index, value);
+            onChanged();
+          } else {
+            milestonesBuilder_.setMessage(index, value);
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public Builder setMilestones(
+            int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder builderForValue) {
+          if (milestonesBuilder_ == null) {
+            ensureMilestonesIsMutable();
+            milestones_.set(index, builderForValue.build());
+            onChanged();
+          } else {
+            milestonesBuilder_.setMessage(index, builderForValue.build());
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public Builder addMilestones(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
+          if (milestonesBuilder_ == null) {
+            if (value == null) {
+              throw new NullPointerException();
+            }
+            ensureMilestonesIsMutable();
+            milestones_.add(value);
+            onChanged();
+          } else {
+            milestonesBuilder_.addMessage(value);
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public Builder addMilestones(
+            int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
+          if (milestonesBuilder_ == null) {
+            if (value == null) {
+              throw new NullPointerException();
+            }
+            ensureMilestonesIsMutable();
+            milestones_.add(index, value);
+            onChanged();
+          } else {
+            milestonesBuilder_.addMessage(index, value);
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public Builder addMilestones(
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder builderForValue) {
+          if (milestonesBuilder_ == null) {
+            ensureMilestonesIsMutable();
+            milestones_.add(builderForValue.build());
+            onChanged();
+          } else {
+            milestonesBuilder_.addMessage(builderForValue.build());
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public Builder addMilestones(
+            int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder builderForValue) {
+          if (milestonesBuilder_ == null) {
+            ensureMilestonesIsMutable();
+            milestones_.add(index, builderForValue.build());
+            onChanged();
+          } else {
+            milestonesBuilder_.addMessage(index, builderForValue.build());
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public Builder addAllMilestones(
+            java.lang.Iterable<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> values) {
+          if (milestonesBuilder_ == null) {
+            ensureMilestonesIsMutable();
+            com.google.protobuf.AbstractMessageLite.Builder.addAll(
+                values, milestones_);
+            onChanged();
+          } else {
+            milestonesBuilder_.addAllMessages(values);
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public Builder clearMilestones() {
+          if (milestonesBuilder_ == null) {
+            milestones_ = java.util.Collections.emptyList();
+            bitField0_ = (bitField0_ & ~0x00000002);
+            onChanged();
+          } else {
+            milestonesBuilder_.clear();
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public Builder removeMilestones(int index) {
+          if (milestonesBuilder_ == null) {
+            ensureMilestonesIsMutable();
+            milestones_.remove(index);
+            onChanged();
+          } else {
+            milestonesBuilder_.remove(index);
+          }
+          return this;
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder getMilestonesBuilder(
+            int index) {
+          return getMilestonesFieldBuilder().getBuilder(index);
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getMilestonesOrBuilder(
+            int index) {
+          if (milestonesBuilder_ == null) {
+            return milestones_.get(index);  } else {
+            return milestonesBuilder_.getMessageOrBuilder(index);
+          }
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public java.util.List<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
+             getMilestonesOrBuilderList() {
+          if (milestonesBuilder_ != null) {
+            return milestonesBuilder_.getMessageOrBuilderList();
+          } else {
+            return java.util.Collections.unmodifiableList(milestones_);
+          }
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder addMilestonesBuilder() {
+          return getMilestonesFieldBuilder().addBuilder(
+              com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance());
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder addMilestonesBuilder(
+            int index) {
+          return getMilestonesFieldBuilder().addBuilder(
+              index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance());
+        }
+        /**
+         * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;</code>
+         */
+        public java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder> 
+             getMilestonesBuilderList() {
+          return getMilestonesFieldBuilder().getBuilderList();
+        }
+        private com.google.protobuf.RepeatedFieldBuilderV3<
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
+            getMilestonesFieldBuilder() {
+          if (milestonesBuilder_ == null) {
+            milestonesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder>(
+                    milestones_,
+                    ((bitField0_ & 0x00000002) != 0),
+                    getParentForChildren(),
+                    isClean());
+            milestones_ = null;
+          }
+          return milestonesBuilder_;
+        }
+        @java.lang.Override
+        public final Builder setUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.setUnknownFields(unknownFields);
+        }
+
+        @java.lang.Override
+        public final Builder mergeUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.mergeUnknownFields(unknownFields);
+        }
+
+
+        // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair)
+      }
+
+      // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair)
+      private static final com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair DEFAULT_INSTANCE;
+      static {
+        DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair();
+      }
+
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair getDefaultInstance() {
+        return DEFAULT_INSTANCE;
+      }
+
+      private static final com.google.protobuf.Parser<MilestoneGroupPair>
+          PARSER = new com.google.protobuf.AbstractParser<MilestoneGroupPair>() {
+        @java.lang.Override
+        public MilestoneGroupPair parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
+        }
+      };
+
+      public static com.google.protobuf.Parser<MilestoneGroupPair> parser() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<MilestoneGroupPair> getParserForType() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair getDefaultInstanceForType() {
+        return DEFAULT_INSTANCE;
+      }
+
     }
 
     public interface TermActionPairOrBuilder extends
@@ -2626,6 +3475,836 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
 
     }
 
+    public interface TipEdgeRequiredSymbolPairOrBuilder extends
+        // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair)
+        com.google.protobuf.MessageOrBuilder {
+
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       * @return Whether the start field is set.
+       */
+      boolean hasStart();
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       * @return The start.
+       */
+      com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getStart();
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       */
+      com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getStartOrBuilder();
+
+      /**
+       * <code>int32 end = 2;</code>
+       * @return The end.
+       */
+      int getEnd();
+
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @return A list containing the requiredSymbolIds.
+       */
+      java.util.List<java.lang.Integer> getRequiredSymbolIdsList();
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @return The count of requiredSymbolIds.
+       */
+      int getRequiredSymbolIdsCount();
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @param index The index of the element to return.
+       * @return The requiredSymbolIds at the given index.
+       */
+      int getRequiredSymbolIds(int index);
+    }
+    /**
+     * Protobuf type {@code com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair}
+     */
+    public static final class TipEdgeRequiredSymbolPair extends
+        com.google.protobuf.GeneratedMessageV3 implements
+        // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair)
+        TipEdgeRequiredSymbolPairOrBuilder {
+    private static final long serialVersionUID = 0L;
+      // Use TipEdgeRequiredSymbolPair.newBuilder() to construct.
+      private TipEdgeRequiredSymbolPair(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+        super(builder);
+      }
+      private TipEdgeRequiredSymbolPair() {
+        requiredSymbolIds_ = emptyIntList();
+      }
+
+      @java.lang.Override
+      @SuppressWarnings({"unused"})
+      protected java.lang.Object newInstance(
+          UnusedPrivateParameter unused) {
+        return new TipEdgeRequiredSymbolPair();
+      }
+
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeRequiredSymbolPair_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeRequiredSymbolPair_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.class, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder.class);
+      }
+
+      public static final int START_FIELD_NUMBER = 1;
+      private com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate start_;
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       * @return Whether the start field is set.
+       */
+      @java.lang.Override
+      public boolean hasStart() {
+        return start_ != null;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       * @return The start.
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getStart() {
+        return start_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : start_;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getStartOrBuilder() {
+        return start_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : start_;
+      }
+
+      public static final int END_FIELD_NUMBER = 2;
+      private int end_ = 0;
+      /**
+       * <code>int32 end = 2;</code>
+       * @return The end.
+       */
+      @java.lang.Override
+      public int getEnd() {
+        return end_;
+      }
+
+      public static final int REQUIRED_SYMBOL_IDS_FIELD_NUMBER = 3;
+      @SuppressWarnings("serial")
+      private com.google.protobuf.Internal.IntList requiredSymbolIds_;
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @return A list containing the requiredSymbolIds.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.Integer>
+          getRequiredSymbolIdsList() {
+        return requiredSymbolIds_;
+      }
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @return The count of requiredSymbolIds.
+       */
+      public int getRequiredSymbolIdsCount() {
+        return requiredSymbolIds_.size();
+      }
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @param index The index of the element to return.
+       * @return The requiredSymbolIds at the given index.
+       */
+      public int getRequiredSymbolIds(int index) {
+        return requiredSymbolIds_.getInt(index);
+      }
+      private int requiredSymbolIdsMemoizedSerializedSize = -1;
+
+      private byte memoizedIsInitialized = -1;
+      @java.lang.Override
+      public final boolean isInitialized() {
+        byte isInitialized = memoizedIsInitialized;
+        if (isInitialized == 1) return true;
+        if (isInitialized == 0) return false;
+
+        memoizedIsInitialized = 1;
+        return true;
+      }
+
+      @java.lang.Override
+      public void writeTo(com.google.protobuf.CodedOutputStream output)
+                          throws java.io.IOException {
+        getSerializedSize();
+        if (start_ != null) {
+          output.writeMessage(1, getStart());
+        }
+        if (end_ != 0) {
+          output.writeInt32(2, end_);
+        }
+        if (getRequiredSymbolIdsList().size() > 0) {
+          output.writeUInt32NoTag(26);
+          output.writeUInt32NoTag(requiredSymbolIdsMemoizedSerializedSize);
+        }
+        for (int i = 0; i < requiredSymbolIds_.size(); i++) {
+          output.writeInt32NoTag(requiredSymbolIds_.getInt(i));
+        }
+        getUnknownFields().writeTo(output);
+      }
+
+      @java.lang.Override
+      public int getSerializedSize() {
+        int size = memoizedSize;
+        if (size != -1) return size;
+
+        size = 0;
+        if (start_ != null) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeMessageSize(1, getStart());
+        }
+        if (end_ != 0) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeInt32Size(2, end_);
+        }
+        {
+          int dataSize = 0;
+          for (int i = 0; i < requiredSymbolIds_.size(); i++) {
+            dataSize += com.google.protobuf.CodedOutputStream
+              .computeInt32SizeNoTag(requiredSymbolIds_.getInt(i));
+          }
+          size += dataSize;
+          if (!getRequiredSymbolIdsList().isEmpty()) {
+            size += 1;
+            size += com.google.protobuf.CodedOutputStream
+                .computeInt32SizeNoTag(dataSize);
+          }
+          requiredSymbolIdsMemoizedSerializedSize = dataSize;
+        }
+        size += getUnknownFields().getSerializedSize();
+        memoizedSize = size;
+        return size;
+      }
+
+      @java.lang.Override
+      public boolean equals(final java.lang.Object obj) {
+        if (obj == this) {
+         return true;
+        }
+        if (!(obj instanceof com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair)) {
+          return super.equals(obj);
+        }
+        com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair other = (com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair) obj;
+
+        if (hasStart() != other.hasStart()) return false;
+        if (hasStart()) {
+          if (!getStart()
+              .equals(other.getStart())) return false;
+        }
+        if (getEnd()
+            != other.getEnd()) return false;
+        if (!getRequiredSymbolIdsList()
+            .equals(other.getRequiredSymbolIdsList())) return false;
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
+        return true;
+      }
+
+      @java.lang.Override
+      public int hashCode() {
+        if (memoizedHashCode != 0) {
+          return memoizedHashCode;
+        }
+        int hash = 41;
+        hash = (19 * hash) + getDescriptor().hashCode();
+        if (hasStart()) {
+          hash = (37 * hash) + START_FIELD_NUMBER;
+          hash = (53 * hash) + getStart().hashCode();
+        }
+        hash = (37 * hash) + END_FIELD_NUMBER;
+        hash = (53 * hash) + getEnd();
+        if (getRequiredSymbolIdsCount() > 0) {
+          hash = (37 * hash) + REQUIRED_SYMBOL_IDS_FIELD_NUMBER;
+          hash = (53 * hash) + getRequiredSymbolIdsList().hashCode();
+        }
+        hash = (29 * hash) + getUnknownFields().hashCode();
+        memoizedHashCode = hash;
+        return hash;
+      }
+
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseFrom(
+          java.nio.ByteBuffer data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseFrom(
+          java.nio.ByteBuffer data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseFrom(
+          com.google.protobuf.ByteString data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseFrom(
+          com.google.protobuf.ByteString data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseFrom(byte[] data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseFrom(
+          byte[] data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseDelimitedFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseDelimitedFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseFrom(
+          com.google.protobuf.CodedInputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair parseFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+
+      @java.lang.Override
+      public Builder newBuilderForType() { return newBuilder(); }
+      public static Builder newBuilder() {
+        return DEFAULT_INSTANCE.toBuilder();
+      }
+      public static Builder newBuilder(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair prototype) {
+        return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+      }
+      @java.lang.Override
+      public Builder toBuilder() {
+        return this == DEFAULT_INSTANCE
+            ? new Builder() : new Builder().mergeFrom(this);
+      }
+
+      @java.lang.Override
+      protected Builder newBuilderForType(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        Builder builder = new Builder(parent);
+        return builder;
+      }
+      /**
+       * Protobuf type {@code com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair}
+       */
+      public static final class Builder extends
+          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+          // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair)
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPairOrBuilder {
+        public static final com.google.protobuf.Descriptors.Descriptor
+            getDescriptor() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeRequiredSymbolPair_descriptor;
+        }
+
+        @java.lang.Override
+        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+            internalGetFieldAccessorTable() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeRequiredSymbolPair_fieldAccessorTable
+              .ensureFieldAccessorsInitialized(
+                  com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.class, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder.class);
+        }
+
+        // Construct using com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.newBuilder()
+        private Builder() {
+
+        }
+
+        private Builder(
+            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+          super(parent);
+
+        }
+        @java.lang.Override
+        public Builder clear() {
+          super.clear();
+          bitField0_ = 0;
+          start_ = null;
+          if (startBuilder_ != null) {
+            startBuilder_.dispose();
+            startBuilder_ = null;
+          }
+          end_ = 0;
+          requiredSymbolIds_ = emptyIntList();
+          return this;
+        }
+
+        @java.lang.Override
+        public com.google.protobuf.Descriptors.Descriptor
+            getDescriptorForType() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeRequiredSymbolPair_descriptor;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair getDefaultInstanceForType() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.getDefaultInstance();
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair build() {
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair result = buildPartial();
+          if (!result.isInitialized()) {
+            throw newUninitializedMessageException(result);
+          }
+          return result;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair buildPartial() {
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair result = new com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair(this);
+          buildPartialRepeatedFields(result);
+          if (bitField0_ != 0) { buildPartial0(result); }
+          onBuilt();
+          return result;
+        }
+
+        private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair result) {
+          if (((bitField0_ & 0x00000004) != 0)) {
+            requiredSymbolIds_.makeImmutable();
+            bitField0_ = (bitField0_ & ~0x00000004);
+          }
+          result.requiredSymbolIds_ = requiredSymbolIds_;
+        }
+
+        private void buildPartial0(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair result) {
+          int from_bitField0_ = bitField0_;
+          if (((from_bitField0_ & 0x00000001) != 0)) {
+            result.start_ = startBuilder_ == null
+                ? start_
+                : startBuilder_.build();
+          }
+          if (((from_bitField0_ & 0x00000002) != 0)) {
+            result.end_ = end_;
+          }
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(com.google.protobuf.Message other) {
+          if (other instanceof com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair) {
+            return mergeFrom((com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair)other);
+          } else {
+            super.mergeFrom(other);
+            return this;
+          }
+        }
+
+        public Builder mergeFrom(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair other) {
+          if (other == com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.getDefaultInstance()) return this;
+          if (other.hasStart()) {
+            mergeStart(other.getStart());
+          }
+          if (other.getEnd() != 0) {
+            setEnd(other.getEnd());
+          }
+          if (!other.requiredSymbolIds_.isEmpty()) {
+            if (requiredSymbolIds_.isEmpty()) {
+              requiredSymbolIds_ = other.requiredSymbolIds_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+            } else {
+              ensureRequiredSymbolIdsIsMutable();
+              requiredSymbolIds_.addAll(other.requiredSymbolIds_);
+            }
+            onChanged();
+          }
+          this.mergeUnknownFields(other.getUnknownFields());
+          onChanged();
+          return this;
+        }
+
+        @java.lang.Override
+        public final boolean isInitialized() {
+          return true;
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws java.io.IOException {
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
+          }
+          try {
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 10: {
+                  input.readMessage(
+                      getStartFieldBuilder().getBuilder(),
+                      extensionRegistry);
+                  bitField0_ |= 0x00000001;
+                  break;
+                } // case 10
+                case 16: {
+                  end_ = input.readInt32();
+                  bitField0_ |= 0x00000002;
+                  break;
+                } // case 16
+                case 24: {
+                  int v = input.readInt32();
+                  ensureRequiredSymbolIdsIsMutable();
+                  requiredSymbolIds_.addInt(v);
+                  break;
+                } // case 24
+                case 26: {
+                  int length = input.readRawVarint32();
+                  int limit = input.pushLimit(length);
+                  ensureRequiredSymbolIdsIsMutable();
+                  while (input.getBytesUntilLimit() > 0) {
+                    requiredSymbolIds_.addInt(input.readInt32());
+                  }
+                  input.popLimit(limit);
+                  break;
+                } // case 26
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.unwrapIOException();
+          } finally {
+            onChanged();
+          } // finally
+          return this;
+        }
+        private int bitField0_;
+
+        private com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate start_;
+        private com.google.protobuf.SingleFieldBuilderV3<
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> startBuilder_;
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         * @return Whether the start field is set.
+         */
+        public boolean hasStart() {
+          return ((bitField0_ & 0x00000001) != 0);
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         * @return The start.
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getStart() {
+          if (startBuilder_ == null) {
+            return start_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : start_;
+          } else {
+            return startBuilder_.getMessage();
+          }
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public Builder setStart(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
+          if (startBuilder_ == null) {
+            if (value == null) {
+              throw new NullPointerException();
+            }
+            start_ = value;
+          } else {
+            startBuilder_.setMessage(value);
+          }
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public Builder setStart(
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder builderForValue) {
+          if (startBuilder_ == null) {
+            start_ = builderForValue.build();
+          } else {
+            startBuilder_.setMessage(builderForValue.build());
+          }
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public Builder mergeStart(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
+          if (startBuilder_ == null) {
+            if (((bitField0_ & 0x00000001) != 0) &&
+              start_ != null &&
+              start_ != com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance()) {
+              getStartBuilder().mergeFrom(value);
+            } else {
+              start_ = value;
+            }
+          } else {
+            startBuilder_.mergeFrom(value);
+          }
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public Builder clearStart() {
+          bitField0_ = (bitField0_ & ~0x00000001);
+          start_ = null;
+          if (startBuilder_ != null) {
+            startBuilder_.dispose();
+            startBuilder_ = null;
+          }
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder getStartBuilder() {
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return getStartFieldBuilder().getBuilder();
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getStartOrBuilder() {
+          if (startBuilder_ != null) {
+            return startBuilder_.getMessageOrBuilder();
+          } else {
+            return start_ == null ?
+                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : start_;
+          }
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        private com.google.protobuf.SingleFieldBuilderV3<
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
+            getStartFieldBuilder() {
+          if (startBuilder_ == null) {
+            startBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder>(
+                    getStart(),
+                    getParentForChildren(),
+                    isClean());
+            start_ = null;
+          }
+          return startBuilder_;
+        }
+
+        private int end_ ;
+        /**
+         * <code>int32 end = 2;</code>
+         * @return The end.
+         */
+        @java.lang.Override
+        public int getEnd() {
+          return end_;
+        }
+        /**
+         * <code>int32 end = 2;</code>
+         * @param value The end to set.
+         * @return This builder for chaining.
+         */
+        public Builder setEnd(int value) {
+
+          end_ = value;
+          bitField0_ |= 0x00000002;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>int32 end = 2;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearEnd() {
+          bitField0_ = (bitField0_ & ~0x00000002);
+          end_ = 0;
+          onChanged();
+          return this;
+        }
+
+        private com.google.protobuf.Internal.IntList requiredSymbolIds_ = emptyIntList();
+        private void ensureRequiredSymbolIdsIsMutable() {
+          if (!((bitField0_ & 0x00000004) != 0)) {
+            requiredSymbolIds_ = mutableCopy(requiredSymbolIds_);
+            bitField0_ |= 0x00000004;
+          }
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @return A list containing the requiredSymbolIds.
+         */
+        public java.util.List<java.lang.Integer>
+            getRequiredSymbolIdsList() {
+          return ((bitField0_ & 0x00000004) != 0) ?
+                   java.util.Collections.unmodifiableList(requiredSymbolIds_) : requiredSymbolIds_;
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @return The count of requiredSymbolIds.
+         */
+        public int getRequiredSymbolIdsCount() {
+          return requiredSymbolIds_.size();
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @param index The index of the element to return.
+         * @return The requiredSymbolIds at the given index.
+         */
+        public int getRequiredSymbolIds(int index) {
+          return requiredSymbolIds_.getInt(index);
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @param index The index to set the value at.
+         * @param value The requiredSymbolIds to set.
+         * @return This builder for chaining.
+         */
+        public Builder setRequiredSymbolIds(
+            int index, int value) {
+
+          ensureRequiredSymbolIdsIsMutable();
+          requiredSymbolIds_.setInt(index, value);
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @param value The requiredSymbolIds to add.
+         * @return This builder for chaining.
+         */
+        public Builder addRequiredSymbolIds(int value) {
+
+          ensureRequiredSymbolIdsIsMutable();
+          requiredSymbolIds_.addInt(value);
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @param values The requiredSymbolIds to add.
+         * @return This builder for chaining.
+         */
+        public Builder addAllRequiredSymbolIds(
+            java.lang.Iterable<? extends java.lang.Integer> values) {
+          ensureRequiredSymbolIdsIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, requiredSymbolIds_);
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearRequiredSymbolIds() {
+          requiredSymbolIds_ = emptyIntList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+          onChanged();
+          return this;
+        }
+        @java.lang.Override
+        public final Builder setUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.setUnknownFields(unknownFields);
+        }
+
+        @java.lang.Override
+        public final Builder mergeUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.mergeUnknownFields(unknownFields);
+        }
+
+
+        // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair)
+      }
+
+      // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair)
+      private static final com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair DEFAULT_INSTANCE;
+      static {
+        DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair();
+      }
+
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair getDefaultInstance() {
+        return DEFAULT_INSTANCE;
+      }
+
+      private static final com.google.protobuf.Parser<TipEdgeRequiredSymbolPair>
+          PARSER = new com.google.protobuf.AbstractParser<TipEdgeRequiredSymbolPair>() {
+        @java.lang.Override
+        public TipEdgeRequiredSymbolPair parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
+        }
+      };
+
+      public static com.google.protobuf.Parser<TipEdgeRequiredSymbolPair> parser() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<TipEdgeRequiredSymbolPair> getParserForType() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair getDefaultInstanceForType() {
+        return DEFAULT_INSTANCE;
+      }
+
+    }
+
     public interface MidEdgeActionPairOrBuilder extends
         // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair)
         com.google.protobuf.MessageOrBuilder {
@@ -3584,6 +5263,960 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
 
     }
 
+    public interface MidEdgeRequiredSymbolPairOrBuilder extends
+        // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair)
+        com.google.protobuf.MessageOrBuilder {
+
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       * @return Whether the start field is set.
+       */
+      boolean hasStart();
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       * @return The start.
+       */
+      com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getStart();
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       */
+      com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getStartOrBuilder();
+
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+       * @return Whether the end field is set.
+       */
+      boolean hasEnd();
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+       * @return The end.
+       */
+      com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getEnd();
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+       */
+      com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getEndOrBuilder();
+
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @return A list containing the requiredSymbolIds.
+       */
+      java.util.List<java.lang.Integer> getRequiredSymbolIdsList();
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @return The count of requiredSymbolIds.
+       */
+      int getRequiredSymbolIdsCount();
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @param index The index of the element to return.
+       * @return The requiredSymbolIds at the given index.
+       */
+      int getRequiredSymbolIds(int index);
+    }
+    /**
+     * Protobuf type {@code com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair}
+     */
+    public static final class MidEdgeRequiredSymbolPair extends
+        com.google.protobuf.GeneratedMessageV3 implements
+        // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair)
+        MidEdgeRequiredSymbolPairOrBuilder {
+    private static final long serialVersionUID = 0L;
+      // Use MidEdgeRequiredSymbolPair.newBuilder() to construct.
+      private MidEdgeRequiredSymbolPair(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+        super(builder);
+      }
+      private MidEdgeRequiredSymbolPair() {
+        requiredSymbolIds_ = emptyIntList();
+      }
+
+      @java.lang.Override
+      @SuppressWarnings({"unused"})
+      protected java.lang.Object newInstance(
+          UnusedPrivateParameter unused) {
+        return new MidEdgeRequiredSymbolPair();
+      }
+
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeRequiredSymbolPair_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeRequiredSymbolPair_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.class, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder.class);
+      }
+
+      public static final int START_FIELD_NUMBER = 1;
+      private com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate start_;
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       * @return Whether the start field is set.
+       */
+      @java.lang.Override
+      public boolean hasStart() {
+        return start_ != null;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       * @return The start.
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getStart() {
+        return start_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : start_;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getStartOrBuilder() {
+        return start_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : start_;
+      }
+
+      public static final int END_FIELD_NUMBER = 2;
+      private com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate end_;
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+       * @return Whether the end field is set.
+       */
+      @java.lang.Override
+      public boolean hasEnd() {
+        return end_ != null;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+       * @return The end.
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getEnd() {
+        return end_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : end_;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getEndOrBuilder() {
+        return end_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : end_;
+      }
+
+      public static final int REQUIRED_SYMBOL_IDS_FIELD_NUMBER = 3;
+      @SuppressWarnings("serial")
+      private com.google.protobuf.Internal.IntList requiredSymbolIds_;
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @return A list containing the requiredSymbolIds.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.Integer>
+          getRequiredSymbolIdsList() {
+        return requiredSymbolIds_;
+      }
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @return The count of requiredSymbolIds.
+       */
+      public int getRequiredSymbolIdsCount() {
+        return requiredSymbolIds_.size();
+      }
+      /**
+       * <code>repeated int32 required_symbol_ids = 3;</code>
+       * @param index The index of the element to return.
+       * @return The requiredSymbolIds at the given index.
+       */
+      public int getRequiredSymbolIds(int index) {
+        return requiredSymbolIds_.getInt(index);
+      }
+      private int requiredSymbolIdsMemoizedSerializedSize = -1;
+
+      private byte memoizedIsInitialized = -1;
+      @java.lang.Override
+      public final boolean isInitialized() {
+        byte isInitialized = memoizedIsInitialized;
+        if (isInitialized == 1) return true;
+        if (isInitialized == 0) return false;
+
+        memoizedIsInitialized = 1;
+        return true;
+      }
+
+      @java.lang.Override
+      public void writeTo(com.google.protobuf.CodedOutputStream output)
+                          throws java.io.IOException {
+        getSerializedSize();
+        if (start_ != null) {
+          output.writeMessage(1, getStart());
+        }
+        if (end_ != null) {
+          output.writeMessage(2, getEnd());
+        }
+        if (getRequiredSymbolIdsList().size() > 0) {
+          output.writeUInt32NoTag(26);
+          output.writeUInt32NoTag(requiredSymbolIdsMemoizedSerializedSize);
+        }
+        for (int i = 0; i < requiredSymbolIds_.size(); i++) {
+          output.writeInt32NoTag(requiredSymbolIds_.getInt(i));
+        }
+        getUnknownFields().writeTo(output);
+      }
+
+      @java.lang.Override
+      public int getSerializedSize() {
+        int size = memoizedSize;
+        if (size != -1) return size;
+
+        size = 0;
+        if (start_ != null) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeMessageSize(1, getStart());
+        }
+        if (end_ != null) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeMessageSize(2, getEnd());
+        }
+        {
+          int dataSize = 0;
+          for (int i = 0; i < requiredSymbolIds_.size(); i++) {
+            dataSize += com.google.protobuf.CodedOutputStream
+              .computeInt32SizeNoTag(requiredSymbolIds_.getInt(i));
+          }
+          size += dataSize;
+          if (!getRequiredSymbolIdsList().isEmpty()) {
+            size += 1;
+            size += com.google.protobuf.CodedOutputStream
+                .computeInt32SizeNoTag(dataSize);
+          }
+          requiredSymbolIdsMemoizedSerializedSize = dataSize;
+        }
+        size += getUnknownFields().getSerializedSize();
+        memoizedSize = size;
+        return size;
+      }
+
+      @java.lang.Override
+      public boolean equals(final java.lang.Object obj) {
+        if (obj == this) {
+         return true;
+        }
+        if (!(obj instanceof com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair)) {
+          return super.equals(obj);
+        }
+        com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair other = (com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair) obj;
+
+        if (hasStart() != other.hasStart()) return false;
+        if (hasStart()) {
+          if (!getStart()
+              .equals(other.getStart())) return false;
+        }
+        if (hasEnd() != other.hasEnd()) return false;
+        if (hasEnd()) {
+          if (!getEnd()
+              .equals(other.getEnd())) return false;
+        }
+        if (!getRequiredSymbolIdsList()
+            .equals(other.getRequiredSymbolIdsList())) return false;
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
+        return true;
+      }
+
+      @java.lang.Override
+      public int hashCode() {
+        if (memoizedHashCode != 0) {
+          return memoizedHashCode;
+        }
+        int hash = 41;
+        hash = (19 * hash) + getDescriptor().hashCode();
+        if (hasStart()) {
+          hash = (37 * hash) + START_FIELD_NUMBER;
+          hash = (53 * hash) + getStart().hashCode();
+        }
+        if (hasEnd()) {
+          hash = (37 * hash) + END_FIELD_NUMBER;
+          hash = (53 * hash) + getEnd().hashCode();
+        }
+        if (getRequiredSymbolIdsCount() > 0) {
+          hash = (37 * hash) + REQUIRED_SYMBOL_IDS_FIELD_NUMBER;
+          hash = (53 * hash) + getRequiredSymbolIdsList().hashCode();
+        }
+        hash = (29 * hash) + getUnknownFields().hashCode();
+        memoizedHashCode = hash;
+        return hash;
+      }
+
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseFrom(
+          java.nio.ByteBuffer data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseFrom(
+          java.nio.ByteBuffer data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseFrom(
+          com.google.protobuf.ByteString data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseFrom(
+          com.google.protobuf.ByteString data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseFrom(byte[] data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseFrom(
+          byte[] data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseDelimitedFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseDelimitedFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseFrom(
+          com.google.protobuf.CodedInputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair parseFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+
+      @java.lang.Override
+      public Builder newBuilderForType() { return newBuilder(); }
+      public static Builder newBuilder() {
+        return DEFAULT_INSTANCE.toBuilder();
+      }
+      public static Builder newBuilder(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair prototype) {
+        return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+      }
+      @java.lang.Override
+      public Builder toBuilder() {
+        return this == DEFAULT_INSTANCE
+            ? new Builder() : new Builder().mergeFrom(this);
+      }
+
+      @java.lang.Override
+      protected Builder newBuilderForType(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        Builder builder = new Builder(parent);
+        return builder;
+      }
+      /**
+       * Protobuf type {@code com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair}
+       */
+      public static final class Builder extends
+          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+          // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair)
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPairOrBuilder {
+        public static final com.google.protobuf.Descriptors.Descriptor
+            getDescriptor() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeRequiredSymbolPair_descriptor;
+        }
+
+        @java.lang.Override
+        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+            internalGetFieldAccessorTable() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeRequiredSymbolPair_fieldAccessorTable
+              .ensureFieldAccessorsInitialized(
+                  com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.class, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder.class);
+        }
+
+        // Construct using com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.newBuilder()
+        private Builder() {
+
+        }
+
+        private Builder(
+            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+          super(parent);
+
+        }
+        @java.lang.Override
+        public Builder clear() {
+          super.clear();
+          bitField0_ = 0;
+          start_ = null;
+          if (startBuilder_ != null) {
+            startBuilder_.dispose();
+            startBuilder_ = null;
+          }
+          end_ = null;
+          if (endBuilder_ != null) {
+            endBuilder_.dispose();
+            endBuilder_ = null;
+          }
+          requiredSymbolIds_ = emptyIntList();
+          return this;
+        }
+
+        @java.lang.Override
+        public com.google.protobuf.Descriptors.Descriptor
+            getDescriptorForType() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeRequiredSymbolPair_descriptor;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair getDefaultInstanceForType() {
+          return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.getDefaultInstance();
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair build() {
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair result = buildPartial();
+          if (!result.isInitialized()) {
+            throw newUninitializedMessageException(result);
+          }
+          return result;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair buildPartial() {
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair result = new com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair(this);
+          buildPartialRepeatedFields(result);
+          if (bitField0_ != 0) { buildPartial0(result); }
+          onBuilt();
+          return result;
+        }
+
+        private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair result) {
+          if (((bitField0_ & 0x00000004) != 0)) {
+            requiredSymbolIds_.makeImmutable();
+            bitField0_ = (bitField0_ & ~0x00000004);
+          }
+          result.requiredSymbolIds_ = requiredSymbolIds_;
+        }
+
+        private void buildPartial0(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair result) {
+          int from_bitField0_ = bitField0_;
+          if (((from_bitField0_ & 0x00000001) != 0)) {
+            result.start_ = startBuilder_ == null
+                ? start_
+                : startBuilder_.build();
+          }
+          if (((from_bitField0_ & 0x00000002) != 0)) {
+            result.end_ = endBuilder_ == null
+                ? end_
+                : endBuilder_.build();
+          }
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(com.google.protobuf.Message other) {
+          if (other instanceof com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair) {
+            return mergeFrom((com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair)other);
+          } else {
+            super.mergeFrom(other);
+            return this;
+          }
+        }
+
+        public Builder mergeFrom(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair other) {
+          if (other == com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.getDefaultInstance()) return this;
+          if (other.hasStart()) {
+            mergeStart(other.getStart());
+          }
+          if (other.hasEnd()) {
+            mergeEnd(other.getEnd());
+          }
+          if (!other.requiredSymbolIds_.isEmpty()) {
+            if (requiredSymbolIds_.isEmpty()) {
+              requiredSymbolIds_ = other.requiredSymbolIds_;
+              bitField0_ = (bitField0_ & ~0x00000004);
+            } else {
+              ensureRequiredSymbolIdsIsMutable();
+              requiredSymbolIds_.addAll(other.requiredSymbolIds_);
+            }
+            onChanged();
+          }
+          this.mergeUnknownFields(other.getUnknownFields());
+          onChanged();
+          return this;
+        }
+
+        @java.lang.Override
+        public final boolean isInitialized() {
+          return true;
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws java.io.IOException {
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
+          }
+          try {
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 10: {
+                  input.readMessage(
+                      getStartFieldBuilder().getBuilder(),
+                      extensionRegistry);
+                  bitField0_ |= 0x00000001;
+                  break;
+                } // case 10
+                case 18: {
+                  input.readMessage(
+                      getEndFieldBuilder().getBuilder(),
+                      extensionRegistry);
+                  bitField0_ |= 0x00000002;
+                  break;
+                } // case 18
+                case 24: {
+                  int v = input.readInt32();
+                  ensureRequiredSymbolIdsIsMutable();
+                  requiredSymbolIds_.addInt(v);
+                  break;
+                } // case 24
+                case 26: {
+                  int length = input.readRawVarint32();
+                  int limit = input.pushLimit(length);
+                  ensureRequiredSymbolIdsIsMutable();
+                  while (input.getBytesUntilLimit() > 0) {
+                    requiredSymbolIds_.addInt(input.readInt32());
+                  }
+                  input.popLimit(limit);
+                  break;
+                } // case 26
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.unwrapIOException();
+          } finally {
+            onChanged();
+          } // finally
+          return this;
+        }
+        private int bitField0_;
+
+        private com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate start_;
+        private com.google.protobuf.SingleFieldBuilderV3<
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> startBuilder_;
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         * @return Whether the start field is set.
+         */
+        public boolean hasStart() {
+          return ((bitField0_ & 0x00000001) != 0);
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         * @return The start.
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getStart() {
+          if (startBuilder_ == null) {
+            return start_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : start_;
+          } else {
+            return startBuilder_.getMessage();
+          }
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public Builder setStart(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
+          if (startBuilder_ == null) {
+            if (value == null) {
+              throw new NullPointerException();
+            }
+            start_ = value;
+          } else {
+            startBuilder_.setMessage(value);
+          }
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public Builder setStart(
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder builderForValue) {
+          if (startBuilder_ == null) {
+            start_ = builderForValue.build();
+          } else {
+            startBuilder_.setMessage(builderForValue.build());
+          }
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public Builder mergeStart(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
+          if (startBuilder_ == null) {
+            if (((bitField0_ & 0x00000001) != 0) &&
+              start_ != null &&
+              start_ != com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance()) {
+              getStartBuilder().mergeFrom(value);
+            } else {
+              start_ = value;
+            }
+          } else {
+            startBuilder_.mergeFrom(value);
+          }
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public Builder clearStart() {
+          bitField0_ = (bitField0_ & ~0x00000001);
+          start_ = null;
+          if (startBuilder_ != null) {
+            startBuilder_.dispose();
+            startBuilder_ = null;
+          }
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder getStartBuilder() {
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return getStartFieldBuilder().getBuilder();
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getStartOrBuilder() {
+          if (startBuilder_ != null) {
+            return startBuilder_.getMessageOrBuilder();
+          } else {
+            return start_ == null ?
+                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : start_;
+          }
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;</code>
+         */
+        private com.google.protobuf.SingleFieldBuilderV3<
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
+            getStartFieldBuilder() {
+          if (startBuilder_ == null) {
+            startBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder>(
+                    getStart(),
+                    getParentForChildren(),
+                    isClean());
+            start_ = null;
+          }
+          return startBuilder_;
+        }
+
+        private com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate end_;
+        private com.google.protobuf.SingleFieldBuilderV3<
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> endBuilder_;
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+         * @return Whether the end field is set.
+         */
+        public boolean hasEnd() {
+          return ((bitField0_ & 0x00000002) != 0);
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+         * @return The end.
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getEnd() {
+          if (endBuilder_ == null) {
+            return end_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : end_;
+          } else {
+            return endBuilder_.getMessage();
+          }
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+         */
+        public Builder setEnd(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
+          if (endBuilder_ == null) {
+            if (value == null) {
+              throw new NullPointerException();
+            }
+            end_ = value;
+          } else {
+            endBuilder_.setMessage(value);
+          }
+          bitField0_ |= 0x00000002;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+         */
+        public Builder setEnd(
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder builderForValue) {
+          if (endBuilder_ == null) {
+            end_ = builderForValue.build();
+          } else {
+            endBuilder_.setMessage(builderForValue.build());
+          }
+          bitField0_ |= 0x00000002;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+         */
+        public Builder mergeEnd(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
+          if (endBuilder_ == null) {
+            if (((bitField0_ & 0x00000002) != 0) &&
+              end_ != null &&
+              end_ != com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance()) {
+              getEndBuilder().mergeFrom(value);
+            } else {
+              end_ = value;
+            }
+          } else {
+            endBuilder_.mergeFrom(value);
+          }
+          bitField0_ |= 0x00000002;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+         */
+        public Builder clearEnd() {
+          bitField0_ = (bitField0_ & ~0x00000002);
+          end_ = null;
+          if (endBuilder_ != null) {
+            endBuilder_.dispose();
+            endBuilder_ = null;
+          }
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder getEndBuilder() {
+          bitField0_ |= 0x00000002;
+          onChanged();
+          return getEndFieldBuilder().getBuilder();
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+         */
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getEndOrBuilder() {
+          if (endBuilder_ != null) {
+            return endBuilder_.getMessageOrBuilder();
+          } else {
+            return end_ == null ?
+                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance() : end_;
+          }
+        }
+        /**
+         * <code>.com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;</code>
+         */
+        private com.google.protobuf.SingleFieldBuilderV3<
+            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
+            getEndFieldBuilder() {
+          if (endBuilder_ == null) {
+            endBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder>(
+                    getEnd(),
+                    getParentForChildren(),
+                    isClean());
+            end_ = null;
+          }
+          return endBuilder_;
+        }
+
+        private com.google.protobuf.Internal.IntList requiredSymbolIds_ = emptyIntList();
+        private void ensureRequiredSymbolIdsIsMutable() {
+          if (!((bitField0_ & 0x00000004) != 0)) {
+            requiredSymbolIds_ = mutableCopy(requiredSymbolIds_);
+            bitField0_ |= 0x00000004;
+          }
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @return A list containing the requiredSymbolIds.
+         */
+        public java.util.List<java.lang.Integer>
+            getRequiredSymbolIdsList() {
+          return ((bitField0_ & 0x00000004) != 0) ?
+                   java.util.Collections.unmodifiableList(requiredSymbolIds_) : requiredSymbolIds_;
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @return The count of requiredSymbolIds.
+         */
+        public int getRequiredSymbolIdsCount() {
+          return requiredSymbolIds_.size();
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @param index The index of the element to return.
+         * @return The requiredSymbolIds at the given index.
+         */
+        public int getRequiredSymbolIds(int index) {
+          return requiredSymbolIds_.getInt(index);
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @param index The index to set the value at.
+         * @param value The requiredSymbolIds to set.
+         * @return This builder for chaining.
+         */
+        public Builder setRequiredSymbolIds(
+            int index, int value) {
+
+          ensureRequiredSymbolIdsIsMutable();
+          requiredSymbolIds_.setInt(index, value);
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @param value The requiredSymbolIds to add.
+         * @return This builder for chaining.
+         */
+        public Builder addRequiredSymbolIds(int value) {
+
+          ensureRequiredSymbolIdsIsMutable();
+          requiredSymbolIds_.addInt(value);
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @param values The requiredSymbolIds to add.
+         * @return This builder for chaining.
+         */
+        public Builder addAllRequiredSymbolIds(
+            java.lang.Iterable<? extends java.lang.Integer> values) {
+          ensureRequiredSymbolIdsIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, requiredSymbolIds_);
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>repeated int32 required_symbol_ids = 3;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearRequiredSymbolIds() {
+          requiredSymbolIds_ = emptyIntList();
+          bitField0_ = (bitField0_ & ~0x00000004);
+          onChanged();
+          return this;
+        }
+        @java.lang.Override
+        public final Builder setUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.setUnknownFields(unknownFields);
+        }
+
+        @java.lang.Override
+        public final Builder mergeUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.mergeUnknownFields(unknownFields);
+        }
+
+
+        // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair)
+      }
+
+      // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair)
+      private static final com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair DEFAULT_INSTANCE;
+      static {
+        DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair();
+      }
+
+      public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair getDefaultInstance() {
+        return DEFAULT_INSTANCE;
+      }
+
+      private static final com.google.protobuf.Parser<MidEdgeRequiredSymbolPair>
+          PARSER = new com.google.protobuf.AbstractParser<MidEdgeRequiredSymbolPair>() {
+        @java.lang.Override
+        public MidEdgeRequiredSymbolPair parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
+        }
+      };
+
+      public static com.google.protobuf.Parser<MidEdgeRequiredSymbolPair> parser() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<MidEdgeRequiredSymbolPair> getParserForType() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair getDefaultInstanceForType() {
+        return DEFAULT_INSTANCE;
+      }
+
+    }
+
     public static final int GRAMMAR_FIELD_NUMBER = 1;
     private com.giyeok.jparser.proto.GrammarProto.NGrammar grammar_;
     /**
@@ -3648,82 +6281,44 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
     }
 
     public static final int MILESTONE_GROUPS_FIELD_NUMBER = 4;
-    private static final class MilestoneGroupsDefaultEntryHolder {
-      static final com.google.protobuf.MapEntry<
-          java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> defaultEntry =
-              com.google.protobuf.MapEntry
-              .<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup>newDefaultInstance(
-                  com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupsEntry_descriptor, 
-                  com.google.protobuf.WireFormat.FieldType.INT32,
-                  0,
-                  com.google.protobuf.WireFormat.FieldType.MESSAGE,
-                  com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup.getDefaultInstance());
-    }
     @SuppressWarnings("serial")
-    private com.google.protobuf.MapField<
-        java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> milestoneGroups_;
-    private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup>
-    internalGetMilestoneGroups() {
-      if (milestoneGroups_ == null) {
-        return com.google.protobuf.MapField.emptyMapField(
-            MilestoneGroupsDefaultEntryHolder.defaultEntry);
-      }
+    private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair> milestoneGroups_;
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+     */
+    @java.lang.Override
+    public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair> getMilestoneGroupsList() {
       return milestoneGroups_;
     }
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+     */
+    @java.lang.Override
+    public java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPairOrBuilder> 
+        getMilestoneGroupsOrBuilderList() {
+      return milestoneGroups_;
+    }
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+     */
+    @java.lang.Override
     public int getMilestoneGroupsCount() {
-      return internalGetMilestoneGroups().getMap().size();
+      return milestoneGroups_.size();
     }
     /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
      */
     @java.lang.Override
-    public boolean containsMilestoneGroups(
-        int key) {
-
-      return internalGetMilestoneGroups().getMap().containsKey(key);
+    public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair getMilestoneGroups(int index) {
+      return milestoneGroups_.get(index);
     }
     /**
-     * Use {@link #getMilestoneGroupsMap()} instead.
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
      */
     @java.lang.Override
-    @java.lang.Deprecated
-    public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> getMilestoneGroups() {
-      return getMilestoneGroupsMap();
-    }
-    /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
-     */
-    @java.lang.Override
-    public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> getMilestoneGroupsMap() {
-      return internalGetMilestoneGroups().getMap();
-    }
-    /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
-     */
-    @java.lang.Override
-    public /* nullable */
-com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup getMilestoneGroupsOrDefault(
-        int key,
-        /* nullable */
-com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup defaultValue) {
-
-      java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> map =
-          internalGetMilestoneGroups().getMap();
-      return map.containsKey(key) ? map.get(key) : defaultValue;
-    }
-    /**
-     * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup getMilestoneGroupsOrThrow(
-        int key) {
-
-      java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> map =
-          internalGetMilestoneGroups().getMap();
-      if (!map.containsKey(key)) {
-        throw new java.lang.IllegalArgumentException();
-      }
-      return map.get(key);
+    public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPairOrBuilder getMilestoneGroupsOrBuilder(
+        int index) {
+      return milestoneGroups_.get(index);
     }
 
     public static final int TERM_ACTIONS_FIELD_NUMBER = 5;
@@ -3808,18 +6403,59 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       return tipEdgeActions_.get(index);
     }
 
-    public static final int MID_EDGE_ACTIONS_FIELD_NUMBER = 7;
+    public static final int TIP_EDGE_REQUIRED_SYMBOLS_FIELD_NUMBER = 7;
+    @SuppressWarnings("serial")
+    private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair> tipEdgeRequiredSymbols_;
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+     */
+    @java.lang.Override
+    public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair> getTipEdgeRequiredSymbolsList() {
+      return tipEdgeRequiredSymbols_;
+    }
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+     */
+    @java.lang.Override
+    public java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPairOrBuilder> 
+        getTipEdgeRequiredSymbolsOrBuilderList() {
+      return tipEdgeRequiredSymbols_;
+    }
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+     */
+    @java.lang.Override
+    public int getTipEdgeRequiredSymbolsCount() {
+      return tipEdgeRequiredSymbols_.size();
+    }
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+     */
+    @java.lang.Override
+    public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair getTipEdgeRequiredSymbols(int index) {
+      return tipEdgeRequiredSymbols_.get(index);
+    }
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+     */
+    @java.lang.Override
+    public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPairOrBuilder getTipEdgeRequiredSymbolsOrBuilder(
+        int index) {
+      return tipEdgeRequiredSymbols_.get(index);
+    }
+
+    public static final int MID_EDGE_ACTIONS_FIELD_NUMBER = 8;
     @SuppressWarnings("serial")
     private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair> midEdgeActions_;
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     @java.lang.Override
     public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair> getMidEdgeActionsList() {
       return midEdgeActions_;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     @java.lang.Override
     public java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPairOrBuilder> 
@@ -3827,26 +6463,67 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       return midEdgeActions_;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     @java.lang.Override
     public int getMidEdgeActionsCount() {
       return midEdgeActions_.size();
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     @java.lang.Override
     public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair getMidEdgeActions(int index) {
       return midEdgeActions_.get(index);
     }
     /**
-     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
      */
     @java.lang.Override
     public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPairOrBuilder getMidEdgeActionsOrBuilder(
         int index) {
       return midEdgeActions_.get(index);
+    }
+
+    public static final int MID_EDGE_REQUIRED_SYMBOLS_FIELD_NUMBER = 9;
+    @SuppressWarnings("serial")
+    private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair> midEdgeRequiredSymbols_;
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+     */
+    @java.lang.Override
+    public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair> getMidEdgeRequiredSymbolsList() {
+      return midEdgeRequiredSymbols_;
+    }
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+     */
+    @java.lang.Override
+    public java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPairOrBuilder> 
+        getMidEdgeRequiredSymbolsOrBuilderList() {
+      return midEdgeRequiredSymbols_;
+    }
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+     */
+    @java.lang.Override
+    public int getMidEdgeRequiredSymbolsCount() {
+      return midEdgeRequiredSymbols_.size();
+    }
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+     */
+    @java.lang.Override
+    public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair getMidEdgeRequiredSymbols(int index) {
+      return midEdgeRequiredSymbols_.get(index);
+    }
+    /**
+     * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+     */
+    @java.lang.Override
+    public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPairOrBuilder getMidEdgeRequiredSymbolsOrBuilder(
+        int index) {
+      return midEdgeRequiredSymbols_.get(index);
     }
 
     private byte memoizedIsInitialized = -1;
@@ -3872,20 +6549,23 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       if (initialTasksSummary_ != null) {
         output.writeMessage(3, getInitialTasksSummary());
       }
-      com.google.protobuf.GeneratedMessageV3
-        .serializeIntegerMapTo(
-          output,
-          internalGetMilestoneGroups(),
-          MilestoneGroupsDefaultEntryHolder.defaultEntry,
-          4);
+      for (int i = 0; i < milestoneGroups_.size(); i++) {
+        output.writeMessage(4, milestoneGroups_.get(i));
+      }
       for (int i = 0; i < termActions_.size(); i++) {
         output.writeMessage(5, termActions_.get(i));
       }
       for (int i = 0; i < tipEdgeActions_.size(); i++) {
         output.writeMessage(6, tipEdgeActions_.get(i));
       }
+      for (int i = 0; i < tipEdgeRequiredSymbols_.size(); i++) {
+        output.writeMessage(7, tipEdgeRequiredSymbols_.get(i));
+      }
       for (int i = 0; i < midEdgeActions_.size(); i++) {
-        output.writeMessage(7, midEdgeActions_.get(i));
+        output.writeMessage(8, midEdgeActions_.get(i));
+      }
+      for (int i = 0; i < midEdgeRequiredSymbols_.size(); i++) {
+        output.writeMessage(9, midEdgeRequiredSymbols_.get(i));
       }
       getUnknownFields().writeTo(output);
     }
@@ -3908,15 +6588,9 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(3, getInitialTasksSummary());
       }
-      for (java.util.Map.Entry<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> entry
-           : internalGetMilestoneGroups().getMap().entrySet()) {
-        com.google.protobuf.MapEntry<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup>
-        milestoneGroups__ = MilestoneGroupsDefaultEntryHolder.defaultEntry.newBuilderForType()
-            .setKey(entry.getKey())
-            .setValue(entry.getValue())
-            .build();
+      for (int i = 0; i < milestoneGroups_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-            .computeMessageSize(4, milestoneGroups__);
+          .computeMessageSize(4, milestoneGroups_.get(i));
       }
       for (int i = 0; i < termActions_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
@@ -3926,9 +6600,17 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(6, tipEdgeActions_.get(i));
       }
+      for (int i = 0; i < tipEdgeRequiredSymbols_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(7, tipEdgeRequiredSymbols_.get(i));
+      }
       for (int i = 0; i < midEdgeActions_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(7, midEdgeActions_.get(i));
+          .computeMessageSize(8, midEdgeActions_.get(i));
+      }
+      for (int i = 0; i < midEdgeRequiredSymbols_.size(); i++) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(9, midEdgeRequiredSymbols_.get(i));
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
@@ -3957,14 +6639,18 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         if (!getInitialTasksSummary()
             .equals(other.getInitialTasksSummary())) return false;
       }
-      if (!internalGetMilestoneGroups().equals(
-          other.internalGetMilestoneGroups())) return false;
+      if (!getMilestoneGroupsList()
+          .equals(other.getMilestoneGroupsList())) return false;
       if (!getTermActionsList()
           .equals(other.getTermActionsList())) return false;
       if (!getTipEdgeActionsList()
           .equals(other.getTipEdgeActionsList())) return false;
+      if (!getTipEdgeRequiredSymbolsList()
+          .equals(other.getTipEdgeRequiredSymbolsList())) return false;
       if (!getMidEdgeActionsList()
           .equals(other.getMidEdgeActionsList())) return false;
+      if (!getMidEdgeRequiredSymbolsList()
+          .equals(other.getMidEdgeRequiredSymbolsList())) return false;
       if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
@@ -3986,9 +6672,9 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         hash = (37 * hash) + INITIAL_TASKS_SUMMARY_FIELD_NUMBER;
         hash = (53 * hash) + getInitialTasksSummary().hashCode();
       }
-      if (!internalGetMilestoneGroups().getMap().isEmpty()) {
+      if (getMilestoneGroupsCount() > 0) {
         hash = (37 * hash) + MILESTONE_GROUPS_FIELD_NUMBER;
-        hash = (53 * hash) + internalGetMilestoneGroups().hashCode();
+        hash = (53 * hash) + getMilestoneGroupsList().hashCode();
       }
       if (getTermActionsCount() > 0) {
         hash = (37 * hash) + TERM_ACTIONS_FIELD_NUMBER;
@@ -3998,9 +6684,17 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         hash = (37 * hash) + TIP_EDGE_ACTIONS_FIELD_NUMBER;
         hash = (53 * hash) + getTipEdgeActionsList().hashCode();
       }
+      if (getTipEdgeRequiredSymbolsCount() > 0) {
+        hash = (37 * hash) + TIP_EDGE_REQUIRED_SYMBOLS_FIELD_NUMBER;
+        hash = (53 * hash) + getTipEdgeRequiredSymbolsList().hashCode();
+      }
       if (getMidEdgeActionsCount() > 0) {
         hash = (37 * hash) + MID_EDGE_ACTIONS_FIELD_NUMBER;
         hash = (53 * hash) + getMidEdgeActionsList().hashCode();
+      }
+      if (getMidEdgeRequiredSymbolsCount() > 0) {
+        hash = (37 * hash) + MID_EDGE_REQUIRED_SYMBOLS_FIELD_NUMBER;
+        hash = (53 * hash) + getMidEdgeRequiredSymbolsList().hashCode();
       }
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
@@ -4109,28 +6803,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_descriptor;
       }
 
-      @SuppressWarnings({"rawtypes"})
-      protected com.google.protobuf.MapField internalGetMapField(
-          int number) {
-        switch (number) {
-          case 4:
-            return internalGetMilestoneGroups();
-          default:
-            throw new RuntimeException(
-                "Invalid map field number: " + number);
-        }
-      }
-      @SuppressWarnings({"rawtypes"})
-      protected com.google.protobuf.MapField internalGetMutableMapField(
-          int number) {
-        switch (number) {
-          case 4:
-            return internalGetMutableMilestoneGroups();
-          default:
-            throw new RuntimeException(
-                "Invalid map field number: " + number);
-        }
-      }
       @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
@@ -4164,7 +6836,13 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
           initialTasksSummaryBuilder_.dispose();
           initialTasksSummaryBuilder_ = null;
         }
-        internalGetMutableMilestoneGroups().clear();
+        if (milestoneGroupsBuilder_ == null) {
+          milestoneGroups_ = java.util.Collections.emptyList();
+        } else {
+          milestoneGroups_ = null;
+          milestoneGroupsBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000008);
         if (termActionsBuilder_ == null) {
           termActions_ = java.util.Collections.emptyList();
         } else {
@@ -4179,13 +6857,27 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
           tipEdgeActionsBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000020);
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          tipEdgeRequiredSymbols_ = java.util.Collections.emptyList();
+        } else {
+          tipEdgeRequiredSymbols_ = null;
+          tipEdgeRequiredSymbolsBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000040);
         if (midEdgeActionsBuilder_ == null) {
           midEdgeActions_ = java.util.Collections.emptyList();
         } else {
           midEdgeActions_ = null;
           midEdgeActionsBuilder_.clear();
         }
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000080);
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          midEdgeRequiredSymbols_ = java.util.Collections.emptyList();
+        } else {
+          midEdgeRequiredSymbols_ = null;
+          midEdgeRequiredSymbolsBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000100);
         return this;
       }
 
@@ -4219,6 +6911,15 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       }
 
       private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData result) {
+        if (milestoneGroupsBuilder_ == null) {
+          if (((bitField0_ & 0x00000008) != 0)) {
+            milestoneGroups_ = java.util.Collections.unmodifiableList(milestoneGroups_);
+            bitField0_ = (bitField0_ & ~0x00000008);
+          }
+          result.milestoneGroups_ = milestoneGroups_;
+        } else {
+          result.milestoneGroups_ = milestoneGroupsBuilder_.build();
+        }
         if (termActionsBuilder_ == null) {
           if (((bitField0_ & 0x00000010) != 0)) {
             termActions_ = java.util.Collections.unmodifiableList(termActions_);
@@ -4237,14 +6938,32 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         } else {
           result.tipEdgeActions_ = tipEdgeActionsBuilder_.build();
         }
-        if (midEdgeActionsBuilder_ == null) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
           if (((bitField0_ & 0x00000040) != 0)) {
-            midEdgeActions_ = java.util.Collections.unmodifiableList(midEdgeActions_);
+            tipEdgeRequiredSymbols_ = java.util.Collections.unmodifiableList(tipEdgeRequiredSymbols_);
             bitField0_ = (bitField0_ & ~0x00000040);
+          }
+          result.tipEdgeRequiredSymbols_ = tipEdgeRequiredSymbols_;
+        } else {
+          result.tipEdgeRequiredSymbols_ = tipEdgeRequiredSymbolsBuilder_.build();
+        }
+        if (midEdgeActionsBuilder_ == null) {
+          if (((bitField0_ & 0x00000080) != 0)) {
+            midEdgeActions_ = java.util.Collections.unmodifiableList(midEdgeActions_);
+            bitField0_ = (bitField0_ & ~0x00000080);
           }
           result.midEdgeActions_ = midEdgeActions_;
         } else {
           result.midEdgeActions_ = midEdgeActionsBuilder_.build();
+        }
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          if (((bitField0_ & 0x00000100) != 0)) {
+            midEdgeRequiredSymbols_ = java.util.Collections.unmodifiableList(midEdgeRequiredSymbols_);
+            bitField0_ = (bitField0_ & ~0x00000100);
+          }
+          result.midEdgeRequiredSymbols_ = midEdgeRequiredSymbols_;
+        } else {
+          result.midEdgeRequiredSymbols_ = midEdgeRequiredSymbolsBuilder_.build();
         }
       }
 
@@ -4262,10 +6981,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
           result.initialTasksSummary_ = initialTasksSummaryBuilder_ == null
               ? initialTasksSummary_
               : initialTasksSummaryBuilder_.build();
-        }
-        if (((from_bitField0_ & 0x00000008) != 0)) {
-          result.milestoneGroups_ = internalGetMilestoneGroups();
-          result.milestoneGroups_.makeImmutable();
         }
       }
 
@@ -4290,9 +7005,32 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         if (other.hasInitialTasksSummary()) {
           mergeInitialTasksSummary(other.getInitialTasksSummary());
         }
-        internalGetMutableMilestoneGroups().mergeFrom(
-            other.internalGetMilestoneGroups());
-        bitField0_ |= 0x00000008;
+        if (milestoneGroupsBuilder_ == null) {
+          if (!other.milestoneGroups_.isEmpty()) {
+            if (milestoneGroups_.isEmpty()) {
+              milestoneGroups_ = other.milestoneGroups_;
+              bitField0_ = (bitField0_ & ~0x00000008);
+            } else {
+              ensureMilestoneGroupsIsMutable();
+              milestoneGroups_.addAll(other.milestoneGroups_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.milestoneGroups_.isEmpty()) {
+            if (milestoneGroupsBuilder_.isEmpty()) {
+              milestoneGroupsBuilder_.dispose();
+              milestoneGroupsBuilder_ = null;
+              milestoneGroups_ = other.milestoneGroups_;
+              bitField0_ = (bitField0_ & ~0x00000008);
+              milestoneGroupsBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getMilestoneGroupsFieldBuilder() : null;
+            } else {
+              milestoneGroupsBuilder_.addAllMessages(other.milestoneGroups_);
+            }
+          }
+        }
         if (termActionsBuilder_ == null) {
           if (!other.termActions_.isEmpty()) {
             if (termActions_.isEmpty()) {
@@ -4345,11 +7083,37 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
             }
           }
         }
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          if (!other.tipEdgeRequiredSymbols_.isEmpty()) {
+            if (tipEdgeRequiredSymbols_.isEmpty()) {
+              tipEdgeRequiredSymbols_ = other.tipEdgeRequiredSymbols_;
+              bitField0_ = (bitField0_ & ~0x00000040);
+            } else {
+              ensureTipEdgeRequiredSymbolsIsMutable();
+              tipEdgeRequiredSymbols_.addAll(other.tipEdgeRequiredSymbols_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.tipEdgeRequiredSymbols_.isEmpty()) {
+            if (tipEdgeRequiredSymbolsBuilder_.isEmpty()) {
+              tipEdgeRequiredSymbolsBuilder_.dispose();
+              tipEdgeRequiredSymbolsBuilder_ = null;
+              tipEdgeRequiredSymbols_ = other.tipEdgeRequiredSymbols_;
+              bitField0_ = (bitField0_ & ~0x00000040);
+              tipEdgeRequiredSymbolsBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getTipEdgeRequiredSymbolsFieldBuilder() : null;
+            } else {
+              tipEdgeRequiredSymbolsBuilder_.addAllMessages(other.tipEdgeRequiredSymbols_);
+            }
+          }
+        }
         if (midEdgeActionsBuilder_ == null) {
           if (!other.midEdgeActions_.isEmpty()) {
             if (midEdgeActions_.isEmpty()) {
               midEdgeActions_ = other.midEdgeActions_;
-              bitField0_ = (bitField0_ & ~0x00000040);
+              bitField0_ = (bitField0_ & ~0x00000080);
             } else {
               ensureMidEdgeActionsIsMutable();
               midEdgeActions_.addAll(other.midEdgeActions_);
@@ -4362,12 +7126,38 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
               midEdgeActionsBuilder_.dispose();
               midEdgeActionsBuilder_ = null;
               midEdgeActions_ = other.midEdgeActions_;
-              bitField0_ = (bitField0_ & ~0x00000040);
+              bitField0_ = (bitField0_ & ~0x00000080);
               midEdgeActionsBuilder_ = 
                 com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getMidEdgeActionsFieldBuilder() : null;
             } else {
               midEdgeActionsBuilder_.addAllMessages(other.midEdgeActions_);
+            }
+          }
+        }
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          if (!other.midEdgeRequiredSymbols_.isEmpty()) {
+            if (midEdgeRequiredSymbols_.isEmpty()) {
+              midEdgeRequiredSymbols_ = other.midEdgeRequiredSymbols_;
+              bitField0_ = (bitField0_ & ~0x00000100);
+            } else {
+              ensureMidEdgeRequiredSymbolsIsMutable();
+              midEdgeRequiredSymbols_.addAll(other.midEdgeRequiredSymbols_);
+            }
+            onChanged();
+          }
+        } else {
+          if (!other.midEdgeRequiredSymbols_.isEmpty()) {
+            if (midEdgeRequiredSymbolsBuilder_.isEmpty()) {
+              midEdgeRequiredSymbolsBuilder_.dispose();
+              midEdgeRequiredSymbolsBuilder_ = null;
+              midEdgeRequiredSymbols_ = other.midEdgeRequiredSymbols_;
+              bitField0_ = (bitField0_ & ~0x00000100);
+              midEdgeRequiredSymbolsBuilder_ = 
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                   getMidEdgeRequiredSymbolsFieldBuilder() : null;
+            } else {
+              midEdgeRequiredSymbolsBuilder_.addAllMessages(other.midEdgeRequiredSymbols_);
             }
           }
         }
@@ -4417,12 +7207,16 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
                 break;
               } // case 26
               case 34: {
-                com.google.protobuf.MapEntry<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup>
-                milestoneGroups__ = input.readMessage(
-                    MilestoneGroupsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-                internalGetMutableMilestoneGroups().getMutableMap().put(
-                    milestoneGroups__.getKey(), milestoneGroups__.getValue());
-                bitField0_ |= 0x00000008;
+                com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair m =
+                    input.readMessage(
+                        com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.parser(),
+                        extensionRegistry);
+                if (milestoneGroupsBuilder_ == null) {
+                  ensureMilestoneGroupsIsMutable();
+                  milestoneGroups_.add(m);
+                } else {
+                  milestoneGroupsBuilder_.addMessage(m);
+                }
                 break;
               } // case 34
               case 42: {
@@ -4452,6 +7246,19 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
                 break;
               } // case 50
               case 58: {
+                com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair m =
+                    input.readMessage(
+                        com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.parser(),
+                        extensionRegistry);
+                if (tipEdgeRequiredSymbolsBuilder_ == null) {
+                  ensureTipEdgeRequiredSymbolsIsMutable();
+                  tipEdgeRequiredSymbols_.add(m);
+                } else {
+                  tipEdgeRequiredSymbolsBuilder_.addMessage(m);
+                }
+                break;
+              } // case 58
+              case 66: {
                 com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair m =
                     input.readMessage(
                         com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.parser(),
@@ -4463,7 +7270,20 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
                   midEdgeActionsBuilder_.addMessage(m);
                 }
                 break;
-              } // case 58
+              } // case 66
+              case 74: {
+                com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair m =
+                    input.readMessage(
+                        com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.parser(),
+                        extensionRegistry);
+                if (midEdgeRequiredSymbolsBuilder_ == null) {
+                  ensureMidEdgeRequiredSymbolsIsMutable();
+                  midEdgeRequiredSymbols_.add(m);
+                } else {
+                  midEdgeRequiredSymbolsBuilder_.addMessage(m);
+                }
+                break;
+              } // case 74
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -4751,131 +7571,244 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return initialTasksSummaryBuilder_;
       }
 
-      private com.google.protobuf.MapField<
-          java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> milestoneGroups_;
-      private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup>
-          internalGetMilestoneGroups() {
-        if (milestoneGroups_ == null) {
-          return com.google.protobuf.MapField.emptyMapField(
-              MilestoneGroupsDefaultEntryHolder.defaultEntry);
-        }
-        return milestoneGroups_;
+      private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair> milestoneGroups_ =
+        java.util.Collections.emptyList();
+      private void ensureMilestoneGroupsIsMutable() {
+        if (!((bitField0_ & 0x00000008) != 0)) {
+          milestoneGroups_ = new java.util.ArrayList<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair>(milestoneGroups_);
+          bitField0_ |= 0x00000008;
+         }
       }
-      private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup>
-          internalGetMutableMilestoneGroups() {
-        if (milestoneGroups_ == null) {
-          milestoneGroups_ = com.google.protobuf.MapField.newMapField(
-              MilestoneGroupsDefaultEntryHolder.defaultEntry);
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPairOrBuilder> milestoneGroupsBuilder_;
+
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair> getMilestoneGroupsList() {
+        if (milestoneGroupsBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(milestoneGroups_);
+        } else {
+          return milestoneGroupsBuilder_.getMessageList();
         }
-        if (!milestoneGroups_.isMutable()) {
-          milestoneGroups_ = milestoneGroups_.copy();
-        }
-        bitField0_ |= 0x00000008;
-        onChanged();
-        return milestoneGroups_;
       }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
       public int getMilestoneGroupsCount() {
-        return internalGetMilestoneGroups().getMap().size();
-      }
-      /**
-       * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
-       */
-      @java.lang.Override
-      public boolean containsMilestoneGroups(
-          int key) {
-
-        return internalGetMilestoneGroups().getMap().containsKey(key);
-      }
-      /**
-       * Use {@link #getMilestoneGroupsMap()} instead.
-       */
-      @java.lang.Override
-      @java.lang.Deprecated
-      public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> getMilestoneGroups() {
-        return getMilestoneGroupsMap();
-      }
-      /**
-       * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
-       */
-      @java.lang.Override
-      public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> getMilestoneGroupsMap() {
-        return internalGetMilestoneGroups().getMap();
-      }
-      /**
-       * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
-       */
-      @java.lang.Override
-      public /* nullable */
-com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup getMilestoneGroupsOrDefault(
-          int key,
-          /* nullable */
-com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup defaultValue) {
-
-        java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> map =
-            internalGetMilestoneGroups().getMap();
-        return map.containsKey(key) ? map.get(key) : defaultValue;
-      }
-      /**
-       * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
-       */
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup getMilestoneGroupsOrThrow(
-          int key) {
-
-        java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> map =
-            internalGetMilestoneGroups().getMap();
-        if (!map.containsKey(key)) {
-          throw new java.lang.IllegalArgumentException();
+        if (milestoneGroupsBuilder_ == null) {
+          return milestoneGroups_.size();
+        } else {
+          return milestoneGroupsBuilder_.getCount();
         }
-        return map.get(key);
       }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair getMilestoneGroups(int index) {
+        if (milestoneGroupsBuilder_ == null) {
+          return milestoneGroups_.get(index);
+        } else {
+          return milestoneGroupsBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public Builder setMilestoneGroups(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair value) {
+        if (milestoneGroupsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureMilestoneGroupsIsMutable();
+          milestoneGroups_.set(index, value);
+          onChanged();
+        } else {
+          milestoneGroupsBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public Builder setMilestoneGroups(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder builderForValue) {
+        if (milestoneGroupsBuilder_ == null) {
+          ensureMilestoneGroupsIsMutable();
+          milestoneGroups_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          milestoneGroupsBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public Builder addMilestoneGroups(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair value) {
+        if (milestoneGroupsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureMilestoneGroupsIsMutable();
+          milestoneGroups_.add(value);
+          onChanged();
+        } else {
+          milestoneGroupsBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public Builder addMilestoneGroups(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair value) {
+        if (milestoneGroupsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureMilestoneGroupsIsMutable();
+          milestoneGroups_.add(index, value);
+          onChanged();
+        } else {
+          milestoneGroupsBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public Builder addMilestoneGroups(
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder builderForValue) {
+        if (milestoneGroupsBuilder_ == null) {
+          ensureMilestoneGroupsIsMutable();
+          milestoneGroups_.add(builderForValue.build());
+          onChanged();
+        } else {
+          milestoneGroupsBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public Builder addMilestoneGroups(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder builderForValue) {
+        if (milestoneGroupsBuilder_ == null) {
+          ensureMilestoneGroupsIsMutable();
+          milestoneGroups_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          milestoneGroupsBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public Builder addAllMilestoneGroups(
+          java.lang.Iterable<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair> values) {
+        if (milestoneGroupsBuilder_ == null) {
+          ensureMilestoneGroupsIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, milestoneGroups_);
+          onChanged();
+        } else {
+          milestoneGroupsBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
       public Builder clearMilestoneGroups() {
-        bitField0_ = (bitField0_ & ~0x00000008);
-        internalGetMutableMilestoneGroups().getMutableMap()
-            .clear();
+        if (milestoneGroupsBuilder_ == null) {
+          milestoneGroups_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000008);
+          onChanged();
+        } else {
+          milestoneGroupsBuilder_.clear();
+        }
         return this;
       }
       /**
-       * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
        */
-      public Builder removeMilestoneGroups(
-          int key) {
-
-        internalGetMutableMilestoneGroups().getMutableMap()
-            .remove(key);
+      public Builder removeMilestoneGroups(int index) {
+        if (milestoneGroupsBuilder_ == null) {
+          ensureMilestoneGroupsIsMutable();
+          milestoneGroups_.remove(index);
+          onChanged();
+        } else {
+          milestoneGroupsBuilder_.remove(index);
+        }
         return this;
       }
       /**
-       * Use alternate mutation accessors instead.
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
        */
-      @java.lang.Deprecated
-      public java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup>
-          getMutableMilestoneGroups() {
-        bitField0_ |= 0x00000008;
-        return internalGetMutableMilestoneGroups().getMutableMap();
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder getMilestoneGroupsBuilder(
+          int index) {
+        return getMilestoneGroupsFieldBuilder().getBuilder(index);
       }
       /**
-       * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
        */
-      public Builder putMilestoneGroups(
-          int key,
-          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup value) {
-
-        if (value == null) { throw new NullPointerException("map value"); }
-        internalGetMutableMilestoneGroups().getMutableMap()
-            .put(key, value);
-        bitField0_ |= 0x00000008;
-        return this;
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPairOrBuilder getMilestoneGroupsOrBuilder(
+          int index) {
+        if (milestoneGroupsBuilder_ == null) {
+          return milestoneGroups_.get(index);  } else {
+          return milestoneGroupsBuilder_.getMessageOrBuilder(index);
+        }
       }
       /**
-       * <code>map&lt;int32, .com.giyeok.jparser.mgroup2.proto.MilestoneGroup&gt; milestone_groups = 4;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
        */
-      public Builder putAllMilestoneGroups(
-          java.util.Map<java.lang.Integer, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup> values) {
-        internalGetMutableMilestoneGroups().getMutableMap()
-            .putAll(values);
-        bitField0_ |= 0x00000008;
-        return this;
+      public java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPairOrBuilder> 
+           getMilestoneGroupsOrBuilderList() {
+        if (milestoneGroupsBuilder_ != null) {
+          return milestoneGroupsBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(milestoneGroups_);
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder addMilestoneGroupsBuilder() {
+        return getMilestoneGroupsFieldBuilder().addBuilder(
+            com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder addMilestoneGroupsBuilder(
+          int index) {
+        return getMilestoneGroupsFieldBuilder().addBuilder(
+            index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MilestoneGroupPair milestone_groups = 4;</code>
+       */
+      public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder> 
+           getMilestoneGroupsBuilderList() {
+        return getMilestoneGroupsFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPairOrBuilder> 
+          getMilestoneGroupsFieldBuilder() {
+        if (milestoneGroupsBuilder_ == null) {
+          milestoneGroupsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MilestoneGroupPairOrBuilder>(
+                  milestoneGroups_,
+                  ((bitField0_ & 0x00000008) != 0),
+                  getParentForChildren(),
+                  isClean());
+          milestoneGroups_ = null;
+        }
+        return milestoneGroupsBuilder_;
       }
 
       private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TermActionPair> termActions_ =
@@ -5358,12 +8291,252 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return tipEdgeActionsBuilder_;
       }
 
+      private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair> tipEdgeRequiredSymbols_ =
+        java.util.Collections.emptyList();
+      private void ensureTipEdgeRequiredSymbolsIsMutable() {
+        if (!((bitField0_ & 0x00000040) != 0)) {
+          tipEdgeRequiredSymbols_ = new java.util.ArrayList<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair>(tipEdgeRequiredSymbols_);
+          bitField0_ |= 0x00000040;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPairOrBuilder> tipEdgeRequiredSymbolsBuilder_;
+
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair> getTipEdgeRequiredSymbolsList() {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(tipEdgeRequiredSymbols_);
+        } else {
+          return tipEdgeRequiredSymbolsBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public int getTipEdgeRequiredSymbolsCount() {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          return tipEdgeRequiredSymbols_.size();
+        } else {
+          return tipEdgeRequiredSymbolsBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair getTipEdgeRequiredSymbols(int index) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          return tipEdgeRequiredSymbols_.get(index);
+        } else {
+          return tipEdgeRequiredSymbolsBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public Builder setTipEdgeRequiredSymbols(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair value) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTipEdgeRequiredSymbolsIsMutable();
+          tipEdgeRequiredSymbols_.set(index, value);
+          onChanged();
+        } else {
+          tipEdgeRequiredSymbolsBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public Builder setTipEdgeRequiredSymbols(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder builderForValue) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          ensureTipEdgeRequiredSymbolsIsMutable();
+          tipEdgeRequiredSymbols_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          tipEdgeRequiredSymbolsBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public Builder addTipEdgeRequiredSymbols(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair value) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTipEdgeRequiredSymbolsIsMutable();
+          tipEdgeRequiredSymbols_.add(value);
+          onChanged();
+        } else {
+          tipEdgeRequiredSymbolsBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public Builder addTipEdgeRequiredSymbols(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair value) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureTipEdgeRequiredSymbolsIsMutable();
+          tipEdgeRequiredSymbols_.add(index, value);
+          onChanged();
+        } else {
+          tipEdgeRequiredSymbolsBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public Builder addTipEdgeRequiredSymbols(
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder builderForValue) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          ensureTipEdgeRequiredSymbolsIsMutable();
+          tipEdgeRequiredSymbols_.add(builderForValue.build());
+          onChanged();
+        } else {
+          tipEdgeRequiredSymbolsBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public Builder addTipEdgeRequiredSymbols(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder builderForValue) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          ensureTipEdgeRequiredSymbolsIsMutable();
+          tipEdgeRequiredSymbols_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          tipEdgeRequiredSymbolsBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public Builder addAllTipEdgeRequiredSymbols(
+          java.lang.Iterable<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair> values) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          ensureTipEdgeRequiredSymbolsIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, tipEdgeRequiredSymbols_);
+          onChanged();
+        } else {
+          tipEdgeRequiredSymbolsBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public Builder clearTipEdgeRequiredSymbols() {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          tipEdgeRequiredSymbols_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000040);
+          onChanged();
+        } else {
+          tipEdgeRequiredSymbolsBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public Builder removeTipEdgeRequiredSymbols(int index) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          ensureTipEdgeRequiredSymbolsIsMutable();
+          tipEdgeRequiredSymbols_.remove(index);
+          onChanged();
+        } else {
+          tipEdgeRequiredSymbolsBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder getTipEdgeRequiredSymbolsBuilder(
+          int index) {
+        return getTipEdgeRequiredSymbolsFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPairOrBuilder getTipEdgeRequiredSymbolsOrBuilder(
+          int index) {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          return tipEdgeRequiredSymbols_.get(index);  } else {
+          return tipEdgeRequiredSymbolsBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPairOrBuilder> 
+           getTipEdgeRequiredSymbolsOrBuilderList() {
+        if (tipEdgeRequiredSymbolsBuilder_ != null) {
+          return tipEdgeRequiredSymbolsBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(tipEdgeRequiredSymbols_);
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder addTipEdgeRequiredSymbolsBuilder() {
+        return getTipEdgeRequiredSymbolsFieldBuilder().addBuilder(
+            com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder addTipEdgeRequiredSymbolsBuilder(
+          int index) {
+        return getTipEdgeRequiredSymbolsFieldBuilder().addBuilder(
+            index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;</code>
+       */
+      public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder> 
+           getTipEdgeRequiredSymbolsBuilderList() {
+        return getTipEdgeRequiredSymbolsFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPairOrBuilder> 
+          getTipEdgeRequiredSymbolsFieldBuilder() {
+        if (tipEdgeRequiredSymbolsBuilder_ == null) {
+          tipEdgeRequiredSymbolsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.TipEdgeRequiredSymbolPairOrBuilder>(
+                  tipEdgeRequiredSymbols_,
+                  ((bitField0_ & 0x00000040) != 0),
+                  getParentForChildren(),
+                  isClean());
+          tipEdgeRequiredSymbols_ = null;
+        }
+        return tipEdgeRequiredSymbolsBuilder_;
+      }
+
       private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair> midEdgeActions_ =
         java.util.Collections.emptyList();
       private void ensureMidEdgeActionsIsMutable() {
-        if (!((bitField0_ & 0x00000040) != 0)) {
+        if (!((bitField0_ & 0x00000080) != 0)) {
           midEdgeActions_ = new java.util.ArrayList<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair>(midEdgeActions_);
-          bitField0_ |= 0x00000040;
+          bitField0_ |= 0x00000080;
          }
       }
 
@@ -5371,7 +8544,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
           com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPairOrBuilder> midEdgeActionsBuilder_;
 
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair> getMidEdgeActionsList() {
         if (midEdgeActionsBuilder_ == null) {
@@ -5381,7 +8554,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public int getMidEdgeActionsCount() {
         if (midEdgeActionsBuilder_ == null) {
@@ -5391,7 +8564,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair getMidEdgeActions(int index) {
         if (midEdgeActionsBuilder_ == null) {
@@ -5401,7 +8574,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public Builder setMidEdgeActions(
           int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair value) {
@@ -5418,7 +8591,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public Builder setMidEdgeActions(
           int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.Builder builderForValue) {
@@ -5432,7 +8605,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public Builder addMidEdgeActions(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair value) {
         if (midEdgeActionsBuilder_ == null) {
@@ -5448,7 +8621,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public Builder addMidEdgeActions(
           int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair value) {
@@ -5465,7 +8638,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public Builder addMidEdgeActions(
           com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.Builder builderForValue) {
@@ -5479,7 +8652,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public Builder addMidEdgeActions(
           int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.Builder builderForValue) {
@@ -5493,7 +8666,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public Builder addAllMidEdgeActions(
           java.lang.Iterable<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair> values) {
@@ -5508,12 +8681,12 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public Builder clearMidEdgeActions() {
         if (midEdgeActionsBuilder_ == null) {
           midEdgeActions_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000040);
+          bitField0_ = (bitField0_ & ~0x00000080);
           onChanged();
         } else {
           midEdgeActionsBuilder_.clear();
@@ -5521,7 +8694,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public Builder removeMidEdgeActions(int index) {
         if (midEdgeActionsBuilder_ == null) {
@@ -5534,14 +8707,14 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.Builder getMidEdgeActionsBuilder(
           int index) {
         return getMidEdgeActionsFieldBuilder().getBuilder(index);
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPairOrBuilder getMidEdgeActionsOrBuilder(
           int index) {
@@ -5551,7 +8724,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPairOrBuilder> 
            getMidEdgeActionsOrBuilderList() {
@@ -5562,14 +8735,14 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.Builder addMidEdgeActionsBuilder() {
         return getMidEdgeActionsFieldBuilder().addBuilder(
             com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.getDefaultInstance());
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.Builder addMidEdgeActionsBuilder(
           int index) {
@@ -5577,7 +8750,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
             index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.getDefaultInstance());
       }
       /**
-       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 7;</code>
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeActionPair mid_edge_actions = 8;</code>
        */
       public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.Builder> 
            getMidEdgeActionsBuilderList() {
@@ -5590,12 +8763,252 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
           midEdgeActionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeActionPairOrBuilder>(
                   midEdgeActions_,
-                  ((bitField0_ & 0x00000040) != 0),
+                  ((bitField0_ & 0x00000080) != 0),
                   getParentForChildren(),
                   isClean());
           midEdgeActions_ = null;
         }
         return midEdgeActionsBuilder_;
+      }
+
+      private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair> midEdgeRequiredSymbols_ =
+        java.util.Collections.emptyList();
+      private void ensureMidEdgeRequiredSymbolsIsMutable() {
+        if (!((bitField0_ & 0x00000100) != 0)) {
+          midEdgeRequiredSymbols_ = new java.util.ArrayList<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair>(midEdgeRequiredSymbols_);
+          bitField0_ |= 0x00000100;
+         }
+      }
+
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPairOrBuilder> midEdgeRequiredSymbolsBuilder_;
+
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair> getMidEdgeRequiredSymbolsList() {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          return java.util.Collections.unmodifiableList(midEdgeRequiredSymbols_);
+        } else {
+          return midEdgeRequiredSymbolsBuilder_.getMessageList();
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public int getMidEdgeRequiredSymbolsCount() {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          return midEdgeRequiredSymbols_.size();
+        } else {
+          return midEdgeRequiredSymbolsBuilder_.getCount();
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair getMidEdgeRequiredSymbols(int index) {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          return midEdgeRequiredSymbols_.get(index);
+        } else {
+          return midEdgeRequiredSymbolsBuilder_.getMessage(index);
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public Builder setMidEdgeRequiredSymbols(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair value) {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureMidEdgeRequiredSymbolsIsMutable();
+          midEdgeRequiredSymbols_.set(index, value);
+          onChanged();
+        } else {
+          midEdgeRequiredSymbolsBuilder_.setMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public Builder setMidEdgeRequiredSymbols(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder builderForValue) {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          ensureMidEdgeRequiredSymbolsIsMutable();
+          midEdgeRequiredSymbols_.set(index, builderForValue.build());
+          onChanged();
+        } else {
+          midEdgeRequiredSymbolsBuilder_.setMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public Builder addMidEdgeRequiredSymbols(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair value) {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureMidEdgeRequiredSymbolsIsMutable();
+          midEdgeRequiredSymbols_.add(value);
+          onChanged();
+        } else {
+          midEdgeRequiredSymbolsBuilder_.addMessage(value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public Builder addMidEdgeRequiredSymbols(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair value) {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          ensureMidEdgeRequiredSymbolsIsMutable();
+          midEdgeRequiredSymbols_.add(index, value);
+          onChanged();
+        } else {
+          midEdgeRequiredSymbolsBuilder_.addMessage(index, value);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public Builder addMidEdgeRequiredSymbols(
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder builderForValue) {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          ensureMidEdgeRequiredSymbolsIsMutable();
+          midEdgeRequiredSymbols_.add(builderForValue.build());
+          onChanged();
+        } else {
+          midEdgeRequiredSymbolsBuilder_.addMessage(builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public Builder addMidEdgeRequiredSymbols(
+          int index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder builderForValue) {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          ensureMidEdgeRequiredSymbolsIsMutable();
+          midEdgeRequiredSymbols_.add(index, builderForValue.build());
+          onChanged();
+        } else {
+          midEdgeRequiredSymbolsBuilder_.addMessage(index, builderForValue.build());
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public Builder addAllMidEdgeRequiredSymbols(
+          java.lang.Iterable<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair> values) {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          ensureMidEdgeRequiredSymbolsIsMutable();
+          com.google.protobuf.AbstractMessageLite.Builder.addAll(
+              values, midEdgeRequiredSymbols_);
+          onChanged();
+        } else {
+          midEdgeRequiredSymbolsBuilder_.addAllMessages(values);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public Builder clearMidEdgeRequiredSymbols() {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          midEdgeRequiredSymbols_ = java.util.Collections.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000100);
+          onChanged();
+        } else {
+          midEdgeRequiredSymbolsBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public Builder removeMidEdgeRequiredSymbols(int index) {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          ensureMidEdgeRequiredSymbolsIsMutable();
+          midEdgeRequiredSymbols_.remove(index);
+          onChanged();
+        } else {
+          midEdgeRequiredSymbolsBuilder_.remove(index);
+        }
+        return this;
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder getMidEdgeRequiredSymbolsBuilder(
+          int index) {
+        return getMidEdgeRequiredSymbolsFieldBuilder().getBuilder(index);
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPairOrBuilder getMidEdgeRequiredSymbolsOrBuilder(
+          int index) {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          return midEdgeRequiredSymbols_.get(index);  } else {
+          return midEdgeRequiredSymbolsBuilder_.getMessageOrBuilder(index);
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public java.util.List<? extends com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPairOrBuilder> 
+           getMidEdgeRequiredSymbolsOrBuilderList() {
+        if (midEdgeRequiredSymbolsBuilder_ != null) {
+          return midEdgeRequiredSymbolsBuilder_.getMessageOrBuilderList();
+        } else {
+          return java.util.Collections.unmodifiableList(midEdgeRequiredSymbols_);
+        }
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder addMidEdgeRequiredSymbolsBuilder() {
+        return getMidEdgeRequiredSymbolsFieldBuilder().addBuilder(
+            com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder addMidEdgeRequiredSymbolsBuilder(
+          int index) {
+        return getMidEdgeRequiredSymbolsFieldBuilder().addBuilder(
+            index, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.getDefaultInstance());
+      }
+      /**
+       * <code>repeated .com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;</code>
+       */
+      public java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder> 
+           getMidEdgeRequiredSymbolsBuilderList() {
+        return getMidEdgeRequiredSymbolsFieldBuilder().getBuilderList();
+      }
+      private com.google.protobuf.RepeatedFieldBuilderV3<
+          com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPairOrBuilder> 
+          getMidEdgeRequiredSymbolsFieldBuilder() {
+        if (midEdgeRequiredSymbolsBuilder_ == null) {
+          midEdgeRequiredSymbolsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+              com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPair.Builder, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData.MidEdgeRequiredSymbolPairOrBuilder>(
+                  midEdgeRequiredSymbols_,
+                  ((bitField0_ & 0x00000100) != 0),
+                  getParentForChildren(),
+                  isClean());
+          midEdgeRequiredSymbols_ = null;
+        }
+        return midEdgeRequiredSymbolsBuilder_;
       }
       @java.lang.Override
       public final Builder setUnknownFields(
@@ -5656,754 +9069,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
 
     @java.lang.Override
     public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupParserData getDefaultInstanceForType() {
-      return DEFAULT_INSTANCE;
-    }
-
-  }
-
-  public interface MilestoneGroupOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.mgroup2.proto.MilestoneGroup)
-      com.google.protobuf.MessageOrBuilder {
-
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-     */
-    java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> 
-        getMilestonesList();
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-     */
-    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getMilestones(int index);
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-     */
-    int getMilestonesCount();
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-     */
-    java.util.List<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
-        getMilestonesOrBuilderList();
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-     */
-    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getMilestonesOrBuilder(
-        int index);
-  }
-  /**
-   * Protobuf type {@code com.giyeok.jparser.mgroup2.proto.MilestoneGroup}
-   */
-  public static final class MilestoneGroup extends
-      com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:com.giyeok.jparser.mgroup2.proto.MilestoneGroup)
-      MilestoneGroupOrBuilder {
-  private static final long serialVersionUID = 0L;
-    // Use MilestoneGroup.newBuilder() to construct.
-    private MilestoneGroup(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
-      super(builder);
-    }
-    private MilestoneGroup() {
-      milestones_ = java.util.Collections.emptyList();
-    }
-
-    @java.lang.Override
-    @SuppressWarnings({"unused"})
-    protected java.lang.Object newInstance(
-        UnusedPrivateParameter unused) {
-      return new MilestoneGroup();
-    }
-
-    public static final com.google.protobuf.Descriptors.Descriptor
-        getDescriptor() {
-      return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroup_descriptor;
-    }
-
-    @java.lang.Override
-    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-        internalGetFieldAccessorTable() {
-      return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroup_fieldAccessorTable
-          .ensureFieldAccessorsInitialized(
-              com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup.class, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup.Builder.class);
-    }
-
-    public static final int MILESTONES_FIELD_NUMBER = 1;
-    @SuppressWarnings("serial")
-    private java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> milestones_;
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-     */
-    @java.lang.Override
-    public java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> getMilestonesList() {
-      return milestones_;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-     */
-    @java.lang.Override
-    public java.util.List<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
-        getMilestonesOrBuilderList() {
-      return milestones_;
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-     */
-    @java.lang.Override
-    public int getMilestonesCount() {
-      return milestones_.size();
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getMilestones(int index) {
-      return milestones_.get(index);
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getMilestonesOrBuilder(
-        int index) {
-      return milestones_.get(index);
-    }
-
-    private byte memoizedIsInitialized = -1;
-    @java.lang.Override
-    public final boolean isInitialized() {
-      byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
-
-      memoizedIsInitialized = 1;
-      return true;
-    }
-
-    @java.lang.Override
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
-                        throws java.io.IOException {
-      for (int i = 0; i < milestones_.size(); i++) {
-        output.writeMessage(1, milestones_.get(i));
-      }
-      getUnknownFields().writeTo(output);
-    }
-
-    @java.lang.Override
-    public int getSerializedSize() {
-      int size = memoizedSize;
-      if (size != -1) return size;
-
-      size = 0;
-      for (int i = 0; i < milestones_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(1, milestones_.get(i));
-      }
-      size += getUnknownFields().getSerializedSize();
-      memoizedSize = size;
-      return size;
-    }
-
-    @java.lang.Override
-    public boolean equals(final java.lang.Object obj) {
-      if (obj == this) {
-       return true;
-      }
-      if (!(obj instanceof com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup)) {
-        return super.equals(obj);
-      }
-      com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup other = (com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup) obj;
-
-      if (!getMilestonesList()
-          .equals(other.getMilestonesList())) return false;
-      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
-      return true;
-    }
-
-    @java.lang.Override
-    public int hashCode() {
-      if (memoizedHashCode != 0) {
-        return memoizedHashCode;
-      }
-      int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
-      if (getMilestonesCount() > 0) {
-        hash = (37 * hash) + MILESTONES_FIELD_NUMBER;
-        hash = (53 * hash) + getMilestonesList().hashCode();
-      }
-      hash = (29 * hash) + getUnknownFields().hashCode();
-      memoizedHashCode = hash;
-      return hash;
-    }
-
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
-    }
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
-    }
-
-    @java.lang.Override
-    public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder() {
-      return DEFAULT_INSTANCE.toBuilder();
-    }
-    public static Builder newBuilder(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup prototype) {
-      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
-    }
-    @java.lang.Override
-    public Builder toBuilder() {
-      return this == DEFAULT_INSTANCE
-          ? new Builder() : new Builder().mergeFrom(this);
-    }
-
-    @java.lang.Override
-    protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-      Builder builder = new Builder(parent);
-      return builder;
-    }
-    /**
-     * Protobuf type {@code com.giyeok.jparser.mgroup2.proto.MilestoneGroup}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.mgroup2.proto.MilestoneGroup)
-        com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroupOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
-          getDescriptor() {
-        return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroup_descriptor;
-      }
-
-      @java.lang.Override
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-          internalGetFieldAccessorTable() {
-        return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroup_fieldAccessorTable
-            .ensureFieldAccessorsInitialized(
-                com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup.class, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup.Builder.class);
-      }
-
-      // Construct using com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup.newBuilder()
-      private Builder() {
-
-      }
-
-      private Builder(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
-        super(parent);
-
-      }
-      @java.lang.Override
-      public Builder clear() {
-        super.clear();
-        bitField0_ = 0;
-        if (milestonesBuilder_ == null) {
-          milestones_ = java.util.Collections.emptyList();
-        } else {
-          milestones_ = null;
-          milestonesBuilder_.clear();
-        }
-        bitField0_ = (bitField0_ & ~0x00000001);
-        return this;
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.Descriptors.Descriptor
-          getDescriptorForType() {
-        return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroup_descriptor;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup getDefaultInstanceForType() {
-        return com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup.getDefaultInstance();
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup build() {
-        com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(result);
-        }
-        return result;
-      }
-
-      @java.lang.Override
-      public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup buildPartial() {
-        com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup result = new com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup(this);
-        buildPartialRepeatedFields(result);
-        if (bitField0_ != 0) { buildPartial0(result); }
-        onBuilt();
-        return result;
-      }
-
-      private void buildPartialRepeatedFields(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup result) {
-        if (milestonesBuilder_ == null) {
-          if (((bitField0_ & 0x00000001) != 0)) {
-            milestones_ = java.util.Collections.unmodifiableList(milestones_);
-            bitField0_ = (bitField0_ & ~0x00000001);
-          }
-          result.milestones_ = milestones_;
-        } else {
-          result.milestones_ = milestonesBuilder_.build();
-        }
-      }
-
-      private void buildPartial0(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup result) {
-        int from_bitField0_ = bitField0_;
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup) {
-          return mergeFrom((com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup)other);
-        } else {
-          super.mergeFrom(other);
-          return this;
-        }
-      }
-
-      public Builder mergeFrom(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup other) {
-        if (other == com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup.getDefaultInstance()) return this;
-        if (milestonesBuilder_ == null) {
-          if (!other.milestones_.isEmpty()) {
-            if (milestones_.isEmpty()) {
-              milestones_ = other.milestones_;
-              bitField0_ = (bitField0_ & ~0x00000001);
-            } else {
-              ensureMilestonesIsMutable();
-              milestones_.addAll(other.milestones_);
-            }
-            onChanged();
-          }
-        } else {
-          if (!other.milestones_.isEmpty()) {
-            if (milestonesBuilder_.isEmpty()) {
-              milestonesBuilder_.dispose();
-              milestonesBuilder_ = null;
-              milestones_ = other.milestones_;
-              bitField0_ = (bitField0_ & ~0x00000001);
-              milestonesBuilder_ = 
-                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
-                   getMilestonesFieldBuilder() : null;
-            } else {
-              milestonesBuilder_.addAllMessages(other.milestones_);
-            }
-          }
-        }
-        this.mergeUnknownFields(other.getUnknownFields());
-        onChanged();
-        return this;
-      }
-
-      @java.lang.Override
-      public final boolean isInitialized() {
-        return true;
-      }
-
-      @java.lang.Override
-      public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws java.io.IOException {
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              case 10: {
-                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate m =
-                    input.readMessage(
-                        com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.parser(),
-                        extensionRegistry);
-                if (milestonesBuilder_ == null) {
-                  ensureMilestonesIsMutable();
-                  milestones_.add(m);
-                } else {
-                  milestonesBuilder_.addMessage(m);
-                }
-                break;
-              } // case 10
-              default: {
-                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
-                  done = true; // was an endgroup tag
-                }
-                break;
-              } // default:
-            } // switch (tag)
-          } // while (!done)
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.unwrapIOException();
-        } finally {
-          onChanged();
-        } // finally
-        return this;
-      }
-      private int bitField0_;
-
-      private java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> milestones_ =
-        java.util.Collections.emptyList();
-      private void ensureMilestonesIsMutable() {
-        if (!((bitField0_ & 0x00000001) != 0)) {
-          milestones_ = new java.util.ArrayList<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate>(milestones_);
-          bitField0_ |= 0x00000001;
-         }
-      }
-
-      private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> milestonesBuilder_;
-
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> getMilestonesList() {
-        if (milestonesBuilder_ == null) {
-          return java.util.Collections.unmodifiableList(milestones_);
-        } else {
-          return milestonesBuilder_.getMessageList();
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public int getMilestonesCount() {
-        if (milestonesBuilder_ == null) {
-          return milestones_.size();
-        } else {
-          return milestonesBuilder_.getCount();
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate getMilestones(int index) {
-        if (milestonesBuilder_ == null) {
-          return milestones_.get(index);
-        } else {
-          return milestonesBuilder_.getMessage(index);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public Builder setMilestones(
-          int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
-        if (milestonesBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureMilestonesIsMutable();
-          milestones_.set(index, value);
-          onChanged();
-        } else {
-          milestonesBuilder_.setMessage(index, value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public Builder setMilestones(
-          int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder builderForValue) {
-        if (milestonesBuilder_ == null) {
-          ensureMilestonesIsMutable();
-          milestones_.set(index, builderForValue.build());
-          onChanged();
-        } else {
-          milestonesBuilder_.setMessage(index, builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public Builder addMilestones(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
-        if (milestonesBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureMilestonesIsMutable();
-          milestones_.add(value);
-          onChanged();
-        } else {
-          milestonesBuilder_.addMessage(value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public Builder addMilestones(
-          int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate value) {
-        if (milestonesBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureMilestonesIsMutable();
-          milestones_.add(index, value);
-          onChanged();
-        } else {
-          milestonesBuilder_.addMessage(index, value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public Builder addMilestones(
-          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder builderForValue) {
-        if (milestonesBuilder_ == null) {
-          ensureMilestonesIsMutable();
-          milestones_.add(builderForValue.build());
-          onChanged();
-        } else {
-          milestonesBuilder_.addMessage(builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public Builder addMilestones(
-          int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder builderForValue) {
-        if (milestonesBuilder_ == null) {
-          ensureMilestonesIsMutable();
-          milestones_.add(index, builderForValue.build());
-          onChanged();
-        } else {
-          milestonesBuilder_.addMessage(index, builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public Builder addAllMilestones(
-          java.lang.Iterable<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate> values) {
-        if (milestonesBuilder_ == null) {
-          ensureMilestonesIsMutable();
-          com.google.protobuf.AbstractMessageLite.Builder.addAll(
-              values, milestones_);
-          onChanged();
-        } else {
-          milestonesBuilder_.addAllMessages(values);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public Builder clearMilestones() {
-        if (milestonesBuilder_ == null) {
-          milestones_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
-          onChanged();
-        } else {
-          milestonesBuilder_.clear();
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public Builder removeMilestones(int index) {
-        if (milestonesBuilder_ == null) {
-          ensureMilestonesIsMutable();
-          milestones_.remove(index);
-          onChanged();
-        } else {
-          milestonesBuilder_.remove(index);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder getMilestonesBuilder(
-          int index) {
-        return getMilestonesFieldBuilder().getBuilder(index);
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder getMilestonesOrBuilder(
-          int index) {
-        if (milestonesBuilder_ == null) {
-          return milestones_.get(index);  } else {
-          return milestonesBuilder_.getMessageOrBuilder(index);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public java.util.List<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
-           getMilestonesOrBuilderList() {
-        if (milestonesBuilder_ != null) {
-          return milestonesBuilder_.getMessageOrBuilderList();
-        } else {
-          return java.util.Collections.unmodifiableList(milestones_);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder addMilestonesBuilder() {
-        return getMilestonesFieldBuilder().addBuilder(
-            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder addMilestonesBuilder(
-          int index) {
-        return getMilestonesFieldBuilder().addBuilder(
-            index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;</code>
-       */
-      public java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder> 
-           getMilestonesBuilderList() {
-        return getMilestonesFieldBuilder().getBuilderList();
-      }
-      private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder> 
-          getMilestonesFieldBuilder() {
-        if (milestonesBuilder_ == null) {
-          milestonesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
-              com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplateOrBuilder>(
-                  milestones_,
-                  ((bitField0_ & 0x00000001) != 0),
-                  getParentForChildren(),
-                  isClean());
-          milestones_ = null;
-        }
-        return milestonesBuilder_;
-      }
-      @java.lang.Override
-      public final Builder setUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFields(unknownFields);
-      }
-
-      @java.lang.Override
-      public final Builder mergeUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.mergeUnknownFields(unknownFields);
-      }
-
-
-      // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.mgroup2.proto.MilestoneGroup)
-    }
-
-    // @@protoc_insertion_point(class_scope:com.giyeok.jparser.mgroup2.proto.MilestoneGroup)
-    private static final com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup DEFAULT_INSTANCE;
-    static {
-      DEFAULT_INSTANCE = new com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup();
-    }
-
-    public static com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static final com.google.protobuf.Parser<MilestoneGroup>
-        PARSER = new com.google.protobuf.AbstractParser<MilestoneGroup>() {
-      @java.lang.Override
-      public MilestoneGroup parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        Builder builder = newBuilder();
-        try {
-          builder.mergeFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(builder.buildPartial());
-        } catch (com.google.protobuf.UninitializedMessageException e) {
-          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(e)
-              .setUnfinishedMessage(builder.buildPartial());
-        }
-        return builder.buildPartial();
-      }
-    };
-
-    public static com.google.protobuf.Parser<MilestoneGroup> parser() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<MilestoneGroup> getParserForType() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -12208,28 +14873,19 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         int index);
 
     /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+     * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
+     * @return Whether the startNodeProgress field is set.
      */
-    java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate> 
-        getStartNodeProgressesList();
+    boolean hasStartNodeProgress();
     /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+     * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
+     * @return The startNodeProgress.
      */
-    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate getStartNodeProgresses(int index);
+    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate getStartNodeProgress();
     /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+     * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
      */
-    int getStartNodeProgressesCount();
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-     */
-    java.util.List<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder> 
-        getStartNodeProgressesOrBuilderList();
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-     */
-    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder getStartNodeProgressesOrBuilder(
-        int index);
+    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder getStartNodeProgressOrBuilder();
 
     /**
      * <code>repeated .com.giyeok.jparser.mgroup2.proto.LookaheadRequires lookahead_requiring_symbols = 3;</code>
@@ -12269,23 +14925,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
      * <code>.com.giyeok.jparser.milestone2.proto.TasksSummary2 tasks_summary = 4;</code>
      */
     com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.TasksSummary2OrBuilder getTasksSummaryOrBuilder();
-
-    /**
-     * <code>repeated int32 required_symbol_ids = 5;</code>
-     * @return A list containing the requiredSymbolIds.
-     */
-    java.util.List<java.lang.Integer> getRequiredSymbolIdsList();
-    /**
-     * <code>repeated int32 required_symbol_ids = 5;</code>
-     * @return The count of requiredSymbolIds.
-     */
-    int getRequiredSymbolIdsCount();
-    /**
-     * <code>repeated int32 required_symbol_ids = 5;</code>
-     * @param index The index of the element to return.
-     * @return The requiredSymbolIds at the given index.
-     */
-    int getRequiredSymbolIds(int index);
   }
   /**
    * Protobuf type {@code com.giyeok.jparser.mgroup2.proto.EdgeAction}
@@ -12301,9 +14940,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
     }
     private EdgeAction() {
       appendingMilestoneGroups_ = java.util.Collections.emptyList();
-      startNodeProgresses_ = java.util.Collections.emptyList();
       lookaheadRequiringSymbols_ = java.util.Collections.emptyList();
-      requiredSymbolIds_ = emptyIntList();
     }
 
     @java.lang.Override
@@ -12326,6 +14963,7 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
               com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.EdgeAction.class, com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.EdgeAction.Builder.class);
     }
 
+    private int bitField0_;
     public static final int APPENDING_MILESTONE_GROUPS_FIELD_NUMBER = 1;
     @SuppressWarnings("serial")
     private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.AppendingMilestoneGroup> appendingMilestoneGroups_;
@@ -12367,45 +15005,30 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       return appendingMilestoneGroups_.get(index);
     }
 
-    public static final int START_NODE_PROGRESSES_FIELD_NUMBER = 2;
-    @SuppressWarnings("serial")
-    private java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate> startNodeProgresses_;
+    public static final int START_NODE_PROGRESS_FIELD_NUMBER = 2;
+    private com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate startNodeProgress_;
     /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+     * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
+     * @return Whether the startNodeProgress field is set.
      */
     @java.lang.Override
-    public java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate> getStartNodeProgressesList() {
-      return startNodeProgresses_;
+    public boolean hasStartNodeProgress() {
+      return ((bitField0_ & 0x00000001) != 0);
     }
     /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+     * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
+     * @return The startNodeProgress.
      */
     @java.lang.Override
-    public java.util.List<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder> 
-        getStartNodeProgressesOrBuilderList() {
-      return startNodeProgresses_;
+    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate getStartNodeProgress() {
+      return startNodeProgress_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.getDefaultInstance() : startNodeProgress_;
     }
     /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+     * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
      */
     @java.lang.Override
-    public int getStartNodeProgressesCount() {
-      return startNodeProgresses_.size();
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate getStartNodeProgresses(int index) {
-      return startNodeProgresses_.get(index);
-    }
-    /**
-     * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-     */
-    @java.lang.Override
-    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder getStartNodeProgressesOrBuilder(
-        int index) {
-      return startNodeProgresses_.get(index);
+    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder getStartNodeProgressOrBuilder() {
+      return startNodeProgress_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.getDefaultInstance() : startNodeProgress_;
     }
 
     public static final int LOOKAHEAD_REQUIRING_SYMBOLS_FIELD_NUMBER = 3;
@@ -12475,35 +15098,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       return tasksSummary_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.TasksSummary2.getDefaultInstance() : tasksSummary_;
     }
 
-    public static final int REQUIRED_SYMBOL_IDS_FIELD_NUMBER = 5;
-    @SuppressWarnings("serial")
-    private com.google.protobuf.Internal.IntList requiredSymbolIds_;
-    /**
-     * <code>repeated int32 required_symbol_ids = 5;</code>
-     * @return A list containing the requiredSymbolIds.
-     */
-    @java.lang.Override
-    public java.util.List<java.lang.Integer>
-        getRequiredSymbolIdsList() {
-      return requiredSymbolIds_;
-    }
-    /**
-     * <code>repeated int32 required_symbol_ids = 5;</code>
-     * @return The count of requiredSymbolIds.
-     */
-    public int getRequiredSymbolIdsCount() {
-      return requiredSymbolIds_.size();
-    }
-    /**
-     * <code>repeated int32 required_symbol_ids = 5;</code>
-     * @param index The index of the element to return.
-     * @return The requiredSymbolIds at the given index.
-     */
-    public int getRequiredSymbolIds(int index) {
-      return requiredSymbolIds_.getInt(index);
-    }
-    private int requiredSymbolIdsMemoizedSerializedSize = -1;
-
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -12518,25 +15112,17 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
     @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
       for (int i = 0; i < appendingMilestoneGroups_.size(); i++) {
         output.writeMessage(1, appendingMilestoneGroups_.get(i));
       }
-      for (int i = 0; i < startNodeProgresses_.size(); i++) {
-        output.writeMessage(2, startNodeProgresses_.get(i));
+      if (((bitField0_ & 0x00000001) != 0)) {
+        output.writeMessage(2, getStartNodeProgress());
       }
       for (int i = 0; i < lookaheadRequiringSymbols_.size(); i++) {
         output.writeMessage(3, lookaheadRequiringSymbols_.get(i));
       }
       if (tasksSummary_ != null) {
         output.writeMessage(4, getTasksSummary());
-      }
-      if (getRequiredSymbolIdsList().size() > 0) {
-        output.writeUInt32NoTag(42);
-        output.writeUInt32NoTag(requiredSymbolIdsMemoizedSerializedSize);
-      }
-      for (int i = 0; i < requiredSymbolIds_.size(); i++) {
-        output.writeInt32NoTag(requiredSymbolIds_.getInt(i));
       }
       getUnknownFields().writeTo(output);
     }
@@ -12551,9 +15137,9 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, appendingMilestoneGroups_.get(i));
       }
-      for (int i = 0; i < startNodeProgresses_.size(); i++) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(2, startNodeProgresses_.get(i));
+          .computeMessageSize(2, getStartNodeProgress());
       }
       for (int i = 0; i < lookaheadRequiringSymbols_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
@@ -12562,20 +15148,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       if (tasksSummary_ != null) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(4, getTasksSummary());
-      }
-      {
-        int dataSize = 0;
-        for (int i = 0; i < requiredSymbolIds_.size(); i++) {
-          dataSize += com.google.protobuf.CodedOutputStream
-            .computeInt32SizeNoTag(requiredSymbolIds_.getInt(i));
-        }
-        size += dataSize;
-        if (!getRequiredSymbolIdsList().isEmpty()) {
-          size += 1;
-          size += com.google.protobuf.CodedOutputStream
-              .computeInt32SizeNoTag(dataSize);
-        }
-        requiredSymbolIdsMemoizedSerializedSize = dataSize;
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
@@ -12594,8 +15166,11 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
 
       if (!getAppendingMilestoneGroupsList()
           .equals(other.getAppendingMilestoneGroupsList())) return false;
-      if (!getStartNodeProgressesList()
-          .equals(other.getStartNodeProgressesList())) return false;
+      if (hasStartNodeProgress() != other.hasStartNodeProgress()) return false;
+      if (hasStartNodeProgress()) {
+        if (!getStartNodeProgress()
+            .equals(other.getStartNodeProgress())) return false;
+      }
       if (!getLookaheadRequiringSymbolsList()
           .equals(other.getLookaheadRequiringSymbolsList())) return false;
       if (hasTasksSummary() != other.hasTasksSummary()) return false;
@@ -12603,8 +15178,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         if (!getTasksSummary()
             .equals(other.getTasksSummary())) return false;
       }
-      if (!getRequiredSymbolIdsList()
-          .equals(other.getRequiredSymbolIdsList())) return false;
       if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
@@ -12620,9 +15193,9 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         hash = (37 * hash) + APPENDING_MILESTONE_GROUPS_FIELD_NUMBER;
         hash = (53 * hash) + getAppendingMilestoneGroupsList().hashCode();
       }
-      if (getStartNodeProgressesCount() > 0) {
-        hash = (37 * hash) + START_NODE_PROGRESSES_FIELD_NUMBER;
-        hash = (53 * hash) + getStartNodeProgressesList().hashCode();
+      if (hasStartNodeProgress()) {
+        hash = (37 * hash) + START_NODE_PROGRESS_FIELD_NUMBER;
+        hash = (53 * hash) + getStartNodeProgress().hashCode();
       }
       if (getLookaheadRequiringSymbolsCount() > 0) {
         hash = (37 * hash) + LOOKAHEAD_REQUIRING_SYMBOLS_FIELD_NUMBER;
@@ -12631,10 +15204,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       if (hasTasksSummary()) {
         hash = (37 * hash) + TASKS_SUMMARY_FIELD_NUMBER;
         hash = (53 * hash) + getTasksSummary().hashCode();
-      }
-      if (getRequiredSymbolIdsCount() > 0) {
-        hash = (37 * hash) + REQUIRED_SYMBOL_IDS_FIELD_NUMBER;
-        hash = (53 * hash) + getRequiredSymbolIdsList().hashCode();
       }
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
@@ -12753,13 +15322,22 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
 
       // Construct using com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.EdgeAction.newBuilder()
       private Builder() {
-
+        maybeForceBuilderInitialization();
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessageV3
+                .alwaysUseFieldBuilders) {
+          getAppendingMilestoneGroupsFieldBuilder();
+          getStartNodeProgressFieldBuilder();
+          getLookaheadRequiringSymbolsFieldBuilder();
+          getTasksSummaryFieldBuilder();
+        }
       }
       @java.lang.Override
       public Builder clear() {
@@ -12772,13 +15350,11 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
           appendingMilestoneGroupsBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000001);
-        if (startNodeProgressesBuilder_ == null) {
-          startNodeProgresses_ = java.util.Collections.emptyList();
-        } else {
-          startNodeProgresses_ = null;
-          startNodeProgressesBuilder_.clear();
+        startNodeProgress_ = null;
+        if (startNodeProgressBuilder_ != null) {
+          startNodeProgressBuilder_.dispose();
+          startNodeProgressBuilder_ = null;
         }
-        bitField0_ = (bitField0_ & ~0x00000002);
         if (lookaheadRequiringSymbolsBuilder_ == null) {
           lookaheadRequiringSymbols_ = java.util.Collections.emptyList();
         } else {
@@ -12791,7 +15367,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
           tasksSummaryBuilder_.dispose();
           tasksSummaryBuilder_ = null;
         }
-        requiredSymbolIds_ = emptyIntList();
         return this;
       }
 
@@ -12834,15 +15409,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         } else {
           result.appendingMilestoneGroups_ = appendingMilestoneGroupsBuilder_.build();
         }
-        if (startNodeProgressesBuilder_ == null) {
-          if (((bitField0_ & 0x00000002) != 0)) {
-            startNodeProgresses_ = java.util.Collections.unmodifiableList(startNodeProgresses_);
-            bitField0_ = (bitField0_ & ~0x00000002);
-          }
-          result.startNodeProgresses_ = startNodeProgresses_;
-        } else {
-          result.startNodeProgresses_ = startNodeProgressesBuilder_.build();
-        }
         if (lookaheadRequiringSymbolsBuilder_ == null) {
           if (((bitField0_ & 0x00000004) != 0)) {
             lookaheadRequiringSymbols_ = java.util.Collections.unmodifiableList(lookaheadRequiringSymbols_);
@@ -12852,20 +15418,23 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         } else {
           result.lookaheadRequiringSymbols_ = lookaheadRequiringSymbolsBuilder_.build();
         }
-        if (((bitField0_ & 0x00000010) != 0)) {
-          requiredSymbolIds_.makeImmutable();
-          bitField0_ = (bitField0_ & ~0x00000010);
-        }
-        result.requiredSymbolIds_ = requiredSymbolIds_;
       }
 
       private void buildPartial0(com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.EdgeAction result) {
         int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.startNodeProgress_ = startNodeProgressBuilder_ == null
+              ? startNodeProgress_
+              : startNodeProgressBuilder_.build();
+          to_bitField0_ |= 0x00000001;
+        }
         if (((from_bitField0_ & 0x00000008) != 0)) {
           result.tasksSummary_ = tasksSummaryBuilder_ == null
               ? tasksSummary_
               : tasksSummaryBuilder_.build();
         }
+        result.bitField0_ |= to_bitField0_;
       }
 
       @java.lang.Override
@@ -12906,31 +15475,8 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
             }
           }
         }
-        if (startNodeProgressesBuilder_ == null) {
-          if (!other.startNodeProgresses_.isEmpty()) {
-            if (startNodeProgresses_.isEmpty()) {
-              startNodeProgresses_ = other.startNodeProgresses_;
-              bitField0_ = (bitField0_ & ~0x00000002);
-            } else {
-              ensureStartNodeProgressesIsMutable();
-              startNodeProgresses_.addAll(other.startNodeProgresses_);
-            }
-            onChanged();
-          }
-        } else {
-          if (!other.startNodeProgresses_.isEmpty()) {
-            if (startNodeProgressesBuilder_.isEmpty()) {
-              startNodeProgressesBuilder_.dispose();
-              startNodeProgressesBuilder_ = null;
-              startNodeProgresses_ = other.startNodeProgresses_;
-              bitField0_ = (bitField0_ & ~0x00000002);
-              startNodeProgressesBuilder_ = 
-                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
-                   getStartNodeProgressesFieldBuilder() : null;
-            } else {
-              startNodeProgressesBuilder_.addAllMessages(other.startNodeProgresses_);
-            }
-          }
+        if (other.hasStartNodeProgress()) {
+          mergeStartNodeProgress(other.getStartNodeProgress());
         }
         if (lookaheadRequiringSymbolsBuilder_ == null) {
           if (!other.lookaheadRequiringSymbols_.isEmpty()) {
@@ -12960,16 +15506,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         }
         if (other.hasTasksSummary()) {
           mergeTasksSummary(other.getTasksSummary());
-        }
-        if (!other.requiredSymbolIds_.isEmpty()) {
-          if (requiredSymbolIds_.isEmpty()) {
-            requiredSymbolIds_ = other.requiredSymbolIds_;
-            bitField0_ = (bitField0_ & ~0x00000010);
-          } else {
-            ensureRequiredSymbolIdsIsMutable();
-            requiredSymbolIds_.addAll(other.requiredSymbolIds_);
-          }
-          onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
@@ -13011,16 +15547,10 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
                 break;
               } // case 10
               case 18: {
-                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate m =
-                    input.readMessage(
-                        com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.parser(),
-                        extensionRegistry);
-                if (startNodeProgressesBuilder_ == null) {
-                  ensureStartNodeProgressesIsMutable();
-                  startNodeProgresses_.add(m);
-                } else {
-                  startNodeProgressesBuilder_.addMessage(m);
-                }
+                input.readMessage(
+                    getStartNodeProgressFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
                 break;
               } // case 18
               case 26: {
@@ -13043,22 +15573,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
                 bitField0_ |= 0x00000008;
                 break;
               } // case 34
-              case 40: {
-                int v = input.readInt32();
-                ensureRequiredSymbolIdsIsMutable();
-                requiredSymbolIds_.addInt(v);
-                break;
-              } // case 40
-              case 42: {
-                int length = input.readRawVarint32();
-                int limit = input.pushLimit(length);
-                ensureRequiredSymbolIdsIsMutable();
-                while (input.getBytesUntilLimit() > 0) {
-                  requiredSymbolIds_.addInt(input.readInt32());
-                }
-                input.popLimit(limit);
-                break;
-              } // case 42
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -13316,244 +15830,123 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         return appendingMilestoneGroupsBuilder_;
       }
 
-      private java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate> startNodeProgresses_ =
-        java.util.Collections.emptyList();
-      private void ensureStartNodeProgressesIsMutable() {
-        if (!((bitField0_ & 0x00000002) != 0)) {
-          startNodeProgresses_ = new java.util.ArrayList<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate>(startNodeProgresses_);
-          bitField0_ |= 0x00000002;
-         }
-      }
-
-      private com.google.protobuf.RepeatedFieldBuilderV3<
-          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder> startNodeProgressesBuilder_;
-
+      private com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate startNodeProgress_;
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder> startNodeProgressBuilder_;
       /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+       * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
+       * @return Whether the startNodeProgress field is set.
        */
-      public java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate> getStartNodeProgressesList() {
-        if (startNodeProgressesBuilder_ == null) {
-          return java.util.Collections.unmodifiableList(startNodeProgresses_);
+      public boolean hasStartNodeProgress() {
+        return ((bitField0_ & 0x00000002) != 0);
+      }
+      /**
+       * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
+       * @return The startNodeProgress.
+       */
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate getStartNodeProgress() {
+        if (startNodeProgressBuilder_ == null) {
+          return startNodeProgress_ == null ? com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.getDefaultInstance() : startNodeProgress_;
         } else {
-          return startNodeProgressesBuilder_.getMessageList();
+          return startNodeProgressBuilder_.getMessage();
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+       * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
        */
-      public int getStartNodeProgressesCount() {
-        if (startNodeProgressesBuilder_ == null) {
-          return startNodeProgresses_.size();
-        } else {
-          return startNodeProgressesBuilder_.getCount();
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate getStartNodeProgresses(int index) {
-        if (startNodeProgressesBuilder_ == null) {
-          return startNodeProgresses_.get(index);
-        } else {
-          return startNodeProgressesBuilder_.getMessage(index);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public Builder setStartNodeProgresses(
-          int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate value) {
-        if (startNodeProgressesBuilder_ == null) {
+      public Builder setStartNodeProgress(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate value) {
+        if (startNodeProgressBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
           }
-          ensureStartNodeProgressesIsMutable();
-          startNodeProgresses_.set(index, value);
-          onChanged();
+          startNodeProgress_ = value;
         } else {
-          startNodeProgressesBuilder_.setMessage(index, value);
+          startNodeProgressBuilder_.setMessage(value);
         }
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+       * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
        */
-      public Builder setStartNodeProgresses(
-          int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder builderForValue) {
-        if (startNodeProgressesBuilder_ == null) {
-          ensureStartNodeProgressesIsMutable();
-          startNodeProgresses_.set(index, builderForValue.build());
-          onChanged();
-        } else {
-          startNodeProgressesBuilder_.setMessage(index, builderForValue.build());
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public Builder addStartNodeProgresses(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate value) {
-        if (startNodeProgressesBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureStartNodeProgressesIsMutable();
-          startNodeProgresses_.add(value);
-          onChanged();
-        } else {
-          startNodeProgressesBuilder_.addMessage(value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public Builder addStartNodeProgresses(
-          int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate value) {
-        if (startNodeProgressesBuilder_ == null) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
-          ensureStartNodeProgressesIsMutable();
-          startNodeProgresses_.add(index, value);
-          onChanged();
-        } else {
-          startNodeProgressesBuilder_.addMessage(index, value);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public Builder addStartNodeProgresses(
+      public Builder setStartNodeProgress(
           com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder builderForValue) {
-        if (startNodeProgressesBuilder_ == null) {
-          ensureStartNodeProgressesIsMutable();
-          startNodeProgresses_.add(builderForValue.build());
-          onChanged();
+        if (startNodeProgressBuilder_ == null) {
+          startNodeProgress_ = builderForValue.build();
         } else {
-          startNodeProgressesBuilder_.addMessage(builderForValue.build());
+          startNodeProgressBuilder_.setMessage(builderForValue.build());
         }
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+       * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
        */
-      public Builder addStartNodeProgresses(
-          int index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder builderForValue) {
-        if (startNodeProgressesBuilder_ == null) {
-          ensureStartNodeProgressesIsMutable();
-          startNodeProgresses_.add(index, builderForValue.build());
-          onChanged();
+      public Builder mergeStartNodeProgress(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate value) {
+        if (startNodeProgressBuilder_ == null) {
+          if (((bitField0_ & 0x00000002) != 0) &&
+            startNodeProgress_ != null &&
+            startNodeProgress_ != com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.getDefaultInstance()) {
+            getStartNodeProgressBuilder().mergeFrom(value);
+          } else {
+            startNodeProgress_ = value;
+          }
         } else {
-          startNodeProgressesBuilder_.addMessage(index, builderForValue.build());
+          startNodeProgressBuilder_.mergeFrom(value);
         }
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+       * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
        */
-      public Builder addAllStartNodeProgresses(
-          java.lang.Iterable<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate> values) {
-        if (startNodeProgressesBuilder_ == null) {
-          ensureStartNodeProgressesIsMutable();
-          com.google.protobuf.AbstractMessageLite.Builder.addAll(
-              values, startNodeProgresses_);
-          onChanged();
-        } else {
-          startNodeProgressesBuilder_.addAllMessages(values);
+      public Builder clearStartNodeProgress() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        startNodeProgress_ = null;
+        if (startNodeProgressBuilder_ != null) {
+          startNodeProgressBuilder_.dispose();
+          startNodeProgressBuilder_ = null;
         }
+        onChanged();
         return this;
       }
       /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+       * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
        */
-      public Builder clearStartNodeProgresses() {
-        if (startNodeProgressesBuilder_ == null) {
-          startNodeProgresses_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000002);
-          onChanged();
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder getStartNodeProgressBuilder() {
+        bitField0_ |= 0x00000002;
+        onChanged();
+        return getStartNodeProgressFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
+       */
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder getStartNodeProgressOrBuilder() {
+        if (startNodeProgressBuilder_ != null) {
+          return startNodeProgressBuilder_.getMessageOrBuilder();
         } else {
-          startNodeProgressesBuilder_.clear();
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public Builder removeStartNodeProgresses(int index) {
-        if (startNodeProgressesBuilder_ == null) {
-          ensureStartNodeProgressesIsMutable();
-          startNodeProgresses_.remove(index);
-          onChanged();
-        } else {
-          startNodeProgressesBuilder_.remove(index);
-        }
-        return this;
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder getStartNodeProgressesBuilder(
-          int index) {
-        return getStartNodeProgressesFieldBuilder().getBuilder(index);
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder getStartNodeProgressesOrBuilder(
-          int index) {
-        if (startNodeProgressesBuilder_ == null) {
-          return startNodeProgresses_.get(index);  } else {
-          return startNodeProgressesBuilder_.getMessageOrBuilder(index);
+          return startNodeProgress_ == null ?
+              com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.getDefaultInstance() : startNodeProgress_;
         }
       }
       /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
+       * <code>optional .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;</code>
        */
-      public java.util.List<? extends com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder> 
-           getStartNodeProgressesOrBuilderList() {
-        if (startNodeProgressesBuilder_ != null) {
-          return startNodeProgressesBuilder_.getMessageOrBuilderList();
-        } else {
-          return java.util.Collections.unmodifiableList(startNodeProgresses_);
-        }
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder addStartNodeProgressesBuilder() {
-        return getStartNodeProgressesFieldBuilder().addBuilder(
-            com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder addStartNodeProgressesBuilder(
-          int index) {
-        return getStartNodeProgressesFieldBuilder().addBuilder(
-            index, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.getDefaultInstance());
-      }
-      /**
-       * <code>repeated .com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;</code>
-       */
-      public java.util.List<com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder> 
-           getStartNodeProgressesBuilderList() {
-        return getStartNodeProgressesFieldBuilder().getBuilderList();
-      }
-      private com.google.protobuf.RepeatedFieldBuilderV3<
+      private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder> 
-          getStartNodeProgressesFieldBuilder() {
-        if (startNodeProgressesBuilder_ == null) {
-          startNodeProgressesBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+          getStartNodeProgressFieldBuilder() {
+        if (startNodeProgressBuilder_ == null) {
+          startNodeProgressBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
               com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplateOrBuilder>(
-                  startNodeProgresses_,
-                  ((bitField0_ & 0x00000002) != 0),
+                  getStartNodeProgress(),
                   getParentForChildren(),
                   isClean());
-          startNodeProgresses_ = null;
+          startNodeProgress_ = null;
         }
-        return startNodeProgressesBuilder_;
+        return startNodeProgressBuilder_;
       }
 
       private java.util.List<com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.LookaheadRequires> lookaheadRequiringSymbols_ =
@@ -13914,87 +16307,6 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         }
         return tasksSummaryBuilder_;
       }
-
-      private com.google.protobuf.Internal.IntList requiredSymbolIds_ = emptyIntList();
-      private void ensureRequiredSymbolIdsIsMutable() {
-        if (!((bitField0_ & 0x00000010) != 0)) {
-          requiredSymbolIds_ = mutableCopy(requiredSymbolIds_);
-          bitField0_ |= 0x00000010;
-        }
-      }
-      /**
-       * <code>repeated int32 required_symbol_ids = 5;</code>
-       * @return A list containing the requiredSymbolIds.
-       */
-      public java.util.List<java.lang.Integer>
-          getRequiredSymbolIdsList() {
-        return ((bitField0_ & 0x00000010) != 0) ?
-                 java.util.Collections.unmodifiableList(requiredSymbolIds_) : requiredSymbolIds_;
-      }
-      /**
-       * <code>repeated int32 required_symbol_ids = 5;</code>
-       * @return The count of requiredSymbolIds.
-       */
-      public int getRequiredSymbolIdsCount() {
-        return requiredSymbolIds_.size();
-      }
-      /**
-       * <code>repeated int32 required_symbol_ids = 5;</code>
-       * @param index The index of the element to return.
-       * @return The requiredSymbolIds at the given index.
-       */
-      public int getRequiredSymbolIds(int index) {
-        return requiredSymbolIds_.getInt(index);
-      }
-      /**
-       * <code>repeated int32 required_symbol_ids = 5;</code>
-       * @param index The index to set the value at.
-       * @param value The requiredSymbolIds to set.
-       * @return This builder for chaining.
-       */
-      public Builder setRequiredSymbolIds(
-          int index, int value) {
-
-        ensureRequiredSymbolIdsIsMutable();
-        requiredSymbolIds_.setInt(index, value);
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>repeated int32 required_symbol_ids = 5;</code>
-       * @param value The requiredSymbolIds to add.
-       * @return This builder for chaining.
-       */
-      public Builder addRequiredSymbolIds(int value) {
-
-        ensureRequiredSymbolIdsIsMutable();
-        requiredSymbolIds_.addInt(value);
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>repeated int32 required_symbol_ids = 5;</code>
-       * @param values The requiredSymbolIds to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllRequiredSymbolIds(
-          java.lang.Iterable<? extends java.lang.Integer> values) {
-        ensureRequiredSymbolIdsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, requiredSymbolIds_);
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>repeated int32 required_symbol_ids = 5;</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearRequiredSymbolIds() {
-        requiredSymbolIds_ = emptyIntList();
-        bitField0_ = (bitField0_ & ~0x00000010);
-        onChanged();
-        return this;
-      }
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -14065,10 +16377,10 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupsEntry_descriptor;
+    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupPair_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupsEntry_fieldAccessorTable;
+      internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupPair_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TermActionPair_descriptor;
   private static final 
@@ -14085,15 +16397,20 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeActionPair_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeRequiredSymbolPair_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeRequiredSymbolPair_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeActionPair_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeActionPair_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroup_descriptor;
+    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeRequiredSymbolPair_descriptor;
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
-      internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroup_fieldAccessorTable;
+      internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeRequiredSymbolPair_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_giyeok_jparser_mgroup2_proto_TermAction_descriptor;
   private static final 
@@ -14142,88 +16459,100 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       "yeok.jparser.mgroup2.proto\032\033google/proto" +
       "buf/empty.proto\032\022GrammarProto.proto\032\024Ter" +
       "mGroupProto.proto\032\031MilestoneParserData.p" +
-      "roto\"\352\n\n\030MilestoneGroupParserData\0223\n\007gra" +
+      "roto\"\256\017\n\030MilestoneGroupParserData\0223\n\007gra" +
       "mmar\030\001 \001(\0132\".com.giyeok.jparser.proto.NG" +
       "rammar\022\026\n\016start_group_id\030\002 \001(\005\022Q\n\025initia" +
       "l_tasks_summary\030\003 \001(\01322.com.giyeok.jpars" +
-      "er.milestone2.proto.TasksSummary2\022i\n\020mil" +
-      "estone_groups\030\004 \003(\0132O.com.giyeok.jparser" +
+      "er.milestone2.proto.TasksSummary2\022g\n\020mil" +
+      "estone_groups\030\004 \003(\0132M.com.giyeok.jparser" +
       ".mgroup2.proto.MilestoneGroupParserData." +
-      "MilestoneGroupsEntry\022_\n\014term_actions\030\005 \003" +
-      "(\0132I.com.giyeok.jparser.mgroup2.proto.Mi" +
-      "lestoneGroupParserData.TermActionPair\022f\n" +
-      "\020tip_edge_actions\030\006 \003(\0132L.com.giyeok.jpa" +
-      "rser.mgroup2.proto.MilestoneGroupParserD" +
-      "ata.TipEdgeActionPair\022f\n\020mid_edge_action" +
-      "s\030\007 \003(\0132L.com.giyeok.jparser.mgroup2.pro" +
-      "to.MilestoneGroupParserData.MidEdgeActio" +
-      "nPair\032h\n\024MilestoneGroupsEntry\022\013\n\003key\030\001 \001" +
-      "(\005\022?\n\005value\030\002 \001(\01320.com.giyeok.jparser.m" +
-      "group2.proto.MilestoneGroup:\0028\001\032\236\002\n\016Term" +
-      "ActionPair\022\020\n\010group_id\030\001 \001(\005\022j\n\007actions\030" +
-      "\002 \003(\0132Y.com.giyeok.jparser.mgroup2.proto" +
-      ".MilestoneGroupParserData.TermActionPair" +
-      ".TermGroupAction\032\215\001\n\017TermGroupAction\0227\n\n" +
-      "term_group\030\001 \001(\0132#.com.giyeok.jparser.pr" +
-      "oto.TermGroup\022A\n\013term_action\030\002 \001(\0132,.com" +
-      ".giyeok.jparser.mgroup2.proto.TermAction" +
-      "\032\247\001\n\021TipEdgeActionPair\022B\n\005start\030\001 \001(\01323." +
-      "com.giyeok.jparser.milestone2.proto.Kern" +
-      "elTemplate\022\013\n\003end\030\002 \001(\005\022A\n\013edge_action\030\003" +
-      " \001(\0132,.com.giyeok.jparser.mgroup2.proto." +
-      "EdgeAction\032\334\001\n\021MidEdgeActionPair\022B\n\005star" +
-      "t\030\001 \001(\01323.com.giyeok.jparser.milestone2." +
-      "proto.KernelTemplate\022@\n\003end\030\002 \001(\01323.com." +
-      "giyeok.jparser.milestone2.proto.KernelTe" +
-      "mplate\022A\n\013edge_action\030\003 \001(\0132,.com.giyeok" +
-      ".jparser.mgroup2.proto.EdgeAction\"Y\n\016Mil" +
-      "estoneGroup\022G\n\nmilestones\030\001 \003(\01323.com.gi" +
-      "yeok.jparser.milestone2.proto.KernelTemp" +
-      "late\"\377\010\n\nTermAction\022o\n\032appending_milesto" +
-      "ne_groups\030\001 \003(\0132K.com.giyeok.jparser.mgr" +
-      "oup2.proto.TermAction.ReplaceAndAppendMi" +
-      "lestoneGroup\022^\n\025start_node_progresses\030\002 " +
-      "\003(\0132?.com.giyeok.jparser.mgroup2.proto.T" +
-      "ermAction.ReplaceAndProgress\022X\n\033lookahea" +
-      "d_requiring_symbols\030\003 \003(\01323.com.giyeok.j" +
-      "parser.mgroup2.proto.LookaheadRequires\022I" +
-      "\n\rtasks_summary\030\004 \001(\01322.com.giyeok.jpars" +
-      "er.milestone2.proto.TasksSummary2\022q\n\037pen" +
-      "ded_accept_condition_kernels\030\005 \003(\0132H.com" +
-      ".giyeok.jparser.mgroup2.proto.TermAction" +
-      ".PendedAcceptConditionKernel\032\261\001\n\036Replace" +
-      "AndAppendMilestoneGroup\022D\n\007replace\030\001 \001(\013" +
-      "23.com.giyeok.jparser.milestone2.proto.K" +
-      "ernelTemplate\022I\n\006append\030\002 \001(\01329.com.giye" +
-      "ok.jparser.mgroup2.proto.AppendingMilest" +
-      "oneGroup\032\206\001\n\022ReplaceAndProgress\022\030\n\020repla" +
-      "ce_group_id\030\001 \001(\005\022V\n\020accept_condition\030\002 " +
-      "\001(\0132<.com.giyeok.jparser.milestone2.prot" +
-      "o.AcceptConditionTemplate\032\312\002\n\033PendedAcce" +
-      "ptConditionKernel\022L\n\017kernel_template\030\001 \001" +
-      "(\01323.com.giyeok.jparser.milestone2.proto" +
-      ".KernelTemplate\022M\n\nappendings\030\002 \003(\01329.co" +
-      "m.giyeok.jparser.mgroup2.proto.Appending" +
-      "MilestoneGroup\022j\n\037first_kernel_progress_" +
-      "condition\030\003 \001(\0132<.com.giyeok.jparser.mil" +
-      "estone2.proto.AcceptConditionTemplateH\000\210" +
-      "\001\001B\"\n _first_kernel_progress_condition\"\203" +
-      "\001\n\027AppendingMilestoneGroup\022\020\n\010group_id\030\001" +
-      " \001(\005\022V\n\020accept_condition\030\002 \001(\0132<.com.giy" +
-      "eok.jparser.milestone2.proto.AcceptCondi" +
-      "tionTemplate\"8\n\021LookaheadRequires\022\021\n\tsym" +
-      "bol_id\030\001 \001(\005\022\020\n\010group_id\030\002 \001(\005\"\212\003\n\nEdgeA" +
-      "ction\022]\n\032appending_milestone_groups\030\001 \003(" +
-      "\01329.com.giyeok.jparser.mgroup2.proto.App" +
-      "endingMilestoneGroup\022[\n\025start_node_progr" +
-      "esses\030\002 \003(\0132<.com.giyeok.jparser.milesto" +
-      "ne2.proto.AcceptConditionTemplate\022X\n\033loo" +
-      "kahead_requiring_symbols\030\003 \003(\01323.com.giy" +
-      "eok.jparser.mgroup2.proto.LookaheadRequi" +
-      "res\022I\n\rtasks_summary\030\004 \001(\01322.com.giyeok." +
-      "jparser.milestone2.proto.TasksSummary2\022\033" +
-      "\n\023required_symbol_ids\030\005 \003(\005B\037B\035Milestone" +
-      "GroupParserDataProtob\006proto3"
+      "MilestoneGroupPair\022_\n\014term_actions\030\005 \003(\013" +
+      "2I.com.giyeok.jparser.mgroup2.proto.Mile" +
+      "stoneGroupParserData.TermActionPair\022f\n\020t" +
+      "ip_edge_actions\030\006 \003(\0132L.com.giyeok.jpars" +
+      "er.mgroup2.proto.MilestoneGroupParserDat" +
+      "a.TipEdgeActionPair\022w\n\031tip_edge_required" +
+      "_symbols\030\007 \003(\0132T.com.giyeok.jparser.mgro" +
+      "up2.proto.MilestoneGroupParserData.TipEd" +
+      "geRequiredSymbolPair\022f\n\020mid_edge_actions" +
+      "\030\010 \003(\0132L.com.giyeok.jparser.mgroup2.prot" +
+      "o.MilestoneGroupParserData.MidEdgeAction" +
+      "Pair\022w\n\031mid_edge_required_symbols\030\t \003(\0132" +
+      "T.com.giyeok.jparser.mgroup2.proto.Miles" +
+      "toneGroupParserData.MidEdgeRequiredSymbo" +
+      "lPair\032o\n\022MilestoneGroupPair\022\020\n\010group_id\030" +
+      "\001 \001(\005\022G\n\nmilestones\030\002 \003(\01323.com.giyeok.j" +
+      "parser.milestone2.proto.KernelTemplate\032\236" +
+      "\002\n\016TermActionPair\022\020\n\010group_id\030\001 \001(\005\022j\n\007a" +
+      "ctions\030\002 \003(\0132Y.com.giyeok.jparser.mgroup" +
+      "2.proto.MilestoneGroupParserData.TermAct" +
+      "ionPair.TermGroupAction\032\215\001\n\017TermGroupAct" +
+      "ion\0227\n\nterm_group\030\001 \001(\0132#.com.giyeok.jpa" +
+      "rser.proto.TermGroup\022A\n\013term_action\030\002 \001(" +
+      "\0132,.com.giyeok.jparser.mgroup2.proto.Ter" +
+      "mAction\032\247\001\n\021TipEdgeActionPair\022B\n\005start\030\001" +
+      " \001(\01323.com.giyeok.jparser.milestone2.pro" +
+      "to.KernelTemplate\022\013\n\003end\030\002 \001(\005\022A\n\013edge_a" +
+      "ction\030\003 \001(\0132,.com.giyeok.jparser.mgroup2" +
+      ".proto.EdgeAction\032\211\001\n\031TipEdgeRequiredSym" +
+      "bolPair\022B\n\005start\030\001 \001(\01323.com.giyeok.jpar" +
+      "ser.milestone2.proto.KernelTemplate\022\013\n\003e" +
+      "nd\030\002 \001(\005\022\033\n\023required_symbol_ids\030\003 \003(\005\032\334\001" +
+      "\n\021MidEdgeActionPair\022B\n\005start\030\001 \001(\01323.com" +
+      ".giyeok.jparser.milestone2.proto.KernelT" +
+      "emplate\022@\n\003end\030\002 \001(\01323.com.giyeok.jparse" +
+      "r.milestone2.proto.KernelTemplate\022A\n\013edg" +
+      "e_action\030\003 \001(\0132,.com.giyeok.jparser.mgro" +
+      "up2.proto.EdgeAction\032\276\001\n\031MidEdgeRequired" +
+      "SymbolPair\022B\n\005start\030\001 \001(\01323.com.giyeok.j" +
+      "parser.milestone2.proto.KernelTemplate\022@" +
+      "\n\003end\030\002 \001(\01323.com.giyeok.jparser.milesto" +
+      "ne2.proto.KernelTemplate\022\033\n\023required_sym" +
+      "bol_ids\030\003 \003(\005\"\377\010\n\nTermAction\022o\n\032appendin" +
+      "g_milestone_groups\030\001 \003(\0132K.com.giyeok.jp" +
+      "arser.mgroup2.proto.TermAction.ReplaceAn" +
+      "dAppendMilestoneGroup\022^\n\025start_node_prog" +
+      "resses\030\002 \003(\0132?.com.giyeok.jparser.mgroup" +
+      "2.proto.TermAction.ReplaceAndProgress\022X\n" +
+      "\033lookahead_requiring_symbols\030\003 \003(\01323.com" +
+      ".giyeok.jparser.mgroup2.proto.LookaheadR" +
+      "equires\022I\n\rtasks_summary\030\004 \001(\01322.com.giy" +
+      "eok.jparser.milestone2.proto.TasksSummar" +
+      "y2\022q\n\037pended_accept_condition_kernels\030\005 " +
+      "\003(\0132H.com.giyeok.jparser.mgroup2.proto.T" +
+      "ermAction.PendedAcceptConditionKernel\032\261\001" +
+      "\n\036ReplaceAndAppendMilestoneGroup\022D\n\007repl" +
+      "ace\030\001 \001(\01323.com.giyeok.jparser.milestone" +
+      "2.proto.KernelTemplate\022I\n\006append\030\002 \001(\01329" +
+      ".com.giyeok.jparser.mgroup2.proto.Append" +
+      "ingMilestoneGroup\032\206\001\n\022ReplaceAndProgress" +
+      "\022\030\n\020replace_group_id\030\001 \001(\005\022V\n\020accept_con" +
+      "dition\030\002 \001(\0132<.com.giyeok.jparser.milest" +
+      "one2.proto.AcceptConditionTemplate\032\312\002\n\033P" +
+      "endedAcceptConditionKernel\022L\n\017kernel_tem" +
+      "plate\030\001 \001(\01323.com.giyeok.jparser.milesto" +
+      "ne2.proto.KernelTemplate\022M\n\nappendings\030\002" +
+      " \003(\01329.com.giyeok.jparser.mgroup2.proto." +
+      "AppendingMilestoneGroup\022j\n\037first_kernel_" +
+      "progress_condition\030\003 \001(\0132<.com.giyeok.jp" +
+      "arser.milestone2.proto.AcceptConditionTe" +
+      "mplateH\000\210\001\001B\"\n _first_kernel_progress_co" +
+      "ndition\"\203\001\n\027AppendingMilestoneGroup\022\020\n\010g" +
+      "roup_id\030\001 \001(\005\022V\n\020accept_condition\030\002 \001(\0132" +
+      "<.com.giyeok.jparser.milestone2.proto.Ac" +
+      "ceptConditionTemplate\"8\n\021LookaheadRequir" +
+      "es\022\021\n\tsymbol_id\030\001 \001(\005\022\020\n\010group_id\030\002 \001(\005\"" +
+      "\210\003\n\nEdgeAction\022]\n\032appending_milestone_gr" +
+      "oups\030\001 \003(\01329.com.giyeok.jparser.mgroup2." +
+      "proto.AppendingMilestoneGroup\022^\n\023start_n" +
+      "ode_progress\030\002 \001(\0132<.com.giyeok.jparser." +
+      "milestone2.proto.AcceptConditionTemplate" +
+      "H\000\210\001\001\022X\n\033lookahead_requiring_symbols\030\003 \003" +
+      "(\01323.com.giyeok.jparser.mgroup2.proto.Lo" +
+      "okaheadRequires\022I\n\rtasks_summary\030\004 \001(\01322" +
+      ".com.giyeok.jparser.milestone2.proto.Tas" +
+      "ksSummary2B\026\n\024_start_node_progressB\037B\035Mi" +
+      "lestoneGroupParserDataProtob\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -14238,13 +16567,13 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
     internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_descriptor,
-        new java.lang.String[] { "Grammar", "StartGroupId", "InitialTasksSummary", "MilestoneGroups", "TermActions", "TipEdgeActions", "MidEdgeActions", });
-    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupsEntry_descriptor =
+        new java.lang.String[] { "Grammar", "StartGroupId", "InitialTasksSummary", "MilestoneGroups", "TermActions", "TipEdgeActions", "TipEdgeRequiredSymbols", "MidEdgeActions", "MidEdgeRequiredSymbols", });
+    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupPair_descriptor =
       internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_descriptor.getNestedTypes().get(0);
-    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupsEntry_fieldAccessorTable = new
+    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupPair_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupsEntry_descriptor,
-        new java.lang.String[] { "Key", "Value", });
+        internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MilestoneGroupPair_descriptor,
+        new java.lang.String[] { "GroupId", "Milestones", });
     internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TermActionPair_descriptor =
       internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_descriptor.getNestedTypes().get(1);
     internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TermActionPair_fieldAccessorTable = new
@@ -14263,20 +16592,26 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeActionPair_descriptor,
         new java.lang.String[] { "Start", "End", "EdgeAction", });
-    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeActionPair_descriptor =
+    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeRequiredSymbolPair_descriptor =
       internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_descriptor.getNestedTypes().get(3);
+    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeRequiredSymbolPair_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_TipEdgeRequiredSymbolPair_descriptor,
+        new java.lang.String[] { "Start", "End", "RequiredSymbolIds", });
+    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeActionPair_descriptor =
+      internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_descriptor.getNestedTypes().get(4);
     internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeActionPair_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeActionPair_descriptor,
         new java.lang.String[] { "Start", "End", "EdgeAction", });
-    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroup_descriptor =
-      getDescriptor().getMessageTypes().get(1);
-    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroup_fieldAccessorTable = new
+    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeRequiredSymbolPair_descriptor =
+      internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_descriptor.getNestedTypes().get(5);
+    internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeRequiredSymbolPair_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroup_descriptor,
-        new java.lang.String[] { "Milestones", });
+        internal_static_com_giyeok_jparser_mgroup2_proto_MilestoneGroupParserData_MidEdgeRequiredSymbolPair_descriptor,
+        new java.lang.String[] { "Start", "End", "RequiredSymbolIds", });
     internal_static_com_giyeok_jparser_mgroup2_proto_TermAction_descriptor =
-      getDescriptor().getMessageTypes().get(2);
+      getDescriptor().getMessageTypes().get(1);
     internal_static_com_giyeok_jparser_mgroup2_proto_TermAction_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup2_proto_TermAction_descriptor,
@@ -14300,23 +16635,23 @@ com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.MilestoneGroup de
         internal_static_com_giyeok_jparser_mgroup2_proto_TermAction_PendedAcceptConditionKernel_descriptor,
         new java.lang.String[] { "KernelTemplate", "Appendings", "FirstKernelProgressCondition", "FirstKernelProgressCondition", });
     internal_static_com_giyeok_jparser_mgroup2_proto_AppendingMilestoneGroup_descriptor =
-      getDescriptor().getMessageTypes().get(3);
+      getDescriptor().getMessageTypes().get(2);
     internal_static_com_giyeok_jparser_mgroup2_proto_AppendingMilestoneGroup_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup2_proto_AppendingMilestoneGroup_descriptor,
         new java.lang.String[] { "GroupId", "AcceptCondition", });
     internal_static_com_giyeok_jparser_mgroup2_proto_LookaheadRequires_descriptor =
-      getDescriptor().getMessageTypes().get(4);
+      getDescriptor().getMessageTypes().get(3);
     internal_static_com_giyeok_jparser_mgroup2_proto_LookaheadRequires_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup2_proto_LookaheadRequires_descriptor,
         new java.lang.String[] { "SymbolId", "GroupId", });
     internal_static_com_giyeok_jparser_mgroup2_proto_EdgeAction_descriptor =
-      getDescriptor().getMessageTypes().get(5);
+      getDescriptor().getMessageTypes().get(4);
     internal_static_com_giyeok_jparser_mgroup2_proto_EdgeAction_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_mgroup2_proto_EdgeAction_descriptor,
-        new java.lang.String[] { "AppendingMilestoneGroups", "StartNodeProgresses", "LookaheadRequiringSymbols", "TasksSummary", "RequiredSymbolIds", });
+        new java.lang.String[] { "AppendingMilestoneGroups", "StartNodeProgress", "LookaheadRequiringSymbols", "TasksSummary", "StartNodeProgress", });
     com.google.protobuf.EmptyProto.getDescriptor();
     com.giyeok.jparser.proto.GrammarProto.getDescriptor();
     com.giyeok.jparser.proto.TermGroupProto.getDescriptor();

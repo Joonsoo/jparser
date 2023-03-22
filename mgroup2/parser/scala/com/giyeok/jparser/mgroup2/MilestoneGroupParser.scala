@@ -30,20 +30,22 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
       MilestoneGroupPath(path.first, path.path, MilestoneGroup(appending.groupId, gen), condition)
     }
-    val reduced = action.startNodeProgress.flatMap { startNodeProgressCondition =>
-      val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tip.gen, gen)
-      val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
+    val reduced = action.startNodeProgress match {
+      case Some(startNodeProgressCondition) =>
+        val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tip.gen, gen)
+        val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
 
-      actionsCollector.addProgressedMilestone(tip, condition)
+        actionsCollector.addProgressedMilestone(tip, condition)
 
-      path.tipParent match {
-        case Some(tipParent) =>
-          val edgeAction = parserData.midEdgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
-          actionsCollector.midEdgeActions += ((tipParent -> tip) -> edgeAction)
-          actionsCollector.addProgressedMilestoneParentGen(tip, tipParent.gen)
-          progressTip(path.pop(condition), gen, edgeAction, actionsCollector)
-        case None => List()
-      }
+        path.tipParent match {
+          case Some(tipParent) =>
+            val edgeAction = parserData.midEdgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
+            actionsCollector.midEdgeActions += ((tipParent -> tip) -> edgeAction)
+            actionsCollector.addProgressedMilestoneParentGen(tip, tipParent.gen)
+            progressTip(path.pop(condition), gen, edgeAction, actionsCollector)
+          case None => List()
+        }
+      case None => List()
     }
     val lookaheadPaths = action.lookaheadRequiringSymbols.map(req =>
       MilestoneGroupPath(Milestone(req.symbolId, 0, gen), MilestoneGroup(req.groupId, gen)))
@@ -85,14 +87,14 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         rest match {
           case Nil => Set()
           case parent +: next =>
-            val action = parserData.midEdgeProgressActions(parent.kernelTemplate -> tip.kernelTemplate)
-            action.requiredSymbols.map(Milestone(_, 0, parent.gen)) ++ traverse(parent, next)
+            val requiredSymbols = parserData.midEdgeRequiredSymbols(parent.kernelTemplate -> tip.kernelTemplate)
+            requiredSymbols.map(Milestone(_, 0, parent.gen)) ++ traverse(parent, next)
         }
 
       val tipEdgeRequires: List[Milestone] = path.tipParent match {
         case Some(tipParent) =>
-          val tipEdgeAction = parserData.tipEdgeProgressActions(tipParent.kernelTemplate -> path.tip.groupId)
-          tipEdgeAction.requiredSymbols.map(Milestone(_, 0, tipParent.gen)).toList
+          val requiredSymbols = parserData.tipEdgeRequiredSymbols(tipParent.kernelTemplate -> path.tip.groupId)
+          requiredSymbols.map(Milestone(_, 0, tipParent.gen)).toList
         case None => List()
       }
       path.acceptCondition.milestones ++ tipEdgeRequires ++ traverse(path.path.head, path.path.tail)

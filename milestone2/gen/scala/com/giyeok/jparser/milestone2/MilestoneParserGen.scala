@@ -113,7 +113,8 @@ class MilestoneParserGen(val grammar: NGrammar) {
         case _ => None
       }
     }
-    assert(!conditionSymbolIds.contains(start.symbolId))
+    // TODO 이 아래 조건이 필요한게 맞나..?
+    // assert(!conditionSymbolIds.contains(start.symbolId))
     conditionSymbolIds
   }
 

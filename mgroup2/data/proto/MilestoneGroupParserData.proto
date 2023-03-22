@@ -13,7 +13,12 @@ message MilestoneGroupParserData {
   com.giyeok.jparser.proto.NGrammar grammar = 1;
   int32 start_group_id = 2;
   com.giyeok.jparser.milestone2.proto.TasksSummary2 initial_tasks_summary = 3;
-  map<int32, MilestoneGroup> milestone_groups = 4;
+
+  message MilestoneGroupPair {
+    int32 group_id = 1;
+    repeated com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 2;
+  }
+  repeated MilestoneGroupPair milestone_groups = 4;
 
   message TermActionPair {
     int32 group_id = 1;
@@ -32,16 +37,26 @@ message MilestoneGroupParserData {
   }
   repeated TipEdgeActionPair tip_edge_actions = 6;
 
+  message TipEdgeRequiredSymbolPair {
+    com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;
+    int32 end = 2;
+    repeated int32 required_symbol_ids = 3;
+  }
+  repeated TipEdgeRequiredSymbolPair tip_edge_required_symbols = 7;
+
   message MidEdgeActionPair {
     com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;
     com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;
     EdgeAction edge_action = 3;
   }
-  repeated MidEdgeActionPair mid_edge_actions = 7;
-}
+  repeated MidEdgeActionPair mid_edge_actions = 8;
 
-message MilestoneGroup {
-  repeated com.giyeok.jparser.milestone2.proto.KernelTemplate milestones = 1;
+  message MidEdgeRequiredSymbolPair {
+    com.giyeok.jparser.milestone2.proto.KernelTemplate start = 1;
+    com.giyeok.jparser.milestone2.proto.KernelTemplate end = 2;
+    repeated int32 required_symbol_ids = 3;
+  }
+  repeated MidEdgeRequiredSymbolPair mid_edge_required_symbols = 9;
 }
 
 message TermAction {
@@ -80,8 +95,7 @@ message LookaheadRequires {
 
 message EdgeAction {
   repeated AppendingMilestoneGroup appending_milestone_groups = 1;
-  repeated com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progresses = 2;
+  optional com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate start_node_progress = 2;
   repeated LookaheadRequires lookahead_requiring_symbols = 3;
   com.giyeok.jparser.milestone2.proto.TasksSummary2 tasks_summary = 4;
-  repeated int32 required_symbol_ids = 5;
 }
