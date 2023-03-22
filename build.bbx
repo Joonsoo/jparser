@@ -99,9 +99,15 @@ utils {
 }
 
 metalang {
+  ast = ktjvm.library(
+    srcs = glob("metalang/ast/kotlin/**/*.kt"),
+    resources = glob("metalang/ast/resources/**"),
+    deps = [ktlib.main, milestone2.parser],
+  )
+
   parserGen = genScalaAstMgroup2(
     cdgFile = "examples/main/resources/cdglang3.cdg",
-    astifierClassName = "com.giyeok.jparser.metalang3.ast.MetaLang3AstKt",
+    astifierClassName = "com.giyeok.jparser.metalang3.ast.MetaLang3Ast",
     parserDataFileName = "cdglang3-mg2-parserdata.pb",
   )
 
@@ -111,7 +117,7 @@ metalang {
     file.copyDirectory(parserGen.srcsRoot, "metalang/generated/scala")
   }
 
-  generated = scala.library(
+  generatedParser = scala.library(
     srcs = glob("metalang/generated/scala/**/*.scala"),
     resources = glob("metalang/generated/resources/**"),
     deps = [mgroup2.parser],
@@ -119,7 +125,7 @@ metalang {
 
   main = scala.library(
     srcs = glob("metalang/main/scala/**/*.scala"),
-    deps = [naive.main, utils.main, generated],
+    deps = [naive.main, utils.main, generatedParser],
   )
 
   test = scala.library(
