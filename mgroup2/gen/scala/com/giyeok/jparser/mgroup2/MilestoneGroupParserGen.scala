@@ -116,7 +116,16 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
             milestoneAction.pendedAcceptConditionKernels.foreach { pended =>
               if (builder.pendedAcceptConditionAppendings.contains(pended._1)) {
                 builder.pendedAcceptConditionAppendings(pended._1) ++= pended._2._1
-                assert(builder.pendedAcceptConditionProgresses(pended._1) == pended._2._2)
+                builder.pendedAcceptConditionProgresses(pended._1) match {
+                  case Some(existingCondition) =>
+                    pended._2._2 match {
+                      case Some(newCondition) =>
+                        builder.pendedAcceptConditionProgresses(pended._1) =
+                          Some(AcceptConditionTemplate.disjunct(Set(existingCondition, newCondition)))
+                      case None => // do nothing
+                    }
+                  case None => builder.pendedAcceptConditionProgresses(pended._1) = pended._2._2
+                }
               } else {
                 builder.pendedAcceptConditionAppendings(pended._1) = mutable.ListBuffer(pended._2._1: _*)
                 builder.pendedAcceptConditionProgresses(pended._1) = pended._2._2

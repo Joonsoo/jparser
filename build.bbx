@@ -342,42 +342,44 @@ bibixPlugin {
     deps = [bibix.base, milestone2.gen, mgroup2.gen, metalang.main],
   )
 
-  test1 = genKtAstMilestone2(
-    cdgFile = "examples/main/resources/asdl.cdg",
-    astifierClassName = "com.giyeok.jparser.test.AsdlAst",
-    parserDataFileName = "asdl-parserdata.pb",
-  )
+  milestone2Tests {
+    test1 = genKtAstMilestone2(
+      cdgFile = "examples/main/resources/asdl.cdg",
+      astifierClassName = "com.giyeok.jparser.test.AsdlAst",
+      parserDataFileName = "asdl-parserdata.pb",
+    )
 
-  test2 = genKtAstMilestone2(
-    cdgFile = "examples/main/resources/bibix2.cdg",
-    astifierClassName = "com.giyeok.jparser.test.BibixAst",
-    parserDataFileName = "bibix-parserdata.pb",
-  )
+    test2 = genKtAstMilestone2(
+      cdgFile = "examples/main/resources/bibix2.cdg",
+      astifierClassName = "com.giyeok.jparser.test.BibixAst",
+      parserDataFileName = "bibix-parserdata.pb",
+    )
 
-  test3 = genKtAstMilestone2(
-    cdgFile = "examples/main/resources/cdglang3.cdg",
-    astifierClassName = "com.giyeok.jparser.test.MetaLang3Ast",
-    parserDataFileName = "cdglang3-parserdata.pb",
-  )
+    test3 = genKtAstMilestone2(
+      cdgFile = "examples/main/resources/cdglang3.cdg",
+      astifierClassName = "com.giyeok.jparser.test.MetaLang3Ast",
+      parserDataFileName = "cdglang3-parserdata.pb",
+    )
 
-  test4 = genKtAstMilestone2(
-    cdgFile = "../j1/grammar/grammar.cdg",
-    astifierClassName = "com.giyeok.j1.J1Ast",
-    parserDataFileName = "j1-parserdata.pb",
-    trimParserData = false,
-  )
+    test4 = genKtAstMilestone2(
+      cdgFile = "../j1/grammar/grammar.cdg",
+      astifierClassName = "com.giyeok.j1.J1Ast",
+      parserDataFileName = "j1-parserdata.pb",
+      trimParserData = false,
+    )
 
-  test5 = genScalaAstMilestone2(
-    cdgFile = "examples/main/resources/autodb/autodb_schema2.cdg",
-    astifierClassName = "com.giyeok.jparser.test.Autodb2Ast",
-    parserDataFileName = "autodb2-parserdata.pb",
-  )
+    test5 = genScalaAstMilestone2(
+      cdgFile = "examples/main/resources/autodb/autodb_schema2.cdg",
+      astifierClassName = "com.giyeok.jparser.test.Autodb2Ast",
+      parserDataFileName = "autodb2-parserdata.pb",
+    )
+  }
 
   mgroupTests {
     test1 = genKtAstMgroup2(
       cdgFile = "examples/main/resources/asdl.cdg",
       astifierClassName = "com.giyeok.jparser.test.AsdlAst",
-      parserDataFileName = "asdl-parserdata.pb",
+      parserDataFileName = "asdl-mgroup2-parserdata.pb",
     )
   }
 }
