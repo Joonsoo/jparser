@@ -7,32 +7,29 @@ import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc}
 import org.scalatest.flatspec.AnyFlatSpec
 
+import java.io.{File, FileInputStream}
+
 class MilestoneGroupParserTest extends AnyFlatSpec {
   def testEquality(grammar: NGrammar, milestoneParser: MilestoneParser, mgroupParser: MilestoneGroupParser, example: String): Unit = {
     val inputs = Inputs.fromString(example)
 
     println(s"::: \"$example\"")
 
-    var milestoneCtx = milestoneParser.initialCtx
-    var mgroupCtx = mgroupParser.initialCtx
-    inputs.foreach { input =>
-      milestoneCtx = milestoneParser.parseStep(milestoneCtx, input).getOrElse(throw new IllegalStateException(""))
-      mgroupCtx = mgroupParser.parseStep(mgroupCtx, input).getOrElse(throw new IllegalStateException(""))
-    }
-
-    val milestoneResult = milestoneCtx
+    val startTime1 = System.currentTimeMillis()
+    val milestoneResult = milestoneParser.parseOrThrow(inputs)
+    println(s"milestone parse: ${System.currentTimeMillis() - startTime1} ms")
     val milestoneHistory = milestoneParser.kernelsHistory(milestoneResult)
 
-    val mgroupResult = mgroupCtx
+    val startTime2 = System.currentTimeMillis()
+    val mgroupResult = mgroupParser.parseOrThrow(inputs)
+    println(s"mgroup parse: ${System.currentTimeMillis() - startTime2} ms")
     val mgroupHistory = mgroupParser.kernelsHistory(mgroupResult)
 
     val milestoneParseForest = new ParseTreeConstructor2(ParseForestFunc)(grammar)(inputs, milestoneHistory.map(Kernels)).reconstruct().get
     assert(milestoneParseForest.trees.size == 1)
 
     milestoneHistory.zip(mgroupHistory).zipWithIndex.foreach { case (pair, index) =>
-      if (pair._1 == pair._2) {
-        println(s"$index: identical")
-      } else {
+      if (pair._1 != pair._2) {
         println(s"$index:")
         println(s"mile: ${pair._1.toList.sorted}")
         println(s"mgrp: ${pair._2.toList.sorted}")
@@ -84,6 +81,7 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
 
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A = c()")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "ABC = cde.hello()")
+    testEquality(analysis.ngrammar, milestoneParser, mgroupParser, new String(new FileInputStream("build.bbx").readAllBytes()))
   }
 
   "simple grammar" should "work" in {
