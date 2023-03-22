@@ -99,28 +99,27 @@ utils {
 }
 
 metalang {
-  ast = ktjvm.library(
-    srcs = glob("metalang/ast/kotlin/**/*.kt"),
-    resources = glob("metalang/ast/resources/**"),
-    deps = [ktlib.main, milestone2.parser],
-  )
-
-  astGen = genKtAstMilestone2(
+  parserGen = genScalaAstMgroup2(
     cdgFile = "examples/main/resources/cdglang3.cdg",
-    astifierClassName = "com.giyeok.jparser.metalang3.ast.MetaLang3Ast",
-    parserDataFileName = "cdglang3-parserdata.pb",
-    trimParserData = false,
+    astifierClassName = "com.giyeok.jparser.metalang3.ast.MetaLang3AstKt",
+    parserDataFileName = "cdglang3-mg2-parserdata.pb",
   )
 
-  action generateAst {
-    file.copyFile(astGen.parserData, "metalang/ast/resources")
-    // kotlin ast 파일은 사용 안함
-    // file.copyDirectory(astGen.srcsRoot, "metalang/ast/kotlin")
+  action generateParser {
+    file.copyFile(parserGen.parserData, "metalang/generated/resources")
+    file.clearDirectory("metalang/generated/scala")
+    file.copyDirectory(parserGen.srcsRoot, "metalang/generated/scala")
   }
+
+  generated = scala.library(
+    srcs = glob("metalang/generated/scala/**/*.scala"),
+    resources = glob("metalang/generated/resources/**"),
+    deps = [mgroup2.parser],
+  )
 
   main = scala.library(
     srcs = glob("metalang/main/scala/**/*.scala"),
-    deps = [naive.main, utils.main, ast],
+    deps = [naive.main, utils.main, generated],
   )
 
   test = scala.library(
@@ -391,15 +390,21 @@ def genKtAstMilestone2(
   trimParserData: boolean = true,
 ): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenKtAstMilestone2
 
-def genScalaAstMilestone2(
-  cdgFile: file,
-  astifierClassName: string,
-  parserDataFileName: string = "milestone2-parserdata.pb",
-): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenScalaAstMilestone2
-
 def genKtAstMgroup2(
   cdgFile: file,
   astifierClassName: string,
   parserDataFileName: string = "mgroup2-parserdata.pb",
   trimParserData: boolean = true,
 ): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenKtAstMgroup2
+
+def genScalaAstMilestone2(
+  cdgFile: file,
+  astifierClassName: string,
+  parserDataFileName: string = "milestone2-parserdata.pb",
+): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenScalaAstMilestone2
+
+def genScalaAstMgroup2(
+  cdgFile: file,
+  astifierClassName: string,
+  parserDataFileName: string = "mgroup2-parserdata.pb",
+): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenScalaAstMgroup2
