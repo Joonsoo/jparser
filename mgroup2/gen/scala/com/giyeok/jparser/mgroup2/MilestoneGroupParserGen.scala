@@ -1,9 +1,9 @@
 package com.giyeok.jparser.mgroup2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
-import com.giyeok.jparser.{Inputs, NGrammar}
+import com.giyeok.jparser.{Inputs, NGrammar, Symbols}
 import com.giyeok.jparser.NGrammar.NTerminal
-import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AppendingMilestone, CtxWithTasks, KernelTemplate, MilestoneParserGen, NeverTemplate, ParserGenBase2, TasksSummary2}
+import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AlwaysTemplate, AppendingMilestone, CtxWithTasks, KernelTemplate, MilestoneParserGen, NeverTemplate, ParserGenBase2, TasksSummary2, TermAction => MilestoneTermAction}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
 import com.giyeok.jparser.nparser2.opt.OptNaiveParser2
 import com.giyeok.jparser.nparser2.{KernelGraph, NaiveParser2, ProgressTask}
@@ -86,59 +86,88 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
     }
   }
 
+  private val milestoneTermActionsCache = mutable.Map[KernelTemplate, List[(TermGroupDesc, MilestoneTermAction)]]()
+
   def termActionsFor(groupId: Int): List[(TermGroupDesc, TermAction)] = {
     val starts = builder.milestonesOfGroup(groupId)
-    val (startKernelsMap, startingCtx) = base.startingCtxFrom(starts, 0)
+    // lookahead requiring때문에 들어오게 된 경우 start가 딱 한 개 있고, 터미널인 경우가 있을 수 있음. 그 외의 경우엔 터미널이 들어오면 안됨
+    if (starts.size == 1 && grammar.symbolOf(starts.head.symbolId).isInstanceOf[NTerminal]) {
+      val termId = starts.head.symbolId
+      val termGroup = grammar.symbolOf(termId).symbol match {
+        case term: Symbols.Terminals.CharacterTerminal => TermGroupDesc.descOf(term)
+        case term: Symbols.Terminals.VirtualTerminal => TermGroupDesc.descOf(term)
+      }
+      List(termGroup -> TermAction(
+        appendingMilestoneGroups = List(),
+        startNodeProgress = List(groupId -> AlwaysTemplate),
+        lookaheadRequiringSymbols = Set(),
+        tasksSummary = TasksSummary2(
+          addedKernels = Map(AlwaysTemplate -> Set(Kernel(termId, 1, 0, 2))),
+          progressedKernels = Set(Kernel(termId, 0, 0, 1))
+        ),
+        pendedAcceptConditionKernels = Map(),
+      ))
+    } else {
+      assert(starts.forall(start => !grammar.symbolOf(start.symbolId).isInstanceOf[NTerminal]))
 
-    val termActionsBuilder = termGroupsOf(startingCtx.ctx.graph).map(_ -> new TermActionBuilder(
-      mutable.ListBuffer(),
-      mutable.ListBuffer(),
-      mutable.Set(),
-      mutable.Map(),
-      mutable.Set(),
-      mutable.Map(),
-      mutable.Map(),
-    ))
+      val (startKernelsMap, startingCtx) = base.startingCtxFrom(starts, 0)
 
-    startKernelsMap.keySet.foreach { startKernel =>
-      val milestoneTermActions = milestoneGen.termActionsFor(startKernel)
+      val termActionsBuilder = termGroupsOf(startingCtx.ctx.graph).map(_ -> new TermActionBuilder(
+        mutable.ListBuffer(),
+        mutable.ListBuffer(),
+        mutable.Set(),
+        mutable.Map(),
+        mutable.Set(),
+        mutable.Map(),
+        mutable.Map(),
+      ))
 
-      milestoneTermActions.foreach { case (milestoneTermGroup, milestoneAction) =>
-        termActionsBuilder.foreach { case (mgroupTermGroup, builder) =>
-          if (hasIntersection(mgroupTermGroup, milestoneTermGroup)) {
-            builder.appendingMilestones ++= milestoneAction.parsingAction.appendingMilestones.map(startKernel -> _)
-            builder.startNodeProgress ++= milestoneAction.parsingAction.startNodeProgressCondition.map(startKernel -> _)
-            builder.lookaheadRequiringSymbols ++= milestoneAction.parsingAction.lookaheadRequiringSymbols
-            milestoneAction.parsingAction.tasksSummary.addedKernels.foreach { pair =>
-              builder.addedKernels.getOrElseUpdate(pair._1, mutable.Set()) ++= pair._2
-            }
-            builder.progressedKernels ++= milestoneAction.parsingAction.tasksSummary.progressedKernels
-            milestoneAction.pendedAcceptConditionKernels.foreach { pended =>
-              if (builder.pendedAcceptConditionAppendings.contains(pended._1)) {
-                builder.pendedAcceptConditionAppendings(pended._1) ++= pended._2._1
-                builder.pendedAcceptConditionProgresses(pended._1) match {
-                  case Some(existingCondition) =>
-                    pended._2._2 match {
-                      case Some(newCondition) =>
-                        builder.pendedAcceptConditionProgresses(pended._1) =
-                          Some(AcceptConditionTemplate.disjunct(Set(existingCondition, newCondition)))
-                      case None => // do nothing
-                    }
-                  case None => builder.pendedAcceptConditionProgresses(pended._1) = pended._2._2
+      startKernelsMap.keySet.foreach { startKernel =>
+        val milestoneTermActions = milestoneTermActionsCache.get(startKernel) match {
+          case Some(cached) => cached
+          case None =>
+            val calced = milestoneGen.termActionsFor(startKernel)
+            milestoneTermActionsCache(startKernel) = calced
+            calced
+        }
+
+        milestoneTermActions.foreach { case (milestoneTermGroup, milestoneAction) =>
+          termActionsBuilder.foreach { case (mgroupTermGroup, builder) =>
+            if (hasIntersection(mgroupTermGroup, milestoneTermGroup)) {
+              builder.appendingMilestones ++= milestoneAction.parsingAction.appendingMilestones.map(startKernel -> _)
+              builder.startNodeProgress ++= milestoneAction.parsingAction.startNodeProgressCondition.map(startKernel -> _)
+              builder.lookaheadRequiringSymbols ++= milestoneAction.parsingAction.lookaheadRequiringSymbols
+              milestoneAction.parsingAction.tasksSummary.addedKernels.foreach { pair =>
+                builder.addedKernels.getOrElseUpdate(pair._1, mutable.Set()) ++= pair._2
+              }
+              builder.progressedKernels ++= milestoneAction.parsingAction.tasksSummary.progressedKernels
+              milestoneAction.pendedAcceptConditionKernels.foreach { pended =>
+                if (builder.pendedAcceptConditionAppendings.contains(pended._1)) {
+                  builder.pendedAcceptConditionAppendings(pended._1) ++= pended._2._1
+                  builder.pendedAcceptConditionProgresses(pended._1) match {
+                    case Some(existingCondition) =>
+                      pended._2._2 match {
+                        case Some(newCondition) =>
+                          builder.pendedAcceptConditionProgresses(pended._1) =
+                            Some(AcceptConditionTemplate.disjunct(Set(existingCondition, newCondition)))
+                        case None => // do nothing
+                      }
+                    case None => builder.pendedAcceptConditionProgresses(pended._1) = pended._2._2
+                  }
+                } else {
+                  builder.pendedAcceptConditionAppendings(pended._1) = mutable.ListBuffer(pended._2._1: _*)
+                  builder.pendedAcceptConditionProgresses(pended._1) = pended._2._2
                 }
-              } else {
-                builder.pendedAcceptConditionAppendings(pended._1) = mutable.ListBuffer(pended._2._1: _*)
-                builder.pendedAcceptConditionProgresses(pended._1) = pended._2._2
               }
             }
           }
         }
       }
-    }
 
-    termActionsBuilder.map { pair =>
-      val termAction = pair._2.build()
-      pair._1 -> termAction
+      termActionsBuilder.map { pair =>
+        val termAction = pair._2.build()
+        pair._1 -> termAction
+      }
     }
   }
 
@@ -360,7 +389,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
   }
 
   private def possibleTips(): Set[Int] = {
-    precedingOfGroups.keySet.toSet
+    precedingOfGroups.keySet.toSet ++ lookaheadRequires
   }
 
   private def precedingMilestonesOf(groupId: Int): Set[KernelTemplate] = {

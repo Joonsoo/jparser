@@ -51,13 +51,13 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
     val milestoneParserData = new MilestoneParserGen(grammar).parserData()
     val termActionsSize = milestoneParserData.termActions.foldLeft(0)(_ + _._2.size)
     println(s"terms=${milestoneParserData.termActions.size}, termActions=$termActionsSize, edgeActions=${milestoneParserData.edgeProgressActions.size}")
-    val milestoneParser = new MilestoneParser(milestoneParserData).setVerbose()
+    val milestoneParser = new MilestoneParser(milestoneParserData) //.setVerbose()
 
     println("mgroup:::")
     val mgroupParserData = new MilestoneGroupParserGen(grammar).parserData()
     val mgroupTermActionsSize = mgroupParserData.termActions.foldLeft(0)(_ + _._2.size)
     println(s"groups=${mgroupParserData.milestoneGroups.size}, terms=${mgroupParserData.termActions.size}, termActions=$mgroupTermActionsSize, prTipEdges=${mgroupParserData.tipEdgeProgressActions.size}, exTipEdges=${mgroupParserData.tipEdgeRequiredSymbols.size}, midEdges=${mgroupParserData.midEdgeProgressActions.size}")
-    val mgroupParser = new MilestoneGroupParser(mgroupParserData).setVerbose()
+    val mgroupParser = new MilestoneGroupParser(mgroupParserData) //.setVerbose()
 
     val milestoneParserProto = MilestoneParser2ProtobufConverter.toProto(milestoneParserData)
     val mgroupParserProto = MilestoneGroupParserDataProtobufConverter.toProto(mgroupParserData)
@@ -73,6 +73,7 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
 
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A = 'a'+")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "Abc = 'a'+ {str($0)}")
+    testEquality(analysis.ngrammar, milestoneParser, mgroupParser, new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
   }
 
   "bibix grammar" should "be parsed" in {

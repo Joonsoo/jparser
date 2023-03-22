@@ -98,7 +98,9 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
           requiredSymbols.map(Milestone(_, 0, tipParent.gen)).toList
         case None => List()
       }
-      path.acceptCondition.milestones ++ tipEdgeRequires ++ traverse(path.path.head, path.path.tail)
+
+      val folded = if (path.path.isEmpty) List() else traverse(path.path.head, path.path.tail)
+      path.acceptCondition.milestones ++ tipEdgeRequires ++ folded
     }.toSet
 
   def expectedInputsOf(ctx: ParsingContext): Set[Inputs.TermGroupDesc] =
