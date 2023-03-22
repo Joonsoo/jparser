@@ -2,21 +2,17 @@ package com.giyeok.jparser.studio2
 
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.metalang3.MetaLanguage3.{ProcessedGrammar, analyzeGrammar, transformGrammar}
-import com.giyeok.jparser.metalang3.ast.MetaLang3Parser
-import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
+import com.giyeok.jparser.metalang3.ast.MetaLang3Ast
 import com.giyeok.jparser.metalang3.{CollectedErrors, ErrorCollector, ErrorMessage, MetaLanguage3}
-import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.studio2.CodeEditor.CodeStyle
 import com.giyeok.jparser.studio2.GrammarDefEditor._
-import com.giyeok.jparser.{Inputs, NGrammar, ParsingErrors}
+import com.giyeok.jparser.{NGrammar, ParsingErrors}
 import io.reactivex.rxjava3.core.{Observable, Scheduler}
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.widgets.Composite
 
-import java.io.{BufferedInputStream, FileInputStream}
 import java.time.{Duration, LocalDateTime}
 import java.util.concurrent.TimeUnit
-import scala.util.Using
 
 class GrammarDefEditor(val parent: Composite, val style: Int, val font: Font, val scheduler: Scheduler) {
   val editor = new CodeEditor(parent, style, font)

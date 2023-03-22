@@ -1,7 +1,7 @@
 package com.giyeok.jparser.studio2
 
-import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
-import com.giyeok.jparser.metalang3.generated.MetaLang3Ast.PExpr
+import com.giyeok.jparser.metalang3.ast.MetaLang3Ast
+import com.giyeok.jparser.metalang3.ast.MetaLang3Ast.PExpr
 import com.giyeok.jparser.studio2.CodeEditor.CodeStyle
 
 class MetaLang3Highlighter(val editor: CodeEditor) {

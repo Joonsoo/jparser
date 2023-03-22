@@ -7,7 +7,7 @@ import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc}
 import org.scalatest.flatspec.AnyFlatSpec
 
-import java.io.{File, FileInputStream}
+import java.io.FileInputStream
 
 class MilestoneGroupParserTest extends AnyFlatSpec {
   def testEquality(grammar: NGrammar, milestoneParser: MilestoneParser, mgroupParser: MilestoneGroupParser, example: String): Unit = {
@@ -17,12 +17,12 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
 
     val startTime1 = System.currentTimeMillis()
     val milestoneResult = milestoneParser.parseOrThrow(inputs)
-    println(s"milestone parse: ${System.currentTimeMillis() - startTime1} ms")
+    println(s"milestone parse time: ${System.currentTimeMillis() - startTime1} ms")
     val milestoneHistory = milestoneParser.kernelsHistory(milestoneResult)
 
     val startTime2 = System.currentTimeMillis()
     val mgroupResult = mgroupParser.parseOrThrow(inputs)
-    println(s"mgroup parse: ${System.currentTimeMillis() - startTime2} ms")
+    println(s"mgroup parse time: ${System.currentTimeMillis() - startTime2} ms")
     val mgroupHistory = mgroupParser.kernelsHistory(mgroupResult)
 
     val milestoneParseForest = new ParseTreeConstructor2(ParseForestFunc)(grammar)(inputs, milestoneHistory.map(Kernels)).reconstruct().get

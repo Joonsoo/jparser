@@ -99,7 +99,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         case None => List()
       }
 
-      val folded = if (path.path.isEmpty) List() else traverse(path.path.head, path.path.tail)
+      val folded = if (path.path.isEmpty) Set() else traverse(path.path.head, path.path.tail)
       path.acceptCondition.milestones ++ tipEdgeRequires ++ folded
     }.toSet
 
@@ -326,10 +326,8 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
   }
 
   def kernelsHistory(parsingContext: ParsingContext): Seq[Set[Kernel]] = {
-    def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel = {
-      val mapped = Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
-      mapped
-    }
+    def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel =
+      Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
 
     def isEventuallyAccepted(
       history: Seq[HistoryEntry],

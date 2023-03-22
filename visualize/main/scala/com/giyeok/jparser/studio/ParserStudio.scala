@@ -1,7 +1,6 @@
 package com.giyeok.jparser.studio
 
 import java.util.concurrent.LinkedBlockingDeque
-
 import com.giyeok.jparser.NGrammar.NTerminal
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.Symbols.{Nonterminal, Sequence}
@@ -10,8 +9,8 @@ import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParsingCon
 import com.giyeok.jparser.visualize._
 import com.giyeok.jparser.visualize.utils.{HorizontalResizableSplittedComposite, VerticalResizableSplittedComposite}
 import com.giyeok.jparser._
-import com.giyeok.jparser.metalang3.{ErrorCollector, MetaLanguage3}
-import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
+import com.giyeok.jparser.metalang3.ast.MetaLang3Ast
+import com.giyeok.jparser.metalang3.{ErrorCollector, MetaLang3Parser, MetaLanguage3}
 import org.eclipse.draw2d.{ColorConstants, Figure, FigureCanvas}
 import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.{ExtendedModifyListener, StyleRange, StyledText}
@@ -60,10 +59,10 @@ class ParserStudio(parent: Composite, style: Int)(initialGrammar: String, initia
   val rootPanel = new VerticalResizableSplittedComposite(this, SWT.NONE, 40)
 
   val grammarDefParser = new ParseProcessor[Option[Grammar]](
-    MetaLang3Ast.ngrammar,
+    MetaLang3Parser.parserData.grammar,
     { (x: ParseForest) =>
       Some(MetaLanguage3.transformGrammar(
-        MetaLang3Ast.matchStart(x.trees.head), "Grammar")(new ErrorCollector())._2)
+        new MetaLang3Ast().matchStart(x.trees.head), "Grammar")(new ErrorCollector())._2)
     }
   )
 

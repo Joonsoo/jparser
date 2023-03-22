@@ -99,12 +99,6 @@ utils {
 }
 
 metalang {
-  ast = ktjvm.library(
-    srcs = glob("metalang/ast/kotlin/**/*.kt"),
-    resources = glob("metalang/ast/resources/**"),
-    deps = [ktlib.main, milestone2.parser],
-  )
-
   parserGen = genScalaAstMgroup2(
     cdgFile = "examples/main/resources/cdglang3.cdg",
     astifierClassName = "com.giyeok.jparser.metalang3.ast.MetaLang3Ast",

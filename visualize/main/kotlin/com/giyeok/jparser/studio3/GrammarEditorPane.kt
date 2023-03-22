@@ -1,7 +1,7 @@
 package com.giyeok.jparser.studio3
 
 import com.giyeok.jparser.metalang3.MetaLanguage3
-import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
+import com.giyeok.jparser.metalang3.ast.MetaLang3Ast
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow

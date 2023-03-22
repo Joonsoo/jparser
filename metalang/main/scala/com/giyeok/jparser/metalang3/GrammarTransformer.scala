@@ -3,8 +3,8 @@ package com.giyeok.jparser.metalang3
 import com.giyeok.jparser.metalang3.ClassInfoCollector.{ClassParamSpec, ClassSpec}
 import com.giyeok.jparser.metalang3.MetaLanguage3.check
 import com.giyeok.jparser.metalang3.ValuefyExpr._
-import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
-import com.giyeok.jparser.metalang3.generated.MetaLang3Ast.CondSymDir.BODY
+import com.giyeok.jparser.metalang3.ast.MetaLang3Ast
+import com.giyeok.jparser.metalang3.ast.MetaLang3Ast.CondSymDir.BODY
 import com.giyeok.jparser.{Grammar, Symbols}
 
 import scala.collection.immutable.{ListMap, ListSet}
@@ -242,17 +242,17 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
         val vLhs = valuefyPExpr(refCtx, lhs, input, lhs +: callCtx)
         val vRhs = valuefyPExpr(refCtx, rhs, input, rhs +: callCtx)
         val opType = op match {
-          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.ADD => BinOpType.ADD
-          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.EQ => BinOpType.EQ
-          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.NE => BinOpType.NE
-          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.AND => BinOpType.BOOL_AND
-          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.Op.OR => BinOpType.BOOL_OR
+          case MetaLang3Ast.Op.ADD => BinOpType.ADD
+          case MetaLang3Ast.Op.EQ => BinOpType.EQ
+          case MetaLang3Ast.Op.NE => BinOpType.NE
+          case MetaLang3Ast.Op.AND => BinOpType.BOOL_AND
+          case MetaLang3Ast.Op.OR => BinOpType.BOOL_OR
         }
         BinOp(opType, vLhs, vRhs)
       case MetaLang3Ast.PrefixOp(op, expr) =>
         val vExpr = valuefyPExpr(refCtx, expr, input, expr +: callCtx)
         val opType = op match {
-          case com.giyeok.jparser.metalang3.generated.MetaLang3Ast.PreOp.NOT => PreOpType.NOT
+          case MetaLang3Ast.PreOp.NOT => PreOpType.NOT
         }
         PreOp(opType, vExpr)
       case ref: MetaLang3Ast.Ref => ref match {

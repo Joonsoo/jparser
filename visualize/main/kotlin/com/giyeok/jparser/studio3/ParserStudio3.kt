@@ -7,7 +7,7 @@ import com.giyeok.jparser.ParseResultTree
 import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.metalang3.MetaLanguage3.ProcessedGrammar
 import com.giyeok.jparser.metalang3.ValuefyExprSimulator
-import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
+import com.giyeok.jparser.metalang3.ast.MetaLang3Ast
 import com.giyeok.jparser.nparser2.NaiveParser2
 import com.giyeok.jparser.swingvis.FigureGen
 import kotlinx.coroutines.*

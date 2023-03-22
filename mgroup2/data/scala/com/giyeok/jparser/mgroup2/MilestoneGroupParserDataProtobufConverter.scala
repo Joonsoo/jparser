@@ -164,12 +164,18 @@ object MilestoneGroupParserDataProtobufConverter {
         { pair => MilestoneParser2ProtobufConverter.fromProto(pair.getStart) -> pair.getEnd },
         { pair => fromProto(pair.getEdgeAction) }
       ),
-      tipEdgeRequiredSymbols = ???,
+      tipEdgeRequiredSymbols = proto.getTipEdgeRequiredSymbolsList.toScalaMap(
+        { pair => MilestoneParser2ProtobufConverter.fromProto(pair.getStart) -> pair.getEnd },
+        { pair => pair.getRequiredSymbolIdsList.toScalaSet(x => x) }
+      ),
       midEdgeProgressActions = proto.getMidEdgeActionsList.toScalaMap(
         { pair => MilestoneParser2ProtobufConverter.fromProto(pair.getStart) -> MilestoneParser2ProtobufConverter.fromProto(pair.getEnd) },
         { pair => fromProto(pair.getEdgeAction) }
       ),
-      midEdgeRequiredSymbols = ???,
+      midEdgeRequiredSymbols = proto.getMidEdgeRequiredSymbolsList.toScalaMap(
+        { pair => MilestoneParser2ProtobufConverter.fromProto(pair.getStart) -> MilestoneParser2ProtobufConverter.fromProto(pair.getEnd) },
+        { pair => pair.getRequiredSymbolIdsList.toScalaSet(x => x) }
+      ),
     )
   }
 

@@ -1,7 +1,7 @@
 package com.giyeok.jparser.metalang3
 
 import com.giyeok.jparser.Symbols
-import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
+import com.giyeok.jparser.metalang3.ast.MetaLang3Ast
 
 object TerminalUtil {
 

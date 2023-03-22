@@ -2,9 +2,8 @@ package com.giyeok.jparser.metalang3
 
 import com.giyeok.jparser.metalang3.Type._
 import com.giyeok.jparser.metalang3.ValuefyExpr.UnrollChoices
-import com.giyeok.jparser.metalang3.ast.MetaLang3Parser
+import com.giyeok.jparser.metalang3.ast.MetaLang3Ast
 import com.giyeok.jparser.metalang3.codegen.ScalaCodeGen
-import com.giyeok.jparser.metalang3.generated.MetaLang3Ast
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.utils.FileUtil.writeFile
@@ -34,14 +33,14 @@ object MetaLanguage3 {
     //        }
     //        throw IllegalGrammar(errorMsg)
     //    }
-    val parser = MetaLang3Parser.INSTANCE.getParser
+    val parser = MetaLang3Parser.parser
     val inputs = Inputs.fromString(grammar)
     val parseResult = parser.parseOrThrow(inputs)
     val history = parser.kernelsHistory(parseResult)
     val reconstructor = new ParseTreeConstructor2(ParseForestFunc)(parser.parserData.grammar)(inputs, history.map(Kernels))
     reconstructor.reconstruct() match {
       case Some(forest) if forest.trees.size == 1 =>
-        MetaLang3Ast.matchStart(forest.trees.head)
+        new MetaLang3Ast().matchStart(forest.trees.head)
       case None =>
         throw IllegalGrammar("??")
     }

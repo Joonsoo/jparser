@@ -171,6 +171,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
     }
   }
 
+  // TODO termActionsFor(위 함수)와 비교 - 중요하진 않지만 그냥 궁금해서..
   def termActionsFor_(groupId: Int): List[(TermGroupDesc, TermAction)] = {
     val starts = builder.milestonesOfGroup(groupId)
     val (startKernelsMap, startingCtx) = base.startingCtxFrom(starts, 0)
@@ -203,10 +204,6 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
         val (start, startKernel) = startPair
         assert(starts.contains(start))
 
-        // TODO termProgressTasks 중에 startKernel에서 도달할 수 없는 노드들이 있을 수 있음.
-        //  그러면 tasks summary에 가비지가 들어가기 때문에 startKernel에서 도달 가능한 것만 추려서 실행해야 할 듯 한데?
-        //  비슷하게 start 중에서도 이번에 해당되는 termGroup으로 도달할 수 없는 start들은 빼야되지 않을까?
-        val termProgressTasks1 = termProgressTasks.filter(task => startingCtx.ctx.graph.reachableBetween(startKernel, task.kernel))
         val termAction = milestoneGen.termActionFor(startingCtx.ctx, startKernel, termProgressTasks)
 
         termAction.parsingAction.appendingMilestones.groupBy(_.acceptCondition).foreach { pair =>
