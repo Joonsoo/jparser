@@ -11,18 +11,28 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
   def testEquality(grammar: NGrammar, milestoneParser: MilestoneParser, mgroupParser: MilestoneGroupParser, example: String): Unit = {
     val inputs = Inputs.fromString(example)
 
-    println(s"milestone::: \"$example\"")
-    val milestoneResult = milestoneParser.parseOrThrow(inputs)
+    println(s"::: \"$example\"")
+
+    var milestoneCtx = milestoneParser.initialCtx
+    var mgroupCtx = mgroupParser.initialCtx
+    inputs.foreach { input =>
+      milestoneCtx = milestoneParser.parseStep(milestoneCtx, input).getOrElse(throw new IllegalStateException(""))
+      mgroupCtx = mgroupParser.parseStep(mgroupCtx, input).getOrElse(throw new IllegalStateException(""))
+    }
+
+    val milestoneResult = milestoneCtx
     val milestoneHistory = milestoneParser.kernelsHistory(milestoneResult)
 
-    println(s"mgroup::: $example")
-    val mgroupResult = mgroupParser.parseOrThrow(inputs)
-    //    println(mgroupResult)
+    val mgroupResult = mgroupCtx
     val mgroupHistory = mgroupParser.kernelsHistory(mgroupResult)
 
-    // TODO tasksSummary.progressedKernels가 milestone/mgroup 사이에서 다른 것 같은데.. 이유 확인해봐야 함
+    val milestoneParseForest = new ParseTreeConstructor2(ParseForestFunc)(grammar)(inputs, milestoneHistory.map(Kernels)).reconstruct().get
+    assert(milestoneParseForest.trees.size == 1)
+
     milestoneHistory.zip(mgroupHistory).zipWithIndex.foreach { case (pair, index) =>
-      if (pair._1 != pair._2) {
+      if (pair._1 == pair._2) {
+        println(s"$index: identical")
+      } else {
         println(s"$index:")
         println(s"mile: ${pair._1.toList.sorted}")
         println(s"mgrp: ${pair._2.toList.sorted}")
@@ -32,10 +42,8 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
       assert(pair._1 == pair._2)
     }
 
-    val milestoneParseForest = new ParseTreeConstructor2(ParseForestFunc)(grammar)(inputs, milestoneHistory.map(Kernels)).reconstruct().get
     val mgroupParseForest = new ParseTreeConstructor2(ParseForestFunc)(grammar)(inputs, mgroupHistory.map(Kernels)).reconstruct().get
     assert(mgroupParseForest.trees == milestoneParseForest.trees)
-    assert(mgroupParseForest.trees.size == 1)
   }
 
   def generateParsers(grammar: NGrammar): (MilestoneParser, MilestoneGroupParser) = {
@@ -86,12 +94,39 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
     val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
 
+    testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "aaa")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "a")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "a  ")
-    testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "aaa")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "aaa  ")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "aaa  a")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "a a")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "aaa  aaaa")
+  }
+
+  "bibix simple grammar" should "work" in {
+    val grammar =
+      """Defs = Def (WS Def)* {[$0] + $1}
+        |
+        |Def: Def = TargetDef
+        |
+        |TargetDef = SimpleName WS '=' WS Expr {TargetDef(name=$0, value=$4)}
+        |
+        |SimpleName = <('a-zA-z' 'a-zA-Z0-9_'* {str($0, $1)})&Tk> $0
+        |
+        |Expr: Expr = CallExpr
+        |
+        |CallExpr = SimpleName WS CallParams {CallExpr(name=$0, params=$2)}
+        |CallParams = '(' WS ')' {CallParams(posParams=[], namedParams=[])}
+        |
+        |Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
+        |
+        |WS = WS_*
+        |WS_ = ' \n\r\t'
+        |""".stripMargin
+
+    val analysis = MetaLanguage3.analyzeGrammar(grammar)
+    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+
+    testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A=c()")
   }
 }

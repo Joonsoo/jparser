@@ -73,7 +73,8 @@ object Inputs {
 
         def intersect(other: CharacterTermGroupDesc): CharacterTermGroupDesc = other match {
             case other: AllCharsExcluding =>
-                AllCharsExcluding((excluding + other).asInstanceOf[CharsGroup])
+                // excluding과 other.excluding의 교집합을 제외한 전부
+                AllCharsExcluding(excluding.intersect(other.excluding).asInstanceOf[CharsGroup])
             case other: CharsGroup =>
                 other - excluding
         }

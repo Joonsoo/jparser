@@ -266,7 +266,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
   def parseOrThrow(source: String): ParsingContext = parseOrThrow(Inputs.fromString(source))
 
   // progress되면서 추가된 커널들을 반환한다. finish는 progress 되면서 자연스럽게 따라오는 것이기 때문에 처리할 필요 없음
-  def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
+  def kernelsHistory(parsingContext: ParsingContext): Seq[Set[Kernel]] = {
     //    def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
     //      Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
 
@@ -330,7 +330,6 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }
     }
 
-    // TODO initialHistoryEntry의 progressedMilestones와 progressedMilestoneParentGens 추가
     val initialHistoryEntry = HistoryEntry(List(MilestonePath(initialMilestone)), GenActions(List(), List(), Map(), Map()))
     val history = (initialHistoryEntry +: parsingContext.history.reverse).toVector
 
@@ -380,7 +379,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }
       kernels.toSet
     }
-    (initialKernels +: kernelsHistory).toList
+    (initialKernels +: kernelsHistory).toSeq
   }
 }
 

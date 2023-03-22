@@ -1,12 +1,12 @@
 package com.giyeok.jparser.mgroup2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
-import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.{Inputs, NGrammar}
 import com.giyeok.jparser.NGrammar.NTerminal
 import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AppendingMilestone, CtxWithTasks, KernelTemplate, MilestoneParserGen, NeverTemplate, ParserGenBase2, TasksSummary2}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
 import com.giyeok.jparser.nparser2.opt.OptNaiveParser2
-import com.giyeok.jparser.nparser2.{NaiveParser2, ProgressTask}
+import com.giyeok.jparser.nparser2.{KernelGraph, NaiveParser2, ProgressTask}
 import com.giyeok.jparser.utils.TermGrouper
 
 import scala.collection.mutable
@@ -22,7 +22,118 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
 
   val builder = new MilestoneGroupParserDataBuilder(grammar, startingCtx._2.tasksSummary)
 
+  class TermActionBuilder(
+    val appendingMilestones: mutable.ListBuffer[(KernelTemplate, AppendingMilestone)],
+    val startNodeProgress: mutable.ListBuffer[(KernelTemplate, AcceptConditionTemplate)],
+    val lookaheadRequiringSymbols: mutable.Set[Int],
+    val addedKernels: mutable.Map[AcceptConditionTemplate, mutable.Set[Kernel]],
+    val progressedKernels: mutable.Set[Kernel],
+    val pendedAcceptConditionAppendings: mutable.Map[KernelTemplate, mutable.ListBuffer[AppendingMilestone]],
+    val pendedAcceptConditionProgresses: mutable.Map[KernelTemplate, Option[AcceptConditionTemplate]],
+  ) {
+    def build(): TermAction = {
+      TermAction(
+        appendingMilestoneGroups = appendingMilestones.groupBy(_._1).toList.map { case (replace, appendings) =>
+          appendings.groupBy(_._2.acceptCondition).toList.map { case (condition, appendings) =>
+            val appendingKernels = appendings.map(_._2.milestone).toSet
+            replace -> AppendingMilestoneGroup(builder.milestoneGroupId(appendingKernels), condition)
+          }
+        }.flatten,
+        startNodeProgress = startNodeProgress.groupBy(_._2).map { pair =>
+          builder.milestoneGroupId(pair._2.map(_._1).toSet) -> pair._1
+        }.toList,
+        lookaheadRequiringSymbols = lookaheadRequiringSymbols.map { symbolId =>
+          LookaheadRequires(symbolId, builder.milestoneGroupId(Set(KernelTemplate(symbolId, 0))))
+        }.toSet,
+        TasksSummary2(
+          addedKernels.view.mapValues(_.toSet).toMap,
+          progressedKernels.toSet,
+        ),
+        pendedAcceptConditionKernels = pendedAcceptConditionAppendings.map { case (first, appendings) =>
+          val appendingGroups = appendings.groupBy(_.acceptCondition).map { case (condition, appendings) =>
+            AppendingMilestoneGroup(builder.milestoneGroupId(appendings.map(_.milestone).toSet), condition)
+          }.toList
+          first -> (appendingGroups, pendedAcceptConditionProgresses(first))
+        }.toMap
+      )
+    }
+  }
+
+  def termGroupsOf(graph: KernelGraph): List[TermGroupDesc] = {
+    val termNodes = graph.nodes
+      .filter { node => grammar.symbolOf(node.symbolId).isInstanceOf[NTerminal] }
+      .filter { node => node.pointer == 0 }
+    assert(termNodes.forall { kernel => kernel.beginGen == 1 })
+    val terms = termNodes.map { node => grammar.symbolOf(node.symbolId) }
+      .map { case terminal: NTerminal => terminal.symbol }
+    TermGrouper.termGroupsOf(terms)
+  }
+
+  def hasIntersection(tg1: TermGroupDesc, tg2: TermGroupDesc): Boolean = {
+    tg1 match {
+      case tg1: Inputs.CharacterTermGroupDesc =>
+        tg2 match {
+          case tg2: Inputs.CharacterTermGroupDesc =>
+            !tg1.intersect(tg2).isEmpty
+          case _: Inputs.VirtualTermGroupDesc => false
+        }
+      case tg1: Inputs.VirtualTermGroupDesc =>
+        tg2 match {
+          case _: Inputs.CharacterTermGroupDesc => false
+          case tg2: Inputs.VirtualTermGroupDesc =>
+            !tg1.intersect(tg2).isEmpty
+        }
+    }
+  }
+
   def termActionsFor(groupId: Int): List[(TermGroupDesc, TermAction)] = {
+    val starts = builder.milestonesOfGroup(groupId)
+    val (startKernelsMap, startingCtx) = base.startingCtxFrom(starts, 0)
+
+    val termActionsBuilder = termGroupsOf(startingCtx.ctx.graph).map(_ -> new TermActionBuilder(
+      mutable.ListBuffer(),
+      mutable.ListBuffer(),
+      mutable.Set(),
+      mutable.Map(),
+      mutable.Set(),
+      mutable.Map(),
+      mutable.Map(),
+    ))
+
+    startKernelsMap.keySet.foreach { startKernel =>
+      val milestoneTermActions = milestoneGen.termActionsFor(startKernel)
+
+      milestoneTermActions.foreach { case (milestoneTermGroup, milestoneAction) =>
+        termActionsBuilder.foreach { case (mgroupTermGroup, builder) =>
+          if (hasIntersection(mgroupTermGroup, milestoneTermGroup)) {
+            builder.appendingMilestones ++= milestoneAction.parsingAction.appendingMilestones.map(startKernel -> _)
+            builder.startNodeProgress ++= milestoneAction.parsingAction.startNodeProgressCondition.map(startKernel -> _)
+            builder.lookaheadRequiringSymbols ++= milestoneAction.parsingAction.lookaheadRequiringSymbols
+            milestoneAction.parsingAction.tasksSummary.addedKernels.foreach { pair =>
+              builder.addedKernels.getOrElseUpdate(pair._1, mutable.Set()) ++= pair._2
+            }
+            builder.progressedKernels ++= milestoneAction.parsingAction.tasksSummary.progressedKernels
+            milestoneAction.pendedAcceptConditionKernels.foreach { pended =>
+              if (builder.pendedAcceptConditionAppendings.contains(pended._1)) {
+                builder.pendedAcceptConditionAppendings(pended._1) ++= pended._2._1
+                assert(builder.pendedAcceptConditionProgresses(pended._1) == pended._2._2)
+              } else {
+                builder.pendedAcceptConditionAppendings(pended._1) = mutable.ListBuffer(pended._2._1: _*)
+                builder.pendedAcceptConditionProgresses(pended._1) = pended._2._2
+              }
+            }
+          }
+        }
+      }
+    }
+
+    termActionsBuilder.map { pair =>
+      val termAction = pair._2.build()
+      pair._1 -> termAction
+    }
+  }
+
+  def termActionsFor_(groupId: Int): List[(TermGroupDesc, TermAction)] = {
     val starts = builder.milestonesOfGroup(groupId)
     val (startKernelsMap, startingCtx) = base.startingCtxFrom(starts, 0)
 

@@ -53,25 +53,26 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
   }
 
   def applyTermAction(path: MilestoneGroupPath, gen: Int, action: TermAction, actionsCollector: GenActionsBuilder): List[MilestoneGroupPath] = {
-    val tip = path.tip
+    val tipGen = path.tip.gen
 
     val appended = action.appendingMilestoneGroups.map { appending =>
-      val newCondition = MilestoneAcceptCondition.reify(appending._2.acceptCondition, tip.gen, gen)
+      val newCondition = MilestoneAcceptCondition.reify(appending._2.acceptCondition, tipGen, gen)
       val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
       path.replaceAndAppend(appending._1, MilestoneGroup(appending._2.groupId, gen), condition)
     }
     val reduced: List[MilestoneGroupPath] = action.startNodeProgress.flatMap { startNodeProgress =>
       val (replaceGroupId, startNodeProgressCondition) = startNodeProgress
-      val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tip.gen, gen)
+      val replacedTip = MilestoneGroup(replaceGroupId, tipGen)
+      val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tipGen, gen)
       val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
 
-      actionsCollector.addProgressedMilestoneGroup(tip, condition)
+      actionsCollector.addProgressedMilestoneGroup(replacedTip, condition)
 
       path.tipParent match {
         case Some(tipParent) =>
           val edgeAction = parserData.tipEdgeProgressActions(tipParent.kernelTemplate -> replaceGroupId)
-          actionsCollector.tipEdgeActions += ((tipParent -> tip) -> edgeAction)
-          actionsCollector.addProgressedMilestoneGroupParentGen(tip, tipParent.gen)
+          actionsCollector.tipEdgeActions += ((tipParent -> replacedTip) -> edgeAction)
+          actionsCollector.addProgressedMilestoneGroupParentGen(replacedTip, tipParent.gen)
           progressTip(MilestonePath(path.first, path.path, condition), gen, edgeAction, actionsCollector)
         case None => List()
       }
@@ -260,6 +261,14 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
     } else {
       val genActions = actionsCollector.build()
 
+      if (verbose) {
+        println("  ===== genActions")
+        genActions.tipEdgeActions.map(_._1).foreach(println)
+        genActions.midEdgeActions.map(_._1).foreach(println)
+        genActions.progressedMilestones.foreach(println)
+        genActions.progressedMgroups.foreach(println)
+      }
+
       val newConditions = (newPaths.map(_.acceptCondition) ++ genActions.progressedMilestones.values).distinct
       val newConditionUpdates = newConditions
         .map(cond => cond -> evolveAcceptCondition(newPaths, genActions, cond)).toMap
@@ -314,7 +323,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
     }
   }
 
-  def kernelsHistory(parsingContext: ParsingContext): List[Set[Kernel]] = {
+  def kernelsHistory(parsingContext: ParsingContext): Seq[Set[Kernel]] = {
     def mapGen(kernel: Kernel, genMap: Map[Int, Int]): Kernel = {
       val mapped = Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
       mapped
@@ -448,6 +457,6 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       }
       kernels.toSet
     }
-    (initialKernels +: kernelsHistory).toList
+    (initialKernels +: kernelsHistory)
   }
 }
