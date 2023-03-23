@@ -8,7 +8,7 @@ import java.io.InputStream
 import java.nio.file.Path
 import kotlin.io.path.inputStream
 
-object Mgroup2ParserLoader {
+object MilestoneGroup2ParserLoader {
   fun loadParserDataFromStream(stream: InputStream): MilestoneGroupParserData =
     `MilestoneGroupParserDataProtobufConverter$`.`MODULE$`.fromProto(
       MilestoneGroupParserDataProto.MilestoneGroupParserData.parseFrom(stream)

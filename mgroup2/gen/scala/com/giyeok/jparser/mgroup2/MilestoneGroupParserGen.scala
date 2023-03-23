@@ -12,7 +12,6 @@ import com.giyeok.jparser.utils.TermGrouper
 import scala.collection.mutable
 
 class MilestoneGroupParserGen(val grammar: NGrammar) {
-  private val parser = new NaiveParser2(grammar)
   private val optParser = new OptNaiveParser2(grammar)
   private val base = new ParserGenBase2(optParser)
   private val milestoneGen = new MilestoneParserGen(grammar)
