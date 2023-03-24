@@ -2,6 +2,7 @@ package com.giyeok.jparser.milestone2
 
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto
+import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase
 import com.giyeok.jparser.nparser.Kernel
 import com.giyeok.jparser.proto.GrammarProtobufConverter.{convertNGrammarToProto, convertProtoToNGrammar}
 import com.giyeok.jparser.proto.ProtoConverterUtil.{JavaListToScalaCollection, toScalaIntList}
@@ -154,6 +155,7 @@ object MilestoneParser2ProtobufConverter {
         builder.setUnless(symbolId)
       case _ => throw new AssertionError("")
     }
+    assert(builder.getConditionCase != ConditionCase.CONDITION_NOT_SET)
     builder.build()
   }
 

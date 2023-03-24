@@ -266,7 +266,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
   def parseOrThrow(source: String): ParsingContext = parseOrThrow(Inputs.fromString(source))
 
   // progress되면서 추가된 커널들을 반환한다. finish는 progress 되면서 자연스럽게 따라오는 것이기 때문에 처리할 필요 없음
-  def kernelsHistory(parsingContext: ParsingContext): Seq[Set[Kernel]] = {
+  def kernelsHistory(parsingContext: ParsingContext): Vector[Set[Kernel]] = {
     //    def progressAndMapGen(kernel: Kernel, gen: Int, genMap: Map[Int, Int]): Kernel =
     //      Kernel(kernel.symbolId, kernel.pointer + 1, genMap(kernel.beginGen), gen)
 
@@ -274,11 +274,11 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       Kernel(kernel.symbolId, kernel.pointer, genMap(kernel.beginGen), genMap(kernel.endGen))
 
     def isEventuallyAccepted(
-      history: Seq[HistoryEntry],
+      history: Vector[HistoryEntry],
       gen: Int,
       condition: MilestoneAcceptCondition,
-      conditionMemos: Memoize[MilestoneAcceptCondition, Boolean]
-    ): Boolean = conditionMemos(condition) {
+      conditionMemos: Vector[Memoize[MilestoneAcceptCondition, Boolean]],
+    ): Boolean = conditionMemos(gen)(condition) {
       val entry = history(gen)
       condition match {
         case Always => true
@@ -296,12 +296,12 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     }
 
     def kernelsFrom(
-      history: Seq[HistoryEntry],
+      history: Vector[HistoryEntry],
       beginGen: Int,
       gen: Int,
       tasksSummary: TasksSummary2,
       genMap: Map[Int, Int],
-      conditionMemos: Memoize[MilestoneAcceptCondition, Boolean],
+      conditionMemos: Vector[Memoize[MilestoneAcceptCondition, Boolean]],
     ): Set[Kernel] = {
       val collector = mutable.Set[Kernel]()
       addKernelsFrom(collector, history, beginGen, gen, tasksSummary, genMap, conditionMemos)
@@ -310,12 +310,12 @@ class MilestoneParser(val parserData: MilestoneParserData) {
 
     def addKernelsFrom(
       kernelsCollector: mutable.Set[Kernel],
-      history: Seq[HistoryEntry],
+      history: Vector[HistoryEntry],
       beginGen: Int,
       gen: Int,
       tasksSummary: TasksSummary2,
       genMap: Map[Int, Int],
-      conditionMemos: Memoize[MilestoneAcceptCondition, Boolean],
+      conditionMemos: Vector[Memoize[MilestoneAcceptCondition, Boolean]],
     ): Unit = {
       tasksSummary.addedKernels.foreach { pair =>
         val condition = MilestoneAcceptCondition.reify(pair._1, beginGen, gen)
@@ -333,13 +333,14 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     val initialHistoryEntry = HistoryEntry(List(MilestonePath(initialMilestone)), GenActions(List(), List(), Map(), Map()))
     val history = (initialHistoryEntry +: parsingContext.history.reverse).toVector
 
-    val initialKernels = kernelsFrom(history, 0, 0, parserData.initialTasksSummary, Map(-1 -> 0, 0 -> 0, 1 -> 0, 2 -> 0), Memoize())
+    val conditionMemos = (0 until history.length).map { _ =>
+      Memoize[MilestoneAcceptCondition, Boolean]()
+    }.toVector
+
+    val initialKernels = kernelsFrom(history, 0, 0, parserData.initialTasksSummary, Map(-1 -> 0, 0 -> 0, 1 -> 0, 2 -> 0), conditionMemos)
+
     val kernelsHistory = history.zipWithIndex.drop(1).map { case (entry, gen) =>
       val genActions = entry.genActions
-      // TODO conditionMemos를 generation마다 초기화하지 않게 할 수 있을 것 같은데..
-      // - conditionMemos는 반드시 앞쪽 generation에서 뒤쪽 generation으로 진행하면서 사용하도록 하고
-      // - Unless나 OnlyIf가 포함되어 있으면 generation마다 삭제하는 식으로?
-      val conditionMemos = Memoize[MilestoneAcceptCondition, Boolean]()
 
       val kernels = mutable.Set[Kernel]()
 
@@ -379,7 +380,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }
       kernels.toSet
     }
-    (initialKernels +: kernelsHistory).toSeq
+    (initialKernels +: kernelsHistory)
   }
 }
 

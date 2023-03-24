@@ -3,7 +3,7 @@ package com.giyeok.jparser.mgroup2
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.{Inputs, NGrammar, Symbols}
 import com.giyeok.jparser.NGrammar.NTerminal
-import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AlwaysTemplate, AppendingMilestone, CtxWithTasks, KernelTemplate, MilestoneParserGen, NeverTemplate, ParserGenBase2, TasksSummary2, TermAction => MilestoneTermAction}
+import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AlwaysTemplate, AppendingMilestone, CtxWithTasks, KernelTemplate, MilestoneParserGen, NeverTemplate, ParserGenBase2, TasksSummary2, TermAction => MilestoneTermAction, EdgeAction => MilestoneEdgeAction}
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
 import com.giyeok.jparser.nparser2.opt.OptNaiveParser2
 import com.giyeok.jparser.nparser2.{KernelGraph, NaiveParser2, ProgressTask}
@@ -86,6 +86,39 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
   }
 
   private val milestoneTermActionsCache = mutable.Map[KernelTemplate, List[(TermGroupDesc, MilestoneTermAction)]]()
+  private val milestoneEdgeActionsCache = mutable.Map[(KernelTemplate, KernelTemplate), MilestoneEdgeAction]()
+
+  def getMilestoneTermActions(startKernel: KernelTemplate): List[(TermGroupDesc, MilestoneTermAction)] = {
+    milestoneTermActionsCache.get(startKernel) match {
+      case Some(cached) => cached
+      case None =>
+        val calced = milestoneGen.termActionsFor(startKernel)
+        milestoneTermActionsCache(startKernel) = calced
+        calced
+    }
+  }
+
+  def getMilestoneEdgeAction(start: Kernel, end: KernelTemplate, startingCtx: CtxWithTasks): MilestoneEdgeAction = {
+    val edge = KernelTemplate(start.symbolId, start.pointer) -> end
+    milestoneEdgeActionsCache.get(edge) match {
+      case Some(cached) => cached
+      case None =>
+        val calced = milestoneGen.edgeProgressActionBetween(start, end, startingCtx)
+        milestoneEdgeActionsCache(edge) = calced
+        calced
+    }
+  }
+
+  def getMilestoneEdgeAction(startKernel: KernelTemplate, endKernel: KernelTemplate): MilestoneEdgeAction = {
+    val edge = startKernel -> endKernel
+    milestoneEdgeActionsCache.get(edge) match {
+      case Some(cached) => cached
+      case None =>
+        val calced = milestoneGen.edgeProgressActionBetween(startKernel, endKernel)
+        milestoneEdgeActionsCache(edge) = calced
+        calced
+    }
+  }
 
   def termActionsFor(groupId: Int): List[(TermGroupDesc, TermAction)] = {
     val starts = builder.milestonesOfGroup(groupId)
@@ -122,13 +155,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
       ))
 
       startKernelsMap.keySet.foreach { startKernel =>
-        val milestoneTermActions = milestoneTermActionsCache.get(startKernel) match {
-          case Some(cached) => cached
-          case None =>
-            val calced = milestoneGen.termActionsFor(startKernel)
-            milestoneTermActionsCache(startKernel) = calced
-            calced
-        }
+        val milestoneTermActions = getMilestoneTermActions(startKernel)
 
         milestoneTermActions.foreach { case (milestoneTermGroup, milestoneAction) =>
           termActionsBuilder.foreach { case (mgroupTermGroup, builder) =>
@@ -267,7 +294,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
     val progressedKernels = mutable.Set[Kernel]()
 
     endKernels.foreach { endKernel =>
-      val edgeAction = milestoneGen.edgeProgressActionBetween(startKernel, endKernel, startingCtx)
+      val edgeAction = getMilestoneEdgeAction(startKernel, endKernel, startingCtx)
 
       appendings ++= edgeAction.parsingAction.appendingMilestones
 
@@ -313,7 +340,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
 
     endKernels.foreach { endKernel =>
       // TODO 버려지는 정보가 많으니 최적화할 수 있을 것
-      val edgeAction = milestoneGen.edgeProgressActionBetween(startKernel, endKernel, startingCtx)
+      val edgeAction = getMilestoneEdgeAction(startKernel, endKernel, startingCtx)
 
       edgeRequiresCollector ++= edgeAction.requiredSymbols
     }
@@ -322,7 +349,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
   }
 
   def midEdgeProgressActionBetween(start: KernelTemplate, end: KernelTemplate): (EdgeAction, Set[Int]) = {
-    val edgeAction = milestoneGen.edgeProgressActionBetween(start, end)
+    val edgeAction = getMilestoneEdgeAction(start, end)
 
     val appendingMilestoneGroups = edgeAction.parsingAction.appendingMilestones.groupBy(_.acceptCondition).toList.map { pair =>
       AppendingMilestoneGroup(builder.milestoneGroupId(pair._2.map(_.milestone).toSet), pair._1)
