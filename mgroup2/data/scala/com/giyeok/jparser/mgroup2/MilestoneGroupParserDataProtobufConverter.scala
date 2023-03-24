@@ -5,7 +5,6 @@ import com.giyeok.jparser.milestone2.{KernelTemplate, MilestoneParser2ProtobufCo
 import com.giyeok.jparser.proto.GrammarProtobufConverter.{convertNGrammarToProto, convertProtoToNGrammar}
 import MilestoneParser2ProtobufConverter.kernelTemplateEdgeOrdering
 import MilestoneParser2ProtobufConverter.termGroupOrdering
-import MilestoneParser2ProtobufConverter.acceptConditionTemplateOrdering
 import com.giyeok.jparser.proto.ProtoConverterUtil.JavaListToScalaCollection
 import com.giyeok.jparser.proto.TermGroupProtobufConverter.{convertProtoToTermGroup, convertTermGroupToProto}
 
