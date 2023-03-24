@@ -2,7 +2,7 @@ package com.giyeok.jparser.mgroup2
 
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.metalang3.MetaLanguage3
-import com.giyeok.jparser.milestone2.MilestoneParser2ProtobufConverter
+import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AlwaysTemplate, AndTemplate, LongestTemplate, LookaheadIsTemplate, LookaheadNotTemplate, MilestoneParser2ProtobufConverter, NeverTemplate, OnlyIfTemplate, OrTemplate, UnlessTemplate}
 import org.scalatest.flatspec.AnyFlatSpec
 import MilestoneParser2ProtobufConverter.termGroupOrdering
 
@@ -81,5 +81,25 @@ class MilestoneGroupParserProtoTest extends AnyFlatSpec {
     val unmarshalled = MilestoneGroupParserDataProtobufConverter.fromProto(proto)
 
     assertEquals(parserData, unmarshalled)
+  }
+
+  "accept condition marshalling" should "work" in {
+    def check(condition: AcceptConditionTemplate): Unit = {
+      val proto = MilestoneParser2ProtobufConverter.toProto(condition)
+      val unmarshalled = MilestoneParser2ProtobufConverter.fromProto(proto)
+      assert(condition == unmarshalled)
+    }
+
+    check(AlwaysTemplate)
+    check(NeverTemplate)
+    check(AndTemplate(List(LookaheadIsTemplate(123, true), OnlyIfTemplate(456))))
+    check(OrTemplate(List(LookaheadIsTemplate(123, true), OnlyIfTemplate(456))))
+    check(LookaheadIsTemplate(123, true))
+    check(LookaheadIsTemplate(123, false))
+    check(LookaheadNotTemplate(123, true))
+    check(LookaheadNotTemplate(123, false))
+    check(LongestTemplate(234))
+    check(OnlyIfTemplate(345))
+    check(UnlessTemplate(456))
   }
 }

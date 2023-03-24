@@ -152,6 +152,7 @@ object MilestoneParser2ProtobufConverter {
         builder.setOnlyIf(symbolId)
       case UnlessTemplate(symbolId) =>
         builder.setUnless(symbolId)
+      case _ => throw new AssertionError("")
     }
     builder.build()
   }
@@ -230,7 +231,7 @@ object MilestoneParser2ProtobufConverter {
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.AND =>
         AndTemplate(proto.getAnd.getConditionsList.toScalaList(fromProto))
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.OR =>
-        OrTemplate(proto.getAnd.getConditionsList.toScalaList(fromProto))
+        OrTemplate(proto.getOr.getConditionsList.toScalaList(fromProto))
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_IS =>
         LookaheadIsTemplate(proto.getLookaheadIs.getSymbolId, proto.getLookaheadIs.getFromNextGen)
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_NOT =>
