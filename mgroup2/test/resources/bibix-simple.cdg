@@ -1,0 +1,17 @@
+Defs = Def (WS Def)* {[$0] + $1}
+
+Def: Def = TargetDef
+
+TargetDef = SimpleName WS '=' WS Expr {TargetDef(name=$0, value=$4)}
+
+SimpleName = <('a-zA-z' 'a-zA-Z0-9_'* {str($0, $1)})&Tk> $0
+
+Expr: Expr = CallExpr
+
+CallExpr = SimpleName WS CallParams {CallExpr(name=$0, params=$2)}
+CallParams = '(' WS ')' {CallParams(posParams=[], namedParams=[])}
+
+Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
+
+WS = WS_*
+WS_ = ' \n\r\t'

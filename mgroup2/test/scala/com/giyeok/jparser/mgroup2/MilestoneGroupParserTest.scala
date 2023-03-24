@@ -8,6 +8,9 @@ import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.io.FileInputStream
+import java.time.{Duration, Instant}
+import scala.reflect.io.File
+import scala.util.Using
 
 class MilestoneGroupParserTest extends AnyFlatSpec {
   def testEquality(grammar: NGrammar, milestoneParser: MilestoneParser, mgroupParser: MilestoneGroupParser, example: String): Unit = {
@@ -85,10 +88,7 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
   }
 
   "simple grammar" should "work" in {
-    val grammar =
-      """A = B+
-        |B: string? = <'a'+ {str($0)} | ' '+ {null}>
-        |""".stripMargin
+    val grammar = new String(getClass.getResourceAsStream("/simple.cdg").readAllBytes())
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
     val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
@@ -103,29 +103,40 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
   }
 
   "bibix simple grammar" should "work" in {
-    val grammar =
-      """Defs = Def (WS Def)* {[$0] + $1}
-        |
-        |Def: Def = TargetDef
-        |
-        |TargetDef = SimpleName WS '=' WS Expr {TargetDef(name=$0, value=$4)}
-        |
-        |SimpleName = <('a-zA-z' 'a-zA-Z0-9_'* {str($0, $1)})&Tk> $0
-        |
-        |Expr: Expr = CallExpr
-        |
-        |CallExpr = SimpleName WS CallParams {CallExpr(name=$0, params=$2)}
-        |CallParams = '(' WS ')' {CallParams(posParams=[], namedParams=[])}
-        |
-        |Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
-        |
-        |WS = WS_*
-        |WS_ = ' \n\r\t'
-        |""".stripMargin
+    val grammar = new String(getClass.getResourceAsStream("/bibix-simple.cdg").readAllBytes())
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
     val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
 
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A=c()")
   }
+
+//  "j1 grammar" should "work" in {
+//    val grammar = new String(getClass.getResourceAsStream("/j1-grammar.cdg").readAllBytes())
+//
+//    val analysis = MetaLanguage3.analyzeGrammar(grammar)
+//
+//    println("mgroup:::")
+//    val start = Instant.now()
+//    println(s"start: $start")
+//    val mgroupParserData = new MilestoneGroupParserGen(analysis.ngrammar).parserData()
+//    val end = Instant.now()
+//    println(s"end: $end, ${Duration.between(start, end)}")
+//    val mgroupTermActionsSize = mgroupParserData.termActions.foldLeft(0)(_ + _._2.size)
+//    println(s"groups=${mgroupParserData.milestoneGroups.size}, terms=${mgroupParserData.termActions.size}, termActions=$mgroupTermActionsSize, prTipEdges=${mgroupParserData.tipEdgeProgressActions.size}, exTipEdges=${mgroupParserData.tipEdgeRequiredSymbols.size}, midEdges=${mgroupParserData.midEdgeProgressActions.size}")
+//    val mgroupParser = new MilestoneGroupParser(mgroupParserData) //.setVerbose()
+//
+//    val mgroupParserProto = MilestoneGroupParserDataProtobufConverter.toProto(mgroupParserData)
+//    Using(File("j1-mg2-parserdata.pb").outputStream()) { output =>
+//      mgroupParserProto.writeTo(output)
+//    }
+//
+//    val input = Inputs.fromString("class Abc {}")
+//    val parseResult = mgroupParser.parseOrThrow(input)
+//    val kernelsHistory = mgroupParser.kernelsHistory(parseResult)
+//
+//    val parseForest = new ParseTreeConstructor2(ParseForestFunc)(analysis.ngrammar)(input, kernelsHistory.map(Kernels)).reconstruct().get
+//    assert(parseForest.trees.size == 1)
+//    println(parseForest.trees.head)
+//  }
 }

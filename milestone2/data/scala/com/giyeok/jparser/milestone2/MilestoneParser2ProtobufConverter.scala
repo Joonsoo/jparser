@@ -21,11 +21,6 @@ object MilestoneParser2ProtobufConverter {
       o1.toShortString.compareTo(o2.toShortString)
   }
 
-  implicit val acceptConditionTemplateOrdering: Ordering[AcceptConditionTemplate] = comparatorToOrdering {
-    (o1: AcceptConditionTemplate, o2: AcceptConditionTemplate) =>
-      o1.toString.compareTo(o2.toString)
-  }
-
   def toProto(parserData: MilestoneParserData): MilestoneParserDataProto.Milestone2ParserData = {
     val builder = MilestoneParserDataProto.Milestone2ParserData.newBuilder()
       .setGrammar(convertNGrammarToProto(parserData.grammar))
@@ -134,13 +129,13 @@ object MilestoneParser2ProtobufConverter {
       case NeverTemplate =>
         builder.setNever(Empty.getDefaultInstance)
       case AndTemplate(conditions) =>
-        // conditions 순서 고정
-        conditions.sortBy(_.toString).foreach { cond =>
+        // conditions는 항상 정렬되어 있음
+        conditions.foreach { cond =>
           builder.getAndBuilder().addConditions(toProto(cond))
         }
       case OrTemplate(conditions) =>
-        // conditions 순서 고정
-        conditions.sortBy(_.toString).foreach { cond =>
+        // conditions는 항상 정렬되어 있음
+        conditions.foreach { cond =>
           builder.getOrBuilder().addConditions(toProto(cond))
         }
       case LookaheadIsTemplate(symbolId, fromNextGen) =>

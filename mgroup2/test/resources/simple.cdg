@@ -1,0 +1,2 @@
+A = B+
+B: string? = <'a'+ {str($0)} | ' '+ {null}>

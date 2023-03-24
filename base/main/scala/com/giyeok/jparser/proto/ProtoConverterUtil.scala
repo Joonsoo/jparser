@@ -40,7 +40,7 @@ object ProtoConverterUtil {
 
   implicit class JavaListToScalaCollection[T](javaList: java.util.List[T]) {
     def toScalaBuffer[T2](mapper: T => T2): mutable.Buffer[T2] = {
-      javaList.parallelStream().map(toJavaFunc(mapper)).collect(Collectors.toList[T2]).asScala
+      javaList.stream().map(toJavaFunc(mapper)).collect(Collectors.toList[T2]).asScala
     }
 
     def toScalaList[T2](mapper: T => T2): List[T2] =
@@ -49,7 +49,7 @@ object ProtoConverterUtil {
     def toScalaMap[K, V](keyMapper: T => K, valueMapper: T => V): Map[K, V] = {
       val keyMapperJavaFunc = toJavaFunc(keyMapper)
       val valueMapperJavaFunc = toJavaFunc(valueMapper)
-      javaList.parallelStream()
+      javaList.stream()
         .collect(Collectors.toMap[T, K, V](keyMapperJavaFunc, valueMapperJavaFunc))
         .asScala
         .toMap
