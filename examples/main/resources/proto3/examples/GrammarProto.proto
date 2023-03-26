@@ -1,0 +1,167 @@
+syntax = "proto3";
+
+package com.giyeok.jparser.proto;
+
+message NGrammar {
+  int32 start_symbol = 1;
+  map<int32, NAtomicSymbol> symbols = 2;
+  map<int32, NSequence> sequences = 3;
+}
+
+message NSymbol {
+  oneof NSymbol {
+    NAtomicSymbol atomic_symbol = 1;
+    NSequence sequence = 2;
+  }
+}
+message NAtomicSymbol {
+  oneof NAtomicSymbol {
+    NStart start = 1;
+    NNonterminal nonterminal = 2;
+    NTerminal terminal = 3;
+    NOneOf one_of = 4;
+    NProxy proxy = 5;
+    NRepeat repeat = 6;
+    NExcept except = 7;
+    NJoin join = 8;
+    NLongest longest = 9;
+    NLookaheadIs lookahead_is = 10;
+    NLookaheadExcept lookahead_except = 11;
+  }
+}
+message NStart {
+  int32 id = 1;
+  int32 produce = 2;
+}
+message NNonterminal {
+  int32 id = 1;
+  Nonterminal symbol = 2;
+  repeated int32 produces = 3;
+}
+message NTerminal {
+  int32 id = 1;
+  Terminal symbol = 2;
+}
+message NOneOf {
+  int32 id = 1;
+  OneOf symbol = 2;
+  repeated int32 produces = 3;
+}
+message NProxy {
+  int32 id = 1;
+  Proxy symbol = 2;
+  int32 produce = 3;
+}
+message NRepeat {
+  int32 id = 1;
+  Repeat symbol = 2;
+  int32 base_seq = 3;
+  int32 repeat_seq = 4;
+}
+message NExcept {
+  int32 id = 1;
+  Except symbol = 2;
+  int32 body = 3;
+  int32 except = 4;
+}
+message NJoin {
+  int32 id = 1;
+  Join symbol = 2;
+  int32 body = 3;
+  int32 join = 4;
+}
+message NLongest {
+  int32 id = 1;
+  Longest symbol = 2;
+  int32 body = 3;
+}
+message NLookaheadIs {
+  int32 id = 1;
+  LookaheadIs symbol = 2;
+  int32 empty_seq_id = 3;
+  int32 lookahead = 4;
+}
+message NLookaheadExcept {
+  int32 id = 1;
+  LookaheadExcept symbol = 2;
+  int32 empty_seq_id = 3;
+  int32 lookahead = 4;
+}
+message NSequence {
+  int32 id = 1;
+  Sequence symbol = 2;
+  repeated int32 sequence = 3;
+}
+
+message Symbol {
+  oneof Symbol {
+    AtomicSymbol atomic_symbol = 1;
+    Sequence sequence = 2;
+  }
+}
+message AtomicSymbol {
+  oneof AtomicSymbol {
+    Empty start = 1;
+    Terminal terminal = 2;
+    Nonterminal nonterminal = 3;
+    OneOf one_of = 4;
+    Repeat repeat = 5;
+    Except except = 6;
+    LookaheadIs lookahead_is = 7;
+    LookaheadExcept lookahead_except = 8;
+    Proxy proxy = 9;
+    Join join = 10;
+    Longest longest = 11;
+  }
+}
+message Terminal {
+  oneof Terminal {
+    Empty any = 1;
+    Empty any_char = 2;
+    string exact_char = 3;
+    Chars chars = 4;
+    Unicodes unicodes = 5;
+    // TODO virtual
+  }
+  message Chars {
+    repeated string chars = 1;
+  }
+  message Unicodes {
+    repeated int32 categories = 1;
+  }
+}
+message Nonterminal {
+  string name = 1;
+}
+message Sequence {
+  repeated AtomicSymbol seq = 1;
+}
+message OneOf {
+  repeated AtomicSymbol symbols = 1;
+}
+message Repeat {
+  AtomicSymbol symbol = 1;
+  int32 lower = 2;
+}
+message Except {
+  AtomicSymbol body = 1;
+  AtomicSymbol except = 2;
+}
+message LookaheadIs {
+  AtomicSymbol lookahead = 1;
+}
+message LookaheadExcept {
+  AtomicSymbol lookahead = 1;
+}
+message Proxy {
+  Symbol symbol = 1;
+}
+message Join {
+  AtomicSymbol body = 1;
+  AtomicSymbol join = 2;
+}
+message Longest {
+  AtomicSymbol body = 1;
+}
+
+message Empty {}

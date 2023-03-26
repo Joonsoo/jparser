@@ -23,7 +23,7 @@ class J1GrammarGen {
 //        "trimParserData" to BooleanValue(true),
 //      ),
       mapOf(
-        "cdgFile" to FileValue(Path("examples/main/resources/cdglang3.cdg")),
+        "cdgFile" to FileValue(Path("examples/main/resources/metalang3/grammar.cdg")),
         "astifierClassName" to StringValue("MetaLang3Ast"),
         "parserDataFileName" to StringValue("cdglang3-parserdata.pb"),
         "trimParserData" to BooleanValue(false),

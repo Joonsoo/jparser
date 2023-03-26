@@ -72,7 +72,7 @@ class MilestoneGroupParserProtoTest extends AnyFlatSpec {
   }
 
   "bibix grammar" should "work" in {
-    val grammar = new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes())
+    val grammar = new String(getClass.getResourceAsStream("/bibix2/grammar.cdg").readAllBytes())
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
     val parserData = new MilestoneGroupParserGen(analysis.ngrammar).parserData()

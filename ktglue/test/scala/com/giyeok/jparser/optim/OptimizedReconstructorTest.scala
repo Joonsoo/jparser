@@ -6,7 +6,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 class OptimizedReconstructorTest extends AnyFlatSpec {
   it should "work" in {
-    val grammar = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
+    val grammar = MetaLanguage3.analyzeGrammar(new String(getClass.getResourceAsStream("/bibix2/grammar.cdg").readAllBytes()))
     //    val gen = MilestoneParserGen.generateMilestoneParserData(grammar.ngrammar)
 
     val codegen = new KotlinOptCodeGen(grammar)

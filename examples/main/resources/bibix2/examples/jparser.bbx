@@ -1,0 +1,430 @@
+package com.giyeok.jparser
+
+import jvm
+import maven
+import file
+from bibix.plugins import java
+from bibix.plugins import scala
+from bibix.plugins import protobuf
+from bibix.plugins import scalatest
+from bibix.plugins import ktjvm
+from bibix.plugins import jar
+
+kotlinVersion = "1.8.10"
+var ktjvm.sdkVersion = kotlinVersion
+
+scalaVersion = "2.13"
+var scala.sdkVersion = "2.13.10"
+
+var jdkVersion: string = "19"
+var java.jdkVersion = jdkVersion
+var java.srcVersion = jdkVersion
+var java.outVersion = jdkVersion
+var ktjvm.outVersion = jdkVersion
+var scala.outVersion = jdkVersion
+
+ktxCoroutinesVersion = "1.6.1"
+ktxCoroutinesDeps = [
+  maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-core", ktxCoroutinesVersion),
+  maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8", ktxCoroutinesVersion),
+]
+
+protobufVersion = "3.22.0"
+var protobuf.protobufVersion = protobufVersion
+protobufDep = maven.artifact("com.google.protobuf", "protobuf-java", protobufVersion)
+
+testDeps = [
+  // maven.artifact("junit", "junit", "4.12"),
+  maven.artifact("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
+]
+
+scalaTestDeps = [
+  ...testDeps,
+  maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.15", excludes=[
+    ("xerces", "xerces-impl", none),
+    ("xml-apis", "xml-apis", none)
+  ]),
+]
+
+base {
+  proto {
+    schema = protobuf.schema(
+      srcs = [
+        "base/proto/GrammarProto.proto",
+        "base/proto/TermGroupProto.proto",
+      ]
+    )
+
+    javacode = protobuf.java(schema=schema)
+
+    action generate {
+      file.clearDirectory("base/generated/java")
+      file.copyDirectory(javacode.rootDir, "base/generated/java")
+    }
+
+    javalib = java.library(
+      srcs = glob("base/generated/java/**/*.java"),
+      deps = [protobufDep],
+    )
+  }
+
+  main = scala.library(
+    srcs = glob("base/main/scala/**/*.scala"),
+    deps = [proto.javalib],
+  )
+
+  test = scala.library(
+    srcs = glob("base/test/scala/**/*.scala"),
+    deps = [...scalaTestDeps, base.main],
+  )
+}
+
+naive {
+  main = scala.library(
+    srcs = glob("naive/main/scala/**/*.scala"),
+    deps = [base.main],
+  )
+
+  test = scala.library(
+    srcs = glob("naive/test/scala/**/*.scala"),
+    deps = [...scalaTestDeps, base.test, naive.main],
+  )
+}
+
+utils {
+  main = scala.library(
+    srcs = glob("utils/main/scala/**/*.scala"),
+    deps = [base.main],
+  )
+}
+
+metalang {
+  parserGen = genScalaAstMgroup2(
+    cdgFile = "examples/main/resources/metalang3/grammar.cdg",
+    astifierClassName = "com.giyeok.jparser.metalang3.ast.MetaLang3Ast",
+    parserDataFileName = "cdglang3-mg2-parserdata.pb",
+  )
+
+  action generateParser {
+    file.copyFile(parserGen.parserData, "metalang/generated/resources")
+    file.clearDirectory("metalang/generated/scala")
+    file.copyDirectory(parserGen.srcsRoot, "metalang/generated/scala")
+  }
+
+  generatedParser = scala.library(
+    srcs = glob("metalang/generated/scala/**/*.scala"),
+    resources = glob("metalang/generated/resources/**"),
+    deps = [mgroup2.parser],
+  )
+
+  main = scala.library(
+    srcs = glob("metalang/main/scala/**/*.scala"),
+    deps = [naive.main, utils.main, generatedParser],
+  )
+
+  test = scala.library(
+    srcs = glob("metalang/test/scala/**/*.scala"),
+    deps = [...scalaTestDeps, base.test, naive.test, metalang.main],
+  )
+}
+
+milestone2 {
+  proto {
+    schema = protobuf.schema(
+      srcs = ["milestone2/data/proto/MilestoneParserData.proto"],
+      deps = [base.proto.schema],
+    )
+
+    javacode = protobuf.java(schema)
+
+    action generate {
+      file.clearDirectory("milestone2/data/generated/java")
+      file.copyDirectory(javacode.rootDir, "milestone2/data/generated/java")
+    }
+
+    javalib = java.library(
+      srcs = glob("milestone2/data/generated/java/**/*.java"),
+      deps = [base.proto.javalib],
+    )
+  }
+
+  data = scala.library(
+    srcs = glob("milestone2/data/scala/**/*.scala"),
+    deps = [naive.main, proto.javalib],
+  )
+
+  gen = scala.library(
+    srcs = glob("milestone2/gen/scala/**/*.scala"),
+    deps = [naive.main, metalang.main, data, utils.main],
+  )
+
+  parser = scala.library(
+    srcs = glob("milestone2/parser/scala/**/*.scala"),
+    deps = [base.main, data, utils.main],
+  )
+
+  test = scala.library(
+    srcs = glob("milestone2/test/scala/**/*.scala"),
+    resources = glob("milestone2/test/resources/**"),
+    deps = [data, gen, parser, naive.main, ...scalaTestDeps],
+  )
+}
+
+mgroup2 {
+  proto {
+    schema = protobuf.schema(
+      srcs = ["mgroup2/data/proto/MilestoneGroupParserData.proto"],
+      deps = [milestone2.proto.schema],
+    )
+
+    javacode = protobuf.java(schema)
+
+    action generate {
+      file.clearDirectory("mgroup2/data/generated/java")
+      file.copyDirectory(javacode.rootDir, "mgroup2/data/generated/java")
+    }
+
+    javalib = java.library(
+      srcs = glob("mgroup2/data/generated/java/**/*.java"),
+      deps = [milestone2.proto.javalib]
+    )
+  }
+
+  data = scala.library(
+    srcs = glob("mgroup2/data/scala/**/*.scala"),
+    deps = [milestone2.data, proto.javalib],
+  )
+
+  gen = scala.library(
+    srcs = glob("mgroup2/gen/scala/**/*.scala"),
+    deps = [milestone2.gen, data],
+  )
+
+  parser = scala.library(
+    srcs = glob("mgroup2/parser/scala/**/*.scala"),
+    deps = [milestone2.parser, base.main, data, utils.main],
+  )
+
+  test = scala.library(
+    srcs = glob("mgroup2/test/scala/**/*.scala"),
+    resources = glob("mgroup2/test/resources/**"),
+    deps = [data, gen, parser, naive.main, milestone2.gen, examples, milestone2.parser, ...scalaTestDeps],
+  )
+}
+
+examples = scala.library(
+  srcs = glob("examples/main/scala/**/*.scala"),
+  resources = glob("examples/main/resources/**"),
+  deps = [base.test, naive.test, metalang.test],
+)
+
+action runTest = scalatest.run(
+  deps = [base.test, naive.test, metalang.test, milestone2.test, mgroup2.test]
+)
+
+visualize {
+  main = scala.library(
+    // TODO 해시를 모든 argument를 합쳐서 하지 말고 세분화할 방법을 고안해야함
+    srcs = glob("visualize/main/scala/**/*.scala"),
+    deps = [
+      base.main,
+      naive.main,
+      utils.main,
+      metalang.main,
+      examples,
+
+      maven.artifact("io.reactivex.rxjava3", "rxjava", "3.1.4"),
+      maven.artifact("org.scala-lang.modules", "scala-xml_$scalaVersion", "2.1.0"),
+
+      // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
+      // ...[jvm.lib(jar) for glob("visualize/lib/*.jar")],
+      jvm.lib("visualize/lib/gviz-0.0.1.jar"),
+      jvm.lib("visualize/lib/org.eclipse.draw2d.source_3.10.1.201508170204.jar"),
+      jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.databinding_1.13.0.v20210619-1146.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.notifications_0.5.0.v20220401-0716.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.text_3.21.0.v20220817-1340.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface_3.26.0.v20220513-0449.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface_3.27.0.v20220817-1444.jar"),
+      jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64.source_3.120.0.v20220530-1036.jar"),
+      jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64_3.120.0.v20220530-1036.jar"),
+      jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
+      jvm.lib("visualize/lib/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"),
+      jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
+      jvm.lib("visualize/lib/swt-mac.jar"),
+
+      maven.artifact("org.eclipse.platform", "org.eclipse.equinox.common", "3.16.100")
+    ],
+  )
+
+  parserStudio3 = ktjvm.library(
+    srcs = glob("visualize/main/kotlin/**/*.kt"),
+    deps = [
+      ...ktxCoroutinesDeps,
+      visualize.main,
+      maven.artifact("org.jetbrains.kotlinx", "kotlinx-coroutines-swing", ktxCoroutinesVersion)
+    ],
+  )
+
+  action oldParserStudio = jvm.run(
+    deps = [visualize.main],
+    mainClass = "com.giyeok.jparser.studio2.ParserStudio2",
+  )
+
+  action parserStudio = jvm.run(
+    deps = [parserStudio3],
+    mainClass = "com.giyeok.jparser.studio3.ParserStudio3",
+  )
+}
+
+study {
+  proto {
+    schema = protobuf.schema(
+      srcs = [
+        "study/proto/MilestoneParserDataProto.proto",
+        "study/proto/NaiveParserProto.proto",
+      ],
+      deps = [base.proto.schema]
+    )
+
+    javacode = protobuf.java(schema)
+
+    action generate {
+      file.clearDirectory("study/generated/java")
+      file.copyDirectory(javacode.rootDir, "study/generated/java")
+    }
+
+    javalib = java.library(
+      srcs = glob("study/generated/java/**/*.java"),
+      deps = [base.proto.javalib, protobufDep]
+    )
+  }
+
+  fast = scala.library(
+    srcs = glob("study/fast/scala/**/*.scala"),
+    deps = [naive.main, utils.main, metalang.main, proto.javalib],
+  )
+
+  parsergen = java.library(
+    srcs = glob("study/parsergen/java/**/*.java"),
+  )
+
+  cfg = scala.library(
+    srcs = glob("study/cfg/scala/**/*.scala"),
+    deps = [naive.main, utils.main, metalang.main, visualize.main, examples],
+  )
+
+  test = scala.library(
+    srcs = glob("study/test/scala/**/*.scala"),
+    deps = [...scalaTestDeps, fast, parsergen, cfg]
+  )
+}
+
+ktlib {
+  main = ktjvm.library(
+    srcs = glob("ktlib/main/kotlin/**/*.kt"),
+    deps = [base.proto.javalib, mgroup2.proto.javalib],
+  )
+}
+
+ktparser {
+  main = ktjvm.library(
+    srcs = glob("ktparser/main/kotlin/**/*.kt"),
+    deps = [ktlib.main],
+  )
+
+  test = ktjvm.library(
+    srcs = glob("ktparser/test/kotlin/**/*.kt"),
+    resources = glob("ktparser/test/resources/**"),
+    deps = [ktparser.main, ktglue.main, ...testDeps],
+  )
+}
+
+ktglue {
+  main = ktjvm.library(
+    srcs = glob("ktglue/main/kotlin/**/*.kt"),
+    deps = [base.main, naive.main, ktlib.main, milestone2.parser, mgroup2.parser],
+  )
+
+  test = scala.library(
+    srcs = glob("ktglue/test/scala/**/*.scala"),
+    resources = glob("ktlib/test/resources/pyobj.cdg"),
+    deps = [...scalaTestDeps, metalang.main, ktlib.main],
+  )
+}
+
+class JParserData(srcsRoot: directory, astifier: file, parserData: file)
+
+bibixPlugin {
+  impl = ktjvm.library(
+    srcs = glob("bibixPlugin/main/kotlin/**/*.kt"),
+    deps = [bibix.base, milestone2.gen, mgroup2.gen, metalang.main],
+  )
+
+  milestone2Tests {
+    test1 = genKtAstMilestone2(
+      cdgFile = "examples/main/resources/asdl/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.test.AsdlAst",
+      parserDataFileName = "asdl-parserdata.pb",
+    )
+
+    test2 = genKtAstMilestone2(
+      cdgFile = "examples/main/resources/bibix2/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.test.BibixAst",
+      parserDataFileName = "bibix-parserdata.pb",
+    )
+
+    test3 = genKtAstMilestone2(
+      cdgFile = "examples/main/resources/metalang3/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.test.MetaLang3Ast",
+      parserDataFileName = "cdglang3-parserdata.pb",
+    )
+
+    test4 = genKtAstMilestone2(
+      cdgFile = "../j1/grammar/grammar.cdg",
+      astifierClassName = "com.giyeok.j1.J1Ast",
+      parserDataFileName = "j1-parserdata.pb",
+      trimParserData = false,
+    )
+
+    test5 = genScalaAstMilestone2(
+      cdgFile = "examples/main/resources/autodb/autodb_schema2.cdg",
+      astifierClassName = "com.giyeok.jparser.test.Autodb2Ast",
+      parserDataFileName = "autodb2-parserdata.pb",
+    )
+  }
+
+  mgroupTests {
+    test1 = genKtAstMgroup2(
+      cdgFile = "examples/main/resources/asdl/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.test.AsdlAst",
+      parserDataFileName = "asdl-mgroup2-parserdata.pb",
+    )
+  }
+}
+
+def genKtAstMilestone2(
+  cdgFile: file,
+  astifierClassName: string,
+  parserDataFileName: string = "milestone2-parserdata.pb",
+  trimParserData: boolean = true,
+): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenKtAstMilestone2
+
+def genKtAstMgroup2(
+  cdgFile: file,
+  astifierClassName: string,
+  parserDataFileName: string = "mgroup2-parserdata.pb",
+  trimParserData: boolean = true,
+): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenKtAstMgroup2
+
+def genScalaAstMilestone2(
+  cdgFile: file,
+  astifierClassName: string,
+  parserDataFileName: string = "milestone2-parserdata.pb",
+): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenScalaAstMilestone2
+
+def genScalaAstMgroup2(
+  cdgFile: file,
+  astifierClassName: string,
+  parserDataFileName: string = "mgroup2-parserdata.pb",
+): JParserData = bibixPlugin.impl:com.giyeok.jparser.bibixPlugin.GenScalaAstMgroup2

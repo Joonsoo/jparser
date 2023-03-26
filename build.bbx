@@ -100,7 +100,7 @@ utils {
 
 metalang {
   parserGen = genScalaAstMgroup2(
-    cdgFile = "examples/main/resources/cdglang3.cdg",
+    cdgFile = "examples/main/resources/metalang3/grammar.cdg",
     astifierClassName = "com.giyeok.jparser.metalang3.ast.MetaLang3Ast",
     parserDataFileName = "cdglang3-mg2-parserdata.pb",
   )
@@ -208,15 +208,20 @@ mgroup2 {
   test = scala.library(
     srcs = glob("mgroup2/test/scala/**/*.scala"),
     resources = glob("mgroup2/test/resources/**"),
-    deps = [data, gen, parser, naive.main, milestone2.gen, examples, milestone2.parser, ...scalaTestDeps],
+    deps = [data, gen, parser, naive.main, milestone2.gen, examples.main, milestone2.parser, ...scalaTestDeps],
   )
 }
 
-examples = scala.library(
-  srcs = glob("examples/main/scala/**/*.scala"),
-  resources = glob("examples/main/resources/**"),
-  deps = [base.test, naive.test, metalang.test],
-)
+examples {
+  // TODO naive는 metalang3가 없던 시절, naive 파서 테스트용으로 정의된 문법과 예제들
+  // main은 metalang3로 정의된 문법들과 예제들
+  main = scala.library(
+    srcs = glob("examples/main/scala/**/*.scala"),
+    resources = glob("examples/main/resources/**"),
+    deps = [base.test, naive.test, metalang.test],
+  )
+  // TODO generated는 milestone2와 mgroup2 parser gen으로 생성된 파서 데이터와 코드들
+}
 
 action runTest = scalatest.run(
   deps = [base.test, naive.test, metalang.test, milestone2.test, mgroup2.test]
@@ -231,7 +236,7 @@ visualize {
       naive.main,
       utils.main,
       metalang.main,
-      examples,
+      examples.main,
 
       maven.artifact("io.reactivex.rxjava3", "rxjava", "3.1.4"),
       maven.artifact("org.scala-lang.modules", "scala-xml_$scalaVersion", "2.1.0"),
@@ -311,7 +316,7 @@ study {
 
   cfg = scala.library(
     srcs = glob("study/cfg/scala/**/*.scala"),
-    deps = [naive.main, utils.main, metalang.main, visualize.main, examples],
+    deps = [naive.main, utils.main, metalang.main, visualize.main, examples.main],
   )
 
   test = scala.library(
@@ -363,19 +368,19 @@ bibixPlugin {
 
   milestone2Tests {
     test1 = genKtAstMilestone2(
-      cdgFile = "examples/main/resources/asdl.cdg",
+      cdgFile = "examples/main/resources/asdl/grammar.cdg",
       astifierClassName = "com.giyeok.jparser.test.AsdlAst",
       parserDataFileName = "asdl-parserdata.pb",
     )
 
     test2 = genKtAstMilestone2(
-      cdgFile = "examples/main/resources/bibix2.cdg",
+      cdgFile = "examples/main/resources/bibix2/grammar.cdg",
       astifierClassName = "com.giyeok.jparser.test.BibixAst",
       parserDataFileName = "bibix-parserdata.pb",
     )
 
     test3 = genKtAstMilestone2(
-      cdgFile = "examples/main/resources/cdglang3.cdg",
+      cdgFile = "examples/main/resources/metalang3/grammar.cdg",
       astifierClassName = "com.giyeok.jparser.test.MetaLang3Ast",
       parserDataFileName = "cdglang3-parserdata.pb",
     )
@@ -396,7 +401,7 @@ bibixPlugin {
 
   mgroupTests {
     test1 = genKtAstMgroup2(
-      cdgFile = "examples/main/resources/asdl.cdg",
+      cdgFile = "examples/main/resources/asdl/grammar.cdg",
       astifierClassName = "com.giyeok.jparser.test.AsdlAst",
       parserDataFileName = "asdl-mgroup2-parserdata.pb",
     )

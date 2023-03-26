@@ -1,7 +1,0 @@
-Expr: Expr = Term WS '+' WS Expr {BinOp(op:%Op=%Add, lhs=$0, rhs=$4)}
-           | Term
-Term: Term = Factor WS '*' WS Term {BinOp(op=%Mul, lhs=$0, rhs=$4)}
-           | Factor
-Factor: Factor = '0-9' {Number(value=str($0))}
-               | '(' WS Expr WS ')' {Paren(body=$2)}
-WS = ' '*

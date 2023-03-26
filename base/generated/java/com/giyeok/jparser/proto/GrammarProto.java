@@ -47,14 +47,14 @@ public final class GrammarProto {
     /**
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
      */
-
-    com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol getSymbolsOrDefault(
+    /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol getSymbolsOrDefault(
         int key,
-        com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol defaultValue);
+        /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol defaultValue);
     /**
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
      */
-
     com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol getSymbolsOrThrow(
         int key);
 
@@ -81,14 +81,14 @@ public final class GrammarProto {
     /**
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
      */
-
-    com.giyeok.jparser.proto.GrammarProto.NSequence getSequencesOrDefault(
+    /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NSequence getSequencesOrDefault(
         int key,
-        com.giyeok.jparser.proto.GrammarProto.NSequence defaultValue);
+        /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NSequence defaultValue);
     /**
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
      */
-
     com.giyeok.jparser.proto.GrammarProto.NSequence getSequencesOrThrow(
         int key);
   }
@@ -114,80 +114,6 @@ public final class GrammarProto {
       return new NGrammar();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NGrammar(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              startSymbol_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                symbols_ = com.google.protobuf.MapField.newMapField(
-                    SymbolsDefaultEntryHolder.defaultEntry);
-                mutable_bitField0_ |= 0x00000001;
-              }
-              com.google.protobuf.MapEntry<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol>
-              symbols__ = input.readMessage(
-                  SymbolsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              symbols_.getMutableMap().put(
-                  symbols__.getKey(), symbols__.getValue());
-              break;
-            }
-            case 26: {
-              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
-                sequences_ = com.google.protobuf.MapField.newMapField(
-                    SequencesDefaultEntryHolder.defaultEntry);
-                mutable_bitField0_ |= 0x00000002;
-              }
-              com.google.protobuf.MapEntry<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence>
-              sequences__ = input.readMessage(
-                  SequencesDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
-              sequences_.getMutableMap().put(
-                  sequences__.getKey(), sequences__.getValue());
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NGrammar_descriptor;
@@ -216,7 +142,7 @@ public final class GrammarProto {
     }
 
     public static final int START_SYMBOL_FIELD_NUMBER = 1;
-    private int startSymbol_;
+    private int startSymbol_ = 0;
     /**
      * <code>int32 start_symbol = 1;</code>
      * @return The startSymbol.
@@ -238,6 +164,7 @@ public final class GrammarProto {
                   com.google.protobuf.WireFormat.FieldType.MESSAGE,
                   com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol.getDefaultInstance());
     }
+    @SuppressWarnings("serial")
     private com.google.protobuf.MapField<
         java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol> symbols_;
     private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol>
@@ -248,18 +175,16 @@ public final class GrammarProto {
       }
       return symbols_;
     }
-
     public int getSymbolsCount() {
       return internalGetSymbols().getMap().size();
     }
     /**
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
      */
-
     @java.lang.Override
     public boolean containsSymbols(
         int key) {
-      
+
       return internalGetSymbols().getMap().containsKey(key);
     }
     /**
@@ -274,7 +199,6 @@ public final class GrammarProto {
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
      */
     @java.lang.Override
-
     public java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol> getSymbolsMap() {
       return internalGetSymbols().getMap();
     }
@@ -282,11 +206,12 @@ public final class GrammarProto {
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
      */
     @java.lang.Override
-
-    public com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol getSymbolsOrDefault(
+    public /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol getSymbolsOrDefault(
         int key,
-        com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol defaultValue) {
-      
+        /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol defaultValue) {
+
       java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol> map =
           internalGetSymbols().getMap();
       return map.containsKey(key) ? map.get(key) : defaultValue;
@@ -295,10 +220,9 @@ public final class GrammarProto {
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
      */
     @java.lang.Override
-
     public com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol getSymbolsOrThrow(
         int key) {
-      
+
       java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol> map =
           internalGetSymbols().getMap();
       if (!map.containsKey(key)) {
@@ -319,6 +243,7 @@ public final class GrammarProto {
                   com.google.protobuf.WireFormat.FieldType.MESSAGE,
                   com.giyeok.jparser.proto.GrammarProto.NSequence.getDefaultInstance());
     }
+    @SuppressWarnings("serial")
     private com.google.protobuf.MapField<
         java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence> sequences_;
     private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence>
@@ -329,18 +254,16 @@ public final class GrammarProto {
       }
       return sequences_;
     }
-
     public int getSequencesCount() {
       return internalGetSequences().getMap().size();
     }
     /**
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
      */
-
     @java.lang.Override
     public boolean containsSequences(
         int key) {
-      
+
       return internalGetSequences().getMap().containsKey(key);
     }
     /**
@@ -355,7 +278,6 @@ public final class GrammarProto {
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
      */
     @java.lang.Override
-
     public java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence> getSequencesMap() {
       return internalGetSequences().getMap();
     }
@@ -363,11 +285,12 @@ public final class GrammarProto {
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
      */
     @java.lang.Override
-
-    public com.giyeok.jparser.proto.GrammarProto.NSequence getSequencesOrDefault(
+    public /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NSequence getSequencesOrDefault(
         int key,
-        com.giyeok.jparser.proto.GrammarProto.NSequence defaultValue) {
-      
+        /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NSequence defaultValue) {
+
       java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence> map =
           internalGetSequences().getMap();
       return map.containsKey(key) ? map.get(key) : defaultValue;
@@ -376,10 +299,9 @@ public final class GrammarProto {
      * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
      */
     @java.lang.Override
-
     public com.giyeok.jparser.proto.GrammarProto.NSequence getSequencesOrThrow(
         int key) {
-      
+
       java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence> map =
           internalGetSequences().getMap();
       if (!map.containsKey(key)) {
@@ -417,7 +339,7 @@ public final class GrammarProto {
           internalGetSequences(),
           SequencesDefaultEntryHolder.defaultEntry,
           3);
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -450,7 +372,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
             .computeMessageSize(3, sequences__);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -471,7 +393,7 @@ public final class GrammarProto {
           other.internalGetSymbols())) return false;
       if (!internalGetSequences().equals(
           other.internalGetSequences())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -492,7 +414,7 @@ public final class GrammarProto {
         hash = (37 * hash) + SEQUENCES_FIELD_NUMBER;
         hash = (53 * hash) + internalGetSequences().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -635,24 +557,19 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NGrammar.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         startSymbol_ = 0;
-
         internalGetMutableSymbols().clear();
         internalGetMutableSequences().clear();
         return this;
@@ -681,48 +598,26 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NGrammar buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NGrammar result = new com.giyeok.jparser.proto.GrammarProto.NGrammar(this);
-        int from_bitField0_ = bitField0_;
-        result.startSymbol_ = startSymbol_;
-        result.symbols_ = internalGetSymbols();
-        result.symbols_.makeImmutable();
-        result.sequences_ = internalGetSequences();
-        result.sequences_.makeImmutable();
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NGrammar result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.startSymbol_ = startSymbol_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbols_ = internalGetSymbols();
+          result.symbols_.makeImmutable();
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.sequences_ = internalGetSequences();
+          result.sequences_.makeImmutable();
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NGrammar) {
@@ -740,9 +635,11 @@ public final class GrammarProto {
         }
         internalGetMutableSymbols().mergeFrom(
             other.internalGetSymbols());
+        bitField0_ |= 0x00000002;
         internalGetMutableSequences().mergeFrom(
             other.internalGetSequences());
-        this.mergeUnknownFields(other.unknownFields);
+        bitField0_ |= 0x00000004;
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -757,17 +654,53 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NGrammar parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                startSymbol_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                com.google.protobuf.MapEntry<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol>
+                symbols__ = input.readMessage(
+                    SymbolsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+                internalGetMutableSymbols().getMutableMap().put(
+                    symbols__.getKey(), symbols__.getValue());
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 26: {
+                com.google.protobuf.MapEntry<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence>
+                sequences__ = input.readMessage(
+                    SequencesDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+                internalGetMutableSequences().getMutableMap().put(
+                    sequences__.getKey(), sequences__.getValue());
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 26
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NGrammar) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -787,8 +720,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setStartSymbol(int value) {
-        
+
         startSymbol_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -797,7 +731,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearStartSymbol() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         startSymbol_ = 0;
         onChanged();
         return this;
@@ -806,7 +740,7 @@ public final class GrammarProto {
       private com.google.protobuf.MapField<
           java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol> symbols_;
       private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol>
-      internalGetSymbols() {
+          internalGetSymbols() {
         if (symbols_ == null) {
           return com.google.protobuf.MapField.emptyMapField(
               SymbolsDefaultEntryHolder.defaultEntry);
@@ -814,8 +748,7 @@ public final class GrammarProto {
         return symbols_;
       }
       private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol>
-      internalGetMutableSymbols() {
-        onChanged();;
+          internalGetMutableSymbols() {
         if (symbols_ == null) {
           symbols_ = com.google.protobuf.MapField.newMapField(
               SymbolsDefaultEntryHolder.defaultEntry);
@@ -823,20 +756,20 @@ public final class GrammarProto {
         if (!symbols_.isMutable()) {
           symbols_ = symbols_.copy();
         }
+        bitField0_ |= 0x00000002;
+        onChanged();
         return symbols_;
       }
-
       public int getSymbolsCount() {
         return internalGetSymbols().getMap().size();
       }
       /**
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
        */
-
       @java.lang.Override
       public boolean containsSymbols(
           int key) {
-        
+
         return internalGetSymbols().getMap().containsKey(key);
       }
       /**
@@ -851,7 +784,6 @@ public final class GrammarProto {
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
        */
       @java.lang.Override
-
       public java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol> getSymbolsMap() {
         return internalGetSymbols().getMap();
       }
@@ -859,11 +791,12 @@ public final class GrammarProto {
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
        */
       @java.lang.Override
-
-      public com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol getSymbolsOrDefault(
+      public /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol getSymbolsOrDefault(
           int key,
-          com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol defaultValue) {
-        
+          /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol defaultValue) {
+
         java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol> map =
             internalGetSymbols().getMap();
         return map.containsKey(key) ? map.get(key) : defaultValue;
@@ -872,10 +805,9 @@ public final class GrammarProto {
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
        */
       @java.lang.Override
-
       public com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol getSymbolsOrThrow(
           int key) {
-        
+
         java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol> map =
             internalGetSymbols().getMap();
         if (!map.containsKey(key)) {
@@ -883,8 +815,8 @@ public final class GrammarProto {
         }
         return map.get(key);
       }
-
       public Builder clearSymbols() {
+        bitField0_ = (bitField0_ & ~0x00000002);
         internalGetMutableSymbols().getMutableMap()
             .clear();
         return this;
@@ -892,10 +824,9 @@ public final class GrammarProto {
       /**
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
        */
-
       public Builder removeSymbols(
           int key) {
-        
+
         internalGetMutableSymbols().getMutableMap()
             .remove(key);
         return this;
@@ -905,7 +836,8 @@ public final class GrammarProto {
        */
       @java.lang.Deprecated
       public java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol>
-      getMutableSymbols() {
+          getMutableSymbols() {
+        bitField0_ |= 0x00000002;
         return internalGetMutableSymbols().getMutableMap();
       }
       /**
@@ -914,27 +846,28 @@ public final class GrammarProto {
       public Builder putSymbols(
           int key,
           com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol value) {
-        
-        if (value == null) { throw new java.lang.NullPointerException(); }
+
+        if (value == null) { throw new NullPointerException("map value"); }
         internalGetMutableSymbols().getMutableMap()
             .put(key, value);
+        bitField0_ |= 0x00000002;
         return this;
       }
       /**
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NAtomicSymbol&gt; symbols = 2;</code>
        */
-
       public Builder putAllSymbols(
           java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol> values) {
         internalGetMutableSymbols().getMutableMap()
             .putAll(values);
+        bitField0_ |= 0x00000002;
         return this;
       }
 
       private com.google.protobuf.MapField<
           java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence> sequences_;
       private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence>
-      internalGetSequences() {
+          internalGetSequences() {
         if (sequences_ == null) {
           return com.google.protobuf.MapField.emptyMapField(
               SequencesDefaultEntryHolder.defaultEntry);
@@ -942,8 +875,7 @@ public final class GrammarProto {
         return sequences_;
       }
       private com.google.protobuf.MapField<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence>
-      internalGetMutableSequences() {
-        onChanged();;
+          internalGetMutableSequences() {
         if (sequences_ == null) {
           sequences_ = com.google.protobuf.MapField.newMapField(
               SequencesDefaultEntryHolder.defaultEntry);
@@ -951,20 +883,20 @@ public final class GrammarProto {
         if (!sequences_.isMutable()) {
           sequences_ = sequences_.copy();
         }
+        bitField0_ |= 0x00000004;
+        onChanged();
         return sequences_;
       }
-
       public int getSequencesCount() {
         return internalGetSequences().getMap().size();
       }
       /**
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
        */
-
       @java.lang.Override
       public boolean containsSequences(
           int key) {
-        
+
         return internalGetSequences().getMap().containsKey(key);
       }
       /**
@@ -979,7 +911,6 @@ public final class GrammarProto {
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
        */
       @java.lang.Override
-
       public java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence> getSequencesMap() {
         return internalGetSequences().getMap();
       }
@@ -987,11 +918,12 @@ public final class GrammarProto {
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
        */
       @java.lang.Override
-
-      public com.giyeok.jparser.proto.GrammarProto.NSequence getSequencesOrDefault(
+      public /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NSequence getSequencesOrDefault(
           int key,
-          com.giyeok.jparser.proto.GrammarProto.NSequence defaultValue) {
-        
+          /* nullable */
+com.giyeok.jparser.proto.GrammarProto.NSequence defaultValue) {
+
         java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence> map =
             internalGetSequences().getMap();
         return map.containsKey(key) ? map.get(key) : defaultValue;
@@ -1000,10 +932,9 @@ public final class GrammarProto {
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
        */
       @java.lang.Override
-
       public com.giyeok.jparser.proto.GrammarProto.NSequence getSequencesOrThrow(
           int key) {
-        
+
         java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence> map =
             internalGetSequences().getMap();
         if (!map.containsKey(key)) {
@@ -1011,8 +942,8 @@ public final class GrammarProto {
         }
         return map.get(key);
       }
-
       public Builder clearSequences() {
+        bitField0_ = (bitField0_ & ~0x00000004);
         internalGetMutableSequences().getMutableMap()
             .clear();
         return this;
@@ -1020,10 +951,9 @@ public final class GrammarProto {
       /**
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
        */
-
       public Builder removeSequences(
           int key) {
-        
+
         internalGetMutableSequences().getMutableMap()
             .remove(key);
         return this;
@@ -1033,7 +963,8 @@ public final class GrammarProto {
        */
       @java.lang.Deprecated
       public java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence>
-      getMutableSequences() {
+          getMutableSequences() {
+        bitField0_ |= 0x00000004;
         return internalGetMutableSequences().getMutableMap();
       }
       /**
@@ -1042,20 +973,21 @@ public final class GrammarProto {
       public Builder putSequences(
           int key,
           com.giyeok.jparser.proto.GrammarProto.NSequence value) {
-        
-        if (value == null) { throw new java.lang.NullPointerException(); }
+
+        if (value == null) { throw new NullPointerException("map value"); }
         internalGetMutableSequences().getMutableMap()
             .put(key, value);
+        bitField0_ |= 0x00000004;
         return this;
       }
       /**
        * <code>map&lt;int32, .com.giyeok.jparser.proto.NSequence&gt; sequences = 3;</code>
        */
-
       public Builder putAllSequences(
           java.util.Map<java.lang.Integer, com.giyeok.jparser.proto.GrammarProto.NSequence> values) {
         internalGetMutableSequences().getMutableMap()
             .putAll(values);
+        bitField0_ |= 0x00000004;
         return this;
       }
       @java.lang.Override
@@ -1091,7 +1023,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NGrammar(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -1145,7 +1088,7 @@ public final class GrammarProto {
      */
     com.giyeok.jparser.proto.GrammarProto.NSequenceOrBuilder getSequenceOrBuilder();
 
-    public com.giyeok.jparser.proto.GrammarProto.NSymbol.NSymbolCase getNSymbolCase();
+    com.giyeok.jparser.proto.GrammarProto.NSymbol.NSymbolCase getNSymbolCase();
   }
   /**
    * Protobuf type {@code com.giyeok.jparser.proto.NSymbol}
@@ -1169,76 +1112,6 @@ public final class GrammarProto {
       return new NSymbol();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NSymbol(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol.Builder subBuilder = null;
-              if (nSymbolCase_ == 1) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol) nSymbol_).toBuilder();
-              }
-              nSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol) nSymbol_);
-                nSymbol_ = subBuilder.buildPartial();
-              }
-              nSymbolCase_ = 1;
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.NSequence.Builder subBuilder = null;
-              if (nSymbolCase_ == 2) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NSequence) nSymbol_).toBuilder();
-              }
-              nSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NSequence.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NSequence) nSymbol_);
-                nSymbol_ = subBuilder.buildPartial();
-              }
-              nSymbolCase_ = 2;
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NSymbol_descriptor;
@@ -1253,6 +1126,7 @@ public final class GrammarProto {
     }
 
     private int nSymbolCase_ = 0;
+    @SuppressWarnings("serial")
     private java.lang.Object nSymbol_;
     public enum NSymbolCase
         implements com.google.protobuf.Internal.EnumLite,
@@ -1375,7 +1249,7 @@ public final class GrammarProto {
       if (nSymbolCase_ == 2) {
         output.writeMessage(2, (com.giyeok.jparser.proto.GrammarProto.NSequence) nSymbol_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -1392,7 +1266,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, (com.giyeok.jparser.proto.GrammarProto.NSequence) nSymbol_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -1420,7 +1294,7 @@ public final class GrammarProto {
         case 0:
         default:
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -1443,7 +1317,7 @@ public final class GrammarProto {
         case 0:
         default:
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -1560,22 +1434,24 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NSymbol.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
+        if (atomicSymbolBuilder_ != null) {
+          atomicSymbolBuilder_.clear();
+        }
+        if (sequenceBuilder_ != null) {
+          sequenceBuilder_.clear();
+        }
         nSymbolCase_ = 0;
         nSymbol_ = null;
         return this;
@@ -1604,57 +1480,29 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NSymbol buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NSymbol result = new com.giyeok.jparser.proto.GrammarProto.NSymbol(this);
-        if (nSymbolCase_ == 1) {
-          if (atomicSymbolBuilder_ == null) {
-            result.nSymbol_ = nSymbol_;
-          } else {
-            result.nSymbol_ = atomicSymbolBuilder_.build();
-          }
-        }
-        if (nSymbolCase_ == 2) {
-          if (sequenceBuilder_ == null) {
-            result.nSymbol_ = nSymbol_;
-          } else {
-            result.nSymbol_ = sequenceBuilder_.build();
-          }
-        }
-        result.nSymbolCase_ = nSymbolCase_;
+        if (bitField0_ != 0) { buildPartial0(result); }
+        buildPartialOneofs(result);
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NSymbol result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
+
+      private void buildPartialOneofs(com.giyeok.jparser.proto.GrammarProto.NSymbol result) {
+        result.nSymbolCase_ = nSymbolCase_;
+        result.nSymbol_ = this.nSymbol_;
+        if (nSymbolCase_ == 1 &&
+            atomicSymbolBuilder_ != null) {
+          result.nSymbol_ = atomicSymbolBuilder_.build();
+        }
+        if (nSymbolCase_ == 2 &&
+            sequenceBuilder_ != null) {
+          result.nSymbol_ = sequenceBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NSymbol) {
@@ -1680,7 +1528,7 @@ public final class GrammarProto {
             break;
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -1695,17 +1543,44 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NSymbol parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getAtomicSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nSymbolCase_ = 1;
+                break;
+              } // case 10
+              case 18: {
+                input.readMessage(
+                    getSequenceFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nSymbolCase_ = 2;
+                break;
+              } // case 18
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NSymbol) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int nSymbolCase_ = 0;
@@ -1723,6 +1598,7 @@ public final class GrammarProto {
         return this;
       }
 
+      private int bitField0_;
 
       private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol.Builder, com.giyeok.jparser.proto.GrammarProto.NAtomicSymbolOrBuilder> atomicSymbolBuilder_;
@@ -1798,8 +1674,9 @@ public final class GrammarProto {
         } else {
           if (nSymbolCase_ == 1) {
             atomicSymbolBuilder_.mergeFrom(value);
+          } else {
+            atomicSymbolBuilder_.setMessage(value);
           }
-          atomicSymbolBuilder_.setMessage(value);
         }
         nSymbolCase_ = 1;
         return this;
@@ -1861,7 +1738,7 @@ public final class GrammarProto {
           nSymbol_ = null;
         }
         nSymbolCase_ = 1;
-        onChanged();;
+        onChanged();
         return atomicSymbolBuilder_;
       }
 
@@ -1939,8 +1816,9 @@ public final class GrammarProto {
         } else {
           if (nSymbolCase_ == 2) {
             sequenceBuilder_.mergeFrom(value);
+          } else {
+            sequenceBuilder_.setMessage(value);
           }
-          sequenceBuilder_.setMessage(value);
         }
         nSymbolCase_ = 2;
         return this;
@@ -2002,7 +1880,7 @@ public final class GrammarProto {
           nSymbol_ = null;
         }
         nSymbolCase_ = 2;
-        onChanged();;
+        onChanged();
         return sequenceBuilder_;
       }
       @java.lang.Override
@@ -2038,7 +1916,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NSymbol(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -2227,7 +2116,7 @@ public final class GrammarProto {
      */
     com.giyeok.jparser.proto.GrammarProto.NLookaheadExceptOrBuilder getLookaheadExceptOrBuilder();
 
-    public com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol.NAtomicSymbolCase getNAtomicSymbolCase();
+    com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol.NAtomicSymbolCase getNAtomicSymbolCase();
   }
   /**
    * Protobuf type {@code com.giyeok.jparser.proto.NAtomicSymbol}
@@ -2251,202 +2140,6 @@ public final class GrammarProto {
       return new NAtomicSymbol();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NAtomicSymbol(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.NStart.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 1) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NStart) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NStart.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NStart) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 1;
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.NNonterminal.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 2) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NNonterminal) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NNonterminal.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NNonterminal) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 2;
-              break;
-            }
-            case 26: {
-              com.giyeok.jparser.proto.GrammarProto.NTerminal.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 3) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NTerminal) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NTerminal.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NTerminal) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 3;
-              break;
-            }
-            case 34: {
-              com.giyeok.jparser.proto.GrammarProto.NOneOf.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 4) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NOneOf) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NOneOf.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NOneOf) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 4;
-              break;
-            }
-            case 42: {
-              com.giyeok.jparser.proto.GrammarProto.NProxy.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 5) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NProxy) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NProxy.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NProxy) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 5;
-              break;
-            }
-            case 50: {
-              com.giyeok.jparser.proto.GrammarProto.NRepeat.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 6) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NRepeat) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NRepeat.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NRepeat) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 6;
-              break;
-            }
-            case 58: {
-              com.giyeok.jparser.proto.GrammarProto.NExcept.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 7) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NExcept) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NExcept.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NExcept) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 7;
-              break;
-            }
-            case 66: {
-              com.giyeok.jparser.proto.GrammarProto.NJoin.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 8) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NJoin) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NJoin.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NJoin) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 8;
-              break;
-            }
-            case 74: {
-              com.giyeok.jparser.proto.GrammarProto.NLongest.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 9) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NLongest) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NLongest.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NLongest) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 9;
-              break;
-            }
-            case 82: {
-              com.giyeok.jparser.proto.GrammarProto.NLookaheadIs.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 10) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NLookaheadIs) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NLookaheadIs.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NLookaheadIs) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 10;
-              break;
-            }
-            case 90: {
-              com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept.Builder subBuilder = null;
-              if (nAtomicSymbolCase_ == 11) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept) nAtomicSymbol_).toBuilder();
-              }
-              nAtomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept) nAtomicSymbol_);
-                nAtomicSymbol_ = subBuilder.buildPartial();
-              }
-              nAtomicSymbolCase_ = 11;
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NAtomicSymbol_descriptor;
@@ -2461,6 +2154,7 @@ public final class GrammarProto {
     }
 
     private int nAtomicSymbolCase_ = 0;
+    @SuppressWarnings("serial")
     private java.lang.Object nAtomicSymbol_;
     public enum NAtomicSymbolCase
         implements com.google.protobuf.Internal.EnumLite,
@@ -2907,7 +2601,7 @@ public final class GrammarProto {
       if (nAtomicSymbolCase_ == 11) {
         output.writeMessage(11, (com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept) nAtomicSymbol_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -2960,7 +2654,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(11, (com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept) nAtomicSymbol_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -3024,7 +2718,7 @@ public final class GrammarProto {
         case 0:
         default:
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -3083,7 +2777,7 @@ public final class GrammarProto {
         case 0:
         default:
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -3200,22 +2894,51 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
+        if (startBuilder_ != null) {
+          startBuilder_.clear();
+        }
+        if (nonterminalBuilder_ != null) {
+          nonterminalBuilder_.clear();
+        }
+        if (terminalBuilder_ != null) {
+          terminalBuilder_.clear();
+        }
+        if (oneOfBuilder_ != null) {
+          oneOfBuilder_.clear();
+        }
+        if (proxyBuilder_ != null) {
+          proxyBuilder_.clear();
+        }
+        if (repeatBuilder_ != null) {
+          repeatBuilder_.clear();
+        }
+        if (exceptBuilder_ != null) {
+          exceptBuilder_.clear();
+        }
+        if (joinBuilder_ != null) {
+          joinBuilder_.clear();
+        }
+        if (longestBuilder_ != null) {
+          longestBuilder_.clear();
+        }
+        if (lookaheadIsBuilder_ != null) {
+          lookaheadIsBuilder_.clear();
+        }
+        if (lookaheadExceptBuilder_ != null) {
+          lookaheadExceptBuilder_.clear();
+        }
         nAtomicSymbolCase_ = 0;
         nAtomicSymbol_ = null;
         return this;
@@ -3244,120 +2967,65 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol result = new com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol(this);
-        if (nAtomicSymbolCase_ == 1) {
-          if (startBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = startBuilder_.build();
-          }
-        }
-        if (nAtomicSymbolCase_ == 2) {
-          if (nonterminalBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = nonterminalBuilder_.build();
-          }
-        }
-        if (nAtomicSymbolCase_ == 3) {
-          if (terminalBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = terminalBuilder_.build();
-          }
-        }
-        if (nAtomicSymbolCase_ == 4) {
-          if (oneOfBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = oneOfBuilder_.build();
-          }
-        }
-        if (nAtomicSymbolCase_ == 5) {
-          if (proxyBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = proxyBuilder_.build();
-          }
-        }
-        if (nAtomicSymbolCase_ == 6) {
-          if (repeatBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = repeatBuilder_.build();
-          }
-        }
-        if (nAtomicSymbolCase_ == 7) {
-          if (exceptBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = exceptBuilder_.build();
-          }
-        }
-        if (nAtomicSymbolCase_ == 8) {
-          if (joinBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = joinBuilder_.build();
-          }
-        }
-        if (nAtomicSymbolCase_ == 9) {
-          if (longestBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = longestBuilder_.build();
-          }
-        }
-        if (nAtomicSymbolCase_ == 10) {
-          if (lookaheadIsBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = lookaheadIsBuilder_.build();
-          }
-        }
-        if (nAtomicSymbolCase_ == 11) {
-          if (lookaheadExceptBuilder_ == null) {
-            result.nAtomicSymbol_ = nAtomicSymbol_;
-          } else {
-            result.nAtomicSymbol_ = lookaheadExceptBuilder_.build();
-          }
-        }
-        result.nAtomicSymbolCase_ = nAtomicSymbolCase_;
+        if (bitField0_ != 0) { buildPartial0(result); }
+        buildPartialOneofs(result);
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
+
+      private void buildPartialOneofs(com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol result) {
+        result.nAtomicSymbolCase_ = nAtomicSymbolCase_;
+        result.nAtomicSymbol_ = this.nAtomicSymbol_;
+        if (nAtomicSymbolCase_ == 1 &&
+            startBuilder_ != null) {
+          result.nAtomicSymbol_ = startBuilder_.build();
+        }
+        if (nAtomicSymbolCase_ == 2 &&
+            nonterminalBuilder_ != null) {
+          result.nAtomicSymbol_ = nonterminalBuilder_.build();
+        }
+        if (nAtomicSymbolCase_ == 3 &&
+            terminalBuilder_ != null) {
+          result.nAtomicSymbol_ = terminalBuilder_.build();
+        }
+        if (nAtomicSymbolCase_ == 4 &&
+            oneOfBuilder_ != null) {
+          result.nAtomicSymbol_ = oneOfBuilder_.build();
+        }
+        if (nAtomicSymbolCase_ == 5 &&
+            proxyBuilder_ != null) {
+          result.nAtomicSymbol_ = proxyBuilder_.build();
+        }
+        if (nAtomicSymbolCase_ == 6 &&
+            repeatBuilder_ != null) {
+          result.nAtomicSymbol_ = repeatBuilder_.build();
+        }
+        if (nAtomicSymbolCase_ == 7 &&
+            exceptBuilder_ != null) {
+          result.nAtomicSymbol_ = exceptBuilder_.build();
+        }
+        if (nAtomicSymbolCase_ == 8 &&
+            joinBuilder_ != null) {
+          result.nAtomicSymbol_ = joinBuilder_.build();
+        }
+        if (nAtomicSymbolCase_ == 9 &&
+            longestBuilder_ != null) {
+          result.nAtomicSymbol_ = longestBuilder_.build();
+        }
+        if (nAtomicSymbolCase_ == 10 &&
+            lookaheadIsBuilder_ != null) {
+          result.nAtomicSymbol_ = lookaheadIsBuilder_.build();
+        }
+        if (nAtomicSymbolCase_ == 11 &&
+            lookaheadExceptBuilder_ != null) {
+          result.nAtomicSymbol_ = lookaheadExceptBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol) {
@@ -3419,7 +3087,7 @@ public final class GrammarProto {
             break;
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -3434,17 +3102,107 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getStartFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 1;
+                break;
+              } // case 10
+              case 18: {
+                input.readMessage(
+                    getNonterminalFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 2;
+                break;
+              } // case 18
+              case 26: {
+                input.readMessage(
+                    getTerminalFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 3;
+                break;
+              } // case 26
+              case 34: {
+                input.readMessage(
+                    getOneOfFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 4;
+                break;
+              } // case 34
+              case 42: {
+                input.readMessage(
+                    getProxyFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 5;
+                break;
+              } // case 42
+              case 50: {
+                input.readMessage(
+                    getRepeatFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 6;
+                break;
+              } // case 50
+              case 58: {
+                input.readMessage(
+                    getExceptFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 7;
+                break;
+              } // case 58
+              case 66: {
+                input.readMessage(
+                    getJoinFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 8;
+                break;
+              } // case 66
+              case 74: {
+                input.readMessage(
+                    getLongestFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 9;
+                break;
+              } // case 74
+              case 82: {
+                input.readMessage(
+                    getLookaheadIsFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 10;
+                break;
+              } // case 82
+              case 90: {
+                input.readMessage(
+                    getLookaheadExceptFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                nAtomicSymbolCase_ = 11;
+                break;
+              } // case 90
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NAtomicSymbol) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int nAtomicSymbolCase_ = 0;
@@ -3462,6 +3220,7 @@ public final class GrammarProto {
         return this;
       }
 
+      private int bitField0_;
 
       private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.proto.GrammarProto.NStart, com.giyeok.jparser.proto.GrammarProto.NStart.Builder, com.giyeok.jparser.proto.GrammarProto.NStartOrBuilder> startBuilder_;
@@ -3537,8 +3296,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 1) {
             startBuilder_.mergeFrom(value);
+          } else {
+            startBuilder_.setMessage(value);
           }
-          startBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 1;
         return this;
@@ -3600,7 +3360,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 1;
-        onChanged();;
+        onChanged();
         return startBuilder_;
       }
 
@@ -3678,8 +3438,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 2) {
             nonterminalBuilder_.mergeFrom(value);
+          } else {
+            nonterminalBuilder_.setMessage(value);
           }
-          nonterminalBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 2;
         return this;
@@ -3741,7 +3502,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 2;
-        onChanged();;
+        onChanged();
         return nonterminalBuilder_;
       }
 
@@ -3819,8 +3580,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 3) {
             terminalBuilder_.mergeFrom(value);
+          } else {
+            terminalBuilder_.setMessage(value);
           }
-          terminalBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 3;
         return this;
@@ -3882,7 +3644,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 3;
-        onChanged();;
+        onChanged();
         return terminalBuilder_;
       }
 
@@ -3960,8 +3722,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 4) {
             oneOfBuilder_.mergeFrom(value);
+          } else {
+            oneOfBuilder_.setMessage(value);
           }
-          oneOfBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 4;
         return this;
@@ -4023,7 +3786,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 4;
-        onChanged();;
+        onChanged();
         return oneOfBuilder_;
       }
 
@@ -4101,8 +3864,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 5) {
             proxyBuilder_.mergeFrom(value);
+          } else {
+            proxyBuilder_.setMessage(value);
           }
-          proxyBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 5;
         return this;
@@ -4164,7 +3928,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 5;
-        onChanged();;
+        onChanged();
         return proxyBuilder_;
       }
 
@@ -4242,8 +4006,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 6) {
             repeatBuilder_.mergeFrom(value);
+          } else {
+            repeatBuilder_.setMessage(value);
           }
-          repeatBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 6;
         return this;
@@ -4305,7 +4070,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 6;
-        onChanged();;
+        onChanged();
         return repeatBuilder_;
       }
 
@@ -4383,8 +4148,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 7) {
             exceptBuilder_.mergeFrom(value);
+          } else {
+            exceptBuilder_.setMessage(value);
           }
-          exceptBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 7;
         return this;
@@ -4446,7 +4212,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 7;
-        onChanged();;
+        onChanged();
         return exceptBuilder_;
       }
 
@@ -4524,8 +4290,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 8) {
             joinBuilder_.mergeFrom(value);
+          } else {
+            joinBuilder_.setMessage(value);
           }
-          joinBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 8;
         return this;
@@ -4587,7 +4354,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 8;
-        onChanged();;
+        onChanged();
         return joinBuilder_;
       }
 
@@ -4665,8 +4432,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 9) {
             longestBuilder_.mergeFrom(value);
+          } else {
+            longestBuilder_.setMessage(value);
           }
-          longestBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 9;
         return this;
@@ -4728,7 +4496,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 9;
-        onChanged();;
+        onChanged();
         return longestBuilder_;
       }
 
@@ -4806,8 +4574,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 10) {
             lookaheadIsBuilder_.mergeFrom(value);
+          } else {
+            lookaheadIsBuilder_.setMessage(value);
           }
-          lookaheadIsBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 10;
         return this;
@@ -4869,7 +4638,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 10;
-        onChanged();;
+        onChanged();
         return lookaheadIsBuilder_;
       }
 
@@ -4947,8 +4716,9 @@ public final class GrammarProto {
         } else {
           if (nAtomicSymbolCase_ == 11) {
             lookaheadExceptBuilder_.mergeFrom(value);
+          } else {
+            lookaheadExceptBuilder_.setMessage(value);
           }
-          lookaheadExceptBuilder_.setMessage(value);
         }
         nAtomicSymbolCase_ = 11;
         return this;
@@ -5010,7 +4780,7 @@ public final class GrammarProto {
           nAtomicSymbol_ = null;
         }
         nAtomicSymbolCase_ = 11;
-        onChanged();;
+        onChanged();
         return lookaheadExceptBuilder_;
       }
       @java.lang.Override
@@ -5046,7 +4816,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NAtomicSymbol(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -5104,58 +4885,6 @@ public final class GrammarProto {
       return new NStart();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NStart(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 16: {
-
-              produce_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NStart_descriptor;
@@ -5170,7 +4899,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -5181,7 +4910,7 @@ public final class GrammarProto {
     }
 
     public static final int PRODUCE_FIELD_NUMBER = 2;
-    private int produce_;
+    private int produce_ = 0;
     /**
      * <code>int32 produce = 2;</code>
      * @return The produce.
@@ -5211,7 +4940,7 @@ public final class GrammarProto {
       if (produce_ != 0) {
         output.writeInt32(2, produce_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -5228,7 +4957,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(2, produce_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -5247,7 +4976,7 @@ public final class GrammarProto {
           != other.getId()) return false;
       if (getProduce()
           != other.getProduce()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -5262,7 +4991,7 @@ public final class GrammarProto {
       hash = (53 * hash) + getId();
       hash = (37 * hash) + PRODUCE_FIELD_NUMBER;
       hash = (53 * hash) + getProduce();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -5379,26 +5108,20 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NStart.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
         produce_ = 0;
-
         return this;
       }
 
@@ -5425,44 +5148,21 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NStart buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NStart result = new com.giyeok.jparser.proto.GrammarProto.NStart(this);
-        result.id_ = id_;
-        result.produce_ = produce_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NStart result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.produce_ = produce_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NStart) {
@@ -5481,7 +5181,7 @@ public final class GrammarProto {
         if (other.getProduce() != 0) {
           setProduce(other.getProduce());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -5496,19 +5196,43 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NStart parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 16: {
+                produce_ = input.readInt32();
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 16
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NStart) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int id_ ;
       /**
@@ -5525,8 +5249,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -5535,7 +5260,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -5556,8 +5281,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setProduce(int value) {
-        
+
         produce_ = value;
+        bitField0_ |= 0x00000002;
         onChanged();
         return this;
       }
@@ -5566,7 +5292,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearProduce() {
-        
+        bitField0_ = (bitField0_ & ~0x00000002);
         produce_ = 0;
         onChanged();
         return this;
@@ -5604,7 +5330,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NStart(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -5689,91 +5426,6 @@ public final class GrammarProto {
       return new NNonterminal();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NNonterminal(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Nonterminal.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.Nonterminal.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 24: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                produces_ = newIntList();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              produces_.addInt(input.readInt32());
-              break;
-            }
-            case 26: {
-              int length = input.readRawVarint32();
-              int limit = input.pushLimit(length);
-              if (!((mutable_bitField0_ & 0x00000001) != 0) && input.getBytesUntilLimit() > 0) {
-                produces_ = newIntList();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              while (input.getBytesUntilLimit() > 0) {
-                produces_.addInt(input.readInt32());
-              }
-              input.popLimit(limit);
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          produces_.makeImmutable(); // C
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NNonterminal_descriptor;
@@ -5788,7 +5440,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -5821,10 +5473,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.NonterminalOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.Nonterminal.getDefaultInstance() : symbol_;
     }
 
     public static final int PRODUCES_FIELD_NUMBER = 3;
+    @SuppressWarnings("serial")
     private com.google.protobuf.Internal.IntList produces_;
     /**
      * <code>repeated int32 produces = 3;</code>
@@ -5880,7 +5533,7 @@ public final class GrammarProto {
       for (int i = 0; i < produces_.size(); i++) {
         output.writeInt32NoTag(produces_.getInt(i));
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -5911,7 +5564,7 @@ public final class GrammarProto {
         }
         producesMemoizedSerializedSize = dataSize;
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -5935,7 +5588,7 @@ public final class GrammarProto {
       }
       if (!getProducesList()
           .equals(other.getProducesList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -5956,7 +5609,7 @@ public final class GrammarProto {
         hash = (37 * hash) + PRODUCES_FIELD_NUMBER;
         hash = (53 * hash) + getProducesList().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -6073,32 +5726,25 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NNonterminal.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         produces_ = emptyIntList();
-        bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
 
@@ -6125,54 +5771,32 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NNonterminal buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NNonterminal result = new com.giyeok.jparser.proto.GrammarProto.NNonterminal(this);
-        int from_bitField0_ = bitField0_;
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        if (((bitField0_ & 0x00000001) != 0)) {
-          produces_.makeImmutable();
-          bitField0_ = (bitField0_ & ~0x00000001);
-        }
-        result.produces_ = produces_;
+        buildPartialRepeatedFields(result);
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartialRepeatedFields(com.giyeok.jparser.proto.GrammarProto.NNonterminal result) {
+        if (((bitField0_ & 0x00000004) != 0)) {
+          produces_.makeImmutable();
+          bitField0_ = (bitField0_ & ~0x00000004);
+        }
+        result.produces_ = produces_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
+
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NNonterminal result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NNonterminal) {
@@ -6194,14 +5818,14 @@ public final class GrammarProto {
         if (!other.produces_.isEmpty()) {
           if (produces_.isEmpty()) {
             produces_ = other.produces_;
-            bitField0_ = (bitField0_ & ~0x00000001);
+            bitField0_ = (bitField0_ & ~0x00000004);
           } else {
             ensureProducesIsMutable();
             produces_.addAll(other.produces_);
           }
           onChanged();
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -6216,17 +5840,58 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NNonterminal parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 24: {
+                int v = input.readInt32();
+                ensureProducesIsMutable();
+                produces_.addInt(v);
+                break;
+              } // case 24
+              case 26: {
+                int length = input.readRawVarint32();
+                int limit = input.pushLimit(length);
+                ensureProducesIsMutable();
+                while (input.getBytesUntilLimit() > 0) {
+                  produces_.addInt(input.readInt32());
+                }
+                input.popLimit(limit);
+                break;
+              } // case 26
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NNonterminal) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -6246,8 +5911,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -6256,7 +5922,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -6270,7 +5936,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.Nonterminal symbol = 2;</code>
@@ -6292,11 +5958,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -6306,11 +5972,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.Nonterminal.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -6318,38 +5984,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.Nonterminal value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.Nonterminal.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.Nonterminal.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Nonterminal symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Nonterminal symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.Nonterminal.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -6383,10 +6049,10 @@ public final class GrammarProto {
 
       private com.google.protobuf.Internal.IntList produces_ = emptyIntList();
       private void ensureProducesIsMutable() {
-        if (!((bitField0_ & 0x00000001) != 0)) {
+        if (!((bitField0_ & 0x00000004) != 0)) {
           produces_ = mutableCopy(produces_);
-          bitField0_ |= 0x00000001;
-         }
+          bitField0_ |= 0x00000004;
+        }
       }
       /**
        * <code>repeated int32 produces = 3;</code>
@@ -6394,7 +6060,7 @@ public final class GrammarProto {
        */
       public java.util.List<java.lang.Integer>
           getProducesList() {
-        return ((bitField0_ & 0x00000001) != 0) ?
+        return ((bitField0_ & 0x00000004) != 0) ?
                  java.util.Collections.unmodifiableList(produces_) : produces_;
       }
       /**
@@ -6420,6 +6086,7 @@ public final class GrammarProto {
        */
       public Builder setProduces(
           int index, int value) {
+
         ensureProducesIsMutable();
         produces_.setInt(index, value);
         onChanged();
@@ -6431,6 +6098,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder addProduces(int value) {
+
         ensureProducesIsMutable();
         produces_.addInt(value);
         onChanged();
@@ -6455,7 +6123,7 @@ public final class GrammarProto {
        */
       public Builder clearProduces() {
         produces_ = emptyIntList();
-        bitField0_ = (bitField0_ & ~0x00000001);
+        bitField0_ = (bitField0_ & ~0x00000004);
         onChanged();
         return this;
       }
@@ -6492,7 +6160,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NNonterminal(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -6559,66 +6238,6 @@ public final class GrammarProto {
       return new NTerminal();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NTerminal(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Terminal.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.Terminal.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NTerminal_descriptor;
@@ -6633,7 +6252,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -6666,7 +6285,7 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.TerminalOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.Terminal.getDefaultInstance() : symbol_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -6689,7 +6308,7 @@ public final class GrammarProto {
       if (symbol_ != null) {
         output.writeMessage(2, getSymbol());
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -6706,7 +6325,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, getSymbol());
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -6728,7 +6347,7 @@ public final class GrammarProto {
         if (!getSymbol()
             .equals(other.getSymbol())) return false;
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -6745,7 +6364,7 @@ public final class GrammarProto {
         hash = (37 * hash) + SYMBOL_FIELD_NUMBER;
         hash = (53 * hash) + getSymbol().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -6862,28 +6481,22 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NTerminal.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         return this;
@@ -6912,48 +6525,23 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NTerminal buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NTerminal result = new com.giyeok.jparser.proto.GrammarProto.NTerminal(this);
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NTerminal result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NTerminal) {
@@ -6972,7 +6560,7 @@ public final class GrammarProto {
         if (other.hasSymbol()) {
           mergeSymbol(other.getSymbol());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -6987,19 +6575,45 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NTerminal parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NTerminal) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int id_ ;
       /**
@@ -7016,8 +6630,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -7026,7 +6641,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -7040,7 +6655,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.Terminal symbol = 2;</code>
@@ -7062,11 +6677,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -7076,11 +6691,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.Terminal.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -7088,38 +6703,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.Terminal value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.Terminal.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.Terminal.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Terminal symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Terminal symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.Terminal.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -7183,7 +6798,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NTerminal(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -7268,91 +6894,6 @@ public final class GrammarProto {
       return new NOneOf();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NOneOf(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.OneOf.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.OneOf.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 24: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                produces_ = newIntList();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              produces_.addInt(input.readInt32());
-              break;
-            }
-            case 26: {
-              int length = input.readRawVarint32();
-              int limit = input.pushLimit(length);
-              if (!((mutable_bitField0_ & 0x00000001) != 0) && input.getBytesUntilLimit() > 0) {
-                produces_ = newIntList();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              while (input.getBytesUntilLimit() > 0) {
-                produces_.addInt(input.readInt32());
-              }
-              input.popLimit(limit);
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          produces_.makeImmutable(); // C
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NOneOf_descriptor;
@@ -7367,7 +6908,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -7400,10 +6941,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.OneOfOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.OneOf.getDefaultInstance() : symbol_;
     }
 
     public static final int PRODUCES_FIELD_NUMBER = 3;
+    @SuppressWarnings("serial")
     private com.google.protobuf.Internal.IntList produces_;
     /**
      * <code>repeated int32 produces = 3;</code>
@@ -7459,7 +7001,7 @@ public final class GrammarProto {
       for (int i = 0; i < produces_.size(); i++) {
         output.writeInt32NoTag(produces_.getInt(i));
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -7490,7 +7032,7 @@ public final class GrammarProto {
         }
         producesMemoizedSerializedSize = dataSize;
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -7514,7 +7056,7 @@ public final class GrammarProto {
       }
       if (!getProducesList()
           .equals(other.getProducesList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -7535,7 +7077,7 @@ public final class GrammarProto {
         hash = (37 * hash) + PRODUCES_FIELD_NUMBER;
         hash = (53 * hash) + getProducesList().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -7652,32 +7194,25 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NOneOf.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         produces_ = emptyIntList();
-        bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
 
@@ -7704,54 +7239,32 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NOneOf buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NOneOf result = new com.giyeok.jparser.proto.GrammarProto.NOneOf(this);
-        int from_bitField0_ = bitField0_;
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        if (((bitField0_ & 0x00000001) != 0)) {
-          produces_.makeImmutable();
-          bitField0_ = (bitField0_ & ~0x00000001);
-        }
-        result.produces_ = produces_;
+        buildPartialRepeatedFields(result);
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartialRepeatedFields(com.giyeok.jparser.proto.GrammarProto.NOneOf result) {
+        if (((bitField0_ & 0x00000004) != 0)) {
+          produces_.makeImmutable();
+          bitField0_ = (bitField0_ & ~0x00000004);
+        }
+        result.produces_ = produces_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
+
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NOneOf result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NOneOf) {
@@ -7773,14 +7286,14 @@ public final class GrammarProto {
         if (!other.produces_.isEmpty()) {
           if (produces_.isEmpty()) {
             produces_ = other.produces_;
-            bitField0_ = (bitField0_ & ~0x00000001);
+            bitField0_ = (bitField0_ & ~0x00000004);
           } else {
             ensureProducesIsMutable();
             produces_.addAll(other.produces_);
           }
           onChanged();
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -7795,17 +7308,58 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NOneOf parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 24: {
+                int v = input.readInt32();
+                ensureProducesIsMutable();
+                produces_.addInt(v);
+                break;
+              } // case 24
+              case 26: {
+                int length = input.readRawVarint32();
+                int limit = input.pushLimit(length);
+                ensureProducesIsMutable();
+                while (input.getBytesUntilLimit() > 0) {
+                  produces_.addInt(input.readInt32());
+                }
+                input.popLimit(limit);
+                break;
+              } // case 26
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NOneOf) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -7825,8 +7379,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -7835,7 +7390,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -7849,7 +7404,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.OneOf symbol = 2;</code>
@@ -7871,11 +7426,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -7885,11 +7440,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.OneOf.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -7897,38 +7452,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.OneOf value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.OneOf.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.OneOf.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.OneOf symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.OneOf symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.OneOf.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -7962,10 +7517,10 @@ public final class GrammarProto {
 
       private com.google.protobuf.Internal.IntList produces_ = emptyIntList();
       private void ensureProducesIsMutable() {
-        if (!((bitField0_ & 0x00000001) != 0)) {
+        if (!((bitField0_ & 0x00000004) != 0)) {
           produces_ = mutableCopy(produces_);
-          bitField0_ |= 0x00000001;
-         }
+          bitField0_ |= 0x00000004;
+        }
       }
       /**
        * <code>repeated int32 produces = 3;</code>
@@ -7973,7 +7528,7 @@ public final class GrammarProto {
        */
       public java.util.List<java.lang.Integer>
           getProducesList() {
-        return ((bitField0_ & 0x00000001) != 0) ?
+        return ((bitField0_ & 0x00000004) != 0) ?
                  java.util.Collections.unmodifiableList(produces_) : produces_;
       }
       /**
@@ -7999,6 +7554,7 @@ public final class GrammarProto {
        */
       public Builder setProduces(
           int index, int value) {
+
         ensureProducesIsMutable();
         produces_.setInt(index, value);
         onChanged();
@@ -8010,6 +7566,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder addProduces(int value) {
+
         ensureProducesIsMutable();
         produces_.addInt(value);
         onChanged();
@@ -8034,7 +7591,7 @@ public final class GrammarProto {
        */
       public Builder clearProduces() {
         produces_ = emptyIntList();
-        bitField0_ = (bitField0_ & ~0x00000001);
+        bitField0_ = (bitField0_ & ~0x00000004);
         onChanged();
         return this;
       }
@@ -8071,7 +7628,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NOneOf(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -8144,71 +7712,6 @@ public final class GrammarProto {
       return new NProxy();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NProxy(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Proxy.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.Proxy.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 24: {
-
-              produce_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NProxy_descriptor;
@@ -8223,7 +7726,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -8256,11 +7759,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.ProxyOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.Proxy.getDefaultInstance() : symbol_;
     }
 
     public static final int PRODUCE_FIELD_NUMBER = 3;
-    private int produce_;
+    private int produce_ = 0;
     /**
      * <code>int32 produce = 3;</code>
      * @return The produce.
@@ -8293,7 +7796,7 @@ public final class GrammarProto {
       if (produce_ != 0) {
         output.writeInt32(3, produce_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -8314,7 +7817,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(3, produce_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -8338,7 +7841,7 @@ public final class GrammarProto {
       }
       if (getProduce()
           != other.getProduce()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -8357,7 +7860,7 @@ public final class GrammarProto {
       }
       hash = (37 * hash) + PRODUCE_FIELD_NUMBER;
       hash = (53 * hash) + getProduce();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -8474,32 +7977,25 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NProxy.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         produce_ = 0;
-
         return this;
       }
 
@@ -8526,49 +8022,26 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NProxy buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NProxy result = new com.giyeok.jparser.proto.GrammarProto.NProxy(this);
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        result.produce_ = produce_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NProxy result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.produce_ = produce_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NProxy) {
@@ -8590,7 +8063,7 @@ public final class GrammarProto {
         if (other.getProduce() != 0) {
           setProduce(other.getProduce());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -8605,19 +8078,50 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NProxy parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 24: {
+                produce_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NProxy) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int id_ ;
       /**
@@ -8634,8 +8138,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -8644,7 +8149,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -8658,7 +8163,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.Proxy symbol = 2;</code>
@@ -8680,11 +8185,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -8694,11 +8199,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.Proxy.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -8706,38 +8211,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.Proxy value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.Proxy.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.Proxy.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Proxy symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Proxy symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.Proxy.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -8784,8 +8289,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setProduce(int value) {
-        
+
         produce_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -8794,7 +8300,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearProduce() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         produce_ = 0;
         onChanged();
         return this;
@@ -8832,7 +8338,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NProxy(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -8911,76 +8428,6 @@ public final class GrammarProto {
       return new NRepeat();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NRepeat(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Repeat.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.Repeat.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 24: {
-
-              baseSeq_ = input.readInt32();
-              break;
-            }
-            case 32: {
-
-              repeatSeq_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NRepeat_descriptor;
@@ -8995,7 +8442,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -9028,11 +8475,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.RepeatOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.Repeat.getDefaultInstance() : symbol_;
     }
 
     public static final int BASE_SEQ_FIELD_NUMBER = 3;
-    private int baseSeq_;
+    private int baseSeq_ = 0;
     /**
      * <code>int32 base_seq = 3;</code>
      * @return The baseSeq.
@@ -9043,7 +8490,7 @@ public final class GrammarProto {
     }
 
     public static final int REPEAT_SEQ_FIELD_NUMBER = 4;
-    private int repeatSeq_;
+    private int repeatSeq_ = 0;
     /**
      * <code>int32 repeat_seq = 4;</code>
      * @return The repeatSeq.
@@ -9079,7 +8526,7 @@ public final class GrammarProto {
       if (repeatSeq_ != 0) {
         output.writeInt32(4, repeatSeq_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -9104,7 +8551,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(4, repeatSeq_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -9130,7 +8577,7 @@ public final class GrammarProto {
           != other.getBaseSeq()) return false;
       if (getRepeatSeq()
           != other.getRepeatSeq()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -9151,7 +8598,7 @@ public final class GrammarProto {
       hash = (53 * hash) + getBaseSeq();
       hash = (37 * hash) + REPEAT_SEQ_FIELD_NUMBER;
       hash = (53 * hash) + getRepeatSeq();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -9268,34 +8715,26 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NRepeat.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         baseSeq_ = 0;
-
         repeatSeq_ = 0;
-
         return this;
       }
 
@@ -9322,50 +8761,29 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NRepeat buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NRepeat result = new com.giyeok.jparser.proto.GrammarProto.NRepeat(this);
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        result.baseSeq_ = baseSeq_;
-        result.repeatSeq_ = repeatSeq_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NRepeat result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.baseSeq_ = baseSeq_;
+        }
+        if (((from_bitField0_ & 0x00000008) != 0)) {
+          result.repeatSeq_ = repeatSeq_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NRepeat) {
@@ -9390,7 +8808,7 @@ public final class GrammarProto {
         if (other.getRepeatSeq() != 0) {
           setRepeatSeq(other.getRepeatSeq());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -9405,19 +8823,55 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NRepeat parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 24: {
+                baseSeq_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              case 32: {
+                repeatSeq_ = input.readInt32();
+                bitField0_ |= 0x00000008;
+                break;
+              } // case 32
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NRepeat) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int id_ ;
       /**
@@ -9434,8 +8888,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -9444,7 +8899,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -9458,7 +8913,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.Repeat symbol = 2;</code>
@@ -9480,11 +8935,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -9494,11 +8949,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.Repeat.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -9506,38 +8961,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.Repeat value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.Repeat.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.Repeat.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Repeat symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Repeat symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.Repeat.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -9584,8 +9039,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setBaseSeq(int value) {
-        
+
         baseSeq_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -9594,7 +9050,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearBaseSeq() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         baseSeq_ = 0;
         onChanged();
         return this;
@@ -9615,8 +9071,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setRepeatSeq(int value) {
-        
+
         repeatSeq_ = value;
+        bitField0_ |= 0x00000008;
         onChanged();
         return this;
       }
@@ -9625,7 +9082,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearRepeatSeq() {
-        
+        bitField0_ = (bitField0_ & ~0x00000008);
         repeatSeq_ = 0;
         onChanged();
         return this;
@@ -9663,7 +9120,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NRepeat(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -9742,76 +9210,6 @@ public final class GrammarProto {
       return new NExcept();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NExcept(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Except.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.Except.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 24: {
-
-              body_ = input.readInt32();
-              break;
-            }
-            case 32: {
-
-              except_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NExcept_descriptor;
@@ -9826,7 +9224,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -9859,11 +9257,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.ExceptOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.Except.getDefaultInstance() : symbol_;
     }
 
     public static final int BODY_FIELD_NUMBER = 3;
-    private int body_;
+    private int body_ = 0;
     /**
      * <code>int32 body = 3;</code>
      * @return The body.
@@ -9874,7 +9272,7 @@ public final class GrammarProto {
     }
 
     public static final int EXCEPT_FIELD_NUMBER = 4;
-    private int except_;
+    private int except_ = 0;
     /**
      * <code>int32 except = 4;</code>
      * @return The except.
@@ -9910,7 +9308,7 @@ public final class GrammarProto {
       if (except_ != 0) {
         output.writeInt32(4, except_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -9935,7 +9333,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(4, except_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -9961,7 +9359,7 @@ public final class GrammarProto {
           != other.getBody()) return false;
       if (getExcept()
           != other.getExcept()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -9982,7 +9380,7 @@ public final class GrammarProto {
       hash = (53 * hash) + getBody();
       hash = (37 * hash) + EXCEPT_FIELD_NUMBER;
       hash = (53 * hash) + getExcept();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -10099,34 +9497,26 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NExcept.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         body_ = 0;
-
         except_ = 0;
-
         return this;
       }
 
@@ -10153,50 +9543,29 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NExcept buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NExcept result = new com.giyeok.jparser.proto.GrammarProto.NExcept(this);
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        result.body_ = body_;
-        result.except_ = except_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NExcept result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.body_ = body_;
+        }
+        if (((from_bitField0_ & 0x00000008) != 0)) {
+          result.except_ = except_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NExcept) {
@@ -10221,7 +9590,7 @@ public final class GrammarProto {
         if (other.getExcept() != 0) {
           setExcept(other.getExcept());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -10236,19 +9605,55 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NExcept parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 24: {
+                body_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              case 32: {
+                except_ = input.readInt32();
+                bitField0_ |= 0x00000008;
+                break;
+              } // case 32
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NExcept) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int id_ ;
       /**
@@ -10265,8 +9670,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -10275,7 +9681,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -10289,7 +9695,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.Except symbol = 2;</code>
@@ -10311,11 +9717,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -10325,11 +9731,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.Except.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -10337,38 +9743,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.Except value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.Except.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.Except.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Except symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Except symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.Except.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -10415,8 +9821,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setBody(int value) {
-        
+
         body_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -10425,7 +9832,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearBody() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         body_ = 0;
         onChanged();
         return this;
@@ -10446,8 +9853,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setExcept(int value) {
-        
+
         except_ = value;
+        bitField0_ |= 0x00000008;
         onChanged();
         return this;
       }
@@ -10456,7 +9864,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearExcept() {
-        
+        bitField0_ = (bitField0_ & ~0x00000008);
         except_ = 0;
         onChanged();
         return this;
@@ -10494,7 +9902,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NExcept(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -10573,76 +9992,6 @@ public final class GrammarProto {
       return new NJoin();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NJoin(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Join.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.Join.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 24: {
-
-              body_ = input.readInt32();
-              break;
-            }
-            case 32: {
-
-              join_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NJoin_descriptor;
@@ -10657,7 +10006,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -10690,11 +10039,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.JoinOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.Join.getDefaultInstance() : symbol_;
     }
 
     public static final int BODY_FIELD_NUMBER = 3;
-    private int body_;
+    private int body_ = 0;
     /**
      * <code>int32 body = 3;</code>
      * @return The body.
@@ -10705,7 +10054,7 @@ public final class GrammarProto {
     }
 
     public static final int JOIN_FIELD_NUMBER = 4;
-    private int join_;
+    private int join_ = 0;
     /**
      * <code>int32 join = 4;</code>
      * @return The join.
@@ -10741,7 +10090,7 @@ public final class GrammarProto {
       if (join_ != 0) {
         output.writeInt32(4, join_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -10766,7 +10115,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(4, join_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -10792,7 +10141,7 @@ public final class GrammarProto {
           != other.getBody()) return false;
       if (getJoin()
           != other.getJoin()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -10813,7 +10162,7 @@ public final class GrammarProto {
       hash = (53 * hash) + getBody();
       hash = (37 * hash) + JOIN_FIELD_NUMBER;
       hash = (53 * hash) + getJoin();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -10930,34 +10279,26 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NJoin.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         body_ = 0;
-
         join_ = 0;
-
         return this;
       }
 
@@ -10984,50 +10325,29 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NJoin buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NJoin result = new com.giyeok.jparser.proto.GrammarProto.NJoin(this);
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        result.body_ = body_;
-        result.join_ = join_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NJoin result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.body_ = body_;
+        }
+        if (((from_bitField0_ & 0x00000008) != 0)) {
+          result.join_ = join_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NJoin) {
@@ -11052,7 +10372,7 @@ public final class GrammarProto {
         if (other.getJoin() != 0) {
           setJoin(other.getJoin());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -11067,19 +10387,55 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NJoin parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 24: {
+                body_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              case 32: {
+                join_ = input.readInt32();
+                bitField0_ |= 0x00000008;
+                break;
+              } // case 32
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NJoin) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int id_ ;
       /**
@@ -11096,8 +10452,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -11106,7 +10463,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -11120,7 +10477,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.Join symbol = 2;</code>
@@ -11142,11 +10499,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -11156,11 +10513,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.Join.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -11168,38 +10525,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.Join value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.Join.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.Join.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Join symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Join symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.Join.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -11246,8 +10603,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setBody(int value) {
-        
+
         body_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -11256,7 +10614,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearBody() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         body_ = 0;
         onChanged();
         return this;
@@ -11277,8 +10635,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setJoin(int value) {
-        
+
         join_ = value;
+        bitField0_ |= 0x00000008;
         onChanged();
         return this;
       }
@@ -11287,7 +10646,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearJoin() {
-        
+        bitField0_ = (bitField0_ & ~0x00000008);
         join_ = 0;
         onChanged();
         return this;
@@ -11325,7 +10684,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NJoin(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -11398,71 +10768,6 @@ public final class GrammarProto {
       return new NLongest();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NLongest(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Longest.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.Longest.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 24: {
-
-              body_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NLongest_descriptor;
@@ -11477,7 +10782,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -11510,11 +10815,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.LongestOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.Longest.getDefaultInstance() : symbol_;
     }
 
     public static final int BODY_FIELD_NUMBER = 3;
-    private int body_;
+    private int body_ = 0;
     /**
      * <code>int32 body = 3;</code>
      * @return The body.
@@ -11547,7 +10852,7 @@ public final class GrammarProto {
       if (body_ != 0) {
         output.writeInt32(3, body_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -11568,7 +10873,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(3, body_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -11592,7 +10897,7 @@ public final class GrammarProto {
       }
       if (getBody()
           != other.getBody()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -11611,7 +10916,7 @@ public final class GrammarProto {
       }
       hash = (37 * hash) + BODY_FIELD_NUMBER;
       hash = (53 * hash) + getBody();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -11728,32 +11033,25 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NLongest.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         body_ = 0;
-
         return this;
       }
 
@@ -11780,49 +11078,26 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NLongest buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NLongest result = new com.giyeok.jparser.proto.GrammarProto.NLongest(this);
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        result.body_ = body_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NLongest result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.body_ = body_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NLongest) {
@@ -11844,7 +11119,7 @@ public final class GrammarProto {
         if (other.getBody() != 0) {
           setBody(other.getBody());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -11859,19 +11134,50 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NLongest parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 24: {
+                body_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NLongest) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int id_ ;
       /**
@@ -11888,8 +11194,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -11898,7 +11205,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -11912,7 +11219,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.Longest symbol = 2;</code>
@@ -11934,11 +11241,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -11948,11 +11255,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.Longest.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -11960,38 +11267,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.Longest value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.Longest.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.Longest.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Longest symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Longest symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.Longest.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -12038,8 +11345,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setBody(int value) {
-        
+
         body_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -12048,7 +11356,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearBody() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         body_ = 0;
         onChanged();
         return this;
@@ -12086,7 +11394,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NLongest(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -12165,76 +11484,6 @@ public final class GrammarProto {
       return new NLookaheadIs();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NLookaheadIs(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.LookaheadIs.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.LookaheadIs.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 24: {
-
-              emptySeqId_ = input.readInt32();
-              break;
-            }
-            case 32: {
-
-              lookahead_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NLookaheadIs_descriptor;
@@ -12249,7 +11498,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -12282,11 +11531,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.LookaheadIsOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.LookaheadIs.getDefaultInstance() : symbol_;
     }
 
     public static final int EMPTY_SEQ_ID_FIELD_NUMBER = 3;
-    private int emptySeqId_;
+    private int emptySeqId_ = 0;
     /**
      * <code>int32 empty_seq_id = 3;</code>
      * @return The emptySeqId.
@@ -12297,7 +11546,7 @@ public final class GrammarProto {
     }
 
     public static final int LOOKAHEAD_FIELD_NUMBER = 4;
-    private int lookahead_;
+    private int lookahead_ = 0;
     /**
      * <code>int32 lookahead = 4;</code>
      * @return The lookahead.
@@ -12333,7 +11582,7 @@ public final class GrammarProto {
       if (lookahead_ != 0) {
         output.writeInt32(4, lookahead_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -12358,7 +11607,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(4, lookahead_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -12384,7 +11633,7 @@ public final class GrammarProto {
           != other.getEmptySeqId()) return false;
       if (getLookahead()
           != other.getLookahead()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -12405,7 +11654,7 @@ public final class GrammarProto {
       hash = (53 * hash) + getEmptySeqId();
       hash = (37 * hash) + LOOKAHEAD_FIELD_NUMBER;
       hash = (53 * hash) + getLookahead();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -12522,34 +11771,26 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NLookaheadIs.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         emptySeqId_ = 0;
-
         lookahead_ = 0;
-
         return this;
       }
 
@@ -12576,50 +11817,29 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NLookaheadIs buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NLookaheadIs result = new com.giyeok.jparser.proto.GrammarProto.NLookaheadIs(this);
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        result.emptySeqId_ = emptySeqId_;
-        result.lookahead_ = lookahead_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NLookaheadIs result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.emptySeqId_ = emptySeqId_;
+        }
+        if (((from_bitField0_ & 0x00000008) != 0)) {
+          result.lookahead_ = lookahead_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NLookaheadIs) {
@@ -12644,7 +11864,7 @@ public final class GrammarProto {
         if (other.getLookahead() != 0) {
           setLookahead(other.getLookahead());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -12659,19 +11879,55 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NLookaheadIs parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 24: {
+                emptySeqId_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              case 32: {
+                lookahead_ = input.readInt32();
+                bitField0_ |= 0x00000008;
+                break;
+              } // case 32
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NLookaheadIs) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int id_ ;
       /**
@@ -12688,8 +11944,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -12698,7 +11955,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -12712,7 +11969,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.LookaheadIs symbol = 2;</code>
@@ -12734,11 +11991,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -12748,11 +12005,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.LookaheadIs.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -12760,38 +12017,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.LookaheadIs value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.LookaheadIs.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.LookaheadIs.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.LookaheadIs symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.LookaheadIs symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.LookaheadIs.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -12838,8 +12095,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setEmptySeqId(int value) {
-        
+
         emptySeqId_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -12848,7 +12106,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearEmptySeqId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         emptySeqId_ = 0;
         onChanged();
         return this;
@@ -12869,8 +12127,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setLookahead(int value) {
-        
+
         lookahead_ = value;
+        bitField0_ |= 0x00000008;
         onChanged();
         return this;
       }
@@ -12879,7 +12138,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearLookahead() {
-        
+        bitField0_ = (bitField0_ & ~0x00000008);
         lookahead_ = 0;
         onChanged();
         return this;
@@ -12917,7 +12176,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NLookaheadIs(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -12996,76 +12266,6 @@ public final class GrammarProto {
       return new NLookaheadExcept();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NLookaheadExcept(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.LookaheadExcept.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.LookaheadExcept.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 24: {
-
-              emptySeqId_ = input.readInt32();
-              break;
-            }
-            case 32: {
-
-              lookahead_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NLookaheadExcept_descriptor;
@@ -13080,7 +12280,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -13113,11 +12313,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.LookaheadExceptOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.LookaheadExcept.getDefaultInstance() : symbol_;
     }
 
     public static final int EMPTY_SEQ_ID_FIELD_NUMBER = 3;
-    private int emptySeqId_;
+    private int emptySeqId_ = 0;
     /**
      * <code>int32 empty_seq_id = 3;</code>
      * @return The emptySeqId.
@@ -13128,7 +12328,7 @@ public final class GrammarProto {
     }
 
     public static final int LOOKAHEAD_FIELD_NUMBER = 4;
-    private int lookahead_;
+    private int lookahead_ = 0;
     /**
      * <code>int32 lookahead = 4;</code>
      * @return The lookahead.
@@ -13164,7 +12364,7 @@ public final class GrammarProto {
       if (lookahead_ != 0) {
         output.writeInt32(4, lookahead_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -13189,7 +12389,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(4, lookahead_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -13215,7 +12415,7 @@ public final class GrammarProto {
           != other.getEmptySeqId()) return false;
       if (getLookahead()
           != other.getLookahead()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -13236,7 +12436,7 @@ public final class GrammarProto {
       hash = (53 * hash) + getEmptySeqId();
       hash = (37 * hash) + LOOKAHEAD_FIELD_NUMBER;
       hash = (53 * hash) + getLookahead();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -13353,34 +12553,26 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         emptySeqId_ = 0;
-
         lookahead_ = 0;
-
         return this;
       }
 
@@ -13407,50 +12599,29 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept result = new com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept(this);
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        result.emptySeqId_ = emptySeqId_;
-        result.lookahead_ = lookahead_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.emptySeqId_ = emptySeqId_;
+        }
+        if (((from_bitField0_ & 0x00000008) != 0)) {
+          result.lookahead_ = lookahead_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept) {
@@ -13475,7 +12646,7 @@ public final class GrammarProto {
         if (other.getLookahead() != 0) {
           setLookahead(other.getLookahead());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -13490,19 +12661,55 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 24: {
+                emptySeqId_ = input.readInt32();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 24
+              case 32: {
+                lookahead_ = input.readInt32();
+                bitField0_ |= 0x00000008;
+                break;
+              } // case 32
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NLookaheadExcept) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private int id_ ;
       /**
@@ -13519,8 +12726,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -13529,7 +12737,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -13543,7 +12751,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.LookaheadExcept symbol = 2;</code>
@@ -13565,11 +12773,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -13579,11 +12787,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.LookaheadExcept.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -13591,38 +12799,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.LookaheadExcept value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.LookaheadExcept.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.LookaheadExcept.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.LookaheadExcept symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.LookaheadExcept symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.LookaheadExcept.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -13669,8 +12877,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setEmptySeqId(int value) {
-        
+
         emptySeqId_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -13679,7 +12888,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearEmptySeqId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000004);
         emptySeqId_ = 0;
         onChanged();
         return this;
@@ -13700,8 +12909,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setLookahead(int value) {
-        
+
         lookahead_ = value;
+        bitField0_ |= 0x00000008;
         onChanged();
         return this;
       }
@@ -13710,7 +12920,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearLookahead() {
-        
+        bitField0_ = (bitField0_ & ~0x00000008);
         lookahead_ = 0;
         onChanged();
         return this;
@@ -13748,7 +12958,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NLookaheadExcept(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -13833,91 +13054,6 @@ public final class GrammarProto {
       return new NSequence();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private NSequence(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-
-              id_ = input.readInt32();
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Sequence.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.Sequence.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 24: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                sequence_ = newIntList();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              sequence_.addInt(input.readInt32());
-              break;
-            }
-            case 26: {
-              int length = input.readRawVarint32();
-              int limit = input.pushLimit(length);
-              if (!((mutable_bitField0_ & 0x00000001) != 0) && input.getBytesUntilLimit() > 0) {
-                sequence_ = newIntList();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              while (input.getBytesUntilLimit() > 0) {
-                sequence_.addInt(input.readInt32());
-              }
-              input.popLimit(limit);
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          sequence_.makeImmutable(); // C
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_NSequence_descriptor;
@@ -13932,7 +13068,7 @@ public final class GrammarProto {
     }
 
     public static final int ID_FIELD_NUMBER = 1;
-    private int id_;
+    private int id_ = 0;
     /**
      * <code>int32 id = 1;</code>
      * @return The id.
@@ -13965,10 +13101,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.SequenceOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.Sequence.getDefaultInstance() : symbol_;
     }
 
     public static final int SEQUENCE_FIELD_NUMBER = 3;
+    @SuppressWarnings("serial")
     private com.google.protobuf.Internal.IntList sequence_;
     /**
      * <code>repeated int32 sequence = 3;</code>
@@ -14024,7 +13161,7 @@ public final class GrammarProto {
       for (int i = 0; i < sequence_.size(); i++) {
         output.writeInt32NoTag(sequence_.getInt(i));
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -14055,7 +13192,7 @@ public final class GrammarProto {
         }
         sequenceMemoizedSerializedSize = dataSize;
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -14079,7 +13216,7 @@ public final class GrammarProto {
       }
       if (!getSequenceList()
           .equals(other.getSequenceList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -14100,7 +13237,7 @@ public final class GrammarProto {
         hash = (37 * hash) + SEQUENCE_FIELD_NUMBER;
         hash = (53 * hash) + getSequenceList().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -14217,32 +13354,25 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.NSequence.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         id_ = 0;
-
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         sequence_ = emptyIntList();
-        bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
 
@@ -14269,54 +13399,32 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.NSequence buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.NSequence result = new com.giyeok.jparser.proto.GrammarProto.NSequence(this);
-        int from_bitField0_ = bitField0_;
-        result.id_ = id_;
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        if (((bitField0_ & 0x00000001) != 0)) {
-          sequence_.makeImmutable();
-          bitField0_ = (bitField0_ & ~0x00000001);
-        }
-        result.sequence_ = sequence_;
+        buildPartialRepeatedFields(result);
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartialRepeatedFields(com.giyeok.jparser.proto.GrammarProto.NSequence result) {
+        if (((bitField0_ & 0x00000004) != 0)) {
+          sequence_.makeImmutable();
+          bitField0_ = (bitField0_ & ~0x00000004);
+        }
+        result.sequence_ = sequence_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
+
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.NSequence result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.id_ = id_;
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.NSequence) {
@@ -14338,14 +13446,14 @@ public final class GrammarProto {
         if (!other.sequence_.isEmpty()) {
           if (sequence_.isEmpty()) {
             sequence_ = other.sequence_;
-            bitField0_ = (bitField0_ & ~0x00000001);
+            bitField0_ = (bitField0_ & ~0x00000004);
           } else {
             ensureSequenceIsMutable();
             sequence_.addAll(other.sequence_);
           }
           onChanged();
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -14360,17 +13468,58 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.NSequence parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                id_ = input.readInt32();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 8
+              case 18: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 24: {
+                int v = input.readInt32();
+                ensureSequenceIsMutable();
+                sequence_.addInt(v);
+                break;
+              } // case 24
+              case 26: {
+                int length = input.readRawVarint32();
+                int limit = input.pushLimit(length);
+                ensureSequenceIsMutable();
+                while (input.getBytesUntilLimit() > 0) {
+                  sequence_.addInt(input.readInt32());
+                }
+                input.popLimit(limit);
+                break;
+              } // case 26
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.NSequence) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -14390,8 +13539,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setId(int value) {
-        
+
         id_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -14400,7 +13550,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearId() {
-        
+        bitField0_ = (bitField0_ & ~0x00000001);
         id_ = 0;
         onChanged();
         return this;
@@ -14414,7 +13564,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.Sequence symbol = 2;</code>
@@ -14436,11 +13586,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -14450,11 +13600,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.Sequence.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -14462,38 +13612,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.Sequence value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.Sequence.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.Sequence.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Sequence symbol = 2;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Sequence symbol = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.Sequence.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -14527,10 +13677,10 @@ public final class GrammarProto {
 
       private com.google.protobuf.Internal.IntList sequence_ = emptyIntList();
       private void ensureSequenceIsMutable() {
-        if (!((bitField0_ & 0x00000001) != 0)) {
+        if (!((bitField0_ & 0x00000004) != 0)) {
           sequence_ = mutableCopy(sequence_);
-          bitField0_ |= 0x00000001;
-         }
+          bitField0_ |= 0x00000004;
+        }
       }
       /**
        * <code>repeated int32 sequence = 3;</code>
@@ -14538,7 +13688,7 @@ public final class GrammarProto {
        */
       public java.util.List<java.lang.Integer>
           getSequenceList() {
-        return ((bitField0_ & 0x00000001) != 0) ?
+        return ((bitField0_ & 0x00000004) != 0) ?
                  java.util.Collections.unmodifiableList(sequence_) : sequence_;
       }
       /**
@@ -14564,6 +13714,7 @@ public final class GrammarProto {
        */
       public Builder setSequence(
           int index, int value) {
+
         ensureSequenceIsMutable();
         sequence_.setInt(index, value);
         onChanged();
@@ -14575,6 +13726,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder addSequence(int value) {
+
         ensureSequenceIsMutable();
         sequence_.addInt(value);
         onChanged();
@@ -14599,7 +13751,7 @@ public final class GrammarProto {
        */
       public Builder clearSequence() {
         sequence_ = emptyIntList();
-        bitField0_ = (bitField0_ & ~0x00000001);
+        bitField0_ = (bitField0_ & ~0x00000004);
         onChanged();
         return this;
       }
@@ -14636,7 +13788,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new NSequence(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -14690,7 +13853,7 @@ public final class GrammarProto {
      */
     com.giyeok.jparser.proto.GrammarProto.SequenceOrBuilder getSequenceOrBuilder();
 
-    public com.giyeok.jparser.proto.GrammarProto.Symbol.SymbolCase getSymbolCase();
+    com.giyeok.jparser.proto.GrammarProto.Symbol.SymbolCase getSymbolCase();
   }
   /**
    * Protobuf type {@code com.giyeok.jparser.proto.Symbol}
@@ -14714,76 +13877,6 @@ public final class GrammarProto {
       return new Symbol();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Symbol(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder subBuilder = null;
-              if (symbolCase_ == 1) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.AtomicSymbol) symbol_).toBuilder();
-              }
-              symbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.AtomicSymbol) symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-              symbolCase_ = 1;
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Sequence.Builder subBuilder = null;
-              if (symbolCase_ == 2) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Sequence) symbol_).toBuilder();
-              }
-              symbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Sequence.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Sequence) symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-              symbolCase_ = 2;
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Symbol_descriptor;
@@ -14798,6 +13891,7 @@ public final class GrammarProto {
     }
 
     private int symbolCase_ = 0;
+    @SuppressWarnings("serial")
     private java.lang.Object symbol_;
     public enum SymbolCase
         implements com.google.protobuf.Internal.EnumLite,
@@ -14920,7 +14014,7 @@ public final class GrammarProto {
       if (symbolCase_ == 2) {
         output.writeMessage(2, (com.giyeok.jparser.proto.GrammarProto.Sequence) symbol_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -14937,7 +14031,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, (com.giyeok.jparser.proto.GrammarProto.Sequence) symbol_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -14965,7 +14059,7 @@ public final class GrammarProto {
         case 0:
         default:
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -14988,7 +14082,7 @@ public final class GrammarProto {
         case 0:
         default:
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -15105,22 +14199,24 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.Symbol.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
+        if (atomicSymbolBuilder_ != null) {
+          atomicSymbolBuilder_.clear();
+        }
+        if (sequenceBuilder_ != null) {
+          sequenceBuilder_.clear();
+        }
         symbolCase_ = 0;
         symbol_ = null;
         return this;
@@ -15149,57 +14245,29 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.Symbol buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.Symbol result = new com.giyeok.jparser.proto.GrammarProto.Symbol(this);
-        if (symbolCase_ == 1) {
-          if (atomicSymbolBuilder_ == null) {
-            result.symbol_ = symbol_;
-          } else {
-            result.symbol_ = atomicSymbolBuilder_.build();
-          }
-        }
-        if (symbolCase_ == 2) {
-          if (sequenceBuilder_ == null) {
-            result.symbol_ = symbol_;
-          } else {
-            result.symbol_ = sequenceBuilder_.build();
-          }
-        }
-        result.symbolCase_ = symbolCase_;
+        if (bitField0_ != 0) { buildPartial0(result); }
+        buildPartialOneofs(result);
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Symbol result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
+
+      private void buildPartialOneofs(com.giyeok.jparser.proto.GrammarProto.Symbol result) {
+        result.symbolCase_ = symbolCase_;
+        result.symbol_ = this.symbol_;
+        if (symbolCase_ == 1 &&
+            atomicSymbolBuilder_ != null) {
+          result.symbol_ = atomicSymbolBuilder_.build();
+        }
+        if (symbolCase_ == 2 &&
+            sequenceBuilder_ != null) {
+          result.symbol_ = sequenceBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.Symbol) {
@@ -15225,7 +14293,7 @@ public final class GrammarProto {
             break;
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -15240,17 +14308,44 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.Symbol parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getAtomicSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                symbolCase_ = 1;
+                break;
+              } // case 10
+              case 18: {
+                input.readMessage(
+                    getSequenceFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                symbolCase_ = 2;
+                break;
+              } // case 18
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Symbol) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int symbolCase_ = 0;
@@ -15268,6 +14363,7 @@ public final class GrammarProto {
         return this;
       }
 
+      private int bitField0_;
 
       private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.proto.GrammarProto.AtomicSymbol, com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder, com.giyeok.jparser.proto.GrammarProto.AtomicSymbolOrBuilder> atomicSymbolBuilder_;
@@ -15343,8 +14439,9 @@ public final class GrammarProto {
         } else {
           if (symbolCase_ == 1) {
             atomicSymbolBuilder_.mergeFrom(value);
+          } else {
+            atomicSymbolBuilder_.setMessage(value);
           }
-          atomicSymbolBuilder_.setMessage(value);
         }
         symbolCase_ = 1;
         return this;
@@ -15406,7 +14503,7 @@ public final class GrammarProto {
           symbol_ = null;
         }
         symbolCase_ = 1;
-        onChanged();;
+        onChanged();
         return atomicSymbolBuilder_;
       }
 
@@ -15484,8 +14581,9 @@ public final class GrammarProto {
         } else {
           if (symbolCase_ == 2) {
             sequenceBuilder_.mergeFrom(value);
+          } else {
+            sequenceBuilder_.setMessage(value);
           }
-          sequenceBuilder_.setMessage(value);
         }
         symbolCase_ = 2;
         return this;
@@ -15547,7 +14645,7 @@ public final class GrammarProto {
           symbol_ = null;
         }
         symbolCase_ = 2;
-        onChanged();;
+        onChanged();
         return sequenceBuilder_;
       }
       @java.lang.Override
@@ -15583,7 +14681,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Symbol(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -15772,7 +14881,7 @@ public final class GrammarProto {
      */
     com.giyeok.jparser.proto.GrammarProto.LongestOrBuilder getLongestOrBuilder();
 
-    public com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.AtomicSymbolCase getAtomicSymbolCase();
+    com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.AtomicSymbolCase getAtomicSymbolCase();
   }
   /**
    * Protobuf type {@code com.giyeok.jparser.proto.AtomicSymbol}
@@ -15796,202 +14905,6 @@ public final class GrammarProto {
       return new AtomicSymbol();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private AtomicSymbol(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.Empty.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 1) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Empty) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Empty.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Empty) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 1;
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Terminal.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 2) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Terminal) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Terminal.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Terminal) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 2;
-              break;
-            }
-            case 26: {
-              com.giyeok.jparser.proto.GrammarProto.Nonterminal.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 3) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Nonterminal) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Nonterminal.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Nonterminal) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 3;
-              break;
-            }
-            case 34: {
-              com.giyeok.jparser.proto.GrammarProto.OneOf.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 4) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.OneOf) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.OneOf.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.OneOf) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 4;
-              break;
-            }
-            case 42: {
-              com.giyeok.jparser.proto.GrammarProto.Repeat.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 5) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Repeat) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Repeat.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Repeat) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 5;
-              break;
-            }
-            case 50: {
-              com.giyeok.jparser.proto.GrammarProto.Except.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 6) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Except) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Except.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Except) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 6;
-              break;
-            }
-            case 58: {
-              com.giyeok.jparser.proto.GrammarProto.LookaheadIs.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 7) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.LookaheadIs) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.LookaheadIs.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.LookaheadIs) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 7;
-              break;
-            }
-            case 66: {
-              com.giyeok.jparser.proto.GrammarProto.LookaheadExcept.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 8) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.LookaheadExcept) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.LookaheadExcept.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.LookaheadExcept) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 8;
-              break;
-            }
-            case 74: {
-              com.giyeok.jparser.proto.GrammarProto.Proxy.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 9) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Proxy) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Proxy.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Proxy) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 9;
-              break;
-            }
-            case 82: {
-              com.giyeok.jparser.proto.GrammarProto.Join.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 10) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Join) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Join.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Join) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 10;
-              break;
-            }
-            case 90: {
-              com.giyeok.jparser.proto.GrammarProto.Longest.Builder subBuilder = null;
-              if (atomicSymbolCase_ == 11) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Longest) atomicSymbol_).toBuilder();
-              }
-              atomicSymbol_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Longest.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Longest) atomicSymbol_);
-                atomicSymbol_ = subBuilder.buildPartial();
-              }
-              atomicSymbolCase_ = 11;
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_AtomicSymbol_descriptor;
@@ -16006,6 +14919,7 @@ public final class GrammarProto {
     }
 
     private int atomicSymbolCase_ = 0;
+    @SuppressWarnings("serial")
     private java.lang.Object atomicSymbol_;
     public enum AtomicSymbolCase
         implements com.google.protobuf.Internal.EnumLite,
@@ -16452,7 +15366,7 @@ public final class GrammarProto {
       if (atomicSymbolCase_ == 11) {
         output.writeMessage(11, (com.giyeok.jparser.proto.GrammarProto.Longest) atomicSymbol_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -16505,7 +15419,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(11, (com.giyeok.jparser.proto.GrammarProto.Longest) atomicSymbol_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -16569,7 +15483,7 @@ public final class GrammarProto {
         case 0:
         default:
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -16628,7 +15542,7 @@ public final class GrammarProto {
         case 0:
         default:
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -16745,22 +15659,51 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
+        if (startBuilder_ != null) {
+          startBuilder_.clear();
+        }
+        if (terminalBuilder_ != null) {
+          terminalBuilder_.clear();
+        }
+        if (nonterminalBuilder_ != null) {
+          nonterminalBuilder_.clear();
+        }
+        if (oneOfBuilder_ != null) {
+          oneOfBuilder_.clear();
+        }
+        if (repeatBuilder_ != null) {
+          repeatBuilder_.clear();
+        }
+        if (exceptBuilder_ != null) {
+          exceptBuilder_.clear();
+        }
+        if (lookaheadIsBuilder_ != null) {
+          lookaheadIsBuilder_.clear();
+        }
+        if (lookaheadExceptBuilder_ != null) {
+          lookaheadExceptBuilder_.clear();
+        }
+        if (proxyBuilder_ != null) {
+          proxyBuilder_.clear();
+        }
+        if (joinBuilder_ != null) {
+          joinBuilder_.clear();
+        }
+        if (longestBuilder_ != null) {
+          longestBuilder_.clear();
+        }
         atomicSymbolCase_ = 0;
         atomicSymbol_ = null;
         return this;
@@ -16789,120 +15732,65 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.AtomicSymbol buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.AtomicSymbol result = new com.giyeok.jparser.proto.GrammarProto.AtomicSymbol(this);
-        if (atomicSymbolCase_ == 1) {
-          if (startBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = startBuilder_.build();
-          }
-        }
-        if (atomicSymbolCase_ == 2) {
-          if (terminalBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = terminalBuilder_.build();
-          }
-        }
-        if (atomicSymbolCase_ == 3) {
-          if (nonterminalBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = nonterminalBuilder_.build();
-          }
-        }
-        if (atomicSymbolCase_ == 4) {
-          if (oneOfBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = oneOfBuilder_.build();
-          }
-        }
-        if (atomicSymbolCase_ == 5) {
-          if (repeatBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = repeatBuilder_.build();
-          }
-        }
-        if (atomicSymbolCase_ == 6) {
-          if (exceptBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = exceptBuilder_.build();
-          }
-        }
-        if (atomicSymbolCase_ == 7) {
-          if (lookaheadIsBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = lookaheadIsBuilder_.build();
-          }
-        }
-        if (atomicSymbolCase_ == 8) {
-          if (lookaheadExceptBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = lookaheadExceptBuilder_.build();
-          }
-        }
-        if (atomicSymbolCase_ == 9) {
-          if (proxyBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = proxyBuilder_.build();
-          }
-        }
-        if (atomicSymbolCase_ == 10) {
-          if (joinBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = joinBuilder_.build();
-          }
-        }
-        if (atomicSymbolCase_ == 11) {
-          if (longestBuilder_ == null) {
-            result.atomicSymbol_ = atomicSymbol_;
-          } else {
-            result.atomicSymbol_ = longestBuilder_.build();
-          }
-        }
-        result.atomicSymbolCase_ = atomicSymbolCase_;
+        if (bitField0_ != 0) { buildPartial0(result); }
+        buildPartialOneofs(result);
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
+
+      private void buildPartialOneofs(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol result) {
+        result.atomicSymbolCase_ = atomicSymbolCase_;
+        result.atomicSymbol_ = this.atomicSymbol_;
+        if (atomicSymbolCase_ == 1 &&
+            startBuilder_ != null) {
+          result.atomicSymbol_ = startBuilder_.build();
+        }
+        if (atomicSymbolCase_ == 2 &&
+            terminalBuilder_ != null) {
+          result.atomicSymbol_ = terminalBuilder_.build();
+        }
+        if (atomicSymbolCase_ == 3 &&
+            nonterminalBuilder_ != null) {
+          result.atomicSymbol_ = nonterminalBuilder_.build();
+        }
+        if (atomicSymbolCase_ == 4 &&
+            oneOfBuilder_ != null) {
+          result.atomicSymbol_ = oneOfBuilder_.build();
+        }
+        if (atomicSymbolCase_ == 5 &&
+            repeatBuilder_ != null) {
+          result.atomicSymbol_ = repeatBuilder_.build();
+        }
+        if (atomicSymbolCase_ == 6 &&
+            exceptBuilder_ != null) {
+          result.atomicSymbol_ = exceptBuilder_.build();
+        }
+        if (atomicSymbolCase_ == 7 &&
+            lookaheadIsBuilder_ != null) {
+          result.atomicSymbol_ = lookaheadIsBuilder_.build();
+        }
+        if (atomicSymbolCase_ == 8 &&
+            lookaheadExceptBuilder_ != null) {
+          result.atomicSymbol_ = lookaheadExceptBuilder_.build();
+        }
+        if (atomicSymbolCase_ == 9 &&
+            proxyBuilder_ != null) {
+          result.atomicSymbol_ = proxyBuilder_.build();
+        }
+        if (atomicSymbolCase_ == 10 &&
+            joinBuilder_ != null) {
+          result.atomicSymbol_ = joinBuilder_.build();
+        }
+        if (atomicSymbolCase_ == 11 &&
+            longestBuilder_ != null) {
+          result.atomicSymbol_ = longestBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.AtomicSymbol) {
@@ -16964,7 +15852,7 @@ public final class GrammarProto {
             break;
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -16979,17 +15867,107 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.AtomicSymbol parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getStartFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 1;
+                break;
+              } // case 10
+              case 18: {
+                input.readMessage(
+                    getTerminalFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 2;
+                break;
+              } // case 18
+              case 26: {
+                input.readMessage(
+                    getNonterminalFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 3;
+                break;
+              } // case 26
+              case 34: {
+                input.readMessage(
+                    getOneOfFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 4;
+                break;
+              } // case 34
+              case 42: {
+                input.readMessage(
+                    getRepeatFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 5;
+                break;
+              } // case 42
+              case 50: {
+                input.readMessage(
+                    getExceptFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 6;
+                break;
+              } // case 50
+              case 58: {
+                input.readMessage(
+                    getLookaheadIsFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 7;
+                break;
+              } // case 58
+              case 66: {
+                input.readMessage(
+                    getLookaheadExceptFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 8;
+                break;
+              } // case 66
+              case 74: {
+                input.readMessage(
+                    getProxyFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 9;
+                break;
+              } // case 74
+              case 82: {
+                input.readMessage(
+                    getJoinFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 10;
+                break;
+              } // case 82
+              case 90: {
+                input.readMessage(
+                    getLongestFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                atomicSymbolCase_ = 11;
+                break;
+              } // case 90
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.AtomicSymbol) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int atomicSymbolCase_ = 0;
@@ -17007,6 +15985,7 @@ public final class GrammarProto {
         return this;
       }
 
+      private int bitField0_;
 
       private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.proto.GrammarProto.Empty, com.giyeok.jparser.proto.GrammarProto.Empty.Builder, com.giyeok.jparser.proto.GrammarProto.EmptyOrBuilder> startBuilder_;
@@ -17082,8 +16061,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 1) {
             startBuilder_.mergeFrom(value);
+          } else {
+            startBuilder_.setMessage(value);
           }
-          startBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 1;
         return this;
@@ -17145,7 +16125,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 1;
-        onChanged();;
+        onChanged();
         return startBuilder_;
       }
 
@@ -17223,8 +16203,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 2) {
             terminalBuilder_.mergeFrom(value);
+          } else {
+            terminalBuilder_.setMessage(value);
           }
-          terminalBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 2;
         return this;
@@ -17286,7 +16267,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 2;
-        onChanged();;
+        onChanged();
         return terminalBuilder_;
       }
 
@@ -17364,8 +16345,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 3) {
             nonterminalBuilder_.mergeFrom(value);
+          } else {
+            nonterminalBuilder_.setMessage(value);
           }
-          nonterminalBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 3;
         return this;
@@ -17427,7 +16409,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 3;
-        onChanged();;
+        onChanged();
         return nonterminalBuilder_;
       }
 
@@ -17505,8 +16487,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 4) {
             oneOfBuilder_.mergeFrom(value);
+          } else {
+            oneOfBuilder_.setMessage(value);
           }
-          oneOfBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 4;
         return this;
@@ -17568,7 +16551,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 4;
-        onChanged();;
+        onChanged();
         return oneOfBuilder_;
       }
 
@@ -17646,8 +16629,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 5) {
             repeatBuilder_.mergeFrom(value);
+          } else {
+            repeatBuilder_.setMessage(value);
           }
-          repeatBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 5;
         return this;
@@ -17709,7 +16693,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 5;
-        onChanged();;
+        onChanged();
         return repeatBuilder_;
       }
 
@@ -17787,8 +16771,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 6) {
             exceptBuilder_.mergeFrom(value);
+          } else {
+            exceptBuilder_.setMessage(value);
           }
-          exceptBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 6;
         return this;
@@ -17850,7 +16835,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 6;
-        onChanged();;
+        onChanged();
         return exceptBuilder_;
       }
 
@@ -17928,8 +16913,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 7) {
             lookaheadIsBuilder_.mergeFrom(value);
+          } else {
+            lookaheadIsBuilder_.setMessage(value);
           }
-          lookaheadIsBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 7;
         return this;
@@ -17991,7 +16977,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 7;
-        onChanged();;
+        onChanged();
         return lookaheadIsBuilder_;
       }
 
@@ -18069,8 +17055,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 8) {
             lookaheadExceptBuilder_.mergeFrom(value);
+          } else {
+            lookaheadExceptBuilder_.setMessage(value);
           }
-          lookaheadExceptBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 8;
         return this;
@@ -18132,7 +17119,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 8;
-        onChanged();;
+        onChanged();
         return lookaheadExceptBuilder_;
       }
 
@@ -18210,8 +17197,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 9) {
             proxyBuilder_.mergeFrom(value);
+          } else {
+            proxyBuilder_.setMessage(value);
           }
-          proxyBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 9;
         return this;
@@ -18273,7 +17261,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 9;
-        onChanged();;
+        onChanged();
         return proxyBuilder_;
       }
 
@@ -18351,8 +17339,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 10) {
             joinBuilder_.mergeFrom(value);
+          } else {
+            joinBuilder_.setMessage(value);
           }
-          joinBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 10;
         return this;
@@ -18414,7 +17403,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 10;
-        onChanged();;
+        onChanged();
         return joinBuilder_;
       }
 
@@ -18492,8 +17481,9 @@ public final class GrammarProto {
         } else {
           if (atomicSymbolCase_ == 11) {
             longestBuilder_.mergeFrom(value);
+          } else {
+            longestBuilder_.setMessage(value);
           }
-          longestBuilder_.setMessage(value);
         }
         atomicSymbolCase_ = 11;
         return this;
@@ -18555,7 +17545,7 @@ public final class GrammarProto {
           atomicSymbol_ = null;
         }
         atomicSymbolCase_ = 11;
-        onChanged();;
+        onChanged();
         return longestBuilder_;
       }
       @java.lang.Override
@@ -18591,7 +17581,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new AtomicSymbol(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -18647,6 +17648,11 @@ public final class GrammarProto {
 
     /**
      * <code>string exact_char = 3;</code>
+     * @return Whether the exactChar field is set.
+     */
+    boolean hasExactChar();
+    /**
+     * <code>string exact_char = 3;</code>
      * @return The exactChar.
      */
     java.lang.String getExactChar();
@@ -18699,7 +17705,7 @@ public final class GrammarProto {
      */
     com.giyeok.jparser.proto.GrammarProto.Terminal.UnicodesOrBuilder getUnicodesOrBuilder();
 
-    public com.giyeok.jparser.proto.GrammarProto.Terminal.TerminalCase getTerminalCase();
+    com.giyeok.jparser.proto.GrammarProto.Terminal.TerminalCase getTerminalCase();
   }
   /**
    * Protobuf type {@code com.giyeok.jparser.proto.Terminal}
@@ -18723,110 +17729,6 @@ public final class GrammarProto {
       return new Terminal();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Terminal(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.Empty.Builder subBuilder = null;
-              if (terminalCase_ == 1) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Empty) terminal_).toBuilder();
-              }
-              terminal_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Empty.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Empty) terminal_);
-                terminal_ = subBuilder.buildPartial();
-              }
-              terminalCase_ = 1;
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.Empty.Builder subBuilder = null;
-              if (terminalCase_ == 2) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Empty) terminal_).toBuilder();
-              }
-              terminal_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Empty.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Empty) terminal_);
-                terminal_ = subBuilder.buildPartial();
-              }
-              terminalCase_ = 2;
-              break;
-            }
-            case 26: {
-              java.lang.String s = input.readStringRequireUtf8();
-              terminalCase_ = 3;
-              terminal_ = s;
-              break;
-            }
-            case 34: {
-              com.giyeok.jparser.proto.GrammarProto.Terminal.Chars.Builder subBuilder = null;
-              if (terminalCase_ == 4) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Terminal.Chars) terminal_).toBuilder();
-              }
-              terminal_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Terminal.Chars.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Terminal.Chars) terminal_);
-                terminal_ = subBuilder.buildPartial();
-              }
-              terminalCase_ = 4;
-              break;
-            }
-            case 42: {
-              com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes.Builder subBuilder = null;
-              if (terminalCase_ == 5) {
-                subBuilder = ((com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes) terminal_).toBuilder();
-              }
-              terminal_ =
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes) terminal_);
-                terminal_ = subBuilder.buildPartial();
-              }
-              terminalCase_ = 5;
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Terminal_descriptor;
@@ -18882,7 +17784,8 @@ public final class GrammarProto {
         super(builder);
       }
       private Chars() {
-        chars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        chars_ =
+            com.google.protobuf.LazyStringArrayList.emptyList();
       }
 
       @java.lang.Override
@@ -18892,61 +17795,6 @@ public final class GrammarProto {
         return new Chars();
       }
 
-      @java.lang.Override
-      public final com.google.protobuf.UnknownFieldSet
-      getUnknownFields() {
-        return this.unknownFields;
-      }
-      private Chars(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        this();
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
-        int mutable_bitField0_ = 0;
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-            com.google.protobuf.UnknownFieldSet.newBuilder();
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              case 10: {
-                java.lang.String s = input.readStringRequireUtf8();
-                if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                  chars_ = new com.google.protobuf.LazyStringArrayList();
-                  mutable_bitField0_ |= 0x00000001;
-                }
-                chars_.add(s);
-                break;
-              }
-              default: {
-                if (!parseUnknownField(
-                    input, unknownFields, extensionRegistry, tag)) {
-                  done = true;
-                }
-                break;
-              }
-            }
-          }
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(this);
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(
-              e).setUnfinishedMessage(this);
-        } finally {
-          if (((mutable_bitField0_ & 0x00000001) != 0)) {
-            chars_ = chars_.getUnmodifiableView();
-          }
-          this.unknownFields = unknownFields.build();
-          makeExtensionsImmutable();
-        }
-      }
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
         return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Terminal_Chars_descriptor;
@@ -18961,7 +17809,9 @@ public final class GrammarProto {
       }
 
       public static final int CHARS_FIELD_NUMBER = 1;
-      private com.google.protobuf.LazyStringList chars_;
+      @SuppressWarnings("serial")
+      private com.google.protobuf.LazyStringArrayList chars_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       /**
        * <code>repeated string chars = 1;</code>
        * @return A list containing the chars.
@@ -19012,7 +17862,7 @@ public final class GrammarProto {
         for (int i = 0; i < chars_.size(); i++) {
           com.google.protobuf.GeneratedMessageV3.writeString(output, 1, chars_.getRaw(i));
         }
-        unknownFields.writeTo(output);
+        getUnknownFields().writeTo(output);
       }
 
       @java.lang.Override
@@ -19029,7 +17879,7 @@ public final class GrammarProto {
           size += dataSize;
           size += 1 * getCharsList().size();
         }
-        size += unknownFields.getSerializedSize();
+        size += getUnknownFields().getSerializedSize();
         memoizedSize = size;
         return size;
       }
@@ -19046,7 +17896,7 @@ public final class GrammarProto {
 
         if (!getCharsList()
             .equals(other.getCharsList())) return false;
-        if (!unknownFields.equals(other.unknownFields)) return false;
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
         return true;
       }
 
@@ -19061,7 +17911,7 @@ public final class GrammarProto {
           hash = (37 * hash) + CHARS_FIELD_NUMBER;
           hash = (53 * hash) + getCharsList().hashCode();
         }
-        hash = (29 * hash) + unknownFields.hashCode();
+        hash = (29 * hash) + getUnknownFields().hashCode();
         memoizedHashCode = hash;
         return hash;
       }
@@ -19178,24 +18028,20 @@ public final class GrammarProto {
 
         // Construct using com.giyeok.jparser.proto.GrammarProto.Terminal.Chars.newBuilder()
         private Builder() {
-          maybeForceBuilderInitialization();
+
         }
 
         private Builder(
             com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
           super(parent);
-          maybeForceBuilderInitialization();
-        }
-        private void maybeForceBuilderInitialization() {
-          if (com.google.protobuf.GeneratedMessageV3
-                  .alwaysUseFieldBuilders) {
-          }
+
         }
         @java.lang.Override
         public Builder clear() {
           super.clear();
-          chars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-          bitField0_ = (bitField0_ & ~0x00000001);
+          bitField0_ = 0;
+          chars_ =
+              com.google.protobuf.LazyStringArrayList.emptyList();
           return this;
         }
 
@@ -19222,48 +18068,19 @@ public final class GrammarProto {
         @java.lang.Override
         public com.giyeok.jparser.proto.GrammarProto.Terminal.Chars buildPartial() {
           com.giyeok.jparser.proto.GrammarProto.Terminal.Chars result = new com.giyeok.jparser.proto.GrammarProto.Terminal.Chars(this);
-          int from_bitField0_ = bitField0_;
-          if (((bitField0_ & 0x00000001) != 0)) {
-            chars_ = chars_.getUnmodifiableView();
-            bitField0_ = (bitField0_ & ~0x00000001);
-          }
-          result.chars_ = chars_;
+          if (bitField0_ != 0) { buildPartial0(result); }
           onBuilt();
           return result;
         }
 
-        @java.lang.Override
-        public Builder clone() {
-          return super.clone();
+        private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Terminal.Chars result) {
+          int from_bitField0_ = bitField0_;
+          if (((from_bitField0_ & 0x00000001) != 0)) {
+            chars_.makeImmutable();
+            result.chars_ = chars_;
+          }
         }
-        @java.lang.Override
-        public Builder setField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            java.lang.Object value) {
-          return super.setField(field, value);
-        }
-        @java.lang.Override
-        public Builder clearField(
-            com.google.protobuf.Descriptors.FieldDescriptor field) {
-          return super.clearField(field);
-        }
-        @java.lang.Override
-        public Builder clearOneof(
-            com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-          return super.clearOneof(oneof);
-        }
-        @java.lang.Override
-        public Builder setRepeatedField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            int index, java.lang.Object value) {
-          return super.setRepeatedField(field, index, value);
-        }
-        @java.lang.Override
-        public Builder addRepeatedField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            java.lang.Object value) {
-          return super.addRepeatedField(field, value);
-        }
+
         @java.lang.Override
         public Builder mergeFrom(com.google.protobuf.Message other) {
           if (other instanceof com.giyeok.jparser.proto.GrammarProto.Terminal.Chars) {
@@ -19279,14 +18096,14 @@ public final class GrammarProto {
           if (!other.chars_.isEmpty()) {
             if (chars_.isEmpty()) {
               chars_ = other.chars_;
-              bitField0_ = (bitField0_ & ~0x00000001);
+              bitField0_ |= 0x00000001;
             } else {
               ensureCharsIsMutable();
               chars_.addAll(other.chars_);
             }
             onChanged();
           }
-          this.mergeUnknownFields(other.unknownFields);
+          this.mergeUnknownFields(other.getUnknownFields());
           onChanged();
           return this;
         }
@@ -19301,27 +18118,47 @@ public final class GrammarProto {
             com.google.protobuf.CodedInputStream input,
             com.google.protobuf.ExtensionRegistryLite extensionRegistry)
             throws java.io.IOException {
-          com.giyeok.jparser.proto.GrammarProto.Terminal.Chars parsedMessage = null;
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
+          }
           try {
-            parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 10: {
+                  java.lang.String s = input.readStringRequireUtf8();
+                  ensureCharsIsMutable();
+                  chars_.add(s);
+                  break;
+                } // case 10
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
           } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-            parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Terminal.Chars) e.getUnfinishedMessage();
             throw e.unwrapIOException();
           } finally {
-            if (parsedMessage != null) {
-              mergeFrom(parsedMessage);
-            }
-          }
+            onChanged();
+          } // finally
           return this;
         }
         private int bitField0_;
 
-        private com.google.protobuf.LazyStringList chars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        private com.google.protobuf.LazyStringArrayList chars_ =
+            com.google.protobuf.LazyStringArrayList.emptyList();
         private void ensureCharsIsMutable() {
-          if (!((bitField0_ & 0x00000001) != 0)) {
+          if (!chars_.isModifiable()) {
             chars_ = new com.google.protobuf.LazyStringArrayList(chars_);
-            bitField0_ |= 0x00000001;
-           }
+          }
+          bitField0_ |= 0x00000001;
         }
         /**
          * <code>repeated string chars = 1;</code>
@@ -19329,7 +18166,8 @@ public final class GrammarProto {
          */
         public com.google.protobuf.ProtocolStringList
             getCharsList() {
-          return chars_.getUnmodifiableView();
+          chars_.makeImmutable();
+          return chars_;
         }
         /**
          * <code>repeated string chars = 1;</code>
@@ -19363,11 +18201,10 @@ public final class GrammarProto {
          */
         public Builder setChars(
             int index, java.lang.String value) {
-          if (value == null) {
-    throw new NullPointerException();
-  }
-  ensureCharsIsMutable();
+          if (value == null) { throw new NullPointerException(); }
+          ensureCharsIsMutable();
           chars_.set(index, value);
+          bitField0_ |= 0x00000001;
           onChanged();
           return this;
         }
@@ -19378,11 +18215,10 @@ public final class GrammarProto {
          */
         public Builder addChars(
             java.lang.String value) {
-          if (value == null) {
-    throw new NullPointerException();
-  }
-  ensureCharsIsMutable();
+          if (value == null) { throw new NullPointerException(); }
+          ensureCharsIsMutable();
           chars_.add(value);
+          bitField0_ |= 0x00000001;
           onChanged();
           return this;
         }
@@ -19396,6 +18232,7 @@ public final class GrammarProto {
           ensureCharsIsMutable();
           com.google.protobuf.AbstractMessageLite.Builder.addAll(
               values, chars_);
+          bitField0_ |= 0x00000001;
           onChanged();
           return this;
         }
@@ -19404,8 +18241,9 @@ public final class GrammarProto {
          * @return This builder for chaining.
          */
         public Builder clearChars() {
-          chars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-          bitField0_ = (bitField0_ & ~0x00000001);
+          chars_ =
+            com.google.protobuf.LazyStringArrayList.emptyList();
+          bitField0_ = (bitField0_ & ~0x00000001);;
           onChanged();
           return this;
         }
@@ -19416,12 +18254,11 @@ public final class GrammarProto {
          */
         public Builder addCharsBytes(
             com.google.protobuf.ByteString value) {
-          if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
+          if (value == null) { throw new NullPointerException(); }
+          checkByteStringIsUtf8(value);
           ensureCharsIsMutable();
           chars_.add(value);
+          bitField0_ |= 0x00000001;
           onChanged();
           return this;
         }
@@ -19458,7 +18295,18 @@ public final class GrammarProto {
             com.google.protobuf.CodedInputStream input,
             com.google.protobuf.ExtensionRegistryLite extensionRegistry)
             throws com.google.protobuf.InvalidProtocolBufferException {
-          return new Chars(input, extensionRegistry);
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
         }
       };
 
@@ -19522,73 +18370,6 @@ public final class GrammarProto {
         return new Unicodes();
       }
 
-      @java.lang.Override
-      public final com.google.protobuf.UnknownFieldSet
-      getUnknownFields() {
-        return this.unknownFields;
-      }
-      private Unicodes(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        this();
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
-        int mutable_bitField0_ = 0;
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-            com.google.protobuf.UnknownFieldSet.newBuilder();
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              case 8: {
-                if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                  categories_ = newIntList();
-                  mutable_bitField0_ |= 0x00000001;
-                }
-                categories_.addInt(input.readInt32());
-                break;
-              }
-              case 10: {
-                int length = input.readRawVarint32();
-                int limit = input.pushLimit(length);
-                if (!((mutable_bitField0_ & 0x00000001) != 0) && input.getBytesUntilLimit() > 0) {
-                  categories_ = newIntList();
-                  mutable_bitField0_ |= 0x00000001;
-                }
-                while (input.getBytesUntilLimit() > 0) {
-                  categories_.addInt(input.readInt32());
-                }
-                input.popLimit(limit);
-                break;
-              }
-              default: {
-                if (!parseUnknownField(
-                    input, unknownFields, extensionRegistry, tag)) {
-                  done = true;
-                }
-                break;
-              }
-            }
-          }
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(this);
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(
-              e).setUnfinishedMessage(this);
-        } finally {
-          if (((mutable_bitField0_ & 0x00000001) != 0)) {
-            categories_.makeImmutable(); // C
-          }
-          this.unknownFields = unknownFields.build();
-          makeExtensionsImmutable();
-        }
-      }
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
         return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Terminal_Unicodes_descriptor;
@@ -19603,6 +18384,7 @@ public final class GrammarProto {
       }
 
       public static final int CATEGORIES_FIELD_NUMBER = 1;
+      @SuppressWarnings("serial")
       private com.google.protobuf.Internal.IntList categories_;
       /**
        * <code>repeated int32 categories = 1;</code>
@@ -19652,7 +18434,7 @@ public final class GrammarProto {
         for (int i = 0; i < categories_.size(); i++) {
           output.writeInt32NoTag(categories_.getInt(i));
         }
-        unknownFields.writeTo(output);
+        getUnknownFields().writeTo(output);
       }
 
       @java.lang.Override
@@ -19675,7 +18457,7 @@ public final class GrammarProto {
           }
           categoriesMemoizedSerializedSize = dataSize;
         }
-        size += unknownFields.getSerializedSize();
+        size += getUnknownFields().getSerializedSize();
         memoizedSize = size;
         return size;
       }
@@ -19692,7 +18474,7 @@ public final class GrammarProto {
 
         if (!getCategoriesList()
             .equals(other.getCategoriesList())) return false;
-        if (!unknownFields.equals(other.unknownFields)) return false;
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
         return true;
       }
 
@@ -19707,7 +18489,7 @@ public final class GrammarProto {
           hash = (37 * hash) + CATEGORIES_FIELD_NUMBER;
           hash = (53 * hash) + getCategoriesList().hashCode();
         }
-        hash = (29 * hash) + unknownFields.hashCode();
+        hash = (29 * hash) + getUnknownFields().hashCode();
         memoizedHashCode = hash;
         return hash;
       }
@@ -19824,24 +18606,19 @@ public final class GrammarProto {
 
         // Construct using com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes.newBuilder()
         private Builder() {
-          maybeForceBuilderInitialization();
+
         }
 
         private Builder(
             com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
           super(parent);
-          maybeForceBuilderInitialization();
-        }
-        private void maybeForceBuilderInitialization() {
-          if (com.google.protobuf.GeneratedMessageV3
-                  .alwaysUseFieldBuilders) {
-          }
+
         }
         @java.lang.Override
         public Builder clear() {
           super.clear();
+          bitField0_ = 0;
           categories_ = emptyIntList();
-          bitField0_ = (bitField0_ & ~0x00000001);
           return this;
         }
 
@@ -19868,48 +18645,24 @@ public final class GrammarProto {
         @java.lang.Override
         public com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes buildPartial() {
           com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes result = new com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes(this);
-          int from_bitField0_ = bitField0_;
+          buildPartialRepeatedFields(result);
+          if (bitField0_ != 0) { buildPartial0(result); }
+          onBuilt();
+          return result;
+        }
+
+        private void buildPartialRepeatedFields(com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes result) {
           if (((bitField0_ & 0x00000001) != 0)) {
             categories_.makeImmutable();
             bitField0_ = (bitField0_ & ~0x00000001);
           }
           result.categories_ = categories_;
-          onBuilt();
-          return result;
         }
 
-        @java.lang.Override
-        public Builder clone() {
-          return super.clone();
+        private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes result) {
+          int from_bitField0_ = bitField0_;
         }
-        @java.lang.Override
-        public Builder setField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            java.lang.Object value) {
-          return super.setField(field, value);
-        }
-        @java.lang.Override
-        public Builder clearField(
-            com.google.protobuf.Descriptors.FieldDescriptor field) {
-          return super.clearField(field);
-        }
-        @java.lang.Override
-        public Builder clearOneof(
-            com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-          return super.clearOneof(oneof);
-        }
-        @java.lang.Override
-        public Builder setRepeatedField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            int index, java.lang.Object value) {
-          return super.setRepeatedField(field, index, value);
-        }
-        @java.lang.Override
-        public Builder addRepeatedField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            java.lang.Object value) {
-          return super.addRepeatedField(field, value);
-        }
+
         @java.lang.Override
         public Builder mergeFrom(com.google.protobuf.Message other) {
           if (other instanceof com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes) {
@@ -19932,7 +18685,7 @@ public final class GrammarProto {
             }
             onChanged();
           }
-          this.mergeUnknownFields(other.unknownFields);
+          this.mergeUnknownFields(other.getUnknownFields());
           onChanged();
           return this;
         }
@@ -19947,17 +18700,46 @@ public final class GrammarProto {
             com.google.protobuf.CodedInputStream input,
             com.google.protobuf.ExtensionRegistryLite extensionRegistry)
             throws java.io.IOException {
-          com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes parsedMessage = null;
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
+          }
           try {
-            parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 8: {
+                  int v = input.readInt32();
+                  ensureCategoriesIsMutable();
+                  categories_.addInt(v);
+                  break;
+                } // case 8
+                case 10: {
+                  int length = input.readRawVarint32();
+                  int limit = input.pushLimit(length);
+                  ensureCategoriesIsMutable();
+                  while (input.getBytesUntilLimit() > 0) {
+                    categories_.addInt(input.readInt32());
+                  }
+                  input.popLimit(limit);
+                  break;
+                } // case 10
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
           } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-            parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes) e.getUnfinishedMessage();
             throw e.unwrapIOException();
           } finally {
-            if (parsedMessage != null) {
-              mergeFrom(parsedMessage);
-            }
-          }
+            onChanged();
+          } // finally
           return this;
         }
         private int bitField0_;
@@ -19967,7 +18749,7 @@ public final class GrammarProto {
           if (!((bitField0_ & 0x00000001) != 0)) {
             categories_ = mutableCopy(categories_);
             bitField0_ |= 0x00000001;
-           }
+          }
         }
         /**
          * <code>repeated int32 categories = 1;</code>
@@ -20001,6 +18783,7 @@ public final class GrammarProto {
          */
         public Builder setCategories(
             int index, int value) {
+
           ensureCategoriesIsMutable();
           categories_.setInt(index, value);
           onChanged();
@@ -20012,6 +18795,7 @@ public final class GrammarProto {
          * @return This builder for chaining.
          */
         public Builder addCategories(int value) {
+
           ensureCategoriesIsMutable();
           categories_.addInt(value);
           onChanged();
@@ -20073,7 +18857,18 @@ public final class GrammarProto {
             com.google.protobuf.CodedInputStream input,
             com.google.protobuf.ExtensionRegistryLite extensionRegistry)
             throws com.google.protobuf.InvalidProtocolBufferException {
-          return new Unicodes(input, extensionRegistry);
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
         }
       };
 
@@ -20094,6 +18889,7 @@ public final class GrammarProto {
     }
 
     private int terminalCase_ = 0;
+    @SuppressWarnings("serial")
     private java.lang.Object terminal_;
     public enum TerminalCase
         implements com.google.protobuf.Internal.EnumLite,
@@ -20203,6 +18999,13 @@ public final class GrammarProto {
     }
 
     public static final int EXACT_CHAR_FIELD_NUMBER = 3;
+    /**
+     * <code>string exact_char = 3;</code>
+     * @return Whether the exactChar field is set.
+     */
+    public boolean hasExactChar() {
+      return terminalCase_ == 3;
+    }
     /**
      * <code>string exact_char = 3;</code>
      * @return The exactChar.
@@ -20350,7 +19153,7 @@ public final class GrammarProto {
       if (terminalCase_ == 5) {
         output.writeMessage(5, (com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes) terminal_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -20378,7 +19181,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(5, (com.giyeok.jparser.proto.GrammarProto.Terminal.Unicodes) terminal_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -20418,7 +19221,7 @@ public final class GrammarProto {
         case 0:
         default:
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -20453,7 +19256,7 @@ public final class GrammarProto {
         case 0:
         default:
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -20570,22 +19373,30 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.Terminal.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
+        if (anyBuilder_ != null) {
+          anyBuilder_.clear();
+        }
+        if (anyCharBuilder_ != null) {
+          anyCharBuilder_.clear();
+        }
+        if (charsBuilder_ != null) {
+          charsBuilder_.clear();
+        }
+        if (unicodesBuilder_ != null) {
+          unicodesBuilder_.clear();
+        }
         terminalCase_ = 0;
         terminal_ = null;
         return this;
@@ -20614,74 +19425,37 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.Terminal buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.Terminal result = new com.giyeok.jparser.proto.GrammarProto.Terminal(this);
-        if (terminalCase_ == 1) {
-          if (anyBuilder_ == null) {
-            result.terminal_ = terminal_;
-          } else {
-            result.terminal_ = anyBuilder_.build();
-          }
-        }
-        if (terminalCase_ == 2) {
-          if (anyCharBuilder_ == null) {
-            result.terminal_ = terminal_;
-          } else {
-            result.terminal_ = anyCharBuilder_.build();
-          }
-        }
-        if (terminalCase_ == 3) {
-          result.terminal_ = terminal_;
-        }
-        if (terminalCase_ == 4) {
-          if (charsBuilder_ == null) {
-            result.terminal_ = terminal_;
-          } else {
-            result.terminal_ = charsBuilder_.build();
-          }
-        }
-        if (terminalCase_ == 5) {
-          if (unicodesBuilder_ == null) {
-            result.terminal_ = terminal_;
-          } else {
-            result.terminal_ = unicodesBuilder_.build();
-          }
-        }
-        result.terminalCase_ = terminalCase_;
+        if (bitField0_ != 0) { buildPartial0(result); }
+        buildPartialOneofs(result);
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Terminal result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
+
+      private void buildPartialOneofs(com.giyeok.jparser.proto.GrammarProto.Terminal result) {
+        result.terminalCase_ = terminalCase_;
+        result.terminal_ = this.terminal_;
+        if (terminalCase_ == 1 &&
+            anyBuilder_ != null) {
+          result.terminal_ = anyBuilder_.build();
+        }
+        if (terminalCase_ == 2 &&
+            anyCharBuilder_ != null) {
+          result.terminal_ = anyCharBuilder_.build();
+        }
+        if (terminalCase_ == 4 &&
+            charsBuilder_ != null) {
+          result.terminal_ = charsBuilder_.build();
+        }
+        if (terminalCase_ == 5 &&
+            unicodesBuilder_ != null) {
+          result.terminal_ = unicodesBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.Terminal) {
@@ -20721,7 +19495,7 @@ public final class GrammarProto {
             break;
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -20736,17 +19510,64 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.Terminal parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getAnyFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                terminalCase_ = 1;
+                break;
+              } // case 10
+              case 18: {
+                input.readMessage(
+                    getAnyCharFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                terminalCase_ = 2;
+                break;
+              } // case 18
+              case 26: {
+                java.lang.String s = input.readStringRequireUtf8();
+                terminalCase_ = 3;
+                terminal_ = s;
+                break;
+              } // case 26
+              case 34: {
+                input.readMessage(
+                    getCharsFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                terminalCase_ = 4;
+                break;
+              } // case 34
+              case 42: {
+                input.readMessage(
+                    getUnicodesFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                terminalCase_ = 5;
+                break;
+              } // case 42
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Terminal) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int terminalCase_ = 0;
@@ -20764,6 +19585,7 @@ public final class GrammarProto {
         return this;
       }
 
+      private int bitField0_;
 
       private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.proto.GrammarProto.Empty, com.giyeok.jparser.proto.GrammarProto.Empty.Builder, com.giyeok.jparser.proto.GrammarProto.EmptyOrBuilder> anyBuilder_;
@@ -20839,8 +19661,9 @@ public final class GrammarProto {
         } else {
           if (terminalCase_ == 1) {
             anyBuilder_.mergeFrom(value);
+          } else {
+            anyBuilder_.setMessage(value);
           }
-          anyBuilder_.setMessage(value);
         }
         terminalCase_ = 1;
         return this;
@@ -20902,7 +19725,7 @@ public final class GrammarProto {
           terminal_ = null;
         }
         terminalCase_ = 1;
-        onChanged();;
+        onChanged();
         return anyBuilder_;
       }
 
@@ -20980,8 +19803,9 @@ public final class GrammarProto {
         } else {
           if (terminalCase_ == 2) {
             anyCharBuilder_.mergeFrom(value);
+          } else {
+            anyCharBuilder_.setMessage(value);
           }
-          anyCharBuilder_.setMessage(value);
         }
         terminalCase_ = 2;
         return this;
@@ -21043,10 +19867,18 @@ public final class GrammarProto {
           terminal_ = null;
         }
         terminalCase_ = 2;
-        onChanged();;
+        onChanged();
         return anyCharBuilder_;
       }
 
+      /**
+       * <code>string exact_char = 3;</code>
+       * @return Whether the exactChar field is set.
+       */
+      @java.lang.Override
+      public boolean hasExactChar() {
+        return terminalCase_ == 3;
+      }
       /**
        * <code>string exact_char = 3;</code>
        * @return The exactChar.
@@ -21099,10 +19931,8 @@ public final class GrammarProto {
        */
       public Builder setExactChar(
           java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  terminalCase_ = 3;
+        if (value == null) { throw new NullPointerException(); }
+        terminalCase_ = 3;
         terminal_ = value;
         onChanged();
         return this;
@@ -21126,10 +19956,8 @@ public final class GrammarProto {
        */
       public Builder setExactCharBytes(
           com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
+        if (value == null) { throw new NullPointerException(); }
+        checkByteStringIsUtf8(value);
         terminalCase_ = 3;
         terminal_ = value;
         onChanged();
@@ -21210,8 +20038,9 @@ public final class GrammarProto {
         } else {
           if (terminalCase_ == 4) {
             charsBuilder_.mergeFrom(value);
+          } else {
+            charsBuilder_.setMessage(value);
           }
-          charsBuilder_.setMessage(value);
         }
         terminalCase_ = 4;
         return this;
@@ -21273,7 +20102,7 @@ public final class GrammarProto {
           terminal_ = null;
         }
         terminalCase_ = 4;
-        onChanged();;
+        onChanged();
         return charsBuilder_;
       }
 
@@ -21371,8 +20200,9 @@ public final class GrammarProto {
         } else {
           if (terminalCase_ == 5) {
             unicodesBuilder_.mergeFrom(value);
+          } else {
+            unicodesBuilder_.setMessage(value);
           }
-          unicodesBuilder_.setMessage(value);
         }
         terminalCase_ = 5;
         return this;
@@ -21450,7 +20280,7 @@ public final class GrammarProto {
           terminal_ = null;
         }
         terminalCase_ = 5;
-        onChanged();;
+        onChanged();
         return unicodesBuilder_;
       }
       @java.lang.Override
@@ -21486,7 +20316,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Terminal(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -21545,54 +20386,6 @@ public final class GrammarProto {
       return new Nonterminal();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Nonterminal(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              java.lang.String s = input.readStringRequireUtf8();
-
-              name_ = s;
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Nonterminal_descriptor;
@@ -21607,7 +20400,8 @@ public final class GrammarProto {
     }
 
     public static final int NAME_FIELD_NUMBER = 1;
-    private volatile java.lang.Object name_;
+    @SuppressWarnings("serial")
+    private volatile java.lang.Object name_ = "";
     /**
      * <code>string name = 1;</code>
      * @return The name.
@@ -21658,10 +20452,10 @@ public final class GrammarProto {
     @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (!getNameBytes().isEmpty()) {
+      if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(name_)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 1, name_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -21670,10 +20464,10 @@ public final class GrammarProto {
       if (size != -1) return size;
 
       size = 0;
-      if (!getNameBytes().isEmpty()) {
+      if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(name_)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, name_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -21690,7 +20484,7 @@ public final class GrammarProto {
 
       if (!getName()
           .equals(other.getName())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -21703,7 +20497,7 @@ public final class GrammarProto {
       hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + NAME_FIELD_NUMBER;
       hash = (53 * hash) + getName().hashCode();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -21820,24 +20614,19 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.Nonterminal.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         name_ = "";
-
         return this;
       }
 
@@ -21864,43 +20653,18 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.Nonterminal buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.Nonterminal result = new com.giyeok.jparser.proto.GrammarProto.Nonterminal(this);
-        result.name_ = name_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Nonterminal result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.name_ = name_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.Nonterminal) {
@@ -21915,9 +20679,10 @@ public final class GrammarProto {
         if (other == com.giyeok.jparser.proto.GrammarProto.Nonterminal.getDefaultInstance()) return this;
         if (!other.getName().isEmpty()) {
           name_ = other.name_;
+          bitField0_ |= 0x00000001;
           onChanged();
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -21932,19 +20697,38 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.Nonterminal parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                name_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Nonterminal) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private java.lang.Object name_ = "";
       /**
@@ -21987,11 +20771,9 @@ public final class GrammarProto {
        */
       public Builder setName(
           java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  
+        if (value == null) { throw new NullPointerException(); }
         name_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -22000,8 +20782,8 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearName() {
-        
         name_ = getDefaultInstance().getName();
+        bitField0_ = (bitField0_ & ~0x00000001);
         onChanged();
         return this;
       }
@@ -22012,12 +20794,10 @@ public final class GrammarProto {
        */
       public Builder setNameBytes(
           com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
-        
+        if (value == null) { throw new NullPointerException(); }
+        checkByteStringIsUtf8(value);
         name_ = value;
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -22054,7 +20834,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Nonterminal(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -22125,61 +20916,6 @@ public final class GrammarProto {
       return new Sequence();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Sequence(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                seq_ = new java.util.ArrayList<com.giyeok.jparser.proto.GrammarProto.AtomicSymbol>();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              seq_.add(
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry));
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          seq_ = java.util.Collections.unmodifiableList(seq_);
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Sequence_descriptor;
@@ -22194,6 +20930,7 @@ public final class GrammarProto {
     }
 
     public static final int SEQ_FIELD_NUMBER = 1;
+    @SuppressWarnings("serial")
     private java.util.List<com.giyeok.jparser.proto.GrammarProto.AtomicSymbol> seq_;
     /**
      * <code>repeated .com.giyeok.jparser.proto.AtomicSymbol seq = 1;</code>
@@ -22250,7 +20987,7 @@ public final class GrammarProto {
       for (int i = 0; i < seq_.size(); i++) {
         output.writeMessage(1, seq_.get(i));
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -22263,7 +21000,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, seq_.get(i));
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -22280,7 +21017,7 @@ public final class GrammarProto {
 
       if (!getSeqList()
           .equals(other.getSeqList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -22295,7 +21032,7 @@ public final class GrammarProto {
         hash = (37 * hash) + SEQ_FIELD_NUMBER;
         hash = (53 * hash) + getSeqList().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -22412,29 +21149,25 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.Sequence.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-          getSeqFieldBuilder();
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         if (seqBuilder_ == null) {
           seq_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
         } else {
+          seq_ = null;
           seqBuilder_.clear();
         }
+        bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
 
@@ -22461,7 +21194,13 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.Sequence buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.Sequence result = new com.giyeok.jparser.proto.GrammarProto.Sequence(this);
-        int from_bitField0_ = bitField0_;
+        buildPartialRepeatedFields(result);
+        if (bitField0_ != 0) { buildPartial0(result); }
+        onBuilt();
+        return result;
+      }
+
+      private void buildPartialRepeatedFields(com.giyeok.jparser.proto.GrammarProto.Sequence result) {
         if (seqBuilder_ == null) {
           if (((bitField0_ & 0x00000001) != 0)) {
             seq_ = java.util.Collections.unmodifiableList(seq_);
@@ -22471,42 +21210,12 @@ public final class GrammarProto {
         } else {
           result.seq_ = seqBuilder_.build();
         }
-        onBuilt();
-        return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Sequence result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.Sequence) {
@@ -22545,7 +21254,7 @@ public final class GrammarProto {
             }
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -22560,17 +21269,43 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.Sequence parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                com.giyeok.jparser.proto.GrammarProto.AtomicSymbol m =
+                    input.readMessage(
+                        com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(),
+                        extensionRegistry);
+                if (seqBuilder_ == null) {
+                  ensureSeqIsMutable();
+                  seq_.add(m);
+                } else {
+                  seqBuilder_.addMessage(m);
+                }
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Sequence) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -22847,7 +21582,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Sequence(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -22918,61 +21664,6 @@ public final class GrammarProto {
       return new OneOf();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private OneOf(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                symbols_ = new java.util.ArrayList<com.giyeok.jparser.proto.GrammarProto.AtomicSymbol>();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              symbols_.add(
-                  input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry));
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          symbols_ = java.util.Collections.unmodifiableList(symbols_);
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_OneOf_descriptor;
@@ -22987,6 +21678,7 @@ public final class GrammarProto {
     }
 
     public static final int SYMBOLS_FIELD_NUMBER = 1;
+    @SuppressWarnings("serial")
     private java.util.List<com.giyeok.jparser.proto.GrammarProto.AtomicSymbol> symbols_;
     /**
      * <code>repeated .com.giyeok.jparser.proto.AtomicSymbol symbols = 1;</code>
@@ -23043,7 +21735,7 @@ public final class GrammarProto {
       for (int i = 0; i < symbols_.size(); i++) {
         output.writeMessage(1, symbols_.get(i));
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -23056,7 +21748,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, symbols_.get(i));
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -23073,7 +21765,7 @@ public final class GrammarProto {
 
       if (!getSymbolsList()
           .equals(other.getSymbolsList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -23088,7 +21780,7 @@ public final class GrammarProto {
         hash = (37 * hash) + SYMBOLS_FIELD_NUMBER;
         hash = (53 * hash) + getSymbolsList().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -23205,29 +21897,25 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.OneOf.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-          getSymbolsFieldBuilder();
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         if (symbolsBuilder_ == null) {
           symbols_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x00000001);
         } else {
+          symbols_ = null;
           symbolsBuilder_.clear();
         }
+        bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
 
@@ -23254,7 +21942,13 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.OneOf buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.OneOf result = new com.giyeok.jparser.proto.GrammarProto.OneOf(this);
-        int from_bitField0_ = bitField0_;
+        buildPartialRepeatedFields(result);
+        if (bitField0_ != 0) { buildPartial0(result); }
+        onBuilt();
+        return result;
+      }
+
+      private void buildPartialRepeatedFields(com.giyeok.jparser.proto.GrammarProto.OneOf result) {
         if (symbolsBuilder_ == null) {
           if (((bitField0_ & 0x00000001) != 0)) {
             symbols_ = java.util.Collections.unmodifiableList(symbols_);
@@ -23264,42 +21958,12 @@ public final class GrammarProto {
         } else {
           result.symbols_ = symbolsBuilder_.build();
         }
-        onBuilt();
-        return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.OneOf result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.OneOf) {
@@ -23338,7 +22002,7 @@ public final class GrammarProto {
             }
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -23353,17 +22017,43 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.OneOf parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                com.giyeok.jparser.proto.GrammarProto.AtomicSymbol m =
+                    input.readMessage(
+                        com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(),
+                        extensionRegistry);
+                if (symbolsBuilder_ == null) {
+                  ensureSymbolsIsMutable();
+                  symbols_.add(m);
+                } else {
+                  symbolsBuilder_.addMessage(m);
+                }
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.OneOf) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -23640,7 +22330,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new OneOf(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -23707,66 +22408,6 @@ public final class GrammarProto {
       return new Repeat();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Repeat(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 16: {
-
-              lower_ = input.readInt32();
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Repeat_descriptor;
@@ -23803,11 +22444,11 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.AtomicSymbolOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance() : symbol_;
     }
 
     public static final int LOWER_FIELD_NUMBER = 2;
-    private int lower_;
+    private int lower_ = 0;
     /**
      * <code>int32 lower = 2;</code>
      * @return The lower.
@@ -23837,7 +22478,7 @@ public final class GrammarProto {
       if (lower_ != 0) {
         output.writeInt32(2, lower_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -23854,7 +22495,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(2, lower_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -23876,7 +22517,7 @@ public final class GrammarProto {
       }
       if (getLower()
           != other.getLower()) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -23893,7 +22534,7 @@ public final class GrammarProto {
       }
       hash = (37 * hash) + LOWER_FIELD_NUMBER;
       hash = (53 * hash) + getLower();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -24010,30 +22651,24 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.Repeat.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        bitField0_ = 0;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         lower_ = 0;
-
         return this;
       }
 
@@ -24060,48 +22695,23 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.Repeat buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.Repeat result = new com.giyeok.jparser.proto.GrammarProto.Repeat(this);
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
-        result.lower_ = lower_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Repeat result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.lower_ = lower_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.Repeat) {
@@ -24120,7 +22730,7 @@ public final class GrammarProto {
         if (other.getLower() != 0) {
           setLower(other.getLower());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -24135,19 +22745,45 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.Repeat parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              case 16: {
+                lower_ = input.readInt32();
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 16
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Repeat) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private com.giyeok.jparser.proto.GrammarProto.AtomicSymbol symbol_;
       private com.google.protobuf.SingleFieldBuilderV3<
@@ -24157,7 +22793,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol symbol = 1;</code>
@@ -24179,11 +22815,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -24193,11 +22829,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -24205,38 +22841,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000001) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol symbol = 1;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol symbol = 1;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000001;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -24283,8 +22919,9 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder setLower(int value) {
-        
+
         lower_ = value;
+        bitField0_ |= 0x00000002;
         onChanged();
         return this;
       }
@@ -24293,7 +22930,7 @@ public final class GrammarProto {
        * @return This builder for chaining.
        */
       public Builder clearLower() {
-        
+        bitField0_ = (bitField0_ & ~0x00000002);
         lower_ = 0;
         onChanged();
         return this;
@@ -24331,7 +22968,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Repeat(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -24407,74 +23055,6 @@ public final class GrammarProto {
       return new Except();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Except(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder subBuilder = null;
-              if (body_ != null) {
-                subBuilder = body_.toBuilder();
-              }
-              body_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(body_);
-                body_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder subBuilder = null;
-              if (except_ != null) {
-                subBuilder = except_.toBuilder();
-              }
-              except_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(except_);
-                except_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Except_descriptor;
@@ -24511,7 +23091,7 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.AtomicSymbolOrBuilder getBodyOrBuilder() {
-      return getBody();
+      return body_ == null ? com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance() : body_;
     }
 
     public static final int EXCEPT_FIELD_NUMBER = 2;
@@ -24537,7 +23117,7 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.AtomicSymbolOrBuilder getExceptOrBuilder() {
-      return getExcept();
+      return except_ == null ? com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance() : except_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -24560,7 +23140,7 @@ public final class GrammarProto {
       if (except_ != null) {
         output.writeMessage(2, getExcept());
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -24577,7 +23157,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, getExcept());
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -24602,7 +23182,7 @@ public final class GrammarProto {
         if (!getExcept()
             .equals(other.getExcept())) return false;
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -24621,7 +23201,7 @@ public final class GrammarProto {
         hash = (37 * hash) + EXCEPT_FIELD_NUMBER;
         hash = (53 * hash) + getExcept().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -24738,32 +23318,26 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.Except.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        if (bodyBuilder_ == null) {
-          body_ = null;
-        } else {
-          body_ = null;
+        bitField0_ = 0;
+        body_ = null;
+        if (bodyBuilder_ != null) {
+          bodyBuilder_.dispose();
           bodyBuilder_ = null;
         }
-        if (exceptBuilder_ == null) {
-          except_ = null;
-        } else {
-          except_ = null;
+        except_ = null;
+        if (exceptBuilder_ != null) {
+          exceptBuilder_.dispose();
           exceptBuilder_ = null;
         }
         return this;
@@ -24792,52 +23366,25 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.Except buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.Except result = new com.giyeok.jparser.proto.GrammarProto.Except(this);
-        if (bodyBuilder_ == null) {
-          result.body_ = body_;
-        } else {
-          result.body_ = bodyBuilder_.build();
-        }
-        if (exceptBuilder_ == null) {
-          result.except_ = except_;
-        } else {
-          result.except_ = exceptBuilder_.build();
-        }
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Except result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.body_ = bodyBuilder_ == null
+              ? body_
+              : bodyBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.except_ = exceptBuilder_ == null
+              ? except_
+              : exceptBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.Except) {
@@ -24856,7 +23403,7 @@ public final class GrammarProto {
         if (other.hasExcept()) {
           mergeExcept(other.getExcept());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -24871,19 +23418,47 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.Except parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getBodyFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              case 18: {
+                input.readMessage(
+                    getExceptFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Except) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private com.giyeok.jparser.proto.GrammarProto.AtomicSymbol body_;
       private com.google.protobuf.SingleFieldBuilderV3<
@@ -24893,7 +23468,7 @@ public final class GrammarProto {
        * @return Whether the body field is set.
        */
       public boolean hasBody() {
-        return bodyBuilder_ != null || body_ != null;
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol body = 1;</code>
@@ -24915,11 +23490,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           body_ = value;
-          onChanged();
         } else {
           bodyBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -24929,11 +23504,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder builderForValue) {
         if (bodyBuilder_ == null) {
           body_ = builderForValue.build();
-          onChanged();
         } else {
           bodyBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -24941,38 +23516,38 @@ public final class GrammarProto {
        */
       public Builder mergeBody(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol value) {
         if (bodyBuilder_ == null) {
-          if (body_ != null) {
-            body_ =
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.newBuilder(body_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000001) != 0) &&
+            body_ != null &&
+            body_ != com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance()) {
+            getBodyBuilder().mergeFrom(value);
           } else {
             body_ = value;
           }
-          onChanged();
         } else {
           bodyBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol body = 1;</code>
        */
       public Builder clearBody() {
-        if (bodyBuilder_ == null) {
-          body_ = null;
-          onChanged();
-        } else {
-          body_ = null;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        body_ = null;
+        if (bodyBuilder_ != null) {
+          bodyBuilder_.dispose();
           bodyBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol body = 1;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder getBodyBuilder() {
-        
+        bitField0_ |= 0x00000001;
         onChanged();
         return getBodyFieldBuilder().getBuilder();
       }
@@ -25012,7 +23587,7 @@ public final class GrammarProto {
        * @return Whether the except field is set.
        */
       public boolean hasExcept() {
-        return exceptBuilder_ != null || except_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol except = 2;</code>
@@ -25034,11 +23609,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           except_ = value;
-          onChanged();
         } else {
           exceptBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -25048,11 +23623,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder builderForValue) {
         if (exceptBuilder_ == null) {
           except_ = builderForValue.build();
-          onChanged();
         } else {
           exceptBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -25060,38 +23635,38 @@ public final class GrammarProto {
        */
       public Builder mergeExcept(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol value) {
         if (exceptBuilder_ == null) {
-          if (except_ != null) {
-            except_ =
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.newBuilder(except_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            except_ != null &&
+            except_ != com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance()) {
+            getExceptBuilder().mergeFrom(value);
           } else {
             except_ = value;
           }
-          onChanged();
         } else {
           exceptBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol except = 2;</code>
        */
       public Builder clearExcept() {
-        if (exceptBuilder_ == null) {
-          except_ = null;
-          onChanged();
-        } else {
-          except_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        except_ = null;
+        if (exceptBuilder_ != null) {
+          exceptBuilder_.dispose();
           exceptBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol except = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder getExceptBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getExceptFieldBuilder().getBuilder();
       }
@@ -25155,7 +23730,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Except(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -25216,61 +23802,6 @@ public final class GrammarProto {
       return new LookaheadIs();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private LookaheadIs(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder subBuilder = null;
-              if (lookahead_ != null) {
-                subBuilder = lookahead_.toBuilder();
-              }
-              lookahead_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(lookahead_);
-                lookahead_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_LookaheadIs_descriptor;
@@ -25307,7 +23838,7 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.AtomicSymbolOrBuilder getLookaheadOrBuilder() {
-      return getLookahead();
+      return lookahead_ == null ? com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance() : lookahead_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -25327,7 +23858,7 @@ public final class GrammarProto {
       if (lookahead_ != null) {
         output.writeMessage(1, getLookahead());
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -25340,7 +23871,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, getLookahead());
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -25360,7 +23891,7 @@ public final class GrammarProto {
         if (!getLookahead()
             .equals(other.getLookahead())) return false;
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -25375,7 +23906,7 @@ public final class GrammarProto {
         hash = (37 * hash) + LOOKAHEAD_FIELD_NUMBER;
         hash = (53 * hash) + getLookahead().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -25492,26 +24023,21 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.LookaheadIs.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        if (lookaheadBuilder_ == null) {
-          lookahead_ = null;
-        } else {
-          lookahead_ = null;
+        bitField0_ = 0;
+        lookahead_ = null;
+        if (lookaheadBuilder_ != null) {
+          lookaheadBuilder_.dispose();
           lookaheadBuilder_ = null;
         }
         return this;
@@ -25540,47 +24066,20 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.LookaheadIs buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.LookaheadIs result = new com.giyeok.jparser.proto.GrammarProto.LookaheadIs(this);
-        if (lookaheadBuilder_ == null) {
-          result.lookahead_ = lookahead_;
-        } else {
-          result.lookahead_ = lookaheadBuilder_.build();
-        }
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.LookaheadIs result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.lookahead_ = lookaheadBuilder_ == null
+              ? lookahead_
+              : lookaheadBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.LookaheadIs) {
@@ -25596,7 +24095,7 @@ public final class GrammarProto {
         if (other.hasLookahead()) {
           mergeLookahead(other.getLookahead());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -25611,19 +24110,40 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.LookaheadIs parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getLookaheadFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.LookaheadIs) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private com.giyeok.jparser.proto.GrammarProto.AtomicSymbol lookahead_;
       private com.google.protobuf.SingleFieldBuilderV3<
@@ -25633,7 +24153,7 @@ public final class GrammarProto {
        * @return Whether the lookahead field is set.
        */
       public boolean hasLookahead() {
-        return lookaheadBuilder_ != null || lookahead_ != null;
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol lookahead = 1;</code>
@@ -25655,11 +24175,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           lookahead_ = value;
-          onChanged();
         } else {
           lookaheadBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -25669,11 +24189,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder builderForValue) {
         if (lookaheadBuilder_ == null) {
           lookahead_ = builderForValue.build();
-          onChanged();
         } else {
           lookaheadBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -25681,38 +24201,38 @@ public final class GrammarProto {
        */
       public Builder mergeLookahead(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol value) {
         if (lookaheadBuilder_ == null) {
-          if (lookahead_ != null) {
-            lookahead_ =
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.newBuilder(lookahead_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000001) != 0) &&
+            lookahead_ != null &&
+            lookahead_ != com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance()) {
+            getLookaheadBuilder().mergeFrom(value);
           } else {
             lookahead_ = value;
           }
-          onChanged();
         } else {
           lookaheadBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol lookahead = 1;</code>
        */
       public Builder clearLookahead() {
-        if (lookaheadBuilder_ == null) {
-          lookahead_ = null;
-          onChanged();
-        } else {
-          lookahead_ = null;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        lookahead_ = null;
+        if (lookaheadBuilder_ != null) {
+          lookaheadBuilder_.dispose();
           lookaheadBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol lookahead = 1;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder getLookaheadBuilder() {
-        
+        bitField0_ |= 0x00000001;
         onChanged();
         return getLookaheadFieldBuilder().getBuilder();
       }
@@ -25776,7 +24296,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new LookaheadIs(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -25837,61 +24368,6 @@ public final class GrammarProto {
       return new LookaheadExcept();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private LookaheadExcept(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder subBuilder = null;
-              if (lookahead_ != null) {
-                subBuilder = lookahead_.toBuilder();
-              }
-              lookahead_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(lookahead_);
-                lookahead_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_LookaheadExcept_descriptor;
@@ -25928,7 +24404,7 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.AtomicSymbolOrBuilder getLookaheadOrBuilder() {
-      return getLookahead();
+      return lookahead_ == null ? com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance() : lookahead_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -25948,7 +24424,7 @@ public final class GrammarProto {
       if (lookahead_ != null) {
         output.writeMessage(1, getLookahead());
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -25961,7 +24437,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, getLookahead());
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -25981,7 +24457,7 @@ public final class GrammarProto {
         if (!getLookahead()
             .equals(other.getLookahead())) return false;
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -25996,7 +24472,7 @@ public final class GrammarProto {
         hash = (37 * hash) + LOOKAHEAD_FIELD_NUMBER;
         hash = (53 * hash) + getLookahead().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -26113,26 +24589,21 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.LookaheadExcept.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        if (lookaheadBuilder_ == null) {
-          lookahead_ = null;
-        } else {
-          lookahead_ = null;
+        bitField0_ = 0;
+        lookahead_ = null;
+        if (lookaheadBuilder_ != null) {
+          lookaheadBuilder_.dispose();
           lookaheadBuilder_ = null;
         }
         return this;
@@ -26161,47 +24632,20 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.LookaheadExcept buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.LookaheadExcept result = new com.giyeok.jparser.proto.GrammarProto.LookaheadExcept(this);
-        if (lookaheadBuilder_ == null) {
-          result.lookahead_ = lookahead_;
-        } else {
-          result.lookahead_ = lookaheadBuilder_.build();
-        }
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.LookaheadExcept result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.lookahead_ = lookaheadBuilder_ == null
+              ? lookahead_
+              : lookaheadBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.LookaheadExcept) {
@@ -26217,7 +24661,7 @@ public final class GrammarProto {
         if (other.hasLookahead()) {
           mergeLookahead(other.getLookahead());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -26232,19 +24676,40 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.LookaheadExcept parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getLookaheadFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.LookaheadExcept) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private com.giyeok.jparser.proto.GrammarProto.AtomicSymbol lookahead_;
       private com.google.protobuf.SingleFieldBuilderV3<
@@ -26254,7 +24719,7 @@ public final class GrammarProto {
        * @return Whether the lookahead field is set.
        */
       public boolean hasLookahead() {
-        return lookaheadBuilder_ != null || lookahead_ != null;
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol lookahead = 1;</code>
@@ -26276,11 +24741,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           lookahead_ = value;
-          onChanged();
         } else {
           lookaheadBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -26290,11 +24755,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder builderForValue) {
         if (lookaheadBuilder_ == null) {
           lookahead_ = builderForValue.build();
-          onChanged();
         } else {
           lookaheadBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -26302,38 +24767,38 @@ public final class GrammarProto {
        */
       public Builder mergeLookahead(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol value) {
         if (lookaheadBuilder_ == null) {
-          if (lookahead_ != null) {
-            lookahead_ =
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.newBuilder(lookahead_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000001) != 0) &&
+            lookahead_ != null &&
+            lookahead_ != com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance()) {
+            getLookaheadBuilder().mergeFrom(value);
           } else {
             lookahead_ = value;
           }
-          onChanged();
         } else {
           lookaheadBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol lookahead = 1;</code>
        */
       public Builder clearLookahead() {
-        if (lookaheadBuilder_ == null) {
-          lookahead_ = null;
-          onChanged();
-        } else {
-          lookahead_ = null;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        lookahead_ = null;
+        if (lookaheadBuilder_ != null) {
+          lookaheadBuilder_.dispose();
           lookaheadBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol lookahead = 1;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder getLookaheadBuilder() {
-        
+        bitField0_ |= 0x00000001;
         onChanged();
         return getLookaheadFieldBuilder().getBuilder();
       }
@@ -26397,7 +24862,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new LookaheadExcept(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -26458,61 +24934,6 @@ public final class GrammarProto {
       return new Proxy();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Proxy(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.Symbol.Builder subBuilder = null;
-              if (symbol_ != null) {
-                subBuilder = symbol_.toBuilder();
-              }
-              symbol_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.Symbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(symbol_);
-                symbol_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Proxy_descriptor;
@@ -26549,7 +24970,7 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.SymbolOrBuilder getSymbolOrBuilder() {
-      return getSymbol();
+      return symbol_ == null ? com.giyeok.jparser.proto.GrammarProto.Symbol.getDefaultInstance() : symbol_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -26569,7 +24990,7 @@ public final class GrammarProto {
       if (symbol_ != null) {
         output.writeMessage(1, getSymbol());
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -26582,7 +25003,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, getSymbol());
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -26602,7 +25023,7 @@ public final class GrammarProto {
         if (!getSymbol()
             .equals(other.getSymbol())) return false;
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -26617,7 +25038,7 @@ public final class GrammarProto {
         hash = (37 * hash) + SYMBOL_FIELD_NUMBER;
         hash = (53 * hash) + getSymbol().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -26734,26 +25155,21 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.Proxy.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-        } else {
-          symbol_ = null;
+        bitField0_ = 0;
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
         return this;
@@ -26782,47 +25198,20 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.Proxy buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.Proxy result = new com.giyeok.jparser.proto.GrammarProto.Proxy(this);
-        if (symbolBuilder_ == null) {
-          result.symbol_ = symbol_;
-        } else {
-          result.symbol_ = symbolBuilder_.build();
-        }
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Proxy result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.symbol_ = symbolBuilder_ == null
+              ? symbol_
+              : symbolBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.Proxy) {
@@ -26838,7 +25227,7 @@ public final class GrammarProto {
         if (other.hasSymbol()) {
           mergeSymbol(other.getSymbol());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -26853,19 +25242,40 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.Proxy parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getSymbolFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Proxy) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private com.giyeok.jparser.proto.GrammarProto.Symbol symbol_;
       private com.google.protobuf.SingleFieldBuilderV3<
@@ -26875,7 +25285,7 @@ public final class GrammarProto {
        * @return Whether the symbol field is set.
        */
       public boolean hasSymbol() {
-        return symbolBuilder_ != null || symbol_ != null;
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.Symbol symbol = 1;</code>
@@ -26897,11 +25307,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           symbol_ = value;
-          onChanged();
         } else {
           symbolBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -26911,11 +25321,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.Symbol.Builder builderForValue) {
         if (symbolBuilder_ == null) {
           symbol_ = builderForValue.build();
-          onChanged();
         } else {
           symbolBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -26923,38 +25333,38 @@ public final class GrammarProto {
        */
       public Builder mergeSymbol(com.giyeok.jparser.proto.GrammarProto.Symbol value) {
         if (symbolBuilder_ == null) {
-          if (symbol_ != null) {
-            symbol_ =
-              com.giyeok.jparser.proto.GrammarProto.Symbol.newBuilder(symbol_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000001) != 0) &&
+            symbol_ != null &&
+            symbol_ != com.giyeok.jparser.proto.GrammarProto.Symbol.getDefaultInstance()) {
+            getSymbolBuilder().mergeFrom(value);
           } else {
             symbol_ = value;
           }
-          onChanged();
         } else {
           symbolBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Symbol symbol = 1;</code>
        */
       public Builder clearSymbol() {
-        if (symbolBuilder_ == null) {
-          symbol_ = null;
-          onChanged();
-        } else {
-          symbol_ = null;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        symbol_ = null;
+        if (symbolBuilder_ != null) {
+          symbolBuilder_.dispose();
           symbolBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.Symbol symbol = 1;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.Symbol.Builder getSymbolBuilder() {
-        
+        bitField0_ |= 0x00000001;
         onChanged();
         return getSymbolFieldBuilder().getBuilder();
       }
@@ -27018,7 +25428,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Proxy(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -27094,74 +25515,6 @@ public final class GrammarProto {
       return new Join();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Join(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder subBuilder = null;
-              if (body_ != null) {
-                subBuilder = body_.toBuilder();
-              }
-              body_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(body_);
-                body_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder subBuilder = null;
-              if (join_ != null) {
-                subBuilder = join_.toBuilder();
-              }
-              join_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(join_);
-                join_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Join_descriptor;
@@ -27198,7 +25551,7 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.AtomicSymbolOrBuilder getBodyOrBuilder() {
-      return getBody();
+      return body_ == null ? com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance() : body_;
     }
 
     public static final int JOIN_FIELD_NUMBER = 2;
@@ -27224,7 +25577,7 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.AtomicSymbolOrBuilder getJoinOrBuilder() {
-      return getJoin();
+      return join_ == null ? com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance() : join_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -27247,7 +25600,7 @@ public final class GrammarProto {
       if (join_ != null) {
         output.writeMessage(2, getJoin());
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -27264,7 +25617,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(2, getJoin());
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -27289,7 +25642,7 @@ public final class GrammarProto {
         if (!getJoin()
             .equals(other.getJoin())) return false;
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -27308,7 +25661,7 @@ public final class GrammarProto {
         hash = (37 * hash) + JOIN_FIELD_NUMBER;
         hash = (53 * hash) + getJoin().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -27425,32 +25778,26 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.Join.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        if (bodyBuilder_ == null) {
-          body_ = null;
-        } else {
-          body_ = null;
+        bitField0_ = 0;
+        body_ = null;
+        if (bodyBuilder_ != null) {
+          bodyBuilder_.dispose();
           bodyBuilder_ = null;
         }
-        if (joinBuilder_ == null) {
-          join_ = null;
-        } else {
-          join_ = null;
+        join_ = null;
+        if (joinBuilder_ != null) {
+          joinBuilder_.dispose();
           joinBuilder_ = null;
         }
         return this;
@@ -27479,52 +25826,25 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.Join buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.Join result = new com.giyeok.jparser.proto.GrammarProto.Join(this);
-        if (bodyBuilder_ == null) {
-          result.body_ = body_;
-        } else {
-          result.body_ = bodyBuilder_.build();
-        }
-        if (joinBuilder_ == null) {
-          result.join_ = join_;
-        } else {
-          result.join_ = joinBuilder_.build();
-        }
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Join result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.body_ = bodyBuilder_ == null
+              ? body_
+              : bodyBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.join_ = joinBuilder_ == null
+              ? join_
+              : joinBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.Join) {
@@ -27543,7 +25863,7 @@ public final class GrammarProto {
         if (other.hasJoin()) {
           mergeJoin(other.getJoin());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -27558,19 +25878,47 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.Join parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getBodyFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              case 18: {
+                input.readMessage(
+                    getJoinFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Join) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private com.giyeok.jparser.proto.GrammarProto.AtomicSymbol body_;
       private com.google.protobuf.SingleFieldBuilderV3<
@@ -27580,7 +25928,7 @@ public final class GrammarProto {
        * @return Whether the body field is set.
        */
       public boolean hasBody() {
-        return bodyBuilder_ != null || body_ != null;
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol body = 1;</code>
@@ -27602,11 +25950,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           body_ = value;
-          onChanged();
         } else {
           bodyBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -27616,11 +25964,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder builderForValue) {
         if (bodyBuilder_ == null) {
           body_ = builderForValue.build();
-          onChanged();
         } else {
           bodyBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -27628,38 +25976,38 @@ public final class GrammarProto {
        */
       public Builder mergeBody(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol value) {
         if (bodyBuilder_ == null) {
-          if (body_ != null) {
-            body_ =
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.newBuilder(body_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000001) != 0) &&
+            body_ != null &&
+            body_ != com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance()) {
+            getBodyBuilder().mergeFrom(value);
           } else {
             body_ = value;
           }
-          onChanged();
         } else {
           bodyBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol body = 1;</code>
        */
       public Builder clearBody() {
-        if (bodyBuilder_ == null) {
-          body_ = null;
-          onChanged();
-        } else {
-          body_ = null;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        body_ = null;
+        if (bodyBuilder_ != null) {
+          bodyBuilder_.dispose();
           bodyBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol body = 1;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder getBodyBuilder() {
-        
+        bitField0_ |= 0x00000001;
         onChanged();
         return getBodyFieldBuilder().getBuilder();
       }
@@ -27699,7 +26047,7 @@ public final class GrammarProto {
        * @return Whether the join field is set.
        */
       public boolean hasJoin() {
-        return joinBuilder_ != null || join_ != null;
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol join = 2;</code>
@@ -27721,11 +26069,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           join_ = value;
-          onChanged();
         } else {
           joinBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -27735,11 +26083,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder builderForValue) {
         if (joinBuilder_ == null) {
           join_ = builderForValue.build();
-          onChanged();
         } else {
           joinBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
@@ -27747,38 +26095,38 @@ public final class GrammarProto {
        */
       public Builder mergeJoin(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol value) {
         if (joinBuilder_ == null) {
-          if (join_ != null) {
-            join_ =
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.newBuilder(join_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000002) != 0) &&
+            join_ != null &&
+            join_ != com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance()) {
+            getJoinBuilder().mergeFrom(value);
           } else {
             join_ = value;
           }
-          onChanged();
         } else {
           joinBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000002;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol join = 2;</code>
        */
       public Builder clearJoin() {
-        if (joinBuilder_ == null) {
-          join_ = null;
-          onChanged();
-        } else {
-          join_ = null;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        join_ = null;
+        if (joinBuilder_ != null) {
+          joinBuilder_.dispose();
           joinBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol join = 2;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder getJoinBuilder() {
-        
+        bitField0_ |= 0x00000002;
         onChanged();
         return getJoinFieldBuilder().getBuilder();
       }
@@ -27842,7 +26190,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Join(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -27903,61 +26262,6 @@ public final class GrammarProto {
       return new Longest();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Longest(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder subBuilder = null;
-              if (body_ != null) {
-                subBuilder = body_.toBuilder();
-              }
-              body_ = input.readMessage(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(body_);
-                body_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Longest_descriptor;
@@ -27994,7 +26298,7 @@ public final class GrammarProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.GrammarProto.AtomicSymbolOrBuilder getBodyOrBuilder() {
-      return getBody();
+      return body_ == null ? com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance() : body_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -28014,7 +26318,7 @@ public final class GrammarProto {
       if (body_ != null) {
         output.writeMessage(1, getBody());
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -28027,7 +26331,7 @@ public final class GrammarProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, getBody());
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -28047,7 +26351,7 @@ public final class GrammarProto {
         if (!getBody()
             .equals(other.getBody())) return false;
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -28062,7 +26366,7 @@ public final class GrammarProto {
         hash = (37 * hash) + BODY_FIELD_NUMBER;
         hash = (53 * hash) + getBody().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -28179,26 +26483,21 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.Longest.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        if (bodyBuilder_ == null) {
-          body_ = null;
-        } else {
-          body_ = null;
+        bitField0_ = 0;
+        body_ = null;
+        if (bodyBuilder_ != null) {
+          bodyBuilder_.dispose();
           bodyBuilder_ = null;
         }
         return this;
@@ -28227,47 +26526,20 @@ public final class GrammarProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.GrammarProto.Longest buildPartial() {
         com.giyeok.jparser.proto.GrammarProto.Longest result = new com.giyeok.jparser.proto.GrammarProto.Longest(this);
-        if (bodyBuilder_ == null) {
-          result.body_ = body_;
-        } else {
-          result.body_ = bodyBuilder_.build();
-        }
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.GrammarProto.Longest result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.body_ = bodyBuilder_ == null
+              ? body_
+              : bodyBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.Longest) {
@@ -28283,7 +26555,7 @@ public final class GrammarProto {
         if (other.hasBody()) {
           mergeBody(other.getBody());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -28298,19 +26570,40 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.Longest parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getBodyFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Longest) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private com.giyeok.jparser.proto.GrammarProto.AtomicSymbol body_;
       private com.google.protobuf.SingleFieldBuilderV3<
@@ -28320,7 +26613,7 @@ public final class GrammarProto {
        * @return Whether the body field is set.
        */
       public boolean hasBody() {
-        return bodyBuilder_ != null || body_ != null;
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol body = 1;</code>
@@ -28342,11 +26635,11 @@ public final class GrammarProto {
             throw new NullPointerException();
           }
           body_ = value;
-          onChanged();
         } else {
           bodyBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -28356,11 +26649,11 @@ public final class GrammarProto {
           com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder builderForValue) {
         if (bodyBuilder_ == null) {
           body_ = builderForValue.build();
-          onChanged();
         } else {
           bodyBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -28368,38 +26661,38 @@ public final class GrammarProto {
        */
       public Builder mergeBody(com.giyeok.jparser.proto.GrammarProto.AtomicSymbol value) {
         if (bodyBuilder_ == null) {
-          if (body_ != null) {
-            body_ =
-              com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.newBuilder(body_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000001) != 0) &&
+            body_ != null &&
+            body_ != com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.getDefaultInstance()) {
+            getBodyBuilder().mergeFrom(value);
           } else {
             body_ = value;
           }
-          onChanged();
         } else {
           bodyBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol body = 1;</code>
        */
       public Builder clearBody() {
-        if (bodyBuilder_ == null) {
-          body_ = null;
-          onChanged();
-        } else {
-          body_ = null;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        body_ = null;
+        if (bodyBuilder_ != null) {
+          bodyBuilder_.dispose();
           bodyBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.AtomicSymbol body = 1;</code>
        */
       public com.giyeok.jparser.proto.GrammarProto.AtomicSymbol.Builder getBodyBuilder() {
-        
+        bitField0_ |= 0x00000001;
         onChanged();
         return getBodyFieldBuilder().getBuilder();
       }
@@ -28463,7 +26756,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Longest(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -28509,48 +26813,6 @@ public final class GrammarProto {
       return new Empty();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private Empty(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.GrammarProto.internal_static_com_giyeok_jparser_proto_Empty_descriptor;
@@ -28578,7 +26840,7 @@ public final class GrammarProto {
     @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -28587,7 +26849,7 @@ public final class GrammarProto {
       if (size != -1) return size;
 
       size = 0;
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -28602,7 +26864,7 @@ public final class GrammarProto {
       }
       com.giyeok.jparser.proto.GrammarProto.Empty other = (com.giyeok.jparser.proto.GrammarProto.Empty) obj;
 
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -28613,7 +26875,7 @@ public final class GrammarProto {
       }
       int hash = 41;
       hash = (19 * hash) + getDescriptor().hashCode();
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -28730,18 +26992,13 @@ public final class GrammarProto {
 
       // Construct using com.giyeok.jparser.proto.GrammarProto.Empty.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
@@ -28777,38 +27034,6 @@ public final class GrammarProto {
       }
 
       @java.lang.Override
-      public Builder clone() {
-        return super.clone();
-      }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
-      @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.GrammarProto.Empty) {
           return mergeFrom((com.giyeok.jparser.proto.GrammarProto.Empty)other);
@@ -28820,7 +27045,7 @@ public final class GrammarProto {
 
       public Builder mergeFrom(com.giyeok.jparser.proto.GrammarProto.Empty other) {
         if (other == com.giyeok.jparser.proto.GrammarProto.Empty.getDefaultInstance()) return this;
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -28835,17 +27060,30 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.GrammarProto.Empty parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.GrammarProto.Empty) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       @java.lang.Override
@@ -28881,7 +27119,18 @@ public final class GrammarProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Empty(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 

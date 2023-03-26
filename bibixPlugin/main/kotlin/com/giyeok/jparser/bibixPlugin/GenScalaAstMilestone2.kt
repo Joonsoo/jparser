@@ -15,7 +15,6 @@ class GenScalaAstMilestone2 {
     val milestoneParserGen = MilestoneParserGen(genResult.grammarAnalysis.ngrammar())
     val parserData = milestoneParserGen.parserData()
 
-    val parserDataFileName = (context.arguments.getValue("parserDataFileName") as StringValue).value
     context.progressLogger.logInfo("Writing parser data...")
     genResult.parserDataFile.outputStream().buffered().use { stream ->
       `MilestoneParser2ProtobufConverter$`.`MODULE$`.toProto(parserData).writeTo(stream)

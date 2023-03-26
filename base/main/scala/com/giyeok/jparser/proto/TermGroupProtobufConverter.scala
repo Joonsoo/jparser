@@ -26,10 +26,10 @@ object TermGroupProtobufConverter {
     val builder = TermGroupProto.CharsGroup.newBuilder()
       .addAllUnicodeCategories(charsGroup.unicodeCategories.toList.sorted)
     if (charsGroup.excludingChars.nonEmpty) {
-      builder.addExcludingChars(new String(charsGroup.excludingChars.toList.sorted.toArray))
+      builder.setExcludingChars(new String(charsGroup.excludingChars.toList.sorted.toArray))
     }
     if (charsGroup.chars.nonEmpty) {
-      builder.addChars(new String(charsGroup.chars.toList.sorted.toArray))
+      builder.setChars(new String(charsGroup.chars.toList.sorted.toArray))
     }
     builder.build()
   }
@@ -45,7 +45,7 @@ object TermGroupProtobufConverter {
 
   def convertProtoToCharsGroup(proto: TermGroupProto.CharsGroup): CharsGroup = CharsGroup(
     proto.getUnicodeCategoriesList.toSet,
-    proto.getExcludingCharsList.flatMap(s => s.toCharArray).toSet,
-    proto.getCharsList.flatMap(s => s.toCharArray).toSet
+    proto.getExcludingChars.toCharArray.toSet,
+    proto.getChars.toCharArray.toSet
   )
 }

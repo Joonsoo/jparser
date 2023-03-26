@@ -3,13 +3,10 @@ package com.giyeok.jparser.ktparser.mgroup2
 import com.giyeok.jparser.ktlib.KernelSet
 import com.giyeok.jparser.ktlib.ParsingErrorKt
 import com.giyeok.jparser.ktlib.TermGroupUtil
-import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto
 import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.*
-import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate
-import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.KernelTemplate
-import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.TasksSummary2
+import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.*
 
-class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataProto.MilestoneGroupParserData) {
+class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
   private var verbose: Boolean = false
   private val termActionsByGroupId = parserData.termActionsList.associateBy { it.groupId }
 

@@ -10,6 +10,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 import java.io.FileInputStream
 import java.time.{Duration, Instant}
+import java.util.zip.GZIPInputStream
 import scala.reflect.io.File
 import scala.util.Using
 
@@ -71,18 +72,18 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
   }
 
   "metalang3 grammar" should "be parsed" in {
-    val grammar = new String(getClass.getResourceAsStream("/cdglang3.cdg").readAllBytes())
+    val grammar = new String(getClass.getResourceAsStream("/grammar.cdg").readAllBytes())
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
     val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
 
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A = 'a'+")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "Abc = 'a'+ {str($0)}")
-    testEquality(analysis.ngrammar, milestoneParser, mgroupParser, new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes()))
+    testEquality(analysis.ngrammar, milestoneParser, mgroupParser, new String(getClass.getResourceAsStream("/grammar.cdg").readAllBytes()))
   }
 
   "bibix grammar" should "be parsed" in {
-    val grammar = new String(getClass.getResourceAsStream("/bibix2.cdg").readAllBytes())
+    val grammar = new String(getClass.getResourceAsStream("/grammar.cdg").readAllBytes())
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
     val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
@@ -116,49 +117,51 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A=c()")
   }
 
-//  "j1 grammar" should "work" in {
-//    val grammar = new String(getClass.getResourceAsStream("/j1-grammar.cdg").readAllBytes())
-//
-//    val analysis = MetaLanguage3.analyzeGrammar(grammar)
-//
-//    println("mgroup:::")
-//    val start = Instant.now()
-//    println(s"start: $start")
-//    val mgroupParserData = new MilestoneGroupParserGen(analysis.ngrammar).parserData()
-//    val end = Instant.now()
-//    println(s"end: $end, ${Duration.between(start, end)}")
-//    val mgroupTermActionsSize = mgroupParserData.termActions.foldLeft(0)(_ + _._2.size)
-//    println(s"groups=${mgroupParserData.milestoneGroups.size}, terms=${mgroupParserData.termActions.size}, termActions=$mgroupTermActionsSize, prTipEdges=${mgroupParserData.tipEdgeProgressActions.size}, exTipEdges=${mgroupParserData.tipEdgeRequiredSymbols.size}, midEdges=${mgroupParserData.midEdgeProgressActions.size}")
-//    val mgroupParser = new MilestoneGroupParser(mgroupParserData) //.setVerbose()
-//
-//    val mgroupParserProto = MilestoneGroupParserDataProtobufConverter.toProto(mgroupParserData)
-//    Using(File("j1-mg2-parserdata.pb").outputStream()) { output =>
-//      mgroupParserProto.writeTo(output)
-//    }
-//
-//    val input = Inputs.fromString("class Abc {}")
-//    val parseResult = mgroupParser.parseOrThrow(input)
-//    val kernelsHistory = mgroupParser.kernelsHistory(parseResult)
-//
-//    val parseForest = new ParseTreeConstructor2(ParseForestFunc)(analysis.ngrammar)(input, kernelsHistory.map(Kernels)).reconstruct().get
-//    assert(parseForest.trees.size == 1)
-//    println(parseForest.trees.head)
-//  }
+  "j1 grammar" should "work" in {
+    val grammar = new String(getClass.getResourceAsStream("/j1/grammar.cdg").readAllBytes())
 
-//  "j1 grammar load" should "work" in {
-//    val parserData = Using(getClass.getResourceAsStream("/j1-mg2-parserdata.pb")) { inputStream =>
-//      MilestoneGroupParserDataProtobufConverter.fromProto(
-//        MilestoneGroupParserDataProto.MilestoneGroupParserData.parseFrom(inputStream)
-//      )
-//    }.get
-//
-//    val parser = new MilestoneGroupParser(parserData).setVerbose()
-//    val input = Inputs.fromString("class A {\n  String xx = \"\\22\";\n}")
-//    val result = parser.parseOrThrow(input)
-//    val history = parser.kernelsHistory(result)
-//
-//    val parseForest = new ParseTreeConstructor2(ParseForestFunc)(parserData.grammar)(input, history.map(Kernels)).reconstruct().get
-//    assert(parseForest.trees.size == 1)
-//    println(parseForest.trees.head)
-//  }
+    val analysis = MetaLanguage3.analyzeGrammar(grammar)
+
+    println("mgroup:::")
+    val start = Instant.now()
+    println(s"start: $start")
+    val mgroupParserData = new MilestoneGroupParserGen(analysis.ngrammar).parserData()
+    val end = Instant.now()
+    println(s"end: $end, ${Duration.between(start, end)}")
+    val mgroupTermActionsSize = mgroupParserData.termActions.foldLeft(0)(_ + _._2.size)
+    println(s"groups=${mgroupParserData.milestoneGroups.size}, terms=${mgroupParserData.termActions.size}, termActions=$mgroupTermActionsSize, prTipEdges=${mgroupParserData.tipEdgeProgressActions.size}, exTipEdges=${mgroupParserData.tipEdgeRequiredSymbols.size}, midEdges=${mgroupParserData.midEdgeProgressActions.size}")
+    val mgroupParser = new MilestoneGroupParser(mgroupParserData) //.setVerbose()
+
+    val mgroupParserProto = MilestoneGroupParserDataProtobufConverter.toProto(mgroupParserData)
+    Using(File("j1-mg2-parserdata.pb").outputStream()) { output =>
+      mgroupParserProto.writeTo(output)
+    }
+
+    val input = Inputs.fromString("class Abc {}")
+    val parseResult = mgroupParser.parseOrThrow(input)
+    val kernelsHistory = mgroupParser.kernelsHistory(parseResult)
+
+    val parseForest = new ParseTreeConstructor2(ParseForestFunc)(analysis.ngrammar)(input, kernelsHistory.map(Kernels)).reconstruct().get
+    assert(parseForest.trees.size == 1)
+    println(parseForest.trees.head)
+  }
+
+  "j1 grammar load" should "work" in {
+    val parserData = Using(getClass.getResourceAsStream("/j1-mg2-parserdata.pb.gz")) { inputStream =>
+      Using(new GZIPInputStream(inputStream)) { gzipStream =>
+        MilestoneGroupParserDataProtobufConverter.fromProto(
+          MilestoneGroupParserDataProto.MilestoneGroupParserData.parseFrom(gzipStream)
+        )
+      }.get
+    }.get
+
+    val parser = new MilestoneGroupParser(parserData).setVerbose()
+    val input = Inputs.fromString("class A {\n  String xx = \"\\22\";\n}")
+    val result = parser.parseOrThrow(input)
+    val history = parser.kernelsHistory(result)
+
+    val parseForest = new ParseTreeConstructor2(ParseForestFunc)(parserData.grammar)(input, history.map(Kernels)).reconstruct().get
+    assert(parseForest.trees.size == 1)
+    println(parseForest.trees.head)
+  }
 }

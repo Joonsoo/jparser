@@ -63,7 +63,7 @@ public final class TermGroupProto {
      */
     com.giyeok.jparser.proto.TermGroupProto.VirtualsGroupOrBuilder getVirtualsGroupOrBuilder();
 
-    public com.giyeok.jparser.proto.TermGroupProto.TermGroup.TermGroupCase getTermGroupCase();
+    com.giyeok.jparser.proto.TermGroupProto.TermGroup.TermGroupCase getTermGroupCase();
   }
   /**
    * Protobuf type {@code com.giyeok.jparser.proto.TermGroup}
@@ -87,90 +87,6 @@ public final class TermGroupProto {
       return new TermGroup();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private TermGroup(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding.Builder subBuilder = null;
-              if (termGroupCase_ == 1) {
-                subBuilder = ((com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding) termGroup_).toBuilder();
-              }
-              termGroup_ =
-                  input.readMessage(com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding) termGroup_);
-                termGroup_ = subBuilder.buildPartial();
-              }
-              termGroupCase_ = 1;
-              break;
-            }
-            case 18: {
-              com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder subBuilder = null;
-              if (termGroupCase_ == 2) {
-                subBuilder = ((com.giyeok.jparser.proto.TermGroupProto.CharsGroup) termGroup_).toBuilder();
-              }
-              termGroup_ =
-                  input.readMessage(com.giyeok.jparser.proto.TermGroupProto.CharsGroup.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.TermGroupProto.CharsGroup) termGroup_);
-                termGroup_ = subBuilder.buildPartial();
-              }
-              termGroupCase_ = 2;
-              break;
-            }
-            case 26: {
-              com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup.Builder subBuilder = null;
-              if (termGroupCase_ == 3) {
-                subBuilder = ((com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup) termGroup_).toBuilder();
-              }
-              termGroup_ =
-                  input.readMessage(com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom((com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup) termGroup_);
-                termGroup_ = subBuilder.buildPartial();
-              }
-              termGroupCase_ = 3;
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.TermGroupProto.internal_static_com_giyeok_jparser_proto_TermGroup_descriptor;
@@ -185,6 +101,7 @@ public final class TermGroupProto {
     }
 
     private int termGroupCase_ = 0;
+    @SuppressWarnings("serial")
     private java.lang.Object termGroup_;
     public enum TermGroupCase
         implements com.google.protobuf.Internal.EnumLite,
@@ -343,7 +260,7 @@ public final class TermGroupProto {
       if (termGroupCase_ == 3) {
         output.writeMessage(3, (com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup) termGroup_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -364,7 +281,7 @@ public final class TermGroupProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(3, (com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup) termGroup_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -396,7 +313,7 @@ public final class TermGroupProto {
         case 0:
         default:
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -423,7 +340,7 @@ public final class TermGroupProto {
         case 0:
         default:
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -540,22 +457,27 @@ public final class TermGroupProto {
 
       // Construct using com.giyeok.jparser.proto.TermGroupProto.TermGroup.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
+        if (allCharsExcludingBuilder_ != null) {
+          allCharsExcludingBuilder_.clear();
+        }
+        if (charsGroupBuilder_ != null) {
+          charsGroupBuilder_.clear();
+        }
+        if (virtualsGroupBuilder_ != null) {
+          virtualsGroupBuilder_.clear();
+        }
         termGroupCase_ = 0;
         termGroup_ = null;
         return this;
@@ -584,64 +506,33 @@ public final class TermGroupProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.TermGroupProto.TermGroup buildPartial() {
         com.giyeok.jparser.proto.TermGroupProto.TermGroup result = new com.giyeok.jparser.proto.TermGroupProto.TermGroup(this);
-        if (termGroupCase_ == 1) {
-          if (allCharsExcludingBuilder_ == null) {
-            result.termGroup_ = termGroup_;
-          } else {
-            result.termGroup_ = allCharsExcludingBuilder_.build();
-          }
-        }
-        if (termGroupCase_ == 2) {
-          if (charsGroupBuilder_ == null) {
-            result.termGroup_ = termGroup_;
-          } else {
-            result.termGroup_ = charsGroupBuilder_.build();
-          }
-        }
-        if (termGroupCase_ == 3) {
-          if (virtualsGroupBuilder_ == null) {
-            result.termGroup_ = termGroup_;
-          } else {
-            result.termGroup_ = virtualsGroupBuilder_.build();
-          }
-        }
-        result.termGroupCase_ = termGroupCase_;
+        if (bitField0_ != 0) { buildPartial0(result); }
+        buildPartialOneofs(result);
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.TermGroupProto.TermGroup result) {
+        int from_bitField0_ = bitField0_;
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
+
+      private void buildPartialOneofs(com.giyeok.jparser.proto.TermGroupProto.TermGroup result) {
+        result.termGroupCase_ = termGroupCase_;
+        result.termGroup_ = this.termGroup_;
+        if (termGroupCase_ == 1 &&
+            allCharsExcludingBuilder_ != null) {
+          result.termGroup_ = allCharsExcludingBuilder_.build();
+        }
+        if (termGroupCase_ == 2 &&
+            charsGroupBuilder_ != null) {
+          result.termGroup_ = charsGroupBuilder_.build();
+        }
+        if (termGroupCase_ == 3 &&
+            virtualsGroupBuilder_ != null) {
+          result.termGroup_ = virtualsGroupBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.TermGroupProto.TermGroup) {
@@ -671,7 +562,7 @@ public final class TermGroupProto {
             break;
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -686,17 +577,51 @@ public final class TermGroupProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.TermGroupProto.TermGroup parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getAllCharsExcludingFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                termGroupCase_ = 1;
+                break;
+              } // case 10
+              case 18: {
+                input.readMessage(
+                    getCharsGroupFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                termGroupCase_ = 2;
+                break;
+              } // case 18
+              case 26: {
+                input.readMessage(
+                    getVirtualsGroupFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                termGroupCase_ = 3;
+                break;
+              } // case 26
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.TermGroupProto.TermGroup) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int termGroupCase_ = 0;
@@ -714,6 +639,7 @@ public final class TermGroupProto {
         return this;
       }
 
+      private int bitField0_;
 
       private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding, com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding.Builder, com.giyeok.jparser.proto.TermGroupProto.AllCharsExcludingOrBuilder> allCharsExcludingBuilder_;
@@ -789,8 +715,9 @@ public final class TermGroupProto {
         } else {
           if (termGroupCase_ == 1) {
             allCharsExcludingBuilder_.mergeFrom(value);
+          } else {
+            allCharsExcludingBuilder_.setMessage(value);
           }
-          allCharsExcludingBuilder_.setMessage(value);
         }
         termGroupCase_ = 1;
         return this;
@@ -852,7 +779,7 @@ public final class TermGroupProto {
           termGroup_ = null;
         }
         termGroupCase_ = 1;
-        onChanged();;
+        onChanged();
         return allCharsExcludingBuilder_;
       }
 
@@ -930,8 +857,9 @@ public final class TermGroupProto {
         } else {
           if (termGroupCase_ == 2) {
             charsGroupBuilder_.mergeFrom(value);
+          } else {
+            charsGroupBuilder_.setMessage(value);
           }
-          charsGroupBuilder_.setMessage(value);
         }
         termGroupCase_ = 2;
         return this;
@@ -993,7 +921,7 @@ public final class TermGroupProto {
           termGroup_ = null;
         }
         termGroupCase_ = 2;
-        onChanged();;
+        onChanged();
         return charsGroupBuilder_;
       }
 
@@ -1071,8 +999,9 @@ public final class TermGroupProto {
         } else {
           if (termGroupCase_ == 3) {
             virtualsGroupBuilder_.mergeFrom(value);
+          } else {
+            virtualsGroupBuilder_.setMessage(value);
           }
-          virtualsGroupBuilder_.setMessage(value);
         }
         termGroupCase_ = 3;
         return this;
@@ -1134,7 +1063,7 @@ public final class TermGroupProto {
           termGroup_ = null;
         }
         termGroupCase_ = 3;
-        onChanged();;
+        onChanged();
         return virtualsGroupBuilder_;
       }
       @java.lang.Override
@@ -1170,7 +1099,18 @@ public final class TermGroupProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new TermGroup(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -1231,61 +1171,6 @@ public final class TermGroupProto {
       return new AllCharsExcluding();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private AllCharsExcluding(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder subBuilder = null;
-              if (excluding_ != null) {
-                subBuilder = excluding_.toBuilder();
-              }
-              excluding_ = input.readMessage(com.giyeok.jparser.proto.TermGroupProto.CharsGroup.parser(), extensionRegistry);
-              if (subBuilder != null) {
-                subBuilder.mergeFrom(excluding_);
-                excluding_ = subBuilder.buildPartial();
-              }
-
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.TermGroupProto.internal_static_com_giyeok_jparser_proto_AllCharsExcluding_descriptor;
@@ -1322,7 +1207,7 @@ public final class TermGroupProto {
      */
     @java.lang.Override
     public com.giyeok.jparser.proto.TermGroupProto.CharsGroupOrBuilder getExcludingOrBuilder() {
-      return getExcluding();
+      return excluding_ == null ? com.giyeok.jparser.proto.TermGroupProto.CharsGroup.getDefaultInstance() : excluding_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -1342,7 +1227,7 @@ public final class TermGroupProto {
       if (excluding_ != null) {
         output.writeMessage(1, getExcluding());
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -1355,7 +1240,7 @@ public final class TermGroupProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, getExcluding());
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -1375,7 +1260,7 @@ public final class TermGroupProto {
         if (!getExcluding()
             .equals(other.getExcluding())) return false;
       }
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -1390,7 +1275,7 @@ public final class TermGroupProto {
         hash = (37 * hash) + EXCLUDING_FIELD_NUMBER;
         hash = (53 * hash) + getExcluding().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -1507,26 +1392,21 @@ public final class TermGroupProto {
 
       // Construct using com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        if (excludingBuilder_ == null) {
-          excluding_ = null;
-        } else {
-          excluding_ = null;
+        bitField0_ = 0;
+        excluding_ = null;
+        if (excludingBuilder_ != null) {
+          excludingBuilder_.dispose();
           excludingBuilder_ = null;
         }
         return this;
@@ -1555,47 +1435,20 @@ public final class TermGroupProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding buildPartial() {
         com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding result = new com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding(this);
-        if (excludingBuilder_ == null) {
-          result.excluding_ = excluding_;
-        } else {
-          result.excluding_ = excludingBuilder_.build();
-        }
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.excluding_ = excludingBuilder_ == null
+              ? excluding_
+              : excludingBuilder_.build();
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding) {
@@ -1611,7 +1464,7 @@ public final class TermGroupProto {
         if (other.hasExcluding()) {
           mergeExcluding(other.getExcluding());
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -1626,19 +1479,40 @@ public final class TermGroupProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                input.readMessage(
+                    getExcludingFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.TermGroupProto.AllCharsExcluding) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
+      private int bitField0_;
 
       private com.giyeok.jparser.proto.TermGroupProto.CharsGroup excluding_;
       private com.google.protobuf.SingleFieldBuilderV3<
@@ -1648,7 +1522,7 @@ public final class TermGroupProto {
        * @return Whether the excluding field is set.
        */
       public boolean hasExcluding() {
-        return excludingBuilder_ != null || excluding_ != null;
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
@@ -1670,11 +1544,11 @@ public final class TermGroupProto {
             throw new NullPointerException();
           }
           excluding_ = value;
-          onChanged();
         } else {
           excludingBuilder_.setMessage(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -1684,11 +1558,11 @@ public final class TermGroupProto {
           com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder builderForValue) {
         if (excludingBuilder_ == null) {
           excluding_ = builderForValue.build();
-          onChanged();
         } else {
           excludingBuilder_.setMessage(builderForValue.build());
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
@@ -1696,38 +1570,38 @@ public final class TermGroupProto {
        */
       public Builder mergeExcluding(com.giyeok.jparser.proto.TermGroupProto.CharsGroup value) {
         if (excludingBuilder_ == null) {
-          if (excluding_ != null) {
-            excluding_ =
-              com.giyeok.jparser.proto.TermGroupProto.CharsGroup.newBuilder(excluding_).mergeFrom(value).buildPartial();
+          if (((bitField0_ & 0x00000001) != 0) &&
+            excluding_ != null &&
+            excluding_ != com.giyeok.jparser.proto.TermGroupProto.CharsGroup.getDefaultInstance()) {
+            getExcludingBuilder().mergeFrom(value);
           } else {
             excluding_ = value;
           }
-          onChanged();
         } else {
           excludingBuilder_.mergeFrom(value);
         }
-
+        bitField0_ |= 0x00000001;
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
        */
       public Builder clearExcluding() {
-        if (excludingBuilder_ == null) {
-          excluding_ = null;
-          onChanged();
-        } else {
-          excluding_ = null;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        excluding_ = null;
+        if (excludingBuilder_ != null) {
+          excludingBuilder_.dispose();
           excludingBuilder_ = null;
         }
-
+        onChanged();
         return this;
       }
       /**
        * <code>.com.giyeok.jparser.proto.CharsGroup excluding = 1;</code>
        */
       public com.giyeok.jparser.proto.TermGroupProto.CharsGroup.Builder getExcludingBuilder() {
-        
+        bitField0_ |= 0x00000001;
         onChanged();
         return getExcludingFieldBuilder().getBuilder();
       }
@@ -1791,7 +1665,18 @@ public final class TermGroupProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new AllCharsExcluding(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -1833,54 +1718,28 @@ public final class TermGroupProto {
     int getUnicodeCategories(int index);
 
     /**
-     * <code>repeated string excluding_chars = 2;</code>
-     * @return A list containing the excludingChars.
+     * <code>string excluding_chars = 2;</code>
+     * @return The excludingChars.
      */
-    java.util.List<java.lang.String>
-        getExcludingCharsList();
+    java.lang.String getExcludingChars();
     /**
-     * <code>repeated string excluding_chars = 2;</code>
-     * @return The count of excludingChars.
-     */
-    int getExcludingCharsCount();
-    /**
-     * <code>repeated string excluding_chars = 2;</code>
-     * @param index The index of the element to return.
-     * @return The excludingChars at the given index.
-     */
-    java.lang.String getExcludingChars(int index);
-    /**
-     * <code>repeated string excluding_chars = 2;</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the excludingChars at the given index.
+     * <code>string excluding_chars = 2;</code>
+     * @return The bytes for excludingChars.
      */
     com.google.protobuf.ByteString
-        getExcludingCharsBytes(int index);
+        getExcludingCharsBytes();
 
     /**
-     * <code>repeated string chars = 3;</code>
-     * @return A list containing the chars.
+     * <code>string chars = 3;</code>
+     * @return The chars.
      */
-    java.util.List<java.lang.String>
-        getCharsList();
+    java.lang.String getChars();
     /**
-     * <code>repeated string chars = 3;</code>
-     * @return The count of chars.
-     */
-    int getCharsCount();
-    /**
-     * <code>repeated string chars = 3;</code>
-     * @param index The index of the element to return.
-     * @return The chars at the given index.
-     */
-    java.lang.String getChars(int index);
-    /**
-     * <code>repeated string chars = 3;</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the chars at the given index.
+     * <code>string chars = 3;</code>
+     * @return The bytes for chars.
      */
     com.google.protobuf.ByteString
-        getCharsBytes(int index);
+        getCharsBytes();
   }
   /**
    * Protobuf type {@code com.giyeok.jparser.proto.CharsGroup}
@@ -1896,8 +1755,8 @@ public final class TermGroupProto {
     }
     private CharsGroup() {
       unicodeCategories_ = emptyIntList();
-      excludingChars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-      chars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      excludingChars_ = "";
+      chars_ = "";
     }
 
     @java.lang.Override
@@ -1907,97 +1766,6 @@ public final class TermGroupProto {
       return new CharsGroup();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private CharsGroup(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 8: {
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                unicodeCategories_ = newIntList();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              unicodeCategories_.addInt(input.readInt32());
-              break;
-            }
-            case 10: {
-              int length = input.readRawVarint32();
-              int limit = input.pushLimit(length);
-              if (!((mutable_bitField0_ & 0x00000001) != 0) && input.getBytesUntilLimit() > 0) {
-                unicodeCategories_ = newIntList();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              while (input.getBytesUntilLimit() > 0) {
-                unicodeCategories_.addInt(input.readInt32());
-              }
-              input.popLimit(limit);
-              break;
-            }
-            case 18: {
-              java.lang.String s = input.readStringRequireUtf8();
-              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
-                excludingChars_ = new com.google.protobuf.LazyStringArrayList();
-                mutable_bitField0_ |= 0x00000002;
-              }
-              excludingChars_.add(s);
-              break;
-            }
-            case 26: {
-              java.lang.String s = input.readStringRequireUtf8();
-              if (!((mutable_bitField0_ & 0x00000004) != 0)) {
-                chars_ = new com.google.protobuf.LazyStringArrayList();
-                mutable_bitField0_ |= 0x00000004;
-              }
-              chars_.add(s);
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          unicodeCategories_.makeImmutable(); // C
-        }
-        if (((mutable_bitField0_ & 0x00000002) != 0)) {
-          excludingChars_ = excludingChars_.getUnmodifiableView();
-        }
-        if (((mutable_bitField0_ & 0x00000004) != 0)) {
-          chars_ = chars_.getUnmodifiableView();
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.TermGroupProto.internal_static_com_giyeok_jparser_proto_CharsGroup_descriptor;
@@ -2012,6 +1780,7 @@ public final class TermGroupProto {
     }
 
     public static final int UNICODE_CATEGORIES_FIELD_NUMBER = 1;
+    @SuppressWarnings("serial")
     private com.google.protobuf.Internal.IntList unicodeCategories_;
     /**
      * <code>repeated int32 unicode_categories = 1;</code>
@@ -2040,73 +1809,81 @@ public final class TermGroupProto {
     private int unicodeCategoriesMemoizedSerializedSize = -1;
 
     public static final int EXCLUDING_CHARS_FIELD_NUMBER = 2;
-    private com.google.protobuf.LazyStringList excludingChars_;
+    @SuppressWarnings("serial")
+    private volatile java.lang.Object excludingChars_ = "";
     /**
-     * <code>repeated string excluding_chars = 2;</code>
-     * @return A list containing the excludingChars.
+     * <code>string excluding_chars = 2;</code>
+     * @return The excludingChars.
      */
-    public com.google.protobuf.ProtocolStringList
-        getExcludingCharsList() {
-      return excludingChars_;
+    @java.lang.Override
+    public java.lang.String getExcludingChars() {
+      java.lang.Object ref = excludingChars_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        excludingChars_ = s;
+        return s;
+      }
     }
     /**
-     * <code>repeated string excluding_chars = 2;</code>
-     * @return The count of excludingChars.
+     * <code>string excluding_chars = 2;</code>
+     * @return The bytes for excludingChars.
      */
-    public int getExcludingCharsCount() {
-      return excludingChars_.size();
-    }
-    /**
-     * <code>repeated string excluding_chars = 2;</code>
-     * @param index The index of the element to return.
-     * @return The excludingChars at the given index.
-     */
-    public java.lang.String getExcludingChars(int index) {
-      return excludingChars_.get(index);
-    }
-    /**
-     * <code>repeated string excluding_chars = 2;</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the excludingChars at the given index.
-     */
+    @java.lang.Override
     public com.google.protobuf.ByteString
-        getExcludingCharsBytes(int index) {
-      return excludingChars_.getByteString(index);
+        getExcludingCharsBytes() {
+      java.lang.Object ref = excludingChars_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        excludingChars_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
     }
 
     public static final int CHARS_FIELD_NUMBER = 3;
-    private com.google.protobuf.LazyStringList chars_;
+    @SuppressWarnings("serial")
+    private volatile java.lang.Object chars_ = "";
     /**
-     * <code>repeated string chars = 3;</code>
-     * @return A list containing the chars.
+     * <code>string chars = 3;</code>
+     * @return The chars.
      */
-    public com.google.protobuf.ProtocolStringList
-        getCharsList() {
-      return chars_;
+    @java.lang.Override
+    public java.lang.String getChars() {
+      java.lang.Object ref = chars_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        chars_ = s;
+        return s;
+      }
     }
     /**
-     * <code>repeated string chars = 3;</code>
-     * @return The count of chars.
+     * <code>string chars = 3;</code>
+     * @return The bytes for chars.
      */
-    public int getCharsCount() {
-      return chars_.size();
-    }
-    /**
-     * <code>repeated string chars = 3;</code>
-     * @param index The index of the element to return.
-     * @return The chars at the given index.
-     */
-    public java.lang.String getChars(int index) {
-      return chars_.get(index);
-    }
-    /**
-     * <code>repeated string chars = 3;</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the chars at the given index.
-     */
+    @java.lang.Override
     public com.google.protobuf.ByteString
-        getCharsBytes(int index) {
-      return chars_.getByteString(index);
+        getCharsBytes() {
+      java.lang.Object ref = chars_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        chars_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
     }
 
     private byte memoizedIsInitialized = -1;
@@ -2131,13 +1908,13 @@ public final class TermGroupProto {
       for (int i = 0; i < unicodeCategories_.size(); i++) {
         output.writeInt32NoTag(unicodeCategories_.getInt(i));
       }
-      for (int i = 0; i < excludingChars_.size(); i++) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, excludingChars_.getRaw(i));
+      if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(excludingChars_)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, excludingChars_);
       }
-      for (int i = 0; i < chars_.size(); i++) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, chars_.getRaw(i));
+      if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(chars_)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, chars_);
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -2160,23 +1937,13 @@ public final class TermGroupProto {
         }
         unicodeCategoriesMemoizedSerializedSize = dataSize;
       }
-      {
-        int dataSize = 0;
-        for (int i = 0; i < excludingChars_.size(); i++) {
-          dataSize += computeStringSizeNoTag(excludingChars_.getRaw(i));
-        }
-        size += dataSize;
-        size += 1 * getExcludingCharsList().size();
+      if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(excludingChars_)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, excludingChars_);
       }
-      {
-        int dataSize = 0;
-        for (int i = 0; i < chars_.size(); i++) {
-          dataSize += computeStringSizeNoTag(chars_.getRaw(i));
-        }
-        size += dataSize;
-        size += 1 * getCharsList().size();
+      if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(chars_)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, chars_);
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -2193,11 +1960,11 @@ public final class TermGroupProto {
 
       if (!getUnicodeCategoriesList()
           .equals(other.getUnicodeCategoriesList())) return false;
-      if (!getExcludingCharsList()
-          .equals(other.getExcludingCharsList())) return false;
-      if (!getCharsList()
-          .equals(other.getCharsList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getExcludingChars()
+          .equals(other.getExcludingChars())) return false;
+      if (!getChars()
+          .equals(other.getChars())) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -2212,15 +1979,11 @@ public final class TermGroupProto {
         hash = (37 * hash) + UNICODE_CATEGORIES_FIELD_NUMBER;
         hash = (53 * hash) + getUnicodeCategoriesList().hashCode();
       }
-      if (getExcludingCharsCount() > 0) {
-        hash = (37 * hash) + EXCLUDING_CHARS_FIELD_NUMBER;
-        hash = (53 * hash) + getExcludingCharsList().hashCode();
-      }
-      if (getCharsCount() > 0) {
-        hash = (37 * hash) + CHARS_FIELD_NUMBER;
-        hash = (53 * hash) + getCharsList().hashCode();
-      }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (37 * hash) + EXCLUDING_CHARS_FIELD_NUMBER;
+      hash = (53 * hash) + getExcludingChars().hashCode();
+      hash = (37 * hash) + CHARS_FIELD_NUMBER;
+      hash = (53 * hash) + getChars().hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -2337,28 +2100,21 @@ public final class TermGroupProto {
 
       // Construct using com.giyeok.jparser.proto.TermGroupProto.CharsGroup.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
+        bitField0_ = 0;
         unicodeCategories_ = emptyIntList();
-        bitField0_ = (bitField0_ & ~0x00000001);
-        excludingChars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-        bitField0_ = (bitField0_ & ~0x00000002);
-        chars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-        bitField0_ = (bitField0_ & ~0x00000004);
+        excludingChars_ = "";
+        chars_ = "";
         return this;
       }
 
@@ -2385,58 +2141,30 @@ public final class TermGroupProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.TermGroupProto.CharsGroup buildPartial() {
         com.giyeok.jparser.proto.TermGroupProto.CharsGroup result = new com.giyeok.jparser.proto.TermGroupProto.CharsGroup(this);
-        int from_bitField0_ = bitField0_;
+        buildPartialRepeatedFields(result);
+        if (bitField0_ != 0) { buildPartial0(result); }
+        onBuilt();
+        return result;
+      }
+
+      private void buildPartialRepeatedFields(com.giyeok.jparser.proto.TermGroupProto.CharsGroup result) {
         if (((bitField0_ & 0x00000001) != 0)) {
           unicodeCategories_.makeImmutable();
           bitField0_ = (bitField0_ & ~0x00000001);
         }
         result.unicodeCategories_ = unicodeCategories_;
-        if (((bitField0_ & 0x00000002) != 0)) {
-          excludingChars_ = excludingChars_.getUnmodifiableView();
-          bitField0_ = (bitField0_ & ~0x00000002);
-        }
-        result.excludingChars_ = excludingChars_;
-        if (((bitField0_ & 0x00000004) != 0)) {
-          chars_ = chars_.getUnmodifiableView();
-          bitField0_ = (bitField0_ & ~0x00000004);
-        }
-        result.chars_ = chars_;
-        onBuilt();
-        return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.TermGroupProto.CharsGroup result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.excludingChars_ = excludingChars_;
+        }
+        if (((from_bitField0_ & 0x00000004) != 0)) {
+          result.chars_ = chars_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.TermGroupProto.CharsGroup) {
@@ -2459,27 +2187,17 @@ public final class TermGroupProto {
           }
           onChanged();
         }
-        if (!other.excludingChars_.isEmpty()) {
-          if (excludingChars_.isEmpty()) {
-            excludingChars_ = other.excludingChars_;
-            bitField0_ = (bitField0_ & ~0x00000002);
-          } else {
-            ensureExcludingCharsIsMutable();
-            excludingChars_.addAll(other.excludingChars_);
-          }
+        if (!other.getExcludingChars().isEmpty()) {
+          excludingChars_ = other.excludingChars_;
+          bitField0_ |= 0x00000002;
           onChanged();
         }
-        if (!other.chars_.isEmpty()) {
-          if (chars_.isEmpty()) {
-            chars_ = other.chars_;
-            bitField0_ = (bitField0_ & ~0x00000004);
-          } else {
-            ensureCharsIsMutable();
-            chars_.addAll(other.chars_);
-          }
+        if (!other.getChars().isEmpty()) {
+          chars_ = other.chars_;
+          bitField0_ |= 0x00000004;
           onChanged();
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -2494,17 +2212,56 @@ public final class TermGroupProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.TermGroupProto.CharsGroup parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 8: {
+                int v = input.readInt32();
+                ensureUnicodeCategoriesIsMutable();
+                unicodeCategories_.addInt(v);
+                break;
+              } // case 8
+              case 10: {
+                int length = input.readRawVarint32();
+                int limit = input.pushLimit(length);
+                ensureUnicodeCategoriesIsMutable();
+                while (input.getBytesUntilLimit() > 0) {
+                  unicodeCategories_.addInt(input.readInt32());
+                }
+                input.popLimit(limit);
+                break;
+              } // case 10
+              case 18: {
+                excludingChars_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 26: {
+                chars_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 26
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.TermGroupProto.CharsGroup) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -2514,7 +2271,7 @@ public final class TermGroupProto {
         if (!((bitField0_ & 0x00000001) != 0)) {
           unicodeCategories_ = mutableCopy(unicodeCategories_);
           bitField0_ |= 0x00000001;
-         }
+        }
       }
       /**
        * <code>repeated int32 unicode_categories = 1;</code>
@@ -2548,6 +2305,7 @@ public final class TermGroupProto {
        */
       public Builder setUnicodeCategories(
           int index, int value) {
+
         ensureUnicodeCategoriesIsMutable();
         unicodeCategories_.setInt(index, value);
         onChanged();
@@ -2559,6 +2317,7 @@ public final class TermGroupProto {
        * @return This builder for chaining.
        */
       public Builder addUnicodeCategories(int value) {
+
         ensureUnicodeCategoriesIsMutable();
         unicodeCategories_.addInt(value);
         onChanged();
@@ -2588,222 +2347,146 @@ public final class TermGroupProto {
         return this;
       }
 
-      private com.google.protobuf.LazyStringList excludingChars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-      private void ensureExcludingCharsIsMutable() {
-        if (!((bitField0_ & 0x00000002) != 0)) {
-          excludingChars_ = new com.google.protobuf.LazyStringArrayList(excludingChars_);
-          bitField0_ |= 0x00000002;
-         }
-      }
+      private java.lang.Object excludingChars_ = "";
       /**
-       * <code>repeated string excluding_chars = 2;</code>
-       * @return A list containing the excludingChars.
+       * <code>string excluding_chars = 2;</code>
+       * @return The excludingChars.
        */
-      public com.google.protobuf.ProtocolStringList
-          getExcludingCharsList() {
-        return excludingChars_.getUnmodifiableView();
+      public java.lang.String getExcludingChars() {
+        java.lang.Object ref = excludingChars_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          excludingChars_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
       }
       /**
-       * <code>repeated string excluding_chars = 2;</code>
-       * @return The count of excludingChars.
-       */
-      public int getExcludingCharsCount() {
-        return excludingChars_.size();
-      }
-      /**
-       * <code>repeated string excluding_chars = 2;</code>
-       * @param index The index of the element to return.
-       * @return The excludingChars at the given index.
-       */
-      public java.lang.String getExcludingChars(int index) {
-        return excludingChars_.get(index);
-      }
-      /**
-       * <code>repeated string excluding_chars = 2;</code>
-       * @param index The index of the value to return.
-       * @return The bytes of the excludingChars at the given index.
+       * <code>string excluding_chars = 2;</code>
+       * @return The bytes for excludingChars.
        */
       public com.google.protobuf.ByteString
-          getExcludingCharsBytes(int index) {
-        return excludingChars_.getByteString(index);
+          getExcludingCharsBytes() {
+        java.lang.Object ref = excludingChars_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          excludingChars_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
       }
       /**
-       * <code>repeated string excluding_chars = 2;</code>
-       * @param index The index to set the value at.
+       * <code>string excluding_chars = 2;</code>
        * @param value The excludingChars to set.
        * @return This builder for chaining.
        */
       public Builder setExcludingChars(
-          int index, java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  ensureExcludingCharsIsMutable();
-        excludingChars_.set(index, value);
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>repeated string excluding_chars = 2;</code>
-       * @param value The excludingChars to add.
-       * @return This builder for chaining.
-       */
-      public Builder addExcludingChars(
           java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  ensureExcludingCharsIsMutable();
-        excludingChars_.add(value);
+        if (value == null) { throw new NullPointerException(); }
+        excludingChars_ = value;
+        bitField0_ |= 0x00000002;
         onChanged();
         return this;
       }
       /**
-       * <code>repeated string excluding_chars = 2;</code>
-       * @param values The excludingChars to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllExcludingChars(
-          java.lang.Iterable<java.lang.String> values) {
-        ensureExcludingCharsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, excludingChars_);
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>repeated string excluding_chars = 2;</code>
+       * <code>string excluding_chars = 2;</code>
        * @return This builder for chaining.
        */
       public Builder clearExcludingChars() {
-        excludingChars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        excludingChars_ = getDefaultInstance().getExcludingChars();
         bitField0_ = (bitField0_ & ~0x00000002);
         onChanged();
         return this;
       }
       /**
-       * <code>repeated string excluding_chars = 2;</code>
-       * @param value The bytes of the excludingChars to add.
+       * <code>string excluding_chars = 2;</code>
+       * @param value The bytes for excludingChars to set.
        * @return This builder for chaining.
        */
-      public Builder addExcludingCharsBytes(
+      public Builder setExcludingCharsBytes(
           com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
-        ensureExcludingCharsIsMutable();
-        excludingChars_.add(value);
+        if (value == null) { throw new NullPointerException(); }
+        checkByteStringIsUtf8(value);
+        excludingChars_ = value;
+        bitField0_ |= 0x00000002;
         onChanged();
         return this;
       }
 
-      private com.google.protobuf.LazyStringList chars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-      private void ensureCharsIsMutable() {
-        if (!((bitField0_ & 0x00000004) != 0)) {
-          chars_ = new com.google.protobuf.LazyStringArrayList(chars_);
-          bitField0_ |= 0x00000004;
-         }
-      }
+      private java.lang.Object chars_ = "";
       /**
-       * <code>repeated string chars = 3;</code>
-       * @return A list containing the chars.
+       * <code>string chars = 3;</code>
+       * @return The chars.
        */
-      public com.google.protobuf.ProtocolStringList
-          getCharsList() {
-        return chars_.getUnmodifiableView();
+      public java.lang.String getChars() {
+        java.lang.Object ref = chars_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          chars_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
       }
       /**
-       * <code>repeated string chars = 3;</code>
-       * @return The count of chars.
-       */
-      public int getCharsCount() {
-        return chars_.size();
-      }
-      /**
-       * <code>repeated string chars = 3;</code>
-       * @param index The index of the element to return.
-       * @return The chars at the given index.
-       */
-      public java.lang.String getChars(int index) {
-        return chars_.get(index);
-      }
-      /**
-       * <code>repeated string chars = 3;</code>
-       * @param index The index of the value to return.
-       * @return The bytes of the chars at the given index.
+       * <code>string chars = 3;</code>
+       * @return The bytes for chars.
        */
       public com.google.protobuf.ByteString
-          getCharsBytes(int index) {
-        return chars_.getByteString(index);
+          getCharsBytes() {
+        java.lang.Object ref = chars_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          chars_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
       }
       /**
-       * <code>repeated string chars = 3;</code>
-       * @param index The index to set the value at.
+       * <code>string chars = 3;</code>
        * @param value The chars to set.
        * @return This builder for chaining.
        */
       public Builder setChars(
-          int index, java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  ensureCharsIsMutable();
-        chars_.set(index, value);
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>repeated string chars = 3;</code>
-       * @param value The chars to add.
-       * @return This builder for chaining.
-       */
-      public Builder addChars(
           java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  ensureCharsIsMutable();
-        chars_.add(value);
+        if (value == null) { throw new NullPointerException(); }
+        chars_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
       /**
-       * <code>repeated string chars = 3;</code>
-       * @param values The chars to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllChars(
-          java.lang.Iterable<java.lang.String> values) {
-        ensureCharsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, chars_);
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>repeated string chars = 3;</code>
+       * <code>string chars = 3;</code>
        * @return This builder for chaining.
        */
       public Builder clearChars() {
-        chars_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        chars_ = getDefaultInstance().getChars();
         bitField0_ = (bitField0_ & ~0x00000004);
         onChanged();
         return this;
       }
       /**
-       * <code>repeated string chars = 3;</code>
-       * @param value The bytes of the chars to add.
+       * <code>string chars = 3;</code>
+       * @param value The bytes for chars to set.
        * @return This builder for chaining.
        */
-      public Builder addCharsBytes(
+      public Builder setCharsBytes(
           com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
-        ensureCharsIsMutable();
-        chars_.add(value);
+        if (value == null) { throw new NullPointerException(); }
+        checkByteStringIsUtf8(value);
+        chars_ = value;
+        bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
@@ -2840,7 +2523,18 @@ public final class TermGroupProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new CharsGroup(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -2902,7 +2596,8 @@ public final class TermGroupProto {
       super(builder);
     }
     private VirtualsGroup() {
-      virtualNames_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      virtualNames_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
     }
 
     @java.lang.Override
@@ -2912,61 +2607,6 @@ public final class TermGroupProto {
       return new VirtualsGroup();
     }
 
-    @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
-      return this.unknownFields;
-    }
-    private VirtualsGroup(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
-      int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            case 10: {
-              java.lang.String s = input.readStringRequireUtf8();
-              if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                virtualNames_ = new com.google.protobuf.LazyStringArrayList();
-                mutable_bitField0_ |= 0x00000001;
-              }
-              virtualNames_.add(s);
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x00000001) != 0)) {
-          virtualNames_ = virtualNames_.getUnmodifiableView();
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
-    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.giyeok.jparser.proto.TermGroupProto.internal_static_com_giyeok_jparser_proto_VirtualsGroup_descriptor;
@@ -2981,7 +2621,9 @@ public final class TermGroupProto {
     }
 
     public static final int VIRTUAL_NAMES_FIELD_NUMBER = 1;
-    private com.google.protobuf.LazyStringList virtualNames_;
+    @SuppressWarnings("serial")
+    private com.google.protobuf.LazyStringArrayList virtualNames_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
     /**
      * <code>repeated string virtual_names = 1;</code>
      * @return A list containing the virtualNames.
@@ -3032,7 +2674,7 @@ public final class TermGroupProto {
       for (int i = 0; i < virtualNames_.size(); i++) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 1, virtualNames_.getRaw(i));
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
     @java.lang.Override
@@ -3049,7 +2691,7 @@ public final class TermGroupProto {
         size += dataSize;
         size += 1 * getVirtualNamesList().size();
       }
-      size += unknownFields.getSerializedSize();
+      size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
     }
@@ -3066,7 +2708,7 @@ public final class TermGroupProto {
 
       if (!getVirtualNamesList()
           .equals(other.getVirtualNamesList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
 
@@ -3081,7 +2723,7 @@ public final class TermGroupProto {
         hash = (37 * hash) + VIRTUAL_NAMES_FIELD_NUMBER;
         hash = (53 * hash) + getVirtualNamesList().hashCode();
       }
-      hash = (29 * hash) + unknownFields.hashCode();
+      hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
     }
@@ -3198,24 +2840,20 @@ public final class TermGroupProto {
 
       // Construct using com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
           com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
-        }
+
       }
       @java.lang.Override
       public Builder clear() {
         super.clear();
-        virtualNames_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-        bitField0_ = (bitField0_ & ~0x00000001);
+        bitField0_ = 0;
+        virtualNames_ =
+            com.google.protobuf.LazyStringArrayList.emptyList();
         return this;
       }
 
@@ -3242,48 +2880,19 @@ public final class TermGroupProto {
       @java.lang.Override
       public com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup buildPartial() {
         com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup result = new com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup(this);
-        int from_bitField0_ = bitField0_;
-        if (((bitField0_ & 0x00000001) != 0)) {
-          virtualNames_ = virtualNames_.getUnmodifiableView();
-          bitField0_ = (bitField0_ & ~0x00000001);
-        }
-        result.virtualNames_ = virtualNames_;
+        if (bitField0_ != 0) { buildPartial0(result); }
         onBuilt();
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
+      private void buildPartial0(com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup result) {
+        int from_bitField0_ = bitField0_;
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          virtualNames_.makeImmutable();
+          result.virtualNames_ = virtualNames_;
+        }
       }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
+
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup) {
@@ -3299,14 +2908,14 @@ public final class TermGroupProto {
         if (!other.virtualNames_.isEmpty()) {
           if (virtualNames_.isEmpty()) {
             virtualNames_ = other.virtualNames_;
-            bitField0_ = (bitField0_ & ~0x00000001);
+            bitField0_ |= 0x00000001;
           } else {
             ensureVirtualNamesIsMutable();
             virtualNames_.addAll(other.virtualNames_);
           }
           onChanged();
         }
-        this.mergeUnknownFields(other.unknownFields);
+        this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
       }
@@ -3321,27 +2930,47 @@ public final class TermGroupProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup parsedMessage = null;
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
+        }
         try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                java.lang.String s = input.readStringRequireUtf8();
+                ensureVirtualNamesIsMutable();
+                virtualNames_.add(s);
+                break;
+              } // case 10
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.giyeok.jparser.proto.TermGroupProto.VirtualsGroup) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
-        }
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
 
-      private com.google.protobuf.LazyStringList virtualNames_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private com.google.protobuf.LazyStringArrayList virtualNames_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       private void ensureVirtualNamesIsMutable() {
-        if (!((bitField0_ & 0x00000001) != 0)) {
+        if (!virtualNames_.isModifiable()) {
           virtualNames_ = new com.google.protobuf.LazyStringArrayList(virtualNames_);
-          bitField0_ |= 0x00000001;
-         }
+        }
+        bitField0_ |= 0x00000001;
       }
       /**
        * <code>repeated string virtual_names = 1;</code>
@@ -3349,7 +2978,8 @@ public final class TermGroupProto {
        */
       public com.google.protobuf.ProtocolStringList
           getVirtualNamesList() {
-        return virtualNames_.getUnmodifiableView();
+        virtualNames_.makeImmutable();
+        return virtualNames_;
       }
       /**
        * <code>repeated string virtual_names = 1;</code>
@@ -3383,11 +3013,10 @@ public final class TermGroupProto {
        */
       public Builder setVirtualNames(
           int index, java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  ensureVirtualNamesIsMutable();
+        if (value == null) { throw new NullPointerException(); }
+        ensureVirtualNamesIsMutable();
         virtualNames_.set(index, value);
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -3398,11 +3027,10 @@ public final class TermGroupProto {
        */
       public Builder addVirtualNames(
           java.lang.String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  ensureVirtualNamesIsMutable();
+        if (value == null) { throw new NullPointerException(); }
+        ensureVirtualNamesIsMutable();
         virtualNames_.add(value);
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -3416,6 +3044,7 @@ public final class TermGroupProto {
         ensureVirtualNamesIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
             values, virtualNames_);
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -3424,8 +3053,9 @@ public final class TermGroupProto {
        * @return This builder for chaining.
        */
       public Builder clearVirtualNames() {
-        virtualNames_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-        bitField0_ = (bitField0_ & ~0x00000001);
+        virtualNames_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000001);;
         onChanged();
         return this;
       }
@@ -3436,12 +3066,11 @@ public final class TermGroupProto {
        */
       public Builder addVirtualNamesBytes(
           com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
+        if (value == null) { throw new NullPointerException(); }
+        checkByteStringIsUtf8(value);
         ensureVirtualNamesIsMutable();
         virtualNames_.add(value);
+        bitField0_ |= 0x00000001;
         onChanged();
         return this;
       }
@@ -3478,7 +3107,18 @@ public final class TermGroupProto {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        return new VirtualsGroup(input, extensionRegistry);
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
       }
     };
 
@@ -3537,7 +3177,7 @@ public final class TermGroupProto {
       "L\n\021AllCharsExcluding\0227\n\texcluding\030\001 \001(\0132" +
       "$.com.giyeok.jparser.proto.CharsGroup\"P\n" +
       "\nCharsGroup\022\032\n\022unicode_categories\030\001 \003(\005\022" +
-      "\027\n\017excluding_chars\030\002 \003(\t\022\r\n\005chars\030\003 \003(\t\"" +
+      "\027\n\017excluding_chars\030\002 \001(\t\022\r\n\005chars\030\003 \001(\t\"" +
       "&\n\rVirtualsGroup\022\025\n\rvirtual_names\030\001 \003(\tb" +
       "\006proto3"
     };
