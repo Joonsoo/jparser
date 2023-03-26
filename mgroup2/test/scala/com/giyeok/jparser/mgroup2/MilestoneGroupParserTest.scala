@@ -1,6 +1,5 @@
 package com.giyeok.jparser.mgroup2
 
-import com.giyeok.jparser.ktlib.MilestoneGroup2ParserLoader
 import com.giyeok.jparser.metalang3.MetaLanguage3
 import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto
 import com.giyeok.jparser.milestone2.{MilestoneParser, MilestoneParser2ProtobufConverter, MilestoneParserGen}
@@ -10,7 +9,6 @@ import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.io.FileInputStream
-import java.nio.file.Paths
 import java.time.{Duration, Instant}
 import scala.reflect.io.File
 import scala.util.Using

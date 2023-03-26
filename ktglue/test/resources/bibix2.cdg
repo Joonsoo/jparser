@@ -1,0 +1,128 @@
+BuildScript = (WS PackageName)? WS Defs WS {BuildScript(packageName=$0, defs=$2)}
+
+PackageName = "package"&Tk WS Name
+
+Defs = Def (WS Def)* {[$0] + $1}
+
+Def: Def = ImportDef
+  | NamespaceDef
+  | TargetDef
+  | ActionDef
+  | ClassDef
+  | EnumDef
+  | VarDef
+  | VarRedefs
+  | BuildRuleDef
+  | ActionRuleDef
+
+NamespaceDef = SimpleName WS '{' BuildScript '}' {NamespaceDef(name=$0, body=$3)}
+
+ImportDef: ImportDef = "import"&Tk WS Primary (WS "as"&Tk WS SimpleName)? {ImportAll(source=$2, rename=$3)}
+  | "from"&Tk WS Expr WS "import"&Tk WS Name (WS "as"&Tk WS SimpleName)? {ImportFrom(source=$2, importing=$6, rename=$7)}
+
+TargetDef = SimpleName WS '=' WS Expr {TargetDef(name=$0, value=$4)}
+
+ClassDef: ClassDef = DataClassDef | SuperClassDef
+DataClassDef = "class"&Tk WS SimpleName WS ParamsDef (WS ClassBody)?
+               {DataClassDef(name=$2, fields=$4, body=$5 ?: [])}
+SuperClassDef = "super"&Tk WS "class"&Tk WS SimpleName WS '{' WS SimpleName (WS ',' WS SimpleName)* WS '}'
+                {SuperClassDef(name=$4, subs=[$8] + $9)}
+ClassBody = '{' (WS ClassBodyElem)* WS '}' {$1}
+ClassBodyElem: ClassBodyElem = ActionRuleDef | ClassCastDef
+// casting하는 대상 타입의 type parameter?
+ClassCastDef = "as"&Tk WS TypeExpr WS '=' WS Expr {ClassCastDef(castTo=$2, expr=$6)}
+
+VarDef = "var"&Tk WS SimpleName (WS ':' WS TypeExpr)? (WS '=' WS Expr)?
+         {VarDef(name=$2, typ=$3, defaultValue=$4)}
+VarRedefs = "var"&Tk WS VarRedef (WS ',' WS VarRedef)* {VarRedefs(redefs=[$2] + $3)}
+VarRedef = SimpleName (WS '.' WS SimpleName)+ WS '=' WS Expr
+           {VarRedef(nameTokens=[$0] + $1, redefValue=$5)}
+
+BuildRuleDef = "def"&Tk WS SimpleName WS ParamsDef WS ':' WS TypeExpr WS '=' WS MethodRef
+               {BuildRuleDef(name=$2, params=$4, returnType=$8, impl=$12)}
+ActionDef = "action"&Tk WS SimpleName (WS ActionParams)? WS ActionBody {ActionDef(name=$2, argsName=$3, body=$5)}
+ActionBody: ActionBody = '=' WS ActionExpr {SingleCallAction(expr=$2)}
+  | '{' (WS ActionExpr)+ WS '}' {MultiCallActions(exprs=$1)}
+ActionParams = '(' WS SimpleName WS ')' $2
+ActionRuleDef = "action"&Tk WS "def"&Tk WS SimpleName WS ParamsDef WS '=' WS MethodRef
+                {ActionRuleDef(name=$4, params=$6, impl=$10)}
+
+MethodRef = Name WS ':' WS Name (WS ':' WS SimpleName)? {MethodRef(targetName=$0, className=$4, methodName=$5)}
+
+ParamsDef = '(' (WS ParamDef (WS ',' WS ParamDef)*)? (WS ',')? WS ')' {$1{[$1] + $2} ?: []}
+ParamDef = SimpleName (WS '?')? WS ':' WS TypeExpr (WS '=' WS Expr)? {ParamDef(name=$0, optional=ispresent($1), typ=$5, defaultValue=$6)}
+  | SimpleName WS '=' WS Expr {ParamDef(name=$0, optional=false, typ=null, defaultValue=$4)}
+
+EnumDef = "enum"&Tk WS SimpleName WS '{' WS SimpleName (WS ',' WS SimpleName)* (WS ',')? WS '}' {EnumDef(name=$2, values=[$6] + $7)}
+
+Expr: Expr = Expr WS "as"&Tk WS NoUnionType {CastExpr(expr=$0, castTo=$4)}
+  | MergeOpOrPrimary
+MergeOpOrPrimary: MergeOpOrPrimary = Expr WS '+' WS Primary {MergeOp(lhs=$0, rhs=$4)}
+  | Primary
+
+ActionExpr = CallExpr
+
+Primary: Primary = CallExpr
+  | Primary WS '.' WS SimpleName {MemberAccess(target=$0, name=$4)}
+  | SimpleName {NameRef(name=$0)}
+  | '[' (WS ListElem (WS ',' WS ListElem)* (WS ',')?)? WS ']' {ListExpr(elems=$1{[$1] + $2} ?: [])}
+  | '(' WS Expr WS ',' (WS Expr (WS ',' WS Expr)* (WS ',')? {[$1] + $2})? WS ')' {TupleExpr(elems=[$2] + ($5 ?: []))}
+  | '(' (WS NamedExpr (WS ',' WS NamedExpr)* (WS ',')?)? WS ')' {NamedTupleExpr(elems=$1{[$1] + $2} ?: [])}
+  | Literal
+  | "this"&Tk {This()}
+  | '(' WS Expr WS ')' {Paren(expr=$2)}
+ListElem: ListElem = Expr | "..." WS Expr {EllipsisElem(value=$2)}
+NamedExpr = SimpleName WS ':' WS Expr {NamedExpr(name=$0, expr=$4)}
+
+CallExpr = Name WS CallParams {CallExpr(name=$0, params=$2)}
+CallParams = '(' WS ')' {CallParams(posParams=[], namedParams=[])}
+  | '(' WS PositionalParams (WS ',')? WS ')' {CallParams($2, [])}
+  | '(' WS NamedParams (WS ',')? WS ')' {CallParams([], $2)}
+  | '(' WS PositionalParams WS ',' WS NamedParams (WS ',')? WS ')' {CallParams($2, $6)}
+PositionalParams = Expr (WS ',' WS Expr)* {[$0] + $1}
+NamedParams = NamedParam (WS ',' WS NamedParam)* {[$0] + $1}
+NamedParam = SimpleName WS '=' WS Expr {NamedParam(name=$0, value=$4)}
+
+Literal: Literal = StringLiteral
+  | BooleanLiteral
+  | NoneLiteral
+
+StringLiteral = '"' <StringElem>* '"' {StringLiteral(elems=$1)}
+StringElem: StringElem = .-'\\"' {JustChar(chr=$0)}
+  | EscapeChar
+  | StringExpr
+EscapeChar = '\\' 'nbrt$\\"' {EscapeChar(code=$1)}
+StringExpr: StringExpr = <'$' SimpleName> {SimpleExpr(name=$0)}
+  | '$' '{' WS Expr WS '}' {ComplexExpr(expr=$3)}
+
+BooleanLiteral = ("true" {BooleanLiteral(value=true)} | "false" {BooleanLiteral(false)})&Tk
+NoneLiteral = "none"&Tk {NoneLiteral()}
+
+TypeExpr: TypeExpr = NoUnionType
+  | UnionType
+NoUnionType: NoUnionType = Name // Boolean, String, File, Directory, class name, enum name
+  | "none"&Tk {NoneType()}
+  | CollectionType
+  | TupleType
+  | NamedTupleType
+CollectionType = ("set" | "list")&Tk WS TypeParams {CollectionType(name=$0, typeParams=$2)}
+TypeParams = '<' WS TypeExpr (WS ',' WS TypeExpr)* WS '>' {TypeParams(params=[$2] + $3)}
+TupleType = '(' WS TypeExpr (WS ',' WS TypeExpr)* WS ')' {TupleType(elems=[$2] + $3)}
+NamedTupleType = '(' WS NamedType (WS ',' WS NamedType)* WS ')' {NamedTupleType(elems=[$2] + $3)}
+NamedType = SimpleName WS ':' WS TypeExpr {NamedType(name=$0, typ=$4)}
+UnionType = '{' WS NoUnionType (WS ',' WS NoUnionType)* WS '}' {UnionType(elems=[$2] + $3)}
+
+SimpleName = <('a-zA-z' 'a-zA-Z0-9_'* {str($0, $1)})&Tk>-Keyword {$0}
+Name = SimpleName (WS '.' WS SimpleName)* {Name(tokens=[$0] + $1)}
+
+// literal에서 사용되면 ambiguous해지는 것만 막으면 될듯?
+Keyword = "true" | "false" | "none" | "this"
+
+Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
+
+WS = (WS_|Comment)*
+WS_ = ' \n\r\t'
+Comment = LineComment | BlockComment
+LineComment = "//" (.-'\n')* (EOF | '\n')
+BlockComment = "/*" (. !"*/")* . "*/"
+EOF = !.

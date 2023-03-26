@@ -323,11 +323,31 @@ study {
 ktlib {
   main = ktjvm.library(
     srcs = glob("ktlib/main/kotlin/**/*.kt"),
-    deps = [base.main, naive.main, milestone2.parser, mgroup2.parser],
+    deps = [base.proto.javalib, mgroup2.proto.javalib],
+  )
+}
+
+ktparser {
+  main = ktjvm.library(
+    srcs = glob("ktparser/main/kotlin/**/*.kt"),
+    deps = [ktlib.main],
+  )
+
+  test = ktjvm.library(
+    srcs = glob("ktparser/test/kotlin/**/*.kt"),
+    resources = glob("ktparser/test/resources/**"),
+    deps = [ktparser.main, ktlib.main, ...testDeps],
+  )
+}
+
+ktglue {
+  main = ktjvm.library(
+    srcs = glob("ktglue/main/kotlin/**/*.kt"),
+    deps = [base.main, naive.main, ktlib.main, milestone2.parser, mgroup2.parser],
   )
 
   test = scala.library(
-    srcs = glob("ktlib/test/scala/**/*.scala"),
+    srcs = glob("ktglue/test/scala/**/*.scala"),
     resources = glob("ktlib/test/resources/pyobj.cdg"),
     deps = [...scalaTestDeps, metalang.main, ktlib.main],
   )

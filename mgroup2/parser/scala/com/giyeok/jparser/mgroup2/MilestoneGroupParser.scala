@@ -100,6 +100,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       }
 
       val folded = if (path.path.isEmpty) Set() else traverse(path.path.head, path.path.tail)
+      // TODO path.acceptCondition.milestones가 필요한건가..? edge required symbols로 해결돼야 되지 않나?
       path.acceptCondition.milestones ++ tipEdgeRequires ++ folded
     }.toSet
 
@@ -110,7 +111,8 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
   def getProgressConditionOf(genActions: GenActions, milestone: Milestone): Option[MilestoneAcceptCondition] = {
     val groups = genActions.progressedMgroups
       .filter { pair => pair._1.gen == milestone.gen }
-      .filter { pair => parserData.milestoneGroups(pair._1.groupId).contains(milestone.kernelTemplate) }.values.toSet
+      .filter { pair => parserData.milestoneGroups(pair._1.groupId).contains(milestone.kernelTemplate) }
+      .values.toSet
     genActions.progressedMilestones.get(milestone) match {
       case Some(progressCondition) =>
         Some(MilestoneAcceptCondition.disjunct(groups + progressCondition))
@@ -285,7 +287,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       }
 
       // first가 (start symbol, 0, 0)이거나 현재 존재하는 엣지의 trackingMilestones인 경우만 제외하고 모두 제거
-      val trackings = collectTrackings(newPaths)
+      val trackings = collectTrackings(newPathsUpdated)
       val newPathsFiltered = newPathsUpdated
         .filter(path => path.first == initialMilestone || trackings.contains(path.first))
 
