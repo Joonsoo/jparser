@@ -287,7 +287,8 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       }
 
       // first가 (start symbol, 0, 0)이거나 현재 존재하는 엣지의 trackingMilestones인 경우만 제외하고 모두 제거
-      val trackings = collectTrackings(newPathsUpdated)
+      // TODO 원래는 collectTrackings(newPaths)를 collectTrackings(newPathsUpdated)로 변경해도 괜찮은지 확인 - 괜찮으면 milestone2 파서도 함께 변경
+      val trackings = collectTrackings(newPaths)
       val newPathsFiltered = newPathsUpdated
         .filter(path => path.first == initialMilestone || trackings.contains(path.first))
 

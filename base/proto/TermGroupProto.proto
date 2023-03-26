@@ -16,6 +16,7 @@ message AllCharsExcluding {
 
 message CharsGroup {
   repeated int32 unicode_categories = 1;
+  // TODO excluding_chars와 chars를 단일 스트링으로 변경
   repeated string excluding_chars = 2;
   repeated string chars = 3;
 }

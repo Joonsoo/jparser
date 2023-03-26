@@ -18,9 +18,14 @@ object TermGroupUtil {
 
   fun isMatch(charsGroup: TermGroupProto.CharsGroup, input: Char): Boolean {
     val inputCategory = input.category.value
-    val inputChar = input.toString()
-    return (!charsGroup.excludingCharsList.contains(inputChar) &&
+    check(charsGroup.excludingCharsCount <= 1)
+    check(charsGroup.charsCount <= 1)
+    val excludingChars =
+      if (charsGroup.excludingCharsCount == 0) "" else charsGroup.getExcludingChars(0)
+    val chars = if (charsGroup.charsCount == 0) "" else charsGroup.getChars(0)
+    // TODO excludingChars와 chars가 정렬되어 있는 점을 활용해서 최적화
+    return (!excludingChars.contains(input) &&
       (charsGroup.unicodeCategoriesList.contains(inputCategory) ||
-        charsGroup.charsList.contains(inputChar)))
+        chars.contains(input)))
   }
 }

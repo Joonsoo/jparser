@@ -22,11 +22,17 @@ object TermGroupProtobufConverter {
           .addAllVirtualNames(virtualNames.toList.asJava)).build()
   }
 
-  def convertCharsGroupToProto(charsGroup: CharsGroup): TermGroupProto.CharsGroup =
-    TermGroupProto.CharsGroup.newBuilder()
+  def convertCharsGroupToProto(charsGroup: CharsGroup): TermGroupProto.CharsGroup = {
+    val builder = TermGroupProto.CharsGroup.newBuilder()
       .addAllUnicodeCategories(charsGroup.unicodeCategories.toList.sorted)
-      .addAllExcludingChars(charsGroup.excludingChars.toList.sorted)
-      .addAllChars(charsGroup.chars.toList.sorted).build()
+    if (charsGroup.excludingChars.nonEmpty) {
+      builder.addExcludingChars(new String(charsGroup.excludingChars.toList.sorted.toArray))
+    }
+    if (charsGroup.chars.nonEmpty) {
+      builder.addChars(new String(charsGroup.chars.toList.sorted.toArray))
+    }
+    builder.build()
+  }
 
   def convertProtoToTermGroup(proto: TermGroupProto.TermGroup): TermGroupDesc = proto.getTermGroupCase match {
     case TermGroupCase.ALL_CHARS_EXCLUDING =>
@@ -39,7 +45,7 @@ object TermGroupProtobufConverter {
 
   def convertProtoToCharsGroup(proto: TermGroupProto.CharsGroup): CharsGroup = CharsGroup(
     proto.getUnicodeCategoriesList.toSet,
-    proto.getExcludingCharsList.map(s => s.charAt(0) ensuring s.length == 1).toSet,
-    proto.getCharsList.map(s => s.charAt(0) ensuring s.length == 1).toSet
+    proto.getExcludingCharsList.flatMap(s => s.toCharArray).toSet,
+    proto.getCharsList.flatMap(s => s.toCharArray).toSet
   )
 }

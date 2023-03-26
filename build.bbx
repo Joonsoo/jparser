@@ -336,7 +336,7 @@ ktparser {
   test = ktjvm.library(
     srcs = glob("ktparser/test/kotlin/**/*.kt"),
     resources = glob("ktparser/test/resources/**"),
-    deps = [ktparser.main, ktlib.main, ...testDeps],
+    deps = [ktparser.main, ktglue.main, ...testDeps],
   )
 }
 
