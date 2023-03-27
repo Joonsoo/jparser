@@ -14,4 +14,12 @@ object Catalog {
       "jparser.bbx",
     )
   )
+
+  val j1 = GrammarWithExamples.fromResource(
+    "/j1",
+    listOf(
+      "example1.j1",
+      "example2.j1",
+    )
+  )
 }

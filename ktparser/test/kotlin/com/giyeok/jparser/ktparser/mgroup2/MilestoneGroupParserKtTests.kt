@@ -40,7 +40,7 @@ class MilestoneGroupParserKtTests {
     kotlinParserData: MilestoneGroupParserDataKt,
     example: String
   ) {
-    println(":: ${example.substringBefore('\n')}")
+    println(":: ${example.substringBefore('\n')} (len=${example.length})")
     val scalaParser = MilestoneGroupParser(scalaParserData)
     // .setVerbose()
     val ktParser = MilestoneGroupParserKt(kotlinParserData)
@@ -114,12 +114,26 @@ class MilestoneGroupParserKtTests {
   @Test
   fun testJ1() {
     val (scalaParserData, kotlinParserData) = loadParserData("/j1-mg2-parserdata.pb.gz")
-    testEquality(scalaParserData, kotlinParserData, "class Abc {}")
+
+    Catalog.j1.examples.forEach { example ->
+      println("==== name: ${example.name}")
+      testEquality(scalaParserData, kotlinParserData, example.example)
+    }
   }
 
   @Test
   fun testBibix() {
     val (scalaParserData, kotlinParserData) = loadParserData("/bibix2-mg2-parserdata.pb.gz")
+
+    Catalog.bibix2.examples.forEach { example ->
+      println("==== name: ${example.name}")
+      testEquality(scalaParserData, kotlinParserData, example.example)
+    }
+  }
+
+  @Test
+  fun testBibixTrimmed() {
+    val (scalaParserData, kotlinParserData) = loadParserData("/bibix2-mg2-parserdata-trimmed.pb.gz")
 
     Catalog.bibix2.examples.forEach { example ->
       println("==== name: ${example.name}")
