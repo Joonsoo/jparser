@@ -22,4 +22,27 @@ object Catalog {
       "example2.j1",
     )
   )
+
+  val proto3 = GrammarWithExamples.fromResource(
+    "/proto3",
+    listOf(
+      "GrammarProto.proto",
+      "TermGroupProto.proto",
+    )
+  )
+
+  val json = GrammarWithExamples.fromResource(
+    "/json",
+    listOf(
+      "example1.json",
+      "example2.json",
+    )
+  )
+
+  val pyobj = GrammarWithExamples.fromResource(
+    "/pyobj",
+    listOf()
+  )
+
+  val all = listOf(asdl, bibix2, j1, proto3, json, pyobj)
 }

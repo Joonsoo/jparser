@@ -118,6 +118,28 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
     }
   }
 
+  "json grammar" should "work" in {
+    val json = Catalog.INSTANCE.getJson
+
+    val analysis = MetaLanguage3.analyzeGrammar(json.getGrammarText)
+    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+
+    json.getExamples.forEach { example =>
+      testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
+    }
+  }
+
+  "proto3 grammar" should "work" in {
+    val proto3 = Catalog.INSTANCE.getProto3
+
+    val analysis = MetaLanguage3.analyzeGrammar(proto3.getGrammarText)
+    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+
+    proto3.getExamples.forEach { example =>
+      testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
+    }
+  }
+
   "simple grammar" should "work" in {
     val grammar = new String(getClass.getResourceAsStream("/simple.cdg").readAllBytes())
 
