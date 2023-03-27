@@ -6,7 +6,7 @@ import com.giyeok.jparser.milestone2.{AcceptConditionTemplate, AlwaysTemplate, A
 import org.scalatest.flatspec.AnyFlatSpec
 import MilestoneParser2ProtobufConverter.termGroupOrdering
 
-class MilestoneGroupParserProtoTest extends AnyFlatSpec {
+class ProtoMarshallingTests extends AnyFlatSpec {
   def assertEquals(g1: NGrammar, g2: NGrammar): Unit = {
     assert(g1.nsymbols == g2.nsymbols)
     assert(g1.nsequences == g2.nsequences)

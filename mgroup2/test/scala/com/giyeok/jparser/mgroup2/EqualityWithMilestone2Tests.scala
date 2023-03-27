@@ -11,7 +11,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import java.io.FileInputStream
 import java.time.{Duration, Instant}
 
-class MilestoneGroupParserTest extends AnyFlatSpec {
+// mgroup2 파서가 milestone2 파서와 동일하게 동작하는지 테스트
+class EqualityWithMilestone2Tests extends AnyFlatSpec {
   def assertEqualCtx(milestoneCtx: MilestoneParsingContext, mgroupCtx: ParsingContext, mgroupData: MilestoneGroupParserData): Unit = {
     val flattenMgroupPaths = mgroupCtx.paths.flatMap { path =>
       val group = mgroupData.milestoneGroups(path.tip.groupId)

@@ -15,7 +15,8 @@ import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
 
-class MilestoneGroupParserKtTests {
+// ktparser가 mgroup2 파서와 동일하게 동작하는지 테스트
+class EqualityWithMgroup2Tests {
   fun convertKernel(kernel: com.giyeok.jparser.nparser.Kernel): Kernel =
     Kernel(kernel.symbolId(), kernel.pointer(), kernel.beginGen(), kernel.endGen())
 
