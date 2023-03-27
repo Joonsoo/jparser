@@ -25,6 +25,7 @@ interface GrammarWithExamples {
 }
 
 data class GrammarTestExample(
+  val name: String,
   val example: String,
   val valuefyResultString: String?,
 )
@@ -45,6 +46,7 @@ class GrammarWithExamplesFromResource(
   override val examples: List<GrammarTestExample> by lazy {
     examplePaths.map { example ->
       GrammarTestExample(
+        example.examplePath,
         readResource(example.examplePath),
         example.valuefyResultPath?.let { path ->
           if (this::class.java.getResource(path) != null) {

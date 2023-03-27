@@ -364,15 +364,14 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
     val trackings = mutableSetOf<MilestoneKt>()
 
     paths.forEach { path ->
+      // tipEdgeRequires
       when (path.path) {
         is PathList.Cons -> {
-          getTipEdgeRequiredSymbols(
-            path.path.milestone.symbolId,
-            path.path.milestone.pointer,
-            path.tip.groupId
-          ).forEach { symbolId ->
-            trackings.add(MilestoneKt(symbolId, 0, path.path.milestone.gen))
-          }
+          val tipParent = path.path.milestone
+          getTipEdgeRequiredSymbols(tipParent.symbolId, tipParent.pointer, path.tip.groupId)
+            .forEach { symbolId ->
+              trackings.add(MilestoneKt(symbolId, 0, tipParent.gen))
+            }
         }
 
         PathList.Nil -> {
@@ -380,18 +379,16 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
         }
       }
 
+      // folded
       fun traverse(tip: MilestoneKt, rest: PathList) {
         when (rest) {
           is PathList.Cons -> {
-            getMidEdgeRequiredSymbols(
-              rest.milestone.symbolId,
-              rest.milestone.pointer,
-              tip.symbolId,
-              tip.pointer
-            ).forEach { symbolId ->
-              trackings.add(MilestoneKt(symbolId, 0, rest.milestone.gen))
-            }
-            traverse(rest.milestone, rest.parent)
+            val parent = rest.milestone
+            getMidEdgeRequiredSymbols(parent.symbolId, parent.pointer, tip.symbolId, tip.pointer)
+              .forEach { symbolId ->
+                trackings.add(MilestoneKt(symbolId, 0, parent.gen))
+              }
+            traverse(parent, rest.parent)
           }
 
           PathList.Nil -> {
@@ -407,7 +404,8 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
         }
       }
 
-      // TODO path.acceptCondition.milestones
+      // acceptConditions.milestones
+      trackings.addAll(path.acceptCondition.milestones())
     }
 
     return trackings.toSet()
@@ -459,12 +457,17 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
 
     if (verbose) {
       pathsCollector.forEach { path ->
-        println(path)
+        println(path.prettyString())
+      }
+      pathsCollector.map { it.tip.groupId }.distinct().sorted().forEach { groupId ->
+        val milestones = milestonesOfGroup(groupId)
+        val milestonesString = milestones.joinToString(", ") { "${it.symbolId} ${it.pointer}" }
+        println("$groupId => (${milestones.size}) $milestonesString")
       }
     }
 
     if (pathsCollector.all { it.first != initialMilestone }) {
-      throw ParsingErrorKt()
+      throw ParsingErrorKt(gen)
     } else {
       val genActions = actionsCollector.build()
 
@@ -484,10 +487,19 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
         val newCondition = newConditionUpdates[path.acceptCondition]!!
         path.copy(acceptCondition = newCondition)
       }.filter { it.acceptCondition != MilestoneAcceptConditionKt.Never }
+      if (verbose) {
+        println("  ===== condition updated")
+        updatedPaths.forEach { path -> println(path.prettyString()) }
+      }
 
-      val trackings = collectTrackings(updatedPaths)
+      val trackings = collectTrackings(newPaths)
       val filteredPaths = updatedPaths.filter { path ->
         path.first == initialMilestone || trackings.contains(path.first)
+      }
+
+      if (verbose) {
+        println("  ===== filtered (trackings=${trackings.joinToString(", ") { it.prettyString() }})")
+        filteredPaths.forEach { path -> println(path.prettyString()) }
       }
 
       return ParsingContextKt(

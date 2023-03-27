@@ -28,9 +28,7 @@ case class MilestoneGroupParserData(
       grammar,
       startGroupId,
       initialTasksSummary.trimForSymbols(symbolsOfInterest),
-      milestoneGroups.view.mapValues { group =>
-        group.filter(kernel => symbolsOfInterest.contains(kernel.symbolId))
-      }.toMap,
+      milestoneGroups,
       termActions.view.mapValues { termActions =>
         termActions.map { case (termGroup, termAction) =>
           termGroup -> termAction.copy(

@@ -1,12 +1,14 @@
 package com.giyeok.jparser.ktparser.mgroup2
 
 import com.giyeok.jparser.Inputs
+import com.giyeok.jparser.examples.metalang3.Catalog
 import com.giyeok.jparser.ktglue.toKtList
 import com.giyeok.jparser.ktglue.toKtSet
 import com.giyeok.jparser.ktlib.Kernel
 import com.giyeok.jparser.mgroup2.MilestoneGroupParser
 import com.giyeok.jparser.mgroup2.MilestoneGroupParserData
 import com.giyeok.jparser.mgroup2.MilestoneGroupParserDataProtobufConverter
+import com.giyeok.jparser.mgroup2.ParsingContext
 import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -18,24 +20,52 @@ class MilestoneGroupParserKtTests {
   fun convertKernel(kernel: com.giyeok.jparser.nparser.Kernel): Kernel =
     Kernel(kernel.symbolId(), kernel.pointer(), kernel.beginGen(), kernel.endGen())
 
+  fun assertEqualCtx(scalaCtx: ParsingContext, ktCtx: ParsingContextKt) {
+    val gen = scalaCtx.gen()
+    assertEquals(gen, ktCtx.gen)
+
+//    println("::: $gen")
+
+    val scalaPaths = scalaCtx.paths().toKtList().map { path -> path.prettyString() }
+//    scalaPaths.forEach { println(it) }
+//    println("-----")
+    val ktPaths = ktCtx.paths.map { path -> path.prettyString() }
+//    ktPaths.forEach { println(it) }
+
+    assertEquals(scalaCtx.paths().size(), ktCtx.paths.size)
+    assertEquals(scalaPaths.toSet(), ktPaths.toSet())
+  }
+
   fun testEquality(
     parserData: MilestoneGroupParserDataProto.MilestoneGroupParserData,
     scalaParserData: MilestoneGroupParserData,
     example: String
   ) {
     println(":: $example")
-    val parser = MilestoneGroupParserKt(parserData)
     val scalaParser = MilestoneGroupParser(scalaParserData)
+    // .setVerbose()
+    val ktParser = MilestoneGroupParserKt(parserData)
+    // .setVerbose()
+
+    var scalaCtx = scalaParser.initialCtx()
+    var ktCtx = ktParser.initialCtx
+    assertEqualCtx(scalaCtx, ktCtx)
+    example.forEach { input ->
+      scalaCtx = scalaParser.parseStep(scalaCtx, Inputs.Character(input))
+        .getOrElse { throw IllegalStateException() }
+      ktCtx = ktParser.parseStep(ktCtx, input)
+      assertEqualCtx(scalaCtx, ktCtx)
+    }
 
     val ktParseResult = measureAndPrintTime("kotlin parse") {
-      parser.parse(example)
+      ktParser.parse(example)
     }
     val scalaParseResult = measureAndPrintTime(" scala parse") {
       scalaParser.parseOrThrow(Inputs.fromString(example))
     }
 
     val ktKernels = measureAndPrintTime("kotlin history") {
-      parser.kernelsHistory(ktParseResult)
+      ktParser.kernelsHistory(ktParseResult)
     }
     val scalaKernels = measureAndPrintTime(" scala history") {
       scalaParser.kernelsHistory(scalaParseResult)
@@ -58,15 +88,11 @@ class MilestoneGroupParserKtTests {
   fun loadParserData(
     resourceName: String
   ): Pair<MilestoneGroupParserDataProto.MilestoneGroupParserData, MilestoneGroupParserData> {
+
     val proto: MilestoneGroupParserDataProto.MilestoneGroupParserData =
-      this::class.java.getResourceAsStream(resourceName)!!.buffered()
-        .use { inputStream ->
-          GZIPInputStream(inputStream).use { gzipStream ->
-            measureAndPrintTime("proto load") {
-              MilestoneGroupParserDataProto.MilestoneGroupParserData.parseFrom(gzipStream)
-            }
-          }
-        }
+      measureAndPrintTime("proto load") {
+        MilestoneGroupParserLoader.loadParserFromGzippedResource(resourceName).parserData
+      }
 
     val scalaParserData = measureAndPrintTime("scala conversion") {
       MilestoneGroupParserDataProtobufConverter.fromProto(proto)
@@ -86,5 +112,15 @@ class MilestoneGroupParserKtTests {
   fun testJ1() {
     val (parserData, scalaParserData) = loadParserData("/j1-mg2-parserdata.pb.gz")
     testEquality(parserData, scalaParserData, "class Abc {}")
+  }
+
+  @Test
+  fun testBibix() {
+    val (parserData, scalaParserData) = loadParserData("/bibix2-mg2-parserdata.pb.gz")
+
+    Catalog.bibix2.examples.forEach { example ->
+      println("==== name: ${example.name}")
+      testEquality(parserData, scalaParserData, example.example)
+    }
   }
 }

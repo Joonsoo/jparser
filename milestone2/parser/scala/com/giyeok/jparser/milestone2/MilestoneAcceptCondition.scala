@@ -87,6 +87,8 @@ case class And(conditions: List[MilestoneAcceptCondition]) extends MilestoneAcce
     MilestoneAcceptCondition.disjunct(conditions.map(_.negation).toSet)
 
   def milestones: Set[Milestone] = conditions.flatMap(_.milestones).toSet
+
+  override def toString: String = s"And(${conditions.map(_.toString).sorted.mkString(", ")})"
 }
 
 case class Or(conditions: List[MilestoneAcceptCondition]) extends MilestoneAcceptCondition {
@@ -94,28 +96,38 @@ case class Or(conditions: List[MilestoneAcceptCondition]) extends MilestoneAccep
     MilestoneAcceptCondition.conjunct(conditions.map(_.negation).toSet)
 
   def milestones: Set[Milestone] = conditions.flatMap(_.milestones).toSet
+
+  override def toString: String = s"Or(${conditions.map(_.toString).sorted.mkString(", ")})"
 }
 
 case class Exists(milestone: Milestone, checkFromNextGen: Boolean) extends MilestoneAcceptCondition {
   override def negation: MilestoneAcceptCondition = NotExists(milestone, checkFromNextGen)
 
   def milestones: Set[Milestone] = Set(milestone)
+
+  override def toString: String = s"Exists(${milestone.symbolId} ${milestone.pointer} ${milestone.gen}, ${checkFromNextGen})"
 }
 
 case class NotExists(milestone: Milestone, checkFromNextGen: Boolean) extends MilestoneAcceptCondition {
   override def negation: MilestoneAcceptCondition = Exists(milestone, checkFromNextGen)
 
   def milestones: Set[Milestone] = Set(milestone)
+
+  override def toString: String = s"NotExists(${milestone.symbolId} ${milestone.pointer} ${milestone.gen}, ${checkFromNextGen})"
 }
 
 case class OnlyIf(milestone: Milestone) extends MilestoneAcceptCondition {
   override def negation: MilestoneAcceptCondition = Unless(milestone)
 
   def milestones: Set[Milestone] = Set(milestone)
+
+  override def toString: String = s"OnlyIf(${milestone.symbolId} ${milestone.pointer} ${milestone.gen})"
 }
 
 case class Unless(milestone: Milestone) extends MilestoneAcceptCondition {
   override def negation: MilestoneAcceptCondition = OnlyIf(milestone)
 
   def milestones: Set[Milestone] = Set(milestone)
+
+  override def toString: String = s"Unless(${milestone.symbolId} ${milestone.pointer} ${milestone.gen})"
 }

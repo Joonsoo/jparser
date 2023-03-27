@@ -293,11 +293,8 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         .filter(path => path.first == initialMilestone || trackings.contains(path.first))
 
       if (verbose) {
-        println(s"  ===== filtered")
+        println(s"  ===== filtered (trackings=$trackings)")
         newPathsFiltered.foreach(path => println(path.prettyString))
-        //        println(s"  ===== conditions:")
-        //        nextConditionUpdates.toList.sortBy(_._1._1).foreach(pair => println(s"${pair._1} -> ${pair._2}"))
-        println(s"  trackings: ${collectTrackings(newPathsFiltered)}")
       }
 
       Right(ParsingContext(gen, newPathsFiltered, HistoryEntry(newPaths, genActions) +: ctx.history))

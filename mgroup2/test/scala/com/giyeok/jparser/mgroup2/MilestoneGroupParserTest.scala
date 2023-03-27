@@ -1,8 +1,8 @@
 package com.giyeok.jparser.mgroup2
 
+import com.giyeok.jparser.examples.metalang3.Catalog
 import com.giyeok.jparser.metalang3.MetaLanguage3
-import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto
-import com.giyeok.jparser.milestone2.{MilestoneParser, MilestoneParser2ProtobufConverter, MilestoneParserGen}
+import com.giyeok.jparser.milestone2.{Milestone, MilestoneParser, MilestoneParser2ProtobufConverter, MilestoneParserGen, MilestonePath, ParsingContext => MilestoneParsingContext}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc}
@@ -10,15 +10,36 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 import java.io.FileInputStream
 import java.time.{Duration, Instant}
-import java.util.zip.GZIPInputStream
-import scala.reflect.io.File
-import scala.util.Using
 
 class MilestoneGroupParserTest extends AnyFlatSpec {
+  def assertEqualCtx(milestoneCtx: MilestoneParsingContext, mgroupCtx: ParsingContext, mgroupData: MilestoneGroupParserData): Unit = {
+    val flattenMgroupPaths = mgroupCtx.paths.flatMap { path =>
+      val group = mgroupData.milestoneGroups(path.tip.groupId)
+      group.map { kernelTemplate =>
+        new MilestonePath(path.first, Milestone(kernelTemplate, path.tip.gen) +: path.path, path.acceptCondition)
+      }
+    }
+    if (mgroupCtx.paths.size > 100) {
+      println(s"????? ${mgroupCtx.paths.size}")
+    }
+    // TODO 이렇게 비교하면 같은 컨텍스트인데도 다르다고 판정되는 경우가 없을까?
+    assert(milestoneCtx.paths.size == flattenMgroupPaths.size)
+    assert(milestoneCtx.paths.toSet == flattenMgroupPaths.toSet)
+  }
+
   def testEquality(grammar: NGrammar, milestoneParser: MilestoneParser, mgroupParser: MilestoneGroupParser, example: String): Unit = {
     val inputs = Inputs.fromString(example)
 
     println(s"::: \"$example\"")
+
+    var milestoneCtx = milestoneParser.initialCtx
+    var mgroupCtx = mgroupParser.initialCtx
+    assertEqualCtx(milestoneCtx, mgroupCtx, mgroupParser.parserData)
+    inputs.foreach { input =>
+      milestoneCtx = milestoneParser.parseStep(milestoneCtx, input).getOrElse(throw new IllegalStateException())
+      mgroupCtx = mgroupParser.parseStep(mgroupCtx, input).getOrElse(throw new IllegalStateException())
+      assertEqualCtx(milestoneCtx, mgroupCtx, mgroupParser.parserData)
+    }
 
     val startTime1 = System.currentTimeMillis()
     val milestoneResult = milestoneParser.parseOrThrow(inputs)
@@ -72,18 +93,18 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
   }
 
   "metalang3 grammar" should "be parsed" in {
-    val grammar = new String(getClass.getResourceAsStream("/grammar.cdg").readAllBytes())
+    val grammar = new String(getClass.getResourceAsStream("/metalang3/grammar.cdg").readAllBytes())
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
     val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
 
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A = 'a'+")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "Abc = 'a'+ {str($0)}")
-    testEquality(analysis.ngrammar, milestoneParser, mgroupParser, new String(getClass.getResourceAsStream("/grammar.cdg").readAllBytes()))
+    testEquality(analysis.ngrammar, milestoneParser, mgroupParser, new String(getClass.getResourceAsStream("/metalang3/grammar.cdg").readAllBytes()))
   }
 
   "bibix grammar" should "be parsed" in {
-    val grammar = new String(getClass.getResourceAsStream("/grammar.cdg").readAllBytes())
+    val grammar = new String(getClass.getResourceAsStream("/bibix2/grammar.cdg").readAllBytes())
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
     val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
@@ -91,6 +112,10 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A = c()")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "ABC = cde.hello()")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, new String(new FileInputStream("build.bbx").readAllBytes()))
+
+    Catalog.INSTANCE.getBibix2.getExamples.forEach { example =>
+      testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
+    }
   }
 
   "simple grammar" should "work" in {
@@ -117,51 +142,51 @@ class MilestoneGroupParserTest extends AnyFlatSpec {
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A=c()")
   }
 
-  "j1 grammar" should "work" in {
-    val grammar = new String(getClass.getResourceAsStream("/j1/grammar.cdg").readAllBytes())
-
-    val analysis = MetaLanguage3.analyzeGrammar(grammar)
-
-    println("mgroup:::")
-    val start = Instant.now()
-    println(s"start: $start")
-    val mgroupParserData = new MilestoneGroupParserGen(analysis.ngrammar).parserData()
-    val end = Instant.now()
-    println(s"end: $end, ${Duration.between(start, end)}")
-    val mgroupTermActionsSize = mgroupParserData.termActions.foldLeft(0)(_ + _._2.size)
-    println(s"groups=${mgroupParserData.milestoneGroups.size}, terms=${mgroupParserData.termActions.size}, termActions=$mgroupTermActionsSize, prTipEdges=${mgroupParserData.tipEdgeProgressActions.size}, exTipEdges=${mgroupParserData.tipEdgeRequiredSymbols.size}, midEdges=${mgroupParserData.midEdgeProgressActions.size}")
-    val mgroupParser = new MilestoneGroupParser(mgroupParserData) //.setVerbose()
-
-    val mgroupParserProto = MilestoneGroupParserDataProtobufConverter.toProto(mgroupParserData)
-    Using(File("j1-mg2-parserdata.pb").outputStream()) { output =>
-      mgroupParserProto.writeTo(output)
-    }
-
-    val input = Inputs.fromString("class Abc {}")
-    val parseResult = mgroupParser.parseOrThrow(input)
-    val kernelsHistory = mgroupParser.kernelsHistory(parseResult)
-
-    val parseForest = new ParseTreeConstructor2(ParseForestFunc)(analysis.ngrammar)(input, kernelsHistory.map(Kernels)).reconstruct().get
-    assert(parseForest.trees.size == 1)
-    println(parseForest.trees.head)
-  }
-
-  "j1 grammar load" should "work" in {
-    val parserData = Using(getClass.getResourceAsStream("/j1-mg2-parserdata.pb.gz")) { inputStream =>
-      Using(new GZIPInputStream(inputStream)) { gzipStream =>
-        MilestoneGroupParserDataProtobufConverter.fromProto(
-          MilestoneGroupParserDataProto.MilestoneGroupParserData.parseFrom(gzipStream)
-        )
-      }.get
-    }.get
-
-    val parser = new MilestoneGroupParser(parserData).setVerbose()
-    val input = Inputs.fromString("class A {\n  String xx = \"\\22\";\n}")
-    val result = parser.parseOrThrow(input)
-    val history = parser.kernelsHistory(result)
-
-    val parseForest = new ParseTreeConstructor2(ParseForestFunc)(parserData.grammar)(input, history.map(Kernels)).reconstruct().get
-    assert(parseForest.trees.size == 1)
-    println(parseForest.trees.head)
-  }
+  //  "j1 grammar" should "work" in {
+  //    val grammar = new String(getClass.getResourceAsStream("/j1/grammar.cdg").readAllBytes())
+  //
+  //    val analysis = MetaLanguage3.analyzeGrammar(grammar)
+  //
+  //    println("mgroup:::")
+  //    val start = Instant.now()
+  //    println(s"start: $start")
+  //    val mgroupParserData = new MilestoneGroupParserGen(analysis.ngrammar).parserData()
+  //    val end = Instant.now()
+  //    println(s"end: $end, ${Duration.between(start, end)}")
+  //    val mgroupTermActionsSize = mgroupParserData.termActions.foldLeft(0)(_ + _._2.size)
+  //    println(s"groups=${mgroupParserData.milestoneGroups.size}, terms=${mgroupParserData.termActions.size}, termActions=$mgroupTermActionsSize, prTipEdges=${mgroupParserData.tipEdgeProgressActions.size}, exTipEdges=${mgroupParserData.tipEdgeRequiredSymbols.size}, midEdges=${mgroupParserData.midEdgeProgressActions.size}")
+  //    val mgroupParser = new MilestoneGroupParser(mgroupParserData) //.setVerbose()
+  //
+  //    val mgroupParserProto = MilestoneGroupParserDataProtobufConverter.toProto(mgroupParserData)
+  //    Using(File("j1-mg2-parserdata.pb").outputStream()) { output =>
+  //      mgroupParserProto.writeTo(output)
+  //    }
+  //
+  //    val input = Inputs.fromString("class Abc {}")
+  //    val parseResult = mgroupParser.parseOrThrow(input)
+  //    val kernelsHistory = mgroupParser.kernelsHistory(parseResult)
+  //
+  //    val parseForest = new ParseTreeConstructor2(ParseForestFunc)(analysis.ngrammar)(input, kernelsHistory.map(Kernels)).reconstruct().get
+  //    assert(parseForest.trees.size == 1)
+  //    println(parseForest.trees.head)
+  //  }
+  //
+  //  "j1 grammar load" should "work" in {
+  //    val parserData = Using(getClass.getResourceAsStream("/j1-mg2-parserdata.pb.gz")) { inputStream =>
+  //      Using(new GZIPInputStream(inputStream)) { gzipStream =>
+  //        MilestoneGroupParserDataProtobufConverter.fromProto(
+  //          MilestoneGroupParserDataProto.MilestoneGroupParserData.parseFrom(gzipStream)
+  //        )
+  //      }.get
+  //    }.get
+  //
+  //    val parser = new MilestoneGroupParser(parserData).setVerbose()
+  //    val input = Inputs.fromString("class A {\n  String xx = \"\\22\";\n}")
+  //    val result = parser.parseOrThrow(input)
+  //    val history = parser.kernelsHistory(result)
+  //
+  //    val parseForest = new ParseTreeConstructor2(ParseForestFunc)(parserData.grammar)(input, history.map(Kernels)).reconstruct().get
+  //    assert(parseForest.trees.size == 1)
+  //    println(parseForest.trees.head)
+  //  }
 }

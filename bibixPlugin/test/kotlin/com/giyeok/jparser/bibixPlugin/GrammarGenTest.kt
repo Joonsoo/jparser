@@ -18,7 +18,7 @@ class GrammarGenTest {
   val bibix2Req = mapOf(
     "cdgFile" to FileValue(Path("examples/metalang3/resources/bibix2/grammar.cdg")),
     "astifierClassName" to StringValue("com.giyeok.jparser.ktlib.test.BibixAst"),
-    "parserDataFileName" to StringValue("bibix2-m2-parserdata.pb"),
+    "parserDataFileName" to StringValue("bibix2-mg2-parserdata-trimmed.pb"),
     "trimParserData" to BooleanValue(true),
   )
 
@@ -31,13 +31,13 @@ class GrammarGenTest {
 
   @Test
   fun test() {
-    val result = GenKtAstMilestone2().build(BuildContext(
+    val result = GenKtAstMgroup2().build(BuildContext(
       buildEnv = BuildEnv(OS.MacOSX("", ""), Architecture.Aarch_64),
       fileSystem = FileSystems.getDefault(),
       mainBaseDirectory = Path("."),
       callerBaseDirectory = null,
       ruleDefinedDirectory = null,
-      arguments = asdlReq,
+      arguments = bibix2Req,
       targetIdData = targetIdData { },
       targetId = "",
       hashChanged = true,

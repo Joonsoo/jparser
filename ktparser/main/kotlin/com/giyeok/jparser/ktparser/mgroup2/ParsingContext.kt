@@ -25,6 +25,26 @@ data class MilestoneGroupPathKt(
       append,
       condition
     )
+
+  fun prettyString(): String {
+    val strings = mutableListOf<String>()
+    fun traverse(pathList: PathList) {
+      when (pathList) {
+        is PathList.Cons -> {
+          strings.add(pathList.milestone.prettyString())
+          traverse(pathList.parent)
+        }
+
+        PathList.Nil -> {
+          // do nothing
+        }
+      }
+    }
+    traverse(path)
+
+    val pathString = strings.reversed().joinToString(" -> ")
+    return "$pathString -> [${tip.groupId}] ${tip.gen} (${acceptCondition.prettyString()})"
+  }
 }
 
 sealed class PathList {
@@ -51,7 +71,9 @@ sealed class HistoryEntryList {
   }
 }
 
-data class MilestoneKt(val symbolId: Int, val pointer: Int, val gen: Int)
+data class MilestoneKt(val symbolId: Int, val pointer: Int, val gen: Int) {
+  fun prettyString(): String = "$symbolId $pointer $gen"
+}
 
 data class MilestoneGroupKt(val groupId: Int, val gen: Int)
 

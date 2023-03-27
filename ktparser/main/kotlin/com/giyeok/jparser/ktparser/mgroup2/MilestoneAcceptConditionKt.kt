@@ -89,7 +89,41 @@ sealed class MilestoneAcceptConditionKt {
       }
   }
 
+  fun prettyString(): String = when (this) {
+    Always -> "Always"
+    Never -> "Never"
+    is And ->
+      "And(${this.conditions.map { it.prettyString() }.sorted().joinToString(", ")})"
+
+    is Or ->
+      "Or(${this.conditions.map { it.prettyString() }.sorted().joinToString(", ")})"
+
+    is Exists ->
+      "Exists(${this.milestone.prettyString()}, ${this.checkFromNextGen})"
+
+    is NotExists ->
+      "NotExists(${this.milestone.prettyString()}, ${this.checkFromNextGen})"
+
+    is OnlyIf ->
+      "OnlyIf(${this.milestone.prettyString()})"
+
+    is Unless ->
+      "Unless(${this.milestone.prettyString()})"
+  }
+
+
   abstract fun negation(): MilestoneAcceptConditionKt
+
+  fun milestones(): Set<MilestoneKt> = when (this) {
+    Always -> setOf()
+    Never -> setOf()
+    is And -> this.conditions.flatMap { it.milestones() }.toSet()
+    is Or -> this.conditions.flatMap { it.milestones() }.toSet()
+    is Exists -> setOf(this.milestone)
+    is NotExists -> setOf(this.milestone)
+    is OnlyIf -> setOf(this.milestone)
+    is Unless -> setOf(this.milestone)
+  }
 
   object Always : MilestoneAcceptConditionKt() {
     override fun negation(): MilestoneAcceptConditionKt = Never

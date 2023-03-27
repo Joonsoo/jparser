@@ -10,7 +10,8 @@ object Catalog {
     "/bibix2",
     listOf(
       "example1.bbx",
-      "jparser.bbx"
+      "example2.bbx",
+      "jparser.bbx",
     )
   )
 }
