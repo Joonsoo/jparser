@@ -17,16 +17,16 @@ class GenActionsKt(
 }
 
 class GenActionsKtBuilder {
-  val termActions =
+  private val termActions =
     mutableListOf<Pair<MilestoneGroupKt, MilestoneGroupParserDataProto.TermAction>>()
-  val tipEdgeActions =
+  private val tipEdgeActions =
     mutableListOf<Pair<Pair<MilestoneKt, MilestoneGroupKt>, MilestoneGroupParserDataProto.EdgeAction>>()
-  val midEdgeActions =
+  private val midEdgeActions =
     mutableListOf<Pair<Pair<MilestoneKt, MilestoneKt>, MilestoneGroupParserDataProto.EdgeAction>>()
-  val progressedMilestones = mutableMapOf<MilestoneKt, MilestoneAcceptConditionKt>()
-  val progressedMilestoneParentGens = mutableMapOf<MilestoneKt, MutableSet<Int>>()
-  val progressedMgroups = mutableMapOf<MilestoneGroupKt, MilestoneAcceptConditionKt>()
-  val progressedMgroupParentGen = mutableMapOf<MilestoneGroupKt, MutableSet<Int>>()
+  private val progressedMilestones = mutableMapOf<MilestoneKt, MilestoneAcceptConditionKt>()
+  private val progressedMilestoneParentGens = mutableMapOf<MilestoneKt, MutableSet<Int>>()
+  private val progressedMgroups = mutableMapOf<MilestoneGroupKt, MilestoneAcceptConditionKt>()
+  private val progressedMgroupParentGen = mutableMapOf<MilestoneGroupKt, MutableSet<Int>>()
 
   fun addTermActions(
     milestoneGroup: MilestoneGroupKt,

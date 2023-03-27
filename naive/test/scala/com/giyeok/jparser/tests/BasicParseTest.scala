@@ -5,7 +5,7 @@ import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.Symbols._
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParseTreeConstructor2}
 import com.giyeok.jparser._
-import com.giyeok.jparser.examples.{AmbiguousExamples, GrammarWithExamples}
+import com.giyeok.jparser.examples.naive.{AmbiguousExamples, GrammarWithExamples}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class BasicParseTest(val testsSuite: Iterable[GrammarWithExamples]) extends AnyFlatSpec {

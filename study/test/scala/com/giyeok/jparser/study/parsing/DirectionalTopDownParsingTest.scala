@@ -1,7 +1,7 @@
 package com.giyeok.jparser.study.parsing
 
 import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.examples.basics.Fig6_6
+import com.giyeok.jparser.examples.naive.basics.Fig6_6
 import com.giyeok.jparser.study.ContextFreeGrammar
 
 object DirectionalTopDownParsingTest {

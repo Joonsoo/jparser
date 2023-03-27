@@ -5,7 +5,7 @@ import com.giyeok.jparser.ParsingErrors.ParsingError
 import com.giyeok.jparser.nparser.{Kernel, ParseTreeConstructor2}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser._
-import com.giyeok.jparser.examples.basics.MyPaper6_4
+import com.giyeok.jparser.examples.naive.basics.MyPaper6_4
 import com.giyeok.jparser.nparser2.NaiveParser2.ParsingHistoryContext
 import com.giyeok.jparser.nparser2.utils.Utils.{kernelString, printDotGraph}
 import org.scalatest.flatspec.AnyFlatSpec

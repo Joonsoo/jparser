@@ -1,7 +1,7 @@
 package com.giyeok.jparser.study.parsing
 
 import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.examples.basics.Fig7_8
+import com.giyeok.jparser.examples.naive.basics.Fig7_8
 import com.giyeok.jparser.study.ContextFreeGrammar
 import com.giyeok.jparser.study.parsing.DirectionalBottomUpParsing.EarleyParserNoEmptyRules
 

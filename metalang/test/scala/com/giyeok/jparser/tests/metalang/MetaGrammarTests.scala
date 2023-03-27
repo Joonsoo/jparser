@@ -1,7 +1,7 @@
 package com.giyeok.jparser.tests.metalang
 
 import com.giyeok.jparser.examples.metalang.MetaLangGrammar
-import com.giyeok.jparser.examples.{GrammarWithExamples, StringExamples}
+import com.giyeok.jparser.examples.naive.{GrammarWithExamples, StringExamples}
 import com.giyeok.jparser.metalang.MetaGrammar
 import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor}
 import com.giyeok.jparser.{Grammar, NGrammar, ParseForestFunc}

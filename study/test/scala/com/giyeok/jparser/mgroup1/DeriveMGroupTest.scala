@@ -1,7 +1,7 @@
 package com.giyeok.jparser.mgroup1
 
 import com.giyeok.jparser.NGrammar
-import com.giyeok.jparser.examples.basics.MyPaper6_4
+import com.giyeok.jparser.examples.naive.basics.MyPaper6_4
 import com.giyeok.jparser.nparser2.utils.Utils.printDotGraph
 import org.scalatest.flatspec.AnyFlatSpec
 

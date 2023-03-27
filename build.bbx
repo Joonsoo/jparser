@@ -9,6 +9,7 @@ from bibix.plugins import protobuf
 from bibix.plugins import scalatest
 from bibix.plugins import ktjvm
 from bibix.plugins import jar
+from bibix.plugins import zip
 
 kotlinVersion = "1.8.10"
 var ktjvm.sdkVersion = kotlinVersion
@@ -87,7 +88,7 @@ naive {
 
   test = scala.library(
     srcs = glob("naive/test/scala/**/*.scala"),
-    deps = [...scalaTestDeps, base.test, naive.main],
+    deps = [...scalaTestDeps, base.test, naive.main, examples.naiveExamples],
   )
 }
 
@@ -124,7 +125,7 @@ metalang {
 
   test = scala.library(
     srcs = glob("metalang/test/scala/**/*.scala"),
-    deps = [...scalaTestDeps, base.test, naive.test, metalang.main],
+    deps = [...scalaTestDeps, base.test, naive.test, metalang.main, examples.oldMetalang],
   )
 }
 
@@ -208,19 +209,49 @@ mgroup2 {
   test = scala.library(
     srcs = glob("mgroup2/test/scala/**/*.scala"),
     resources = glob("mgroup2/test/resources/**"),
-    deps = [data, gen, parser, naive.main, milestone2.gen, examples.main, milestone2.parser, ...scalaTestDeps],
+    deps = [data, gen, parser, naive.main, milestone2.gen, examples.metalang3, milestone2.parser, ...scalaTestDeps],
   )
 }
 
 examples {
-  // TODO naive는 metalang3가 없던 시절, naive 파서 테스트용으로 정의된 문법과 예제들
-  // main은 metalang3로 정의된 문법들과 예제들
-  main = scala.library(
-    srcs = glob("examples/main/scala/**/*.scala"),
-    resources = glob("examples/main/resources/**"),
-    deps = [base.test, naive.test, metalang.test],
+  // naive는 metalang3가 없던 시절, naive 파서 테스트용으로 정의된 문법과 예제들
+  naiveExamples = scala.library(
+    srcs = glob("examples/naive/scala/**/*.scala"),
+    deps = [base.main],
   )
-  // TODO generated는 milestone2와 mgroup2 parser gen으로 생성된 파서 데이터와 코드들
+
+  // metalang3로 정의된 문법들과 예제들
+  metalang3 = ktjvm.library(
+    srcs = glob("examples/metalang3/kotlin/**/*.scala"),
+    resources = glob("examples/metalang3/resources/**"),
+    deps = [base.test, naive.test],
+  )
+
+  oldMetalang = scala.library(
+    srcs = glob("examples/oldMetalang/scala/**/*.scala"),
+    deps = [base.test, naive.test],
+  )
+
+  // generated는 milestone2와 mgroup2 parser gen으로 생성된 파서 데이터와 코드들
+  generated = ktjvm.library(
+    srcs = glob("examples/generated/kotlin/**/*.kt"),
+    resources = glob("examples/generated/resources/**"),
+    deps = [milestone2.parser, mgroup2.parser, ktlib.main, ktglue.main],
+  )
+
+  generate {
+    bibix2 = genKtAstMilestone2(
+      cdgFile = "examples/metalang3/resources/bibix2/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.ktlib.test.BibixAst",
+      parserDataFileName = "bibix2-m2-parserdata.pb",
+      trimParserData = true,
+    )
+  }
+
+  action generateAll {
+    file.copyFile(zip.gzip(generate.bibix2.parserData), "examples/generated/resources")
+    file.copyDirectory(generate.bibix2.srcsRoot, "examples/generated/kotlin")
+  }
 }
 
 action runTest = scalatest.run(
@@ -236,7 +267,7 @@ visualize {
       naive.main,
       utils.main,
       metalang.main,
-      examples.main,
+      examples.metalang3,
 
       maven.artifact("io.reactivex.rxjava3", "rxjava", "3.1.4"),
       maven.artifact("org.scala-lang.modules", "scala-xml_$scalaVersion", "2.1.0"),
@@ -316,12 +347,13 @@ study {
 
   cfg = scala.library(
     srcs = glob("study/cfg/scala/**/*.scala"),
-    deps = [naive.main, utils.main, metalang.main, visualize.main, examples.main],
+    // TODO 여기서 examples.naive 하면 루트의 naive를 찾아가는 것 같은데..?
+    deps = [naive.main, utils.main, metalang.main, visualize.main, examples.naiveExamples],
   )
 
   test = scala.library(
     srcs = glob("study/test/scala/**/*.scala"),
-    deps = [...scalaTestDeps, fast, parsergen, cfg]
+    deps = [...scalaTestDeps, fast, parsergen, cfg, examples.oldMetalang]
   )
 }
 
@@ -354,7 +386,7 @@ ktglue {
   test = scala.library(
     srcs = glob("ktglue/test/scala/**/*.scala"),
     resources = glob("ktlib/test/resources/pyobj.cdg"),
-    deps = [...scalaTestDeps, metalang.main, ktlib.main],
+    deps = [...scalaTestDeps, metalang.main, ktglue.main, examples.metalang3, examples.generated],
   )
 }
 
@@ -364,6 +396,11 @@ bibixPlugin {
   impl = ktjvm.library(
     srcs = glob("bibixPlugin/main/kotlin/**/*.kt"),
     deps = [bibix.base, milestone2.gen, mgroup2.gen, metalang.main],
+  )
+
+  test = ktjvm.library(
+    srcs = glob("bibixPlugin/test/kotlin/**/*.kt"),
+    deps = [impl, ...testDeps],
   )
 
   milestone2Tests {

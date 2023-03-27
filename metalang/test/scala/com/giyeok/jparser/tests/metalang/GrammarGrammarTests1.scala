@@ -1,8 +1,9 @@
 package com.giyeok.jparser.tests.metalang
 
 import com.giyeok.jparser.Inputs.ConcreteSource
+import com.giyeok.jparser.examples.MetaLang1Example
 import com.giyeok.jparser.examples.metalang.{ExpressionGrammars, LexicalGrammars, MetaLangGrammar}
-import com.giyeok.jparser.examples.{GrammarWithExamples, MetaLang1Example, StringExamples}
+import com.giyeok.jparser.examples.naive.{GrammarWithExamples, StringExamples}
 import com.giyeok.jparser.metalang.{GrammarGrammar, MetaGrammar}
 import com.giyeok.jparser.tests.BasicParseTest
 import com.giyeok.jparser.{Grammar, Inputs}

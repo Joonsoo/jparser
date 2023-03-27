@@ -118,11 +118,11 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     _symbolsOfInterest += startSymbol.id
     CodeBlob(
       s"""fun matchStart(): ${returnType.code} {
-         |  val lastGen = inputs.size
+         |  val lastGen = source.length
          |  val kernel = history[lastGen]
-         |    .filter { it.symbolId() == ${startSymbol.id} && it.pointer() == 1 && it.beginGen() == 0 && it.endGen() == lastGen }
+         |    .filter { it.symbolId == ${startSymbol.id} && it.pointer == 1 && it.beginGen == 0 && it.endGen == lastGen }
          |    .checkSingle()
-         |  return ${nonterminalMatchFuncName(startSymbol.symbol.name)}(kernel.beginGen(), kernel.endGen())
+         |  return ${nonterminalMatchFuncName(startSymbol.symbol.name)}(kernel.beginGen, kernel.endGen)
          |}""".stripMargin,
       returnType.required)
   }
@@ -322,7 +322,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         case ValuefyExpr.BoolLiteral(value) => ExprBlob.code(s"$value")
         case ValuefyExpr.CharLiteral(value) => ExprBlob.code(s"'${escapeChar(value)}'") // TODO escape
         case ValuefyExpr.CharFromTerminalLiteral =>
-          ExprBlob(List(), s"(inputs[$beginGen] as Inputs.Character).char()", Set())
+          ExprBlob(List(), s"source[$beginGen]", Set())
         case ValuefyExpr.StringLiteral(value) => ExprBlob.code("\"" + escapeString(value) + "\"") // TODO escape
       }
     case enumValue: ValuefyExpr.EnumValue =>
@@ -411,10 +411,9 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       writer.write(s"package $pkgName\n\n")
     }
 
-    writer.write("import com.giyeok.jparser.Inputs\n")
     writer.write("import com.giyeok.jparser.ktlib.*\n\n")
     writer.write(s"class $className(\n")
-    writer.write("  val inputs: List<Inputs.Input>,\n")
+    writer.write("  val source: String,\n")
     writer.write("  val history: List<KernelSet>,\n")
     writer.write("  val idIssuer: IdIssuer = IdIssuerImpl(0)\n")
     writer.write(") {\n")
