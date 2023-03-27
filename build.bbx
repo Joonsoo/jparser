@@ -362,6 +362,11 @@ ktlib {
     srcs = glob("ktlib/main/kotlin/**/*.kt"),
     deps = [base.proto.javalib, mgroup2.proto.javalib],
   )
+
+  test = ktjvm.library(
+    srcs = glob("ktlib/test/kotlin/**/*.kt"),
+    deps = [ktlib.main, ...testDeps],
+  )
 }
 
 ktparser {

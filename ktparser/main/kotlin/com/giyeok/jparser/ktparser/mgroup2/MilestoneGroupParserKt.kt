@@ -2,6 +2,8 @@ package com.giyeok.jparser.ktparser.mgroup2
 
 import com.giyeok.jparser.ktlib.KernelSet
 import com.giyeok.jparser.ktlib.ParsingErrorKt
+import com.giyeok.jparser.ktlib.TermGroupUtil
+import com.giyeok.jparser.ktlib.TermSet
 import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.*
 import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.*
 
@@ -361,6 +363,16 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
     return trackings.toSet()
   }
 
+  fun expectedTermsOf(ctx: ParsingContextKt): TermSet {
+    val termGroups = ctx.paths
+      .filter { it.first == initialMilestone }
+      .flatMap { path ->
+        val termActions = parserData.termActionsByGroupId.getValue(path.tip.groupId)
+        termActions.actionsList.map { it.termGroup }
+      }
+    return TermGroupUtil.merge(termGroups)
+  }
+
   fun parseStep(ctx: ParsingContextKt, input: Char): ParsingContextKt {
     val gen = ctx.gen + 1
     if (verbose) {
@@ -417,7 +429,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
     }
 
     if (pathsCollector.all { it.first != initialMilestone }) {
-      throw ParsingErrorKt(gen)
+      throw ParsingErrorKt.UnexpectedInput(gen, expectedTermsOf(ctx), input)
     } else {
       val genActions = actionsCollector.build()
 
@@ -465,6 +477,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
     for (input in source) {
       ctx = parseStep(ctx, input)
     }
+    // TODO ctx의 마지막 genActions에서 start symbol이 progress되지 않았으면 unexpected eof
     return ctx
   }
 

@@ -10,7 +10,9 @@ import org.scalatest.flatspec.AnyFlatSpec
 // milestone2 파서가 naive 파서와 동일하게 동작하는지 테스트
 class EqualityWithNaive2Tests extends AnyFlatSpec {
   private def assertEqualCtx(naiveCtx: NaiveParser2.ParsingHistoryContext, milestoneCtx: ParsingContext): Unit = {
-    // TODO
+    // TODO milestoneCtx로 naiveCtx의 그래프를 재구성할 수 있는지 확인하고 accept condition이 일치하는지 확인
+    // TODO genActions도 확인
+    println(naiveCtx.parsingContext.graph.nodes.size)
   }
 
   def testEquality(naiveParser: NaiveParser2, milestoneParser: MilestoneParser, inputs: List[Inputs.Input]): Unit = {
@@ -28,7 +30,6 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
   }
 
   def test(examples: GrammarWithExamples): Unit = {
-
     val analysis = MetaLanguage3.analyzeGrammar(examples.getGrammarText)
     val parserData = new MilestoneParserGen(analysis.ngrammar).parserData()
     val milestoneParser = new MilestoneParser(parserData)
