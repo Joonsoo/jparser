@@ -2,13 +2,13 @@ package com.giyeok.jparser.ktparser.mgroup2
 
 import com.giyeok.jparser.ktlib.KernelSet
 import com.giyeok.jparser.ktlib.ParsingErrorKt
-import com.giyeok.jparser.ktlib.TermGroupUtil
 import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.*
 import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.*
 
-class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
+class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
+  constructor(proto: MilestoneGroupParserData) : this(MilestoneGroupParserDataKt(proto))
+
   private var verbose: Boolean = false
-  private val termActionsByGroupId = parserData.termActionsList.associateBy { it.groupId }
 
   fun setVerbose(): MilestoneGroupParserKt {
     verbose = true
@@ -29,63 +29,6 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
     listOf(initialPath),
     HistoryEntryList.Nil(HistoryEntryKt(listOf(initialPath), GenActionsKt.empty)),
   )
-
-  fun findTermAction(groupId: Int, input: Char): TermAction? =
-    termActionsByGroupId[groupId]!!.actionsList.find {
-      TermGroupUtil.isMatch(it.termGroup, input)
-    }?.termAction
-
-  fun getTipEdgeProgressAction(start: MilestoneKt, end: Int): EdgeAction {
-    // TODO 미리 인덱스 만들어서 성능 개선. 단 메모리 카피는 피해서
-    return parserData.tipEdgeActionsList.find {
-      it.start.symbolId == start.symbolId && it.start.pointer == start.pointer &&
-        it.end == end
-    }!!.edgeAction
-  }
-
-  fun getMidEdgeProgressAction(start: MilestoneKt, end: MilestoneKt): EdgeAction {
-    // TODO 미리 인덱스 만들어서 성능 개선. 단 메모리 카피는 피해서
-    return parserData.midEdgeActionsList.find {
-      it.start.symbolId == start.symbolId && it.start.pointer == start.pointer &&
-        it.end.symbolId == end.symbolId && it.end.pointer == end.pointer
-    }!!.edgeAction
-  }
-
-  fun getTipEdgeRequiredSymbols(
-    startSymbolId: Int,
-    startPointer: Int,
-    endGroupId: Int
-  ): Collection<Int> {
-    // TODO 미리 인덱스 만들어서 성능 개선. 단 메모리 카피는 피해서
-    return parserData.tipEdgeRequiredSymbolsList.find {
-      it.start.symbolId == startSymbolId && it.start.pointer == startPointer && it.end == endGroupId
-    }!!.requiredSymbolIdsList
-  }
-
-  fun getMidEdgeRequiredSymbols(
-    startSymbolId: Int,
-    startPointer: Int,
-    endSymbolId: Int,
-    endPointer: Int
-  ): Collection<Int> {
-    // TODO 미리 인덱스 만들어서 성능 개선. 단 메모리 카피는 피해서
-    return parserData.midEdgeRequiredSymbolsList.find {
-      it.start.symbolId == startSymbolId && it.start.pointer == startPointer &&
-        it.end.symbolId == endSymbolId && it.end.pointer == endPointer
-    }!!.requiredSymbolIdsList
-  }
-
-  fun milestonesOfGroup(groupId: Int): Collection<KernelTemplate> {
-    // TODO 미리 인덱스 만들어서 성능 개선. 단 메모리 카피는 피해서
-    return parserData.milestoneGroupsList.find { it.groupId == groupId }!!.milestonesList
-  }
-
-  fun doesGroupContainMilestone(groupId: Int, symbolId: Int, pointer: Int): Boolean {
-    // TODO 미리 인덱스 만들어서 성능 개선. 단 메모리 카피는 피해서
-    val milestones = milestonesOfGroup(groupId)
-    return milestones.any { it.symbolId == symbolId && it.pointer == pointer }
-  }
-
 
   fun progressTip(
     pathFirst: MilestoneKt,
@@ -116,7 +59,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
       when (path.parent) {
         is PathList.Cons -> {
           val tipParent = path.parent.milestone
-          val edgeAction = getMidEdgeProgressAction(tipParent, tip)
+          val edgeAction = parserData.getMidEdgeProgressAction(tipParent, tip)
           actionsCollector.addMidEdgeAction(tipParent, tip, edgeAction)
           actionsCollector.addProgressedMilestoneParentGen(tip, tipParent.gen)
           progressTip(
@@ -178,7 +121,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
       when (path.path) {
         is PathList.Cons -> {
           val tipParent = path.path.milestone
-          val edgeAction = getTipEdgeProgressAction(tipParent, replaceGroupId)
+          val edgeAction = parserData.getTipEdgeProgressAction(tipParent, replaceGroupId)
           actionsCollector.addTipEdgeAction(tipParent, replacedTip, edgeAction)
           actionsCollector.addProgressedMilestoneGroupParentGen(replacedTip, tipParent.gen)
           progressTip(
@@ -215,7 +158,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
     val groups = genActions.progressedMgroups
       .filterKeys { mgroup -> mgroup.gen == milestone.gen }
       .filterKeys { mgroup ->
-        doesGroupContainMilestone(mgroup.groupId, milestone.symbolId, milestone.pointer)
+        parserData.doesGroupContainMilestone(mgroup.groupId, milestone.symbolId, milestone.pointer)
       }
       .values
     val progressCondition = genActions.progressedMilestones[milestone]
@@ -368,10 +311,13 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
       when (path.path) {
         is PathList.Cons -> {
           val tipParent = path.path.milestone
-          getTipEdgeRequiredSymbols(tipParent.symbolId, tipParent.pointer, path.tip.groupId)
-            .forEach { symbolId ->
-              trackings.add(MilestoneKt(symbolId, 0, tipParent.gen))
-            }
+          parserData.getTipEdgeRequiredSymbols(
+            tipParent.symbolId,
+            tipParent.pointer,
+            path.tip.groupId
+          ).forEach { symbolId ->
+            trackings.add(MilestoneKt(symbolId, 0, tipParent.gen))
+          }
         }
 
         PathList.Nil -> {
@@ -384,10 +330,14 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
         when (rest) {
           is PathList.Cons -> {
             val parent = rest.milestone
-            getMidEdgeRequiredSymbols(parent.symbolId, parent.pointer, tip.symbolId, tip.pointer)
-              .forEach { symbolId ->
-                trackings.add(MilestoneKt(symbolId, 0, parent.gen))
-              }
+            parserData.getMidEdgeRequiredSymbols(
+              parent.symbolId,
+              parent.pointer,
+              tip.symbolId,
+              tip.pointer
+            ).forEach { symbolId ->
+              trackings.add(MilestoneKt(symbolId, 0, parent.gen))
+            }
             traverse(parent, rest.parent)
           }
 
@@ -422,7 +372,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
       mutableMapOf<KernelTemplate, Pair<List<AppendingMilestoneGroup>, AcceptConditionTemplate?>>()
 
     ctx.paths.forEach { path ->
-      val termAction = findTermAction(path.tip.groupId, input)
+      val termAction = parserData.findTermAction(path.tip.groupId, input)
       termAction?.let {
         actionsCollector.addTermActions(path.tip, termAction)
         termAction.pendedAcceptConditionKernelsList.forEach { pended ->
@@ -460,7 +410,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
         println(path.prettyString())
       }
       pathsCollector.map { it.tip.groupId }.distinct().sorted().forEach { groupId ->
-        val milestones = milestonesOfGroup(groupId)
+        val milestones = parserData.milestonesOfGroup(groupId)
         val milestonesString = milestones.joinToString(", ") { "${it.symbolId} ${it.pointer}" }
         println("$groupId => (${milestones.size}) $milestonesString")
       }
@@ -641,7 +591,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserData) {
           // TODO ditto
           val parentGens = genActions.progressedMgroupParentGens[mgroup] ?: setOf(mgroup.gen)
 
-          milestonesOfGroup(mgroup.groupId).forEach { milestone ->
+          parserData.milestonesOfGroup(mgroup.groupId).forEach { milestone ->
             parentGens.forEach { parentGen ->
               kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer, parentGen, mgroup.gen)
               kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)

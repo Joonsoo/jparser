@@ -15,15 +15,21 @@ object MilestoneGroupParserLoader {
       loadParserDataFromStream(stream)
     }
 
-  fun loadParserFromResource(resourceName: String): MilestoneGroupParserKt =
+  fun loadParserDataFromResource(resourceName: String): MilestoneGroupParserData =
     this::class.java.getResourceAsStream(resourceName)!!.buffered().use { inputStream ->
-      MilestoneGroupParserKt(loadParserDataFromStream(inputStream))
+      loadParserDataFromStream(inputStream)
+    }
+
+  fun loadParserFromResource(resourceName: String): MilestoneGroupParserKt =
+    MilestoneGroupParserKt(loadParserDataFromResource(resourceName))
+
+  fun loadParserDataFromGzippedResource(resourceName: String): MilestoneGroupParserData =
+    this::class.java.getResourceAsStream(resourceName)!!.buffered().use { inputStream ->
+      loadGzippedParserDataFromStream(inputStream)
     }
 
   fun loadParserFromGzippedResource(resourceName: String): MilestoneGroupParserKt =
-    this::class.java.getResourceAsStream(resourceName)!!.buffered().use { inputStream ->
-      MilestoneGroupParserKt(loadGzippedParserDataFromStream(inputStream))
-    }
+    MilestoneGroupParserKt(loadParserDataFromGzippedResource(resourceName))
 
   fun loadParserFromFile(file: Path): MilestoneGroupParserKt =
     file.inputStream().buffered().use { inputStream ->

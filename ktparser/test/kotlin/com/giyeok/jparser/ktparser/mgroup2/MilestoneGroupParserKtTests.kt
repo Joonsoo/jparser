@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
-import java.util.zip.GZIPInputStream
 
 class MilestoneGroupParserKtTests {
   fun convertKernel(kernel: com.giyeok.jparser.nparser.Kernel): Kernel =
@@ -37,14 +36,14 @@ class MilestoneGroupParserKtTests {
   }
 
   fun testEquality(
-    parserData: MilestoneGroupParserDataProto.MilestoneGroupParserData,
     scalaParserData: MilestoneGroupParserData,
+    kotlinParserData: MilestoneGroupParserDataKt,
     example: String
   ) {
-    println(":: $example")
+    println(":: ${example.substringBefore('\n')}")
     val scalaParser = MilestoneGroupParser(scalaParserData)
     // .setVerbose()
-    val ktParser = MilestoneGroupParserKt(parserData)
+    val ktParser = MilestoneGroupParserKt(kotlinParserData)
     // .setVerbose()
 
     var scalaCtx = scalaParser.initialCtx()
@@ -57,18 +56,18 @@ class MilestoneGroupParserKtTests {
       assertEqualCtx(scalaCtx, ktCtx)
     }
 
-    val ktParseResult = measureAndPrintTime("kotlin parse") {
-      ktParser.parse(example)
-    }
     val scalaParseResult = measureAndPrintTime(" scala parse") {
       scalaParser.parseOrThrow(Inputs.fromString(example))
     }
-
-    val ktKernels = measureAndPrintTime("kotlin history") {
-      ktParser.kernelsHistory(ktParseResult)
+    val ktParseResult = measureAndPrintTime("kotlin parse") {
+      ktParser.parse(example)
     }
+
     val scalaKernels = measureAndPrintTime(" scala history") {
       scalaParser.kernelsHistory(scalaParseResult)
+    }
+    val ktKernels = measureAndPrintTime("kotlin history") {
+      ktParser.kernelsHistory(ktParseResult)
     }
 
     assertEquals(ktKernels.size, scalaKernels.length())
@@ -87,40 +86,44 @@ class MilestoneGroupParserKtTests {
 
   fun loadParserData(
     resourceName: String
-  ): Pair<MilestoneGroupParserDataProto.MilestoneGroupParserData, MilestoneGroupParserData> {
+  ): Pair<MilestoneGroupParserData, MilestoneGroupParserDataKt> {
 
     val proto: MilestoneGroupParserDataProto.MilestoneGroupParserData =
       measureAndPrintTime("proto load") {
-        MilestoneGroupParserLoader.loadParserFromGzippedResource(resourceName).parserData
+        MilestoneGroupParserLoader.loadParserDataFromGzippedResource(resourceName)
       }
 
     val scalaParserData = measureAndPrintTime("scala conversion") {
       MilestoneGroupParserDataProtobufConverter.fromProto(proto)
     }
 
-    return Pair(proto, scalaParserData)
+    val kotlinParserData = measureAndPrintTime("kotlin conversion") {
+      MilestoneGroupParserDataKt(proto)
+    }
+
+    return Pair(scalaParserData, kotlinParserData)
   }
 
   @Test
   fun testMetalang3() {
-    val (parserData, scalaParserData) = loadParserData("/cdglang3-mg2-parserdata.pb.gz")
-    testEquality(parserData, scalaParserData, "A = 'a'+")
-    testEquality(parserData, scalaParserData, "Abc = 'a-z'+ {Hello(a=\"world\")}")
+    val (scalaParserData, kotlinParserData) = loadParserData("/cdglang3-mg2-parserdata.pb.gz")
+    testEquality(scalaParserData, kotlinParserData, "A = 'a'+")
+    testEquality(scalaParserData, kotlinParserData, "Abc = 'a-z'+ {Hello(a=\"world\")}")
   }
 
   @Test
   fun testJ1() {
-    val (parserData, scalaParserData) = loadParserData("/j1-mg2-parserdata.pb.gz")
-    testEquality(parserData, scalaParserData, "class Abc {}")
+    val (scalaParserData, kotlinParserData) = loadParserData("/j1-mg2-parserdata.pb.gz")
+    testEquality(scalaParserData, kotlinParserData, "class Abc {}")
   }
 
   @Test
   fun testBibix() {
-    val (parserData, scalaParserData) = loadParserData("/bibix2-mg2-parserdata.pb.gz")
+    val (scalaParserData, kotlinParserData) = loadParserData("/bibix2-mg2-parserdata.pb.gz")
 
     Catalog.bibix2.examples.forEach { example ->
       println("==== name: ${example.name}")
-      testEquality(parserData, scalaParserData, example.example)
+      testEquality(scalaParserData, kotlinParserData, example.example)
     }
   }
 }
