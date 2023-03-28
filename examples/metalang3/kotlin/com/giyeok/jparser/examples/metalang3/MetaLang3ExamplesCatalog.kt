@@ -1,6 +1,6 @@
 package com.giyeok.jparser.examples.metalang3
 
-object Catalog {
+object MetaLang3ExamplesCatalog {
   val asdl = GrammarWithExamples.fromResource(
     "/asdl",
     listOf("pyast.asdl")
@@ -12,6 +12,7 @@ object Catalog {
       "example1.bbx",
       "example2.bbx",
       "jparser.bbx",
+      "jparser-small.bbx",
     )
   )
 

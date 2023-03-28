@@ -3,7 +3,7 @@ package com.giyeok.jparser.examples.naive
 import com.giyeok.jparser.examples.naive.basics._
 import com.giyeok.jparser.examples.naive.javascript.{JavaScriptGrammarExamples1, JavaScriptVarDecTestSuite1}
 
-object AllExamples {
+object NaiveExamplesCatalog {
   val grammarWithExamples: List[GrammarWithExamples] = List(
     BackupGrammars.tests,
     GrammarWithExcept.tests,

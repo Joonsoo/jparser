@@ -1,7 +1,7 @@
 package com.giyeok.jparser.ktglue.test
 
 import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.examples.metalang3.Catalog
+import com.giyeok.jparser.examples.metalang3.MetaLang3ExamplesCatalog
 import com.giyeok.jparser.ktglue.Milestone2ParserLoader.loadGzippedParserFromResource
 import com.giyeok.jparser.ktglue.toKtKernelSet
 import com.giyeok.jparser.ktglue.toKtList
@@ -22,7 +22,7 @@ object AsdlParser {
 
   @Test
   fun testPythonAst() {
-    Catalog.asdl.examples.forEach { asdl ->
+    MetaLang3ExamplesCatalog.asdl.examples.forEach { asdl ->
       val parsed = parse(asdl.example)
 
       println(parsed)

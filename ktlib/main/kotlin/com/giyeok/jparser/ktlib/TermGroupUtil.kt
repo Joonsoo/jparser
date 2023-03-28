@@ -102,6 +102,7 @@ class TermSet(
 
       fun addRange(startRange: Char, endRange: Char) {
         fun prettyChar(c: Char): String = when (c) {
+          '\u0000' -> "\\0"
           ' ' -> "' '"
           '\\' -> "\\"
           '\n' -> "\\n"

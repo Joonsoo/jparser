@@ -1,6 +1,6 @@
 package com.giyeok.jparser.mgroup2
 
-import com.giyeok.jparser.examples.metalang3.Catalog
+import com.giyeok.jparser.examples.metalang3.MetaLang3ExamplesCatalog
 import com.giyeok.jparser.metalang3.MetaLanguage3
 import com.giyeok.jparser.milestone2.{Milestone, MilestoneParser, MilestoneParser2ProtobufConverter, MilestoneParserGen, MilestonePath, ParsingContext => MilestoneParsingContext}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
@@ -114,13 +114,13 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "ABC = cde.hello()")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, new String(new FileInputStream("build.bbx").readAllBytes()))
 
-    Catalog.INSTANCE.getBibix2.getExamples.forEach { example =>
+    MetaLang3ExamplesCatalog.INSTANCE.getBibix2.getExamples.forEach { example =>
       testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
     }
   }
 
   "json grammar" should "work" in {
-    val json = Catalog.INSTANCE.getJson
+    val json = MetaLang3ExamplesCatalog.INSTANCE.getJson
 
     val analysis = MetaLanguage3.analyzeGrammar(json.getGrammarText)
     val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
@@ -131,7 +131,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
   }
 
   "proto3 grammar" should "work" in {
-    val proto3 = Catalog.INSTANCE.getProto3
+    val proto3 = MetaLang3ExamplesCatalog.INSTANCE.getProto3
 
     val analysis = MetaLanguage3.analyzeGrammar(proto3.getGrammarText)
     val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)

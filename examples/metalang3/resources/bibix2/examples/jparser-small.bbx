@@ -1,0 +1,7 @@
+scalaTestDeps = [
+  ...testDeps,
+  maven.artifact("org.scalatest", "scalatest_$scalaVersion", "3.2.15", excludes=[
+    ("xerces", "xerces-impl", none),
+    ("xml-apis", "xml-apis", none)
+  ]),
+]

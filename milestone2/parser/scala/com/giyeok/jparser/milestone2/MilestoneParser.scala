@@ -51,8 +51,9 @@ class MilestoneParser(val parserData: MilestoneParserData) {
     appended ++ reduced ++ lookaheadPaths
   }
 
-  def collectTrackings(paths: List[MilestonePath]): Set[Milestone] =
-    paths.flatMap { path =>
+  def collectTrackings(paths: List[MilestonePath]): Set[Milestone] = {
+    // TODO first가 initialMilestone인 경로들에서 필요한 tracking들을 추린 다음, trackings에 의해 필요한 다른 path들을 추가하기
+    def collectForPath(path: MilestonePath): Set[Milestone] = {
       def traverse(tip: Milestone, rest: List[Milestone]): Set[Milestone] =
         rest match {
           case Nil => Set()
@@ -61,8 +62,14 @@ class MilestoneParser(val parserData: MilestoneParserData) {
             action.requiredSymbols.map(Milestone(_, 0, parent.gen)) ++ traverse(parent, next)
         }
 
+      // TODO path.acceptCondition.milestones가 정말로 필요한가?
       path.acceptCondition.milestones ++ traverse(path.path.head, path.path.tail)
+    }
+
+    paths.flatMap { path =>
+      collectForPath(path)
     }.toSet
+  }
 
   def expectedInputsOf(ctx: ParsingContext): Set[Inputs.TermGroupDesc] =
     ctx.paths.filter(_.first == initialMilestone)

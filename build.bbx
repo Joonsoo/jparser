@@ -167,7 +167,7 @@ milestone2 {
   test = scala.library(
     srcs = glob("milestone2/test/scala/**/*.scala"),
     resources = glob("milestone2/test/resources/**"),
-    deps = [data, gen, parser, naive.main, ...scalaTestDeps],
+    deps = [data, gen, parser, naive.main, examples.naiveExamples, examples.metalang3, examples.generated, ...scalaTestDeps],
   )
 }
 
@@ -222,9 +222,9 @@ examples {
 
   // metalang3로 정의된 문법들과 예제들
   metalang3 = ktjvm.library(
-    srcs = glob("examples/metalang3/kotlin/**/*.scala"),
+    srcs = glob("examples/metalang3/kotlin/**/*.kt"),
     resources = glob("examples/metalang3/resources/**"),
-    deps = [base.test, naive.test],
+    deps = [base.test, naive.test, examples.naiveExamples],
   )
 
   oldMetalang = scala.library(
@@ -236,7 +236,7 @@ examples {
   generated = ktjvm.library(
     srcs = glob("examples/generated/kotlin/**/*.kt"),
     resources = glob("examples/generated/resources/**"),
-    deps = [milestone2.parser, mgroup2.parser, ktlib.main, ktglue.main],
+    deps = [milestone2.parser, mgroup2.parser, ktlib.main, ktglue.main, examples.metalang3],
   )
 
   generate {

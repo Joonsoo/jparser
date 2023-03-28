@@ -12,6 +12,8 @@ class MilestoneGroupParserDataKt(val parserData: MilestoneGroupParserDataProto.M
   val milestoneGroups = parserData.milestoneGroupsList.associate { it.groupId to it.milestonesList }
 
   val termActionsByGroupId = parserData.termActionsList.associateBy { it.groupId }
+  // TODO 여기서 groupBy {it.start.symbolId * 8 + it.start.pointer} 같은 식으로 하면 성능이 더 나을까?
+  //  -> 더 여러개로 쪼개서 검색 대상이 작아지는 대신 메모리 사용량 증가, 비교할 때 it.start.symbolId 도 비교해야되는 부담이 추가
   val tipEdgeProgressActions = parserData.tipEdgeActionsList.groupBy { it.start.symbolId }
   val tipEdgeRequiredSymbols = parserData.tipEdgeRequiredSymbolsList.groupBy { it.start.symbolId }
   val midEdgeProgressActions = parserData.midEdgeActionsList.groupBy { it.start.symbolId }

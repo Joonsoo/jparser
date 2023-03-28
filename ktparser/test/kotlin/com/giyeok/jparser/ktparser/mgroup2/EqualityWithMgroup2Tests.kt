@@ -1,7 +1,7 @@
 package com.giyeok.jparser.ktparser.mgroup2
 
 import com.giyeok.jparser.Inputs
-import com.giyeok.jparser.examples.metalang3.Catalog
+import com.giyeok.jparser.examples.metalang3.MetaLang3ExamplesCatalog
 import com.giyeok.jparser.ktglue.toKtList
 import com.giyeok.jparser.ktglue.toKtSet
 import com.giyeok.jparser.ktlib.Kernel
@@ -116,7 +116,7 @@ class EqualityWithMgroup2Tests {
   fun testJ1() {
     val (scalaParserData, kotlinParserData) = loadParserData("/j1-mg2-parserdata.pb.gz")
 
-    Catalog.j1.examples.forEach { example ->
+    MetaLang3ExamplesCatalog.j1.examples.forEach { example ->
       println("==== name: ${example.name}")
       testEquality(scalaParserData, kotlinParserData, example.example)
     }
@@ -126,7 +126,7 @@ class EqualityWithMgroup2Tests {
   fun testBibix() {
     val (scalaParserData, kotlinParserData) = loadParserData("/bibix2-mg2-parserdata.pb.gz")
 
-    Catalog.bibix2.examples.forEach { example ->
+    MetaLang3ExamplesCatalog.bibix2.examples.forEach { example ->
       println("==== name: ${example.name}")
       testEquality(scalaParserData, kotlinParserData, example.example)
     }
@@ -136,7 +136,7 @@ class EqualityWithMgroup2Tests {
   fun testBibixTrimmed() {
     val (scalaParserData, kotlinParserData) = loadParserData("/bibix2-mg2-parserdata-trimmed.pb.gz")
 
-    Catalog.bibix2.examples.forEach { example ->
+    MetaLang3ExamplesCatalog.bibix2.examples.forEach { example ->
       println("==== name: ${example.name}")
       testEquality(scalaParserData, kotlinParserData, example.example)
     }

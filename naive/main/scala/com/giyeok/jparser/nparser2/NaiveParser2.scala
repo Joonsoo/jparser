@@ -135,7 +135,7 @@ class NaiveParser2(val grammar: NGrammar) {
     val newCondition = disjunct(
       ctx.acceptConditions.getOrElse(newKernel, Never),
       conjunct(
-        ctx.acceptConditions.getOrElse(task.kernel, Never),
+        ctx.acceptConditions(task.kernel),
         task.condition,
         addingCondition))
 
@@ -145,9 +145,11 @@ class NaiveParser2(val grammar: NGrammar) {
       ctx.acceptConditions + (newKernel -> newCondition)
     )
 
-    val newTasks = if (!(ctx.graph.nodes contains newKernel)) {
-      if (isFinal(newKernel)) List(FinishTask(newKernel)) else List(DeriveTask(newKernel))
-    } else List()
+    // 새로운 커널이거나 accept condition이 업데이트 되었으면 추가 작업 실행. 바뀐게 없으면 추가 작업 없음
+    val newTasks =
+      if (!(ctx.graph.nodes contains newKernel) || ctx.acceptConditions.get(newKernel) != Some(newCondition)) {
+        if (isFinal(newKernel)) List(FinishTask(newKernel)) else List(DeriveTask(newKernel))
+      } else List()
 
     (newCtx, newTasks)
   }
@@ -192,7 +194,6 @@ class NaiveParser2(val grammar: NGrammar) {
   }
 
   def updateAcceptConditions(nextGen: Int, ctx: ParsingContext, tracker: AcceptConditionsTracker): (ParsingContext, AcceptConditionsTracker) = {
-    // TODO 버그가 있음 - 무슨 버그지..?
     val acceptConditions = ctx.acceptConditions.view.mapValues(_.evolve(nextGen, ctx)).toMap
     val droppedKernels = acceptConditions.filter(_._2 == Never)
     val survivingAcceptConditions = acceptConditions.filter(_._2 != Never)
