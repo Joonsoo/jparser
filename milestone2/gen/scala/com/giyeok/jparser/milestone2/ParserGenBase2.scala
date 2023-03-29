@@ -37,7 +37,15 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
       case AcceptCondition.NotExists(0 | 1, 3, symbolId) =>
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
-        LongestTemplate(symbolId)
+        LongestTemplate(symbolId, beginFromNextGen = false)
+      case AcceptCondition.NotExists(1, 2, symbolId) =>
+        // initial context를 만들기 위해 (<start>, 0, 0..1) 커널에 대한 derive를 하는 도중 longest를 만난 경우
+        // Tk = <'a-z'*> 인 경우 발생할 수 있다
+        // 이 시점에는 어차피 beginGen이나 gen이나 0일 것이기 때문에 beginFromNextGen는 어느쪽이든 상관 없을 것.
+        LongestTemplate(symbolId, beginFromNextGen = false)
+      case AcceptCondition.NotExists(2, 3, symbolId) =>
+        // Tk = <'a-z'*> 인 경우 발생할 수 있다
+        LongestTemplate(symbolId, beginFromNextGen = true)
       case AcceptCondition.Unless(0 | 1, 2, symbolId) =>
         // except
         if (cannotExist(Kernel(symbolId, 0, 1, 1))) {

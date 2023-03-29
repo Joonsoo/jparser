@@ -161,7 +161,8 @@ class MilestoneParserGen(val grammar: NGrammar) {
         // forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
         // TODO result.progressTasks.filter(_.kernel == Kernel(symbolId, 0, 1, 1)) 에 대한 정보 추가
         addPended(symbolId)
-        LongestTemplate(symbolId)
+        LongestTemplate(symbolId, beginFromNextGen = false)
+        // TODO 여기서 NotExists(2, 3, symbolId) 가 나올 수 있을까? 그러면 Longest(symbolId, true)가 되면 될 듯 한데..
       case AcceptCondition.Unless(1, 2, symbolId) =>
         // except
         if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
@@ -323,7 +324,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
         needsToKeep += symbolId
-        LongestTemplate(symbolId)
+        LongestTemplate(symbolId, beginFromNextGen = false)
       case AcceptCondition.Unless(0, 2, symbolId) =>
         // except
         needsToKeep += symbolId

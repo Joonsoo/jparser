@@ -6,7 +6,7 @@ sealed abstract class AcceptConditionTemplate extends Ordered[AcceptConditionTem
     case OrTemplate(conditions) => conditions.flatMap(_.symbolIds).toSet
     case LookaheadIsTemplate(symbolId, _) => Set(symbolId)
     case LookaheadNotTemplate(symbolId, _) => Set(symbolId)
-    case LongestTemplate(symbolId) => Set(symbolId)
+    case LongestTemplate(symbolId, _) => Set(symbolId)
     case OnlyIfTemplate(symbolId) => Set(symbolId)
     case UnlessTemplate(symbolId) => Set(symbolId)
     case _ => Set()
@@ -73,7 +73,7 @@ case object NeverTemplate extends AcceptConditionTemplate {
 }
 
 case class AndTemplate(conditions: List[AcceptConditionTemplate]) extends AcceptConditionTemplate {
-//  assert(conditions.sorted == conditions)
+  //  assert(conditions.sorted == conditions)
 
   override def toString: String = s"AndTemplate(${conditions.map(_.toString).sorted.mkString(",")})"
 
@@ -99,7 +99,7 @@ object MultiConditions {
 }
 
 case class OrTemplate(conditions: List[AcceptConditionTemplate]) extends AcceptConditionTemplate {
-//  assert(conditions.sorted == conditions)
+  //  assert(conditions.sorted == conditions)
 
   override def toString: String = s"OrTemplate(${conditions.map(_.toString).sorted.mkString(",")})"
 
@@ -144,12 +144,12 @@ case class LookaheadNotTemplate(symbolId: Int, fromNextGen: Boolean) extends Acc
 
 // NotExists(parentGen, currGen + 1, symbolId)
 // NotExists(Milestone(symbolId, 0, parentGen), true)
-case class LongestTemplate(symbolId: Int) extends AcceptConditionTemplate {
+case class LongestTemplate(symbolId: Int, beginFromNextGen: Boolean) extends AcceptConditionTemplate {
   override def compare(that: AcceptConditionTemplate): Int = that match {
     case AlwaysTemplate | NeverTemplate | _: AndTemplate | _: OrTemplate |
          _: LookaheadIsTemplate | _: LookaheadNotTemplate => -1
-    case LongestTemplate(otherSymbolId) =>
-      symbolId - otherSymbolId
+    case LongestTemplate(otherSymbolId, otherBeginFromParentGen) =>
+      if (symbolId != otherSymbolId) symbolId - otherSymbolId else beginFromNextGen.compare(otherBeginFromParentGen)
     case _ => 1
   }
 }

@@ -105,7 +105,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
   }
 
   "bibix grammar" should "be parsed" in {
-    val grammar = new String(getClass.getResourceAsStream("/bibix2/grammar.cdg").readAllBytes())
+    val grammar = MetaLang3ExamplesCatalog.INSTANCE.getBibix2.getGrammarText
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
     val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)

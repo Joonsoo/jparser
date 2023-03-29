@@ -147,8 +147,10 @@ object MilestoneParser2ProtobufConverter {
         builder.getLookaheadNotBuilder
           .setSymbolId(symbolId)
           .setFromNextGen(fromNextGen)
-      case LongestTemplate(symbolId) =>
-        builder.setLongest(symbolId)
+      case LongestTemplate(symbolId, beginFromNextGen) =>
+        builder.getLongestBuilder
+          .setSymbolId(symbolId)
+          .setBeginFromNextGen(beginFromNextGen)
       case OnlyIfTemplate(symbolId) =>
         builder.setOnlyIf(symbolId)
       case UnlessTemplate(symbolId) =>
@@ -238,8 +240,10 @@ object MilestoneParser2ProtobufConverter {
         LookaheadIsTemplate(proto.getLookaheadIs.getSymbolId, proto.getLookaheadIs.getFromNextGen)
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_NOT =>
         LookaheadNotTemplate(proto.getLookaheadNot.getSymbolId, proto.getLookaheadNot.getFromNextGen)
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.DEPRECATED_LONGEST =>
+        LongestTemplate(proto.getDeprecatedLongest, false)
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LONGEST =>
-        LongestTemplate(proto.getLongest)
+        LongestTemplate(proto.getLongest.getSymbolId, proto.getLongest.getBeginFromNextGen)
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.ONLY_IF =>
         OnlyIfTemplate(proto.getOnlyIf)
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.UNLESS =>

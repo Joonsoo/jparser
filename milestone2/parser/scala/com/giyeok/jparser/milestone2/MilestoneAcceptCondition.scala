@@ -55,8 +55,8 @@ object MilestoneAcceptCondition {
         Exists(Milestone(symbolId, 0, gen), fromNextGen)
       case LookaheadNotTemplate(symbolId, fromNextGen) =>
         NotExists(Milestone(symbolId, 0, gen), checkFromNextGen = fromNextGen)
-      case LongestTemplate(symbolId) =>
-        NotExists(Milestone(symbolId, 0, beginGen), checkFromNextGen = true)
+      case LongestTemplate(symbolId, beginFromNextGen) =>
+        NotExists(Milestone(symbolId, 0, if (beginFromNextGen) gen else beginGen), checkFromNextGen = true)
       case OnlyIfTemplate(symbolId) =>
         OnlyIf(Milestone(symbolId, 0, beginGen))
       case UnlessTemplate(symbolId) =>

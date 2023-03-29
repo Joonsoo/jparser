@@ -32,8 +32,10 @@ sealed class MilestoneAcceptConditionKt {
             template.lookaheadNot.fromNextGen
           )
 
-        MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LONGEST ->
-          NotExists(MilestoneKt(template.longest, 0, beginGen), true)
+        MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LONGEST -> {
+          val milestoneGen = if (template.longest.beginFromNextGen) gen else beginGen
+          NotExists(MilestoneKt(template.longest.symbolId, 0, milestoneGen), true)
+        }
 
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.ONLY_IF ->
           OnlyIf(MilestoneKt(template.onlyIf, 0, beginGen))

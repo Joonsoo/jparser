@@ -80,6 +80,10 @@ message AcceptConditionTemplate {
     int32 symbol_id = 1;
     bool from_next_gen = 2;
   }
+  message LongestTemplate {
+    int32 symbol_id = 1;
+    bool begin_from_next_gen = 2;
+  }
   oneof condition {
     google.protobuf.Empty always = 1;
     google.protobuf.Empty never = 2;
@@ -87,7 +91,8 @@ message AcceptConditionTemplate {
     OrTemplate or = 4;
     LookaheadTemplate lookahead_is = 5;
     LookaheadTemplate lookahead_not = 6;
-    int32 longest = 7;
+    int32 deprecated_longest = 7;
+    LongestTemplate longest = 10;
     int32 only_if = 8;
     int32 unless = 9;
   }

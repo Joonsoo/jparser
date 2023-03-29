@@ -98,7 +98,8 @@ class ProtoMarshallingTests extends AnyFlatSpec {
     check(LookaheadIsTemplate(123, false))
     check(LookaheadNotTemplate(123, true))
     check(LookaheadNotTemplate(123, false))
-    check(LongestTemplate(234))
+    check(LongestTemplate(234, true))
+    check(LongestTemplate(234, false))
     check(OnlyIfTemplate(345))
     check(UnlessTemplate(456))
   }

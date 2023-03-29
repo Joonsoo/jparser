@@ -88,7 +88,7 @@ naive {
 
   test = scala.library(
     srcs = glob("naive/test/scala/**/*.scala"),
-    deps = [...scalaTestDeps, base.test, naive.main, examples.naiveExamples],
+    deps = [...scalaTestDeps, base.test, naive.main, examples.naiveExamples, metalang.main, examples.metalang3],
   )
 }
 
@@ -101,7 +101,7 @@ utils {
 
 metalang {
   parserGen = genScalaAstMgroup2(
-    cdgFile = "examples/main/resources/metalang3/grammar.cdg",
+    cdgFile = "examples/metalang3/resources/metalang3/grammar.cdg",
     astifierClassName = "com.giyeok.jparser.metalang3.ast.MetaLang3Ast",
     parserDataFileName = "cdglang3-mg2-parserdata.pb",
   )
@@ -240,17 +240,84 @@ examples {
   )
 
   generate {
-    bibix2 = genKtAstMilestone2(
+    metalang3 = genKtAstMgroup2(
+      cdgFile = "examples/metalang3/resources/metalang3/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.ktlib.test.MetaLang3Ast",
+      parserDataFileName = "metalang3-mg2-parserdata.pb",
+      trimParserData = false,
+    )
+
+    metalang3trimmed = genKtAstMgroup2(
+      cdgFile = "examples/metalang3/resources/metalang3/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.ktlib.test.MetaLang3Ast",
+      parserDataFileName = "metalang3-mg2-parserdata-trimmed.pb",
+      trimParserData = true,
+    )
+
+    bibix2m2 = genKtAstMilestone2(
       cdgFile = "examples/metalang3/resources/bibix2/grammar.cdg",
       astifierClassName = "com.giyeok.jparser.ktlib.test.BibixAst",
       parserDataFileName = "bibix2-m2-parserdata.pb",
+      trimParserData = false,
+    )
+
+    bibix2mg2 = genKtAstMgroup2(
+      cdgFile = "examples/metalang3/resources/bibix2/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.ktlib.test.BibixAst",
+      parserDataFileName = "bibix2-mg2-parserdata.pb",
+      trimParserData = false,
+    )
+
+    bibix2mg2trimmed = genKtAstMgroup2(
+      cdgFile = "examples/metalang3/resources/bibix2/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.ktlib.test.BibixAst",
+      parserDataFileName = "bibix2-mg2-parserdata-trimmed.pb",
+      trimParserData = true,
+    )
+
+    asdl = genKtAstMgroup2(
+      cdgFile = "examples/metalang3/resources/asdl/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.ktlib.test.AsdlAst",
+      parserDataFileName = "asdl-mg2-parserdata.pb",
+      trimParserData = false,
+    )
+
+    asdlTrimmed = genKtAstMgroup2(
+      cdgFile = "examples/metalang3/resources/asdl/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.ktlib.test.AsdlAst",
+      parserDataFileName = "asdl-mg2-parserdata-trimmed.pb",
+      trimParserData = true,
+    )
+
+    j1mg2 = genKtAstMgroup2(
+      cdgFile = "examples/metalang3/resources/j1/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.ktlib.test.J1Ast",
+      parserDataFileName = "j1-mg2-parserdata.pb",
+      trimParserData = false,
+    )
+
+    j1mg2trimmed = genKtAstMgroup2(
+      cdgFile = "examples/metalang3/resources/j1/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.ktlib.test.J1Ast",
+      parserDataFileName = "j1-mg2-parserdata-trimmed.pb",
       trimParserData = true,
     )
   }
 
   action generateAll {
-    file.copyFile(zip.gzip(generate.bibix2.parserData), "examples/generated/resources")
-    file.copyDirectory(generate.bibix2.srcsRoot, "examples/generated/kotlin")
+    file.copyFile(zip.gzip(generate.metalang3.parserData), "examples/generated/resources")
+    file.copyFile(zip.gzip(generate.metalang3trimmed.parserData), "examples/generated/resources")
+    file.copyDirectory(generate.metalang3trimmed.srcsRoot, "examples/generated/kotlin")
+    file.copyFile(zip.gzip(generate.bibix2m2.parserData), "examples/generated/resources")
+    file.copyFile(zip.gzip(generate.bibix2mg2.parserData), "examples/generated/resources")
+    file.copyFile(zip.gzip(generate.bibix2mg2trimmed.parserData), "examples/generated/resources")
+    file.copyDirectory(generate.bibix2mg2trimmed.srcsRoot, "examples/generated/kotlin")
+    file.copyFile(zip.gzip(generate.asdl.parserData), "examples/generated/resources")
+    file.copyFile(zip.gzip(generate.asdlTrimmed.parserData), "examples/generated/resources")
+    file.copyDirectory(generate.asdlTrimmed.srcsRoot, "examples/generated/kotlin")
+    file.copyFile(zip.gzip(generate.j1mg2.parserData), "examples/generated/resources")
+    file.copyFile(zip.gzip(generate.j1mg2trimmed.parserData), "examples/generated/resources")
+    file.copyDirectory(generate.j1mg2trimmed.srcsRoot, "examples/generated/kotlin")
   }
 }
 
@@ -410,19 +477,19 @@ bibixPlugin {
 
   milestone2Tests {
     test1 = genKtAstMilestone2(
-      cdgFile = "examples/main/resources/asdl/grammar.cdg",
+      cdgFile = "examples/metalang3/resources/asdl/grammar.cdg",
       astifierClassName = "com.giyeok.jparser.test.AsdlAst",
       parserDataFileName = "asdl-parserdata.pb",
     )
 
     test2 = genKtAstMilestone2(
-      cdgFile = "examples/main/resources/bibix2/grammar.cdg",
+      cdgFile = "examples/metalang3/resources/bibix2/grammar.cdg",
       astifierClassName = "com.giyeok.jparser.test.BibixAst",
       parserDataFileName = "bibix-parserdata.pb",
     )
 
     test3 = genKtAstMilestone2(
-      cdgFile = "examples/main/resources/metalang3/grammar.cdg",
+      cdgFile = "examples/metalang3/resources/metalang3/grammar.cdg",
       astifierClassName = "com.giyeok.jparser.test.MetaLang3Ast",
       parserDataFileName = "cdglang3-parserdata.pb",
     )
@@ -435,7 +502,7 @@ bibixPlugin {
     )
 
     test5 = genScalaAstMilestone2(
-      cdgFile = "examples/main/resources/autodb/autodb_schema2.cdg",
+      cdgFile = "examples/metalang3/resources/autodb/autodb_schema2.cdg",
       astifierClassName = "com.giyeok.jparser.test.Autodb2Ast",
       parserDataFileName = "autodb2-parserdata.pb",
     )
@@ -443,7 +510,7 @@ bibixPlugin {
 
   mgroupTests {
     test1 = genKtAstMgroup2(
-      cdgFile = "examples/main/resources/asdl/grammar.cdg",
+      cdgFile = "examples/metalang3/resources/asdl/grammar.cdg",
       astifierClassName = "com.giyeok.jparser.test.AsdlAst",
       parserDataFileName = "asdl-mgroup2-parserdata.pb",
     )

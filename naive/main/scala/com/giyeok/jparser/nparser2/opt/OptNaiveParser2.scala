@@ -133,7 +133,7 @@ class OptNaiveParser2(val grammar: NGrammar) {
     val newCondition = disjunct(
       mutCtx.acceptConditions.getOrElse(newKernel, Never),
       conjunct(
-        mutCtx.acceptConditions.getOrElse(task.kernel, Never),
+        mutCtx.acceptConditions(task.kernel),
         task.condition,
         addingCondition))
 

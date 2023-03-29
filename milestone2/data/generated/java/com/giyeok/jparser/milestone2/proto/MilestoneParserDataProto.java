@@ -11349,15 +11349,30 @@ public final class MilestoneParserDataProto {
     com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LookaheadTemplateOrBuilder getLookaheadNotOrBuilder();
 
     /**
-     * <code>int32 longest = 7;</code>
+     * <code>int32 deprecated_longest = 7;</code>
+     * @return Whether the deprecatedLongest field is set.
+     */
+    boolean hasDeprecatedLongest();
+    /**
+     * <code>int32 deprecated_longest = 7;</code>
+     * @return The deprecatedLongest.
+     */
+    int getDeprecatedLongest();
+
+    /**
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
      * @return Whether the longest field is set.
      */
     boolean hasLongest();
     /**
-     * <code>int32 longest = 7;</code>
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
      * @return The longest.
      */
-    int getLongest();
+    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate getLongest();
+    /**
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+     */
+    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplateOrBuilder getLongestOrBuilder();
 
     /**
      * <code>int32 only_if = 8;</code>
@@ -13429,6 +13444,521 @@ public final class MilestoneParserDataProto {
 
     }
 
+    public interface LongestTemplateOrBuilder extends
+        // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate)
+        com.google.protobuf.MessageOrBuilder {
+
+      /**
+       * <code>int32 symbol_id = 1;</code>
+       * @return The symbolId.
+       */
+      int getSymbolId();
+
+      /**
+       * <code>bool begin_from_next_gen = 2;</code>
+       * @return The beginFromNextGen.
+       */
+      boolean getBeginFromNextGen();
+    }
+    /**
+     * Protobuf type {@code com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate}
+     */
+    public static final class LongestTemplate extends
+        com.google.protobuf.GeneratedMessageV3 implements
+        // @@protoc_insertion_point(message_implements:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate)
+        LongestTemplateOrBuilder {
+    private static final long serialVersionUID = 0L;
+      // Use LongestTemplate.newBuilder() to construct.
+      private LongestTemplate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+        super(builder);
+      }
+      private LongestTemplate() {
+      }
+
+      @java.lang.Override
+      @SuppressWarnings({"unused"})
+      protected java.lang.Object newInstance(
+          UnusedPrivateParameter unused) {
+        return new LongestTemplate();
+      }
+
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.class, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.Builder.class);
+      }
+
+      public static final int SYMBOL_ID_FIELD_NUMBER = 1;
+      private int symbolId_ = 0;
+      /**
+       * <code>int32 symbol_id = 1;</code>
+       * @return The symbolId.
+       */
+      @java.lang.Override
+      public int getSymbolId() {
+        return symbolId_;
+      }
+
+      public static final int BEGIN_FROM_NEXT_GEN_FIELD_NUMBER = 2;
+      private boolean beginFromNextGen_ = false;
+      /**
+       * <code>bool begin_from_next_gen = 2;</code>
+       * @return The beginFromNextGen.
+       */
+      @java.lang.Override
+      public boolean getBeginFromNextGen() {
+        return beginFromNextGen_;
+      }
+
+      private byte memoizedIsInitialized = -1;
+      @java.lang.Override
+      public final boolean isInitialized() {
+        byte isInitialized = memoizedIsInitialized;
+        if (isInitialized == 1) return true;
+        if (isInitialized == 0) return false;
+
+        memoizedIsInitialized = 1;
+        return true;
+      }
+
+      @java.lang.Override
+      public void writeTo(com.google.protobuf.CodedOutputStream output)
+                          throws java.io.IOException {
+        if (symbolId_ != 0) {
+          output.writeInt32(1, symbolId_);
+        }
+        if (beginFromNextGen_ != false) {
+          output.writeBool(2, beginFromNextGen_);
+        }
+        getUnknownFields().writeTo(output);
+      }
+
+      @java.lang.Override
+      public int getSerializedSize() {
+        int size = memoizedSize;
+        if (size != -1) return size;
+
+        size = 0;
+        if (symbolId_ != 0) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeInt32Size(1, symbolId_);
+        }
+        if (beginFromNextGen_ != false) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeBoolSize(2, beginFromNextGen_);
+        }
+        size += getUnknownFields().getSerializedSize();
+        memoizedSize = size;
+        return size;
+      }
+
+      @java.lang.Override
+      public boolean equals(final java.lang.Object obj) {
+        if (obj == this) {
+         return true;
+        }
+        if (!(obj instanceof com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate)) {
+          return super.equals(obj);
+        }
+        com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate other = (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) obj;
+
+        if (getSymbolId()
+            != other.getSymbolId()) return false;
+        if (getBeginFromNextGen()
+            != other.getBeginFromNextGen()) return false;
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
+        return true;
+      }
+
+      @java.lang.Override
+      public int hashCode() {
+        if (memoizedHashCode != 0) {
+          return memoizedHashCode;
+        }
+        int hash = 41;
+        hash = (19 * hash) + getDescriptor().hashCode();
+        hash = (37 * hash) + SYMBOL_ID_FIELD_NUMBER;
+        hash = (53 * hash) + getSymbolId();
+        hash = (37 * hash) + BEGIN_FROM_NEXT_GEN_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getBeginFromNextGen());
+        hash = (29 * hash) + getUnknownFields().hashCode();
+        memoizedHashCode = hash;
+        return hash;
+      }
+
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseFrom(
+          java.nio.ByteBuffer data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseFrom(
+          java.nio.ByteBuffer data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseFrom(
+          com.google.protobuf.ByteString data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseFrom(
+          com.google.protobuf.ByteString data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseFrom(byte[] data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseFrom(
+          byte[] data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseDelimitedFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseDelimitedFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseFrom(
+          com.google.protobuf.CodedInputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate parseFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+
+      @java.lang.Override
+      public Builder newBuilderForType() { return newBuilder(); }
+      public static Builder newBuilder() {
+        return DEFAULT_INSTANCE.toBuilder();
+      }
+      public static Builder newBuilder(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate prototype) {
+        return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+      }
+      @java.lang.Override
+      public Builder toBuilder() {
+        return this == DEFAULT_INSTANCE
+            ? new Builder() : new Builder().mergeFrom(this);
+      }
+
+      @java.lang.Override
+      protected Builder newBuilderForType(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        Builder builder = new Builder(parent);
+        return builder;
+      }
+      /**
+       * Protobuf type {@code com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate}
+       */
+      public static final class Builder extends
+          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+          // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate)
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplateOrBuilder {
+        public static final com.google.protobuf.Descriptors.Descriptor
+            getDescriptor() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_descriptor;
+        }
+
+        @java.lang.Override
+        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+            internalGetFieldAccessorTable() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_fieldAccessorTable
+              .ensureFieldAccessorsInitialized(
+                  com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.class, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.Builder.class);
+        }
+
+        // Construct using com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.newBuilder()
+        private Builder() {
+
+        }
+
+        private Builder(
+            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+          super(parent);
+
+        }
+        @java.lang.Override
+        public Builder clear() {
+          super.clear();
+          bitField0_ = 0;
+          symbolId_ = 0;
+          beginFromNextGen_ = false;
+          return this;
+        }
+
+        @java.lang.Override
+        public com.google.protobuf.Descriptors.Descriptor
+            getDescriptorForType() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_descriptor;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate getDefaultInstanceForType() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate build() {
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate result = buildPartial();
+          if (!result.isInitialized()) {
+            throw newUninitializedMessageException(result);
+          }
+          return result;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate buildPartial() {
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate result = new com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate(this);
+          if (bitField0_ != 0) { buildPartial0(result); }
+          onBuilt();
+          return result;
+        }
+
+        private void buildPartial0(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate result) {
+          int from_bitField0_ = bitField0_;
+          if (((from_bitField0_ & 0x00000001) != 0)) {
+            result.symbolId_ = symbolId_;
+          }
+          if (((from_bitField0_ & 0x00000002) != 0)) {
+            result.beginFromNextGen_ = beginFromNextGen_;
+          }
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(com.google.protobuf.Message other) {
+          if (other instanceof com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) {
+            return mergeFrom((com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate)other);
+          } else {
+            super.mergeFrom(other);
+            return this;
+          }
+        }
+
+        public Builder mergeFrom(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate other) {
+          if (other == com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance()) return this;
+          if (other.getSymbolId() != 0) {
+            setSymbolId(other.getSymbolId());
+          }
+          if (other.getBeginFromNextGen() != false) {
+            setBeginFromNextGen(other.getBeginFromNextGen());
+          }
+          this.mergeUnknownFields(other.getUnknownFields());
+          onChanged();
+          return this;
+        }
+
+        @java.lang.Override
+        public final boolean isInitialized() {
+          return true;
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws java.io.IOException {
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
+          }
+          try {
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 8: {
+                  symbolId_ = input.readInt32();
+                  bitField0_ |= 0x00000001;
+                  break;
+                } // case 8
+                case 16: {
+                  beginFromNextGen_ = input.readBool();
+                  bitField0_ |= 0x00000002;
+                  break;
+                } // case 16
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.unwrapIOException();
+          } finally {
+            onChanged();
+          } // finally
+          return this;
+        }
+        private int bitField0_;
+
+        private int symbolId_ ;
+        /**
+         * <code>int32 symbol_id = 1;</code>
+         * @return The symbolId.
+         */
+        @java.lang.Override
+        public int getSymbolId() {
+          return symbolId_;
+        }
+        /**
+         * <code>int32 symbol_id = 1;</code>
+         * @param value The symbolId to set.
+         * @return This builder for chaining.
+         */
+        public Builder setSymbolId(int value) {
+
+          symbolId_ = value;
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>int32 symbol_id = 1;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearSymbolId() {
+          bitField0_ = (bitField0_ & ~0x00000001);
+          symbolId_ = 0;
+          onChanged();
+          return this;
+        }
+
+        private boolean beginFromNextGen_ ;
+        /**
+         * <code>bool begin_from_next_gen = 2;</code>
+         * @return The beginFromNextGen.
+         */
+        @java.lang.Override
+        public boolean getBeginFromNextGen() {
+          return beginFromNextGen_;
+        }
+        /**
+         * <code>bool begin_from_next_gen = 2;</code>
+         * @param value The beginFromNextGen to set.
+         * @return This builder for chaining.
+         */
+        public Builder setBeginFromNextGen(boolean value) {
+
+          beginFromNextGen_ = value;
+          bitField0_ |= 0x00000002;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>bool begin_from_next_gen = 2;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearBeginFromNextGen() {
+          bitField0_ = (bitField0_ & ~0x00000002);
+          beginFromNextGen_ = false;
+          onChanged();
+          return this;
+        }
+        @java.lang.Override
+        public final Builder setUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.setUnknownFields(unknownFields);
+        }
+
+        @java.lang.Override
+        public final Builder mergeUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.mergeUnknownFields(unknownFields);
+        }
+
+
+        // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate)
+      }
+
+      // @@protoc_insertion_point(class_scope:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate)
+      private static final com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate DEFAULT_INSTANCE;
+      static {
+        DEFAULT_INSTANCE = new com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate();
+      }
+
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate getDefaultInstance() {
+        return DEFAULT_INSTANCE;
+      }
+
+      private static final com.google.protobuf.Parser<LongestTemplate>
+          PARSER = new com.google.protobuf.AbstractParser<LongestTemplate>() {
+        @java.lang.Override
+        public LongestTemplate parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
+        }
+      };
+
+      public static com.google.protobuf.Parser<LongestTemplate> parser() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<LongestTemplate> getParserForType() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate getDefaultInstanceForType() {
+        return DEFAULT_INSTANCE;
+      }
+
+    }
+
     private int conditionCase_ = 0;
     @SuppressWarnings("serial")
     private java.lang.Object condition_;
@@ -13441,7 +13971,8 @@ public final class MilestoneParserDataProto {
       OR(4),
       LOOKAHEAD_IS(5),
       LOOKAHEAD_NOT(6),
-      LONGEST(7),
+      DEPRECATED_LONGEST(7),
+      LONGEST(10),
       ONLY_IF(8),
       UNLESS(9),
       CONDITION_NOT_SET(0);
@@ -13467,7 +13998,8 @@ public final class MilestoneParserDataProto {
           case 4: return OR;
           case 5: return LOOKAHEAD_IS;
           case 6: return LOOKAHEAD_NOT;
-          case 7: return LONGEST;
+          case 7: return DEPRECATED_LONGEST;
+          case 10: return LONGEST;
           case 8: return ONLY_IF;
           case 9: return UNLESS;
           case 0: return CONDITION_NOT_SET;
@@ -13671,25 +14203,56 @@ public final class MilestoneParserDataProto {
       return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LookaheadTemplate.getDefaultInstance();
     }
 
-    public static final int LONGEST_FIELD_NUMBER = 7;
+    public static final int DEPRECATED_LONGEST_FIELD_NUMBER = 7;
     /**
-     * <code>int32 longest = 7;</code>
-     * @return Whether the longest field is set.
+     * <code>int32 deprecated_longest = 7;</code>
+     * @return Whether the deprecatedLongest field is set.
      */
     @java.lang.Override
-    public boolean hasLongest() {
+    public boolean hasDeprecatedLongest() {
       return conditionCase_ == 7;
     }
     /**
-     * <code>int32 longest = 7;</code>
-     * @return The longest.
+     * <code>int32 deprecated_longest = 7;</code>
+     * @return The deprecatedLongest.
      */
     @java.lang.Override
-    public int getLongest() {
+    public int getDeprecatedLongest() {
       if (conditionCase_ == 7) {
         return (java.lang.Integer) condition_;
       }
       return 0;
+    }
+
+    public static final int LONGEST_FIELD_NUMBER = 10;
+    /**
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+     * @return Whether the longest field is set.
+     */
+    @java.lang.Override
+    public boolean hasLongest() {
+      return conditionCase_ == 10;
+    }
+    /**
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+     * @return The longest.
+     */
+    @java.lang.Override
+    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate getLongest() {
+      if (conditionCase_ == 10) {
+         return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) condition_;
+      }
+      return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
+    }
+    /**
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+     */
+    @java.lang.Override
+    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplateOrBuilder getLongestOrBuilder() {
+      if (conditionCase_ == 10) {
+         return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) condition_;
+      }
+      return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
     }
 
     public static final int ONLY_IF_FIELD_NUMBER = 8;
@@ -13778,6 +14341,9 @@ public final class MilestoneParserDataProto {
         output.writeInt32(
             9, (int)((java.lang.Integer) condition_));
       }
+      if (conditionCase_ == 10) {
+        output.writeMessage(10, (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) condition_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -13826,6 +14392,10 @@ public final class MilestoneParserDataProto {
           .computeInt32Size(
               9, (int)((java.lang.Integer) condition_));
       }
+      if (conditionCase_ == 10) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(10, (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) condition_);
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
@@ -13868,8 +14438,12 @@ public final class MilestoneParserDataProto {
               .equals(other.getLookaheadNot())) return false;
           break;
         case 7:
-          if (getLongest()
-              != other.getLongest()) return false;
+          if (getDeprecatedLongest()
+              != other.getDeprecatedLongest()) return false;
+          break;
+        case 10:
+          if (!getLongest()
+              .equals(other.getLongest())) return false;
           break;
         case 8:
           if (getOnlyIf()
@@ -13919,8 +14493,12 @@ public final class MilestoneParserDataProto {
           hash = (53 * hash) + getLookaheadNot().hashCode();
           break;
         case 7:
+          hash = (37 * hash) + DEPRECATED_LONGEST_FIELD_NUMBER;
+          hash = (53 * hash) + getDeprecatedLongest();
+          break;
+        case 10:
           hash = (37 * hash) + LONGEST_FIELD_NUMBER;
-          hash = (53 * hash) + getLongest();
+          hash = (53 * hash) + getLongest().hashCode();
           break;
         case 8:
           hash = (37 * hash) + ONLY_IF_FIELD_NUMBER;
@@ -14080,6 +14658,9 @@ public final class MilestoneParserDataProto {
         if (lookaheadNotBuilder_ != null) {
           lookaheadNotBuilder_.clear();
         }
+        if (longestBuilder_ != null) {
+          longestBuilder_.clear();
+        }
         conditionCase_ = 0;
         condition_ = null;
         return this;
@@ -14145,6 +14726,10 @@ public final class MilestoneParserDataProto {
             lookaheadNotBuilder_ != null) {
           result.condition_ = lookaheadNotBuilder_.build();
         }
+        if (conditionCase_ == 10 &&
+            longestBuilder_ != null) {
+          result.condition_ = longestBuilder_.build();
+        }
       }
 
       @java.lang.Override
@@ -14184,8 +14769,12 @@ public final class MilestoneParserDataProto {
             mergeLookaheadNot(other.getLookaheadNot());
             break;
           }
+          case DEPRECATED_LONGEST: {
+            setDeprecatedLongest(other.getDeprecatedLongest());
+            break;
+          }
           case LONGEST: {
-            setLongest(other.getLongest());
+            mergeLongest(other.getLongest());
             break;
           }
           case ONLY_IF: {
@@ -14283,6 +14872,13 @@ public final class MilestoneParserDataProto {
                 conditionCase_ = 9;
                 break;
               } // case 72
+              case 82: {
+                input.readMessage(
+                    getLongestFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                conditionCase_ = 10;
+                break;
+              } // case 82
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -15168,28 +15764,28 @@ public final class MilestoneParserDataProto {
       }
 
       /**
-       * <code>int32 longest = 7;</code>
-       * @return Whether the longest field is set.
+       * <code>int32 deprecated_longest = 7;</code>
+       * @return Whether the deprecatedLongest field is set.
        */
-      public boolean hasLongest() {
+      public boolean hasDeprecatedLongest() {
         return conditionCase_ == 7;
       }
       /**
-       * <code>int32 longest = 7;</code>
-       * @return The longest.
+       * <code>int32 deprecated_longest = 7;</code>
+       * @return The deprecatedLongest.
        */
-      public int getLongest() {
+      public int getDeprecatedLongest() {
         if (conditionCase_ == 7) {
           return (java.lang.Integer) condition_;
         }
         return 0;
       }
       /**
-       * <code>int32 longest = 7;</code>
-       * @param value The longest to set.
+       * <code>int32 deprecated_longest = 7;</code>
+       * @param value The deprecatedLongest to set.
        * @return This builder for chaining.
        */
-      public Builder setLongest(int value) {
+      public Builder setDeprecatedLongest(int value) {
 
         conditionCase_ = 7;
         condition_ = value;
@@ -15197,16 +15793,158 @@ public final class MilestoneParserDataProto {
         return this;
       }
       /**
-       * <code>int32 longest = 7;</code>
+       * <code>int32 deprecated_longest = 7;</code>
        * @return This builder for chaining.
        */
-      public Builder clearLongest() {
+      public Builder clearDeprecatedLongest() {
         if (conditionCase_ == 7) {
           conditionCase_ = 0;
           condition_ = null;
           onChanged();
         }
         return this;
+      }
+
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplateOrBuilder> longestBuilder_;
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+       * @return Whether the longest field is set.
+       */
+      @java.lang.Override
+      public boolean hasLongest() {
+        return conditionCase_ == 10;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+       * @return The longest.
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate getLongest() {
+        if (longestBuilder_ == null) {
+          if (conditionCase_ == 10) {
+            return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) condition_;
+          }
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
+        } else {
+          if (conditionCase_ == 10) {
+            return longestBuilder_.getMessage();
+          }
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
+        }
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+       */
+      public Builder setLongest(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate value) {
+        if (longestBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          condition_ = value;
+          onChanged();
+        } else {
+          longestBuilder_.setMessage(value);
+        }
+        conditionCase_ = 10;
+        return this;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+       */
+      public Builder setLongest(
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.Builder builderForValue) {
+        if (longestBuilder_ == null) {
+          condition_ = builderForValue.build();
+          onChanged();
+        } else {
+          longestBuilder_.setMessage(builderForValue.build());
+        }
+        conditionCase_ = 10;
+        return this;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+       */
+      public Builder mergeLongest(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate value) {
+        if (longestBuilder_ == null) {
+          if (conditionCase_ == 10 &&
+              condition_ != com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance()) {
+            condition_ = com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.newBuilder((com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) condition_)
+                .mergeFrom(value).buildPartial();
+          } else {
+            condition_ = value;
+          }
+          onChanged();
+        } else {
+          if (conditionCase_ == 10) {
+            longestBuilder_.mergeFrom(value);
+          } else {
+            longestBuilder_.setMessage(value);
+          }
+        }
+        conditionCase_ = 10;
+        return this;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+       */
+      public Builder clearLongest() {
+        if (longestBuilder_ == null) {
+          if (conditionCase_ == 10) {
+            conditionCase_ = 0;
+            condition_ = null;
+            onChanged();
+          }
+        } else {
+          if (conditionCase_ == 10) {
+            conditionCase_ = 0;
+            condition_ = null;
+          }
+          longestBuilder_.clear();
+        }
+        return this;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+       */
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.Builder getLongestBuilder() {
+        return getLongestFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplateOrBuilder getLongestOrBuilder() {
+        if ((conditionCase_ == 10) && (longestBuilder_ != null)) {
+          return longestBuilder_.getMessageOrBuilder();
+        } else {
+          if (conditionCase_ == 10) {
+            return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) condition_;
+          }
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
+        }
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplateOrBuilder> 
+          getLongestFieldBuilder() {
+        if (longestBuilder_ == null) {
+          if (!(conditionCase_ == 10)) {
+            condition_ = com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
+          }
+          longestBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+              com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplateOrBuilder>(
+                  (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) condition_,
+                  getParentForChildren(),
+                  isClean());
+          condition_ = null;
+        }
+        conditionCase_ = 10;
+        onChanged();
+        return longestBuilder_;
       }
 
       /**
@@ -15431,6 +16169,11 @@ public final class MilestoneParserDataProto {
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LookaheadTemplate_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -15506,7 +16249,7 @@ public final class MilestoneParserDataProto {
       "k.jparser.milestone2.proto.KernelTemplat" +
       "e\022V\n\020accept_condition\030\002 \001(\0132<.com.giyeok" +
       ".jparser.milestone2.proto.AcceptConditio" +
-      "nTemplate\"\262\006\n\027AcceptConditionTemplate\022(\n" +
+      "nTemplate\"\341\007\n\027AcceptConditionTemplate\022(\n" +
       "\006always\030\001 \001(\0132\026.google.protobuf.EmptyH\000\022" +
       "\'\n\005never\030\002 \001(\0132\026.google.protobuf.EmptyH\000" +
       "\022W\n\003and\030\003 \001(\0132H.com.giyeok.jparser.miles" +
@@ -15518,16 +16261,21 @@ public final class MilestoneParserDataProto {
       "eptConditionTemplate.LookaheadTemplateH\000" +
       "\022g\n\rlookahead_not\030\006 \001(\0132N.com.giyeok.jpa" +
       "rser.milestone2.proto.AcceptConditionTem" +
-      "plate.LookaheadTemplateH\000\022\021\n\007longest\030\007 \001" +
-      "(\005H\000\022\021\n\007only_if\030\010 \001(\005H\000\022\020\n\006unless\030\t \001(\005H" +
-      "\000\032_\n\013AndTemplate\022P\n\nconditions\030\001 \003(\0132<.c" +
-      "om.giyeok.jparser.milestone2.proto.Accep" +
-      "tConditionTemplate\032^\n\nOrTemplate\022P\n\ncond" +
-      "itions\030\001 \003(\0132<.com.giyeok.jparser.milest" +
-      "one2.proto.AcceptConditionTemplate\032=\n\021Lo" +
-      "okaheadTemplate\022\021\n\tsymbol_id\030\001 \001(\005\022\025\n\rfr" +
-      "om_next_gen\030\002 \001(\010B\013\n\tconditionB\032B\030Milest" +
-      "oneParserDataProtob\006proto3"
+      "plate.LookaheadTemplateH\000\022\034\n\022deprecated_" +
+      "longest\030\007 \001(\005H\000\022_\n\007longest\030\n \001(\0132L.com.g" +
+      "iyeok.jparser.milestone2.proto.AcceptCon" +
+      "ditionTemplate.LongestTemplateH\000\022\021\n\007only" +
+      "_if\030\010 \001(\005H\000\022\020\n\006unless\030\t \001(\005H\000\032_\n\013AndTemp" +
+      "late\022P\n\nconditions\030\001 \003(\0132<.com.giyeok.jp" +
+      "arser.milestone2.proto.AcceptConditionTe" +
+      "mplate\032^\n\nOrTemplate\022P\n\nconditions\030\001 \003(\013" +
+      "2<.com.giyeok.jparser.milestone2.proto.A" +
+      "cceptConditionTemplate\032=\n\021LookaheadTempl" +
+      "ate\022\021\n\tsymbol_id\030\001 \001(\005\022\025\n\rfrom_next_gen\030" +
+      "\002 \001(\010\032A\n\017LongestTemplate\022\021\n\tsymbol_id\030\001 " +
+      "\001(\005\022\033\n\023begin_from_next_gen\030\002 \001(\010B\013\n\tcond" +
+      "itionB\032B\030MilestoneParserDataProtob\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -15607,7 +16355,7 @@ public final class MilestoneParserDataProto {
     internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_descriptor,
-        new java.lang.String[] { "Always", "Never", "And", "Or", "LookaheadIs", "LookaheadNot", "Longest", "OnlyIf", "Unless", "Condition", });
+        new java.lang.String[] { "Always", "Never", "And", "Or", "LookaheadIs", "LookaheadNot", "DeprecatedLongest", "Longest", "OnlyIf", "Unless", "Condition", });
     internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_AndTemplate_descriptor =
       internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(0);
     internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_AndTemplate_fieldAccessorTable = new
@@ -15626,6 +16374,12 @@ public final class MilestoneParserDataProto {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LookaheadTemplate_descriptor,
         new java.lang.String[] { "SymbolId", "FromNextGen", });
+    internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_descriptor =
+      internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(3);
+    internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_descriptor,
+        new java.lang.String[] { "SymbolId", "BeginFromNextGen", });
     com.google.protobuf.EmptyProto.getDescriptor();
     com.giyeok.jparser.proto.GrammarProto.getDescriptor();
     com.giyeok.jparser.proto.TermGroupProto.getDescriptor();
