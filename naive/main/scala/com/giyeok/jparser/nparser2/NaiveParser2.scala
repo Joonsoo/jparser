@@ -20,9 +20,12 @@ class NaiveParser2(val grammar: NGrammar) {
     // TODO initialContext도 conditions update, filtering, trimming이 필요한가?
   }
 
-  val initialParsingHistoryContext: ParsingHistoryContext = {
-    ParsingHistoryContext(0, initialParsingContext, List(), List(initialParsingContext), AcceptConditionsTracker(Map()))
-  }
+  val initialParsingHistoryContext: ParsingHistoryContext = ParsingHistoryContext(
+    0,
+    initialParsingContext,
+    List(),
+    List(initialParsingContext),
+    AcceptConditionsTracker(initialParsingContext.acceptConditions.values.map(cond => cond -> cond).toMap))
 
   private def isFinal(kernel: Kernel): Boolean = {
     grammar.symbolOf(kernel.symbolId) match {
@@ -232,20 +235,28 @@ class NaiveParser2(val grammar: NGrammar) {
           }
         }
       case acceptCondition: Unless =>
-        assert(gen == acceptCondition.endGen)
-        ctx.acceptConditions get finalKernel(acceptCondition) match {
-          case Some(condition) => evolveAcceptCondition(condition.neg, gen, ctx)
-          case None =>
-            // 대상 심볼이 아예 매치되지 않았다는 의미
-            Always
+        if (gen > acceptCondition.endGen) {
+          Always
+        } else {
+          assert(gen == acceptCondition.endGen)
+          ctx.acceptConditions get finalKernel(acceptCondition) match {
+            case Some(condition) => evolveAcceptCondition(condition.neg, gen, ctx)
+            case None =>
+              // 대상 심볼이 아예 매치되지 않았다는 의미
+              Always
+          }
         }
       case acceptCondition: OnlyIf =>
-        assert(gen == acceptCondition.endGen)
-        ctx.acceptConditions get finalKernel(acceptCondition) match {
-          case Some(condition) => evolveAcceptCondition(condition, gen, ctx)
-          case None =>
-            // 대상 심볼이 아예 매치되지 않았다는 의미
-            Never
+        if (gen > acceptCondition.endGen) {
+          Never
+        } else {
+          assert(gen == acceptCondition.endGen)
+          ctx.acceptConditions get finalKernel(acceptCondition) match {
+            case Some(condition) => evolveAcceptCondition(condition, gen, ctx)
+            case None =>
+              // 대상 심볼이 아예 매치되지 않았다는 의미
+              Never
+          }
         }
     }
     if (!containsNoOnlyOfOrUnless(res)) {
