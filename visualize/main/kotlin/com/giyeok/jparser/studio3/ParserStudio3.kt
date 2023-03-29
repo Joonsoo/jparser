@@ -97,15 +97,17 @@ class ParserStudio3(val workerDispatcher: CoroutineDispatcher) {
         is DataUpdateEvent.ExceptionThrown -> TODO()
         is DataUpdateEvent.NoDataAvailable, is DataUpdateEvent.InvalidateLatestData ->
           ExampleParseResult.ExampleWaiting
+
         is DataUpdateEvent.NewDataAvailable -> {
           val ngrammar = grammar.data.ngrammar()
           val inputs = Inputs.fromString(example.data)
-          val parsed = NaiveParser2(ngrammar).parse(inputs)
+          val parser = NaiveParser2(ngrammar)
+          val parsed = parser.parse(inputs)
 
           if (parsed.isRight) {
             val ctx = parsed.right().get()
 
-            val reconstructor = ctx.parseTreeReconstructor2(`ParseForestFunc$`.`MODULE$`, ngrammar)
+            val reconstructor = parser.parseTreeReconstructor2(`ParseForestFunc$`.`MODULE$`, ctx)
 
             withContext(workerDispatcher + currentCoroutineContext()) {
               val reconstructionResult = reconstructor.reconstruct()
@@ -183,18 +185,23 @@ class ParserStudio3(val workerDispatcher: CoroutineDispatcher) {
             ExampleParseResult.GrammarNotReady -> {
               parseTreeView.setViewportView(JLabel("Finish the grammar first"))
             }
+
             ExampleParseResult.ProcessingGrammar -> {
               parseTreeView.setViewportView(JLabel("Processing the grammar..."))
             }
+
             ExampleParseResult.ExampleWaiting -> {
               parseTreeView.setViewportView(JLabel("Finish typing the example"))
             }
+
             is ExampleParseResult.ExampleParseError -> {
               parseTreeView.setViewportView(JLabel(result.parsingError.msg()))
             }
+
             is ExampleParseResult.ExampleParseException -> {
               parseTreeView.setViewportView(JLabel(result.exception.message))
             }
+
             is ExampleParseResult.ExampleParseSucceeded -> {
               println("# of trees: ${result.results.size}")
               val (parseTree, astValue) = result.results.first()

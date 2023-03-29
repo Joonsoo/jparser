@@ -27,6 +27,7 @@ object MetaLang3ExamplesCatalog {
   val proto3 = GrammarWithExamples.fromResource(
     "/proto3",
     listOf(
+      "example1.proto",
       "GrammarProto.proto",
       "TermGroupProto.proto",
     )

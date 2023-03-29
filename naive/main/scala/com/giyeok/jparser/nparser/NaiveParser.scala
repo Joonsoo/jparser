@@ -11,9 +11,10 @@ import com.giyeok.jparser.nparser.ParsingContext._
 class NaiveParser(val grammar: NGrammar, val trim: Boolean = true) extends Parser[NaiveContext] with ParsingTasks {
     // TODO Right recursion 최적화를 위해서 progress task를 수정해야할 수도 있음
 
+    val initialGraph: Graph = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set())).graph
     val initialContext: NaiveContext = {
         // TODO lift 제외하고 proceed할 때랑 동일하게 해야 하나?
-        val Cont(graph, _) = rec(0, List(DeriveTask(startNode)), Graph(Set(startNode), Set()))
+        val graph = initialGraph
         val conditionsMap = (graph.nodes map { n => n.condition -> n.condition }).toMap
 
         val initialConditionAccumulate = ConditionAccumulate(conditionsMap)

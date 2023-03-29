@@ -3,9 +3,8 @@ package com.giyeok.jparser.visualize
 import com.giyeok.jparser.Inputs.Input
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.ParsingErrors.ParsingError
-import com.giyeok.jparser.nparser.{Parser, ParsingContext}
-import com.giyeok.jparser.nparser.Parser.Context
-import com.giyeok.jparser.nparser.Parser.ProceedDetail
+import com.giyeok.jparser.nparser.{NaiveParser, Parser, ParsingContext}
+import com.giyeok.jparser.nparser.Parser.{Context, NaiveContext, ProceedDetail}
 import com.giyeok.jparser.nparser.ParsingContext.Node
 import org.eclipse.draw2d
 import org.eclipse.draw2d.AbstractLayout
@@ -33,7 +32,7 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Label
 import org.eclipse.swt.widgets.Shell
 
-class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], source: Seq[Input], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFactory: ParsingContextWidgetFactory[C]) {
+class ParsingProcessVisualizer(title: String, parser: NaiveParser, source: Seq[Input], display: Display, shell: Shell, resources: VisualizeResources[Figure], parsingContextWidgetFactory: ParsingContextWidgetFactory[NaiveContext]) {
 
     // 상단 test string
     val sourceView = new FigureCanvas(shell, SWT.NONE)
@@ -299,13 +298,13 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
         }
     }
 
-    private val contextCache = scala.collection.mutable.Map[Int, Either[C, ParsingError]]()
-    private val transitionCache = scala.collection.mutable.Map[Int, Either[(Context, ProceedDetail, Context), ParsingError]]()
-    def contextAt(gen: Int): Either[C, ParsingError] =
+    private val contextCache = scala.collection.mutable.Map[Int, Either[NaiveContext, ParsingError]]()
+    private val transitionCache = scala.collection.mutable.Map[Int, Either[(NaiveContext, ProceedDetail, NaiveContext), ParsingError]]()
+    def contextAt(gen: Int): Either[NaiveContext, ParsingError] =
         contextCache get gen match {
             case Some(cached) => cached
             case None =>
-                val context: Either[C, ParsingError] = if (gen == 0) Left(parser.initialContext) else {
+                val context: Either[NaiveContext, ParsingError] = if (gen == 0) Left(parser.initialContext) else {
                     contextAt(gen - 1) match {
                         case Left(prevCtx) =>
                             parser.proceedDetail(prevCtx, source(gen - 1)) match {
@@ -349,7 +348,9 @@ class ParsingProcessVisualizer[C <: Context](title: String, parser: Parser[C], s
             case None =>
                 val (name, control) = pointer match {
                     case ParsingContextInitializingPointer =>
-                        (None, errorControl("TODO"))
+                        val (prevGraph, nextGraph) = (parser.initialGraph, parser.initialContext.nextGraph)
+                        val widget = new ZestGraphTransitionWidget(contentView, SWT.NONE, nodeFigGenerator, parser.grammar, prevGraph, nextGraph)
+                        (None, widget)
                     case ParsingContextPointer(gen) =>
                         contextAt(gen) match {
                             case Left(wctx) =>
@@ -470,7 +471,7 @@ trait ParsingContextWidgetFactory[C <: Context] {
 }
 
 object ParsingProcessVisualizer {
-    def start[C <: Context](title: String, parser: Parser[C], source: Seq[Input], display: Display, shell: Shell, parsingContextWidgetFactory: ParsingContextWidgetFactory[C]): Unit = {
+    def start[C <: Context](title: String, parser: NaiveParser, source: Seq[Input], display: Display, shell: Shell, parsingContextWidgetFactory: ParsingContextWidgetFactory[NaiveContext]): Unit = {
         new ParsingProcessVisualizer(title: String, parser, source, display, shell, BasicVisualizeResources, parsingContextWidgetFactory).start()
     }
 }

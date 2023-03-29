@@ -1,16 +1,18 @@
 package com.giyeok.jparser.milestone2.test
 
 import com.giyeok.jparser.NGrammar.NSequence
-import com.giyeok.jparser.examples.metalang3.{GrammarWithExamples, MetaLang3ExamplesCatalog}
+import com.giyeok.jparser.ParseResultTree.Node
+import com.giyeok.jparser.examples.metalang3.{GrammarTestExample, GrammarWithExamples, MetaLang3ExamplesCatalog}
 import com.giyeok.jparser.examples.naive.NaiveExamplesCatalog
 import com.giyeok.jparser.metalang3.MetaLanguage3
 import com.giyeok.jparser.milestone2._
 import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto
-import com.giyeok.jparser.milestone2.test.AcceptConditionOrderings.{mileestoneAcceptConditionOrdering, naiveAcceptConditionOrdering}
+import com.giyeok.jparser.milestone2.test.MilestoneAcceptConditionOrdering.milestoneAcceptConditionOrdering
+import com.giyeok.jparser.nparser.AcceptConditionOrdering.acceptConditionOrdering
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
-import com.giyeok.jparser.nparser.{ParsingContext, _}
+import com.giyeok.jparser.nparser._
 import com.giyeok.jparser.nparser2.{KernelGraph, NaiveParser2}
-import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc}
+import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc, ParseResultTree}
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -100,20 +102,36 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
 
   private def assertEqualCtx(
     naive1Ctx: Parser.Context,
-    naiveCtx: NaiveParser2.ParsingHistoryContext,
+    naive2Ctx: NaiveParser2.ParsingHistoryContext,
   ): Unit = {
     val kernels = naive1Ctx.nextGraph.nodes.groupBy(_.kernel).view.mapValues { nodes =>
       val conditions = nodes.map(_.condition).toArray
       AcceptCondition.disjunct(conditions: _*)
     }.toMap
 
-    if (kernels.keySet != naiveCtx.parsingContext.graph.nodes) {
-      println(s"1-2: ${(kernels.keySet -- naiveCtx.parsingContext.graph.nodes).toList.sorted}")
-      println(s"2-1: ${(naiveCtx.parsingContext.graph.nodes -- kernels.keySet).toList.sorted}")
+    if (kernels.keySet != naive2Ctx.parsingContext.graph.nodes) {
+      println(s"nodes mismatch at gen: ${naive1Ctx.gen}")
+      println(s"1-2: ${(kernels.keySet -- naive2Ctx.parsingContext.graph.nodes).toList.sorted}")
+      println(s"2-1: ${(naive2Ctx.parsingContext.graph.nodes -- kernels.keySet).toList.sorted}")
       println()
     }
-    assertEquals(kernels.keySet, naiveCtx.parsingContext.graph.nodes)
-    assertEquals(kernels, naiveCtx.parsingContext.acceptConditions)
+    assertEquals(kernels.keySet, naive2Ctx.parsingContext.graph.nodes)
+    if (kernels != naive2Ctx.parsingContext.acceptConditions) {
+      println(s"condition mismatch at gen: ${naive1Ctx.gen}")
+      println(s"1-2: ${(kernels.keySet -- naive2Ctx.parsingContext.acceptConditions.keySet).toList.sorted}")
+      println(s"2-1: ${(naive2Ctx.parsingContext.acceptConditions.keySet -- kernels.keySet).toList.sorted}")
+      (kernels.keySet ++ naive2Ctx.parsingContext.acceptConditions.keySet).foreach { kernel =>
+        val cond1 = kernels(kernel)
+        val cond2 = naive2Ctx.parsingContext.acceptConditions(kernel)
+        if (cond1 != cond2) {
+          println(s"$kernel:")
+          println(s"1: $cond1")
+          println(s"2: $cond2")
+        }
+      }
+      println()
+    }
+    assertEquals(kernels, naive2Ctx.parsingContext.acceptConditions)
   }
 
   private def assertEqualCtx(
@@ -147,34 +165,114 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     }
   }
 
-  // naive1 parser, naive parser, milestone parser의 동일성 확인
-  def testEquality(naiveParser: NaiveParser2, milestoneParser: MilestoneParser, inputs: List[Inputs.Input]): Unit = {
-    val naive1Parser = new NaiveParser(naiveParser.grammar)
-    var naive1Ctx = naive1Parser.initialContext
-    var naiveCtx = naiveParser.initialParsingHistoryContext
-    var milestoneCtx = milestoneParser.initialCtx
+  def parseTreeToPath(parseNode: Node): String = {
+    val builder = new StringBuilder()
 
-    assertEqualCtx(naiveParser, naiveCtx, milestoneParser, milestoneCtx)
-
-    inputs.foreach { input =>
-      // println(s"${naiveCtx.gen}/${inputs.size} $input")
-      assertEquals(naive1Ctx.gen, naiveCtx.gen)
-      assertEquals(naiveCtx.gen, milestoneCtx.gen)
-      naive1Ctx = naive1Parser.proceed(naive1Ctx, input).swap.getOrElse(throw new IllegalStateException())
-      naiveCtx = naiveParser.parseStep(naiveCtx, input).getOrElse(throw new IllegalStateException())
-
-      assertEqualCtx(naive1Ctx, naiveCtx)
-
-      milestoneCtx = milestoneParser.parseStep(milestoneCtx, input).getOrElse(throw new IllegalStateException())
-
-      assertEqualCtx(naiveParser, naiveCtx, milestoneParser, milestoneCtx)
+    def traverseBindNode(node: ParseResultTree.BindNode, indent: String): String = {
+      node.body match {
+        case bindNode: ParseResultTree.BindNode =>
+          builder.append(node.symbol.id.toString + "(")
+          val closingParens = traverseBindNode(bindNode, indent)
+          closingParens + ")"
+        case _ =>
+          traverse(node.body, indent + "  ")
+          ""
+      }
     }
 
-    val naive1Trees = new ParseTreeConstructor(ParseForestFunc)(naiveParser.grammar)(inputs, naive1Ctx.history, naive1Ctx.conditionFinal).reconstruct().get.trees
-    val naive2KernelsHistory = naiveCtx.historyKernels.map(Kernels).toVector
-    val naive2Trees = new ParseTreeConstructor2(ParseForestFunc)(naiveParser.grammar)(inputs, naive2KernelsHistory).reconstruct().get.trees
+    def traverse(node: Node, indent: String): Unit = {
+      node match {
+        case ParseResultTree.TerminalNode(start, input) =>
+          val char = input.asInstanceOf[Inputs.Character].char
+          if (char == '\n') {
+            builder.append("'\\n'")
+          } else {
+            builder.append("'" + char + "'")
+          }
+        //          builder.append('\n')
+        case node: ParseResultTree.BindNode =>
+          //          builder.append(indent)
+          val closingParens = traverseBindNode(node, indent)
+          builder.append(closingParens)
+        //          builder.append(indent + closingParens + "\n")
+        case ParseResultTree.CyclicBindNode(start, end, symbol) => ???
+        case ParseResultTree.JoinNode(symbol, body, join) =>
+          builder.append("join " + symbol.id + "(")
+          traverse(body, indent + "  ")
+          builder.append(")")
+        case seq: ParseResultTree.SequenceNode =>
+          builder.append(seq.symbol.id + "[")
+          seq.children.zipWithIndex.foreach { case (child, idx) =>
+            traverse(child, indent + "  ")
+          }
+          builder.append("]")
+        case ParseResultTree.CyclicSequenceNode(start, end, symbol, pointer, _children) => ???
+      }
+    }
+
+    traverse(parseNode, "")
+    builder.result()
+  }
+
+  // naive1 parser, naive2 parser 동일성 확인
+  def testEqualityBetweenNaive1And2(grammar: NGrammar, grammarTestExample: GrammarTestExample): Unit = {
+    println(s"naive1-naive2 :: ${grammarTestExample.getName} (length=${grammarTestExample.getExample.length})")
+    val inputs = Inputs.fromString(grammarTestExample.getExample)
+
+    val naive1Parser = new NaiveParser(grammar)
+    val naive2Parser = new NaiveParser2(grammar)
+    var naive1Ctx = naive1Parser.initialContext
+    var naive2Ctx = naive2Parser.initialParsingHistoryContext
+
+    // TODO initial ctx는 왜 다르지..?
+    // assertEqualCtx(naive1Ctx, naive2Ctx)
+
+    inputs.foreach { input =>
+      if (naive2Ctx.gen % 100 == 0) {
+        println(s"${naive2Ctx.gen}/${inputs.size} $input")
+      }
+      assertEquals(naive1Ctx.gen, naive2Ctx.gen)
+      naive1Ctx = naive1Parser.proceed(naive1Ctx, input).swap.getOrElse(throw new IllegalStateException())
+      naive2Ctx = naive2Parser.parseStep(naive2Ctx, input).getOrElse(throw new IllegalStateException())
+
+      assertEqualCtx(naive1Ctx, naive2Ctx)
+    }
+
+    val naive1Trees = new ParseTreeConstructor(ParseForestFunc)(naive2Parser.grammar)(inputs, naive1Ctx.history, naive1Ctx.conditionFinal).reconstruct().get.trees
+    val naive2Trees = new ParseTreeConstructor2(ParseForestFunc)(naive2Parser.grammar)(inputs, naive2Parser.historyKernels(naive2Ctx).map(Kernels)).reconstruct().get.trees
     assertEquals(1, naive1Trees.size)
+    if (naive1Trees != naive2Trees) {
+      val naive1Tree = naive1Trees.head
+      naive2Trees.foreach { tree =>
+        println(s"${parseTreeToPath(tree)} ${tree == naive1Tree}")
+      }
+    }
     assertEquals(naive1Trees, naive2Trees)
+  }
+
+  def testEqualityBetweenNaive2AndMilestone(naiveParser: NaiveParser2, milestoneParser: MilestoneParser, grammarTestExample: GrammarTestExample): Unit = {
+    println(s"naive2-milestone :: ${grammarTestExample.getName} (length=${grammarTestExample.getExample.length})")
+    val inputs = Inputs.fromString(grammarTestExample.getExample)
+
+    var naive2Ctx = naiveParser.initialParsingHistoryContext
+    var milestoneCtx = milestoneParser.initialCtx
+
+    // TODO initial ctx는 왜 다르지..?
+    // assertEqualCtx(naive1Ctx, naive2Ctx)
+    assertEqualCtx(naiveParser, naive2Ctx, milestoneParser, milestoneCtx)
+
+    inputs.foreach { input =>
+      if (naive2Ctx.gen % 100 == 0) {
+        println(s"${naive2Ctx.gen}/${inputs.size} $input")
+      }
+      assertEquals(naive2Ctx.gen, milestoneCtx.gen)
+      naive2Ctx = naiveParser.parseStep(naive2Ctx, input).getOrElse(throw new IllegalStateException())
+      milestoneCtx = milestoneParser.parseStep(milestoneCtx, input).getOrElse(throw new IllegalStateException())
+      assertEqualCtx(naiveParser, naive2Ctx, milestoneParser, milestoneCtx)
+    }
+
+    val naive2KernelsHistory = naiveParser.historyKernels(naive2Ctx).map(Kernels)
+    val naive2Trees = new ParseTreeConstructor2(ParseForestFunc)(naiveParser.grammar)(inputs, naive2KernelsHistory).reconstruct().get.trees
 
     val milestoneKernelsHistory = milestoneParser.kernelsHistory(milestoneCtx).map(Kernels)
     assert(naive2KernelsHistory.size == milestoneKernelsHistory.size)
@@ -197,20 +295,33 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     val milestoneParser = new MilestoneParser(parserData)
 
     examples.getExamples.forEach { example =>
-      println(":: " + example.getName)
-      testEquality(naiveParser, milestoneParser, Inputs.fromString(example.getExample))
+      testEqualityBetweenNaive1And2(parserData.grammar, example)
     }
+
+    examples.getExamples.forEach { example =>
+      testEqualityBetweenNaive2AndMilestone(naiveParser, milestoneParser, example)
+    }
+  }
+
+  def exampleFrom(name: String, input: Inputs.ConcreteSource): GrammarTestExample = {
+    val inputString = new String(input.map(_.asInstanceOf[Inputs.Character].char).toArray)
+    val exampleName = if (name.isEmpty) inputString else name
+    new GrammarTestExample(exampleName, inputString, null)
   }
 
   "naive examples" should "work" in {
     NaiveExamplesCatalog.grammarWithExamples.foreach { example =>
+      example.correctExampleInputs.foreach { input =>
+        testEqualityBetweenNaive1And2(example.ngrammar, exampleFrom("", input))
+      }
+    }
+
+    NaiveExamplesCatalog.grammarWithExamples.foreach { example =>
+      val naiveParser = new NaiveParser2(example.ngrammar)
       val parserData = new MilestoneParserGen(example.ngrammar).parserData()
       val milestoneParser = new MilestoneParser(parserData)
-
-      val naiveParser = new NaiveParser2(example.ngrammar)
-
       example.correctExampleInputs.foreach { input =>
-        testEquality(naiveParser, milestoneParser, input.toList)
+        testEqualityBetweenNaive2AndMilestone(naiveParser, milestoneParser, exampleFrom("", input))
       }
     }
   }
@@ -224,10 +335,17 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
   }
 
   def generateParserAndTest(examples: GrammarWithExamples): Unit = {
-    val analysis = MetaLanguage3.analyzeGrammar(examples.getGrammarText)
-    val parserData = new MilestoneParserGen(analysis.ngrammar).parserData()
+    val grammar = MetaLanguage3.analyzeGrammar(examples.getGrammarText).ngrammar
 
-    test(examples, parserData)
+//    examples.getExamples.forEach { example =>
+//      testEqualityBetweenNaive1And2(grammar, example)
+//    }
+
+    val parserData = new MilestoneParserGen(grammar).parserData()
+
+    examples.getExamples.forEach { example =>
+      testEqualityBetweenNaive2AndMilestone(new NaiveParser2(grammar), new MilestoneParser(parserData), example)
+    }
   }
 
   "json grammar" should "work" in {
@@ -235,7 +353,7 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
   }
 
   "bibix2 grammar" should "work" in {
-    generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getBibix2) //, "/bibix2-m2-parserdata.pb.gz")
+    generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getBibix2)
   }
 
   "proto3 grammar" should "work" in {

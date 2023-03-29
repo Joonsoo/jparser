@@ -5,7 +5,7 @@ import com.giyeok.jparser.NGrammar._
 import com.giyeok.jparser.ParsingErrors.{ParsingError, UnexpectedInput}
 import com.giyeok.jparser.nparser.AcceptCondition._
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
-import com.giyeok.jparser.nparser.{Kernel, ParseTreeConstructor2}
+import com.giyeok.jparser.nparser.{AcceptCondition, Kernel, ParseTreeConstructor2}
 import com.giyeok.jparser.nparser2.NaiveParser2.{AcceptConditionsTracker, ParsingHistoryContext}
 import com.giyeok.jparser.{NGrammar, ParseResult, ParseResultFunc}
 
@@ -193,14 +193,175 @@ class NaiveParser2(val grammar: NGrammar) {
     }
   }
 
-  def updateAcceptConditions(nextGen: Int, ctx: ParsingContext, tracker: AcceptConditionsTracker): (ParsingContext, AcceptConditionsTracker) = {
-    val acceptConditions = ctx.acceptConditions.view.mapValues(_.evolve(nextGen, ctx)).toMap
-    val droppedKernels = acceptConditions.filter(_._2 == Never)
-    val survivingAcceptConditions = acceptConditions.filter(_._2 != Never)
+  def evolveAcceptCondition(acceptCondition: AcceptCondition, gen: Int, ctx: ParsingContext): AcceptCondition = {
+    def initKernel(condition: SymbolCondition): Kernel =
+      Kernel(condition.symbolId, 0, condition.beginGen, condition.beginGen)
 
-    val evolves = tracker.evolves.view.mapValues(_.evolve(nextGen, ctx)).toMap
-    val newTracker = AcceptConditionsTracker(survivingAcceptConditions.values.map(c => c -> c).toMap ++ evolves)
-    (ParsingContext(ctx.graph.removeNodes(droppedKernels.keys.toSet), survivingAcceptConditions.toMap), newTracker)
+    def finalKernel(condition: SymbolCondition): Kernel =
+      Kernel(condition.symbolId, 1, condition.beginGen, gen)
+
+    val res = acceptCondition match {
+      case AcceptCondition.Always => AcceptCondition.Always
+      case AcceptCondition.Never => AcceptCondition.Never
+      case And(conditions) =>
+        val evolved = conditions.map(evolveAcceptCondition(_, gen, ctx)).toArray
+        conjunct(evolved: _*)
+      case Or(conditions) =>
+        val evolved = conditions.map(evolveAcceptCondition(_, gen, ctx)).toArray
+        disjunct(evolved: _*)
+      case acceptCondition: NotExists =>
+        if (gen < acceptCondition.endGen) acceptCondition else {
+          val moreTrackingNeeded = ctx.graph.nodes contains initKernel(acceptCondition)
+          ctx.acceptConditions get finalKernel(acceptCondition) match {
+            case Some(progressCondition) =>
+              val evolvedCondition = evolveAcceptCondition(progressCondition.neg, gen, ctx)
+              if (moreTrackingNeeded) conjunct(evolvedCondition, acceptCondition) else evolvedCondition
+            case None =>
+              if (moreTrackingNeeded) acceptCondition else Always
+          }
+        }
+      case acceptCondition: Exists =>
+        if (gen < acceptCondition.endGen) acceptCondition else {
+          val moreTrackingNeeded = ctx.graph.nodes contains initKernel(acceptCondition)
+          ctx.acceptConditions get finalKernel(acceptCondition) match {
+            case Some(progressCondition) =>
+              val evolvedCondition = evolveAcceptCondition(progressCondition, gen, ctx)
+              if (moreTrackingNeeded) disjunct(evolvedCondition, acceptCondition) else evolvedCondition
+            case None =>
+              if (moreTrackingNeeded) acceptCondition else Never
+          }
+        }
+      case acceptCondition: Unless =>
+        assert(gen == acceptCondition.endGen)
+        ctx.acceptConditions get finalKernel(acceptCondition) match {
+          case Some(condition) => evolveAcceptCondition(condition.neg, gen, ctx)
+          case None =>
+            // 대상 심볼이 아예 매치되지 않았다는 의미
+            Always
+        }
+      case acceptCondition: OnlyIf =>
+        assert(gen == acceptCondition.endGen)
+        ctx.acceptConditions get finalKernel(acceptCondition) match {
+          case Some(condition) => evolveAcceptCondition(condition, gen, ctx)
+          case None =>
+            // 대상 심볼이 아예 매치되지 않았다는 의미
+            Never
+        }
+    }
+    if (!containsNoOnlyOfOrUnless(res)) {
+      println("???")
+    }
+    res
+  }
+
+  def evaluateAcceptCondition(acceptCondition: AcceptCondition, gen: Int, ctx: ParsingContext): Boolean = acceptCondition match {
+    case AcceptCondition.Always => true
+    case AcceptCondition.Never => false
+    case And(conditions) => conditions.forall(evaluateAcceptCondition(_, gen, ctx))
+    case Or(conditions) => conditions.exists(evaluateAcceptCondition(_, gen, ctx))
+    case NotExists(beginGen, endGen, symbolId) =>
+      if (gen < endGen) true else {
+        ctx.acceptConditions get Kernel(symbolId, 1, beginGen, gen) match {
+          case Some(condition) => !evaluateAcceptCondition(condition, gen, ctx)
+          case None => true
+        }
+      }
+    case Exists(beginGen, endGen, symbolId) =>
+      if (gen < endGen) false else {
+        ctx.acceptConditions get Kernel(symbolId, 1, beginGen, gen) match {
+          case Some(condition) => evaluateAcceptCondition(condition, gen, ctx)
+          case None => false
+        }
+      }
+    case Unless(beginGen, endGen, symbolId) =>
+      assert(gen >= endGen)
+      if (gen != endGen) true else {
+        ctx.acceptConditions get Kernel(symbolId, 1, beginGen, gen) match {
+          case Some(condition) => !evaluateAcceptCondition(condition, gen, ctx)
+          case None => true
+        }
+      }
+    case OnlyIf(beginGen, endGen, symbolId) =>
+      assert(gen >= endGen)
+      if (gen != endGen) false else {
+        ctx.acceptConditions get Kernel(symbolId, 1, beginGen, gen) match {
+          case Some(condition) => evaluateAcceptCondition(condition, gen, ctx)
+          case None => false
+        }
+      }
+  }
+
+  def containsNoOnlyOfOrUnless(condition: AcceptCondition.AcceptCondition): Boolean = condition match {
+    case AcceptCondition.Always => true
+    case AcceptCondition.Never => true
+    case And(conditions) => conditions.forall(containsNoOnlyOfOrUnless)
+    case Or(conditions) => conditions.forall(containsNoOnlyOfOrUnless)
+    case _: NotExists => true
+    case _: Exists => true
+    case _: Unless => false
+    case _: OnlyIf => false
+  }
+
+  def updateAcceptConditions(nextGen: Int, ctx: ParsingContext, tracker: AcceptConditionsTracker): (ParsingContext, AcceptConditionsTracker) = {
+    // 1. tracker를 일단 생각하지 않는다면 해야 할 일은 간단
+    val newAcceptConditions = ctx.acceptConditions.view.mapValues(evolveAcceptCondition(_, nextGen, ctx)).toMap
+    val droppedKernels = newAcceptConditions.filter(_._2 == Never).keySet
+    val newGraph = ctx.graph.removeNodes(droppedKernels)
+
+    assert(newAcceptConditions.forall(c => containsNoOnlyOfOrUnless(c._2)))
+    val newParsingContext = ParsingContext(newGraph, newAcceptConditions.filter(_._2 != Never))
+
+    // 2. tracker에서는 기존에 추적중이던 accept condition들을 이번 generation에 맞춰 업데이트하고, ctx에서 새로 추가된 accept condition들을 추가해야 함
+    val evolvedEvolves = tracker.evolves.view.mapValues(evolveAcceptCondition(_, nextGen, ctx)).toMap
+    val newConditions = ctx.acceptConditions.values.toList.map { cond => cond -> evolveAcceptCondition(cond, nextGen, ctx) }.toMap
+    val newUpdatedConditions = newAcceptConditions.values.map { cond => cond -> cond }.toMap
+
+    (evolvedEvolves.keySet ++ newConditions.keySet ++ newUpdatedConditions.keySet).foreach { key =>
+      val cond1 = evolvedEvolves.get(key)
+      val cond2 = newConditions.get(key)
+      val cond3 = newUpdatedConditions.get(key)
+      assert((cond1.toList ++ cond2.toList ++ cond3.toList).distinct.size == 1)
+    }
+
+    (newParsingContext, AcceptConditionsTracker(evolvedEvolves ++ newConditions ++ newUpdatedConditions))
+
+
+    //    assert(ctx.graph.nodes == ctx.acceptConditions.keySet)
+    //    val intersect = tracker.evolves.keySet.intersect(ctx.acceptConditions.values.toSet)
+    //    if (intersect.nonEmpty) {
+    //      println(intersect)
+    //    }
+    //    val conditionsMap = tracker.evolves ++ ctx.acceptConditions.values.map(condition => condition -> condition).toMap
+    //    val evolvedConditionsMap = conditionsMap.view.mapValues(evolveAcceptCondition(_, nextGen, ctx)).toMap
+    //
+    //    val newTracker = AcceptConditionsTracker(evolvedConditionsMap)
+    //    val droppedKernels = ctx.acceptConditions.filter { case (_, condition) => evolvedConditionsMap(condition) == Never }.keySet
+    //
+    //    val newGraph = ctx.graph.removeNodes(droppedKernels)
+    //    val evolvedAcceptConditions = (ctx.acceptConditions -- droppedKernels).view.mapValues(evolvedConditionsMap).toMap
+    //
+    //    // newTracker.evolves.key가 ctx.acceptConditions.values 와 evolvedAcceptConditions.values를 모두 커버해야 함
+    //    if (!ctx.acceptConditions.values.toSet.subsetOf(newTracker.evolves.keySet)) {
+    //      println("??")
+    //    }
+    //    assert(ctx.acceptConditions.values.toSet.subsetOf(newTracker.evolves.keySet))
+    //    if (!evolvedAcceptConditions.values.toSet.subsetOf(newTracker.evolves.keySet)) {
+    //      println("??")
+    //    }
+    //    assert(evolvedAcceptConditions.values.toSet.subsetOf(newTracker.evolves.keySet))
+
+    //    def oldLogic(): Unit = {
+    //      val acceptConditions = ctx.acceptConditions.view.mapValues(evolveAcceptCondition(_, nextGen, ctx)).toMap
+    //      val droppedKernels = acceptConditions.filter(_._2 == Never)
+    //      val survivingAcceptConditions = acceptConditions.filter(_._2 != Never)
+    //
+    //      val evolves = tracker.evolves.view.mapValues(evolveAcceptCondition(_, nextGen, ctx)).toMap
+    //      val newTracker = AcceptConditionsTracker(survivingAcceptConditions.values.map(c => c -> c).toMap ++ evolves)
+    //      println(evolves)
+    //      println(newTracker)
+    //    }
+
+    //    (ParsingContext(newGraph, evolvedAcceptConditions), newTracker)
   }
 
   def trimParsingContext(start: Kernel, nextGen: Int, ctx: ParsingContext): ParsingContext = {
@@ -282,8 +443,9 @@ class NaiveParser2(val grammar: NGrammar) {
     initialsProgressed map { ctx =>
       val nextGen = hctx.gen + 1
       val (updated, newTracker) = updateAcceptConditions(nextGen, ctx, hctx.acceptConditionsTracker)
-      val trimmed = trimParsingContext(startKernel, nextGen, updated)
-      ParsingHistoryContext(nextGen, trimmed, hctx.inputs :+ input, hctx.history :+ updated, newTracker)
+      val trimmedCtx = trimParsingContext(startKernel, nextGen, updated)
+      assert(trimmedCtx.acceptConditions.values.toSet.subsetOf(newTracker.evolves.keySet))
+      ParsingHistoryContext(nextGen, trimmedCtx, hctx.inputs :+ input, hctx.history :+ updated, newTracker)
     }
   }
 
@@ -291,6 +453,21 @@ class NaiveParser2(val grammar: NGrammar) {
     inputSeq.foldLeft[Either[ParsingError, ParsingHistoryContext]](Right(initialParsingHistoryContext)) { (cc, i) =>
       cc flatMap (parseStep(_, i))
     }
+
+  def historyKernels(ctx: ParsingHistoryContext): Vector[Set[Kernel]] = {
+    val conditionsFinal: Map[AcceptCondition, Boolean] = ctx.acceptConditionsTracker.evolves.map { p =>
+      p._1 -> evaluateAcceptCondition(p._2, ctx.gen, ctx.parsingContext)
+    }
+    val historyKernels = ctx.history.map { historyCtx =>
+      historyCtx.acceptConditions.filter { p => conditionsFinal(p._2) }.keys
+    }.map(_.toSet)
+    historyKernels.toVector
+  }
+
+  def parseTreeReconstructor2[R <: ParseResult](resultFunc: ParseResultFunc[R], ctx: ParsingHistoryContext): ParseTreeConstructor2[R] =
+    new ParseTreeConstructor2[R](resultFunc)(grammar)(ctx.inputs, historyKernels(ctx).map { kernels =>
+      Kernels(kernels.map { k => Kernel(k.symbolId, k.pointer, k.beginGen, k.endGen) })
+    })
 }
 
 object NaiveParser2 {
@@ -301,21 +478,5 @@ object NaiveParser2 {
     parsingContext: ParsingContext,
     inputs: List[Input],
     history: List[ParsingContext],
-    acceptConditionsTracker: AcceptConditionsTracker) {
-
-    lazy val conditionsFinal: Map[AcceptCondition, Boolean] = acceptConditionsTracker.evolves.map { p =>
-      p._1 -> p._2.accepted(gen, parsingContext)
-    }
-
-    lazy val historyKernels: List[Set[Kernel]] = {
-      history.map { ctx =>
-        ctx.acceptConditions.filter(p => conditionsFinal(p._2)).keys
-      }.map(_.toSet)
-    }
-
-    def parseTreeReconstructor2[R <: ParseResult](resultFunc: ParseResultFunc[R], grammar: NGrammar): ParseTreeConstructor2[R] =
-      new ParseTreeConstructor2[R](resultFunc)(grammar)(inputs, historyKernels.map { kernels =>
-        Kernels(kernels.map { k => Kernel(k.symbolId, k.pointer, k.beginGen, k.endGen) })
-      })
-  }
+    acceptConditionsTracker: AcceptConditionsTracker)
 }

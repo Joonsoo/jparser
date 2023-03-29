@@ -82,11 +82,8 @@ class ParsingTasks2Test extends AnyFlatSpec {
     val nn = parser.parseStep(x, Inputs.Character('*'))
     // println(nn)
 
-    val kernels = x.historyKernels.map { kernels =>
-      Kernels(kernels.map(k => Kernel(k.symbolId, k.pointer, k.beginGen, k.endGen)))
-    }
+    val forest = parser.parseTreeReconstructor2(ParseForestFunc, x).reconstruct()
 
-    val forest = new ParseTreeConstructor2(ParseForestFunc)(grammar)(inputs, kernels).reconstruct()
     println(forest.size)
     println(forest)
     println()

@@ -1,6 +1,6 @@
 package com.giyeok.jparser.nparser
 
-import com.giyeok.jparser.nparser2.{ParsingContext => ParsingContext2}
+import AcceptConditionOrdering.acceptConditionOrdering
 
 object AcceptCondition {
 
@@ -11,11 +11,7 @@ object AcceptCondition {
 
     def evaluate(gen: Int, graph: Graph): AcceptCondition
 
-    def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition
-
     def acceptable(gen: Int, graph: Graph): Boolean
-
-    def accepted(gen: Int, ctx: ParsingContext2): Boolean
 
     def neg: AcceptCondition
   }
@@ -86,11 +82,7 @@ object AcceptCondition {
 
     override def evaluate(gen: Int, graph: Graph): AcceptCondition = this
 
-    override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = this
-
     override def acceptable(gen: Int, graph: Graph) = true
-
-    override def accepted(gen: Int, ctx: ParsingContext2): Boolean = true
 
     def neg: AcceptCondition = Never
   }
@@ -100,11 +92,7 @@ object AcceptCondition {
 
     override def evaluate(gen: Int, graph: Graph): AcceptCondition = this
 
-    override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = this
-
     override def acceptable(gen: Int, graph: Graph) = false
-
-    override def accepted(gen: Int, ctx: ParsingContext2): Boolean = true
 
     def neg: AcceptCondition = Always
   }
@@ -114,21 +102,20 @@ object AcceptCondition {
 
     def nodes: Set[Node] = conditions flatMap (_.nodes)
 
-    override def evaluate(gen: Int, graph: Graph): AcceptCondition =
-      conditions.foldLeft[AcceptCondition](Always) { (cc, condition) =>
-        conjunct(condition.evaluate(gen, graph), cc)
-      }
-
-    override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition =
-      conditions.foldLeft[AcceptCondition](Always) { (cc, condition) =>
-        conjunct(condition.evolve(gen, ctx), cc)
-      }
+    override def evaluate(gen: Int, graph: Graph): AcceptCondition = {
+      //      conditions.foldLeft[AcceptCondition](Always) { (cc, condition) =>
+      //        conjunct(condition.evaluate(gen, graph), cc)
+      //      }
+      val evaled = conditions.map(_.evaluate(gen, graph))
+      conjunct(evaled.toArray: _*)
+    }
 
     override def acceptable(gen: Int, graph: Graph): Boolean = conditions forall (_.acceptable(gen, graph))
 
-    override def accepted(gen: Int, ctx: ParsingContext2): Boolean = conditions forall (_.accepted(gen, ctx))
-
     def neg: AcceptCondition = disjunct((conditions map (_.neg)).toSeq: _*)
+
+    override def toString: String =
+      s"And(${conditions.toList.sorted.mkString(", ")})"
   }
 
   case class Or(conditions: Set[AcceptCondition]) extends AcceptCondition {
@@ -136,23 +123,22 @@ object AcceptCondition {
 
     def nodes: Set[Node] = conditions flatMap (_.nodes)
 
-    override def evaluate(gen: Int, graph: Graph): AcceptCondition =
-      conditions.foldLeft[AcceptCondition](Never) { (cc, condition) =>
-        disjunct(condition.evaluate(gen, graph), cc)
-      }
-
-    override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition =
-      conditions.foldLeft[AcceptCondition](Never) { (cc, condition) =>
-        disjunct(condition.evolve(gen, ctx), cc)
-      }
+    override def evaluate(gen: Int, graph: Graph): AcceptCondition = {
+      //      conditions.foldLeft[AcceptCondition](Never) { (cc, condition) =>
+      //        disjunct(condition.evaluate(gen, graph), cc)
+      //      }
+      val evaled = conditions.map(_.evaluate(gen, graph))
+      disjunct(evaled.toArray: _*)
+    }
 
     override def acceptable(gen: Int, graph: Graph): Boolean = conditions exists (_.acceptable(gen, graph))
-
-    override def accepted(gen: Int, ctx: ParsingContext2): Boolean = conditions exists (_.accepted(gen, ctx))
 
     def neg: AcceptCondition = conjunct((conditions map {
       _.neg
     }).toSeq: _*)
+
+    override def toString: String =
+      s"Or(${conditions.toList.sorted.mkString(", ")})"
   }
 
   case class NotExists(beginGen: Int, endGen: Int, symbolId: Int) extends AcceptCondition with SymbolCondition {
@@ -166,19 +152,6 @@ object AcceptCondition {
       }
     }
 
-    override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = {
-      if (gen < endGen) this else {
-        val moreTrackingNeeded = ctx.graph.nodes contains initKernel
-        ctx.acceptConditions get finalKernel(gen) match {
-          case Some(condition) =>
-            val evolvedCondition = condition.neg.evolve(gen, ctx)
-            if (moreTrackingNeeded) conjunct(evolvedCondition, this) else evolvedCondition
-          case None =>
-            if (moreTrackingNeeded) this else Always
-        }
-      }
-    }
-
     override def acceptable(gen: Int, graph: Graph): Boolean = {
       if (gen < endGen) true else {
         graph.conditionsOf(kernel1(gen)) forall {
@@ -186,16 +159,6 @@ object AcceptCondition {
         }
       }
     }
-
-    override def accepted(gen: Int, ctx: ParsingContext2): Boolean = {
-      if (gen < endGen) true else {
-        ctx.acceptConditions get finalKernel(gen) match {
-          case Some(condition) => !condition.accepted(gen, ctx)
-          case None => true
-        }
-      }
-    }
-
 
     def neg: AcceptCondition = Exists(beginGen, endGen, symbolId)
   }
@@ -211,19 +174,6 @@ object AcceptCondition {
       }
     }
 
-    override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = {
-      if (gen < endGen) this else {
-        val moreTrackingNeeded = ctx.graph.nodes contains initKernel
-        ctx.acceptConditions get finalKernel(gen) match {
-          case Some(condition) =>
-            val evolvedCondition = condition.evolve(gen, ctx)
-            if (moreTrackingNeeded) disjunct(evolvedCondition, this) else evolvedCondition
-          case None =>
-            if (moreTrackingNeeded) this else Never
-        }
-      }
-    }
-
     override def acceptable(gen: Int, graph: Graph): Boolean = {
       if (gen < endGen) false else {
         graph.conditionsOf(kernel1(gen)) exists {
@@ -231,16 +181,6 @@ object AcceptCondition {
         }
       }
     }
-
-    override def accepted(gen: Int, ctx: ParsingContext2): Boolean = {
-      if (gen < endGen) false else {
-        ctx.acceptConditions get finalKernel(gen) match {
-          case Some(condition) => condition.accepted(gen, ctx)
-          case None => false
-        }
-      }
-    }
-
 
     def neg: AcceptCondition = NotExists(beginGen, endGen, symbolId)
   }
@@ -256,35 +196,11 @@ object AcceptCondition {
       }
     }
 
-    override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = {
-      if (gen > endGen) {
-        Always
-      } else {
-        assert(gen == endGen)
-        ctx.acceptConditions get finalKernel(gen) match {
-          case Some(condition) => condition.neg.evolve(gen, ctx)
-          case None =>
-            // 대상 심볼이 아예 매치되지 않았다는 의미
-            Always
-        }
-      }
-    }
-
     override def acceptable(gen: Int, graph: Graph): Boolean = {
       assert(gen >= endGen)
       if (gen != endGen) true else {
         graph.conditionsOf(kernel1(gen)) forall {
           _.acceptable(gen, graph) == false
-        }
-      }
-    }
-
-    override def accepted(gen: Int, ctx: ParsingContext2): Boolean = {
-      assert(gen >= endGen)
-      if (gen != endGen) true else {
-        ctx.acceptConditions get finalKernel(gen) match {
-          case Some(condition) => !condition.accepted(gen, ctx)
-          case None => true
         }
       }
     }
@@ -304,35 +220,11 @@ object AcceptCondition {
       }
     }
 
-    override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = {
-      if (gen > endGen) {
-        Never
-      } else {
-        assert(gen == endGen)
-        ctx.acceptConditions get finalKernel(gen) match {
-          case Some(condition) => condition.evolve(gen, ctx)
-          case None =>
-            // 대상 심볼이 아예 매치되지 않았다는 의미
-            Never
-        }
-      }
-    }
-
     def acceptable(gen: Int, graph: Graph): Boolean = {
       assert(gen >= endGen)
       if (gen != endGen) false else {
         graph.conditionsOf(kernel1(gen)) exists {
           _.acceptable(gen, graph)
-        }
-      }
-    }
-
-    override def accepted(gen: Int, ctx: ParsingContext2): Boolean = {
-      assert(gen >= endGen)
-      if (gen != endGen) false else {
-        ctx.acceptConditions get finalKernel(gen) match {
-          case Some(condition) => condition.accepted(gen, ctx)
-          case None => false
         }
       }
     }
@@ -348,11 +240,7 @@ object AcceptCondition {
 
     override def acceptable(gen: Int, graph: Graph): Boolean = ???
 
-    override def accepted(gen: Int, ctx: ParsingContext2): Boolean = ???
-
     override def neg: AcceptCondition = AcceptConditionSlotNeg(slotIdx)
-
-    override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = ???
   }
 
   case class AcceptConditionSlotNeg(slotIdx: Int) extends AcceptCondition {
@@ -362,10 +250,6 @@ object AcceptCondition {
 
     override def acceptable(gen: Int, graph: Graph): Boolean = ???
 
-    override def accepted(gen: Int, ctx: ParsingContext2): Boolean = ???
-
     override def neg: AcceptCondition = AcceptConditionSlot(slotIdx)
-
-    override def evolve(gen: Int, ctx: ParsingContext2): AcceptCondition = ???
   }
 }
