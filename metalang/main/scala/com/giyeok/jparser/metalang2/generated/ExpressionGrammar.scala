@@ -33,7 +33,7 @@ object ExpressionGrammar {
 14 -> NGrammar.NSequence(14, Symbols.Sequence(Seq()), Seq()),
 15 -> NGrammar.NSequence(15, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.Chars(('0' to '9').toSet), 0),Symbols.Chars(('0' to '9').toSet))), Seq(13,16)),
 17 -> NGrammar.NSequence(17, Symbols.Sequence(Seq(Symbols.Nonterminal("variable"))), Seq(18)),
-19 -> NGrammar.NSequence(19, Symbols.Sequence(Seq(Symbols.Longest(Symbols.Repeat(Symbols.Chars(('A' to 'Z').toSet ++ ('a' to 'z').toSet), 1)))), Seq(20)),
+19 -> NGrammar.NSequence(19, Symbols.Sequence(Seq(Symbols.Proxy(Symbols.Longest(Symbols.Repeat(Symbols.Chars(('A' to 'Z').toSet ++ ('a' to 'z').toSet), 1))))), Seq(20)),
 23 -> NGrammar.NSequence(23, Symbols.Sequence(Seq(Symbols.Repeat(Symbols.Chars(('A' to 'Z').toSet ++ ('a' to 'z').toSet), 1),Symbols.Chars(('A' to 'Z').toSet ++ ('a' to 'z').toSet))), Seq(21,22)),
 24 -> NGrammar.NSequence(24, Symbols.Sequence(Seq(Symbols.ExactChar('('),Symbols.Nonterminal("expression"),Symbols.ExactChar(')'))), Seq(25,2,26)),
 27 -> NGrammar.NSequence(27, Symbols.Sequence(Seq(Symbols.Nonterminal("term"),Symbols.ExactChar('*'),Symbols.Nonterminal("factor"))), Seq(4,28,6)),

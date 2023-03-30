@@ -133,10 +133,10 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
     }
   }
 
-  private def proxy(pair: (ValuefyExpr, Symbols.Symbol)): (ValuefyExpr, Symbols.AtomicSymbol) = pair._2 match {
-    case symbol: Symbols.AtomicSymbol => (pair._1, symbol)
-    case seq: Symbols.Sequence =>
-      val proxySymbol = Symbols.Proxy(seq)
+  private def proxy(pair: (ValuefyExpr, Symbols.Symbol)): (ValuefyExpr, Symbols.PlainAtomicSymbol) = pair._2 match {
+    case symbol: Symbols.PlainAtomicSymbol => (pair._1, symbol)
+    case nonAtomic =>
+      val proxySymbol = Symbols.Proxy(nonAtomic)
       (Unbind(proxySymbol, pair._1), proxySymbol)
   }
 

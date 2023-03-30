@@ -21,32 +21,29 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
   def finishTasks: List[FinishTask] =
     tasks.filter(_.isInstanceOf[FinishTask]).map(_.asInstanceOf[FinishTask])
 
-  def conditionToTemplate(condition: AcceptCondition): AcceptConditionTemplate = {
+  def conditionToTemplate(parentGen: Int, currGen: Int, condition: AcceptCondition): AcceptConditionTemplate = {
     def cannotExist(kernel: Kernel) =
     // 이 시점에는 filter out된 paths만 들고있어서 필터링이 잘 안되는데.. 컨디션으로 필터 아웃 되기 전의 paths들을 전달해주면 할 수 있을까?
     // progressConditionsFor(kernel).isEmpty && !ctx.graph.nodes.contains(kernel)
       false
 
+    val nextGen = currGen + 1
+
     condition match {
       case AcceptCondition.Always => AlwaysTemplate
       case AcceptCondition.Never => NeverTemplate
       case AcceptCondition.And(conditions) =>
-        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplate))
+        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplate(parentGen, currGen, _)))
       case AcceptCondition.Or(conditions) =>
-        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplate))
-      case AcceptCondition.NotExists(0 | 1, 3, symbolId) =>
+        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplate(parentGen, currGen, _)))
+      case AcceptCondition.NotExists(`parentGen`, endGen, symbolId) if endGen == nextGen + 1 =>
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
         LongestTemplate(symbolId, beginFromNextGen = false)
-      case AcceptCondition.NotExists(1, 2, symbolId) =>
-        // initial context를 만들기 위해 (<start>, 0, 0..1) 커널에 대한 derive를 하는 도중 longest를 만난 경우
-        // Tk = <'a-z'*> 인 경우 발생할 수 있다
-        // 이 시점에는 어차피 beginGen이나 gen이나 0일 것이기 때문에 beginFromNextGen는 어느쪽이든 상관 없을 것.
-        LongestTemplate(symbolId, beginFromNextGen = false)
-      case AcceptCondition.NotExists(2, 3, symbolId) =>
+      case AcceptCondition.NotExists(`nextGen`, endGen, symbolId) if endGen == nextGen + 1 =>
         // Tk = <'a-z'*> 인 경우 발생할 수 있다
         LongestTemplate(symbolId, beginFromNextGen = true)
-      case AcceptCondition.Unless(0 | 1, 2, symbolId) =>
+      case AcceptCondition.Unless(0 | 1, `nextGen`, symbolId) =>
         // except
         if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
           // 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(Unless이기 때문) 반환
@@ -54,7 +51,7 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
         } else {
           UnlessTemplate(symbolId)
         }
-      case AcceptCondition.OnlyIf(0 | 1, 2, symbolId) =>
+      case AcceptCondition.OnlyIf(0 | 1, `nextGen`, symbolId) =>
         // join
         if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
           // ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
@@ -71,7 +68,7 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
         } else {
           LookaheadNotTemplate(symbolId, fromNextGen = false)
         }
-      case AcceptCondition.NotExists(2, 2, symbolId) =>
+      case AcceptCondition.NotExists(`nextGen`, `nextGen`, symbolId) =>
         // lookahead except
         if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
           // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
@@ -87,7 +84,7 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
         } else {
           LookaheadIsTemplate(symbolId, fromNextGen = false)
         }
-      case AcceptCondition.Exists(2, 2, symbolId) =>
+      case AcceptCondition.Exists(`nextGen`, `nextGen`, symbolId) =>
         // lookahead is
         if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
           // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
@@ -98,13 +95,13 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
     }
   }
 
-  def tasksSummary: TasksSummary2 = {
+  def tasksSummary(parentGen: Int, currGen: Int): TasksSummary2 = {
     val progressedStartKernel = startKernelProgressTasks.map(_.kernel).distinct
     assert(progressedStartKernel.size <= 1)
     val addedByProgresses = progressTasks.groupBy(_.kernel).view.map { pair =>
       val kernel = pair._1
-      val baseCondition = conditionToTemplate(ctx.acceptConditions.getOrElse(kernel, Always))
-      val addedCondition = AcceptConditionTemplate.disjunct(pair._2.map(_.condition).map(conditionToTemplate).toSet)
+      val baseCondition = conditionToTemplate(parentGen, currGen, ctx.acceptConditions.getOrElse(kernel, Always))
+      val addedCondition = AcceptConditionTemplate.disjunct(pair._2.map(_.condition).map(conditionToTemplate(parentGen, currGen, _)).toSet)
       val condition = AcceptConditionTemplate.conjunct(Set(baseCondition, addedCondition))
       Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, 2) -> condition
     }.toMap.groupMap(_._2)(_._1).view.mapValues(_.toSet).toMap

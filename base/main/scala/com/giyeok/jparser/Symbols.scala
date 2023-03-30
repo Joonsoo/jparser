@@ -29,7 +29,9 @@ object Symbols {
     // AtomicSymbol은 매칭이 되거나/안되거나 - 한 번 lift된 symbolProgress에서 derive가 되거나 하는 일은 생기지 않음
     sealed trait AtomicSymbol extends Symbol
 
-    sealed trait Terminal extends AtomicSymbol {
+    sealed trait PlainAtomicSymbol extends AtomicSymbol
+
+    sealed trait Terminal extends PlainAtomicSymbol {
         def accept(input: Inputs.Input): Boolean
 
         def acceptTermGroup(termGroup: Inputs.TermGroupDesc): Boolean
@@ -195,23 +197,23 @@ object Symbols {
     val Chars = Terminals.Chars
     val Unicode = Terminals.Unicode
 
-    case object Start extends AtomicSymbol
+    case object Start extends PlainAtomicSymbol
 
-    case class Nonterminal(name: String) extends AtomicSymbol {
+    case class Nonterminal(name: String) extends PlainAtomicSymbol {
         override val hashCode: Int = (classOf[Nonterminal], name).hashCode
     }
 
-    case class Sequence(seq: Seq[AtomicSymbol]) extends Symbol {
+    case class Sequence(seq: Seq[PlainAtomicSymbol]) extends Symbol {
         override val hashCode: Int = (classOf[Sequence], seq).hashCode
     }
 
-    def Sequence(elems: AtomicSymbol*): Sequence = Sequence(elems)
+    def Sequence(elems: PlainAtomicSymbol*): Sequence = Sequence(elems)
 
-    case class OneOf(syms: ListSet[AtomicSymbol]) extends AtomicSymbol {
+    case class OneOf(syms: ListSet[AtomicSymbol]) extends PlainAtomicSymbol {
         override val hashCode: Int = (classOf[OneOf], syms).hashCode
     }
 
-    case class Repeat(sym: AtomicSymbol, lower: Int) extends AtomicSymbol {
+    case class Repeat(sym: PlainAtomicSymbol, lower: Int) extends PlainAtomicSymbol {
         override val hashCode: Int = (classOf[Repeat], sym, lower).hashCode
 
         val baseSeq: Symbol = if (lower == 1) sym else Sequence((0 until lower) map { _ => sym })
@@ -224,24 +226,24 @@ object Symbols {
 
     sealed trait Lookahead extends AtomicSymbol
 
-    case class LookaheadIs(lookahead: AtomicSymbol) extends Lookahead {
+    case class LookaheadIs(lookahead: PlainAtomicSymbol) extends Lookahead {
         override val hashCode: Int = (classOf[LookaheadIs], lookahead).hashCode
     }
 
-    case class LookaheadExcept(except: AtomicSymbol) extends Lookahead {
+    case class LookaheadExcept(except: PlainAtomicSymbol) extends Lookahead {
         override val hashCode: Int = (classOf[LookaheadExcept], except).hashCode
     }
 
-    case class Proxy(sym: Symbol) extends AtomicSymbol {
+    case class Proxy(sym: Symbol) extends PlainAtomicSymbol {
         override val hashCode: Int = (classOf[Proxy], sym).hashCode
     }
 
-    case class Join(sym: AtomicSymbol, join: AtomicSymbol) extends AtomicSymbol {
+    case class Join(sym: PlainAtomicSymbol, join: PlainAtomicSymbol) extends AtomicSymbol {
         assert(sym != join)
         override val hashCode: Int = (classOf[Join], sym, join).hashCode
     }
 
-    case class Longest(sym: AtomicSymbol) extends AtomicSymbol {
+    case class Longest(sym: PlainAtomicSymbol) extends AtomicSymbol {
         override val hashCode: Int = (classOf[Longest], sym).hashCode
     }
 

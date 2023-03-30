@@ -19,7 +19,7 @@ class MilestoneGroupParserGen(val grammar: NGrammar) {
   val start: KernelTemplate = KernelTemplate(grammar.startSymbol, 0)
   val startingCtx: (Kernel, CtxWithTasks) = base.startingCtxFrom(start, 0)
 
-  val builder = new MilestoneGroupParserDataBuilder(grammar, startingCtx._2.tasksSummary)
+  val builder = new MilestoneGroupParserDataBuilder(grammar, startingCtx._2.tasksSummary(0, 0))
 
   class TermActionBuilder(
     val appendingMilestones: mutable.ListBuffer[(KernelTemplate, AppendingMilestone)],

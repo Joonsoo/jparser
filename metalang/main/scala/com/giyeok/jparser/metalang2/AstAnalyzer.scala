@@ -104,7 +104,7 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
     }
 
     private implicit class SymbolIsAtomic(symbol: Symbols.Symbol) {
-        def asAtomic: Symbols.AtomicSymbol = symbol.asInstanceOf[Symbols.AtomicSymbol]
+        def asAtomic: Symbols.PlainAtomicSymbol = symbol.asInstanceOf[Symbols.PlainAtomicSymbol]
     }
 
     private def astProcessorToAstifier(ctx: AstifiedCtx, processor: AST.Processor): AstifierExpr = processor match {
@@ -225,7 +225,7 @@ class AstAnalyzer(val grammarAst: AST.Grammar) {
     }
 
     private def astElemSequence(seq: List[AST.Elem]): Astified = {
-        var syms = List[Symbols.AtomicSymbol]()
+        var syms = List[Symbols.PlainAtomicSymbol]()
         var refs = List[Astified]()
 
         seq.zipWithIndex foreach {

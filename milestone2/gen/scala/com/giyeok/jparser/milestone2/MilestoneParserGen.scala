@@ -25,8 +25,11 @@ class MilestoneParserGen(val grammar: NGrammar) {
   ): CtxWithTasks = {
     val result = base.runTasksWithProgressBarrier(2, progressTasks, startKernel, ctx)
     val trimmedCtx = parser.trimParsingContext(startKernel, 2, result.ctx)
+    val evolvedAcceptConditions = trimmedCtx.acceptConditions.view.mapValues { cond =>
+      parser.evolveAcceptCondition(cond, 2, result.ctx)
+    }.toMap
 
-    CtxWithTasks(trimmedCtx, result.tasks, result.startKernelProgressTasks)
+    CtxWithTasks(trimmedCtx.copy(acceptConditions = evolvedAcceptConditions), result.tasks, result.startKernelProgressTasks)
   }
 
   // beginGen은 assertion용
@@ -82,7 +85,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
       appendingMilestones = appendingMilestones,
       startNodeProgressCondition = startNodeProgressCondition,
       lookaheadRequiringSymbols = lookaheadCollector.toSet,
-      tasksSummary = result.tasksSummary,
+      tasksSummary = result.tasksSummary(0, 1),
     )
     TermAction(parsingAction, pendedCollector.toMap)
   }
@@ -162,7 +165,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
         // TODO result.progressTasks.filter(_.kernel == Kernel(symbolId, 0, 1, 1)) 에 대한 정보 추가
         addPended(symbolId)
         LongestTemplate(symbolId, beginFromNextGen = false)
-        // TODO 여기서 NotExists(2, 3, symbolId) 가 나올 수 있을까? 그러면 Longest(symbolId, true)가 되면 될 듯 한데..
+      // TODO 여기서 NotExists(2, 3, symbolId) 가 나올 수 있을까? 그러면 Longest(symbolId, true)가 되면 될 듯 한데..
       case AcceptCondition.Unless(1, 2, symbolId) =>
         // except
         if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
@@ -301,7 +304,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
       appendingMilestones = appendingMilestones,
       startNodeProgressCondition = startNodeProgressCondition,
       lookaheadRequiringSymbols = lookaheadCollector.toSet,
-      tasksSummary = result.tasksSummary,
+      tasksSummary = result.tasksSummary(0, 1),
     )
     EdgeAction(parsingAction, edgeRequires.toSet)
   }
@@ -414,6 +417,9 @@ class MilestoneParserGen(val grammar: NGrammar) {
         action.pendedAcceptConditionKernels.foreach { fac =>
           addAppendingMilestones(fac._1, fac._2._1)
         }
+        action.parsingAction.lookaheadRequiringSymbols.foreach { symbolId =>
+          milestones.add(KernelTemplate(symbolId, 0))
+        }
       }
     }
     jobs.edges.groupBy(_._1).foreach { edgeGroup =>
@@ -424,6 +430,9 @@ class MilestoneParserGen(val grammar: NGrammar) {
         builder.edgeProgressActions(edge) = edgeAction
 
         addAppendingMilestones(start, edgeAction.parsingAction.appendingMilestones)
+        edgeAction.parsingAction.lookaheadRequiringSymbols.foreach { symbolId =>
+          milestones.add(KernelTemplate(symbolId, 0))
+        }
       }
     }
     val remainingJobs = Jobs(
@@ -439,7 +448,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
     val start = KernelTemplate(grammar.startSymbol, 0)
     val startingCtx = base.startingCtxFrom(start, 0)
 
-    val builder = new MilestoneParserDataBuilder(grammar, startingCtx._2.tasksSummary)
+    val builder = new MilestoneParserDataBuilder(grammar, startingCtx._2.tasksSummary(0, 0))
     createParserData(Jobs(Set(start), Set()), builder)
     builder.build()
   }

@@ -215,6 +215,20 @@ object GrammarProtobufConverter {
     case AtomicSymbolCase.LONGEST => convertProtoToLongestSymbol(proto.getLongest)
   }
 
+  def convertProtoToPlainAtomicSymbol(proto: GrammarProto.AtomicSymbol): Symbols.PlainAtomicSymbol = proto.getAtomicSymbolCase match {
+    case AtomicSymbolCase.START => Symbols.Start
+    case AtomicSymbolCase.TERMINAL => convertProtoToTerminalSymbol(proto.getTerminal)
+    case AtomicSymbolCase.NONTERMINAL => convertProtoToNonterminalSymbol(proto.getNonterminal)
+    case AtomicSymbolCase.ONE_OF => convertProtoToOneOfSymbol(proto.getOneOf)
+    case AtomicSymbolCase.REPEAT => convertProtoToRepeatSymbol(proto.getRepeat)
+    case AtomicSymbolCase.EXCEPT => Symbols.Proxy(convertProtoToExceptSymbol(proto.getExcept))
+    case AtomicSymbolCase.LOOKAHEAD_IS => Symbols.Proxy(convertProtoToLookaheadIsSymbol(proto.getLookaheadIs))
+    case AtomicSymbolCase.LOOKAHEAD_EXCEPT => Symbols.Proxy(convertProtoToLookaheadExceptSymbol(proto.getLookaheadExcept))
+    case AtomicSymbolCase.PROXY => convertProtoToProxySymbol(proto.getProxy)
+    case AtomicSymbolCase.JOIN => Symbols.Proxy(convertProtoToJoinSymbol(proto.getJoin))
+    case AtomicSymbolCase.LONGEST => Symbols.Proxy(convertProtoToLongestSymbol(proto.getLongest))
+  }
+
   def convertProtoToTerminalSymbol(proto: GrammarProto.Terminal): Symbols.Terminal = proto.getTerminalCase match {
     case TerminalCase.ANY => Terminals.Any
     case TerminalCase.ANY_CHAR => Terminals.AnyChar
@@ -232,25 +246,25 @@ object GrammarProtobufConverter {
   }
 
   def convertProtoToRepeatSymbol(proto: GrammarProto.Repeat): Symbols.Repeat =
-    Symbols.Repeat(convertProtoToAtomicSymbol(proto.getSymbol), proto.getLower)
+    Symbols.Repeat(convertProtoToPlainAtomicSymbol(proto.getSymbol), proto.getLower)
 
   def convertProtoToExceptSymbol(proto: GrammarProto.Except): Symbols.Except =
     Symbols.Except(convertProtoToAtomicSymbol(proto.getBody), convertProtoToAtomicSymbol(proto.getExcept))
 
   def convertProtoToLookaheadIsSymbol(proto: GrammarProto.LookaheadIs): Symbols.LookaheadIs =
-    Symbols.LookaheadIs(convertProtoToAtomicSymbol(proto.getLookahead))
+    Symbols.LookaheadIs(convertProtoToPlainAtomicSymbol(proto.getLookahead))
 
   def convertProtoToLookaheadExceptSymbol(proto: GrammarProto.LookaheadExcept): Symbols.LookaheadExcept =
-    Symbols.LookaheadExcept(convertProtoToAtomicSymbol(proto.getLookahead))
+    Symbols.LookaheadExcept(convertProtoToPlainAtomicSymbol(proto.getLookahead))
 
   def convertProtoToProxySymbol(proto: GrammarProto.Proxy): Symbols.Proxy =
     Symbols.Proxy(convertProtoToSymbol(proto.getSymbol))
 
   def convertProtoToJoinSymbol(proto: GrammarProto.Join): Symbols.Join =
-    Symbols.Join(convertProtoToAtomicSymbol(proto.getBody), convertProtoToAtomicSymbol(proto.getJoin))
+    Symbols.Join(convertProtoToPlainAtomicSymbol(proto.getBody), convertProtoToPlainAtomicSymbol(proto.getJoin))
 
   def convertProtoToLongestSymbol(proto: GrammarProto.Longest): Symbols.Longest =
-    Symbols.Longest(convertProtoToAtomicSymbol(proto.getBody))
+    Symbols.Longest(convertProtoToPlainAtomicSymbol(proto.getBody))
 
   def convertProtoToNAtomicSymbol(proto: GrammarProto.NAtomicSymbol): NAtomicSymbol = proto.getNAtomicSymbolCase match {
     case NAtomicSymbolCase.START =>
@@ -292,7 +306,7 @@ object GrammarProtobufConverter {
     NSequence(proto.getId, convertProtoToSequence(proto.getSymbol), proto.getSequenceList)
 
   def convertProtoToSequence(proto: GrammarProto.Sequence): Symbols.Sequence =
-    Symbols.Sequence(proto.getSeqList.toScalaList(convertProtoToAtomicSymbol))
+    Symbols.Sequence(proto.getSeqList.toScalaList(convertProtoToPlainAtomicSymbol))
 
   def convertProtoToNGrammar(protobuf: GrammarProto.NGrammar): NGrammar =
     new NGrammar(

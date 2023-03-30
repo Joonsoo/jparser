@@ -1,6 +1,6 @@
 package com.giyeok.jparser
 
-import com.giyeok.jparser.Symbols.{AnyChar, AtomicSymbol, Chars, ExactChar, Except, Join, Longest, LookaheadExcept, LookaheadIs, Nonterminal, OneOf, Proxy, Repeat, Sequence, Symbol, Terminal, Terminals}
+import com.giyeok.jparser.Symbols.{AnyChar, AtomicSymbol, Chars, ExactChar, Except, Join, Longest, LookaheadExcept, LookaheadIs, Nonterminal, OneOf, PlainAtomicSymbol, Proxy, Repeat, Sequence, Symbol, Terminal, Terminals}
 import com.giyeok.jparser.unicode.UnicodeUtil
 
 import scala.collection.immutable.{ListMap, ListSet, NumericRange}
@@ -28,13 +28,13 @@ object GrammarHelper {
     def seqWS(between: Symbol, seq: Symbol*): Sequence = {
         if (seq.isEmpty) Sequence(Seq())
         val atomicBetween = proxyIfNeeded(between)
-        def insert(seq: Seq[Symbol], cc: (Seq[AtomicSymbol], Seq[Int])): (Seq[AtomicSymbol], Seq[Int]) =
+        def insert(seq: Seq[Symbol], cc: (Seq[PlainAtomicSymbol], Seq[Int])): (Seq[PlainAtomicSymbol], Seq[Int]) =
             (seq.head, seq.tail) match {
                 case (head, Seq()) => (cc._1 :+ proxyIfNeeded(head), cc._2 :+ cc._1.length)
                 case (head, tail) =>
                     insert(tail, (cc._1 :+ proxyIfNeeded(head) :+ atomicBetween, cc._2 :+ cc._1.length))
             }
-        val (insertedSeq, contentIds) = insert(seq.toSeq, (Seq(), Seq()))
+        val (insertedSeq, contentIds) = insert(seq, (Seq(), Seq()))
         Sequence(insertedSeq)
     }
     def seqWS(between: Set[Symbol], seq: Symbol*): Sequence = seqWS(oneof(between), seq: _*)
@@ -46,9 +46,9 @@ object GrammarHelper {
     def lookahead_except(except: Symbol*) = LookaheadExcept(oneof(except.toSet))
     def longest(sym: Symbol) = Longest(proxyIfNeeded(sym))
     def join(sym: Symbol, join: Symbol) = new Join(proxyIfNeeded(sym), proxyIfNeeded(join))
-    def proxyIfNeeded(sym: Symbol): AtomicSymbol = sym match {
-        case sym: Sequence => Proxy(sym)
-        case sym: AtomicSymbol => sym
+    def proxyIfNeeded(sym: Symbol): PlainAtomicSymbol = sym match {
+        case sym: PlainAtomicSymbol => sym
+        case sym => Proxy(sym)
     }
 
     // def lgst(t: Terminal) = seq(t, LookaheadExcept(t))

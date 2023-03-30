@@ -17,7 +17,7 @@ object MetaGrammar extends Grammar {
             Sequence(Seq(n("ws"), n("Rules"), n("ws")))
         ),
         "Rules" -> List(
-            Sequence(Seq(n("Rules"), longest(n("ws0").star), c('\n'), n("ws"), n("Rule"))),
+            Sequence(Seq(n("Rules"), Proxy(longest(n("ws0").star)), c('\n'), n("ws"), n("Rule"))),
             n("Rule")
         ),
         "Rule" -> List(
