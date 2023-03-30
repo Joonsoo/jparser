@@ -181,12 +181,17 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       (UnrollRepeatFromOne(vBody._1), repeatSymbol)
     case MetaLang3Ast.InPlaceChoices(choices) =>
       check(condSymPath.isEmpty, "InPlaceChoices cannot be referred with condSymPath")
-      // TODO choices가 1개이면 OneOf 심볼 거치지 않게 하기
-      val vChoices = choices.map(c => proxy(valuefySymbol(c, List(), input)))
-      val oneofSymbol = Symbols.OneOf(ListSet.from(vChoices.map(_._2)))
-      (Unbind(oneofSymbol, UnrollChoices(vChoices.map(c => c._2 -> c._1).toMap)), oneofSymbol)
+      if (choices.size == 1) {
+        // choices가 1개이면 OneOf 심볼 거치지 않게 하기
+        valuefySymbol(choices.head, List(), input)
+      } else {
+        val vChoices = choices.map(c => proxy(valuefySymbol(c, List(), input)))
+        val oneofSymbol = Symbols.OneOf(ListSet.from(vChoices.map(_._2)))
+        (Unbind(oneofSymbol, UnrollChoices(vChoices.map(c => c._2 -> c._1).toMap)), oneofSymbol)
+      }
     case MetaLang3Ast.Longest(choices) =>
       check(condSymPath.isEmpty, "Longest cannot be referred with condSymPath")
+      // TODO choices가 1개이면 OneOf 심볼 거치지 않게 하기
       val vChoices = proxy(valuefySymbol(choices, List(), input))
       val longestSymbol = Symbols.Longest(vChoices._2)
       (Unbind(longestSymbol, vChoices._1), longestSymbol)
@@ -265,7 +270,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
           refCtx(idx) match {
             case symbol: MetaLang3Ast.Symbol =>
               val symbolIdx = symbolIndexFrom(refCtx, idx)
-              SeqElemAt(symbolIdx, valuefySymbol(symbol, condSymPath, input)._1)
+              SeqElemAt(symbolIdx, proxy(valuefySymbol(symbol, condSymPath, input))._1)
             case processor: MetaLang3Ast.Processor =>
               check(condSymPath.isEmpty, "Ref to processor cannot have cond sym path")
               valuefyProcessor(refCtx, processor, input, callCtx)
@@ -388,7 +393,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       case ref: MetaLang3Ast.Ref => valuefyPExpr(refCtx, ref, input, ref +: callCtx)
     }
 
-  private def valuefySequence(seq: List[MetaLang3Ast.Elem], input: ValuefyExpr): (ValuefyExpr, Symbols.Symbol) = {
+  private def valuefySequence(seq: List[MetaLang3Ast.Elem], input: ValuefyExpr): (ValuefyExpr, Symbols.Sequence) = {
     val elems = seq map {
       case symbol: MetaLang3Ast.Symbol =>
         val p = proxy(valuefySymbol(symbol, List(), input))

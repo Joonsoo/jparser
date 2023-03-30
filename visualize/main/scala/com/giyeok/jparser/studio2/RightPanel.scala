@@ -109,6 +109,7 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
             case ParsingErrors.UnexpectedEOF(expected, location) =>
               _testCodeEditor.setStyle(CodeStyle.ERROR, location, location + 1)
             case ParsingErrors.UnexpectedError =>
+              println("???")
             case ParsingErrors.UnexpectedInput(next, expected, location) =>
               _testCodeEditor.setStyle(CodeStyle.ERROR, location, location + 1)
             case _ =>
@@ -134,7 +135,8 @@ class RightPanel(parent: Composite, style: Int, font: Font, scheduler: Scheduler
                   }
                   sub.onNext(Left(astValues))
                 } catch {
-                  case _: Throwable =>
+                  case exception: Throwable =>
+                    println(exception)
                     sub.onNext(Right(ParsingErrors.UnexpectedError))
                 }
               case Right(value) =>

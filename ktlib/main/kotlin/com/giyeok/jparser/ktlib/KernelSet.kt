@@ -41,4 +41,6 @@ class KernelSet(val kernels: Set<Kernel>) {
 
   fun getSingle(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int): Kernel =
     filterByBeginGen(symbolId, pointer, beginGen).find { it.endGen == endGen }!!
+
+  fun toKernels(): Set<Kernel> = kernels
 }
