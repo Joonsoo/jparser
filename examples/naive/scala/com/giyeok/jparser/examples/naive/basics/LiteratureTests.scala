@@ -33,6 +33,9 @@ object Earley1970AE extends Grammar with GrammarWithExamples with StringExamples
 object Knuth1965_24 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Knuth 1965 Grammar 24"
     val rules: RuleMap = ListMap(
+        // S = # | 'a' A 'b' S | 'b' B 'a' S
+        // A = # | 'a' A 'b' A
+        // B = # | 'b' B 'a' B
         "S" -> List(
             empty,
             seq(c('a'), n("A"), c('b'), n("S")),
@@ -570,6 +573,10 @@ object MyPaper7_1 extends Grammar with GrammarWithExamples with StringExamples w
 object MyPaper7_2 extends Grammar with GrammarWithExamples with StringExamples with AmbiguousExamples {
     val name = "MyPaper Grammar 7_2"
     val rules: RuleMap = ListMap(
+        // S = A-(B-C)
+        // A = 'a-c'
+        // B = 'ac'
+        // C = 'bc'
         "S" -> List(
             n("A").except(n("B").except(n("C")))
         ),
@@ -995,7 +1002,7 @@ object MyPaper12_2 extends Grammar with GrammarWithExamples with StringExamples 
 }
 
 object PaperTests {
-    val tests: Set[GrammarWithExamples] = Set(
+    val tests: List[GrammarWithExamples] = List(
         Earley1970AE,
         Knuth1965_24,
         MyPaper1,

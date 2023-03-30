@@ -11,6 +11,7 @@ option java_outer_classname = "MilestoneParserDataProto";
 message Milestone2ParserData {
   com.giyeok.jparser.proto.NGrammar grammar = 1;
   TasksSummary2 initial_tasks_summary = 2;
+  // TODO initial_gen_actions
   message TermActionPair {
     KernelTemplate kernel_template = 1;
     message TermGroupAction {

@@ -77,6 +77,11 @@ object JoinGrammar3 extends Grammar with GrammarWithExamples with StringExamples
     val name = "JoinGrammar3 (a^n b^n c^n)"
 
     val rules: RuleMap = ListMap(
+        // S = L1&L2
+        // L1 = A 'c'*
+        // A = 'a' A 'b' | #
+        // L2 = 'a'* C
+        // C = 'b' C 'c' | #
         "S" -> List(
             n("L1").join(n("L2"))
         ),

@@ -9,6 +9,9 @@ import scala.collection.immutable.{ListMap, ListSet}
 object ExceptGrammar1 extends Grammar with GrammarWithExamples with StringExamples {
     val name = "Except Grammar 1"
     val rules: RuleMap = ListMap(
+        // S = A-B 'c'
+        // A = 'a' 'b'*
+        // B = "abb"
         "S" -> List(seq(n("A").except(n("B")), c('c'))),
         "A" -> List(seq(c('a'), c('b').star)),
         "B" -> List(i("abb"))
@@ -109,6 +112,7 @@ object ExceptGrammar4_1 extends Grammar with GrammarWithExamples with StringExam
     val name = "Except Grammar 4_1"
     val rules: RuleMap = ListMap(
         "S" -> List(
+            // 'a-z'*-'a'*
             seq(chars('a' to 'z').repeat(0, 5)).except(c('a').star)
         )
     )
