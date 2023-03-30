@@ -119,9 +119,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     CodeBlob(
       s"""fun matchStart(): ${returnType.code} {
          |  val lastGen = source.length
-         |  val kernel = history[lastGen]
-         |    .filter { it.symbolId == ${startSymbol.id} && it.pointer == 1 && it.beginGen == 0 && it.endGen == lastGen }
-         |    .checkSingle()
+         |  val kernel = history[lastGen].getSingle(${startSymbol.id}, 1, 0, lastGen)
          |  return ${nonterminalMatchFuncName(startSymbol.symbol.name)}(kernel.beginGen, kernel.endGen)
          |}""".stripMargin,
       returnType.required)

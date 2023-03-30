@@ -115,9 +115,7 @@ class PyObjKtOptAst(
 
   fun matchStart(): PyObj {
     val lastGen = inputs.size
-    val kernel = history[lastGen]
-      .filter { it.symbolId == 1 && it.endGen == lastGen }
-      .checkSingle()
+    val kernel = history[lastGen].getSingle(1, 1, 0, lastGen)
     return matchPyObj(kernel.beginGen, kernel.endGen)
   }
 

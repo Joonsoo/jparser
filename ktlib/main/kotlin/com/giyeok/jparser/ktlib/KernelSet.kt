@@ -38,4 +38,7 @@ class KernelSet(val kernels: Set<Kernel>) {
     .checkSingleOrNone()
 
   fun contains(kernel: Kernel): Boolean = kernels.contains(kernel)
+
+  fun getSingle(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int): Kernel =
+    filterByBeginGen(symbolId, pointer, beginGen).find { it.endGen == endGen }!!
 }

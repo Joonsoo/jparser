@@ -417,9 +417,7 @@ class BibixAst(
 
   fun matchStart(): BuildScript {
     val lastGen = source.length
-    val kernel = history[lastGen]
-      .filter { it.symbolId == 2 && it.pointer == 1 && it.beginGen == 0 && it.endGen == lastGen }
-      .checkSingle()
+    val kernel = history[lastGen].getSingle(2, 1, 0, lastGen)
     return matchBuildScript(kernel.beginGen, kernel.endGen)
   }
 
