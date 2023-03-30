@@ -76,7 +76,7 @@ class EqualityWithMgroup2Tests {
 
     assertEquals(ktKernels.size, scalaKernels.length())
     ktKernels.zip(scalaKernels.toKtList()).forEach { (kt, sc) ->
-      assertEquals(kt.kernels, sc.toKtSet().map { convertKernel(it) }.toSet())
+      assertEquals(kt.toKernelsSet(), sc.toKtSet().map { convertKernel(it) }.toSet())
     }
   }
 

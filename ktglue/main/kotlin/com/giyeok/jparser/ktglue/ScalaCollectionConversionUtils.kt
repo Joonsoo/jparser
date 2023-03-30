@@ -13,10 +13,11 @@ fun <T> scala.collection.immutable.Set<T>.toKtSet(): Set<T> =
   this.toList().toKtList().toSet()
 
 fun scala.collection.immutable.Set<com.giyeok.jparser.nparser.Kernel>.toKtKernelSet(): KernelSet {
+  val builder = KernelSet.Builder()
   val iter = this.iterator()
-  val set = List<Kernel>(this.size()) {
+  while(iter.hasNext()) {
     val k = iter.next()
-    Kernel(k.symbolId(), k.pointer(), k.beginGen(), k.endGen())
-  }.toSet()
-  return KernelSet(set)
+    builder.addKernel(k.symbolId(), k.pointer(), k.beginGen(), k.endGen())
+  }
+  return builder.build()
 }
