@@ -33,15 +33,19 @@ sealed class MilestoneAcceptConditionKt {
           )
 
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LONGEST -> {
-          val milestoneGen = if (template.longest.beginFromNextGen) gen else beginGen
+          val milestoneGen = if (template.longest.fromNextGen) gen else beginGen
           NotExists(MilestoneKt(template.longest.symbolId, 0, milestoneGen), true)
         }
 
-        MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.ONLY_IF ->
-          OnlyIf(MilestoneKt(template.onlyIf, 0, beginGen))
+        MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.ONLY_IF -> {
+          val milestoneGen = if (template.onlyIf.fromNextGen) gen else beginGen
+          OnlyIf(MilestoneKt(template.onlyIf.symbolId, 0, milestoneGen))
+        }
 
-        MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.UNLESS ->
-          Unless(MilestoneKt(template.unless, 0, beginGen))
+        MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.UNLESS -> {
+          val milestoneGen = if (template.unless.fromNextGen) gen else beginGen
+          Unless(MilestoneKt(template.unless.symbolId, 0, milestoneGen))
+        }
 
         else -> throw AssertionError("")
       }
@@ -127,42 +131,42 @@ sealed class MilestoneAcceptConditionKt {
     is Unless -> setOf(this.milestone)
   }
 
-  object Always : MilestoneAcceptConditionKt() {
+  object Always: MilestoneAcceptConditionKt() {
     override fun negation(): MilestoneAcceptConditionKt = Never
   }
 
-  object Never : MilestoneAcceptConditionKt() {
+  object Never: MilestoneAcceptConditionKt() {
     override fun negation(): MilestoneAcceptConditionKt = Always
   }
 
-  data class And(val conditions: List<MilestoneAcceptConditionKt>) : MilestoneAcceptConditionKt() {
+  data class And(val conditions: List<MilestoneAcceptConditionKt>): MilestoneAcceptConditionKt() {
     override fun negation(): MilestoneAcceptConditionKt =
       disjunct(*(conditions.map { it.negation() }.toTypedArray()))
   }
 
-  data class Or(val conditions: List<MilestoneAcceptConditionKt>) : MilestoneAcceptConditionKt() {
+  data class Or(val conditions: List<MilestoneAcceptConditionKt>): MilestoneAcceptConditionKt() {
     override fun negation(): MilestoneAcceptConditionKt =
       conjunct(*(conditions.map { it.negation() }.toTypedArray()))
   }
 
-  data class Exists(val milestone: MilestoneKt, val checkFromNextGen: Boolean) :
+  data class Exists(val milestone: MilestoneKt, val checkFromNextGen: Boolean):
     MilestoneAcceptConditionKt() {
     override fun negation(): MilestoneAcceptConditionKt =
       NotExists(milestone, checkFromNextGen)
   }
 
-  data class NotExists(val milestone: MilestoneKt, val checkFromNextGen: Boolean) :
+  data class NotExists(val milestone: MilestoneKt, val checkFromNextGen: Boolean):
     MilestoneAcceptConditionKt() {
     override fun negation(): MilestoneAcceptConditionKt =
       Exists(milestone, checkFromNextGen)
   }
 
-  data class OnlyIf(val milestone: MilestoneKt) : MilestoneAcceptConditionKt() {
+  data class OnlyIf(val milestone: MilestoneKt): MilestoneAcceptConditionKt() {
     override fun negation(): MilestoneAcceptConditionKt =
       Unless(milestone)
   }
 
-  data class Unless(val milestone: MilestoneKt) : MilestoneAcceptConditionKt() {
+  data class Unless(val milestone: MilestoneKt): MilestoneAcceptConditionKt() {
     override fun negation(): MilestoneAcceptConditionKt =
       OnlyIf(milestone)
   }

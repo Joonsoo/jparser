@@ -150,11 +150,15 @@ object MilestoneParser2ProtobufConverter {
       case LongestTemplate(symbolId, beginFromNextGen) =>
         builder.getLongestBuilder
           .setSymbolId(symbolId)
-          .setBeginFromNextGen(beginFromNextGen)
-      case OnlyIfTemplate(symbolId) =>
-        builder.setOnlyIf(symbolId)
-      case UnlessTemplate(symbolId) =>
-        builder.setUnless(symbolId)
+          .setFromNextGen(beginFromNextGen)
+      case OnlyIfTemplate(symbolId, fromNextGen) =>
+        builder.getOnlyIfBuilder
+          .setSymbolId(symbolId)
+          .setFromNextGen(fromNextGen)
+      case UnlessTemplate(symbolId, fromNextGen) =>
+        builder.getUnlessBuilder
+          .setSymbolId(symbolId)
+          .setFromNextGen(fromNextGen)
       case _ => throw new AssertionError("")
     }
     assert(builder.getConditionCase != ConditionCase.CONDITION_NOT_SET)
@@ -241,13 +245,17 @@ object MilestoneParser2ProtobufConverter {
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_NOT =>
         LookaheadNotTemplate(proto.getLookaheadNot.getSymbolId, proto.getLookaheadNot.getFromNextGen)
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.DEPRECATED_LONGEST =>
-        LongestTemplate(proto.getDeprecatedLongest, false)
+        LongestTemplate(proto.getDeprecatedLongest, beginFromNextGen = false)
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.DEPRECATED_ONLY_IF =>
+        OnlyIfTemplate(proto.getDeprecatedOnlyIf, fromNextGen = false)
+      case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.DEPRECATED_UNLESS =>
+        UnlessTemplate(proto.getDeprecatedUnless, fromNextGen = false)
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LONGEST =>
-        LongestTemplate(proto.getLongest.getSymbolId, proto.getLongest.getBeginFromNextGen)
+        LongestTemplate(proto.getLongest.getSymbolId, proto.getLongest.getFromNextGen)
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.ONLY_IF =>
-        OnlyIfTemplate(proto.getOnlyIf)
+        OnlyIfTemplate(proto.getOnlyIf.getSymbolId, proto.getOnlyIf.getFromNextGen)
       case MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.UNLESS =>
-        UnlessTemplate(proto.getUnless)
+        UnlessTemplate(proto.getUnless.getSymbolId, proto.getUnless.getFromNextGen)
     }
   }
 }

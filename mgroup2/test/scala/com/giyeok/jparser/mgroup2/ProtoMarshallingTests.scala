@@ -92,15 +92,17 @@ class ProtoMarshallingTests extends AnyFlatSpec {
 
     check(AlwaysTemplate)
     check(NeverTemplate)
-    check(AndTemplate(List(LookaheadIsTemplate(123, true), OnlyIfTemplate(456))))
-    check(OrTemplate(List(LookaheadIsTemplate(123, true), OnlyIfTemplate(456))))
+    check(AndTemplate(List(LookaheadIsTemplate(123, true), OnlyIfTemplate(456, true))))
+    check(OrTemplate(List(LookaheadIsTemplate(123, true), OnlyIfTemplate(456, true))))
     check(LookaheadIsTemplate(123, true))
     check(LookaheadIsTemplate(123, false))
     check(LookaheadNotTemplate(123, true))
     check(LookaheadNotTemplate(123, false))
     check(LongestTemplate(234, true))
     check(LongestTemplate(234, false))
-    check(OnlyIfTemplate(345))
-    check(UnlessTemplate(456))
+    check(OnlyIfTemplate(345, true))
+    check(OnlyIfTemplate(345, false))
+    check(UnlessTemplate(456, true))
+    check(UnlessTemplate(456, false))
   }
 }

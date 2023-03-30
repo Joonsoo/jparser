@@ -7,8 +7,14 @@ import com.giyeok.jparser.nparser2.opt.{MutableParsingContext, OptNaiveParser2}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
-case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKernelProgressTasks: List[ProgressTask]) {
+case class CtxWithTasks(
+  ctx: ParsingContext,
+  tasks: List[ParsingTask],
+  startKernelProgressConditions: Map[Kernel, AcceptCondition],
+  progressConditions: Map[Kernel, AcceptCondition]
+) {
   def deriveTasks: List[DeriveTask] =
     tasks.filter(_.isInstanceOf[DeriveTask]).map(_.asInstanceOf[DeriveTask])
 
@@ -21,90 +27,87 @@ case class CtxWithTasks(ctx: ParsingContext, tasks: List[ParsingTask], startKern
   def finishTasks: List[FinishTask] =
     tasks.filter(_.isInstanceOf[FinishTask]).map(_.asInstanceOf[FinishTask])
 
-  def conditionToTemplate(parentGen: Int, currGen: Int, condition: AcceptCondition): AcceptConditionTemplate = {
-    def cannotExist(kernel: Kernel) =
-    // 이 시점에는 filter out된 paths만 들고있어서 필터링이 잘 안되는데.. 컨디션으로 필터 아웃 되기 전의 paths들을 전달해주면 할 수 있을까?
-    // progressConditionsFor(kernel).isEmpty && !ctx.graph.nodes.contains(kernel)
-      false
+  object NotExistsMatch {
+    def unapply(condition: AcceptCondition.NotExists): Option[((Int, Int), Int)] =
+      Some((condition.beginGen, condition.endGen), condition.symbolId)
+  }
 
-    val nextGen = currGen + 1
+  object ExistsMatch {
+    def unapply(condition: AcceptCondition.Exists): Option[((Int, Int), Int)] =
+      Some((condition.beginGen, condition.endGen), condition.symbolId)
+  }
 
+  object UnlessMatch {
+    def unapply(condition: AcceptCondition.Unless): Option[((Int, Int), Int)] =
+      Some((condition.beginGen, condition.endGen), condition.symbolId)
+  }
+
+  object OnlyIfMatch {
+    def unapply(condition: AcceptCondition.OnlyIf): Option[((Int, Int), Int)] =
+      Some((condition.beginGen, condition.endGen), condition.symbolId)
+  }
+
+  def conditionToTemplateForTaskSummary(condition: AcceptCondition): AcceptConditionTemplate = {
     condition match {
       case AcceptCondition.Always => AlwaysTemplate
       case AcceptCondition.Never => NeverTemplate
       case AcceptCondition.And(conditions) =>
-        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplate(parentGen, currGen, _)))
+        AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplateForTaskSummary))
       case AcceptCondition.Or(conditions) =>
-        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplate(parentGen, currGen, _)))
-      case AcceptCondition.NotExists(`parentGen`, endGen, symbolId) if endGen == nextGen + 1 =>
+        AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplateForTaskSummary))
+      /* 여기서부터 progress 이전에 만들어진 컨디션이 살아남은 경우 */
+      case NotExistsMatch((0, 1) | (1, 2), symbolId) =>
+        LongestTemplate(symbolId, beginFromNextGen = false)
+      case ExistsMatch((0, 0) | (1, 1), symbolId) =>
+        LookaheadIsTemplate(symbolId, fromNextGen = false)
+      case NotExistsMatch((0, 0) | (1, 1), symbolId) =>
+        LookaheadNotTemplate(symbolId, fromNextGen = false)
+      //      case UnlessMatch((0, 0) | (1, 1), symbolId) =>
+      //        UnlessTemplate(symbolId)
+      //        ???
+      //      case OnlyIfMatch((0, 0) | (1, 1), symbolId) =>
+      //        OnlyIfTemplate(symbolId)
+      //        ???
+      /* 여기서부터 progress task에 의해 새로 추가될 수 있는 컨디션들 */
+      case NotExistsMatch((0, 3) | (1, 3), symbolId) =>
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
         LongestTemplate(symbolId, beginFromNextGen = false)
-      case AcceptCondition.NotExists(`nextGen`, endGen, symbolId) if endGen == nextGen + 1 =>
-        // Tk = <'a-z'*> 인 경우 발생할 수 있다
+      case AcceptCondition.NotExists(2, 3, symbolId) =>
+        // longest with nullable symbol
         LongestTemplate(symbolId, beginFromNextGen = true)
-      case AcceptCondition.Unless(0 | 1, `nextGen`, symbolId) =>
-        // except
-        if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
-          // 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(Unless이기 때문) 반환
-          AlwaysTemplate
-        } else {
-          UnlessTemplate(symbolId)
-        }
-      case AcceptCondition.OnlyIf(0 | 1, `nextGen`, symbolId) =>
-        // join
-        if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
-          // ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
-          NeverTemplate
-        } else {
-          // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-          OnlyIfTemplate(symbolId)
-        }
-      case AcceptCondition.NotExists(beginGen, endGen, symbolId) if beginGen == endGen && (beginGen == 0 || beginGen == 1) =>
-        // lookahead except
-        if (cannotExist(Kernel(symbolId, 0, beginGen, beginGen))) {
-          // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
-          AlwaysTemplate
-        } else {
-          LookaheadNotTemplate(symbolId, fromNextGen = false)
-        }
-      case AcceptCondition.NotExists(`nextGen`, `nextGen`, symbolId) =>
-        // lookahead except
-        if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
-          // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
-          AlwaysTemplate
-        } else {
-          LookaheadNotTemplate(symbolId, fromNextGen = true)
-        }
-      case AcceptCondition.Exists(beginGen, endGen, symbolId) if beginGen == endGen && (beginGen == 0 || beginGen == 1) =>
-        // lookahead except
-        if (cannotExist(Kernel(symbolId, 0, beginGen, beginGen))) {
-          // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate
-          NeverTemplate
-        } else {
-          LookaheadIsTemplate(symbolId, fromNextGen = false)
-        }
-      case AcceptCondition.Exists(`nextGen`, `nextGen`, symbolId) =>
+      case AcceptCondition.Exists(2, 2, symbolId) =>
         // lookahead is
-        if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
-          // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
-          NeverTemplate
-        } else {
-          LookaheadIsTemplate(symbolId, fromNextGen = true)
-        }
+        LookaheadIsTemplate(symbolId, fromNextGen = true)
+      case AcceptCondition.NotExists(2, 2, symbolId) =>
+        // lookahead not
+        LookaheadNotTemplate(symbolId, fromNextGen = true)
+      case UnlessMatch((0, 2) | (1, 2), symbolId) =>
+        UnlessTemplate(symbolId, fromNextGen = false)
+      case OnlyIfMatch((0, 2) | (1, 2), symbolId) =>
+        OnlyIfTemplate(symbolId, fromNextGen = false)
+      case UnlessMatch((2, 2) | (2, 2), symbolId) =>
+        UnlessTemplate(symbolId, fromNextGen = true)
+      case OnlyIfMatch((2, 2) | (2, 2), symbolId) =>
+        OnlyIfTemplate(symbolId, fromNextGen = true)
     }
   }
 
-  def tasksSummary(parentGen: Int, currGen: Int): TasksSummary2 = {
-    val progressedStartKernel = startKernelProgressTasks.map(_.kernel).distinct
+  def tasksSummary(currGen: Int): TasksSummary2 = {
+    val progressedStartKernel = startKernelProgressConditions.keySet
     assert(progressedStartKernel.size <= 1)
-    val addedByProgresses = progressTasks.groupBy(_.kernel).view.map { pair =>
-      val kernel = pair._1
-      val baseCondition = conditionToTemplate(parentGen, currGen, ctx.acceptConditions.getOrElse(kernel, Always))
-      val addedCondition = AcceptConditionTemplate.disjunct(pair._2.map(_.condition).map(conditionToTemplate(parentGen, currGen, _)).toSet)
-      val condition = AcceptConditionTemplate.conjunct(Set(baseCondition, addedCondition))
-      Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, 2) -> condition
-    }.toMap.groupMap(_._2)(_._1).view.mapValues(_.toSet).toMap
+    val addedByProgresses: Map[AcceptConditionTemplate, Set[Kernel]] = progressConditions.toList.groupBy(_._2).view.map { pair =>
+      val (condition, kernels) = pair
+      val addedKernels = kernels.map { case (kernel, _) => Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, 2) }
+
+      //      val baseCondition = conditionToTemplateForTaskSummary(currGen, ctx.acceptConditions.getOrElse(kernel, Always))
+      //      val progressConditions = progressTasks.map(_.condition).map(conditionToTemplateForTaskSummary(currGen, _))
+      //      val addedCondition = AcceptConditionTemplate.disjunct(progressConditions.toSet)
+      //      val condition = AcceptConditionTemplate.conjunct(Set(baseCondition, addedCondition))
+      //      Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, 2) -> condition
+
+      conditionToTemplateForTaskSummary(condition) -> addedKernels.toSet
+    }.toMap
     val addedByOthers = (deriveTasks.map(_.kernel) ++ finishTasks.map(_.kernel).filter(_.pointer == 0)).toSet
     val addedKernels = addedByProgresses + (AlwaysTemplate -> (addedByProgresses.getOrElse(AlwaysTemplate, Set()) ++ addedByOthers))
     //    val addedKernels = progressTasks.map(_.kernel).toSet[Kernel].map { kernel =>
@@ -138,13 +141,19 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
   ): CtxWithTasks = {
     val mutCtx = MutableParsingContext(ctx)
     val mutTasks = mutable.Buffer[ParsingTask]()
-    val mutStartKernelProgressTasks = mutable.Buffer[ProgressTask]()
+    val mutStartKernelProgressConds = mutable.Map[Kernel, mutable.ListBuffer[AcceptCondition]]()
+    val mutProgressConds = mutable.Map[Kernel, mutable.ListBuffer[AcceptCondition]]()
 
     @tailrec def recursion(tasks: List[ParsingTask]): Unit =
       tasks match {
-        case (barrierTask@ProgressTask(`barrierNode`, _)) +: rest =>
-          mutStartKernelProgressTasks += barrierTask
+        case ProgressTask(`barrierNode`, condition) +: rest =>
+          mutStartKernelProgressConds.getOrElseUpdate(barrierNode, ListBuffer()) += condition
           recursion(rest)
+        case (task@ProgressTask(kernel, condition)) +: rest =>
+          mutTasks += task
+          val newTasks = parser.process(nextGen, task, mutCtx)
+          mutProgressConds.getOrElseUpdate(kernel, ListBuffer()) += condition
+          recursion(newTasks ++ rest)
         case task +: rest =>
           mutTasks += task
           val newTasks = parser.process(nextGen, task, mutCtx)
@@ -153,7 +162,11 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
       }
 
     recursion(tasks)
-    CtxWithTasks(mutCtx.toParsingContext, mutTasks.toList, mutStartKernelProgressTasks.toList)
+    CtxWithTasks(
+      mutCtx.toParsingContext,
+      mutTasks.toList,
+      mutStartKernelProgressConds.toMap.view.mapValues(conds => AcceptCondition.disjunct(conds.toList: _*)).toMap,
+      mutProgressConds.toMap.view.mapValues(conds => AcceptCondition.disjunct(conds.toList: _*)).toMap)
   }
 
   def runTasksWithProgressBarriers(
@@ -164,13 +177,19 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
   ): CtxWithTasks = {
     val mutCtx = MutableParsingContext(ctx)
     val mutTasks = mutable.Buffer[ParsingTask]()
-    val mutStartKernelProgressTasks = mutable.Buffer[ProgressTask]()
+    val mutStartKernelProgressConds = mutable.Map[Kernel, mutable.ListBuffer[AcceptCondition]]()
+    val mutProgressConds = mutable.Map[Kernel, mutable.ListBuffer[AcceptCondition]]()
 
     @tailrec def recursion(tasks: List[ParsingTask]): Unit =
       tasks match {
-        case (barrierTask@ProgressTask(progressNode, _)) +: rest if barrierNodes.contains(progressNode) =>
-          mutStartKernelProgressTasks += barrierTask
+        case ProgressTask(progressNode, condition) +: rest if barrierNodes.contains(progressNode) =>
+          mutStartKernelProgressConds.getOrElseUpdate(progressNode, ListBuffer()) += condition
           recursion(rest)
+        case (task@ProgressTask(kernel, condition)) +: rest =>
+          mutTasks += task
+          val newTasks = parser.process(nextGen, task, mutCtx)
+          mutProgressConds.getOrElseUpdate(kernel, ListBuffer()) += condition
+          recursion(newTasks ++ rest)
         case task +: rest =>
           mutTasks += task
           val newTasks = parser.process(nextGen, task, mutCtx)
@@ -179,7 +198,11 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
       }
 
     recursion(tasks)
-    CtxWithTasks(mutCtx.toParsingContext, mutTasks.toList, mutStartKernelProgressTasks.toList)
+    CtxWithTasks(
+      mutCtx.toParsingContext,
+      mutTasks.toList,
+      mutStartKernelProgressConds.toMap.view.mapValues(conds => AcceptCondition.disjunct(conds.toList: _*)).toMap,
+      mutProgressConds.toMap.view.mapValues(conds => AcceptCondition.disjunct(conds.toList: _*)).toMap)
   }
 
   def startingCtxFrom(start: KernelTemplate, baseGen: Int): (Kernel, CtxWithTasks) = {

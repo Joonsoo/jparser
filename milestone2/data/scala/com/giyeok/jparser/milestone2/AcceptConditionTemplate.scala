@@ -7,8 +7,8 @@ sealed abstract class AcceptConditionTemplate extends Ordered[AcceptConditionTem
     case LookaheadIsTemplate(symbolId, _) => Set(symbolId)
     case LookaheadNotTemplate(symbolId, _) => Set(symbolId)
     case LongestTemplate(symbolId, _) => Set(symbolId)
-    case OnlyIfTemplate(symbolId) => Set(symbolId)
-    case UnlessTemplate(symbolId) => Set(symbolId)
+    case OnlyIfTemplate(symbolId, _) => Set(symbolId)
+    case UnlessTemplate(symbolId, _) => Set(symbolId)
     case _ => Set()
   }
 }
@@ -156,25 +156,25 @@ case class LongestTemplate(symbolId: Int, beginFromNextGen: Boolean) extends Acc
 
 // OnlyIf(parentGen, currGen, symbolId)
 // OnlyIf(Milestone(symbolId, 0, parentGen))
-case class OnlyIfTemplate(symbolId: Int) extends AcceptConditionTemplate {
+case class OnlyIfTemplate(symbolId: Int, fromNextGen: Boolean) extends AcceptConditionTemplate {
   override def compare(that: AcceptConditionTemplate): Int = that match {
     case AlwaysTemplate | NeverTemplate | _: AndTemplate | _: OrTemplate |
          _: LookaheadIsTemplate | _: LookaheadNotTemplate | _: LongestTemplate => -1
-    case OnlyIfTemplate(otherSymbolId) =>
-      symbolId - otherSymbolId
+    case OnlyIfTemplate(otherSymbolId, otherFromNextGen) =>
+      if (symbolId != otherSymbolId) symbolId - otherSymbolId else fromNextGen.compare(otherFromNextGen)
     case _ => 1
   }
 }
 
 // Unless(parentGen, currGen, symbolId)
 // Unless(Milestone(symbolId, 0, parentGen))
-case class UnlessTemplate(symbolId: Int) extends AcceptConditionTemplate {
+case class UnlessTemplate(symbolId: Int, fromNextGen: Boolean) extends AcceptConditionTemplate {
   override def compare(that: AcceptConditionTemplate): Int = that match {
     case AlwaysTemplate | NeverTemplate | _: AndTemplate | _: OrTemplate |
          _: LookaheadIsTemplate | _: LookaheadNotTemplate |
          _: LongestTemplate | _: OnlyIfTemplate => -1
-    case UnlessTemplate(otherSymbolId) =>
-      symbolId - otherSymbolId
+    case UnlessTemplate(otherSymbolId, otherFromNextGen) =>
+      if (symbolId != otherSymbolId) symbolId - otherSymbolId else fromNextGen.compare(otherFromNextGen)
     case _ => 1
   }
 }

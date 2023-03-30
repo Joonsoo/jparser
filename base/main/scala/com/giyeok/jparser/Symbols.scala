@@ -27,8 +27,10 @@ object Symbols {
     }
 
     // AtomicSymbol은 매칭이 되거나/안되거나 - 한 번 lift된 symbolProgress에서 derive가 되거나 하는 일은 생기지 않음
+    // AtomicSymbol은 Sequence가 아닌 모든 심볼
     sealed trait AtomicSymbol extends Symbol
 
+    // PlainAtomicSymbol은 직접적으로 새로운 accept condition을 추가시키지 않는 심볼
     sealed trait PlainAtomicSymbol extends AtomicSymbol
 
     sealed trait Terminal extends PlainAtomicSymbol {

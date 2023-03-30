@@ -1,7 +1,6 @@
 package com.giyeok.jparser.milestone2.test
 
 import com.giyeok.jparser.NGrammar.NSequence
-import com.giyeok.jparser.ParseResultTree.Node
 import com.giyeok.jparser.examples.metalang3.{GrammarTestExample, GrammarWithExamples, MetaLang3ExamplesCatalog}
 import com.giyeok.jparser.examples.naive.NaiveExamplesCatalog
 import com.giyeok.jparser.metalang3.MetaLanguage3
@@ -120,70 +119,34 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     //  TODO 2. milestone path에 불필요한 path는 없는지 확인
 
     val pathsMap0 = milestoneCtx.paths.groupBy(_.path)
-    val pathsMap = pathsMap0.view.mapValues(paths => MilestoneAcceptCondition.disjunct(paths.map(_.acceptCondition).toSet)).toMap
+    val pathsMap = pathsMap0.view.mapValues { paths =>
+      MilestoneAcceptCondition.disjunct(paths.map(_.acceptCondition).toSet)
+    }.toMap
 
-//    assert(milestonePaths.toSet.subsetOf(pathsMap.keySet))
-//    milestonePaths.foreach { path =>
-//      val tip = path.head
-//      val tipKernel = Kernel(tip.symbolId, tip.pointer, path.drop(1).headOption.map(_.gen).getOrElse(0), tip.gen)
-//      val tipCondition = naiveCtx.parsingContext.acceptConditions(tipKernel)
-//      assertEqualCondition(tipCondition, pathsMap(path), gen)
-//    }
-  }
-
-  def parseTreeToPath(parseNode: Node): String = {
-    val builder = new StringBuilder()
-
-    def traverseBindNode(node: ParseResultTree.BindNode, indent: String): String = {
-      node.body match {
-        case bindNode: ParseResultTree.BindNode =>
-          builder.append(node.symbol.id.toString + "(")
-          val closingParens = traverseBindNode(bindNode, indent)
-          closingParens + ")"
-        case _ =>
-          traverse(node.body, indent + "  ")
-          ""
-      }
+    val mainPathsFromNaive = milestonePaths.filter(_.last == milestoneParser.initialMilestone).toSet
+    val mainPathsFromMile2 = pathsMap.filter(_._1.last == milestoneParser.initialMilestone)
+    if (mainPathsFromNaive != mainPathsFromMile2.keySet) {
+      println(s":: $gen")
+      mainPathsFromNaive.foreach(println)
+      println("===")
+      mainPathsFromMile2.foreach(println)
+      println("===")
     }
-
-    def traverse(node: Node, indent: String): Unit = {
-      node match {
-        case ParseResultTree.TerminalNode(start, input) =>
-          val char = input.asInstanceOf[Inputs.Character].char
-          if (char == '\n') {
-            builder.append("'\\n'")
-          } else {
-            builder.append("'" + char + "'")
-          }
-        //          builder.append('\n')
-        case node: ParseResultTree.BindNode =>
-          //          builder.append(indent)
-          val closingParens = traverseBindNode(node, indent)
-          builder.append(closingParens)
-        //          builder.append(indent + closingParens + "\n")
-        case ParseResultTree.CyclicBindNode(start, end, symbol) => ???
-        case ParseResultTree.JoinNode(symbol, body, join) =>
-          builder.append("join " + symbol.id + "(")
-          traverse(body, indent + "  ")
-          builder.append(")")
-        case seq: ParseResultTree.SequenceNode =>
-          builder.append(seq.symbol.id + "[")
-          seq.children.zipWithIndex.foreach { case (child, idx) =>
-            traverse(child, indent + "  ")
-          }
-          builder.append("]")
-        case ParseResultTree.CyclicSequenceNode(start, end, symbol, pointer, _children) => ???
-      }
+    assert(mainPathsFromNaive == mainPathsFromMile2.keySet)
+    assert(milestonePaths.toSet.subsetOf(pathsMap.keySet))
+    milestonePaths.foreach { path =>
+      val tip = path.head
+      val tipKernel = Kernel(tip.symbolId, tip.pointer, path.drop(1).headOption.map(_.gen).getOrElse(0), tip.gen)
+      val tipCondition = naiveCtx.parsingContext.acceptConditions(tipKernel)
+      assertEqualCondition(tipCondition, pathsMap(path), gen)
     }
-
-    traverse(parseNode, "")
-    builder.result()
   }
 
   def testEqualityBetweenNaive2AndMilestone(naiveParser: NaiveParser2, milestoneParser: MilestoneParser, grammarTestExample: GrammarTestExample): Unit = {
     println(s"naive2-milestone :: ${grammarTestExample.getName} (length=${grammarTestExample.getExample.length})")
     val inputs = Inputs.fromString(grammarTestExample.getExample)
 
+    // milestoneParser.setVerbose()
     var naive2Ctx = naiveParser.initialParsingHistoryContext
     var milestoneCtx = milestoneParser.initialCtx
 
@@ -197,7 +160,8 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
       }
       assertEquals(naive2Ctx.gen, milestoneCtx.gen)
       naive2Ctx = naiveParser.parseStep(naive2Ctx, input).getOrElse(throw new IllegalStateException())
-      milestoneCtx = milestoneParser.parseStep(milestoneCtx, input).getOrElse(throw new IllegalStateException())
+      val milestoneCtx1 = milestoneParser.parseStep(milestoneCtx, input)
+      milestoneCtx = milestoneCtx1.getOrElse(throw new IllegalStateException())
       assertEqualCtx(naiveParser, naive2Ctx, milestoneParser, milestoneCtx)
     }
 
@@ -238,6 +202,7 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
 
   "naive examples" should "work" in {
     NaiveExamplesCatalog.grammarWithExamples.foreach { example =>
+      println(s"::${example.grammar.name}")
       val naiveParser = new NaiveParser2(example.ngrammar)
       val parserData = new MilestoneParserGen(example.ngrammar).parserData()
       val milestoneParser = new MilestoneParser(parserData)
@@ -275,5 +240,9 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
 
   "proto3 grammar" should "work" in {
     generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getProto3)
+  }
+
+  "experimental" should "work" in {
+
   }
 }

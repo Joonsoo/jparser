@@ -52,7 +52,7 @@ object MilestoneAcceptCondition {
       case OrTemplate(conditions) =>
         Or(conditions.map(reify(_, beginGen, gen)).distinct)
       case LookaheadIsTemplate(symbolId, fromNextGen) =>
-        Exists(Milestone(symbolId, 0, gen), fromNextGen)
+        Exists(Milestone(symbolId, 0, gen), checkFromNextGen = fromNextGen)
       case LookaheadNotTemplate(symbolId, fromNextGen) =>
         NotExists(Milestone(symbolId, 0, gen), checkFromNextGen = fromNextGen)
       case LongestTemplate(symbolId, beginFromNextGen) =>

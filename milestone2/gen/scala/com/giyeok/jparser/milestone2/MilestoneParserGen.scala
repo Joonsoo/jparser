@@ -25,11 +25,10 @@ class MilestoneParserGen(val grammar: NGrammar) {
   ): CtxWithTasks = {
     val result = base.runTasksWithProgressBarrier(2, progressTasks, startKernel, ctx)
     val trimmedCtx = parser.trimParsingContext(startKernel, 2, result.ctx)
-    val evolvedAcceptConditions = trimmedCtx.acceptConditions.view.mapValues { cond =>
-      parser.evolveAcceptCondition(cond, 2, result.ctx)
-    }.toMap
 
-    CtxWithTasks(trimmedCtx.copy(acceptConditions = evolvedAcceptConditions), result.tasks, result.startKernelProgressTasks)
+    assert(result.startKernelProgressConditions.isEmpty || result.startKernelProgressConditions.keySet == Set(startKernel))
+
+    result.copy(ctx = trimmedCtx)
   }
 
   // beginGen은 assertion용
@@ -74,18 +73,16 @@ class MilestoneParserGen(val grammar: NGrammar) {
     val pendedCollector = mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])]()
     val lookaheadCollector = mutable.Set[Int]()
     val appendingMilestones = appendingMilestonesForTermAction(result, start, pendedCollector, lookaheadCollector)
-    val startNodeProgressCondition = result.startKernelProgressTasks match {
-      case List() => None
-      case progressTasks =>
-        val conditions = progressTasks.map(_.condition)
-          .map(conditionToTemplateForTermAction(result, _, pendedCollector, lookaheadCollector))
-        Some(AcceptConditionTemplate.disjunct(conditions.toSet))
+    val startNodeProgressCondition = if (result.startKernelProgressConditions.isEmpty) None else {
+      assert(result.startKernelProgressConditions.keySet == Set(start))
+      val condition = result.startKernelProgressConditions(start)
+      Some(conditionToTemplateForTermAction(result, condition, pendedCollector, lookaheadCollector))
     }
     val parsingAction = ParsingAction(
       appendingMilestones = appendingMilestones,
       startNodeProgressCondition = startNodeProgressCondition,
       lookaheadRequiringSymbols = lookaheadCollector.toSet,
-      tasksSummary = result.tasksSummary(0, 1),
+      tasksSummary = result.tasksSummary(1),
     )
     TermAction(parsingAction, pendedCollector.toMap)
   }
@@ -127,15 +124,17 @@ class MilestoneParserGen(val grammar: NGrammar) {
     pendedCollector: mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])],
     lookaheadCollector: mutable.Set[Int],
   ): Unit = {
-    if (!pendedCollector.contains(KernelTemplate(symbolId, 0))) {
+    val startTemplate = KernelTemplate(symbolId, 0)
+    if (!pendedCollector.contains(startTemplate)) {
       val symbolStart = Kernel(symbolId, 0, 1, 1)
       val appendingMilestones = appendingMilestonesForTermAction(result, symbolStart, pendedCollector, lookaheadCollector)
-      val progresses = result.progressTasks.filter(_.kernel == symbolStart)
-      val progressCondition = disjunct(progresses.map(_.condition): _*)
-      val progressConditionTemplate = if (progressCondition == AcceptCondition.Never) None else {
-        Some(conditionToTemplateForTermAction(result, progressCondition, pendedCollector, lookaheadCollector))
+      val progressCondition = result.progressConditions.get(symbolStart)
+      val progressConditionTemplate = progressCondition match {
+        case Some(progressCondition) =>
+          Some(conditionToTemplateForTermAction(result, progressCondition, pendedCollector, lookaheadCollector))
+        case None => None
       }
-      pendedCollector(KernelTemplate(symbolId, 0)) = (appendingMilestones, progressConditionTemplate)
+      pendedCollector(startTemplate) = (appendingMilestones, progressConditionTemplate)
     }
   }
 
@@ -158,35 +157,25 @@ class MilestoneParserGen(val grammar: NGrammar) {
         AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplateForTermAction(result, _, pendedCollector, lookaheadCollector)))
       case AcceptCondition.Or(conditions) =>
         AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplateForTermAction(result, _, pendedCollector, lookaheadCollector)))
-      case AcceptCondition.NotExists(1, 3, symbolId) =>
+      /* 여기서부터 전 세대에서 nullable 심볼에 의해 만들어져서 evolve 이후에도 살아남은 컨디션들 */
+      case AcceptCondition.NotExists(1, 2, symbolId) =>
+        ???
         // longest
-        // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
-        // forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-        // TODO result.progressTasks.filter(_.kernel == Kernel(symbolId, 0, 1, 1)) 에 대한 정보 추가
         addPended(symbolId)
         LongestTemplate(symbolId, beginFromNextGen = false)
-      // TODO 여기서 NotExists(2, 3, symbolId) 가 나올 수 있을까? 그러면 Longest(symbolId, true)가 되면 될 듯 한데..
-      case AcceptCondition.Unless(1, 2, symbolId) =>
-        // except
+      case AcceptCondition.Exists(1, 1, symbolId) =>
+        // copied from old version
+        // lookahead is
         if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
-          // 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(Unless이기 때문) 반환
-          AlwaysTemplate
-        } else {
-          // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
-          addPended(symbolId)
-          UnlessTemplate(symbolId)
-        }
-      case AcceptCondition.OnlyIf(1, 2, symbolId) =>
-        // join
-        if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
-          // ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
+          // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
           NeverTemplate
         } else {
-          // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
           addPended(symbolId)
-          OnlyIfTemplate(symbolId)
+          LookaheadIsTemplate(symbolId, fromNextGen = false)
         }
       case AcceptCondition.NotExists(1, 1, symbolId) =>
+        // copied from old version
+        // lookahead not
         if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
           // ctx를 보고 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(NotExists이기 때문) 반환
           AlwaysTemplate
@@ -194,7 +183,38 @@ class MilestoneParserGen(val grammar: NGrammar) {
           addPended(symbolId)
           LookaheadNotTemplate(symbolId, fromNextGen = false)
         }
+      // Unless와 OnlyIf는 이전 세대에 만들어진 것은 이미 휘발되고 없어야 함
+      // 이런 케이스가 있을 수 있는지 모르겠지만 만약 있다면 그냥 Always를 줘서 없는 것처럼 취급하면 되지 않을까?
+      //      case AcceptCondition.Unless(1, 1, symbolId) =>
+      //        ???
+      //      case AcceptCondition.OnlyIf(1, 1, symbolId) =>
+      //        ???
+      /* 여기서부터 progress task에 의해 새로 추가될 수 있는 컨디션들 */
+      case AcceptCondition.NotExists(1, 3, symbolId) =>
+        // copied from old version
+        // longest
+        // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
+        // forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
+        // TODO result.progressTasks.filter(_.kernel == Kernel(symbolId, 0, 1, 1)) 에 대한 정보 추가
+        addPended(symbolId)
+        LongestTemplate(symbolId, beginFromNextGen = false)
+      case AcceptCondition.NotExists(2, 3, symbolId) =>
+        ???
+        addPended(symbolId)
+        LongestTemplate(symbolId, beginFromNextGen = true)
+      case AcceptCondition.Exists(2, 2, symbolId) =>
+        // copied from old version
+        // lookahead is
+        if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
+          // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
+          NeverTemplate
+        } else {
+          // NotExists와 같은 이유로 forAcceptConditions는 건드릴 필요 없음
+          lookaheadCollector += symbolId
+          LookaheadIsTemplate(symbolId, fromNextGen = true)
+        }
       case AcceptCondition.NotExists(2, 2, symbolId) =>
+        // copied from old version
         // lookahead except
         // - lookahead 심볼은 이미 가망이 없어진 경우가 아니라면 앞으로의 상황만 보기 때문에
         //   start만 있고 appending milestone은 없는(길이가 1인) path를 추가해야 할듯?
@@ -206,25 +226,36 @@ class MilestoneParserGen(val grammar: NGrammar) {
           lookaheadCollector += symbolId
           LookaheadNotTemplate(symbolId, fromNextGen = true)
         }
-      case AcceptCondition.Exists(1, 1, symbolId) =>
-        // lookahead is
+      case AcceptCondition.Unless(1, 2, symbolId) =>
+        // copied from old version
+        // except
         if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
-          // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
-          NeverTemplate
+          // 이미 가능성이 없는 심볼인 경우 AlwaysTemplate(Unless이기 때문) 반환
+          AlwaysTemplate
         } else {
+          // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
           addPended(symbolId)
-          LookaheadIsTemplate(symbolId, fromNextGen = false)
+          UnlessTemplate(symbolId, fromNextGen = false)
         }
-      case AcceptCondition.Exists(2, 2, symbolId) =>
-        // lookahead is
-        if (cannotExist(Kernel(symbolId, 0, 2, 2))) {
-          // ctx를 보고 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
+      case AcceptCondition.OnlyIf(1, 2, symbolId) =>
+        // copied from old version
+        // join
+        if (cannotExist(Kernel(symbolId, 0, 1, 1))) {
+          // ctx를 보고 혹시 이미 가능성이 없는 심볼인 경우 NeverTemplate 반환
           NeverTemplate
         } else {
-          // NotExists와 같은 이유로 forAcceptConditions는 건드릴 필요 없음
-          lookaheadCollector += symbolId
-          LookaheadIsTemplate(symbolId, fromNextGen = true)
+          // 아직 가능성이 있으면 forAcceptConditions에 KernelTemplate(beginGen, 0)에 대한 정보 추가
+          addPended(symbolId)
+          OnlyIfTemplate(symbolId, fromNextGen = false)
         }
+      case AcceptCondition.Unless(2, 2, symbolId) =>
+        ???
+        // TODO addPended나 lookaheadCollector += symbolId가 필요할까?
+        UnlessTemplate(symbolId, fromNextGen = true)
+      case AcceptCondition.OnlyIf(2, 2, symbolId) =>
+        ???
+        // TODO addPended나 lookaheadCollector += symbolId가 필요할까?
+        OnlyIfTemplate(symbolId, fromNextGen = true)
     }
   }
 
@@ -293,18 +324,16 @@ class MilestoneParserGen(val grammar: NGrammar) {
     val edgeRequires = mutable.Set[Int]()
     val lookaheadCollector = mutable.Set[Int]()
     val appendingMilestones = appendingMilestonesForEdgeAction(result, start, edgeRequires, lookaheadCollector)
-    val startNodeProgressCondition = result.startKernelProgressTasks match {
-      case List() => None
-      case progressTasks =>
-        val conditions = progressTasks.map(_.condition)
-          .map(conditionToTemplateForEdgeAction(result, _, edgeRequires, lookaheadCollector))
-        Some(AcceptConditionTemplate.disjunct(conditions.toSet))
+    val startNodeProgressCondition = if (result.startKernelProgressConditions.isEmpty) None else {
+      assert(result.startKernelProgressConditions.keySet == Set(start))
+      val condition = result.startKernelProgressConditions(start)
+      Some(conditionToTemplateForEdgeAction(result, condition, edgeRequires, lookaheadCollector))
     }
     val parsingAction = ParsingAction(
       appendingMilestones = appendingMilestones,
       startNodeProgressCondition = startNodeProgressCondition,
       lookaheadRequiringSymbols = lookaheadCollector.toSet,
-      tasksSummary = result.tasksSummary(0, 1),
+      tasksSummary = result.tasksSummary(0),
     )
     EdgeAction(parsingAction, edgeRequires.toSet)
   }
@@ -323,37 +352,72 @@ class MilestoneParserGen(val grammar: NGrammar) {
         AcceptConditionTemplate.conjunct(conditions.map(conditionToTemplateForEdgeAction(result, _, needsToKeep, lookaheadCollector)))
       case AcceptCondition.Or(conditions) =>
         AcceptConditionTemplate.disjunct(conditions.map(conditionToTemplateForEdgeAction(result, _, needsToKeep, lookaheadCollector)))
+      /* 여기서부터 전 세대에서 nullable 심볼에 의해 만들어져서 evolve 이후에도 살아남은 컨디션들 */
+      case AcceptCondition.NotExists(0, 1, symbolId) =>
+        // new
+        ???
+        needsToKeep += symbolId
+        LongestTemplate(symbolId, beginFromNextGen = false)
+      case AcceptCondition.Exists(0, 0, symbolId) =>
+        // copied from old version
+        // TODO verify
+        needsToKeep += symbolId
+        LookaheadIsTemplate(symbolId, fromNextGen = false)
+      case AcceptCondition.NotExists(0, 0, symbolId) =>
+        // copied from old version
+        // TODO verify
+        needsToKeep += symbolId
+        LookaheadNotTemplate(symbolId, fromNextGen = false)
+      // conditionToTemplateForTermAction 주석 참고
+      //      case AcceptCondition.Unless(0, 0, symbolId) =>
+      //        ???
+      //      case AcceptCondition.OnlyIf(0, 0, symbolId) =>
+      //        ???
+      /* 여기서부터 progress task에 의해 새로 추가될 수 있는 컨디션들 */
       case AcceptCondition.NotExists(0, 3, symbolId) =>
+        // copied from old version
         // longest
         // longest는 일단 다음 gen부터 체크되므로 가능성이 없어질 가능성(반환값이 달라지는 경우)은 없음
         needsToKeep += symbolId
         LongestTemplate(symbolId, beginFromNextGen = false)
-      case AcceptCondition.Unless(0, 2, symbolId) =>
-        // except
+      case AcceptCondition.NotExists(2, 3, symbolId) =>
+        // new
+        ???
+        // longest with nullable symbol
         needsToKeep += symbolId
-        UnlessTemplate(symbolId)
-      case AcceptCondition.OnlyIf(0, 2, symbolId) =>
-        // join
-        needsToKeep += symbolId
-        OnlyIfTemplate(symbolId)
-      case AcceptCondition.NotExists(0, 0, symbolId) =>
-        // TODO
-        needsToKeep += symbolId
-        LookaheadNotTemplate(symbolId, fromNextGen = false)
-      case AcceptCondition.NotExists(2, 2, symbolId) =>
-        // TODO
-        // lookahead except
-        lookaheadCollector += symbolId
-        LookaheadNotTemplate(symbolId, fromNextGen = true)
-      case AcceptCondition.Exists(0, 0, symbolId) =>
-        // TODO
-        needsToKeep += symbolId
-        LookaheadIsTemplate(symbolId, fromNextGen = false)
+        LongestTemplate(symbolId, beginFromNextGen = true)
       case AcceptCondition.Exists(2, 2, symbolId) =>
-        // TODO
+        // copied from old version
+        // TODO verify
         // lookahead is
         lookaheadCollector += symbolId
         LookaheadIsTemplate(symbolId, fromNextGen = true)
+      case AcceptCondition.NotExists(2, 2, symbolId) =>
+        // copied from old version
+        // TODO verify
+        // lookahead except
+        lookaheadCollector += symbolId
+        LookaheadNotTemplate(symbolId, fromNextGen = true)
+      case AcceptCondition.Unless(0, 2, symbolId) =>
+        // copied from old version
+        // except
+        needsToKeep += symbolId
+        UnlessTemplate(symbolId, fromNextGen = false)
+      case AcceptCondition.OnlyIf(0, 2, symbolId) =>
+        // copied from old version
+        // join
+        needsToKeep += symbolId
+        OnlyIfTemplate(symbolId, fromNextGen = false)
+      case AcceptCondition.Unless(2, 2, symbolId) =>
+        // new
+        ???
+        needsToKeep += symbolId
+        UnlessTemplate(symbolId, fromNextGen = true)
+      case AcceptCondition.OnlyIf(2, 2, symbolId) =>
+        // new
+        ???
+        needsToKeep += symbolId
+        OnlyIfTemplate(symbolId, fromNextGen = true)
     }
   }
 
@@ -448,7 +512,7 @@ class MilestoneParserGen(val grammar: NGrammar) {
     val start = KernelTemplate(grammar.startSymbol, 0)
     val startingCtx = base.startingCtxFrom(start, 0)
 
-    val builder = new MilestoneParserDataBuilder(grammar, startingCtx._2.tasksSummary(0, 0))
+    val builder = new MilestoneParserDataBuilder(grammar, startingCtx._2.tasksSummary(0))
     createParserData(Jobs(Set(start), Set()), builder)
     builder.build()
   }

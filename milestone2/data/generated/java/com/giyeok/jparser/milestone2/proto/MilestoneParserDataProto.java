@@ -177,6 +177,10 @@ public final class MilestoneParserDataProto {
           int index);
     }
     /**
+     * <pre>
+     * TODO initial_gen_actions
+     * </pre>
+     *
      * Protobuf type {@code com.giyeok.jparser.milestone2.proto.Milestone2ParserData.TermActionPair}
      */
     public static final class TermActionPair extends
@@ -2745,6 +2749,10 @@ public final class MilestoneParserDataProto {
         return builder;
       }
       /**
+       * <pre>
+       * TODO initial_gen_actions
+       * </pre>
+       *
        * Protobuf type {@code com.giyeok.jparser.milestone2.proto.Milestone2ParserData.TermActionPair}
        */
       public static final class Builder extends
@@ -11360,6 +11368,28 @@ public final class MilestoneParserDataProto {
     int getDeprecatedLongest();
 
     /**
+     * <code>int32 deprecated_only_if = 8;</code>
+     * @return Whether the deprecatedOnlyIf field is set.
+     */
+    boolean hasDeprecatedOnlyIf();
+    /**
+     * <code>int32 deprecated_only_if = 8;</code>
+     * @return The deprecatedOnlyIf.
+     */
+    int getDeprecatedOnlyIf();
+
+    /**
+     * <code>int32 deprecated_unless = 9;</code>
+     * @return Whether the deprecatedUnless field is set.
+     */
+    boolean hasDeprecatedUnless();
+    /**
+     * <code>int32 deprecated_unless = 9;</code>
+     * @return The deprecatedUnless.
+     */
+    int getDeprecatedUnless();
+
+    /**
      * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
      * @return Whether the longest field is set.
      */
@@ -11375,26 +11405,34 @@ public final class MilestoneParserDataProto {
     com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplateOrBuilder getLongestOrBuilder();
 
     /**
-     * <code>int32 only_if = 8;</code>
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
      * @return Whether the onlyIf field is set.
      */
     boolean hasOnlyIf();
     /**
-     * <code>int32 only_if = 8;</code>
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
      * @return The onlyIf.
      */
-    int getOnlyIf();
+    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate getOnlyIf();
+    /**
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
+     */
+    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder getOnlyIfOrBuilder();
 
     /**
-     * <code>int32 unless = 9;</code>
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
      * @return Whether the unless field is set.
      */
     boolean hasUnless();
     /**
-     * <code>int32 unless = 9;</code>
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
      * @return The unless.
      */
-    int getUnless();
+    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate getUnless();
+    /**
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
+     */
+    com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplateOrBuilder getUnlessOrBuilder();
 
     com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase getConditionCase();
   }
@@ -13455,10 +13493,10 @@ public final class MilestoneParserDataProto {
       int getSymbolId();
 
       /**
-       * <code>bool begin_from_next_gen = 2;</code>
-       * @return The beginFromNextGen.
+       * <code>bool from_next_gen = 2;</code>
+       * @return The fromNextGen.
        */
-      boolean getBeginFromNextGen();
+      boolean getFromNextGen();
     }
     /**
      * Protobuf type {@code com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate}
@@ -13506,15 +13544,15 @@ public final class MilestoneParserDataProto {
         return symbolId_;
       }
 
-      public static final int BEGIN_FROM_NEXT_GEN_FIELD_NUMBER = 2;
-      private boolean beginFromNextGen_ = false;
+      public static final int FROM_NEXT_GEN_FIELD_NUMBER = 2;
+      private boolean fromNextGen_ = false;
       /**
-       * <code>bool begin_from_next_gen = 2;</code>
-       * @return The beginFromNextGen.
+       * <code>bool from_next_gen = 2;</code>
+       * @return The fromNextGen.
        */
       @java.lang.Override
-      public boolean getBeginFromNextGen() {
-        return beginFromNextGen_;
+      public boolean getFromNextGen() {
+        return fromNextGen_;
       }
 
       private byte memoizedIsInitialized = -1;
@@ -13534,8 +13572,8 @@ public final class MilestoneParserDataProto {
         if (symbolId_ != 0) {
           output.writeInt32(1, symbolId_);
         }
-        if (beginFromNextGen_ != false) {
-          output.writeBool(2, beginFromNextGen_);
+        if (fromNextGen_ != false) {
+          output.writeBool(2, fromNextGen_);
         }
         getUnknownFields().writeTo(output);
       }
@@ -13550,9 +13588,9 @@ public final class MilestoneParserDataProto {
           size += com.google.protobuf.CodedOutputStream
             .computeInt32Size(1, symbolId_);
         }
-        if (beginFromNextGen_ != false) {
+        if (fromNextGen_ != false) {
           size += com.google.protobuf.CodedOutputStream
-            .computeBoolSize(2, beginFromNextGen_);
+            .computeBoolSize(2, fromNextGen_);
         }
         size += getUnknownFields().getSerializedSize();
         memoizedSize = size;
@@ -13571,8 +13609,8 @@ public final class MilestoneParserDataProto {
 
         if (getSymbolId()
             != other.getSymbolId()) return false;
-        if (getBeginFromNextGen()
-            != other.getBeginFromNextGen()) return false;
+        if (getFromNextGen()
+            != other.getFromNextGen()) return false;
         if (!getUnknownFields().equals(other.getUnknownFields())) return false;
         return true;
       }
@@ -13586,9 +13624,9 @@ public final class MilestoneParserDataProto {
         hash = (19 * hash) + getDescriptor().hashCode();
         hash = (37 * hash) + SYMBOL_ID_FIELD_NUMBER;
         hash = (53 * hash) + getSymbolId();
-        hash = (37 * hash) + BEGIN_FROM_NEXT_GEN_FIELD_NUMBER;
+        hash = (37 * hash) + FROM_NEXT_GEN_FIELD_NUMBER;
         hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-            getBeginFromNextGen());
+            getFromNextGen());
         hash = (29 * hash) + getUnknownFields().hashCode();
         memoizedHashCode = hash;
         return hash;
@@ -13719,7 +13757,7 @@ public final class MilestoneParserDataProto {
           super.clear();
           bitField0_ = 0;
           symbolId_ = 0;
-          beginFromNextGen_ = false;
+          fromNextGen_ = false;
           return this;
         }
 
@@ -13757,7 +13795,7 @@ public final class MilestoneParserDataProto {
             result.symbolId_ = symbolId_;
           }
           if (((from_bitField0_ & 0x00000002) != 0)) {
-            result.beginFromNextGen_ = beginFromNextGen_;
+            result.fromNextGen_ = fromNextGen_;
           }
         }
 
@@ -13776,8 +13814,8 @@ public final class MilestoneParserDataProto {
           if (other.getSymbolId() != 0) {
             setSymbolId(other.getSymbolId());
           }
-          if (other.getBeginFromNextGen() != false) {
-            setBeginFromNextGen(other.getBeginFromNextGen());
+          if (other.getFromNextGen() != false) {
+            setFromNextGen(other.getFromNextGen());
           }
           this.mergeUnknownFields(other.getUnknownFields());
           onChanged();
@@ -13811,7 +13849,7 @@ public final class MilestoneParserDataProto {
                   break;
                 } // case 8
                 case 16: {
-                  beginFromNextGen_ = input.readBool();
+                  fromNextGen_ = input.readBool();
                   bitField0_ |= 0x00000002;
                   break;
                 } // case 16
@@ -13864,34 +13902,34 @@ public final class MilestoneParserDataProto {
           return this;
         }
 
-        private boolean beginFromNextGen_ ;
+        private boolean fromNextGen_ ;
         /**
-         * <code>bool begin_from_next_gen = 2;</code>
-         * @return The beginFromNextGen.
+         * <code>bool from_next_gen = 2;</code>
+         * @return The fromNextGen.
          */
         @java.lang.Override
-        public boolean getBeginFromNextGen() {
-          return beginFromNextGen_;
+        public boolean getFromNextGen() {
+          return fromNextGen_;
         }
         /**
-         * <code>bool begin_from_next_gen = 2;</code>
-         * @param value The beginFromNextGen to set.
+         * <code>bool from_next_gen = 2;</code>
+         * @param value The fromNextGen to set.
          * @return This builder for chaining.
          */
-        public Builder setBeginFromNextGen(boolean value) {
+        public Builder setFromNextGen(boolean value) {
 
-          beginFromNextGen_ = value;
+          fromNextGen_ = value;
           bitField0_ |= 0x00000002;
           onChanged();
           return this;
         }
         /**
-         * <code>bool begin_from_next_gen = 2;</code>
+         * <code>bool from_next_gen = 2;</code>
          * @return This builder for chaining.
          */
-        public Builder clearBeginFromNextGen() {
+        public Builder clearFromNextGen() {
           bitField0_ = (bitField0_ & ~0x00000002);
-          beginFromNextGen_ = false;
+          fromNextGen_ = false;
           onChanged();
           return this;
         }
@@ -13959,6 +13997,1036 @@ public final class MilestoneParserDataProto {
 
     }
 
+    public interface OnlyIfTemplateOrBuilder extends
+        // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate)
+        com.google.protobuf.MessageOrBuilder {
+
+      /**
+       * <code>int32 symbol_id = 1;</code>
+       * @return The symbolId.
+       */
+      int getSymbolId();
+
+      /**
+       * <code>bool from_next_gen = 2;</code>
+       * @return The fromNextGen.
+       */
+      boolean getFromNextGen();
+    }
+    /**
+     * Protobuf type {@code com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate}
+     */
+    public static final class OnlyIfTemplate extends
+        com.google.protobuf.GeneratedMessageV3 implements
+        // @@protoc_insertion_point(message_implements:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate)
+        OnlyIfTemplateOrBuilder {
+    private static final long serialVersionUID = 0L;
+      // Use OnlyIfTemplate.newBuilder() to construct.
+      private OnlyIfTemplate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+        super(builder);
+      }
+      private OnlyIfTemplate() {
+      }
+
+      @java.lang.Override
+      @SuppressWarnings({"unused"})
+      protected java.lang.Object newInstance(
+          UnusedPrivateParameter unused) {
+        return new OnlyIfTemplate();
+      }
+
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_OnlyIfTemplate_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.class, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.Builder.class);
+      }
+
+      public static final int SYMBOL_ID_FIELD_NUMBER = 1;
+      private int symbolId_ = 0;
+      /**
+       * <code>int32 symbol_id = 1;</code>
+       * @return The symbolId.
+       */
+      @java.lang.Override
+      public int getSymbolId() {
+        return symbolId_;
+      }
+
+      public static final int FROM_NEXT_GEN_FIELD_NUMBER = 2;
+      private boolean fromNextGen_ = false;
+      /**
+       * <code>bool from_next_gen = 2;</code>
+       * @return The fromNextGen.
+       */
+      @java.lang.Override
+      public boolean getFromNextGen() {
+        return fromNextGen_;
+      }
+
+      private byte memoizedIsInitialized = -1;
+      @java.lang.Override
+      public final boolean isInitialized() {
+        byte isInitialized = memoizedIsInitialized;
+        if (isInitialized == 1) return true;
+        if (isInitialized == 0) return false;
+
+        memoizedIsInitialized = 1;
+        return true;
+      }
+
+      @java.lang.Override
+      public void writeTo(com.google.protobuf.CodedOutputStream output)
+                          throws java.io.IOException {
+        if (symbolId_ != 0) {
+          output.writeInt32(1, symbolId_);
+        }
+        if (fromNextGen_ != false) {
+          output.writeBool(2, fromNextGen_);
+        }
+        getUnknownFields().writeTo(output);
+      }
+
+      @java.lang.Override
+      public int getSerializedSize() {
+        int size = memoizedSize;
+        if (size != -1) return size;
+
+        size = 0;
+        if (symbolId_ != 0) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeInt32Size(1, symbolId_);
+        }
+        if (fromNextGen_ != false) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeBoolSize(2, fromNextGen_);
+        }
+        size += getUnknownFields().getSerializedSize();
+        memoizedSize = size;
+        return size;
+      }
+
+      @java.lang.Override
+      public boolean equals(final java.lang.Object obj) {
+        if (obj == this) {
+         return true;
+        }
+        if (!(obj instanceof com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate)) {
+          return super.equals(obj);
+        }
+        com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate other = (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate) obj;
+
+        if (getSymbolId()
+            != other.getSymbolId()) return false;
+        if (getFromNextGen()
+            != other.getFromNextGen()) return false;
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
+        return true;
+      }
+
+      @java.lang.Override
+      public int hashCode() {
+        if (memoizedHashCode != 0) {
+          return memoizedHashCode;
+        }
+        int hash = 41;
+        hash = (19 * hash) + getDescriptor().hashCode();
+        hash = (37 * hash) + SYMBOL_ID_FIELD_NUMBER;
+        hash = (53 * hash) + getSymbolId();
+        hash = (37 * hash) + FROM_NEXT_GEN_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getFromNextGen());
+        hash = (29 * hash) + getUnknownFields().hashCode();
+        memoizedHashCode = hash;
+        return hash;
+      }
+
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
+          java.nio.ByteBuffer data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
+          java.nio.ByteBuffer data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
+          com.google.protobuf.ByteString data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
+          com.google.protobuf.ByteString data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(byte[] data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
+          byte[] data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseDelimitedFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseDelimitedFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
+          com.google.protobuf.CodedInputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate parseFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+
+      @java.lang.Override
+      public Builder newBuilderForType() { return newBuilder(); }
+      public static Builder newBuilder() {
+        return DEFAULT_INSTANCE.toBuilder();
+      }
+      public static Builder newBuilder(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate prototype) {
+        return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+      }
+      @java.lang.Override
+      public Builder toBuilder() {
+        return this == DEFAULT_INSTANCE
+            ? new Builder() : new Builder().mergeFrom(this);
+      }
+
+      @java.lang.Override
+      protected Builder newBuilderForType(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        Builder builder = new Builder(parent);
+        return builder;
+      }
+      /**
+       * Protobuf type {@code com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate}
+       */
+      public static final class Builder extends
+          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+          // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate)
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder {
+        public static final com.google.protobuf.Descriptors.Descriptor
+            getDescriptor() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor;
+        }
+
+        @java.lang.Override
+        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+            internalGetFieldAccessorTable() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_OnlyIfTemplate_fieldAccessorTable
+              .ensureFieldAccessorsInitialized(
+                  com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.class, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.Builder.class);
+        }
+
+        // Construct using com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.newBuilder()
+        private Builder() {
+
+        }
+
+        private Builder(
+            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+          super(parent);
+
+        }
+        @java.lang.Override
+        public Builder clear() {
+          super.clear();
+          bitField0_ = 0;
+          symbolId_ = 0;
+          fromNextGen_ = false;
+          return this;
+        }
+
+        @java.lang.Override
+        public com.google.protobuf.Descriptors.Descriptor
+            getDescriptorForType() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate getDefaultInstanceForType() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate build() {
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate result = buildPartial();
+          if (!result.isInitialized()) {
+            throw newUninitializedMessageException(result);
+          }
+          return result;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate buildPartial() {
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate result = new com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate(this);
+          if (bitField0_ != 0) { buildPartial0(result); }
+          onBuilt();
+          return result;
+        }
+
+        private void buildPartial0(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate result) {
+          int from_bitField0_ = bitField0_;
+          if (((from_bitField0_ & 0x00000001) != 0)) {
+            result.symbolId_ = symbolId_;
+          }
+          if (((from_bitField0_ & 0x00000002) != 0)) {
+            result.fromNextGen_ = fromNextGen_;
+          }
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(com.google.protobuf.Message other) {
+          if (other instanceof com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate) {
+            return mergeFrom((com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate)other);
+          } else {
+            super.mergeFrom(other);
+            return this;
+          }
+        }
+
+        public Builder mergeFrom(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate other) {
+          if (other == com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance()) return this;
+          if (other.getSymbolId() != 0) {
+            setSymbolId(other.getSymbolId());
+          }
+          if (other.getFromNextGen() != false) {
+            setFromNextGen(other.getFromNextGen());
+          }
+          this.mergeUnknownFields(other.getUnknownFields());
+          onChanged();
+          return this;
+        }
+
+        @java.lang.Override
+        public final boolean isInitialized() {
+          return true;
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws java.io.IOException {
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
+          }
+          try {
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 8: {
+                  symbolId_ = input.readInt32();
+                  bitField0_ |= 0x00000001;
+                  break;
+                } // case 8
+                case 16: {
+                  fromNextGen_ = input.readBool();
+                  bitField0_ |= 0x00000002;
+                  break;
+                } // case 16
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.unwrapIOException();
+          } finally {
+            onChanged();
+          } // finally
+          return this;
+        }
+        private int bitField0_;
+
+        private int symbolId_ ;
+        /**
+         * <code>int32 symbol_id = 1;</code>
+         * @return The symbolId.
+         */
+        @java.lang.Override
+        public int getSymbolId() {
+          return symbolId_;
+        }
+        /**
+         * <code>int32 symbol_id = 1;</code>
+         * @param value The symbolId to set.
+         * @return This builder for chaining.
+         */
+        public Builder setSymbolId(int value) {
+
+          symbolId_ = value;
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>int32 symbol_id = 1;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearSymbolId() {
+          bitField0_ = (bitField0_ & ~0x00000001);
+          symbolId_ = 0;
+          onChanged();
+          return this;
+        }
+
+        private boolean fromNextGen_ ;
+        /**
+         * <code>bool from_next_gen = 2;</code>
+         * @return The fromNextGen.
+         */
+        @java.lang.Override
+        public boolean getFromNextGen() {
+          return fromNextGen_;
+        }
+        /**
+         * <code>bool from_next_gen = 2;</code>
+         * @param value The fromNextGen to set.
+         * @return This builder for chaining.
+         */
+        public Builder setFromNextGen(boolean value) {
+
+          fromNextGen_ = value;
+          bitField0_ |= 0x00000002;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>bool from_next_gen = 2;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearFromNextGen() {
+          bitField0_ = (bitField0_ & ~0x00000002);
+          fromNextGen_ = false;
+          onChanged();
+          return this;
+        }
+        @java.lang.Override
+        public final Builder setUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.setUnknownFields(unknownFields);
+        }
+
+        @java.lang.Override
+        public final Builder mergeUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.mergeUnknownFields(unknownFields);
+        }
+
+
+        // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate)
+      }
+
+      // @@protoc_insertion_point(class_scope:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate)
+      private static final com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate DEFAULT_INSTANCE;
+      static {
+        DEFAULT_INSTANCE = new com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate();
+      }
+
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate getDefaultInstance() {
+        return DEFAULT_INSTANCE;
+      }
+
+      private static final com.google.protobuf.Parser<OnlyIfTemplate>
+          PARSER = new com.google.protobuf.AbstractParser<OnlyIfTemplate>() {
+        @java.lang.Override
+        public OnlyIfTemplate parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
+        }
+      };
+
+      public static com.google.protobuf.Parser<OnlyIfTemplate> parser() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<OnlyIfTemplate> getParserForType() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate getDefaultInstanceForType() {
+        return DEFAULT_INSTANCE;
+      }
+
+    }
+
+    public interface UnlessTemplateOrBuilder extends
+        // @@protoc_insertion_point(interface_extends:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate)
+        com.google.protobuf.MessageOrBuilder {
+
+      /**
+       * <code>int32 symbol_id = 1;</code>
+       * @return The symbolId.
+       */
+      int getSymbolId();
+
+      /**
+       * <code>bool from_next_gen = 2;</code>
+       * @return The fromNextGen.
+       */
+      boolean getFromNextGen();
+    }
+    /**
+     * Protobuf type {@code com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate}
+     */
+    public static final class UnlessTemplate extends
+        com.google.protobuf.GeneratedMessageV3 implements
+        // @@protoc_insertion_point(message_implements:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate)
+        UnlessTemplateOrBuilder {
+    private static final long serialVersionUID = 0L;
+      // Use UnlessTemplate.newBuilder() to construct.
+      private UnlessTemplate(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+        super(builder);
+      }
+      private UnlessTemplate() {
+      }
+
+      @java.lang.Override
+      @SuppressWarnings({"unused"})
+      protected java.lang.Object newInstance(
+          UnusedPrivateParameter unused) {
+        return new UnlessTemplate();
+      }
+
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_UnlessTemplate_descriptor;
+      }
+
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_UnlessTemplate_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.class, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.Builder.class);
+      }
+
+      public static final int SYMBOL_ID_FIELD_NUMBER = 1;
+      private int symbolId_ = 0;
+      /**
+       * <code>int32 symbol_id = 1;</code>
+       * @return The symbolId.
+       */
+      @java.lang.Override
+      public int getSymbolId() {
+        return symbolId_;
+      }
+
+      public static final int FROM_NEXT_GEN_FIELD_NUMBER = 2;
+      private boolean fromNextGen_ = false;
+      /**
+       * <code>bool from_next_gen = 2;</code>
+       * @return The fromNextGen.
+       */
+      @java.lang.Override
+      public boolean getFromNextGen() {
+        return fromNextGen_;
+      }
+
+      private byte memoizedIsInitialized = -1;
+      @java.lang.Override
+      public final boolean isInitialized() {
+        byte isInitialized = memoizedIsInitialized;
+        if (isInitialized == 1) return true;
+        if (isInitialized == 0) return false;
+
+        memoizedIsInitialized = 1;
+        return true;
+      }
+
+      @java.lang.Override
+      public void writeTo(com.google.protobuf.CodedOutputStream output)
+                          throws java.io.IOException {
+        if (symbolId_ != 0) {
+          output.writeInt32(1, symbolId_);
+        }
+        if (fromNextGen_ != false) {
+          output.writeBool(2, fromNextGen_);
+        }
+        getUnknownFields().writeTo(output);
+      }
+
+      @java.lang.Override
+      public int getSerializedSize() {
+        int size = memoizedSize;
+        if (size != -1) return size;
+
+        size = 0;
+        if (symbolId_ != 0) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeInt32Size(1, symbolId_);
+        }
+        if (fromNextGen_ != false) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeBoolSize(2, fromNextGen_);
+        }
+        size += getUnknownFields().getSerializedSize();
+        memoizedSize = size;
+        return size;
+      }
+
+      @java.lang.Override
+      public boolean equals(final java.lang.Object obj) {
+        if (obj == this) {
+         return true;
+        }
+        if (!(obj instanceof com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate)) {
+          return super.equals(obj);
+        }
+        com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate other = (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate) obj;
+
+        if (getSymbolId()
+            != other.getSymbolId()) return false;
+        if (getFromNextGen()
+            != other.getFromNextGen()) return false;
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
+        return true;
+      }
+
+      @java.lang.Override
+      public int hashCode() {
+        if (memoizedHashCode != 0) {
+          return memoizedHashCode;
+        }
+        int hash = 41;
+        hash = (19 * hash) + getDescriptor().hashCode();
+        hash = (37 * hash) + SYMBOL_ID_FIELD_NUMBER;
+        hash = (53 * hash) + getSymbolId();
+        hash = (37 * hash) + FROM_NEXT_GEN_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getFromNextGen());
+        hash = (29 * hash) + getUnknownFields().hashCode();
+        memoizedHashCode = hash;
+        return hash;
+      }
+
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseFrom(
+          java.nio.ByteBuffer data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseFrom(
+          java.nio.ByteBuffer data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseFrom(
+          com.google.protobuf.ByteString data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseFrom(
+          com.google.protobuf.ByteString data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseFrom(byte[] data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseFrom(
+          byte[] data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseDelimitedFrom(java.io.InputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseDelimitedFrom(
+          java.io.InputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseFrom(
+          com.google.protobuf.CodedInputStream input)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
+      }
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate parseFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
+      }
+
+      @java.lang.Override
+      public Builder newBuilderForType() { return newBuilder(); }
+      public static Builder newBuilder() {
+        return DEFAULT_INSTANCE.toBuilder();
+      }
+      public static Builder newBuilder(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate prototype) {
+        return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+      }
+      @java.lang.Override
+      public Builder toBuilder() {
+        return this == DEFAULT_INSTANCE
+            ? new Builder() : new Builder().mergeFrom(this);
+      }
+
+      @java.lang.Override
+      protected Builder newBuilderForType(
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        Builder builder = new Builder(parent);
+        return builder;
+      }
+      /**
+       * Protobuf type {@code com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate}
+       */
+      public static final class Builder extends
+          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
+          // @@protoc_insertion_point(builder_implements:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate)
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplateOrBuilder {
+        public static final com.google.protobuf.Descriptors.Descriptor
+            getDescriptor() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_UnlessTemplate_descriptor;
+        }
+
+        @java.lang.Override
+        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+            internalGetFieldAccessorTable() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_UnlessTemplate_fieldAccessorTable
+              .ensureFieldAccessorsInitialized(
+                  com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.class, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.Builder.class);
+        }
+
+        // Construct using com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.newBuilder()
+        private Builder() {
+
+        }
+
+        private Builder(
+            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+          super(parent);
+
+        }
+        @java.lang.Override
+        public Builder clear() {
+          super.clear();
+          bitField0_ = 0;
+          symbolId_ = 0;
+          fromNextGen_ = false;
+          return this;
+        }
+
+        @java.lang.Override
+        public com.google.protobuf.Descriptors.Descriptor
+            getDescriptorForType() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_UnlessTemplate_descriptor;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate getDefaultInstanceForType() {
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate build() {
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate result = buildPartial();
+          if (!result.isInitialized()) {
+            throw newUninitializedMessageException(result);
+          }
+          return result;
+        }
+
+        @java.lang.Override
+        public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate buildPartial() {
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate result = new com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate(this);
+          if (bitField0_ != 0) { buildPartial0(result); }
+          onBuilt();
+          return result;
+        }
+
+        private void buildPartial0(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate result) {
+          int from_bitField0_ = bitField0_;
+          if (((from_bitField0_ & 0x00000001) != 0)) {
+            result.symbolId_ = symbolId_;
+          }
+          if (((from_bitField0_ & 0x00000002) != 0)) {
+            result.fromNextGen_ = fromNextGen_;
+          }
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(com.google.protobuf.Message other) {
+          if (other instanceof com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate) {
+            return mergeFrom((com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate)other);
+          } else {
+            super.mergeFrom(other);
+            return this;
+          }
+        }
+
+        public Builder mergeFrom(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate other) {
+          if (other == com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance()) return this;
+          if (other.getSymbolId() != 0) {
+            setSymbolId(other.getSymbolId());
+          }
+          if (other.getFromNextGen() != false) {
+            setFromNextGen(other.getFromNextGen());
+          }
+          this.mergeUnknownFields(other.getUnknownFields());
+          onChanged();
+          return this;
+        }
+
+        @java.lang.Override
+        public final boolean isInitialized() {
+          return true;
+        }
+
+        @java.lang.Override
+        public Builder mergeFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws java.io.IOException {
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
+          }
+          try {
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 8: {
+                  symbolId_ = input.readInt32();
+                  bitField0_ |= 0x00000001;
+                  break;
+                } // case 8
+                case 16: {
+                  fromNextGen_ = input.readBool();
+                  bitField0_ |= 0x00000002;
+                  break;
+                } // case 16
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.unwrapIOException();
+          } finally {
+            onChanged();
+          } // finally
+          return this;
+        }
+        private int bitField0_;
+
+        private int symbolId_ ;
+        /**
+         * <code>int32 symbol_id = 1;</code>
+         * @return The symbolId.
+         */
+        @java.lang.Override
+        public int getSymbolId() {
+          return symbolId_;
+        }
+        /**
+         * <code>int32 symbol_id = 1;</code>
+         * @param value The symbolId to set.
+         * @return This builder for chaining.
+         */
+        public Builder setSymbolId(int value) {
+
+          symbolId_ = value;
+          bitField0_ |= 0x00000001;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>int32 symbol_id = 1;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearSymbolId() {
+          bitField0_ = (bitField0_ & ~0x00000001);
+          symbolId_ = 0;
+          onChanged();
+          return this;
+        }
+
+        private boolean fromNextGen_ ;
+        /**
+         * <code>bool from_next_gen = 2;</code>
+         * @return The fromNextGen.
+         */
+        @java.lang.Override
+        public boolean getFromNextGen() {
+          return fromNextGen_;
+        }
+        /**
+         * <code>bool from_next_gen = 2;</code>
+         * @param value The fromNextGen to set.
+         * @return This builder for chaining.
+         */
+        public Builder setFromNextGen(boolean value) {
+
+          fromNextGen_ = value;
+          bitField0_ |= 0x00000002;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>bool from_next_gen = 2;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearFromNextGen() {
+          bitField0_ = (bitField0_ & ~0x00000002);
+          fromNextGen_ = false;
+          onChanged();
+          return this;
+        }
+        @java.lang.Override
+        public final Builder setUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.setUnknownFields(unknownFields);
+        }
+
+        @java.lang.Override
+        public final Builder mergeUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.mergeUnknownFields(unknownFields);
+        }
+
+
+        // @@protoc_insertion_point(builder_scope:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate)
+      }
+
+      // @@protoc_insertion_point(class_scope:com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate)
+      private static final com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate DEFAULT_INSTANCE;
+      static {
+        DEFAULT_INSTANCE = new com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate();
+      }
+
+      public static com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate getDefaultInstance() {
+        return DEFAULT_INSTANCE;
+      }
+
+      private static final com.google.protobuf.Parser<UnlessTemplate>
+          PARSER = new com.google.protobuf.AbstractParser<UnlessTemplate>() {
+        @java.lang.Override
+        public UnlessTemplate parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
+        }
+      };
+
+      public static com.google.protobuf.Parser<UnlessTemplate> parser() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<UnlessTemplate> getParserForType() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate getDefaultInstanceForType() {
+        return DEFAULT_INSTANCE;
+      }
+
+    }
+
     private int conditionCase_ = 0;
     @SuppressWarnings("serial")
     private java.lang.Object condition_;
@@ -13972,9 +15040,11 @@ public final class MilestoneParserDataProto {
       LOOKAHEAD_IS(5),
       LOOKAHEAD_NOT(6),
       DEPRECATED_LONGEST(7),
+      DEPRECATED_ONLY_IF(8),
+      DEPRECATED_UNLESS(9),
       LONGEST(10),
-      ONLY_IF(8),
-      UNLESS(9),
+      ONLY_IF(11),
+      UNLESS(12),
       CONDITION_NOT_SET(0);
       private final int value;
       private ConditionCase(int value) {
@@ -13999,9 +15069,11 @@ public final class MilestoneParserDataProto {
           case 5: return LOOKAHEAD_IS;
           case 6: return LOOKAHEAD_NOT;
           case 7: return DEPRECATED_LONGEST;
+          case 8: return DEPRECATED_ONLY_IF;
+          case 9: return DEPRECATED_UNLESS;
           case 10: return LONGEST;
-          case 8: return ONLY_IF;
-          case 9: return UNLESS;
+          case 11: return ONLY_IF;
+          case 12: return UNLESS;
           case 0: return CONDITION_NOT_SET;
           default: return null;
         }
@@ -14224,6 +15296,48 @@ public final class MilestoneParserDataProto {
       return 0;
     }
 
+    public static final int DEPRECATED_ONLY_IF_FIELD_NUMBER = 8;
+    /**
+     * <code>int32 deprecated_only_if = 8;</code>
+     * @return Whether the deprecatedOnlyIf field is set.
+     */
+    @java.lang.Override
+    public boolean hasDeprecatedOnlyIf() {
+      return conditionCase_ == 8;
+    }
+    /**
+     * <code>int32 deprecated_only_if = 8;</code>
+     * @return The deprecatedOnlyIf.
+     */
+    @java.lang.Override
+    public int getDeprecatedOnlyIf() {
+      if (conditionCase_ == 8) {
+        return (java.lang.Integer) condition_;
+      }
+      return 0;
+    }
+
+    public static final int DEPRECATED_UNLESS_FIELD_NUMBER = 9;
+    /**
+     * <code>int32 deprecated_unless = 9;</code>
+     * @return Whether the deprecatedUnless field is set.
+     */
+    @java.lang.Override
+    public boolean hasDeprecatedUnless() {
+      return conditionCase_ == 9;
+    }
+    /**
+     * <code>int32 deprecated_unless = 9;</code>
+     * @return The deprecatedUnless.
+     */
+    @java.lang.Override
+    public int getDeprecatedUnless() {
+      if (conditionCase_ == 9) {
+        return (java.lang.Integer) condition_;
+      }
+      return 0;
+    }
+
     public static final int LONGEST_FIELD_NUMBER = 10;
     /**
      * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.LongestTemplate longest = 10;</code>
@@ -14255,46 +15369,66 @@ public final class MilestoneParserDataProto {
       return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.getDefaultInstance();
     }
 
-    public static final int ONLY_IF_FIELD_NUMBER = 8;
+    public static final int ONLY_IF_FIELD_NUMBER = 11;
     /**
-     * <code>int32 only_if = 8;</code>
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
      * @return Whether the onlyIf field is set.
      */
     @java.lang.Override
     public boolean hasOnlyIf() {
-      return conditionCase_ == 8;
+      return conditionCase_ == 11;
     }
     /**
-     * <code>int32 only_if = 8;</code>
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
      * @return The onlyIf.
      */
     @java.lang.Override
-    public int getOnlyIf() {
-      if (conditionCase_ == 8) {
-        return (java.lang.Integer) condition_;
+    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate getOnlyIf() {
+      if (conditionCase_ == 11) {
+         return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate) condition_;
       }
-      return 0;
+      return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
+    }
+    /**
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
+     */
+    @java.lang.Override
+    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder getOnlyIfOrBuilder() {
+      if (conditionCase_ == 11) {
+         return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate) condition_;
+      }
+      return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
     }
 
-    public static final int UNLESS_FIELD_NUMBER = 9;
+    public static final int UNLESS_FIELD_NUMBER = 12;
     /**
-     * <code>int32 unless = 9;</code>
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
      * @return Whether the unless field is set.
      */
     @java.lang.Override
     public boolean hasUnless() {
-      return conditionCase_ == 9;
+      return conditionCase_ == 12;
     }
     /**
-     * <code>int32 unless = 9;</code>
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
      * @return The unless.
      */
     @java.lang.Override
-    public int getUnless() {
-      if (conditionCase_ == 9) {
-        return (java.lang.Integer) condition_;
+    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate getUnless() {
+      if (conditionCase_ == 12) {
+         return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate) condition_;
       }
-      return 0;
+      return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
+    }
+    /**
+     * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
+     */
+    @java.lang.Override
+    public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplateOrBuilder getUnlessOrBuilder() {
+      if (conditionCase_ == 12) {
+         return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate) condition_;
+      }
+      return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
     }
 
     private byte memoizedIsInitialized = -1;
@@ -14343,6 +15477,12 @@ public final class MilestoneParserDataProto {
       }
       if (conditionCase_ == 10) {
         output.writeMessage(10, (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) condition_);
+      }
+      if (conditionCase_ == 11) {
+        output.writeMessage(11, (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate) condition_);
+      }
+      if (conditionCase_ == 12) {
+        output.writeMessage(12, (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate) condition_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -14396,6 +15536,14 @@ public final class MilestoneParserDataProto {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(10, (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate) condition_);
       }
+      if (conditionCase_ == 11) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(11, (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate) condition_);
+      }
+      if (conditionCase_ == 12) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(12, (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate) condition_);
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
       return size;
@@ -14441,17 +15589,25 @@ public final class MilestoneParserDataProto {
           if (getDeprecatedLongest()
               != other.getDeprecatedLongest()) return false;
           break;
+        case 8:
+          if (getDeprecatedOnlyIf()
+              != other.getDeprecatedOnlyIf()) return false;
+          break;
+        case 9:
+          if (getDeprecatedUnless()
+              != other.getDeprecatedUnless()) return false;
+          break;
         case 10:
           if (!getLongest()
               .equals(other.getLongest())) return false;
           break;
-        case 8:
-          if (getOnlyIf()
-              != other.getOnlyIf()) return false;
+        case 11:
+          if (!getOnlyIf()
+              .equals(other.getOnlyIf())) return false;
           break;
-        case 9:
-          if (getUnless()
-              != other.getUnless()) return false;
+        case 12:
+          if (!getUnless()
+              .equals(other.getUnless())) return false;
           break;
         case 0:
         default:
@@ -14496,17 +15652,25 @@ public final class MilestoneParserDataProto {
           hash = (37 * hash) + DEPRECATED_LONGEST_FIELD_NUMBER;
           hash = (53 * hash) + getDeprecatedLongest();
           break;
+        case 8:
+          hash = (37 * hash) + DEPRECATED_ONLY_IF_FIELD_NUMBER;
+          hash = (53 * hash) + getDeprecatedOnlyIf();
+          break;
+        case 9:
+          hash = (37 * hash) + DEPRECATED_UNLESS_FIELD_NUMBER;
+          hash = (53 * hash) + getDeprecatedUnless();
+          break;
         case 10:
           hash = (37 * hash) + LONGEST_FIELD_NUMBER;
           hash = (53 * hash) + getLongest().hashCode();
           break;
-        case 8:
+        case 11:
           hash = (37 * hash) + ONLY_IF_FIELD_NUMBER;
-          hash = (53 * hash) + getOnlyIf();
+          hash = (53 * hash) + getOnlyIf().hashCode();
           break;
-        case 9:
+        case 12:
           hash = (37 * hash) + UNLESS_FIELD_NUMBER;
-          hash = (53 * hash) + getUnless();
+          hash = (53 * hash) + getUnless().hashCode();
           break;
         case 0:
         default:
@@ -14661,6 +15825,12 @@ public final class MilestoneParserDataProto {
         if (longestBuilder_ != null) {
           longestBuilder_.clear();
         }
+        if (onlyIfBuilder_ != null) {
+          onlyIfBuilder_.clear();
+        }
+        if (unlessBuilder_ != null) {
+          unlessBuilder_.clear();
+        }
         conditionCase_ = 0;
         condition_ = null;
         return this;
@@ -14730,6 +15900,14 @@ public final class MilestoneParserDataProto {
             longestBuilder_ != null) {
           result.condition_ = longestBuilder_.build();
         }
+        if (conditionCase_ == 11 &&
+            onlyIfBuilder_ != null) {
+          result.condition_ = onlyIfBuilder_.build();
+        }
+        if (conditionCase_ == 12 &&
+            unlessBuilder_ != null) {
+          result.condition_ = unlessBuilder_.build();
+        }
       }
 
       @java.lang.Override
@@ -14773,16 +15951,24 @@ public final class MilestoneParserDataProto {
             setDeprecatedLongest(other.getDeprecatedLongest());
             break;
           }
+          case DEPRECATED_ONLY_IF: {
+            setDeprecatedOnlyIf(other.getDeprecatedOnlyIf());
+            break;
+          }
+          case DEPRECATED_UNLESS: {
+            setDeprecatedUnless(other.getDeprecatedUnless());
+            break;
+          }
           case LONGEST: {
             mergeLongest(other.getLongest());
             break;
           }
           case ONLY_IF: {
-            setOnlyIf(other.getOnlyIf());
+            mergeOnlyIf(other.getOnlyIf());
             break;
           }
           case UNLESS: {
-            setUnless(other.getUnless());
+            mergeUnless(other.getUnless());
             break;
           }
           case CONDITION_NOT_SET: {
@@ -14879,6 +16065,20 @@ public final class MilestoneParserDataProto {
                 conditionCase_ = 10;
                 break;
               } // case 82
+              case 90: {
+                input.readMessage(
+                    getOnlyIfFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                conditionCase_ = 11;
+                break;
+              } // case 90
+              case 98: {
+                input.readMessage(
+                    getUnlessFieldBuilder().getBuilder(),
+                    extensionRegistry);
+                conditionCase_ = 12;
+                break;
+              } // case 98
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -15805,6 +17005,90 @@ public final class MilestoneParserDataProto {
         return this;
       }
 
+      /**
+       * <code>int32 deprecated_only_if = 8;</code>
+       * @return Whether the deprecatedOnlyIf field is set.
+       */
+      public boolean hasDeprecatedOnlyIf() {
+        return conditionCase_ == 8;
+      }
+      /**
+       * <code>int32 deprecated_only_if = 8;</code>
+       * @return The deprecatedOnlyIf.
+       */
+      public int getDeprecatedOnlyIf() {
+        if (conditionCase_ == 8) {
+          return (java.lang.Integer) condition_;
+        }
+        return 0;
+      }
+      /**
+       * <code>int32 deprecated_only_if = 8;</code>
+       * @param value The deprecatedOnlyIf to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDeprecatedOnlyIf(int value) {
+
+        conditionCase_ = 8;
+        condition_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int32 deprecated_only_if = 8;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearDeprecatedOnlyIf() {
+        if (conditionCase_ == 8) {
+          conditionCase_ = 0;
+          condition_ = null;
+          onChanged();
+        }
+        return this;
+      }
+
+      /**
+       * <code>int32 deprecated_unless = 9;</code>
+       * @return Whether the deprecatedUnless field is set.
+       */
+      public boolean hasDeprecatedUnless() {
+        return conditionCase_ == 9;
+      }
+      /**
+       * <code>int32 deprecated_unless = 9;</code>
+       * @return The deprecatedUnless.
+       */
+      public int getDeprecatedUnless() {
+        if (conditionCase_ == 9) {
+          return (java.lang.Integer) condition_;
+        }
+        return 0;
+      }
+      /**
+       * <code>int32 deprecated_unless = 9;</code>
+       * @param value The deprecatedUnless to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDeprecatedUnless(int value) {
+
+        conditionCase_ = 9;
+        condition_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int32 deprecated_unless = 9;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearDeprecatedUnless() {
+        if (conditionCase_ == 9) {
+          conditionCase_ = 0;
+          condition_ = null;
+          onChanged();
+        }
+        return this;
+      }
+
       private com.google.protobuf.SingleFieldBuilderV3<
           com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.LongestTemplateOrBuilder> longestBuilder_;
       /**
@@ -15947,88 +17231,288 @@ public final class MilestoneParserDataProto {
         return longestBuilder_;
       }
 
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder> onlyIfBuilder_;
       /**
-       * <code>int32 only_if = 8;</code>
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
        * @return Whether the onlyIf field is set.
        */
+      @java.lang.Override
       public boolean hasOnlyIf() {
-        return conditionCase_ == 8;
+        return conditionCase_ == 11;
       }
       /**
-       * <code>int32 only_if = 8;</code>
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
        * @return The onlyIf.
        */
-      public int getOnlyIf() {
-        if (conditionCase_ == 8) {
-          return (java.lang.Integer) condition_;
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate getOnlyIf() {
+        if (onlyIfBuilder_ == null) {
+          if (conditionCase_ == 11) {
+            return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate) condition_;
+          }
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
+        } else {
+          if (conditionCase_ == 11) {
+            return onlyIfBuilder_.getMessage();
+          }
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
         }
-        return 0;
       }
       /**
-       * <code>int32 only_if = 8;</code>
-       * @param value The onlyIf to set.
-       * @return This builder for chaining.
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
        */
-      public Builder setOnlyIf(int value) {
-
-        conditionCase_ = 8;
-        condition_ = value;
-        onChanged();
+      public Builder setOnlyIf(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate value) {
+        if (onlyIfBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          condition_ = value;
+          onChanged();
+        } else {
+          onlyIfBuilder_.setMessage(value);
+        }
+        conditionCase_ = 11;
         return this;
       }
       /**
-       * <code>int32 only_if = 8;</code>
-       * @return This builder for chaining.
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
+       */
+      public Builder setOnlyIf(
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.Builder builderForValue) {
+        if (onlyIfBuilder_ == null) {
+          condition_ = builderForValue.build();
+          onChanged();
+        } else {
+          onlyIfBuilder_.setMessage(builderForValue.build());
+        }
+        conditionCase_ = 11;
+        return this;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
+       */
+      public Builder mergeOnlyIf(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate value) {
+        if (onlyIfBuilder_ == null) {
+          if (conditionCase_ == 11 &&
+              condition_ != com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance()) {
+            condition_ = com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.newBuilder((com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate) condition_)
+                .mergeFrom(value).buildPartial();
+          } else {
+            condition_ = value;
+          }
+          onChanged();
+        } else {
+          if (conditionCase_ == 11) {
+            onlyIfBuilder_.mergeFrom(value);
+          } else {
+            onlyIfBuilder_.setMessage(value);
+          }
+        }
+        conditionCase_ = 11;
+        return this;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
        */
       public Builder clearOnlyIf() {
-        if (conditionCase_ == 8) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
+        if (onlyIfBuilder_ == null) {
+          if (conditionCase_ == 11) {
+            conditionCase_ = 0;
+            condition_ = null;
+            onChanged();
+          }
+        } else {
+          if (conditionCase_ == 11) {
+            conditionCase_ = 0;
+            condition_ = null;
+          }
+          onlyIfBuilder_.clear();
         }
         return this;
       }
-
       /**
-       * <code>int32 unless = 9;</code>
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
+       */
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.Builder getOnlyIfBuilder() {
+        return getOnlyIfFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder getOnlyIfOrBuilder() {
+        if ((conditionCase_ == 11) && (onlyIfBuilder_ != null)) {
+          return onlyIfBuilder_.getMessageOrBuilder();
+        } else {
+          if (conditionCase_ == 11) {
+            return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate) condition_;
+          }
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
+        }
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.OnlyIfTemplate only_if = 11;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder> 
+          getOnlyIfFieldBuilder() {
+        if (onlyIfBuilder_ == null) {
+          if (!(conditionCase_ == 11)) {
+            condition_ = com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.getDefaultInstance();
+          }
+          onlyIfBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+              com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplateOrBuilder>(
+                  (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.OnlyIfTemplate) condition_,
+                  getParentForChildren(),
+                  isClean());
+          condition_ = null;
+        }
+        conditionCase_ = 11;
+        onChanged();
+        return onlyIfBuilder_;
+      }
+
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplateOrBuilder> unlessBuilder_;
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
        * @return Whether the unless field is set.
        */
+      @java.lang.Override
       public boolean hasUnless() {
-        return conditionCase_ == 9;
+        return conditionCase_ == 12;
       }
       /**
-       * <code>int32 unless = 9;</code>
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
        * @return The unless.
        */
-      public int getUnless() {
-        if (conditionCase_ == 9) {
-          return (java.lang.Integer) condition_;
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate getUnless() {
+        if (unlessBuilder_ == null) {
+          if (conditionCase_ == 12) {
+            return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate) condition_;
+          }
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
+        } else {
+          if (conditionCase_ == 12) {
+            return unlessBuilder_.getMessage();
+          }
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
         }
-        return 0;
       }
       /**
-       * <code>int32 unless = 9;</code>
-       * @param value The unless to set.
-       * @return This builder for chaining.
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
        */
-      public Builder setUnless(int value) {
-
-        conditionCase_ = 9;
-        condition_ = value;
-        onChanged();
+      public Builder setUnless(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate value) {
+        if (unlessBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          condition_ = value;
+          onChanged();
+        } else {
+          unlessBuilder_.setMessage(value);
+        }
+        conditionCase_ = 12;
         return this;
       }
       /**
-       * <code>int32 unless = 9;</code>
-       * @return This builder for chaining.
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
+       */
+      public Builder setUnless(
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.Builder builderForValue) {
+        if (unlessBuilder_ == null) {
+          condition_ = builderForValue.build();
+          onChanged();
+        } else {
+          unlessBuilder_.setMessage(builderForValue.build());
+        }
+        conditionCase_ = 12;
+        return this;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
+       */
+      public Builder mergeUnless(com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate value) {
+        if (unlessBuilder_ == null) {
+          if (conditionCase_ == 12 &&
+              condition_ != com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance()) {
+            condition_ = com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.newBuilder((com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate) condition_)
+                .mergeFrom(value).buildPartial();
+          } else {
+            condition_ = value;
+          }
+          onChanged();
+        } else {
+          if (conditionCase_ == 12) {
+            unlessBuilder_.mergeFrom(value);
+          } else {
+            unlessBuilder_.setMessage(value);
+          }
+        }
+        conditionCase_ = 12;
+        return this;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
        */
       public Builder clearUnless() {
-        if (conditionCase_ == 9) {
-          conditionCase_ = 0;
-          condition_ = null;
-          onChanged();
+        if (unlessBuilder_ == null) {
+          if (conditionCase_ == 12) {
+            conditionCase_ = 0;
+            condition_ = null;
+            onChanged();
+          }
+        } else {
+          if (conditionCase_ == 12) {
+            conditionCase_ = 0;
+            condition_ = null;
+          }
+          unlessBuilder_.clear();
         }
         return this;
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
+       */
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.Builder getUnlessBuilder() {
+        return getUnlessFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
+       */
+      @java.lang.Override
+      public com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplateOrBuilder getUnlessOrBuilder() {
+        if ((conditionCase_ == 12) && (unlessBuilder_ != null)) {
+          return unlessBuilder_.getMessageOrBuilder();
+        } else {
+          if (conditionCase_ == 12) {
+            return (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate) condition_;
+          }
+          return com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
+        }
+      }
+      /**
+       * <code>.com.giyeok.jparser.milestone2.proto.AcceptConditionTemplate.UnlessTemplate unless = 12;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilderV3<
+          com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplateOrBuilder> 
+          getUnlessFieldBuilder() {
+        if (unlessBuilder_ == null) {
+          if (!(conditionCase_ == 12)) {
+            condition_ = com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.getDefaultInstance();
+          }
+          unlessBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+              com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate.Builder, com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplateOrBuilder>(
+                  (com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.AcceptConditionTemplate.UnlessTemplate) condition_,
+                  getParentForChildren(),
+                  isClean());
+          condition_ = null;
+        }
+        conditionCase_ = 12;
+        onChanged();
+        return unlessBuilder_;
       }
       @java.lang.Override
       public final Builder setUnknownFields(
@@ -16174,6 +17658,16 @@ public final class MilestoneParserDataProto {
   private static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_OnlyIfTemplate_fieldAccessorTable;
+  private static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_UnlessTemplate_descriptor;
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_UnlessTemplate_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -16249,7 +17743,7 @@ public final class MilestoneParserDataProto {
       "k.jparser.milestone2.proto.KernelTemplat" +
       "e\022V\n\020accept_condition\030\002 \001(\0132<.com.giyeok" +
       ".jparser.milestone2.proto.AcceptConditio" +
-      "nTemplate\"\341\007\n\027AcceptConditionTemplate\022(\n" +
+      "nTemplate\"\250\n\n\027AcceptConditionTemplate\022(\n" +
       "\006always\030\001 \001(\0132\026.google.protobuf.EmptyH\000\022" +
       "\'\n\005never\030\002 \001(\0132\026.google.protobuf.EmptyH\000" +
       "\022W\n\003and\030\003 \001(\0132H.com.giyeok.jparser.miles" +
@@ -16262,20 +17756,28 @@ public final class MilestoneParserDataProto {
       "\022g\n\rlookahead_not\030\006 \001(\0132N.com.giyeok.jpa" +
       "rser.milestone2.proto.AcceptConditionTem" +
       "plate.LookaheadTemplateH\000\022\034\n\022deprecated_" +
-      "longest\030\007 \001(\005H\000\022_\n\007longest\030\n \001(\0132L.com.g" +
-      "iyeok.jparser.milestone2.proto.AcceptCon" +
-      "ditionTemplate.LongestTemplateH\000\022\021\n\007only" +
-      "_if\030\010 \001(\005H\000\022\020\n\006unless\030\t \001(\005H\000\032_\n\013AndTemp" +
-      "late\022P\n\nconditions\030\001 \003(\0132<.com.giyeok.jp" +
-      "arser.milestone2.proto.AcceptConditionTe" +
-      "mplate\032^\n\nOrTemplate\022P\n\nconditions\030\001 \003(\013" +
-      "2<.com.giyeok.jparser.milestone2.proto.A" +
-      "cceptConditionTemplate\032=\n\021LookaheadTempl" +
-      "ate\022\021\n\tsymbol_id\030\001 \001(\005\022\025\n\rfrom_next_gen\030" +
-      "\002 \001(\010\032A\n\017LongestTemplate\022\021\n\tsymbol_id\030\001 " +
-      "\001(\005\022\033\n\023begin_from_next_gen\030\002 \001(\010B\013\n\tcond" +
-      "itionB\032B\030MilestoneParserDataProtob\006proto" +
-      "3"
+      "longest\030\007 \001(\005H\000\022\034\n\022deprecated_only_if\030\010 " +
+      "\001(\005H\000\022\033\n\021deprecated_unless\030\t \001(\005H\000\022_\n\007lo" +
+      "ngest\030\n \001(\0132L.com.giyeok.jparser.milesto" +
+      "ne2.proto.AcceptConditionTemplate.Longes" +
+      "tTemplateH\000\022^\n\007only_if\030\013 \001(\0132K.com.giyeo" +
+      "k.jparser.milestone2.proto.AcceptConditi" +
+      "onTemplate.OnlyIfTemplateH\000\022]\n\006unless\030\014 " +
+      "\001(\0132K.com.giyeok.jparser.milestone2.prot" +
+      "o.AcceptConditionTemplate.UnlessTemplate" +
+      "H\000\032_\n\013AndTemplate\022P\n\nconditions\030\001 \003(\0132<." +
+      "com.giyeok.jparser.milestone2.proto.Acce" +
+      "ptConditionTemplate\032^\n\nOrTemplate\022P\n\ncon" +
+      "ditions\030\001 \003(\0132<.com.giyeok.jparser.miles" +
+      "tone2.proto.AcceptConditionTemplate\032=\n\021L" +
+      "ookaheadTemplate\022\021\n\tsymbol_id\030\001 \001(\005\022\025\n\rf" +
+      "rom_next_gen\030\002 \001(\010\032;\n\017LongestTemplate\022\021\n" +
+      "\tsymbol_id\030\001 \001(\005\022\025\n\rfrom_next_gen\030\002 \001(\010\032" +
+      ":\n\016OnlyIfTemplate\022\021\n\tsymbol_id\030\001 \001(\005\022\025\n\r" +
+      "from_next_gen\030\002 \001(\010\032:\n\016UnlessTemplate\022\021\n" +
+      "\tsymbol_id\030\001 \001(\005\022\025\n\rfrom_next_gen\030\002 \001(\010B" +
+      "\013\n\tconditionB\032B\030MilestoneParserDataProto" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -16355,7 +17857,7 @@ public final class MilestoneParserDataProto {
     internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_descriptor,
-        new java.lang.String[] { "Always", "Never", "And", "Or", "LookaheadIs", "LookaheadNot", "DeprecatedLongest", "Longest", "OnlyIf", "Unless", "Condition", });
+        new java.lang.String[] { "Always", "Never", "And", "Or", "LookaheadIs", "LookaheadNot", "DeprecatedLongest", "DeprecatedOnlyIf", "DeprecatedUnless", "Longest", "OnlyIf", "Unless", "Condition", });
     internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_AndTemplate_descriptor =
       internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(0);
     internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_AndTemplate_fieldAccessorTable = new
@@ -16379,7 +17881,19 @@ public final class MilestoneParserDataProto {
     internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_LongestTemplate_descriptor,
-        new java.lang.String[] { "SymbolId", "BeginFromNextGen", });
+        new java.lang.String[] { "SymbolId", "FromNextGen", });
+    internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor =
+      internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(4);
+    internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_OnlyIfTemplate_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_OnlyIfTemplate_descriptor,
+        new java.lang.String[] { "SymbolId", "FromNextGen", });
+    internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_UnlessTemplate_descriptor =
+      internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_descriptor.getNestedTypes().get(5);
+    internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_UnlessTemplate_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_com_giyeok_jparser_milestone2_proto_AcceptConditionTemplate_UnlessTemplate_descriptor,
+        new java.lang.String[] { "SymbolId", "FromNextGen", });
     com.google.protobuf.EmptyProto.getDescriptor();
     com.giyeok.jparser.proto.GrammarProto.getDescriptor();
     com.giyeok.jparser.proto.TermGroupProto.getDescriptor();

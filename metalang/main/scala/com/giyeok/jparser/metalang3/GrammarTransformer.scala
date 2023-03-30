@@ -181,6 +181,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       (UnrollRepeatFromOne(vBody._1), repeatSymbol)
     case MetaLang3Ast.InPlaceChoices(choices) =>
       check(condSymPath.isEmpty, "InPlaceChoices cannot be referred with condSymPath")
+      // TODO choices가 1개이면 OneOf 심볼 거치지 않게 하기
       val vChoices = choices.map(c => proxy(valuefySymbol(c, List(), input)))
       val oneofSymbol = Symbols.OneOf(ListSet.from(vChoices.map(_._2)))
       (Unbind(oneofSymbol, UnrollChoices(vChoices.map(c => c._2 -> c._1).toMap)), oneofSymbol)
@@ -194,6 +195,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       (NullLiteral, Symbols.Sequence())
     case MetaLang3Ast.Sequence(seq) =>
       check(condSymPath.isEmpty, "Sequence cannot be referred with condSymPath")
+      // TODO seq 길이가 1이면 sequence 거치지 않도록 하기
       val vSeq = valuefySequence(seq, input)
       (Unbind(vSeq._2, vSeq._1), vSeq._2)
     case MetaLang3Ast.Nonterminal(name) =>

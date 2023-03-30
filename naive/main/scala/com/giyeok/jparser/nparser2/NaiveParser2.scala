@@ -259,9 +259,7 @@ class NaiveParser2(val grammar: NGrammar) {
           }
         }
     }
-    if (!containsNoOnlyOfOrUnless(res)) {
-      println("???")
-    }
+    assert(containsNoOnlyOfOrUnless(res))
     res
   }
 

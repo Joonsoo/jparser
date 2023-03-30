@@ -1,0 +1,15 @@
+S = A-(B-C)
+A = 'a-z'+
+B = 'b-e'+
+C = 'd'+
+
+=====
+aaaaa
+=====
+bbbbb
+=====
+ccccc
+=====
+ddddd
+=====
+eeeee
