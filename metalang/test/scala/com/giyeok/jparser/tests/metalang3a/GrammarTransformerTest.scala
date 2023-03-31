@@ -48,4 +48,30 @@ class GrammarTransformerTest extends AnyFunSpec with PrivateMethodTester {
     val value = simul.valuefy("a = good")
     println(value)
   }
+
+  describe("test2") {
+    val parser = MetaLang3Parser.parser
+    val inputs = Inputs.fromString(
+      """E:Expr = 'a' {Literal(value=$0)} | A
+        |A = '[' WS E (WS ',' WS E)* WS ']' {Arr(elems=[$2]+$3)}
+        |WS = ' '*""".stripMargin)
+    val parseResult = parser.parseOrThrow(inputs)
+    val history = parser.kernelsHistory(parseResult)
+    val reconstructor = new ParseTreeConstructor2(ParseForestFunc)(parser.parserData.grammar)(inputs, history.map(Kernels))
+    val ast = reconstructor.reconstruct() match {
+      case Some(forest) if forest.trees.size == 1 =>
+        new MetaLang3Ast().matchStart(forest.trees.head)
+      case None =>
+        throw IllegalGrammar("??")
+    }
+    val errors = new ErrorCollector()
+
+    val transformer = new GrammarTransformer(ast, errors)
+    val grammar = transformer.grammar("Grammar")
+    val ngrammar = NGrammar.fromGrammar(grammar)
+
+    val simul = new ValuefyExprSimulator(ngrammar, transformer.startNonterminalName(), transformer.nonterminalValuefyExprs, Map())
+    val value = simul.valuefy("[a,a,a]")
+    println(value)
+  }
 }
