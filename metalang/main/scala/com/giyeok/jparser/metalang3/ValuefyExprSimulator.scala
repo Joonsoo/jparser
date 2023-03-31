@@ -12,9 +12,9 @@ import com.giyeok.jparser.nparser.{NaiveParser, ParseTreeConstructor, ParseTreeU
 import scala.annotation.tailrec
 
 class ValuefyExprSimulator(val ngrammar: NGrammar,
-                           val startNonterminalName: String,
-                           val nonterminalValuefyExprs: Map[String, UnrollChoices],
-                           val enumTypesMap: Map[Int, String]) {
+  val startNonterminalName: String,
+  val nonterminalValuefyExprs: Map[String, UnrollChoices],
+  val enumTypesMap: Map[Int, String]) {
   def check(cond: Boolean, msg: => String) = {
     if (!cond) throw new Exception(msg)
   }
@@ -35,7 +35,8 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
 
   def valuefy(sourceText: String): Either[Value, ParsingErrors.ParsingError] =
     parse(sourceText) match {
-      case Left(tree) => Left(valuefyStart(tree))
+      case Left(tree) =>
+        Left(valuefyStart(tree))
       case Right(error) => Right(error)
     }
 
@@ -70,8 +71,18 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
       val elemNodes = ParseTreeUtil.unrollRepeat0(parseNode)
       val elemValues = elemNodes.map(valuefy(_, elemProcessor))
       ArrayValue(elemValues)
+    case ValuefyExpr.UnrollRepeatFromZeroNoUnbind(repeatSymbol, elemProcessor) =>
+      val nrepeat = ngrammar.findSymbol(repeatSymbol).get._2.asInstanceOf[NGrammar.NRepeat]
+      val elemNodes = ParseTreeUtil.unrollRepeat0NoUnbind(nrepeat, parseNode)
+      val elemValues = elemNodes.map(valuefy(_, elemProcessor))
+      ArrayValue(elemValues)
     case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
       val elemNodes = ParseTreeUtil.unrollRepeat1(parseNode)
+      val elemValues = elemNodes.map(valuefy(_, elemProcessor))
+      ArrayValue(elemValues)
+    case ValuefyExpr.UnrollRepeatFromOneNoUnbind(repeatSymbol, elemProcessor) =>
+      val nrepeat = ngrammar.findSymbol(repeatSymbol).get._2.asInstanceOf[NGrammar.NRepeat]
+      val elemNodes = ParseTreeUtil.unrollRepeat1NoUnbind(nrepeat, parseNode)
       val elemValues = elemNodes.map(valuefy(_, elemProcessor))
       ArrayValue(elemValues)
     case ValuefyExpr.UnrollChoices(choices) =>

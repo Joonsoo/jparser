@@ -25,8 +25,14 @@ object ValuefyExpr {
   // input ParseNode가 0+ Repeat symbol일 것으로 보고 풀어서, 각 ParseNode에 대해 elemProcessor로 valuefy
   case class UnrollRepeatFromZero(elemProcessor: ValuefyExpr) extends ValuefyExpr
 
+  // UnrollRepeatFromZero와 거의 동일하지만 가장 바깥에서 unbind를 하지 않음
+  case class UnrollRepeatFromZeroNoUnbind(repeatSymbol: Symbols.Repeat, elemProcessor: ValuefyExpr) extends ValuefyExpr
+
   // input ParseNode가 1+ Repeat symbol일 것으로 보고 풀어서, 각 ParseNode에 대해 elemProcessor로 valuefy
   case class UnrollRepeatFromOne(elemProcessor: ValuefyExpr) extends ValuefyExpr
+
+  // UnrollRepeatFromOne과 거의 동일하지만 가장 바깥에서 unbind를 하지 않음
+  case class UnrollRepeatFromOneNoUnbind(repeatSymbol: Symbols.Repeat, elemProcessor: ValuefyExpr) extends ValuefyExpr
 
   // input ParseNode가 BindNode일 것으로 보고, 어떤 symbol로 bind됐는지 보고 맞는 node에 대해 valuefy
   case class UnrollChoices(choices: Map[Symbols.Symbol, ValuefyExpr]) extends ValuefyExpr

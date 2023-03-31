@@ -7,12 +7,25 @@ import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc}
 import org.scalatest.PrivateMethodTester
-import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.flatspec.AnyFlatSpec
 
-class GrammarTransformerTest extends AnyFunSpec with PrivateMethodTester {
-  describe("test") {
+class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
+  def parseGrammar(grammar: String): MetaLang3Ast.Grammar = {
     val parser = MetaLang3Parser.parser
-    val inputs = Inputs.fromString(
+    val inputs = Inputs.fromString(grammar)
+    val parseResult = parser.parseOrThrow(inputs)
+    val history = parser.kernelsHistory(parseResult)
+    val reconstructor = new ParseTreeConstructor2(ParseForestFunc)(parser.parserData.grammar)(inputs, history.map(Kernels))
+    reconstructor.reconstruct() match {
+      case Some(forest) if forest.trees.size == 1 =>
+        new MetaLang3Ast().matchStart(forest.trees.head)
+      case None =>
+        throw IllegalGrammar("??")
+    }
+  }
+
+  "bibix-small" should "work" in {
+    val ast = parseGrammar(
       """BuildScript = Def
         |
         |Def: Def = TargetDef
@@ -29,15 +42,6 @@ class GrammarTransformerTest extends AnyFunSpec with PrivateMethodTester {
         |
         |WS = ' '*
         |""".stripMargin)
-    val parseResult = parser.parseOrThrow(inputs)
-    val history = parser.kernelsHistory(parseResult)
-    val reconstructor = new ParseTreeConstructor2(ParseForestFunc)(parser.parserData.grammar)(inputs, history.map(Kernels))
-    val ast = reconstructor.reconstruct() match {
-      case Some(forest) if forest.trees.size == 1 =>
-        new MetaLang3Ast().matchStart(forest.trees.head)
-      case None =>
-        throw IllegalGrammar("??")
-    }
     val errors = new ErrorCollector()
 
     val transformer = new GrammarTransformer(ast, errors)
@@ -49,21 +53,11 @@ class GrammarTransformerTest extends AnyFunSpec with PrivateMethodTester {
     println(value)
   }
 
-  describe("test2") {
-    val parser = MetaLang3Parser.parser
-    val inputs = Inputs.fromString(
+  "array grammar" should "work" in {
+    val ast = parseGrammar(
       """E:Expr = 'a' {Literal(value=$0)} | A
         |A = '[' WS E (WS ',' WS E)* WS ']' {Arr(elems=[$2]+$3)}
         |WS = ' '*""".stripMargin)
-    val parseResult = parser.parseOrThrow(inputs)
-    val history = parser.kernelsHistory(parseResult)
-    val reconstructor = new ParseTreeConstructor2(ParseForestFunc)(parser.parserData.grammar)(inputs, history.map(Kernels))
-    val ast = reconstructor.reconstruct() match {
-      case Some(forest) if forest.trees.size == 1 =>
-        new MetaLang3Ast().matchStart(forest.trees.head)
-      case None =>
-        throw IllegalGrammar("??")
-    }
     val errors = new ErrorCollector()
 
     val transformer = new GrammarTransformer(ast, errors)
@@ -73,5 +67,36 @@ class GrammarTransformerTest extends AnyFunSpec with PrivateMethodTester {
     val simul = new ValuefyExprSimulator(ngrammar, transformer.startNonterminalName(), transformer.nonterminalValuefyExprs, Map())
     val value = simul.valuefy("[a,a,a]")
     println(value)
+  }
+
+  def test(grammarText: String, examples: Map[String, String]): Unit = {
+    val ast = parseGrammar(grammarText)
+
+    val errors = new ErrorCollector()
+
+    val transformer = new GrammarTransformer(ast, errors)
+    val grammar = transformer.grammar("Grammar")
+    val ngrammar = NGrammar.fromGrammar(grammar)
+
+    val simul = new ValuefyExprSimulator(ngrammar, transformer.startNonterminalName(), transformer.nonterminalValuefyExprs, Map())
+    examples.foreach { example =>
+      val value = simul.valuefy(example._1)
+      println(value)
+    }
+  }
+
+  "simple grammar" should "work" in {
+    //    test(
+    //      """A = 'a' B&T 'z' {str($0, $1, $2)}
+    //        |B = 'b-z'+
+    //        |T = 't'+ | "to"
+    //        |""".stripMargin,
+    //      Map("atoz" -> ""))
+
+    test(
+      """A = ('a' 'b')+
+        |""".stripMargin,
+      Map("abab" -> "")
+    )
   }
 }

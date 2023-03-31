@@ -40,7 +40,9 @@ class TypeInferer(val startNonterminalName: String, val nonterminalTypes: Map[St
     case ValuefyExpr.JoinCond(bodyProcessor) => typeOfValuefyExpr(bodyProcessor)
     case ValuefyExpr.SeqElemAt(_, expr) => typeOfValuefyExpr(expr)
     case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) => typeOfValuefyExpr(elemProcessor).map(Type.ArrayOf)
+    case ValuefyExpr.UnrollRepeatFromZeroNoUnbind(_, elemProcessor) => typeOfValuefyExpr(elemProcessor).map(Type.ArrayOf)
     case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) => typeOfValuefyExpr(elemProcessor).map(Type.ArrayOf)
+    case ValuefyExpr.UnrollRepeatFromOneNoUnbind(_, elemProcessor) => typeOfValuefyExpr(elemProcessor).map(Type.ArrayOf)
     case ValuefyExpr.UnrollChoices(choices) =>
       val rhsTypes = choices.values.toSet.map(typeOfValuefyExpr)
       if (rhsTypes.contains(None)) None else Some(unifyTypes(rhsTypes.flatten))
