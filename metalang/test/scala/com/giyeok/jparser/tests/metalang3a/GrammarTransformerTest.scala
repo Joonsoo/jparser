@@ -82,21 +82,28 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
     examples.foreach { example =>
       val value = simul.valuefy(example._1)
       println(value)
+      value match {
+        case Right(value) => ???
+        case Left(value) =>
+          assert(value.toString == example._2)
+      }
     }
   }
 
   "simple grammar" should "work" in {
-    //    test(
-    //      """A = 'a' B&T 'z' {str($0, $1, $2)}
-    //        |B = 'b-z'+
-    //        |T = 't'+ | "to"
-    //        |""".stripMargin,
-    //      Map("atoz" -> ""))
+    test(
+      """A = 'a' B&T 'z' {str($0, $1, $2)}
+        |B = 'b-z'+
+        |T = 't'+ | "to"
+        |""".stripMargin,
+      Map(
+        "attttz" -> "StringValue(a[t,t,t,t]z)",
+        "atoz" -> "StringValue(a[t,o]z)"))
 
     test(
-      """A = ('a' 'b')+
+      """A = ('a' 'b' {"ab"})+
         |""".stripMargin,
-      Map("abab" -> "")
+      Map("abab" -> "ArrayValue(List(StringValue(ab), StringValue(ab)))")
     )
   }
 }
