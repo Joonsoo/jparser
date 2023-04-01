@@ -70,7 +70,7 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
     println(value)
   }
 
-  def test(grammarText: String, examples: Map[String, String]): Unit = {
+  def test(grammarText: String, examples: Map[String, String]) = {
     val ast = parseGrammar(grammarText)
 
     val errors = new ErrorCollector()
@@ -92,6 +92,10 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
   }
 
   "simple grammar" should "work" in {
+    test(
+      "RefIdx = <'0' {str($0)} | '1-9' '0-9'* {str($0, $1)}>",
+      Map("0" -> "\"0\""))
+
     test(
       """A = 'a' B&T 'z' {str($0, $1, $2)}
         |B = 'b-z'+
@@ -117,25 +121,39 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
     }
 
     test(
-      """A = ('a-c' 'b')+ {$0$0}""",
+      """A = ('c-e' 'f')+ {$0$0}""",
       Map(
-        "ab" -> "['a']",
-        "abcb" -> "['a','c']")
+        "cf" -> "['c']",
+        "cfdf" -> "['c','d']")
     )
 
     test(
-      """A = ('a' 'b')? {$0$0}""",
+      """A = ('k-m' 'n')* {$0$0}""",
       Map(
-        "ab" -> "'a'",
+        "kn" -> "['k']",
+        "knln" -> "['k','l']",
+        "" -> "[]")
+    )
+
+    test(
+      """A = ('g-i')? {$0$0}""",
+      Map(
+        "g" -> "'g'",
         "" -> "null")
     )
 
+    assertThrows[IllegalStateException] {
+      test(
+        """A = 'g-i'? {$0$0}""",
+        Map()
+      )
+    }
+
     test(
-      """A = ('a' 'b')* {$0$0}""",
+      """A = ('g-i' 'j')? {$0$0}""",
       Map(
-        "ab" -> "['a']",
-        "abab" -> "['a','a']",
-        "" -> "[]")
+        "gj" -> "'g'",
+        "" -> "null")
     )
   }
 

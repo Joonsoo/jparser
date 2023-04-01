@@ -255,9 +255,10 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
        */
       val bodyCode = if (useOriginalInput) {
         choice._2 match {
-          case ValuefyExpr.Unbind(symbol, unbindExpr) =>
-            assert(symbol == choice._1)
-            valuefyExprToCodeWithCoercion(unbindExpr, bodyVar, requiredType)
+          // unroll choices가 항상 unbind 없는 choice만 갖도록 바뀌었기 때문에..
+//          case ValuefyExpr.Unbind(symbol, unbindExpr) =>
+//            assert(symbol == choice._1)
+//            valuefyExprToCodeWithCoercion(unbindExpr, bodyVar, requiredType)
           case _ => valuefyExprToCodeWithCoercion(choice._2, inputName, requiredType)
         }
       } else valuefyExprToCodeWithCoercion(choice._2, bodyVar, requiredType)
@@ -412,6 +413,18 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
           "}",
         unrolledVar,
         elemProcessorCode.required + "com.giyeok.jparser.nparser.ParseTreeUtil.unrollRepeat0")
+    case ValuefyExpr.UnrollRepeatFromZeroNoUnbind(repeatSymbol, elemProcessor) =>
+      val unrolledVar = newVar()
+      val elemProcessorCode = valuefyExprToCode(elemProcessor, "elem")
+      val repeatSeqId = analysis.ngrammar.idOf(repeatSymbol.repeatSeq)
+      val baseSeqId = analysis.ngrammar.idOf(repeatSymbol.baseSeq)
+      ExprBlob(
+        List(s"val $unrolledVar = unrollRepeat0NoUnbind(repeatSeqId, baseSeqId, $inputName).map { elem =>") ++
+          elemProcessorCode.prepares :+
+          addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
+          "}",
+        unrolledVar,
+        elemProcessorCode.required + "com.giyeok.jparser.nparser.ParseTreeUtil.unrollRepeat0NoUnbind")
     case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
       val unrolledVar = newVar()
       val elemProcessorCode = valuefyExprToCode(elemProcessor, "elem")
@@ -422,6 +435,18 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
           "}",
         unrolledVar,
         elemProcessorCode.required + "com.giyeok.jparser.nparser.ParseTreeUtil.unrollRepeat1")
+    case ValuefyExpr.UnrollRepeatFromOneNoUnbind(repeatSymbol, elemProcessor) =>
+      val unrolledVar = newVar()
+      val elemProcessorCode = valuefyExprToCode(elemProcessor, "elem")
+      val repeatSeqId = analysis.ngrammar.idOf(repeatSymbol.repeatSeq)
+      val baseSeqId = analysis.ngrammar.idOf(repeatSymbol.baseSeq)
+      ExprBlob(
+        List(s"val $unrolledVar = unrollRepeat1NoUnbind($repeatSeqId, $baseSeqId, $inputName).map { elem =>") ++
+          elemProcessorCode.prepares :+
+          addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
+          "}",
+        unrolledVar,
+        elemProcessorCode.required + "com.giyeok.jparser.nparser.ParseTreeUtil.unrollRepeat1NoUnbind")
     case ValuefyExpr.UnrollChoices(choices) =>
       unrollChoicesExpr(choices, inputName, typeOf(valuefyExpr), useOriginalInput = true)
     case ValuefyExpr.ConstructCall(className, params) =>
@@ -527,8 +552,14 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
     case ValuefyExpr.JoinBody(bodyProcessor) => reachableNonterminalMatchFuncs(bodyProcessor, cc)
     case ValuefyExpr.JoinCond(condProcessor) => reachableNonterminalMatchFuncs(condProcessor, cc)
     case ValuefyExpr.SeqElemAt(_, expr) => reachableNonterminalMatchFuncs(expr, cc)
-    case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) => reachableNonterminalMatchFuncs(elemProcessor, cc)
-    case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) => reachableNonterminalMatchFuncs(elemProcessor, cc)
+    case ValuefyExpr.UnrollRepeatFromZero(elemProcessor) =>
+      reachableNonterminalMatchFuncs(elemProcessor, cc)
+    case ValuefyExpr.UnrollRepeatFromZeroNoUnbind(repeatSymbol, elemProcessor) =>
+      reachableNonterminalMatchFuncs(elemProcessor, cc)
+    case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
+      reachableNonterminalMatchFuncs(elemProcessor, cc)
+    case ValuefyExpr.UnrollRepeatFromOneNoUnbind(repeatSymbol, elemProcessor) =>
+      reachableNonterminalMatchFuncs(elemProcessor, cc)
     case ValuefyExpr.UnrollChoices(choices) =>
       choices.values.foldLeft(cc) { (m, choiceExpr) => reachableNonterminalMatchFuncs(choiceExpr, m) }
     case ValuefyExpr.ConstructCall(_, params) =>

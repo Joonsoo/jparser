@@ -230,6 +230,21 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
           List(elemProcessorCode.result, "}"),
         v,
         elemProcessorCode.required)
+    case ValuefyExpr.UnrollRepeatFromZeroNoUnbind(repeatSymbol, elemProcessor) =>
+      assert(symbol == repeatSymbol)
+      val v = newVar()
+      val symbolId = analysis.ngrammar.idOf(symbol)
+      val repeat = analysis.ngrammar.symbolOf(symbolId).asInstanceOf[NRepeat]
+      val itemSymId = analysis.ngrammar.idOf(repeat.symbol.sym)
+      val elemProcessorCode = valuefyExprToCode(elemProcessor, "k.first", "k.second", repeat.symbol.sym, SequenceVarName(None))
+      _symbolsOfInterest ++= Set(symbolId, itemSymId, repeat.baseSeq, repeat.repeatSeq)
+      // 여기선 unrollRepeat0 함수 똑같이 쓰면 될 것 같은데.. TODO 확인
+      ExprBlob(
+        List(s"val $v = unrollRepeat0(history, $symbolId, $itemSymId, ${repeat.baseSeq}, ${repeat.repeatSeq}, $beginGen, $endGen).map { k ->") ++
+          elemProcessorCode.prepares ++
+          List(elemProcessorCode.result, "}"),
+        v,
+        elemProcessorCode.required)
     case ValuefyExpr.UnrollRepeatFromOne(elemProcessor) =>
       val v = newVar()
       val symbolId = analysis.ngrammar.idOf(symbol)
@@ -237,6 +252,21 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       val itemSymId = analysis.ngrammar.idOf(repeat.symbol.sym)
       val elemProcessorCode = valuefyExprToCode(elemProcessor, "k.first", "k.second", repeat.symbol.sym, SequenceVarName(None))
       _symbolsOfInterest ++= Set(symbolId, itemSymId, repeat.baseSeq, repeat.repeatSeq)
+      ExprBlob(
+        List(s"val $v = unrollRepeat1(history, $symbolId, $itemSymId, ${repeat.baseSeq}, ${repeat.repeatSeq}, $beginGen, $endGen).map { k ->") ++
+          elemProcessorCode.prepares ++
+          List(elemProcessorCode.result, "}"),
+        v,
+        elemProcessorCode.required)
+    case ValuefyExpr.UnrollRepeatFromOneNoUnbind(repeatSymbol, elemProcessor) =>
+      assert(symbol == repeatSymbol)
+      val v = newVar()
+      val symbolId = analysis.ngrammar.idOf(symbol)
+      val repeat = analysis.ngrammar.symbolOf(symbolId).asInstanceOf[NRepeat]
+      val itemSymId = analysis.ngrammar.idOf(repeat.symbol.sym)
+      val elemProcessorCode = valuefyExprToCode(elemProcessor, "k.first", "k.second", repeat.symbol.sym, SequenceVarName(None))
+      _symbolsOfInterest ++= Set(symbolId, itemSymId, repeat.baseSeq, repeat.repeatSeq)
+      // 여기선 unrollRepeat1 함수 똑같이 쓰면 될 것 같은데.. TODO 확인
       ExprBlob(
         List(s"val $v = unrollRepeat1(history, $symbolId, $itemSymId, ${repeat.baseSeq}, ${repeat.repeatSeq}, $beginGen, $endGen).map { k ->") ++
           elemProcessorCode.prepares ++

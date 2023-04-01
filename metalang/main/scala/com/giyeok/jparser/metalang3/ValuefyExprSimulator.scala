@@ -86,9 +86,9 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
       val elemValues = elemNodes.map(valuefy(_, elemProcessor))
       ArrayValue(elemValues)
     case ValuefyExpr.UnrollChoices(choices) =>
-      val BindNode(bindedSymbol, _) = parseNode
+      val BindNode(bindedSymbol, body) = parseNode
       val choiceValuefyExpr = choices(bindedSymbol.symbol)
-      valuefy(parseNode, choiceValuefyExpr)
+      valuefy(body, choiceValuefyExpr)
     case ValuefyExpr.ConstructCall(className, params) =>
       ClassValue(className, params.map(valuefy(parseNode, _)))(parseNode)
     case ValuefyExpr.FuncCall(funcType, params) =>

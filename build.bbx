@@ -242,9 +242,28 @@ examples {
   generate {
     metalang3 = genKtAstMgroup2(
       cdgFile = "examples/metalang3/resources/metalang3/grammar.cdg",
-      astifierClassName = "com.giyeok.jparser.ktlib.test.MetaLang3Ast",
+      astifierClassName = "com.giyeok.jparser.examples.MetaLang3AstKt",
+      parserDataFileName = "metalang3-mg2-parserdata-trimmed.pb",
+      trimParserData = true,
+    )
+
+    metalang3Scala = genScalaAstMgroup2(
+      cdgFile = "examples/metalang3/resources/metalang3/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.examples.MetaLang3Ast",
       parserDataFileName = "metalang3-mg2-parserdata.pb",
-      trimParserData = false,
+    )
+
+    autodb = genKtAstMgroup2(
+      cdgFile = "examples/metalang3/resources/autodb2/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.examples.AutoDbAstKt",
+      parserDataFileName = "autodb-mg2-parserdata-trimmed.pb",
+      trimParserData = true,
+    )
+
+    autodbScala = genScalaAstMgroup2(
+      cdgFile = "examples/metalang3/resources/autodb2/grammar.cdg",
+      astifierClassName = "com.giyeok.jparser.examples.AutoDbAst",
+      parserDataFileName = "autodb-mg2-parserdata.pb",
     )
 
     metalang3trimmed = genKtAstMgroup2(

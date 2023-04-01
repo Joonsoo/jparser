@@ -18,14 +18,17 @@ object ParseTreeUtil {
     }
   }
 
-  def unrollRepeat1NoUnbind(repeat: NGrammar.NRepeat, node: Node): List[Node] = {
+  def unrollRepeat1NoUnbind(repeat: NGrammar.NRepeat, node: Node): List[Node] =
+    unrollRepeat1NoUnbind(repeat.repeatSeq, repeat.baseSeq, node)
+
+  def unrollRepeat1NoUnbind(repeatSeqId: Int, baseSymbolId: Int, node: Node): List[Node] = {
     node match {
-      case BindNode(symbol, repeating: SequenceNode) if symbol.id == repeat.repeatSeq =>
-        assert(symbol.id == repeat.repeatSeq)
+      case BindNode(symbol, repeating: SequenceNode) if symbol.id == repeatSeqId =>
         val s = repeating.children(1)
         val r = unrollRepeat1(repeating.children.head)
         r :+ s
       case base =>
+        // TODO check baseSymbolId
         List(base)
     }
   }
@@ -41,13 +44,16 @@ object ParseTreeUtil {
     }
   }
 
-  def unrollRepeat0NoUnbind(repeat: NGrammar.NRepeat, node: Node): List[Node] = {
+  def unrollRepeat0NoUnbind(repeat: NGrammar.NRepeat, node: Node): List[Node] =
+    unrollRepeat0NoUnbind(repeat.repeatSeq, repeat.baseSeq, node)
+
+  def unrollRepeat0NoUnbind(repeatSeqId: Int, baseSeqId: Int, node: Node): List[Node] = {
     val BindNode(bodySymbol, bodyNode) = node
-    if (bodySymbol.id == repeat.repeatSeq) {
+    if (bodySymbol.id == repeatSeqId) {
       val bodySeq = bodyNode.asInstanceOf[SequenceNode]
       unrollRepeat0(bodySeq.children.head) :+ bodySeq.children(1)
     } else {
-      assert(bodySymbol.id == repeat.baseSeq)
+      assert(bodySymbol.id == baseSeqId)
       List()
     }
   }

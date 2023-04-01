@@ -216,15 +216,25 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       val vNotFollowedBy = valuefySymbol(notFollowedBy, input).proxy
       ValuefiableSymbol(Symbols.LookaheadExcept(vNotFollowedBy.symbol), NullLiteral, None)
     case MetaLang3Ast.Optional(body) =>
-      val vBody = valuefySymbol(body, input).proxy
+      val vBody = valuefySymbol(body, input, unbindNeeded = false)
+      // vBody.proxy를 하면 기본적으로 unbind까지 딸려 오기 때문에.. 그 부분을 제거하기 위해 이렇게 처리 - 다른데서 쓰는데가 없는 것 같아서 여기에 정의
+      val vBodyProxy: ValuefiableSymbol[Symbols.PlainAtomicSymbol] = vBody.symbol match {
+        case _: Symbols.PlainAtomicSymbol =>
+          // proxy는 타입 때문
+          vBody.proxy
+        case nonPlainAtomic =>
+          val proxySymbol = Symbols.Proxy(nonPlainAtomic)
+          val vBodyUnbind = vBody.unbind
+          ValuefiableSymbol(proxySymbol, vBodyUnbind.expr, vBodyUnbind.bindCtx, vBodyUnbind.joinExpr)
+      }
       val emptySeq = Symbols.Proxy(Symbols.Sequence(Seq()))
-      val oneofSymbol = Symbols.OneOf(ListSet(vBody.symbol, emptySeq))
+      val oneofSymbol = Symbols.OneOf(ListSet(vBodyProxy.symbol, emptySeq))
       ValuefiableSymbol(
         oneofSymbol,
-        vBody.expr,
-        vBody.bindCtx
+        vBodyProxy.expr,
+        vBodyProxy.bindCtx
       ).postProcess { expr =>
-        UnrollChoices(Map(emptySeq -> NullLiteral, vBody.symbol -> expr))
+        UnrollChoices(Map(emptySeq -> NullLiteral, vBodyProxy.symbol -> expr))
       }.unbindIf(unbindNeeded)
     case MetaLang3Ast.RepeatFromZero(body) =>
       val vBody = valuefySymbol(body, input).proxy
@@ -248,9 +258,9 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       }
     case MetaLang3Ast.InPlaceChoices(choices) =>
       if (choices.size == 1) {
-        valuefySymbol(choices.head, input)
+        valuefySymbol(choices.head, input, unbindNeeded = unbindNeeded)
       } else {
-        val vChoices = choices.map(c => valuefySymbol(c, input).proxy)
+        val vChoices = choices.map(c => valuefySymbol(c, input, unbindNeeded = false).proxy)
         val oneofSymbol = Symbols.OneOf(ListSet.from(vChoices.map(_.symbol)))
         ValuefiableSymbol(
           oneofSymbol,
@@ -307,11 +317,11 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       }
       ValuefiableSymbol(rhsSymbol, refCtx.last.expr, Some(BindCtx(refCtx.toList)))
     } else {
-      val vSymbols = sequence.collect {
+      val vElems = sequence.collect {
         case symbol: MetaLang3Ast.Symbol =>
           valuefySymbol(symbol, input).proxy
       }
-      val sequenceSymbol = Symbols.Sequence(vSymbols.map(_.symbol))
+      val sequenceSymbol = Symbols.Sequence(vElems.map(_.symbol))
       val refCtx = mutable.ListBuffer[ReferrableExpr]()
       var symbolIdx = 0
       sequence.foreach {
@@ -319,7 +329,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
           refCtx += ReferrableExpr(valuefyProcessor(refCtx.toList, processor, input, callCtx), None, None)
         case _: MetaLang3Ast.Symbol =>
           assert(symbolIdx < symbolsCount)
-          val vElem = vSymbols(symbolIdx)
+          val vElem = vElems(symbolIdx)
           refCtx += ReferrableExpr(vElem.expr, vElem.bindCtx, vElem.joinExpr).seqElemAt(symbolIdx)
           symbolIdx += 1
       }
