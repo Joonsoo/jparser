@@ -163,6 +163,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
       val choiceCodes = choices.zipWithIndex.flatMap { pair =>
         val ((varName, choiceSymbol), index) = pair
         val choiceExpr = choicesMap(choiceSymbol)
+        // TODO choiceSymbol이 아니라 그 body에 해당하는게 나와야 할텐데..
         val exprCode = valuefyExprToCode(choiceExpr, beginGen, endGen, choiceSymbol, SequenceVarName(None))
         val isLast = choices.size - 1 == index
         val condition = if (isLast) "else" else s"$varName != null"
@@ -184,7 +185,13 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
 
   // symbol은 현재 처리중인 심볼
   // sequenceVar는 현재 처리중인 심볼이 sequence인 경우 혹시 앞에서 getSequenceElems를 한 결과를 가진게 있으면 재사용할 수 있게 그 이름을 전달
-  def valuefyExprToCode(valuefyExpr: ValuefyExpr, beginGen: String, endGen: String, symbol: Symbols.Symbol, sequenceVarName: SequenceVarName): ExprBlob = valuefyExpr match {
+  def valuefyExprToCode(
+    valuefyExpr: ValuefyExpr,
+    beginGen: String,
+    endGen: String,
+    symbol: Symbols.Symbol,
+    sequenceVarName: SequenceVarName,
+  ): ExprBlob = valuefyExpr match {
     case ValuefyExpr.InputNode =>
       // 부분적으로 parse tree reconstruct해서 반환
       ???
@@ -407,7 +414,9 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         }
         ExprBlob(paramCode.prepares, result, paramCode.required)
       case com.giyeok.jparser.metalang3.ValuefyExpr.FuncType.Str =>
-        val paramCodes = params.map(valuefyExprToCode(_, beginGen, endGen, symbol, sequenceVarName))
+        val paramCodes = params.map { param =>
+          valuefyExprToCode(param, beginGen, endGen, symbol, sequenceVarName)
+        }
 
         def toStringCode(input: String, inputType: Type): String = inputType match {
           // case Type.NodeType => s"$input.TODO()"

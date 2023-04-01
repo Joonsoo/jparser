@@ -157,6 +157,39 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
     )
   }
 
+  "error grammar" should "work" in {
+    test(
+      "RefIdx = ('0' {str($0)} | '1-9' '0-9'* {str($0, $1)})",
+      Map(
+        "1" -> "\"1\"")
+    )
+  }
+
+  "error grammar 2" should "work" in {
+    test(
+      """ArrayExpr = '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {$2{[$0] + $1} ?: []}
+        |PExpr = 'a-z'
+        |WS = ' '*
+        |""".stripMargin,
+      Map("[a, b, c]" -> "['a','b','c']")
+    )
+  }
+
+  "error 3" should "be fixed" in {
+    test(
+      "RefIdx = ('0' {str($0)} | '1-9' '0-9'* {str($0, $1)})",
+      Map("0" -> "\"0\""))
+  }
+
+  "error 4" should "be fixed" in {
+    test(
+      """A = ('c-e' 'f')+ {$0$0}""",
+      Map(
+        "cf" -> "['c']",
+        "cfdf" -> "['c','d']")
+    )
+  }
+
   "metalang3 grammar" should "work" in {
     test(
       MetaLang3ExamplesCatalog.INSTANCE.getMetalang3.getGrammarText,
@@ -164,7 +197,12 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
         "Abc = 'a'+" ->
           "Grammar([Rule(LHS(Nonterminal(NonterminalName(\"Abc\")),null),[Sequence([RepeatFromOne(CharAsIs('a'))])])])",
         "Xyz = ('a' 'b')+ {$0$0}" ->
-          "Grammar([Rule(LHS(Nonterminal(NonterminalName(\"Xyz\")),null),[Sequence([RepeatFromOne(InPlaceChoices([Sequence([CharAsIs('a'),CharAsIs('b')])])),ProcessorBlock(BindExpr(ValRef(\"0\",null),ValRef(\"0\",null)))])])])")
+          "Grammar([Rule(LHS(Nonterminal(NonterminalName(\"Xyz\")),null),[Sequence([RepeatFromOne(InPlaceChoices([Sequence([CharAsIs('a'),CharAsIs('b')])])),ProcessorBlock(BindExpr(ValRef(\"0\",null),ValRef(\"0\",null)))])])])",
+        "Def = 'h' 'e' 'l' 'l' 'o' {$1}" ->
+          "Grammar([Rule(LHS(Nonterminal(NonterminalName(\"Def\")),null),[Sequence([CharAsIs('h'),CharAsIs('e'),CharAsIs('l'),CharAsIs('l'),CharAsIs('o'),ProcessorBlock(ValRef(\"1\",null))])])])",
+        "Def = 'h' 'e' 'l' 'l' 'o' {[$1, $3]}" ->
+          "Grammar([Rule(LHS(Nonterminal(NonterminalName(\"Def\")),null),[Sequence([CharAsIs('h'),CharAsIs('e'),CharAsIs('l'),CharAsIs('l'),CharAsIs('o'),ProcessorBlock(ArrayExpr([ValRef(\"1\",null),ValRef(\"3\",null)]))])])])"
+      )
     )
   }
 }

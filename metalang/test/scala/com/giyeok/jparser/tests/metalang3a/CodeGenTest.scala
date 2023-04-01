@@ -10,9 +10,21 @@ class CodeGenTest extends AnyFlatSpec {
     val grammar = MetaLanguage3.analyzeGrammar(MetaLang3ExamplesCatalog.INSTANCE.getMetalang3.getGrammarText)
 
     val generatedScala = new ScalaCodeGen(grammar).generateParser("MetaLang3Ast")
-//    println(generatedScala)
+    //    println(generatedScala)
 
+    // refCtx로 넘어가는 어딘가에서 unbind가 누락되는 경우가 있는데..
     val generatedKt = new KotlinOptCodeGen(grammar).generate("MetaLang3AstKt")
     println(generatedKt)
+  }
+
+  "simple grammar" should "work" in {
+    val grammar = MetaLanguage3.analyzeGrammar(
+      """ArrayExpr = '[' WS (PExpr (WS ',' WS PExpr)* WS)? ']' {$2{[$0] + $1} ?: []}
+        |PExpr = 'a-z'
+        |WS = ' '*
+        |""".stripMargin)
+
+    val generatedScala = new ScalaCodeGen(grammar).generateParser("SimpleAst")
+    println(generatedScala)
   }
 }
