@@ -141,24 +141,50 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       (Unbind(proxySymbol, pair._1), proxySymbol)
   }
 
-  case class ValuefiableSymbol[+T <: Symbols.Symbol](symbol: T, expr: ValuefyExpr, joinExpr: Option[ValuefyExpr] = None) {
-    def unbind: ValuefiableSymbol[T] = ValuefiableSymbol(symbol, Unbind(symbol, expr), joinExpr.map(Unbind(symbol, _)))
+  case class BindCtx(refCtx: List[ReferrableExpr], postProcess: ValuefyExpr => ValuefyExpr = x => x) {
+    def withPostProcess(postProcess: ValuefyExpr => ValuefyExpr): BindCtx =
+      BindCtx(refCtx, x => postProcess(this.postProcess(x)))
+
+    def unbind(symbol: Symbols.Symbol): BindCtx =
+      BindCtx(refCtx.map(_.unbind(symbol)), postProcess)
+
+    def seqElemAt(seqIdx: Int): BindCtx =
+      BindCtx(refCtx.map(_.seqElemAt(seqIdx)), postProcess)
+  }
+
+  case class ValuefiableSymbol[+T <: Symbols.Symbol](
+    symbol: T,
+    expr: ValuefyExpr,
+    // bindCtx는 이 element에 대해 bind expr을 사용하려고 시도하는 경우 refCtx로 사용할 context. None이면 bind expr을 사용할 수 없음을 의미
+    bindCtx: Option[BindCtx],
+    joinExpr: Option[ValuefyExpr] = None,
+  ) {
+    def postProcess(postProcess: ValuefyExpr => ValuefyExpr): ValuefiableSymbol[T] =
+      ValuefiableSymbol(symbol, postProcess(expr), bindCtx.map(_.withPostProcess(postProcess)), joinExpr)
+
+    def unbind: ValuefiableSymbol[T] = {
+      ValuefiableSymbol(symbol, Unbind(symbol, expr), bindCtx.map(_.unbind(symbol)), joinExpr.map(Unbind(symbol, _)))
+    }
 
     def unbindIf(needed: Boolean): ValuefiableSymbol[T] = if (needed) this.unbind else this
 
     def proxy: ValuefiableSymbol[Symbols.PlainAtomicSymbol] = symbol match {
       case plainAtomic: Symbols.PlainAtomicSymbol =>
         // 실은 같은거지만 타입 맞추려고..
-        ValuefiableSymbol(plainAtomic, expr)
+        ValuefiableSymbol(plainAtomic, expr, bindCtx, joinExpr)
       case nonPlainAtomic =>
         val proxySymbol = Symbols.Proxy(nonPlainAtomic)
-        ValuefiableSymbol(proxySymbol, Unbind(proxySymbol, expr))
+        ValuefiableSymbol(proxySymbol, expr, bindCtx, joinExpr).unbind
     }
-
-    def refExpr: ReferrableExpr = ReferrableExpr(expr, joinExpr)
   }
 
-  case class ReferrableExpr(expr: ValuefyExpr, joinExpr: Option[ValuefyExpr])
+  case class ReferrableExpr(expr: ValuefyExpr, bindCtx: Option[BindCtx], joinExpr: Option[ValuefyExpr]) {
+    def unbind(symbol: Symbols.Symbol): ReferrableExpr =
+      ReferrableExpr(Unbind(symbol, expr), bindCtx.map(_.unbind(symbol)), joinExpr.map(Unbind(symbol, _)))
+
+    def seqElemAt(seqIdx: Int): ReferrableExpr =
+      ReferrableExpr(SeqElemAt(seqIdx, expr), bindCtx.map(_.seqElemAt(seqIdx)), joinExpr.map(SeqElemAt(seqIdx, _)))
+  }
 
   // symbolAst가 나타내는 심볼과, 해당 심볼을 파싱한 결과에 해당하는 값이 input으로 들어왔을 때 값으로 가공하는 valuefy expr을 반환하는 함수
   // unbindNeeded가 true이면 input이 생성되는 심볼로 bind된 노드이고, false이면 input이 생성되는 심볼의 body이라고 가정(최종 생성되는 심볼로 bind되지 않은)
@@ -176,42 +202,49 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       // 사용빈도도 엄청 떨어지는데다 A&(B&C $>0) $>0 같은식으로 해결하면 될 것 같음
       ValuefiableSymbol(joinSymbol,
         JoinBody(vBody.expr),
+        None,
         joinExpr = Some(JoinCond(vJoin.expr))).unbindIf(unbindNeeded)
     case MetaLang3Ast.ExceptSymbol(body, except) =>
       val vBody = valuefySymbol(body, input).proxy
       val vExcept = valuefySymbol(except, input).proxy
       val exceptSymbol = Symbols.Except(vBody.symbol, vExcept.symbol)
-      ValuefiableSymbol(exceptSymbol, vBody.expr).unbindIf(unbindNeeded)
+      ValuefiableSymbol(exceptSymbol, vBody.expr, None).unbindIf(unbindNeeded)
     case MetaLang3Ast.FollowedBy(followedBy) =>
       val vFollowedBy = valuefySymbol(followedBy, input).proxy
-      ValuefiableSymbol(Symbols.LookaheadIs(vFollowedBy.symbol), NullLiteral)
+      ValuefiableSymbol(Symbols.LookaheadIs(vFollowedBy.symbol), NullLiteral, None)
     case MetaLang3Ast.NotFollowedBy(notFollowedBy) =>
       val vNotFollowedBy = valuefySymbol(notFollowedBy, input).proxy
-      ValuefiableSymbol(Symbols.LookaheadExcept(vNotFollowedBy.symbol), NullLiteral)
+      ValuefiableSymbol(Symbols.LookaheadExcept(vNotFollowedBy.symbol), NullLiteral, None)
     case MetaLang3Ast.Optional(body) =>
       val vBody = valuefySymbol(body, input).proxy
       val emptySeq = Symbols.Proxy(Symbols.Sequence(Seq()))
       val oneofSymbol = Symbols.OneOf(ListSet(vBody.symbol, emptySeq))
       ValuefiableSymbol(
         oneofSymbol,
-        UnrollChoices(Map(
-          emptySeq -> NullLiteral,
-          vBody.symbol -> vBody.expr))).unbindIf(unbindNeeded)
+        vBody.expr,
+        vBody.bindCtx
+      ).postProcess { expr =>
+        UnrollChoices(Map(emptySeq -> NullLiteral, vBody.symbol -> expr))
+      }.unbindIf(unbindNeeded)
     case MetaLang3Ast.RepeatFromZero(body) =>
       val vBody = valuefySymbol(body, input).proxy
       val repeatSymbol = Symbols.Repeat(vBody.symbol, 0)
       if (unbindNeeded) {
-        ValuefiableSymbol(repeatSymbol, UnrollRepeatFromZero(vBody.expr))
+        ValuefiableSymbol(repeatSymbol, vBody.expr, vBody.bindCtx)
+          .postProcess(UnrollRepeatFromZero)
       } else {
-        ValuefiableSymbol(repeatSymbol, UnrollRepeatFromZeroNoUnbind(repeatSymbol, vBody.expr))
+        ValuefiableSymbol(repeatSymbol, vBody.expr, vBody.bindCtx)
+          .postProcess(UnrollRepeatFromZeroNoUnbind(repeatSymbol, _))
       }
     case MetaLang3Ast.RepeatFromOne(body) =>
       val vBody = valuefySymbol(body, input).proxy
       val repeatSymbol = Symbols.Repeat(vBody.symbol, 1)
       if (unbindNeeded) {
-        ValuefiableSymbol(repeatSymbol, UnrollRepeatFromOne(vBody.expr))
+        ValuefiableSymbol(repeatSymbol, vBody.expr, vBody.bindCtx)
+          .postProcess(UnrollRepeatFromOne)
       } else {
-        ValuefiableSymbol(repeatSymbol, UnrollRepeatFromOneNoUnbind(repeatSymbol, vBody.expr))
+        ValuefiableSymbol(repeatSymbol, vBody.expr, vBody.bindCtx)
+          .postProcess(UnrollRepeatFromOneNoUnbind(repeatSymbol, _))
       }
     case MetaLang3Ast.InPlaceChoices(choices) =>
       if (choices.size == 1) {
@@ -221,29 +254,32 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
         val oneofSymbol = Symbols.OneOf(ListSet.from(vChoices.map(_.symbol)))
         ValuefiableSymbol(
           oneofSymbol,
-          UnrollChoices(vChoices.map(c => c.symbol -> c.expr).toMap)).unbindIf(unbindNeeded)
+          UnrollChoices(vChoices.map(c => c.symbol -> c.expr).toMap),
+          // choice가 여러개인 경우 bind 불가
+          None).unbindIf(unbindNeeded)
       }
     case MetaLang3Ast.Longest(choices) =>
       val vChoices = valuefySymbol(choices, input).proxy
       val longestSymbol = Symbols.Longest(vChoices.symbol)
-      ValuefiableSymbol(longestSymbol, vChoices.expr).unbindIf(unbindNeeded)
+      ValuefiableSymbol(longestSymbol, vChoices.expr, vChoices.bindCtx)
+        .unbindIf(unbindNeeded)
     case MetaLang3Ast.EmptySeq() =>
-      ValuefiableSymbol(Symbols.Sequence(), NullLiteral)
+      ValuefiableSymbol(Symbols.Sequence(), NullLiteral, None)
     case MetaLang3Ast.Sequence(seq) =>
       valuefySequence(seq, input, List()).unbindIf(unbindNeeded)
     case MetaLang3Ast.Nonterminal(name) =>
       val nonterminalName = stringNameOf(name)
       val nonterminalSymbol = Symbols.Nonterminal(nonterminalName)
-      ValuefiableSymbol(nonterminalSymbol, MatchNonterminal(nonterminalName)).unbindIf(unbindNeeded)
+      ValuefiableSymbol(nonterminalSymbol, MatchNonterminal(nonterminalName), None).unbindIf(unbindNeeded)
     case MetaLang3Ast.StringSymbol(value) =>
       val stringSymbol = Symbols.Proxy(Symbols.Sequence(value.map(TerminalUtil.stringCharToChar).map(Symbols.ExactChar)))
-      ValuefiableSymbol(stringSymbol, StringLiteral(TerminalUtil.stringCharsToString(value)))
+      ValuefiableSymbol(stringSymbol, StringLiteral(TerminalUtil.stringCharsToString(value)), None)
     case terminal: MetaLang3Ast.Terminal =>
       val terminalSymbol = TerminalUtil.terminalToSymbol(terminal)
-      ValuefiableSymbol(terminalSymbol, CharFromTerminalLiteral).unbindIf(unbindNeeded)
+      ValuefiableSymbol(terminalSymbol, CharFromTerminalLiteral, None).unbindIf(unbindNeeded)
     case MetaLang3Ast.TerminalChoice(choices) =>
       val terminalSymbol = TerminalUtil.terminalChoicesToSymbol(choices)
-      ValuefiableSymbol(terminalSymbol, CharFromTerminalLiteral).unbindIf(unbindNeeded)
+      ValuefiableSymbol(terminalSymbol, CharFromTerminalLiteral, None).unbindIf(unbindNeeded)
   }
 
   // input은 전체 시퀀스에 대한 bind node가 없다고 가정
@@ -260,16 +296,16 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       sequence.foreach { elem =>
         val expr: ReferrableExpr = elem match {
           case processor: MetaLang3Ast.Processor =>
-            ReferrableExpr(valuefyProcessor(refCtx.toList, processor, input, callCtx), None)
+            ReferrableExpr(valuefyProcessor(refCtx.toList, processor, input, callCtx), None, None)
           case symbol: MetaLang3Ast.Symbol =>
             val valuefiable = valuefySymbol(symbol, input, unbindNeeded = false)
             // valuefiable.symbol 가 대응되는 symbols와 일치해야 함
             rhsSymbol = valuefiable.symbol
-            valuefiable.refExpr
+            ReferrableExpr(valuefiable.expr, valuefiable.bindCtx, valuefiable.joinExpr)
         }
         refCtx += expr
       }
-      ValuefiableSymbol(rhsSymbol, refCtx.last.expr)
+      ValuefiableSymbol(rhsSymbol, refCtx.last.expr, Some(BindCtx(refCtx.toList)))
     } else {
       val vSymbols = sequence.collect {
         case symbol: MetaLang3Ast.Symbol =>
@@ -280,14 +316,14 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       var symbolIdx = 0
       sequence.foreach {
         case processor: MetaLang3Ast.Processor =>
-          refCtx += ReferrableExpr(valuefyProcessor(refCtx.toList, processor, input, callCtx), None)
+          refCtx += ReferrableExpr(valuefyProcessor(refCtx.toList, processor, input, callCtx), None, None)
         case _: MetaLang3Ast.Symbol =>
           assert(symbolIdx < symbolsCount)
-          val expr = vSymbols(symbolIdx).refExpr
-          refCtx += ReferrableExpr(SeqElemAt(symbolIdx, expr.expr), expr.joinExpr.map(SeqElemAt(symbolIdx, _)))
+          val vElem = vSymbols(symbolIdx)
+          refCtx += ReferrableExpr(vElem.expr, vElem.bindCtx, vElem.joinExpr).seqElemAt(symbolIdx)
           symbolIdx += 1
       }
-      ValuefiableSymbol(sequenceSymbol, refCtx.last.expr)
+      ValuefiableSymbol(sequenceSymbol, refCtx.last.expr, Some(BindCtx(refCtx.toList)))
     }
   }
 
@@ -362,52 +398,8 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       }
       case MetaLang3Ast.ExprParen(body) =>
         valuefyPExpr(refCtx, body, input, body +: callCtx)
-      case MetaLang3Ast.BindExpr(ctx, binder) =>
-        // 이것도 사용빈도가 높진 않은데.. 없애버릴까
-        val MetaLang3Ast.ValRef(idx0, condSymPath0) = ctx
-        val condSymPath = condSymPath0.getOrElse(List())
-        check(condSymPath.isEmpty, "BindExpr with cond sym path not implemented")
-        val idx = idx0.toInt
-        check(idx < refCtx.size, "reference index out of range")
-        //        val referred = refCtx(idx)
-        ???
-      //        refCtx(idx) match {
-      //          case symbol: MetaLang3Ast.Symbol =>
-      //            // 이 부분은 valuefySequence에서 마지막 elem의 종류에 따라 SeqElem을 넣는 것 때문에
-      //            // valuefySymbol을 재사용하지 못하고 valuefySymbol과 거의 같은 코드가 중복돼서 들어갔음
-      //            // TODO 고칠 수 있으면 좋을텐데..
-      //            def processBindExpr(symbol: MetaLang3Ast.Symbol): ValuefyExpr =
-      //              symbol match {
-      //                case MetaLang3Ast.Optional(body) =>
-      //                  val vBody = proxy(valuefySymbol(body, List(), input))
-      //                  val emptySeq = Symbols.Proxy(Symbols.Sequence(Seq()))
-      //                  val oneofSymbol = Symbols.OneOf(ListSet(vBody._2, emptySeq))
-      //                  Unbind(oneofSymbol, UnrollChoices(Map(emptySeq -> NullLiteral,
-      //                    vBody._2 -> processBindExpr(body))))
-      //                case MetaLang3Ast.RepeatFromZero(body) =>
-      //                  UnrollRepeatFromZero(processBindExpr(body))
-      //                case MetaLang3Ast.RepeatFromOne(body) =>
-      //                  UnrollRepeatFromOne(processBindExpr(body))
-      //                case MetaLang3Ast.InPlaceChoices(choices) if choices.size == 1 =>
-      //                  // 어차피 choice가 하나이므로 UnrollChoices 대신 Unbind만 해도 됨
-      //                  Unbind(valuefySymbol(symbol, List(), InputNode)._2, processBindExpr(choices.head))
-      //                case MetaLang3Ast.Longest(choices) =>
-      //                  Unbind(valuefySymbol(symbol, List(), InputNode)._2, processBindExpr(choices))
-      //                case MetaLang3Ast.Sequence(seq) =>
-      //                  val (processor, seqSymbol) = valuefySequence(seq :+ binder.asInstanceOf[MetaLang3Ast.Processor], input)
-      //                  proxy(Unbind(seqSymbol, processor), seqSymbol)._1
-      //                case _ =>
-      //                  // throw IllegalGrammar("Unsupported binding context")
-      //                  errorCollector.addError("Unsupported binding context", processor.parseNode)
-      //                  InputNode
-      //              }
-      //
-      //            SeqElemAt(symbolIndexFrom(refCtx, idx), processBindExpr(symbol))
-      //          case _: MetaLang3Ast.Processor =>
-      //            // throw IllegalGrammar("BindExpr cannot refer to processor")
-      //            errorCollector.addError("BindExpr cannot refer to processor", processor.parseNode)
-      //            InputNode
-      //        }
+      case expr: MetaLang3Ast.BindExpr =>
+        valuefyBindExpr(refCtx, expr, input, expr +: callCtx)
       case MetaLang3Ast.NamedConstructExpr(typeName, params, supers0) =>
         val className = stringNameOf(typeName)
         // add className->supers
@@ -461,12 +453,41 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
     }
   }
 
+  private def valuefyBindExpr(
+    refCtx: List[ReferrableExpr],
+    bindExpr: MetaLang3Ast.BindExpr,
+    input: ValuefyExpr,
+    callCtx: List[MetaLang3Ast.PExpr]
+  ): ValuefyExpr = {
+    val MetaLang3Ast.ValRef(idx0, condSymPath0) = bindExpr.ctx
+    val condSymPath = condSymPath0.getOrElse(List())
+    check(condSymPath.isEmpty, "BindExpr with cond sym path not implemented")
+    val idx = idx0.toInt
+    check(idx < refCtx.size, "reference index out of range")
+    val referred = refCtx(idx)
+    println(referred)
+    referred.bindCtx match {
+      case Some(bindCtx) =>
+        val vExpr = bindExpr.binder match {
+          case anotherBindExpr: MetaLang3Ast.BindExpr =>
+            valuefyBindExpr(bindCtx.refCtx, anotherBindExpr, input, anotherBindExpr +: callCtx)
+          case MetaLang3Ast.ProcessorBlock(body) =>
+            valuefyPExpr(bindCtx.refCtx, body, input, body +: callCtx)
+          case ref: MetaLang3Ast.Ref =>
+            valuefyPExpr(bindCtx.refCtx, ref, input, ref +: callCtx)
+        }
+        bindCtx.postProcess(vExpr)
+      case None =>
+        throw new IllegalStateException(s"Bind expression is not supported for ${bindExpr.ctx}")
+    }
+  }
+
   private def addNonterminalDerivation(nonterminalName: String, nonterminalType: Option[Type], rhs: List[MetaLang3Ast.Sequence]): Unit = {
     nonterminalType.foreach { someNonterminalType =>
       _nonterminalInfoCollector = _nonterminalInfoCollector.setNonterminalType(nonterminalName, someNonterminalType)
     }
     val vRhs = rhs.map { derivation =>
-      val ValuefiableSymbol(rhsSymbol, valuefyExpr, _) = valuefySequence(derivation.seq, InputNode, List())
+      val ValuefiableSymbol(rhsSymbol, valuefyExpr, _, _) = valuefySequence(derivation.seq, InputNode, List())
       _nonterminalInfoCollector = _nonterminalInfoCollector.addNonterminalExpr(nonterminalName, valuefyExpr)
       (rhsSymbol, valuefyExpr)
     }

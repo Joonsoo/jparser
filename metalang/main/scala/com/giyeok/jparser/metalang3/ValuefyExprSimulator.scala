@@ -129,12 +129,12 @@ class ValuefyExprSimulator(val ngrammar: NGrammar,
           def stringify(value: Value): String = value match {
             case NodeValue(astNode) => astNode.sourceText
             case ClassValue(className, args) => s"$className(${args.map(stringify).mkString(",")})"
-            case ArrayValue(elems) => s"[${elems.map(stringify).mkString(",")}]"
+            case ArrayValue(elems) => elems.map(stringify).mkString("")
             case EnumValue(enumType, enumValue) => s"%$enumType.$enumValue"
             case NullValue => "null"
             case BoolValue(value) => value.toString
             case CharValue(value) => value.toString
-            case StringValue(value) => "\"" + value + "\""
+            case StringValue(value) => value
           }
 
           StringValue(vParams.map(stringify).mkString)

@@ -1,5 +1,6 @@
 package com.giyeok.jparser.tests.metalang3a
 
+import com.giyeok.jparser.examples.metalang3.MetaLang3ExamplesCatalog
 import com.giyeok.jparser.metalang3.MetaLanguage3.IllegalGrammar
 import com.giyeok.jparser.metalang3.ast.MetaLang3Ast
 import com.giyeok.jparser.metalang3.{ErrorCollector, GrammarTransformer, MetaLang3Parser, ValuefyExprSimulator}
@@ -81,11 +82,11 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
     val simul = new ValuefyExprSimulator(ngrammar, transformer.startNonterminalName(), transformer.nonterminalValuefyExprs, Map())
     examples.foreach { example =>
       val value = simul.valuefy(example._1)
-      println(value)
       value match {
         case Right(value) => ???
         case Left(value) =>
-          assert(value.toString == example._2)
+          println(value.prettyPrint())
+          assert(value.prettyPrint() == example._2)
       }
     }
   }
@@ -97,13 +98,55 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
         |T = 't'+ | "to"
         |""".stripMargin,
       Map(
-        "attttz" -> "StringValue(a[t,t,t,t]z)",
-        "atoz" -> "StringValue(a[t,o]z)"))
+        "attttz" -> "\"attttz\"",
+        "atoz" -> "\"atoz\""))
 
     test(
       """A = ('a' 'b' {"ab"})+
         |""".stripMargin,
-      Map("abab" -> "ArrayValue(List(StringValue(ab), StringValue(ab)))")
+      Map("abab" -> "[\"ab\",\"ab\"]")
+    )
+  }
+
+  "bind expr" should "work" in {
+    assertThrows[IllegalStateException] {
+      test(
+        """A = ('a' 'b' | 'c')+ {$0$0}""",
+        Map("ab" -> "")
+      )
+    }
+
+    test(
+      """A = ('a-c' 'b')+ {$0$0}""",
+      Map(
+        "ab" -> "['a']",
+        "abcb" -> "['a','c']")
+    )
+
+    test(
+      """A = ('a' 'b')? {$0$0}""",
+      Map(
+        "ab" -> "'a'",
+        "" -> "null")
+    )
+
+    test(
+      """A = ('a' 'b')* {$0$0}""",
+      Map(
+        "ab" -> "['a']",
+        "abab" -> "['a','a']",
+        "" -> "[]")
+    )
+  }
+
+  "metalang3 grammar" should "work" in {
+    test(
+      MetaLang3ExamplesCatalog.INSTANCE.getMetalang3.getGrammarText,
+      Map(
+        "Abc = 'a'+" ->
+          "Grammar([Rule(LHS(Nonterminal(NonterminalName(\"Abc\")),null),[Sequence([RepeatFromOne(CharAsIs('a'))])])])",
+        "Xyz = ('a' 'b')+ {$0$0}" ->
+          "Grammar([Rule(LHS(Nonterminal(NonterminalName(\"Xyz\")),null),[Sequence([RepeatFromOne(InPlaceChoices([Sequence([CharAsIs('a'),CharAsIs('b')])])),ProcessorBlock(BindExpr(ValRef(\"0\",null),ValRef(\"0\",null)))])])])")
     )
   }
 }

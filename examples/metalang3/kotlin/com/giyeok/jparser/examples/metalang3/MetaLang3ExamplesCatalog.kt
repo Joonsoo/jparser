@@ -1,6 +1,11 @@
 package com.giyeok.jparser.examples.metalang3
 
 object MetaLang3ExamplesCatalog {
+  val metalang3 = GrammarWithExamples.fromResource(
+    "/metalang3",
+    listOf("metalang3.cdg")
+  )
+
   val asdl = GrammarWithExamples.fromResource(
     "/asdl",
     listOf("pyast.asdl")
