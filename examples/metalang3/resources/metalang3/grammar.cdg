@@ -9,9 +9,10 @@ Elem: Elem = Symbol | Processor
 
 
 // Symbol
-Symbol: Symbol = BinSymbol
-BinSymbol: BinSymbol = BinSymbol WS '&' WS PreUnSymbol {JoinSymbol(body=$0, join=$4)}
-  | BinSymbol WS '-' WS PreUnSymbol {ExceptSymbol(body=$0, except=$4)}
+Symbol: Symbol = JoinSymbol
+JoinSymbol: BinSymbol1 = ExceptSymbol WS '&' WS JoinSymbol {JoinSymbol(body=$0, join=$4)}
+  | ExceptSymbol
+ExceptSymbol: BinSymbol2 = ExceptSymbol WS '-' WS PreUnSymbol {ExceptSymbol(body=$0, except=$4)}
   | PreUnSymbol
 PreUnSymbol: PreUnSymbol = '^' WS PreUnSymbol {FollowedBy(followedBy=$2)}
   | '!' WS PreUnSymbol {NotFollowedBy(notFollowedBy=$2)}

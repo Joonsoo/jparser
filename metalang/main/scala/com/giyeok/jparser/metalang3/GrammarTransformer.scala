@@ -134,19 +134,23 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
     }
   }
 
+  // symbol AST를 처리했더니 symbol이 만들어졌고,
+  // 그 심볼을 파싱한 결과를 적절한 값으로 변환하려면 파스 노드에 expr을 실행하면 되고,
+  // bind가 가능한 expression 이면 bindCtx가 설정되고,
+  // join condition이 있으면 joinCond가 설정됨
   case class ValuefiableSymbol[+T <: Symbols.Symbol](
     symbol: T,
     expr: ValuefyExpr,
     // bindCtx는 이 element에 대해 bind expr을 사용하려고 시도하는 경우 refCtx로 사용할 context. None이면 bind expr을 사용할 수 없음을 의미
     bindCtx: Option[BindCtx],
-    joinExpr: Option[ValuefyExpr] = None,
+    joinCond: Option[ReferrableExpr] = None,
   ) {
     def unbind: ValuefiableSymbol[T] = {
       ValuefiableSymbol(
         symbol,
         Unbind(symbol, expr),
         bindCtx.map(_.unbind(symbol)),
-        joinExpr.map(Unbind(symbol, _)))
+        joinCond.map(_.unbind(symbol)))
     }
 
     def unbindIf(needed: Boolean): ValuefiableSymbol[T] = if (needed) this.unbind else this
@@ -154,38 +158,41 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
     def proxy: ValuefiableSymbol[Symbols.PlainAtomicSymbol] = symbol match {
       case plainAtomic: Symbols.PlainAtomicSymbol =>
         // 실은 같은거지만 타입 맞추려고..
-        ValuefiableSymbol(plainAtomic, expr, bindCtx, joinExpr)
+        ValuefiableSymbol(plainAtomic, expr, bindCtx, joinCond)
       case nonPlainAtomic =>
         val proxySymbol = Symbols.Proxy(nonPlainAtomic)
-        // TODO joinExpr에도 적용이 필요할까?
         ValuefiableSymbol(
           proxySymbol,
           Unbind(proxySymbol, expr),
           bindCtx.map(_.unbind(proxySymbol)),
-          joinExpr.map(Unbind(proxySymbol, _)))
+          joinCond.map(_.unbind(proxySymbol)))
     }
 
     // vBody.proxy를 하면 기본적으로 unbind까지 딸려 오기 때문에 그 부분을 제거하기 위함
     def proxyNoUnbind: ValuefiableSymbol[Symbols.PlainAtomicSymbol] = symbol match {
       case symbol: Symbols.PlainAtomicSymbol =>
-        ValuefiableSymbol(symbol, expr, bindCtx, joinExpr)
+        ValuefiableSymbol(symbol, expr, bindCtx, joinCond)
       case nonPlainAtomic =>
         val proxySymbol = Symbols.Proxy(nonPlainAtomic)
-        // TODO joinExpr에도 적용이 필요할까?
         ValuefiableSymbol(
           proxySymbol,
           Unbind(symbol, expr),
           bindCtx.map(_.unbind(symbol)),
-          joinExpr.map(Unbind(symbol, _)))
+          joinCond.map(_.unbind(symbol)))
     }
 
     def applyToExpr(processor: ValuefyExpr => ValuefyExpr): ValuefiableSymbol[T] = {
-      // TODO joinExpr에도 적용이 필요할까?
-      ValuefiableSymbol(symbol, processor(expr), bindCtx.map(_.applyToExpr(processor)), joinExpr.map(processor))
+      ValuefiableSymbol(
+        symbol,
+        processor(expr),
+        bindCtx.map(_.applyToExpr(processor)),
+        joinCond.map(_.applyToExpr(processor)))
     }
   }
 
   case class BindCtx(seekExpr: ValuefyExpr, refCtx: List[ReferrableExpr]) {
+    // refCtx는 바인드된 안의 것이므로 bind나 applyToExpr의 적용을 받지 않는다
+
     def unbind(symbol: Symbols.Symbol): BindCtx =
       BindCtx(Unbind(symbol, seekExpr), refCtx)
 
@@ -193,7 +200,13 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       BindCtx(processor(seekExpr), refCtx)
   }
 
-  case class ReferrableExpr(expr: ValuefyExpr, bindCtx: Option[BindCtx], joinExpr: Option[ValuefyExpr])
+  case class ReferrableExpr(expr: ValuefyExpr, bindCtx: Option[BindCtx], joinCond: Option[ReferrableExpr]) {
+    def unbind(symbol: Symbols.Symbol): ReferrableExpr =
+      ReferrableExpr(Unbind(symbol, expr), bindCtx.map(_.unbind(symbol)), joinCond.map(_.unbind(symbol)))
+
+    def applyToExpr(processor: ValuefyExpr => ValuefyExpr): ReferrableExpr =
+      ReferrableExpr(processor(expr), bindCtx.map(_.applyToExpr(processor)), joinCond.map(_.applyToExpr(processor)))
+  }
 
   // symbolAst가 나타내는 심볼과, 해당 심볼을 파싱한 결과에 해당하는 값이 input으로 들어왔을 때 값으로 가공하는 valuefy expr을 반환하는 함수
   // unbindNeeded가 true이면 input이 생성되는 심볼로 bind된 노드이고, false이면 input이 생성되는 심볼의 body이라고 가정(최종 생성되는 심볼로 bind되지 않은)
@@ -208,10 +221,11 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       // A&B {Dual($<0, $>0)}
       // $>>0 같은건 지원하지 말자. A&(B&C) 에서 $>>0하면 C가 나오게 하고 싶은.. 그런 거였는데
       // 사용빈도도 엄청 떨어지는데다 A&(B&C $>0) $>0 같은식으로 해결하면 될 것 같음
-      ValuefiableSymbol(joinSymbol,
+      ValuefiableSymbol(
+        joinSymbol,
         JoinBody(vBody.expr),
-        None,
-        joinExpr = Some(JoinCond(vJoin.expr))).unbindIf(unbindNeeded)
+        bindCtx = vBody.bindCtx.map(_.applyToExpr(JoinBody)),
+        joinCond = Some(ReferrableExpr(JoinCond(vJoin.expr), vJoin.bindCtx.map(_.applyToExpr(JoinCond)), vJoin.joinCond))).unbindIf(unbindNeeded)
     case MetaLang3Ast.ExceptSymbol(body, except) =>
       val vBody = valuefySymbol(body).proxy
       val vExcept = valuefySymbol(except).proxy
@@ -304,11 +318,11 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
             val valuefiable = valuefySymbol(symbol, unbindNeeded = false)
             // valuefiable.symbol 가 대응되는 symbols와 일치해야 함
             rhsSymbol = valuefiable.symbol
-            ReferrableExpr(valuefiable.expr, valuefiable.bindCtx, valuefiable.joinExpr)
+            ReferrableExpr(valuefiable.expr, valuefiable.bindCtx, valuefiable.joinCond)
         }
         refCtx += expr
       }
-      ValuefiableSymbol(rhsSymbol, refCtx.last.expr, Some(BindCtx(InputNode, refCtx.toList)))
+      ValuefiableSymbol(rhsSymbol, refCtx.last.expr, Some(BindCtx(InputNode, refCtx.toList)), refCtx.last.joinCond)
     } else {
       val vElems = sequence.collect {
         case symbol: MetaLang3Ast.Symbol =>
@@ -327,7 +341,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
           refCtx += ReferrableExpr(
             SeqElemAt(symbolIdx, vElem.expr),
             vElem.bindCtx.map(_.applyToExpr(SeqElemAt(symbolIdx, _))),
-            vElem.joinExpr.map(SeqElemAt(symbolIdx, _)))
+            vElem.joinCond.map(_.applyToExpr(SeqElemAt(symbolIdx, _))))
           symbolIdx += 1
       }
       ValuefiableSymbol(
@@ -394,13 +408,8 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
         case MetaLang3Ast.ValRef(idx0, condSymPath0) =>
           val idx = idx0.toInt
           check(idx < refCtx.size, s"reference index out of range around ${ref.parseNode.start}")
-          val referred = refCtx(idx)
-          val condSymPath = condSymPath0.getOrElse(List())
-          check(condSymPath.size <= 1, "join path ref cannot be more than one")
-          if (condSymPath.isEmpty || condSymPath.head == BODY) referred.expr else {
-            check(referred.joinExpr.isDefined, "Invalid reference to join condition")
-            referred.joinExpr.get
-          }
+          val referred = findReferred(refCtx(idx), condSymPath0.getOrElse(List()))
+          referred.expr
         case MetaLang3Ast.RawRef(idx0, condSymPath0) =>
           val idx = idx0.toInt
           check(idx < refCtx.size, "reference index out of range")
@@ -463,6 +472,22 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
     }
   }
 
+  def findReferred(referrableExpr: ReferrableExpr, condSymPath: List[MetaLang3Ast.CondSymDir.Value]): ReferrableExpr = {
+    condSymPath match {
+      case Nil => referrableExpr
+      case MetaLang3Ast.CondSymDir.COND +: rest =>
+        referrableExpr.joinCond match {
+          case Some(joinCond) =>
+            findReferred(joinCond, rest)
+          case None =>
+            throw new IllegalStateException("Invalid join condition reference")
+        }
+      case _ =>
+        // 이건 어떤 경우지..?
+        ???
+    }
+  }
+
   private def valuefyBindExpr(
     refCtx: List[ReferrableExpr],
     bindExpr: MetaLang3Ast.BindExpr,
@@ -470,11 +495,9 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
     callCtx: List[MetaLang3Ast.PExpr]
   ): ValuefyExpr = {
     val MetaLang3Ast.ValRef(idx0, condSymPath0) = bindExpr.ctx
-    val condSymPath = condSymPath0.getOrElse(List())
-    check(condSymPath.isEmpty, "BindExpr with cond sym path not implemented")
     val idx = idx0.toInt
     check(idx < refCtx.size, "reference index out of range")
-    val referred = refCtx(idx)
+    val referred = findReferred(refCtx(idx), condSymPath0.getOrElse(List()))
     // println(referred)
     referred.bindCtx match {
       case Some(bindCtx) =>
@@ -488,7 +511,7 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
         }
         replaceInputNode(bindCtx.seekExpr, innerExpr)
       case None =>
-        throw new IllegalStateException(s"Bind expression is not supported for ${bindExpr.ctx}")
+        throw new IllegalStateException(s"Bind expression is not supported for ${bindExpr.ctx.parseNode.sourceText} at ${bindExpr.ctx.parseNode.start}-${bindExpr.ctx.parseNode.end}")
     }
   }
 

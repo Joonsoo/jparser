@@ -215,13 +215,136 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
 
   "join grammar" should "work" in {
     test(
-      """S = A&(B C D) {$>0$1}
+      """S = (A Q)&(B C D) {$0}
         |A = 'a-z'+
+        |Q = 'q'+
         |B = 'b'+
         |C = 'c'+
-        |D = 'd'+
+        |D = 'd-z'+
         |""".stripMargin,
-      Map("bcd" -> "")
+      Map("bcdq" -> "['q']")
+    )
+
+    test(
+      """S = (A Q $0)&(B C D) {$0}
+        |A = 'a-z'+
+        |Q = 'q'+
+        |B = 'b'+
+        |C = 'c'+
+        |D = 'd-z'+
+        |""".stripMargin,
+      Map("bcdq" -> "['b','c','d']")
+    )
+
+    test(
+      """S = (A Q)&(B C D) {$>0}
+        |A = 'a-z'+
+        |Q = 'q'+
+        |B = 'b'+
+        |C = 'c'+
+        |D = 'd-z'+
+        |""".stripMargin,
+      Map("bcdq" -> "['d','q']")
+    )
+
+    test(
+      """S = (A Q)&(B C D $1) {$>0}
+        |A = 'a-z'+
+        |Q = 'q'+
+        |B = 'b'+
+        |C = 'c'+
+        |D = 'd-z'+
+        |""".stripMargin,
+      Map("bcdq" -> "['c']")
+    )
+  }
+
+  "join bind grammar" should "work" in {
+    test(
+      """S = (A Q)&(B C D) {$0$0}
+        |A = 'a-z'+
+        |Q = 'q'+
+        |B = 'b'+
+        |C = 'c'+
+        |D = 'd-z'+
+        |""".stripMargin,
+      Map("bcdq" -> "['b','c','d']")
+    )
+
+    test(
+      """S = (A Q)&(B C D) {$>0$0}
+        |A = 'a-z'+
+        |Q = 'q'+
+        |B = 'b'+
+        |C = 'c'+
+        |D = 'd-z'+
+        |""".stripMargin,
+      Map("bcdq" -> "['b']")
+    )
+  }
+
+  "multi join grammar" should "work" in {
+    // '&' 연산자는 left-associative, 즉 A&B&C == (A&B)&C
+    test(
+      """S = A&B&C&D {$0}
+        |A = 'a-z'+ {"this is A"}
+        |B = 'b-z'+ {"this is B"}
+        |C = 'c-z'+ {"this is C"}
+        |D = 'd-z'+ {"this is D"}
+        |""".stripMargin,
+      Map("ddd" -> "\"this is A\"")
+    )
+
+    test(
+      """S = A&B&C&D {$>0}
+        |A = 'a-z'+ {"this is A"}
+        |B = 'b-z'+ {"this is B"}
+        |C = 'c-z'+ {"this is C"}
+        |D = 'd-z'+ {"this is D"}
+        |""".stripMargin,
+      Map("ddd" -> "\"this is B\"")
+    )
+
+    test(
+      """S = A&B&C&D {$>>0}
+        |A = 'a-z'+ {"this is A"}
+        |B = 'b-z'+ {"this is B"}
+        |C = 'c-z'+ {"this is C"}
+        |D = 'd-z'+ {"this is D"}
+        |""".stripMargin,
+      Map("ddd" -> "\"this is C\"")
+    )
+
+    test(
+      """S = A&B&C&D {$>>>0}
+        |A = 'a-z'+ {"this is A"}
+        |B = 'b-z'+ {"this is B"}
+        |C = 'c-z'+ {"this is C"}
+        |D = 'd-z'+ {"this is D"}
+        |""".stripMargin,
+      Map("ddd" -> "\"this is D\"")
+    )
+
+    test(
+      """S = A&(B&C {"this is B&C"})&D {$>0}
+        |A = 'a-z'+ {"this is A"}
+        |B = 'b-z'+ {"this is B"}
+        |C = 'c-z'+ {"this is C"}
+        |D = 'd-z'+ {"this is D"}
+        |""".stripMargin,
+      Map("ddd" -> "\"this is B&C\"")
+    )
+  }
+
+  "except grammar" should "work" in {
+    // '-' 연산자는 right-associative, 즉 A-B-C == A-(B-C)
+    test(
+      """S = A-B-C
+        |A = 'a-z'+
+        |B = 'b-q'+
+        |C = 'b-d'+
+        |""".stripMargin,
+      Map("" -> "")
     )
   }
 }
