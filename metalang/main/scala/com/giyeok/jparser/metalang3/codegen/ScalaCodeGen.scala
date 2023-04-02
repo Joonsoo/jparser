@@ -402,7 +402,7 @@ class ScalaCodeGen(val analysis: ProcessedGrammar, val options: Options = Option
       val repeatSeqId = analysis.ngrammar.idOf(repeatSymbol.repeatSeq)
       val baseSeqId = analysis.ngrammar.idOf(repeatSymbol.baseSeq)
       ExprBlob(
-        List(s"val $unrolledVar = unrollRepeat0NoUnbind(repeatSeqId, baseSeqId, $inputName).map { elem =>") ++
+        List(s"val $unrolledVar = unrollRepeat0NoUnbind($repeatSeqId, $baseSeqId, $inputName).map { elem =>") ++
           elemProcessorCode.prepares :+
           addCoercion(elemProcessorCode.result, typeOf(valuefyExpr).asInstanceOf[Type.ArrayOf].elemType, typeOf(elemProcessor)) :+
           "}",
