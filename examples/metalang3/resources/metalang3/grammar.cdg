@@ -10,8 +10,12 @@ Elem: Elem = Symbol | Processor
 
 // Symbol
 Symbol: Symbol = JoinSymbol
+// & is right-associative
+// A&B&C&D equals to A&(B&(C&D))
 JoinSymbol: BinSymbol1 = ExceptSymbol WS '&' WS JoinSymbol {JoinSymbol(body=$0, join=$4)}
   | ExceptSymbol
+// - is left-associative
+// A-B-C-D equals to ((A-B)-C)-D
 ExceptSymbol: BinSymbol2 = ExceptSymbol WS '-' WS PreUnSymbol {ExceptSymbol(body=$0, except=$4)}
   | PreUnSymbol
 PreUnSymbol: PreUnSymbol = '^' WS PreUnSymbol {FollowedBy(followedBy=$2)}

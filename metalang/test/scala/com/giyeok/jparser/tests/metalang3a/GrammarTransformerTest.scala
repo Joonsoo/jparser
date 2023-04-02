@@ -84,7 +84,9 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
     examples.foreach { example =>
       val value = simul.valuefy(example._1)
       value match {
-        case Right(value) => ???
+        case Right(value) =>
+          println(value)
+          throw new AssertionError(s"?? $value")
         case Left(value) =>
           println(value.prettyPrint())
           assert(value.prettyPrint() == example._2)
@@ -284,7 +286,7 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
   }
 
   "multi join grammar" should "work" in {
-    // '&' 연산자는 left-associative, 즉 A&B&C == (A&B)&C
+    // A&B&C == A&(B&C)
     test(
       """S = A&B&C&D {$0}
         |A = 'a-z'+ {"this is A"}
@@ -296,7 +298,7 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
     )
 
     test(
-      """S = A&B&C&D {$>0}
+      """S = A&(B&(C&D)) {$>0}
         |A = 'a-z'+ {"this is A"}
         |B = 'b-z'+ {"this is B"}
         |C = 'c-z'+ {"this is C"}
@@ -334,17 +336,58 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
         |""".stripMargin,
       Map("ddd" -> "\"this is B&C\"")
     )
+
+    test(
+      """S = (A&B)&(C&D) {$>0{$>0}}
+        |A = 'a-z'+ {"this is A"}
+        |B = 'b-z'+ {"this is B"}
+        |C = 'c-z'+ {"this is C"}
+        |D = 'd-z'+ {"this is D"}
+        |""".stripMargin,
+      Map("dddd" -> "\"this is D\"")
+    )
+  }
+
+  "error 5" should "be fixed" in {
+    test(
+      """S = A&B&C {$>>0}
+        |A = 'a-z'+ {"this is A"}
+        |B = 'b-z'+ {"this is B"}
+        |C = 'c-z'+ {"this is C"}
+        |""".stripMargin,
+      Map("ddd" -> "\"this is C\"")
+    )
   }
 
   "except grammar" should "work" in {
-    // '-' 연산자는 right-associative, 즉 A-B-C == A-(B-C)
+    // A-B-C == (A-B)-C
     test(
       """S = A-B-C
         |A = 'a-z'+
         |B = 'b-q'+
         |C = 'b-d'+
         |""".stripMargin,
-      Map("" -> "")
+      Map("aaa" -> "['a','a','a']")
+    )
+  }
+
+  "repeat grammar" should "work" in {
+    test(
+      """S = A+ B {str($0, $1)}
+        |A = 'a'
+        |B = 'b'+
+        |""".stripMargin,
+      Map("aabb" -> "\"aabb\"")
+    )
+
+    test(
+      """S = A* B {str($0, $1)}
+        |A = 'a'
+        |B = 'b'*
+        |""".stripMargin,
+      Map(
+        "" -> "\"\"",
+        "aabb" -> "\"aabb\"")
     )
   }
 }

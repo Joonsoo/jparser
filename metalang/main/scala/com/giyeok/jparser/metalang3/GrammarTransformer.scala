@@ -221,11 +221,13 @@ class GrammarTransformer(val grammarDef: MetaLang3Ast.Grammar, implicit private 
       // A&B {Dual($<0, $>0)}
       // $>>0 같은건 지원하지 말자. A&(B&C) 에서 $>>0하면 C가 나오게 하고 싶은.. 그런 거였는데
       // 사용빈도도 엄청 떨어지는데다 A&(B&C $>0) $>0 같은식으로 해결하면 될 것 같음
-      ValuefiableSymbol(
+      val result = ValuefiableSymbol(
         joinSymbol,
         JoinBody(vBody.expr),
         bindCtx = vBody.bindCtx.map(_.applyToExpr(JoinBody)),
-        joinCond = Some(ReferrableExpr(JoinCond(vJoin.expr), vJoin.bindCtx.map(_.applyToExpr(JoinCond)), vJoin.joinCond))).unbindIf(unbindNeeded)
+        joinCond = Some(ReferrableExpr(vJoin.expr, vJoin.bindCtx, vJoin.joinCond).applyToExpr(JoinCond))
+      ).unbindIf(unbindNeeded)
+      result
     case MetaLang3Ast.ExceptSymbol(body, except) =>
       val vBody = valuefySymbol(body).proxy
       val vExcept = valuefySymbol(except).proxy
