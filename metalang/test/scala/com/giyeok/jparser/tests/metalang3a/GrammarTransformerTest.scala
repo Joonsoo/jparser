@@ -3,7 +3,8 @@ package com.giyeok.jparser.tests.metalang3a
 import com.giyeok.jparser.examples.metalang3.MetaLang3ExamplesCatalog
 import com.giyeok.jparser.metalang3.MetaLanguage3.IllegalGrammar
 import com.giyeok.jparser.metalang3.ast.MetaLang3Ast
-import com.giyeok.jparser.metalang3.{ErrorCollector, GrammarTransformer, MetaLang3Parser, ValuefyExprSimulator}
+import com.giyeok.jparser.metalang3.codegen.{KotlinOptCodeGen, ScalaCodeGen}
+import com.giyeok.jparser.metalang3.{ErrorCollector, GrammarTransformer, MetaLang3Parser, MetaLanguage3, ValuefyExprSimulator}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc}
@@ -89,6 +90,12 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
           assert(value.prettyPrint() == example._2)
       }
     }
+
+    val analysis = MetaLanguage3.analyzeGrammar(grammarText)
+    val scalaCodeGen = new ScalaCodeGen(analysis)
+    scalaCodeGen.generateParser("TestParser")
+    val kotlinCodeGen = new KotlinOptCodeGen(analysis)
+    kotlinCodeGen.generate("TestParser")
   }
 
   "simple grammar" should "work" in {
@@ -203,6 +210,18 @@ class GrammarTransformerTest extends AnyFlatSpec with PrivateMethodTester {
         "Def = 'h' 'e' 'l' 'l' 'o' {[$1, $3]}" ->
           "Grammar([Rule(LHS(Nonterminal(NonterminalName(\"Def\")),null),[Sequence([CharAsIs('h'),CharAsIs('e'),CharAsIs('l'),CharAsIs('l'),CharAsIs('o'),ProcessorBlock(ArrayExpr([ValRef(\"1\",null),ValRef(\"3\",null)]))])])])"
       )
+    )
+  }
+
+  "join grammar" should "work" in {
+    test(
+      """S = A&(B C D) {$>0$1}
+        |A = 'a-z'+
+        |B = 'b'+
+        |C = 'c'+
+        |D = 'd'+
+        |""".stripMargin,
+      Map("bcd" -> "")
     )
   }
 }
