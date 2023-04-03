@@ -127,9 +127,15 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     val mainPathsFromMile2 = pathsMap.filter(_._1.last == milestoneParser.initialMilestone)
     if (mainPathsFromNaive != mainPathsFromMile2.keySet) {
       println(s":: $gen")
-      mainPathsFromNaive.foreach(println)
+      mainPathsFromNaive.foreach { path =>
+        val h = path.head
+        val condition = naiveCtx.parsingContext.acceptConditions(Kernel(h.symbolId, h.pointer, path.drop(1).headOption.map(_.gen).getOrElse(0), gen))
+        println(s"$path  $condition")
+      }
       println("===")
-      mainPathsFromMile2.foreach(println)
+      mainPathsFromMile2.foreach { pair =>
+        println(s"${pair._1}  ${pair._2}")
+      }
       println("===")
     }
     assert(mainPathsFromNaive == mainPathsFromMile2.keySet)
@@ -165,6 +171,8 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
       assertEqualCtx(naiveParser, naive2Ctx, milestoneParser, milestoneCtx)
     }
 
+    println("Context equality check ok")
+
     val naive2KernelsHistory = naiveParser.historyKernels(naive2Ctx).map(Kernels)
     val naive2Trees = new ParseTreeConstructor2(ParseForestFunc)(naiveParser.grammar)(inputs, naive2KernelsHistory).reconstruct().get.trees
     assertEquals(1, naive2Trees.size)
@@ -182,6 +190,7 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     //    }
     //    assertEquals(naive2KernelsHistory, milestoneKernelsHistory)
     val milestoneTrees = new ParseTreeConstructor2(ParseForestFunc)(naiveParser.grammar)(inputs, milestoneKernelsHistory).reconstruct().get.trees
+    assertEquals(naive2Trees.size, milestoneTrees.size)
     assertEquals(naive2Trees, milestoneTrees)
   }
 
@@ -242,7 +251,52 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getProto3)
   }
 
-  "experimental" should "work" in {
+  "subset of autodb grammar" should "work" in {
+    val grammar = MetaLanguage3.analyzeGrammar(
+      """EntityViewFieldSelectExpr: EntityViewFieldSelectExpr = EntityViewFieldSelectTerm
+        |    | EntityViewFieldSelectTerm WS <"==" {%EQ} | "!=" {%NE}> WS EntityViewFieldSelectExpr
+        |      {BinOp(op:%BinOpType=$2, lhs=$0, rhs=$4)}
+        |EntityViewFieldSelectTerm: EntityViewFieldSelectTerm = "null"&Tk {NullValue()}
+        |    | FieldName ((WS '?')? WS '.' WS DataFieldName {DataTypeValueSelectField(nullable=ispresent($0), fieldName=$4)})* {DataTypeValueSelect(field=$0, selectPath=$1)}
+        |    | "@primaryKey" {PrimaryKeySelect()}
+        |    | '(' WS EntityViewFieldSelectExpr WS ')' {Paren(expr=$2)}
+        |PreDefinedEntityView = "view"&Tk WS FieldRef WS '(' WS PreDefinedEntityViewField (WS ',' WS PreDefinedEntityViewField)* (WS ',')? WS ')'
+        |    {PreDefinedEntityView(definition=$2, fields=[$6]+$7)}
+        |PreDefinedEntityViewField = FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$0)}
+        |    | FieldName WS '=' WS FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$4)}
+        |
+        |
+        |WS = ' '*
+        |Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
+        |
+        |FieldName = Name
+        |DataTypeName = Name
+        |DataFieldName = Name
+        |
+        |FieldRef = <Name (WS '.' WS Name)* {FieldRef(names=[$0] + $1)}>
+        |
+        |Name = <'a-zA-Z_' 'a-zA-Z0-9_'* {str($0, $1)}>-Keywords
+        |
+        |Keywords = "Int" | "Long" | "String" | "Timestamp" | "Duration" | "URI" | "Boolean"
+        |  | "Empty" | "Ref" | "List" | "entity"
+        |  | "autoincrement" | "sparsegenLong" | "view" | "null"
+        |  | "==" | "!="
+        |  | "query" | "rows" | "update"
+        |  | "true" | "false"
+        |""".stripMargin
+    ).ngrammar
 
+    val parserGen = new MilestoneParserGen(grammar)
+
+    // (124, 4) -> (26, 1) 에 (19, 2, 0..2)가 왜 always로 들어있지..?
+    val edgeAction = parserGen.edgeProgressActionBetween(KernelTemplate(124, 4), KernelTemplate(26, 1))
+    println(edgeAction)
+
+    val parserData = parserGen.parserData()
+
+    val examples = List("verifiedIdentity != null")
+    examples.foreach { example =>
+      testEqualityBetweenNaive2AndMilestone(new NaiveParser2(grammar), new MilestoneParser(parserData), new GrammarTestExample("q", example, ""))
+    }
   }
 }
