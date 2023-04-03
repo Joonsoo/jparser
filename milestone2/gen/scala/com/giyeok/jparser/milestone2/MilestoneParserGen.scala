@@ -128,11 +128,12 @@ class MilestoneParserGen(val grammar: NGrammar) {
     if (!pendedCollector.contains(startTemplate)) {
       val symbolStart = Kernel(symbolId, 0, 1, 1)
       val appendingMilestones = appendingMilestonesForTermAction(result, symbolStart, pendedCollector, lookaheadCollector)
-      val progressCondition = result.progressConditions.get(symbolStart)
+      val progressCondition = result.progressConditionsFor(symbolStart)
       val progressConditionTemplate = progressCondition match {
-        case Some(progressCondition) =>
+        case List() => None
+        case progressConditions =>
+          val progressCondition = AcceptCondition.disjunct(progressConditions: _*)
           Some(conditionToTemplateForTermAction(result, progressCondition, pendedCollector, lookaheadCollector))
-        case None => None
       }
       pendedCollector(startTemplate) = (appendingMilestones, progressConditionTemplate)
     }

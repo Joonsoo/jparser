@@ -165,6 +165,46 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A=c()")
   }
 
+  "subset of autodb grammar" should "work" in {
+    val grammar = MetaLanguage3.analyzeGrammar(
+      """EntityViewFieldSelectExpr: EntityViewFieldSelectExpr = EntityViewFieldSelectTerm
+        |    | EntityViewFieldSelectTerm WS <"==" {%EQ} | "!=" {%NE}> WS EntityViewFieldSelectExpr
+        |      {BinOp(op:%BinOpType=$2, lhs=$0, rhs=$4)}
+        |EntityViewFieldSelectTerm: EntityViewFieldSelectTerm = "null"&Tk {NullValue()}
+        |    | FieldName ((WS '?')? WS '.' WS DataFieldName {DataTypeValueSelectField(nullable=ispresent($0), fieldName=$4)})* {DataTypeValueSelect(field=$0, selectPath=$1)}
+        |    | "@primaryKey" {PrimaryKeySelect()}
+        |    | '(' WS EntityViewFieldSelectExpr WS ')' {Paren(expr=$2)}
+        |PreDefinedEntityView = "view"&Tk WS FieldRef WS '(' WS PreDefinedEntityViewField (WS ',' WS PreDefinedEntityViewField)* (WS ',')? WS ')'
+        |    {PreDefinedEntityView(definition=$2, fields=[$6]+$7)}
+        |PreDefinedEntityViewField = FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$0)}
+        |    | FieldName WS '=' WS FieldName {PreDefinedEntityViewField(originalFieldName=$0, thisEntityFieldName=$4)}
+        |
+        |
+        |WS = ' '*
+        |Tk = <'a-zA-Z0-9_'+> | <'+\-*/!&|=<>'+>
+        |
+        |FieldName = Name
+        |DataTypeName = Name
+        |DataFieldName = Name
+        |
+        |FieldRef = <Name (WS '.' WS Name)* {FieldRef(names=[$0] + $1)}>
+        |
+        |Name = <'a-zA-Z_' 'a-zA-Z0-9_'* {str($0, $1)}>-Keywords
+        |
+        |Keywords = "Int" | "Long" | "String" | "Timestamp" | "Duration" | "URI" | "Boolean"
+        |  | "Empty" | "Ref" | "List" | "entity"
+        |  | "autoincrement" | "sparsegenLong" | "view" | "null"
+        |  | "==" | "!="
+        |  | "query" | "rows" | "update"
+        |  | "true" | "false"
+        |""".stripMargin
+    ).ngrammar
+
+    val (milestoneParser, mgroupParser) = generateParsers(grammar)
+
+    testEquality(grammar, milestoneParser, mgroupParser, "verifiedIdentity != null")
+  }
+
   //  "j1 grammar" should "work" in {
   //    val grammar = new String(getClass.getResourceAsStream("/j1/grammar.cdg").readAllBytes())
   //

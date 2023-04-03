@@ -13,7 +13,7 @@ case class CtxWithTasks(
   ctx: ParsingContext,
   tasks: List[ParsingTask],
   startKernelProgressConditions: Map[Kernel, AcceptCondition],
-  progressConditions: Map[Kernel, AcceptCondition]
+  newNodes: Map[Kernel, AcceptCondition]
 ) {
   def deriveTasks: List[DeriveTask] =
     tasks.filter(_.isInstanceOf[DeriveTask]).map(_.asInstanceOf[DeriveTask])
@@ -96,9 +96,8 @@ case class CtxWithTasks(
   def tasksSummary(currGen: Int): TasksSummary2 = {
     val progressedStartKernel = startKernelProgressConditions.keySet
     assert(progressedStartKernel.size <= 1)
-    val addedByProgresses: Map[AcceptConditionTemplate, Set[Kernel]] = progressConditions.toList.groupBy(_._2).view.map { pair =>
+    val addedKernels: Map[AcceptConditionTemplate, Set[Kernel]] = newNodes.toList.groupBy(_._2).view.map { pair =>
       val (condition, kernels) = pair
-      val addedKernels = kernels.map { case (kernel, _) => Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, 2) }
 
       //      val baseCondition = conditionToTemplateForTaskSummary(currGen, ctx.acceptConditions.getOrElse(kernel, Always))
       //      val progressConditions = progressTasks.map(_.condition).map(conditionToTemplateForTaskSummary(currGen, _))
@@ -106,16 +105,16 @@ case class CtxWithTasks(
       //      val condition = AcceptConditionTemplate.conjunct(Set(baseCondition, addedCondition))
       //      Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, 2) -> condition
 
-      conditionToTemplateForTaskSummary(condition) -> addedKernels.toSet
+      conditionToTemplateForTaskSummary(condition) -> kernels.map(_._1).toSet
     }.toMap
-    val addedByOthers = (deriveTasks.map(_.kernel) ++ finishTasks.map(_.kernel).filter(_.pointer == 0)).toSet
-    val addedKernels = addedByProgresses + (AlwaysTemplate -> (addedByProgresses.getOrElse(AlwaysTemplate, Set()) ++ addedByOthers))
+    //    val addedByOthers = (deriveTasks.map(_.kernel) ++ finishTasks.map(_.kernel).filter(_.pointer == 0)).toSet
+    //    val addedKernels = addedByProgresses + (AlwaysTemplate -> (addedByProgresses.getOrElse(AlwaysTemplate, Set()) ++ addedByOthers))
     //    val addedKernels = progressTasks.map(_.kernel).toSet[Kernel].map { kernel =>
     //      Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, 2)
     //    } ++ deriveTasks.map(_.kernel) ++ finishTasks.map(_.kernel).filter(_.pointer == 0)
     TasksSummary2(
       addedKernels = addedKernels,
-      progressedKernels = progressTasks.map(_.kernel).toSet,
+      progressedKernels = Set() // progressTasks.map(_.kernel).toSet,
       // progressedStartKernel = progressedStartKernel.headOption,
     )
   }
@@ -140,9 +139,8 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
     ctx: ParsingContext
   ): CtxWithTasks = {
     val mutCtx = MutableParsingContext(ctx)
-    val mutTasks = mutable.Buffer[ParsingTask]()
+    val mutTasks = mutable.ListBuffer[ParsingTask]()
     val mutStartKernelProgressConds = mutable.Map[Kernel, mutable.ListBuffer[AcceptCondition]]()
-    val mutProgressConds = mutable.Map[Kernel, mutable.ListBuffer[AcceptCondition]]()
 
     @tailrec def recursion(tasks: List[ParsingTask]): Unit =
       tasks match {
@@ -152,7 +150,6 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
         case (task@ProgressTask(kernel, condition)) +: rest =>
           mutTasks += task
           val newTasks = parser.process(nextGen, task, mutCtx)
-          mutProgressConds.getOrElseUpdate(kernel, ListBuffer()) += condition
           recursion(newTasks ++ rest)
         case task +: rest =>
           mutTasks += task
@@ -162,11 +159,8 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
       }
 
     recursion(tasks)
-    CtxWithTasks(
-      mutCtx.toParsingContext,
-      mutTasks.toList,
-      mutStartKernelProgressConds.toMap.view.mapValues(conds => AcceptCondition.disjunct(conds.toList: _*)).toMap,
-      mutProgressConds.toMap.view.mapValues(conds => AcceptCondition.disjunct(conds.toList: _*)).toMap)
+
+    ctxWithTasksFrom(nextGen, mutCtx.toParsingContext, mutTasks.toList, mutStartKernelProgressConds.toMap)
   }
 
   def runTasksWithProgressBarriers(
@@ -176,9 +170,8 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
     ctx: ParsingContext
   ): CtxWithTasks = {
     val mutCtx = MutableParsingContext(ctx)
-    val mutTasks = mutable.Buffer[ParsingTask]()
+    val mutTasks = mutable.ListBuffer[ParsingTask]()
     val mutStartKernelProgressConds = mutable.Map[Kernel, mutable.ListBuffer[AcceptCondition]]()
-    val mutProgressConds = mutable.Map[Kernel, mutable.ListBuffer[AcceptCondition]]()
 
     @tailrec def recursion(tasks: List[ParsingTask]): Unit =
       tasks match {
@@ -188,7 +181,6 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
         case (task@ProgressTask(kernel, condition)) +: rest =>
           mutTasks += task
           val newTasks = parser.process(nextGen, task, mutCtx)
-          mutProgressConds.getOrElseUpdate(kernel, ListBuffer()) += condition
           recursion(newTasks ++ rest)
         case task +: rest =>
           mutTasks += task
@@ -198,11 +190,30 @@ class ParserGenBase2(private val parser: OptNaiveParser2) {
       }
 
     recursion(tasks)
+
+    ctxWithTasksFrom(nextGen, mutCtx.toParsingContext, mutTasks.toList, mutStartKernelProgressConds.toMap)
+  }
+
+  def ctxWithTasksFrom(
+    nextGen: Int,
+    ctx: ParsingContext,
+    tasks: List[ParsingTask],
+    startKernelProgressConds: Map[Kernel, ListBuffer[AcceptCondition]]): CtxWithTasks = {
+    val newKernels: Set[Kernel] = tasks.map {
+      case DeriveTask(kernel) => Set(kernel)
+      case FinishTask(kernel) => Set(kernel)
+      case ProgressTask(kernel, _) =>
+        val nextKernel = Kernel(kernel.symbolId, kernel.pointer + 1, kernel.beginGen, nextGen)
+        // 일반적으로는 progress task에 의해 생긴 노드는 Derive나 Finish로 가기 때문에 nextKernel을 여기서 처리할 필요는 없는데,
+        // start kernel들에 대해서는 derive가 실행되지 않기 때문에 nextKernel도 추가해줘야 할 듯
+        Set(kernel, nextKernel)
+    }.flatten.toSet
+
     CtxWithTasks(
-      mutCtx.toParsingContext,
-      mutTasks.toList,
-      mutStartKernelProgressConds.toMap.view.mapValues(conds => AcceptCondition.disjunct(conds.toList: _*)).toMap,
-      mutProgressConds.toMap.view.mapValues(conds => AcceptCondition.disjunct(conds.toList: _*)).toMap)
+      ctx,
+      tasks,
+      startKernelProgressConds.view.mapValues(conds => AcceptCondition.disjunct((conds.toList): _*)).toMap,
+      newKernels.map(kernel => kernel -> ctx.acceptConditions(kernel)).toMap)
   }
 
   def startingCtxFrom(start: KernelTemplate, baseGen: Int): (Kernel, CtxWithTasks) = {

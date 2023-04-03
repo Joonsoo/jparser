@@ -4,6 +4,7 @@ import com.giyeok.jparser.nparser.Kernel
 
 case class TasksSummary2(
   addedKernels: Map[AcceptConditionTemplate, Set[Kernel]],
+  // TODO progressedKernels는 이제 사용 안함. addedKernels로 통합됨
   progressedKernels: Set[Kernel],
 ) {
   def trimForSymbols(symbolIds: Set[Int]): TasksSummary2 = {
@@ -14,4 +15,3 @@ case class TasksSummary2(
     )
   }
 }
-

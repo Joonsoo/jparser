@@ -192,6 +192,7 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     val milestoneTrees = new ParseTreeConstructor2(ParseForestFunc)(naiveParser.grammar)(inputs, milestoneKernelsHistory).reconstruct().get.trees
     assertEquals(naive2Trees.size, milestoneTrees.size)
     assertEquals(naive2Trees, milestoneTrees)
+    println("Parse tree equality check ok")
   }
 
   def test(examples: GrammarWithExamples, parserData: MilestoneParserData): Unit = {

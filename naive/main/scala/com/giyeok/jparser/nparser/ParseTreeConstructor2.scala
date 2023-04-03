@@ -54,6 +54,15 @@ class ParseTreeConstructor2[R <: ParseResult](resultFunc: ParseResultFunc[R])(gr
               Some(resultFunc.append(precedingTree, childTree))
             } else None
           }
+          if (trees.isEmpty) {
+            println(s"trees is empty: $kernel, prevKernels=$prevKernels")
+            println(prevKernels.toSeq.sortBy(_.tuple))
+            val prevChildKernels = prevKernels.toSeq.sortBy(_.tuple).map { prevKernel =>
+              Kernel(sequence(prevPointer), 1, prevKernel.endGen, gen)
+            }
+            println(prevChildKernels)
+            println()
+          }
           val appendedSeq = resultFunc.merge(trees)
           if (kernel.pointer == sequence.length) resultFunc.bind(kernel.beginGen, gen, symbol, appendedSeq) else appendedSeq
         }
@@ -107,10 +116,10 @@ object ParseTreeConstructor2 {
       .map(graph => Kernels(graph.nodes.map(_.kernel)))
 
   def constructor[R <: ParseResult](resultFunc: ParseResultFunc[R])(grammar: NGrammar)
-                                   (input: Seq[Input], history: Seq[Graph], conditionFinal: Map[AcceptCondition, Boolean]): ParseTreeConstructor2[R] =
+    (input: Seq[Input], history: Seq[Graph], conditionFinal: Map[AcceptCondition, Boolean]): ParseTreeConstructor2[R] =
     new ParseTreeConstructor2[R](resultFunc)(grammar)(input, kernelsFrom(history, conditionFinal))
 
   def forestConstructor(grammar: NGrammar)
-                       (input: Seq[Input], history: Seq[Graph], conditionFinal: Map[AcceptCondition, Boolean]): ParseTreeConstructor2[ParseForest] =
+    (input: Seq[Input], history: Seq[Graph], conditionFinal: Map[AcceptCondition, Boolean]): ParseTreeConstructor2[ParseForest] =
     constructor(ParseForestFunc)(grammar)(input, history, conditionFinal)
 }
