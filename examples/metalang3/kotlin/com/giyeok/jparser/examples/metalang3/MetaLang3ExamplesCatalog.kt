@@ -21,6 +21,12 @@ object MetaLang3ExamplesCatalog {
     )
   )
 
+  val autodb3problem = GrammarWithExamples.fromResource(
+    "/autodb3problem",
+    listOf("test.autodb3"),
+    grammarName = "debugging.cdg"
+  )
+
   val j1 = GrammarWithExamples.fromResource(
     "/j1",
     listOf(

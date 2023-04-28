@@ -3,7 +3,7 @@ package com.giyeok.jparser.milestone2
 import com.giyeok.jparser.Inputs.TermGroupDesc
 import com.giyeok.jparser.NGrammar
 import com.giyeok.jparser.NGrammar.{NSequence, NTerminal}
-import com.giyeok.jparser.nparser.AcceptCondition.{AcceptCondition, disjunct}
+import com.giyeok.jparser.nparser.AcceptCondition.AcceptCondition
 import com.giyeok.jparser.nparser.{AcceptCondition, Kernel}
 import com.giyeok.jparser.nparser2.opt.OptNaiveParser2
 import com.giyeok.jparser.nparser2.{DeriveTask, Edge, KernelGraph, NaiveParser2, ProgressTask, ParsingContext => NaiveParsingContext}

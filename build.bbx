@@ -224,7 +224,7 @@ examples {
   metalang3 = ktjvm.library(
     srcs = glob("examples/metalang3/kotlin/**/*.kt"),
     resources = glob("examples/metalang3/resources/**"),
-    deps = [base.test, naive.test, examples.naiveExamples],
+    deps = [base.test, examples.naiveExamples],
   )
 
   oldMetalang = scala.library(

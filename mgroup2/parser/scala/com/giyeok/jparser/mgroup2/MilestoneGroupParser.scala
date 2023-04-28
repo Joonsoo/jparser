@@ -223,46 +223,46 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
     if (verbose) {
       println(s"  === $gen $input ${ctx.paths.size}")
     }
-    val actionsCollector = new GenActionsBuilder()
-    val pendedCollection = mutable.Map[KernelTemplate, (List[AppendingMilestoneGroup], Option[AcceptConditionTemplate])]()
-
-    val termActionApplied = ctx.paths.flatMap { path =>
-      val termAction = parserData.termActions(path.tip.groupId)
-        .find(_._1.contains(input))
-      termAction match {
-        case Some((_, action)) =>
-          actionsCollector.termActions += (path.tip -> action)
-          pendedCollection ++= action.pendedAcceptConditionKernels
-          applyTermAction(path, gen, action, actionsCollector)
-        case None => List()
-      }
-    }
-    val pended = pendedCollection.flatMap { case (first, (appendings, progressCondition)) =>
-      val firstMilestone = Milestone(first, ctx.gen)
-      progressCondition match {
-        case Some(progressCondition) =>
-          actionsCollector.addProgressedMilestone(firstMilestone, MilestoneAcceptCondition.reify(progressCondition, ctx.gen, gen))
-        case None => // do nothing
-      }
-      appendings.map { appending =>
-        val condition = MilestoneAcceptCondition.reify(appending.acceptCondition, ctx.gen, gen)
-        MilestoneGroupPath(firstMilestone, List(firstMilestone), MilestoneGroup(appending.groupId, gen), condition)
-      }
-    }
-
-    val newPaths = termActionApplied ++ pended
-    if (verbose) {
-      newPaths.foreach(path => println(path.prettyString))
-      newPaths.map(_.tip.groupId).distinct.sorted.foreach { groupId =>
-        val milestones = parserData.milestoneGroups(groupId)
-        println(s"$groupId => (${milestones.size}) ${milestones.toList.sorted}")
-      }
-    }
-
-    if (!newPaths.exists(_.first == initialMilestone)) {
+    if (!ctx.paths.exists(_.first == initialMilestone)) {
       // start symbol에 의한 path가 없으면 해당 input이 invalid하다는 뜻
       Left(UnexpectedInputByTermGroups(input, expectedInputsOf(ctx), gen))
     } else {
+      val actionsCollector = new GenActionsBuilder()
+      val pendedCollection = mutable.Map[KernelTemplate, (List[AppendingMilestoneGroup], Option[AcceptConditionTemplate])]()
+
+      val termActionApplied = ctx.paths.flatMap { path =>
+        val termAction = parserData.termActions(path.tip.groupId)
+          .find(_._1.contains(input))
+        termAction match {
+          case Some((_, action)) =>
+            actionsCollector.termActions += (path.tip -> action)
+            pendedCollection ++= action.pendedAcceptConditionKernels
+            applyTermAction(path, gen, action, actionsCollector)
+          case None => List()
+        }
+      }
+      val pended = pendedCollection.flatMap { case (first, (appendings, progressCondition)) =>
+        val firstMilestone = Milestone(first, ctx.gen)
+        progressCondition match {
+          case Some(progressCondition) =>
+            actionsCollector.addProgressedMilestone(firstMilestone, MilestoneAcceptCondition.reify(progressCondition, ctx.gen, gen))
+          case None => // do nothing
+        }
+        appendings.map { appending =>
+          val condition = MilestoneAcceptCondition.reify(appending.acceptCondition, ctx.gen, gen)
+          MilestoneGroupPath(firstMilestone, List(firstMilestone), MilestoneGroup(appending.groupId, gen), condition)
+        }
+      }
+
+      val newPaths = termActionApplied ++ pended
+      if (verbose) {
+        newPaths.foreach(path => println(path.prettyString))
+        newPaths.map(_.tip.groupId).distinct.sorted.foreach { groupId =>
+          val milestones = parserData.milestoneGroups(groupId)
+          println(s"$groupId => (${milestones.size}) ${milestones.toList.sorted}")
+        }
+      }
+
       val genActions = actionsCollector.build()
 
       if (verbose) {

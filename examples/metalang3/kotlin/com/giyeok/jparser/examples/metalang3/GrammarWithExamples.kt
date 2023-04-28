@@ -8,10 +8,11 @@ interface GrammarWithExamples {
   companion object {
     fun fromResource(
       directory: String,
-      exampleNames: List<String>
+      exampleNames: List<String>,
+      grammarName: String = "grammar.cdg",
     ): GrammarWithExamplesFromResource {
       return GrammarWithExamplesFromResource(
-        "$directory/grammar.cdg",
+        "$directory/$grammarName",
         exampleNames.map { name ->
           val examplePath = "$directory/examples/$name"
           val valuefyResultPath = "$examplePath.ast"

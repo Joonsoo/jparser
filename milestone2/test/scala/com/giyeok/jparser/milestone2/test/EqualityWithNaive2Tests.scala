@@ -46,7 +46,9 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
       }
     }
 
-    traverse(start, List(start), List(Milestone(start.symbolId, start.pointer, start.beginGen)))
+    if (graph.nodes.contains(start)) {
+      traverse(start, List(start), List(Milestone(start.symbolId, start.pointer, start.beginGen)))
+    }
 
     (paths.toList, visitedNodes.toSet)
   }
@@ -250,6 +252,10 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
 
   "proto3 grammar" should "work" in {
     generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getProto3)
+  }
+
+  "autodb3 grammar" should "work" in {
+    generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getAutodb3problem)
   }
 
   "subset of autodb grammar" should "work" in {

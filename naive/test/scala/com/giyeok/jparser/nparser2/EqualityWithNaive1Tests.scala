@@ -115,4 +115,8 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
   "proto3 grammar" should "work" in {
     test(MetaLang3ExamplesCatalog.INSTANCE.getProto3)
   }
+
+  "autodb3 grammar" should "work" in {
+    test(MetaLang3ExamplesCatalog.INSTANCE.getAutodb3problem)
+  }
 }

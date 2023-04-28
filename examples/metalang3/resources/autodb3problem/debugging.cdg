@@ -1,0 +1,26 @@
+Start = '(' WS ViewField (WS ',' WS ViewField)* (WS ',')? WS ')' {[$2] + $3}
+
+// AdExpr을 Primary로 바꾸면 또 괜찮아져..? 무슨 일이지
+ViewField = IntLiteral WS Name (WS '=' WS AdExpr)?
+            {ViewField(tag=$0, name=$2, value=$3)}
+
+AdExpr = Primary
+
+Primary: Primary =
+    "x"&Tk {X()}
+  | "xy"&Tk {XY()}
+  | "yy"&Tk {YY()}
+  | PrimaryName
+
+PrimaryName = Name-("x" | "xy" | "yy")
+
+IntLiteral = '0-9' {IntLiteral(value=str($0))}
+
+Name = 'a-zA-Z_' 'a-zA-Z_0-9'* {Name(name=str($0, $1))}
+
+
+Tk = <'a-zA-Z0-9_'+>
+WS = (' \n\r\t' | LineComment)*
+// LineComment에서 EOF를 없애버리면 문제가 없네..?
+LineComment = "//" (.-'\n')* (EOF | '\n')
+EOF = !.

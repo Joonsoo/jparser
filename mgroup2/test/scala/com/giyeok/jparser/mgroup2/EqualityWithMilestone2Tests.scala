@@ -205,6 +205,16 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     testEquality(grammar, milestoneParser, mgroupParser, "verifiedIdentity != null")
   }
 
+  "autodb3problem" should "work" in {
+   val autodb3 = MetaLang3ExamplesCatalog.INSTANCE.getAutodb3problem
+
+    val analysis = MetaLanguage3.analyzeGrammar(autodb3.getGrammarText)
+    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+
+    autodb3.getExamples.forEach { example =>
+      testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
+    }
+  }
   //  "j1 grammar" should "work" in {
   //    val grammar = new String(getClass.getResourceAsStream("/j1/grammar.cdg").readAllBytes())
   //

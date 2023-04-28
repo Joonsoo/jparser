@@ -378,59 +378,59 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
     if (verbose) {
       println("  === $gen $input ${ctx.paths.size}")
     }
-    val pathsCollector = mutableListOf<MilestoneGroupPathKt>()
-    val actionsCollector = GenActionsKtBuilder()
-    val pendedCollection =
-      mutableMapOf<KernelTemplate, Pair<List<AppendingMilestoneGroup>, AcceptConditionTemplate?>>()
-
-    ctx.paths.forEach { path ->
-      val termAction = parserData.findTermAction(path.tip.groupId, input)
-      termAction?.let {
-        actionsCollector.addTermActions(path.tip, termAction)
-        termAction.pendedAcceptConditionKernelsList.forEach { pended ->
-          val firstKernelProgressCondition =
-            if (pended.hasFirstKernelProgressCondition()) pended.firstKernelProgressCondition else null
-          pendedCollection[pended.kernelTemplate] =
-            Pair(pended.appendingsList, firstKernelProgressCondition)
-        }
-        applyTermAction(path, gen, termAction, pathsCollector, actionsCollector)
-      }
-    }
-    pendedCollection.forEach { (first, pair) ->
-      val (appendings, progressCondition) = pair
-      val firstMilestone = MilestoneKt(first.symbolId, first.pointer, ctx.gen)
-      if (progressCondition != null) {
-        actionsCollector.addProgressedMilestone(
-          firstMilestone,
-          MilestoneAcceptConditionKt.reify(progressCondition, ctx.gen, gen)
-        )
-      }
-      appendings.forEach { appending ->
-        val condition = MilestoneAcceptConditionKt.reify(appending.acceptCondition, ctx.gen, gen)
-        val newPath = MilestoneGroupPathKt(
-          firstMilestone,
-          PathList.Cons(firstMilestone, PathList.Nil),
-          MilestoneGroupKt(appending.groupId, gen),
-          condition
-        )
-        pathsCollector.add(newPath)
-      }
-    }
-
-    if (verbose) {
-      pathsCollector.forEach { path ->
-        println(path.prettyString())
-      }
-      pathsCollector.map { it.tip.groupId }.distinct().sorted().forEach { groupId ->
-        val milestones = parserData.milestonesOfGroup(groupId)
-        val milestonesString = milestones.joinToString(", ") { "${it.symbolId} ${it.pointer}" }
-        println("$groupId => (${milestones.size}) $milestonesString")
-      }
-    }
-
-    if (pathsCollector.all { it.first != initialMilestone }) {
+    if (ctx.paths.all { it.first != initialMilestone }) {
       throw ParsingErrorKt.UnexpectedInput(gen, expectedTermsOf(ctx), input)
     } else {
+      val pathsCollector = mutableListOf<MilestoneGroupPathKt>()
+      val actionsCollector = GenActionsKtBuilder()
+      val pendedCollection =
+        mutableMapOf<KernelTemplate, Pair<List<AppendingMilestoneGroup>, AcceptConditionTemplate?>>()
+
+      ctx.paths.forEach { path ->
+        val termAction = parserData.findTermAction(path.tip.groupId, input)
+        termAction?.let {
+          actionsCollector.addTermActions(path.tip, termAction)
+          termAction.pendedAcceptConditionKernelsList.forEach { pended ->
+            val firstKernelProgressCondition =
+              if (pended.hasFirstKernelProgressCondition()) pended.firstKernelProgressCondition else null
+            pendedCollection[pended.kernelTemplate] =
+              Pair(pended.appendingsList, firstKernelProgressCondition)
+          }
+          applyTermAction(path, gen, termAction, pathsCollector, actionsCollector)
+        }
+      }
+      pendedCollection.forEach { (first, pair) ->
+        val (appendings, progressCondition) = pair
+        val firstMilestone = MilestoneKt(first.symbolId, first.pointer, ctx.gen)
+        if (progressCondition != null) {
+          actionsCollector.addProgressedMilestone(
+            firstMilestone,
+            MilestoneAcceptConditionKt.reify(progressCondition, ctx.gen, gen)
+          )
+        }
+        appendings.forEach { appending ->
+          val condition = MilestoneAcceptConditionKt.reify(appending.acceptCondition, ctx.gen, gen)
+          val newPath = MilestoneGroupPathKt(
+            firstMilestone,
+            PathList.Cons(firstMilestone, PathList.Nil),
+            MilestoneGroupKt(appending.groupId, gen),
+            condition
+          )
+          pathsCollector.add(newPath)
+        }
+      }
+
+      if (verbose) {
+        pathsCollector.forEach { path ->
+          println(path.prettyString())
+        }
+        pathsCollector.map { it.tip.groupId }.distinct().sorted().forEach { groupId ->
+          val milestones = parserData.milestonesOfGroup(groupId)
+          val milestonesString = milestones.joinToString(", ") { "${it.symbolId} ${it.pointer}" }
+          println("$groupId => (${milestones.size}) $milestonesString")
+        }
+      }
+
       val genActions = actionsCollector.build()
 
       val newPaths = pathsCollector.toList()

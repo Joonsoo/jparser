@@ -130,6 +130,8 @@ class OptNaiveParser2(val grammar: NGrammar) {
         NotExists(nextGen, nextGen, lookahead)
       case _ => Always
     }
+    val oldCondition = mutCtx.acceptConditions.get(newKernel)
+
     val newCondition = disjunct(
       mutCtx.acceptConditions.getOrElse(newKernel, Never),
       conjunct(
@@ -142,7 +144,7 @@ class OptNaiveParser2(val grammar: NGrammar) {
     newEdges.foreach(mutCtx.graph.addEdge)
     mutCtx.acceptConditions += newKernel -> newCondition
 
-    val newTasks = if (!existingKernel) {
+    val newTasks = if (!existingKernel || oldCondition != Some(newCondition)) {
       if (isFinal(newKernel)) List(FinishTask(newKernel)) else List(DeriveTask(newKernel))
     } else List()
 
