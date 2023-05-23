@@ -1,5 +1,6 @@
 package com.giyeok.jparser.graph
 
+import java.util
 import scala.collection.mutable
 
 trait AbstractEdge[N] {
@@ -137,16 +138,20 @@ trait AbstractGraph[N, E <: AbstractEdge[N], +Self <: AbstractGraph[N, E, Self]]
     if (!nodes.contains(start)) {
       Set()
     } else {
+      val queue = new util.LinkedList[N]()
       val visited = mutable.Set[N]()
 
-      def recursion(current: N): Unit = {
-        if (!visited.contains(current)) {
-          visited += current
-          edgesByStart(current).map(_.end).foreach(recursion)
+      queue.add(start)
+      while(!queue.isEmpty) {
+        val next = queue.pop()
+        edgesByStart(next).map(_.end).foreach { end =>
+          if (!visited.contains(end)) {
+            queue.add(end)
+            visited.add(end)
+          }
         }
       }
 
-      recursion(start)
       visited.toSet
     }
   }

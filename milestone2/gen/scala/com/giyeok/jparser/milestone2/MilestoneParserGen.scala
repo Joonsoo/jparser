@@ -125,7 +125,11 @@ class MilestoneParserGen(val grammar: NGrammar) {
     lookaheadCollector: mutable.Set[Int],
   ): Unit = {
     val startTemplate = KernelTemplate(symbolId, 0)
+
     if (!pendedCollector.contains(startTemplate)) {
+      // 계산이 끝난 다음에 pendedCollector에 값을 넣기 때문에 무한 루프가 발생하는 경우가 있어서 임시 값을 넣고 계산한 다음 제대로 넣어줌
+      pendedCollector(startTemplate) = (List(), None)
+
       val symbolStart = Kernel(symbolId, 0, 1, 1)
       val appendingMilestones = appendingMilestonesForTermAction(result, symbolStart, pendedCollector, lookaheadCollector)
       val progressCondition = result.progressConditionsFor(symbolStart)

@@ -1,0 +1,176 @@
+SourceFile = (WS TopLevelDef)* WS {SourceFile(defs=$0)}
+
+TopLevelDef: TopLevelDef = FunctionDef
+
+FunctionDef = "fun"&Tk WS FunctionName WS FunctionParams (WS ':' WS Type)? WS FunctionBody
+              {FunctionDef(name=$2, params=$4, returnType=$5, body=$7)}
+
+FunctionName = Identifier
+FunctionParams = '(' (WS FunctionParam (WS ',' WS FunctionParam)* (WS ',')?)? WS ')'
+                 {FunctionParams(params=$1{[$1] + $2} ?: [])}
+FunctionParam = Identifier WS ':' WS Type
+
+Type: Type = PrimitiveType
+
+PrimitiveType = (
+  "boolean" {%Boolean} |
+  "byte" {%Byte} |
+  "short" {%Short} |
+  "int" {%Int} |
+  "long" {%Long} |
+  "ushort" {%UShort} |
+  "uint" {%UInt} |
+  "ulong" {%ULong} |
+  "float" {%Float} |
+  "double" {%Double}
+  )&Tk {PrimitiveType(type: %PrimitiveTypes=$0)}
+
+FunctionBody = Block
+
+Stmt: Stmt = LabeledStmt | Block | LoopStmt | VarDef | Assignment | Expr
+
+LabeledStmt = Identifier '@' WS LabelableStmt {LabeledStmt(label=$0, body=$3)}
+LabelableStmt: LabelableStmt = Block | LoopStmt
+
+Block = '{' (WS Stmt)* WS '}' {Block(stmts=$1)}
+
+LoopStmt = WhileLoop
+WhileLoop = "while"&Tk WS '(' WS Expr WS ')' WS Stmt {WhileLoop(condition=$4, body=$8)}
+
+VarDef = "var"&Tk WS Identifier (WS ':' WS Type)? (WS '=' WS Expr)? {VarDef(name=$2, type=$3, init=$4)}
+
+Assignment = LeftHandSide WS AssignmentOp WS Expr {Assignment(op=$2, lhs=$0, rhs=$4)}
+
+AssignmentOp: %AssignmentOp = (
+  "=" {%ASSIGN} |
+  "+=" {%ADD} |
+  "-=" {%SUB} |
+  "*=" {%MUL} |
+  "/=" {%DIV} |
+  "%=" {%REM})&Tk
+
+// 처음엔 array도 field도 없음.
+LeftHandSide: LeftHandSide = Identifier
+
+Expr: Expr = <Disjunction>
+
+Disjunction: Disjunction = Conjunction
+  | Disjunction WS "||"&Tk WS Conjunction {BinOp(op:%BinOps=%OR, lhs=$0, rhs=$4)}
+
+Conjunction: Conjunction = BitwiseOr
+  | Conjunction WS "&&"&Tk WS Equality {BinOp(%AND, $0, $4)}
+
+BitwiseOr: BitwiseOr = BitwiseXor
+  | BitwiseOr WS "|"&Tk WS BitwiseXor {BinOp(%BITWISE_OR, $0, $4)}
+
+BitwiseXor: BitwiseXor = BitwiseAnd
+  | BitwiseXor WS "^"&Tk WS BitwiseAnd {BinOp(%BITWISE_XOR, $0, $4)}
+
+BitwiseAnd: BitwiseAnd = Equality
+  | BitwiseAnd WS "&"&Tk WS Equality {BinOp(%BITWISE_AND, $0, $4)}
+
+Equality: Equality = Comparison
+  | Equality WS "=="&Tk WS Comparison {BinOp(%EQ, $0, $4)}
+  | Equality WS "!="&Tk WS Comparison {BinOp(%NE, $0, $4)}
+
+Comparison: Comparison = Additive
+  | Comparison WS "<"&Tk WS Additive {BinOp(%LT, $0, $4)}
+  | Comparison WS "<="&Tk WS Additive {BinOp(%LE, $0, $4)}
+  | Comparison WS ">"&Tk WS Additive {BinOp(%GT, $0, $4)}
+  | Comparison WS ">="&Tk WS Additive {BinOp(%GE, $0, $4)}
+
+Additive: Additive = Multiplicative
+  | Additive WS "+"&Tk WS Multiplicative {BinOp(%ADD, $0, $4)}
+  | Additive WS "-"&Tk WS Multiplicative {BinOp(%SUB, $0, $4)}
+
+Multiplicative: Multiplicative = CastAs
+  | Multiplicative WS "*"&Tk WS CastAs {BinOp(%MUL, $0, $4)}
+  | Multiplicative WS "/"&Tk WS CastAs {BinOp(%DIV, $0, $4)}
+  | Multiplicative WS "%"&Tk WS CastAs {BinOp(%REM, $0, $4)}
+
+CastAs: CastAs = PrefixUnaryExpr
+  | PrefixUnaryExpr WS "as"&Tk WS Type {CastAsType(operand=$0, type=$4)}
+
+PrefixUnaryExpr: PrefixUnaryExpr = PostfixUnaryExpr
+  | "++"&Tk WS PrefixUnaryExpr {PrefixUnaryOp(op:%PrefixUnaryOps=%INC, operand=$2)}
+  | "--"&Tk WS PrefixUnaryExpr {PrefixUnaryOp(%DEC, $2)}
+  | "+"&Tk WS PrefixUnaryExpr {PrefixUnaryOp(%PLUS, $2)}
+  | "-"&Tk WS PrefixUnaryExpr {PrefixUnaryOp(%MINUS, $2)}
+  | "~"&Tk WS PrefixUnaryExpr {PrefixUnaryOp(%TILDE, $2)}
+  | "!"&Tk WS PrefixUnaryExpr {PrefixUnaryOp(%NEG, $2)}
+
+PostfixUnaryExpr: PostfixUnaryExpr = Primary
+  | PostfixUnaryExpr WS "++"&Tk {PostfixUnaryOp(op:%PostfixUnaryOps=%INC, operand=$0)}
+  | PostfixUnaryExpr WS "--"&Tk {PostfixUnaryOp(op:%PostfixUnaryOps=%DEC, operand=$0)}
+
+Primary: Primary = Literal
+  | Identifier
+  | FunctionCall
+  | IfExpr
+  | "return"&Tk (WS Expr)? {Return(returnValue=$1)}
+  | "break" ('@' Identifier)? {Break(label=$1)}
+  | "continue" ('@' Identifier)? {Continue(label=$1)}
+  | '(' WS Expr WS ')' {Parenthesized(expr=$2)}
+
+
+FunctionCall = FunctionName WS FunctionArgs {FunctionCall(name=$0, args=$2)}
+FunctionArgs = '(' (WS FunctionArg (WS ',' WS FunctionArg)* (WS ',')?)? WS ')' {FunctionArgs(args=$1{[$1] + $2} ?: [])}
+FunctionArg: FunctionArg = Expr
+  | Identifier WS '=' WS Expr {NamedArg(name=$0, value=$4)}
+
+
+IfExpr = "if"&Tk WS '(' WS Expr WS ')' WS Stmt (WS "else"&Tk WS Stmt)?
+         {IfExpr(condition=$4, ifTrue=$8, ifFalse=$9)}
+
+Literal: Literal = BooleanLiteral
+  | IntLiteral
+  | FloatingPointLiteral
+
+BooleanLiteral: BooleanLiteral = ("true" {TrueLiteral()} | "false" {FalseLiteral()})&Tk
+
+IntLiteral: IntLiteral = DecimalIntLiteral
+  | HexIntLiteral
+DecimalIntLiteral = DecimalNumeral (WS IntegerTypeSuffix)? {DecimalIntLiteral(numeral=$0, suffix=$1)}
+HexIntLiteral = HexNumeral (WS IntegerTypeSuffix)? {HexIntLiteral(numeral=$0, suffix=$1)}
+IntegerTypeSuffix: %IntegerTypeSuffix = 'lL' {%LONG_TYPE}
+
+DecimalNumeral = '0' {DecimalNumeral(value="0")}
+  | '1-9' Digits? {DecimalNumeral(value=str($0, $1))}
+Digits = '0-9' ('_'? '0-9')* {str($0, $1)}
+
+HexNumeral = '0' 'xX' HexDigits {HexNumeral(value=$2)}
+HexDigits = '0-9A-Fa-f' HexDigit* {str($0, $1)}
+HexDigit = '_'? '0-9A-Fa-f'
+
+FloatingPointLiteral = DecimalFloatingPointLiteral
+DecimalFloatingPointLiteral =
+    Digits '.' Digits? ExponentPart? FloatTypeSuffix?
+    {FloatingPointLiteral(intPart=$0, fracPart=$2, expPart=$3, typeSuffix=$4)}
+  | '.' Digits ExponentPart? FloatTypeSuffix? {FloatingPointLiteral(intPart=null, fracPart=$1, expPart=$2, typeSuffix=$3)}
+  | Digits ExponentPart FloatTypeSuffix {FloatingPointLiteral(intPart=$0, fracPart=null, expPart=$1, typeSuffix=$2)}
+  | Digits ExponentPart {FloatingPointLiteral(intPart=$0, fracPart=null, expPart=$1, typeSuffix=null)}
+  | Digits FloatTypeSuffix {FloatingPointLiteral(intPart=$0, fracPart=null, expPart=null, typeSuffix=$1)}
+ExponentPart = 'eE' SignedInteger {ExponentPart(exponent=$1)}
+SignedInteger = ('+' | '-')? Digits {SignedInteger(sign=$0, digits=$1)}
+FloatTypeSuffix: %FloatTypeSuffix = 'fF' {%FLOAT_TYPE} | 'dD' {%DOUBLE_TYPE}
+
+
+
+Word = 'a-zA-Z_' 'a-zA-Z_0-9'*
+Identifier = (Word-Reserved)&Tk {Identifier(name=$0)}
+
+Reserved = "var" | "while" | "break" | "continue" | "return"
+  | "boolean" | "byte" | "short" | "int" | "long"
+  | "ushort" | "uint" | "ulong" | "float" | "double"
+
+Tk = <'a-zA-Z0-9_'+ | TkSeq>
+TkSeq = "!" | "!=" | "%" | "%=" | "&" | "&&" | "&=" | "*" | "*=" | "+" | "++" | "+=" | "-" | "--" | "-=" | "->" | "..." | "/" | "/=" | "::" | "<" | "<<" | "<<=" | "<=" | "=" | "==" | ">" | ">=" | ">>" | ">>=" | ">>>" | ">>>=" | "^" | "^=" | "|" | "|=" | "||" | "~"
+
+
+WS = (' \n\r\t' | Comment)*
+
+
+Comment = LineComment | BlockComment
+LineComment = "//" (.-'\n')* (EOF | '\n')
+BlockComment = "/*" (. !"*/")* . "*/" | "/**/"
+EOF = !.

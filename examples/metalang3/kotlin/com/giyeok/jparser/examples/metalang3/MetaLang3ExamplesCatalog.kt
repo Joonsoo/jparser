@@ -27,11 +27,10 @@ object MetaLang3ExamplesCatalog {
     grammarName = "debugging.cdg"
   )
 
-  val j1 = GrammarWithExamples.fromResource(
-    "/j1",
+  val j1mark1 = GrammarWithExamples.fromResource(
+    "/j1-mark1",
     listOf(
       "example1.j1",
-      "example2.j1",
     )
   )
 
@@ -57,5 +56,5 @@ object MetaLang3ExamplesCatalog {
     listOf()
   )
 
-  val all = listOf(asdl, bibix2, j1, proto3, json, pyobj)
+  val all = listOf(asdl, bibix2, j1mark1, proto3, json, pyobj)
 }
