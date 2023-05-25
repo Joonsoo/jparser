@@ -1,8 +1,8 @@
 package com.giyeok.jparser.mgroup2
 
-import com.giyeok.jparser.milestone2.{Always, KernelTemplate, Milestone, MilestoneAcceptCondition}
+import com.giyeok.jparser.milestone2.{Always, KernelTemplate, Milestone, MilestoneAcceptCondition, Never}
 
-import scala.collection.mutable
+import scala.collection.{MapView, mutable}
 
 case class ParsingContext(
   gen: Int,
@@ -37,47 +37,43 @@ case class GenActions(
   termActions: List[(MilestoneGroup, TermAction)],
   tipEdgeActions: List[((Milestone, MilestoneGroup), EdgeAction)],
   midEdgeActions: List[((Milestone, Milestone), EdgeAction)],
-  progressedMilestones: Map[Milestone, MilestoneAcceptCondition],
-  progressedMilestoneParentGens: Map[Milestone, Set[Int]],
-  progressedMgroups: Map[MilestoneGroup, MilestoneAcceptCondition],
-  progressedMgroupParentGens: Map[MilestoneGroup, Set[Int]],
-)
+  progressedKernels: Map[(Milestone, Int), MilestoneAcceptCondition],
+  progressedKgroups: Map[(MilestoneGroup, Int), MilestoneAcceptCondition],
+) {
+  // TODO progressedMilestones, progressedMgroups
+  val progressedMilestones: MapView[Milestone, MilestoneAcceptCondition] = progressedKernels.toList.groupBy(_._1._1)
+    .view.mapValues(pairs => MilestoneAcceptCondition.disjunct(pairs.map(_._2).toSet))
+
+  def milestoneProgressConditions(milestone: Milestone): MilestoneAcceptCondition =
+    progressedMilestones.getOrElse(milestone, Never)
+}
 
 class GenActionsBuilder() {
   val termActions: mutable.ListBuffer[(MilestoneGroup, TermAction)] = mutable.ListBuffer()
   val tipEdgeActions: mutable.ListBuffer[((Milestone, MilestoneGroup), EdgeAction)] = mutable.ListBuffer()
   val midEdgeActions: mutable.ListBuffer[((Milestone, Milestone), EdgeAction)] = mutable.ListBuffer()
 
-  private val progressedMilestones: mutable.Map[Milestone, MilestoneAcceptCondition] = mutable.Map()
-  private val progressedMilestoneParentGens: mutable.Map[Milestone, mutable.Set[Int]] = mutable.Map()
+  private val progressedKernels: mutable.Map[(Milestone, Int), MilestoneAcceptCondition] = mutable.Map()
 
-  private val progressedMgroups: mutable.Map[MilestoneGroup, MilestoneAcceptCondition] = mutable.Map()
-  private val progressedMgroupParentGens: mutable.Map[MilestoneGroup, mutable.Set[Int]] = mutable.Map()
+  // kernel groups
+  private val progressedKgroups: mutable.Map[(MilestoneGroup, Int), MilestoneAcceptCondition] = mutable.Map()
 
-  def addProgressedMilestone(milestone: Milestone, condition: MilestoneAcceptCondition): Unit = {
-    val newCondition = progressedMilestones.get(milestone) match {
+  def addProgressedMilestone(milestone: Milestone, parentGen: Int, condition: MilestoneAcceptCondition): Unit = {
+    val newCondition = progressedKernels.get(milestone -> parentGen) match {
       case Some(existingCondition) =>
         MilestoneAcceptCondition.disjunct(Set(existingCondition, condition))
       case None => condition
     }
-    progressedMilestones += (milestone -> newCondition)
+    progressedKernels += ((milestone -> parentGen) -> newCondition)
   }
 
-  def addProgressedMilestoneParentGen(milestone: Milestone, parentGen: Int): Unit = {
-    progressedMilestoneParentGens.getOrElseUpdate(milestone, mutable.Set()).add(parentGen)
-  }
-
-  def addProgressedMilestoneGroup(mgroup: MilestoneGroup, condition: MilestoneAcceptCondition): Unit = {
-    val newCondition = progressedMgroups.get(mgroup) match {
+  def addProgressedMilestoneGroup(mgroup: MilestoneGroup, parentGen: Int, condition: MilestoneAcceptCondition): Unit = {
+    val newCondition = progressedKgroups.get(mgroup -> parentGen) match {
       case Some(existingCondition) =>
         MilestoneAcceptCondition.disjunct(Set(existingCondition, condition))
       case None => condition
     }
-    progressedMgroups += (mgroup -> newCondition)
-  }
-
-  def addProgressedMilestoneGroupParentGen(mgroup: MilestoneGroup, parentGen: Int): Unit = {
-    progressedMgroupParentGens.getOrElseUpdate(mgroup, mutable.Set()).add(parentGen)
+    progressedKgroups += ((mgroup -> parentGen) -> newCondition)
   }
 
   def build(): GenActions = {
@@ -85,10 +81,8 @@ class GenActionsBuilder() {
       termActions.toList,
       tipEdgeActions.toList,
       midEdgeActions.toList,
-      progressedMilestones.toMap,
-      progressedMilestoneParentGens.view.mapValues(_.toSet).toMap,
-      progressedMgroups.toMap,
-      progressedMgroupParentGens.view.mapValues(_.toSet).toMap,
+      progressedKernels.toMap,
+      progressedKgroups.toMap,
     )
   }
 }

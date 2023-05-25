@@ -33,6 +33,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tip.gen, gen)
         val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
 
+        // TODO getorelse 0이 맞나? gen일 수도 있고.. tip.gen일 수도 있고..
         actionsCollector.addProgressedKernel(tip, path.tipParent.map(_.gen).getOrElse(0), condition)
 
         path.tipParent match {
