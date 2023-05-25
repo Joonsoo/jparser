@@ -33,14 +33,13 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tip.gen, gen)
         val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
 
-        actionsCollector.addProgressedMilestone(tip, condition)
+        actionsCollector.addProgressedKernel(tip, path.tipParent.map(_.gen).getOrElse(0), condition)
 
         path.tipParent match {
           case Some(tipParent) =>
             val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
             // record parse action
             actionsCollector.edgeActions += ((tipParent -> tip, edgeAction))
-            actionsCollector.addProgressedMilestoneParentGen(tip, tipParent.gen)
             applyParsingAction(path.pop(condition), gen, edgeAction.parsingAction, actionsCollector)
           case None =>
             List()
@@ -91,45 +90,38 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         Exists(milestone, checkFromNextGen = false)
       case Exists(milestone, false) =>
         val moreTrackingNeeded = paths.exists(_.first == milestone)
-        genActions.progressedMilestones.get(milestone) match {
-          case Some(progressCondition) =>
-            val evolvedCondition = evolveAcceptCondition(paths, genActions, progressCondition)
-            if (moreTrackingNeeded) {
-              MilestoneAcceptCondition.disjunct(Set(condition, evolvedCondition))
-            } else {
-              evolvedCondition
-            }
-          case None =>
-            if (moreTrackingNeeded) condition else Never
+        val progressCondition = genActions.milestoneProgressConditions(milestone)
+        if (progressCondition == Never) {
+          if (moreTrackingNeeded) condition else Never
+        } else {
+          val evolvedCondition = evolveAcceptCondition(paths, genActions, progressCondition)
+          if (moreTrackingNeeded) {
+            MilestoneAcceptCondition.disjunct(Set(condition, evolvedCondition))
+          } else {
+            evolvedCondition
+          }
         }
       case NotExists(milestone, true) =>
         NotExists(milestone, checkFromNextGen = false)
       case NotExists(milestone, false) =>
         val moreTrackingNeeded = paths.exists(_.first == milestone)
-        val progressCondition = genActions.progressedMilestones.get(milestone)
-        progressCondition match {
-          case Some(progressCondition) =>
-            val evolvedCondition = evolveAcceptCondition(paths, genActions, progressCondition).negation
-            if (moreTrackingNeeded) {
-              MilestoneAcceptCondition.conjunct(Set(condition, evolvedCondition))
-            } else {
-              evolvedCondition
-            }
-          case None =>
-            if (moreTrackingNeeded) condition else Always
+        val progressCondition = genActions.milestoneProgressConditions(milestone)
+        if (progressCondition == Never) {
+          if (moreTrackingNeeded) condition else Always
+        } else {
+          val evolvedCondition = evolveAcceptCondition(paths, genActions, progressCondition).negation
+          if (moreTrackingNeeded) {
+            MilestoneAcceptCondition.conjunct(Set(condition, evolvedCondition))
+          } else {
+            evolvedCondition
+          }
         }
       case OnlyIf(milestone) =>
-        genActions.progressedMilestones.get(milestone) match {
-          case Some(progressCondition) =>
-            evolveAcceptCondition(paths, genActions, progressCondition)
-          case None => Never
-        }
+        val progressCondition = genActions.milestoneProgressConditions(milestone)
+        evolveAcceptCondition(paths, genActions, progressCondition)
       case Unless(milestone) =>
-        genActions.progressedMilestones.get(milestone) match {
-          case Some(progressCondition) =>
-            evolveAcceptCondition(paths, genActions, progressCondition).negation
-          case None => Always
-        }
+        val progressCondition = genActions.milestoneProgressConditions(milestone)
+        evolveAcceptCondition(paths, genActions, progressCondition).negation
     }
   }
 
@@ -144,32 +136,16 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         conditions.forall(evaluateAcceptCondition(genActions, _))
       case Or(conditions) =>
         conditions.exists(evaluateAcceptCondition(genActions, _))
-      case Exists(milestone, true) => false
+      case Exists(_, true) => false
       case Exists(milestone, false) =>
-        genActions.progressedMilestones.get(milestone) match {
-          case Some(progressCondition) =>
-            evaluateAcceptCondition(genActions, progressCondition)
-          case None => false
-        }
-      case NotExists(milestone, true) => true
+        evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(milestone))
+      case NotExists(_, true) => true
       case NotExists(milestone, false) =>
-        genActions.progressedMilestones.get(milestone) match {
-          case Some(progressCondition) =>
-            !evaluateAcceptCondition(genActions, progressCondition)
-          case None => true
-        }
+        !evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(milestone))
       case OnlyIf(milestone) =>
-        genActions.progressedMilestones.get(milestone) match {
-          case Some(progressCondition) =>
-            evaluateAcceptCondition(genActions, progressCondition)
-          case None => false
-        }
+        evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(milestone))
       case Unless(milestone) =>
-        genActions.progressedMilestones.get(milestone) match {
-          case Some(progressCondition) =>
-            !evaluateAcceptCondition(genActions, progressCondition)
-          case None => true
-        }
+        !evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(milestone))
     }
   }
 
@@ -200,7 +176,9 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         val firstMilestone = Milestone(first, ctx.gen)
         progressCondition match {
           case Some(progressCondition) =>
-            actionsCollector.addProgressedMilestone(firstMilestone, MilestoneAcceptCondition.reify(progressCondition, ctx.gen, gen))
+            // TODO 여기 parentGen이 ctx.gen이 맞나? gen이 맞나?
+            actionsCollector.addProgressedKernel(firstMilestone, ctx.gen,
+              MilestoneAcceptCondition.reify(progressCondition, ctx.gen, gen))
           case None =>
         }
         appendings.map { appending =>
@@ -217,10 +195,10 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       if (verbose) {
         println("  ===== genActions")
         genActions.edgeActions.map(_._1).foreach(println)
-        genActions.progressedMilestones.foreach(println)
+        genActions.progressedKernels.foreach(println)
       }
 
-      val newConditions = (newPaths.map(_.acceptCondition) ++ genActions.progressedMilestones.values).distinct
+      val newConditions = (newPaths.map(_.acceptCondition) ++ genActions.progressedKernels.values).distinct
       val newConditionUpdates = newConditions
         .map(cond => cond -> evolveAcceptCondition(newPaths, genActions, cond)).toMap
 
@@ -337,7 +315,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       }
     }
 
-    val initialHistoryEntry = HistoryEntry(List(MilestonePath(initialMilestone)), GenActions(List(), List(), Map(), Map()))
+    val initialHistoryEntry = HistoryEntry(List(MilestonePath(initialMilestone)), GenActions(List(), List(), Map()))
     val history = (initialHistoryEntry +: parsingContext.history.reverse).toVector
 
     val conditionMemos = (0 until history.length).map { _ =>
@@ -364,7 +342,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
           conditionMemos)
       }
       genActions.edgeActions.foreach { case ((start, end), edgeAction) =>
-        if (isEventuallyAccepted(history, gen, genActions.progressedMilestones(end), conditionMemos)) {
+        if (isEventuallyAccepted(history, gen, genActions.progressedKernels(end -> start.gen), conditionMemos)) {
           // edgeAction.parsingAction.tasksSummary.progressedStartKernel은 progressedMilestones에서 처리
           addKernelsFrom(
             kernels,
@@ -376,13 +354,10 @@ class MilestoneParser(val parserData: MilestoneParserData) {
             conditionMemos)
         }
       }
-      genActions.progressedMilestones.foreach {
-        case (milestone, condition) if isEventuallyAccepted(history, gen, condition, conditionMemos) =>
-          val parentGens = genActions.progressedMilestoneParentGens.getOrElse(milestone, Set(milestone.gen))
-          parentGens.foreach { parentGen =>
-            kernels += Kernel(milestone.symbolId, milestone.pointer, parentGen, milestone.gen)
-            kernels += Kernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
-          }
+      genActions.progressedKernels.foreach {
+        case ((milestone, parentGen), condition) if isEventuallyAccepted(history, gen, condition, conditionMemos) =>
+          kernels += Kernel(milestone.symbolId, milestone.pointer, parentGen, milestone.gen)
+          kernels += Kernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
         case _ => // do nothing
       }
       kernels.toSet
@@ -395,22 +370,18 @@ class GenActionsBuilder {
   val termActions: mutable.ListBuffer[(Milestone, TermAction)] = mutable.ListBuffer()
   val edgeActions: mutable.ListBuffer[((Milestone, Milestone), EdgeAction)] = mutable.ListBuffer()
 
-  private val progressedMilestones: mutable.Map[Milestone, MilestoneAcceptCondition] = mutable.Map()
-  private val progressedMilestoneParentGens: mutable.Map[Milestone, mutable.Set[Int]] = mutable.Map()
+  // milestone과 parent gen을 조합하면 kernel이 되기 때문
+  private val progressedKernels: mutable.Map[(Milestone, Int), MilestoneAcceptCondition] = mutable.Map()
 
-  def addProgressedMilestone(milestone: Milestone, condition: MilestoneAcceptCondition): Unit = {
-    val newCondition = progressedMilestones.get(milestone) match {
+  def addProgressedKernel(milestone: Milestone, parentGen: Int, condition: MilestoneAcceptCondition): Unit = {
+    val newCondition = progressedKernels.get((milestone, parentGen)) match {
       case Some(existingCondition) =>
         MilestoneAcceptCondition.disjunct(Set(existingCondition, condition))
       case None => condition
     }
-    progressedMilestones += (milestone -> newCondition)
-  }
-
-  def addProgressedMilestoneParentGen(milestone: Milestone, parentGen: Int): Unit = {
-    progressedMilestoneParentGens.getOrElseUpdate(milestone, mutable.Set()).add(parentGen)
+    progressedKernels += ((milestone -> parentGen) -> newCondition)
   }
 
   def build(): GenActions =
-    GenActions(termActions.toList, edgeActions.toList, progressedMilestones.toMap, progressedMilestoneParentGens.view.mapValues(_.toSet).toMap)
+    GenActions(termActions.toList, edgeActions.toList, progressedKernels.toMap)
 }

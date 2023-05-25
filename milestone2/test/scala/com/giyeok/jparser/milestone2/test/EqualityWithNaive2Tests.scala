@@ -128,19 +128,19 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
 
     val mainPathsFromNaive = milestonePaths.filter(_.last == milestoneParser.initialMilestone).toSet
     val mainPathsFromMile2 = pathsMap.filter(_._1.last == milestoneParser.initialMilestone)
-    if (mainPathsFromNaive != mainPathsFromMile2.keySet) {
+//    if (mainPathsFromNaive != mainPathsFromMile2.keySet) {
       println(s":: $gen")
       mainPathsFromNaive.foreach { path =>
         val h = path.head
         val condition = naiveCtx.parsingContext.acceptConditions(Kernel(h.symbolId, h.pointer, path.drop(1).headOption.map(_.gen).getOrElse(0), gen))
-        println(s"$path  $condition")
+        println(s"${path.reverse}  $condition")
       }
       println("===")
       mainPathsFromMile2.foreach { pair =>
-        println(s"${pair._1}  ${pair._2}")
+        println(s"${pair._1.reverse}  ${pair._2}")
       }
       println("===")
-    }
+//    }
     assert(mainPathsFromNaive == mainPathsFromMile2.keySet)
     assert(milestonePaths.toSet.subsetOf(pathsMap.keySet))
     milestonePaths.foreach { path =>
@@ -183,14 +183,14 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     val milestoneKernelsHistory = milestoneParser.kernelsHistory(milestoneCtx).map(Kernels)
     assert(naive2KernelsHistory.size == milestoneKernelsHistory.size)
     // naive2KernelsHistory와 milestoneKernelsHistory는 다를 수 있는데..
-    if (naive2KernelsHistory != milestoneKernelsHistory) {
-      naive2KernelsHistory.zip(milestoneKernelsHistory).zipWithIndex.foreach { case ((naive2, milestone), idx) =>
-        println(s"$idx:")
-        println(s"n-m:${(naive2.kernels -- milestone.kernels).toList.sorted}")
-        println(s"m-n:${(milestone.kernels -- naive2.kernels).toList.sorted}")
-      }
-      println("??")
-    }
+    //    if (naive2KernelsHistory != milestoneKernelsHistory) {
+    //      naive2KernelsHistory.zip(milestoneKernelsHistory).zipWithIndex.foreach { case ((naive2, milestone), idx) =>
+    //        println(s"$idx:")
+    //        println(s"n-m:${(naive2.kernels -- milestone.kernels).toList.sorted}")
+    //        println(s"m-n:${(milestone.kernels -- naive2.kernels).toList.sorted}")
+    //      }
+    //      println("??")
+    //    }
     //    assertEquals(naive2KernelsHistory, milestoneKernelsHistory)
     val milestoneTrees = new ParseTreeConstructor2(ParseForestFunc)(naiveParser.grammar)(inputs, milestoneKernelsHistory).reconstruct().get.trees
     assertEquals(naive2Trees.size, milestoneTrees.size)
@@ -215,13 +215,41 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
 
   "naive examples" should "work" in {
     NaiveExamplesCatalog.grammarWithExamples.foreach { example =>
-      println(s"::${example.grammar.name}")
+      println(s"Grammar :::: ${example.grammar.name}")
       val naiveParser = new NaiveParser2(example.ngrammar)
       val parserData = new MilestoneParserGen(example.ngrammar).parserData()
       val milestoneParser = new MilestoneParser(parserData)
       example.correctExampleInputs.foreach { input =>
         testEqualityBetweenNaive2AndMilestone(naiveParser, milestoneParser, exampleFrom("", input))
       }
+    }
+  }
+
+  "backup grammar 1" should "work" in {
+    val grammar = MetaLanguage3.analyzeGrammar(
+      """S = WS* Stmt S | #
+        |Stmt = <Expr> lineend
+        |  | '{' WS* S WS* '}'
+        |Expr = Term
+        |  | '+\-' WS* Term
+        |  | Term WS* '+\-*/' WS* Expr
+        |Term = 'a'+
+        |  | '(' WS* Expr WS* ')'
+        |WS = ' \n\r\t'
+        |LT = ' \n\r'
+        |
+        |lineend = ';' | !';' alternative
+        |alternative = (WS-LT)* LT | WS* ^'}'
+        |""".stripMargin
+    ).ngrammar
+
+    val parserGen = new MilestoneParserGen(grammar)
+
+    val parserData = parserGen.parserData()
+
+    val examples = List("{aaa\naaa}")
+    examples.foreach { example =>
+      testEqualityBetweenNaive2AndMilestone(new NaiveParser2(grammar), new MilestoneParser(parserData), new GrammarTestExample("q", example, ""))
     }
   }
 
@@ -370,10 +398,6 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     ).ngrammar
 
     val parserGen = new MilestoneParserGen(grammar)
-
-    // (124, 4) -> (26, 1) 에 (19, 2, 0..2)가 왜 always로 들어있지..?
-    //    val edgeAction = parserGen.edgeProgressActionBetween(KernelTemplate(124, 4), KernelTemplate(26, 1))
-    //    println(edgeAction)
 
     val parserData = parserGen.parserData()
 
