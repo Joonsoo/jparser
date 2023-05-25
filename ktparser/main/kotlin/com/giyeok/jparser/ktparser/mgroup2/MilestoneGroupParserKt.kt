@@ -8,7 +8,7 @@ import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.*
 import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.*
 
 class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
-  constructor(proto: MilestoneGroupParserData) : this(MilestoneGroupParserDataKt(proto))
+  constructor(proto: MilestoneGroupParserData): this(MilestoneGroupParserDataKt(proto))
 
   private var verbose: Boolean = false
 
@@ -56,14 +56,13 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
       val newCondition = MilestoneAcceptConditionKt.reify(startNodeProgressCondition, tip.gen, gen)
       val condition = MilestoneAcceptConditionKt.conjunct(pathCondition, newCondition)
 
-      actionsCollector.addProgressedMilestone(tip, condition)
-
       when (path.parent) {
         is PathList.Cons -> {
           val tipParent = path.parent.milestone
+          actionsCollector.addProgressedKernel(tip, tipParent.gen, condition)
+
           val edgeAction = parserData.getMidEdgeProgressAction(tipParent, tip)
           actionsCollector.addMidEdgeAction(tipParent, tip, edgeAction)
-          actionsCollector.addProgressedMilestoneParentGen(tip, tipParent.gen)
           progressTip(
             pathFirst,
             path.parent,
@@ -77,6 +76,8 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
 
         PathList.Nil -> {
           // do nothing
+          // TODO 여기서 parentGen은 뭘 줘야하지
+          actionsCollector.addProgressedKernel(tip, 0, condition)
         }
       }
     }
@@ -118,14 +119,13 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
       val newCondition = MilestoneAcceptConditionKt.reify(startNodeProgressCondition, tipGen, gen)
       val condition = MilestoneAcceptConditionKt.conjunct(path.acceptCondition, newCondition)
 
-      actionsCollector.addProgressedMilestoneGroup(replacedTip, condition)
-
       when (path.path) {
         is PathList.Cons -> {
           val tipParent = path.path.milestone
+          actionsCollector.addProgressedKernelGroup(replacedTip, tipParent.gen, condition)
+
           val edgeAction = parserData.getTipEdgeProgressAction(tipParent, replaceGroupId)
           actionsCollector.addTipEdgeAction(tipParent, replacedTip, edgeAction)
-          actionsCollector.addProgressedMilestoneGroupParentGen(replacedTip, tipParent.gen)
           progressTip(
             path.first,
             path.path,
@@ -138,7 +138,8 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         }
 
         PathList.Nil -> {
-          // do nothing
+          // TODO parent gen이 0이 맞나?
+          actionsCollector.addProgressedKernelGroup(replacedTip, 0, condition)
         }
       }
     }
@@ -156,19 +157,20 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
   fun getProgressConditionOf(
     genActions: GenActionsKt,
     milestone: MilestoneKt
-  ): MilestoneAcceptConditionKt? {
-    val groups = genActions.progressedMgroups
-      .filterKeys { mgroup -> mgroup.gen == milestone.gen }
+  ): MilestoneAcceptConditionKt {
+    val groups = genActions.progressedKgroups
+      .filterKeys { mgroup -> mgroup.first.gen == milestone.gen }
       .filterKeys { mgroup ->
-        parserData.doesGroupContainMilestone(mgroup.groupId, milestone.symbolId, milestone.pointer)
+        parserData.doesGroupContainMilestone(
+          mgroup.first.groupId,
+          milestone.symbolId,
+          milestone.pointer
+        )
       }
       .values
-    val progressCondition = genActions.progressedMilestones[milestone]
-    return if (progressCondition != null) {
-      MilestoneAcceptConditionKt.disjunct(*(groups + progressCondition).toTypedArray())
-    } else {
-      if (groups.isEmpty()) null else MilestoneAcceptConditionKt.disjunct(*groups.toTypedArray())
-    }
+    val progressCondition = genActions.milestoneProgressConditionOf(milestone)
+
+    return MilestoneAcceptConditionKt.disjunct(*(groups + progressCondition).toTypedArray())
   }
 
   fun evolveAcceptCondition(
@@ -195,7 +197,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
 
       is MilestoneAcceptConditionKt.Exists ->
         if (condition.checkFromNextGen) {
-          MilestoneAcceptConditionKt.Exists(condition.milestone, false)
+          MilestoneAcceptConditionKt.Exists(condition.symbolId, condition.gen, false)
         } else {
           val moreTrackingNeeded = paths.any { it.first == condition.milestone }
           val progressCondition = getProgressConditionOf(genActions, condition.milestone)
@@ -213,7 +215,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
 
       is MilestoneAcceptConditionKt.NotExists ->
         if (condition.checkFromNextGen) {
-          MilestoneAcceptConditionKt.NotExists(condition.milestone, false)
+          MilestoneAcceptConditionKt.NotExists(condition.symbolId, condition.gen, false)
         } else {
           val moreTrackingNeeded = paths.any { it.first == condition.milestone }
           val progressCondition = getProgressConditionOf(genActions, condition.milestone)
@@ -403,8 +405,10 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         val (appendings, progressCondition) = pair
         val firstMilestone = MilestoneKt(first.symbolId, first.pointer, ctx.gen)
         if (progressCondition != null) {
-          actionsCollector.addProgressedMilestone(
+          // TODO 여기 parentGen이 ctx.gen이 맞나? gen이 맞나?
+          actionsCollector.addProgressedKernel(
             firstMilestone,
+            ctx.gen,
             MilestoneAcceptConditionKt.reify(progressCondition, ctx.gen, gen)
           )
         }
@@ -436,7 +440,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
       val newPaths = pathsCollector.toList()
 
       val newConditions =
-        newPaths.map { it.acceptCondition }.toSet() + genActions.progressedMilestones.values
+        newPaths.map { it.acceptCondition }.toSet() + genActions.progressedKernels.values
       val newConditionUpdates = newConditions.associateWith { condition ->
         evolveAcceptCondition(
           newPaths,
@@ -556,7 +560,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         )
       }
       genActions.tipEdgeActions.forEach { (edge, edgeAction) ->
-        val endCondition = genActions.progressedMgroups.getValue(edge.second)
+        val endCondition = genActions.progressedKgroups.getValue(Pair(edge.second, edge.first.gen))
         if (isEventuallyAccepted(history, gen, endCondition, conditionMemos)) {
           addKernelsFromTasksSummary(
             kernelsBuilder,
@@ -570,7 +574,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         }
       }
       genActions.midEdgeActions.forEach { (edge, edgeAction) ->
-        val endCondition = genActions.progressedMilestones.getValue(edge.second)
+        val endCondition = genActions.progressedKernels.getValue(Pair(edge.second, edge.first.gen))
         if (isEventuallyAccepted(history, gen, endCondition, conditionMemos)) {
           addKernelsFromTasksSummary(
             kernelsBuilder,
@@ -583,32 +587,20 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
           )
         }
       }
-      genActions.progressedMilestones.forEach { (milestone, condition) ->
+      genActions.progressedKernels.forEach { (kernel, condition) ->
         if (isEventuallyAccepted(history, gen, condition, conditionMemos)) {
-          // TODO elvis op 부분이 필요할까..? 이거 왜 넣었지?
-          val parentGens =
-            genActions.progressedMilestoneParentGens[milestone] ?: setOf(milestone.gen)
-          parentGens.forEach { parentGen ->
-            kernelsBuilder.addKernel(
-              milestone.symbolId,
-              milestone.pointer,
-              parentGen,
-              milestone.gen
-            )
-            kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
-          }
+          val (milestone, parentGen) = kernel
+          kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer, parentGen, milestone.gen)
+          kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
         }
       }
-      genActions.progressedMgroups.forEach { (mgroup, condition) ->
+      genActions.progressedKgroups.forEach { (kgroup, condition) ->
         if (isEventuallyAccepted(history, gen, condition, conditionMemos)) {
-          // TODO ditto
-          val parentGens = genActions.progressedMgroupParentGens[mgroup] ?: setOf(mgroup.gen)
+          val (mgroup, parentGen) = kgroup
 
           parserData.milestonesOfGroup(mgroup.groupId).forEach { milestone ->
-            parentGens.forEach { parentGen ->
-              kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer, parentGen, mgroup.gen)
-              kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
-            }
+            kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer, parentGen, mgroup.gen)
+            kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
           }
         }
       }

@@ -35,6 +35,9 @@ class EqualityWithMgroup2Tests {
     val ktPaths = ktCtx.paths.map { path -> path.prettyString() }
 //    ktPaths.forEach { println(it) }
 
+    if (scalaCtx.paths().size() != ktCtx.paths.size) {
+      println("???")
+    }
     assertEquals(scalaCtx.paths().size(), ktCtx.paths.size)
     assertEquals(scalaPaths.toSet(), ktPaths.toSet())
   }
@@ -125,16 +128,30 @@ class EqualityWithMgroup2Tests {
 
   @Test
   fun testMetalang3() {
-    val (scalaParserData, kotlinParserData) = loadParserData("/cdglang3-mg2-parserdata.pb.gz")
+    val (scalaParserData, kotlinParserData) =
+      // loadParserData("/cdglang3-mg2-parserdata.pb.gz")
+      generateParserData(MetaLang3ExamplesCatalog.metalang3.grammarText)
     testEquality(scalaParserData, kotlinParserData, "A = 'a'+")
     testEquality(scalaParserData, kotlinParserData, "Abc = 'a-z'+ {Hello(a=\"world\")}")
   }
 
   @Test
   fun testJ1Mark1() {
-    val (scalaParserData, kotlinParserData) = loadParserData("/j1-mg2-parserdata.pb.gz")
+    val (scalaParserData, kotlinParserData) =
+      generateParserData(MetaLang3ExamplesCatalog.j1mark1.grammarText)
 
     MetaLang3ExamplesCatalog.j1mark1.examples.forEach { example ->
+      println("==== name: ${example.name}")
+      testEquality(scalaParserData, kotlinParserData, example.example)
+    }
+  }
+
+  @Test
+  fun testJ1Mark1Subset() {
+    val (scalaParserData, kotlinParserData) =
+      generateParserData(MetaLang3ExamplesCatalog.j1mark1subset.grammarText)
+
+    MetaLang3ExamplesCatalog.j1mark1subset.examples.forEach { example ->
       println("==== name: ${example.name}")
       testEquality(scalaParserData, kotlinParserData, example.example)
     }
@@ -152,16 +169,16 @@ class EqualityWithMgroup2Tests {
     }
   }
 
-  @Test
-  fun testBibixTrimmed() {
-    val (scalaParserData, kotlinParserData) =
-      loadParserData("/bibix2-mg2-parserdata-trimmed.pb.gz")
-
-    MetaLang3ExamplesCatalog.bibix2.examples.forEach { example ->
-      println("==== name: ${example.name}")
-      testEquality(scalaParserData, kotlinParserData, example.example)
-    }
-  }
+//  @Test
+//  fun testBibixTrimmed() {
+//    val (scalaParserData, kotlinParserData) =
+//      loadParserData("/bibix2-mg2-parserdata-trimmed.pb.gz")
+//
+//    MetaLang3ExamplesCatalog.bibix2.examples.forEach { example ->
+//      println("==== name: ${example.name}")
+//      testEquality(scalaParserData, kotlinParserData, example.example)
+//    }
+//  }
 
   @Test
   fun testProto3() {

@@ -33,16 +33,18 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tip.gen, gen)
         val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
 
-        // TODO getorelse 0이 맞나? gen일 수도 있고.. tip.gen일 수도 있고..
-        actionsCollector.addProgressedKernel(tip, path.tipParent.map(_.gen).getOrElse(0), condition)
-
         path.tipParent match {
           case Some(tipParent) =>
+            actionsCollector.addProgressedKernel(tip, tipParent.gen, condition)
+
             val edgeAction = parserData.edgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
             // record parse action
             actionsCollector.edgeActions += ((tipParent -> tip, edgeAction))
             applyParsingAction(path.pop(condition), gen, edgeAction.parsingAction, actionsCollector)
           case None =>
+            // TODO parentGen이 0이 맞나? gen일 수도 있고.. tip.gen일 수도 있고.. 아니면 -1같은 특수한 값을 넣어서 빼버려야 하나?
+            actionsCollector.addProgressedKernel(tip, 0, condition)
+
             List()
         }
       case None => List()
@@ -92,7 +94,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       case condition: Exists =>
         val milestone = condition.milestone
         val moreTrackingNeeded = paths.exists(_.first == milestone)
-        val progressCondition = genActions.milestoneProgressConditions(milestone)
+        val progressCondition = genActions.milestoneProgressConditionOf(milestone)
         if (progressCondition == Never) {
           if (moreTrackingNeeded) condition else Never
         } else {
@@ -108,7 +110,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       case condition: NotExists =>
         val milestone = condition.milestone
         val moreTrackingNeeded = paths.exists(_.first == milestone)
-        val progressCondition = genActions.milestoneProgressConditions(milestone)
+        val progressCondition = genActions.milestoneProgressConditionOf(milestone)
         if (progressCondition == Never) {
           if (moreTrackingNeeded) condition else Always
         } else {
@@ -120,10 +122,10 @@ class MilestoneParser(val parserData: MilestoneParserData) {
           }
         }
       case condition: OnlyIf =>
-        val progressCondition = genActions.milestoneProgressConditions(condition.milestone)
+        val progressCondition = genActions.milestoneProgressConditionOf(condition.milestone)
         evolveAcceptCondition(paths, genActions, progressCondition)
       case condition: Unless =>
-        val progressCondition = genActions.milestoneProgressConditions(condition.milestone)
+        val progressCondition = genActions.milestoneProgressConditionOf(condition.milestone)
         evolveAcceptCondition(paths, genActions, progressCondition).negation
     }
   }
@@ -141,14 +143,14 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         conditions.exists(evaluateAcceptCondition(genActions, _))
       case Exists(_, _, true) => false
       case condition: Exists =>
-        evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(condition.milestone))
+        evaluateAcceptCondition(genActions, genActions.milestoneProgressConditionOf(condition.milestone))
       case NotExists(_, _, true) => true
       case condition: NotExists =>
-        !evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(condition.milestone))
+        !evaluateAcceptCondition(genActions, genActions.milestoneProgressConditionOf(condition.milestone))
       case condition: OnlyIf =>
-        evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(condition.milestone))
+        evaluateAcceptCondition(genActions, genActions.milestoneProgressConditionOf(condition.milestone))
       case condition: Unless =>
-        !evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(condition.milestone))
+        !evaluateAcceptCondition(genActions, genActions.milestoneProgressConditionOf(condition.milestone))
     }
   }
 

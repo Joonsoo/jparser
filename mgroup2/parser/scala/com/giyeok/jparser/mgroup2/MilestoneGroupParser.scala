@@ -35,14 +35,18 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tip.gen, gen)
         val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
 
-        actionsCollector.addProgressedMilestone(tip, path.tipParent.map(_.gen).getOrElse(0), condition)
-
         path.tipParent match {
           case Some(tipParent) =>
+            actionsCollector.addProgressedKernel(tip, tipParent.gen, condition)
+
             val edgeAction = parserData.midEdgeProgressActions(tipParent.kernelTemplate -> tip.kernelTemplate)
             actionsCollector.midEdgeActions += ((tipParent -> tip) -> edgeAction)
             progressTip(path.pop(condition), gen, edgeAction, actionsCollector)
-          case None => List()
+          case None =>
+            // TODO 여기서 parentGen이 0이 맞을까? 원래는 parentGen이 없이 들어갔었는데.. -1같은 값을 넣어서 아예 빼버려야될까?
+            actionsCollector.addProgressedKernel(tip, 0, condition)
+
+            List()
         }
       case None => List()
     }
@@ -65,14 +69,16 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       val newCondition = MilestoneAcceptCondition.reify(startNodeProgressCondition, tipGen, gen)
       val condition = MilestoneAcceptCondition.conjunct(Set(path.acceptCondition, newCondition))
 
-      actionsCollector.addProgressedMilestoneGroup(replacedTip, path.tipParent.map(_.gen).getOrElse(0), condition)
-
       path.tipParent match {
         case Some(tipParent) =>
+          actionsCollector.addProgressedKernelGroup(replacedTip, tipParent.gen, condition)
           val edgeAction = parserData.tipEdgeProgressActions(tipParent.kernelTemplate -> replaceGroupId)
           actionsCollector.tipEdgeActions += ((tipParent -> replacedTip) -> edgeAction)
           progressTip(MilestonePath(path.first, path.path, condition), gen, edgeAction, actionsCollector)
-        case None => List()
+        case None =>
+          // TODO parent gen이 0이 맞나?
+          actionsCollector.addProgressedKernelGroup(replacedTip, 0, condition)
+          List()
       }
     }
     val lookaheadPaths = action.lookaheadRequiringSymbols.map(req =>
@@ -111,7 +117,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       .filter { pair => pair._1._1.gen == milestone.gen }
       .filter { pair => parserData.milestoneGroups(pair._1._1.groupId).contains(milestone.kernelTemplate) }
       .values.toSet
-    val progressCondition = genActions.milestoneProgressConditions(milestone)
+    val progressCondition = genActions.milestoneProgressConditionOf(milestone)
 
     MilestoneAcceptCondition.disjunct(groups + progressCondition)
   }
@@ -221,7 +227,9 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         progressCondition match {
           case Some(progressCondition) =>
             // TODO 여기 parentGen이 ctx.gen이 맞나? gen이 맞나?
-            actionsCollector.addProgressedMilestone(firstMilestone, ctx.gen,
+            actionsCollector.addProgressedKernel(
+              firstMilestone,
+              ctx.gen,
               MilestoneAcceptCondition.reify(progressCondition, ctx.gen, gen))
           case None => // do nothing
         }

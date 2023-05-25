@@ -1,19 +1,27 @@
 package com.giyeok.jparser.ktparser.mgroup2
 
+import com.giyeok.jparser.ktparser.mgroup2.MilestoneAcceptConditionKt.Companion.disjunct
 import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto
 
 class GenActionsKt(
   val termActions: List<Pair<MilestoneGroupKt, MilestoneGroupParserDataProto.TermAction>>,
   val tipEdgeActions: List<Pair<Pair<MilestoneKt, MilestoneGroupKt>, MilestoneGroupParserDataProto.EdgeAction>>,
   val midEdgeActions: List<Pair<Pair<MilestoneKt, MilestoneKt>, MilestoneGroupParserDataProto.EdgeAction>>,
-  val progressedMilestones: Map<MilestoneKt, MilestoneAcceptConditionKt>,
-  val progressedMilestoneParentGens: Map<MilestoneKt, Set<Int>>,
-  val progressedMgroups: Map<MilestoneGroupKt, MilestoneAcceptConditionKt>,
-  val progressedMgroupParentGens: Map<MilestoneGroupKt, Set<Int>>,
+  val progressedKernels: Map<Pair<MilestoneKt, Int>, MilestoneAcceptConditionKt>,
+  val progressedKgroups: Map<Pair<MilestoneGroupKt, Int>, MilestoneAcceptConditionKt>,
 ) {
   companion object {
-    val empty = GenActionsKt(listOf(), listOf(), listOf(), mapOf(), mapOf(), mapOf(), mapOf())
+    val empty = GenActionsKt(listOf(), listOf(), listOf(), mapOf(), mapOf())
   }
+
+  val progressedMilestones: Map<MilestoneKt, MilestoneAcceptConditionKt> =
+    progressedKernels.toList().groupBy { it.first.first }
+      .mapValues { (_, pairs) ->
+        disjunct(*pairs.map { it.second }.toTypedArray())
+      }
+
+  fun milestoneProgressConditionOf(milestone: MilestoneKt): MilestoneAcceptConditionKt =
+    progressedMilestones[milestone] ?: MilestoneAcceptConditionKt.Never
 }
 
 class GenActionsKtBuilder {
@@ -23,10 +31,9 @@ class GenActionsKtBuilder {
     mutableListOf<Pair<Pair<MilestoneKt, MilestoneGroupKt>, MilestoneGroupParserDataProto.EdgeAction>>()
   private val midEdgeActions =
     mutableListOf<Pair<Pair<MilestoneKt, MilestoneKt>, MilestoneGroupParserDataProto.EdgeAction>>()
-  private val progressedMilestones = mutableMapOf<MilestoneKt, MilestoneAcceptConditionKt>()
-  private val progressedMilestoneParentGens = mutableMapOf<MilestoneKt, MutableSet<Int>>()
-  private val progressedMgroups = mutableMapOf<MilestoneGroupKt, MilestoneAcceptConditionKt>()
-  private val progressedMgroupParentGen = mutableMapOf<MilestoneGroupKt, MutableSet<Int>>()
+  private val progressedKernels = mutableMapOf<Pair<MilestoneKt, Int>, MilestoneAcceptConditionKt>()
+  private val progressedKgroups =
+    mutableMapOf<Pair<MilestoneGroupKt, Int>, MilestoneAcceptConditionKt>()
 
   fun addTermActions(
     milestoneGroup: MilestoneGroupKt,
@@ -51,38 +58,33 @@ class GenActionsKtBuilder {
     midEdgeActions.add(Pair(Pair(start, end), edgeAction))
   }
 
-  fun addProgressedMilestoneGroup(
+  fun addProgressedKernelGroup(
     milestoneGroup: MilestoneGroupKt,
+    parentGen: Int,
     condition: MilestoneAcceptConditionKt
   ) {
-    val existing = progressedMgroups[milestoneGroup]
+    val existing = progressedKgroups[Pair(milestoneGroup, parentGen)]
     val merged =
       if (existing == null) condition else MilestoneAcceptConditionKt.disjunct(existing, condition)
-    progressedMgroups[milestoneGroup] = merged
+    progressedKgroups[Pair(milestoneGroup, parentGen)] = merged
   }
 
-  fun addProgressedMilestoneGroupParentGen(mgroup: MilestoneGroupKt, parentGen: Int) {
-    progressedMgroupParentGen.getOrPut(mgroup) { mutableSetOf() }.add(parentGen)
-  }
-
-  fun addProgressedMilestone(milestone: MilestoneKt, condition: MilestoneAcceptConditionKt) {
-    val existing = progressedMilestones[milestone]
+  fun addProgressedKernel(
+    milestone: MilestoneKt,
+    parentGen: Int,
+    condition: MilestoneAcceptConditionKt
+  ) {
+    val existing = progressedKernels[Pair(milestone, parentGen)]
     val merged =
       if (existing == null) condition else MilestoneAcceptConditionKt.disjunct(existing, condition)
-    progressedMilestones[milestone] = merged
-  }
-
-  fun addProgressedMilestoneParentGen(milestone: MilestoneKt, parentGen: Int) {
-    progressedMilestoneParentGens.getOrPut(milestone) { mutableSetOf() }.add(parentGen)
+    progressedKernels[Pair(milestone, parentGen)] = merged
   }
 
   fun build(): GenActionsKt = GenActionsKt(
     termActions.toList(),
     tipEdgeActions.toList(),
     midEdgeActions.toList(),
-    progressedMilestones.toMap(),
-    progressedMilestoneParentGens.toMap(),
-    progressedMgroups.toMap(),
-    progressedMgroupParentGen.toMap(),
+    progressedKernels.toMap(),
+    progressedKgroups.toMap(),
   )
 }

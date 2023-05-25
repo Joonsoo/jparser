@@ -21,30 +21,24 @@ sealed class MilestoneAcceptConditionKt {
           Or(template.and.conditionsList.map { reify(it, beginGen, gen) })
 
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_IS ->
-          Exists(
-            MilestoneKt(template.lookaheadIs.symbolId, 0, gen),
-            template.lookaheadIs.fromNextGen
-          )
+          Exists(template.lookaheadIs.symbolId, gen, template.lookaheadIs.fromNextGen)
 
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_NOT ->
-          NotExists(
-            MilestoneKt(template.lookaheadNot.symbolId, 0, gen),
-            template.lookaheadNot.fromNextGen
-          )
+          NotExists(template.lookaheadNot.symbolId, gen, template.lookaheadNot.fromNextGen)
 
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LONGEST -> {
           val milestoneGen = if (template.longest.fromNextGen) gen else beginGen
-          NotExists(MilestoneKt(template.longest.symbolId, 0, milestoneGen), true)
+          NotExists(template.longest.symbolId, milestoneGen, true)
         }
 
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.ONLY_IF -> {
           val milestoneGen = if (template.onlyIf.fromNextGen) gen else beginGen
-          OnlyIf(MilestoneKt(template.onlyIf.symbolId, 0, milestoneGen))
+          OnlyIf(template.onlyIf.symbolId, milestoneGen)
         }
 
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.UNLESS -> {
           val milestoneGen = if (template.unless.fromNextGen) gen else beginGen
-          Unless(MilestoneKt(template.unless.symbolId, 0, milestoneGen))
+          Unless(template.unless.symbolId, milestoneGen)
         }
 
         else -> throw AssertionError("")
@@ -105,16 +99,16 @@ sealed class MilestoneAcceptConditionKt {
       "Or(${this.conditions.map { it.prettyString() }.sorted().joinToString(", ")})"
 
     is Exists ->
-      "Exists(${this.milestone.prettyString()}, ${this.checkFromNextGen})"
+      "Exists(${this.symbolId}, ${this.gen}, ${this.checkFromNextGen})"
 
     is NotExists ->
-      "NotExists(${this.milestone.prettyString()}, ${this.checkFromNextGen})"
+      "NotExists(${this.symbolId}, ${this.gen}, ${this.checkFromNextGen})"
 
     is OnlyIf ->
-      "OnlyIf(${this.milestone.prettyString()})"
+      "OnlyIf(${this.symbolId}, ${this.gen})"
 
     is Unless ->
-      "Unless(${this.milestone.prettyString()})"
+      "Unless(${this.symbolId}, ${this.gen})"
   }
 
 
@@ -149,25 +143,29 @@ sealed class MilestoneAcceptConditionKt {
       conjunct(*(conditions.map { it.negation() }.toTypedArray()))
   }
 
-  data class Exists(val milestone: MilestoneKt, val checkFromNextGen: Boolean):
+  data class Exists(val symbolId: Int, val gen: Int, val checkFromNextGen: Boolean):
     MilestoneAcceptConditionKt() {
-    override fun negation(): MilestoneAcceptConditionKt =
-      NotExists(milestone, checkFromNextGen)
+    val milestone = MilestoneKt(symbolId, 0, gen)
+
+    override fun negation(): MilestoneAcceptConditionKt = NotExists(symbolId, gen, checkFromNextGen)
   }
 
-  data class NotExists(val milestone: MilestoneKt, val checkFromNextGen: Boolean):
+  data class NotExists(val symbolId: Int, val gen: Int, val checkFromNextGen: Boolean):
     MilestoneAcceptConditionKt() {
-    override fun negation(): MilestoneAcceptConditionKt =
-      Exists(milestone, checkFromNextGen)
+    val milestone = MilestoneKt(symbolId, 0, gen)
+
+    override fun negation(): MilestoneAcceptConditionKt = Exists(symbolId, gen, checkFromNextGen)
   }
 
-  data class OnlyIf(val milestone: MilestoneKt): MilestoneAcceptConditionKt() {
-    override fun negation(): MilestoneAcceptConditionKt =
-      Unless(milestone)
+  data class OnlyIf(val symbolId: Int, val gen: Int): MilestoneAcceptConditionKt() {
+    val milestone = MilestoneKt(symbolId, 0, gen)
+
+    override fun negation(): MilestoneAcceptConditionKt = Unless(symbolId, gen)
   }
 
-  data class Unless(val milestone: MilestoneKt): MilestoneAcceptConditionKt() {
-    override fun negation(): MilestoneAcceptConditionKt =
-      OnlyIf(milestone)
+  data class Unless(val symbolId: Int, val gen: Int): MilestoneAcceptConditionKt() {
+    val milestone = MilestoneKt(symbolId, 0, gen)
+
+    override fun negation(): MilestoneAcceptConditionKt = OnlyIf(symbolId, gen)
   }
 }

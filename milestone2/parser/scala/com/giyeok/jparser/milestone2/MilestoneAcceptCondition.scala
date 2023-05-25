@@ -107,7 +107,7 @@ case class Exists(symbolId: Int, gen: Int, checkFromNextGen: Boolean) extends Mi
 
   def milestones: Set[Milestone] = Set(milestone)
 
-  override def toString: String = s"Exists($symbolId $gen, $checkFromNextGen)"
+  override def toString: String = s"Exists($symbolId, $gen, $checkFromNextGen)"
 }
 
 case class NotExists(symbolId: Int, gen: Int, checkFromNextGen: Boolean) extends MilestoneAcceptCondition {
@@ -117,7 +117,7 @@ case class NotExists(symbolId: Int, gen: Int, checkFromNextGen: Boolean) extends
 
   def milestones: Set[Milestone] = Set(Milestone(symbolId, 0, gen))
 
-  override def toString: String = s"NotExists($symbolId $gen, $checkFromNextGen)"
+  override def toString: String = s"NotExists($symbolId, $gen, $checkFromNextGen)"
 }
 
 case class OnlyIf(symbolId: Int, gen: Int) extends MilestoneAcceptCondition {
@@ -127,7 +127,7 @@ case class OnlyIf(symbolId: Int, gen: Int) extends MilestoneAcceptCondition {
 
   def milestones: Set[Milestone] = Set(Milestone(symbolId, 0, gen))
 
-  override def toString: String = s"OnlyIf($symbolId $gen)"
+  override def toString: String = s"OnlyIf($symbolId, $gen)"
 }
 
 case class Unless(symbolId: Int, gen: Int) extends MilestoneAcceptCondition {
@@ -137,5 +137,5 @@ case class Unless(symbolId: Int, gen: Int) extends MilestoneAcceptCondition {
 
   def milestones: Set[Milestone] = Set(Milestone(symbolId, 0, gen))
 
-  override def toString: String = s"Unless($symbolId $gen)"
+  override def toString: String = s"Unless($symbolId, $gen)"
 }

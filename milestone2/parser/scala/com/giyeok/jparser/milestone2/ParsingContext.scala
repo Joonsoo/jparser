@@ -52,7 +52,7 @@ case class GenActions(
   val progressedMilestones: MapView[Milestone, MilestoneAcceptCondition] = progressedKernels.toList.groupBy(_._1._1)
     .view.mapValues(pairs => MilestoneAcceptCondition.disjunct(pairs.map(_._2).toSet))
 
-  def milestoneProgressConditions(milestone: Milestone): MilestoneAcceptCondition =
+  def milestoneProgressConditionOf(milestone: Milestone): MilestoneAcceptCondition =
     progressedMilestones.getOrElse(milestone, Never)
 }
 

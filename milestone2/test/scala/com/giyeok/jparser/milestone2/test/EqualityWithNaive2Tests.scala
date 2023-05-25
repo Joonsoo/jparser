@@ -222,6 +222,7 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
   }
 
   "backup grammar 1" should "work" in {
+    // naive example에서 실패하는 예제. 뭔가 문제가 있긴 있는 것 같은데.. 잘 모르겠다
     val grammar = MetaLanguage3.analyzeGrammar(
       """S = WS* Stmt S | #
         |Stmt = <Expr> lineend
