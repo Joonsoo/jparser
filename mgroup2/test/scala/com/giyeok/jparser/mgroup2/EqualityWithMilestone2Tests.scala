@@ -226,4 +226,15 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
       testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
     }
   }
+
+  "j1 mark1 subset" should "work" in {
+    val j1mark1 = MetaLang3ExamplesCatalog.INSTANCE.getJ1mark1subset
+
+    val analysis = MetaLanguage3.analyzeGrammar(j1mark1.getGrammarText)
+    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+
+    j1mark1.getExamples.forEach { example =>
+      testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
+    }
+  }
 }

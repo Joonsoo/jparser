@@ -73,29 +73,25 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
         conds1.toList.sorted.zip(conds2.sorted).foreach { pair =>
           assertEqualCondition(pair._1, pair._2, gen)
         }
-      case (AcceptCondition.Exists(beginGen, endGen, symbolId), Exists(milestone, checkFromNextGen)) =>
-        assertEquals(symbolId, milestone.symbolId)
-        assertEquals(0, milestone.pointer)
-        assertEquals(beginGen, milestone.gen)
+      case (AcceptCondition.Exists(beginGen, endGen, symbolId), Exists(mSymbolId, mGen, checkFromNextGen)) =>
+        assertEquals(symbolId, mSymbolId)
+        assertEquals(beginGen, mGen)
         // TODO endGen은 어떻게 검증해야되지?
         // checkFromNextGen은 처음 생긴 이후로 evolveAcceptCondition할 때 해제되므로 이 시점에는 항상 false임
         assert(!checkFromNextGen)
-      case (AcceptCondition.NotExists(beginGen, endGen, symbolId), NotExists(milestone, checkFromNextGen)) =>
-        assertEquals(symbolId, milestone.symbolId)
-        assertEquals(0, milestone.pointer)
-        assertEquals(beginGen, milestone.gen)
+      case (AcceptCondition.NotExists(beginGen, endGen, symbolId), NotExists(mSymbolId, mGen, checkFromNextGen)) =>
+        assertEquals(symbolId, mSymbolId)
+        assertEquals(beginGen, mGen)
         // TODO endGen은 어떻게 검증해야되지?
         // checkFromNextGen은 처음 생긴 이후로 evolveAcceptCondition할 때 해제되므로 이 시점에는 항상 false임
         assert(!checkFromNextGen)
-      case (AcceptCondition.OnlyIf(beginGen, endGen, symbolId), OnlyIf(milestone)) =>
-        assertEquals(symbolId, milestone.symbolId)
-        assertEquals(0, milestone.pointer)
-        assertEquals(beginGen, milestone.gen)
+      case (AcceptCondition.OnlyIf(beginGen, endGen, symbolId), OnlyIf(mSymbolId, mGen)) =>
+        assertEquals(symbolId, mSymbolId)
+        assertEquals(beginGen, mGen)
         assertEquals(endGen, gen)
-      case (AcceptCondition.Unless(beginGen, endGen, symbolId), Unless(milestone)) =>
-        assertEquals(symbolId, milestone.symbolId)
-        assertEquals(0, milestone.pointer)
-        assertEquals(beginGen, milestone.gen)
+      case (AcceptCondition.Unless(beginGen, endGen, symbolId), Unless(mSymbolId, mGen)) =>
+        assertEquals(symbolId, mSymbolId)
+        assertEquals(beginGen, mGen)
         assertEquals(endGen, gen)
       case _ =>
       //        assert(false)
@@ -287,6 +283,10 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getJ1mark1)
   }
 
+  "j1 mark1 subset grammar" should "work" in {
+    generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getJ1mark1subset)
+  }
+
   "autodb3 grammar" should "work" in {
     generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getAutodb3problem)
   }
@@ -335,73 +335,6 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     val parserData = parserGen.parserData()
 
     val examples = List("verifiedIdentity != null")
-    examples.foreach { example =>
-      testEqualityBetweenNaive2AndMilestone(new NaiveParser2(grammar), new MilestoneParser(parserData), new GrammarTestExample("q", example, ""))
-    }
-  }
-
-  "subset of j1mark1" should "work" in {
-    val grammar = MetaLanguage3.analyzeGrammar(
-      """SourceFile = (WS TopLevelElem)* WS {SourceFile(elems=$0)}
-        |
-        |TopLevelElem: TopLevelElem = VarDef
-        |
-        |Type: Type = PrimitiveType
-        |
-        |PrimitiveType = ("int" {%Int})&Tk {PrimitiveType(type: %PrimitiveTypes=$0)}
-        |
-        |Expr: Expr = <Disjunction>
-        |
-        |VarDef = "var"&Tk WS Identifier WS ':' WS Type (WS '=' WS Expr)? {VarDef(name=$2, type=$6, init=$7)}
-        |
-        |// 처음엔 array도 field도 없음.
-        |LeftHandSide: LeftHandSide = Identifier
-        |
-        |Disjunction: Disjunction = CastAs
-        |  | Disjunction WS "||"&Tk WS CastAs {BinOp(op:%BinOps=%OR, lhs=$0, rhs=$4)}
-        |
-        |CastAs: CastAs = Primary
-        |  | Primary WS "as"&Tk WS Type {CastAsType(operand=$0, type=$4)}
-        |
-        |Primary: Primary = Literal
-        |  | Identifier
-        |  | IfExpr
-        |
-        |
-        |IfExpr = "if"&Tk WS '(' WS Expr WS ')' WS Expr (WS "else"&Tk WS Expr)?
-        |         {IfExpr(condition=$4, ifTrue=$8, ifFalse=$9)}
-        |
-        |Literal: Literal = IntLiteral
-        |
-        |IntLiteral: IntLiteral = DecimalNumeral
-        |
-        |DecimalNumeral = '0' {DecimalNumeral(value="0")}
-        |  | '1-9' Digits? {DecimalNumeral(value=str($0, $1))}
-        |Digits = '0-9' ('_'? '0-9')* {str($0, $1)}
-        |
-        |
-        |
-        |Word = 'a-zA-Z_' 'a-zA-Z_0-9'* {str($0, $1)}
-        |Identifier = (Word-Reserved)&Tk {Identifier(name=$0)}
-        |
-        |Reserved = "var" | "while" | "if" | "else" | "break" | "continue" | "return"
-        |  | "boolean" | "byte" | "short" | "int" | "long"
-        |  | "ushort" | "uint" | "ulong" | "float" | "double"
-        |  | "true" | "false"
-        |
-        |Tk = <'a-zA-Z0-9_'+ | TkSeq>
-        |TkSeq = "!" | "!=" | "%" | "%=" | "&" | "&&" | "&=" | "*" | "*=" | "+" | "++" | "+=" | "-" | "--" | "-=" | "->" | "..." | "/" | "/=" | "::" | "<" | "<<" | "<<=" | "<=" | "=" | "==" | ">" | ">=" | ">>" | ">>=" | ">>>" | ">>>=" | "^" | "^=" | "|" | "|=" | "||" | "~"
-        |
-        |
-        |WS = ' \n\r\t'*
-        |""".stripMargin
-    ).ngrammar
-
-    val parserGen = new MilestoneParserGen(grammar)
-
-    val parserData = parserGen.parserData()
-
-    val examples = List("var x: int = if (x) 1 else 2 as int")
     examples.foreach { example =>
       testEqualityBetweenNaive2AndMilestone(new NaiveParser2(grammar), new MilestoneParser(parserData), new GrammarTestExample("q", example, ""))
     }

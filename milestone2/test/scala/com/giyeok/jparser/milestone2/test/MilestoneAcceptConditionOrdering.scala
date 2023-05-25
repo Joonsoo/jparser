@@ -30,23 +30,27 @@ object MilestoneAcceptConditionOrdering {
       case (_: Or, _) => 1
 
       case (_: NotExists, Always | Never | _: And | _: Or) => -1
-      case (NotExists(milestone1, check1), NotExists(milestone2, check2)) =>
-        if (milestone1 != milestone2) compareMilestones(milestone1, milestone2) else check1.compare(check2)
+      case (NotExists(symbolId1, gen1, check1), NotExists(symbolId2, gen2, check2)) =>
+        if (symbolId1 != symbolId2) symbolId1 - symbolId2 else {
+          if (gen1 != gen2) gen1 - gen2 else check1.compare(check2)
+        }
       case (_: NotExists, _) => 1
 
       case (_: Exists, Always | Never | _: And | _: Or | _: NotExists) => -1
-      case (Exists(milestone1, check1), Exists(milestone2, check2)) =>
-        if (milestone1 != milestone2) compareMilestones(milestone1, milestone2) else check1.compare(check2)
+      case (Exists(symbolId1, gen1, check1), Exists(symbolId2, gen2, check2)) =>
+        if (symbolId1 != symbolId2) symbolId1 - symbolId2 else {
+          if (gen1 != gen2) gen1 - gen2 else check1.compare(check2)
+        }
       case (_: Exists, _) => 1
 
 
       case (_: Unless, Always | Never | _: And | _: Or | _: NotExists | _: Exists) => -1
-      case (Unless(milestone1), Unless(milestone2)) =>
-        compareMilestones(milestone1, milestone2)
+      case (Unless(symbolId1, gen1), Unless(symbolId2, gen2)) =>
+        if (symbolId1 != symbolId2) symbolId1 - symbolId2 else gen1 - gen2
       case (_: Unless, _) => 1
 
-      case (OnlyIf(milestone1), OnlyIf(milestone2)) =>
-        compareMilestones(milestone1, milestone2)
+      case (OnlyIf(symbolId1, gen1), OnlyIf(symbolId2, gen2)) =>
+        if (symbolId1 != symbolId2) symbolId1 - symbolId2 else gen1 - gen2
       case (_: OnlyIf, _) => 1
     }
 

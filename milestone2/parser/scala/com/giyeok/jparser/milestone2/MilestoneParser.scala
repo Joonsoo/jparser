@@ -86,9 +86,10 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         MilestoneAcceptCondition.conjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
       case Or(conditions) =>
         MilestoneAcceptCondition.disjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
-      case Exists(milestone, true) =>
-        Exists(milestone, checkFromNextGen = false)
-      case Exists(milestone, false) =>
+      case Exists(symbolId, gen, true) =>
+        Exists(symbolId, gen, checkFromNextGen = false)
+      case condition: Exists =>
+        val milestone = condition.milestone
         val moreTrackingNeeded = paths.exists(_.first == milestone)
         val progressCondition = genActions.milestoneProgressConditions(milestone)
         if (progressCondition == Never) {
@@ -101,9 +102,10 @@ class MilestoneParser(val parserData: MilestoneParserData) {
             evolvedCondition
           }
         }
-      case NotExists(milestone, true) =>
-        NotExists(milestone, checkFromNextGen = false)
-      case NotExists(milestone, false) =>
+      case NotExists(symbolId, gen, true) =>
+        NotExists(symbolId, gen, checkFromNextGen = false)
+      case condition: NotExists =>
+        val milestone = condition.milestone
         val moreTrackingNeeded = paths.exists(_.first == milestone)
         val progressCondition = genActions.milestoneProgressConditions(milestone)
         if (progressCondition == Never) {
@@ -116,11 +118,11 @@ class MilestoneParser(val parserData: MilestoneParserData) {
             evolvedCondition
           }
         }
-      case OnlyIf(milestone) =>
-        val progressCondition = genActions.milestoneProgressConditions(milestone)
+      case condition: OnlyIf =>
+        val progressCondition = genActions.milestoneProgressConditions(condition.milestone)
         evolveAcceptCondition(paths, genActions, progressCondition)
-      case Unless(milestone) =>
-        val progressCondition = genActions.milestoneProgressConditions(milestone)
+      case condition: Unless =>
+        val progressCondition = genActions.milestoneProgressConditions(condition.milestone)
         evolveAcceptCondition(paths, genActions, progressCondition).negation
     }
   }
@@ -136,16 +138,16 @@ class MilestoneParser(val parserData: MilestoneParserData) {
         conditions.forall(evaluateAcceptCondition(genActions, _))
       case Or(conditions) =>
         conditions.exists(evaluateAcceptCondition(genActions, _))
-      case Exists(_, true) => false
-      case Exists(milestone, false) =>
-        evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(milestone))
-      case NotExists(_, true) => true
-      case NotExists(milestone, false) =>
-        !evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(milestone))
-      case OnlyIf(milestone) =>
-        evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(milestone))
-      case Unless(milestone) =>
-        !evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(milestone))
+      case Exists(_, _, true) => false
+      case condition: Exists =>
+        evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(condition.milestone))
+      case NotExists(_, _, true) => true
+      case condition: NotExists =>
+        !evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(condition.milestone))
+      case condition: OnlyIf =>
+        evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(condition.milestone))
+      case condition: Unless =>
+        !evaluateAcceptCondition(genActions, genActions.milestoneProgressConditions(condition.milestone))
     }
   }
 

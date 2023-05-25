@@ -133,9 +133,10 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         MilestoneAcceptCondition.conjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
       case Or(conditions) =>
         MilestoneAcceptCondition.disjunct(conditions.map(evolveAcceptCondition(paths, genActions, _)).toSet)
-      case Exists(milestone, true) =>
-        Exists(milestone, checkFromNextGen = false)
-      case Exists(milestone, false) =>
+      case Exists(symbolId, gen, true) =>
+        Exists(symbolId, gen, checkFromNextGen = false)
+      case condition: Exists =>
+        val milestone = condition.milestone
         val moreTrackingNeeded = paths.exists(_.first == milestone)
         getProgressConditionOf(genActions, milestone) match {
           case Some(progressCondition) =>
@@ -148,9 +149,10 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
           case None =>
             if (moreTrackingNeeded) condition else Never
         }
-      case NotExists(milestone, true) =>
-        NotExists(milestone, checkFromNextGen = false)
-      case NotExists(milestone, false) =>
+      case NotExists(symbolId, gen, true) =>
+        NotExists(symbolId, gen, checkFromNextGen = false)
+      case condition: NotExists =>
+        val milestone = condition.milestone
         val moreTrackingNeeded = paths.exists(_.first == milestone)
         getProgressConditionOf(genActions, milestone) match {
           case Some(progressCondition) =>
@@ -163,14 +165,14 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
           case None =>
             if (moreTrackingNeeded) condition else Always
         }
-      case OnlyIf(milestone) =>
-        getProgressConditionOf(genActions, milestone) match {
+      case condition: OnlyIf =>
+        getProgressConditionOf(genActions, condition.milestone) match {
           case Some(progressCondition) =>
             evolveAcceptCondition(paths, genActions, progressCondition)
           case None => Never
         }
-      case Unless(milestone) =>
-        getProgressConditionOf(genActions, milestone) match {
+      case condition: Unless =>
+        getProgressConditionOf(genActions, condition.milestone) match {
           case Some(progressCondition) =>
             evolveAcceptCondition(paths, genActions, progressCondition).negation
           case None => Always
@@ -189,28 +191,28 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         conditions.forall(evaluateAcceptCondition(genActions, _))
       case Or(conditions) =>
         conditions.exists(evaluateAcceptCondition(genActions, _))
-      case Exists(milestone, true) => false
-      case Exists(milestone, false) =>
-        getProgressConditionOf(genActions, milestone) match {
+      case Exists(_, _, true) => false
+      case condition: Exists =>
+        getProgressConditionOf(genActions, condition.milestone) match {
           case Some(progressCondition) =>
             evaluateAcceptCondition(genActions, progressCondition)
           case None => false
         }
-      case NotExists(milestone, true) => true
-      case NotExists(milestone, false) =>
-        getProgressConditionOf(genActions, milestone) match {
+      case NotExists(_, _, true) => true
+      case condition: NotExists =>
+        getProgressConditionOf(genActions, condition.milestone) match {
           case Some(progressCondition) =>
             !evaluateAcceptCondition(genActions, progressCondition)
           case None => true
         }
-      case OnlyIf(milestone) =>
-        getProgressConditionOf(genActions, milestone) match {
+      case condition: OnlyIf =>
+        getProgressConditionOf(genActions, condition.milestone) match {
           case Some(progressCondition) =>
             evaluateAcceptCondition(genActions, progressCondition)
           case None => false
         }
-      case Unless(milestone) =>
-        getProgressConditionOf(genActions, milestone) match {
+      case condition: Unless =>
+        getProgressConditionOf(genActions, condition.milestone) match {
           case Some(progressCondition) =>
             !evaluateAcceptCondition(genActions, progressCondition)
           case None => true

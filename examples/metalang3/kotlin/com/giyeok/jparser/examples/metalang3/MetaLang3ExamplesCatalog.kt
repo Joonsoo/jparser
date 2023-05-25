@@ -34,6 +34,13 @@ object MetaLang3ExamplesCatalog {
     )
   )
 
+  val j1mark1subset = GrammarWithExamples.fromResource(
+    "/j1-mark1-sub",
+    listOf(
+      "example1.j1",
+    )
+  )
+
   val proto3 = GrammarWithExamples.fromResource(
     "/proto3",
     listOf(
