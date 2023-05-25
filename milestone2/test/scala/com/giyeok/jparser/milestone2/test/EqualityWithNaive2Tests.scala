@@ -59,9 +59,10 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
       case (AcceptCondition.Never, Never) => // ok. do nothing
       case (AcceptCondition.And(conds1), And(conds2)) =>
         if (conds1.size != conds2.size) {
-          println(s"??")
+          println(s"?? $gen")
           println(conds1)
           println(conds2)
+          println()
         }
         assertEquals(conds1.size, conds2.size)
         conds1.toList.sorted.zip(conds2.sorted).foreach { pair =>
@@ -182,14 +183,14 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     val milestoneKernelsHistory = milestoneParser.kernelsHistory(milestoneCtx).map(Kernels)
     assert(naive2KernelsHistory.size == milestoneKernelsHistory.size)
     // naive2KernelsHistory와 milestoneKernelsHistory는 다를 수 있는데..
-    //    if (naive2KernelsHistory != milestoneKernelsHistory) {
-    //      naive2KernelsHistory.zip(milestoneKernelsHistory).zipWithIndex.foreach { case ((naive2, milestone), idx) =>
-    //        println(s"$idx:")
-    //        println(s"n-m:${(naive2.kernels -- milestone.kernels).toList.sorted}")
-    //        println(s"m-n:${(milestone.kernels -- naive2.kernels).toList.sorted}")
-    //      }
-    //      println("??")
-    //    }
+    if (naive2KernelsHistory != milestoneKernelsHistory) {
+      naive2KernelsHistory.zip(milestoneKernelsHistory).zipWithIndex.foreach { case ((naive2, milestone), idx) =>
+        println(s"$idx:")
+        println(s"n-m:${(naive2.kernels -- milestone.kernels).toList.sorted}")
+        println(s"m-n:${(milestone.kernels -- naive2.kernels).toList.sorted}")
+      }
+      println("??")
+    }
     //    assertEquals(naive2KernelsHistory, milestoneKernelsHistory)
     val milestoneTrees = new ParseTreeConstructor2(ParseForestFunc)(naiveParser.grammar)(inputs, milestoneKernelsHistory).reconstruct().get.trees
     assertEquals(naive2Trees.size, milestoneTrees.size)
@@ -254,6 +255,10 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getProto3)
   }
 
+  "j1 mark1 grammar" should "work" in {
+    generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getJ1mark1)
+  }
+
   "autodb3 grammar" should "work" in {
     generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getAutodb3problem)
   }
@@ -302,6 +307,77 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
     val parserData = parserGen.parserData()
 
     val examples = List("verifiedIdentity != null")
+    examples.foreach { example =>
+      testEqualityBetweenNaive2AndMilestone(new NaiveParser2(grammar), new MilestoneParser(parserData), new GrammarTestExample("q", example, ""))
+    }
+  }
+
+  "subset of j1mark1" should "work" in {
+    val grammar = MetaLanguage3.analyzeGrammar(
+      """SourceFile = (WS TopLevelElem)* WS {SourceFile(elems=$0)}
+        |
+        |TopLevelElem: TopLevelElem = VarDef
+        |
+        |Type: Type = PrimitiveType
+        |
+        |PrimitiveType = ("int" {%Int})&Tk {PrimitiveType(type: %PrimitiveTypes=$0)}
+        |
+        |Expr: Expr = <Disjunction>
+        |
+        |VarDef = "var"&Tk WS Identifier WS ':' WS Type (WS '=' WS Expr)? {VarDef(name=$2, type=$6, init=$7)}
+        |
+        |// 처음엔 array도 field도 없음.
+        |LeftHandSide: LeftHandSide = Identifier
+        |
+        |Disjunction: Disjunction = CastAs
+        |  | Disjunction WS "||"&Tk WS CastAs {BinOp(op:%BinOps=%OR, lhs=$0, rhs=$4)}
+        |
+        |CastAs: CastAs = Primary
+        |  | Primary WS "as"&Tk WS Type {CastAsType(operand=$0, type=$4)}
+        |
+        |Primary: Primary = Literal
+        |  | Identifier
+        |  | IfExpr
+        |
+        |
+        |IfExpr = "if"&Tk WS '(' WS Expr WS ')' WS Expr (WS "else"&Tk WS Expr)?
+        |         {IfExpr(condition=$4, ifTrue=$8, ifFalse=$9)}
+        |
+        |Literal: Literal = IntLiteral
+        |
+        |IntLiteral: IntLiteral = DecimalNumeral
+        |
+        |DecimalNumeral = '0' {DecimalNumeral(value="0")}
+        |  | '1-9' Digits? {DecimalNumeral(value=str($0, $1))}
+        |Digits = '0-9' ('_'? '0-9')* {str($0, $1)}
+        |
+        |
+        |
+        |Word = 'a-zA-Z_' 'a-zA-Z_0-9'* {str($0, $1)}
+        |Identifier = (Word-Reserved)&Tk {Identifier(name=$0)}
+        |
+        |Reserved = "var" | "while" | "if" | "else" | "break" | "continue" | "return"
+        |  | "boolean" | "byte" | "short" | "int" | "long"
+        |  | "ushort" | "uint" | "ulong" | "float" | "double"
+        |  | "true" | "false"
+        |
+        |Tk = <'a-zA-Z0-9_'+ | TkSeq>
+        |TkSeq = "!" | "!=" | "%" | "%=" | "&" | "&&" | "&=" | "*" | "*=" | "+" | "++" | "+=" | "-" | "--" | "-=" | "->" | "..." | "/" | "/=" | "::" | "<" | "<<" | "<<=" | "<=" | "=" | "==" | ">" | ">=" | ">>" | ">>=" | ">>>" | ">>>=" | "^" | "^=" | "|" | "|=" | "||" | "~"
+        |
+        |
+        |WS = ' \n\r\t'*
+        |""".stripMargin
+    ).ngrammar
+
+    val parserGen = new MilestoneParserGen(grammar)
+
+    // (124, 4) -> (26, 1) 에 (19, 2, 0..2)가 왜 always로 들어있지..?
+    //    val edgeAction = parserGen.edgeProgressActionBetween(KernelTemplate(124, 4), KernelTemplate(26, 1))
+    //    println(edgeAction)
+
+    val parserData = parserGen.parserData()
+
+    val examples = List("var x: int = if (x) 1 else 2 as int")
     examples.foreach { example =>
       testEqualityBetweenNaive2AndMilestone(new NaiveParser2(grammar), new MilestoneParser(parserData), new GrammarTestExample("q", example, ""))
     }

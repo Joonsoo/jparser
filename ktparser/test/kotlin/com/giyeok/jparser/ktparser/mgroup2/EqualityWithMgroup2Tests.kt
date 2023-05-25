@@ -131,10 +131,10 @@ class EqualityWithMgroup2Tests {
   }
 
   @Test
-  fun testJ1() {
+  fun testJ1Mark1() {
     val (scalaParserData, kotlinParserData) = loadParserData("/j1-mg2-parserdata.pb.gz")
 
-    MetaLang3ExamplesCatalog.j1.examples.forEach { example ->
+    MetaLang3ExamplesCatalog.j1mark1.examples.forEach { example ->
       println("==== name: ${example.name}")
       testEquality(scalaParserData, kotlinParserData, example.example)
     }
