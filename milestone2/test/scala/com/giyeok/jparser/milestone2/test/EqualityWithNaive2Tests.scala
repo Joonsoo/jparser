@@ -124,19 +124,19 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
 
     val mainPathsFromNaive = milestonePaths.filter(_.last == milestoneParser.initialMilestone).toSet
     val mainPathsFromMile2 = pathsMap.filter(_._1.last == milestoneParser.initialMilestone)
-//    if (mainPathsFromNaive != mainPathsFromMile2.keySet) {
-      println(s":: $gen")
-      mainPathsFromNaive.foreach { path =>
-        val h = path.head
-        val condition = naiveCtx.parsingContext.acceptConditions(Kernel(h.symbolId, h.pointer, path.drop(1).headOption.map(_.gen).getOrElse(0), gen))
-        println(s"${path.reverse}  $condition")
-      }
-      println("===")
-      mainPathsFromMile2.foreach { pair =>
-        println(s"${pair._1.reverse}  ${pair._2}")
-      }
-      println("===")
-//    }
+    //    if (mainPathsFromNaive != mainPathsFromMile2.keySet) {
+    //      println(s":: $gen")
+    //      mainPathsFromNaive.foreach { path =>
+    //        val h = path.head
+    //        val condition = naiveCtx.parsingContext.acceptConditions(Kernel(h.symbolId, h.pointer, path.drop(1).headOption.map(_.gen).getOrElse(0), gen))
+    //        println(s"${path.reverse}  $condition")
+    //      }
+    //      println("===")
+    //      mainPathsFromMile2.foreach { pair =>
+    //        println(s"${pair._1.reverse}  ${pair._2}")
+    //      }
+    //      println("===")
+    //    }
     assert(mainPathsFromNaive == mainPathsFromMile2.keySet)
     assert(milestonePaths.toSet.subsetOf(pathsMap.keySet))
     milestonePaths.foreach { path =>

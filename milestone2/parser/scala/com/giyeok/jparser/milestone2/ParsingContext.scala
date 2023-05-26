@@ -46,14 +46,7 @@ case class GenActions(
   // (milestone, parentGen) -> parent gen
   // milestone과 parentGen을 조합하면 커널이 되기 때문에 이름이 progressedKernels
   progressedKernels: Map[(Milestone, Int), MilestoneAcceptCondition],
-) {
-  // TODO disjunct 맞겠지?
-  // MilestoneAcceptCondition.disjunct(progressedKernels.filter(_._1._1 == milestone).values.toSet)
-  val progressedMilestones: MapView[Milestone, MilestoneAcceptCondition] = progressedKernels.toList.groupBy(_._1._1)
-    .view.mapValues(pairs => MilestoneAcceptCondition.disjunct(pairs.map(_._2).toSet))
-
-  def milestoneProgressConditionOf(milestone: Milestone): MilestoneAcceptCondition =
-    progressedMilestones.getOrElse(milestone, Never)
-}
+  progressedRootMilestones: Map[Milestone, MilestoneAcceptCondition],
+)
 
 case class HistoryEntry(untrimmedPaths: List[MilestonePath], genActions: GenActions)

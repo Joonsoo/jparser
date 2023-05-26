@@ -43,8 +43,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
             actionsCollector.midEdgeActions += ((tipParent -> tip) -> edgeAction)
             progressTip(path.pop(condition), gen, edgeAction, actionsCollector)
           case None =>
-            // TODO 여기서 parentGen이 0이 맞을까? 원래는 parentGen이 없이 들어갔었는데.. -1같은 값을 넣어서 아예 빼버려야될까?
-            actionsCollector.addProgressedKernel(tip, 0, condition)
+            actionsCollector.addProgressedRootMilestone(tip, condition)
 
             List()
         }
@@ -76,8 +75,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
           actionsCollector.tipEdgeActions += ((tipParent -> replacedTip) -> edgeAction)
           progressTip(MilestonePath(path.first, path.path, condition), gen, edgeAction, actionsCollector)
         case None =>
-          // TODO parent gen이 0이 맞나?
-          actionsCollector.addProgressedKernelGroup(replacedTip, 0, condition)
+          actionsCollector.addProgressedRootMilestoneGroup(replacedTip, condition)
           List()
       }
     }
@@ -113,11 +111,11 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       .flatMap(path => parserData.termActions(path.tip.groupId).map(_._1)).toSet
 
   def getProgressConditionOf(genActions: GenActions, milestone: Milestone): MilestoneAcceptCondition = {
-    val groups = genActions.progressedKgroups
-      .filter { pair => pair._1._1.gen == milestone.gen }
-      .filter { pair => parserData.milestoneGroups(pair._1._1.groupId).contains(milestone.kernelTemplate) }
+    val groups = genActions.progressedRootMgroups
+      .filter { pair => pair._1.gen == milestone.gen }
+      .filter { pair => parserData.milestoneGroups(pair._1.groupId).contains(milestone.kernelTemplate) }
       .values.toSet
-    val progressCondition = genActions.milestoneProgressConditionOf(milestone)
+    val progressCondition = genActions.progressedRootMilestones.getOrElse(milestone, Never)
 
     MilestoneAcceptCondition.disjunct(groups + progressCondition)
   }
@@ -226,10 +224,8 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         val firstMilestone = Milestone(first, ctx.gen)
         progressCondition match {
           case Some(progressCondition) =>
-            // TODO 여기 parentGen이 ctx.gen이 맞나? gen이 맞나?
-            actionsCollector.addProgressedKernel(
+            actionsCollector.addProgressedRootMilestone(
               firstMilestone,
-              ctx.gen,
               MilestoneAcceptCondition.reify(progressCondition, ctx.gen, gen))
           case None => // do nothing
         }
@@ -372,7 +368,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
     }
 
     // TODO initialHistoryEntry의 progressedMilestones와 progressedMilestoneParentGens 추가
-    val initialHistoryEntry = HistoryEntry(initialCtx.paths, GenActions(List(), List(), List(), Map(), Map()))
+    val initialHistoryEntry = HistoryEntry(initialCtx.paths, GenActions(List(), List(), List(), Map(), Map(), Map(), Map()))
     val history = (initialHistoryEntry +: parsingContext.history.reverse).toVector
 
     val conditionMemos = (0 until history.length).map { _ =>
@@ -427,11 +423,26 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
           kernels += Kernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
         case _ => // do nothing
       }
+      genActions.progressedRootMilestones.foreach {
+        case (milestone, condition) if isEventuallyAccepted(history, gen, condition, conditionMemos) =>
+          assert(milestone.pointer == 0)
+          kernels += Kernel(milestone.symbolId, milestone.pointer, milestone.gen, milestone.gen)
+          kernels += Kernel(milestone.symbolId, milestone.pointer + 1, milestone.gen, gen)
+        case _ => // do nothing
+      }
       genActions.progressedKgroups.foreach {
         case ((mgroup, parentGen), condition) if isEventuallyAccepted(history, gen, condition, conditionMemos) =>
           parserData.milestoneGroups(mgroup.groupId).foreach { milestone =>
             kernels += Kernel(milestone.symbolId, milestone.pointer, parentGen, mgroup.gen)
             kernels += Kernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
+          }
+        case _ => // do nothing
+      }
+      genActions.progressedRootMgroups.foreach {
+        case (mgroup, condition) if isEventuallyAccepted(history, gen, condition, conditionMemos) =>
+          parserData.milestoneGroups(mgroup.groupId).foreach { milestone =>
+            kernels += Kernel(milestone.symbolId, milestone.pointer, mgroup.gen, mgroup.gen)
+            kernels += Kernel(milestone.symbolId, milestone.pointer + 1, mgroup.gen, gen)
           }
         case _ => // do nothing
       }

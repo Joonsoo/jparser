@@ -8,7 +8,7 @@ import com.giyeok.jparser.mgroup2.proto.MilestoneGroupParserDataProto.*
 import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto.*
 
 class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
-  constructor(proto: MilestoneGroupParserData): this(MilestoneGroupParserDataKt(proto))
+  constructor(proto: MilestoneGroupParserData) : this(MilestoneGroupParserDataKt(proto))
 
   private var verbose: Boolean = false
 
@@ -76,8 +76,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
 
         PathList.Nil -> {
           // do nothing
-          // TODO 여기서 parentGen은 뭘 줘야하지
-          actionsCollector.addProgressedKernel(tip, 0, condition)
+          actionsCollector.addProgressedRootMilestone(tip, condition)
         }
       }
     }
@@ -138,8 +137,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         }
 
         PathList.Nil -> {
-          // TODO parent gen이 0이 맞나?
-          actionsCollector.addProgressedKernelGroup(replacedTip, 0, condition)
+          actionsCollector.addProgressedRootMilestoneGroup(replacedTip, condition)
         }
       }
     }
@@ -158,17 +156,14 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
     genActions: GenActionsKt,
     milestone: MilestoneKt
   ): MilestoneAcceptConditionKt {
-    val groups = genActions.progressedKgroups
-      .filterKeys { mgroup -> mgroup.first.gen == milestone.gen }
+    val groups = genActions.progressedRootMgroups
+      .filterKeys { mgroup -> mgroup.gen == milestone.gen }
       .filterKeys { mgroup ->
-        parserData.doesGroupContainMilestone(
-          mgroup.first.groupId,
-          milestone.symbolId,
-          milestone.pointer
-        )
+        parserData.doesGroupContainMilestone(mgroup.groupId, milestone.symbolId, milestone.pointer)
       }
       .values
-    val progressCondition = genActions.milestoneProgressConditionOf(milestone)
+    val progressCondition =
+      genActions.progressedRootMilestones[milestone] ?: MilestoneAcceptConditionKt.Never
 
     return MilestoneAcceptConditionKt.disjunct(*(groups + progressCondition).toTypedArray())
   }
@@ -269,11 +264,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         false
       } else {
         val progressCondition = getProgressConditionOf(genActions, condition.milestone)
-        if (progressCondition != null) {
-          evaluateAcceptCondition(genActions, progressCondition)
-        } else {
-          false
-        }
+        evaluateAcceptCondition(genActions, progressCondition)
       }
 
     is MilestoneAcceptConditionKt.NotExists ->
@@ -281,29 +272,17 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         true
       } else {
         val progressCondition = getProgressConditionOf(genActions, condition.milestone)
-        if (progressCondition != null) {
-          !evaluateAcceptCondition(genActions, progressCondition)
-        } else {
-          true
-        }
+        !evaluateAcceptCondition(genActions, progressCondition)
       }
 
     is MilestoneAcceptConditionKt.OnlyIf -> {
       val progressCondition = getProgressConditionOf(genActions, condition.milestone)
-      if (progressCondition != null) {
-        evaluateAcceptCondition(genActions, progressCondition)
-      } else {
-        false
-      }
+      evaluateAcceptCondition(genActions, progressCondition)
     }
 
     is MilestoneAcceptConditionKt.Unless -> {
       val progressCondition = getProgressConditionOf(genActions, condition.milestone)
-      if (progressCondition != null) {
-        !evaluateAcceptCondition(genActions, progressCondition)
-      } else {
-        true
-      }
+      !evaluateAcceptCondition(genActions, progressCondition)
     }
   }
 
@@ -405,10 +384,8 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         val (appendings, progressCondition) = pair
         val firstMilestone = MilestoneKt(first.symbolId, first.pointer, ctx.gen)
         if (progressCondition != null) {
-          // TODO 여기 parentGen이 ctx.gen이 맞나? gen이 맞나?
-          actionsCollector.addProgressedKernel(
+          actionsCollector.addProgressedRootMilestone(
             firstMilestone,
-            ctx.gen,
             MilestoneAcceptConditionKt.reify(progressCondition, ctx.gen, gen)
           )
         }
@@ -594,6 +571,17 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
           kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
         }
       }
+      genActions.progressedRootMilestones.forEach { (milestone, condition) ->
+        if (isEventuallyAccepted(history, gen, condition, conditionMemos)) {
+          kernelsBuilder.addKernel(
+            milestone.symbolId,
+            milestone.pointer,
+            milestone.gen,
+            milestone.gen
+          )
+          kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer + 1, milestone.gen, gen)
+        }
+      }
       genActions.progressedKgroups.forEach { (kgroup, condition) ->
         if (isEventuallyAccepted(history, gen, condition, conditionMemos)) {
           val (mgroup, parentGen) = kgroup
@@ -601,6 +589,14 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
           parserData.milestonesOfGroup(mgroup.groupId).forEach { milestone ->
             kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer, parentGen, mgroup.gen)
             kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer + 1, parentGen, gen)
+          }
+        }
+      }
+      genActions.progressedRootMgroups.forEach { (mgroup, condition) ->
+        if (isEventuallyAccepted(history, gen, condition, conditionMemos)) {
+          parserData.milestonesOfGroup(mgroup.groupId).forEach { milestone ->
+            kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer, mgroup.gen, mgroup.gen)
+            kernelsBuilder.addKernel(milestone.symbolId, milestone.pointer + 1, mgroup.gen, gen)
           }
         }
       }

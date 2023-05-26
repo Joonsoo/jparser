@@ -38,15 +38,10 @@ case class GenActions(
   tipEdgeActions: List[((Milestone, MilestoneGroup), EdgeAction)],
   midEdgeActions: List[((Milestone, Milestone), EdgeAction)],
   progressedKernels: Map[(Milestone, Int), MilestoneAcceptCondition],
+  progressedRootMilestones: Map[Milestone, MilestoneAcceptCondition],
   progressedKgroups: Map[(MilestoneGroup, Int), MilestoneAcceptCondition],
-) {
-  // TODO progressedMilestones, progressedMgroups
-  val progressedMilestones: MapView[Milestone, MilestoneAcceptCondition] = progressedKernels.toList.groupBy(_._1._1)
-    .view.mapValues(pairs => MilestoneAcceptCondition.disjunct(pairs.map(_._2).toSet))
-
-  def milestoneProgressConditionOf(milestone: Milestone): MilestoneAcceptCondition =
-    progressedMilestones.getOrElse(milestone, Never)
-}
+  progressedRootMgroups: Map[MilestoneGroup, MilestoneAcceptCondition],
+)
 
 class GenActionsBuilder() {
   val termActions: mutable.ListBuffer[(MilestoneGroup, TermAction)] = mutable.ListBuffer()
@@ -54,9 +49,11 @@ class GenActionsBuilder() {
   val midEdgeActions: mutable.ListBuffer[((Milestone, Milestone), EdgeAction)] = mutable.ListBuffer()
 
   private val progressedKernels: mutable.Map[(Milestone, Int), MilestoneAcceptCondition] = mutable.Map()
+  private val progressedRootMilestones: mutable.Map[Milestone, MilestoneAcceptCondition] = mutable.Map()
 
   // kernel groups
   private val progressedKgroups: mutable.Map[(MilestoneGroup, Int), MilestoneAcceptCondition] = mutable.Map()
+  private val progressedRootMgroups: mutable.Map[MilestoneGroup, MilestoneAcceptCondition] = mutable.Map()
 
   def addProgressedKernel(milestone: Milestone, parentGen: Int, condition: MilestoneAcceptCondition): Unit = {
     val newCondition = progressedKernels.get(milestone -> parentGen) match {
@@ -65,6 +62,15 @@ class GenActionsBuilder() {
       case None => condition
     }
     progressedKernels += ((milestone -> parentGen) -> newCondition)
+  }
+
+  def addProgressedRootMilestone(milestone: Milestone, condition: MilestoneAcceptCondition): Unit = {
+    val newCondition = progressedRootMilestones.get(milestone) match {
+      case Some(existingCondition) =>
+        MilestoneAcceptCondition.disjunct(Set(existingCondition, condition))
+      case None => condition
+    }
+    progressedRootMilestones += (milestone -> newCondition)
   }
 
   def addProgressedKernelGroup(mgroup: MilestoneGroup, parentGen: Int, condition: MilestoneAcceptCondition): Unit = {
@@ -76,13 +82,24 @@ class GenActionsBuilder() {
     progressedKgroups += ((mgroup -> parentGen) -> newCondition)
   }
 
+  def addProgressedRootMilestoneGroup(mgroup: MilestoneGroup, condition: MilestoneAcceptCondition): Unit = {
+    val newCondition = progressedRootMgroups.get(mgroup) match {
+      case Some(existingCondition) =>
+        MilestoneAcceptCondition.disjunct(Set(existingCondition, condition))
+      case None => condition
+    }
+    progressedRootMgroups += (mgroup -> newCondition)
+  }
+
   def build(): GenActions = {
     GenActions(
       termActions.toList,
       tipEdgeActions.toList,
       midEdgeActions.toList,
       progressedKernels.toMap,
+      progressedRootMilestones.toMap,
       progressedKgroups.toMap,
+      progressedRootMgroups.toMap
     )
   }
 }
