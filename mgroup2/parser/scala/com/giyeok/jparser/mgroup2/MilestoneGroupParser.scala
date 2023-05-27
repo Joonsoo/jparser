@@ -207,7 +207,7 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
       Left(UnexpectedInputByTermGroups(input, expectedInputsOf(ctx), gen))
     } else {
       val actionsCollector = new GenActionsBuilder()
-      val pendedCollection = mutable.Map[KernelTemplate, (List[AppendingMilestoneGroup], Option[AcceptConditionTemplate])]()
+      val pendedCollection = mutable.Map[KernelTemplate, (Set[AppendingMilestoneGroup], Option[AcceptConditionTemplate])]()
 
       val termActionApplied = ctx.paths.flatMap { path =>
         val termAction = parserData.termActions(path.tip.groupId)
@@ -215,7 +215,22 @@ class MilestoneGroupParser(val parserData: MilestoneGroupParserData) {
         termAction match {
           case Some((_, action)) =>
             actionsCollector.termActions += (path.tip -> action)
-            pendedCollection ++= action.pendedAcceptConditionKernels
+            // pendedCollection ++= action.pendedAcceptConditionKernels
+            action.pendedAcceptConditionKernels.foreach { case (first, (appendings, progressCondition)) =>
+              pendedCollection.get(first) match {
+                case Some((existingAppendings, existingProgressCondition)) =>
+                  val mergedAppendings = existingAppendings ++ appendings
+                  val mergedProgressCondition = (existingProgressCondition, progressCondition) match {
+                    case (None, None) => None
+                    case (Some(condition), None) => Some(condition)
+                    case (None, Some(condition)) => Some(condition)
+                    case (Some(cond1), Some(cond2)) => Some(AcceptConditionTemplate.disjunct(Set(cond1, cond2)))
+                  }
+                  pendedCollection += first -> (mergedAppendings, mergedProgressCondition)
+                case None =>
+                  pendedCollection += first -> (appendings.toSet, progressCondition)
+              }
+            }
             applyTermAction(path, gen, action, actionsCollector)
           case None => List()
         }

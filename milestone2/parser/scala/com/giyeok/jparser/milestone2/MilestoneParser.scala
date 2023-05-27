@@ -185,7 +185,7 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       Left(UnexpectedInputByTermGroups(input, expectedInputsOf(ctx), gen))
     } else {
       val actionsCollector = new GenActionsBuilder()
-      val pendedCollection = mutable.Map[KernelTemplate, (List[AppendingMilestone], Option[AcceptConditionTemplate])]()
+      val pendedCollection = mutable.Map[KernelTemplate, (Set[AppendingMilestone], Option[AcceptConditionTemplate])]()
       val termActionApplied = ctx.paths.flatMap { path =>
         val termAction = parserData.termActions(KernelTemplate(path.tip.symbolId, path.tip.pointer))
           .find(_._1.contains(input))
@@ -193,7 +193,22 @@ class MilestoneParser(val parserData: MilestoneParserData) {
           case Some((_, action)) =>
             // record parse action
             actionsCollector.termActions += ((path.tip, action))
-            pendedCollection ++= action.pendedAcceptConditionKernels
+            // pendedCollection ++= action.pendedAcceptConditionKernels
+            action.pendedAcceptConditionKernels.foreach { case (first, (appendings, progressCondition)) =>
+              pendedCollection.get(first) match {
+                case Some((existingAppendings, existingProgressCondition)) =>
+                  val mergedAppendings = existingAppendings ++ appendings
+                  val mergedProgressCondition = (existingProgressCondition, progressCondition) match {
+                    case (None, None) => None
+                    case (Some(condition), None) => Some(condition)
+                    case (None, Some(condition)) => Some(condition)
+                    case (Some(cond1), Some(cond2)) => Some(AcceptConditionTemplate.disjunct(Set(cond1, cond2)))
+                  }
+                  pendedCollection += first -> (mergedAppendings, mergedProgressCondition)
+                case None =>
+                  pendedCollection += first -> (appendings.toSet, progressCondition)
+              }
+            }
             applyParsingAction(path, gen, action.parsingAction, actionsCollector)
           case None => List()
         }

@@ -165,7 +165,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
     val progressCondition =
       genActions.progressedRootMilestones[milestone] ?: MilestoneAcceptConditionKt.Never
 
-    return MilestoneAcceptConditionKt.disjunct(*(groups + progressCondition).toTypedArray())
+    return MilestoneAcceptConditionKt.disjunctMulti(*(groups + progressCondition).toTypedArray())
   }
 
   fun evolveAcceptCondition(
@@ -187,7 +187,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         val subConds = condition.conditions.map {
           evolveAcceptCondition(paths, genActions, it)
         }.toTypedArray()
-        MilestoneAcceptConditionKt.disjunct(*subConds)
+        MilestoneAcceptConditionKt.disjunctMulti(*subConds)
       }
 
       is MilestoneAcceptConditionKt.Exists ->
@@ -364,18 +364,35 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
     } else {
       val pathsCollector = mutableListOf<MilestoneGroupPathKt>()
       val actionsCollector = GenActionsKtBuilder()
+      
       val pendedCollection =
-        mutableMapOf<KernelTemplate, Pair<List<AppendingMilestoneGroup>, AcceptConditionTemplate?>>()
+        mutableMapOf<KernelTemplate, Pair<Set<AppendingMilestoneGroup>, MilestoneAcceptConditionKt?>>()
 
       ctx.paths.forEach { path ->
         val termAction = parserData.findTermAction(path.tip.groupId, input)
         termAction?.let {
           actionsCollector.addTermActions(path.tip, termAction)
           termAction.pendedAcceptConditionKernelsList.forEach { pended ->
-            val firstKernelProgressCondition =
+            val firstKernelProgressConditionTmpl =
               if (pended.hasFirstKernelProgressCondition()) pended.firstKernelProgressCondition else null
-            pendedCollection[pended.kernelTemplate] =
-              Pair(pended.appendingsList, firstKernelProgressCondition)
+            val firstKernelProgressCondition = firstKernelProgressConditionTmpl?.let {
+              MilestoneAcceptConditionKt.reify(it, ctx.gen, gen)
+            }
+            val existingPended = pendedCollection[pended.kernelTemplate]
+            if (existingPended == null) {
+              pendedCollection[pended.kernelTemplate] =
+                Pair(pended.appendingsList.toSet(), firstKernelProgressCondition)
+            } else {
+              val mergedAppendings = existingPended.first + pended.appendingsList
+              val mergedProgressCondition = when (val existingCond = existingPended.second) {
+                null -> firstKernelProgressCondition
+                else -> if (firstKernelProgressCondition == null) existingCond else {
+                  MilestoneAcceptConditionKt.disjunct(firstKernelProgressCondition, existingCond)
+                }
+              }
+              pendedCollection[pended.kernelTemplate] =
+                Pair(mergedAppendings, mergedProgressCondition)
+            }
           }
           applyTermAction(path, gen, termAction, pathsCollector, actionsCollector)
         }
@@ -384,10 +401,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
         val (appendings, progressCondition) = pair
         val firstMilestone = MilestoneKt(first.symbolId, first.pointer, ctx.gen)
         if (progressCondition != null) {
-          actionsCollector.addProgressedRootMilestone(
-            firstMilestone,
-            MilestoneAcceptConditionKt.reify(progressCondition, ctx.gen, gen)
-          )
+          actionsCollector.addProgressedRootMilestone(firstMilestone, progressCondition)
         }
         appendings.forEach { appending ->
           val condition = MilestoneAcceptConditionKt.reify(appending.acceptCondition, ctx.gen, gen)

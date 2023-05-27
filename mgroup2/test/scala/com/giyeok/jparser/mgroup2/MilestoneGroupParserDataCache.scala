@@ -8,7 +8,7 @@ import java.nio.file.{Files, Path}
 import java.security.MessageDigest
 
 object MilestoneGroupParserDataCache {
-  val cacheRoot = Path.of("milestone2-test-cache")
+  val cacheRoot = Path.of("mgroup2-test-cache")
 
   def parserDataOf(grammarName: String, grammar: NGrammar): MilestoneGroupParserData = {
     if (!Files.exists(cacheRoot)) {

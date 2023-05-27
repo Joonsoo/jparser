@@ -10,6 +10,7 @@ import com.giyeok.jparser.ktlib.Kernel
 import com.giyeok.jparser.metalang3.MetaLanguage3
 import com.giyeok.jparser.mgroup2.MilestoneGroupParser
 import com.giyeok.jparser.mgroup2.MilestoneGroupParserData
+import com.giyeok.jparser.mgroup2.MilestoneGroupParserDataCache
 import com.giyeok.jparser.mgroup2.MilestoneGroupParserDataProtobufConverter
 import com.giyeok.jparser.mgroup2.MilestoneGroupParserGen
 import com.giyeok.jparser.mgroup2.ParsingContext
@@ -40,6 +41,16 @@ class EqualityWithMgroup2Tests {
       println("???")
     }
     assertEquals(scalaCtx.paths().size(), ktCtx.paths.size)
+    if (scalaPaths.toSet() != ktPaths.toSet()) {
+      (scalaPaths - ktPaths).sorted().forEach {
+        println(it)
+      }
+      println("===")
+      (ktPaths - scalaPaths).sorted().forEach {
+        println(it)
+      }
+      println("???")
+    }
     assertEquals(scalaPaths.toSet(), ktPaths.toSet())
   }
 
@@ -112,8 +123,13 @@ class EqualityWithMgroup2Tests {
     return Pair(scalaParserData, kotlinParserData)
   }
 
-  fun generateParserData(grammar: NGrammar): Pair<MilestoneGroupParserData, MilestoneGroupParserDataKt> {
-    val parserData = MilestoneGroupParserGen(grammar).parserData()
+  fun generateParserData(
+    grammarName: String,
+    grammar: NGrammar
+  ): Pair<MilestoneGroupParserData, MilestoneGroupParserDataKt> {
+    val parserData: MilestoneGroupParserData =
+      MilestoneGroupParserDataCache.parserDataOf(grammarName, grammar)
+    // MilestoneGroupParserGen(grammar).parserData()
 
     val proto = MilestoneGroupParserDataProtobufConverter.toProto(parserData)
 
@@ -122,13 +138,16 @@ class EqualityWithMgroup2Tests {
     return Pair(parserData, kotlinParserData)
   }
 
-  fun generateParserData(grammar: String): Pair<MilestoneGroupParserData, MilestoneGroupParserDataKt> {
+  fun generateParserData(
+    grammarName: String,
+    grammar: String
+  ): Pair<MilestoneGroupParserData, MilestoneGroupParserDataKt> {
     val analysis = MetaLanguage3.analyzeGrammar(grammar, "GeneratedGrammar")
-    return generateParserData(analysis.ngrammar())
+    return generateParserData(grammarName, analysis.ngrammar())
   }
 
   fun testAll(g: GrammarWithExamples) {
-    val (scalaParserData, kotlinParserData) = generateParserData(g.grammarText)
+    val (scalaParserData, kotlinParserData) = generateParserData(g.name, g.grammarText)
 
     g.examples.forEach { example ->
       println("==== name: ${example.name}")
@@ -139,8 +158,7 @@ class EqualityWithMgroup2Tests {
   @Test
   fun testMetalang3() {
     val (scalaParserData, kotlinParserData) =
-      // loadParserData("/cdglang3-mg2-parserdata.pb.gz")
-      generateParserData(MetaLang3ExamplesCatalog.metalang3.grammarText)
+      generateParserData("metalang3", MetaLang3ExamplesCatalog.metalang3.grammarText)
     testEquality(scalaParserData, kotlinParserData, "A = 'a'+")
     testEquality(scalaParserData, kotlinParserData, "Abc = 'a-z'+ {Hello(a=\"world\")}")
   }
@@ -158,6 +176,11 @@ class EqualityWithMgroup2Tests {
   @Test
   fun testJ1Mark2Subset() {
     testAll(MetaLang3ExamplesCatalog.j1mark2subset)
+  }
+
+  @Test
+  fun testJ1Mark2() {
+    testAll(MetaLang3ExamplesCatalog.j1mark2)
   }
 
   @Test
