@@ -2,6 +2,7 @@ package com.giyeok.jparser.ktparser.mgroup2
 
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.NGrammar
+import com.giyeok.jparser.examples.metalang3.GrammarWithExamples
 import com.giyeok.jparser.examples.metalang3.MetaLang3ExamplesCatalog
 import com.giyeok.jparser.ktglue.toKtList
 import com.giyeok.jparser.ktglue.toKtSet
@@ -126,6 +127,15 @@ class EqualityWithMgroup2Tests {
     return generateParserData(analysis.ngrammar())
   }
 
+  fun testAll(g: GrammarWithExamples) {
+    val (scalaParserData, kotlinParserData) = generateParserData(g.grammarText)
+
+    g.examples.forEach { example ->
+      println("==== name: ${example.name}")
+      testEquality(scalaParserData, kotlinParserData, example.example)
+    }
+  }
+
   @Test
   fun testMetalang3() {
     val (scalaParserData, kotlinParserData) =
@@ -137,36 +147,22 @@ class EqualityWithMgroup2Tests {
 
   @Test
   fun testJ1Mark1() {
-    val (scalaParserData, kotlinParserData) =
-      generateParserData(MetaLang3ExamplesCatalog.j1mark1.grammarText)
-
-    MetaLang3ExamplesCatalog.j1mark1.examples.forEach { example ->
-      println("==== name: ${example.name}")
-      testEquality(scalaParserData, kotlinParserData, example.example)
-    }
+    testAll(MetaLang3ExamplesCatalog.j1mark1)
   }
 
   @Test
   fun testJ1Mark1Subset() {
-    val (scalaParserData, kotlinParserData) =
-      generateParserData(MetaLang3ExamplesCatalog.j1mark1subset.grammarText)
+    testAll(MetaLang3ExamplesCatalog.j1mark1subset)
+  }
 
-    MetaLang3ExamplesCatalog.j1mark1subset.examples.forEach { example ->
-      println("==== name: ${example.name}")
-      testEquality(scalaParserData, kotlinParserData, example.example)
-    }
+  @Test
+  fun testJ1Mark2Subset() {
+    testAll(MetaLang3ExamplesCatalog.j1mark2subset)
   }
 
   @Test
   fun testBibix() {
-    val (scalaParserData, kotlinParserData) =
-      // loadParserData("/bibix2-mg2-parserdata.pb.gz")
-      generateParserData(MetaLang3ExamplesCatalog.bibix2.grammarText)
-
-    MetaLang3ExamplesCatalog.bibix2.examples.forEach { example ->
-      println("==== name: ${example.name}")
-      testEquality(scalaParserData, kotlinParserData, example.example)
-    }
+    testAll(MetaLang3ExamplesCatalog.bibix2)
   }
 
 //  @Test
@@ -182,13 +178,6 @@ class EqualityWithMgroup2Tests {
 
   @Test
   fun testProto3() {
-    val (scalaParserData, kotlinParserData) =
-      // loadParserData("/bibix2-mg2-parserdata.pb.gz")
-      generateParserData(MetaLang3ExamplesCatalog.proto3.grammarText)
-
-    MetaLang3ExamplesCatalog.proto3.examples.forEach { example ->
-      println("==== name: ${example.name}")
-      testEquality(scalaParserData, kotlinParserData, example.example)
-    }
+    testAll(MetaLang3ExamplesCatalog.proto3)
   }
 }

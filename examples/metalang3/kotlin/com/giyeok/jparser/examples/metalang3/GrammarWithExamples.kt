@@ -1,20 +1,24 @@
 package com.giyeok.jparser.examples.metalang3
 
 interface GrammarWithExamples {
+  val name: String
+
   val grammarText: String
 
   val examples: List<GrammarTestExample>
 
   companion object {
     fun fromResource(
+      name: String,
       directory: String,
       exampleNames: List<String>,
       grammarName: String = "grammar.cdg",
     ): GrammarWithExamplesFromResource {
       return GrammarWithExamplesFromResource(
+        name,
         "$directory/$grammarName",
-        exampleNames.map { name ->
-          val examplePath = "$directory/examples/$name"
+        exampleNames.map { exampleName ->
+          val examplePath = "$directory/examples/$exampleName"
           val valuefyResultPath = "$examplePath.ast"
           GrammarTestExampleFromResource(
             examplePath,
@@ -32,6 +36,7 @@ data class GrammarTestExample(
 )
 
 class GrammarWithExamplesFromResource(
+  override val name: String,
   val grammarPath: String,
   val examplePaths: List<GrammarTestExampleFromResource>,
 ) : GrammarWithExamples {

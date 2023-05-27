@@ -1,0 +1,25 @@
+fun test() {
+    var a: double = .123
+    var b: double = 123.0
+    var c: double = 123.234
+    var d: double = .123e12
+    var e: double = 123.0e12
+    var f: double = 123.234e12
+    var h: double = .123e+12
+    var i: double = 123.0e+12
+    var j: double = 123.234e+12
+    var l: double = .123e-12
+    var m: double = 123.0e-12
+    var n: double = 123.234e-12
+    var o: double = 123e12
+    var p: double = 123e+12
+    var q: double = 123e-12
+
+    var i1: double = 123
+    var i2: float = 123
+
+    var x1: double = 1230
+    var x2: double = 12300
+    var x3: double = 123e1
+    var x4: double = 123e2
+}

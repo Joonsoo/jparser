@@ -1,8 +1,9 @@
 package com.giyeok.jparser.mgroup2
 
-import com.giyeok.jparser.examples.metalang3.MetaLang3ExamplesCatalog
+import com.giyeok.jparser.examples.metalang3.{GrammarWithExamples, MetaLang3ExamplesCatalog}
 import com.giyeok.jparser.metalang3.MetaLanguage3
-import com.giyeok.jparser.milestone2.{Milestone, MilestoneParser, MilestoneParser2ProtobufConverter, MilestoneParserGen, MilestonePath, ParsingContext => MilestoneParsingContext}
+import com.giyeok.jparser.milestone2.test.MilestoneParserDataCache
+import com.giyeok.jparser.milestone2.{Milestone, MilestoneParser, MilestoneParser2ProtobufConverter, MilestoneParserData, MilestoneParserGen, MilestonePath, ParsingContext => MilestoneParsingContext}
 import com.giyeok.jparser.nparser.ParseTreeConstructor2
 import com.giyeok.jparser.nparser.ParseTreeConstructor2.Kernels
 import com.giyeok.jparser.{Inputs, NGrammar, ParseForestFunc}
@@ -70,10 +71,10 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     assert(mgroupParseForest.trees == milestoneParseForest.trees)
   }
 
-  def generateParsers(grammar: NGrammar): (MilestoneParser, MilestoneGroupParser) = {
+  def generateParsers(grammarName: String, grammar: NGrammar): (MilestoneParser, MilestoneGroupParser) = {
     val start1 = Instant.now()
     println(s"milestone::: start=$start1")
-    val milestoneParserData = new MilestoneParserGen(grammar).parserData()
+    val milestoneParserData: MilestoneParserData = MilestoneParserDataCache.parserDataOf(grammarName, grammar)
     val termActionsSize = milestoneParserData.termActions.foldLeft(0)(_ + _._2.size)
     println(s"terms=${milestoneParserData.termActions.size}, termActions=$termActionsSize, edgeActions=${milestoneParserData.edgeProgressActions.size}")
     println(s"elapsed: ${Duration.between(start1, Instant.now())}")
@@ -81,7 +82,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
 
     val start2 = Instant.now()
     println(s"mgroup::: start=$start2")
-    val mgroupParserData = new MilestoneGroupParserGen(grammar).parserData()
+    val mgroupParserData: MilestoneGroupParserData = MilestoneGroupParserDataCache.parserDataOf(grammarName, grammar)
     val mgroupTermActionsSize = mgroupParserData.termActions.foldLeft(0)(_ + _._2.size)
     println(s"groups=${mgroupParserData.milestoneGroups.size}, terms=${mgroupParserData.termActions.size}, termActions=$mgroupTermActionsSize, prTipEdges=${mgroupParserData.tipEdgeProgressActions.size}, exTipEdges=${mgroupParserData.tipEdgeRequiredSymbols.size}, midEdges=${mgroupParserData.midEdgeProgressActions.size}")
     println(s"elapsed: ${Duration.between(start2, Instant.now())}")
@@ -97,7 +98,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     val grammar = new String(getClass.getResourceAsStream("/metalang3/grammar.cdg").readAllBytes())
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
-    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+    val (milestoneParser, mgroupParser) = generateParsers("metalang3", analysis.ngrammar)
 
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A = 'a'+")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "Abc = 'a'+ {str($0)}")
@@ -108,7 +109,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     val grammar = MetaLang3ExamplesCatalog.INSTANCE.getBibix2.getGrammarText
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
-    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+    val (milestoneParser, mgroupParser) = generateParsers("bibix2", analysis.ngrammar)
 
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A = c()")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "ABC = cde.hello()")
@@ -123,7 +124,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     val json = MetaLang3ExamplesCatalog.INSTANCE.getJson
 
     val analysis = MetaLanguage3.analyzeGrammar(json.getGrammarText)
-    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+    val (milestoneParser, mgroupParser) = generateParsers("json", analysis.ngrammar)
 
     json.getExamples.forEach { example =>
       testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
@@ -134,7 +135,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     val proto3 = MetaLang3ExamplesCatalog.INSTANCE.getProto3
 
     val analysis = MetaLanguage3.analyzeGrammar(proto3.getGrammarText)
-    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+    val (milestoneParser, mgroupParser) = generateParsers("proto3", analysis.ngrammar)
 
     proto3.getExamples.forEach { example =>
       testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
@@ -145,7 +146,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     val grammar = new String(getClass.getResourceAsStream("/simple.cdg").readAllBytes())
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
-    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+    val (milestoneParser, mgroupParser) = generateParsers("simple", analysis.ngrammar)
 
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "aaa")
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "a")
@@ -160,7 +161,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     val grammar = new String(getClass.getResourceAsStream("/bibix-simple.cdg").readAllBytes())
 
     val analysis = MetaLanguage3.analyzeGrammar(grammar)
-    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+    val (milestoneParser, mgroupParser) = generateParsers("bibix-simple", analysis.ngrammar)
 
     testEquality(analysis.ngrammar, milestoneParser, mgroupParser, "A=c()")
   }
@@ -200,7 +201,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
         |""".stripMargin
     ).ngrammar
 
-    val (milestoneParser, mgroupParser) = generateParsers(grammar)
+    val (milestoneParser, mgroupParser) = generateParsers("autodb-subset", grammar)
 
     testEquality(grammar, milestoneParser, mgroupParser, "verifiedIdentity != null")
   }
@@ -209,7 +210,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     val autodb3 = MetaLang3ExamplesCatalog.INSTANCE.getAutodb3problem
 
     val analysis = MetaLanguage3.analyzeGrammar(autodb3.getGrammarText)
-    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+    val (milestoneParser, mgroupParser) = generateParsers("autodb3-problem", analysis.ngrammar)
 
     autodb3.getExamples.forEach { example =>
       testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
@@ -220,7 +221,7 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     val j1mark1 = MetaLang3ExamplesCatalog.INSTANCE.getJ1mark1
 
     val analysis = MetaLanguage3.analyzeGrammar(j1mark1.getGrammarText)
-    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+    val (milestoneParser, mgroupParser) = generateParsers("j1-mark1", analysis.ngrammar)
 
     j1mark1.getExamples.forEach { example =>
       testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
@@ -231,10 +232,27 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
     val j1mark1 = MetaLang3ExamplesCatalog.INSTANCE.getJ1mark1subset
 
     val analysis = MetaLanguage3.analyzeGrammar(j1mark1.getGrammarText)
-    val (milestoneParser, mgroupParser) = generateParsers(analysis.ngrammar)
+    val (milestoneParser, mgroupParser) = generateParsers("j1-mark1-subset", analysis.ngrammar)
 
     j1mark1.getExamples.forEach { example =>
       testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
     }
+  }
+
+  def testAllExamples(g: GrammarWithExamples): Unit = {
+    val analysis = MetaLanguage3.analyzeGrammar(g.getGrammarText)
+    val (milestoneParser, mgroupParser) = generateParsers(g.getName, analysis.ngrammar)
+
+    g.getExamples.forEach { example =>
+      testEquality(analysis.ngrammar, milestoneParser, mgroupParser, example.getExample)
+    }
+  }
+
+  "j1 mark2" should "work" in {
+    testAllExamples(MetaLang3ExamplesCatalog.INSTANCE.getJ1mark2)
+  }
+
+  "j1 mark2 subset" should "work" in {
+    testAllExamples(MetaLang3ExamplesCatalog.INSTANCE.getJ1mark2subset)
   }
 }

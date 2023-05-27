@@ -261,10 +261,13 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
   def generateParserAndTest(examples: GrammarWithExamples): Unit = {
     val grammar = MetaLanguage3.analyzeGrammar(examples.getGrammarText).ngrammar
 
-    val parserData = new MilestoneParserGen(grammar).parserData()
+    val parserData = MilestoneParserDataCache.parserDataOf(examples.getName, grammar)
 
     examples.getExamples.forEach { example =>
-      testEqualityBetweenNaive2AndMilestone(new NaiveParser2(grammar), new MilestoneParser(parserData), example)
+      testEqualityBetweenNaive2AndMilestone(
+        new NaiveParser2(grammar),
+        new MilestoneParser(parserData),
+        example)
     }
   }
 
@@ -286,6 +289,14 @@ class EqualityWithNaive2Tests extends AnyFlatSpec {
 
   "j1 mark1 subset grammar" should "work" in {
     generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getJ1mark1subset)
+  }
+
+  "j1 mark2 grammar" should "work" in {
+    generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getJ1mark2)
+  }
+
+  "j1 mark2 subset grammar" should "work" in {
+    generateParserAndTest(MetaLang3ExamplesCatalog.INSTANCE.getJ1mark2subset)
   }
 
   "autodb3 grammar" should "work" in {

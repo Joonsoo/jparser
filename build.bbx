@@ -167,7 +167,8 @@ milestone2 {
   test = scala.library(
     srcs = glob("milestone2/test/scala/**/*.scala"),
     resources = glob("milestone2/test/resources/**"),
-    deps = [data, gen, parser, naive.main, examples.naiveExamples, examples.metalang3, examples.generated, ...scalaTestDeps],
+    deps = [data, gen, parser, naive.main,
+            examples.naiveExamples, examples.metalang3, examples.generated, ...scalaTestDeps],
   )
 }
 
@@ -209,7 +210,8 @@ mgroup2 {
   test = scala.library(
     srcs = glob("mgroup2/test/scala/**/*.scala"),
     resources = glob("mgroup2/test/resources/**"),
-    deps = [data, gen, parser, naive.main, milestone2.gen, examples.metalang3, milestone2.parser, ...scalaTestDeps],
+    deps = [data, gen, parser, naive.main, examples.metalang3,
+            milestone2.gen, milestone2.parser, milestone2.test, ...scalaTestDeps],
   )
 }
 
@@ -464,7 +466,8 @@ ktparser {
   test = ktjvm.library(
     srcs = glob("ktparser/test/kotlin/**/*.kt"),
     resources = glob("ktparser/test/resources/**"),
-    deps = [ktparser.main, ktglue.main, mgroup2.gen, examples.metalang3, examples.generated, ...testDeps],
+    deps = [ktparser.main, ktglue.main, mgroup2.gen, mgroup2.test, milestone2.test,
+            examples.metalang3, examples.generated, ...testDeps],
   )
 }
 
