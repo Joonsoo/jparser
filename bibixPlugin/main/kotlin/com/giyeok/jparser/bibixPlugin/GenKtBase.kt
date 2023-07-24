@@ -34,6 +34,9 @@ fun analyzeGrammar(context: BuildContext): AnalysisResult {
 
   context.progressLogger.logInfo("Analyzing grammar... (grammar size=${cdgDef.length})")
   val grammarAnalysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(cdgDef, className)
+  if (!grammarAnalysis.errors().isClear) {
+    throw IllegalStateException("${grammarAnalysis.errors().errors()}")
+  }
 
   val srcsDir = context.destDirectory.resolve("srcs")
   val targetDir = packageName.fold(srcsDir) { path, name -> path.resolve(name) }.absolute()
