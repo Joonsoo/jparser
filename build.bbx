@@ -342,9 +342,11 @@ examples {
   }
 }
 
-action runTest = scalatest.run(
-  deps = [base.test, naive.test, metalang.test, milestone2.test, mgroup2.test]
-)
+action runTest {
+  scalatest.run(
+    deps = [base.test, naive.test, metalang.test, milestone2.test, mgroup2.test]
+  )
+}
 
 visualize {
   main = scala.library(
@@ -390,15 +392,19 @@ visualize {
     ],
   )
 
-  action oldParserStudio = jvm.run(
-    deps = [visualize.main],
-    mainClass = "com.giyeok.jparser.studio2.ParserStudio2",
-  )
+  action oldParserStudio {
+    jvm.run(
+      deps = [visualize.main],
+      mainClass = "com.giyeok.jparser.studio2.ParserStudio2",
+    )
+  }
 
-  action parserStudio = jvm.run(
-    deps = [parserStudio3],
-    mainClass = "com.giyeok.jparser.studio3.ParserStudio3",
-  )
+  action parserStudio {
+    jvm.run(
+      deps = [parserStudio3],
+      mainClass = "com.giyeok.jparser.studio3.ParserStudio3",
+    )
+  }
 }
 
 study {
