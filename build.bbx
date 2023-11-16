@@ -11,18 +11,18 @@ from bibix.plugins import ktjvm
 from bibix.plugins import jar
 from bibix.plugins import zip
 
-kotlinVersion = "1.8.10"
+kotlinVersion = "1.9.20"
 var ktjvm.sdkVersion = kotlinVersion
 
 scalaVersion = "2.13"
-var scala.sdkVersion = "2.13.10"
+var scala.compilerVersion = "2.13.12"
+var scala.sdkVersion = "2.13.12"
 
-var jdkVersion: string = "19"
-var java.jdkVersion = jdkVersion
-var java.srcVersion = jdkVersion
-var java.outVersion = jdkVersion
-var ktjvm.outVersion = jdkVersion
-var scala.outVersion = jdkVersion
+var javaVersion: string = "21"
+var java.srcVersion = javaVersion
+var java.outVersion = javaVersion
+var ktjvm.outVersion = javaVersion
+var scala.outVersion = javaVersion
 
 ktxCoroutinesVersion = "1.6.1"
 ktxCoroutinesDeps = [
