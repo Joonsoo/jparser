@@ -1,5 +1,6 @@
 package com.giyeok.jparser.studio3
 
+import com.giyeok.gviz.figure.VertFlowFigure
 import com.giyeok.gviz.render.swing.*
 import com.giyeok.jparser.Inputs
 import com.giyeok.jparser.`ParseForestFunc$`
@@ -204,13 +205,18 @@ class ParserStudio3(val workerDispatcher: CoroutineDispatcher) {
 
             is ExampleParseResult.ExampleParseSucceeded -> {
               println("# of trees: ${result.results.size}")
-              val (parseTree, astValue) = result.results.first()
               CoroutineScope(workerDispatcher + currentCoroutineContext()).launch {
                 val parseTreeFigureAsync = async {
+                  val parseTree = result.results.first().first
                   figureGen.parseNodeFigure(parseTree)
                 }
                 val astValueFigureAsync = async {
-                  figureGen.astValueFigure(astValue)
+                  VertFlowFigure(
+                    result.results.map { (_, astValue) ->
+                      figureGen.astValueFigure(astValue)
+                    },
+                    ""
+                  )
                 }
                 val parseTreeFigure = parseTreeFigureAsync.await()
                 val astValueFigure = astValueFigureAsync.await()
