@@ -90,5 +90,15 @@ object MetaLang3ExamplesCatalog {
     listOf()
   )
 
+  val dartStringTest = GrammarWithExamples.fromResource(
+    "dart-string-test",
+    "/dart-string-test",
+    listOf(
+      "a.dst",
+      "b.dst",
+    ),
+    grammarName = "dart-string-test.cdg"
+  )
+
   val all = listOf(asdl, bibix2, j1mark1, j1mark2, proto3, json, pyobj)
 }

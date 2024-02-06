@@ -1,0 +1,1179 @@
+startSymbol: StartSymbol
+  = libraryDefinition
+  | partDeclaration
+
+libraryDefinition
+  = FEFF? SCRIPT_TAG?
+    (WS libraryName)?
+    (WS importOrExport)*
+    (WS partDirective)*
+    (WS topLevelDeclarationWithMeta)*
+    WS EOF
+    {LibraryDefinition(scriptTag=$1, libraryName=$2, importOrExports=$3, partDirectives=$4, body=$5)}
+
+topLevelDeclarationWithMeta = ('@' metadatum WS)* topLevelDefinition {TopLevelDeclarationWithMeta(meta=$0$1, def=$1)}
+
+topLevelDefinition: TopLevelDefinition
+  = classDeclaration
+  | mixinDeclaration
+  | extensionTypeDeclaration
+  | extensionDeclaration
+  | enumType
+  | typeAlias
+  | "external"&Tk WS functionSignature WS ';' {ExternalFunctionDef(sig=$2)}
+  | "external"&Tk WS getterSignature WS ';' {ExternalGetterDef(sig=$2)}
+  | "external"&Tk WS setterSignature WS ';' {ExternalSetterDef(sig=$2)}
+  | "external"&Tk WS finalVarOrType WS identifierList WS ';' {ExternalVarDef(sig=$2, idents=$4)}
+  | functionSignature WS functionBody {TopLevelFunctionDef(sig=$0, body=$2)}
+  | getterSignature WS functionBody {TopLevelGetterDef(sig=$0, body=$2)}
+  | setterSignature WS functionBody {TopLevelSetterDef(sig=$0, body=$2)}
+  | ("final" | "const")&Tk (WS type)? staticFinalDeclarationList WS ';'
+    {ASTTODO()}
+  | "late"&Tk WS "final"&Tk (WS type)? WS initializedIdentifierList WS ';'
+    {ASTTODO()}
+  | ("late"&Tk WS)? varOrType WS initializedIdentifierList WS ';'
+    {ASTTODO()}
+
+declaredIdentifier
+  = ("covariant"&Tk WS)? finalConstVarOrType WS identifier
+    {DeclaredIdentifier(isCovariant=ispresent($0), varOrType=$1, name=$3)}
+
+finalConstVarOrType: FinalConstVarOrType
+  = ("late"&Tk WS)? "final"&Tk (WS type)? {FinalType(isLate=ispresent($0), type=$2)}
+  | "const"&Tk (WS type)? {ConstType(type=$1)}
+  | ("late"&Tk WS)? varOrType {VarOrType1(isLate=ispresent($0), type=$1)}
+
+finalVarOrType: FinalVarOrType
+  = "final"&Tk (WS type)? {FinalType(isLate=false, type=$1)}
+  | varOrType
+
+varOrType: VarOrType = "var"&Tk {Var()} | type
+
+initializedIdentifier
+  = identifier (WS '=' WS expression)?
+    {InitializedIdentifier(ident=$0, expr=$1)}
+
+initializedIdentifierList = initializedIdentifier (WS ',' WS initializedIdentifier)* {[$0] + $1}
+
+functionSignature
+  = (type WS)? identifier WS formalParameterPart
+    {FunctionSignature(returnType=$0$0, name=$1, params=$3)}
+
+
+functionBody: FunctionBody
+  = ("async"&Tk WS)? "=>"&OpTk WS expression WS ';'
+    {FunctionExpressionBody(isAsync=ispresent($0), body=$3)}
+  | (functionAsyncModifier WS)? block
+    {FunctionBlockBody(asyncMod=$0$0, body=$1)}
+
+functionAsyncModifier: FunctionAsyncModifier
+  = "async"&Tk (WS '*')? {Async(star=ispresent($1))}
+  | "sync"&Tk WS '*' {Sync()}
+
+block = '{' (WS statements)? WS '}' {$1 ?: []}
+
+formalParameterPart
+  = (typeParameters WS)? formalParameterList
+    {FormalParameterPart(typeParams=$0$0, params=$1)}
+
+formalParameterList
+  = '(' (WS normalFormalParameters)? (WS ',')? WS ')'
+    {FormalParameterList(normal=$1, optionalOrNamed=null)}
+  | '(' (WS normalFormalParameters WS ',')? WS optionalOrNamedFormalParameters WS ')'
+    {FormalParameterList(normal=$1$1, optionalOrNamed=$3)}
+
+normalFormalParameters
+  = normalFormalParameter (WS ',' WS normalFormalParameter)* {[$0] + $1}
+
+optionalOrNamedFormalParameters: OptionalOrNamedFormalParameters
+  = optionalPositionalFormalParameters
+  | namedFormalParameters
+
+optionalPositionalFormalParameters
+  = '[' WS defaultFormalParameter (WS ',' WS defaultFormalParameter)* (WS ',')? WS "]"
+    {OptionalPositionalFormalParameters(params=[$2] + $3)}
+
+namedFormalParameters
+  = '{' WS defaultNamedParameter (WS ',' WS defaultNamedParameter)* (WS ',')? WS '}'
+    {NamedFormalParameters(params=[$2] + $3)}
+
+normalFormalParameter
+  = ('@' metadatum WS)* normalFormalParameterNoMetadata
+    {NormalFormalParameter(meta=$0$1, param=$1)}
+normalFormalParameterNoMetadata: NormalFormalParameterNoMetadata
+  = functionFormalParameter
+  | fieldFormalParameter
+  | simpleFormalParameter
+  | superFormalParameter
+
+
+functionFormalParameter
+  = ("covariant"&Tk WS)? (type WS)? identifier WS formalParameterPart (WS '?')?
+    {FunctionFormalParameter(isCovariant=ispresent($0), type=$1$0, ident=$2, paramPart=$4, isOptional=ispresent($5))}
+
+simpleFormalParameter: SimpleFormalParameter
+  = declaredIdentifier
+  | ("covariant"&Tk WS)? identifier {SimpleParameter(isCovariant=ispresent($0), ident=$1)}
+
+declaredIdentifier
+  = ("covariant"&Tk WS)? finalConstVarOrType WS identifier
+    {DeclaredIdentifier(isCovariant=ispresent($0), varOrType=$1, name=$3)}
+
+fieldFormalParameter
+  = (finalConstVarOrType WS)? "this"&Tk WS '.' WS identifier (WS formalParameterPart (WS '?')?)?
+    {FieldFormalParameter(mods=$0$0, name=$5, params=$6$1, isOptional=ispresent($6$2))}
+
+superFormalParameter
+  = (type WS)? "super"&Tk WS '.' WS identifier (WS formalParameterPart (WS '?')?)?
+    {SuperFormalParameter(type=$0$0, name=$5, params=$6$1, isOptional=ispresent($6$2))}
+
+defaultFormalParameter
+  = normalFormalParameter (WS '=' WS expression)?
+    {DefaultFormalParameter(normal=$0, default=$1)}
+defaultNamedParameter
+  = ('@' metadatum WS)* ("required"&Tk WS)? normalFormalParameterNoMetadata (WS ('=' | ':') WS expression)?
+    {DefaultNamedParameter(meta=$0$1, isRequired=ispresent($1), param=$2, default=$3)}
+
+
+
+
+
+typeWithParameters = typeIdentifier (WS typeParameters)? {TypeWithParameters(type=$0, typeParams=$1)}
+
+classDeclaration: ClassDeclaration
+  = (classOrMixinModifiers WS)?
+    "class"&Tk WS typeWithParameters (WS superclass)? (WS interfaces)? WS
+    '{' (WS classMemberDeclarationWithMeta)* WS '}'
+    {NonMixinClassDecl(mods=$0$0, name=$3, superclass=$4, interfaces=$5, body=$8)}
+  | (classModifiers WS)? "class"&Tk WS mixinApplicationClass
+
+classOrMixinModifiers: ClassOrMixinModifiers = classModifiers | mixinClassModifiers
+
+classModifiers: ClassModifiers
+  = "sealed"&Tk {SealedClassModifier()}
+  | "abstract"&Tk (WS ("base" | "interface" | "final")&Tk)? {AbstractClassModifier()}
+  | ("base" | "interface" | "final")&Tk {AbstractClassModifier()}
+
+mixinClassModifiers
+  = ("abstract"&Tk WS)? ("base"&Tk WS)? "mixin"&Tk
+    {MixinClassModifiers(isAbstract=ispresent($0), isBase=ispresent($1))}
+
+classMemberDeclarationWithMeta
+  = ('@' metadatum WS)* classMemberDeclaration
+    {ClassMemberDeclarationWithMeta(meta=$0$1, decl=$1)}
+
+
+superclass: Superclass
+  = "extends"&Tk WS typeNotVoidNotFunction (WS mixins)?
+    {Extends(extending=$2, mixins=$3)}
+  | mixins
+mixins = "with"&Tk WS typeNotVoidNotFunctionList {WithMixins(mixins=$2)}
+interfaces = "implements"&Tk WS typeNotVoidNotFunctionList {Implements(interfaces=$2)}
+
+
+classMemberDeclaration: ClassMemberDeclaration
+  = declaration WS ';' $0
+  | methodSignature WS functionBody {ClassMethodDecl(sig=$0, body=$2)}
+
+mixinApplicationClass
+  = typeWithParameters WS '=' WS mixinApplication WS ';'
+    {MixinApplicationClass(type=$0, mixin=$4)}
+
+mixinDeclaration
+  = (mixinModifier WS)? "mixin"&Tk WS typeIdentifier (WS typeParameters)?
+    (WS "on"&Tk WS typeNotVoidNotFunctionList)? (WS interfaces)?
+    '{' (WS mixinMemberDeclarationWithMeta)* WS '}'
+    {MixinDeclaration()}
+
+mixinModifier = ("sealed" | "base" | "interface" | "final")&Tk
+
+mixinMemberDeclarationWithMeta = classMemberDeclarationWithMeta
+
+extensionTypeDeclaration
+  = "extension"&Tk WS "type"&Tk (WS "const"&Tk)? WS typeWithParameters WS
+    representationDeclaration (WS interfaces)? WS
+    '{' (WS extensionTypeMemberDeclarationWithMeta)* WS '}'
+    {ExtensionTypeDeclaration()}
+
+representationDeclaration
+  = ('.' WS identifierOrNew WS)? '(' (WS '@' metadatum)* WS type WS identifier WS ')'
+
+
+extensionTypeMemberDeclarationWithMeta = classMemberDeclarationWithMeta
+
+extensionDeclaration
+  = "extension"&Tk (WS typeIdentifierNotType)? (WS typeParameters)? WS "on"&Tk WS type
+    '{' (WS extensionMemberDefinitionWithMeta)* WS '}'
+    {ExtensionDeclaration()}
+
+extensionMemberDefinitionWithMeta = classMemberDeclarationWithMeta
+
+methodSignature: MethodSignature
+  = ("static"&Tk WS)? constructorOrFunctionSignature (WS initializers)?
+    {ConstructorOrMethodSignature(isStatic=ispresent($0), sig=$1, inits=$2)}
+  | factoryConstructorSignature
+  | ("static"&Tk WS)? getterSignature {GetterMethodSig(isStatic=ispresent($0), sig=$1)}
+  | ("static"&Tk WS)? setterSignature {SetterMethodSig(isStatic=ispresent($0), sig=$1)}
+  | operatorSignature
+
+declaration: Declaration
+  = ("external"&Tk WS)? factoryConstructorSignature (WS '=' WS constructorDesignation)?
+    {FactoryConstructorDecl(isExternal=ispresent($0), sig=$1, designation=$2)}
+
+  | ("external"&Tk WS)? "const"&Tk WS constructorSignature (WS redirectionOrInitializers)?
+    {ConstConstructorDecl(isExternal=ispresent($0), sig=$2, body=$3)}
+  | (externalStatic WS)? constructorOrFunctionSignature
+    {ASTTODO()}
+  | constructorSignature WS redirectionOrInitializers
+    {ASTTODO()}
+
+  | (externalStatic WS)? getterSignature {GetterDecl(isExternal=$0$0, sig=$1)}
+  | (externalStatic WS)? setterSignature {SetterDecl(isExternal=$0$0, sig=$1)}
+  | ("external"&Tk WS)? operatorSignature
+    {OperatorDecl(isExternal=ispresent($0), sig=$1)}
+
+  | "external"&Tk WS (("static"&Tk WS)? finalVarOrType | "covariant"&Tk WS varOrType) WS identifierList
+    {ASTTODO()}
+
+  | "abstract"&Tk WS (finalVarOrType | "covariant"&Tk WS varOrType) WS identifierList
+    {ASTTODO()}
+
+  | "static"&Tk WS ("const" | "final")&Tk (WS type)? WS staticFinalDeclarationList
+    {ASTTODO()}
+  | "static"&Tk WS "late"&Tk WS "final"&Tk (WS type)? WS initializedIdentifierList
+    {ASTTODO()}
+  | "static"&Tk (WS "late"&Tk)? WS varOrType WS initializedIdentifierList
+    {ASTTODO()}
+
+  | "covariant"&Tk WS "late"&Tk WS "final"&Tk (WS type)? WS identifierList
+    {ASTTODO()}
+  | "covariant"&Tk (WS "late"&Tk)? WS varOrType WS initializedIdentifierList
+    {ASTTODO()}
+
+  | ("late"&Tk WS)? finalVarOrType WS initializedIdentifierList
+    {ASTTODO()}
+
+externalStatic = "external"&Tk (WS "static"&Tk)? {ExternalMode(isStatic=ispresent($1))}
+
+
+staticFinalDeclarationList
+  = staticFinalDeclaration (WS ',' WS staticFinalDeclaration)* {[$0] + $1}
+staticFinalDeclaration
+  = identifier WS '=' WS expression {StaticFinalDeclaration(name=$0, expr=$4)}
+
+operatorSignature
+  = (type WS)? "operator"&Tk WS operator WS formalParameterList
+    {OperatorSignature(returnType=$0$0, operator=$3, params=$5)}
+
+operator: Operator
+  = ('~' {%TILDE} | "[]" {%ARRAY_ACCESS}| "[]=" {%ARRAY_ASSIGN})&OpTk {EtcOperator(op: %EtcOperators=$0)}
+  | binaryOperator
+
+binaryOperator: BinaryOperator
+  = multiplicativeOperator {BinMultiplicativeOperator(op=$0)}
+  | additiveOperator {BinAdditiveOperator(op=$0)}
+  | shiftOperator {BinShiftOperator(op=$0)}
+  | relationalOperator {BinRelationalOperator(op=$0)}
+  | "=="&OpTk {BinEqualOperator()}
+  | bitwiseOperator {BinBitwiseOperator(op=$0)}
+
+getterSignature
+  = (type WS)? "get"&Tk WS identifier
+    {GetterSignature(returnType=$0$0, name=$3)}
+setterSignature
+  = (type WS)? "set"&Tk WS identifier WS formalParameterList
+    {SetterSignature(returnType=$0$0, name=$3, params=$5)}
+
+constructorSignature
+  = constructorName WS formalParameterList
+    {ConstructorSignature(name=$0, params=$2)}
+constructorName
+  = typeIdentifier (WS '.' WS identifierOrNew)?
+    {ConstructorName(type=$0, ident=$1)}
+
+constructorOrFunctionSignature: ConstructorOrFunctionSignature
+  = typeIdentifier WS '.' WS identifierOrNew WS formalParameterList
+    {ConstructorSignature(ConstructorName($0, $4), $6)}
+  | functionSignature
+
+identifierOrNew: IdentifierOrNew
+  = identifier
+  | "new"&Tk {New()}
+
+redirectionOrInitializers: redirectionOrInitializers = redirection | initializers
+
+redirection
+  = ':' WS "this"&Tk (WS '.' identifierOrNew)? WS arguments
+    {Redirection(name=$3, args=$5)}
+
+initializers
+  = ':' WS initializerListEntry (WS ',' WS initializerListEntry)*
+    {Initializers(entries=[$2] + $3)}
+
+initializerListEntry: InitializerListEntry
+  = "super"&Tk WS arguments
+    {TODO()}
+  | "super"&Tk WS '.' WS identifier WS arguments
+    {TODO()}
+  | fieldInitializer
+  | assertion
+
+fieldInitializer
+  = ("this"&Tk WS '.')? identifier WS '=' WS initializerExpression
+    {TODO()}
+
+initializerExpression
+  = assignableExpression WS assignmentOperator WS expression
+  | conditionalExpression
+  | cascade
+  | throwExpression
+
+factoryConstructorSignature
+  = ("const"&Tk WS)? "factory"&Tk WS constructorName WS formalParameterList
+    {FactoryConstructorSignature(isConst=ispresent($0), name=$3, params=$5)}
+
+mixinApplication = typeNotVoidNotFunction WS mixins (WS interfaces)?
+
+enumType
+  = "enum"&Tk WS typeIdentifier (WS typeParameters)? (WS mixins)? (WS interfaces)? WS
+    '{' WS enumEntry (WS ',' WS enumEntry)* (WS ',')?
+    (';' (WS classMemberDeclarationWithMeta)*)? WS '}'
+    {EnumType(name=$2, typeParams=$3, mixins=$4, interfaces=$5, entries=[$9] + $10, body=$12)}
+enumEntry: EnumEntry
+  = ('@' metadatum WS)* identifier {SimpleEnumEntry(meta=$0$1, name=$1)}
+  | ('@' metadatum WS)* identifier (WS typeArguments)? WS '.' WS identifierOrNew WS arguments
+    {ComplexEnumEntry(meta=$0$1, name=$1, typeArgs=$2, identOrNew=$6, args=$8)}
+
+typeParameters = '<' WS typeParameter (WS ',' WS typeParameter)* WS '>'
+typeParameter = ('@' metadatum WS)* typeIdentifier (WS "extends"&Tk WS typeNotVoid)?
+
+metadatum: Metadatum
+  = identifier {MetadatumId(id=$0)}
+  | qualifiedName
+  | constructorDesignation WS arguments {MetadatumArgs(designation=$0, args=$2)}
+
+
+
+
+expression: Expression<Expr>
+  = patternAssignment
+  | functionExpression
+  | throwExpression
+  | assignableExpression WS assignmentOperator WS expression
+    {Assignment(op=$2, lhs=$0, rhs=$4)}
+  | conditionalExpression
+  | cascade
+expressionWithoutCascade: ExpressionWithoutCascade<Expr>
+  = functionExpressionWithoutCascade
+  | throwExpressionWithoutCascade
+  | assignableExpression WS assignmentOperator WS expressionWithoutCascade
+  | conditionalExpression
+
+expressionList = expression (WS ',' WS expression)* {[$0] + $1}
+
+primary: Primary
+  = thisExpression
+  | "super"&Tk WS unconditionalAssignableSelector
+  | "super"&Tk WS argumentPart
+  | functionPrimary
+  | literal
+  | identifier {IdentPrimary(ident=$0)}
+  | newExpression
+  | constObjectExpression
+  | constructorInvocation
+  | '(' WS expression WS ')' {Paren(expr=$2)}
+  | constructorTearoff
+  | switchExpression
+
+constructorInvocation
+  = typeName WS typeArguments WS '.' WS "new"&Tk WS arguments
+    {ConstructorInvocation(TODO="")}
+  | typeName WS '.' WS "new"&Tk WS arguments
+    {ConstructorInvocation(TODO="")}
+
+literal: Literal
+  = nullLiteral
+  | booleanLiteral
+  | numericLiteral
+  | stringLiteral
+  | symbolLiteral
+  | setOrMapLiteral
+  | listLiteral
+  | recordLiteral
+
+nullLiteral = "null"&Tk {NullLiteral()}
+
+numericLiteral: NumericLiteral = NUMBER | HEX_NUMBER
+
+booleanLiteral = ("true" {true} | "false" {false})&Tk {BooleanLiteral(value=$0)}
+
+stringLiteral = stringLiteralString (WS stringLiteralString)* {StringLiteral(strings=[$0] + $1)}
+stringLiteralString: StringLiteralString
+  = multiLineString
+  | singleLineString
+
+setOrMapLiteral
+  = ("const"&Tk WS)? (typeArguments WS)? '{' (WS elements)? WS '}'
+    {SetOrMapLiteral(isConst=ispresent($0), typeArgs=$1$0, elems=$3)}
+
+listLiteral
+  = ("const"&Tk WS)? (typeArguments WS)? '[' (WS elements)? WS ']'
+    {ListLiteral(isConst=ispresent($0), typeArgs=$1, elems=$3)}
+
+recordLiteral = "const"&Tk WS recordLiteralNoConst {ConstRecordLiteral(record=$2)}
+
+recordLiteralNoConst
+  = '(' WS ')' {RecordLiteralNoConst(elems=[])}
+  | '(' WS expression WS ',' WS ')'
+    {RecordLiteralNoConst([RecordField(label=null, value=$2)])}
+  | '(' WS label WS expression (WS ',')? WS ')'
+    {RecordLiteralNoConst([RecordField($2, $4)])}
+  | '(' WS recordField (WS ',' WS recordField)+ (WS ',')? WS ')'
+    {RecordLiteralNoConst([$2] + $3)}
+
+recordField = (label WS)? expression {RecordField(label=$0$0, value=$1)}
+
+elements = element (WS ',' WS element)* (WS ',')? {[$0] + $1}
+
+element: Element
+  = expressionElement
+  | mapElement
+  | spreadElement
+  | ifElement
+  | forElement
+
+expressionElement = expression
+
+mapElement
+  = expression WS ':' WS expression
+    {MapElement(key=$0, value=$4)}
+
+spreadElement
+  = ("..." {false} | "...?" {true})&OpTk WS expression
+    {SpreadElement(nullable=$0, value=$2)}
+
+ifElement
+  = ifCondition WS element (WS "else"&Tk WS element)?
+    {IfElement(cond=$0, ifThen=$2, ifElse=$3)}
+
+forElement
+  = ("await"&Tk WS)? "for"&Tk WS '(' WS forLoopParts WS ')' WS element
+    {ForElement(isAwait=ispresent($0), parts=$5, body=$9)}
+
+constructorTearoff
+  = typeName (WS typeArguments)? WS '.' WS "new"&Tk
+    {constructorTearoff(TODO="")}
+
+switchExpression
+  = "switch"&Tk WS '(' WS expression WS ')' WS
+    '{' WS switchExpressionCase (WS ',' WS switchExpressionCase)* (WS ',')? WS '}'
+    {SwitchExpression(value=$4, cases=[$10] + $11)}
+
+switchExpressionCase
+  = guardedPattern WS "=>"&OpTk WS expression
+    {SwitchExpressionCase(pattern=$0, value=$4)}
+
+throwExpression = "throw"&Tk WS expression {ThrowExpression(expr: Expr=$2)}
+throwExpressionWithoutCascade
+  = "throw"&Tk WS expressionWithoutCascade {ThrowExpression(expr=$2)}
+
+functionExpression
+  = formalParameterPart WS functionExpressionBody
+    {FunctionExpression(params=$0, body=$2)}
+functionExpressionBody
+  = ("async"&Tk WS)? "=>"&OpTk WS expression
+    {FunctionExpressionBody(isAsync=ispresent($0), body: Expr=$3)}
+
+functionExpressionWithoutCascade
+  = formalParameterPart WS functionExpressionWithoutCascadeBody
+    {FunctionExpression(params=$0, body=$2)}
+
+functionExpressionWithoutCascadeBody
+  = ("async"&Tk WS)? "=>"&OpTk WS expressionWithoutCascade
+    {FunctionExpressionBody(isAsync=ispresent($0), body=$3)}
+
+functionPrimary
+  = formalParameterPart WS functionPrimaryBody
+    {FunctionPrimary(params=$0, body=$2)}
+
+functionPrimaryBody: FunctionPrimaryBody
+  = block {BlockBody(body=$0)}
+  | "async"&Tk (WS '*')? WS block {AsyncBlock(star=ispresent($1), block=$3)}
+  | "sync"&Tk WS '*' WS block {SyncBlock(block=$4)}
+
+thisExpression = "this"&Tk {ThisExpression()}
+
+newExpression
+  = "new"&Tk WS constructorDesignation WS arguments
+    {NewExpression(designation=$2, args=$4)}
+
+constObjectExpression
+  = "const"&Tk WS constructorDesignation WS arguments
+    {ConstObjectExpression(designation=$2, args=$4)}
+
+arguments = '(' (WS argumentList (WS ',')?)? WS ')' {$1$1 ?: []}
+argumentList = argument (WS ',' WS argument)* {[$0] + $1}
+argument = (label WS)? expression {Argument(label=$0$0, value=$1)}
+
+cascade: Cascade
+  = cascade WS ".."&OpTk WS cascadeSection
+    {CascadeContinue(prev=$0, section=$4)}
+  | conditionalExpression WS ("?.." | "..")&OpTk WS cascadeSection
+    {CascadeStart(value=$0, valueIsNullable=ispresent($2), section=$4)}
+
+cascadeSection
+  = cascadeSelector (WS cascadeSectionTail)?
+    {CascadeSection(selector=$0, tail=$1)}
+cascadeSelector: CascadeSelector
+  = '[' WS expression WS ']' {CascadeArraySelector(index=$2)}
+  | identifier {CascadeMemberSelector(name=$0)}
+cascadeSectionTail: CascadeSectionTail
+  = cascadeAssignment {ASTTODO()}
+  | (selector WS)+ {ASTTODO()}
+  | (selector WS)* assignableSelector WS cascadeAssignment
+    {ASTTODO()}
+cascadeAssignment
+  = assignmentOperator WS expressionWithoutCascade
+    {CascadeAssignment(op=$0, value=$2)}
+
+
+
+assignmentOperator: %AssignmentOperators =
+  ( '=' {%ASSIGN}
+  | "*=" {%MUL}
+  | "/=" {%DIV}
+  | "~/=" {%INT_DIV}
+  | "%=" {%REM}
+  | "+=" {%ADD}
+  | "-=" {%SUB}
+  | "<<=" {%SHL}
+  | ">>>=" {%SHRZ}
+  | ">>=" {%SHR}
+  | "&=" {%AND}
+  | "^=" {%XOR}
+  | "|=" {%OR}
+  | "??=" {%QQ}
+  )&OpTk
+
+conditionalExpression: ConditionalExpressionOr
+  = ifNullExpression
+  | ifNullExpression WS '?' WS expressionWithoutCascade WS ':' WS expressionWithoutCascade
+    {ConditionalExpression(cond=$0, ifTrue=$4, ifFalse=$8)}
+
+ifNullExpression: IfNullExpressionOr
+  = logicalOrExpression
+  | ifNullExpression WS "??"&OpTk WS logicalOrExpression
+    {IfNullExpression(value=$0, ifNull=$4)}
+
+logicalOrExpression: LogicalOrExpressionOr
+  = logicalAndExpression
+  | logicalOrExpression WS "||"&OpTk WS logicalAndExpression
+    {LogicalOrExpression<LogicalOp>(left=$0, right=$4)}
+logicalAndExpression: LogicalAndExpressionOr
+  = equalityExpression
+  | logicalAndExpression WS "&&"&OpTk WS equalityExpression
+    {LogicalAndExpression<LogicalOp>(left=$0, right=$4)}
+
+equalityExpression: EqualityExpressionOr
+  = relationalExpression
+  | relationalExpression WS equalityOperator WS relationalExpression
+    {EqualityExpression(op=$2, left=$0, right=$4)}
+  | "super"&Tk WS equalityOperator WS relationalExpression
+equalityOperator: %EqualityOperators = ("==" {%EQ} | "!=" {%NE})&OpTk
+
+relationalExpression: RelationalExpressionOr
+  = bitwiseOrExpression
+  | bitwiseOrExpression WS (typeTest | typeCast)
+    {TypeRelationalExpression(left=$0, right: TypeTestOrCast=$2)}
+  | bitwiseOrExpression WS relationalOperator WS bitwiseOrExpression
+    {CompareExpression(op=$2, left=$0, right=$4)}
+  | "super"&Tk WS relationalOperator WS bitwiseOrExpression
+relationalOperator: %RelationalOperators
+  = (">=" {%GE} | ">" {%GT} | "<=" {%LE} | "<" {%LT})&OpTk
+
+bitwiseOrExpression: BitwiseOrExpressionOr
+  = bitwiseXorExpression
+  | bitwiseOrExpression WS '|'&OpTk WS bitwiseXorExpression
+    {BitwiseOrExpression<BitwiseOp>(left=$0, right=$4)}
+  | "super"&Tk (WS '|'&OpTk WS bitwiseXorExpression)+
+    {ASTTODO()}
+bitwiseXorExpression: BitwiseXorExpressionOr
+  = bitwiseAndExpression
+  | bitwiseXorExpression WS '^'&OpTk WS bitwiseAndExpression
+    {BitwiseXorExpression<BitwiseOp>(left=$0, right=$4)}
+  | "super"&Tk (WS '^'&OpTk WS bitwiseAndExpression)+
+    {ASTTODO()}
+bitwiseAndExpression: BitwiseAndExpressionOr
+  = shiftExpression
+  | bitwiseAndExpression WS '&'&OpTk WS shiftExpression
+    {BitwiseAndExpression<BitwiseOp>(left=$0, right=$4)}
+  | "super"&Tk (WS '&'&OpTk WS shiftExpression)+
+    {ASTTODO()}
+bitwiseOperator: %BitwiseOperators
+  = ('&' {%AND} | '^' {%XOR} | '|' {%OR})&OpTk
+
+
+shiftExpression: ShiftExpressionOr
+  = additiveExpression
+  | shiftExpression WS shiftOperator WS additiveExpression
+    {ShiftExpression(op=$2, left=$0, right=$4)}
+  | "super"&Tk (WS shiftOperator WS additiveExpression)+
+    {ASTTODO()}
+shiftOperator: %ShiftOperators
+  = ("<<" {%SHL} | ">>>" {%SHRZ} | ">>" {%SHR})&OpTk
+
+additiveExpression: AdditiveExpressionOr
+  = multiplicativeExpression
+  | additiveExpression WS additiveOperator WS multiplicativeExpression
+    {AdditiveExpression(op=$2, left=$0, right=$4)}
+  | "super"&Tk (WS additiveOperator WS multiplicativeExpression)+
+    {ASTTODO()}
+additiveOperator: %AdditiveOperators = ('+' {%ADD} | '-' {%SUB})&OpTk
+
+multiplicativeExpression: MultiplicativeExpressionOr
+  = unaryExpression
+  | multiplicativeExpression WS multiplicativeOperator WS unaryExpression
+    {MultiplicativeExpression(op=$2, left=$0, right=$4)}
+  | "super"&Tk (WS multiplicativeOperator WS unaryExpression)+
+    {ASTTODO()}
+multiplicativeOperator: %MultiplicativeOperators
+  = ('*' {%MUL} | '/' {%DIV} | '%' {%REM} | "~/" {%INT_DIV})&OpTk
+
+unaryExpression: UnaryExpressionOr
+  = prefixOperator WS unaryExpression
+    {PrefixUnaryOp(op=$0, expr=$2)}
+  | awaitExpression
+  | postfixExpression
+  | ('-' | '~')&OpTk WS "super"&Tk {ASTTODO()}
+  | incrementOperator WS assignableExpression
+    {PrefixIncrementOp(op=$0, expr=$2)}
+
+prefixOperator: %PrefixOperators = ('-' {%MINUS} | '!' {%NEG} | '~' {%TILDE})&OpTk
+
+awaitExpression = "await"&Tk WS unaryExpression {AwaitExpression(expr=$2)}
+
+postfixExpression: PostfixExpressionOr
+  = primary
+  | postfixExpression WS selector
+    {SelectorExpression(target=$0, selector=$2)}
+  | assignableExpression WS postfixOperator
+    {PostfixExpression(operand=$0, op=$2)}
+
+postfixOperator = incrementOperator
+incrementOperator: %IncrementOperators = ("++" {%INC} | "--" {%DEC})&OpTk
+
+selector: Selector
+  = '!'&OpTk {AssertNotNull()}
+  | assignableSelector
+  | argumentPart
+  | typeArguments
+
+argumentPart = (typeArguments WS)? arguments {ArgumentPart(typeArgs=$0$0, args=$1)}
+
+
+assignableExpression: AssignableExpression
+  = "super"&Tk WS unconditionalAssignableSelector
+    {ASTTODO()}
+  | primary WS assignableSelectorPart
+    {AssignableSelectorExpression(primary=$0, selector=$2)}
+  | identifier
+    {AssignableIdent(ident=$0)}
+assignableSelectorPart = (selector WS)* assignableSelector
+unconditionalAssignableSelector: UnconditionalAssignableSelector
+  = '[' WS expression WS ']' {UnconditionalAssignableArraySelector(index=$2)}
+  | '.' WS identifier {UnconditionalAssignableMemberSelector(name=$2)}
+assignableSelector: AssignableSelector
+  = unconditionalAssignableSelector
+    {AssignableSelector1(TODO=$0)}
+  | "?." WS identifier
+    {NullableAssignableMemberSelector(name=$2)}
+  | '?' WS '[' WS expression WS ']'
+    {NullableAssignableArraySelector(index=$4)}
+
+
+
+
+identifier = identifierName {Identifier(name=$0)}
+
+identifierName
+  = IDENTIFIER
+  | builtInIdentifier
+  | otherIdentifier
+  | "await"&Tk
+  | "yield"&Tk
+
+qualifiedName
+  = typeIdentifier WS '.' WS identifierOrNew
+    {QualifiedName(TODO="")}
+  | typeIdentifier WS '.' WS typeIdentifier WS '.' WS identifierOrNew
+    {QualifiedName(TODO="")}
+
+typeIdentifierNotType
+  = IDENTIFIER-"type"
+  | "dynamic"&Tk
+  | otherIdentifierNotType
+  | "await"&Tk
+  | "yield"&Tk
+
+typeIdentifier
+  = typeIdentifierNotType {TypeIdentifier(name=$0)}
+  | "type"&Tk {TypeIdentifier($0)}
+
+typeTest = isOperator WS typeNotVoid {TypeTest(op=$0, typ=$2)}
+isOperator = ("is" | "is!")&OpTk
+
+typeCast = "as"&OpTk WS typeNotVoid
+
+pattern = logicalOrPattern
+
+logicalOrPattern: LogicalOrPatternOr
+  = logicalAndPattern
+  | logicalOrPattern WS "||"&Tk WS logicalAndPattern
+
+logicalAndPattern: LogicalAndPatternOr
+  = relationalPattern
+  | logicalAndPattern WS "&&"&Tk WS relationalPattern
+
+relationalPattern: RelationalPatternOr
+  = unaryPattern
+  | (equalityOperator | relationalOperator) WS bitwiseOrExpression
+
+unaryPattern: UnaryPatternOr
+  = castPattern
+  | nullCheckPattern
+  | nullAssertPattern
+  | primaryPattern
+
+primaryPattern: PrimaryPattern
+  = constantPattern
+  | variablePattern
+  | parenthesizedPattern
+  | listPattern
+  | mapPattern
+  | recordPattern
+  | objectPattern
+
+castPattern = primaryPattern WS "as"&Tk WS type {CastPattern(pattern=$0, type=$4)}
+
+nullCheckPattern = primaryPattern WS '?' {NullCheckPattern(pattern=$0)}
+
+nullAssertPattern = primaryPattern WS '!' {NullAssertPattern(pattern=$0)}
+
+constantPattern: ConstantPattern
+  = booleanLiteral
+  | nullLiteral
+  | ('-' WS)? numericLiteral
+  | stringLiteral
+  | symbolLiteral
+  | identifier {ConstantPatternIdent(ident=$0)}
+  | qualifiedName
+  | constObjectExpression
+  | "const"&Tk (WS typeArguments)? WS '[' (WS elements)? WS ']'
+    {ConstListPattern(typeArgs=$1, elems=$4 ?: [])}
+  | "const"&Tk (WS typeArguments)? WS '{' (WS elements)? WS '}'
+    {ConstSetOrMapPattern(typeArgs=$1, elems=$4 ?: [])}
+  | "const"&Tk WS '(' WS expression WS ')'
+    {ConstExpressionPattern(expr=$4)}
+
+variablePattern
+  = ("var" | "final" | ("final"&Tk WS)? type)? identifier
+
+parenthesizedPattern = '(' WS pattern WS ')' {ParenthesizedPattern(pattern=$2)}
+
+listPattern
+  = (typeArguments WS)? '[' (WS listPatternElements)? WS ']'
+    {ListPattern(typeArgs=$0$0, elems=$2 ?: [])}
+
+listPatternElements = listPatternElement (WS ',' WS listPatternElement)* (WS ',')? {[$0] + $1}
+
+listPatternElement: ListPatternElement = pattern | restPattern
+
+restPattern = "..." (WS pattern)* {RestPattern(patterns=$1)}
+
+mapPattern
+  = (typeArguments WS)? '{' (WS mapPatternEntries)? WS '}'
+    {MapPattern(typeArgs=$0$0, entries=$2 ?: [])}
+
+mapPatternEntries = mapPatternEntry (WS ',' WS mapPatternEntry)* (WS ',')? {[$0] + $1}
+
+mapPatternEntry: MapPatternEntry
+  = expression WS ':' WS pattern {MapPatternEntryKeyValue(key=$0, pattern=$4)}
+  | "..." {MapPatternEntryRest()}
+
+recordPattern = '(' (WS patternFields)? WS ')' {RecordPattern(fields=$1 ?: [])}
+
+patternFields = patternField (WS ',' WS patternField)* (WS ',')? {[$0] + $1}
+
+patternField = ((identifier WS)? ':' WS)? pattern {PatternField(name=$0$0$0, pattern=$1)}
+
+objectPattern: ObjectPattern
+  = typeName (WS typeArguments)? WS '(' (WS patternFields)? WS ')'
+    {ObjectPatternNoFunc(objectType=$0, typeArgs=$1, fields=$4)}
+  | typeNamedFunction WS '(' (WS patternFields)? WS ')'
+    {ObjectPatternFunc(func=$0, fields=$3)}
+
+patternVariableDeclaration
+  = ("final" {true} | "var" {false})&Tk WS outerPattern WS '=' WS expression
+    {PatternVariableDeclaration(isFinal=$0, pattern=$2, expr=$6)}
+
+outerPattern: OuterPattern
+  = parenthesizedPattern
+  | listPattern
+  | mapPattern
+  | recordPattern
+  | objectPattern
+
+patternAssignment = outerPattern WS '=' WS expression {PatternAssignment(pattern=$0, expr=$4)}
+
+statements = statement (WS statement)* {[$0] + $1}
+
+statement = (label WS)* nonLabelledStatement {Statement(label=$0$0, stmt=$1)}
+
+nonLabelledStatement: NonLabelledStatement
+  = block {BlockStmt(body=$0)}
+  | localVariableDeclaration
+  | forStatement
+  | whileStatement
+  | doStatement
+  | switchStatement
+  | ifStatement
+  | rethrowStatement
+  | tryStatement
+  | breakStatement
+  | continueStatement
+  | returnStatement
+  | localFunctionDeclaration
+  | assertStatement
+  | yieldStatement
+  | yieldEachStatement
+  | expressionStatement
+
+expressionStatement = (expression WS)? ';' {ExpressionStatement(expr=$0$0)}
+
+localVariableDeclaration: localVariableDeclaration
+  = ('@' metadatum WS)* initializedVariableDeclaration WS ';'
+    {LocalVariableDeclarationNoPattern(meta=$0$1, decl=$1)}
+  | ('@' metadatum WS)* patternVariableDeclaration WS ';'
+    {LocalVariableDeclarationPattern(meta=$0$1, decl=$1)}
+
+initializedVariableDeclaration
+  = declaredIdentifier (WS '=' WS expression)? (WS ',' WS initializedIdentifier)*
+    {InitializedVariableDeclaration(name=$0, initValue=$1, more=$2)}
+
+localFunctionDeclaration = ('@' metadatum WS)* functionSignature WS functionBody
+
+ifStatement
+  = ifCondition WS statement (WS "else"&Tk WS statement)?
+    {IfStatement(cond=$0, ifThen=$2, ifElse=$3)}
+
+ifCondition
+  = "if"&Tk WS '(' WS expression (WS "case"&Tk WS guardedPattern)? WS ')'
+    {IfCondition()}
+
+forStatement
+  = ("await"&Tk WS)? "for"&Tk WS '(' WS forLoopParts WS ')' WS statement
+    {ForStatement()}
+
+
+forLoopParts: ForLoopParts
+  = ('@' metadatum WS)* declaredIdentifier WS "in"&Tk WS expression
+    {ASTTODO()}
+  | ('@' metadatum WS)* identifier WS "in"&Tk WS expression
+    {ASTTODO()}
+  | forInitializerStatement (WS expression)? WS ';' (WS expressionList)?
+    {ASTTODO()}
+  | ('@' metadatum WS)* ("final" | "var")&Tk WS outerPattern WS "in"&Tk WS expression
+    {ASTTODO()}
+
+forInitializerStatement
+  = localVariableDeclaration
+  | (expression WS)? ';'
+
+whileStatement
+  = "while"&Tk WS '(' WS expression WS ')' WS statement
+    {WhileStatement(cond=$4, body=$8)}
+doStatement
+  = "do"&Tk WS statement WS "while"&Tk WS '(' WS expression WS ')' WS ';'
+    {DoStatement(body=$2, cond=$8)}
+
+switchStatement
+  = "switch"&Tk WS '(' WS expression WS ')' WS
+    '{' (WS switchStatementCase)* (WS switchStatementDefault)? WS '}'
+    {SwitchStatement()}
+
+switchStatementCase
+  = (label WS)* "case"&Tk WS guardedPattern WS ':' WS statements
+
+guardedPattern = pattern (WS "when"&Tk WS expression)?
+
+switchStatementDefault
+  = (label WS)* "default"&Tk WS ':' WS statements
+
+rethrowStatement = "rethrow"&Tk WS ';' {RethrowStatement()}
+
+tryStatement
+  = "try"&Tk WS block WS ((onPart WS)+ (WS finallyPart)? | finallyPart)
+    {TryStatement()}
+onPart
+  = catchPart WS block
+  | "on"&Tk WS typeNotVoid (WS catchPart)? WS block
+catchPart = "catch"&Tk WS '(' WS identifier (WS ',' WS identifier)? WS ')'
+finallyPart = "finally"&Tk WS block
+
+returnStatement
+  = "return"&Tk (WS expression)? WS ';' {ReturnStatement(value=$1)}
+
+label = identifier WS ':' {Label(label=$0)}
+
+breakStatement
+  = "break"&Tk (WS identifier)? WS ';' {BreakStatement(label=$1)}
+continueStatement
+  = "continue"&Tk (WS identifier)? WS ';' {ContinueStatement(label=$1)}
+yieldStatement
+  = "yield"&Tk (WS expression)? WS ';'
+    {YieldStatement(TODO="")}
+yieldEachStatement
+  = "yield"&Tk WS '*' WS expression WS ';'
+    {YieldEachStatement(TODO="")}
+
+assertStatement = assertion WS ';' {AssertStatement(assertion=$0)}
+assertion = "assert"&Tk WS '(' WS expression (WS ',' WS expression)? (WS ',')? WS ')'
+            {Assertion(cond=$4, exception=$5)}
+
+libraryName = ('@' metadatum WS)* "library"&Tk WS dottedIdentifierList WS ';'
+              {LibraryName(meta=$0$1, name=$3)}
+
+dottedIdentifierList = identifier (WS '.' WS identifier)* {[$0] + $1}
+
+importOrExport: ImportOrExport = libraryImport | libraryExport
+
+libraryImport
+  = ('@' metadatum WS)* importSpecification {Import(meta=$0$1, spec=$1)}
+importSpecification
+  = "import"&Tk WS configurableUri
+    (WS ("deferred"&Tk WS)? "as"&Tk WS typeIdentifier {ImportRename(deferred=ispresent($1), name=$4)})?
+    (WS combinator)* WS ';'
+    {ImportSpec(uri=$2, rename=$3, combinators=$4)}
+
+combinator
+  = ("show" {%SHOW} | "hide" {%HIDE})&Tk WS identifierList
+    {Combinator(type: %CombinatorTypes=$0, name=$2)}
+
+identifierList = identifier (WS ',' WS identifier)* {[$0] + $1}
+
+libraryExport
+  = ('@' metadatum WS)* "export"&Tk WS configurableUri (WS combinator)* WS ';'
+    {Export(meta=$0$1, uri=$3, combinators=$4)}
+
+partDirective
+  = ('@' metadatum WS)* "part"&Tk WS uri WS ';' {PartDirective(meta=$0$1, uri=$3)}
+
+partHeader = ('@' metadatum WS)* "part"&Tk WS "of"&Tk WS (dottedIdentifierList | uri) WS ';'
+partDeclaration
+  = FEFF? WS partHeader (WS topLevelDeclarationWithMeta)* WS EOF
+    {PartDeclaration(TODO="")}
+
+uri = stringLiteral
+configurableUri = uri (WS configurationUri)* {ConfigurableUri(uri=$0, config=$1)}
+configurationUri = "if"&Tk WS '(' WS uriTest WS ')' uri {configurationUri(test=$4, uri=$7)}
+uriTest = dottedIdentifierList (WS "==" WS stringLiteral)? {UriTest(left=$0, right=$1)}
+
+type: Type
+  = functionType
+  | functionType WS '?' {NullableType(typ: NonNullableType=$0)}
+  | typeNotFunction
+typeNotVoid: TypeNotVoid
+  = functionType
+    {ASTTODO()}
+  | functionType WS '?' {NullableType($0)}
+    {ASTTODO()}
+  | recordType
+    {ASTTODO()}
+  | recordType WS '?' {NullableType($0)}
+    {ASTTODO()}
+  | typeNotVoidNotFunction
+    {ASTTODO()}
+  | typeNotVoidNotFunction WS '?' {NullableType($0)}
+    {ASTTODO()}
+typeNotFunction: TypeNotFunction
+  = typeNotVoidNotFunction
+    {ASTTODO()}
+  | typeNotVoidNotFunction WS '?' {NullableType($0)}
+    {ASTTODO()}
+  | recordType {RecordType1()}
+    {ASTTODO()}
+  | recordType WS '?' {NullableType($0)}
+    {ASTTODO()}
+  | "void"&Tk {VoidType()}
+    {ASTTODO()}
+
+typeNamedFunction = (typeIdentifier WS '.' WS)? "Function"&Tk
+
+typeNotVoidNotFunction: TypeNotVoidNotFunction
+  = typeName
+  | typeName WS typeArguments {TypeNameWithTypeArgs(name=$0, typeArgs=$2)}
+  | typeNamedFunction {TypeNamedFunction123()}
+
+typeName
+  = typeIdentifier {TypeName(space=null, name=$0)}
+  | typeIdentifier WS '.' WS typeIdentifier {TypeName(space=$0, name=$4)}
+
+typeArguments = '<' WS typeList WS '>' {TypeArgs(list=$2)}
+
+typeList = type (WS ',' WS type)* {[$0] + $1}
+
+recordType
+  = '(' WS ')' {RecordType(fields=[], nameFields=[])}
+  | '(' WS recordTypeFields WS ',' WS recordTypeNamedFields WS ')' {RecordType($2, $6)}
+  | '(' WS recordTypeFields (WS ',')? WS ')' {RecordType($2, [])}
+  | '(' WS recordTypeNamedFields WS ')' {RecordType([], $2)}
+
+recordTypeFields = recordTypeField (WS ',' WS recordTypeField)* {[$0] + $1}
+
+recordTypeField = ('@' metadatum WS)* type (WS identifier)?
+
+recordTypeNamedFields
+  = '{' WS recordTypeNamedField (WS ',' WS recordTypeNamedField)* (WS ',')? WS '}'
+    {[$2] + $3}
+
+recordTypeNamedField
+  = ('@' metadatum WS)* typedIdentifier {RecordTypeNamedField(meta=$0$1, ident=$1)}
+
+typeNotVoidNotFunctionList = typeNotVoidNotFunction (WS ',' WS typeNotVoidNotFunction)*
+
+typeAlias
+  = "typedef"&Tk WS typeIdentifier (WS typeParameters)? WS '=' WS type WS ';'
+    {TypeAlias()}
+  | "typedef"&Tk WS functionTypeAlias
+    {TypeAlias()}
+
+functionTypeAlias = functionPrefix WS formalParameterPart WS ';'
+functionPrefix = (type WS)? identifier
+
+functionType = (typeNotFunction WS)? functionTypeTails {FunctionType(returnType=$0$0, sig=$1)}
+
+functionTypeTails
+  = (functionTypeTail (WS '?')? WS)* functionTypeTail
+
+functionTypeTail = "Function"&Tk (WS typeParameters)? parameterTypeList
+
+parameterTypeList
+  = '(' WS ')'
+  | '(' WS normalParameterTypes WS ',' WS optionalParameterTypes WS ')'
+  | '(' WS normalParameterTypes (WS ',')? WS ')'
+  | '(' WS optionalParameterTypes WS ')'
+
+normalParameterTypes = normalParameterType (WS ',' WS normalParameterType)*
+normalParameterType
+  = ('@' metadatum WS)* typedIdentifier
+  | ('@' metadatum WS)* type
+optionalParameterTypes
+  = optionalPositionalParameterTypes
+  | namedParameterTypes
+optionalPositionalParameterTypes = '[' WS normalParameterTypes (WS ',')? WS ']'
+namedParameterTypes = '{' WS namedParameterType (WS ',' WS namedParameterType)* (WS ',')? WS '}'
+namedParameterType = ('@' metadatum WS)* ("required"&Tk WS)? typedIdentifier
+typedIdentifier = type WS identifier
+
+constructorDesignation: ConstructorDesignation
+  = typeIdentifier
+  | qualifiedName
+  | typeName WS typeArguments (WS '.' WS identifierOrNew)?
+    {ASTTODO()}
+
+symbolLiteral
+  = '#' (operator | identifier (WS '.' WS identifier)* | "void"&Tk)
+    {SymbolLiteral(TODO="")}
+
+
+
+RESERVED_WORD
+  = "assert" | "break" | "case" | "catch" | "class" | "const" | "continue" | "default" | "do"
+  | "else" | "enum" | "extends" | "false" | "final" | "finally" | "for" | "if" | "in" | "is"
+  | "new" | "null" | "rethrow" | "return" | "super" | "switch" | "this" | "throw" | "true" | "try"
+  | "var" | "void" | "while" | "with"
+
+builtInIdentifier
+  =("abstract" | "as" | "covariant" | "deferred" | "dynamic" | "export" | "extension" | "external"
+  | "factory" | "function" | "get" | "implements" | "import" | "interface" | "late" | "library" | "operator"
+  | "mixin" | "part" | "required" | "set" | "static" | "typedef")&Tk
+
+otherIdentifierNotType
+  =("async" | "base" | "hide" | "of" | "on" | "sealed" | "show" | "sync" | "when")&Tk
+
+otherIdentifier = otherIdentifierNotType | "type"&Tk
+
+
+
+IDENTIFIER = <IDENTIFIER_START IDENTIFIER_PART* {str($0, $1)}>-(RESERVED_WORD | builtInIdentifier | otherIdentifierNotType)
+IDENTIFIER_START = IDENTIFIER_START_NO_DOLLAR | '$'
+IDENTIFIER_START_NO_DOLLAR = LETTER | '_'
+IDENTIFIER_NO_DOLLAR = <IDENTIFIER_START_NO_DOLLAR IDENTIFIER_PART_NO_DOLLAR* {str($0, $1)}>
+IDENTIFIER_PART_NO_DOLLAR = IDENTIFIER_START_NO_DOLLAR | DIGIT
+LETTER = 'a-zA-Z'
+IDENTIFIER_PART = IDENTIFIER_START | DIGIT
+DIGIT = '0-9'
+
+Word = <'a-zA-Z_' 'a-zA-Z_0-9'*>
+Tk = Word
+OpTk = <"!" | "!=" | "%" | "&" | "&&" | "*" | "+" | "++" | "-" | "--"
+  | ".." | "..." | "...?" | "/" | "<" | "<<" | "<=" | "=" | "==" | "=>" | ">" | ">="
+  | ">>" | ">>>" | "?.." | "??" | "??=" | "[]" | "[]=" | "^" | "as" | "is!" | "is"
+  | "*=" | "/=" | "~/=" | "%=" | "+=" | "-=" | "<<=" | ">>>=" | ">>=" | "&=" | "^=" | "|=" | "??="
+  | "|" | "||" | "~" | "~/">
+
+NUMBER
+  = DIGIT+ '.' DIGIT+ EXPONENT? {Number(integral=str($0), fraction=str($2), exp=$3)}
+  | DIGIT+ EXPONENT? {Number(str($0), "", $1)}
+  | '.' DIGIT+ EXPONENT? {Number("", str($1), $2)}
+
+HEX_NUMBER = '0' 'xX' HEX_DIGIT+ {HexNumber(value=str($2))}
+HEX_DIGIT = '0-9a-fA-F'
+
+EXPONENT = 'eE' '+\-' DIGIT+ {Exponent(sign=$1, value=str($2))}
+
+FEFF = '\uFEFF'
+SCRIPT_TAG = "#!" (.-NEWLINE)* NEWLINE {ScriptTag(line=str($1))}
+NEWLINE = <'\n' | '\r' | "\r\n">
+WS = (' \n\r\t' | Comment)* {WS()}
+Comment = LineComment | BlockComment
+LineComment = "//" (.-NEWLINE)* (NEWLINE | EOF)
+BlockComment = "/*" ((. !"*/")* .)? "*/"
+EOF = !.
+
+singleLineString: SingleLineString
+  = 'r' '\'' (.-'\r\n\'')+ '\'' {RawSingleLineString(value=str($2))}
+  | 'r' '"' (.-'\r\n"')+ '"' {RawSingleLineString(value=str($2))}
+  | 'r' '"' '"' !'"' {RawSingleLineString(value="")}
+  | 'r' '\'' '\'' !'\'' {RawSingleLineString(value="")}
+  | '\'' (singleLineStringElem | '"' {CharElem($0)} | '\\' '\'' {EscapeCode($1)})+ '\'' {SingleLineStringElems(elems=$1)}
+  | '\'' '\'' !'\'' {SingleLineStringElems([])}
+  | '"' (singleLineStringElem | '\'' {CharElem($0)} | '\\' '"' {EscapeCode($1)})+ '"' {SingleLineStringElems(elems=$1)}
+  | '"' '"' !'"' {SingleLineStringElems([])}
+
+singleLineStringElem: SingleLineStringElem
+  = .-'\\\r\n\'"$' {CharElem(value=$0)}
+  | ESCAPE_SEQUENCE
+  | '$' IDENTIFIER_NO_DOLLAR {InterpolationIdentElem(ident=$1)}
+  | "${" WS expression WS '}' {InterpolationExprElem(expr=$2)}
+
+multiLineString: MultiLineString
+  = 'r' multiLineSQ ((.-'\'') | ('\'' !multiLineSQ))* multiLineSQ {RawMultiLineString(value=str($2))}
+  | 'r' multiLineDQ ((.-'"') | ('"' !multiLineDQ))* multiLineDQ {RawMultiLineString(value=str($2))}
+  | multiLineSQ (multiLineStringElem | '"' {CharElem($0)} | '\'' !multiLineSQ {CharElem('\'')})* multiLineSQ {MultiLineStringElems(elems=$1)}
+  | multiLineDQ (multiLineStringElem | '\'' {CharElem($0)} | '"' !multiLineDQ {CharElem('"')})* multiLineDQ {MultiLineStringElems(elems=$1)}
+
+multiLineDQ = "\"\"\""
+multiLineSQ = "'''"
+multiLineStringElem: MultiLineStringElem
+  = .-'\\\'"$' {CharElem(value=$0)}
+  | ESCAPE_SEQUENCE
+  | '$' IDENTIFIER_NO_DOLLAR {InterpolationIdentElem(ident=$1)}
+  | "${" WS expression WS '}' {InterpolationExprElem(expr=$2)}
+
+ESCAPE_SEQUENCE: EscapeSequence
+  = '\\' 'nrbtv$\\' {EscapeCode(code=$1)}
+  | '\\' 'x' HEX_DIGIT HEX_DIGIT {EscapeHex(code=str($2, $3))}
+  | '\\' 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT {EscapeUnicode(code=str($2, $3, $4, $5))}
+  | '\\' 'u' '{' (HEX_DIGIT (HEX_DIGIT (HEX_DIGIT)?)? {str($0, $1)})? '}'
+    {EscapeUnicode(code=$3 ?: "")}

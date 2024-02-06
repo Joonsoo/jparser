@@ -1,0 +1,150 @@
+startSymbol = stringLiteral
+
+expression: Expression
+  = primary
+
+primary: Primary
+  = literal
+  | identifier {IdentPrimary(ident=$0)}
+
+literal: Literal
+  = nullLiteral
+  | booleanLiteral
+  | numericLiteral
+  | stringLiteral
+
+
+nullLiteral = "null"&Tk {NullLiteral()}
+
+numericLiteral: NumericLiteral = NUMBER | HEX_NUMBER
+
+booleanLiteral = ("true" {true} | "false" {false})&Tk {BooleanLiteral(value=$0)}
+
+stringLiteral = stringLiteralString (WS stringLiteralString)* {StringLiteral(strings=[$0] + $1)}
+stringLiteralString: StringLiteralString
+  = multiLineString
+  | !multiLineString singleLineString
+
+
+
+
+identifier = identifierName {Identifier(name=str($0))}
+
+identifierName
+  = IDENTIFIER
+  | builtInIdentifier
+  | otherIdentifier
+  | "await"&Tk
+  | "yield"&Tk
+
+qualifiedName
+  = typeIdentifier WS '.' WS identifierOrNew
+    {QualifiedName(TODO="")}
+  | typeIdentifier WS '.' WS typeIdentifier WS '.' WS identifierOrNew
+    {QualifiedName(TODO="")}
+
+typeIdentifierNotType
+  = IDENTIFIER-"type"
+  | "dynamic"&Tk
+  | otherIdentifierNotType
+  | "await"&Tk
+  | "yield"&Tk
+
+typeIdentifier
+  = typeIdentifierNotType {TypeIdentifier(name=str($0))}
+  | "type"&Tk {TypeIdentifier($0)}
+
+
+
+
+
+
+
+
+
+RESERVED_WORD
+  = "assert" | "break" | "case" | "catch" | "class" | "const" | "continue" | "default" | "do"
+  | "else" | "enum" | "extends" | "false" | "final" | "finally" | "for" | "if" | "in" | "is"
+  | "new" | "null" | "rethrow" | "return" | "super" | "switch" | "this" | "throw" | "true" | "try"
+  | "var" | "void" | "while" | "with"
+
+builtInIdentifier
+  =("abstract" | "as" | "covariant" | "deferred" | "dynamic" | "export" | "extension" | "external"
+  | "factory" | "function" | "get" | "implements" | "import" | "interface" | "late" | "library" | "operator"
+  | "mixin" | "part" | "required" | "set" | "static" | "typedef")&Tk
+
+otherIdentifierNotType
+  =("async" | "base" | "hide" | "of" | "on" | "sealed" | "show" | "sync" | "when")&Tk
+
+otherIdentifier = otherIdentifierNotType | "type"&Tk
+
+
+
+IDENTIFIER = <IDENTIFIER_START IDENTIFIER_PART* {str($0, $1)}>-(RESERVED_WORD | builtInIdentifier | otherIdentifierNotType)
+IDENTIFIER_START = IDENTIFIER_START_NO_DOLLAR | '$'
+IDENTIFIER_START_NO_DOLLAR = LETTER | '_'
+IDENTIFIER_NO_DOLLAR = <IDENTIFIER_START_NO_DOLLAR IDENTIFIER_PART_NO_DOLLAR* {str($0, $1)}>
+IDENTIFIER_PART_NO_DOLLAR = IDENTIFIER_START_NO_DOLLAR | DIGIT
+LETTER = 'a-zA-Z'
+IDENTIFIER_PART = IDENTIFIER_START | DIGIT
+DIGIT = '0-9'
+
+Word = <'a-zA-Z_' 'a-zA-Z_0-9'*>
+Tk = Word
+OpTk = <"!" | "!=" | "%" | "&" | "&&" | "*" | "+" | "++" | "-" | "--"
+  | ".." | "..." | "...?" | "/" | "<" | "<<" | "<=" | "=" | "==" | "=>" | ">" | ">="
+  | ">>" | ">>>" | "?.." | "??" | "??=" | "[]" | "[]=" | "^" | "as" | "is!" | "is"
+  | "*=" | "/=" | "~/=" | "%=" | "+=" | "-=" | "<<=" | ">>>=" | ">>=" | "&=" | "^=" | "|=" | "??="
+  | "|" | "||" | "~" | "~/">
+
+NUMBER
+  = DIGIT+ '.' DIGIT+ EXPONENT? {Number(integral=str($0), fraction=str($2), exp=$3)}
+  | DIGIT+ EXPONENT? {Number(str($0), "", $1)}
+  | '.' DIGIT+ EXPONENT? {Number("", str($1), $2)}
+
+HEX_NUMBER = '0' 'xX' HEX_DIGIT+ {HexNumber(value=str($2))}
+HEX_DIGIT = '0-9a-fA-F'
+
+EXPONENT = 'eE' '+\-' DIGIT+ {Exponent(sign=$1, value=str($2))}
+
+FEFF = '\uFEFF'
+SCRIPT_TAG = "#!" (.-NEWLINE)* NEWLINE {ScriptTag(line=str($1))}
+NEWLINE = <'\n' | '\r' | "\r\n">
+WS = (' \n\r\t' | Comment)* {WS()}
+Comment = LineComment | BlockComment
+LineComment = "//" (.-NEWLINE)* (NEWLINE | EOF)
+BlockComment = "/*" ((. !"*/")* .)? "*/"
+EOF = !.
+
+singleLineString: SingleLineString
+  = 'r' '\'' (.-'\r\n\'')* '\'' {RawSingleLineString(value=str($2))}
+  | 'r' '"' (.-'\r\n"')* '"' {RawSingleLineString(value=str($2))}
+  | '\'' (singleLineStringElem | '"' {CharElem($0)} | '\\' '\'' {EscapeCode($1)})* '\'' {SingleLineStringElems(elems=$1)}
+  | '"' (singleLineStringElem | '\'' {CharElem($0)} | '\\' '"' {EscapeCode($1)})* '"' {SingleLineStringElems(elems=$1)}
+
+singleLineStringElem: SingleLineStringElem
+  = .-'\\\r\n\'"$' {CharElem(value=$0)}
+  | ESCAPE_SEQUENCE
+  | '$' IDENTIFIER_NO_DOLLAR {InterpolationIdentElem(ident=$1)}
+  | "${" WS expression WS '}' {InterpolationExprElem(expr=$2)}
+
+multiLineString: MultiLineString
+  = 'r' multiLineSQ ((.-'\'') | ('\'' !multiLineSQ))* multiLineSQ {RawMultiLineString(value=str($2))}
+  | 'r' multiLineDQ ((.-'"') | ('"' !multiLineDQ))* multiLineDQ {RawMultiLineString(value=str($2))}
+  | multiLineSQ (multiLineStringElem | '"' {CharElem($0)} | '\'' !multiLineSQ {CharElem('\'')})* multiLineSQ {MultiLineStringElems(elems=$1)}
+  | multiLineDQ (multiLineStringElem | '\'' {CharElem($0)} | '"' !multiLineDQ {CharElem('"')})* multiLineDQ {MultiLineStringElems(elems=$1)}
+
+multiLineDQ = "\"\"\""
+multiLineSQ = "'''"
+multiLineStringElem: MultiLineStringElem
+  = .-'\\\'"$' {CharElem(value=$0)}
+  | ESCAPE_SEQUENCE
+  | '$' IDENTIFIER_NO_DOLLAR {InterpolationIdentElem(ident=$1)}
+  | "${" WS expression WS '}' {InterpolationExprElem(expr=$2)}
+
+ESCAPE_SEQUENCE: EscapeSequence
+  = '\\' 'nrbtv$\\' {EscapeCode(code=$1)}
+  | '\\' 'x' HEX_DIGIT HEX_DIGIT {EscapeHex(code=str($2, $3))}
+  | '\\' 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT {EscapeUnicode(code=str($2, $3, $4, $5))}
+  | '\\' 'u' '{' (HEX_DIGIT (HEX_DIGIT (HEX_DIGIT)?)? {str($0, $1)})? '}'
+    {EscapeUnicode(code=$3 ?: "")}

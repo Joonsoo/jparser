@@ -242,6 +242,11 @@ class MilestoneParser(val parserData: MilestoneParserData) {
       val newConditionUpdates = newConditions
         .map(cond => cond -> evolveAcceptCondition(newPaths, genActions, cond)).toMap
 
+      if (verbose) {
+        println("  ==== condition updates")
+        newConditionUpdates.foreach(println(_))
+      }
+
       // newPaths와 수행된 액션을 바탕으로 condition evaluate
       val newPathsUpdated = newPaths
         .map(path => path.copy(acceptCondition = newConditionUpdates(path.acceptCondition)))

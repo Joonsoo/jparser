@@ -13,7 +13,7 @@ import java.io.FileInputStream
 import java.time.{Duration, Instant}
 
 // mgroup2 파서가 milestone2 파서와 동일하게 동작하는지 테스트
-class EqualityWithMilestone2Tests extends AnyFlatSpec {
+class Mgroup2ToMilestone2Tests extends AnyFlatSpec {
   def assertEqualCtx(milestoneCtx: MilestoneParsingContext, mgroupCtx: ParsingContext, mgroupData: MilestoneGroupParserData): Unit = {
     val flattenMgroupPaths = mgroupCtx.paths.flatMap { path =>
       val group = mgroupData.milestoneGroups(path.tip.groupId)
@@ -254,5 +254,9 @@ class EqualityWithMilestone2Tests extends AnyFlatSpec {
 
   "j1 mark2 subset" should "work" in {
     testAllExamples(MetaLang3ExamplesCatalog.INSTANCE.getJ1mark2subset)
+  }
+
+  "dart string subset" should "work" in {
+    testAllExamples(MetaLang3ExamplesCatalog.INSTANCE.getDartStringTest)
   }
 }

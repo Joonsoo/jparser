@@ -65,37 +65,37 @@ base {
     }
 
     javalib = java.library(
-      srcs = glob("base/generated/java/**/*.java"),
+      srcs = glob("base/generated/java/**.java"),
       deps = [protobufDep],
     )
   }
 
   main = scala.library(
-    srcs = glob("base/main/scala/**/*.scala"),
+    srcs = glob("base/main/scala/**.scala"),
     deps = [proto.javalib],
   )
 
   test = scala.library(
-    srcs = glob("base/test/scala/**/*.scala"),
+    srcs = glob("base/test/scala/**.scala"),
     deps = [...scalaTestDeps, base.main],
   )
 }
 
 naive {
   main = scala.library(
-    srcs = glob("naive/main/scala/**/*.scala"),
+    srcs = glob("naive/main/scala/**.scala"),
     deps = [base.main],
   )
 
   test = scala.library(
-    srcs = glob("naive/test/scala/**/*.scala"),
+    srcs = glob("naive/test/scala/**.scala"),
     deps = [...scalaTestDeps, base.test, naive.main, examples.naiveExamples, metalang.main, examples.metalang3],
   )
 }
 
 utils {
   main = scala.library(
-    srcs = glob("utils/main/scala/**/*.scala"),
+    srcs = glob("utils/main/scala/**.scala"),
     deps = [base.main],
   )
 }
@@ -114,18 +114,18 @@ metalang {
   }
 
   generatedParser = scala.library(
-    srcs = glob("metalang/generated/scala/**/*.scala"),
+    srcs = glob("metalang/generated/scala/**.scala"),
     resources = glob("metalang/generated/resources/**"),
     deps = [mgroup2.parser],
   )
 
   main = scala.library(
-    srcs = glob("metalang/main/scala/**/*.scala"),
+    srcs = glob("metalang/main/scala/**.scala"),
     deps = [naive.main, utils.main, generatedParser],
   )
 
   test = scala.library(
-    srcs = glob("metalang/test/scala/**/*.scala"),
+    srcs = glob("metalang/test/scala/**.scala"),
     deps = [...scalaTestDeps, base.test, naive.test, metalang.main, examples.oldMetalang],
   )
 }
@@ -145,28 +145,28 @@ milestone2 {
     }
 
     javalib = java.library(
-      srcs = glob("milestone2/data/generated/java/**/*.java"),
+      srcs = glob("milestone2/data/generated/java/**.java"),
       deps = [base.proto.javalib],
     )
   }
 
   data = scala.library(
-    srcs = glob("milestone2/data/scala/**/*.scala"),
+    srcs = glob("milestone2/data/scala/**.scala"),
     deps = [naive.main, proto.javalib],
   )
 
   gen = scala.library(
-    srcs = glob("milestone2/gen/scala/**/*.scala"),
+    srcs = glob("milestone2/gen/scala/**.scala"),
     deps = [naive.main, metalang.main, data, utils.main],
   )
 
   parser = scala.library(
-    srcs = glob("milestone2/parser/scala/**/*.scala"),
+    srcs = glob("milestone2/parser/scala/**.scala"),
     deps = [base.main, data, utils.main],
   )
 
   test = scala.library(
-    srcs = glob("milestone2/test/scala/**/*.scala"),
+    srcs = glob("milestone2/test/scala/**.scala"),
     resources = glob("milestone2/test/resources/**"),
     deps = [data, gen, parser, naive.main,
             examples.naiveExamples, examples.metalang3, examples.generated, ...scalaTestDeps],
@@ -188,28 +188,28 @@ mgroup2 {
     }
 
     javalib = java.library(
-      srcs = glob("mgroup2/data/generated/java/**/*.java"),
+      srcs = glob("mgroup2/data/generated/java/**.java"),
       deps = [milestone2.proto.javalib]
     )
   }
 
   data = scala.library(
-    srcs = glob("mgroup2/data/scala/**/*.scala"),
+    srcs = glob("mgroup2/data/scala/**.scala"),
     deps = [milestone2.data, proto.javalib],
   )
 
   gen = scala.library(
-    srcs = glob("mgroup2/gen/scala/**/*.scala"),
+    srcs = glob("mgroup2/gen/scala/**.scala"),
     deps = [milestone2.gen, data],
   )
 
   parser = scala.library(
-    srcs = glob("mgroup2/parser/scala/**/*.scala"),
+    srcs = glob("mgroup2/parser/scala/**.scala"),
     deps = [milestone2.parser, base.main, data, utils.main],
   )
 
   test = scala.library(
-    srcs = glob("mgroup2/test/scala/**/*.scala"),
+    srcs = glob("mgroup2/test/scala/**.scala"),
     resources = glob("mgroup2/test/resources/**"),
     deps = [data, gen, parser, naive.main, examples.metalang3,
             milestone2.gen, milestone2.parser, milestone2.test, ...scalaTestDeps],
@@ -219,25 +219,25 @@ mgroup2 {
 examples {
   // naive는 metalang3가 없던 시절, naive 파서 테스트용으로 정의된 문법과 예제들
   naiveExamples = scala.library(
-    srcs = glob("examples/naive/scala/**/*.scala"),
+    srcs = glob("examples/naive/scala/**.scala"),
     deps = [base.main],
   )
 
   // metalang3로 정의된 문법들과 예제들
   metalang3 = ktjvm.library(
-    srcs = glob("examples/metalang3/kotlin/**/*.kt"),
+    srcs = glob("examples/metalang3/kotlin/**.kt"),
     resources = glob("examples/metalang3/resources/**"),
     deps = [base.test, examples.naiveExamples],
   )
 
   oldMetalang = scala.library(
-    srcs = glob("examples/oldMetalang/scala/**/*.scala"),
+    srcs = glob("examples/oldMetalang/scala/**.scala"),
     deps = [base.test, naive.test],
   )
 
   // generated는 milestone2와 mgroup2 parser gen으로 생성된 파서 데이터와 코드들
   generated = ktjvm.library(
-    srcs = glob("examples/generated/kotlin/**/*.kt"),
+    srcs = glob("examples/generated/kotlin/**.kt"),
     resources = glob("examples/generated/resources/**"),
     deps = [milestone2.parser, mgroup2.parser, ktlib.main, ktglue.main, examples.metalang3],
   )
@@ -352,7 +352,7 @@ action runTest {
 visualize {
   main = scala.library(
     // TODO 해시를 모든 argument를 합쳐서 하지 말고 세분화할 방법을 고안해야함
-    srcs = glob("visualize/main/scala/**/*.scala"),
+    srcs = glob("visualize/main/scala/**.scala"),
     deps = [
       base.main,
       naive.main,
@@ -385,7 +385,7 @@ visualize {
   )
   
   parserStudio3 = ktjvm.library(
-    srcs = glob("visualize/main/kotlin/**/*.kt"),
+    srcs = glob("visualize/main/kotlin/**.kt"),
     deps = [
       ...ktxCoroutinesDeps,
       visualize.main,
@@ -426,52 +426,52 @@ study {
     }
 
     javalib = java.library(
-      srcs = glob("study/generated/java/**/*.java"),
+      srcs = glob("study/generated/java/**.java"),
       deps = [base.proto.javalib, protobufDep]
     )
   }
 
   fast = scala.library(
-    srcs = glob("study/fast/scala/**/*.scala"),
+    srcs = glob("study/fast/scala/**.scala"),
     deps = [naive.main, utils.main, metalang.main, proto.javalib],
   )
 
   parsergen = java.library(
-    srcs = glob("study/parsergen/java/**/*.java"),
+    srcs = glob("study/parsergen/java/**.java"),
   )
 
   cfg = scala.library(
-    srcs = glob("study/cfg/scala/**/*.scala"),
+    srcs = glob("study/cfg/scala/**.scala"),
     // TODO 여기서 examples.naive 하면 루트의 naive를 찾아가는 것 같은데..?
     deps = [naive.main, utils.main, metalang.main, visualize.main, examples.naiveExamples],
   )
 
   test = scala.library(
-    srcs = glob("study/test/scala/**/*.scala"),
+    srcs = glob("study/test/scala/**.scala"),
     deps = [...scalaTestDeps, fast, parsergen, cfg, examples.oldMetalang]
   )
 }
 
 ktlib {
   main = ktjvm.library(
-    srcs = glob("ktlib/main/kotlin/**/*.kt"),
+    srcs = glob("ktlib/main/kotlin/**.kt"),
     deps = [base.proto.javalib, mgroup2.proto.javalib],
   )
 
   test = ktjvm.library(
-    srcs = glob("ktlib/test/kotlin/**/*.kt"),
+    srcs = glob("ktlib/test/kotlin/**.kt"),
     deps = [ktlib.main, ...testDeps],
   )
 }
 
 ktparser {
   main = ktjvm.library(
-    srcs = glob("ktparser/main/kotlin/**/*.kt"),
+    srcs = glob("ktparser/main/kotlin/**.kt"),
     deps = [ktlib.main],
   )
 
   test = ktjvm.library(
-    srcs = glob("ktparser/test/kotlin/**/*.kt"),
+    srcs = glob("ktparser/test/kotlin/**.kt"),
     resources = glob("ktparser/test/resources/**"),
     deps = [ktparser.main, ktglue.main, mgroup2.gen, mgroup2.test, milestone2.test,
             examples.metalang3, examples.generated, ...testDeps],
@@ -480,12 +480,12 @@ ktparser {
 
 ktglue {
   main = ktjvm.library(
-    srcs = glob("ktglue/main/kotlin/**/*.kt"),
+    srcs = glob("ktglue/main/kotlin/**.kt"),
     deps = [base.main, naive.main, ktlib.main, milestone2.parser, mgroup2.parser],
   )
 
   test = scala.library(
-    srcs = glob("ktglue/test/scala/**/*.scala"),
+    srcs = glob("ktglue/test/scala/**.scala"),
     resources = glob("ktlib/test/resources/pyobj.cdg"),
     deps = [...scalaTestDeps, metalang.main, ktglue.main, examples.metalang3, examples.generated],
   )
@@ -495,12 +495,12 @@ class JParserData(srcsRoot: directory, astifier: file, parserData: file)
 
 bibixPlugin {
   impl = ktjvm.library(
-    srcs = glob("bibixPlugin/main/kotlin/**/*.kt"),
+    srcs = glob("bibixPlugin/main/kotlin/**.kt"),
     deps = [bibix.base, milestone2.gen, mgroup2.gen, metalang.main],
   )
 
   test = ktjvm.library(
-    srcs = glob("bibixPlugin/test/kotlin/**/*.kt"),
+    srcs = glob("bibixPlugin/test/kotlin/**.kt"),
     deps = [impl, ...testDeps],
   )
 
