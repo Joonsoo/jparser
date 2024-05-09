@@ -88,7 +88,7 @@ If you parse the input string `123 * (456 + 789)`, you will get `Mul(Number(123)
 * JParser can be built and run using [bibix](https://github.com/Joonsoo/bibix). You need bibix to run jparser.
 * JParser provides an UI to try grammars. In order to run the UI, run `bibix visualize.parserStudio` on the jparser repository directory.
   * You can see the following screen, if the build was successful:
-  * ![Parser Studio](./parserstudio.png)
+  * ![Parser Studio](./docs/parserstudio.png)
   * You can enter your grammar definition to the panel on the left. The example string should go to the panel on the right top, then the parse tree will be shown on the panel below. The panel at the right bottom shows the AST from the example string.
 
 * You can also generate the parser code using bibix rule `genKtAstMgroup2`. The following shows a typical example of generating the parser using jparser and defining the parser module from the generated code and data.
