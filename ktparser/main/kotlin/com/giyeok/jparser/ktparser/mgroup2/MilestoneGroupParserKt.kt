@@ -371,7 +371,7 @@ class MilestoneGroupParserKt(val parserData: MilestoneGroupParserDataKt) {
 
       for (path in ctx.paths) {
         val termAction = parserData.findTermAction(path.tip.groupId, input)
-        termAction?.let {
+        if (termAction != null) {
           actionsCollector.addTermActions(path.tip, termAction)
           for (pended in termAction.pendedAcceptConditionKernelsList) {
             pendedAppendings.getOrPut(pended.kernelTemplate) { mutableSetOf() }
