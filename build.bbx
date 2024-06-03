@@ -366,19 +366,24 @@ visualize {
       // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
       // ...[jvm.lib(jar) for glob("visualize/lib/*.jar")],
       jvm.lib("visualize/lib/gviz-0.0.1.jar"),
+
       jvm.lib("visualize/lib/org.eclipse.draw2d.source_3.10.1.201508170204.jar"),
       jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
-      jvm.lib("visualize/lib/org.eclipse.jface.databinding_1.13.0.v20210619-1146.jar"),
-      jvm.lib("visualize/lib/org.eclipse.jface.notifications_0.5.0.v20220401-0716.jar"),
-      jvm.lib("visualize/lib/org.eclipse.jface.text_3.21.0.v20220817-1340.jar"),
-      jvm.lib("visualize/lib/org.eclipse.jface_3.26.0.v20220513-0449.jar"),
-      jvm.lib("visualize/lib/org.eclipse.jface_3.27.0.v20220817-1444.jar"),
-      jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64.source_3.120.0.v20220530-1036.jar"),
-      jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64_3.120.0.v20220530-1036.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.databinding.source_1.15.100.v20230708-0916.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.databinding_1.15.100.v20230708-0916.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.notifications.source_0.7.0.v20231017-1913.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.notifications_0.7.0.v20231017-1913.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.source_3.32.0.v20231107-0834.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.text.source_3.24.200.v20231024-0828.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface.text_3.24.200.v20231024-0828.jar"),
+      jvm.lib("visualize/lib/org.eclipse.jface_3.32.0.v20231107-0834.jar"),
+      jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64.source_3.124.200.v20231113-1355.jar"),
+      jvm.lib("visualize/lib/org.eclipse.swt.gtk.linux.x86_64_3.124.200.v20231113-1355.jar"),
+      jvm.lib("visualize/lib/org.eclipse.swt_3.124.200.v20231113-1355.jar"),
       jvm.lib("visualize/lib/org.eclipse.zest.core_1.5.201.201508170204.jar"),
       jvm.lib("visualize/lib/org.eclipse.zest.layouts.source_1.1.200.201508170204.jar"),
       jvm.lib("visualize/lib/org.eclipse.zest.layouts_1.1.200.201508170204.jar"),
-      jvm.lib("visualize/lib/swt-mac.jar"),
+      // jvm.lib("visualize/lib/swt-mac.jar"),
 
       maven.artifact("org.eclipse.platform", "org.eclipse.equinox.common", "3.16.100")
     ],
@@ -484,9 +489,9 @@ ktglue {
     deps = [base.main, naive.main, ktlib.main, milestone2.parser, mgroup2.parser],
   )
 
-  test = scala.library(
-    srcs = glob("ktglue/test/scala/**.scala"),
-    resources = glob("ktlib/test/resources/pyobj.cdg"),
+  test = ktjvm.library(
+    srcs = glob("ktglue/test/scala/**.kt"),
+    resources = glob("ktglue/test/resources/**"),
     deps = [...scalaTestDeps, metalang.main, ktglue.main, examples.metalang3, examples.generated],
   )
 }
