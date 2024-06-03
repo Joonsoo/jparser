@@ -18,7 +18,7 @@ sealed class MilestoneAcceptConditionKt {
           And(template.and.conditionsList.map { reify(it, beginGen, gen) })
 
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.OR ->
-          Or(template.and.conditionsList.map { reify(it, beginGen, gen) })
+          Or(template.or.conditionsList.map { reify(it, beginGen, gen) })
 
         MilestoneParserDataProto.AcceptConditionTemplate.ConditionCase.LOOKAHEAD_IS ->
           Exists(template.lookaheadIs.symbolId, gen, template.lookaheadIs.fromNextGen)
