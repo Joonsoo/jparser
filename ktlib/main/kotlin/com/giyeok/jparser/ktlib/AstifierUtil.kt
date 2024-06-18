@@ -40,26 +40,39 @@ fun unrollRepeat0(
   baseSeq: Int,
   repeatSeq: Int,
   beginGen: Int,
-  endGen: Int
+  endGen: Int,
+): List<Pair<Int, Int>> =
+  unrollRepeat0tr(history, symbolId, itemSymId, baseSeq, repeatSeq, beginGen, endGen, listOf())
+
+tailrec fun unrollRepeat0tr(
+  history: List<KernelSet>,
+  symbolId: Int,
+  itemSymId: Int,
+  baseSeq: Int,
+  repeatSeq: Int,
+  beginGen: Int,
+  endGen: Int,
+  cc: List<Pair<Int, Int>>
 ): List<Pair<Int, Int>> {
   val base = history[endGen].findByBeginGenOpt(baseSeq, 0, beginGen)
   val repeat = history[endGen].findByBeginGenOpt(repeatSeq, 2, beginGen)
   check(hasSingleTrue(base != null, repeat != null))
   return if (base != null) {
-    listOf()
+    cc
   } else {
     val seq = getSequenceElems(history, repeatSeq, listOf(symbolId, itemSymId), beginGen, endGen)
     val repeating = seq.first()
     val item = seq[1]
-    unrollRepeat0(
+    unrollRepeat0tr(
       history,
       symbolId,
       itemSymId,
       baseSeq,
       repeatSeq,
       repeating.first,
-      repeating.second
-    ) + item
+      repeating.second,
+      listOf(item) + cc
+    )
   }
 }
 
@@ -71,25 +84,38 @@ fun unrollRepeat1(
   repeatSeq: Int,
   beginGen: Int,
   endGen: Int
+): List<Pair<Int, Int>> =
+  unrollRepeat1tr(history, symbolId, itemSymId, baseSeq, repeatSeq, beginGen, endGen, listOf())
+
+tailrec fun unrollRepeat1tr(
+  history: List<KernelSet>,
+  symbolId: Int,
+  itemSymId: Int,
+  baseSeq: Int,
+  repeatSeq: Int,
+  beginGen: Int,
+  endGen: Int,
+  cc: List<Pair<Int, Int>>
 ): List<Pair<Int, Int>> {
   val base = history[endGen].findByBeginGenOpt(baseSeq, 1, beginGen)
   val repeat = history[endGen].findByBeginGenOpt(repeatSeq, 2, beginGen)
   check(hasSingleTrue(base != null, repeat != null))
   return if (base != null) {
     val baseItem = history[endGen].findByBeginGen(itemSymId, 1, beginGen)
-    listOf(baseItem.beginGen to baseItem.endGen)
+    listOf(baseItem.beginGen to baseItem.endGen) + cc
   } else {
     val seq = getSequenceElems(history, repeatSeq, listOf(symbolId, itemSymId), beginGen, endGen)
     val repeating = seq.first()
     val item = seq[1]
-    unrollRepeat1(
+    unrollRepeat1tr(
       history,
       symbolId,
       itemSymId,
       baseSeq,
       repeatSeq,
       repeating.first,
-      repeating.second
-    ) + item
+      repeating.second,
+      listOf(item) + cc
+    )
   }
 }

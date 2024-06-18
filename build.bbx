@@ -38,6 +38,13 @@ protobufDep = maven.artifact("com.google.protobuf", "protobuf-java", protobufVer
 testDeps = [
   // maven.artifact("junit", "junit", "4.12"),
   maven.artifact("org.junit.jupiter", "junit-jupiter-api", "5.8.2"),
+  ...truthDeps,
+]
+
+truthVersion = "1.4.2"
+truthDeps = [
+  maven.artifact("com.google.truth", "truth", truthVersion),
+  maven.artifact("com.google.truth.extensions", "truth-proto-extension", truthVersion),
 ]
 
 scalaTestDeps = [
@@ -465,7 +472,7 @@ ktlib {
 
   test = ktjvm.library(
     srcs = glob("ktlib/test/kotlin/**.kt"),
-    deps = [ktlib.main, ...testDeps],
+    deps = [ktlib.main, mgroup2.gen, mgroup2.parser, metalang.main, ktparser.main, ...testDeps],
   )
 }
 
