@@ -50,7 +50,7 @@ class ParserStudio3(val workerDispatcher: CoroutineDispatcher) {
     mapOf(),
     TextStyle(defaultFont, Color.BLACK),
     ContainerStyle(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, null),
-    VertFlowStyle(0.0, Alignment.CENTER),
+    VertFlowStyle(0.0, Alignment.LEADING),
     HorizFlowStyle(0.0, Alignment.LEADING),
     GridStyle(0.0, 0.0)
   )
@@ -220,6 +220,9 @@ class ParserStudio3(val workerDispatcher: CoroutineDispatcher) {
                 }
                 val parseTreeFigure = parseTreeFigureAsync.await()
                 val astValueFigure = astValueFigureAsync.await()
+                for (ast in result.results) {
+                  println(ast.second)
+                }
                 parseTreeView.setViewportView(FigureView(parseTreeFigure, styles))
                 astValueView.setViewportView(FigureView(astValueFigure, styles))
               }

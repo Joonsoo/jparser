@@ -10,6 +10,7 @@ from bibix.plugins import scalatest
 from bibix.plugins import ktjvm
 from bibix.plugins import jar
 from bibix.plugins import zip
+import git("https://github.com/Joonsoo/gviz.git") as gviz
 
 kotlinVersion = "1.9.20"
 var ktjvm.sdkVersion = kotlinVersion
@@ -372,8 +373,7 @@ visualize {
 
       // 지금은 리눅스에서만 실행 가능.. SWT 집어 치워야겠다
       // ...[jvm.lib(jar) for glob("visualize/lib/*.jar")],
-      jvm.lib("visualize/lib/gviz-0.0.1.jar"),
-
+      gviz.main,
       jvm.lib("visualize/lib/org.eclipse.draw2d.source_3.10.1.201508170204.jar"),
       jvm.lib("visualize/lib/org.eclipse.draw2d_3.10.1.201508170204.jar"),
       jvm.lib("visualize/lib/org.eclipse.jface.databinding.source_1.15.100.v20230708-0916.jar"),
