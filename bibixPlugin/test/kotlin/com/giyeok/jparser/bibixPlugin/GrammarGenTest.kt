@@ -3,6 +3,7 @@ package com.giyeok.jparser.bibixPlugin
 import com.giyeok.bibix.base.BooleanValue
 import com.giyeok.bibix.base.FileValue
 import com.giyeok.bibix.base.StringValue
+import com.giyeok.jparser.metalang3.`MetaLanguage3$`
 import org.junit.jupiter.api.Test
 import kotlin.io.path.Path
 
@@ -37,7 +38,13 @@ class GrammarGenTest {
 
   @Test
   fun test() {
-//
-
+    val cdgDef = """
+      A: A = B | C
+      B = 'b' {A("hello")}
+      C = 'c' {A("xx")}
+      A = 'q'
+    """.trimIndent()
+    val grammarAnalysis = `MetaLanguage3$`.`MODULE$`.analyzeGrammar(cdgDef, "AAA")
+    println(grammarAnalysis.errors())
   }
 }
