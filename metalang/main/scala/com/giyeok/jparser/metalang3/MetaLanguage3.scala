@@ -112,7 +112,14 @@ object MetaLanguage3 {
     }
 
     if (!inferredTypeCollector.isComplete) {
-      errorCollector.addError("Incomplete type info")
+      val typeUnknownNonterms = grammar.rules.keySet -- inferredTypeCollector.nonterminalTypes.keySet
+      if (typeUnknownNonterms.nonEmpty) {
+        errorCollector.addError(s"Incomplete type info: nonterminals which of types are unknown=${typeUnknownNonterms.toList.sorted}")
+      }
+      val incompleteClasses = inferredTypeCollector.classParamTypes.filter(_._2.contains(None))
+      if (incompleteClasses.nonEmpty) {
+        errorCollector.addError(s"Incomplete type info: incomplete classes ${incompleteClasses.keys.toList.sorted}")
+      }
     }
 
     inferredTypeCollector.typeRelations.classRelations.checkCycle()
@@ -150,6 +157,16 @@ object MetaLanguage3 {
 
   def analyzeGrammar(grammarDef: MetaLang3Ast.Grammar, grammarName: String): ProcessedGrammar = {
     implicit val errorCollector: ErrorCollector = new ErrorCollector()
+
+    val byRuleNames = grammarDef.defs.filter(_.isInstanceOf[MetaLang3Ast.Rule]).groupBy { ruleDef =>
+      val rule = ruleDef.asInstanceOf[MetaLang3Ast.Rule]
+      rule.lhs.name.name.name
+    }
+    if (byRuleNames.exists(_._2.size > 1)) {
+      val dups = byRuleNames.filter(_._2.size > 1).keys
+      throw IllegalGrammar(s"Duplicate rule definitions: $dups")
+    }
+
     val (transformer, grammar, ngrammar) = transformGrammar(grammarDef, grammarName)
 
     analyzeGrammar(transformer, grammar, ngrammar)
