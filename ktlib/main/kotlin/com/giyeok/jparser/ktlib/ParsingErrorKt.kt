@@ -10,4 +10,13 @@ sealed class ParsingErrorKt : Exception() {
   ) : ParsingErrorKt()
 
   data class UnexpectedEndOfFile(override val location: Int) : ParsingErrorKt()
+
+  data class DisqualifiedSymbol(
+    val symbolId: Int,
+    val pointer: Int,
+    val beginGen: Int,
+    val endGen: Int
+  ) : ParsingErrorKt() {
+    override val location: Int get() = endGen
+  }
 }

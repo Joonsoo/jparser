@@ -1,5 +1,6 @@
 package com.giyeok.jparser.ktlib
 
+import com.giyeok.jparser.ktlib.ParsingErrorKt
 import com.giyeok.jparser.milestone2.proto.MilestoneParserDataProto
 
 // TODO 성능 개선 포인트들이 있을 듯
@@ -40,7 +41,8 @@ class KernelSet(val kernels: Set<Kernel>) {
   fun contains(kernel: Kernel): Boolean = kernels.contains(kernel)
 
   fun getSingle(symbolId: Int, pointer: Int, beginGen: Int, endGen: Int): Kernel =
-    filterByBeginGen(symbolId, pointer, beginGen).find { it.endGen == endGen }!!
+    filterByBeginGen(symbolId, pointer, beginGen).find { it.endGen == endGen }
+      ?: throw ParsingErrorKt.DisqualifiedSymbol(symbolId, pointer, beginGen, endGen)
 
   fun toKernels(): Set<Kernel> = kernels
 }
