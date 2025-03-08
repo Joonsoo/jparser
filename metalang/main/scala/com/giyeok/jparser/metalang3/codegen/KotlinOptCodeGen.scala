@@ -84,13 +84,19 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     }
     if (cls.subclasses.isEmpty) {
       // Concrete type
+      val contentFields = analysis.classParamTypes.getOrElse(cls.className, List()).map { param =>
+        s"${param._1}=$${${param._1}}"
+      }
+      val toShortStringBody = s"\"${cls.className}(${contentFields.mkString(", ")})\""
       CodeBlob(
         s"""data class ${cls.className}(
            |${params.map(_.code + ",").mkString("\n")}
            |  override val nodeId: Int,
            |  override val start: Int,
            |  override val end: Int,
-           |): $supers
+           |): $supers {
+           |  override fun toShortString(): String = $toShortStringBody
+           |}
            |""".stripMargin,
         params.flatMap(_.required).toSet)
     } else {
@@ -461,6 +467,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
         |    val nodeId: Int
         |    val start: Int
         |    val end: Int
+        |    fun toShortString(): String
         |  }
         |""".stripMargin)
 
