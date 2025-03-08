@@ -85,7 +85,33 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     if (cls.subclasses.isEmpty) {
       // Concrete type
       val contentFields = analysis.classParamTypes.getOrElse(cls.className, List()).map { param =>
-        s"${param._1}=$${${param._1}}"
+        def isSimplyShortStringType(typ: Type): Boolean = typ match {
+          case Type.NullType | Type.AnyType | Type.NothingType | Type.NodeType
+               | Type.BoolType | Type.CharType | Type.StringType | _: Type.EnumType => true
+          case _ => false
+        }
+
+        def toShortStringExpr(expr: String, typ: Type): String = typ match {
+          case _: Type.ClassType => s"$expr.toShortString()"
+          case Type.OptionalOf(valueTyp) => valueTyp match {
+            case Type.ClassType(name) => s"$expr?.toShortString()"
+            case Type.OptionalOf(typ) => ???
+            case _ => expr
+          }
+          case Type.ArrayOf(elemType) => if (isSimplyShortStringType(elemType)) expr else {
+            s"\"[$${$expr.joinToString { ${toShortStringExpr("it", elemType)} }}]\""
+          }
+          case Type.NullType | Type.AnyType | Type.NothingType | Type.NodeType
+               | Type.BoolType | Type.CharType | Type.StringType | _: Type.EnumType => expr
+          case unionType: Type.UnionOf =>
+            analysis.reduceUnionType(unionType) match {
+              case _: Type.UnionOf => throw new IllegalArgumentException("Should not happen")
+              case reducedType => toShortStringExpr(expr, reducedType)
+            }
+          case _: Type.UnspecifiedEnumType => "???"
+        }
+
+        s"${param._1}=$${${toShortStringExpr(param._1, param._2)}}"
       }
       val toShortStringBody = s"\"${cls.className}(${contentFields.mkString(", ")})\""
       CodeBlob(
