@@ -144,6 +144,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
     s"match${nonterminal.substring(0, 1).toUpperCase}${nonterminal.substring(1)}"
 
   def matchStartFunc(): CodeBlob = {
+    varId = 0
     val startSymbol = analysis.ngrammar.symbolOf(analysis.ngrammar.nsymbols(analysis.ngrammar.startSymbol).asInstanceOf[NStart].produce).asInstanceOf[NNonterminal]
     val returnType = typeDescStringOf(analysis.nonterminalTypes(analysis.startNonterminalName), context = Some(s"return type of ${analysis.startNonterminalName}"))
     _requiredNonterms += startSymbol.symbol.name
@@ -159,6 +160,7 @@ class KotlinOptCodeGen(val analysis: ProcessedGrammar) {
 
   // returns: (Generated CodeBlob, Set of nonterminals required)
   def nonterminalMatchFunc(nonterminal: String): CodeBlob = {
+    varId = 0
     val valuefyExpr = analysis.nonterminalValuefyExprs(nonterminal)
     val body = unrollChoicesExpr(valuefyExpr.choices, "beginGen", "endGen")
     val returnType = typeDescStringOf(analysis.nonterminalTypes(nonterminal), Some(s"return type of nonterminal $nonterminal"))
