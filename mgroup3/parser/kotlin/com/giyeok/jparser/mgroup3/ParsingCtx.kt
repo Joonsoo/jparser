@@ -2,13 +2,15 @@ package com.giyeok.jparser.mgroup3
 
 data class ParsingCtx(
   val gen: Int,
+  val mainRoot: PathRoot,
   val mainPaths: List<ParsingPath>,
   val condPaths: Map<PathRoot, List<ParsingPath>>,
   // TODO history
 )
 
 data class ParsingPath(
-  val root: PathRoot,
+  // val root: PathRoot, // ParsingCtx를 통해서 알 수 있음
+
   // milestonePath == null이라는 것은 starter path인 경우, 즉 root가 tipGroupId에 포함되어 있는 경우를 나타냄
   // 이 때는 TermAction 실행시 TermAction의 replace 하나로 구성된 MilestonePath로 변경해야 한다
   val milestonePath: MilestonePath?,
